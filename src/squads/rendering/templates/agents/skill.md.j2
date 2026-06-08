@@ -1,0 +1,16 @@
+<!-- sq:body -->
+# {{ item.title }}
+
+{{ description or "_TODO: describe what this skill does and when to use it._" }}
+{% if extra.get('when_to_use') %}
+
+## When to use
+
+{{ extra.get('when_to_use') }}
+{% endif %}
+
+## Instructions
+<!-- sq:body:end -->
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->

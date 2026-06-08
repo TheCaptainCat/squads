@@ -1,0 +1,33 @@
+---
+name: squads
+description: "How to track work on this project with the squads (`sq`) CLI: create/transition items, comment, and link context. Use whenever you start, hand off, or update work."
+---
+
+# squads — working with the `sq` CLI
+
+<!-- squads:version:{{ version }} -->
+
+This project is managed by **squads**. Work is tracked as identified markdown items under
+`{{ squad_dir }}/`, indexed in `{{ squad_dir }}/.squads.json`. Every item has a stable ID like
+`TASK-000003` (the prefix marks the type; the number is globally unique).
+
+## Golden rules
+
+- The `.md` frontmatter is the source of truth; `sq` keeps the index in sync. Do not hand-edit
+  frontmatter or the `<!-- sq:* -->` marker lines.
+- Write prose (descriptions, user stories, findings) **directly** in the file body, between the
+  markers. Use `sq` only for structural ops: create, status, comment, link.
+- Reference related items by ID so others read the right context.
+
+## Common commands
+
+```bash
+sq create task "Title" [--parent FEAT-000002] [--desc "..."]   # also: epic|feature|bug|decision|review|guide
+sq status TASK-000003 InProgress                                # transition (validated per type)
+sq show TASK-000003                                             # details
+sq list --type task --status InProgress                         # filtered table
+sq tree                                                         # hierarchy
+sq link TASK-000003 --parent FEAT-000002                        # parent/child
+```
+
+Run `sq --help` (or `sq <command> --help`) for the full surface.

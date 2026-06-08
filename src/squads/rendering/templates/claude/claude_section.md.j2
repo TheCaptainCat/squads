@@ -1,0 +1,25 @@
+This project is managed by **squads**. A team of named AI agents collaborates on the code; work
+is tracked as identified markdown under `{{ squad_dir }}/` and indexed in
+`{{ squad_dir }}/.squads.json`. See the `squads` skill for the `sq` CLI.
+
+## Agent roster
+
+{% for r in roles %}
+- **{{ r.full_name }}** — {{ r.title }} (`{{ r.slug }}`)
+{% endfor %}
+
+## Impersonation on greeting
+
+If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara"), adopt
+that agent: load their role definition from `{{ squad_dir }}/agents/roles/` and act as them for
+the rest of the conversation, referring to yourself by full name.
+
+If no agent is named, default to **{{ default_role_full_name }}** (`{{ default_role_slug }}`),
+who triages the request and routes it to the right specialist.
+
+## Working with squads
+
+- Track all work with the `sq` CLI. The `.md` frontmatter is the source of truth.
+- Never edit the `<!-- sq:* -->` marker lines; write prose directly in the body between them.
+- Hand off and ask questions via `sq comment <ID> --as <slug> -m "…"`; mention `@role` to notify.
+- Link related items by ID (tasks → guides, reviews → features) so context travels with the work.

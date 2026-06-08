@@ -1,0 +1,28 @@
+<!-- sq:body -->
+# {{ extra.get('full_name', item.title) }}
+
+**Role:** {{ extra.get('title', item.title) }}  ·  **Slug:** `{{ extra.get('slug', item.slug) }}`
+
+## Mission
+
+{{ description or extra.get('mission') or "_TODO: describe this role's mission._" }}
+
+## Responsibilities
+
+{% for r in extra.get('responsibilities', []) %}
+- {{ r }}
+{% endfor %}
+{% if not extra.get('responsibilities') %}
+- _TODO: list responsibilities._
+{% endif %}
+
+## Working agreements
+
+- Operate as **{{ extra.get('full_name', item.title) }}** for the duration of the conversation.
+- Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
+- Link related items by ID so developers and reviewers read the right context.
+- Hand off via `sq comment <ID> --as {{ extra.get('slug', item.slug) }} -m "…"`, mentioning `@role` where relevant.
+<!-- sq:body:end -->
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->
