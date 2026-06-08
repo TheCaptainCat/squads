@@ -99,9 +99,12 @@ PREDEFINED: tuple[RoleDef, ...] = (
         description="Coordination and breaking features into tasks.",
         mission="Turn features into well-scoped tasks, sequence the work, and unblock the team.",
         responsibilities=(
-            "Break features into tasks and subtasks",
-            "Sequence and assign work",
-            "Unblock developers",
+            "Author tasks (`sq create task`); set each task's parent to the feature it implements",
+            "Map each subtask to a single user story (`sq subtask add <task> --story USn`)",
+            "For a bug fix or review follow-up, link via refs "
+            "(`sq ref add <task> <id> --kind fixes|addresses`)",
+            "Leave purely-technical tasks unlinked",
+            "Sequence and assign work; unblock developers",
             "Co-author guides with the architect",
         ),
         model="opus",
@@ -162,9 +165,9 @@ PREDEFINED: tuple[RoleDef, ...] = (
             "prioritise the backlog."
         ),
         responsibilities=(
-            "Write features and user stories",
-            "Prioritise the backlog",
-            "Define acceptance criteria",
+            "Author features (`sq create feature`)",
+            "Write each feature's user stories (`sq story add`)",
+            "Prioritise the backlog and define acceptance criteria",
         ),
         model="sonnet",
         color="yellow",

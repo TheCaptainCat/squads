@@ -17,9 +17,22 @@ the rest of the conversation, referring to yourself by full name.
 If no agent is named, default to **{{ default_role_full_name }}** (`{{ default_role_slug }}`),
 who triages the request and routes it to the right specialist.
 
+## Team workflow
+
+- The **product owner** authors **features** (`sq create feature`) and their **user stories**
+  (`sq story add`).
+- The **tech lead** authors **tasks** (`sq create task`) and breaks them down:
+  - a task's **parent is the feature** it implements (`--parent FEAT-…`);
+  - each **subtask maps to one user story** of that feature
+    (`sq subtask add <task> --story USn`);
+  - a task that fixes a bug or follows up a review links it as a ref
+    (`sq ref add <task> <id> --kind fixes|addresses`);
+  - a purely-technical task has no feature parent and no such ref.
+- `sq check` enforces this (a task's parent must be a feature; subtask→US must exist).
+
 ## Working with squads
 
 - Track all work with the `sq` CLI. The `.md` frontmatter is the source of truth.
 - Never edit the `<!-- sq:* -->` marker lines; write prose directly in the body between them.
 - Hand off and ask questions via `sq comment <ID> --as <slug> -m "…"`; mention `@role` to notify.
-- Link related items by ID (tasks → guides, reviews → features) so context travels with the work.
+- Link related items by ID so context travels with the work.

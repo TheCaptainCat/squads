@@ -7,7 +7,11 @@ from squads.cli import common
 
 app = typer.Typer(
     name="sq",
-    help="Manage a team of AI agents: bootstrap roles & skills, track work with stable IDs.",
+    help=(
+        "Manage a team of AI agents: bootstrap roles & skills, track work with stable IDs.\n\n"
+        "New here? Run `sq workflow` for how the team works, or `sq <command> --help` for details."
+    ),
+    epilog="Team workflow: `sq workflow`  ·  per-command help: `sq <command> --help`",
     no_args_is_help=True,
     add_completion=False,
 )

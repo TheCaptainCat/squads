@@ -1,0 +1,18 @@
+## Team workflow
+
+- **Product owner** → features + their user stories:
+  `sq create feature "…"`, `sq story add FEAT-… "…"`.
+- **Tech lead** → tasks under a feature, with subtasks mapped to a user story:
+
+  ```bash
+  sq create task "…" --parent FEAT-…          # a task's parent must be a feature
+  sq subtask add TASK-… "…" --story US1        # US1 must exist in the parent feature
+  sq ref add TASK-… BUG-… --kind fixes         # bug fix  (or REV-… --kind addresses)
+  ```
+
+  A purely-technical task has no feature parent and no fix/addresses ref.
+- Hierarchy: epic → feature → task; subtasks → user stories. `sq check` enforces the parent rules.
+- Each role has skills for the item types it manages (`sq-feature`, `sq-task`, `sq-bug`, …) —
+  open those for role-specific guidance. The default agent (Catherine Manager) triages and routes.
+- The `.md` frontmatter is the source of truth; write prose between the `<!-- sq:* -->` markers,
+  never editing the marker lines. Hand off with `sq comment <ID> --as <slug> -m "…"` (use `@role`).

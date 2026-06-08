@@ -132,8 +132,8 @@ class Service:
         slug = slug or slugify(title)
         now = clock.now()
         with self.store.transaction() as db:
-            if parent and parent not in db.items:
-                raise ItemNotFoundError(f"parent {parent!r} does not exist")
+            if parent:
+                self._check_parent(db, item_type, parent)
             item_id = db.allocate_id(item_type)
             filename = f"{item_id}-{slug}.md"
             squad_rel = self.paths.squad_relative(item_type, filename)
@@ -251,11 +251,20 @@ class Service:
         item.slug = new_slug
         item.path = new_rel
 
+    def _check_parent(self, db: SquadsDB, child_type: ItemType, parent_id: str) -> None:
+        from squads.workflow import parent_allowed, parent_hint
+
+        parent = db.get(parent_id)
+        if parent is None:
+            raise ItemNotFoundError(f"parent {parent_id!r} does not exist")
+        if not parent_allowed(child_type, parent.type):
+            raise SquadsError(f"{parent_hint(child_type)} (got {parent.type.value})")
+
     # ------------------------------------------------------------------ link
     def link(self, child_id: str, parent_id: str) -> Item:
         with self.store.transaction() as db:
             child = require_item(db, child_id)
-            require_item(db, parent_id)
+            self._check_parent(db, child.type, parent_id)
             child.parent = parent_id
             child.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, child), child)
@@ -320,11 +329,34 @@ class Service:
     def add_story(self, feature_id: str, title: str = "") -> BlockResult:
         return self._add_block(feature_id, ItemType.FEATURE, markers.STORIES, "story", title)
 
-    def add_subtask(self, task_id: str, title: str = "") -> BlockResult:
-        return self._add_block(task_id, ItemType.TASK, markers.SUBTASKS, "subtask", title)
+    def add_subtask(
+        self, task_id: str, title: str = "", *, story: str | None = None
+    ) -> BlockResult:
+        if story:
+            self._validate_subtask_story(task_id, story)
+        return self._add_block(task_id, ItemType.TASK, markers.SUBTASKS, "subtask", title, story)
+
+    def _validate_subtask_story(self, task_id: str, story: str) -> None:
+        task = self.get(task_id)
+        if not task.parent:
+            raise SquadsError(
+                f"{task_id} has no feature parent; set one before mapping a subtask to {story}"
+            )
+        parent = self.get(task.parent)
+        if parent.type is not ItemType.FEATURE:
+            raise SquadsError(f"{task_id}'s parent is a {parent.type.value}, not a feature")
+        stories = {sid for sid, _ in discussion.list_blocks(self._read(parent.id), "story")}
+        if story not in stories:
+            raise SquadsError(f"user story {story} not found in {parent.id}")
 
     def _add_block(
-        self, item_id: str, expect: ItemType, container: str, kind: str, title: str
+        self,
+        item_id: str,
+        expect: ItemType,
+        container: str,
+        kind: str,
+        title: str,
+        story: str | None = None,
     ) -> BlockResult:
         item = self.get(item_id)
         if item.type is not expect:
@@ -337,7 +369,7 @@ class Service:
         block = (
             discussion.build_story_block(local_id, title)
             if kind == "story"
-            else discussion.build_subtask_block(local_id, title)
+            else discussion.build_subtask_block(local_id, title, story=story)
         )
         path.write_text(sections.append_to_section(content, container, block), encoding="utf-8")
         self._bump(item_id)
@@ -402,13 +434,19 @@ class Service:
         existing = self._role_item(slug)
         if existing is not None:
             return existing
+        from squads.interactions import skills_for_role
+
         res = self.create(
             ItemType.ROLE,
             role.full_name,
             description=role.mission,
             status=Status.ACTIVE,
             slug=role.slug,
-            extra={**role.to_extra(), "description": role.description},
+            extra={
+                **role.to_extra(),
+                "description": role.description,
+                "skills": skills_for_role(role.slug),
+            },
         )
         self._backend().generate_role_pointer(self._ctx, res.item, role)
         return res.item
@@ -480,6 +518,7 @@ class Service:
 
     # ------------------------------------------------------------------ developers
     def add_dev(self, tech: str, *, name: str | None = None, model: str | None = None) -> Item:
+        from squads.interactions import skills_for_role
         from squads.roles.catalog import dev_role
 
         seq = sum(1 for it in self.list(type=ItemType.ROLE) if it.extra.get("is_dev"))
@@ -497,6 +536,7 @@ class Service:
                 "description": role.description,
                 "is_dev": True,
                 "tech": tech,
+                "skills": skills_for_role(role.slug),
             },
         )
         self._backend().generate_role_pointer(self._ctx, res.item, role)
@@ -660,7 +700,7 @@ class Service:
     # ------------------------------------------------------------------ check
     def check(self) -> list[CheckIssue]:
         from squads.itemfile import read_frontmatter
-        from squads.workflow import workflow_for
+        from squads.workflow import parent_allowed, parent_hint, workflow_for
 
         issues: list[CheckIssue] = []
         index = self.store.load()
@@ -704,6 +744,14 @@ class Service:
                 )
             if item.parent and item.parent not in index.items:
                 issues.append(CheckIssue("error", iid, f"dangling parent {item.parent}"))
+            elif item.parent:
+                parent_type = index.items[item.parent].type
+                if not parent_allowed(item.type, parent_type):
+                    issues.append(
+                        CheckIssue(
+                            "error", iid, f"{parent_hint(item.type)} (got {parent_type.value})"
+                        )
+                    )
             for ref in item.refs:
                 if ref not in index.items:
                     issues.append(CheckIssue("warn", iid, f"dangling ref {ref}"))
@@ -724,6 +772,34 @@ class Service:
                             iid,
                             "parent drift between frontmatter and index (run `sq repair`)",
                         )
+                    )
+
+        # subtask → user-story references must resolve in the task's parent feature
+        for iid, item in index.items.items():
+            if item.type is not ItemType.TASK or iid not in on_disk:
+                continue
+            stories = discussion.subtask_stories(on_disk[iid][0].read_text())
+            refs = [(stn, us) for stn, us in stories if us]
+            if not refs:
+                continue
+            parent = index.items.get(item.parent) if item.parent else None
+            if parent is None or parent.type is not ItemType.FEATURE:
+                issues.append(
+                    CheckIssue(
+                        "error",
+                        iid,
+                        "subtask maps to a user story but the task has no feature parent",
+                    )
+                )
+                continue
+            feature_stories: set[str] = set()
+            if parent.id in on_disk:
+                blocks = discussion.list_blocks(on_disk[parent.id][0].read_text(), "story")
+                feature_stories = {sid for sid, _ in blocks}
+            for stn, us in refs:
+                if us not in feature_stories:
+                    issues.append(
+                        CheckIssue("error", iid, f"subtask {stn} → {us} missing from {parent.id}")
                     )
         return issues
 

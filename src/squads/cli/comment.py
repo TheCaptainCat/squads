@@ -67,6 +67,7 @@ def story_add(
 @story_app.command("list")
 @handle_errors
 def story_list(feature_id: str = typer.Argument(...)):
+    """List a feature's user stories."""
     svc = get_service()
     stories = svc.list_stories(feature_id)
     if not stories:
@@ -85,16 +86,22 @@ def story_list(feature_id: str = typer.Argument(...)):
 def subtask_add(
     task_id: str = typer.Argument(...),
     title: str = typer.Argument("", help="Optional checklist label; write detail in the body."),
+    story: str | None = typer.Option(
+        None,
+        "--story",
+        help="User story this subtask implements (e.g. US2; must exist in the parent feature).",
+    ),
     json_out: bool = typer.Option(False, "--json"),
 ):
     """Scaffold a subtask (free-form body + its own discussion) on a task."""
     svc = get_service()
-    _print_block(task_id, svc.add_subtask(task_id, title), json_out)
+    _print_block(task_id, svc.add_subtask(task_id, title, story=story), json_out)
 
 
 @subtask_app.command("list")
 @handle_errors
 def subtask_list(task_id: str = typer.Argument(...)):
+    """List a task's subtasks (with their checkbox and user-story map)."""
     svc = get_service()
     subs = svc.list_subtasks(task_id)
     if not subs:
@@ -115,6 +122,7 @@ def subtask_done(
     local_id: str = typer.Argument(..., metavar="STn"),
     undo: bool = typer.Option(False, "--undo", help="Re-open the subtask."),
 ):
+    """Mark a subtask done (or re-open it with --undo)."""
     svc = get_service()
     svc.set_subtask_done(task_id, local_id, done=not undo)
     console.print(f"{task_id} {local_id} → {'open' if undo else 'done'}")

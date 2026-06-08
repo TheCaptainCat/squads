@@ -105,6 +105,7 @@ your-project/
 
 **Setup**
 - `sq init [--squad-dir squads] [--backend claude_code] [--roles all|core|minimal|<slugs>] [--no-claude] [--force]`
+- `sq workflow` — print the team-workflow cheatsheet
 - `sq sync` — regenerate tool-owned managed files to the current version
 - `--dir PATH` (global) — operate on the squad folder at PATH instead of walking up to `.squads.toml`
 
@@ -117,7 +118,7 @@ your-project/
 **Collaboration**
 - `sq comment ID -m "…" [-m "…"] [--as <slug|operator>] [--story USn|--subtask STn]` (use `@role` to notify)
 - `sq story add FEAT-ID [LABEL] [--json]` · `sq story list FEAT-ID`
-- `sq subtask add TASK-ID [LABEL] [--json]` · `sq subtask list TASK-ID` · `sq subtask done TASK-ID STn [--undo]`
+- `sq subtask add TASK-ID [LABEL] [--story USn] [--json]` · `sq subtask list TASK-ID` · `sq subtask done TASK-ID STn [--undo]`
 - `sq inbox <role>` — open items mentioning `@role`
 
 `story add` / `subtask add` **scaffold an empty block with a writable body region** and print
@@ -126,7 +127,7 @@ fills it with free-form paragraphs or bullet lists. The optional `LABEL` is just
 the substance lives in the body. `sq` still owns the discussion and the subtask checkbox.
 
 **Cross-linking**
-- `sq ref add FROM TO [--kind related|blocks|implements]` · `sq ref rm FROM TO`
+- `sq ref add FROM TO [--kind related|blocks|implements|fixes|addresses]` · `sq ref rm FROM TO`
 - `sq refs ID [--out|--in|--all] [--json]` (forward edges stored; backrefs computed)
 
 **Agents**
@@ -153,6 +154,35 @@ Nina Product (`product-owner`), Theo Writer (`tech-writer`). Add stack developer
 
 Agents create items with `sq`, get back the file path, write the body directly, and hand off via
 `sq comment … @role`. Status and discussion stay owned by the CLI.
+
+`sq init`/`sq sync` also generate a **skill per item type** (`sq-feature`, `sq-task`, `sq-bug`, …)
+with role-directed guidance, plus the general `squads` skill. Each role's `.claude/agents/<slug>.md`
+pointer preloads (via `skills:`) only the skills for the item types that role manages — so the
+product owner gets `sq-feature`/`sq-epic`, a developer gets `sq-task`/`sq-bug`/`sq-review`, and the
+manager (who triages rather than owning a type) gets just `squads`. Run `sq workflow` for the
+cheatsheet.
+
+### Team workflow
+
+squads encodes a light division of labour (enforced by validation + `sq check`):
+
+- The **product owner** writes **features** and their **user stories**
+  (`sq create feature`, `sq story add`).
+- The **tech lead** writes **tasks**. A task's **parent is the feature** it implements, and each
+  **subtask maps to one user story**:
+  ```bash
+  sq create task "Token validation" --parent FEAT-000002
+  sq subtask add TASK-000003 "Validate expiry" --story US1   # US1 must exist in FEAT-000002
+  ```
+- A task may instead/also link a **bug** or **review** via typed refs — or nothing if it's purely
+  technical:
+  ```bash
+  sq ref add TASK-000003 BUG-000009 --kind fixes
+  sq ref add TASK-000003 REV-000010 --kind addresses
+  ```
+
+A task's parent must be a feature (link a bug/review with a ref, not as parent); a feature's parent
+must be an epic. Invalid links are rejected at create/link time and flagged by `sq check`.
 
 ---
 

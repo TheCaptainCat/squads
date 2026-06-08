@@ -19,9 +19,12 @@ def test_init_creates_claude_pointers_and_managed_files(project):
     assert "squads/agents/roles/ROLE-000001-manager.md" in body
     assert "Catherine Manager" in body
 
-    skill = (project.claude_dir / "skills" / "squads" / "SKILL.md").read_text()
-    assert "sq create" in skill
-    assert "squads:version:" in skill
+    # the squads skill is a thin pointer in .claude → real body under the squad folder
+    skill_pointer = (project.claude_dir / "skills" / "squads" / "SKILL.md").read_text()
+    assert "@squads/agents/skills/squads.md" in skill_pointer
+    skill_body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text()
+    assert "sq create" in skill_body
+    assert "squads:version:" in skill_body
 
     claude_md = project.claude_md.read_text()
     assert "<!-- squads:start -->" in claude_md

@@ -15,6 +15,15 @@
 {% if not extra.get('responsibilities') %}
 - _TODO: list responsibilities._
 {% endif %}
+{% if extra.get('skills') %}
+
+## Skills
+
+Use these skills for the item types you manage (see each for role-specific guidance):
+{% for s in extra.get('skills') %}
+- `{{ s }}`
+{% endfor %}
+{% endif %}
 
 ## Working agreements
 

@@ -16,7 +16,9 @@ ref_app = typer.Typer(no_args_is_help=True, help="Manage forward reference edges
 def ref_add(
     from_id: str = typer.Argument(...),
     to_id: str = typer.Argument(...),
-    kind: str = typer.Option("related", "--kind", help="related | blocks | implements"),
+    kind: str = typer.Option(
+        "related", "--kind", help="related | blocks | implements | fixes | addresses"
+    ),
 ):
     """Add a forward reference FROM_ID → TO_ID."""
     get_service().add_ref(from_id, to_id, kind=kind)

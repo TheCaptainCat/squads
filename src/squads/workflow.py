@@ -113,6 +113,29 @@ def is_open(status: Status) -> bool:
     return status not in TERMINAL
 
 
+#: Allowed parent types per child type (the workflow spine). Types absent here are unconstrained;
+#: a ``None`` parent is always allowed.
+ALLOWED_PARENTS: dict[ItemType, set[ItemType]] = {
+    ItemType.TASK: {ItemType.FEATURE},
+    ItemType.FEATURE: {ItemType.EPIC},
+}
+
+
+def parent_allowed(child: ItemType, parent: ItemType) -> bool:
+    allowed = ALLOWED_PARENTS.get(child)
+    return allowed is None or parent in allowed
+
+
+def parent_hint(child: ItemType) -> str:
+    """Human guidance for an invalid parent (used in error messages)."""
+    allowed = ALLOWED_PARENTS.get(child, set())
+    names = " or ".join(sorted(t.value for t in allowed)) or "none"
+    msg = f"a {child.value}'s parent must be a {names}"
+    if child is ItemType.TASK:
+        msg += "; link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`"
+    return msg
+
+
 def workflow_for(item_type: ItemType) -> Workflow:
     return WORKFLOWS[item_type]
 

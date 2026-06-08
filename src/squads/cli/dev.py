@@ -30,6 +30,7 @@ def dev_add(
 @dev_app.command("list")
 @handle_errors
 def dev_list():
+    """List the activated developer roles."""
     svc = get_service()
     devs = [it for it in svc.list(type=ItemType.ROLE) if it.extra.get("is_dev")]
     if not devs:

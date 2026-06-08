@@ -32,6 +32,11 @@ models  shared, no internal deps
 - `backends/` — `AgentBackend` ABC + registry; `claude_code/` writes pointer files, the managed
   `squads` skill, and the CLAUDE.md managed section.
 - `roles/catalog.py` — the 8 bundled roles + dev name pool + `dev_role()`.
+- `interactions.py` — the team **playbook**: which roles interact with each item type (the `*dev`
+  sentinel = any `<tech>-dev` role). Drives the per-item-type managed skills (`sq-<type>`, one
+  role-directed section each) and `skills_for_role()` (which skills a role's pointer preloads). A
+  role that doesn't manage a type gets no skill for it. Workflow cheatsheet partial:
+  `rendering/templates/workflow.md.j2` (shared by the `squads` skill and `sq workflow`).
 - `service.py` — orchestration; the logic behind each command. `discussion.py` — comment/story/
   subtask formatting + `@mention` extraction.
 - `cli/` — Typer app (`__init__` wires sub-typers + the `--dir` callback + version notice);

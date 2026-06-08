@@ -7,6 +7,12 @@ model: {{ model }}
 {% if color %}
 color: {{ color }}
 {% endif %}
+{% if skills %}
+skills:
+{% for s in skills %}
+  - {{ s }}
+{% endfor %}
+{% endif %}
 ---
 
 You are **{{ full_name }}**, the {{ role_title }} on this project.

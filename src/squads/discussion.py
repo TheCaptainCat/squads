@@ -73,11 +73,12 @@ def build_story_block(local_id: str, title: str = "") -> str:
     )
 
 
-def build_subtask_block(local_id: str, title: str = "") -> str:
+def build_subtask_block(local_id: str, title: str = "", *, story: str | None = None) -> str:
     tag = markers.subtask_tag(local_id)
     btag = body_tag("subtask", local_id)
     dtag = markers.discussion_tag(tag)
-    heading = f"### {local_id} — [ ] {title}".rstrip()
+    suffix = f"  (→ {story})" if story else ""
+    heading = f"### {local_id} — [ ] {title}".rstrip() + suffix
     return (
         f"\n{markers.open_marker(tag)}\n"
         f"{heading}\n\n"
@@ -109,6 +110,19 @@ def _heading(block: str, local_id: str) -> tuple[str, bool]:
         return "", False
     done = (m.group(1) or "").lower() == "x"
     return m.group(2).strip(), done
+
+
+_STORY_REF_RE = re.compile(r"\(→[ \t]*(US\d+)\)")
+
+
+def subtask_stories(text: str) -> list[tuple[str, str | None]]:
+    """[(subtask local id, referenced US id or None), …] across a task file."""
+    out: list[tuple[str, str | None]] = []
+    for lid, block in _iter_blocks(text, "subtask"):
+        title, _ = _heading(block, lid)
+        m = _STORY_REF_RE.search(title)
+        out.append((lid, m.group(1) if m else None))
+    return out
 
 
 def _body_first_line(block: str, kind: str, local_id: str) -> str:

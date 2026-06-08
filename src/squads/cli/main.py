@@ -283,6 +283,16 @@ def sync():
 
 
 @app.command()
+def workflow():
+    """Print the team workflow cheatsheet (who writes what, how items link)."""
+    from rich.markdown import Markdown
+
+    from squads.rendering import render
+
+    console.print(Markdown(render("workflow.md.j2")))
+
+
+@app.command()
 @handle_errors
 def check():
     """Lint the squad: markers, dangling links, invalid status, index drift."""
