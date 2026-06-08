@@ -769,7 +769,9 @@ class Service:
                 continue
             refs = [
                 (stn, us)
-                for stn, us in discussion.subtask_stories(on_disk[iid][0].read_text())
+                for stn, us in discussion.subtask_stories(
+                    on_disk[iid][0].read_text(encoding="utf-8")
+                )
                 if us
             ]
             if not refs:
@@ -786,7 +788,9 @@ class Service:
                 continue
             known: set[str] = set()
             if parent.id in on_disk:
-                blocks = discussion.list_blocks(on_disk[parent.id][0].read_text(), "story")
+                blocks = discussion.list_blocks(
+                    on_disk[parent.id][0].read_text(encoding="utf-8"), "story"
+                )
                 known = {sid for sid, _ in blocks}
             issues += [
                 CheckIssue("error", iid, f"subtask {stn} → {us} missing from {parent.id}")

@@ -10,8 +10,9 @@ from squads._models._enums import ItemType, Status
 def test_comment_appends_under_anchor_and_resolves_author(svc):
     task = svc.create(ItemType.TASK, "t").item
     svc.comment(task.id, ["first point", "second point"], as_slug="manager")
-    text = svc.paths.abspath(svc.get(task.id).path).read_text()
+    text = svc.paths.abspath(svc.get(task.id).path).read_text(encoding="utf-8")
     disc = sections.get_section(text, "discussion")
+    assert disc is not None
     assert "Catherine Manager:" in disc  # slug → full name
     assert "- first point" in disc
     assert "- second point" in disc
@@ -21,13 +22,17 @@ def test_comment_preserves_body_and_markers(svc):
     task = svc.create(ItemType.TASK, "t").item
     path = svc.paths.abspath(task.path)
     # simulate an agent writing real body prose
-    original = path.read_text().replace("_TODO: describe this task._", "Real authored body.")
-    path.write_text(original)
+    original = path.read_text(encoding="utf-8").replace(
+        "_TODO: describe this task._", "Real authored body."
+    )
+    path.write_text(original, encoding="utf-8")
     svc.comment(task.id, ["a note"], as_slug="operator")
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     assert "Real authored body." in text  # untouched
     assert text.count("<!-- sq:body -->") == 1
-    assert sections.get_section(text, "body").strip() == "## Description\n\nReal authored body."
+    body = sections.get_section(text, "body")
+    assert body is not None
+    assert body.strip() == "## Description\n\nReal authored body."
 
 
 def test_comment_requires_existing_section(svc):
@@ -53,14 +58,16 @@ def test_story_scaffold_and_nested_discussion(svc):
     assert res.body_tag == "story:US1:body"
     assert res.start_line and res.end_line and res.end_line > res.start_line
     assert svc.add_story(feat.id).local_id == "US2"  # title is optional
-    text = svc.paths.abspath(svc.get(feat.id).path).read_text()
+    text = svc.paths.abspath(svc.get(feat.id).path).read_text(encoding="utf-8")
     assert sections.has_section(text, "story:US1:discussion")
     # comment targets the nested discussion only
     svc.comment(feat.id, ["scope it"], as_slug="product-owner", story="US1")
-    assert "scope it" in sections.get_section(
-        text := svc.paths.abspath(svc.get(feat.id).path).read_text(), "story:US1:discussion"
-    )
-    assert sections.get_section(text, "story:US2:discussion").strip() == ""
+    text = svc.paths.abspath(svc.get(feat.id).path).read_text(encoding="utf-8")
+    us1 = sections.get_section(text, "story:US1:discussion")
+    us2 = sections.get_section(text, "story:US2:discussion")
+    assert us1 is not None and us2 is not None
+    assert "scope it" in us1
+    assert us2.strip() == ""
     assert [s[0] for s in svc.list_stories(feat.id)] == ["US1", "US2"]
 
 
@@ -70,12 +77,14 @@ def test_story_body_is_freeform_and_agent_owned(svc):
     path = svc.paths.abspath(svc.get(feat.id).path)
     # an agent replaces the placeholder with multiline prose + bullets
     body = "As an admin, I want resets.\n\nAcceptance:\n- link expires in 30m\n- audit logged"
-    text = sections.replace_section(path.read_text(), res.body_tag, body)
-    path.write_text(text)
+    text = sections.replace_section(path.read_text(encoding="utf-8"), res.body_tag, body)
+    path.write_text(text, encoding="utf-8")
     # sq leaves the body alone; commenting only touches the discussion
     svc.comment(feat.id, ["go"], as_slug="operator", story="US1")
-    after = path.read_text()
-    assert sections.get_section(after, res.body_tag).strip() == body
+    after = path.read_text(encoding="utf-8")
+    after_body = sections.get_section(after, res.body_tag)
+    assert after_body is not None
+    assert after_body.strip() == body
     # list summary derives from the free-form body when there is no title
     assert svc.list_stories(feat.id) == [("US1", "As an admin, I want resets.")]
 
@@ -153,6 +162,7 @@ def test_check_detects_dangling_parent(svc):
 def test_check_detects_broken_marker(svc):
     task = svc.create(ItemType.TASK, "t").item
     path = svc.paths.abspath(task.path)
-    path.write_text(path.read_text().replace("<!-- sq:body:end -->", ""))  # remove a close
+    text = path.read_text(encoding="utf-8").replace("<!-- sq:body:end -->", "")  # remove a close
+    path.write_text(text, encoding="utf-8")
     issues = svc.check()
     assert any("sq:body" in i.message for i in issues)

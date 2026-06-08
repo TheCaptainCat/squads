@@ -83,7 +83,7 @@ def test_dev_pointer_generated(svc):
     svc.add_dev("rust")
     pointer = svc.paths.claude_dir / "agents" / "rust-dev.md"
     assert pointer.exists()
-    assert "Rust" in pointer.read_text()
+    assert "Rust" in pointer.read_text(encoding="utf-8")
 
 
 # --------------------------------------------------------------------------- skills
@@ -97,7 +97,7 @@ def test_skill_add_generates_pointer(svc):
     assert skill.status is Status.ACTIVE
     pointer = svc.paths.claude_dir / "skills" / "pdf-extract" / "SKILL.md"
     assert pointer.exists()
-    assert skill.path in pointer.read_text()
+    assert skill.path in pointer.read_text(encoding="utf-8")
 
 
 def test_skill_rm_purge_removes_pointer_and_file(svc):
@@ -122,7 +122,7 @@ def test_sync_stamps_version(svc, monkeypatch):
     svc.sync()
     import tomllib
 
-    cfg = tomllib.loads(svc.paths.config_path.read_text())
+    cfg = tomllib.loads(svc.paths.config_path.read_text(encoding="utf-8"))
     assert cfg["squads_version"] == "9.9.9"
 
 

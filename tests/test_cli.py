@@ -1,6 +1,24 @@
 import json
+import os
+import subprocess
+import sys
+
+import pytest
 
 from squads._cli import app
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="cp1252 console encoding is Windows-specific")
+def test_workflow_survives_cp1252_console(tmp_path):
+    # On a legacy Windows code page, printing → / • / — must not crash: the CLI forces UTF-8 stdio.
+    # (Skipped off Windows, where the CLI deliberately does not reconfigure stdio.)
+    result = subprocess.run(
+        [sys.executable, "-m", "squads", "workflow"],
+        capture_output=True,
+        cwd=tmp_path,
+        env={**os.environ, "PYTHONIOENCODING": "cp1252"},
+    )
+    assert result.returncode == 0, result.stderr.decode("cp1252", "replace")
 
 
 def test_init_and_create_flow(runner, tmp_path, monkeypatch, frozen_time):

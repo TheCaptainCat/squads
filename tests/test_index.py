@@ -6,7 +6,7 @@ import pytest
 
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
-from squads._models._enums import ItemType
+from squads._models._enums import ItemType, Status
 from squads._models._index import SquadsDB
 
 
@@ -29,9 +29,20 @@ def test_atomic_write_roundtrips_valid_json(tmp_path):
     store.create_empty("0.1.0")
     with store.transaction() as db:
         db.allocate_id(ItemType.BUG)
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     assert data["counter"] == 1
-    SquadsDB.model_validate_json(path.read_text())  # validates
+    SquadsDB.model_validate_json(path.read_text(encoding="utf-8"))  # validates
+
+
+def test_atomic_write_leaves_no_temp_file(tmp_path):
+    # guards the write path: the index commits and the per-pid .tmp is consumed by the rename
+    path = tmp_path / ".squads.json"
+    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    store.create_empty("0.1.0")
+    with store.transaction() as db:
+        db.allocate_id(ItemType.TASK)
+    assert path.is_file()
+    assert list(tmp_path.glob("*.tmp")) == []
 
 
 def test_concurrent_allocation_distinct_ids(tmp_path):
@@ -70,7 +81,7 @@ def test_backrefs_computed_not_stored(tmp_path):
         type=ItemType.TASK,
         title="a",
         slug="a",
-        status="Draft",
+        status=Status.DRAFT,
         refs=["GUIDE-000002"],
         path="tasks/a.md",
         created_at=now,

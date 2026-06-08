@@ -5,7 +5,9 @@ import pytest
 from squads._models._enums import ItemType, Status
 from squads._models._item import Item
 from squads._rendering._engine import render
-from squads._service import _template_for
+from squads._service import (
+    _template_for,  # pyright: ignore[reportPrivateUsage]  # tests probe internals
+)
 
 
 @pytest.mark.parametrize("item_type", list(ItemType))

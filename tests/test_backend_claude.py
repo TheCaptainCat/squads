@@ -6,7 +6,7 @@ from squads._sections import split_frontmatter
 
 
 def _read_pointer(project, slug):
-    return (project.claude_dir / "agents" / f"{slug}.md").read_text()
+    return (project.claude_dir / "agents" / f"{slug}.md").read_text(encoding="utf-8")
 
 
 def test_init_creates_claude_pointers_and_managed_files(project):
@@ -20,13 +20,15 @@ def test_init_creates_claude_pointers_and_managed_files(project):
     assert "Catherine Manager" in body
 
     # the squads skill is a thin pointer in .claude → real body under the squad folder
-    skill_pointer = (project.claude_dir / "skills" / "squads" / "SKILL.md").read_text()
+    skill_pointer = (project.claude_dir / "skills" / "squads" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
     assert "@squads/agents/skills/squads.md" in skill_pointer
-    skill_body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text()
+    skill_body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
     assert "sq create" in skill_body
     assert "squads:version:" in skill_body
 
-    claude_md = project.claude_md.read_text()
+    claude_md = project.claude_md.read_text(encoding="utf-8")
     assert "<!-- squads:start -->" in claude_md
     assert "Catherine Manager" in claude_md  # default role on greeting
 
@@ -40,21 +42,21 @@ def test_pointer_frontmatter_is_valid_yaml(project):
 
 def test_settings_merge_does_not_clobber(project, svc):
     settings = project.claude_dir / "settings.json"
-    data = json.loads(settings.read_text())
+    data = json.loads(settings.read_text(encoding="utf-8"))
     data["permissions"]["allow"].append("Bash(git status)")
     data["customKey"] = 123
-    settings.write_text(json.dumps(data))
+    settings.write_text(json.dumps(data), encoding="utf-8")
     # re-run scaffold (idempotent merge)
     svc._backend().ensure_scaffold(svc._ctx)
-    merged = json.loads(settings.read_text())
+    merged = json.loads(settings.read_text(encoding="utf-8"))
     assert merged["customKey"] == 123  # preserved
     assert "Bash(git status)" in merged["permissions"]["allow"]  # preserved
     assert "Bash(sq:*)" in merged["permissions"]["allow"]  # still present
 
 
 def test_claude_md_injection_idempotent(project, svc):
-    before = project.claude_md.read_text()
+    before = project.claude_md.read_text(encoding="utf-8")
     svc.refresh_managed()
-    after = project.claude_md.read_text()
+    after = project.claude_md.read_text(encoding="utf-8")
     assert before.count("<!-- squads:start -->") == 1
     assert after.count("<!-- squads:start -->") == 1

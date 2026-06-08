@@ -1,9 +1,19 @@
 """The Typer application, exposed as both `squads` and `sq`."""
 
+import io
+import sys
+
 import typer
 
 from squads import __version__
 from squads._cli import _common as common
+
+# The generated output (workflow cheatsheet, tables, panels) contains → • — and box-drawing
+# characters. On a legacy Windows console (cp1252) Rich would crash encoding them, so force UTF-8.
+if sys.platform == "win32":  # pragma: no cover
+    for _stream in (sys.stdout, sys.stderr):
+        if isinstance(_stream, io.TextIOWrapper):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
 
 app = typer.Typer(
     name="sq",

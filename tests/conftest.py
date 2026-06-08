@@ -8,7 +8,7 @@ from squads import _service as service
 
 
 @pytest.fixture(autouse=True)
-def _reset_clock_override():
+def _reset_clock_override():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
     """Ensure a forged `--at` timestamp from one test never leaks into the next."""
     yield
     clock.set_now(None)

@@ -22,7 +22,7 @@ def _item(**over):
         created_at=_NOW,
         updated_at=_NOW,
     )
-    return Item(**{**base, **over})
+    return Item(**{**base, **over})  # pyright: ignore[reportArgumentType]  # dynamic test factory
 
 
 def test_item_requires_non_empty_id_title_slug_path():

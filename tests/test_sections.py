@@ -11,8 +11,11 @@ def test_append_only_touches_target_section():
     assert "hand-written body" in out  # body untouched
     assert "intro prose" in out
     assert out.count("<!-- sq:body -->") == 1
-    assert "- [t] Robert Architect:" in sections.get_section(out, "discussion")
-    assert sections.get_section(out, "body").strip() == "hand-written body"
+    disc = sections.get_section(out, "discussion")
+    body = sections.get_section(out, "body")
+    assert disc is not None and body is not None
+    assert "- [t] Robert Architect:" in disc
+    assert body.strip() == "hand-written body"
 
 
 def test_nested_discussion_marker_is_distinct():
@@ -21,8 +24,11 @@ def test_nested_discussion_marker_is_distinct():
         "<!-- sq:discussion -->\n<!-- sq:discussion:end -->\n"
     )
     out = sections.append_to_section(text, "subtask:ST1:discussion", "- nested")
-    assert "- nested" in sections.get_section(out, "subtask:ST1:discussion")
-    assert sections.get_section(out, "discussion").strip() == ""  # top-level untouched
+    nested = sections.get_section(out, "subtask:ST1:discussion")
+    top = sections.get_section(out, "discussion")
+    assert nested is not None and top is not None
+    assert "- nested" in nested
+    assert top.strip() == ""  # top-level untouched
 
 
 def test_frontmatter_roundtrip_preserves_body():

@@ -61,7 +61,7 @@ def test_subtask_story_records_and_validates(svc):
     svc.add_story(feat.id, "reset password")  # US1
     task = svc.create(ItemType.TASK, "Tokens", parent=feat.id).item
     res = svc.add_subtask(task.id, "Validate expiry", story="US1")
-    text = svc.paths.abspath(svc.get(task.id).path).read_text()
+    text = svc.paths.abspath(svc.get(task.id).path).read_text(encoding="utf-8")
     assert "(→ US1)" in text
     assert svc.list_subtasks(task.id) == [(res.local_id, "[ ] Validate expiry  (→ US1)")]
 
@@ -99,6 +99,7 @@ def test_check_flags_dangling_subtask_story(svc):
     svc.add_subtask(task.id, "ok", story="US1")
     # now hand-edit the file to reference a non-existent US
     path = svc.paths.abspath(svc.get(task.id).path)
-    path.write_text(path.read_text().replace("(→ US1)", "(→ US7)"))
+    text = path.read_text(encoding="utf-8").replace("(→ US1)", "(→ US7)")
+    path.write_text(text, encoding="utf-8")
     issues = svc.check()
     assert any(i.item == task.id and "US7" in i.message for i in issues)

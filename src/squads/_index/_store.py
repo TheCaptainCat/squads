@@ -64,7 +64,10 @@ class IndexStore:
     # ------------------------------------------------------------------ internals
     def _atomic_write(self, db: SquadsDB) -> None:
         tmp = self.index_path.with_suffix(f".json.{os.getpid()}.tmp")
-        tmp.write_text(db.to_json() + "\n", encoding="utf-8")
-        with tmp.open("rb") as fh:
+        # fsync the same (write) handle that wrote the bytes — fsync needs write access on Windows
+        # (a read-only handle raises OSError [Errno 9] there).
+        with tmp.open("w", encoding="utf-8") as fh:
+            fh.write(db.to_json() + "\n")
+            fh.flush()
             os.fsync(fh.fileno())
         tmp.replace(self.index_path)

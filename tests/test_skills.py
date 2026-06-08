@@ -27,14 +27,16 @@ def test_dev_sentinel_expands_to_any_dev_slug():
 def _item_skill_body(project, item_type):
     return (
         project.squad_dir / "agents" / "skills" / f"{interactions.item_skill_name(item_type)}.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
 
 
 def test_item_skills_generated_with_active_role_sections(project):
     skills_dir = project.claude_dir / "skills"
     for it in interactions.managed_item_types():
         # thin pointer in .claude → real body under the squad folder
-        pointer = (skills_dir / interactions.item_skill_name(it) / "SKILL.md").read_text()
+        pointer = (skills_dir / interactions.item_skill_name(it) / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
         fm, _ = split_frontmatter(pointer)
         assert fm["name"] == interactions.item_skill_name(it)
         assert (project.squad_dir / "agents" / "skills" / f"{fm['name']}.md").is_file()
@@ -57,16 +59,20 @@ def test_item_skill_shows_only_active_roles(svc, project):
 def test_pointer_lists_skills_frontmatter(svc, project):
     svc.activate_role("product-owner")
     svc.refresh_managed()
-    fm, _ = split_frontmatter((project.claude_dir / "agents" / "product-owner.md").read_text())
+    fm, _ = split_frontmatter(
+        (project.claude_dir / "agents" / "product-owner.md").read_text(encoding="utf-8")
+    )
     assert fm["skills"] == ["squads", "sq-epic", "sq-feature"]
     # manager (default, no managed item type) lists only the squads skill
-    mfm, _ = split_frontmatter((project.claude_dir / "agents" / "manager.md").read_text())
+    mfm, _ = split_frontmatter(
+        (project.claude_dir / "agents" / "manager.md").read_text(encoding="utf-8")
+    )
     assert mfm["skills"] == ["squads"]
 
 
 def test_role_body_lists_skills(svc):
     item = svc.activate_role("tech-writer")
-    body = svc.paths.abspath(item.path).read_text()
+    body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     assert "## Skills" in body
     assert "`sq-guide`" in body
 

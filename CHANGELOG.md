@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-08
+
+### Fixed
+
+- **Windows: every write command crashed** (`sq init`, `create`, `status`, `repair`, …). The atomic
+  index write called `os.fsync()` on a read-only file handle, which Windows rejects with
+  `OSError [Errno 9]`; it now fsyncs the write handle that produced the bytes.
+- **Windows: non-ASCII output crashed** under the legacy cp1252 console (`UnicodeEncodeError` on
+  `→`/`•`/`—`, e.g. from `sq workflow`). The CLI now forces UTF-8 stdio on Windows.
+- **Windows: reading squad files crashed or silently corrupted non-ASCII content.** `sq check`
+  (and any read path) used `Path.read_text()` with no encoding, so on a non-UTF-8 locale (e.g.
+  cp1252) a heading such as `### ST1 — … (→ US1)` either raised `UnicodeDecodeError` or decoded the
+  `→` to mojibake — breaking subtask/story validation. All file I/O is now pinned to
+  `encoding="utf-8"`. The CI test matrix now runs the suite on Windows and macOS as well as Linux,
+  so this class of bug is caught before release.
+
 ## [0.1.0] - 2026-06-08
 
 Initial release.
@@ -32,5 +48,6 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
-[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/TheCaptainCat/squads/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/TheCaptainCat/squads/releases/tag/v0.1.0

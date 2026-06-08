@@ -1,6 +1,6 @@
 [project]
 name = "squads"
-version = "0.1.0"
+version = "0.1.1"
 description = "Manage a team of AI agents working on a code project: bootstrap roles & skills, track work with JIRA-like IDs in predictable markdown."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -90,8 +90,20 @@ max-args = 8
 "tests/*" = ["PLR2004", "PLR0913", "S101"]
 
 [tool.pyright]
-include = ["src"]
+include = ["src", "tests"]
 pythonVersion = "3.14"
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
+
+# pytest injects fixtures by parameter name, so their types are not statically
+# inferable: strict's "unknown type" family is pure noise on tests. Silence only
+# that family for the tests subtree; every other strict check still applies.
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportUnknownParameterType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownLambdaType = "none"
+reportMissingParameterType = "none"

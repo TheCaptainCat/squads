@@ -27,16 +27,50 @@ sq create epic "Authentication platform"
 
 (Your numbers differ — the global counter already spent IDs on the bundled roles.)
 
+### The pattern: `sq` scaffolds, **you write the body**
+
+This is the heart of squads. `sq create` only writes a *skeleton* and hands you the path — the
+actual content is yours to write **in the file**, between the `<!-- sq:body -->` markers. Open the
+epic just created; it looks like:
+
+```markdown
+---
+id: EPIC-000009
+type: epic
+status: Draft
+...
+---
+<!-- sq:body -->
+## Summary
+
+_TODO: summarise this epic._      ← replace this; write freely between the markers
+## Goals
+-
+## Scope
+<!-- sq:body:end -->
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->
+```
+
+Edit the prose directly (in your editor, or as the impersonated agent in Claude Code). The only
+rules: **don't touch the `<!-- sq:* -->` marker lines, and don't hand-edit the frontmatter** — `sq`
+owns those. Everything else is free-form markdown. (`sq` owns *status* and *discussion*; you own the
+body.) Every `create`/`story add`/`subtask add` below follows the same flow: run the command, then
+open the file it prints and fill in the body.
+
 ## 2. A feature with user stories (product owner)
 
 ```bash
 sq create feature "Login" --parent EPIC-000009
+# → open squads/features/FEAT-000010-login.md and write the feature's Summary in the sq:body region
 sq story add FEAT-000010 "As a user, I want to log in so that I can access my account"
 sq story add FEAT-000010 "As an admin, I want to lock accounts after 5 failed tries"
 ```
 
-`story add` prints the file + the line range to write between — open the feature file and flesh out
-each story's body (acceptance criteria, etc.) inside its `<!-- sq:story:US1:body -->` region.
+`story add` prints the file **and the exact line range to write between** — open the feature file and
+flesh out each story's body (acceptance criteria, etc.) inside its `<!-- sq:story:US1:body -->`
+region. As above: you write the prose, `sq` keeps the structure.
 
 ## 3. A task with subtasks (tech lead)
 
@@ -44,7 +78,8 @@ A task's parent is the feature; each subtask maps to one user story:
 
 ```bash
 sq create task "Validate credentials" --parent FEAT-000010
-sq subtask add TASK-000011 "Check password hash" --story US1
+# → open squads/tasks/TASK-000011-validate-credentials.md and write the Description in sq:body
+sq subtask add TASK-000011 "Check password hash" --story US1   # then fill each subtask's body region
 sq subtask add TASK-000011 "Lock after 5 failures" --story US2
 ```
 

@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -22,5 +22,19 @@ jobs:
         run: uv run ruff format --check .
       - name: pyright
         run: uv run pyright
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version-file: pyproject.toml
+      - uses: astral-sh/setup-uv@v8.2.0
+      - run: uv sync --frozen
       - name: pytest
         run: uv run pytest
