@@ -2,7 +2,7 @@ import json
 
 import yaml
 
-from squads.sections import split_frontmatter
+from squads._sections import split_frontmatter
 
 
 def _read_pointer(project, slug):

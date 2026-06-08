@@ -1,8 +1,8 @@
 import pytest
 
-from squads.errors import InvalidTransitionError, ItemNotFoundError
-from squads.itemfile import read_frontmatter
-from squads.models import ItemType, Status
+from squads._errors import InvalidTransitionError, ItemNotFoundError
+from squads._itemfile import read_frontmatter
+from squads._models._enums import ItemType, Status
 
 
 def test_create_allocates_id_and_writes_file(svc):

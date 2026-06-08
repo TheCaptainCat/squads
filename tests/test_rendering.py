@@ -2,9 +2,10 @@ from datetime import UTC, datetime
 
 import pytest
 
-from squads.models import Item, ItemType, Status
-from squads.rendering import render
-from squads.service import _template_for
+from squads._models._enums import ItemType, Status
+from squads._models._item import Item
+from squads._rendering._engine import render
+from squads._service import _template_for
 
 
 @pytest.mark.parametrize("item_type", list(ItemType))

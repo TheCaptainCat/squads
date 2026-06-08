@@ -1,4 +1,4 @@
-from squads.cli import app
+from squads._cli import app
 
 if __name__ == "__main__":
     app()

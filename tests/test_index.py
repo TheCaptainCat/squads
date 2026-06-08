@@ -2,8 +2,12 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC
 
-from squads.index import IndexStore
-from squads.models import ItemType, SquadsDB
+import pytest
+
+from squads._errors import SquadsError
+from squads._index._store import IndexStore
+from squads._models._enums import ItemType
+from squads._models._index import SquadsDB
 
 
 def test_global_counter_unique_across_types(tmp_path):
@@ -44,12 +48,21 @@ def test_concurrent_allocation_distinct_ids(tmp_path):
     assert store.load().counter == 50
 
 
+def test_load_wraps_corruption_in_squads_error(tmp_path):
+    path = tmp_path / ".squads.json"
+    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    store.create_empty("0.1.0")
+    path.write_text('{"counter": -1}', encoding="utf-8")  # violates ge=0
+    with pytest.raises(SquadsError, match="corrupt index"):
+        store.load()
+
+
 def test_backrefs_computed_not_stored(tmp_path):
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
     db = store.create_empty("0.1.0")
     from datetime import datetime
 
-    from squads.models import Item
+    from squads._models._item import Item
 
     now = datetime(2026, 1, 1, tzinfo=UTC)
     a = Item(

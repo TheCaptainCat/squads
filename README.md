@@ -101,13 +101,31 @@ your-project/
 
 ---
 
+## Documentation
+
+Full docs (with diagrams) live in **[docs/](docs/README.md)**:
+
+- **[tutorial](docs/tutorial.md)** — a 15-minute, end-to-end first squad.
+- **[workflow](docs/workflow.md)** — who creates & links what, and the per-type status lifecycles.
+- **[agents](docs/agents.md)** — operating *as* an agent inside a squad.
+- **[roles](docs/roles.md)** — the bundled roster, bundles, and stack developers.
+- **[recipes](docs/recipes.md)** — copy-paste sequences · **[faq](docs/faq.md)** — common errors.
+- **[adoption](docs/adoption.md)** — migrating an existing project (`sq adopt`, `--at`).
+- **[internals](docs/internals.md)** / **[backends](docs/backends.md)** — under the hood & writing a backend.
+
+Contributing: **[CONTRIBUTING.md](CONTRIBUTING.md)** · contributors: **[CONTRIBUTORS.md](CONTRIBUTORS.md)** · changes: **[CHANGELOG.md](CHANGELOG.md)**.
+
+---
+
 ## Command reference
 
 **Setup**
 - `sq init [--squad-dir squads] [--backend claude_code] [--roles all|core|minimal|<slugs>] [--no-claude] [--force]`
+- `sq adopt [--squad-dir squads] [--backend] [--roles] [--no-claude]` — bring an *existing* project under sq management (non-destructive; imports existing items). See [docs/adoption.md](docs/adoption.md).
 - `sq workflow` — print the team-workflow cheatsheet
 - `sq sync` — regenerate tool-owned managed files to the current version
 - `--dir PATH` (global) — operate on the squad folder at PATH instead of walking up to `.squads.toml`
+- `--at WHEN` (global) — forge timestamps (ISO 8601, UTC) for this command, to preserve history when migrating
 
 **Items**
 - `sq create epic|feature|task|bug|decision|review|guide TITLE [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--json]`

@@ -1,4 +1,4 @@
-from squads import sections
+from squads import _sections as sections
 
 
 def test_append_only_touches_target_section():
@@ -30,7 +30,7 @@ def test_frontmatter_roundtrip_preserves_body():
         "---\nid: TASK-000001\nstatus: Draft\n---\n"
         "<!-- sq:body -->\nkeep me\n<!-- sq:body:end -->\n"
     )
-    data, body = sections.split_frontmatter(text)
+    data, _body = sections.split_frontmatter(text)
     assert data["status"] == "Draft"
     new = sections.replace_frontmatter(text, {"id": "TASK-000001", "status": "Done"})
     assert "keep me" in new

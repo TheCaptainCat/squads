@@ -4,8 +4,24 @@ version = "0.1.0"
 description = "Manage a team of AI agents working on a code project: bootstrap roles & skills, track work with JIRA-like IDs in predictable markdown."
 readme = "README.md"
 requires-python = ">=3.14"
-license = { text = "MIT" }
-authors = [{ name = "Pierre Chat", email = "pierrechat@outlook.com" }]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Pierre Chat", email = "pierrechat@outlook.com" },
+    { name = "Claude", email = "noreply@anthropic.com" },
+]
+keywords = ["ai", "agents", "claude", "cli", "project-management", "markdown"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Build Tools",
+    "Typing :: Typed",
+]
 dependencies = [
     "typer>=0.12",
     "pydantic>=2.6",
@@ -16,8 +32,13 @@ dependencies = [
 ]
 
 [project.scripts]
-squads = "squads.cli:app"
-sq = "squads.cli:app"
+squads = "squads._cli:app"
+sq = "squads._cli:app"
+
+[project.urls]
+Homepage = "https://github.com/TheCaptainCat/squads"
+Repository = "https://github.com/TheCaptainCat/squads"
+Issues = "https://github.com/TheCaptainCat/squads/issues"
 
 [dependency-groups]
 dev = [
@@ -45,11 +66,28 @@ target-version = "py314"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "W"]
+select = [
+    "E", "F", "I", "UP", "B", "W",          # base
+    "C901",                                  # cyclomatic complexity
+    "SIM", "PERF", "PTH", "RUF",             # smells / perf / pathlib / ruff
+    "TRY",                                   # exception hygiene
+    "PLR0911", "PLR0912", "PLR0913", "PLR0915",  # too many returns/branches/args/statements
+]
+ignore = [
+    "TRY003",  # long messages in raise() are intentional (user-facing SquadsError text)
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12
+
+[tool.ruff.lint.pylint]
+max-args = 8
 
 [tool.ruff.lint.per-file-ignores]
 # Typer relies on function calls (Option/Argument) as parameter defaults.
-"src/squads/cli/*" = ["B008"]
+"src/squads/_cli/*" = ["B008"]
+# tests favour readability over these rules
+"tests/*" = ["PLR2004", "PLR0913", "S101"]
 
 [tool.pyright]
 include = ["src"]

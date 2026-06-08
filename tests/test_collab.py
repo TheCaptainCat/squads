@@ -1,8 +1,8 @@
 import pytest
 
-from squads import sections
-from squads.errors import SquadsError
-from squads.models import ItemType, Status
+from squads import _sections as sections
+from squads._errors import SquadsError
+from squads._models._enums import ItemType, Status
 
 # --------------------------------------------------------------------------- comments
 

@@ -16,31 +16,41 @@ uv build                # wheel/sdist (templates ship as package data)
 ## Architecture & layering
 
 ```
-cli → service → (index store, backends, rendering)
-models  shared, no internal deps
+_cli → _service → (index store, backends, rendering)
+_models  shared, no internal deps
 ```
 
-- `models/` — pydantic v2. `Item`, `SquadsDB` (the index), `enums` (`ItemType`/`Status` + the
-  prefix→folder maps), `markers` (sq anchor tags), `config` (`.squads.toml`).
-- `paths.py` — resolve the active squad folder (`--dir` > `.squads.toml` walk-up > default) and map
-  an ID/type to its on-disk location.
-- `index/store.py` — the integrity core: filelock'd, atomic (`os.replace`) read-modify-write of
-  `<squad-dir>/.squads.json`; `allocate_id` bumps the **single global counter**.
-- `sections.py` / `itemfile.py` — marker-safe edits and frontmatter↔Item mapping.
-- `workflow.py` — per-type status machines + `can_transition` + `TERMINAL`/`is_open`.
-- `rendering/` — Jinja2 (`StrictUndefined`); templates are package data under `templates/`.
-- `backends/` — `AgentBackend` ABC + registry; `claude_code/` writes pointer files, the managed
-  `squads` skill, and the CLAUDE.md managed section.
-- `roles/catalog.py` — the 8 bundled roles + dev name pool + `dev_role()`.
-- `interactions.py` — the team **playbook**: which roles interact with each item type (the `*dev`
-  sentinel = any `<tech>-dev` role). Drives the per-item-type managed skills (`sq-<type>`, one
-  role-directed section each) and `skills_for_role()` (which skills a role's pointer preloads). A
-  role that doesn't manage a type gets no skill for it. Workflow cheatsheet partial:
-  `rendering/templates/workflow.md.j2` (shared by the `squads` skill and `sq workflow`).
-- `service.py` — orchestration; the logic behind each command. `discussion.py` — comment/story/
+**Module privacy convention.** Every implementation module and subpackage is **private** —
+leading-underscore names (`_service.py`, `_models/`, `_backends/_claude_code/`, …). Package
+`__init__.py` files do **not** re-export (this is a CLI, not yet a library API), so internal code
+imports straight from the underscore modules (`from squads._models._item import Item`). The only
+non-empty inits are `squads/__init__` (`__version__`), `_cli/__init__` (the Typer `app`, the entry
+point `squads._cli:app`), and `_backends/_claude_code/__init__` (backend registration side-effect).
+Namespace-style imports use an alias to keep call sites readable: `from squads import _clock as clock`.
+
+- `_models/` — pydantic v2. `_item` (`Item`), `_index` (`SquadsDB`), `_enums` (`ItemType`/`Status`
+  + prefix→folder maps), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_extras`
+  (`ExtraKey`).
+- `_paths.py` — resolve the active squad folder (`--dir` > `.squads.toml` walk-up > default), map an
+  ID/type to its location, and guard `abspath` against path traversal.
+- `_index/_store.py` — the integrity core: filelock'd, atomic (`os.replace`) read-modify-write of
+  `<squad-dir>/.squads.json`; `allocate_id` bumps the **single global counter**; `load` wraps a
+  corrupt index in `SquadsError`.
+- `_sections.py` / `_itemfile.py` — marker-safe edits and frontmatter↔Item mapping.
+- `_workflow.py` — per-type status machines + `can_transition` + `TERMINAL`/`is_open` +
+  `ALLOWED_PARENTS`/`parent_allowed`/`parent_hint`.
+- `_rendering/` — Jinja2 (`StrictUndefined`); templates are package data under `_rendering/templates/`.
+- `_backends/` — `AgentBackend` ABC + registry; `_claude_code/` writes pointer files, managed skills
+  (real body under `<squad>/agents/skills/`, thin pointer in `.claude/`), and the CLAUDE.md section.
+- `_roles/_catalog.py` — the 8 bundled roles + dev name pool + `dev_role()`.
+- `_interactions.py` — the team **playbook**: which roles interact with each item type (`*dev`
+  sentinel = any `<tech>-dev` role). Drives the per-item-type managed skills (`sq-<type>`) and
+  `skills_for_role()`. Workflow cheatsheet partial: `_rendering/templates/workflow.md.j2` (shared by
+  the `squads` skill and `sq workflow`).
+- `_service.py` — orchestration; the logic behind each command. `_discussion.py` — comment/story/
   subtask formatting + `@mention` extraction.
-- `cli/` — Typer app (`__init__` wires sub-typers + the `--dir` callback + version notice);
-  one module per command group; `common.py` has the shared console/error decorator/parsers.
+- `_cli/` — Typer app (`__init__` wires sub-typers + the `--dir` callback + version notice);
+  one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
 
 ## Invariants — keep these true
 
@@ -48,7 +58,7 @@ models  shared, no internal deps
    anything in it that can't be reconstructed from the `.md` files (`sq repair` proves this).
 2. **Global counter.** One monotonic counter for all types; an ID's number is globally unique.
    Allocate only inside `IndexStore.transaction()`.
-3. **Marker-safe edits only.** Touch file content solely via `sections.py`; never rewrite an
+3. **Marker-safe edits only.** Touch file content solely via `_sections.py`; never rewrite an
    agent-authored body. Markers are `<!-- sq:<tag> -->` / `<!-- sq:<tag>:end -->`.
 4. **Forward edges only.** `item.refs` holds outgoing refs; backrefs are computed by inversion
    (`SquadsDB.backrefs`), never persisted.
@@ -58,22 +68,25 @@ models  shared, no internal deps
 ## Conventions / gotchas
 
 - **Escape dynamic output.** Rich treats `[...]` (e.g. a `[x]` checkbox) as markup — always wrap
-  user/content strings with `cli.common.e()` when printing to the console or a table.
+  user/content strings with `_cli._common.e()` when printing to the console or a table.
 - **Time is injectable.** Use `clock.now()` / `clock.iso()` so tests can freeze it
   (`frozen_time` fixture); never call `datetime.now()` directly.
-- **Marker regex is strict.** `sections.find_markers` only matches well-formed tags so prose like
+- **Marker regex is strict.** `_sections.find_markers` only matches well-formed tags so prose like
   `` `<!-- sq:* -->` `` in role files isn't linted as a real marker.
 - **User-facing errors** subclass `SquadsError`; the CLI's `@handle_errors` turns them into a clean
   message + exit 1. Raise those, not bare exceptions.
-- **Templates are package data** — adding one means dropping a `.j2` under `rendering/templates/`;
+- **Templates are package data** — adding one means dropping a `.j2` under `_rendering/templates/`;
   the wheel includes them automatically (verified in build).
 - **No `from __future__ import annotations`** — we target Python 3.14 (PEP 649 lazy annotations),
   so forward refs work unquoted. Keep the import graph **acyclic** (verified); if a future edge
   would create a cycle, use `if TYPE_CHECKING:` + a string annotation rather than a runtime import.
-- **Strict typing** — `pyright` runs in strict mode and `ruff` (E/F/I/UP/B/W) must stay clean:
+- **`Item.extra` keys** come from `_models/_extras.py::ExtraKey` (imported as `X`) — never hand-write
+  the string keys; that's where role/dev/skill/ref metadata field names live.
+- **Strict typing** — `pyright` runs in strict mode and `ruff` (E/F/I/UP/B/W + C901/SIM/PERF/PTH/RUF/TRY/PLR0911-15,
+  max-complexity 12, max-args 8, TRY003 ignored) must stay clean:
   `uv run pyright && uv run ruff check . && uv run ruff format --check .`. Annotate bare `dict`/
   `list` (e.g. `dict[str, Any]`); Typer's `Option/Argument` call-defaults are why `B008` is
-  ignored under `cli/`.
+  ignored under `_cli/`.
 
 ## Testing
 

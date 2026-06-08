@@ -1,0 +1,22 @@
+name: publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version-file: pyproject.toml
+      - uses: astral-sh/setup-uv@v8.2.0
+      - run: uv build
+      - run: uv publish

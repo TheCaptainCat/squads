@@ -1,8 +1,8 @@
 import pytest
 
-from squads.errors import SquadsError
-from squads.itemfile import read_frontmatter
-from squads.models import ItemType, Status
+from squads._errors import SquadsError
+from squads._itemfile import read_frontmatter
+from squads._models._enums import ItemType, Status
 
 # --------------------------------------------------------------------------- refs
 
@@ -118,7 +118,7 @@ def test_sync_stamps_version(svc, monkeypatch):
     import squads
 
     monkeypatch.setattr(squads, "__version__", "9.9.9", raising=False)
-    monkeypatch.setattr("squads.service.__version__", "9.9.9", raising=False)
+    monkeypatch.setattr("squads._service.__version__", "9.9.9", raising=False)
     svc.sync()
     import tomllib
 
@@ -127,10 +127,10 @@ def test_sync_stamps_version(svc, monkeypatch):
 
 
 def test_version_notice_triggers_when_newer(capsys, project, monkeypatch):
-    from squads.cli import common
+    from squads._cli import _common as common
 
-    monkeypatch.setattr("squads.__version__", "9.9.9", raising=False)
-    common.STATE["dir"] = None
+    monkeypatch.setattr(common, "__version__", "9.9.9", raising=False)
+    common.set_active_dir(None)
     monkeypatch.chdir(project.root)
     common.version_notice()
     err = capsys.readouterr().err

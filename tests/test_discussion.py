@@ -1,4 +1,4 @@
-from squads import discussion
+from squads import _discussion as discussion
 
 
 def test_format_comment():

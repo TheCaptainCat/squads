@@ -1,6 +1,6 @@
 import json
 
-from squads.cli import app
+from squads._cli import app
 
 
 def test_init_and_create_flow(runner, tmp_path, monkeypatch, frozen_time):

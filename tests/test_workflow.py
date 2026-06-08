@@ -1,7 +1,7 @@
 import pytest
 
-from squads import workflow
-from squads.models import ItemType, Status
+from squads import _workflow as workflow
+from squads._models._enums import ItemType, Status
 
 
 def test_work_item_happy_path():

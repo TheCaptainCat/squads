@@ -1,7 +1,7 @@
-from squads import interactions
-from squads.cli import app
-from squads.models import ItemType
-from squads.sections import split_frontmatter
+from squads import _interactions as interactions
+from squads._cli import app
+from squads._models._enums import ItemType
+from squads._sections import split_frontmatter
 
 # --------------------------------------------------------------------------- matrix
 

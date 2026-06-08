@@ -3,7 +3,15 @@ from datetime import UTC, datetime
 import pytest
 from typer.testing import CliRunner
 
-from squads import clock, service
+from squads import _clock as clock
+from squads import _service as service
+
+
+@pytest.fixture(autouse=True)
+def _reset_clock_override():
+    """Ensure a forged `--at` timestamp from one test never leaks into the next."""
+    yield
+    clock.set_now(None)
 
 
 @pytest.fixture

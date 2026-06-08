@@ -1,8 +1,8 @@
 import pytest
 
-from squads import workflow
-from squads.errors import SquadsError
-from squads.models import ItemType
+from squads import _workflow as workflow
+from squads._errors import SquadsError
+from squads._models._enums import ItemType
 
 # --------------------------------------------------------------------------- parent rules (unit)
 
@@ -32,17 +32,17 @@ def test_task_parent_must_be_feature(svc):
     task = svc.create(ItemType.TASK, "t", parent=feat.id).item
     assert task.parent == feat.id
     # task under an epic is rejected at create time
-    with pytest.raises(SquadsError, match="must be a feature"):
+    with pytest.raises(SquadsError, match="must be of type feature"):
         svc.create(ItemType.TASK, "bad", parent=epic.id)
     # ...and at link time
     standalone = svc.create(ItemType.TASK, "tech").item
-    with pytest.raises(SquadsError, match="must be a feature"):
+    with pytest.raises(SquadsError, match="must be of type feature"):
         svc.link(standalone.id, epic.id)
 
 
 def test_feature_parent_must_be_epic(svc):
     feat = svc.create(ItemType.FEATURE, "f").item
-    with pytest.raises(SquadsError, match="must be a epic"):
+    with pytest.raises(SquadsError, match="must be of type epic"):
         svc.create(ItemType.FEATURE, "f2", parent=feat.id)
 
 
@@ -89,7 +89,7 @@ def test_check_flags_bad_task_parent(svc):
     with svc.store.transaction() as db:
         db.items[task.id].parent = epic.id
     issues = svc.check()
-    assert any(i.item == task.id and "must be a feature" in i.message for i in issues)
+    assert any(i.item == task.id and "must be of type feature" in i.message for i in issues)
 
 
 def test_check_flags_dangling_subtask_story(svc):
