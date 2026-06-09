@@ -18,7 +18,8 @@ if sys.platform == "win32":  # pragma: no cover
 app = typer.Typer(
     name="sq",
     help=(
-        "Manage a team of AI agents: bootstrap roles & skills, track work with stable IDs.\n\n"
+        "The coordination layer for a team of AI agents: stable IDs, roles & skills, "
+        "a status lifecycle, and handoffs.\n\n"
         "New here? Run `sq workflow` for how the team works, `sq docs` to read the full docs "
         "offline, or `sq <command> --help` for details."
     ),

@@ -1,8 +1,9 @@
 # squads workflow
 
-Two layers: **who creates and links what** (the team workflow) and **how each item moves through
-its states** (the status lifecycle). `sq workflow` prints a short version of the first; this is the
-full reference. The rules are enforced — at `create`/`link`/`status` time and by `sq check`.
+The process squads coordinates has two layers: **who creates and links what** (the team workflow)
+and **how each item moves through its states** (the status lifecycle). `sq workflow` prints a short
+version of the first; this is the full reference. The rules are enforced — at `create`/`link`/`status`
+time and by `sq check`.
 
 ---
 

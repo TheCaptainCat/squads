@@ -1,14 +1,18 @@
 # squads
 
-A CLI (`squads` / `sq`) that manages a **team of AI agents** working on a code project.
+A CLI (`squads` / `sq`) that is the **coordination layer** for a team of AI agents working on one
+codebase.
 
-squads bootstraps agent **roles** and **skills**, produces markdown in a predictable structure,
-and gives every tracked artifact a stable JIRA-like ID (`TASK-000003`). Claude Code is the first
-supported backend; the design is pluggable.
+squads gives the team a shared structure to work in: a stable JIRA-like ID for every piece of work
+(`TASK-000003`), defined **roles** and the **skills** that go with them, a status lifecycle, and a
+handoff protocol (comments, `@mentions`, an inbox) — so work moves cleanly from one agent to the
+next and everyone reads the same source of truth. Your agents — you, in Claude Code, adopting a
+role — do the building; squads keeps them coordinated. Claude Code is the first supported backend;
+the design is pluggable.
 
-The real content lives under a relocatable `squads/` folder. The files written into `.claude/`
-are **thin pointers** to those definitions, plus a managed `squads` skill and a managed section in
-`CLAUDE.md` that teaches the agents how to work.
+That shared structure lives under a relocatable `squads/` folder — the team's source of truth. The
+files written into `.claude/` are **thin pointers** to those definitions, plus a managed `squads`
+skill and a managed section in `CLAUDE.md` that teaches the agents how to work.
 
 ---
 

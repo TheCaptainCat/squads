@@ -1,8 +1,9 @@
 # Working as an agent in a squad
 
-How an AI agent (or a human role-playing one) operates inside a squads-managed project. If you're an
-agent reading this in a session: this is your operating manual. See [workflow.md](workflow.md) for
-who-does-what and the status rules.
+How an AI agent (or a human role-playing one) operates inside a squads-managed project — squads is
+the coordination layer that gives the team its shared structure; this is how you work within it. If
+you're an agent reading this in a session: this is your operating manual. See
+[workflow.md](workflow.md) for who-does-what and the status rules.
 
 ## You have a name
 

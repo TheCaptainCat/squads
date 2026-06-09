@@ -1,7 +1,7 @@
 [project]
 name = "squads"
 version = "0.3.0"
-description = "Manage a team of AI agents working on a code project: bootstrap roles & skills, track work with JIRA-like IDs in predictable markdown."
+description = "The coordination layer for a team of AI agents working on one codebase: stable JIRA-like IDs, roles & skills, a status lifecycle, and handoffs in predictable markdown."
 readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"

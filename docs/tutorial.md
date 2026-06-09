@@ -1,7 +1,8 @@
 # Your first squad
 
-A 15-minute, end-to-end walkthrough. By the end you'll have an epic → feature → task hierarchy with
-user stories, subtasks, a comment, a bug fix link, and a clean `sq check`.
+A 15-minute, end-to-end walkthrough of the coordination layer your team will work in. By the end
+you'll have an epic → feature → task hierarchy with user stories, subtasks, a comment, a bug fix
+link, and a clean `sq check`.
 
 Commands use bare `sq` (a tool install); from a source checkout prefix with `uv run`.
 
