@@ -4,11 +4,12 @@ from typing import Any
 
 from pydantic import BaseModel, PositiveInt
 
+from squads._models._schema import SCHEMA_VERSION
 from squads._util import NonEmpty
 
 
 class SquadsConfig(BaseModel):
-    schema_version: PositiveInt = 1
+    schema_version: PositiveInt = SCHEMA_VERSION
     #: Folder (relative to the project root) that holds the squad's content + .squads.json.
     squad_dir: NonEmpty = "squads"
     default_backend: NonEmpty = "claude_code"

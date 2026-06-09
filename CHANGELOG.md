@@ -6,6 +6,44 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-08
+
+### Added
+
+- **`sq docs`** — list the bundled documentation, and `sq docs <name>` prints any page straight to
+  the terminal so agents (and humans) can read the full docs **offline, with no fetch**. Raw
+  markdown by default; `--rich` pretty-prints. The docs ship inside the wheel as package data.
+- **Status state machines for sub-entities, tracked by `sq`.** Subtasks and user stories now have a
+  status (`Todo → InProgress → Done`, + `Blocked`, `Cancelled`): `sq subtask status TASK STn <Status>`,
+  `sq story status FEAT USn <Status>` (transitions validated; `--force` to override).
+- **Review findings are first-class.** `sq finding add REV "…" --severity high|…`,
+  `sq finding status REV Fn <Status>` (`Open → Fixed → Verified`, + `WontFix`), `sq finding list`.
+- **`sq`-managed summary tables.** Tasks/features/reviews carry a top-of-section table rolling up
+  their subtasks/stories/findings (status, and severity for findings), regenerated on every change.
+
+### Changed
+
+- **Ref kinds are now stored inline with the edge.** A reference is `ID` (the default `related`) or
+  `ID:kind` (e.g. `BUG-000009:fixes`) in an item's `refs`, replacing the separate
+  `extra.ref_kinds` map. The `sq ref`/`sq refs` interface is unchanged. (`schema_version` → 2.)
+- **Sub-entity state lives in scoped markers, not the heading.** Each subtask/story/finding block
+  keeps its status (and severity/story map) in an sq-owned `:meta` region — the heading is plain
+  prose. `subtask done` is kept as a shortcut.
+- **Discussion sections now carry a heading** at the right depth — `##` at item top level, `####`
+  inside a story/subtask/finding.
+
+### Migration
+
+- On an out-of-date squad, `sq` **stops and tells you to run `sq migrate up`**, the new migration
+  command group: `up` runs the automatic runners (rebuild index + restamp), `help` lists the
+  migration changelog, and `chlog vA..vB` prints the manual steps for a release range. The `v1 → v2`
+  runner folds legacy `extra.ref_kinds` into inline refs, upgrades sub-entity headings (`[ ]`/`[x]`
+  checkboxes and `(→ USn)` suffixes) into the new `:meta` regions, builds the summary tables, and
+  gives legacy reviews an empty findings container.
+- **One manual step (LLM-assisted):** a pre-2 review's free-form prose findings can't be structured
+  automatically — `sq migrate up` prepares the container, then an agent recreates each as
+  `sq finding add … --severity …`. Read it with `sq migrate chlog v0.1.1..v0.2.0`.
+
 ## [0.1.1] - 2026-06-08
 
 ### Fixed
@@ -48,6 +86,7 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
-[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/TheCaptainCat/squads/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/TheCaptainCat/squads/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/TheCaptainCat/squads/releases/tag/v0.1.0

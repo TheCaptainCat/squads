@@ -4,7 +4,7 @@ import pytest
 from typer.testing import CliRunner
 
 from squads import _clock as clock
-from squads import _service as service
+from squads._services import _service as service
 
 
 @pytest.fixture(autouse=True)

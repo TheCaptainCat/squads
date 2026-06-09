@@ -95,6 +95,37 @@ WORKFLOWS: dict[ItemType, Workflow] = {
 }
 
 
+# Sub-entities (subtasks / user stories): a light shared machine.
+_SUBENTITY = Workflow(
+    initial=S.TODO,
+    transitions={
+        S.TODO: (S.IN_PROGRESS, S.BLOCKED, S.CANCELLED),
+        S.IN_PROGRESS: (S.DONE, S.BLOCKED, S.CANCELLED),
+        S.BLOCKED: (S.IN_PROGRESS, S.CANCELLED),
+        S.DONE: (S.IN_PROGRESS,),
+        S.CANCELLED: (S.TODO,),
+    },
+)
+
+# Review findings: Open -> Fixed -> Verified (+ WontFix).
+_FINDING = Workflow(
+    initial=S.OPEN,
+    transitions={
+        S.OPEN: (S.FIXED, S.WONT_FIX),
+        S.FIXED: (S.VERIFIED, S.OPEN),
+        S.VERIFIED: (),
+        S.WONT_FIX: (S.OPEN,),
+    },
+)
+
+#: Status machines for body-local sub-entities, keyed by kind (`_discussion` kinds).
+SUBENTITY_WORKFLOWS: dict[str, Workflow] = {
+    "subtask": _SUBENTITY,
+    "story": _SUBENTITY,
+    "finding": _FINDING,
+}
+
+
 #: Statuses that mean "no further work expected" — used to scope the inbox to open items.
 TERMINAL: frozenset[Status] = frozenset(
     {
@@ -105,6 +136,8 @@ TERMINAL: frozenset[Status] = frozenset(
         S.DEPRECATED,
         S.ARCHIVED,
         S.APPROVED,
+        S.VERIFIED,
+        S.WONT_FIX,
     }
 )
 
@@ -146,3 +179,15 @@ def initial_status(item_type: ItemType) -> Status:
 
 def can_transition(item_type: ItemType, src: Status, dst: Status) -> bool:
     return WORKFLOWS[item_type].can_transition(src, dst)
+
+
+def subentity_workflow(kind: str) -> Workflow:
+    return SUBENTITY_WORKFLOWS[kind]
+
+
+def subentity_initial(kind: str) -> Status:
+    return SUBENTITY_WORKFLOWS[kind].initial
+
+
+def subentity_can_transition(kind: str, src: Status, dst: Status) -> bool:
+    return SUBENTITY_WORKFLOWS[kind].can_transition(src, dst)

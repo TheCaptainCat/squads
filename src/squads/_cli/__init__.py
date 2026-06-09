@@ -19,9 +19,13 @@ app = typer.Typer(
     name="sq",
     help=(
         "Manage a team of AI agents: bootstrap roles & skills, track work with stable IDs.\n\n"
-        "New here? Run `sq workflow` for how the team works, or `sq <command> --help` for details."
+        "New here? Run `sq workflow` for how the team works, `sq docs` to read the full docs "
+        "offline, or `sq <command> --help` for details."
     ),
-    epilog="Team workflow: `sq workflow`  ·  per-command help: `sq <command> --help`",
+    epilog=(
+        "Team workflow: `sq workflow`  ·  full docs offline: `sq docs`  ·  "
+        "per-command help: `sq <command> --help`"
+    ),
     no_args_is_help=True,
     add_completion=False,
 )
@@ -35,6 +39,7 @@ def _version_cb(value: bool):
 
 @app.callback()
 def main_callback(
+    ctx: typer.Context,
     dir: str | None = typer.Option(
         None,
         "--dir",
@@ -53,25 +58,33 @@ def main_callback(
 ):
     common.set_active_dir(dir)
     common.apply_timestamp(at)
+    common.require_current_schema(ctx.invoked_subcommand)
     common.version_notice()
 
 
 # Register commands (imported after `app` is defined; they decorate it).
 from squads._cli import (  # noqa: E402
-    _comment,
     _create,
     _dev,
+    _finding,
     _main,
+    _migrate,
     _refs,
     _role,
     _skill,
+    _story,
+    _subtask,
 )
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
-app.add_typer(_comment.story_app, name="story", help="Manage a feature's user stories.")
-app.add_typer(_comment.subtask_app, name="subtask", help="Manage a task's subtasks.")
+app.add_typer(_story.story_app, name="story", help="Manage a feature's user stories.")
+app.add_typer(_subtask.subtask_app, name="subtask", help="Manage a task's subtasks.")
+app.add_typer(_finding.finding_app, name="finding", help="Manage a review's findings.")
 app.add_typer(_refs.ref_app, name="ref", help="Manage reference edges.")
 app.add_typer(_dev.dev_app, name="dev", help="Manage developer roles.")
 app.add_typer(_skill.skill_app, name="skill", help="Manage agent skills.")
 app.add_typer(_main.guide_app, name="guide", help="Manage project guides.")
+app.add_typer(
+    _migrate.migrate_app, name="migrate", help="Run schema migrations and read their steps."
+)

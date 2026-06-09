@@ -13,17 +13,35 @@ def test_refs_out_and_computed_backrefs(svc):
     svc.add_ref(task.id, guide.id, kind="implements")
     assert svc.refs_out(task.id) == [(guide.id, "implements")]
     assert svc.refs_in(guide.id) == [(task.id, "implements")]
-    # forward edge persisted in frontmatter; nothing backref-shaped stored
+    # the kind rides inline with the edge — no separate ref_kinds extra
     fm = read_frontmatter(svc.paths.abspath(svc.get(task.id).path))
-    assert fm["refs"] == [guide.id]
+    assert fm["refs"] == [f"{guide.id}:implements"]
+    assert "ref_kinds" not in fm.get("extra", {})
     assert "backrefs" not in svc.store.load().to_json()
+
+
+def test_default_kind_stored_bare(svc):
+    a = svc.create(ItemType.TASK, "a").item
+    b = svc.create(ItemType.GUIDE, "b").item
+    svc.add_ref(a.id, b.id)  # default kind 'related'
+    fm = read_frontmatter(svc.paths.abspath(svc.get(a.id).path))
+    assert fm["refs"] == [b.id]  # no ':related' suffix
+    assert svc.refs_out(a.id) == [(b.id, "related")]
+
+
+def test_readd_updates_kind(svc):
+    a = svc.create(ItemType.TASK, "a").item
+    b = svc.create(ItemType.BUG, "b").item
+    svc.add_ref(a.id, b.id, kind="related")
+    svc.add_ref(a.id, b.id, kind="fixes")  # re-add updates, not duplicates
+    assert svc.refs_out(a.id) == [(b.id, "fixes")]
 
 
 def test_ref_rm_and_self_ref_rejected(svc):
     a = svc.create(ItemType.TASK, "a").item
     b = svc.create(ItemType.TASK, "b").item
-    svc.add_ref(a.id, b.id)
-    svc.rm_ref(a.id, b.id)
+    svc.add_ref(a.id, b.id, kind="blocks")
+    svc.rm_ref(a.id, b.id)  # removed by ID regardless of kind
     assert svc.refs_out(a.id) == []
     with pytest.raises(SquadsError):
         svc.add_ref(a.id, a.id)
@@ -118,7 +136,7 @@ def test_sync_stamps_version(svc, monkeypatch):
     import squads
 
     monkeypatch.setattr(squads, "__version__", "9.9.9", raising=False)
-    monkeypatch.setattr("squads._service.__version__", "9.9.9", raising=False)
+    monkeypatch.setattr("squads._services._maintenance.__version__", "9.9.9", raising=False)
     svc.sync()
     import tomllib
 

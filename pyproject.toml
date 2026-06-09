@@ -1,6 +1,6 @@
 [project]
 name = "squads"
-version = "0.1.1"
+version = "0.2.0"
 description = "Manage a team of AI agents working on a code project: bootstrap roles & skills, track work with JIRA-like IDs in predictable markdown."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -55,6 +55,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/squads"]
+
+# Ship the repo-root docs inside the wheel as squads/_docs/ so `sq docs` can print them
+# offline (no fetch). Editable installs don't materialize this — _docfiles falls back to docs/.
+[tool.hatch.build.targets.wheel.force-include]
+"docs" = "squads/_docs"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

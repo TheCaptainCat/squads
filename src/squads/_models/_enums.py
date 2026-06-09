@@ -76,3 +76,31 @@ class Status(StrEnum):
     # role / skill
     ACTIVE = "Active"
     ARCHIVED = "Archived"
+    # sub-entities (subtasks / user stories)
+    TODO = "Todo"
+    # review findings
+    OPEN = "Open"
+    FIXED = "Fixed"
+    VERIFIED = "Verified"
+    WONT_FIX = "WontFix"
+
+
+class Severity(StrEnum):
+    """A review finding's severity, rendered as a colored circle in summaries."""
+
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
+
+
+SEVERITY_EMOJI: dict[Severity, str] = {
+    Severity.CRITICAL: "🔴",
+    Severity.HIGH: "🟠",
+    Severity.MEDIUM: "🟡",
+    Severity.LOW: "🟢",
+    Severity.INFO: "🔵",
+}
+
+DEFAULT_SEVERITY = Severity.MEDIUM

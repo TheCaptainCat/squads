@@ -14,6 +14,8 @@ This project is managed by **squads**. Work is tracked as identified markdown it
 - Write prose (descriptions, user stories, findings) **directly** in the file body, between the
   markers. Use `sq` only for structural ops: create, status, comment, link.
 - Reference related items by ID so others read the right context.
+- Need detail? Run `sq docs` to list the full documentation and `sq docs <name>` (e.g.
+  `sq docs workflow`) to read it in-terminal — no fetch required.
 
 {% include "workflow.md.j2" %}
 
@@ -26,6 +28,7 @@ sq show TASK-000003                                             # details
 sq list --type task --status InProgress                         # filtered table
 sq tree                                                         # hierarchy
 sq link TASK-000003 --parent FEAT-000002                        # parent/child (validated)
+sq docs [internals|workflow|migration|...]                      # read the full docs in-terminal (offline)
 ```
 
 Run `sq --help` (or `sq <command> --help`) for the full surface.

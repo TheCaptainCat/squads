@@ -163,25 +163,33 @@ updated_at: '2026-06-07T10:00:00Z'
   parses it back for `repair`/`check`. `Item.to_frontmatter_dict()` / `from_frontmatter()` are the
   serialization bridge (timestamps via `_clock.iso`).
 
-### Sub-entities: user stories & subtasks (`_discussion.py`)
+### Sub-entities: user stories, subtasks & findings (`_discussion.py`)
 
-Features hold **user stories**, tasks hold **subtasks** — scaffolded *inside the file*, not as
-separate IDs. `sq story add` / `sq subtask add` insert a block into the `sq:stories` /
-`sq:subtasks` container with three regions:
+Features hold **user stories**, tasks hold **subtasks**, reviews hold **findings** — scaffolded
+*inside the file*, not as separate IDs. `sq story/subtask/finding add` inserts a block into the
+`sq:stories` / `sq:subtasks` / `sq:findings` container with **four** regions — note the sq-owned
+`:meta`, where the block's tracked state lives (never the heading prose):
 
 ```markdown
 <!-- sq:subtask:ST1 -->
-### ST1 — [ ] Validate token expiry  (→ US2)
-<!-- sq:subtask:ST1:body -->        ← agent writes free-form prose here
+### ST1 — Validate token expiry      ← plain title (agent-editable)
+<!-- sq:subtask:ST1:meta -->         ← sq owns: status, + severity (findings) / story (subtasks)
+status: InProgress
+story: US2
+<!-- sq:subtask:ST1:meta:end -->
+<!-- sq:subtask:ST1:body -->          ← agent writes free-form prose here
 <!-- sq:subtask:ST1:body:end -->
-<!-- sq:subtask:ST1:discussion -->  ← sq appends comments here
+<!-- sq:subtask:ST1:discussion -->    ← sq appends comments here
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 ```
 
-Local ids (`US1`, `ST1`) auto-increment via `next_local_id`. The CLI returns the file + the body
-region's line range so the agent knows exactly where to write. `(→ US2)` records which user story a
-subtask implements; `subtask done` flips the `[ ]`/`[x]` checkbox in place.
+Local ids (`US1`, `ST1`, `F1`) auto-increment via `next_local_id`. Each has a **status state
+machine** (`SUBENTITY_WORKFLOWS`: subtask/story `Todo → InProgress → Done`; finding
+`Open → Fixed → Verified`), transitioned with `sq <kind> status …` (validated; `--force` overrides;
+`subtask done` is a shortcut). The parent carries an **sq-managed `sq:summary` table** that
+`render_summary` rebuilds from `list_blocks` on every change. Pre-2 files (heading `[ ]`/`[x]`
+checkbox + `(→ USn)`) are upgraded into `:meta` regions by the `v1 → v2` migration.
 
 ---
 
@@ -203,16 +211,21 @@ reference: **[workflow.md](workflow.md)**.
 - **Parent** is the hierarchy edge. `ALLOWED_PARENTS` enforces the workflow spine —
   `task.parent` must be a **feature**, `feature.parent` must be an **epic** — validated at
   `create`/`link` and by `check` (`parent_allowed` / `parent_hint`).
-- **Refs** are typed cross-links stored as **forward edges only**: `item.refs` is a list of target
-  IDs, with kinds (`fixes`, `addresses`, `implements`, …) in `extra["ref_kinds"]`. **Backrefs are
-  never stored** — `refs_in` / `SquadsDB.backrefs` compute them by inverting the forward edges at
-  query time. So a task fixing a bug does `sq ref add TASK BUG --kind fixes`; the bug shows the
-  backref on demand.
+- **Refs** are typed cross-links stored as **forward edges only**: `item.refs` is a list of strings,
+  each carrying the kind inline — `"ID"` (the default `related`) or `"ID:kind"` (`fixes`,
+  `addresses`, `implements`, …). `split_ref`/`make_ref` in `_models/_item.py` parse and format them.
+  **Backrefs are never stored** — `refs_in` / `SquadsDB.backrefs` compute them by inverting the
+  forward edges (matching on the ID part) at query time. So a task fixing a bug does
+  `sq ref add TASK BUG --kind fixes`; the bug shows the backref on demand.
 
 ```
- stored   (forward) :  TASK-000007.refs = [BUG-000009]   ref_kinds = {BUG-000009: fixes}
+ stored   (forward) :  TASK-000007.refs = ["BUG-000009:fixes"]
  computed (inverse) :  refs_in(BUG-000009)  →  [(TASK-000007, fixes)]      # never persisted
 ```
+
+> Before `schema_version` 2 the kind lived in a separate `extra["ref_kinds"]` `{ID: kind}` map;
+> it's now folded inline. Old files are read transparently (`Item.from_frontmatter`) — see
+> [migration.md](migration.md).
 
 ### Discussion, @mentions, inbox
 
@@ -345,7 +358,55 @@ a locked transaction (or a marker-safe section edit), stamp `updated_at` from `c
 
 ---
 
-## 13. Conventions that keep it honest
+## 13. Scaling & performance characteristics
+
+squads is built for a team's working set — tens to low-thousands of items — and the data model
+reflects that: **the index is a single JSON document, read and rewritten in full.** That keeps the
+integrity story simple (one atomic file, one lock, frontmatter as truth) at the cost of several
+operations being **O(total items)** rather than O(items touched). None of this matters at ~1,000
+items, where Python interpreter + Typer/pydantic import startup (~100–200 ms) dominates every
+command; the index work is single-digit-to-low-tens of milliseconds. The notes below are about
+*where the curve bends* if a repo ever grows an order of magnitude or two.
+
+**Whole-index read on every command.** `IndexStore.load()` (`_index/_store.py`) runs
+`SquadsDB.model_validate_json` over the entire file, so pydantic constructs and validates *every*
+`Item` on each invocation — even `sq show ONE-ID`. Cost is linear in item count.
+
+**Whole-index rewrite on every mutation (write amplification).** `transaction()` re-serializes
+*all* items (`SquadsDB.to_json` → `model_dump_json(indent=2)`), writes the whole ~1 KB/item file,
+`fsync`s, and renames — changing one status field rewrites the lot. This is the main architectural
+cost; it's also serialized by the cross-process `filelock`, so the second scaling axis is
+items × concurrent writers (a fleet of agents each shelling out `sq`).
+
+**O(n) ref scans.** `SquadsDB.backrefs()` (`_models/_index.py`) and `Service.refs_in()` scan all
+items to invert forward edges. One call per command is fine; the trap is calling them **per item**
+(e.g. a backref column on `sq list`/`tree`) — that's **O(n²)**. Forward refs (`refs_out`) and
+`get(id)` are dict lookups and stay cheap.
+
+**File fan-out commands.** Most commands touch the index only (`list`) or one `.md` (`show`,
+`comment`, `status`). Three fan out over *every* markdown file and are the first you'd feel at
+scale: `sq inbox` (`_service.inbox`) opens + mention-scans each open item's file; `sq check`
+(`_service.check`, esp. `_check_subtask_stories`) reads every file and re-reads each task's file and
+its parent feature inside the loop; `sq repair` parses every file (twice, when renumbering).
+`check`/`repair` are occasional maintenance; `inbox` is user-facing, so it's the one to watch.
+
+**Rough guide (single SSD, warm imports):**
+
+| Concern | ~1,000 items | Where it bends |
+| --- | --- | --- |
+| Full parse per read | ~5–20 ms (hidden by startup) | ~10k+ |
+| Full rewrite + `fsync` per write | ~10–25 ms | ~10k–50k |
+| `sq inbox` file fan-out | tens–hundreds of ms | first felt |
+| `sq check` / `repair` fan-out | ~0.1–1 s, rare | ~50k+ |
+| `backrefs` / `refs_in` | trivial (one pass) | only if called per-item → O(n²) |
+
+**If you ever target large repos** (highest leverage first): replace the full-file rewrite with an
+embedded store (SQLite) or partial/streamed writes to kill write amplification; keep an in-memory
+mention/backref index so `inbox`/`refs` don't fan out over files; and drop `indent=2` on the on-disk
+JSON (`_models/_index.py`) to roughly halve parse/serialize/IO. All three preserve the invariant
+that the index stays rebuildable from frontmatter (§4), so they're additive, not a redesign.
+
+## 14. Conventions that keep it honest
 
 - **Frontmatter is truth; the index is rebuildable** — never store anything in `.squads.json` that
   can't be reconstructed from the `.md` files.

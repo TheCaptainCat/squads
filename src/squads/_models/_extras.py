@@ -24,5 +24,3 @@ class ExtraKey:
     ALLOWED_TOOLS = "allowed_tools"
     # guides
     TAGS = "tags"
-    # refs
-    REF_KINDS = "ref_kinds"

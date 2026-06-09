@@ -91,7 +91,8 @@ role · skill     Draft ──▶ Active ⇄ Archived
 | role / skill | `Draft` | Draft→{Active}; Active→{Archived}; Archived→{Active} |
 
 **Terminal states** (no outgoing transitions) are `Done`, `Cancelled`, `Rejected`, `Superseded`,
-`Deprecated`, `Archived`, `Approved`. `sq inbox` only surfaces **open** (non-terminal) items.
+`Deprecated`, `Archived`, `Approved`, `Verified`, `WontFix`. `sq inbox` only surfaces **open**
+(non-terminal) items.
 
 > Status is stored in the `.md` frontmatter *and* mirrored in the index. The dated discussion
 > entries (`sq comment`) are what record the *history* of a transition — see
@@ -99,3 +100,20 @@ role · skill     Draft ──▶ Active ⇄ Archived
 
 The machines themselves live in `squads._workflow` (`WORKFLOWS`, `can_transition`, `TERMINAL`,
 `ALLOWED_PARENTS`); see [internals.md](internals.md) for how they're wired in.
+
+## Sub-entities: subtasks, user stories, findings
+
+The body-local sub-entities (`sq subtask`/`story`/`finding`) are tracked by `sq` too — each has its
+own status, and the parent shows an **sq-managed summary table** that rolls them up (regenerated on
+every change). Their state lives in an sq-owned `:meta` marker region inside each block, never in the
+heading prose; the block's body stays free-form for the agent.
+
+| Sub-entity | Lives on | Add / transition | Lifecycle |
+|------------|----------|------------------|-----------|
+| **subtask** | task | `sq subtask add TASK "…" [--story US1]` · `sq subtask status TASK ST1 <S>` | `Todo → InProgress → Done` (+ Blocked, Cancelled) |
+| **user story** | feature | `sq story add FEAT "…"` · `sq story status FEAT US1 <S>` | `Todo → InProgress → Done` (+ Blocked, Cancelled) |
+| **finding** | review | `sq finding add REV "…" --severity high` · `sq finding status REV F1 <S>` | `Open → Fixed → Verified` (+ WontFix) |
+
+Findings also carry a **severity** set at `add` time: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low ·
+🔵 info. `sq subtask done` remains a shortcut (Done / `--undo` → Todo). Transitions are validated by
+the sub-entity machines (`squads._workflow.SUBENTITY_WORKFLOWS`); `--force` overrides.

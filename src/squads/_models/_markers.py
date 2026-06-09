@@ -14,9 +14,12 @@ A section ``tag`` is delimited by::
 # Top-level section tags shared by most item files.
 BODY = "body"
 DISCUSSION = "discussion"
+#: sq-managed roll-up table of a parent's sub-entities (regenerated on every change).
+SUMMARY = "summary"
 # Containers that hold scaffolded sub-blocks.
 STORIES = "stories"
 SUBTASKS = "subtasks"
+FINDINGS = "findings"
 
 #: Marker prefix; used to detect sq markers when linting.
 PREFIX = "sq:"
@@ -36,6 +39,10 @@ def story_tag(local_id: str) -> str:
 
 def subtask_tag(local_id: str) -> str:
     return f"subtask:{local_id}"
+
+
+def finding_tag(local_id: str) -> str:
+    return f"finding:{local_id}"
 
 
 def discussion_tag(base: str | None = None) -> str:

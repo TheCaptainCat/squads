@@ -16,7 +16,7 @@ uv build                # wheel/sdist (templates ship as package data)
 ## Architecture & layering
 
 ```
-_cli → _service → (index store, backends, rendering)
+_cli → _services → (index store, backends, rendering)
 _models  shared, no internal deps
 ```
 
@@ -47,7 +47,11 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   sentinel = any `<tech>-dev` role). Drives the per-item-type managed skills (`sq-<type>`) and
   `skills_for_role()`. Workflow cheatsheet partial: `_rendering/templates/workflow.md.j2` (shared by
   the `squads` skill and `sq workflow`).
-- `_service.py` — orchestration; the logic behind each command. `_discussion.py` — comment/story/
+- `_services/` — orchestration, the logic behind each command. A shared `_base.ServiceCore`
+  (create/get/list + backend + role/skill lookups + roster) plus one concern **mixin** per file
+  (`_items`, `_collab`, `_subentities`, `_refs`, `_roster`, `_maintenance`); `_service.py` composes
+  them into the flat `Service` façade and holds `init`/`adopt`/`open_service`; `_results.py` has the
+  result dataclasses. `_discussion.py` — comment/story/
   subtask formatting + `@mention` extraction.
 - `_cli/` — Typer app (`__init__` wires sub-typers + the `--dir` callback + version notice);
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
@@ -81,7 +85,17 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   so forward refs work unquoted. Keep the import graph **acyclic** (verified); if a future edge
   would create a cycle, use `if TYPE_CHECKING:` + a string annotation rather than a runtime import.
 - **`Item.extra` keys** come from `_models/_extras.py::ExtraKey` (imported as `X`) — never hand-write
-  the string keys; that's where role/dev/skill/ref metadata field names live.
+  the string keys; that's where role/dev/skill metadata field names live.
+- **Refs carry their kind inline** (`schema_version` 2): `item.refs` entries are `"ID"` or
+  `"ID:kind"`; use `split_ref`/`make_ref` from `_models/_item.py`, never parse the `:` by hand. The
+  pre-2 `extra.ref_kinds` map is read transparently and folded by `from_frontmatter`.
+- **Schema version & migrations.** `_models/_schema.py::SCHEMA_VERSION` is the single source of
+  truth (models default to it). The root CLI callback hard-stops on a mismatch
+  (`require_current_schema` → run `sq migrate up`). The `sq migrate` Typer app (`_cli/_migrate.py`):
+  `up` runs the ordered `_migrations/_registry.py::MIGRATIONS` (each a `Migration` record with a
+  private `_vNtoM.py` `migrate(paths)->int` + a `manual` runbook string) then `repair` + stamps;
+  `help` lists the changelog index; `chlog vA..vB` prints `manual` steps for a release range.
+  Runner modules are **private** — never `python -m`; only through `sq migrate`.
 - **Strict typing** — `pyright` runs in strict mode and `ruff` (E/F/I/UP/B/W + C901/SIM/PERF/PTH/RUF/TRY/PLR0911-15,
   max-complexity 12, max-args 8, TRY003 ignored) must stay clean:
   `uv run pyright && uv run ruff check . && uv run ruff format --check .`. Annotate bare `dict`/

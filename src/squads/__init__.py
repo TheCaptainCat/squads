@@ -1,3 +1,3 @@
 """squads — manage a team of AI agents working on a code project."""
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"

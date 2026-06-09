@@ -11,6 +11,10 @@
   ```
 
   A purely-technical task has no feature parent and no fix/addresses ref.
+- **Sub-entities are tracked too.** Subtasks & user stories run `Todo → InProgress → Done`
+  (`sq subtask status TASK-… ST1 …`, `sq story status FEAT-… US1 …`); review findings carry a
+  severity + `Open → Fixed → Verified` (`sq finding add REV-… "…" --severity high`,
+  `sq finding status REV-… F1 …`). Each parent shows an sq-managed summary table.
 - Hierarchy: epic → feature → task; subtasks → user stories. `sq check` enforces the parent rules.
 - Each role has skills for the item types it manages (`sq-feature`, `sq-task`, `sq-bug`, …) —
   open those for role-specific guidance. The default agent (Catherine Manager) triages and routes.

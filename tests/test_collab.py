@@ -68,7 +68,7 @@ def test_story_scaffold_and_nested_discussion(svc):
     assert us1 is not None and us2 is not None
     assert "scope it" in us1
     assert us2.strip() == ""
-    assert [s[0] for s in svc.list_stories(feat.id)] == ["US1", "US2"]
+    assert [b.local_id for b in svc.list_stories(feat.id)] == ["US1", "US2"]
 
 
 def test_story_body_is_freeform_and_agent_owned(svc):
@@ -86,14 +86,16 @@ def test_story_body_is_freeform_and_agent_owned(svc):
     assert after_body is not None
     assert after_body.strip() == body
     # list summary derives from the free-form body when there is no title
-    assert svc.list_stories(feat.id) == [("US1", "As an admin, I want resets.")]
+    (story,) = svc.list_stories(feat.id)
+    assert (story.local_id, story.title) == ("US1", "As an admin, I want resets.")
 
 
 def test_empty_title_summary_is_blank_not_marker(svc):
     # regression: heading parse must not bleed into the next line's marker
     feat = svc.create(ItemType.FEATURE, "f").item
     svc.add_story(feat.id)
-    assert svc.list_stories(feat.id) == [("US1", "")]
+    (story,) = svc.list_stories(feat.id)
+    assert (story.local_id, story.title) == ("US1", "")
 
 
 def test_stories_only_on_features(svc):
@@ -106,9 +108,21 @@ def test_subtask_done_toggle(svc):
     task = svc.create(ItemType.TASK, "t").item
     svc.add_subtask(task.id, "Validate expiry")
     svc.set_subtask_done(task.id, "ST1", done=True)
-    assert svc.list_subtasks(task.id) == [("ST1", "[x] Validate expiry")]
+    assert svc.list_subtasks(task.id)[0].status == "Done"
     svc.set_subtask_done(task.id, "ST1", done=False)
-    assert svc.list_subtasks(task.id) == [("ST1", "[ ] Validate expiry")]
+    assert svc.list_subtasks(task.id)[0].status == "Todo"
+
+
+def test_subtask_status_machine(svc):
+    task = svc.create(ItemType.TASK, "t").item
+    svc.add_subtask(task.id, "Validate")
+    svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+    assert svc.list_subtasks(task.id)[0].status == "InProgress"
+    # Todo→Done is not a legal move (must pass through InProgress); already InProgress→Done is ok
+    svc.set_subtask_status(task.id, "ST1", Status.DONE)
+    assert svc.list_subtasks(task.id)[0].status == "Done"
+    with pytest.raises(SquadsError):
+        svc.set_story_status(task.id, "ST1", Status.TODO)  # wrong parent type
 
 
 def test_subtask_done_unknown_id(svc):

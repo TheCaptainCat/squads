@@ -62,8 +62,10 @@ def test_subtask_story_records_and_validates(svc):
     task = svc.create(ItemType.TASK, "Tokens", parent=feat.id).item
     res = svc.add_subtask(task.id, "Validate expiry", story="US1")
     text = svc.paths.abspath(svc.get(task.id).path).read_text(encoding="utf-8")
-    assert "(→ US1)" in text
-    assert svc.list_subtasks(task.id) == [(res.local_id, "[ ] Validate expiry  (→ US1)")]
+    assert "story: US1" in text  # the US mapping lives in the sq-owned :meta region
+    (sub,) = svc.list_subtasks(task.id)
+    assert sub.local_id == res.local_id
+    assert sub.title == "Validate expiry" and sub.story == "US1" and sub.status == "Todo"
 
 
 def test_subtask_story_unknown_us_rejected(svc):
@@ -99,7 +101,7 @@ def test_check_flags_dangling_subtask_story(svc):
     svc.add_subtask(task.id, "ok", story="US1")
     # now hand-edit the file to reference a non-existent US
     path = svc.paths.abspath(svc.get(task.id).path)
-    text = path.read_text(encoding="utf-8").replace("(→ US1)", "(→ US7)")
+    text = path.read_text(encoding="utf-8").replace("story: US1", "story: US7")
     path.write_text(text, encoding="utf-8")
     issues = svc.check()
     assert any(i.item == task.id and "US7" in i.message for i in issues)

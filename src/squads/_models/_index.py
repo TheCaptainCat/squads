@@ -8,12 +8,13 @@ those files via ``sq repair``.
 from pydantic import BaseModel, NonNegativeInt, PositiveInt
 
 from squads._models._enums import ItemType
-from squads._models._item import Item
+from squads._models._item import Item, split_ref
+from squads._models._schema import SCHEMA_VERSION
 from squads._util import NonEmpty
 
 
 class SquadsDB(BaseModel):
-    schema_version: PositiveInt = 1
+    schema_version: PositiveInt = SCHEMA_VERSION
     squads_version: NonEmpty = "0.0.0"
     #: One global monotonic counter; numbers are unique across all types.
     counter: NonNegativeInt = 0
@@ -34,7 +35,9 @@ class SquadsDB(BaseModel):
 
     def backrefs(self, item_id: str) -> list[str]:
         """Compute (never store) the items whose forward refs point at ``item_id``."""
-        return sorted(i.id for i in self.items.values() if item_id in i.refs)
+        return sorted(
+            i.id for i in self.items.values() if any(split_ref(r)[0] == item_id for r in i.refs)
+        )
 
     def to_json(self) -> str:
         return self.model_dump_json(indent=2, exclude_none=False)

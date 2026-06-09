@@ -3,9 +3,9 @@ from datetime import UTC, datetime
 import pytest
 
 from squads import _clock as clock
-from squads import _service as service
 from squads._cli import app
 from squads._models._enums import ItemType
+from squads._services import _service as service
 
 # --------------------------------------------------------------------------- clock override
 

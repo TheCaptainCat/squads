@@ -17,6 +17,7 @@ backend.
 | **[recipes.md](recipes.md)** | Copy-paste sequences for common moves. |
 | **[faq.md](faq.md)** | Common errors and how to fix them. |
 | **[adoption.md](adoption.md)** | Migrating an existing project: `sq adopt` + history-preserving `--at` timestamps. |
+| **[migration.md](migration.md)** | Upgrading a squad to a new squads version: `sq sync`/`repair`, frontmatter & marker transformers, and LLM runbooks for non-deterministic changes. |
 
 **Under the hood / contributing**
 

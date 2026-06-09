@@ -46,6 +46,7 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         commands=(
             'sq create feature "…" [--parent EPIC-…]',
             'sq story add FEAT-… "As a <role>, I want … so that …"',
+            "sq story status FEAT-… US1 InProgress   # Todo → InProgress → Done",
             "sq story list FEAT-…",
         ),
         roles=(
@@ -67,6 +68,7 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         commands=(
             'sq create task "…" --parent FEAT-…',
             'sq subtask add TASK-… "…" --story US1',
+            "sq subtask status TASK-… ST1 InProgress   # Todo → InProgress → Done",
             "sq ref add TASK-… BUG-… --kind fixes   # or REV-… --kind addresses",
             "sq status TASK-… InProgress",
         ),
@@ -108,16 +110,20 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         ),
     ),
     ItemType.REVIEW: ItemPlaybook(
-        overview="A code review: scope, findings, and a verdict.",
+        overview="A code review: scope, findings (each with severity + status), and a verdict.",
         lifecycle="Requested → InReview → ChangesRequested → Approved (+ Rejected)",
         commands=(
             'sq create review "…"',
+            'sq finding add REV-… "…" --severity high   # then: finding status REV-… F1 Fixed',
             "sq status REV-… InReview",
             "sq ref add TASK-… REV-… --kind addresses",
         ),
         roles=(
-            RoleGuide("reviewer", "Perform reviews; drive to Approved or ChangesRequested."),
-            RoleGuide(DEV, "Address feedback; link the follow-up task with `--kind addresses`."),
+            RoleGuide(
+                "reviewer",
+                "Perform reviews; log findings with `sq finding add`; drive to Approved/Changes.",
+            ),
+            RoleGuide(DEV, "Address findings (`finding status … Fixed`); link the follow-up task."),
         ),
     ),
     ItemType.GUIDE: ItemPlaybook(

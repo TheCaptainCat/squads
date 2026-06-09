@@ -19,10 +19,10 @@ from squads._cli._common import (
 )
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
-from squads._models._item import Item
+from squads._models._item import Item, split_ref
 from squads._paths import number_for_id
-from squads._service import adopt as svc_adopt
-from squads._service import init as svc_init
+from squads._services._service import adopt as svc_adopt
+from squads._services._service import init as svc_init
 
 
 @app.command()
@@ -146,7 +146,11 @@ def show(item_id: str = typer.Argument(...), json_out: bool = typer.Option(False
     if it.labels:
         rows.append(f"[bold]labels:[/bold] {e(', '.join(it.labels))}")
     if it.refs:
-        rows.append(f"[bold]refs:[/bold] {', '.join(it.refs)}")
+        rendered = ", ".join(
+            rid if kind == "related" else f"{rid} ({kind})"
+            for rid, kind in (split_ref(r) for r in it.refs)
+        )
+        rows.append(f"[bold]refs:[/bold] {e(rendered)}")
     rows.append(f"[bold]file:[/bold] {it.path}")
     console.print(Panel("\n".join(rows), expand=False))
 
@@ -306,6 +310,22 @@ def guide_list():
 
 @app.command()
 @handle_errors
+def comment(
+    item_id: str = typer.Argument(...),
+    message: list[str] = typer.Option(..., "-m", "--message", help="A talking point (repeatable)."),
+    as_: str = typer.Option("operator", "--as", help="Author: a role slug or 'operator'."),
+    story: str | None = typer.Option(None, "--story", help="Target a user story (e.g. US1)."),
+    subtask: str | None = typer.Option(None, "--subtask", help="Target a subtask (e.g. ST1)."),
+):
+    """Append a timestamped comment to an item's discussion."""
+    svc = get_service()
+    svc.comment(item_id, list(message), as_slug=as_, story=story, subtask=subtask)
+    where = f" ({story or subtask})" if (story or subtask) else ""
+    console.print(f"commented on {item_id}{where} as [bold]{svc.author(as_)}[/bold]")
+
+
+@app.command()
+@handle_errors
 def sync():
     """Regenerate tool-owned managed files to the current squads version."""
     svc = get_service()
@@ -321,6 +341,33 @@ def workflow():
     from squads._rendering._engine import render
 
     console.print(Markdown(render("workflow.md.j2")))
+
+
+@app.command()
+@handle_errors
+def docs(
+    name: str | None = typer.Argument(None, help="Doc to print (e.g. internals). Omit to list."),
+    pretty: bool = typer.Option(False, "--rich", help="Pretty-print instead of raw markdown."),
+):
+    """Print project documentation in the terminal — offline, no fetch."""
+    from squads import _docfiles
+
+    if name is None:
+        table = Table(title="squads docs — read with `sq docs <name>`")
+        table.add_column("name")
+        table.add_column("title")
+        for stem, title in _docfiles.available():
+            table.add_row(stem, e(title))
+        console.print(table)
+        return
+    content = _docfiles.read(name)
+    if pretty:
+        from rich.markdown import Markdown
+
+        console.print(Markdown(content))
+    else:
+        # raw markdown, verbatim: no Rich markup interpretation, no reflow
+        console.print(content, markup=False, highlight=False, soft_wrap=True)
 
 
 @app.command()

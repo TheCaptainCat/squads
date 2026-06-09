@@ -1,13 +1,32 @@
 """The tracked item — the unit behind every ID."""
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel
 
 from squads import _clock as clock
 from squads._models._enums import ItemType, Status
 from squads._util import NonEmpty
+
+REF_SEP = ":"
+DEFAULT_KIND = "related"
+
+
+def split_ref(ref: str) -> tuple[str, str]:
+    """``"ID"`` → ``(ID, "related")``; ``"ID:kind"`` → ``(ID, kind)``. IDs never contain ``:``."""
+    rid, _, kind = ref.partition(REF_SEP)
+    return rid, (kind or DEFAULT_KIND)
+
+
+def make_ref(item_id: str, kind: str = DEFAULT_KIND) -> str:
+    """A bare ID for the default kind, else ``"ID:kind"`` (kind carried with the edge)."""
+    return item_id if not kind or kind == DEFAULT_KIND else f"{item_id}{REF_SEP}{kind}"
+
+
+def fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
+    """Merge a pre-2 ``extra.ref_kinds`` ``{ID: kind}`` map into inline ``ID:kind`` ref strings."""
+    return [make_ref(rid, legacy.get(rid, kind)) for rid, kind in (split_ref(r) for r in refs)]
 
 
 class Item(BaseModel):
@@ -68,12 +87,28 @@ class Item(BaseModel):
             parent=data.get("parent"),
             assignee=data.get("assignee"),
             labels=list(data.get("labels", []) or []),
-            refs=list(data.get("refs", []) or []),
+            refs=_read_refs(data),
             path=path,
             created_at=_parse_dt(data.get("created_at")),
             updated_at=_parse_dt(data.get("updated_at")),
-            extra=dict(data.get("extra", {}) or {}),
+            extra=_read_extra(data),
         )
+
+
+def _read_refs(data: dict[str, Any]) -> list[str]:
+    """Refs as inline ``ID[:kind]`` strings, folding a pre-2 ``extra.ref_kinds`` map if present."""
+    refs: list[str] = list(data.get("refs", []) or [])
+    legacy: Any = dict(data.get("extra", {}) or {}).get("ref_kinds")
+    if isinstance(legacy, dict):
+        return fold_legacy_kinds(refs, cast("dict[str, str]", legacy))
+    return refs
+
+
+def _read_extra(data: dict[str, Any]) -> dict[str, Any]:
+    """Item ``extra``, minus the legacy ``ref_kinds`` (now carried inline on the refs)."""
+    extra: dict[str, Any] = dict(data.get("extra", {}) or {})
+    extra.pop("ref_kinds", None)
+    return extra
 
 
 def _slug_from_path(path: str) -> str:
