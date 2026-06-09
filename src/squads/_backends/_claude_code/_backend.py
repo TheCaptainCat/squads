@@ -121,6 +121,7 @@ class ClaudeCodeBackend(AgentBackend):
             body = render(
                 "agents/item_skill.md.j2",
                 title=item_type.value.capitalize(),
+                type=item_type.value,
                 version=ctx.version,
                 overview=pb.overview,
                 lifecycle=pb.lifecycle,

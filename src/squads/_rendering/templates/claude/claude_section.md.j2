@@ -19,20 +19,24 @@ who triages the request and routes it to the right specialist.
 
 ## Team workflow
 
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
+  `sq create <type>`. Sub-entities nest: `sq feature 12 story 1 update --status InProgress`.
 - The **product owner** authors **features** (`sq create feature`) and their **user stories**
-  (`sq story add`).
+  (`sq feature <n> add-story`).
 - The **tech lead** authors **tasks** (`sq create task`) and breaks them down:
   - a task's **parent is the feature** it implements (`--parent FEAT-…`);
   - each **subtask maps to one user story** of that feature
-    (`sq subtask add <task> --story USn`);
+    (`sq task <n> add-subtask "…" --story USn`);
   - a task that fixes a bug or follows up a review links it as a ref
-    (`sq ref add <task> <id> --kind fixes|addresses`);
+    (`sq task <n> ref add <id> --kind fixes|addresses`);
   - a purely-technical task has no feature parent and no such ref.
 - `sq check` enforces this (a task's parent must be a feature; subtask→US must exist).
 
 ## Working with squads
 
-- Track all work with the `sq` CLI. The `.md` frontmatter is the source of truth.
-- Never edit the `<!-- sq:* -->` marker lines; write prose directly in the body between them.
-- Hand off and ask questions via `sq comment <ID> --as <slug> -m "…"`; mention `@role` to notify.
+- Track all work with the `sq` CLI; the `.md` files are sq-managed — never edit them by hand.
+- Set bodies through commands: `sq <type> <n> body -m "…"` (items) / `sq <type> <n> <kind> <k> body
+  -m "…"` (sub-entities); `--file` for long markdown. Read with `sq <type> <n> show`.
+- Hand off and ask questions via `sq <type> <n> comment --as <slug> -m "…"` (repeat `-m` for
+  separate bullets); mention `@role` to notify.
 - Link related items by ID so context travels with the work.

@@ -50,11 +50,11 @@ For each legacy artifact (an old ticket, spec, ADR, …):
    sq --at 2024-01-15 create feature "User authentication" --parent EPIC-000001
    # → created FEAT-000007 → squads/features/FEAT-000007-user-authentication.md
    ```
-2. **Move the legacy content into the body** — write your prose between the `<!-- sq:body -->`
-   markers of that file (leave the marker lines intact). For features, scaffold the user stories;
-   for tasks, the subtasks:
+2. **Move the legacy content into the body** with `sq body` (`--file` is easiest for existing prose);
+   for features, scaffold the user stories; for tasks, the subtasks:
    ```bash
-   sq --at 2024-01-15 story add FEAT-000007 "As a user, I want to log in"
+   sq --at 2024-01-15 body FEAT-000007 --file legacy-feature.md
+   sq --at 2024-01-15 story add FEAT-000007 "As a user, I want to log in" -m "Acceptance: …"
    sq --at 2024-01-16 subtask add TASK-000008 "Validate token" --story US1
    ```
 3. **Replay the status history** in order, each at its real date:

@@ -1,5 +1,7 @@
 from squads import _discussion as discussion
-from squads._models._enums import Severity
+from squads import _sections as sections
+from squads._models._enums import Severity, Status
+from squads._models._subentity import SubEntity
 
 
 def test_format_comment():
@@ -7,53 +9,95 @@ def test_format_comment():
     assert out == "- [2026-06-07T10:00:00Z] Robert Architect:\n  - a\n  - b"
 
 
+def test_format_comment_nests_multiline_messages():
+    out = discussion.format_comment(
+        "2026-06-07T10:00:00Z", "Olivia Lead", ["Parser\nhandles scopes", "@qa verify"]
+    )
+    assert out == (
+        "- [2026-06-07T10:00:00Z] Olivia Lead:\n"
+        "  - Parser\n"
+        "    handles scopes\n"  # continuation line nests under its bullet
+        "  - @qa verify"
+    )
+
+
+def test_format_comment_nests_a_fenced_code_block():
+    out = discussion.format_comment(
+        "2026-06-07T10:00:00Z", "Dev", ["Fix:\n```py\na = 1\n\nb = 2\n```"]
+    )
+    # fence, code, and the internal blank line all sit at the 4-space bullet content column
+    assert out == (
+        "- [2026-06-07T10:00:00Z] Dev:\n"
+        "  - Fix:\n"
+        "    ```py\n"
+        "    a = 1\n"
+        "    \n"  # blank line inside the block stays indented, not dropped to column 0
+        "    b = 2\n"
+        "    ```"
+    )
+
+
 def test_extract_mentions():
     text = "ping @qa and @reviewer, not email me@host or @ alone"
     assert discussion.extract_mentions(text) == {"qa", "reviewer"}
 
 
+def _sub(local_id: str, **kw) -> SubEntity:
+    return SubEntity(local_id=local_id, status=kw.pop("status", Status.TODO), **kw)
+
+
 def test_next_local_id():
-    assert discussion.next_local_id("", "story") == "US1"
-    text = "<!-- sq:story:US1 --><!-- sq:story:US2 -->"
-    assert discussion.next_local_id(text, "story") == "US3"
-    assert discussion.next_local_id("<!-- sq:subtask:ST5 -->", "subtask") == "ST6"
+    assert discussion.next_local_id([], "story") == "US1"
+    assert discussion.next_local_id([_sub("US1"), _sub("US2")], "story") == "US3"
+    assert discussion.next_local_id([_sub("ST5")], "subtask") == "ST6"
 
 
-def test_list_blocks():
-    block = discussion.build_story_block("US1", "As an admin, I want X")
-    (info,) = discussion.list_blocks(block, "story")
-    assert info.local_id == "US1"
-    assert info.title == "As an admin, I want X"
-    assert info.status == "Todo"  # initial, from the sq-owned :meta region
+def test_build_block_uses_given_body():
+    block = discussion.build_block("subtask", "ST1", "Validate", body="custom body text")
+    assert "custom body text" in block
+    assert discussion.body_placeholder("subtask") not in block
+    # without an explicit body the placeholder is kept
+    default = discussion.build_block("subtask", "ST1", "Validate")
+    assert discussion.body_placeholder("subtask") in default
 
 
-def test_set_block_status():
-    block = discussion.build_subtask_block("ST1", "Validate")
-    updated = discussion.set_block_status(block, "subtask", "ST1", "InProgress")
-    assert discussion.list_blocks(updated, "subtask")[0].status == "InProgress"
-    assert "[InProgress]" not in updated  # status lives in :meta, not the heading
+def test_build_block_has_no_meta_but_ships_head():
+    # state lives in frontmatter now; the block only scaffolds prose + an (empty) :head region
+    block = discussion.build_block("finding", "F1", "Null deref")
+    assert ":meta" not in block
+    assert "<!-- sq:finding:F1:head -->" in block
+    assert "<!-- sq:finding:F1:body -->" in block
+    assert "### F1 — Null deref" in block
 
 
 def test_render_summary():
-    text = discussion.build_finding_block("F1", "Null deref", severity=Severity.HIGH)
-    out = discussion.render_summary("finding", discussion.list_blocks(text, "finding"))
-    assert "| Finding | Severity | Status | Title |" in out
-    assert "🟠 high" in out and "Open" in out
+    subs = [
+        SubEntity(
+            local_id="F1",
+            title="Null deref",
+            status=Status.OPEN,
+            severity=Severity.HIGH,
+            assignee="qa",
+        )
+    ]
+    out = discussion.render_summary("finding", subs)
+    assert "| Finding | Severity | Status | Assignee | Title |" in out
+    assert "🟠 high" in out and "Open" in out and "qa" in out
     assert discussion.render_summary("finding", []) == ""
 
 
-def test_upgrade_legacy_block():
-    # a pre-2 subtask: status in a [x] checkbox + (→ USn) in the heading, no :meta region
-    legacy = (
-        "<!-- sq:subtask:ST1 -->\n"
-        "### ST1 — [x] Validate  (→ US2)\n\n"
-        "<!-- sq:subtask:ST1:body -->\nreal body\n<!-- sq:subtask:ST1:body:end -->\n\n"
-        "<!-- sq:subtask:ST1:discussion -->\n<!-- sq:subtask:ST1:discussion:end -->\n"
-        "<!-- sq:subtask:ST1:end -->\n"
+def test_set_head_renders_badges_into_empty_region():
+    block = discussion.build_block("subtask", "ST1", "Validate")
+    out = discussion.set_head(
+        block,
+        "subtask",
+        "ST1",
+        status="InProgress",
+        assignee_name="Grace Hopper",
+        story="US1 — Login",
     )
-    out = discussion.upgrade_legacy_block(legacy, "subtask", "ST1")
-    (b,) = discussion.list_blocks(out, "subtask")
-    assert (b.status, b.story, b.title) == ("Done", "US2", "Validate")
-    assert "status: Done" in out and "story: US2" in out
-    assert "real body" in out and "[x]" not in out  # body kept, checkbox gone
-    assert discussion.upgrade_legacy_block(out, "subtask", "ST1") == out  # idempotent
+    head = sections.get_section(out, "subtask:ST1:head")
+    assert head is not None
+    assert "**Status:** 🟡 In Progress" in head
+    assert "**Assignee:** Grace Hopper" in head
+    assert "**Implements:** US1 — Login" in head

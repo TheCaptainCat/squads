@@ -22,5 +22,8 @@
 {% endfor %}
 
 ---
-The `.md` frontmatter is the source of truth. Write prose directly in the body between the
-`<!-- sq:* -->` markers; never edit the marker lines.
+The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+`sq {{ type }} <n> <verb>`. Set this item's body with `sq {{ type }} <n> body
+-m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
+get their bodies from `sq {{ type }} <n> <kind> <k> body -m "…"`. Read anything back with
+`sq {{ type }} <n> show` / `sq {{ type }} <n> <kind> <k> show`.

@@ -1,7 +1,10 @@
-"""Top-level commands: init, list, show, tree, link/unlink, update, status, repair."""
+"""Top-level commands: init, adopt, list, tree, repair, inbox, sync, workflow, docs, check.
+
+Per-item operations (show/update/status/body/comment/refs + sub-entities) live in the
+resource-oriented `sq <type> <num> <verb> …` groups built by `_items.build_item_app`.
+"""
 
 import json
-from typing import Any
 
 import typer
 from rich.panel import Panel
@@ -17,9 +20,8 @@ from squads._cli._common import (
     parse_status,
     parse_type,
 )
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
-from squads._models._item import Item, split_ref
+from squads._models._item import Item
 from squads._paths import number_for_id
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
@@ -127,36 +129,6 @@ def list_items(
 
 @app.command()
 @handle_errors
-def show(item_id: str = typer.Argument(...), json_out: bool = typer.Option(False, "--json")):
-    """Show one item's details."""
-    svc = get_service()
-    it = svc.get(item_id)
-    if json_out:
-        console.print_json(it.model_dump_json())
-        return
-    rows = [
-        f"[bold]{it.id}[/bold]  ({it.type.value})",
-        f"[bold]title:[/bold] {e(it.title)}",
-        f"[bold]status:[/bold] {it.status.value}",
-    ]
-    if it.parent:
-        rows.append(f"[bold]parent:[/bold] {it.parent}")
-    if it.assignee:
-        rows.append(f"[bold]assignee:[/bold] {e(it.assignee)}")
-    if it.labels:
-        rows.append(f"[bold]labels:[/bold] {e(', '.join(it.labels))}")
-    if it.refs:
-        rendered = ", ".join(
-            rid if kind == "related" else f"{rid} ({kind})"
-            for rid, kind in (split_ref(r) for r in it.refs)
-        )
-        rows.append(f"[bold]refs:[/bold] {e(rendered)}")
-    rows.append(f"[bold]file:[/bold] {it.path}")
-    console.print(Panel("\n".join(rows), expand=False))
-
-
-@app.command()
-@handle_errors
 def tree(root_id: str | None = typer.Argument(None)):
     """Show the item hierarchy."""
     svc = get_service()
@@ -182,60 +154,6 @@ def tree(root_id: str | None = typer.Argument(None)):
     for r in roots:
         attach(tree_view.add(label(r)), r)
     console.print(tree_view)
-
-
-@app.command()
-@handle_errors
-def link(child_id: str = typer.Argument(...), parent: str = typer.Option(..., "--parent")):
-    """Set a parent for an item."""
-    svc = get_service()
-    it = svc.link(child_id, parent)
-    console.print(f"linked {it.id} → parent {parent}")
-
-
-@app.command()
-@handle_errors
-def unlink(child_id: str = typer.Argument(...)):
-    """Remove an item's parent."""
-    svc = get_service()
-    svc.unlink(child_id)
-    console.print(f"unlinked {child_id}")
-
-
-@app.command()
-@handle_errors
-def update(
-    item_id: str = typer.Argument(...),
-    title: str | None = typer.Option(None, "--title"),
-    desc: str | None = typer.Option(None, "--desc"),
-    assignee: str | None = typer.Option(None, "--assignee"),
-    add_label: list[str] = typer.Option(None, "--add-label"),
-    rm_label: list[str] = typer.Option(None, "--rm-label"),
-):
-    """Update an item's metadata (renames the file if --title changes)."""
-    svc = get_service()
-    it = svc.update(
-        item_id,
-        title=title,
-        description=desc,
-        assignee=assignee,
-        add_labels=add_label or None,
-        rm_labels=rm_label or None,
-    )
-    console.print(f"updated {it.id}  [dim]{it.path}[/dim]")
-
-
-@app.command()
-@handle_errors
-def status(
-    item_id: str = typer.Argument(...),
-    new_status: str = typer.Argument(..., metavar="STATUS"),
-    force: bool = typer.Option(False, "--force"),
-):
-    """Transition an item to a new status."""
-    svc = get_service()
-    it = svc.set_status(item_id, parse_status(new_status), force=force)
-    console.print(f"{it.id} → [bold]{it.status.value}[/bold]")
 
 
 @app.command()
@@ -268,60 +186,6 @@ def inbox(
         console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status.value})[/dim]")
         for ln in lines:
             console.print(f"    {e(ln)}")
-
-
-guide_app = typer.Typer(no_args_is_help=True, help="Manage project guides.")
-
-
-@guide_app.command("add")
-@handle_errors
-def guide_add(
-    title: str = typer.Argument(...),
-    tech: str | None = typer.Option(None, "--tech"),
-    tag: list[str] = typer.Option(None, "--tag", help="Tag (repeatable)."),
-    desc: str = typer.Option("", "--desc"),
-):
-    """Create a project-agnostic guide (authored by the lead/architect)."""
-    svc = get_service()
-    extra: dict[str, Any] = {}
-    if tech:
-        extra[X.TECH] = tech
-    if tag:
-        extra[X.TAGS] = list(tag)
-    res = svc.create(ItemType.GUIDE, title, description=desc, extra=extra)
-    console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
-
-
-@guide_app.command("list")
-@handle_errors
-def guide_list():
-    svc = get_service()
-    guides = svc.list_items(item_type=ItemType.GUIDE)
-    if not guides:
-        console.print("[dim]no guides[/dim]")
-        return
-    table = Table(box=None, pad_edge=False)
-    for col in ("ID", "Title", "Status", "Tech"):
-        table.add_column(col)
-    for it in guides:
-        table.add_row(it.id, e(it.title), it.status.value, it.extra.get(X.TECH, ""))
-    console.print(table)
-
-
-@app.command()
-@handle_errors
-def comment(
-    item_id: str = typer.Argument(...),
-    message: list[str] = typer.Option(..., "-m", "--message", help="A talking point (repeatable)."),
-    as_: str = typer.Option("operator", "--as", help="Author: a role slug or 'operator'."),
-    story: str | None = typer.Option(None, "--story", help="Target a user story (e.g. US1)."),
-    subtask: str | None = typer.Option(None, "--subtask", help="Target a subtask (e.g. ST1)."),
-):
-    """Append a timestamped comment to an item's discussion."""
-    svc = get_service()
-    svc.comment(item_id, list(message), as_slug=as_, story=story, subtask=subtask)
-    where = f" ({story or subtask})" if (story or subtask) else ""
-    console.print(f"commented on {item_id}{where} as [bold]{svc.author(as_)}[/bold]")
 
 
 @app.command()

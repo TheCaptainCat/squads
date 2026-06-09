@@ -1,6 +1,6 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC
+from datetime import UTC, datetime
 
 import pytest
 
@@ -8,6 +8,36 @@ from squads._errors import SquadsError
 from squads._index._store import IndexStore
 from squads._models._enums import ItemType, Status
 from squads._models._index import SquadsDB
+from squads._models._item import Item
+
+
+def test_index_keys_items_by_sequence_number():
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    it = Item(
+        sequence_id=7,
+        type=ItemType.TASK,
+        title="t",
+        slug="t",
+        status=Status.DRAFT,
+        path="tasks/x.md",
+        created_at=now,
+        updated_at=now,
+    )
+    assert it.id == "TASK-000007"  # derived from type + sequence_id
+    db = SquadsDB(counter=7)
+    db.add(it)
+    assert set(db.items) == {7}  # keyed by the int sequence, not the formatted id
+    assert db.get("TASK-000007") is it  # lookup by formatted id …
+    assert db.get("7") is it  # … or by bare number
+    # JSON keys the items by the (stringified) int, and carries sequence_id + the formatted id
+    data = json.loads(db.to_json())
+    assert set(data["items"]) == {"7"}
+    assert data["items"]["7"]["id"] == "TASK-000007"
+    assert data["items"]["7"]["sequence_id"] == 7
+    # round-trips, and a legacy full-id-keyed index still loads (tolerant validator)
+    assert SquadsDB.model_validate_json(db.to_json()).get("TASK-000007") is not None
+    legacy = json.dumps({"counter": 7, "items": {"TASK-000007": data["items"]["7"]}})
+    assert set(SquadsDB.model_validate_json(legacy).items) == {7}
 
 
 def test_global_counter_unique_across_types(tmp_path):
@@ -77,7 +107,7 @@ def test_backrefs_computed_not_stored(tmp_path):
 
     now = datetime(2026, 1, 1, tzinfo=UTC)
     a = Item(
-        id="TASK-000001",
+        sequence_id=1,
         type=ItemType.TASK,
         title="a",
         slug="a",

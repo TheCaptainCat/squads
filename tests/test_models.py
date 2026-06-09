@@ -4,16 +4,17 @@ import pytest
 from pydantic import ValidationError
 
 from squads._models._config import SquadsConfig
-from squads._models._enums import ItemType, Status
+from squads._models._enums import ItemType, Severity, Status
 from squads._models._index import SquadsDB
 from squads._models._item import Item
+from squads._models._subentity import SubEntity
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def _item(**over):
     base = dict(
-        id="TASK-000001",
+        sequence_id=1,
         type=ItemType.TASK,
         title="t",
         slug="t",
@@ -25,10 +26,52 @@ def _item(**over):
     return Item(**{**base, **over})  # pyright: ignore[reportArgumentType]  # dynamic test factory
 
 
-def test_item_requires_non_empty_id_title_slug_path():
-    for field in ("id", "title", "slug", "path"):
+def test_item_requires_non_empty_title_slug_path():
+    for field in ("title", "slug", "path"):
         with pytest.raises(ValidationError):
             _item(**{field: ""})
+
+
+def test_item_id_is_derived_from_sequence_and_type():
+    assert _item(sequence_id=7, type=ItemType.TASK).id == "TASK-000007"
+    assert _item(sequence_id=42, type=ItemType.REVIEW).id == "REV-000042"
+
+
+def test_subentity_roundtrips_through_frontmatter():
+    sub = SubEntity(
+        local_id="F1",
+        title="Null deref",
+        status=Status.OPEN,
+        assignee="qa",
+        severity=Severity.HIGH,
+    )
+    data = sub.to_frontmatter_dict()
+    # enums serialize to their string values; None fields (here: story) are omitted
+    assert data == {
+        "local_id": "F1",
+        "title": "Null deref",
+        "status": "Open",
+        "assignee": "qa",
+        "severity": "high",
+    }
+    back = SubEntity.from_frontmatter(data)
+    assert back == sub
+    assert back.status is Status.OPEN and back.severity is Severity.HIGH
+
+
+def test_item_subentities_roundtrip_through_frontmatter():
+    it = _item(
+        type=ItemType.TASK,
+        subentities=[SubEntity(local_id="ST1", title="Wire", status=Status.TODO, story="US1")],
+    )
+    fm = it.to_frontmatter_dict()
+    assert fm["subentities"] == [
+        {"local_id": "ST1", "title": "Wire", "status": "Todo", "story": "US1"}
+    ]
+    rebuilt = Item.from_frontmatter(fm, path=it.path)
+    assert rebuilt.subentities == it.subentities
+    # an item with no sub-entities omits the key entirely
+    assert "subentities" not in _item().to_frontmatter_dict()
 
 
 def test_item_accepts_empty_description_and_collections():
@@ -36,11 +79,9 @@ def test_item_accepts_empty_description_and_collections():
     assert it.labels == [] and it.refs == [] and it.extra == {}
 
 
-def test_db_counter_non_negative_and_schema_version_positive():
+def test_db_counter_non_negative():
     with pytest.raises(ValidationError):
         SquadsDB(counter=-1)
-    with pytest.raises(ValidationError):
-        SquadsDB(schema_version=0)
     assert SquadsDB(counter=0).counter == 0
 
 
@@ -54,6 +95,7 @@ def test_from_frontmatter_folds_legacy_ref_kinds():
     # pre-2 on-disk shape: refs as bare IDs + a parallel extra.ref_kinds map
     data = {
         "id": "TASK-000001",
+        "sequence_id": 1,
         "type": "task",
         "title": "t",
         "status": "Draft",

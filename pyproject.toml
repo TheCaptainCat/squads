@@ -1,6 +1,6 @@
 [project]
 name = "squads"
-version = "0.2.0"
+version = "0.3.0"
 description = "Manage a team of AI agents working on a code project: bootstrap roles & skills, track work with JIRA-like IDs in predictable markdown."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -32,8 +32,8 @@ dependencies = [
 ]
 
 [project.scripts]
-squads = "squads._cli:app"
-sq = "squads._cli:app"
+squads = "squads._cli:main"
+sq = "squads._cli:main"
 
 [project.urls]
 Homepage = "https://github.com/TheCaptainCat/squads"

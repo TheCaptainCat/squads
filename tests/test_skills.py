@@ -44,7 +44,7 @@ def test_item_skills_generated_with_active_role_sections(project):
     # 'minimal' roster = manager only, who does not interact with features → no role sections
     assert "## For " not in feature
     # but the generic command block is always present
-    assert "sq story add" in feature
+    assert "add-story" in feature
 
 
 def test_item_skill_shows_only_active_roles(svc, project):

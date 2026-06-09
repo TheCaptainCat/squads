@@ -2,14 +2,14 @@
 
 from typing import Any
 
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel
 
 from squads._models._schema import SCHEMA_VERSION
 from squads._util import NonEmpty
 
 
 class SquadsConfig(BaseModel):
-    schema_version: PositiveInt = SCHEMA_VERSION
+    schema_version: NonEmpty = SCHEMA_VERSION
     #: Folder (relative to the project root) that holds the squad's content + .squads.json.
     squad_dir: NonEmpty = "squads"
     default_backend: NonEmpty = "claude_code"
@@ -23,7 +23,7 @@ class SquadsConfig(BaseModel):
     def to_toml(self) -> str:
         lines = [
             "# squads project configuration",
-            f"schema_version = {self.schema_version}",
+            f'schema_version = "{self.schema_version}"',
             f'squad_dir = "{self.squad_dir}"',
             f'default_backend = "{self.default_backend}"',
             f'default_role = "{self.default_role}"',

@@ -3,10 +3,11 @@
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 from squads import _clock as clock
 from squads._models._enums import ItemType, Status
+from squads._models._subentity import SubEntity
 from squads._util import NonEmpty
 
 REF_SEP = ":"
@@ -30,17 +31,23 @@ def fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
 
 
 class Item(BaseModel):
-    id: NonEmpty
+    #: The global counter number — the item's real identity. ``id`` is derived from it + ``type``.
+    sequence_id: int
     type: ItemType
     title: NonEmpty
     slug: NonEmpty
     status: Status
     description: str = ""
     parent: str | None = None
+    #: The registered agent (role slug) who authored the item.
+    author: str | None = None
     assignee: str | None = None
     labels: list[str] = []
     #: Forward edges only. Backrefs are computed by inverting these across all items.
     refs: list[str] = []
+    #: Body-local sub-entities (stories/subtasks/findings). A given item type hosts exactly one
+    #: kind; their prose stays in the markdown markers, their state lives here.
+    subentities: list[SubEntity] = []
     #: Squad-folder-relative path to the item's markdown file.
     path: NonEmpty
     created_at: datetime
@@ -50,16 +57,28 @@ class Item(BaseModel):
 
     model_config = {"use_enum_values": False}
 
+    @computed_field
+    @property
+    def id(self) -> str:
+        """The formatted id (``TASK-000007``) — derived from ``type`` + ``sequence_id``.
+
+        Written to frontmatter as the durable human id; reconstructed via ``from_frontmatter``.
+        """
+        return f"{self.type.prefix}-{self.sequence_id:06d}"
+
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The mapping written into the markdown file's YAML frontmatter (durable truth)."""
         data: dict[str, Any] = {
             "id": self.id,
+            "sequence_id": self.sequence_id,
             "type": self.type.value,
             "title": self.title,
             "status": self.status.value,
         }
         if self.parent:
             data["parent"] = self.parent
+        if self.author:
+            data["author"] = self.author
         if self.assignee:
             data["assignee"] = self.assignee
         if self.refs:
@@ -68,6 +87,8 @@ class Item(BaseModel):
             data["labels"] = list(self.labels)
         if self.description:
             data["description"] = self.description
+        if self.subentities:
+            data["subentities"] = [s.to_frontmatter_dict() for s in self.subentities]
         data["created_at"] = clock.iso(self.created_at)
         data["updated_at"] = clock.iso(self.updated_at)
         if self.extra:
@@ -78,16 +99,21 @@ class Item(BaseModel):
     def from_frontmatter(cls, data: dict[str, Any], *, path: str) -> Item:
         """Reconstruct an Item from parsed frontmatter — used by ``sq repair``."""
         return cls(
-            id=data["id"],
+            sequence_id=data["sequence_id"],
             type=ItemType(data["type"]),
             title=data.get("title", ""),
             slug=data.get("slug") or _slug_from_path(path),
             status=Status(data["status"]),
             description=data.get("description", ""),
             parent=data.get("parent"),
+            author=data.get("author"),
             assignee=data.get("assignee"),
             labels=list(data.get("labels", []) or []),
             refs=_read_refs(data),
+            subentities=[
+                SubEntity.from_frontmatter(s)
+                for s in cast("list[dict[str, Any]]", data.get("subentities") or [])
+            ],
             path=path,
             created_at=_parse_dt(data.get("created_at")),
             updated_at=_parse_dt(data.get("updated_at")),

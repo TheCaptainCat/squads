@@ -9,10 +9,16 @@ This project is managed by **squads**. Work is tracked as identified markdown it
 
 ## Golden rules
 
-- The `.md` frontmatter is the source of truth; `sq` keeps the index in sync. Do not hand-edit
-  frontmatter or the `<!-- sq:* -->` marker lines.
-- Write prose (descriptions, user stories, findings) **directly** in the file body, between the
-  markers. Use `sq` only for structural ops: create, status, comment, link.
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 update --status Done`);
+  sub-entities nest: `sq feature 12 story 1 update --status InProgress`. Create with `sq create <type>`.
+- The `.md` files are sq-managed: never hand-edit frontmatter or the `<!-- sq:* -->` markers, and
+  don't type prose directly into a file. Every region is written through a command.
+- Set an **item's** body with `sq <type> <n> body -m "…"` (repeat `-m`, or `--file body.md` /
+  `--file -`); `--desc` (on `create`/`update`) is just the short summary shown in lists.
+- Set a **sub-entity's** body with `sq <type> <n> <kind> <k> body -m "…"` (or `--file`); edit its
+  metadata with `sq <type> <n> <kind> <k> update` (`--title`, `--status`, `--assignee`, a subtask's
+  `--story`, a finding's `--severity`). Read either back with `sq <type> <n> show` /
+  `sq <type> <n> <kind> <k> show`.
 - Reference related items by ID so others read the right context.
 - Need detail? Run `sq docs` to list the full documentation and `sq docs <name>` (e.g.
   `sq docs workflow`) to read it in-terminal — no fetch required.
@@ -22,13 +28,15 @@ This project is managed by **squads**. Work is tracked as identified markdown it
 ## Common commands
 
 ```bash
-sq create task "Title" [--parent FEAT-000002] [--desc "..."]   # also: epic|feature|bug|decision|review|guide
-sq status TASK-000003 InProgress                                # transition (validated per type)
-sq show TASK-000003                                             # details
-sq list --type task --status InProgress                         # filtered table
-sq tree                                                         # hierarchy
-sq link TASK-000003 --parent FEAT-000002                        # parent/child (validated)
+sq create task "Title" --author <your-slug> [--parent FEAT-000002] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
+#   --author is required and must be a registered agent (your own role slug)
+sq task 3 show                                                  # details + body
+sq task 3 status InProgress                                     # transition (validated per type)
+sq task 3 update --assignee qa --parent FEAT-000002             # metadata (parent validated)
+sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
+sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
+sq list --type task --status InProgress                         # filtered table  ·  sq tree
 sq docs [internals|workflow|migration|...]                      # read the full docs in-terminal (offline)
 ```
 
-Run `sq --help` (or `sq <command> --help`) for the full surface.
+Run `sq --help`, `sq <type> --help`, or `sq <type> <n> --help` for the full surface.

@@ -101,9 +101,9 @@ PREDEFINED: tuple[RoleDef, ...] = (
         mission="Turn features into well-scoped tasks, sequence the work, and unblock the team.",
         responsibilities=(
             "Author tasks (`sq create task`); set each task's parent to the feature it implements",
-            "Map each subtask to a single user story (`sq subtask add <task> --story USn`)",
+            'Map each subtask to a single user story (`sq task <n> add-subtask "…" --story USn`)',
             "For a bug fix or review follow-up, link via refs "
-            "(`sq ref add <task> <id> --kind fixes|addresses`)",
+            "(`sq task <n> ref add <id> --kind fixes|addresses`)",
             "Leave purely-technical tasks unlinked",
             "Sequence and assign work; unblock developers",
             "Co-author guides with the architect",

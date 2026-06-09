@@ -89,7 +89,7 @@ def test_check_flags_bad_task_parent(svc):
     task = svc.create(ItemType.TASK, "t").item
     # corrupt the index to point a task at an epic
     with svc.store.transaction() as db:
-        db.items[task.id].parent = epic.id
+        db.items[task.sequence_id].parent = epic.id
     issues = svc.check()
     assert any(i.item == task.id and "must be of type feature" in i.message for i in issues)
 
@@ -99,9 +99,10 @@ def test_check_flags_dangling_subtask_story(svc):
     svc.add_story(feat.id, "reset")  # US1
     task = svc.create(ItemType.TASK, "Tokens", parent=feat.id).item
     svc.add_subtask(task.id, "ok", story="US1")
-    # now hand-edit the file to reference a non-existent US
+    # now hand-edit the frontmatter to reference a non-existent US, then resync the index from it
     path = svc.paths.abspath(svc.get(task.id).path)
     text = path.read_text(encoding="utf-8").replace("story: US1", "story: US7")
     path.write_text(text, encoding="utf-8")
+    svc.repair()
     issues = svc.check()
     assert any(i.item == task.id and "US7" in i.message for i in issues)

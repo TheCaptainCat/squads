@@ -10,7 +10,9 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from squads._errors import InvalidIdError, NotInitializedError
+from pydantic import ValidationError
+
+from squads._errors import InvalidIdError, NotInitializedError, SquadsError
 from squads._models._config import CONFIG_FILENAME, INDEX_FILENAME, LOCK_FILENAME, SquadsConfig
 from squads._models._enums import TYPE_BY_PREFIX, ItemType
 
@@ -28,7 +30,10 @@ def find_config(start: Path | None = None) -> Path | None:
 def load_config(config_path: Path) -> SquadsConfig:
     with config_path.open("rb") as fh:
         data = tomllib.load(fh)
-    return SquadsConfig.from_toml_dict(data)
+    try:
+        return SquadsConfig.from_toml_dict(data)
+    except ValidationError as exc:
+        raise SquadsError(f"invalid {config_path.name}: {exc.errors()[0]['msg']}") from exc
 
 
 @dataclass(frozen=True)

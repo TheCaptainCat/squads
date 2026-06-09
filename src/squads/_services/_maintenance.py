@@ -7,15 +7,15 @@ from pathlib import Path
 from typing import Any
 
 from squads import __version__
-from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
 from squads._models._enums import ItemType
+from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
-from squads._models._schema import SCHEMA_VERSION
+from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import number_for_id
 from squads._roles._catalog import RoleDef
 from squads._services._base import SUBENTITY_KIND, ServiceCore
@@ -79,7 +79,7 @@ class MaintenanceMixin(ServiceCore):
         cfg = self.paths.config.model_copy(update={"squads_version": version})
         self.paths.config_path.write_text(cfg.to_toml(), encoding="utf-8")
 
-    def _stamp_schema(self, version: int) -> None:
+    def _stamp_schema(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"schema_version": version})
         self.paths.config_path.write_text(cfg.to_toml(), encoding="utf-8")
 
@@ -91,7 +91,7 @@ class MaintenanceMixin(ServiceCore):
         Returns the applied :class:`Migration` records (empty when already current).
         """
         disk = self.paths.config.schema_version
-        applied = [m for m in MIGRATIONS if m.to_schema > disk]
+        applied = [m for m in MIGRATIONS if schema_tuple(m.to_schema) > schema_tuple(disk)]
         for m in applied:
             m.run(self.paths)
         if applied:
@@ -170,10 +170,16 @@ class MaintenanceMixin(ServiceCore):
                 new_text = re.sub(rf"\b{re.escape(old)}\b", new, new_text)
             if new_text != text:
                 md.write_text(new_text, encoding="utf-8")
-        # rename the files whose own id changed
+        # rename the files whose own id changed, and resync their stored sequence_id
         for old_path, item_type, slug, new_id in renames:
             new_name = f"{new_id}-{slug}.md" if slug else f"{new_id}.md"
-            old_path.rename(self.paths.folder_for(item_type) / new_name)
+            new_path = self.paths.folder_for(item_type) / new_name
+            old_path.rename(new_path)
+            text = new_path.read_text(encoding="utf-8")
+            fm, _ = sections.split_frontmatter(text)
+            if fm:
+                fm["sequence_id"] = number_for_id(new_id)
+                new_path.write_text(sections.replace_frontmatter(text, fm), encoding="utf-8")
         return remap
 
     # ------------------------------------------------------------------ check
@@ -182,8 +188,8 @@ class MaintenanceMixin(ServiceCore):
         issues, on_disk = self._scan_for_check()
         issues += self._check_reconciliation(index, on_disk)
         issues += self._check_items(index, on_disk)
-        issues += self._check_subtask_stories(index, on_disk)
-        issues += self._check_subentity_status(index, on_disk)
+        issues += self._check_subtask_stories(index)
+        issues += self._check_subentity_status(index)
         return issues
 
     def _scan_for_check(self) -> tuple[list[CheckIssue], dict[str, tuple[Path, dict[str, Any]]]]:
@@ -204,15 +210,16 @@ class MaintenanceMixin(ServiceCore):
     def _check_reconciliation(
         index: SquadsDB, on_disk: dict[str, tuple[Path, dict[str, Any]]]
     ) -> list[CheckIssue]:
+        index_ids = {it.id for it in index.items.values()}
         issues = [
             CheckIssue("error", fid, "on disk but not in index (run `sq repair`)")
             for fid in on_disk
-            if fid not in index.items
+            if fid not in index_ids
         ]
         issues += [
-            CheckIssue("error", iid, "in index but no markdown file found")
-            for iid in index.items
-            if iid not in on_disk
+            CheckIssue("error", it.id, "in index but no markdown file found")
+            for it in index.items.values()
+            if it.id not in on_disk
         ]
         return issues
 
@@ -221,84 +228,76 @@ class MaintenanceMixin(ServiceCore):
         index: SquadsDB, on_disk: dict[str, tuple[Path, dict[str, Any]]]
     ) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
-        for iid, item in index.items.items():
+        registered = {r.extra.get(X.SLUG) for r in index.items.values() if r.type is ItemType.ROLE}
+        for item in index.items.values():
+            iid = item.id
             if item.status not in workflow_for(item.type).states:
                 issues.append(
                     CheckIssue(
                         "error", iid, f"status {item.status.value!r} invalid for {item.type.value}"
                     )
                 )
-            if item.parent and item.parent not in index.items:
+            parent = index.get(item.parent) if item.parent else None
+            if item.parent and parent is None:
                 issues.append(CheckIssue("error", iid, f"dangling parent {item.parent}"))
-            elif item.parent:
-                ptype = index.items[item.parent].type
-                if not parent_allowed(item.type, ptype):
-                    issues.append(
-                        CheckIssue("error", iid, f"{parent_hint(item.type)} (got {ptype.value})")
-                    )
+            elif parent is not None and not parent_allowed(item.type, parent.type):
+                msg = f"{parent_hint(item.type)} (got {parent.type.value})"
+                issues.append(CheckIssue("error", iid, msg))
             issues += [
                 CheckIssue("warn", iid, f"dangling ref {rid}")
                 for rid in (split_ref(r)[0] for r in item.refs)
-                if rid not in index.items
+                if index.get(rid) is None
             ]
+            for field in ("author", "assignee"):
+                slug = getattr(item, field)
+                if slug and slug not in registered:
+                    issues.append(
+                        CheckIssue("warn", iid, f"{field} {slug!r} is not a registered agent")
+                    )
             if iid in on_disk:
                 issues += _drift_issues(iid, item, on_disk[iid][1])
         return issues
 
     @staticmethod
-    def _check_subtask_stories(
-        index: SquadsDB, on_disk: dict[str, tuple[Path, dict[str, Any]]]
-    ) -> list[CheckIssue]:
+    def _check_subtask_stories(index: SquadsDB) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
-        for iid, item in index.items.items():
-            if item.type is not ItemType.TASK or iid not in on_disk:
+        for item in index.items.values():
+            if item.type is not ItemType.TASK:
                 continue
-            refs = [
-                (stn, us)
-                for stn, us in discussion.subtask_stories(
-                    on_disk[iid][0].read_text(encoding="utf-8")
-                )
-                if us
-            ]
+            refs = [(s.local_id, s.story) for s in item.subentities if s.story]
             if not refs:
                 continue
-            parent = index.items.get(item.parent) if item.parent else None
+            parent = index.get(item.parent) if item.parent else None
             if parent is None or parent.type is not ItemType.FEATURE:
                 issues.append(
                     CheckIssue(
                         "error",
-                        iid,
+                        item.id,
                         "subtask maps to a user story but the task has no feature parent",
                     )
                 )
                 continue
-            known: set[str] = set()
-            if parent.id in on_disk:
-                blocks = discussion.list_blocks(
-                    on_disk[parent.id][0].read_text(encoding="utf-8"), "story"
-                )
-                known = {b.local_id for b in blocks}
+            known = {s.local_id for s in parent.subentities}
             issues += [
-                CheckIssue("error", iid, f"subtask {stn} → {us} missing from {parent.id}")
+                CheckIssue("error", item.id, f"subtask {stn} → {us} missing from {parent.id}")
                 for stn, us in refs
                 if us not in known
             ]
         return issues
 
     @staticmethod
-    def _check_subentity_status(
-        index: SquadsDB, on_disk: dict[str, tuple[Path, dict[str, Any]]]
-    ) -> list[CheckIssue]:
+    def _check_subentity_status(index: SquadsDB) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
-        for iid, item in index.items.items():
+        for item in index.items.values():
             kind = SUBENTITY_KIND.get(item.type)
-            if kind is None or iid not in on_disk:
+            if kind is None:
                 continue
-            valid = subentity_workflow(kind).states
-            text = on_disk[iid][0].read_text(encoding="utf-8")
+            valid = {s.value for s in subentity_workflow(kind).states}
             issues += [
-                CheckIssue("error", iid, f"{kind} {b.local_id} has invalid status {b.status!r}")
-                for b in discussion.list_blocks(text, kind)
-                if b.status not in {s.value for s in valid}
+                CheckIssue(
+                    "error", item.id, f"{kind} {s.local_id} has invalid status {s.status.value!r}"
+                )
+                for s in item.subentities
+                if s.status.value not in valid
             ]
         return issues

@@ -1,7 +1,7 @@
 <!-- sq:body -->
 ## Scope
 
-{{ description or "_TODO: what is under review?_" }}
+_TODO: what is under review?_
 {% if extra.get('target_ref') %}
 
 **Target:** `{{ extra.get('target_ref') }}`
@@ -12,7 +12,7 @@
 
 _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
-_Add with `sq finding add {{ item.id }} "…" --severity high`; track with `sq finding status {{ item.id }} Fn <Status>`._
+_Add with `sq review {{ item.id | idnum }} add-finding "…" --severity high`; track with `sq review {{ item.id | idnum }} finding <n> update --status <Status>`._
 
 <!-- sq:summary -->
 <!-- sq:summary:end -->

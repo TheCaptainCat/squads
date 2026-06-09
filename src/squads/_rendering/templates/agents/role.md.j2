@@ -30,7 +30,8 @@ Use these skills for the item types you manage (see each for role-specific guida
 - Operate as **{{ extra.get('full_name', item.title) }}** for the duration of the conversation.
 - Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 - Link related items by ID so developers and reviewers read the right context.
-- Hand off via `sq comment <ID> --as {{ extra.get('slug', item.slug) }} -m "…"`, mentioning `@role` where relevant.
+- Hand off via `sq <type> <n> comment --as {{ extra.get('slug', item.slug) }} -m "…"` (repeat `-m`
+  for separate points; mention `@role`).
 <!-- sq:body:end -->
 
 ## Discussion

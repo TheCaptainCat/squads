@@ -6,9 +6,7 @@ from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
-from squads._roles._catalog import role_by_slug
 from squads._services._base import ServiceCore
 from squads._workflow import is_open
 
@@ -22,12 +20,13 @@ class CollabMixin(ServiceCore):
         as_slug: str = "operator",
         story: str | None = None,
         subtask: str | None = None,
+        finding: str | None = None,
     ) -> Item:
         if not messages:
             raise SquadsError("a comment needs at least one -m message")
         item = self.get(item_id)
         path = item_file(self.paths, item)
-        tag = self._discussion_tag(story, subtask)
+        tag = self._discussion_tag(story, subtask, finding)
         text = path.read_text(encoding="utf-8")
         if not sections.has_section(text, tag):
             raise SquadsError(f"no discussion section {tag!r} in {item_id} (was it scaffolded?)")
@@ -37,25 +36,16 @@ class CollabMixin(ServiceCore):
         return item
 
     @staticmethod
-    def _discussion_tag(story: str | None, subtask: str | None) -> str:
-        if story and subtask:
-            raise SquadsError("use either --story or --subtask, not both")
+    def _discussion_tag(story: str | None, subtask: str | None, finding: str | None) -> str:
+        if sum(bool(t) for t in (story, subtask, finding)) > 1:
+            raise SquadsError("target only one of --story / --subtask / --finding")
         if story:
             return markers.discussion_tag(markers.story_tag(story))
         if subtask:
             return markers.discussion_tag(markers.subtask_tag(subtask))
+        if finding:
+            return markers.discussion_tag(markers.finding_tag(finding))
         return markers.DISCUSSION
-
-    def author(self, slug: str) -> str:
-        if slug == "operator":
-            return "Operator"
-        role_item = self._role_item(slug)
-        if role_item is not None:
-            return role_item.extra.get(X.FULL_NAME, slug)
-        try:
-            return role_by_slug(slug).full_name
-        except SquadsError:
-            return slug
 
     def inbox(self, slug: str) -> list[tuple[Item, list[str]]]:
         """Open items whose body/discussion mentions ``@slug``, with the matching lines."""

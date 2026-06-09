@@ -24,3 +24,7 @@ class ExtraKey:
     ALLOWED_TOOLS = "allowed_tools"
     # guides
     TAGS = "tags"
+    # reviews
+    TARGET_REF = "target_ref"
+    # bugs
+    SEVERITY = "severity"

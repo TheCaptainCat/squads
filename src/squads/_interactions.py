@@ -33,7 +33,11 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
     ItemType.EPIC: ItemPlaybook(
         overview="A large body of work that groups related features toward one outcome.",
         lifecycle="Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
-        commands=('sq create epic "…"', "sq link FEAT-… --parent EPIC-…", "sq tree EPIC-…"),
+        commands=(
+            'sq create epic "…" --author <slug>',
+            "sq feature <n> update --parent EPIC-…   # group a feature under this epic",
+            "sq tree EPIC-…",
+        ),
         roles=(
             RoleGuide("product-owner", "Define the epic's goal and the outcomes it groups."),
             RoleGuide("architect", "Shape it technically; spin off ADRs for cross-cutting calls."),
@@ -44,10 +48,10 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         overview="A user-facing capability, described through persona-worded user stories.",
         lifecycle="Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
         commands=(
-            'sq create feature "…" [--parent EPIC-…]',
-            'sq story add FEAT-… "As a <role>, I want … so that …"',
-            "sq story status FEAT-… US1 InProgress   # Todo → InProgress → Done",
-            "sq story list FEAT-…",
+            'sq create feature "…" --author product-owner [--parent EPIC-…]',
+            'sq feature <n> add-story "As a <role>, I want … so that …"',
+            "sq feature <n> story <k> update --status InProgress   # Todo → InProgress → Done",
+            "sq feature <n> stories",
         ),
         roles=(
             RoleGuide(
@@ -66,11 +70,11 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         "subtasks each map to one user story.",
         lifecycle="Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
         commands=(
-            'sq create task "…" --parent FEAT-…',
-            'sq subtask add TASK-… "…" --story US1',
-            "sq subtask status TASK-… ST1 InProgress   # Todo → InProgress → Done",
-            "sq ref add TASK-… BUG-… --kind fixes   # or REV-… --kind addresses",
-            "sq status TASK-… InProgress",
+            'sq create task "…" --author tech-lead --parent FEAT-…',
+            'sq task <n> add-subtask "…" --story US1',
+            "sq task <n> subtask <k> update --status InProgress   # Todo → InProgress → Done",
+            "sq task <n> ref add BUG-… --kind fixes   # or REV-… --kind addresses",
+            "sq task <n> status InProgress",
         ),
         roles=(
             RoleGuide(
@@ -79,7 +83,7 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
             ),
             RoleGuide(
                 DEV,
-                "Implement the task; write tests; comment progress and hand off via `sq comment`.",
+                "Implement the task; write tests; comment progress and hand off via `… comment`.",
             ),
             RoleGuide("reviewer", "Review the changes; open a review or request changes."),
             RoleGuide("qa", "Verify the task once implemented."),
@@ -89,9 +93,9 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         overview="A defect: what's wrong, how to reproduce, expected vs actual.",
         lifecycle="Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
         commands=(
-            'sq create bug "…"',
-            "sq ref add TASK-… BUG-… --kind fixes",
-            "sq status BUG-… InProgress",
+            'sq create bug "…" --author <slug>',
+            "sq task <n> ref add BUG-… --kind fixes",
+            "sq bug <n> status InProgress",
         ),
         roles=(
             RoleGuide("qa", "Report bugs with clear repro steps; verify fixes."),
@@ -103,7 +107,7 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
     ItemType.DECISION: ItemPlaybook(
         overview="An architecture decision record: context, decision, consequences.",
         lifecycle="Proposed → Accepted → Superseded (+ Rejected, Deprecated)",
-        commands=('sq create decision "…"', "sq status ADR-… Accepted"),
+        commands=('sq create decision "…" --author architect', "sq decision <n> status Accepted"),
         roles=(
             RoleGuide("architect", "Author ADRs; capture context, the decision, and consequences."),
             RoleGuide("tech-lead", "Co-author and review decisions; supersede when they change."),
@@ -113,23 +117,30 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         overview="A code review: scope, findings (each with severity + status), and a verdict.",
         lifecycle="Requested → InReview → ChangesRequested → Approved (+ Rejected)",
         commands=(
-            'sq create review "…"',
-            'sq finding add REV-… "…" --severity high   # then: finding status REV-… F1 Fixed',
-            "sq status REV-… InReview",
-            "sq ref add TASK-… REV-… --kind addresses",
+            'sq create review "…" --author reviewer',
+            'sq review <n> add-finding "…" --severity high',
+            "sq review <n> finding <k> update --status Fixed   # transition a finding",
+            "sq review <n> status InReview",
+            "sq task <n> ref add REV-… --kind addresses",
         ),
         roles=(
             RoleGuide(
                 "reviewer",
-                "Perform reviews; log findings with `sq finding add`; drive to Approved/Changes.",
+                "Perform reviews; log findings (`review <n> add-finding`); drive to a verdict.",
             ),
-            RoleGuide(DEV, "Address findings (`finding status … Fixed`); link the follow-up task."),
+            RoleGuide(
+                DEV,
+                "Address findings (`finding <k> update --status Fixed`); link the fix task.",
+            ),
         ),
     ),
     ItemType.GUIDE: ItemPlaybook(
         overview="Project-agnostic best-practice notes on a technology or framework.",
         lifecycle="Draft → Published → Deprecated",
-        commands=('sq guide add "…" [--tech …] [--tag …]', "sq status GUIDE-… Published"),
+        commands=(
+            'sq create guide "…" --author architect [--tech …] [--tag …]',
+            "sq guide <n> status Published",
+        ),
         roles=(
             RoleGuide("architect", "Author guides capturing good practice and anti-patterns."),
             RoleGuide("tech-lead", "Co-author guides drawn from real tasks."),

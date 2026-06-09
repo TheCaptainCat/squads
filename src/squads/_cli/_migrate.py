@@ -19,7 +19,7 @@ from squads._cli._common import (
 )
 from squads._errors import SquadsError
 from squads._migrations._registry import MIGRATIONS
-from squads._models._schema import SCHEMA_VERSION
+from squads._models._schema import SCHEMA_VERSION, schema_tuple
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")
 
@@ -30,7 +30,7 @@ def migrate_up():
     """Run the automatic migration(s) to bring this squad to the current schema version."""
     svc = get_service()
     disk = svc.paths.config.schema_version
-    if disk > SCHEMA_VERSION:
+    if schema_tuple(disk) > schema_tuple(SCHEMA_VERSION):
         raise SquadsError(
             f"this squad is at schema v{disk}, newer than this squads (v{SCHEMA_VERSION}); "
             "upgrade the squads package"

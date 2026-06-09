@@ -22,6 +22,7 @@ class RosterMixin(ServiceCore):
             description=role.mission,
             status=Status.ACTIVE,
             slug=role.slug,
+            author=role.slug,  # an activated role authors itself
             extra={
                 **role.to_extra(),
                 X.DESCRIPTION: role.description,
@@ -42,6 +43,7 @@ class RosterMixin(ServiceCore):
             description=role.mission,
             status=Status.ACTIVE,
             slug=role.slug,
+            author=role.slug,  # a dev role authors itself
             extra={
                 **role.to_extra(),
                 X.DESCRIPTION: role.description,
@@ -73,6 +75,7 @@ class RosterMixin(ServiceCore):
             parent=parent,
             status=Status.ACTIVE,
             slug=slug,
+            author=slug,  # a skill authors itself
             extra={
                 X.SLUG: slug,
                 X.DESCRIPTION: description or name,

@@ -62,29 +62,72 @@ def main_callback(
     common.version_notice()
 
 
-# Register commands (imported after `app` is defined; they decorate it).
+# Register commands (imported after `app` is defined; they decorate it). `_main` is a side-effect
+# import — its `@app.command()`s attach the top-level commands but it's never referenced by name.
 from squads._cli import (  # noqa: E402
     _create,
     _dev,
-    _finding,
-    _main,
+    _items,
     _migrate,
-    _refs,
     _role,
     _skill,
-    _story,
-    _subtask,
 )
+from squads._cli import _main as _main  # noqa: E402
+from squads._models._enums import ItemType  # noqa: E402
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
-app.add_typer(_story.story_app, name="story", help="Manage a feature's user stories.")
-app.add_typer(_subtask.subtask_app, name="subtask", help="Manage a task's subtasks.")
-app.add_typer(_finding.finding_app, name="finding", help="Manage a review's findings.")
-app.add_typer(_refs.ref_app, name="ref", help="Manage reference edges.")
 app.add_typer(_dev.dev_app, name="dev", help="Manage developer roles.")
 app.add_typer(_skill.skill_app, name="skill", help="Manage agent skills.")
-app.add_typer(_main.guide_app, name="guide", help="Manage project guides.")
 app.add_typer(
     _migrate.migrate_app, name="migrate", help="Run schema migrations and read their steps."
 )
+
+# Resource-oriented item groups: `sq <type> <num> <verb> …`.
+for _type in (
+    ItemType.EPIC,
+    ItemType.FEATURE,
+    ItemType.TASK,
+    ItemType.BUG,
+    ItemType.DECISION,
+    ItemType.REVIEW,
+    ItemType.GUIDE,
+):
+    app.add_typer(
+        _items.build_item_app(_type),
+        name=_type.value,
+        help=f"Operate on a {_type.value} by number.",
+    )
+
+# Global value-options live on the group callback, so Click only parses them *before* the
+# subcommand. Hoist them so `sq create … --at <when>` works the same as `sq --at <when> create …`.
+_GLOBAL_VALUE_OPTS = ("--at", "--dir")
+
+
+def _hoist_global_options(args: list[str]) -> list[str]:
+    """Move global value-options (--at/--dir, + their value) to the front, wherever they appear.
+
+    Safe because no subcommand defines these names and option *values* use the ``--opt=value``
+    form, so a bare ``--at``/``--dir`` token is always the global option.
+    """
+    hoisted: list[str] = []
+    rest: list[str] = []
+    i = 0
+    while i < len(args):
+        tok = args[i]
+        if tok in _GLOBAL_VALUE_OPTS and i + 1 < len(args):
+            hoisted += [tok, args[i + 1]]
+            i += 2
+        elif tok.startswith(("--at=", "--dir=")):
+            hoisted.append(tok)
+            i += 1
+        else:
+            rest.append(tok)
+            i += 1
+    return hoisted + rest
+
+
+def main() -> None:
+    """Console-script entry point: make --at/--dir position-independent, then run the app."""
+    sys.argv[1:] = _hoist_global_options(sys.argv[1:])
+    app()

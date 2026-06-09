@@ -104,3 +104,16 @@ SEVERITY_EMOJI: dict[Severity, str] = {
 }
 
 DEFAULT_SEVERITY = Severity.MEDIUM
+
+#: Colored badge per sub-entity status, for the human-readable block header.
+STATUS_EMOJI: dict[Status, str] = {
+    Status.TODO: "⚪",
+    Status.IN_PROGRESS: "🟡",
+    Status.BLOCKED: "🔴",
+    Status.DONE: "🟢",
+    Status.CANCELLED: "⚫",
+    Status.OPEN: "🔴",
+    Status.FIXED: "🟡",
+    Status.VERIFIED: "🟢",
+    Status.WONT_FIX: "⚫",
+}

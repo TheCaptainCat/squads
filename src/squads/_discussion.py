@@ -1,21 +1,25 @@
-"""Build and parse marker-delimited collaboration content: comments, stories, subtasks, findings.
+"""Build collaboration content: comments, and the presentation of sub-entity blocks.
 
-Each sub-entity (story / subtask / finding) is scaffolded as marker-scoped regions — its
-sq-tracked state lives in markers, never in the heading prose:
-  - a heading line (``### US1 — title``, agent-editable),
-  - an sq-owned ``…:meta`` region (status, plus severity/story where they apply),
+Each sub-entity's **machine state** (status / assignee / severity / mapped story) lives in the
+parent item's frontmatter — see :class:`squads._models._subentity.SubEntity`. This module owns its
+**prose and presentation**, scaffolded as marker-scoped regions in the parent's body:
+  - a heading line (``### US1 — title``), rendered from the stored title,
+  - an sq-owned ``…:head`` region — a human-readable badge mirror of the state,
   - a ``…:body`` region the **agent** writes freely, and
   - a ``…:discussion`` region ``sq`` appends comments to.
-The parent's sq-managed summary table renders the meta of all its children.
+The parent's sq-managed ``:summary`` table rolls up its children's state.
+
+The legacy body-stored ``:meta`` regions are gone from the live path; only the migrations still
+touch them, via the frozen ``_migrations._meta_compat`` helpers.
 """
 
 import re
-from dataclasses import dataclass
 
 from squads._models import _markers as markers
-from squads._models._enums import SEVERITY_EMOJI, Severity, Status
+from squads._models._enums import SEVERITY_EMOJI, STATUS_EMOJI, Severity, Status
+from squads._models._subentity import SubEntity
+from squads._rendering._engine import render
 from squads._sections import get_section, replace_section
-from squads._workflow import subentity_initial
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
 _LOCAL_ID_PREFIX = {"story": "US", "subtask": "ST", "finding": "F"}
@@ -33,23 +37,22 @@ _PLACEHOLDER = {
 }
 
 
-@dataclass
-class BlockInfo:
-    """A parsed sub-entity block: its local id, title, status, and kind-specific extras."""
-
-    local_id: str
-    title: str
-    status: str  # a Status value string
-    severity: str | None = None  # Severity value, findings only
-    story: str | None = None  # mapped user story, subtasks only
-
-
 # --------------------------------------------------------------------------- comments
 
 
 def format_comment(timestamp_iso: str, author: str, messages: list[str]) -> str:
-    """One discussion entry: a timestamped author line with one sub-item per message."""
-    lines = [f"- [{timestamp_iso}] {author}:", *(f"  - {msg}" for msg in messages)]
+    """One discussion entry: a timestamped author line + one bullet per message.
+
+    A multi-line message keeps its first line on the bullet and indents continuation lines so they
+    stay nested under it.
+    """
+    lines = [f"- [{timestamp_iso}] {author}:"]
+    for msg in messages:
+        first, *rest = msg.split("\n")
+        lines.append(f"  - {first}")
+        # indent *every* continuation line (blanks included) to the bullet's content column, so a
+        # nested fenced code block — and its internal blank lines — stays inside the list item.
+        lines += [f"    {ln}" for ln in rest]
     return "\n".join(lines)
 
 
@@ -61,229 +64,160 @@ def extract_mentions(text: str) -> set[str]:
 # --------------------------------------------------------------------------- ids / tags
 
 
-def _existing_ids(text: str, kind: str) -> list[int]:
-    # only the bare block opener (e.g. sq:story:US1), not :meta / :body / :discussion
-    pat = re.compile(rf"<!--\s*sq:{kind}:{_LOCAL_ID_PREFIX[kind]}(\d+)\s*-->")
-    return [int(n) for n in pat.findall(text)]
+def local_id_for(kind: str, token: str) -> str:
+    """Normalize a CLI local-id token to its canonical form: ``2`` → ``ST2``/``US2``/``F2``."""
+    prefix = _LOCAL_ID_PREFIX[kind]
+    t = token.strip()
+    return f"{prefix}{int(t)}" if t.isdigit() else t.upper()
 
 
-def next_local_id(text: str, kind: str) -> str:
-    nums = _existing_ids(text, kind)
-    return f"{_LOCAL_ID_PREFIX[kind]}{(max(nums) + 1) if nums else 1}"
-
-
-def local_ids(text: str, kind: str) -> list[str]:
-    """All sub-entity local ids of ``kind`` present in ``text`` (sorted)."""
-    return [f"{_LOCAL_ID_PREFIX[kind]}{n}" for n in sorted(_existing_ids(text, kind))]
+def next_local_id(subentities: list[SubEntity], kind: str) -> str:
+    """The next free local id for ``kind``, computed from the parent's stored sub-entities."""
+    prefix = _LOCAL_ID_PREFIX[kind]
+    nums = [
+        int(s.local_id[len(prefix) :])
+        for s in subentities
+        if s.local_id.startswith(prefix) and s.local_id[len(prefix) :].isdigit()
+    ]
+    return f"{prefix}{(max(nums) + 1) if nums else 1}"
 
 
 def body_tag(kind: str, local_id: str) -> str:
     return f"{kind}:{local_id}:body"
 
 
-def _meta_tag(kind: str, local_id: str) -> str:
-    return f"{kind}:{local_id}:meta"
+def _head_tag(kind: str, local_id: str) -> str:
+    return f"{kind}:{local_id}:head"
 
 
-# --------------------------------------------------------------------------- meta region
+# --------------------------------------------------------------------------- block scaffold
 
 
-def _render_meta(status: str, severity: str | None = None, story: str | None = None) -> str:
-    lines = [f"status: {status}"]
-    if severity:
-        lines.append(f"severity: {severity}")
-    if story:
-        lines.append(f"story: {story}")
-    return "\n".join(lines)
+def body_placeholder(kind: str) -> str:
+    """The italic placeholder a freshly-scaffolded ``:body`` region holds until content is set."""
+    return _PLACEHOLDER[kind]
 
 
-def _parse_meta(raw: str) -> dict[str, str]:
-    out: dict[str, str] = {}
-    for line in raw.splitlines():
-        key, sep, value = line.partition(":")
-        if sep:
-            out[key.strip()] = value.strip()
-    return out
+def build_block(kind: str, local_id: str, title: str = "", *, body: str | None = None) -> str:
+    """A sub-entity block: heading + empty ``:head`` + ``:body`` + ``:discussion``.
+
+    State (status/assignee/severity/story) lives in the parent's frontmatter, not here. The skeleton
+    lives in ``templates/subentities/block.md.j2`` (sub-tags derive from ``tag``); the ``:head`` is
+    filled by :func:`set_head` right after.
+    """
+    heading = f"### {local_id} — {title}".rstrip()
+    return render(
+        "subentities/block.md.j2",
+        tag=f"{kind}:{local_id}",
+        heading=heading,
+        body=body or _PLACEHOLDER[kind],
+    )
 
 
-# --------------------------------------------------------------------------- block builders
+def set_heading(text: str, kind: str, local_id: str, title: str) -> str:
+    """Re-render a block's ``### {local_id} — {title}`` heading from the stored title (idempotent).
+
+    The heading is a derived projection of the frontmatter title (like ``:head``); scoped to the
+    first heading line after the block's opener marker so sibling blocks are untouched.
+    """
+    opener = markers.open_marker(f"{kind}:{local_id}")
+    oi = text.find(opener)
+    if oi == -1:
+        return text
+    heading = f"### {local_id} — {title}".rstrip()
+    pat = re.compile(rf"###[ \t]*{re.escape(local_id)}[ \t]*(?:—[ \t]*)?[^\n]*")
+    m = pat.search(text, oi + len(opener))
+    if m is None:
+        return text
+    return text[: m.start()] + heading + text[m.end() :]
 
 
-def build_block(
+# --------------------------------------------------------------------------- head region
+
+
+def _status_badge(status_value: str) -> str:
+    """``"InProgress"`` → ``"🟡 In Progress"`` (emoji + spaced label) for the header."""
+    label = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", status_value)
+    emoji = STATUS_EMOJI.get(Status(status_value), "")
+    return f"{emoji} {label}".strip()
+
+
+def _severity_badge(severity_value: str) -> str:
+    """``"high"`` → ``"🟠 High"`` for the header (same palette as the summary table)."""
+    return f"{SEVERITY_EMOJI[Severity(severity_value)]} {severity_value.title()}"
+
+
+def set_head(
+    text: str,
     kind: str,
     local_id: str,
-    title: str = "",
     *,
-    status: Status,
-    severity: Severity | None = None,
+    status: str | None = None,
+    severity: str | None = None,
     story: str | None = None,
+    assignee_name: str | None = None,
 ) -> str:
-    """A sub-entity block: heading + sq-owned ``:meta`` + agent ``:body`` + ``:discussion``."""
-    tag = f"{kind}:{local_id}"
-    mtag, btag, dtag = (
-        _meta_tag(kind, local_id),
-        body_tag(kind, local_id),
-        markers.discussion_tag(tag),
+    """(Re)render the human-readable ``:head`` region under a block's heading.
+
+    A presentation mirror of the frontmatter state: status/severity as colored badges, the
+    implemented story as ``USn — title``, the assignee's full name. The layout lives in
+    ``templates/subentities/head.md.j2`` — add an attribute by passing a value here + a line there.
+    New blocks ship the region empty (from ``block.md.j2``); on a legacy block that lacks it (the
+    migration path) it's created lazily, just before the block's ``:body`` marker.
+    """
+    head_tag = _head_tag(kind, local_id)
+    inner = render(
+        "subentities/head.md.j2",
+        status=_status_badge(status) if status else None,
+        severity=_severity_badge(severity) if severity else None,
+        story=story,
+        assignee=assignee_name,
     )
-    heading = f"### {local_id} — {title}".rstrip()
-    meta = _render_meta(status.value, severity.value if severity else None, story)
-    return (
-        f"\n{markers.open_marker(tag)}\n"
-        f"{heading}\n\n"
-        f"{markers.open_marker(mtag)}\n{meta}\n{markers.close_marker(mtag)}\n\n"
-        f"{markers.open_marker(btag)}\n{_PLACEHOLDER[kind]}\n{markers.close_marker(btag)}\n\n"
-        f"#### Discussion\n\n"
-        f"{markers.open_marker(dtag)}\n{markers.close_marker(dtag)}\n"
-        f"{markers.close_marker(tag)}\n"
-    )
-
-
-def build_story_block(local_id: str, title: str = "", *, status: Status = Status.TODO) -> str:
-    return build_block("story", local_id, title, status=status)
-
-
-def build_subtask_block(
-    local_id: str, title: str = "", *, status: Status = Status.TODO, story: str | None = None
-) -> str:
-    return build_block("subtask", local_id, title, status=status, story=story)
-
-
-def build_finding_block(
-    local_id: str, title: str = "", *, status: Status = Status.OPEN, severity: Severity
-) -> str:
-    return build_block("finding", local_id, title, status=status, severity=severity)
-
-
-# --------------------------------------------------------------------------- parsing
-
-
-def _iter_blocks(text: str, kind: str):
-    prefix = _LOCAL_ID_PREFIX[kind]
-    open_pat = re.compile(rf"<!--\s*sq:{kind}:({prefix}\d+)\s*-->")
-    for m in open_pat.finditer(text):
-        lid = m.group(1)
-        end = text.find(markers.close_marker(f"{kind}:{lid}"), m.end())
-        yield lid, text[m.end() : end if end != -1 else len(text)]
-
-
-def _heading_title(block: str, local_id: str) -> str:
-    # title is the rest of the heading line after the local id (no sq state lives here)
-    m = re.search(rf"###[ \t]*{re.escape(local_id)}[ \t]*(?:—[ \t]*)?([^\n]*)", block)
-    return m.group(1).strip() if m else ""
-
-
-def _body_first_line(block: str, kind: str, local_id: str) -> str:
-    inner = get_section(block, body_tag(kind, local_id)) or ""
-    for line in inner.splitlines():
-        s = line.strip()
-        if not s or (s.startswith("_") and s.endswith("_")):
-            continue  # blank or placeholder italics
-        return re.sub(r"^[-*#>\s]+", "", s)
-    return ""
-
-
-def _parse_block(block: str, kind: str, local_id: str) -> BlockInfo:
-    meta = _parse_meta(get_section(block, _meta_tag(kind, local_id)) or "")
-    title = _heading_title(block, local_id) or _body_first_line(block, kind, local_id)
-    return BlockInfo(
-        local_id=local_id,
-        title=title,
-        status=meta.get("status") or subentity_initial(kind).value,
-        severity=meta.get("severity"),
-        story=meta.get("story"),
-    )
-
-
-def list_blocks(text: str, kind: str) -> list[BlockInfo]:
-    """Parsed sub-entity blocks of ``kind`` in document order."""
-    return [_parse_block(block, kind, lid) for lid, block in _iter_blocks(text, kind)]
-
-
-def subtask_stories(text: str) -> list[tuple[str, str | None]]:
-    """[(subtask local id, referenced US id or None), …] across a task file."""
-    return [(b.local_id, b.story) for b in list_blocks(text, "subtask")]
-
-
-def set_block_status(text: str, kind: str, local_id: str, status_value: str) -> str:
-    """Rewrite the ``status:`` line in a block's sq-owned ``:meta`` region."""
-    tag = _meta_tag(kind, local_id)
-    current = get_section(text, tag)
-    if current is None:
-        raise KeyError(local_id)
-    meta = _parse_meta(current)
-    meta["status"] = status_value
-    return replace_section(
-        text, tag, _render_meta(status_value, meta.get("severity"), meta.get("story"))
-    )
-
-
-# --------------------------------------------------------------------------- pre-2 migration
-
-
-_LEGACY_STORY_REF_RE = re.compile(r"\(→[ \t]*(US\d+)\)")
-
-
-def _parse_legacy_heading(text: str, local_id: str) -> tuple[str, str | None, str]:
-    """A pre-2 ``### id — [ ]/[x] title (→ USn)`` heading → (status, story, clean title)."""
-    m = re.search(
-        rf"###[ \t]*{re.escape(local_id)}[ \t]*(?:—[ \t]*)?(?:\[([ xX])\][ \t]*)?([^\n]*)", text
-    )
-    token, raw = (m.group(1), m.group(2) or "") if m else (None, "")
-    story = _LEGACY_STORY_REF_RE.search(raw)
-    title = _LEGACY_STORY_REF_RE.sub("", raw).strip()
-    status = Status.DONE.value if (token or "").lower() == "x" else Status.TODO.value
-    return status, (story.group(1) if story else None), title
-
-
-def upgrade_legacy_block(text: str, kind: str, local_id: str) -> str:
-    """Pre-2 → 2: clean the heading and insert the sq-owned ``:meta`` region. Idempotent."""
-    if get_section(text, _meta_tag(kind, local_id)) is not None:
-        return text  # already migrated
-    status, story, title = _parse_legacy_heading(text, local_id)
-    clean = f"### {local_id} — {title}".rstrip()
-    meta_block = (
-        f"{markers.open_marker(_meta_tag(kind, local_id))}\n"
-        f"{_render_meta(status, None, story)}\n"
-        f"{markers.close_marker(_meta_tag(kind, local_id))}"
-    )
-    pat = re.compile(rf"###[ \t]*{re.escape(local_id)}[ \t]*(?:—[ \t]*)?[^\n]*")
-    return pat.sub(lambda _m: f"{clean}\n\n{meta_block}", text, count=1)
+    if get_section(text, head_tag) is None:
+        if not inner.strip():
+            return text  # nothing to show and no region yet — keep the block clean
+        body_open = markers.open_marker(body_tag(kind, local_id))
+        region = f"{markers.open_marker(head_tag)}\n{markers.close_marker(head_tag)}\n\n"
+        text = text.replace(body_open, region + body_open, 1)
+    return replace_section(text, head_tag, inner)
 
 
 # --------------------------------------------------------------------------- summary table
 
 
 _SUMMARY_COLS: dict[str, tuple[str, ...]] = {
-    "subtask": ("Subtask", "Status", "Title", "Story"),
-    "story": ("Story", "Status", "Title"),
-    "finding": ("Finding", "Severity", "Status", "Title"),
+    "subtask": ("Subtask", "Status", "Assignee", "Title", "Story"),
+    "story": ("Story", "Status", "Assignee", "Title"),
+    "finding": ("Finding", "Severity", "Status", "Assignee", "Title"),
 }
 
 
-def _summary_cells(kind: str, b: BlockInfo) -> list[str]:
+def _summary_cells(kind: str, s: SubEntity) -> list[str]:
     if kind == "finding":
-        sev = f"{SEVERITY_EMOJI[Severity(b.severity)]} {b.severity}" if b.severity else ""
-        return [b.local_id, sev, b.status, b.title]
+        sev = f"{SEVERITY_EMOJI[s.severity]} {s.severity.value}" if s.severity else ""
+        return [s.local_id, sev, s.status.value, s.assignee or "", s.title]
     if kind == "subtask":
-        return [b.local_id, b.status, b.title, b.story or ""]
-    return [b.local_id, b.status, b.title]
+        return [s.local_id, s.status.value, s.assignee or "", s.title, s.story or ""]
+    return [s.local_id, s.status.value, s.assignee or "", s.title]
 
 
-def render_summary(kind: str, blocks: list[BlockInfo]) -> str:
-    """The sq-managed roll-up table for a parent's sub-entities (empty until there are any)."""
-    if not blocks:
+def render_summary(kind: str, subentities: list[SubEntity]) -> str:
+    """The sq-managed roll-up table for a parent's sub-entities (empty until there are any).
+
+    The table layout lives in ``templates/subentities/summary.md.j2``.
+    """
+    if not subentities:
         return ""
     cols = _SUMMARY_COLS[kind]
-    return "\n".join(
-        [
-            "| " + " | ".join(cols) + " |",
-            "| " + " | ".join("---" for _ in cols) + " |",
-            *("| " + " | ".join(_summary_cells(kind, b)) + " |" for b in blocks),
-        ]
+    return render(
+        "subentities/summary.md.j2",
+        cols=list(cols),
+        seps=["---"] * len(cols),
+        rows=[_summary_cells(kind, s) for s in subentities],
     )
 
 
-def ensure_summary(text: str, kind: str, container: str) -> str:
+def ensure_summary(text: str, kind: str, container: str, subentities: list[SubEntity]) -> str:
     """Insert an empty ``sq:summary`` region before ``container`` if missing, then (re)render it."""
     if get_section(text, markers.SUMMARY) is None:
         region = (
@@ -292,4 +226,4 @@ def ensure_summary(text: str, kind: str, container: str) -> str:
         text = text.replace(
             markers.open_marker(container), region + markers.open_marker(container), 1
         )
-    return replace_section(text, markers.SUMMARY, render_summary(kind, list_blocks(text, kind)))
+    return replace_section(text, markers.SUMMARY, render_summary(kind, subentities))

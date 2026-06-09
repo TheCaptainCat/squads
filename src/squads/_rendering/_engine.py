@@ -8,6 +8,8 @@ from functools import lru_cache
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from squads._models import _markers as markers
+from squads._paths import number_for_id
 from squads._util import slugify
 
 
@@ -24,7 +26,15 @@ def _env() -> Environment:
         autoescape=False,
     )
     env.filters["slugify"] = slugify
+    # marker helpers so templates emit sq anchors: "tag" | open_marker → "<!-- sq:tag -->"
+    env.filters["open_marker"] = markers.open_marker
+    env.filters["close_marker"] = markers.close_marker
+    env.filters["idnum"] = _idnum  # "TASK-000007" | idnum → "7", for `sq task 7 …` hints
     return env
+
+
+def _idnum(item_id: str) -> str:
+    return str(number_for_id(item_id))
 
 
 def render(template_name: str, /, **context: object) -> str:

@@ -1,0 +1,16 @@
+
+{{ tag | open_marker }}
+{{ heading }}
+
+{{ (tag ~ ":head") | open_marker }}
+{{ (tag ~ ":head") | close_marker }}
+
+{{ (tag ~ ":body") | open_marker }}
+{{ body }}
+{{ (tag ~ ":body") | close_marker }}
+
+#### Discussion
+
+{{ (tag ~ ":discussion") | open_marker }}
+{{ (tag ~ ":discussion") | close_marker }}
+{{ tag | close_marker }}

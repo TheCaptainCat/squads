@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from squads._models._item import Item
+from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths
 
 
@@ -22,13 +23,22 @@ class CheckIssue:
 
 @dataclass
 class BlockResult:
-    """Where an agent should write a scaffolded story/subtask body."""
+    """Where a scaffolded story/subtask/finding block's body lives."""
 
     local_id: str
     path: Path
     body_tag: str
     start_line: int | None
     end_line: int | None
+
+
+@dataclass
+class SubentityDetail:
+    """A sub-entity's full detail for `sq <kind> show`: state + body + discussion."""
+
+    info: SubEntity
+    body: str
+    discussion: str
 
 
 @dataclass

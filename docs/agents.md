@@ -21,14 +21,14 @@ relevant `sq-<type>` skill** for role-directed guidance before you work an item 
 ## The loop
 
 ```
-   scope ──▶ create ──▶ write body ──▶ track status ──▶ hand off
+   scope ──▶ create ──▶ set body (sq body) ──▶ track status ──▶ hand off
      ▲                                                      │
      └──────────────────── @mention / inbox ◀──────────────┘
 ```
 
 1. **Scope** — see what exists and what's waiting for you:
    ```bash
-   sq list --status InProgress        sq tree           sq show TASK-000003
+   sq list --status InProgress        sq tree           sq task 3 show
    sq inbox <your-role>               # open items that @mention you
    ```
 2. **Create** with `sq` (it allocates the ID and prints the file path):
@@ -36,34 +36,36 @@ relevant `sq-<type>` skill** for role-directed guidance before you work an item 
    sq create task "Validate token" --parent FEAT-000002
    # → created TASK-000003 → squads/tasks/TASK-000003-validate-token.md
    ```
-3. **Write the body directly in that file** — your prose goes between the `<!-- sq:body -->`
-   markers. For features scaffold user stories, for tasks scaffold subtasks (each returns the exact
-   region to fill):
+3. **Set the body with a command** — never hand-edit the file. Items and sub-entities both take
+   `-m "…"` (repeatable) or `--file`; read back with `sq show` / `sq <kind> show`:
    ```bash
-   sq story add FEAT-000002 "As a user, I want to log in"
-   sq subtask add TASK-000003 "Check expiry" --story US1
+   sq task 3 body -m "Validate the JWT exp + signature; reject clock skew > 60s."
+   sq feature 2 add-story "As a user, I want to log in" -m "Acceptance: …"
+   sq task 3 add-subtask "Check expiry" --story US1
+   sq task 3 subtask 1 body -m "Reject tokens past exp; cover clock skew."
    ```
 4. **Track status** as work moves (validated per type):
    ```bash
-   sq status TASK-000003 InProgress
-   sq status TASK-000003 Done
+   sq task 3 status InProgress
+   sq task 3 status Done
    ```
 5. **Hand off & discuss** — leave dated notes attributed to yourself; `@mention` to notify another
    role:
    ```bash
-   sq comment TASK-000003 --as architect -m "Reuse the clock abstraction" -m "@qa verify expiry edges"
+   sq task 3 comment --as architect -m "Reuse the clock abstraction" -m "@qa verify expiry edges"
    ```
 6. **Link context** so the next agent reads the right things:
    ```bash
-   sq ref add TASK-000003 GUIDE-000004 --kind implements
-   sq ref add TASK-000003 BUG-000009 --kind fixes
+   sq task 3 ref add GUIDE-000004 --kind implements
+   sq task 3 ref add BUG-000009 --kind fixes
    ```
 
 ## Golden rules
 
-- **`sq` owns the frontmatter, the status, and the discussion.** You own everything else.
-- **Never edit a `<!-- sq:* -->` marker line.** Write prose *between* the markers; the markers let
-  `sq` find sections without clobbering your text. `sq check` flags broken markers.
+- **`sq` owns the whole `.md` file** — frontmatter, markers, and every region. You author the content
+  through commands, not your editor.
+- **Never hand-edit a `.md` file.** Set bodies with `sq body` / `sq <kind> body`, comment with
+  `sq comment`, change state with `sq update`/`status`. `sq check` flags broken markers.
 - **The `.md` frontmatter is the source of truth** — don't hand-edit `id`/`status`/`parent`; use the
   commands so the index stays in sync.
 - **Reference items by ID** (`TASK-000003`, `GUIDE-000004`) in prose and comments so developers and

@@ -1,4 +1,4 @@
-"""Schema 1 → 2 runner. Per item file:
+"""Schema 0.1 → 0.2 runner. Per item file:
 
   - fold the legacy ``extra.ref_kinds`` ``{ID: kind}`` map into inline ``ID:kind`` refs,
   - upgrade sub-entity headings (subtask ``[ ]``/``[x]`` checkboxes, bare story headings) into the
@@ -16,6 +16,7 @@ from typing import Any, cast
 
 from squads import _discussion as discussion
 from squads import _sections as sections
+from squads._migrations import _meta_compat
 from squads._models import _markers as markers
 from squads._models._enums import ItemType
 from squads._models._item import fold_legacy_kinds
@@ -26,17 +27,17 @@ MANUAL = """\
 **Restructure each review's free-form findings into tracked findings.** `sq migrate up` gives every
 legacy review an empty findings container, but a pre-2 review's findings are free-form prose (a
 `## Findings` section and/or a Summary table) that can't be parsed automatically. For each review
-`REV-<id>`, drive an agent with:
+review `<n>`, drive an agent with:
 
 1. For every prose finding, run
-   `sq finding add REV-<id> "<one-line title>" --severity critical|high|medium|low|info`,
-   write its detail in the finding's `:body` region, and set its state if known
-   (`sq finding status REV-<id> Fn Fixed|Verified|WontFix`).
+   `sq review <n> add-finding "<one-line title>" --severity critical|high|medium|low|info`,
+   set its detail with `sq review <n> finding <k> body -m "…"`, and its state if known
+   (`sq review <n> finding <k> update --status Fixed|Verified|WontFix`).
 2. Map severities from the old legend (🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info);
    default to `medium` when a finding had none.
 3. One finding per real prose entry — do **not** invent; leave a missing detail as `TODO`.
 4. Once all are recreated, delete the old `## Findings` prose / Summary table from the body.
-5. Verify: `sq finding list REV-<id>` shows them all and `sq check` is clean.
+5. Verify: `sq review <n> findings` shows them all and `sq check` is clean.
 """
 
 # Item types whose body holds sub-entities, and the (kind, container) to upgrade + summarise.
@@ -84,13 +85,14 @@ def _migrate_file(md: Path, item_type: ItemType) -> bool:
     body = _BODY_KIND.get(item_type)
     if body:
         kind, container = body
-        for lid in discussion.local_ids(text, kind):
-            text = discussion.upgrade_legacy_block(text, kind, lid)
+        for lid in _meta_compat.local_ids(text, kind):
+            text = _meta_compat.upgrade_legacy_block(text, kind, lid)
         if sections.has_section(text, container):
-            text = discussion.ensure_summary(text, kind, container)
+            subs = [_meta_compat.to_subentity(b) for b in _meta_compat.list_blocks(text, kind)]
+            text = discussion.ensure_summary(text, kind, container, subs)
     elif item_type is ItemType.REVIEW and not sections.has_section(text, markers.FINDINGS):
         text = _insert_findings_skeleton(text)
-        text = discussion.ensure_summary(text, "finding", markers.FINDINGS)
+        text = discussion.ensure_summary(text, "finding", markers.FINDINGS, [])
     if text == original:
         return False
     md.write_text(text, encoding="utf-8")
@@ -98,7 +100,7 @@ def _migrate_file(md: Path, item_type: ItemType) -> bool:
 
 
 def migrate(paths: SquadPaths) -> int:
-    """Migrate every item file under the squad to schema 2; return the count changed."""
+    """Migrate every item file under the squad to schema 0.2; return the count changed."""
     changed = 0
     for item_type in ItemType:
         folder = paths.folder_for(item_type)

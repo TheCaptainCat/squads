@@ -16,7 +16,7 @@ truth, so just rebuild: `sq repair`. If two branches reused an ID number, `sq re
 ### "a task's parent must be of type feature …"
 The hierarchy is enforced: a **task**'s parent must be a **feature**, a **feature**'s parent an
 **epic**. A bug or review is *not* a parent — attach it with a ref:
-`sq ref add <task> <bug> --kind fixes` (or `--kind addresses` for a review). Purely-technical tasks
+`sq task <n> ref add <bug> --kind fixes` (or `--kind addresses` for a review). Purely-technical tasks
 have no parent.
 
 ### "<type> cannot move <X> → <Y>"
@@ -26,7 +26,7 @@ allowed from the current state. Move through the valid path, or override with
 
 ### "subtask STn → USn missing from FEAT-…"
 A subtask references a user story that doesn't exist in the task's parent feature. Add the story
-(`sq story add <feature> "…"`), fix the `(→ USn)` in the subtask heading, or ensure the task's parent
+(`sq feature <n> add-story "…"`), remap the subtask (`--story`), or ensure the task's parent
 is the right feature.
 
 ### "squads X detected (managed files at Y). Run `sq sync`."
@@ -35,8 +35,10 @@ You upgraded squads; the project's tool-owned files (the `squads`/`sq-<type>` sk
 It never touches your authored content.
 
 ### Can I edit the markdown by hand?
-Yes — write prose **between** the `<!-- sq:* -->` markers (the body, story/subtask text). Don't edit
-the marker lines, and don't hand-edit frontmatter (`id`/`status`/`parent`) — use the commands so the
+No — the `.md` files are fully sq-managed. Set an item's body with `sq body <ID>` and a sub-entity's
+with `sq story|subtask|finding body <ID> <LID>` (both take `-m` paragraphs or `--file`); comment with
+`sq comment`; change metadata with `sq update`. Read anything back with `sq show` / `sq <kind> show`.
+Don't edit the markers or frontmatter by hand — use the commands so the
 index stays in sync. `sq check` catches violations; `sq repair` rebuilds the index from frontmatter.
 
 ### What's the difference between `repair`, `check`, and `sync`?

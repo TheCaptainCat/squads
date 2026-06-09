@@ -1,12 +1,12 @@
 <!-- sq:body -->
 ## Description
 
-{{ description or "_TODO: describe this task._" }}
+_TODO: describe this task._
 <!-- sq:body:end -->
 
 ## Subtasks
 
-_Add with `sq subtask add {{ item.id }} "<title>"`; track with `sq subtask status {{ item.id }} STn <Status>`._
+_Add with `sq task {{ item.id | idnum }} add-subtask "<title>"`; track with `sq task {{ item.id | idnum }} subtask <n> update --status <Status>`._
 
 <!-- sq:summary -->
 <!-- sq:summary:end -->

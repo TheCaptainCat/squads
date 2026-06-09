@@ -2,7 +2,7 @@ import pytest
 
 from squads import _sections as sections
 from squads._errors import SquadsError
-from squads._models._enums import ItemType, Status
+from squads._models._enums import ItemType, Severity, Status
 
 # --------------------------------------------------------------------------- comments
 
@@ -41,6 +41,24 @@ def test_comment_requires_existing_section(svc):
         svc.comment(epic.id, ["x"], story="US1")  # epic has no story US1
 
 
+def test_comment_targets_a_finding(svc):
+    rev = svc.create(ItemType.REVIEW, "r").item
+    svc.add_finding(rev.id, "Null deref")  # F1
+    svc.comment(rev.id, ["please fix"], as_slug="reviewer", finding="F1")
+    text = svc.paths.abspath(svc.get(rev.id).path).read_text(encoding="utf-8")
+    disc = sections.get_section(text, "finding:F1:discussion")
+    assert disc is not None and "please fix" in disc
+    # the review's top-level discussion stays untouched
+    top = sections.get_section(text, "discussion")
+    assert top is not None and "please fix" not in top
+
+
+def test_comment_rejects_multiple_targets(svc):
+    feat = svc.create(ItemType.FEATURE, "f").item
+    with pytest.raises(SquadsError, match="only one"):
+        svc.comment(feat.id, ["x"], story="US1", subtask="ST1")
+
+
 def test_operator_author(svc):
     assert svc.author("operator") == "Operator"
     assert svc.author("architect") == "Robert Architect"
@@ -71,23 +89,178 @@ def test_story_scaffold_and_nested_discussion(svc):
     assert [b.local_id for b in svc.list_stories(feat.id)] == ["US1", "US2"]
 
 
-def test_story_body_is_freeform_and_agent_owned(svc):
+def test_story_body_set_via_sq_and_preserved_by_comment(svc):
     feat = svc.create(ItemType.FEATURE, "Login").item
-    res = svc.add_story(feat.id)  # no title → empty heading, placeholder body
-    path = svc.paths.abspath(svc.get(feat.id).path)
-    # an agent replaces the placeholder with multiline prose + bullets
+    svc.add_story(feat.id)  # no title → empty heading, placeholder body
+    # the body is set through sq (no manual file editing), multiline prose + bullets
     body = "As an admin, I want resets.\n\nAcceptance:\n- link expires in 30m\n- audit logged"
-    text = sections.replace_section(path.read_text(encoding="utf-8"), res.body_tag, body)
-    path.write_text(text, encoding="utf-8")
-    # sq leaves the body alone; commenting only touches the discussion
+    svc.set_story_body(feat.id, "US1", body)
+    detail = svc.get_story(feat.id, "US1")
+    assert detail.body == body
+    # commenting only touches the discussion, never the body
     svc.comment(feat.id, ["go"], as_slug="operator", story="US1")
-    after = path.read_text(encoding="utf-8")
-    after_body = sections.get_section(after, res.body_tag)
-    assert after_body is not None
-    assert after_body.strip() == body
-    # list summary derives from the free-form body when there is no title
+    after = svc.get_story(feat.id, "US1")
+    assert after.body == body
+    assert "go" in after.discussion
+    # title is explicit frontmatter state; an untitled story stays untitled (body is separate prose)
     (story,) = svc.list_stories(feat.id)
-    assert (story.local_id, story.title) == ("US1", "As an admin, I want resets.")
+    assert (story.local_id, story.title) == ("US1", "")
+
+
+def test_subtask_body_set_append_and_reject_markers(svc):
+    task = svc.create(ItemType.TASK, "t").item
+    svc.add_subtask(task.id, "Validate")
+    svc.set_subtask_body(task.id, "ST1", "First paragraph.\n\nSecond.")
+    assert svc.get_subtask(task.id, "ST1").body == "First paragraph.\n\nSecond."
+    # append adds a paragraph after the existing body
+    svc.set_subtask_body(task.id, "ST1", "Third.", append=True)
+    assert svc.get_subtask(task.id, "ST1").body.endswith("Second.\n\nThird.")
+    # a body carrying an sq marker is rejected
+    with pytest.raises(SquadsError, match="marker"):
+        svc.set_subtask_body(task.id, "ST1", "oops <!-- sq:body:end --> oops")
+
+
+def test_append_overwrites_placeholder(svc):
+    task = svc.create(ItemType.TASK, "t").item
+    svc.add_subtask(task.id, "Validate")  # body is still the italic placeholder
+    svc.set_subtask_body(task.id, "ST1", "Real content.", append=True)
+    assert svc.get_subtask(task.id, "ST1").body == "Real content."  # replaced, not appended after
+
+
+def _head(svc, item_id, tag):
+    text = svc.paths.abspath(svc.get(item_id).path).read_text(encoding="utf-8")
+    return sections.get_section(text, tag) or ""
+
+
+def test_assignee_full_name_rendered_under_heading(svc):
+    svc.add_dev("python", name="Grace Hopper")  # python-dev
+    svc.add_dev("rust", name="Alan Turing")  # rust-dev
+    task = svc.create(ItemType.TASK, "t").item
+
+    # set at add time: the :head shows the full name; the slug is the frontmatter state
+    svc.add_subtask(task.id, "Validate", assignee="python-dev")
+    head = _head(svc, task.id, "subtask:ST1:head")
+    assert "**Assignee:** Grace Hopper" in head
+    assert svc.list_subtasks(task.id)[0].assignee == "python-dev"  # frontmatter keeps the slug
+    # the head sits between the heading and the block's body region
+    text = svc.paths.abspath(svc.get(task.id).path).read_text(encoding="utf-8")
+    assert text.index("### ST1") < text.index("subtask:ST1:head") < text.index("subtask:ST1:body")
+
+    # reassign updates the rendered name
+    svc.set_subtask_assignee(task.id, "ST1", "rust-dev")
+    assert "**Assignee:** Alan Turing" in _head(svc, task.id, "subtask:ST1:head")
+
+    # --clear drops the assignee line; the status badge stays
+    svc.set_subtask_assignee(task.id, "ST1", None)
+    head = _head(svc, task.id, "subtask:ST1:head")
+    assert "**Assignee:**" not in head and "**Status:**" in head
+    assert svc.list_subtasks(task.id)[0].assignee is None
+
+
+def test_head_shows_status_severity_and_story(svc):
+    svc.add_dev("python", name="Grace Hopper")
+    feat = svc.create(ItemType.FEATURE, "Login").item
+    svc.add_story(feat.id, "As a user, I want to reset my password")  # US1
+    task = svc.create(ItemType.TASK, "Auth", parent=feat.id).item
+
+    # a fresh subtask already shows its status badge (no assignee line yet)
+    svc.add_subtask(task.id, "Validate", story="US1")
+    head = _head(svc, task.id, "subtask:ST1:head")
+    assert "**Status:** ⚪ Todo" in head and "**Assignee:**" not in head
+    # the story link resolves to "USn — title"
+    assert "**Implements:** US1 — As a user, I want to reset my password" in head
+
+    # status transitions re-render the badge
+    svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+    assert "**Status:** 🟡 In Progress" in _head(svc, task.id, "subtask:ST1:head")
+
+    # findings show a severity badge
+    rev = svc.create(ItemType.REVIEW, "r").item
+    svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
+    assert "**Severity:** 🟠 High" in _head(svc, rev.id, "finding:F1:head")
+
+
+def test_body_set_at_add_time(svc):
+    feat = svc.create(ItemType.FEATURE, "f").item
+    svc.add_story(feat.id, body="As an admin, I want resets.\n\nAcceptance: link expires in 30m")
+    (story,) = svc.list_stories(feat.id)
+    assert story.title == ""  # title is explicit; the body is independent prose
+    assert svc.get_story(feat.id, story.local_id).body.startswith("As an admin")
+
+
+def test_update_subtask_title_rerenders_heading_and_summary(svc):
+    task = svc.create(ItemType.TASK, "t").item
+    svc.add_subtask(task.id, "Old name", body="prose body")
+    svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+
+    svc.update_subtask(task.id, "ST1", title="New name")
+
+    # frontmatter title updated, other state untouched
+    sub = svc.list_subtasks(task.id)[0]
+    assert (sub.title, sub.status) == ("New name", Status.IN_PROGRESS)
+    text = svc.paths.abspath(svc.get(task.id).path).read_text(encoding="utf-8")
+    # the body heading and the parent summary-table row both re-render; the body prose is preserved
+    assert "### ST1 — New name" in text and "Old name" not in text
+    assert "| ST1 | InProgress |  | New name |" in text
+    assert svc.get_subtask(task.id, "ST1").body == "prose body"
+
+
+def test_update_finding_severity(svc):
+    rev = svc.create(ItemType.REVIEW, "r").item
+    svc.add_finding(rev.id, "Null deref", severity=Severity.MEDIUM)
+
+    svc.update_finding(rev.id, "F1", severity=Severity.HIGH)
+
+    assert svc.list_findings(rev.id)[0].severity is Severity.HIGH
+    text = svc.paths.abspath(svc.get(rev.id).path).read_text(encoding="utf-8")
+    assert "severity: high" in text  # frontmatter state
+    assert "**Severity:** 🟠 High" in _head(svc, rev.id, "finding:F1:head")  # head badge
+    assert "🟠 high" in text  # summary cell
+
+
+def test_update_subtask_story_remap_validate_and_clear(svc):
+    feat = svc.create(ItemType.FEATURE, "Login").item
+    svc.add_story(feat.id, "Reset password")  # US1
+    svc.add_story(feat.id, "Lockout policy")  # US2
+    task = svc.create(ItemType.TASK, "Auth", parent=feat.id).item
+    svc.add_subtask(task.id, "Validate", story="US1")
+
+    # remap to a different (existing) story → head "Implements" + summary Story column update
+    svc.update_subtask(task.id, "ST1", story="US2")
+    assert svc.list_subtasks(task.id)[0].story == "US2"
+    assert "**Implements:** US2 — Lockout policy" in _head(svc, task.id, "subtask:ST1:head")
+
+    # an unknown story is rejected
+    with pytest.raises(SquadsError, match="US9"):
+        svc.update_subtask(task.id, "ST1", story="US9")
+
+    # --no-story clears the mapping
+    svc.update_subtask(task.id, "ST1", clear_story=True)
+    assert svc.list_subtasks(task.id)[0].story is None
+    assert "**Implements:**" not in _head(svc, task.id, "subtask:ST1:head")
+
+
+def test_update_applies_several_fields_and_validates_status(svc):
+    svc.add_dev("python", name="Grace Hopper")  # python-dev
+    task = svc.create(ItemType.TASK, "t").item
+    svc.add_subtask(task.id, "Old")
+
+    # one call sets title + assignee + status (a valid transition)
+    svc.update_subtask(
+        task.id, "ST1", title="New", assignee="python-dev", status=Status.IN_PROGRESS
+    )
+    sub = svc.list_subtasks(task.id)[0]
+    assert (sub.title, sub.assignee, sub.status) == ("New", "python-dev", Status.IN_PROGRESS)
+
+    # an invalid transition is rejected without --force, accepted with it
+    with pytest.raises(SquadsError, match="cannot move"):
+        svc.update_subtask(task.id, "ST1", status=Status.TODO)
+    svc.update_subtask(task.id, "ST1", status=Status.TODO, force=True)
+    assert svc.list_subtasks(task.id)[0].status is Status.TODO
+
+    # an unregistered assignee is rejected
+    with pytest.raises(SquadsError, match="not a registered agent"):
+        svc.update_subtask(task.id, "ST1", assignee="ghost")
 
 
 def test_empty_title_summary_is_blank_not_marker(svc):
@@ -131,6 +304,29 @@ def test_subtask_done_unknown_id(svc):
         svc.set_subtask_done(task.id, "ST9")
 
 
+def test_subtask_assignee_set_reassigned_and_cleared(svc):
+    svc.add_dev("python")  # registers python-dev
+    task = svc.create(ItemType.TASK, "t").item
+    svc.add_subtask(task.id, "Wire API", assignee="python-dev")
+    assert svc.list_subtasks(task.id)[0].assignee == "python-dev"
+    # reassignment validates against the roster
+    svc.set_subtask_assignee(task.id, "ST1", "manager")
+    assert svc.list_subtasks(task.id)[0].assignee == "manager"
+    with pytest.raises(SquadsError, match="not a registered agent"):
+        svc.set_subtask_assignee(task.id, "ST1", "ghost")
+    with pytest.raises(SquadsError, match="not a registered agent"):
+        svc.add_subtask(task.id, "x", assignee="ghost")
+    # reassigning preserves the status set in between
+    svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+    svc.set_subtask_assignee(task.id, "ST1", "python-dev")
+    assert svc.list_subtasks(task.id)[0].status == "InProgress"
+    # --clear path: None unassigns, and the summary table reflects it
+    svc.set_subtask_assignee(task.id, "ST1", None)
+    assert svc.list_subtasks(task.id)[0].assignee is None
+    text = svc.paths.abspath(svc.get(task.id).path).read_text(encoding="utf-8")
+    assert "| Subtask | Status | Assignee | Title | Story |" in text
+
+
 # --------------------------------------------------------------------------- inbox
 
 
@@ -168,7 +364,7 @@ def test_check_detects_dangling_parent(svc):
     task = svc.create(ItemType.TASK, "t").item
     # corrupt the index directly: point at a non-existent parent
     with svc.store.transaction() as db:
-        db.items[task.id].parent = "FEAT-999999"
+        db.items[task.sequence_id].parent = "FEAT-999999"
     issues = svc.check()
     assert any("dangling parent" in i.message and i.item == task.id for i in issues)
 

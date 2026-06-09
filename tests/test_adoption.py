@@ -56,7 +56,7 @@ def test_at_forges_timestamps(runner, tmp_path, monkeypatch):
     # deliberately NOT using frozen_time so clock honours the --at override
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
-    r = runner.invoke(app, ["--at", "2020-05-06", "create", "task", "old"])
+    r = runner.invoke(app, ["--at", "2020-05-06", "create", "task", "old", "--author", "manager"])
     assert r.exit_code == 0, r.output
     text = next((tmp_path / "squads" / "tasks").glob("*.md")).read_text(encoding="utf-8")
     assert "created_at: '2020-05-06T00:00:00Z'" in text
@@ -66,10 +66,10 @@ def test_at_forges_timestamps(runner, tmp_path, monkeypatch):
 def test_at_forges_comment_timestamp(runner, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
-    runner.invoke(app, ["create", "task", "t"])
+    runner.invoke(app, ["create", "task", "t", "--author", "manager"])
     runner.invoke(
         app,
-        ["--at", "2019-12-31T23:00:00Z", "comment", "TASK-000002", "--as", "manager", "-m", "hi"],
+        ["--at", "2019-12-31T23:00:00Z", "task", "2", "comment", "--as", "manager", "-m", "hi"],
     )
     text = next((tmp_path / "squads" / "tasks").glob("*.md")).read_text(encoding="utf-8")
     assert "- [2019-12-31T23:00:00Z] Catherine Manager:" in text

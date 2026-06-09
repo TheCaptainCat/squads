@@ -27,11 +27,10 @@ sq create epic "Authentication platform"
 
 (Your numbers differ — the global counter already spent IDs on the bundled roles.)
 
-### The pattern: `sq` scaffolds, **you write the body**
+### The pattern: `sq` scaffolds, **you set the body with a command**
 
-This is the heart of squads. `sq create` only writes a *skeleton* and hands you the path — the
-actual content is yours to write **in the file**, between the `<!-- sq:body -->` markers. Open the
-epic just created; it looks like:
+This is the heart of squads. `sq create` writes a *skeleton* with a placeholder body; you fill it
+through `sq body` — never by hand-editing the file. The fresh epic looks like:
 
 ```markdown
 ---
@@ -43,7 +42,7 @@ status: Draft
 <!-- sq:body -->
 ## Summary
 
-_TODO: summarise this epic._      ← replace this; write freely between the markers
+_TODO: summarise this epic._
 ## Goals
 -
 ## Scope
@@ -53,43 +52,54 @@ _TODO: summarise this epic._      ← replace this; write freely between the mar
 <!-- sq:discussion:end -->
 ```
 
-Edit the prose directly (in your editor, or as the impersonated agent in Claude Code). The only
-rules: **don't touch the `<!-- sq:* -->` marker lines, and don't hand-edit the frontmatter** — `sq`
-owns those. Everything else is free-form markdown. (`sq` owns *status* and *discussion*; you own the
-body.) Every `create`/`story add`/`subtask add` below follows the same flow: run the command, then
-open the file it prints and fill in the body.
+Set the body with a command (write the full markdown yourself; `-m` paragraphs or `--file` for long
+content):
+
+```bash
+sq epic 9 body --file epic-body.md     # or: -m "## Summary" -m "…" -m "## Goals" -m "…"
+sq epic 9 show                          # read the summary + body back
+```
+
+`sq` owns the whole file — **never touch the `<!-- sq:* -->` markers or the frontmatter**. `--desc`
+sets only the short one-line *summary* (shown in `sq list`), not the body. Every
+`create`/`story add`/`subtask add` below follows the same flow: scaffold, then set the body via a
+command.
 
 ## 2. A feature with user stories (product owner)
 
 ```bash
 sq create feature "Login" --parent EPIC-000009
-# → open squads/features/FEAT-000010-login.md and write the feature's Summary in the sq:body region
-sq story add FEAT-000010 "As a user, I want to log in so that I can access my account"
-sq story add FEAT-000010 "As an admin, I want to lock accounts after 5 failed tries"
+sq feature 10 body -m "## Summary" -m "Email + password login with lockout."   # set the body
+sq feature 10 add-story "As a user, I want to log in so that I can access my account"
+sq feature 10 add-story "As an admin, I want to lock accounts after 5 failed tries"
 ```
 
-`story add` prints the file **and the exact line range to write between** — open the feature file and
-flesh out each story's body (acceptance criteria, etc.) inside its `<!-- sq:story:US1:body -->`
-region. As above: you write the prose, `sq` keeps the structure.
+Flesh out each story's body (acceptance criteria, etc.) **through `sq`** — no manual file editing:
+
+```bash
+sq feature 10 story 1 body -m "As a user, I want to log in…" -m "Acceptance: …"
+sq feature 10 story 1 show     # read its status, body, and discussion back
+```
+
+You write the prose via `-m`/`--file`; `sq` keeps the structure.
 
 ## 3. A task with subtasks (tech lead)
 
 A task's parent is the feature; each subtask maps to one user story:
 
 ```bash
-sq create task "Validate credentials" --parent FEAT-000010
-# → open squads/tasks/TASK-000011-validate-credentials.md and write the Description in sq:body
-sq subtask add TASK-000011 "Check password hash" --story US1   # then fill each subtask's body region
-sq subtask add TASK-000011 "Lock after 5 failures" --story US2
+sq create task "Validate credentials" --parent FEAT-000010 -m "Verify hash; lock after 5 fails."
+sq task 11 add-subtask "Check password hash" --story US1 -m "Use the stored argon2 hash."
+sq task 11 add-subtask "Lock after 5 failures" --story US2
 ```
 
 ## 4. Do the work
 
 ```bash
-sq status TASK-000011 InProgress
-sq comment TASK-000011 --as developer -m "Hashing done" -m "@qa ready for expiry tests"
-sq subtask done TASK-000011 ST1
-sq status TASK-000011 InReview
+sq task 11 status InProgress
+sq task 11 comment --as developer -m "Hashing done" -m "@qa ready for expiry tests"
+sq task 11 subtask 1 update --status Done --force
+sq task 11 status InReview
 ```
 
 (`--as developer` only resolves to a full name if you've activated a dev role; otherwise use a
@@ -99,16 +109,16 @@ real slug like `architect`, or `operator`.)
 
 ```bash
 sq create bug "Lockout counter resets on refresh"
-sq ref add TASK-000011 BUG-000012 --kind fixes
-sq refs BUG-000012 --in        # the bug shows the task that fixes it (computed)
+sq task 11 ref add BUG-000012 --kind fixes
+sq bug 12 refs --in        # the bug shows the task that fixes it (computed)
 ```
 
 ## 6. Record a decision and a guide (architect)
 
 ```bash
 sq create decision "Use argon2id for password hashing"
-sq status ADR-000013 Accepted
-sq guide add "Password hashing" --tech security
+sq decision 13 status Accepted
+sq create guide "Password hashing" --tech security
 ```
 
 ## 7. See it and check it

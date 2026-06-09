@@ -65,7 +65,10 @@ index, the filesystem, the backend, and rendering together.
 
 ## 3. The index and the global counter (`_index/_store.py`, `_models/_index.py`)
 
-`SquadsDB` is the JSON root: `{schema_version, squads_version, counter, items: {id → Item}}`.
+`SquadsDB` is the JSON root: `{schema_version, squads_version, counter, items: {sequence# → Item}}`.
+Items are **keyed by their integer `sequence_id`** (the global counter number — the item's real
+identity); the formatted `id` (`TASK-000007`) is *derived* from `type` + `sequence_id`. Both are
+persisted in `.md` frontmatter. A legacy full-id-keyed index still loads (keys normalized on read).
 
 - **One global monotonic counter.** `SquadsDB.allocate_id(type)` does `counter += 1` and formats
   `f"{type.prefix}-{counter:06d}"`. So an ID's *number* is unique across all types — there is never
@@ -128,6 +131,7 @@ A typical task file:
 ```markdown
 ---
 id: TASK-000007
+sequence_id: 7
 type: task
 title: Fix login
 status: Draft
@@ -155,9 +159,9 @@ updated_at: '2026-06-07T10:00:00Z'
   `region_lines`, plus frontmatter `split/join/replace`. `find_markers` uses a strict regex
   (`sq:` + alnum start) so documentation like `` `<!-- sq:* -->` `` in prose isn't mistaken for a real
   marker.
-- **Who writes what:** `sq` owns the frontmatter and the marker-delimited *discussion* (via
-  `sq comment`); the **agent writes everything else directly** (the body, story/subtask prose). The
-  rule is "never touch the marker lines."
+- **Who writes what:** `sq` owns the whole file — frontmatter, markers, and every region. The agent
+  authors content through commands (`sq body` / `sq <kind> body` for bodies, `sq comment` for
+  discussion), never by editing the `.md` directly.
 - **`_itemfile.py`** maps `Item` ↔ file: `write_new` emits frontmatter + the rendered body;
   `update_frontmatter` rewrites *only* the frontmatter (body preserved verbatim); `read_frontmatter`
   parses it back for `repair`/`check`. `Item.to_frontmatter_dict()` / `from_frontmatter()` are the
@@ -165,18 +169,19 @@ updated_at: '2026-06-07T10:00:00Z'
 
 ### Sub-entities: user stories, subtasks & findings (`_discussion.py`)
 
-Features hold **user stories**, tasks hold **subtasks**, reviews hold **findings** — scaffolded
-*inside the file*, not as separate IDs. `sq story/subtask/finding add` inserts a block into the
-`sq:stories` / `sq:subtasks` / `sq:findings` container with **four** regions — note the sq-owned
-`:meta`, where the block's tracked state lives (never the heading prose):
+Features hold **user stories**, tasks hold **subtasks**, reviews hold **findings** — tracked
+*inside the parent item*, not as separate IDs. Their **machine state** (status, assignee, severity,
+mapped story, title) is a typed `subentities:` list in the parent's **frontmatter** (`SubEntity`,
+`_models/_subentity.py`) — single-sourced, pydantic-validated, and carried in the index. Each
+sub-entity also gets a marker-scoped **block in the body** holding only its prose + presentation:
 
 ```markdown
 <!-- sq:subtask:ST1 -->
-### ST1 — Validate token expiry      ← plain title (agent-editable)
-<!-- sq:subtask:ST1:meta -->         ← sq owns: status, + severity (findings) / story (subtasks)
-status: InProgress
-story: US2
-<!-- sq:subtask:ST1:meta:end -->
+### ST1 — Validate token expiry       ← heading rendered from the frontmatter title
+<!-- sq:subtask:ST1:head -->          ← sq renders human-readable badges from the frontmatter state
+**Status:** 🟡 In Progress
+**Implements:** US2 — …
+<!-- sq:subtask:ST1:head:end -->
 <!-- sq:subtask:ST1:body -->          ← agent writes free-form prose here
 <!-- sq:subtask:ST1:body:end -->
 <!-- sq:subtask:ST1:discussion -->    ← sq appends comments here
@@ -184,12 +189,15 @@ story: US2
 <!-- sq:subtask:ST1:end -->
 ```
 
-Local ids (`US1`, `ST1`, `F1`) auto-increment via `next_local_id`. Each has a **status state
-machine** (`SUBENTITY_WORKFLOWS`: subtask/story `Todo → InProgress → Done`; finding
-`Open → Fixed → Verified`), transitioned with `sq <kind> status …` (validated; `--force` overrides;
-`subtask done` is a shortcut). The parent carries an **sq-managed `sq:summary` table** that
-`render_summary` rebuilds from `list_blocks` on every change. Pre-2 files (heading `[ ]`/`[x]`
-checkbox + `(→ USn)`) are upgraded into `:meta` regions by the `v1 → v2` migration.
+Local ids (`US1`, `ST1`, `F1`) auto-increment via `next_local_id` (over the stored list). Each has a
+**status state machine** (`SUBENTITY_WORKFLOWS`: subtask/story `Todo → InProgress → Done`; finding
+`Open → Fixed → Verified`), transitioned with `sq <type> <n> <kind> <k> update --status …` (validated;
+`--force` overrides) — `update` is the one metadata entry point (`--title`/`--status`/`--assignee`, a
+subtask's `--story`, a finding's `--severity`); the service edits the model atomically (index
+transaction), then re-renders the heading, the `:head`, and the parent's **sq-managed `sq:summary`
+table** from it. The legacy
+body-stored `:meta` region (pre-0.3) is lifted into frontmatter by the `0.2 → 0.3` migration; its
+read/build helpers now live only in `_migrations/_meta_compat.py`.
 
 ---
 
@@ -223,7 +231,7 @@ reference: **[workflow.md](workflow.md)**.
  computed (inverse) :  refs_in(BUG-000009)  →  [(TASK-000007, fixes)]      # never persisted
 ```
 
-> Before `schema_version` 2 the kind lived in a separate `extra["ref_kinds"]` `{ID: kind}` map;
+> Before `schema_version` 0.2 the kind lived in a separate `extra["ref_kinds"]` `{ID: kind}` map;
 > it's now folded inline. Old files are read transparently (`Item.from_frontmatter`) — see
 > [migration.md](migration.md).
 
@@ -349,9 +357,9 @@ the global `--dir` and `--at`, runs the version notice, and dispatches. Conventi
    - `db.allocate_id(TASK)` → `TASK-000007` (global counter bumped);
    - builds the `Item` (status = `initial_status(TASK)` = `Draft`, `created_at`/`updated_at` =
      `clock.now()`), squad-relative path `tasks/TASK-000007-fix-login.md`;
-   - renders `items/task.md.j2` (body + empty markers), `write_new` emits frontmatter + body;
+   - renders `items/task.md.j2` (placeholder body + empty markers), `write_new` emits frontmatter + body;
    - `db.add(item)`; on clean exit the index is atomically rewritten.
-4. The CLI prints the path; the agent opens the file and fills the `sq:body` region.
+4. The CLI prints the path; the agent fills the body with `sq task 7 body -m "…"` (or `--file`).
 
 `status`, `comment`, `link`, `ref`, `update`, `subtask`/`story` follow the same shape — mutate inside
 a locked transaction (or a marker-safe section edit), stamp `updated_at` from `clock.now()`.

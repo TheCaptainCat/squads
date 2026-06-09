@@ -50,8 +50,8 @@ cd your-project
 sq init --roles all                 # scaffold squads/, .claude/, CLAUDE.md
 sq create feature "User authentication" --desc "Login & sessions"
 sq create task "Validate token expiry" --parent FEAT-000010
-sq status TASK-000011 InProgress
-sq comment TASK-000011 --as architect -m "Reuse the clock abstraction" -m "@qa verify edges"
+sq task 11 status InProgress
+sq task 11 comment --as architect -m "Reuse the clock abstraction" -m "@qa verify edges"
 sq tree
 ```
 
@@ -127,32 +127,36 @@ Contributing: **[CONTRIBUTING.md](CONTRIBUTING.md)** · contributors: **[CONTRIB
 - `--dir PATH` (global) — operate on the squad folder at PATH instead of walking up to `.squads.toml`
 - `--at WHEN` (global) — forge timestamps (ISO 8601, UTC) for this command, to preserve history when migrating
 
-**Items**
-- `sq create epic|feature|task|bug|decision|review|guide TITLE [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--json]`
-- `sq list [--type|--status|--parent|--label|--assignee] [--json]` · `sq show ID [--json]` · `sq tree [ROOT_ID]`
-- `sq update ID [--title|--desc|--assignee|--add-label|--rm-label]` (`--title` renames the file)
-- `sq status ID STATUS [--force]` · `sq link CHILD --parent P` · `sq unlink CHILD`
+Items are addressed by `<type> <number>` (bare `35`, padded `000035`, or full `TASK-000035`; the
+type word validates). Create with `sq create`; operate with `sq <type> <n> <verb>`.
 
-**Collaboration**
-- `sq comment ID -m "…" [-m "…"] [--as <slug|operator>] [--story USn|--subtask STn]` (use `@role` to notify)
-- `sq story add FEAT-ID [LABEL] [--json]` · `sq story list FEAT-ID`
-- `sq subtask add TASK-ID [LABEL] [--story USn] [--json]` · `sq subtask list TASK-ID` · `sq subtask done TASK-ID STn [--undo]`
+**Items**
+- `sq create epic|feature|task|bug|decision|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [-m "body"|--file] [--json]`
+- `sq list [--type|--status|--parent|--label|--assignee] [--json]` · `sq tree [ROOT_ID]`
+- `sq <type> <n> show [--json]` · `sq <type> <n> body [-m "…"|--file PATH] [--append]`
+- `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--add-label|--rm-label|--set k=v|--unset k]`
+- `sq <type> <n> status STATUS [--force]` · `sq <type> <n> comment -m "…" [--as <slug>]`
+
+**Sub-entities** (stories on features, subtasks on tasks, findings on reviews)
+- `sq feature <n> add-story "…" [--assignee] [-m|--file]` · `sq feature <n> stories`
+- `sq task <n> add-subtask "…" [--story USn] [--assignee] [-m|--file]` · `sq task <n> subtasks`
+- `sq review <n> add-finding "…" [--severity] [--assignee] [-m|--file]` · `sq review <n> findings`
+- `sq <type> <n> <kind> <k> show|update|body|comment` — `update` sets `--title`/`--status`/`--assignee` (+ a subtask's `--story`, a finding's `--severity`)
 - `sq inbox <role>` — open items mentioning `@role`
 
-`story add` / `subtask add` **scaffold an empty block with a writable body region** and print
-(or return, with `--json`) the file and the marker/line range to write between — the agent then
-fills it with free-form paragraphs or bullet lists. The optional `LABEL` is just a short heading;
-the substance lives in the body. `sq` still owns the discussion and the subtask checkbox.
+`add-<kind>` **scaffolds an empty block**; set its body with the nested `… <kind> <k> body` (or pass
+`-m`/`--file` to `add-<kind>`). `sq` owns the body, meta (status/assignee/severity/story), and
+discussion — all written through commands.
 
 **Cross-linking**
-- `sq ref add FROM TO [--kind related|blocks|implements|fixes|addresses]` · `sq ref rm FROM TO`
-- `sq refs ID [--out|--in|--all] [--json]` (forward edges stored; backrefs computed)
+- `sq <type> <n> ref add TARGET [--kind related|blocks|implements|fixes|addresses]` · `sq <type> <n> ref rm TARGET`
+- `sq <type> <n> refs [--out|--in|--all] [--json]` (forward edges stored; backrefs computed)
 
 **Agents**
 - `sq role list [--available] | show <slug> | activate <slug> | regen ID | rm ID [--purge]`
 - `sq dev add --tech <t> [--name] [--model] | list` — stack-specific developers
 - `sq skill add NAME [--desc|--when-to-use|--allowed-tools] | list | show | regen | rm [--purge]`
-- `sq guide add TITLE [--tech] [--tag] | list`
+- `sq create guide TITLE [--tech] [--tag] | list`
 
 **Maintenance**
 - `sq check` — lint markers, dangling parent/ref IDs, invalid status, index drift
@@ -190,13 +194,13 @@ squads encodes a light division of labour (enforced by validation + `sq check`):
   **subtask maps to one user story**:
   ```bash
   sq create task "Token validation" --parent FEAT-000002
-  sq subtask add TASK-000003 "Validate expiry" --story US1   # US1 must exist in FEAT-000002
+  sq task 3 add-subtask "Validate expiry" --story US1   # US1 must exist in FEAT-000002
   ```
 - A task may instead/also link a **bug** or **review** via typed refs — or nothing if it's purely
   technical:
   ```bash
-  sq ref add TASK-000003 BUG-000009 --kind fixes
-  sq ref add TASK-000003 REV-000010 --kind addresses
+  sq task 3 ref add BUG-000009 --kind fixes
+  sq task 3 ref add REV-000010 --kind addresses
   ```
 
 A task's parent must be a feature (link a bug/review with a ref, not as parent); a feature's parent
