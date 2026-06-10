@@ -54,6 +54,18 @@ class AdoptResult:
     roles: list[Item]  # roles newly activated
 
 
+@dataclass(frozen=True)
+class RetypeResult:
+    """Outcome of ``Service.retype()``."""
+
+    item: Item
+    old_id: str
+    old_type: str  # ItemType.value string, for display
+    status_reset: bool
+    old_status: str  # Status.value string (meaningful only when status_reset is True)
+    rewritten: list[str]  # paths of files whose text was updated (relative display names)
+
+
 @dataclass
 class WorkloadRow:
     """Per-assignee work counts for `sq workload` (None assignee = unassigned)."""

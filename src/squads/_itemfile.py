@@ -4,6 +4,8 @@ The ``.md`` frontmatter is the durable source of truth; ``sq`` rewrites only the
 (and marker sections), never the agent-authored body.
 """
 
+import re
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -35,3 +37,21 @@ def update_frontmatter(path: Path, item: Item) -> None:
     """Rewrite the frontmatter from the item; body is preserved verbatim."""
     text = path.read_text(encoding="utf-8")
     path.write_text(replace_frontmatter(text, item.to_frontmatter_dict()), encoding="utf-8")
+
+
+def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
+    """Whole-word substitution of every old ID → new ID across the given files.
+
+    Replaces all occurrences of ``\\bOLD\\b → NEW`` (exact whole-word match so e.g. a longer ID
+    sharing a prefix is not touched).  Returns the list of paths that were actually modified.
+    """
+    touched: list[Path] = []
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        new_text = text
+        for old, new in remap.items():
+            new_text = re.sub(rf"\b{re.escape(old)}\b", new, new_text)
+        if new_text != text:
+            path.write_text(new_text, encoding="utf-8")
+            touched.append(path)
+    return touched
