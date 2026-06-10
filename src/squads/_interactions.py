@@ -17,8 +17,17 @@ DEV = "*dev"
 
 @dataclass(frozen=True)
 class RoleGuide:
+    """Precise, structured guidance for one actor on one item type.
+
+    Rendered under fixed labels in the per-item skill, so every actor reads the same shape:
+    what to check first, what to do, what moves the work on, and what to stay out of.
+    """
+
     slug: str  # a role slug, or the DEV sentinel
-    text: str
+    enter: tuple[str, ...] = ()  # read/confirm before acting
+    do: tuple[str, ...] = ()  # the core actions (with concrete `sq …` commands)
+    handoff: tuple[str, ...] = ()  # the trigger + target that moves work on
+    watch: tuple[str, ...] = ()  # scope discipline / pitfalls ("don't … — that's <role>")
 
 
 @dataclass(frozen=True)
@@ -36,12 +45,37 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         commands=(
             'sq create epic "…" --author <slug>',
             "sq feature <n> update --parent EPIC-…   # group a feature under this epic",
-            "sq tree EPIC-…",
+            "sq tree EPIC-… [--json]",
         ),
         roles=(
-            RoleGuide("product-owner", "Define the epic's goal and the outcomes it groups."),
-            RoleGuide("architect", "Shape it technically; spin off ADRs for cross-cutting calls."),
-            RoleGuide("tech-lead", "Group features under the epic and keep its scope coherent."),
+            RoleGuide(
+                "product-owner",
+                enter=("confirm the outcome the epic targets and who it's for",),
+                do=(
+                    'author it (`sq create epic "…" --author product-owner`)',
+                    "set the body to the goal + the outcomes it groups (`sq epic <n> body -m …`)",
+                ),
+                handoff=("create the features under it and let the tech-lead break them down",),
+                watch=("an epic is an outcome, not a task list — keep it about the why",),
+            ),
+            RoleGuide(
+                "architect",
+                enter=("read the epic's goal and any related epics/ADRs",),
+                do=(
+                    "shape it technically; spin off ADRs (`sq create decision`) for cross-cutting "
+                    "calls and link them (`sq epic <n> ref add ADR-… --kind related`)",
+                ),
+                handoff=("hand the technical shape to the tech-lead for breakdown",),
+            ),
+            RoleGuide(
+                "tech-lead",
+                enter=("review the epic's features and their state (`sq tree EPIC-… --json`)",),
+                do=(
+                    "group features under the epic (`sq feature <n> update --parent EPIC-…`)",
+                    "keep its scope coherent; track status as features progress",
+                ),
+                watch=("authoring features is the product-owner's job, not yours",),
+            ),
         ),
     ),
     ItemType.FEATURE: ItemPlaybook(
@@ -56,13 +90,41 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         roles=(
             RoleGuide(
                 "product-owner",
-                "Author the feature and its user stories; define acceptance criteria.",
+                enter=("confirm the user need and which epic (if any) it belongs under",),
+                do=(
+                    'author the feature (`sq create feature "…" --author product-owner`)',
+                    "add persona-worded user stories "
+                    '(`sq feature <n> add-story "As a … I want …"`)',
+                    "write each story's acceptance criteria in its body "
+                    "(`sq feature <n> story <k> body -m …`)",
+                ),
+                handoff=("tell the tech-lead it's ready to break into tasks (`@tech-lead`)",),
+                watch=(
+                    "stories describe user value + acceptance criteria — not implementation steps",
+                ),
             ),
             RoleGuide(
                 "tech-lead",
-                "Break it into tasks (parent = this feature); map each subtask to a user story.",
+                enter=("read every user story + its acceptance criteria (`sq feature <n> show`)",),
+                do=(
+                    "create tasks with this feature as parent "
+                    "(`sq create task … --parent FEAT-<n>`)",
+                    "map each subtask to one user story (`sq task <n> add-subtask … --story USk`)",
+                ),
+                handoff=("assign developers and sequence the tasks",),
+                watch=("if a story is ambiguous, ask the product-owner (`@product-owner`) first",),
             ),
-            RoleGuide("qa", "Derive test cases from the user stories; verify acceptance criteria."),
+            RoleGuide(
+                "qa",
+                enter=("read the user stories + acceptance criteria",),
+                do=(
+                    "derive test cases from each story",
+                    "verify the feature against its acceptance criteria once tasks land",
+                ),
+                handoff=(
+                    "confirm in a comment when acceptance criteria pass; file bugs for failures",
+                ),
+            ),
         ),
     ),
     ItemType.TASK: ItemPlaybook(
@@ -79,14 +141,69 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         roles=(
             RoleGuide(
                 "tech-lead",
-                "Author tasks, set the feature parent, and map each subtask to a user story.",
+                enter=("confirm the parent feature exists and its stories are clear",),
+                do=(
+                    'author the task (`sq create task "…" --author tech-lead --parent FEAT-…`)',
+                    "add subtasks, each mapped to a story (`add-subtask … --story USn`)",
+                    "set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`",
+                ),
+                handoff=(
+                    "assign the developer (`sq task <n> update --assignee <tech>-dev`) — the spawn "
+                    "or `@<tech>-dev` carries it",
+                ),
+                watch=(
+                    "a task's parent must be a feature; "
+                    "link bugs/reviews via refs, never as parent",
+                ),
             ),
             RoleGuide(
                 DEV,
-                "Implement the task; write tests; comment progress and hand off via `… comment`.",
+                enter=(
+                    "read the parent feature's stories + acceptance criteria "
+                    "(`sq feature <n> show`)",
+                    "confirm your subtask→story mapping",
+                ),
+                do=(
+                    "`sq task <n> status InProgress`",
+                    "implement with tests; tick subtasks (`subtask <k> update --status …`)",
+                    "log progress with `sq task <n> comment --as <your-slug> -m …`",
+                ),
+                handoff=(
+                    "`sq task <n> status InReview`",
+                    "comment a summary of what changed + `@reviewer`/`@qa`",
+                    "for a review follow-up, link it (`ref add REV-… --kind addresses`)",
+                ),
+                watch=(
+                    "don't author features/tasks — that's the product-owner/tech-lead",
+                    "file a newly-found defect as a bug; don't silently expand scope",
+                ),
             ),
-            RoleGuide("reviewer", "Review the changes; open a review or request changes."),
-            RoleGuide("qa", "Verify the task once implemented."),
+            RoleGuide(
+                "reviewer",
+                enter=("read the task's changes + the linked feature stories",),
+                do=(
+                    "open a review (`sq create review … --author reviewer`) and link it "
+                    "(`sq task <n> ref add REV-… --kind addresses`)",
+                    "log findings with `--severity`; drive Requested → InReview → verdict",
+                ),
+                handoff=(
+                    "on ChangesRequested, `@<tech>-dev` with the findings",
+                    "on Approved, comment the verdict so the task can close",
+                ),
+                watch=("request changes — don't fix the code yourself",),
+            ),
+            RoleGuide(
+                "qa",
+                enter=(
+                    "derive test cases from the parent feature's stories + acceptance criteria",
+                ),
+                do=("verify the implementation against each story; reproduce on failure",),
+                handoff=(
+                    "on pass, comment confirmation so the task can reach Done",
+                    "on fail, file a bug (`sq create bug …`) and `@<tech>-dev`",
+                ),
+                watch=("verify against acceptance criteria, not just that it runs",),
+            ),
         ),
     ),
     ItemType.BUG: ItemPlaybook(
@@ -98,10 +215,38 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
             "sq bug <n> status InProgress",
         ),
         roles=(
-            RoleGuide("qa", "Report bugs with clear repro steps; verify fixes."),
-            RoleGuide(DEV, "Fix the bug in a task and link it with `--kind fixes`."),
-            RoleGuide("tech-lead", "Triage and prioritise bugs."),
-            RoleGuide("reviewer", "Review the fix before it lands."),
+            RoleGuide(
+                "qa",
+                enter=("reproduce the defect and capture the exact steps",),
+                do=(
+                    'file it (`sq create bug "…" --author qa`)',
+                    "in the body give repro steps + expected vs actual (`sq bug <n> body -m …`)",
+                    "set `--severity`/`--priority`",
+                ),
+                handoff=("`@tech-lead` to triage; verify the fix once a task addresses it",),
+            ),
+            RoleGuide(
+                DEV,
+                enter=("read the repro steps; confirm you can reproduce it",),
+                do=(
+                    "fix it inside a task and link it (`sq task <n> ref add BUG-… --kind fixes`)",
+                    "add a regression test",
+                ),
+                handoff=("hand the task to review/QA; the bug closes when the fix is verified",),
+                watch=("track the fix on a task — don't implement straight off the bug",),
+            ),
+            RoleGuide(
+                "tech-lead",
+                enter=("assess impact + severity against current work",),
+                do=("triage and prioritise; create the fix task and assign a developer",),
+                handoff=("`@<tech>-dev` with the fix task",),
+            ),
+            RoleGuide(
+                "reviewer",
+                enter=("read the bug + the fix task's changes",),
+                do=("review the fix for correctness and a regression test before it lands",),
+                watch=("make sure the root cause is fixed, not just the symptom",),
+            ),
         ),
     ),
     ItemType.DECISION: ItemPlaybook(
@@ -109,8 +254,25 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         lifecycle="Proposed → Accepted → Superseded (+ Rejected, Deprecated)",
         commands=('sq create decision "…" --author architect', "sq decision <n> status Accepted"),
         roles=(
-            RoleGuide("architect", "Author ADRs; capture context, the decision, and consequences."),
-            RoleGuide("tech-lead", "Co-author and review decisions; supersede when they change."),
+            RoleGuide(
+                "architect",
+                enter=("gather the context + the options you're weighing",),
+                do=(
+                    'author the ADR (`sq create decision "…" --author architect`)',
+                    "in the body capture context, the decision, and consequences",
+                    "link what it affects (`sq decision <n> ref add … --kind related`)",
+                ),
+                handoff=(
+                    "`sq decision <n> status Accepted` once agreed; `@tech-lead` to apply it",
+                ),
+                watch=("supersede an old ADR rather than editing its decision after acceptance",),
+            ),
+            RoleGuide(
+                "tech-lead",
+                enter=("read the proposed decision + its context",),
+                do=("co-author/review it; ensure tasks follow it once Accepted",),
+                handoff=("supersede it (new ADR) when reality changes",),
+            ),
         ),
     ),
     ItemType.REVIEW: ItemPlaybook(
@@ -126,11 +288,27 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
         roles=(
             RoleGuide(
                 "reviewer",
-                "Perform reviews; log findings (`review <n> add-finding`); drive to a verdict.",
+                enter=("read the task/changes under review + the feature's acceptance criteria",),
+                do=(
+                    "`sq review <n> status InReview`",
+                    'log each issue as a finding (`add-finding "…" --severity …`)',
+                    "drive to a verdict: Approved or ChangesRequested",
+                ),
+                handoff=(
+                    "on ChangesRequested, `@<tech>-dev` with the findings",
+                    "on Approved, comment the verdict",
+                ),
+                watch=("severity-tag findings honestly; don't approve with open high findings",),
             ),
             RoleGuide(
                 DEV,
-                "Address findings (`finding <k> update --status Fixed`); link the fix task.",
+                enter=("read every finding and its severity (`sq review <n> findings`)",),
+                do=(
+                    "fix each one, then `sq review <n> finding <k> update --status Fixed`",
+                    "link the fix task (`sq task <n> ref add REV-… --kind addresses`)",
+                ),
+                handoff=("`@reviewer` once all findings are Fixed, for re-review",),
+                watch=("don't close findings you didn't actually address",),
             ),
         ),
     ),
@@ -142,9 +320,27 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
             "sq guide <n> status Published",
         ),
         roles=(
-            RoleGuide("architect", "Author guides capturing good practice and anti-patterns."),
-            RoleGuide("tech-lead", "Co-author guides drawn from real tasks."),
-            RoleGuide("tech-writer", "Edit and maintain guides for clarity and currency."),
+            RoleGuide(
+                "architect",
+                enter=("identify the recurring practice or anti-pattern worth capturing",),
+                do=(
+                    'author it (`sq create guide "…" --author architect --tech …`)',
+                    "write good practice + anti-patterns in the body",
+                ),
+                handoff=("`sq guide <n> status Published`; `@tech-writer` to polish",),
+            ),
+            RoleGuide(
+                "tech-lead",
+                enter=("spot a lesson from a real task worth generalising",),
+                do=("co-author the guide drawn from concrete work",),
+            ),
+            RoleGuide(
+                "tech-writer",
+                enter=("read the draft guide",),
+                do=("edit for clarity, structure, and currency",),
+                handoff=("`sq guide <n> status Published` when it's clean",),
+                watch=("keep it project-agnostic; deprecate guides that go stale",),
+            ),
         ),
     ),
 }

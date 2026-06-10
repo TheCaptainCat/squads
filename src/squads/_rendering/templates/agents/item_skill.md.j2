@@ -17,8 +17,34 @@
 {% for sec in sections %}
 
 ## For {{ sec.title }}
+{% if sec.enter %}
 
-{{ sec.text }}
+**Enter** — before you act:
+{% for x in sec.enter %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if sec.do %}
+
+**Do:**
+{% for x in sec.do %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if sec.handoff %}
+
+**Hand off:**
+{% for x in sec.handoff %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if sec.watch %}
+
+**Watch for:**
+{% for x in sec.watch %}
+- {{ x }}
+{% endfor %}
+{% endif %}
 {% endfor %}
 
 ---

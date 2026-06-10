@@ -6,6 +6,7 @@ concerns (create/get/list, the backend, the role/skill lookups + roster projecti
 only ever call core methods + their own.
 """
 
+from collections.abc import Callable
 from typing import Any
 
 from squads import __version__
@@ -193,6 +194,25 @@ class ServiceCore:
             it = require_item(db, item_id)
             it.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, it), it)
+
+    def _locked_section_edit(self, item_id: str, mutate: Callable[[str, Item], str]) -> Item:
+        """Edit an item's prose under the index lock, atomically with the ``updated_at`` bump.
+
+        ``mutate(text, item)`` returns the new file text (and may raise to abort before any write):
+        validation must happen *inside* it so nothing is written on failure. The whole read →
+        mutate → write happens within one ``transaction()``, so concurrent ``sq`` processes
+        (e.g. parallel subagents commenting on the same item) can't lose each other's edits —
+        unlike a bare read-modify-write, which only the index, not the ``.md`` body, was guarding.
+        """
+        with self.store.transaction() as db:
+            it = require_item(db, item_id)
+            path = item_file(self.paths, it)
+            text = mutate(path.read_text(encoding="utf-8"), it)
+            it.updated_at = clock.now()
+            path.write_text(
+                sections.replace_frontmatter(text, it.to_frontmatter_dict()), encoding="utf-8"
+            )
+        return it
 
     # ------------------------------------------------------------------ role / skill lookups
     def _role_item(self, slug: str) -> Item | None:

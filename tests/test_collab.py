@@ -2,6 +2,7 @@ import pytest
 
 from squads import _sections as sections
 from squads._errors import SquadsError
+from squads._itemfile import read_frontmatter
 from squads._models._enums import ItemType, Severity, Status
 
 # --------------------------------------------------------------------------- comments
@@ -33,6 +34,26 @@ def test_comment_preserves_body_and_markers(svc):
     body = sections.get_section(text, "body")
     assert body is not None
     assert body.strip() == "## Description\n\nReal authored body."
+
+
+def test_locked_edit_body_and_comment_coexist_and_bump(svc):
+    """Body + discussion are written through the locked edit path: both persist, updated_at bumps,
+    and the result survives an index rebuild (frontmatter is the source of truth)."""
+    task = svc.create(ItemType.TASK, "t").item
+    before = svc.get(task.id).updated_at
+    svc.set_body(task.id, "Authored body prose.")
+    svc.comment(task.id, ["a handoff note"], as_slug="manager")
+    path = svc.paths.abspath(svc.get(task.id).path)
+    text = path.read_text(encoding="utf-8")
+    # both regions present, body (set_body replaces the region) untouched by the comment
+    assert (sections.get_section(text, "body") or "").strip() == "Authored body prose."
+    assert "a handoff note" in (sections.get_section(text, "discussion") or "")
+    assert "updated_at" in read_frontmatter(path)  # bump written to the .md, not just the index
+    # everything is reconstructable from frontmatter alone, including the bumped updated_at
+    svc.repair()
+    assert svc.get(task.id).updated_at >= before
+    after = svc.paths.abspath(svc.get(task.id).path).read_text(encoding="utf-8")
+    assert "Authored body prose." in after and "a handoff note" in after
 
 
 def test_comment_requires_existing_section(svc):

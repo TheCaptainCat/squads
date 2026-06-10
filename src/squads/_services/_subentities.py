@@ -317,18 +317,19 @@ class SubentitiesMixin(ServiceCore):
         self, parent_id: str, kind: str, local_id: str, body: str, *, append: bool
     ) -> None:
         self._reject_markers(body)
-        item = self.get(parent_id)
-        self._check_type(item, kind)
-        self._find(item, kind, local_id)  # ensure it exists
-        path = item_file(self.paths, item)
-        text = path.read_text(encoding="utf-8")
         btag = discussion.body_tag(kind, local_id)
-        if append:
-            current = (sections.get_section(text, btag) or "").strip("\n")
-            if current and current.strip() != discussion.body_placeholder(kind):
-                body = f"{current}\n\n{body}"
-        path.write_text(sections.replace_section(text, btag, body), encoding="utf-8")
-        self._bump(parent_id)
+
+        def mutate(text: str, item: Item) -> str:
+            self._check_type(item, kind)
+            self._find(item, kind, local_id)  # ensure it exists
+            new_body = body
+            if append:
+                current = (sections.get_section(text, btag) or "").strip("\n")
+                if current and current.strip() != discussion.body_placeholder(kind):
+                    new_body = f"{current}\n\n{body}"
+            return sections.replace_section(text, btag, new_body)
+
+        self._locked_section_edit(parent_id, mutate)
 
     def _get_block(self, parent_id: str, kind: str, local_id: str) -> SubentityDetail:
         item = self.get(parent_id)

@@ -35,16 +35,17 @@ class CollabMixin(ServiceCore):
     ) -> Item:
         if not messages:
             raise SquadsError("a comment needs at least one -m message")
-        item = self.get(item_id)
-        path = item_file(self.paths, item)
         tag = self._discussion_tag(story, subtask, finding)
-        text = path.read_text(encoding="utf-8")
-        if not sections.has_section(text, tag):
-            raise SquadsError(f"no discussion section {tag!r} in {item_id} (was it scaffolded?)")
         entry = discussion.format_comment(clock.iso(clock.now()), self.author(as_slug), messages)
-        path.write_text(sections.append_to_section(text, tag, entry), encoding="utf-8")
-        self._bump(item_id)
-        return item
+
+        def mutate(text: str, _item: Item) -> str:
+            if not sections.has_section(text, tag):
+                raise SquadsError(
+                    f"no discussion section {tag!r} in {item_id} (was it scaffolded?)"
+                )
+            return sections.append_to_section(text, tag, entry)
+
+        return self._locked_section_edit(item_id, mutate)
 
     @staticmethod
     def _discussion_tag(story: str | None, subtask: str | None, finding: str | None) -> str:

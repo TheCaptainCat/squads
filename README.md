@@ -136,7 +136,7 @@ type word validates). Create with `sq create`; operate with `sq <type> <n> <verb
 
 **Items**
 - `sq create epic|feature|task|bug|decision|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority urgent|high|medium|low] [-m "body"|--file] [--json]`
-- `sq list [--type|--status|--parent|--label|--assignee|--priority] [--all] [--json]` · `sq tree [ROOT_ID] [--all]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`)
+- `sq list [--type|--status|--parent|--label|--assignee|--priority] [--all] [--json]` · `sq tree [ROOT_ID] [--all] [--json]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`); `tree --json` emits the nested subtree (status/priority/assignee/blocked) for orchestrating agents
 - `sq <type> <n> show [--json]` · `sq <type> <n> body [-m "…"|--file PATH] [--append]`
 - `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]`
 - `sq <type> <n> status STATUS [--force]` · `sq <type> <n> comment -m "…" [--as <slug>]`

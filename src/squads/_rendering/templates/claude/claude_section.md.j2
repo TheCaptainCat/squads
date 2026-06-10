@@ -13,12 +13,38 @@ truth. See the `squads` skill for the `sq` CLI.
 
 ## Impersonation on greeting
 
-If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara"), adopt
-that agent: load their role definition from `{{ squad_dir }}/agents/roles/` and act as them for
-the rest of the conversation, referring to yourself by full name.
+If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
+their function** (e.g. "talk to the architect", "the dotnet dev"), adopt that agent: resolve them
+by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), load their role definition
+from `{{ squad_dir }}/agents/roles/`, and act as them for the rest of the conversation, referring
+to yourself by full name.
 
 If no agent is named, default to **{{ default_role_full_name }}** (`{{ default_role_slug }}`),
 who triages the request and routes it to the right specialist.
+
+## Orchestration loop
+
+When you act as **{{ default_role_full_name }}** (or any agent coordinating a larger piece of
+work), you **delegate by spawning the right specialist as a subagent** — each role here is a Claude
+Code subagent. Run the work as a loop, with `sq` as the shared memory between turns:
+
+1. **Assess.** Read the current state from `sq` — `sq tree FEAT-… --json` for a feature's whole
+   subtree (status / priority / assignee / blocked per node), `sq <type> <n> show` to brief on one
+   item, `sq blocked` for what's stuck.
+2. **Delegate.** Spawn the specialist's subagent with the **Task tool** (`subagent_type:` the role
+   slug below — e.g. `tech-lead`, `architect`, `<tech>-dev`, `reviewer`, `qa`), and hand it the
+   **item ID + a crisp scope**. It boots with its role, skills, and model already loaded, does the
+   work, and tracks everything through `sq`.
+3. **Integrate.** When it returns, re-read `sq` state — item/review status, new findings, whether
+   anything is now blocked.
+4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
+   feature's tasks are `Done` and its reviews `Approved`.
+
+The **spawn is the handoff** — `@mention`s in `sq comment` are the durable *record* of who was
+asked to do what (read them back with `sq inbox <role>`), not the delivery mechanism. The operator
+may also talk to a specialist directly for live debugging; when that happens the specialist keeps
+`sq` current and hands back through a comment (see **Working directly with the operator** in the
+`squads` skill), so the loop stays consistent.
 
 ## Team workflow
 

@@ -22,8 +22,25 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
   `--story`, a finding's `--severity`). Read either back with `sq <type> <n> show` /
   `sq <type> <n> <kind> <k> show`.
 - Reference related items by ID so others read the right context.
+- **Before acting on an item, open its `sq-<type>` skill and follow your role's _For …_ section** —
+  it lists exactly what you check first, what you do, and when/how to hand off.
 - Need detail? Run `sq docs` to list the full documentation and `sq docs <name>` (e.g.
   `sq docs workflow`) to read it in-terminal — no fetch required.
+
+## Working directly with the operator
+
+The operator sometimes talks to you directly — not through the manager — for live work or
+debugging. The rest of the team only ever sees `sq`, **never your chat**, so this is exactly when
+to stay disciplined:
+
+- **Anchor to an item.** Confirm which item you're working on (`sq <type> <n> show`). If the work is
+  genuinely new, create the right item first so it's tracked.
+- **Keep status honest.** Move it to `InProgress` when you start; don't leave it stale.
+- **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
+  -m "…"` summarising what changed — that's how the manager's loop (and the next agent) picks up
+  where you left off.
+- **Stay in lane.** File anything you discover that's out of scope as its own item (e.g. a bug);
+  don't silently expand the work.
 
 {% include "workflow.md.j2" %}
 
@@ -38,6 +55,7 @@ sq task 3 update --assignee qa --priority high --parent FEAT-000002  # metadata 
 sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
 sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
 sq list --type task --status InProgress                         # closed items hidden; --all to include
+sq tree FEAT-000002 --json                                      # a feature's whole subtree (status/blocked) for coordinating
 sq search "lockout"                                             # match titles, summaries, bodies
 sq mine <your-slug>                                             # your open items  ·  sq workload
 sq blocked                                                      # open items waiting on an open blocker
@@ -46,5 +64,8 @@ sq docs [internals|workflow|migration|...]                      # read the full 
 
 Closed items (Done/Cancelled/…) drop out of `sq list`/`sq tree` by default — pass `--all` or an
 explicit `--status` to see them. Set importance with `--priority urgent|high|medium|low`.
+
+**Coordinating a larger piece of work?** Delegate by spawning the specialist as a subagent and let
+`sq` carry the state between turns — see the **Orchestration loop** in `CLAUDE.md`.
 
 Run `sq --help`, `sq <type> --help`, or `sq <type> <n> --help` for the full surface.
