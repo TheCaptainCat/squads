@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sq:*)",
+      "Bash(squads:*)",
+      "Bash(uv run sq:*)"
+    ],
+    "deny": []
+  }
+}
