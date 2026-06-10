@@ -66,6 +66,13 @@ def test_operator_assignable_on_subentities(svc):
     assert svc.list_subtasks(task.id)[0].assignee == "op-pierre"
 
 
+def test_check_accepts_operator_author_and_assignee(svc):
+    svc.add_operator("Pierre Chat")
+    svc.create(ItemType.TASK, "Manual deploy", author="op-pierre", assignee="op-pierre")
+    warnings = [i for i in svc.check() if "not a registered agent" in i.message]
+    assert warnings == []
+
+
 def test_unknown_slug_still_rejected(svc):
     task = svc.create(ItemType.TASK, "t").item
     with pytest.raises(Exception, match="not a registered agent or operator"):
