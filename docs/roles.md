@@ -60,6 +60,26 @@ sq role regen ROLE-000002    # re-render its pointer from the item
 sq role rm ROLE-000002 [--purge]
 ```
 
+## Operators (humans)
+
+Roles are AI agents; **operators are the people**. Register a human so work can be assigned to
+them and their words attributed to them — a manual step, a review point they dictated, or a task
+handed to someone else on the repo:
+
+```bash
+sq operator add "Pierre Chat"   # slug derived as op-pierre (override with --slug)
+sq operator list
+sq operator rm OP-000002 [--purge]
+```
+
+Operators are first-class participants, but **not** agents: they're never spawned as subagents,
+never get a `.claude/agents` pointer or skills, and don't appear in the agent roster (they have
+their own "Operators (people)" roster in `CLAUDE.md`). Once registered, an `op-` slug is a valid
+`--author` / `--assignee` (on items *and* sub-entities) and `--as` (on comments) — the same gates
+that accept roles accept operators. There's no auto-detection or stored "current operator": at the
+start of a session the agent works out who the human is (e.g. from `git config user.name`), checks
+`sq operator list`, and asks whether to register them — and must ask if it's unsure.
+
 ## How roles, skills, and items connect
 
 Roles ↔ item types is the **playbook** (`squads._interactions`). It drives two things: which roles

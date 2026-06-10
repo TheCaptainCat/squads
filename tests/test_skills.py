@@ -7,18 +7,23 @@ from squads._sections import split_frontmatter
 
 
 def test_skills_for_role_mapping():
-    # roles that don't manage an item type get only the general squads skill
-    assert interactions.skills_for_role("manager") == ["squads"]
-    assert interactions.skills_for_role("devops") == ["squads"]
-    # specialists get exactly the item skills they interact with
-    assert interactions.skills_for_role("product-owner") == ["squads", "sq-epic", "sq-feature"]
+    # every role preloads the always-on skills (squads + greeting); managers add nothing else
+    assert interactions.skills_for_role("manager") == ["squads", "greeting"]
+    assert interactions.skills_for_role("devops") == ["squads", "greeting"]
+    # specialists get exactly the item skills they interact with, after the always-on pair
+    assert interactions.skills_for_role("product-owner") == [
+        "squads",
+        "greeting",
+        "sq-epic",
+        "sq-feature",
+    ]
     assert "sq-guide" in interactions.skills_for_role("tech-writer")
-    assert interactions.skills_for_role("tech-writer") == ["squads", "sq-guide"]
+    assert interactions.skills_for_role("tech-writer") == ["squads", "greeting", "sq-guide"]
 
 
 def test_dev_sentinel_expands_to_any_dev_slug():
     skills = interactions.skills_for_role("python-dev")
-    assert skills == ["squads", "sq-task", "sq-bug", "sq-review"]
+    assert skills == ["squads", "greeting", "sq-task", "sq-bug", "sq-review"]
 
 
 # --------------------------------------------------------------------------- generation
@@ -90,18 +95,34 @@ def test_squads_skill_has_direct_operator_rule(project):
     assert "never your chat" in body
 
 
+def test_greeting_skill_is_generated_and_preloaded(project):
+    # the always-on greeting skill: real body under the squad folder, thin pointer in .claude
+    pointer = (project.claude_dir / "skills" / "greeting" / "SKILL.md").read_text(encoding="utf-8")
+    assert "@squads/agents/skills/greeting.md" in pointer
+    body = (project.squad_dir / "agents" / "skills" / "greeting.md").read_text(encoding="utf-8")
+    # operator-facing only, and the three greeting beats (tone, who/help, project read)
+    assert "spawned as a subagent" in body  # subagents skip the greeting
+    assert "sq operator list" in body and "git config user.name" in body  # detect + register
+    assert "Match their tone" in body
+    # every role pointer preloads it
+    fm, _ = split_frontmatter(
+        (project.claude_dir / "agents" / "manager.md").read_text(encoding="utf-8")
+    )
+    assert "greeting" in fm["skills"]
+
+
 def test_pointer_lists_skills_frontmatter(svc, project):
     svc.activate_role("product-owner")
     svc.refresh_managed()
     fm, _ = split_frontmatter(
         (project.claude_dir / "agents" / "product-owner.md").read_text(encoding="utf-8")
     )
-    assert fm["skills"] == ["squads", "sq-epic", "sq-feature"]
-    # manager (default, no managed item type) lists only the squads skill
+    assert fm["skills"] == ["squads", "greeting", "sq-epic", "sq-feature"]
+    # manager (default, no managed item type) lists just the always-on skills
     mfm, _ = split_frontmatter(
         (project.claude_dir / "agents" / "manager.md").read_text(encoding="utf-8")
     )
-    assert mfm["skills"] == ["squads"]
+    assert mfm["skills"] == ["squads", "greeting"]
 
 
 def test_role_body_lists_skills(svc):

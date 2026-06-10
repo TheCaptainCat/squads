@@ -8,10 +8,12 @@ from squads._models._item import Item
 from squads._roles._catalog import dev_role, role_by_slug
 from squads._services._base import ServiceCore
 from squads._services._results import WorkloadRow
-from squads._util import slugify
+from squads._util import operator_slug, slugify
 from squads._workflow import is_open
 
 _AGENT_TYPES = {ItemType.ROLE, ItemType.SKILL}
+# Participant/definition items, not units of work — excluded from workload counts.
+_NON_WORK_TYPES = _AGENT_TYPES | {ItemType.OPERATOR}
 
 
 class RosterMixin(ServiceCore):
@@ -90,11 +92,30 @@ class RosterMixin(ServiceCore):
         self._backend().generate_skill_pointer(self._ctx, res.item)
         return res.item
 
+    def add_operator(self, name: str, *, slug: str | None = None) -> Item:
+        """Register a human operator (assignable + can author items/comments), e.g. `op-pierre`."""
+        slug = slug or operator_slug(name)
+        if self._operator_item(slug) is not None:
+            raise SquadsError(f"an operator with slug {slug!r} already exists")
+        res = self.create(
+            ItemType.OPERATOR,
+            name,
+            status=Status.ACTIVE,
+            slug=slug,
+            author=slug,  # an operator authors itself
+            extra={X.SLUG: slug, X.FULL_NAME: name},
+        )
+        self.refresh_managed()  # so the CLAUDE.md operator roster picks it up
+        return res.item
+
+    def list_operators(self) -> list[Item]:
+        return self.list_items(item_type=ItemType.OPERATOR)
+
     def workload(self) -> list[WorkloadRow]:
         """Open/closed/total work-item counts per assignee (busiest first; unassigned last)."""
         counts: dict[str | None, list[int]] = {}
         for it in self.list_items():
-            if it.type in _AGENT_TYPES:
+            if it.type in _NON_WORK_TYPES:
                 continue
             bucket = counts.setdefault(it.assignee, [0, 0])
             bucket[0 if is_open(it.status) else 1] += 1

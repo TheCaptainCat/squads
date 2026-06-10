@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-06-09
+## [0.3.0] - 2026-06-10
 
 ### Added
 
@@ -80,6 +80,20 @@ All notable changes to this project are documented here. The format follows
   commands), **Hand off** (the trigger + target), and **Watch for** (scope discipline) — instead of
   a one-line summary. The shared **developers** section appears only once the squad has a
   `<tech>-dev` role (added/removed live with `sq dev add` / `sq role rm`).
+- **`greeting` skill — agents greet the operator on arrival.** A new always-preloaded managed skill
+  has every role, when a human opens a conversation, detect who they're talking to (Claude user /
+  `git config user.name` → `op-<firstname>`), register them if needed (`sq operator add`), then greet
+  — **matching the human's tone** ("Hello Robert" → "Good morning, Pierre"; "Hi Mara!" → "Hey
+  Pierre!"), saying how they can help, and giving a quick read of the project. Subagents spawned for
+  internal work skip the greeting. (Preloaded alongside `squads` for all roles.)
+- **Operators — humans as first-class participants.** A new `operator` item type represents the
+  people who work on the project (slug `op-<firstname>`). Register them with `sq operator add
+  "<name>"` (`list`/`rm` too); an `op-` slug is then a valid `--author`/`--assignee` on items and
+  sub-entities and `--as` on comments — the assignment gates accept registered **roles or
+  operators**. Operators are not agents: never spawned, no `.claude/agents` pointer, no skills, and
+  they're excluded from `workload`. `CLAUDE.md` gains an "Operators (people)" roster and a
+  session-start ritual (work out who the human is, `sq operator list`, ask to register, **ask if
+  unsure**). Additive — no migration.
 - **Reinforced role entry points.** Every role's definition now carries the operating contract
   (keep an item's status current; hand back through a `sq comment`; follow your `sq-<type>` skill's
   section), and the `squads` skill gains a **"Working directly with the operator"** rule for when the

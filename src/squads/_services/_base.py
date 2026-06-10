@@ -12,7 +12,7 @@ from typing import Any
 from squads import __version__
 from squads import _clock as clock
 from squads import _sections as sections
-from squads._backends._base import AgentBackend, BackendContext, RoleView
+from squads._backends._base import AgentBackend, BackendContext, OperatorView, RoleView
 from squads._backends._registry import get_backend
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
@@ -50,6 +50,8 @@ def _template_for(item_type: ItemType) -> str:
         return "agents/role.md.j2"
     if item_type is ItemType.SKILL:
         return "agents/skill.md.j2"
+    if item_type is ItemType.OPERATOR:
+        return "agents/operator.md.j2"
     return f"items/{item_type.value}.md.j2"
 
 
@@ -166,23 +168,27 @@ class ServiceCore:
             raise SquadsError(f"{parent_hint(child_type)} (got {parent.type.value})")
 
     @staticmethod
-    def _is_registered_agent(db: SquadsDB, slug: str) -> bool:
+    def _is_participant(db: SquadsDB, slug: str) -> bool:
+        """A slug that can author/be-assigned work: a registered role agent or a human operator."""
         return any(
-            it.type is ItemType.ROLE and it.extra.get(X.SLUG) == slug for it in db.items.values()
+            it.type in (ItemType.ROLE, ItemType.OPERATOR) and it.extra.get(X.SLUG) == slug
+            for it in db.items.values()
         )
 
     def _check_author(self, db: SquadsDB, item_type: ItemType, author: str, slug: str) -> None:
-        # an agent definition may self-author (bootstrap); everything else names a registered agent
-        if item_type in (ItemType.ROLE, ItemType.SKILL) and author == slug:
+        # an agent/operator definition may self-author (bootstrap); else it names a participant
+        if item_type in (ItemType.ROLE, ItemType.SKILL, ItemType.OPERATOR) and author == slug:
             return
-        if not self._is_registered_agent(db, author):
-            raise SquadsError(f"author {author!r} is not a registered agent — activate it first")
+        if not self._is_participant(db, author):
+            raise SquadsError(
+                f"author {author!r} is not a registered agent or operator — register it first"
+            )
 
     def _check_assignee(self, db: SquadsDB, assignee: str | None) -> None:
-        # an assignee is optional, but when set it must name a registered agent (no self-reference)
-        if assignee and not self._is_registered_agent(db, assignee):
+        # an assignee is optional, but when set it must name a participant (a role or an operator)
+        if assignee and not self._is_participant(db, assignee):
             raise SquadsError(
-                f"assignee {assignee!r} is not a registered agent — activate it first"
+                f"assignee {assignee!r} is not a registered agent or operator — register it first"
             )
 
     # ------------------------------------------------------------------ shared helpers
@@ -227,13 +233,19 @@ class ServiceCore:
                 return it
         return None
 
+    def _operator_item(self, slug: str) -> Item | None:
+        for it in self.store.load().items.values():
+            if it.type is ItemType.OPERATOR and it.extra.get(X.SLUG) == slug:
+                return it
+        return None
+
     def author(self, slug: str) -> str:
-        """Resolve an agent slug to its display (full) name; falls back to the slug if unknown."""
+        """Display (full) name for a participant slug; falls back to the slug if unknown."""
         if slug == "operator":
             return "Operator"
-        role_item = self._role_item(slug)
-        if role_item is not None:
-            return role_item.extra.get(X.FULL_NAME, slug)
+        participant = self._role_item(slug) or self._operator_item(slug)
+        if participant is not None:
+            return participant.extra.get(X.FULL_NAME, slug)
         try:
             return role_by_slug(slug).full_name
         except SquadsError:
@@ -250,5 +262,14 @@ class ServiceCore:
             for it in self.list_items(item_type=ItemType.ROLE)
         ]
 
+    def operators(self) -> list[OperatorView]:
+        return [
+            OperatorView(
+                slug=it.extra.get(X.SLUG, it.slug),
+                full_name=it.extra.get(X.FULL_NAME, it.title),
+            )
+            for it in self.list_items(item_type=ItemType.OPERATOR)
+        ]
+
     def refresh_managed(self) -> None:
-        self._backend().write_managed(self._ctx, self.roster())
+        self._backend().write_managed(self._ctx, self.roster(), self.operators())

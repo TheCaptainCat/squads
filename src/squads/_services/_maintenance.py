@@ -72,7 +72,7 @@ class MaintenanceMixin(ServiceCore):
             backend.generate_role_pointer(ctx, it, RoleDef.from_extra(it.extra))
         for it in self.list_items(item_type=ItemType.SKILL):
             backend.generate_skill_pointer(ctx, it)
-        backend.write_managed(ctx, self.roster())
+        backend.write_managed(ctx, self.roster(), self.operators())
         self._stamp_version(__version__)
 
     def _stamp_version(self, version: str) -> None:

@@ -36,6 +36,19 @@ def test_init_creates_claude_pointers_and_managed_files(project):
     assert "Task tool" in claude_md and "subagent_type" in claude_md
 
 
+def test_claude_md_has_operators_section_and_session_start(project, svc):
+    # the people roster + session-start ritual render even with no operators registered yet
+    before = project.claude_md.read_text(encoding="utf-8")
+    assert "Operators (people)" in before
+    assert "_None registered yet._" in before
+    assert "you MUST ask" in before and "sq operator list" in before
+    # registering one lists them by name + op- slug
+    svc.add_operator("Pierre Chat")
+    after = project.claude_md.read_text(encoding="utf-8")
+    assert "Pierre Chat" in after and "op-pierre" in after
+    assert "_None registered yet._" not in after
+
+
 def test_manager_role_describes_the_loop(project):
     # the manager's role body teaches delegating + driving features to done (backend-agnostic)
     body = (project.squad_dir / "agents" / "roles" / "ROLE-000001-manager.md").read_text(

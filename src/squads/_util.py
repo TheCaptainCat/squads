@@ -18,3 +18,9 @@ def slugify(text: str, *, max_len: int = 60) -> str:
     if len(s) > max_len:
         s = s[:max_len].rstrip("-")
     return s or "untitled"
+
+
+def operator_slug(name: str) -> str:
+    """Operator (human) slug: ``op-`` + the slugified first name ("Pierre Chat" → ``op-pierre``)."""
+    first = name.strip().split()[0] if name.strip() else name
+    return f"op-{slugify(first)}"

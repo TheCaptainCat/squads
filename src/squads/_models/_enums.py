@@ -13,6 +13,7 @@ class ItemType(StrEnum):
     GUIDE = "guide"
     ROLE = "role"
     SKILL = "skill"
+    OPERATOR = "operator"
 
     @property
     def prefix(self) -> str:
@@ -34,6 +35,7 @@ PREFIX_BY_TYPE: dict[ItemType, str] = {
     ItemType.GUIDE: "GUIDE",
     ItemType.ROLE: "ROLE",
     ItemType.SKILL: "SKILL",
+    ItemType.OPERATOR: "OP",
 }
 
 TYPE_BY_PREFIX: dict[str, ItemType] = {v: k for k, v in PREFIX_BY_TYPE.items()}
@@ -49,6 +51,7 @@ FOLDER_BY_TYPE: dict[ItemType, str] = {
     ItemType.GUIDE: "guides",
     ItemType.ROLE: "agents/roles",
     ItemType.SKILL: "agents/skills",
+    ItemType.OPERATOR: "operators",
 }
 
 

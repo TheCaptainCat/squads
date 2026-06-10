@@ -346,6 +346,8 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
 }
 
 SQUADS_SKILL = "squads"
+#: Always-loaded skill for the start-of-conversation ritual (detect the human, register, greet).
+GREETING_SKILL = "greeting"
 
 
 def is_dev_slug(slug: str) -> bool:
@@ -372,5 +374,5 @@ def item_types_for_role(slug: str) -> list[ItemType]:
 
 
 def skills_for_role(slug: str) -> list[str]:
-    """Skill names a role's Claude pointer should preload: the squads skill + its item skills."""
-    return [SQUADS_SKILL, *(item_skill_name(t) for t in item_types_for_role(slug))]
+    """Skill names a role's pointer preloads: the always-on skills + the role's item skills."""
+    return [SQUADS_SKILL, GREETING_SKILL, *(item_skill_name(t) for t in item_types_for_role(slug))]

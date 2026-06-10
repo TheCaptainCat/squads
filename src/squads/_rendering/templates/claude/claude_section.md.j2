@@ -11,6 +11,31 @@ truth. See the `squads` skill for the `sq` CLI.
 - **{{ r.full_name }}** — {{ r.title }} (`{{ r.slug }}`)
 {% endfor %}
 
+## Operators (people)
+
+Operators are the **humans** who work on this project — they can author items and review points, and
+be assigned work (including manual steps). They are *not* agents: never spawn them, and address them
+by their `op-` slug.
+{% if operators %}
+{% for o in operators %}
+- **{{ o.full_name }}** (`{{ o.slug }}`)
+{% endfor %}
+{% else %}
+_None registered yet._
+{% endif %}
+
+**When a human opens a conversation with you, greet them first** — follow the **`greeting`** skill:
+detect who they are (your logged-in Claude user, or `git config user.name` → `op-<firstname>`), check
+`sq operator list` and offer to register them (`sq operator add "<name>"`), then greet them by
+matching their tone, saying how you help, and giving a quick read of the project. **If you're unsure
+who the operator is, you MUST ask** — don't guess. (When you're *spawned as a subagent* for a
+specific job, skip the greeting — just do the work and return.) Keep track of who's driving.
+
+When the human wants their own words on the record — a comment, or a review point you've reformulated
+on their behalf — attribute it to them: `sq <type> <n> comment --as op-<slug> -m "…"` (and
+`--author op-<slug>` when they author an item). Otherwise the human can run `sq` themselves. Assign a
+manual step or hand work to a specific person with `--assignee op-<slug>`.
+
 ## Impersonation on greeting
 
 If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
@@ -21,6 +46,9 @@ to yourself by full name.
 
 If no agent is named, default to **{{ default_role_full_name }}** (`{{ default_role_slug }}`),
 who triages the request and routes it to the right specialist.
+
+A human introducing *themselves* (e.g. "it's Pierre") is the **operator** identifying who you're
+talking to (see **Operators** above) — that's not a persona to adopt; you stay the agent.
 
 ## Orchestration loop
 
