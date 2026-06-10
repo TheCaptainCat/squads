@@ -135,18 +135,24 @@ Items are addressed by `<type> <number>` (bare `35`, padded `000035`, or full `T
 type word validates). Create with `sq create`; operate with `sq <type> <n> <verb>`.
 
 **Items**
-- `sq create epic|feature|task|bug|decision|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [-m "body"|--file] [--json]`
-- `sq list [--type|--status|--parent|--label|--assignee] [--json]` · `sq tree [ROOT_ID]`
+- `sq create epic|feature|task|bug|decision|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority urgent|high|medium|low] [-m "body"|--file] [--json]`
+- `sq list [--type|--status|--parent|--label|--assignee|--priority] [--all] [--json]` · `sq tree [ROOT_ID] [--all]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`)
 - `sq <type> <n> show [--json]` · `sq <type> <n> body [-m "…"|--file PATH] [--append]`
-- `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--add-label|--rm-label|--set k=v|--unset k]`
+- `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]`
 - `sq <type> <n> status STATUS [--force]` · `sq <type> <n> comment -m "…" [--as <slug>]`
+
+**Find & focus**
+- `sq search TEXT [--type] [--json]` — match item titles, summaries, and bodies/discussion
+- `sq blocked [--json]` — open items blocked by other open items (via the `blocks` ref kind)
+- `sq mine [ROLE] [--all] [--json]` — items assigned to a role (default: the squad's default role)
+- `sq workload [--json]` — open/closed/total work-item counts per assignee
+- `sq inbox <role>` — open items mentioning `@role`
 
 **Sub-entities** (stories on features, subtasks on tasks, findings on reviews)
 - `sq feature <n> add-story "…" [--assignee] [-m|--file]` · `sq feature <n> stories`
 - `sq task <n> add-subtask "…" [--story USn] [--assignee] [-m|--file]` · `sq task <n> subtasks`
 - `sq review <n> add-finding "…" [--severity] [--assignee] [-m|--file]` · `sq review <n> findings`
 - `sq <type> <n> <kind> <k> show|update|body|comment` — `update` sets `--title`/`--status`/`--assignee` (+ a subtask's `--story`, a finding's `--severity`)
-- `sq inbox <role>` — open items mentioning `@role`
 
 `add-<kind>` **scaffolds an empty block**; set its body with the nested `… <kind> <k> body` (or pass
 `-m`/`--file` to `add-<kind>`). `sq` owns the body, meta (status/assignee/severity/story), and

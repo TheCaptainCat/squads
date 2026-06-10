@@ -19,6 +19,7 @@ from squads._cli._common import (
     e,
     get_service,
     handle_errors,
+    parse_priority,
     parse_severity,
     parse_status,
     print_block,
@@ -102,6 +103,10 @@ def _cmd_update(item: typer.Typer) -> None:
         parent: str | None = typer.Option(None, "--parent", help="Set the parent item ID."),
         no_parent: bool = typer.Option(False, "--no-parent", help="Clear the parent."),
         assignee: str | None = typer.Option(None, "--assignee"),
+        priority: str | None = typer.Option(
+            None, "--priority", help="Priority: urgent|high|medium|low."
+        ),
+        no_priority: bool = typer.Option(False, "--no-priority", help="Clear the priority."),
         add_label: list[str] = typer.Option(None, "--add-label"),
         rm_label: list[str] = typer.Option(None, "--rm-label"),
         set_: list[str] = typer.Option(None, "--set", help="Set a type field: key=value."),
@@ -110,6 +115,8 @@ def _cmd_update(item: typer.Typer) -> None:
         """Set the item's metadata — global fields + per-type `--set key=value`."""
         if parent and no_parent:
             raise SquadsError("use either --parent or --no-parent, not both")
+        if priority and no_priority:
+            raise SquadsError("use either --priority or --no-priority, not both")
         set_extra: dict[str, str] = {}
         for pair in set_ or []:
             key, sep, value = pair.partition("=")
@@ -121,6 +128,8 @@ def _cmd_update(item: typer.Typer) -> None:
             title=title,
             description=desc,
             assignee=assignee,
+            priority=parse_priority(priority) if priority else None,
+            clear_priority=no_priority,
             add_labels=add_label or None,
             rm_labels=rm_label or None,
             author=author,

@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-09
+
+### Added
+
+- **Items carry a `priority`.** An optional `priority` (`urgent|high|medium|low`) is a first-class
+  field, independent of status: set it at creation (`sq create … --priority high`) or with
+  `sq <type> <n> update --priority high` / `--no-priority`. It shows as a colored badge in
+  `sq <type> <n> show` and a new **Priority** column in `sq list`, and filters with
+  `sq list --priority high`. (Additive frontmatter field — old items read back as unset and no
+  migration is needed.)
+- **Closed items are hidden by default.** `sq list` and `sq tree` now show only open items; pass
+  `--all`/`-a` to include closed (Done/Cancelled/…) ones, or filter directly with an explicit
+  `--status`. This keeps day-to-day views focused without deleting anything — items are "archived"
+  simply by reaching a terminal status.
+- **`sq search TEXT`** — find items by matching their title, summary, and body/discussion prose
+  (case-insensitive), printed with the matching lines (`--type` to scope, `--json` for machine use).
+- **`sq blocked`** — surface what's stuck: open items that have at least one *open* blocker via the
+  `blocks` ref kind (`A ref add B --kind blocks` reads "A blocks B"), each shown with its blockers.
+- **`sq mine [ROLE]`** — items assigned to a role (defaults to the squad's configured default role);
+  honors the same closed-hiding (`--all` to include) as `sq list`.
+- **`sq workload`** — open/closed/total work-item counts per assignee, busiest first.
+
 ## [0.3.0] - 2026-06-09
 
 ### Added
@@ -193,7 +215,8 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
-[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/TheCaptainCat/squads/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/TheCaptainCat/squads/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/TheCaptainCat/squads/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/TheCaptainCat/squads/compare/v0.1.0...v0.1.1

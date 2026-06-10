@@ -6,9 +6,20 @@ from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
+from squads._models._enums import ItemType
 from squads._models._item import Item
 from squads._services._base import ServiceCore
 from squads._workflow import is_open
+
+
+def _strip_frontmatter(text: str) -> str:
+    """Drop the leading ``---`` YAML block so a search matches prose, not index plumbing."""
+    lines = text.splitlines()
+    if lines and lines[0].strip() == "---":
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                return "\n".join(lines[i + 1 :])
+    return text
 
 
 class CollabMixin(ServiceCore):
@@ -62,4 +73,21 @@ class CollabMixin(ServiceCore):
                 continue
             hits = [ln.strip() for ln in text.splitlines() if f"@{slug}" in ln.lower()]
             out.append((item, hits))
+        return out
+
+    def search(
+        self, text: str, *, item_type: ItemType | None = None
+    ) -> list[tuple[Item, list[str]]]:
+        """Items whose title, summary, or body/discussion contains ``text`` (case-insensitive)."""
+        needle = text.strip().lower()
+        if not needle:
+            raise SquadsError("search needs a non-empty query")
+        out: list[tuple[Item, list[str]]] = []
+        for item in self.list_items(item_type=item_type):
+            path = item_file(self.paths, item)
+            prose = _strip_frontmatter(path.read_text(encoding="utf-8")) if path.exists() else ""
+            candidates = [item.title, item.description, *prose.splitlines()]
+            hits = [ln.strip() for ln in candidates if ln and needle in ln.lower()]
+            if hits:
+                out.append((item, hits))
         return out

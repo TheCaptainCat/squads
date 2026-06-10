@@ -6,7 +6,7 @@ from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _markers as markers
-from squads._models._enums import ItemType
+from squads._models._enums import ItemType, Priority
 from squads._models._item import Item, Status
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
@@ -33,6 +33,8 @@ class ItemsMixin(ServiceCore):
         title: str | None = None,
         description: str | None = None,
         assignee: str | None = None,
+        priority: Priority | None = None,
+        clear_priority: bool = False,
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
         author: str | None = None,
@@ -52,6 +54,10 @@ class ItemsMixin(ServiceCore):
             if assignee is not None:
                 self._check_assignee(db, assignee or None)
                 item.assignee = assignee or None
+            if clear_priority:
+                item.priority = None
+            elif priority is not None:
+                item.priority = priority
             if author is not None:
                 self._check_author(db, item.type, author, item.slug)
                 item.author = author
