@@ -31,6 +31,17 @@ def test_init_creates_claude_pointers_and_managed_files(project):
     claude_md = project.claude_md.read_text(encoding="utf-8")
     assert "<!-- squads:start -->" in claude_md
     assert "Catherine Manager" in claude_md  # default role on greeting
+    # the orchestration loop is taught: delegate by spawning specialists via the Task tool
+    assert "Orchestration loop" in claude_md
+    assert "Task tool" in claude_md and "subagent_type" in claude_md
+
+
+def test_manager_role_describes_the_loop(project):
+    # the manager's role body teaches delegating + driving features to done (backend-agnostic)
+    body = (project.squad_dir / "agents" / "roles" / "ROLE-000001-manager.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Delegate" in body and "until done" in body
 
 
 def test_pointer_frontmatter_is_valid_yaml(project):

@@ -5,6 +5,7 @@ resource-oriented `sq <type> <num> <verb> …` groups built by `_items.build_ite
 """
 
 import json
+from typing import Any
 
 import typer
 from rich.panel import Panel
@@ -22,6 +23,7 @@ from squads._cli._common import (
     parse_type,
     priority_badge,
 )
+from squads._errors import SquadsError
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import number_for_id
@@ -146,8 +148,13 @@ def list_items(
 def tree(
     root_id: str | None = typer.Argument(None),
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
+    json_out: bool = typer.Option(False, "--json", help="Emit the nested subtree as JSON."),
 ):
-    """Show the item hierarchy (closed items are hidden unless --all)."""
+    """Show the item hierarchy (closed items are hidden unless --all).
+
+    `--json` emits the subtree (`id/type/status/priority/assignee/blocked` + nested `children`) —
+    the read an orchestrating agent uses to see a feature's state and decide what to do next.
+    """
     svc = get_service()
     listed = svc.list_items()
     if not all_:
@@ -158,19 +165,46 @@ def tree(
         key = it.parent if it.parent in all_items else None
         children.setdefault(key, []).append(it)
 
-    def label(it: Item) -> str:
-        return f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status.value})[/dim]"
+    def kids(item_id: str) -> list[Item]:
+        return sorted(children.get(item_id, []), key=lambda i: number_for_id(i.id))
 
-    def attach(node: Tree, item: Item) -> None:
-        for child in sorted(children.get(item.id, []), key=lambda i: number_for_id(i.id)):
-            attach(node.add(label(child)), child)
-
-    tree_view = Tree("squad")
+    if root_id and root_id not in all_items:
+        raise SquadsError(
+            f"no {'item' if all_ else 'open item'} {root_id!r} to root the tree"
+            " (pass the full id, add --all to include closed items, or check it exists)"
+        )
     roots = (
         [all_items[root_id]]
         if root_id
         else sorted(children.get(None, []), key=lambda i: number_for_id(i.id))
     )
+
+    if json_out:
+        blocked_ids = {t.id for t, _ in svc.blocked()}
+
+        def node(it: Item) -> dict[str, Any]:
+            return {
+                "id": it.id,
+                "type": it.type.value,
+                "status": it.status.value,
+                "priority": it.priority.value if it.priority else None,
+                "assignee": it.assignee,
+                "blocked": it.id in blocked_ids,
+                "children": [node(c) for c in kids(it.id)],
+            }
+
+        console.print_json(json.dumps([node(r) for r in roots]))
+        return
+
+    def label(it: Item) -> str:
+        prio = f"{e(priority_badge(it.priority))} " if it.priority else ""
+        return f"[bold]{it.id}[/bold] {prio}{e(it.title)} [dim]({it.status.value})[/dim]"
+
+    def attach(parent: Tree, item: Item) -> None:
+        for child in kids(item.id):
+            attach(parent.add(label(child)), child)
+
+    tree_view = Tree("squad")
     for r in roots:
         attach(tree_view.add(label(r)), r)
     console.print(tree_view)

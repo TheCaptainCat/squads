@@ -148,23 +148,23 @@ class ItemsMixin(ServiceCore):
         The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
         summary. Role/skill bodies are generated from their fields, so they're rejected here.
         """
-        item = self.get(item_id)
-        if item.type in _AGENT_TYPES:
-            raise SquadsError(
-                f"{item_id} is a {item.type.value}; its body is generated from its fields"
-                " (edit via `sq update --set …` / `sq sync`)"
-            )
         if sections.find_markers(body):
             raise SquadsError("body must not contain sq marker comments (<!-- sq:… -->)")
-        path = item_file(self.paths, item)
-        text = path.read_text(encoding="utf-8")
-        if append:
-            current = (sections.get_section(text, markers.BODY) or "").strip("\n")
-            if current:
-                body = f"{current}\n\n{body}"
-        path.write_text(sections.replace_section(text, markers.BODY, body), encoding="utf-8")
-        self._bump(item_id)
-        return item
+
+        def mutate(text: str, item: Item) -> str:
+            if item.type in _AGENT_TYPES:
+                raise SquadsError(
+                    f"{item_id} is a {item.type.value}; its body is generated from its fields"
+                    " (edit via `sq update --set …` / `sq sync`)"
+                )
+            new_body = body
+            if append:
+                current = (sections.get_section(text, markers.BODY) or "").strip("\n")
+                if current:
+                    new_body = f"{current}\n\n{body}"
+            return sections.replace_section(text, markers.BODY, new_body)
+
+        return self._locked_section_edit(item_id, mutate)
 
     def read_body(self, item_id: str) -> str:
         """The item's top-level ``:body`` region content (for `sq show`)."""

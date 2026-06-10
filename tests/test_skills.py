@@ -56,6 +56,40 @@ def test_item_skill_shows_only_active_roles(svc, project):
     assert "Olivia Lead" not in feature  # tech-lead not activated → no section
 
 
+def test_item_skill_actor_guidance_is_structured(svc, project):
+    svc.add_dev("python")  # the developers section is gated on an active dev (see below)
+    svc.refresh_managed()
+    task = _item_skill_body(project, ItemType.TASK)
+    assert "## For developers" in task
+    for label in ("**Enter**", "**Do:**", "**Hand off:**", "**Watch for:**"):
+        assert label in task
+    assert "acceptance criteria" in task  # enter: read the feature's stories
+    assert "@reviewer" in task  # hand off
+    assert "don't author features/tasks" in task  # watch: scope discipline
+
+
+def test_dev_section_gated_on_active_dev(svc, project):
+    # no dev in the roster → no developers section anywhere
+    assert "## For developers" not in _item_skill_body(project, ItemType.TASK)
+    svc.add_dev("rust")
+    svc.refresh_managed()
+    assert "## For developers" in _item_skill_body(project, ItemType.TASK)
+
+
+def test_item_skill_watch_for_reviewer(svc, project):
+    svc.activate_role("reviewer")
+    svc.refresh_managed()
+    task = _item_skill_body(project, ItemType.TASK)
+    assert "Paul Reviewer" in task
+    assert "don't fix the code yourself" in task  # reviewer scope discipline
+
+
+def test_squads_skill_has_direct_operator_rule(project):
+    body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
+    assert "Working directly with the operator" in body
+    assert "never your chat" in body
+
+
 def test_pointer_lists_skills_frontmatter(svc, project):
     svc.activate_role("product-owner")
     svc.refresh_managed()
@@ -75,6 +109,14 @@ def test_role_body_lists_skills(svc):
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     assert "## Skills" in body
     assert "`sq-guide`" in body
+
+
+def test_role_body_has_operating_contract(svc):
+    item = svc.activate_role("tech-writer")
+    body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
+    # the entry point reinforces: keep sq current, hand back, and follow the per-item skill section
+    assert "read `sq`, not your chat" in body
+    assert "follow your `sq-<type>` skill" in body
 
 
 # --------------------------------------------------------------------------- sq workflow / help

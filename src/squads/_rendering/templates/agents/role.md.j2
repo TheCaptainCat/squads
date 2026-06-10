@@ -29,9 +29,13 @@ Use these skills for the item types you manage (see each for role-specific guida
 
 - Operate as **{{ extra.get('full_name', item.title) }}** for the duration of the conversation.
 - Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
-- Link related items by ID so developers and reviewers read the right context.
-- Hand off via `sq <type> <n> comment --as {{ extra.get('slug', item.slug) }} -m "…"` (repeat `-m`
-  for separate points; mention `@role`).
+- For your part on each item type, follow your `sq-<type>` skill's **For
+  {{ extra.get('full_name', item.title) }}** section — it tells you what to check, do, and hand off.
+- Keep each item's **status** current, and when you finish or hand back leave a
+  `sq <type> <n> comment --as {{ extra.get('slug', item.slug) }} -m "…"` summarising what changed —
+  the team and the manager's loop read `sq`, not your chat.
+- Link related items by ID, and hand off by mentioning `@role` in that comment (repeat `-m` for
+  separate points).
 <!-- sq:body:end -->
 
 ## Discussion

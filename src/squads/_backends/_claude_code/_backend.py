@@ -105,18 +105,37 @@ class ClaudeCodeBackend(AgentBackend):
         ]
 
     def _write_item_skills(self, ctx: BackendContext, roster: list[RoleView]) -> list[Artifact]:
-        """One managed skill per item type, with a section per *active* interacting role."""
+        """One managed skill per item type, with a section per *active* interacting role.
+
+        The shared ``developers`` section renders only when the roster has at least one developer
+        (a ``<tech>-dev`` role), so a squad with no devs yet doesn't carry guidance for an actor
+        that can't act.
+        """
         by_slug = {r.slug: r for r in roster}
+        has_dev = any(interactions.is_dev_slug(r.slug) for r in roster)
         out: list[Artifact] = []
         for item_type in interactions.managed_item_types():
             pb = interactions.PLAYBOOK[item_type]
-            sections: list[dict[str, str]] = []
+            sections: list[dict[str, Any]] = []
             for guide in pb.roles:
                 if guide.slug == interactions.DEV:
-                    sections.append({"title": "developers", "text": guide.text})
+                    if not has_dev:
+                        continue
+                    title = "developers"
                 elif guide.slug in by_slug:
                     r = by_slug[guide.slug]
-                    sections.append({"title": f"{r.full_name} (`{r.slug}`)", "text": guide.text})
+                    title = f"{r.full_name} (`{r.slug}`)"
+                else:
+                    continue
+                sections.append(
+                    {
+                        "title": title,
+                        "enter": guide.enter,
+                        "do": guide.do,
+                        "handoff": guide.handoff,
+                        "watch": guide.watch,
+                    }
+                )
             name = interactions.item_skill_name(item_type)
             body = render(
                 "agents/item_skill.md.j2",

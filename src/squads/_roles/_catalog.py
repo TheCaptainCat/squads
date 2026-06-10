@@ -62,12 +62,14 @@ PREDEFINED: tuple[RoleDef, ...] = (
             "Default agent: triages the operator's request and routes it to the right specialist."
         ),
         mission=(
-            "Be the first point of contact. Understand the operator's intent, then either handle "
-            "it or delegate to the right agent, keeping work tracked in squads."
+            "Be the operator's first point of contact and run the work loop: understand the "
+            "intent, delegate to the right specialists, integrate what they return, and drive "
+            "each feature to done — keeping everything tracked in squads."
         ),
         responsibilities=(
             "Triage incoming requests and clarify intent",
-            "Route work to the right specialist agent",
+            "Delegate work to the right specialist agents and integrate their results",
+            "Drive features through the loop (implement → review → fix) until done",
             "Keep the backlog and statuses honest",
             "Summarise progress for the operator",
         ),

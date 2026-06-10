@@ -275,6 +275,49 @@ def test_item_grammar_refs_and_finding(runner, tmp_path, monkeypatch, frozen_tim
     assert bad.exit_code == 1 and "not a task" in bad.output
 
 
+def test_tree_json_subtree_with_blocked_and_all(runner, tmp_path, monkeypatch, frozen_time):
+    import json as _json
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])  # manager = ROLE-000001
+    runner.invoke(app, ["create", "epic", "E", "--author", "manager"])  # EPIC-000002
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager", "--parent", "EPIC-000002"])
+    runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000003"])
+    runner.invoke(app, ["create", "task", "B", "--author", "manager", "--parent", "FEAT-000003"])
+    # "TASK-5 blocks TASK-4" → TASK-000004 is blocked while TASK-000005 stays open
+    runner.invoke(app, ["task", "5", "ref", "add", "TASK-000004", "--kind", "blocks"])
+
+    def find(nodes, item_id):
+        for n in nodes:
+            if n["id"] == item_id:
+                return n
+            hit = find(n["children"], item_id)
+            if hit:
+                return hit
+        return None
+
+    roots = _json.loads(runner.invoke(app, ["tree", "EPIC-000002", "--json"]).output)
+    assert roots[0]["id"] == "EPIC-000002"  # nested subtree rooted at the epic
+    feat = find(roots, "FEAT-000003")
+    assert feat is not None and feat["type"] == "feature"
+    blocked_task = find(roots, "TASK-000004")
+    open_task = find(roots, "TASK-000005")
+    assert blocked_task is not None and blocked_task["blocked"] is True
+    assert open_task is not None and open_task["blocked"] is False
+
+    # closing the blocker drops it from the default view but --all brings it back
+    runner.invoke(app, ["task", "5", "status", "InProgress"])
+    runner.invoke(app, ["task", "5", "status", "Done"])
+    default = _json.loads(runner.invoke(app, ["tree", "EPIC-000002", "--json"]).output)
+    assert find(default, "TASK-000005") is None
+    with_all = _json.loads(runner.invoke(app, ["tree", "EPIC-000002", "--json", "--all"]).output)
+    assert find(with_all, "TASK-000005") is not None
+
+    # an unknown root is a clean error, not a KeyError traceback
+    bad = runner.invoke(app, ["tree", "EPIC-999999", "--json"])
+    assert bad.exit_code == 1 and "to root the tree" in bad.output
+
+
 def test_hoist_global_options():
     from squads._cli import _hoist_global_options as h  # pyright: ignore[reportPrivateUsage]
 

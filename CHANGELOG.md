@@ -6,28 +6,6 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-06-09
-
-### Added
-
-- **Items carry a `priority`.** An optional `priority` (`urgent|high|medium|low`) is a first-class
-  field, independent of status: set it at creation (`sq create … --priority high`) or with
-  `sq <type> <n> update --priority high` / `--no-priority`. It shows as a colored badge in
-  `sq <type> <n> show` and a new **Priority** column in `sq list`, and filters with
-  `sq list --priority high`. (Additive frontmatter field — old items read back as unset and no
-  migration is needed.)
-- **Closed items are hidden by default.** `sq list` and `sq tree` now show only open items; pass
-  `--all`/`-a` to include closed (Done/Cancelled/…) ones, or filter directly with an explicit
-  `--status`. This keeps day-to-day views focused without deleting anything — items are "archived"
-  simply by reaching a terminal status.
-- **`sq search TEXT`** — find items by matching their title, summary, and body/discussion prose
-  (case-insensitive), printed with the matching lines (`--type` to scope, `--json` for machine use).
-- **`sq blocked`** — surface what's stuck: open items that have at least one *open* blocker via the
-  `blocks` ref kind (`A ref add B --kind blocks` reads "A blocks B"), each shown with its blockers.
-- **`sq mine [ROLE]`** — items assigned to a role (defaults to the squad's configured default role);
-  honors the same closed-hiding (`--all` to include) as `sq list`.
-- **`sq workload`** — open/closed/total work-item counts per assignee, busiest first.
-
 ## [0.3.0] - 2026-06-09
 
 ### Added
@@ -76,8 +54,49 @@ All notable changes to this project are documented here. The format follows
   <slug>`) or reassign with `sq subtask|story|finding assign <PARENT> <LID> <slug>` (`--clear` to
   unassign); it's validated against the roster, stored in the block's sq-owned `:meta` region, and
   shown in both `… list` and the parent's roll-up summary table.
+- **Items carry a `priority`.** An optional `priority` (`urgent|high|medium|low`) is a first-class
+  field, independent of status: set it at creation (`sq create … --priority high`) or with
+  `sq <type> <n> update --priority high` / `--no-priority`. It shows as a colored badge in
+  `sq <type> <n> show` and a new **Priority** column in `sq list`, and filters with
+  `sq list --priority high`. (Additive frontmatter field — old items read back as unset and no
+  migration is needed.)
+- **Closed items are hidden by default.** `sq list` and `sq tree` now show only open items; pass
+  `--all`/`-a` to include closed (Done/Cancelled/…) ones, or filter directly with an explicit
+  `--status`. This keeps day-to-day views focused without deleting anything — items are "archived"
+  simply by reaching a terminal status.
+- **`sq search TEXT`** — find items by matching their title, summary, and body/discussion prose
+  (case-insensitive), printed with the matching lines (`--type` to scope, `--json` for machine use).
+- **`sq blocked`** — surface what's stuck: open items that have at least one *open* blocker via the
+  `blocks` ref kind (`A ref add B --kind blocks` reads "A blocks B"), each shown with its blockers.
+- **`sq mine [ROLE]`** — items assigned to a role (defaults to the squad's configured default role);
+  honors the same closed-hiding (`--all` to include) as `sq list`.
+- **`sq workload`** — open/closed/total work-item counts per assignee, busiest first.
+- **`sq tree … --json`** — emit the nested subtree (`id/type/status/priority/assignee/blocked` +
+  `children`), honoring a root id and `--all`. This is the one read an orchestrating agent uses to
+  see a feature's whole state and decide what to do next.
+- **Precise per-actor guidance in every item skill.** Each `sq-<type>` skill now gives every actor
+  that touches the item (e.g. tech-lead / developer / reviewer / QA on a task) structured guidance
+  under fixed labels — **Enter** (what to read first), **Do** (the steps, with concrete `sq`
+  commands), **Hand off** (the trigger + target), and **Watch for** (scope discipline) — instead of
+  a one-line summary. The shared **developers** section appears only once the squad has a
+  `<tech>-dev` role (added/removed live with `sq dev add` / `sq role rm`).
+- **Reinforced role entry points.** Every role's definition now carries the operating contract
+  (keep an item's status current; hand back through a `sq comment`; follow your `sq-<type>` skill's
+  section), and the `squads` skill gains a **"Working directly with the operator"** rule for when the
+  operator bypasses the manager. The greeting/impersonation also accepts a role by *function*
+  ("the dotnet dev" → `dotnet-dev`), not just by name.
+- **Orchestration-loop guidance.** The generated `CLAUDE.md` now teaches the manager/default agent
+  to run work as a loop — *assess via `sq` → delegate by spawning the specialist as a Claude Code
+  subagent (`subagent_type: <role-slug>`) with the item ID → integrate the result → repeat until
+  done*. `@mention`/`inbox` are framed as the durable record of who-was-asked-what; the spawn is the
+  handoff. (Each squads role is already a spawnable subagent with its model/skills preloaded.)
 
 ### Changed
+
+- **Prose edits are now concurrency-safe.** `sq comment`, `sq <type> <n> body`, and sub-entity
+  bodies write the `.md` file *inside the index lock* (atomically with the `updated_at` bump),
+  instead of an unlocked read-modify-write. Parallel `sq` callers — e.g. several dev subagents
+  working at once — can no longer silently drop each other's comments or body edits.
 
 - **BREAKING — the sub-entity shortcut verbs are removed; `update` is the single entry point.**
   `sq <type> <n> <kind> <k> status …`, `… assign …`, and the subtask `… done` are gone — use
@@ -215,8 +234,7 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
-[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/TheCaptainCat/squads/compare/v0.3.0...v0.4.0
+[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/TheCaptainCat/squads/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/TheCaptainCat/squads/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/TheCaptainCat/squads/compare/v0.1.0...v0.1.1
