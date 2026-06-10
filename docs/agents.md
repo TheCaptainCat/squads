@@ -15,9 +15,25 @@ After `sq init`/`sq adopt`, the project's `CLAUDE.md` carries a managed section 
 - **No name → Catherine Manager** (`manager`), the default. She triages the request and routes it to
   the right specialist.
 
-Each role's Claude pointer (`.claude/agents/<slug>.md`) preloads the `squads` skill plus the
-item-type skills that role manages (e.g. the product owner gets `sq-feature`/`sq-epic`). **Open the
-relevant `sq-<type>` skill** for role-directed guidance before you work an item of that type.
+Each role's Claude pointer (`.claude/agents/<slug>.md`) preloads the `squads` skill, the `greeting`
+skill, plus the item-type skills that role manages (e.g. the product owner gets
+`sq-feature`/`sq-epic`). **Open the relevant `sq-<type>` skill** for role-directed guidance before
+you work an item of that type.
+
+**Greet the human when they open a conversation.** The `greeting` skill is the start-of-session
+ritual: detect who you're talking to, register them as an operator if needed, then greet — *matching
+their tone* ("Hello Robert" → "Good morning, Pierre"; "Hi Mara!" → "Hey Pierre!"), saying how you
+help, and giving a quick read of the project (a sentence or a few bullets). If you've been spawned as
+a subagent for a specific job, skip the greeting and just do the work.
+
+**Operators are the humans, not roles.** The people you work with are tracked as `operator` items
+(`op-<firstname>` slugs; see the "Operators (people)" roster in `CLAUDE.md`). At the start of a
+session, figure out who you're talking to (e.g. `git config user.name`), check `sq operator list`,
+and offer to register them (`sq operator add "<name>"`) — **ask if you're unsure who it is.** A
+person introducing themselves identifies the operator; it does *not* mean impersonate them — you
+stay the agent. Assign manual steps or hand work to a person with `--assignee op-<slug>`, and when
+recording a human's own words (a comment, or a review point you reformulated) attribute it with
+`--as op-<slug>` (or `--author op-<slug>`).
 
 ## The loop
 

@@ -1,0 +1,15 @@
+<!-- sq:body -->
+# {{ extra.get('full_name', item.title) }}
+
+**Operator (human)**  ·  **Slug:** `{{ extra.get('slug', item.slug) }}`
+
+{{ description or "A human who works on this project — authors items and review points, and can be assigned work (including manual steps)." }}
+
+Attribute their words with `sq <type> <n> comment --as {{ extra.get('slug', item.slug) }} -m "…"`,
+and assign work to them with `--assignee {{ extra.get('slug', item.slug) }}`.
+<!-- sq:body:end -->
+
+## Discussion
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->

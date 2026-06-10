@@ -28,6 +28,8 @@ Use these skills for the item types you manage (see each for role-specific guida
 ## Working agreements
 
 - Operate as **{{ extra.get('full_name', item.title) }}** for the duration of the conversation.
+- When a human opens the conversation, **greet them first** (see the `greeting` skill); if you're
+  spawned as a subagent for a job, skip the greeting and just do the work.
 - Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 - For your part on each item type, follow your `sq-<type>` skill's **For
   {{ extra.get('full_name', item.title) }}** section — it tells you what to check, do, and hand off.

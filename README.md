@@ -165,6 +165,7 @@ discussion — all written through commands.
 **Agents**
 - `sq role list [--available] | show <slug> | activate <slug> | regen ID | rm ID [--purge]`
 - `sq dev add --tech <t> [--name] [--model] | list` — stack-specific developers
+- `sq operator add "NAME" [--slug] | list | rm ID [--purge]` — register **humans** (`op-<first>` slug); assignable and can author items/comments
 - `sq skill add NAME [--desc|--when-to-use|--allowed-tools] | list | show | regen | rm [--purge]`
 - `sq create guide TITLE [--tech] [--tag] | list`
 

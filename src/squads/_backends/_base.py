@@ -29,6 +29,14 @@ class RoleView:
     is_default: bool
 
 
+@dataclass(frozen=True)
+class OperatorView:
+    """A human operator passed to backends for the CLAUDE.md people roster."""
+
+    slug: str
+    full_name: str
+
+
 @dataclass
 class BackendContext:
     paths: SquadPaths
@@ -59,7 +67,9 @@ class AgentBackend(ABC):
         """Create backend dirs and base config (idempotent; never clobber user content)."""
 
     @abstractmethod
-    def write_managed(self, ctx: BackendContext, roster: list[RoleView]) -> list[Artifact]:
+    def write_managed(
+        self, ctx: BackendContext, roster: list[RoleView], operators: list[OperatorView]
+    ) -> list[Artifact]:
         """(Re)write roster/version-dependent tool files: the skill + CLAUDE.md section."""
 
     @abstractmethod

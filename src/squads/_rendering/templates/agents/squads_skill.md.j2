@@ -42,6 +42,11 @@ to stay disciplined:
 - **Stay in lane.** File anything you discover that's out of scope as its own item (e.g. a bug);
   don't silently expand the work.
 
+Humans are tracked as **operators** (`op-<firstname>` slugs; see the roster in `CLAUDE.md`). Assign
+work to a person with `--assignee op-<slug>`, and attribute their words with `--as op-<slug>` (or
+`--author op-<slug>`). Register one with `sq operator add "<name>"`; list them with
+`sq operator list`.
+
 {% include "workflow.md.j2" %}
 
 ## Common commands

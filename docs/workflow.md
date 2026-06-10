@@ -60,6 +60,11 @@ sq task 3 ref add BUG-000009 --kind fixes        # or REV-… --kind addresses
 sq task 3 status InProgress
 sq task 3 comment --as reviewer -m "@qa please verify the redirect"
 sq inbox qa
+
+# humans (operators) are participants too
+sq operator add "Pierre Chat"                 # → op-pierre
+sq task 3 update --assignee op-pierre          # assign a manual step to a person
+sq task 3 comment --as op-pierre -m "approved" # record the human's own words
 ```
 
 ---

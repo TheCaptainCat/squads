@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from squads import _interactions as interactions
-from squads._backends._base import AgentBackend, Artifact, BackendContext, RoleView
+from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code import _claude_md as claude_md
 from squads._backends._claude_code._frontmatter import normalize_model, oneline
 from squads._models._enums import ItemType
@@ -54,7 +54,9 @@ class ClaudeCodeBackend(AgentBackend):
             settings.write_text(json.dumps(default, indent=2) + "\n", encoding="utf-8")
 
     # ------------------------------------------------------------------ managed files
-    def write_managed(self, ctx: BackendContext, roster: list[RoleView]) -> list[Artifact]:
+    def write_managed(
+        self, ctx: BackendContext, roster: list[RoleView], operators: list[OperatorView]
+    ) -> list[Artifact]:
         squad_dir = ctx.paths.config.squad_dir
         artifacts: list[Artifact] = []
         # squads skill (real body under squads/agents/skills/, thin pointer in .claude/)
@@ -67,12 +69,24 @@ class ClaudeCodeBackend(AgentBackend):
             ),
             body=render("agents/squads_skill.md.j2", version=ctx.version, squad_dir=squad_dir),
         )
+        # greeting skill — the start-of-conversation ritual (detect the human, register, greet)
+        artifacts += self._write_managed_skill(
+            ctx,
+            name="greeting",
+            description=(
+                "Start of a conversation with a human: detect & register the operator, then greet "
+                "them — match their tone, say how you help, and give a quick read of the project. "
+                "Use when a person opens a session; skip it when spawned as a subagent for a job."
+            ),
+            body=render("agents/greeting_skill.md.j2", version=ctx.version, squad_dir=squad_dir),
+        )
         # CLAUDE.md managed section
         default = next((r for r in roster if r.is_default), None)
         section = render(
             "claude/claude_section.md.j2",
             squad_dir=squad_dir,
             roles=[{"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster],
+            operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
             default_role_full_name=default.full_name if default else "the manager",
             default_role_slug=default.slug if default else "manager",
         )

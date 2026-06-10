@@ -92,6 +92,7 @@ WORKFLOWS: dict[ItemType, Workflow] = {
     ItemType.GUIDE: _GUIDE,
     ItemType.ROLE: _AGENT,
     ItemType.SKILL: _AGENT,
+    ItemType.OPERATOR: _AGENT,
 }
 
 
