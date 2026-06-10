@@ -228,7 +228,11 @@ class MaintenanceMixin(ServiceCore):
         index: SquadsDB, on_disk: dict[str, tuple[Path, dict[str, Any]]]
     ) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
-        registered = {r.extra.get(X.SLUG) for r in index.items.values() if r.type is ItemType.ROLE}
+        registered = {
+            r.extra.get(X.SLUG)
+            for r in index.items.values()
+            if r.type in (ItemType.ROLE, ItemType.OPERATOR)
+        }
         for item in index.items.values():
             iid = item.id
             if item.status not in workflow_for(item.type).states:
@@ -252,7 +256,9 @@ class MaintenanceMixin(ServiceCore):
                 slug = getattr(item, field)
                 if slug and slug not in registered:
                     issues.append(
-                        CheckIssue("warn", iid, f"{field} {slug!r} is not a registered agent")
+                        CheckIssue(
+                            "warn", iid, f"{field} {slug!r} is not a registered agent or operator"
+                        )
                     )
             if iid in on_disk:
                 issues += _drift_issues(iid, item, on_disk[iid][1])

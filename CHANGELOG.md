@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **`sq check` no longer flags operator authors/assignees.** The check validated `author`/`assignee`
+  against registered *roles* only, while the write gate accepts roles **or operators** — so any
+  operator-authored item (including the operator's own registration) drew a bogus
+  `not a registered agent` warning. The check now uses the same participant set as the gate.
+
 ## [0.3.0] - 2026-06-10
 
 ### Added
