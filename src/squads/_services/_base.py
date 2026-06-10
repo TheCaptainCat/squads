@@ -18,7 +18,7 @@ from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
 from squads._itemfile import update_frontmatter, write_new
 from squads._models import _markers as markers
-from squads._models._enums import ItemType, Status
+from squads._models._enums import ItemType, Priority, Status
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -81,6 +81,7 @@ class ServiceCore:
         labels: list[str] | None = None,
         refs: list[str] | None = None,
         assignee: str | None = None,
+        priority: Priority | None = None,
         extra: dict[str, Any] | None = None,
         status: Status | None = None,
         slug: str | None = None,
@@ -107,6 +108,7 @@ class ServiceCore:
                 parent=parent,
                 author=author,
                 assignee=assignee,
+                priority=priority,
                 labels=labels or [],
                 refs=refs or [],
                 path=squad_rel,
@@ -136,6 +138,7 @@ class ServiceCore:
         parent: str | None = None,
         label: str | None = None,
         assignee: str | None = None,
+        priority: Priority | None = None,
     ) -> list[Item]:
         out: list[Item] = []
         for it in self.store.load().items.values():
@@ -148,6 +151,8 @@ class ServiceCore:
             if label and label not in it.labels:
                 continue
             if assignee and it.assignee != assignee:
+                continue
+            if priority and it.priority is not priority:
                 continue
             out.append(it)
         return sorted(out, key=lambda i: number_for_id(i.id))

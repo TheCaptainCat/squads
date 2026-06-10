@@ -14,7 +14,15 @@ from rich.panel import Panel
 from squads import __version__, _clock
 from squads import _discussion as discussion
 from squads._errors import SquadsError
-from squads._models._enums import PREFIX_BY_TYPE, SEVERITY_EMOJI, ItemType, Severity, Status
+from squads._models._enums import (
+    PREFIX_BY_TYPE,
+    PRIORITY_EMOJI,
+    SEVERITY_EMOJI,
+    ItemType,
+    Priority,
+    Severity,
+    Status,
+)
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item, split_ref
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
@@ -84,6 +92,8 @@ def print_item(svc: Service, it: Item) -> None:
         f"[bold]title:[/bold] {e(it.title)}",
         f"[bold]status:[/bold] {it.status.value}",
     ]
+    if it.priority:
+        rows.append(f"[bold]priority:[/bold] {e(priority_badge(it.priority))}")
     sev = it.extra.get(X.SEVERITY) if it.type is ItemType.BUG else None
     if sev:
         rows.append(f"[bold]severity:[/bold] {e(f'{SEVERITY_EMOJI[Severity(sev)]} {sev}')}")
@@ -264,3 +274,16 @@ def parse_severity(value: str) -> Severity:
     except ValueError:
         choices = ", ".join(s.value for s in Severity)
         raise SquadsError(f"unknown severity {value!r} (one of: {choices})") from None
+
+
+def parse_priority(value: str) -> Priority:
+    try:
+        return Priority(value.strip().lower())
+    except ValueError:
+        choices = ", ".join(p.value for p in Priority)
+        raise SquadsError(f"unknown priority {value!r} (one of: {choices})") from None
+
+
+def priority_badge(priority: Priority) -> str:
+    """A colored badge + label for a priority, e.g. ``🟠 high`` (already Rich-safe)."""
+    return f"{PRIORITY_EMOJI[priority]} {priority.value}"

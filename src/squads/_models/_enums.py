@@ -85,6 +85,23 @@ class Status(StrEnum):
     WONT_FIX = "WontFix"
 
 
+class Priority(StrEnum):
+    """An item's priority, rendered as a colored badge in lists and `show`."""
+
+    URGENT = "urgent"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+PRIORITY_EMOJI: dict[Priority, str] = {
+    Priority.URGENT: "🔴",
+    Priority.HIGH: "🟠",
+    Priority.MEDIUM: "🟡",
+    Priority.LOW: "🟢",
+}
+
+
 class Severity(StrEnum):
     """A review finding's severity, rendered as a colored circle in summaries."""
 

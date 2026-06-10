@@ -6,7 +6,7 @@ from typing import Any, cast
 from pydantic import BaseModel, computed_field
 
 from squads import _clock as clock
-from squads._models._enums import ItemType, Status
+from squads._models._enums import ItemType, Priority, Status
 from squads._models._subentity import SubEntity
 from squads._util import NonEmpty
 
@@ -42,6 +42,8 @@ class Item(BaseModel):
     #: The registered agent (role slug) who authored the item.
     author: str | None = None
     assignee: str | None = None
+    #: Optional importance, independent of status. Unset means no priority assigned.
+    priority: Priority | None = None
     labels: list[str] = []
     #: Forward edges only. Backrefs are computed by inverting these across all items.
     refs: list[str] = []
@@ -81,6 +83,8 @@ class Item(BaseModel):
             data["author"] = self.author
         if self.assignee:
             data["assignee"] = self.assignee
+        if self.priority:
+            data["priority"] = self.priority.value
         if self.refs:
             data["refs"] = list(self.refs)
         if self.labels:
@@ -108,6 +112,7 @@ class Item(BaseModel):
             parent=data.get("parent"),
             author=data.get("author"),
             assignee=data.get("assignee"),
+            priority=Priority(data["priority"]) if data.get("priority") else None,
             labels=list(data.get("labels", []) or []),
             refs=_read_refs(data),
             subentities=[

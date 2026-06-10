@@ -2,7 +2,13 @@
 
 import typer
 
-from squads._cli._common import console, get_service, handle_errors, resolve_body_optional
+from squads._cli._common import (
+    console,
+    get_service,
+    handle_errors,
+    parse_priority,
+    resolve_body_optional,
+)
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 
@@ -36,6 +42,9 @@ def _make(item_type: ItemType):
             None, "--ref", help="Forward-ref to another ID (repeatable)."
         ),
         assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
+        priority: str | None = typer.Option(
+            None, "--priority", help="Priority: urgent|high|medium|low."
+        ),
         message: list[str] = typer.Option(
             None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
         ),
@@ -54,6 +63,7 @@ def _make(item_type: ItemType):
             labels=label or None,
             refs=ref or None,
             assignee=assignee,
+            priority=parse_priority(priority) if priority else None,
             body=resolve_body_optional(message or None, file),
         )
         if json_out:

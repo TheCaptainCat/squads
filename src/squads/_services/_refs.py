@@ -7,6 +7,7 @@ from squads._itemfile import update_frontmatter
 from squads._models._item import Item, make_ref, split_ref
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
+from squads._workflow import is_open
 
 
 class RefsMixin(ServiceCore):
@@ -45,3 +46,27 @@ class RefsMixin(ServiceCore):
                 if rid == item_id:
                     out.append((it.id, kind))
         return sorted(out, key=lambda p: number_for_id(p[0]))
+
+    def blocked(self) -> list[tuple[Item, list[Item]]]:
+        """Open items with ≥1 open blocker (the ``blocks`` ref kind), paired with those blockers.
+
+        ``A ref add B --kind blocks`` reads "A blocks B": B is blocked while A stays open.
+        """
+        db = self.store.load()
+        blockers_by_target: dict[str, list[Item]] = {}
+        for it in db.items.values():
+            for r in it.refs:
+                rid, kind = split_ref(r)
+                if kind == "blocks":
+                    blockers_by_target.setdefault(rid, []).append(it)
+        out: list[tuple[Item, list[Item]]] = []
+        for tid, blockers in blockers_by_target.items():
+            target = db.get(tid)
+            if target is None or not is_open(target.status):
+                continue
+            open_blockers = sorted(
+                (b for b in blockers if is_open(b.status)), key=lambda b: number_for_id(b.id)
+            )
+            if open_blockers:
+                out.append((target, open_blockers))
+        return sorted(out, key=lambda p: number_for_id(p[0].id))

@@ -52,3 +52,13 @@ class AdoptResult:
     paths: SquadPaths
     imported: int  # items found on disk and indexed
     roles: list[Item]  # roles newly activated
+
+
+@dataclass
+class WorkloadRow:
+    """Per-assignee work counts for `sq workload` (None assignee = unassigned)."""
+
+    assignee: str | None
+    open: int
+    closed: int
+    total: int

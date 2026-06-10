@@ -34,11 +34,17 @@ sq create task "Title" --author <your-slug> [--parent FEAT-000002] [-m "body…"
 #   --author is required and must be a registered agent (your own role slug)
 sq task 3 show                                                  # details + body
 sq task 3 status InProgress                                     # transition (validated per type)
-sq task 3 update --assignee qa --parent FEAT-000002             # metadata (parent validated)
+sq task 3 update --assignee qa --priority high --parent FEAT-000002  # metadata (parent validated)
 sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
 sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
-sq list --type task --status InProgress                         # filtered table  ·  sq tree
+sq list --type task --status InProgress                         # closed items hidden; --all to include
+sq search "lockout"                                             # match titles, summaries, bodies
+sq mine <your-slug>                                             # your open items  ·  sq workload
+sq blocked                                                      # open items waiting on an open blocker
 sq docs [internals|workflow|migration|...]                      # read the full docs in-terminal (offline)
 ```
+
+Closed items (Done/Cancelled/…) drop out of `sq list`/`sq tree` by default — pass `--all` or an
+explicit `--status` to see them. Set importance with `--priority urgent|high|medium|low`.
 
 Run `sq --help`, `sq <type> --help`, or `sq <type> <n> --help` for the full surface.

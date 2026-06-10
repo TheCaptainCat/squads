@@ -82,6 +82,23 @@ sq tree                                  # see the hierarchy
 sq check                                 # validate before committing
 ```
 
+## Prioritize, find, and focus
+
+```bash
+sq create task "Hotfix login 500" --author tech-lead --priority urgent --assignee dotnet-dev
+sq task 3 update --priority high         # or --no-priority to clear
+sq list --priority urgent                # filter by priority
+sq mine dotnet-dev                       # open items assigned to a role
+sq workload                              # open/closed/total per assignee
+sq search "lockout"                      # match titles, summaries, bodies, discussion
+# sequencing: mark blockers, then see what's stuck
+sq task 4 ref add TASK-000003 --kind blocks   # "TASK-4 blocks TASK-3"
+sq blocked                               # open items waiting on an open blocker
+# closed items leave the default views; bring them back with --all
+sq list --all
+sq list --status Done
+```
+
 ## Migrate a legacy ticket (preserve its date)
 
 ```bash

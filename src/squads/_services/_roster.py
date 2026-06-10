@@ -7,7 +7,11 @@ from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._roles._catalog import dev_role, role_by_slug
 from squads._services._base import ServiceCore
+from squads._services._results import WorkloadRow
 from squads._util import slugify
+from squads._workflow import is_open
+
+_AGENT_TYPES = {ItemType.ROLE, ItemType.SKILL}
 
 
 class RosterMixin(ServiceCore):
@@ -85,3 +89,16 @@ class RosterMixin(ServiceCore):
         )
         self._backend().generate_skill_pointer(self._ctx, res.item)
         return res.item
+
+    def workload(self) -> list[WorkloadRow]:
+        """Open/closed/total work-item counts per assignee (busiest first; unassigned last)."""
+        counts: dict[str | None, list[int]] = {}
+        for it in self.list_items():
+            if it.type in _AGENT_TYPES:
+                continue
+            bucket = counts.setdefault(it.assignee, [0, 0])
+            bucket[0 if is_open(it.status) else 1] += 1
+        rows = [
+            WorkloadRow(assignee=a, open=o, closed=c, total=o + c) for a, (o, c) in counts.items()
+        ]
+        return sorted(rows, key=lambda r: (-r.open, -r.total, r.assignee or "~"))

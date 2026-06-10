@@ -17,14 +17,35 @@ from squads._cli._common import (
     e,
     get_service,
     handle_errors,
+    parse_priority,
     parse_status,
     parse_type,
+    priority_badge,
 )
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import number_for_id
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
+from squads._workflow import is_open
+
+
+def _item_table(items: list[Item]) -> Table:
+    """The shared item table (shared by `list`, `search`, `mine`) — escape all dynamic strings."""
+    table = Table(box=None, pad_edge=False)
+    for col in ("ID", "Type", "Status", "Priority", "Title", "Parent", "Assignee"):
+        table.add_column(col)
+    for it in items:
+        table.add_row(
+            it.id,
+            it.type.value,
+            it.status.value,
+            e(priority_badge(it.priority)) if it.priority else "",
+            e(it.title),
+            it.parent or "",
+            e(it.assignee or ""),
+        )
+    return table
 
 
 @app.command()
@@ -95,9 +116,11 @@ def list_items(
     parent: str | None = typer.Option(None, "--parent"),
     label: str | None = typer.Option(None, "--label"),
     assignee: str | None = typer.Option(None, "--assignee"),
+    priority: str | None = typer.Option(None, "--priority", help="urgent|high|medium|low."),
+    all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """List items in a table."""
+    """List items in a table (closed items are hidden unless --all or --status is given)."""
     svc = get_service()
     items = svc.list_items(
         item_type=parse_type(type) if type else None,
@@ -105,34 +128,31 @@ def list_items(
         parent=parent,
         label=label,
         assignee=assignee,
+        priority=parse_priority(priority) if priority else None,
     )
+    if not (all_ or status):
+        items = [i for i in items if is_open(i.status)]
     if json_out:
         console.print_json(json.dumps([i.model_dump(mode="json") for i in items]))
         return
     if not items:
         console.print("[dim]no items[/dim]")
         return
-    table = Table(box=None, pad_edge=False)
-    for col in ("ID", "Type", "Status", "Title", "Parent", "Assignee"):
-        table.add_column(col)
-    for it in items:
-        table.add_row(
-            it.id,
-            it.type.value,
-            it.status.value,
-            e(it.title),
-            it.parent or "",
-            e(it.assignee or ""),
-        )
-    console.print(table)
+    console.print(_item_table(items))
 
 
 @app.command()
 @handle_errors
-def tree(root_id: str | None = typer.Argument(None)):
-    """Show the item hierarchy."""
+def tree(
+    root_id: str | None = typer.Argument(None),
+    all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
+):
+    """Show the item hierarchy (closed items are hidden unless --all)."""
     svc = get_service()
-    all_items = {i.id: i for i in svc.list_items()}
+    listed = svc.list_items()
+    if not all_:
+        listed = [i for i in listed if is_open(i.status)]
+    all_items = {i.id: i for i in listed}
     children: dict[str | None, list[Item]] = {}
     for it in all_items.values():
         key = it.parent if it.parent in all_items else None
@@ -186,6 +206,114 @@ def inbox(
         console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status.value})[/dim]")
         for ln in lines:
             console.print(f"    {e(ln)}")
+
+
+@app.command()
+@handle_errors
+def search(
+    text: str = typer.Argument(..., help="Text to find (case-insensitive)."),
+    type: str | None = typer.Option(None, "--type", "-t"),
+    json_out: bool = typer.Option(False, "--json"),
+):
+    """Search item titles, summaries, and bodies/discussion for text."""
+    svc = get_service()
+    hits = svc.search(text, item_type=parse_type(type) if type else None)
+    if json_out:
+        console.print_json(
+            json.dumps([{"id": it.id, "title": it.title, "hits": lines} for it, lines in hits])
+        )
+        return
+    if not hits:
+        console.print(f"[dim]no matches for {e(text)}[/dim]")
+        return
+    for it, lines in hits:
+        console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status.value})[/dim]")
+        for ln in lines[:3]:
+            console.print(f"    {e(ln)}")
+
+
+@app.command()
+@handle_errors
+def blocked(json_out: bool = typer.Option(False, "--json")):
+    """Show open items blocked by other open items (via the `blocks` ref kind)."""
+    svc = get_service()
+    rows = svc.blocked()
+    if json_out:
+        console.print_json(
+            json.dumps(
+                [
+                    {
+                        "id": t.id,
+                        "title": t.title,
+                        "blockers": [
+                            {"id": b.id, "title": b.title, "status": b.status.value} for b in bs
+                        ],
+                    }
+                    for t, bs in rows
+                ]
+            )
+        )
+        return
+    if not rows:
+        console.print("[dim]nothing blocked[/dim]")
+        return
+    for target, blockers in rows:
+        console.print(
+            f"[bold]{target.id}[/bold] {e(target.title)} [dim]({target.status.value})[/dim]"
+        )
+        for b in blockers:
+            console.print(
+                f"    [red]blocked by[/red] {b.id} {e(b.title)} [dim]({b.status.value})[/dim]"
+            )
+
+
+@app.command()
+@handle_errors
+def workload(json_out: bool = typer.Option(False, "--json")):
+    """Per-assignee open/closed/total work-item counts (busiest first)."""
+    svc = get_service()
+    rows = svc.workload()
+    if json_out:
+        console.print_json(
+            json.dumps(
+                [
+                    {"assignee": r.assignee, "open": r.open, "closed": r.closed, "total": r.total}
+                    for r in rows
+                ]
+            )
+        )
+        return
+    if not rows:
+        console.print("[dim]no items[/dim]")
+        return
+    table = Table(box=None, pad_edge=False)
+    for col in ("Assignee", "Open", "Closed", "Total"):
+        table.add_column(col)
+    for r in rows:
+        table.add_row(e(r.assignee or "(unassigned)"), str(r.open), str(r.closed), str(r.total))
+    console.print(table)
+
+
+@app.command()
+@handle_errors
+def mine(
+    role: str | None = typer.Argument(None, help="Role slug (default: the squad's default role)."),
+    all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
+    json_out: bool = typer.Option(False, "--json"),
+):
+    """Items assigned to a role — defaults to the squad's configured default role."""
+    svc = get_service()
+    slug = (role or svc.paths.config.default_role).lstrip("@").lower()
+    items = svc.list_items(assignee=slug)
+    if not all_:
+        items = [i for i in items if is_open(i.status)]
+    if json_out:
+        console.print_json(json.dumps([i.model_dump(mode="json") for i in items]))
+        return
+    if not items:
+        console.print(f"[dim]nothing assigned to {e(slug)}[/dim]")
+        return
+    console.print(_item_table(items))
 
 
 @app.command()
