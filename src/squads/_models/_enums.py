@@ -55,6 +55,18 @@ FOLDER_BY_TYPE: dict[ItemType, str] = {
 }
 
 
+#: The 7 work-item types that can be retyped; excludes agent/operator meta-types.
+WORK_TYPES: tuple[ItemType, ...] = (
+    ItemType.EPIC,
+    ItemType.FEATURE,
+    ItemType.TASK,
+    ItemType.BUG,
+    ItemType.DECISION,
+    ItemType.REVIEW,
+    ItemType.GUIDE,
+)
+
+
 class Status(StrEnum):
     # work items
     DRAFT = "Draft"

@@ -75,7 +75,7 @@ from squads._cli import (  # noqa: E402
     _skill,
 )
 from squads._cli import _main as _main  # noqa: E402
-from squads._models._enums import ItemType  # noqa: E402
+from squads._models._enums import WORK_TYPES, ItemType  # noqa: E402
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
@@ -87,15 +87,7 @@ app.add_typer(
 )
 
 # Resource-oriented item groups: `sq <type> <num> <verb> …`.
-for _type in (
-    ItemType.EPIC,
-    ItemType.FEATURE,
-    ItemType.TASK,
-    ItemType.BUG,
-    ItemType.DECISION,
-    ItemType.REVIEW,
-    ItemType.GUIDE,
-):
+for _type in WORK_TYPES:
     app.add_typer(
         _items.build_item_app(_type),
         name=_type.value,

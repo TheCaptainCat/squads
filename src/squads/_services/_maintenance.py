@@ -1,6 +1,5 @@
 """Whole-squad maintenance: sync managed files, repair/renumber the index, check, migrate."""
 
-import re
 from collections import Counter
 from collections.abc import Iterator
 from pathlib import Path
@@ -8,7 +7,7 @@ from typing import Any
 
 from squads import __version__
 from squads import _sections as sections
-from squads._itemfile import read_frontmatter
+from squads._itemfile import read_frontmatter, rewrite_ids
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
 from squads._models._enums import ItemType
@@ -163,13 +162,7 @@ class MaintenanceMixin(ServiceCore):
         if not remap:
             return {}
         # rewrite every reference to a remapped id across all files (frontmatter + body + inline)
-        for _, md, *_ in records:
-            text = md.read_text(encoding="utf-8")
-            new_text = text
-            for old, new in remap.items():
-                new_text = re.sub(rf"\b{re.escape(old)}\b", new, new_text)
-            if new_text != text:
-                md.write_text(new_text, encoding="utf-8")
+        rewrite_ids([md for _, md, *_ in records], remap)
         # rename the files whose own id changed, and resync their stored sequence_id
         for old_path, item_type, slug, new_id in renames:
             new_name = f"{new_id}-{slug}.md" if slug else f"{new_id}.md"

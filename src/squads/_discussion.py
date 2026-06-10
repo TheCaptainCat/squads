@@ -217,6 +217,22 @@ def render_summary(kind: str, subentities: list[SubEntity]) -> str:
     )
 
 
+def ensure_container(text: str, heading: str, container: str) -> str:
+    """Append ``## <heading>`` + an empty marker pair for ``container`` if the section is missing.
+
+    Used by retype to scaffold a container block (e.g. ``sq:subtasks``) when an item gains a type
+    that hosts sub-entities.  Idempotent: returns the text unchanged if the section is present.
+    """
+    open_tag = markers.open_marker(container)
+    if open_tag in text:
+        return text  # already present
+    block = (
+        f"\n\n## {heading}\n\n"
+        f"{markers.open_marker(container)}\n{markers.close_marker(container)}\n"
+    )
+    return text + block
+
+
 def ensure_summary(text: str, kind: str, container: str, subentities: list[SubEntity]) -> str:
     """Insert an empty ``sq:summary`` region before ``container`` if missing, then (re)render it."""
     if get_section(text, markers.SUMMARY) is None:

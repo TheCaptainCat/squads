@@ -1,8 +1,404 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 11,
+  "counter": 41,
   "items": {
+    "12": {
+      "sequence_id": 12,
+      "type": "epic",
+      "title": "Road to 1.0",
+      "slug": "road-to-1-0",
+      "status": "Ready",
+      "description": "Define and prove the 1.0 stability promise across our public surfaces",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "BUG-000022:depends-on",
+        "BUG-000021:depends-on"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000012-road-to-1-0.md",
+      "created_at": "2026-06-10T12:40:41Z",
+      "updated_at": "2026-06-11T07:54:52Z",
+      "extra": {},
+      "id": "EPIC-000012"
+    },
+    "13": {
+      "sequence_id": 13,
+      "type": "feature",
+      "title": "Stability contract documentation",
+      "slug": "stability-contract-documentation",
+      "status": "Ready",
+      "description": "docs/stability.md + README tiering the public surfaces and what each promises through 1.0",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000013-stability-contract-documentation.md",
+      "created_at": "2026-06-10T12:40:59Z",
+      "updated_at": "2026-06-11T07:54:52Z",
+      "extra": {},
+      "id": "FEAT-000013"
+    },
+    "14": {
+      "sequence_id": 14,
+      "type": "feature",
+      "title": "Project-level template and role overrides",
+      "slug": "project-level-template-and-role-overrides",
+      "status": "Ready",
+      "description": "squads/.templates/ overrides; lookup path and precedence join the durable contract, so it must land before 1.0",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a project lead, I want to override item templates from squads/.templates/, so that generated items follow our house format",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a project lead, I want to add or override role definitions for my project, so that the squad matches my actual team",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As a project lead, I want to supply each agent's name at init and at role creation, so that my squad's roster is named the way my team wants",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000014-project-level-template-and-role-overrides.md",
+      "created_at": "2026-06-10T12:41:06Z",
+      "updated_at": "2026-06-11T07:54:52Z",
+      "extra": {},
+      "id": "FEAT-000014"
+    },
+    "15": {
+      "sequence_id": 15,
+      "type": "feature",
+      "title": "Machine-readable surface audit",
+      "slug": "machine-readable-surface-audit",
+      "status": "Ready",
+      "description": "--json on every read command, documented exit codes, golden-file tests freezing the JSON shapes",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a script author, I want --json on every read command (blocked, mine, workload, inbox, check, refs included), so that I can parse squad state without scraping tables",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a CI pipeline author, I want documented exit codes, so that I can gate builds on commands like sq check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a tool builder, I want the JSON shapes frozen by tests, so that an sq upgrade can't break my parser unannounced",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000015-machine-readable-surface-audit.md",
+      "created_at": "2026-06-10T12:41:11Z",
+      "updated_at": "2026-06-11T07:54:53Z",
+      "extra": {},
+      "id": "FEAT-000015"
+    },
+    "16": {
+      "sequence_id": 16,
+      "type": "feature",
+      "title": "Second backend: generic AGENTS.md",
+      "slug": "second-backend-generic-agents-md",
+      "status": "Ready",
+      "description": "Prove the AgentBackend ABC with a cross-tool AGENTS.md implementation before the ABC freezes",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so that we can run squads with our own tooling",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a future backend implementer, I want a backend conformance test suite, so that I know exactly what the AgentBackend contract requires of me",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000016-second-backend-generic-agents-md.md",
+      "created_at": "2026-06-10T12:41:16Z",
+      "updated_at": "2026-06-11T07:54:53Z",
+      "extra": {},
+      "id": "FEAT-000016"
+    },
+    "17": {
+      "sequence_id": 17,
+      "type": "feature",
+      "title": "1.0 hardening",
+      "slug": "1-0-hardening",
+      "status": "Ready",
+      "description": "Migration fixture corpus in CI, ~1000-item scale sanity test, verified shell completion, decision on the Python >= 3.14 floor",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "features/FEAT-000017-1-0-hardening.md",
+      "created_at": "2026-06-10T12:41:22Z",
+      "updated_at": "2026-06-11T07:54:53Z",
+      "extra": {},
+      "id": "FEAT-000017"
+    },
+    "18": {
+      "sequence_id": 18,
+      "type": "feature",
+      "title": "Backfill architecture documentation into squads",
+      "slug": "backfill-architecture-documentation-into-squads",
+      "status": "Ready",
+      "description": "Put the architecture and the pre-bootstrap design decisions on the record as sq guides and ADRs, since the project started untracked",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a new agent or contributor, I want an architecture guide readable through sq, so that I understand the system's shape without spelunking through git history",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an architect, I want the standing design decisions on record as ADRs, so that future work can cite, build on, or formally revisit them",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a team member working an item, I want guides and ADRs cross-linked by refs, so that the relevant context travels with the work",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000018-backfill-architecture-documentation-into-squads.md",
+      "created_at": "2026-06-10T12:49:50Z",
+      "updated_at": "2026-06-11T07:54:54Z",
+      "extra": {},
+      "id": "FEAT-000018"
+    },
+    "19": {
+      "sequence_id": 19,
+      "type": "feature",
+      "title": "Uniform item addressing: every command accepts both ID and number",
+      "slug": "uniform-item-addressing-every-command-accepts-both-id-and-nu",
+      "status": "Ready",
+      "description": "Every ID-accepting surface (verbs, tree, --parent, ref add, search args) understands both the full ID (FEAT-000013) and the bare number (13), with one shared resolver",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000019-uniform-item-addressing-every-command-accepts-both-id-and-nu.md",
+      "created_at": "2026-06-10T12:56:45Z",
+      "updated_at": "2026-06-11T07:54:54Z",
+      "extra": {},
+      "id": "FEAT-000019"
+    },
+    "20": {
+      "sequence_id": 20,
+      "type": "feature",
+      "title": "Retype an item in place",
+      "slug": "retype-an-item-in-place",
+      "status": "Ready",
+      "description": "sq <type> <n> retype <new-type>: fix a wrongly-filed item keeping its number, discussion and incoming refs",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000019:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a user who filed work under the wrong type, I want to retype it in place, so that the number, body and discussion survive the fix",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a teammate whose items reference the retyped one, I want every incoming ref, parent link and prose mention rewritten to the new ID, so that nothing dangles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000020-retype-an-item-in-place.md",
+      "created_at": "2026-06-10T13:24:54Z",
+      "updated_at": "2026-06-11T07:54:54Z",
+      "extra": {},
+      "id": "FEAT-000020"
+    },
+    "11": {
+      "sequence_id": 11,
+      "type": "bug",
+      "title": "sq check flags operator authors/assignees as unregistered",
+      "slug": "sq-check-flags-operator-authors-assignees-as-unregistered",
+      "status": "Done",
+      "description": "check() validates author/assignee against roles only, while the write gate accepts operators too",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000011-sq-check-flags-operator-authors-assignees-as-unregistered.md",
+      "created_at": "2026-06-10T12:30:52Z",
+      "updated_at": "2026-06-10T12:32:14Z",
+      "extra": {
+        "severity": "medium"
+      },
+      "id": "BUG-000011"
+    },
+    "21": {
+      "sequence_id": 21,
+      "type": "bug",
+      "title": "Slug arguments not validated: sq mine accepts unknown agents and silently defaults to manager",
+      "slug": "slug-arguments-not-validated-sq-mine-accepts-unknown-agents",
+      "status": "Ready",
+      "description": "sq mine/inbox exit 0 for unknown slugs and bare sq mine defaults to manager; slug args should be required and validated against the roster across commands",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000019"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000021-slug-arguments-not-validated-sq-mine-accepts-unknown-agents.md",
+      "created_at": "2026-06-10T13:35:26Z",
+      "updated_at": "2026-06-11T07:54:56Z",
+      "extra": {},
+      "id": "BUG-000021"
+    },
     "1": {
       "sequence_id": 1,
       "type": "role",
@@ -396,27 +792,766 @@
       },
       "id": "OP-000010"
     },
-    "11": {
-      "sequence_id": 11,
+    "22": {
+      "sequence_id": 22,
       "type": "bug",
-      "title": "sq check flags operator authors/assignees as unregistered",
-      "slug": "sq-check-flags-operator-authors-assignees-as-unregistered",
-      "status": "Done",
-      "description": "check() validates author/assignee against roles only, while the write gate accepts operators too",
+      "title": "Counter can regress, allowing sequence-number reuse after an item file disappears",
+      "slug": "counter-can-regress-allowing-sequence-number-reuse-after-an",
+      "status": "Ready",
+      "description": "Hand-edited or repair-rebuilt indexes accept a regressed counter, so deleted items' numbers get reused; repair sets counter to max-found, ignoring the previous high-water mark",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000019"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000022-counter-can-regress-allowing-sequence-number-reuse-after-an.md",
+      "created_at": "2026-06-10T13:51:32Z",
+      "updated_at": "2026-06-11T07:54:56Z",
+      "extra": {},
+      "id": "BUG-000022"
+    },
+    "23": {
+      "sequence_id": 23,
+      "type": "feature",
+      "title": "Sanctioned item removal",
+      "slug": "sanctioned-item-removal",
+      "status": "Ready",
+      "description": "sq <type> <n> remove: a safe, first-class way to delete or retire an item — today the only option is manual file surgery plus hand-editing the index",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "BUG-000022:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000023-sanctioned-item-removal.md",
+      "created_at": "2026-06-10T13:52:25Z",
+      "updated_at": "2026-06-11T07:54:55Z",
+      "extra": {},
+      "id": "FEAT-000023"
+    },
+    "24": {
+      "sequence_id": 24,
+      "type": "feature",
+      "title": "Operation reflog",
+      "slug": "operation-reflog",
+      "status": "Ready",
+      "description": "An append-only JSONL log of every mutating sq operation (who, when, what, before/after), with a sq reflog command to read it",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000023",
+        "BUG-000022",
+        "FEAT-000015"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator, I want a chronological log of every mutation with its actor, so that I can review what the agents did without having been in their conversations",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a team member investigating an anomaly, I want removals, retypes and forced transitions explainable from the squad directory alone, so that a gap or surprise reads as history, not corruption",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a tool builder, I want the reflog as stable, documented JSONL, so that I can build dashboards and automation on the operation stream",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000024-operation-reflog.md",
+      "created_at": "2026-06-10T13:59:11Z",
+      "updated_at": "2026-06-11T07:54:55Z",
+      "extra": {},
+      "id": "FEAT-000024"
+    },
+    "25": {
+      "sequence_id": 25,
+      "type": "bug",
+      "title": "show prints a redundant 'Body' literal before the body",
+      "slug": "show-prints-a-redundant-body-literal-before-the-body",
+      "status": "Draft",
+      "description": "sq <type> <n> show prefixes the body with a bare 'Body' label; the body is self-evident after the metadata panel and usually opens with its own headings",
       "parent": null,
       "author": "op-pierre",
-      "assignee": "python-dev",
-      "priority": "high",
+      "assignee": null,
+      "priority": "low",
       "labels": [],
       "refs": [],
       "subentities": [],
-      "path": "bugs/BUG-000011-sq-check-flags-operator-authors-assignees-as-unregistered.md",
-      "created_at": "2026-06-10T12:30:52Z",
-      "updated_at": "2026-06-10T12:32:14Z",
-      "extra": {
-        "severity": "medium"
-      },
-      "id": "BUG-000011"
+      "path": "bugs/BUG-000025-show-prints-a-redundant-body-literal-before-the-body.md",
+      "created_at": "2026-06-10T14:52:35Z",
+      "updated_at": "2026-06-10T14:52:36Z",
+      "extra": {},
+      "id": "BUG-000025"
+    },
+    "26": {
+      "sequence_id": 26,
+      "type": "feature",
+      "title": "Rendered show output",
+      "slug": "rendered-show-output",
+      "status": "Draft",
+      "description": "sq show renders body and discussion as styled markdown on a TTY (headings, bullets, code), with --raw opt-out, NO_COLOR respected, and plain output when piped",
+      "parent": "EPIC-000038",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000019:depends-on",
+        "BUG-000025:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator reading the backlog in my terminal, I want show to render the markdown, so that sq tree + sq show covers browsing and reading without external viewers",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent or script consuming show output, I want piped/--raw/NO_COLOR output plain and stable, so that rendering never breaks my parsing",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a user with an ID or number in hand, I want a root sq show command that displays any item regardless of type, so that I can read anything in one step without naming its type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As a reader of a feature, task or review, I want show to include the sub-entity summary table and the discussion, so that one command gives me the whole item, not just its body",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As a reader wanting the whole story, I want --full to render each sub-entity and its comments in tidy panes along with the main discussion, so that one command reads as the item's dossier",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000026-rendered-show-output.md",
+      "created_at": "2026-06-10T14:57:23Z",
+      "updated_at": "2026-06-11T08:56:44Z",
+      "extra": {},
+      "id": "FEAT-000026"
+    },
+    "27": {
+      "sequence_id": 27,
+      "type": "feature",
+      "title": "Explicit ID padding with a raise-padding migration",
+      "slug": "explicit-id-padding-with-a-raise-padding-migration",
+      "status": "Ready",
+      "description": "padding: 6 stored in the index; create errors when the counter would overflow it; a one-way repad command renames all files to the new width; ID parsing tolerant of any width since file contents are never rewritten",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000013",
+        "FEAT-000019:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a squad owner whose counter hits the cap, I want create to fail with a clear index-full error naming the fix, so that the format never silently grows a digit",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a squad owner raising the padding, I want one command that renames every file to the new width and rebuilds the index, so that the squad stays uniform without hand-work",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a teammate whose items hold old-width refs and mentions, I want ID parsing tolerant of any padding, so that content written before the raise keeps resolving forever",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000027-explicit-id-padding-with-a-raise-padding-migration.md",
+      "created_at": "2026-06-10T15:04:04Z",
+      "updated_at": "2026-06-11T07:54:55Z",
+      "extra": {},
+      "id": "FEAT-000027"
+    },
+    "28": {
+      "sequence_id": 28,
+      "type": "epic",
+      "title": "sq ui — a terminal UI for browsing the squad",
+      "slug": "sq-ui-a-terminal-ui-for-browsing-the-squad",
+      "status": "Draft",
+      "description": "An sq ui command opening a TUI: navigate the tree, read items with tabs for stories/body/discussion; browse-first, mutations a later increment",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000015:depends-on",
+        "FEAT-000019:depends-on"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000028-sq-ui-a-terminal-ui-for-browsing-the-squad.md",
+      "created_at": "2026-06-10T15:15:37Z",
+      "updated_at": "2026-06-11T07:40:17Z",
+      "extra": {},
+      "id": "EPIC-000028"
+    },
+    "29": {
+      "sequence_id": 29,
+      "type": "epic",
+      "title": "sq web — a local web view of the squad",
+      "slug": "sq-web-a-local-web-view-of-the-squad",
+      "status": "Draft",
+      "description": "An sq web command starting a local webserver to browse the squad in a browser; read-only first, with full CRUD as a possible long-term destination",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "EPIC-000028",
+        "FEAT-000015:depends-on"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000029-sq-web-a-local-web-view-of-the-squad.md",
+      "created_at": "2026-06-10T15:16:05Z",
+      "updated_at": "2026-06-11T07:40:18Z",
+      "extra": {},
+      "id": "EPIC-000029"
+    },
+    "30": {
+      "sequence_id": 30,
+      "type": "bug",
+      "title": "tree: priority and title separated by a bare space",
+      "slug": "tree-priority-and-title-separated-by-a-bare-space",
+      "status": "Draft",
+      "description": "In sq tree, '🟠 high Stability contract documentation' runs together — put a middle dot between priority and title",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000030-tree-priority-and-title-separated-by-a-bare-space.md",
+      "created_at": "2026-06-10T15:19:16Z",
+      "updated_at": "2026-06-10T15:19:16Z",
+      "extra": {},
+      "id": "BUG-000030"
+    },
+    "31": {
+      "sequence_id": 31,
+      "type": "epic",
+      "title": "Squads backend",
+      "slug": "squads-backend",
+      "status": "Draft",
+      "description": "Umbrella for technical work on the sq engine itself — services, index, models, workflow, rendering, agent-backend plumbing — as opposed to product surfaces like the CLI grammar, TUI or web",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "epics/EPIC-000031-squads-backend.md",
+      "created_at": "2026-06-10T15:21:51Z",
+      "updated_at": "2026-06-10T15:21:51Z",
+      "extra": {},
+      "id": "EPIC-000031"
+    },
+    "32": {
+      "sequence_id": 32,
+      "type": "feature",
+      "title": "Pluggable index store: SQLite / SQL databases behind the index",
+      "slug": "pluggable-index-store-sqlite-sql-databases-behind-the-index",
+      "status": "Draft",
+      "description": "Abstract the index behind a store interface and offer SQLite (and real databases via SQLAlchemy) as alternatives to .squads.json — the .md files stay the only source of truth",
+      "parent": "EPIC-000031",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000013",
+        "BUG-000022:depends-on",
+        "FEAT-000017:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a team running many agents in parallel, I want the index behind real transactions, so that concurrent sq calls stop serializing on one file lock",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an owner of a large squad, I want an indexed store keeping list/tree/search fast at thousands of items, so that scale doesn't degrade the daily loop",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a user choosing a store, I want switching to be config plus sq repair — reversible both ways, so that the .md files remain the only thing I must never lose",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000032-pluggable-index-store-sqlite-sql-databases-behind-the-index.md",
+      "created_at": "2026-06-10T15:24:10Z",
+      "updated_at": "2026-06-11T07:40:16Z",
+      "extra": {},
+      "id": "FEAT-000032"
+    },
+    "33": {
+      "sequence_id": 33,
+      "type": "feature",
+      "title": "Remote mode: the sq CLI as a client to a squads server",
+      "slug": "remote-mode-the-sq-cli-as-a-client-to-a-squads-server",
+      "status": "Draft",
+      "description": "A mode switch in .squads.toml (offline default / remote): in remote mode every command calls remote endpoints with full feature-and-flag parity, through a Protocol-typed service interface the CLI depends on",
+      "parent": "EPIC-000029",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000015",
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a maintainer of the codebase, I want the CLI decoupled from the concrete Service behind Python Protocols, so that plugging a different service implementation (remote or otherwise) is possible without touching the commands",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an operator or agent on a remote squad, I want every offline command and flag to work identically in remote mode, so that the transport never changes how I work",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a squad owner, I want the mode set in .squads.toml with offline as the default, so that remote is an explicit per-squad choice and existing squads are untouched",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000033-remote-mode-the-sq-cli-as-a-client-to-a-squads-server.md",
+      "created_at": "2026-06-10T15:33:16Z",
+      "updated_at": "2026-06-10T15:33:34Z",
+      "extra": {},
+      "id": "FEAT-000033"
+    },
+    "34": {
+      "sequence_id": 34,
+      "type": "feature",
+      "title": "Async to the core: the service and IO go async end-to-end",
+      "slug": "async-to-the-core-the-service-and-io-go-async-end-to-end",
+      "status": "Draft",
+      "description": "Make the service layer, index store and file IO async (anyio or similar) all the way down, with the sync bridge only at the CLI entry edge — so the protocol seam, TUI, web server and remote client are all async-native",
+      "parent": "EPIC-000031",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000033:blocks",
+        "FEAT-000032:blocks"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a developer of an async consumer (TUI, web server, remote client), I want the service async-native, so that I never wrap calls in executor threads",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a CLI user, I want the async conversion invisible, so that every command behaves and outputs byte-identically to today",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000034-async-to-the-core-the-service-and-io-go-async-end-to-end.md",
+      "created_at": "2026-06-10T15:49:05Z",
+      "updated_at": "2026-06-11T07:40:17Z",
+      "extra": {},
+      "id": "FEAT-000034"
+    },
+    "35": {
+      "sequence_id": 35,
+      "type": "feature",
+      "title": "Typed ref vocabulary: validated kinds, optional by design",
+      "slug": "typed-ref-vocabulary-validated-kinds-optional-by-design",
+      "status": "Ready",
+      "description": "ref add validates --kind against the documented vocabulary (typos rejected, check flags unknowns); untyped refs stay first-class for plain cross-reference; one canonical kinds table in the docs",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "BUG-000021",
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000035-typed-ref-vocabulary-validated-kinds-optional-by-design.md",
+      "created_at": "2026-06-11T07:19:35Z",
+      "updated_at": "2026-06-11T07:54:55Z",
+      "extra": {},
+      "id": "FEAT-000035"
+    },
+    "36": {
+      "sequence_id": 36,
+      "type": "feature",
+      "title": "Type aliases in the CLI grammar",
+      "slug": "type-aliases-in-the-cli-grammar",
+      "status": "Ready",
+      "description": "Short and single-letter aliases for the item-type commands (sq feat / sq f, sq t, sq b, ...) — hidden from help clutter, documented once, frozen with the grammar",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000036-type-aliases-in-the-cli-grammar.md",
+      "created_at": "2026-06-11T07:37:01Z",
+      "updated_at": "2026-06-11T07:54:56Z",
+      "extra": {},
+      "id": "FEAT-000036"
+    },
+    "37": {
+      "sequence_id": 37,
+      "type": "feature",
+      "title": "Ref graph view: sq graph <item>",
+      "slug": "ref-graph-view-sq-graph-item",
+      "status": "Draft",
+      "description": "An ego-centric graph command: walk the ref edges from one item to a given depth, filtered by kind and direction, rendered as a tree — plus dot/mermaid export for the full picture",
+      "parent": "EPIC-000038",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000035:depends-on",
+        "FEAT-000019:depends-on",
+        "FEAT-000015"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator sequencing work, I want the dependency tree of one item to a chosen depth, so that I can see what it waits on and what waits on it before greenlighting",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent briefing on an item, I want to filter the graph by kind and direction, so that I pull only the context that matters for my job",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a user wanting the big picture, I want a dot/mermaid export, so that the full graph renders in tools made for it instead of flooding my terminal",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000037-ref-graph-view-sq-graph-item.md",
+      "created_at": "2026-06-11T07:45:02Z",
+      "updated_at": "2026-06-11T07:57:11Z",
+      "extra": {},
+      "id": "FEAT-000037"
+    },
+    "38": {
+      "sequence_id": 38,
+      "type": "epic",
+      "title": "CLI frontend",
+      "slug": "cli-frontend",
+      "status": "Draft",
+      "description": "The daily terminal experience of sq: complete and rendered reading, graph navigation, and the ergonomics of driving a squad from the command line",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "epics/EPIC-000038-cli-frontend.md",
+      "created_at": "2026-06-11T07:57:10Z",
+      "updated_at": "2026-06-11T07:57:11Z",
+      "extra": {},
+      "id": "EPIC-000038"
+    },
+    "39": {
+      "sequence_id": 39,
+      "type": "feature",
+      "title": "Tree filters",
+      "slug": "tree-filters",
+      "status": "Draft",
+      "description": "sq tree gains the same filters as list (--status, --priority, --assignee, --type) plus --depth; matches keep their ancestor path so the tree stays a tree",
+      "parent": "EPIC-000038",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator reviewing the board, I want to filter the tree by status, priority, assignee or type, so that greenlight discussions look at exactly the slice that matters",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a reader of a deep backlog, I want --depth and context-preserving pruning, so that a filtered tree stays readable and every match keeps its place in the hierarchy",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000039-tree-filters.md",
+      "created_at": "2026-06-11T07:58:43Z",
+      "updated_at": "2026-06-11T07:58:45Z",
+      "extra": {},
+      "id": "FEAT-000039"
+    },
+    "40": {
+      "sequence_id": 40,
+      "type": "feature",
+      "title": "Dual-regime role definitions: subagent invocation vs live conversation",
+      "slug": "dual-regime-role-definitions-subagent-invocation-vs-live-con",
+      "status": "Ready",
+      "description": "Bundled roles' working agreements split by regime: spawned-for-a-job (record everything before you vanish) vs live with the operator (judgment on when handoffs become true) — fixing the rigidity that produces false inbox signals",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000014"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000040-dual-regime-role-definitions-subagent-invocation-vs-live-con.md",
+      "created_at": "2026-06-11T08:43:52Z",
+      "updated_at": "2026-06-11T09:16:31Z",
+      "extra": {},
+      "id": "FEAT-000040"
+    },
+    "41": {
+      "sequence_id": 41,
+      "type": "feature",
+      "title": "Onboard through the CLI: roles readable via sq, not the filesystem",
+      "slug": "onboard-through-the-cli-roles-readable-via-sq-not-the-filesy",
+      "status": "Ready",
+      "description": "sq role show displays the complete definition (working agreements included) and every onboarding text (CLAUDE.md section, skills) directs agents to sq commands instead of reading files under squads/",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000040",
+        "FEAT-000033"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an agent adopting my persona, I want sq role show to give me the complete definition including working agreements, so that I never open the file to learn my job",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent following the onboarding texts, I want every read they prescribe to be an sq command, so that one interface covers work and identity — locally and, someday, remotely",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000041-onboard-through-the-cli-roles-readable-via-sq-not-the-filesy.md",
+      "created_at": "2026-06-11T09:02:40Z",
+      "updated_at": "2026-06-11T09:17:28Z",
+      "extra": {},
+      "id": "FEAT-000041"
     }
   }
 }

@@ -1,18 +1,21 @@
 """Item lifecycle: status transitions, edits, links, regen, removal."""
 
 from squads import _clock as clock
+from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
-from squads._itemfile import update_frontmatter
+from squads._itemfile import rewrite_ids, update_frontmatter
 from squads._models import _markers as markers
-from squads._models._enums import ItemType, Priority
-from squads._models._item import Item, Status
+from squads._models._enums import WORK_TYPES, ItemType, Priority
+from squads._models._index import SquadsDB
+from squads._models._item import Item, Status, make_ref, split_ref
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
-from squads._services._base import ServiceCore
+from squads._services._base import SUBENTITY_CONTAINER, SUBENTITY_KIND, ServiceCore
+from squads._services._results import RetypeResult
 from squads._util import slugify
-from squads._workflow import can_transition
+from squads._workflow import can_transition, initial_status, workflow_for
 
 _AGENT_TYPES = {ItemType.ROLE, ItemType.SKILL}
 
