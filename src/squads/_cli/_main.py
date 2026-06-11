@@ -22,6 +22,7 @@ from squads._cli._common import (
     parse_status,
     parse_type,
     priority_badge,
+    resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
 from squads._models._extras import ExtraKey as X
@@ -124,12 +125,13 @@ def list_items(
 ):
     """List items in a table (closed items are hidden unless --all or --status is given)."""
     svc = get_service()
+    validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
     items = svc.list_items(
         item_type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
         parent=parent,
         label=label,
-        assignee=assignee,
+        assignee=validated_assignee,
         priority=parse_priority(priority) if priority else None,
     )
     if not (all_ or status):
@@ -197,7 +199,7 @@ def tree(
         return
 
     def label(it: Item) -> str:
-        prio = f"{e(priority_badge(it.priority))} " if it.priority else ""
+        prio = f"{e(priority_badge(it.priority))} · " if it.priority else ""
         return f"[bold]{it.id}[/bold] {prio}{e(it.title)} [dim]({it.status.value})[/dim]"
 
     def attach(parent: Tree, item: Item) -> None:
@@ -215,8 +217,12 @@ def tree(
 def repair(renumber: bool = typer.Option(False, "--renumber")):
     """Rebuild the index from the markdown frontmatter."""
     svc = get_service()
-    db = svc.repair(renumber=renumber)
-    console.print(f"rebuilt index: {len(db.items)} items, counter={db.counter}")
+    result = svc.repair(renumber=renumber)
+    console.print(f"rebuilt index: {len(result.db.items)} items, counter={result.db.counter}")
+    for mid in result.missing_ids:
+        console.print(
+            f"[yellow]warn[/yellow] [dim]{mid}[/dim]: indexed but no markdown file found (deleted?)"
+        )
 
 
 @app.command()
@@ -227,14 +233,15 @@ def inbox(
 ):
     """Open items whose discussion mentions @role."""
     svc = get_service()
-    hits = svc.inbox(role)
+    slug = resolve_slug_or_raise(role, svc)
+    hits = svc.inbox(slug)
     if json_out:
         console.print_json(
             json.dumps([{"id": it.id, "title": it.title, "lines": lines} for it, lines in hits])
         )
         return
     if not hits:
-        console.print(f"[dim]nothing for @{role.lstrip('@')}[/dim]")
+        console.print(f"[dim]nothing for @{slug}[/dim]")
         return
     for it, lines in hits:
         console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status.value})[/dim]")
@@ -331,13 +338,13 @@ def workload(json_out: bool = typer.Option(False, "--json")):
 @app.command()
 @handle_errors
 def mine(
-    role: str | None = typer.Argument(None, help="Role slug (default: the squad's default role)."),
+    role: str = typer.Argument(..., help="Role slug (e.g. python-dev or op-pierre)."),
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """Items assigned to a role — defaults to the squad's configured default role."""
+    """Items assigned to a role slug."""
     svc = get_service()
-    slug = (role or svc.paths.config.default_role).lstrip("@").lower()
+    slug = resolve_slug_or_raise(role, svc)
     items = svc.list_items(assignee=slug)
     if not all_:
         items = [i for i in items if is_open(i.status)]

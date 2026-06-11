@@ -29,6 +29,7 @@ from squads._cli._common import (
     resolve_body_optional,
     resolve_item_id,
     resolve_local_id,
+    resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
 from squads._models._enums import SEVERITY_EMOJI, ItemType
@@ -123,16 +124,19 @@ def _cmd_update(item: typer.Typer) -> None:
             if not sep:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
             set_extra[key.strip()] = value
-        it = get_service().update(
+        svc = get_service()
+        validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+        validated_author = resolve_slug_or_raise(author, svc) if author else None
+        it = svc.update(
             _id(ctx),
             title=title,
             description=desc,
-            assignee=assignee,
+            assignee=validated_assignee,
             priority=parse_priority(priority) if priority else None,
             clear_priority=no_priority,
             add_labels=add_label or None,
             rm_labels=rm_label or None,
-            author=author,
+            author=validated_author,
             status=parse_status(status) if status else None,
             force=force,
             parent=parent,
@@ -179,8 +183,10 @@ def _cmd_comment(item: typer.Typer) -> None:
         as_: str = typer.Option("operator", "--as", help="Author: a role slug or 'operator'."),
     ):
         """Append a timestamped comment to the item's discussion."""
-        get_service().comment(_id(ctx), message, as_slug=as_)
-        console.print(f"commented on {_id(ctx)} as {as_}")
+        svc = get_service()
+        slug = resolve_slug_or_raise(as_, svc)
+        svc.comment(_id(ctx), message, as_slug=slug)
+        console.print(f"commented on {_id(ctx)} as {slug}")
 
 
 def _cmd_refs(item: typer.Typer) -> None:
@@ -308,10 +314,12 @@ def _register_add(item: typer.Typer, kind: str) -> None:
             json_out: bool = typer.Option(False, "--json"),
         ):
             """Scaffold a user story on this feature."""
-            res = get_service().add_story(
+            svc = get_service()
+            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            res = svc.add_story(
                 _id(ctx),
                 title,
-                assignee=assignee,
+                assignee=validated_assignee,
                 body=resolve_body_optional(message or None, file),
             )
             print_block(_id(ctx), res, json_out)
@@ -332,11 +340,13 @@ def _register_add(item: typer.Typer, kind: str) -> None:
             json_out: bool = typer.Option(False, "--json"),
         ):
             """Scaffold a subtask on this task."""
-            res = get_service().add_subtask(
+            svc = get_service()
+            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            res = svc.add_subtask(
                 _id(ctx),
                 title,
                 story=story,
-                assignee=assignee,
+                assignee=validated_assignee,
                 body=resolve_body_optional(message or None, file),
             )
             print_block(_id(ctx), res, json_out)
@@ -357,11 +367,13 @@ def _register_add(item: typer.Typer, kind: str) -> None:
             json_out: bool = typer.Option(False, "--json"),
         ):
             """Scaffold a finding on this review."""
-            res = get_service().add_finding(
+            svc = get_service()
+            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            res = svc.add_finding(
                 _id(ctx),
                 title,
                 severity=parse_severity(severity),
-                assignee=assignee,
+                assignee=validated_assignee,
                 body=resolve_body_optional(message or None, file),
             )
             print_block(_id(ctx), res, json_out)
@@ -396,13 +408,15 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
                 assignee=assignee,
                 clear_assignee=clear_assignee,
             )
-            get_service().update_subtask(
+            svc = get_service()
+            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            svc.update_subtask(
                 pid,
                 lid,
                 title=title,
                 story=story,
                 clear_story=no_story,
-                assignee=assignee,
+                assignee=validated_assignee,
                 clear_assignee=clear_assignee,
                 status=parse_status(status) if status else None,
                 force=force,
@@ -431,12 +445,14 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
                 assignee=assignee,
                 clear_assignee=clear_assignee,
             )
-            get_service().update_finding(
+            svc = get_service()
+            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            svc.update_finding(
                 pid,
                 lid,
                 title=title,
                 severity=parse_severity(severity) if severity else None,
-                assignee=assignee,
+                assignee=validated_assignee,
                 clear_assignee=clear_assignee,
                 status=parse_status(status) if status else None,
                 force=force,
@@ -462,11 +478,13 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
                 assignee=assignee,
                 clear_assignee=clear_assignee,
             )
-            get_service().update_story(
+            svc = get_service()
+            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            svc.update_story(
                 pid,
                 lid,
                 title=title,
-                assignee=assignee,
+                assignee=validated_assignee,
                 clear_assignee=clear_assignee,
                 status=parse_status(status) if status else None,
                 force=force,
@@ -511,5 +529,7 @@ def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
     ):
         """Comment on the sub-entity's discussion."""
         pid, lid = ids(ctx)
-        get_service().comment(pid, message, as_slug=as_, **{kind: lid})
-        console.print(f"commented on {pid} {lid} as {as_}")
+        svc = get_service()
+        slug = resolve_slug_or_raise(as_, svc)
+        svc.comment(pid, message, as_slug=slug, **{kind: lid})
+        console.print(f"commented on {pid} {lid} as {slug}")

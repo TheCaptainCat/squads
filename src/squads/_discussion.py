@@ -227,8 +227,7 @@ def ensure_container(text: str, heading: str, container: str) -> str:
     if open_tag in text:
         return text  # already present
     block = (
-        f"\n\n## {heading}\n\n"
-        f"{markers.open_marker(container)}\n{markers.close_marker(container)}\n"
+        f"\n\n## {heading}\n\n{markers.open_marker(container)}\n{markers.close_marker(container)}\n"
     )
     return text + block
 

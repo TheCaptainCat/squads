@@ -123,8 +123,11 @@ def adopt(
         store.create_empty(__version__)
 
     svc = Service(sp)
-    db = svc.repair()  # import any existing squads-native .md files (sets counter from them)
-    existing_roles = {it.extra.get(X.SLUG) for it in db.items.values() if it.type is ItemType.ROLE}
+    # Import any existing squads-native .md files (sets counter from them).
+    repair_result = svc.repair()
+    existing_roles = {
+        it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type is ItemType.ROLE
+    }
 
     if not no_claude:
         svc.scaffold_backend()
@@ -133,7 +136,7 @@ def adopt(
     if not no_claude:
         svc.refresh_managed()
 
-    return AdoptResult(paths=sp, imported=len(db.items), roles=created)
+    return AdoptResult(paths=sp, imported=len(repair_result.db.items), roles=created)
 
 
 def open_service(dir_override: str | None = None) -> Service:

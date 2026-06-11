@@ -81,7 +81,8 @@ def test_repair_rebuilds_index_from_frontmatter(svc):
     svc.create(ItemType.TASK, "t")
     # frontmatter is the durable truth: nuke the index and rebuild
     svc.paths.index_path.unlink()
-    db = svc.repair()
+    result = svc.repair()
+    db = result.db
     # the index now keys items by their int sequence number; ids live on the items
     assert set(db.items) == {1, 2, 3}
     assert {it.id for it in db.items.values()} == {"ROLE-000001", "FEAT-000002", "TASK-000003"}
@@ -110,8 +111,8 @@ def test_repair_reconstructs_subentities_from_frontmatter(svc):
     task = svc.create(ItemType.TASK, "Auth").item
     svc.add_subtask(task.id, "Validate", assignee=None)
     svc.paths.index_path.unlink()
-    db = svc.repair()
-    (sub,) = db.get(task.id).subentities
+    result = svc.repair()
+    (sub,) = result.db.get(task.id).subentities
     assert (sub.local_id, sub.title, sub.status) == ("ST1", "Validate", Status.TODO)
 
 
@@ -179,7 +180,8 @@ def test_repair_renumber_resolves_collision(svc):
     svc.repair()
     svc.add_ref(bug.id, "FEAT-000003")
 
-    db = svc.repair(renumber=True)
+    result = svc.repair(renumber=True)
+    db = result.db
 
     numbers = list(db.items)  # the index keys ARE the sequence numbers
     assert len(numbers) == len(set(numbers)), "no duplicate numbers remain"
@@ -321,3 +323,110 @@ def test_version_notice_triggers_when_newer(capsys, project, monkeypatch):
     common.version_notice()
     err = capsys.readouterr().err
     assert "sq sync" in err
+
+
+# --------------------------------------------------------------------------- counter monotonicity
+
+
+def test_repair_keeps_counter_after_top_item_deleted(svc):
+    """Repair must not regress the counter when the highest-numbered item's file is deleted."""
+    svc.create(ItemType.FEATURE, "alpha")  # FEAT-000002
+    top = svc.create(ItemType.TASK, "beta").item  # TASK-000003; counter → 3
+    assert svc.store.load().counter == 3
+
+    # Delete the top item's markdown file — simulates accidental or manual removal.
+    svc.paths.abspath(top.path).unlink()
+
+    result = svc.repair()
+    # Counter must stay at 3 (the previous high-water mark), not drop to 2.
+    assert result.db.counter == 3, "counter must not regress after top-item file loss"
+    # The missing id is reported.
+    assert top.id in result.missing_ids
+
+
+def test_allocate_after_repair_never_reuses(svc):
+    """Next create after a repair-after-file-loss must yield max+1, not a reused number."""
+    svc.create(ItemType.FEATURE, "alpha")  # FEAT-000002
+    top = svc.create(ItemType.TASK, "beta").item  # TASK-000003; counter → 3
+
+    svc.paths.abspath(top.path).unlink()
+    svc.repair()
+
+    # The next allocation must be 4, never 3.
+    new_item = svc.create(ItemType.BUG, "new bug").item
+    assert new_item.sequence_id == 4, f"expected sequence 4, got {new_item.sequence_id}"
+    assert new_item.id == "BUG-000004"
+
+
+def test_load_corrects_regressed_counter(svc):
+    """load() corrects a regressed counter in memory but leaves the file untouched.
+
+    The corrected counter is then persisted by the next transaction (e.g. create),
+    which must allocate max+1 and write the corrected value to disk.
+    """
+    import json
+
+    svc.create(ItemType.FEATURE, "f1")  # FEAT-000002
+    svc.create(ItemType.TASK, "t1")  # TASK-000003; counter → 3
+
+    # Simulate a hand-edit that regressed the counter to 1.
+    with svc.store.transaction() as db:
+        db.counter = 1
+
+    # File must still have the regressed value of 1 on disk.
+    raw_before = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    assert raw_before["counter"] == 1, "file should be unchanged before load()"
+
+    # load() must raise the in-memory counter to max(sequence_ids) = 3 …
+    loaded = svc.store.load()
+    assert loaded.counter == 3, f"expected in-memory counter=3 after load, got {loaded.counter}"
+
+    # … but the file must remain untouched (counter still 1 on disk).
+    raw_after = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    assert raw_after["counter"] == 1, "load() must not write back to the file"
+
+    # The next create (a transaction) allocates max+1 = 4 and persists counter=4 to disk.
+    new_item = svc.create(ItemType.BUG, "should be 4").item
+    assert new_item.sequence_id == 4, f"expected sequence 4, got {new_item.sequence_id}"
+    raw_persisted = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    assert raw_persisted["counter"] == 4, "transaction must persist the corrected counter"
+
+
+def test_repair_reports_missing_ids(svc):
+    """Repair surfaces the IDs of items that were indexed but whose files disappeared."""
+    feat = svc.create(ItemType.FEATURE, "feature a").item  # FEAT-000002
+    task = svc.create(ItemType.TASK, "task b").item  # TASK-000003
+
+    # Delete one file.
+    svc.paths.abspath(task.path).unlink()
+
+    result = svc.repair()
+    assert task.id in result.missing_ids
+    assert feat.id not in result.missing_ids  # feat is still on disk; not reported
+
+
+def test_check_flags_index_item_with_no_file(svc):
+    """check() reports an error for items present in the index but missing from disk."""
+    task = svc.create(ItemType.TASK, "t").item
+    # Artificially add a ghost item to the index (no file on disk).
+    import json
+
+    raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    raw["items"]["99"] = {
+        "id": "TASK-000099",
+        "sequence_id": 99,
+        "type": "task",
+        "title": "ghost",
+        "slug": "ghost",
+        "status": "Draft",
+        "path": "tasks/TASK-000099-ghost.md",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z",
+    }
+    raw["counter"] = 99
+    svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    issues = svc.check()
+    assert any(i.item == "TASK-000099" and "no markdown" in i.message for i in issues)
+    # The real task has no issue.
+    assert not any(i.item == task.id and "no markdown" in i.message for i in issues)

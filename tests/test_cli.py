@@ -108,7 +108,7 @@ def test_subtask_assignee_cli(runner, tmp_path, monkeypatch, frozen_time):
     up = runner.invoke(app, ["task", "3", "subtask", "1", "update", "--assignee", "manager"])
     assert up.exit_code == 0, up.output
     bad = runner.invoke(app, ["task", "3", "subtask", "1", "update", "--assignee", "ghost"])
-    assert bad.exit_code == 1 and "not a registered agent" in bad.output
+    assert bad.exit_code == 1 and "unknown slug" in bad.output
     # --clear-assignee unassigns; with --assignee together it's rejected
     assert (
         runner.invoke(app, ["task", "3", "subtask", "1", "update", "--clear-assignee"]).exit_code
@@ -451,6 +451,20 @@ def test_status_transitions_via_cli(runner, tmp_path, monkeypatch, frozen_time):
     assert "InProgress" in ok.output
 
 
+def test_show_has_no_body_label(runner, tmp_path, monkeypatch, frozen_time):
+    """BUG-000025: sq show must not inject a bare 'Body' literal between the panel and content."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "Show test", "--author", "manager", "-m", "Content."])
+    shown = runner.invoke(app, ["task", "2", "show"])
+    assert shown.exit_code == 0, shown.output
+    # the viewer must not inject a standalone "Body" header
+    lines = shown.output.splitlines()
+    assert not any(line.strip() == "Body" for line in lines)
+    # the actual body content is still present
+    assert "Content." in shown.output
+
+
 def test_list_json(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
@@ -470,9 +484,9 @@ def test_collab_commands_via_cli(runner, tmp_path, monkeypatch, frozen_time):
     )
     assert runner.invoke(app, ["feature", "5", "add-story", "As an admin, I want X"]).exit_code == 0
     assert runner.invoke(app, ["task", "6", "add-subtask", "expiry"]).exit_code == 0
-    c = runner.invoke(app, ["task", "6", "comment", "--as", "architect", "-m", "@qa verify"])
+    c = runner.invoke(app, ["task", "6", "comment", "--as", "architect", "-m", "@reviewer verify"])
     assert c.exit_code == 0, c.output
-    box = runner.invoke(app, ["inbox", "qa"])
+    box = runner.invoke(app, ["inbox", "reviewer"])
     assert "TASK-000006" in box.output
     chk = runner.invoke(app, ["check"])
     assert chk.exit_code == 0, chk.output
@@ -489,3 +503,59 @@ def test_dir_override(runner, tmp_path, monkeypatch, frozen_time):
     r = runner.invoke(app, ["--dir", str(tmp_path / "alt"), "list"])
     assert r.exit_code == 0, r.output
     assert "ROLE-000001" in r.output
+
+
+# --------------------------------------------------------------------------- counter monotonicity
+
+
+def test_repair_cli_holds_counter_after_file_loss(project, runner, frozen_time):
+    """sq repair reports missing items and holds the counter when the top file is deleted."""
+    # Create two items so counter reaches 3 (ROLE-000001 + FEAT-000002 + TASK-000003).
+    from squads._models._enums import ItemType
+    from squads._services._service import Service
+
+    svc = Service(project)
+    svc.create(ItemType.FEATURE, "feat")  # FEAT-000002
+    top = svc.create(ItemType.TASK, "task").item  # TASK-000003
+
+    # Delete the top item's file.
+    svc.paths.abspath(top.path).unlink()
+
+    r = runner.invoke(app, ["repair"])
+    assert r.exit_code == 0, r.output
+    # Counter must stay at 3 (not drop to 2).
+    assert "counter=3" in r.output, f"expected counter=3 in output: {r.output!r}"
+    # Missing item is surfaced.
+    assert top.id in r.output
+
+
+def test_check_cli_flags_index_item_with_no_file(project, runner, frozen_time):
+    """sq check exits 1 and flags items in the index whose files are gone."""
+    import json
+
+    from squads._models._enums import ItemType
+    from squads._services._service import Service
+
+    svc = Service(project)
+    svc.create(ItemType.TASK, "real task")  # TASK-000002
+
+    # Inject a ghost item into the index (no file on disk).
+    raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    raw["items"]["99"] = {
+        "id": "TASK-000099",
+        "sequence_id": 99,
+        "type": "task",
+        "title": "ghost",
+        "slug": "ghost",
+        "status": "Draft",
+        "path": "tasks/TASK-000099-ghost.md",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z",
+    }
+    raw["counter"] = 99
+    svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    r = runner.invoke(app, ["check"])
+    assert r.exit_code == 1, r.output
+    assert "TASK-000099" in r.output
+    assert "no markdown" in r.output
