@@ -146,8 +146,41 @@ def test_blocked_and_workload_cli(project, runner):
 
 def test_mine_cli(project, runner):
     runner.invoke(app, ["create", "task", "Mine", "--author", "manager", "--assignee", "manager"])
-    # default role for a fresh squad is the manager
-    r = runner.invoke(app, ["mine"])
+    # slug is now required; pass manager explicitly
+    r = runner.invoke(app, ["mine", "manager"])
     assert "TASK-000002" in r.output
-    other = runner.invoke(app, ["mine", "architect"])
-    assert "nothing assigned" in other.output
+    # unknown slug is an error (exit 1) — bare sq mine is also an error
+    bare = runner.invoke(app, ["mine"])
+    assert bare.exit_code != 0
+    unknown = runner.invoke(app, ["mine", "ghost"])
+    assert unknown.exit_code == 1 and "unknown slug" in unknown.output
+
+
+def test_tree_priority_dot_separator(project, runner):
+    """BUG-000030: sq tree human rendering separates priority and title with a middle dot."""
+    runner.invoke(
+        app,
+        ["create", "task", "My important task", "--author", "manager", "--priority", "high"],
+    )
+    out = runner.invoke(app, ["tree"]).output
+    assert "·" in out, f"middle dot separator missing from tree output: {out!r}"
+    # priority badge and title should be separated by ' · ' not a bare space
+    assert "high · My important task" in out
+    # --json surface is untouched (no dot in priority value)
+    import json
+
+    all_nodes = json.loads(runner.invoke(app, ["tree", "--json"]).output)
+
+    def find_node(nodes: list[dict[str, object]], item_id: str) -> dict[str, object] | None:
+        for n in nodes:
+            if n["id"] == item_id:
+                return n
+            hit = find_node(list(n["children"]), item_id)  # type: ignore[arg-type]
+            if hit:
+                return hit
+        return None
+
+    task_node = find_node(all_nodes, "TASK-000002")
+    assert task_node is not None
+    assert task_node["priority"] == "high"
+    assert "·" not in str(task_node["priority"])

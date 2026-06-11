@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 41,
+  "counter": 45,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -382,7 +382,7 @@
       "type": "bug",
       "title": "Slug arguments not validated: sq mine accepts unknown agents and silently defaults to manager",
       "slug": "slug-arguments-not-validated-sq-mine-accepts-unknown-agents",
-      "status": "Ready",
+      "status": "Done",
       "description": "sq mine/inbox exit 0 for unknown slugs and bare sq mine defaults to manager; slug args should be required and validated against the roster across commands",
       "parent": null,
       "author": "op-pierre",
@@ -395,7 +395,7 @@
       "subentities": [],
       "path": "bugs/BUG-000021-slug-arguments-not-validated-sq-mine-accepts-unknown-agents.md",
       "created_at": "2026-06-10T13:35:26Z",
-      "updated_at": "2026-06-11T07:54:56Z",
+      "updated_at": "2026-06-11T13:19:21Z",
       "extra": {},
       "id": "BUG-000021"
     },
@@ -797,7 +797,7 @@
       "type": "bug",
       "title": "Counter can regress, allowing sequence-number reuse after an item file disappears",
       "slug": "counter-can-regress-allowing-sequence-number-reuse-after-an",
-      "status": "Ready",
+      "status": "Done",
       "description": "Hand-edited or repair-rebuilt indexes accept a regressed counter, so deleted items' numbers get reused; repair sets counter to max-found, ignoring the previous high-water mark",
       "parent": null,
       "author": "product-owner",
@@ -805,12 +805,13 @@
       "priority": "high",
       "labels": [],
       "refs": [
-        "FEAT-000019"
+        "FEAT-000019",
+        "FEAT-000023:relates"
       ],
       "subentities": [],
       "path": "bugs/BUG-000022-counter-can-regress-allowing-sequence-number-reuse-after-an.md",
       "created_at": "2026-06-10T13:51:32Z",
-      "updated_at": "2026-06-11T07:54:56Z",
+      "updated_at": "2026-06-11T13:19:07Z",
       "extra": {},
       "id": "BUG-000022"
     },
@@ -915,18 +916,20 @@
       "type": "bug",
       "title": "show prints a redundant 'Body' literal before the body",
       "slug": "show-prints-a-redundant-body-literal-before-the-body",
-      "status": "Draft",
+      "status": "Done",
       "description": "sq <type> <n> show prefixes the body with a bare 'Body' label; the body is self-evident after the metadata panel and usually opens with its own headings",
       "parent": null,
       "author": "op-pierre",
       "assignee": null,
       "priority": "low",
       "labels": [],
-      "refs": [],
+      "refs": [
+        "FEAT-000026:relates"
+      ],
       "subentities": [],
       "path": "bugs/BUG-000025-show-prints-a-redundant-body-literal-before-the-body.md",
       "created_at": "2026-06-10T14:52:35Z",
-      "updated_at": "2026-06-10T14:52:36Z",
+      "updated_at": "2026-06-11T13:19:34Z",
       "extra": {},
       "id": "BUG-000025"
     },
@@ -1093,7 +1096,7 @@
       "type": "bug",
       "title": "tree: priority and title separated by a bare space",
       "slug": "tree-priority-and-title-separated-by-a-bare-space",
-      "status": "Draft",
+      "status": "Done",
       "description": "In sq tree, '🟠 high Stability contract documentation' runs together — put a middle dot between priority and title",
       "parent": null,
       "author": "op-pierre",
@@ -1104,7 +1107,7 @@
       "subentities": [],
       "path": "bugs/BUG-000030-tree-priority-and-title-separated-by-a-bare-space.md",
       "created_at": "2026-06-10T15:19:16Z",
-      "updated_at": "2026-06-10T15:19:16Z",
+      "updated_at": "2026-06-11T13:19:46Z",
       "extra": {},
       "id": "BUG-000030"
     },
@@ -1552,6 +1555,159 @@
       "updated_at": "2026-06-11T09:17:28Z",
       "extra": {},
       "id": "FEAT-000041"
+    },
+    "42": {
+      "sequence_id": 42,
+      "type": "task",
+      "title": "Fix counter regression and sequence-number reuse (BUG-000022)",
+      "slug": "fix-counter-regression-and-sequence-number-reuse-bug-000022",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "BUG-000022:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Repair keeps high-water mark: counter = max(previous counter, max found on disk)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "ST2",
+          "title": "Load-time counter validation: repair upward when stored counter is below max item sequence",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "ST3",
+          "title": "Report items missing from disk vs the previous index in repair/check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "ST4",
+          "title": "Regression tests (service + CLI) covering both regression routes",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "tasks/TASK-000042-fix-counter-regression-and-sequence-number-reuse-bug-000022.md",
+      "created_at": "2026-06-11T12:14:51Z",
+      "updated_at": "2026-06-11T13:00:51Z",
+      "extra": {},
+      "id": "TASK-000042"
+    },
+    "43": {
+      "sequence_id": 43,
+      "type": "task",
+      "title": "Validate slug arguments across mine/inbox and slug-accepting surfaces (BUG-000021)",
+      "slug": "validate-slug-arguments-across-mine-inbox-and-slug-accepting",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "BUG-000021:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add resolve_slug_or_raise helper to _cli/_common.py",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "ST2",
+          "title": "Make sq mine require slug argument",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "ST3",
+          "title": "Validate slug on inbox, workload, comment --as, update --assignee/--author",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "ST4",
+          "title": "Add service-level and CLI smoke tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "tasks/TASK-000043-validate-slug-arguments-across-mine-inbox-and-slug-accepting.md",
+      "created_at": "2026-06-11T12:14:52Z",
+      "updated_at": "2026-06-11T12:56:40Z",
+      "extra": {},
+      "id": "TASK-000043"
+    },
+    "44": {
+      "sequence_id": 44,
+      "type": "task",
+      "title": "Cosmetic cleanup: drop redundant show 'Body' label and add tree separator (BUG-000025, BUG-000030)",
+      "slug": "cosmetic-cleanup-drop-redundant-show-body-label-and-add-tree",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "BUG-000025:fixes",
+        "BUG-000030:fixes"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000044-cosmetic-cleanup-drop-redundant-show-body-label-and-add-tree.md",
+      "created_at": "2026-06-11T12:14:53Z",
+      "updated_at": "2026-06-11T12:50:23Z",
+      "extra": {},
+      "id": "TASK-000044"
+    },
+    "45": {
+      "sequence_id": 45,
+      "type": "task",
+      "title": "Clear pre-existing lint/format debt on the release branch (F401 + format drift)",
+      "slug": "clear-pre-existing-lint-format-debt-on-the-release-branch-f4",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "tech-lead",
+      "priority": "low",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000045-clear-pre-existing-lint-format-debt-on-the-release-branch-f4.md",
+      "created_at": "2026-06-11T12:49:16Z",
+      "updated_at": "2026-06-11T12:50:45Z",
+      "extra": {},
+      "id": "TASK-000045"
     }
   }
 }

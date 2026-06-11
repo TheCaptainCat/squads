@@ -18,7 +18,7 @@ from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import number_for_id
 from squads._roles._catalog import RoleDef
 from squads._services._base import SUBENTITY_KIND, ServiceCore
-from squads._services._results import CheckIssue
+from squads._services._results import CheckIssue, RepairResult
 from squads._workflow import parent_allowed, parent_hint, subentity_workflow, workflow_for
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
@@ -108,10 +108,25 @@ class MaintenanceMixin(ServiceCore):
             yield from ((item_type, md) for md in sorted(folder.glob(f"{item_type.prefix}-*.md")))
 
     # ------------------------------------------------------------------ repair / renumber
-    def repair(self, *, renumber: bool = False) -> SquadsDB:
+    def repair(self, *, renumber: bool = False) -> RepairResult:
+        # Snapshot the previous index (if any) before rebuilding, so we can:
+        #  (a) preserve the high-water mark of the counter, and
+        #  (b) report items that were indexed but whose files have gone missing.
+        previous_counter = 0
+        previous_ids: set[str] = set()
+        if self.store.exists():
+            try:
+                prev = self.store.load()
+                previous_counter = prev.counter
+                previous_ids = {it.id for it in prev.items.values()}
+            except Exception:  # corrupt index — treat as empty
+                pass
+
         if renumber:
             self._renumber()
+
         db = SquadsDB(squads_version=__version__, counter=0)
+        found_ids: set[str] = set()
         max_n = 0
         for item_type, md in self._iter_item_files():
             data = read_frontmatter(md)
@@ -120,10 +135,16 @@ class MaintenanceMixin(ServiceCore):
             squad_rel = self.paths.squad_relative(item_type, md.name)
             item = Item.from_frontmatter(data, path=squad_rel)
             db.add(item)
+            found_ids.add(item.id)
             max_n = max(max_n, number_for_id(item.id))
-        db.counter = max_n
+
+        # Never let the counter regress: keep whichever is higher — the previous high-water mark
+        # or the maximum sequence number found on disk.
+        db.counter = max(previous_counter, max_n)
         self.store.overwrite(db)
-        return db
+
+        missing_ids = sorted(previous_ids - found_ids)
+        return RepairResult(db=db, missing_ids=missing_ids)
 
     def _scan_records(self) -> list[_FileRec]:
         records: list[_FileRec] = []

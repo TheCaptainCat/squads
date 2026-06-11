@@ -75,7 +75,7 @@ from squads._cli import (  # noqa: E402
     _skill,
 )
 from squads._cli import _main as _main  # noqa: E402
-from squads._models._enums import WORK_TYPES, ItemType  # noqa: E402
+from squads._models._enums import WORK_TYPES  # noqa: E402
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")

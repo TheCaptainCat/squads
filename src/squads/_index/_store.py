@@ -35,14 +35,26 @@ class IndexStore:
         return self.index_path.is_file()
 
     def load(self) -> SquadsDB:
-        """Read without locking — for queries (list/show)."""
+        """Read without locking — for queries (list/show).
+
+        If the stored counter is below the maximum item sequence number (e.g. due to a hand-edit),
+        the counter is silently raised **in memory** so the next allocation cannot reuse a sequence
+        number.  The file is left untouched; the corrected value reaches disk only when the next
+        ``transaction()`` saves — or when ``sq repair`` is run explicitly.  Allocation still
+        happens only inside ``IndexStore.transaction()`` (invariant 2).
+        """
         try:
-            return SquadsDB.model_validate_json(self.index_path.read_text(encoding="utf-8"))
+            db = SquadsDB.model_validate_json(self.index_path.read_text(encoding="utf-8"))
         except ValidationError as exc:
             raise SquadsError(
                 f"corrupt index {self.index_path.name} ({exc.error_count()} problem(s)); "
                 "run `sq repair` to rebuild it from the markdown files"
             ) from exc
+        # Guard against a hand-edited or externally-regressed counter (in memory only).
+        max_seq = max((item.sequence_id for item in db.items.values()), default=0)
+        if db.counter < max_seq:
+            db.counter = max_seq
+        return db
 
     # ------------------------------------------------------------------ transaction
     @contextlib.contextmanager

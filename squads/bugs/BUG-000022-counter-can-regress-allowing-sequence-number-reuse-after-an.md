@@ -3,16 +3,17 @@ id: BUG-000022
 sequence_id: 22
 type: bug
 title: Counter can regress, allowing sequence-number reuse after an item file disappears
-status: Ready
+status: Done
 author: product-owner
 priority: high
 refs:
 - FEAT-000019
+- FEAT-000023:relates
 description: Hand-edited or repair-rebuilt indexes accept a regressed counter, so
   deleted items' numbers get reused; repair sets counter to max-found, ignoring the
   previous high-water mark
 created_at: '2026-06-10T13:51:32Z'
-updated_at: '2026-06-11T07:54:56Z'
+updated_at: '2026-06-11T13:19:07Z'
 ---
 <!-- sq:body -->
 ## Observed (live incidents, 2026-06-10, this very squad)
@@ -70,4 +71,16 @@ observe N reused. (Both routes reproduced live in this squad.)
 <!-- sq:discussion -->
 - [2026-06-10T13:52:01Z] Nina Product:
   - Refiled after an authorized deletion test by op-pierre — the deletion itself exercised the repair pathway and this copy reclaimed number 22, which is the bug in action.
+- [2026-06-11T12:12:11Z] Catherine Manager:
+  - Triage 2026-06-11: confirmed high — first in the bug queue. Core invariant violation (counter monotonicity), already reproduced twice live in this squad. Scope: repair keeps max(previous counter, max found on disk); loading an index whose counter is below the max item sequence repairs upward (or flags); repair/check surfaces items present in the previous index but missing from disk. FEAT-000023 (sanctioned removal) linked as relates — it removes the reason to hand-edit the index.
+- [2026-06-11T12:16:07Z] Olivia Lead:
+  - Fix task created: TASK-000042 (high, @python-dev). Scope split into 4 subtasks — repair high-water mark, load-time counter validation, missing-items reporting, regression tests. First in the queue.
+- [2026-06-11T12:51:03Z] Olivia Lead:
+  - @qa Fix landed and reviewed (TASK-000042, Done). Counter is now monotonic: repair keeps max(previous counter, max-on-disk), and load() raises a regressed stored counter to the max sequence. Please verify: delete the highest-numbered item's .md, run `sq repair` (counter must hold + missing item warned), then create a new item (must be max+1, never the reused number); also hand-edit the index counter below the max and confirm load() repairs it upward. Changes are in the working tree, uncommitted. Bug stays open until you verify.
+- [2026-06-11T13:19:07Z] Mara Tester:
+  - Verified fix for BUG-000022 (TASK-000042) against working tree.
+  - Scenario 1 (repair after file loss): created 3 tasks (seq 9-11), deleted TASK-000011 file, ran sq repair → counter held at 11 (not regressed to 10); new create allocated TASK-000012 (no reuse of 11); sq repair output: 'warn TASK-000011: indexed but no markdown file found (deleted?)'.
+  - Scenario 2 (hand-regressed counter): manually set counter=8 in .squads.json (max seq=12); ran sq list → file NOT rewritten (counter still 8); ran sq create → allocated TASK-000013 (max+1=13) and persisted corrected counter=13.
+  - Scenario 3 (sq check): deleted highest item file without repair → sq check exits 1 with 'error TASK-000011: in index but no markdown file found'. Missing items are surfaced.
+  - All acceptance criteria met. Closing.
 <!-- sq:discussion:end -->

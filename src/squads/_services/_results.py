@@ -1,8 +1,9 @@
 """Result dataclasses returned by the service layer."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths
@@ -64,6 +65,18 @@ class RetypeResult:
     status_reset: bool
     old_status: str  # Status.value string (meaningful only when status_reset is True)
     rewritten: list[str]  # paths of files whose text was updated (relative display names)
+
+
+@dataclass
+class RepairResult:
+    """Outcome of ``Service.repair()``.
+
+    ``missing_ids`` holds item IDs that were present in the index *before* repair but whose
+    markdown files could not be found on disk — a deletion event worth surfacing to the operator.
+    """
+
+    db: SquadsDB
+    missing_ids: list[str] = field(default_factory=list[str])
 
 
 @dataclass

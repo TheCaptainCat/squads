@@ -117,7 +117,7 @@ def print_item(svc: Service, it: Item) -> None:
     console.print(Panel("\n".join(rows), expand=False))
     if it.type not in (ItemType.ROLE, ItemType.SKILL):
         body = svc.read_body(it.id)
-        console.print("\n[bold]Body[/bold]")
+        console.print()
         console.print(e(body) if body else "[dim](empty — set it with `body`)[/dim]")
 
 
@@ -248,6 +248,25 @@ def resolve_item_id(token: str, item_type: ItemType) -> str:
 def resolve_local_id(token: str, kind: str) -> str:
     """A CLI sub-entity token → canonical local id: ``2`` → ``ST2``/``US2``/``F2``."""
     return discussion.local_id_for(kind, token)
+
+
+def resolve_slug_or_raise(slug: str, svc: Service) -> str:
+    """Validate ``slug`` against the roster (agents + operators) and return it normalised.
+
+    Mirrors :func:`resolve_item_id` in shape: one validation idiom for slugs, one for item IDs.
+    Raises :class:`SquadsError` (exit 1) naming valid slugs when the slug is unknown.
+    ``"operator"`` is the legacy anonymous sentinel — it is not validated (kept for compat).
+    """
+    normalised = slug.lstrip("@").lower()
+    if normalised == "operator":
+        return normalised
+    agent_slugs = [r.slug for r in svc.roster()]
+    operator_slugs = [o.slug for o in svc.operators()]
+    if normalised in agent_slugs or normalised in operator_slugs:
+        return normalised
+    valid = sorted(agent_slugs + operator_slugs)
+    hint = ", ".join(valid) if valid else "(none registered — run `sq init` or `sq operator add`)"
+    raise SquadsError(f"unknown slug {slug!r}; valid slugs: {hint}")
 
 
 def parse_type(value: str) -> ItemType:
