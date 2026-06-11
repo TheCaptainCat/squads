@@ -34,7 +34,7 @@ from squads._cli._common import (
 )
 from squads._errors import SquadsError
 from squads._models._enums import SEVERITY_EMOJI, ItemType
-from squads._models._item import split_ref
+from squads._models._item import DEFAULT_KIND, split_ref
 from squads._models._subentity import SubEntity
 
 # Parent type → (sub-entity kind, plural label for the list verb + `list_<plural>` service method).
@@ -235,7 +235,13 @@ def _cmd_refs(item: typer.Typer) -> None:
         ctx: typer.Context,
         target: str = typer.Argument(..., help="Target item ID."),
         kind: str = typer.Option(
-            "related", "--kind", help="related | blocks | implements | fixes | addresses"
+            "related",
+            "--kind",
+            help=(
+                "Edge kind: related|blocks|depends-on|implements|fixes|addresses|"
+                "supersedes|duplicates. Run `sq workflow` for the canonical kinds table "
+                "(meaning, direction, and which commands consume each kind)."
+            ),
         ),
     ):
         """Add a forward reference to TARGET."""
@@ -243,7 +249,7 @@ def _cmd_refs(item: typer.Typer) -> None:
         # target may be a bare number, full ID, or ID:kind — resolve the ID part only
         raw_id, embedded_kind = split_ref(target)
         resolved_id = resolve_item_id_any(raw_id, svc)
-        effective_kind = embedded_kind if embedded_kind != "related" else kind
+        effective_kind = embedded_kind if embedded_kind != DEFAULT_KIND else kind
         svc.add_ref(_id(ctx), resolved_id, kind=effective_kind)
         console.print(f"{_id(ctx)} → {resolved_id} ([dim]{effective_kind}[/dim])")
 

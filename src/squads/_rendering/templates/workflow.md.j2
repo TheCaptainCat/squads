@@ -26,3 +26,20 @@
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
   "…"`; read back with `sq <type> <n> show`. Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
+
+## Ref kinds
+
+The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
+
+| Kind | Meaning | Direction convention | Consumer |
+|---|---|---|---|
+| `related` | Generic cross-reference (default) | `A related B` lives on A | Navigation |
+| `blocks` | A is blocking B; B cannot proceed while A is open | `A blocks B` lives on **A** (the blocker) | `sq blocked` |
+| `depends-on` | A depends on B; A cannot proceed while B is open. Equivalent to `B blocks A` — `A depends-on B` ≡ `B blocks A` | `A depends-on B` lives on **A** (the dependent) | `sq blocked` |
+| `implements` | A implements the requirement or spec described by B | `A implements B` lives on A | Navigation |
+| `fixes` | A (a task or PR) fixes bug B | `A fixes B` lives on A | `sq check` task rules |
+| `addresses` | A (a task) addresses or follows up review B | `A addresses B` lives on A | `sq check` task rules |
+| `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be Superseded | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
+| `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as Cancelled | `A duplicates B` lives on **A** (the later filing) | Navigation |
+
+`blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context. Bare `ref add <id>` (no `--kind`) defaults to `related`.

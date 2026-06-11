@@ -8,12 +8,12 @@ author: product-owner
 priority: high
 refs:
 - FEAT-000019
-- FEAT-000023:relates
+- FEAT-000023
 description: Hand-edited or repair-rebuilt indexes accept a regressed counter, so
   deleted items' numbers get reused; repair sets counter to max-found, ignoring the
   previous high-water mark
 created_at: '2026-06-10T13:51:32Z'
-updated_at: '2026-06-11T13:19:07Z'
+updated_at: '2026-06-11T20:40:07Z'
 ---
 <!-- sq:body -->
 ## Observed (live incidents, 2026-06-10, this very squad)

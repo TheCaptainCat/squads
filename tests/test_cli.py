@@ -869,3 +869,149 @@ def test_subtask_story_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     # unknown story errors from service
     bad = runner.invoke(app, ["task", "3", "add-subtask", "ST3", "--story", "99"])
     assert bad.exit_code == 1
+
+
+def test_ref_kind_vocabulary_validation(runner, tmp_path, monkeypatch, frozen_time):
+    """ref add --kind rejects unknown kinds; all eight vocabulary kinds accepted.
+
+    Bare add (no --kind) stays frictionless.
+    """
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000003
+
+    # unknown kind exits 1 and lists valid kinds
+    bad = runner.invoke(app, ["task", "3", "ref", "add", "FEAT-000002", "--kind", "banana"])
+    assert bad.exit_code == 1
+    assert "banana" in bad.output
+    for k in ("related", "blocks", "fixes", "addresses"):
+        assert k in bad.output
+
+    # typo variant also exits 1
+    bad2 = runner.invoke(app, ["task", "3", "ref", "add", "FEAT-000002", "--kind", "fixe"])
+    assert bad2.exit_code == 1
+
+    # valid new kinds all accepted
+    for kind in ("supersedes", "depends-on", "duplicates"):
+        r = runner.invoke(app, ["task", "3", "ref", "add", "FEAT-000002", "--kind", kind])
+        assert r.exit_code == 0, f"expected exit 0 for --kind {kind!r}, got: {r.output}"
+
+    # bare add (no --kind) remains frictionless — defaults to related
+    r = runner.invoke(app, ["task", "3", "ref", "add", "FEAT-000002"])
+    assert r.exit_code == 0, r.output
+    out = runner.invoke(app, ["task", "3", "refs"]).output
+    assert "FEAT-000002" in out
+
+
+def test_create_ref_kind_validation(runner, tmp_path, monkeypatch, frozen_time):
+    """create --ref id:kind rejects unknown kinds; accepts valid kinds; bare id defaults related."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+
+    # unknown kind via create --ref ID:kind exits 1
+    bad = runner.invoke(
+        app, ["create", "task", "T-bad", "--author", "manager", "--ref", "FEAT-000002:banana"]
+    )
+    assert bad.exit_code == 1
+    assert "banana" in bad.output
+
+    # valid kind accepted
+    r = runner.invoke(
+        app, ["create", "task", "T-ok", "--author", "manager", "--ref", "FEAT-000002:implements"]
+    )
+    assert r.exit_code == 0, r.output
+
+    # bare id (no kind) accepted — defaults to related
+    r2 = runner.invoke(
+        app, ["create", "task", "T-bare", "--author", "manager", "--ref", "FEAT-000002"]
+    )
+    assert r2.exit_code == 0, r2.output
+
+
+def test_blocked_depends_on_cli(runner, tmp_path, monkeypatch, frozen_time):
+    """sq blocked lists an item blocked via a depends-on edge."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "Blocker", "--author", "manager"])  # TASK-000002
+    runner.invoke(app, ["create", "task", "Dependent", "--author", "manager"])  # TASK-000003
+
+    # TASK-000003 depends-on TASK-000002 → TASK-000003 is blocked by TASK-000002
+    runner.invoke(app, ["task", "3", "ref", "add", "TASK-000002", "--kind", "depends-on"])
+
+    r = runner.invoke(app, ["blocked"])
+    assert r.exit_code == 0, r.output
+    # TASK-000003 (the dependent) should appear as blocked
+    assert "TASK-000003" in r.output
+    # TASK-000002 (the blocker) should appear as the reason
+    assert "TASK-000002" in r.output
+
+
+def test_check_warns_unknown_kind_and_superseded_cli(runner, tmp_path, monkeypatch, frozen_time):
+    """sq check warns on unknown ref kind and on Superseded decision without supersedes edge.
+
+    Warnings do not flip the exit code (exit 0 when only warnings present).
+    """
+    import squads._sections as sections
+    from squads._itemfile import read_frontmatter
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "A", "--author", "manager"])  # TASK-000002
+    runner.invoke(app, ["create", "task", "B", "--author", "manager"])  # TASK-000003
+    runner.invoke(app, ["create", "decision", "Old ADR", "--author", "manager"])  # ADR-000004
+
+    # Inject a junk kind into TASK-000002's frontmatter
+    task_files = list((tmp_path / "squads" / "tasks").glob("TASK-000002-*.md"))
+    assert task_files, "TASK-000002 file not found"
+    task_path = task_files[0]
+    text = task_path.read_text(encoding="utf-8")
+    fm = read_frontmatter(text=text)
+    fm["refs"] = ["TASK-000003:junktype"]
+    task_path.write_text(sections.replace_frontmatter(text, fm), encoding="utf-8")
+
+    # Force ADR-000004 to Superseded status (no incoming supersedes edge)
+    runner.invoke(app, ["decision", "4", "status", "Proposed"])
+    runner.invoke(app, ["decision", "4", "update", "--status", "Superseded", "--force"])
+
+    # Repair so the index reflects the injected changes
+    runner.invoke(app, ["repair"])
+
+    r = runner.invoke(app, ["check"])
+    # Warnings only → exit 0
+    assert r.exit_code == 0, r.output
+    # Unknown-kind warning
+    assert "junktype" in r.output
+    # Superseded-without-edge warning
+    assert "ADR-000004" in r.output
+    assert "supersedes" in r.output
+
+
+def test_workflow_contains_all_eight_kinds(runner):
+    """sq workflow output contains all eight ref kind names."""
+    r = runner.invoke(app, ["workflow"])
+    assert r.exit_code == 0, r.output
+    all_kinds = (
+        "related",
+        "blocks",
+        "depends-on",
+        "implements",
+        "fixes",
+        "addresses",
+        "supersedes",
+        "duplicates",
+    )
+    for kind in all_kinds:
+        assert kind in r.output, f"kind {kind!r} missing from sq workflow output"
+
+
+def test_ref_add_help_references_workflow(runner, tmp_path, monkeypatch):
+    """ref add --help lists the eight kinds and points at sq workflow."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    # ref add --help needs a resolved item number, so create one first
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])
+    h = runner.invoke(app, ["task", "2", "ref", "add", "--help"])
+    assert h.exit_code == 0, h.output
+    assert "sq workflow" in h.output

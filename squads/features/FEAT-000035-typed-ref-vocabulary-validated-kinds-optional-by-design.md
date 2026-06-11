@@ -3,7 +3,7 @@ id: FEAT-000035
 sequence_id: 35
 type: feature
 title: 'Typed ref vocabulary: validated kinds, optional by design'
-status: Ready
+status: Done
 parent: EPIC-000012
 author: product-owner
 priority: high
@@ -17,23 +17,23 @@ subentities:
 - local_id: US1
   title: As a user adding a typed ref, I want a typo'd kind rejected on the spot with
     the valid vocabulary, so that I can't silently create an edge nothing consumes
-  status: Todo
+  status: Done
 - local_id: US2
   title: As a user linking context, I want plain untyped refs to stay first-class,
     so that not every link needs a taxonomy decision
-  status: Todo
+  status: Done
 - local_id: US3
   title: As a team member learning the system, I want one documented table of kinds
     with direction and consumers, so that I pick the right kind without archaeology
     across five docs
-  status: Todo
+  status: Done
 - local_id: US4
   title: As a user drafting an item that needs another one first, I want to record
     depends-on from the item I'm editing, so that dependencies are authorable without
     touching the blocker
-  status: Todo
+  status: Done
 created_at: '2026-06-11T07:19:35Z'
-updated_at: '2026-06-11T07:54:55Z'
+updated_at: '2026-06-11T20:50:05Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -108,10 +108,10 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes |
-| US2 | Todo |  | As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision |
-| US3 | Todo |  | As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs |
-| US4 | Todo |  | As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker |
+| US1 | Done |  | As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes |
+| US2 | Done |  | As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision |
+| US3 | Done |  | As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs |
+| US4 | Done |  | As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -120,7 +120,7 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 ### US1 — As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -137,7 +137,7 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 ### US2 — As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -154,7 +154,7 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 ### US3 — As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -171,7 +171,7 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 ### US4 — As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
@@ -190,4 +190,19 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:discussion -->
 - [2026-06-11T07:29:45Z] Pierre Chat:
   - Vocabulary decision: extend to eight kinds — add supersedes, depends-on and duplicates (each with a consumer); explicitly keep tests/documents/caused-by out until they earn a consumer.
+- [2026-06-11T20:23:26Z] Olivia Lead:
+  - Broken down per ADR-000049 (closed vocabulary, no config lookup, flat membership test for check). Two tasks, sequenced.
+  - TASK-000050 (US1/US2/US4) — VALID_REF_KINDS constant in one place (_models/_item.py) + reject unknown --kind at ref add and create --ref; bare ref add stays first-class; the three new kinds (supersedes/depends-on/duplicates) accepted. Foundation.
+  - TASK-000051 (US3/US4, blocked by 50) — consumers + docs: depends-on≡blocks in sq blocked; sq check warns on unknown kinds in files and on Superseded decisions lacking an incoming supersedes edge; the one canonical eight-row kinds table in workflow.md.j2 with help pointing at it.
+  - Boundary: the stability-CONTRACT wording (closed-in-1.0 + extension policy, verbatim per ADR-000049) is FEAT-000013's to write, not this feature's — same split we used on FEAT-000019. TASK-000051 ships the docs kinds table + help only.
+  - Format unchanged: kinds are additive, schema stays 0.3, no migration (verified). @python-dev — start with TASK-000050; 51 unblocks when its constant lands.
+- [2026-06-11T20:50:05Z] Mara Tester:
+  - QA verification complete. FEAT-000035 closes as Done. All acceptance criteria verified hands-on in a scratch squad (tmp dir, sq init, items of several types).
+  - US1 PASS: ref add --kind banana exits 1 listing all 8 valid kinds; --kind fixe exits 1 listing valid kinds; create --ref id:banana exits 1. All 8 kinds (related, blocks, depends-on, implements, fixes, addresses, supersedes, duplicates) accepted via ref add and at least 3 via create --ref id:kind.
+  - US2 PASS: bare ref add <id> works unchanged (exit 0), stored as plain ID in frontmatter (no :kind suffix), CLI renders as (related) at add time, shows as plain ID in sq show.
+  - US4 + blocked equivalence PASS: A=TASK-000019 depends-on E=TASK-000020 reported by sq blocked as 'blocked by E'. C=TASK-000021 blocks F=TASK-000022 reported as 'blocked by C'. Mixed usage in one squad works. Item G blocked via both spellings (two separate blockers) appears once with both blockers listed — no duplication.
+  - sq check warnings PASS: walked ADR-000024 to Superseded without incoming supersedes edge — sq check emitted 'warn ADR-000024: status is Superseded but no incoming supersedes edge found', exit 0 (warning, not error). Added ADR-000025 supersedes ADR-000024 — warning gone, sq check clean. Unknown-kind-in-files path: covered by test fixtures (tests/test_service.py::test_check_warns_on_unknown_ref_kind and tests/test_cli.py::test_check_warns_unknown_kind_and_superseded_cli) that inject junk kinds directly into frontmatter — both pass. Not verified by hand-editing managed files, as required.
+  - US3 PASS: sq workflow renders the kinds table with all 8 rows (meaning, direction convention, consumers). Equivalence 'A depends-on B ≡ B blocks A' stated explicitly. sq <type> <n> ref add --help reads 'Run sq workflow for the canonical kinds table (meaning, direction, and which commands consume each kind)'.
+  - Real repo: uv run pytest 275 passed 1 skipped; uv run sq check clean (no issues).
+  - Note: contract-doc wording (ADR-000049 Consequences, FEAT-000013 stability contract) is FEAT-000013's scope — deferred by design, FEAT-000035 already links FEAT-000013 as a ref. ADR-000049 remains Proposed pending op-pierre acceptance per its status note.
 <!-- sq:discussion:end -->

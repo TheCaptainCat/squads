@@ -22,7 +22,7 @@ from squads._models import _markers as markers
 from squads._models._enums import ItemType, Priority, Status
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import Item
+from squads._models._item import VALID_REF_KINDS, Item, split_ref
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render
 from squads._roles._catalog import role_by_slug
@@ -92,6 +92,12 @@ class ServiceCore:
     ) -> CreateResult:
         slug = slug or slugify(title)
         author = author or self.paths.config.default_role
+        if refs:
+            for ref_str in refs:
+                _, kind = split_ref(ref_str)
+                if kind not in VALID_REF_KINDS:
+                    valid = ", ".join(sorted(VALID_REF_KINDS))
+                    raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
         now = clock.now()
         with self.store.transaction() as db:
             if parent:

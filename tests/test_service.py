@@ -430,3 +430,187 @@ def test_check_flags_index_item_with_no_file(svc):
     assert any(i.item == "TASK-000099" and "no markdown" in i.message for i in issues)
     # The real task has no issue.
     assert not any(i.item == task.id and "no markdown" in i.message for i in issues)
+
+
+# --------------------------------------------------------------------------- ref-kind vocabulary
+
+
+def test_add_ref_rejects_unknown_kind(svc):
+    """add_ref with an unknown kind raises SquadsError listing the valid kinds."""
+    a = svc.create(ItemType.TASK, "a").item
+    b = svc.create(ItemType.TASK, "b").item
+    with pytest.raises(SquadsError) as exc_info:
+        svc.add_ref(a.id, b.id, kind="banana")
+    msg = str(exc_info.value)
+    assert "banana" in msg
+    # valid kinds are listed in the error
+    for kind in ("related", "blocks", "fixes", "addresses", "supersedes", "duplicates"):
+        assert kind in msg
+
+
+def test_add_ref_accepts_all_valid_kinds(svc):
+    """add_ref accepts each of the eight vocabulary kinds."""
+    from squads._models._item import VALID_REF_KINDS
+
+    items = [svc.create(ItemType.TASK, f"item-{i}").item for i in range(len(VALID_REF_KINDS))]
+    target = svc.create(ItemType.TASK, "target").item
+    for i, kind in enumerate(sorted(VALID_REF_KINDS)):
+        svc.add_ref(items[i].id, target.id, kind=kind)
+        pairs = svc.refs_out(items[i].id)
+        assert pairs == [(target.id, kind)]
+
+
+def test_add_ref_bare_defaults_related(svc):
+    """add_ref without a kind defaults to 'related' — no nudge, no friction."""
+    a = svc.create(ItemType.TASK, "a").item
+    b = svc.create(ItemType.TASK, "b").item
+    svc.add_ref(a.id, b.id)
+    fm = read_frontmatter(svc.paths.abspath(svc.get(a.id).path))
+    assert fm["refs"] == [b.id]  # stored bare (no ':related' suffix)
+    assert svc.refs_out(a.id) == [(b.id, "related")]
+
+
+def test_add_ref_three_new_kinds_persist(svc):
+    """supersedes, depends-on, duplicates are accepted and round-trip through frontmatter."""
+    dec_a = svc.create(ItemType.DECISION, "old decision").item
+    dec_b = svc.create(ItemType.DECISION, "new decision").item
+    task_a = svc.create(ItemType.TASK, "blocker").item
+    task_b = svc.create(ItemType.TASK, "dependent").item
+    bug_a = svc.create(ItemType.BUG, "original").item
+    bug_b = svc.create(ItemType.BUG, "duplicate").item
+
+    svc.add_ref(dec_b.id, dec_a.id, kind="supersedes")
+    svc.add_ref(task_b.id, task_a.id, kind="depends-on")
+    svc.add_ref(bug_b.id, bug_a.id, kind="duplicates")
+
+    assert svc.refs_out(dec_b.id) == [(dec_a.id, "supersedes")]
+    assert svc.refs_out(task_b.id) == [(task_a.id, "depends-on")]
+    assert svc.refs_out(bug_b.id) == [(bug_a.id, "duplicates")]
+
+    # verify frontmatter round-trip
+    fm_dec = read_frontmatter(svc.paths.abspath(svc.get(dec_b.id).path))
+    fm_task = read_frontmatter(svc.paths.abspath(svc.get(task_b.id).path))
+    fm_bug = read_frontmatter(svc.paths.abspath(svc.get(bug_b.id).path))
+    assert fm_dec["refs"] == [f"{dec_a.id}:supersedes"]
+    assert fm_task["refs"] == [f"{task_a.id}:depends-on"]
+    assert fm_bug["refs"] == [f"{bug_a.id}:duplicates"]
+
+
+def test_create_with_ref_rejects_unknown_kind(svc):
+    """svc.create with refs containing an unknown kind raises SquadsError."""
+    from squads._models._item import make_ref
+
+    a = svc.create(ItemType.TASK, "a").item
+    with pytest.raises(SquadsError) as exc_info:
+        svc.create(ItemType.TASK, "b", refs=[make_ref(a.id, "bogus")])
+    assert "bogus" in str(exc_info.value)
+
+
+# --------------------------------------------------------------------------- blocked (depends-on)
+
+
+def test_blocked_depends_on_equivalent_to_blocks(svc):
+    """depends-on produces the same (blocked, [blocker]) pair as the equivalent blocks edge."""
+    blocker = svc.create(ItemType.TASK, "blocker").item
+    dependent = svc.create(ItemType.TASK, "dependent").item
+
+    # A depends-on B means A is blocked by B — same as B blocks A
+    svc.add_ref(dependent.id, blocker.id, kind="depends-on")
+
+    pairs = svc.blocked()
+    assert len(pairs) == 1
+    blocked_item, blockers = pairs[0]
+    assert blocked_item.id == dependent.id
+    assert len(blockers) == 1 and blockers[0].id == blocker.id
+
+
+def test_blocked_mixed_edges_no_duplicates(svc):
+    """An item blocked via both blocks and depends-on appears once with all blockers."""
+    blocker_a = svc.create(ItemType.TASK, "blocker-a").item
+    blocker_b = svc.create(ItemType.TASK, "blocker-b").item
+    dependent = svc.create(ItemType.TASK, "dependent").item
+
+    # blocker_a blocks dependent (edge on blocker_a)
+    svc.add_ref(blocker_a.id, dependent.id, kind="blocks")
+    # dependent depends-on blocker_b (edge on dependent)
+    svc.add_ref(dependent.id, blocker_b.id, kind="depends-on")
+
+    pairs = svc.blocked()
+    assert len(pairs) == 1
+    blocked_item, blockers = pairs[0]
+    assert blocked_item.id == dependent.id
+    blocker_ids = {b.id for b in blockers}
+    assert blocker_ids == {blocker_a.id, blocker_b.id}
+
+
+def test_blocked_closed_blocker_not_included(svc):
+    """A closed blocker is not counted; if all blockers are closed the item is not listed."""
+    blocker = svc.create(ItemType.TASK, "blocker").item
+    dependent = svc.create(ItemType.TASK, "dependent").item
+
+    svc.add_ref(dependent.id, blocker.id, kind="depends-on")
+    # close the blocker
+    svc.set_status(blocker.id, Status.IN_PROGRESS)
+    svc.set_status(blocker.id, Status.DONE)
+
+    assert svc.blocked() == []
+
+
+# --------------------------------------------------------------------------- check warnings
+
+
+def test_check_warns_on_unknown_ref_kind(svc):
+    """check() emits a warn-level issue when a ref has an unknown kind."""
+    import squads._sections as sections
+    from squads._itemfile import read_frontmatter
+
+    a = svc.create(ItemType.TASK, "a").item
+    b = svc.create(ItemType.TASK, "b").item
+
+    # Inject a junk kind directly into the frontmatter, bypassing add_ref validation.
+    path = svc.paths.abspath(svc.get(a.id).path)
+    text = path.read_text(encoding="utf-8")
+    fm = read_frontmatter(text=text)
+    fm["refs"] = [f"{b.id}:banana"]
+    path.write_text(sections.replace_frontmatter(text, fm), encoding="utf-8")
+    svc.repair()  # sync index with the rewritten frontmatter
+
+    issues = svc.check()
+    warn_issues = [i for i in issues if i.level == "warn" and "banana" in i.message]
+    assert len(warn_issues) == 1
+    assert warn_issues[0].item == a.id
+
+
+def test_check_warns_superseded_decision_without_edge(svc):
+    """check() warns when a Superseded decision has no incoming supersedes edge."""
+    old_adr = svc.create(ItemType.DECISION, "old decision").item
+    # Force it to Superseded status
+    svc.set_status(old_adr.id, Status.PROPOSED)
+    svc.set_status(old_adr.id, Status.SUPERSEDED, force=True)
+
+    issues = svc.check()
+    warn_issues = [
+        i
+        for i in issues
+        if i.level == "warn" and "supersedes" in i.message and i.item == old_adr.id
+    ]
+    assert len(warn_issues) == 1
+
+
+def test_check_no_warn_superseded_decision_with_edge(svc):
+    """check() does NOT warn when a Superseded decision has an incoming supersedes edge."""
+    old_adr = svc.create(ItemType.DECISION, "old decision").item
+    new_adr = svc.create(ItemType.DECISION, "new decision").item
+
+    svc.set_status(old_adr.id, Status.PROPOSED)
+    svc.set_status(old_adr.id, Status.SUPERSEDED, force=True)
+    # new supersedes old — edge lives on new_adr
+    svc.add_ref(new_adr.id, old_adr.id, kind="supersedes")
+
+    issues = svc.check()
+    superseded_warns = [
+        i
+        for i in issues
+        if i.level == "warn" and "supersedes" in i.message and i.item == old_adr.id
+    ]
+    assert len(superseded_warns) == 0
