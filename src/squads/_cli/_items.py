@@ -27,12 +27,14 @@ from squads._cli._common import (
     print_subentity,
     resolve_body,
     resolve_body_optional,
-    resolve_item_id,
+    resolve_item_id_any,
+    resolve_item_id_typed,
     resolve_local_id,
     resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
 from squads._models._enums import SEVERITY_EMOJI, ItemType
+from squads._models._item import split_ref
 from squads._models._subentity import SubEntity
 
 # Parent type → (sub-entity kind, plural label for the list verb + `list_<plural>` service method).
@@ -65,7 +67,8 @@ def build_item_app(item_type: ItemType) -> typer.Typer:
         ctx: typer.Context,
         num: str = typer.Argument(..., metavar="N", help=f"{item_type.value} number or id."),
     ):
-        ctx.obj = {"id": resolve_item_id(num, item_type)}
+        svc = get_service()
+        ctx.obj = {"id": resolve_item_id_typed(num, item_type, svc)}
 
     _cmd_show(item)
     _cmd_update(item)
@@ -127,6 +130,7 @@ def _cmd_update(item: typer.Typer) -> None:
         svc = get_service()
         validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
         validated_author = resolve_slug_or_raise(author, svc) if author else None
+        resolved_parent = resolve_item_id_any(parent, svc) if parent else None
         it = svc.update(
             _id(ctx),
             title=title,
@@ -139,7 +143,7 @@ def _cmd_update(item: typer.Typer) -> None:
             author=validated_author,
             status=parse_status(status) if status else None,
             force=force,
-            parent=parent,
+            parent=resolved_parent,
             clear_parent=no_parent,
             set_extra=set_extra or None,
             unset_extra=unset or None,
@@ -235,15 +239,23 @@ def _cmd_refs(item: typer.Typer) -> None:
         ),
     ):
         """Add a forward reference to TARGET."""
-        get_service().add_ref(_id(ctx), target, kind=kind)
-        console.print(f"{_id(ctx)} → {target} ([dim]{kind}[/dim])")
+        svc = get_service()
+        # target may be a bare number, full ID, or ID:kind — resolve the ID part only
+        raw_id, embedded_kind = split_ref(target)
+        resolved_id = resolve_item_id_any(raw_id, svc)
+        effective_kind = embedded_kind if embedded_kind != "related" else kind
+        svc.add_ref(_id(ctx), resolved_id, kind=effective_kind)
+        console.print(f"{_id(ctx)} → {resolved_id} ([dim]{effective_kind}[/dim])")
 
     @ref_app.command("rm")
     @handle_errors
     def ref_rm(ctx: typer.Context, target: str = typer.Argument(..., help="Target item ID.")):
         """Remove a forward reference to TARGET."""
-        get_service().rm_ref(_id(ctx), target)
-        console.print(f"removed {_id(ctx)} → {target}")
+        svc = get_service()
+        raw_id, _ = split_ref(target)
+        resolved_id = resolve_item_id_any(raw_id, svc)
+        svc.rm_ref(_id(ctx), resolved_id)
+        console.print(f"removed {_id(ctx)} → {resolved_id}")
 
     item.add_typer(ref_app, name="ref")
 
@@ -332,7 +344,7 @@ def _register_add(item: typer.Typer, kind: str) -> None:
             ctx: typer.Context,
             title: str = typer.Argument("", help="Optional checklist label; detail in body."),
             story: str | None = typer.Option(
-                None, "--story", help="User story it implements (USn)."
+                None, "--story", help="User story it implements (USn or bare 1)."
             ),
             assignee: str | None = typer.Option(None, "--assignee"),
             message: list[str] = typer.Option(None, "-m", "--message"),
@@ -342,10 +354,11 @@ def _register_add(item: typer.Typer, kind: str) -> None:
             """Scaffold a subtask on this task."""
             svc = get_service()
             validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            normalized_story = resolve_local_id(story, "story") if story else None
             res = svc.add_subtask(
                 _id(ctx),
                 title,
-                story=story,
+                story=normalized_story,
                 assignee=validated_assignee,
                 body=resolve_body_optional(message or None, file),
             )
@@ -410,11 +423,12 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
             )
             svc = get_service()
             validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            normalized_story = resolve_local_id(story, "story") if story else None
             svc.update_subtask(
                 pid,
                 lid,
                 title=title,
-                story=story,
+                story=normalized_story,
                 clear_story=no_story,
                 assignee=validated_assignee,
                 clear_assignee=clear_assignee,

@@ -4,7 +4,7 @@ import typer
 from rich.panel import Panel
 from rich.table import Table
 
-from squads._cli._common import console, get_service, handle_errors
+from squads._cli._common import console, get_service, handle_errors, resolve_item_id_typed
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED, role_by_slug
@@ -75,8 +75,10 @@ def activate_role(slug: str = typer.Argument(...)):
 @handle_errors
 def regen_role(item_id: str = typer.Argument(...)):
     """Regenerate a role's Claude pointer from its item."""
-    get_service().regen(item_id)
-    console.print(f"regenerated pointer for {item_id}")
+    svc = get_service()
+    resolved = resolve_item_id_typed(item_id, ItemType.ROLE, svc)
+    svc.regen(resolved)
+    console.print(f"regenerated pointer for {resolved}")
 
 
 @role_app.command("rm")
@@ -87,6 +89,7 @@ def rm_role(
 ):
     """Remove a role (and its pointer; --purge also deletes the markdown)."""
     svc = get_service()
-    svc.remove_item(item_id, purge=purge)
+    resolved = resolve_item_id_typed(item_id, ItemType.ROLE, svc)
+    svc.remove_item(resolved, purge=purge)
     svc.refresh_managed()
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    console.print(f"removed {resolved}" + (" (purged)" if purge else ""))

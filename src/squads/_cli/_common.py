@@ -228,21 +228,93 @@ def require_current_schema(subcommand: str | None) -> None:
     raise typer.Exit(1)
 
 
-def resolve_item_id(token: str, item_type: ItemType) -> str:
-    """A CLI token → a full item id for ``item_type``: bare ``35`` / ``000035`` / ``TASK-000035``.
+def _article(word: str) -> str:
+    """Return ``"an"`` for vowel-initial words, ``"a"`` otherwise."""
+    return "an" if word and word[0].lower() in "aeiou" else "a"
 
-    The type word validates: a full id with a different prefix is a friendly error.
+
+def _mismatch_msg(label: str, actual_id: str, actual_type: str, expected_type: str) -> str:
+    """Build a uniform type-mismatch error: ``"<label> is <id> (<type>), not a/an <type>"``."""
+    return f"{label} is {actual_id} ({actual_type}), not {_article(expected_type)} {expected_type}"
+
+
+def _parse_item_token(token: str) -> tuple[int, str | None]:
+    """Parse a CLI item token into ``(sequence_number, prefix_or_None)``.
+
+    Accepts bare numbers (``"35"``, ``"000035"``) and full IDs (``"TASK-000035"``).
+    Returns ``(seq, None)`` for bare numbers and ``(seq, head_upper)`` for full IDs.
+    Raises :class:`SquadsError` on unparseable input.
+
+    Used by :func:`resolve_item_id_typed` and :func:`resolve_item_id_any` to avoid
+    duplicating the lexical munging.
+    """
+    t = token.strip()
+    if t.isdigit():
+        return int(t), None
+    head, sep, num = t.rpartition("-")
+    if sep and num.isdigit():
+        return int(num), head.upper()
+    raise SquadsError(
+        f"invalid item id {token!r} (use a bare number or a full ID like TYPE-NNNNNN)"
+    )
+
+
+def resolve_item_id_typed(token: str, item_type: ItemType, svc: Service) -> str:
+    """Resolve a CLI token and verify the item's **actual type** in the live DB.
+
+    Accepts ``35`` / ``000035`` / ``TASK-000035``.  Raises a friendly
+    :class:`SquadsError` on type mismatch (naming the real item and type) or on an
+    unknown item (mentioning both accepted forms — full ID and bare number).
+
+    Mirrors :func:`resolve_slug_or_raise` in shape — takes ``svc`` as a second argument.
+    One DB read per call.
     """
     prefix = PREFIX_BY_TYPE[item_type]
     t = token.strip()
-    if t.isdigit():
-        return f"{prefix}-{int(t):06d}"
-    head, sep, num = t.rpartition("-")
-    if sep and num.isdigit():
-        if head.upper() != prefix:
-            raise SquadsError(f"{token} is not a {item_type.value} (expected {prefix}-…)")
-        return f"{prefix}-{int(num):06d}"
-    raise SquadsError(f"invalid {item_type.value} id {token!r} (use a number or {prefix}-NNNNNN)")
+    seq, given_prefix = _parse_item_token(token)
+    if given_prefix is not None and given_prefix != prefix:
+        # Full ID with wrong prefix — look up the actual item so we can name it.
+        db = svc.store.load()
+        item = db.get(str(seq))
+        if item is None:
+            raise SquadsError(f"no item with number {seq} (use {prefix}-{seq:06d} or bare {seq})")
+        raise SquadsError(_mismatch_msg(token, item.id, item.type.value, item_type.value))
+
+    db = svc.store.load()
+    item = db.get(str(seq))
+    if item is None:
+        raise SquadsError(f"no item with number {seq} (use {prefix}-{seq:06d} or bare {seq})")
+    if item.type is not item_type:
+        raise SquadsError(_mismatch_msg(t, item.id, item.type.value, item_type.value))
+    return item.id
+
+
+def resolve_item_id_any(token: str, svc: Service) -> str:
+    """Resolve a CLI token to the full ID of **whatever item owns that sequence number**.
+
+    Accepts a bare number (``35`` / ``000035``) or a full ID (``FEAT-000013``).  The type word in a
+    full ID is validated against the item that actually owns the number; a mismatched prefix raises
+    a :class:`SquadsError`.  Unknown items mention both accepted forms in the error.
+
+    Used by type-less surfaces (``sq tree``, ``--parent``, ``ref add`` targets, …) where the
+    command has no intrinsic item type — TASK-000047 wires this in across those surfaces.
+    One DB read per call.
+    """
+    seq, given_prefix = _parse_item_token(token)
+    db = svc.store.load()
+    item = db.get(str(seq))
+
+    if item is None:
+        raise SquadsError(
+            f"no item with number {seq} (use a full ID like TYPE-{seq:06d} or bare {seq})"
+        )
+
+    if given_prefix is not None:
+        expected_prefix = PREFIX_BY_TYPE[item.type]
+        if given_prefix != expected_prefix:
+            raise SquadsError(f"{token} is {item.id} ({item.type.value})")
+
+    return item.id
 
 
 def resolve_local_id(token: str, kind: str) -> str:

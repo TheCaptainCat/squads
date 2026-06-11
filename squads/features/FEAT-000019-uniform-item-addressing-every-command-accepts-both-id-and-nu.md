@@ -3,7 +3,7 @@ id: FEAT-000019
 sequence_id: 19
 type: feature
 title: 'Uniform item addressing: every command accepts both ID and number'
-status: Ready
+status: Done
 parent: EPIC-000012
 author: product-owner
 priority: high
@@ -14,18 +14,18 @@ subentities:
 - local_id: US1
   title: As a CLI user, I want to name an item by full ID or bare number in any command,
     so that one habit works everywhere
-  status: Todo
+  status: Done
 - local_id: US2
   title: As a user copy-pasting an ID from a comment or tree, I want it accepted by
     every command including tree, --parent and ref add, so that handoffs never need
     manual reformatting
-  status: Todo
+  status: Done
 - local_id: US3
   title: As a user who typos the type, I want sq to tell me 13 is a feature instead
     of silently obeying, so that I never act on the wrong item
-  status: Todo
+  status: Done
 created_at: '2026-06-10T12:56:45Z'
-updated_at: '2026-06-11T07:54:54Z'
+updated_at: '2026-06-11T14:41:09Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -78,9 +78,9 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere |
-| US2 | Todo |  | As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting |
-| US3 | Todo |  | As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item |
+| US1 | Done |  | As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere |
+| US2 | Done |  | As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting |
+| US3 | Done |  | As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -89,7 +89,7 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 ### US1 — As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -106,7 +106,7 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 ### US2 — As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -123,7 +123,7 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 ### US3 — As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -142,4 +142,17 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:discussion -->
 - [2026-06-10T13:00:06Z] Pierre Chat:
   - Decision: when the addressed type doesn't match the item (e.g. `sq task 13` but 13 is a feature), error and point to the right type — never silently act on it.
+- [2026-06-11T14:00:49Z] Olivia Lead:
+  - Broke FEAT-000019 into two sequenced tasks, both high, assigned @python-dev (Elias).
+  - TASK-000046 (foundation): shared item-address resolver in _cli/_common.py — typed resolve verifies the resolved item's ACTUAL type against the live DB (closes the sq task 13 → FEAT-000013 silent-obey hole, _index.py:57 _seq ignores type), plus a type-less resolve for the sweep. Maps US1 (both forms) + US3 (type-mismatch error).
+  - TASK-000047 (adoption sweep, blocked by 046): route every raw surface through the resolver — create --parent/--ref, update --parent, ref add/rm, tree root, list --parent, role/skill/operator targets, subtask --story; uniform both-forms error wording. ref add stays kind-agnostic; --parent resolves then defers to parent_allowed. Maps US2 (copy-paste everywhere) + US3 (wording).
+  - TASK-000046 blocks TASK-000047. Stability-contract documentation acceptance is deferred to FEAT-000013 (rule recorded here, ref kept). Seed test: test_resolve_item_id in tests/test_cli.py:232.
+- [2026-06-11T14:41:09Z] Mara Tester:
+  - QA sign-off: FEAT-000019 verified hands-on in a scratch squad (tmp dir, sq init, items of type epic/feature/task/bug/decision/operator/role/skill).
+  - US1 (both forms everywhere) — PASS. Verified: sq <type> N show (bare+full), sq tree (bare+full), create --parent (bare+full), update --parent (bare+full), create --ref (bare+full+bare:kind+full:kind), ref add (bare+full+bare:kind+full:kind), ref rm (bare+full), sq list --parent (bare+full), sq role regen (bare+full), sq skill show (bare+full), sq operator rm (bare+full), subtask --story US1 and --story 1 — all accepted both forms.
+  - US2 (copy-paste) — PASS. IDs as rendered in sq tree (FEAT-000010, TASK-000011, EPIC-000009) fed directly into show, tree, --parent, ref add — all accepted unchanged.
+  - US3 (type mismatch) — PASS. Wrong-type bare number and wrong-prefix full ID both produce 'X is ID (type), not a/an type'. Consistent wording across both input forms for the same item (F1 fix verified). Vowel-initial article correct: 'not an epic' (sq epic 11 show on a task), 'not an operator' (sq operator rm 11 on a task) — both bare and full-ID forms (F4 fix verified).
+  - Unknown-item wording (F2 fix) — PASS. Typed surfaces: 'no item with number 99 (use TASK-000099 or bare 99)' — both bare and full-ID forms give identical message. Type-less surfaces (sq tree): 'no item with number 99 (use a full ID like TYPE-000099 or bare 99)' — both bare and full-ID forms give identical message.
+  - pytest: 258 passed, 1 skipped — green. sq check: no issues.
+  - Note: the fourth acceptance criterion — documenting the addressing rule in the stability contract — is deferred to FEAT-000013 by design. The ref FEAT-000013 already links from this feature. No gap in this delivery.
 <!-- sq:discussion:end -->

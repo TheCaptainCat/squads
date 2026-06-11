@@ -8,9 +8,11 @@ from squads._cli._common import (
     handle_errors,
     parse_priority,
     resolve_body_optional,
+    resolve_item_id_any,
 )
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
+from squads._models._item import make_ref, split_ref
 
 create_app = typer.Typer(no_args_is_help=True, help="Create a tracked item.")
 
@@ -54,14 +56,21 @@ def _make(item_type: ItemType):
         json_out: bool = typer.Option(False, "--json"),
     ):
         svc = get_service()
+        resolved_parent = resolve_item_id_any(parent, svc) if parent else None
+        resolved_refs: list[str] | None = None
+        if ref:
+            resolved_refs = []
+            for r in ref:
+                rid, kind = split_ref(r)
+                resolved_refs.append(make_ref(resolve_item_id_any(rid, svc), kind))
         res = svc.create(
             item_type,
             title,
             description=desc,
-            parent=parent,
+            parent=resolved_parent,
             author=author,
             labels=label or None,
-            refs=ref or None,
+            refs=resolved_refs,
             assignee=assignee,
             priority=parse_priority(priority) if priority else None,
             body=resolve_body_optional(message or None, file),
@@ -102,11 +111,13 @@ def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
         extra[X.TECH] = tech
     if tag:
         extra[X.TAGS] = list(tag)
-    res = get_service().create(
+    svc = get_service()
+    resolved_parent = resolve_item_id_any(parent, svc) if parent else None
+    res = svc.create(
         ItemType.GUIDE,
         title,
         description=desc,
-        parent=parent,
+        parent=resolved_parent,
         author=author,
         assignee=assignee,
         extra=extra or None,

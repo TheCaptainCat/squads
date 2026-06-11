@@ -22,6 +22,7 @@ from squads._cli._common import (
     parse_status,
     parse_type,
     priority_badge,
+    resolve_item_id_any,
     resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
@@ -126,10 +127,11 @@ def list_items(
     """List items in a table (closed items are hidden unless --all or --status is given)."""
     svc = get_service()
     validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+    resolved_parent = resolve_item_id_any(parent, svc) if parent else None
     items = svc.list_items(
         item_type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
-        parent=parent,
+        parent=resolved_parent,
         label=label,
         assignee=validated_assignee,
         priority=parse_priority(priority) if priority else None,
@@ -158,6 +160,10 @@ def tree(
     the read an orchestrating agent uses to see a feature's state and decide what to do next.
     """
     svc = get_service()
+    # Resolve root_id early so bare numbers work and unknown IDs get a clear error.
+    resolved_root: str | None = None
+    if root_id is not None:
+        resolved_root = resolve_item_id_any(root_id, svc)
     listed = svc.list_items()
     if not all_:
         listed = [i for i in listed if is_open(i.status)]
@@ -170,14 +176,14 @@ def tree(
     def kids(item_id: str) -> list[Item]:
         return sorted(children.get(item_id, []), key=lambda i: number_for_id(i.id))
 
-    if root_id and root_id not in all_items:
+    if resolved_root and resolved_root not in all_items:
         raise SquadsError(
-            f"no {'item' if all_ else 'open item'} {root_id!r} to root the tree"
-            " (pass the full id, add --all to include closed items, or check it exists)"
+            f"no {'item' if all_ else 'open item'} {resolved_root!r} to root the tree"
+            " (add --all to include closed items, or check it exists)"
         )
     roots = (
-        [all_items[root_id]]
-        if root_id
+        [all_items[resolved_root]]
+        if resolved_root
         else sorted(children.get(None, []), key=lambda i: number_for_id(i.id))
     )
 
