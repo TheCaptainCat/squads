@@ -7,11 +7,11 @@ status: Done
 author: op-pierre
 priority: low
 refs:
-- FEAT-000026:relates
+- FEAT-000026
 description: sq <type> <n> show prefixes the body with a bare 'Body' label; the body
   is self-evident after the metadata panel and usually opens with its own headings
 created_at: '2026-06-10T14:52:35Z'
-updated_at: '2026-06-11T13:19:34Z'
+updated_at: '2026-06-11T20:40:08Z'
 ---
 <!-- sq:body -->
 ## Observed

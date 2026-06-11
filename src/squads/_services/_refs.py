@@ -4,16 +4,19 @@ from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
-from squads._models._item import Item, make_ref, split_ref
+from squads._models._item import DEFAULT_KIND, VALID_REF_KINDS, Item, make_ref, split_ref
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._workflow import is_open
 
 
 class RefsMixin(ServiceCore):
-    def add_ref(self, from_id: str, to_id: str, *, kind: str = "related") -> Item:
+    def add_ref(self, from_id: str, to_id: str, *, kind: str = DEFAULT_KIND) -> Item:
         if from_id == to_id:
             raise SquadsError("an item cannot reference itself")
+        if kind not in VALID_REF_KINDS:
+            valid = ", ".join(sorted(VALID_REF_KINDS))
+            raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
         with self.store.transaction() as db:
             src = require_item(db, from_id)
             require_item(db, to_id)
@@ -48,25 +51,40 @@ class RefsMixin(ServiceCore):
         return sorted(out, key=lambda p: number_for_id(p[0]))
 
     def blocked(self) -> list[tuple[Item, list[Item]]]:
-        """Open items with ≥1 open blocker (the ``blocks`` ref kind), paired with those blockers.
+        """Open items with ≥1 open blocker, paired with those blockers.
 
-        ``A ref add B --kind blocks`` reads "A blocks B": B is blocked while A stays open.
+        Two equivalent spellings are supported:
+        - ``A ref add B --kind blocks`` ("A blocks B"): B is blocked while A stays open.
+          The edge lives on the *blocker* A; B is the target.
+        - ``A ref add B --kind depends-on`` ("A depends-on B"): A is blocked while B stays open.
+          The edge lives on the *dependent* A; B is the blocker.
+
+        Both spellings are consumed identically. An item blocked through both edges is
+        deduplicated — it appears once with the union of its open blockers.
         """
         db = self.store.load()
-        blockers_by_target: dict[str, list[Item]] = {}
+        # keyed by the blocked item's id; value is a set of blocker ids (dedup)
+        blockers_by_target: dict[str, set[str]] = {}
         for it in db.items.values():
             for r in it.refs:
                 rid, kind = split_ref(r)
                 if kind == "blocks":
-                    blockers_by_target.setdefault(rid, []).append(it)
+                    # it blocks rid → rid is the blocked item, it is the blocker
+                    blockers_by_target.setdefault(rid, set()).add(it.id)
+                elif kind == "depends-on":
+                    # it depends-on rid → it is the blocked item, rid is the blocker
+                    blockers_by_target.setdefault(it.id, set()).add(rid)
         out: list[tuple[Item, list[Item]]] = []
-        for tid, blockers in blockers_by_target.items():
+        for tid, blocker_ids in blockers_by_target.items():
             target = db.get(tid)
             if target is None or not is_open(target.status):
                 continue
-            open_blockers = sorted(
-                (b for b in blockers if is_open(b.status)), key=lambda b: number_for_id(b.id)
-            )
+            open_blockers: list[Item] = []
+            for bid in blocker_ids:
+                b = db.get(bid)
+                if b is not None and is_open(b.status):
+                    open_blockers.append(b)
+            open_blockers.sort(key=lambda b: number_for_id(b.id))
             if open_blockers:
                 out.append((target, open_blockers))
         return sorted(out, key=lambda p: number_for_id(p[0].id))

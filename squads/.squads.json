@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 48,
+  "counter": 52,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -806,12 +806,12 @@
       "labels": [],
       "refs": [
         "FEAT-000019",
-        "FEAT-000023:relates"
+        "FEAT-000023"
       ],
       "subentities": [],
       "path": "bugs/BUG-000022-counter-can-regress-allowing-sequence-number-reuse-after-an.md",
       "created_at": "2026-06-10T13:51:32Z",
-      "updated_at": "2026-06-11T13:19:07Z",
+      "updated_at": "2026-06-11T20:40:07Z",
       "extra": {},
       "id": "BUG-000022"
     },
@@ -924,12 +924,12 @@
       "priority": "low",
       "labels": [],
       "refs": [
-        "FEAT-000026:relates"
+        "FEAT-000026"
       ],
       "subentities": [],
       "path": "bugs/BUG-000025-show-prints-a-redundant-body-literal-before-the-body.md",
       "created_at": "2026-06-10T14:52:35Z",
-      "updated_at": "2026-06-11T13:19:34Z",
+      "updated_at": "2026-06-11T20:40:08Z",
       "extra": {},
       "id": "BUG-000025"
     },
@@ -1273,7 +1273,7 @@
       "type": "feature",
       "title": "Typed ref vocabulary: validated kinds, optional by design",
       "slug": "typed-ref-vocabulary-validated-kinds-optional-by-design",
-      "status": "Ready",
+      "status": "Done",
       "description": "ref add validates --kind against the documented vocabulary (typos rejected, check flags unknowns); untyped refs stay first-class for plain cross-reference; one canonical kinds table in the docs",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -1288,7 +1288,7 @@
         {
           "local_id": "US1",
           "title": "As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1296,7 +1296,7 @@
         {
           "local_id": "US2",
           "title": "As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1304,7 +1304,7 @@
         {
           "local_id": "US3",
           "title": "As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1312,7 +1312,7 @@
         {
           "local_id": "US4",
           "title": "As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1320,7 +1320,7 @@
       ],
       "path": "features/FEAT-000035-typed-ref-vocabulary-validated-kinds-optional-by-design.md",
       "created_at": "2026-06-11T07:19:35Z",
-      "updated_at": "2026-06-11T07:54:55Z",
+      "updated_at": "2026-06-11T20:50:05Z",
       "extra": {},
       "id": "FEAT-000035"
     },
@@ -1839,6 +1839,145 @@
       "updated_at": "2026-06-11T14:32:32Z",
       "extra": {},
       "id": "REV-000048"
+    },
+    "49": {
+      "sequence_id": 49,
+      "type": "decision",
+      "title": "Ref-kind vocabulary is closed in 1.0, with the extension point reserved for post-1.0",
+      "slug": "ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000035",
+        "FEAT-000013",
+        "FEAT-000014"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000049-ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin.md",
+      "created_at": "2026-06-11T20:19:55Z",
+      "updated_at": "2026-06-11T21:27:25Z",
+      "extra": {},
+      "id": "ADR-000049"
+    },
+    "50": {
+      "sequence_id": 50,
+      "type": "task",
+      "title": "Ref-kind vocabulary constant + validation at all authoring entry points",
+      "slug": "ref-kind-vocabulary-constant-validation-at-all-authoring-ent",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000035",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000051:blocks"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind in add_ref, rejecting unknowns with the valid list",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Keep bare ref add first-class: default related validates trivially, no nudge, no warning",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create --ref id:kind; authorable from the dependent",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000050-ref-kind-vocabulary-constant-validation-at-all-authoring-ent.md",
+      "created_at": "2026-06-11T20:21:59Z",
+      "updated_at": "2026-06-11T20:43:22Z",
+      "extra": {},
+      "id": "TASK-000050"
+    },
+    "51": {
+      "sequence_id": 51,
+      "type": "task",
+      "title": "Ref-kind consumers + canonical kinds table in docs",
+      "slug": "ref-kind-consumers-canonical-kinds-table-in-docs",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000035",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Single canonical eight-row kinds table in workflow.md.j2 (meaning/direction/consumer); ref add --kind help points at it",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "depends-on equivalence in sq blocked (A depends-on B == B blocks A; mixed usage works)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000051-ref-kind-consumers-canonical-kinds-table-in-docs.md",
+      "created_at": "2026-06-11T20:22:02Z",
+      "updated_at": "2026-06-11T20:43:22Z",
+      "extra": {},
+      "id": "TASK-000051"
+    },
+    "52": {
+      "sequence_id": 52,
+      "type": "review",
+      "title": "FEAT-000035 — typed ref vocabulary",
+      "slug": "feat-000035-typed-ref-vocabulary",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000035:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Style: _check_decisions() in _maintenance.py uses a function-local 'from squads._models._enums import Status' (line ~332) when ItemType is already imported from that same module at the top. Hoist Status to the module-level import for consistency. Non-blocking — no cycle, gates clean.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000052-feat-000035-typed-ref-vocabulary.md",
+      "created_at": "2026-06-11T20:41:00Z",
+      "updated_at": "2026-06-11T20:43:14Z",
+      "extra": {},
+      "id": "REV-000052"
     }
   }
 }

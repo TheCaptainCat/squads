@@ -13,6 +13,22 @@ from squads._util import NonEmpty
 REF_SEP = ":"
 DEFAULT_KIND = "related"
 
+#: The closed vocabulary of ref kinds for 1.0 — exhaustive, no custom-kind escape hatch.
+#: See ADR-000049. Consumers: blocks/depends-on → sq blocked; fixes/addresses → sq check
+#: task rules; supersedes → decision checks; the rest → navigation.
+VALID_REF_KINDS: frozenset[str] = frozenset(
+    {
+        "related",
+        "blocks",
+        "depends-on",
+        "implements",
+        "fixes",
+        "addresses",
+        "supersedes",
+        "duplicates",
+    }
+)
+
 
 def split_ref(ref: str) -> tuple[str, str]:
     """``"ID"`` → ``(ID, "related")``; ``"ID:kind"`` → ``(ID, kind)``. IDs never contain ``:``."""

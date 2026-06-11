@@ -13,7 +13,7 @@ from squads._models import _markers as markers
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import Item, split_ref
+from squads._models._item import VALID_REF_KINDS, Item, split_ref
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import number_for_id
 from squads._roles._catalog import RoleDef
@@ -204,6 +204,7 @@ class MaintenanceMixin(ServiceCore):
         issues += self._check_items(index, on_disk)
         issues += self._check_subtask_stories(index)
         issues += self._check_subentity_status(index)
+        issues += self._check_decisions(index)
         return issues
 
     def _scan_for_check(self) -> tuple[list[CheckIssue], dict[str, tuple[Path, dict[str, Any]]]]:
@@ -261,11 +262,14 @@ class MaintenanceMixin(ServiceCore):
             elif parent is not None and not parent_allowed(item.type, parent.type):
                 msg = f"{parent_hint(item.type)} (got {parent.type.value})"
                 issues.append(CheckIssue("error", iid, msg))
-            issues += [
-                CheckIssue("warn", iid, f"dangling ref {rid}")
-                for rid in (split_ref(r)[0] for r in item.refs)
-                if index.get(rid) is None
-            ]
+            for r in item.refs:
+                rid, kind = split_ref(r)
+                if index.get(rid) is None:
+                    issues.append(CheckIssue("warn", iid, f"dangling ref {rid}"))
+                if kind not in VALID_REF_KINDS:
+                    issues.append(
+                        CheckIssue("warn", iid, f"unknown ref kind {kind!r} on edge → {rid}")
+                    )
             for field in ("author", "assignee"):
                 slug = getattr(item, field)
                 if slug and slug not in registered:
@@ -320,4 +324,30 @@ class MaintenanceMixin(ServiceCore):
                 for s in item.subentities
                 if s.status.value not in valid
             ]
+        return issues
+
+    @staticmethod
+    def _check_decisions(index: SquadsDB) -> list[CheckIssue]:
+        """Warn on Superseded decisions with no incoming ``supersedes`` edge."""
+        from squads._models._enums import Status
+
+        issues: list[CheckIssue] = []
+        # Collect decision ids that have an incoming supersedes edge from any item.
+        has_incoming_supersedes: set[str] = set()
+        for it in index.items.values():
+            for r in it.refs:
+                rid, kind = split_ref(r)
+                if kind == "supersedes":
+                    has_incoming_supersedes.add(rid)
+        for item in index.items.values():
+            if item.type is not ItemType.DECISION:
+                continue
+            if item.status is Status.SUPERSEDED and item.id not in has_incoming_supersedes:
+                issues.append(
+                    CheckIssue(
+                        "warn",
+                        item.id,
+                        "status is Superseded but no incoming supersedes edge found",
+                    )
+                )
         return issues

@@ -24,7 +24,7 @@ from squads._models._enums import (
     Status,
 )
 from squads._models._extras import ExtraKey as X
-from squads._models._item import Item, split_ref
+from squads._models._item import DEFAULT_KIND, Item, split_ref
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import resolve
 from squads._services._results import BlockResult, SubentityDetail
@@ -109,7 +109,7 @@ def print_item(svc: Service, it: Item) -> None:
         rows.append(f"[bold]labels:[/bold] {e(', '.join(it.labels))}")
     if it.refs:
         rendered = ", ".join(
-            rid if kind == "related" else f"{rid} ({kind})"
+            rid if kind == DEFAULT_KIND else f"{rid} ({kind})"
             for rid, kind in (split_ref(r) for r in it.refs)
         )
         rows.append(f"[bold]refs:[/bold] {e(rendered)}")
