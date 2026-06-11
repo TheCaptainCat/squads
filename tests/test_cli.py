@@ -229,19 +229,128 @@ def test_subtask_body_cli(runner, tmp_path, monkeypatch, frozen_time):
     assert "Born with a body." in runner.invoke(app, ["task", "2", "subtask", "2", "show"]).output
 
 
-def test_resolve_item_id():
-    from squads._cli._common import resolve_item_id  # pyright: ignore[reportPrivateUsage]
+def test_resolve_item_id_typed(svc):
+    """Service-level: typed resolver verifies actual DB type; both-forms errors.
+
+    Also covers the lexical-parsing layer (bare number, zero-padded, full ID, case-insensitive
+    prefix) that was formerly tested by the now-deleted test_resolve_item_id.
+    """
+    from squads._cli._common import resolve_item_id_typed  # pyright: ignore[reportPrivateUsage]
     from squads._errors import SquadsError
     from squads._models._enums import ItemType
 
-    assert resolve_item_id("35", ItemType.TASK) == "TASK-000035"
-    assert resolve_item_id("000035", ItemType.TASK) == "TASK-000035"
-    assert resolve_item_id("TASK-000035", ItemType.TASK) == "TASK-000035"
-    assert resolve_item_id("task-35", ItemType.TASK) == "TASK-000035"  # case-insensitive prefix
-    with pytest.raises(SquadsError, match="not a task"):
-        resolve_item_id("REV-000002", ItemType.TASK)
-    with pytest.raises(SquadsError, match="invalid task id"):
-        resolve_item_id("abc", ItemType.TASK)
+    # create a feature (seq 2 — ROLE-000001 is seq 1 from init --roles minimal)
+    svc.create(ItemType.FEATURE, "Feat A", author="manager")  # FEAT-000002
+
+    # bare number resolves to the feature
+    assert resolve_item_id_typed("2", ItemType.FEATURE, svc) == "FEAT-000002"
+
+    # zero-padded bare number resolves to the feature
+    assert resolve_item_id_typed("000002", ItemType.FEATURE, svc) == "FEAT-000002"
+
+    # full ID resolves to the feature
+    assert resolve_item_id_typed("FEAT-000002", ItemType.FEATURE, svc) == "FEAT-000002"
+
+    # case-insensitive prefix
+    assert resolve_item_id_typed("feat-2", ItemType.FEATURE, svc) == "FEAT-000002"
+
+    # bare number that belongs to a feature, asked as a task → type-mismatch error
+    # (F1) both forms produce the same shape: "<token> is FEAT-000002 (feature), not a task"
+    with pytest.raises(SquadsError, match=r"2 is FEAT-000002 \(feature\), not a task"):
+        resolve_item_id_typed("2", ItemType.TASK, svc)
+
+    # full ID with wrong prefix → same shape as bare-number mismatch (F1 fix)
+    with pytest.raises(SquadsError, match=r"FEAT-000002 is FEAT-000002 \(feature\), not a task"):
+        resolve_item_id_typed("FEAT-000002", ItemType.TASK, svc)
+
+    # unknown bare number → error mentioning both forms (F2)
+    with pytest.raises(
+        SquadsError,
+        match=r"no item with number 99 \(use TASK-000099 or bare 99\)",
+    ):
+        resolve_item_id_typed("99", ItemType.TASK, svc)
+
+    # unknown full ID → same wording mentioning both forms (F2)
+    with pytest.raises(
+        SquadsError,
+        match=r"no item with number 99 \(use TASK-000099 or bare 99\)",
+    ):
+        resolve_item_id_typed("TASK-000099", ItemType.TASK, svc)
+
+    # invalid token → uses shared error (F3)
+    with pytest.raises(SquadsError, match="invalid item id"):
+        resolve_item_id_typed("abc", ItemType.TASK, svc)
+
+
+def test_resolve_item_id_any(svc):
+    """Service-level: type-less resolver resolves bare number or full ID regardless of type."""
+    from squads._cli._common import resolve_item_id_any  # pyright: ignore[reportPrivateUsage]
+    from squads._errors import SquadsError
+    from squads._models._enums import ItemType
+
+    svc.create(ItemType.FEATURE, "Feat B", author="manager")  # FEAT-000002
+    svc.create(ItemType.TASK, "Task C", author="manager")  # TASK-000003
+
+    # bare number resolves to feature
+    assert resolve_item_id_any("2", svc) == "FEAT-000002"
+
+    # bare number resolves to task
+    assert resolve_item_id_any("3", svc) == "TASK-000003"
+
+    # full IDs work too
+    assert resolve_item_id_any("FEAT-000002", svc) == "FEAT-000002"
+    assert resolve_item_id_any("TASK-000003", svc) == "TASK-000003"
+
+    # mismatched prefix on a full ID → names actual item+type (F1/F2 consistent)
+    with pytest.raises(SquadsError, match=r"TASK-000002 is FEAT-000002 \(feature\)"):
+        resolve_item_id_any("TASK-000002", svc)
+
+    # unknown number → mentions both forms (F2): "use a full ID like TYPE-... or bare N"
+    with pytest.raises(
+        SquadsError,
+        match=r"no item with number 99 \(use a full ID like TYPE-000099 or bare 99\)",
+    ):
+        resolve_item_id_any("99", svc)
+
+    # unknown full ID → same wording (F2)
+    with pytest.raises(
+        SquadsError,
+        match=r"no item with number 99 \(use a full ID like TYPE-000099 or bare 99\)",
+    ):
+        resolve_item_id_any("TASK-000099", svc)
+
+    # invalid token (F3: shared _parse_item_token error)
+    with pytest.raises(SquadsError, match="invalid item id"):
+        resolve_item_id_any("abc", svc)
+
+
+def test_item_verb_type_enforcement(runner, tmp_path, monkeypatch, frozen_time):
+    """CLI smoke: sq task <feat-num> show errors with actual item+type; valid both-forms work."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+
+    # bare number against wrong type → mismatch error naming actual item+type (F1)
+    bad = runner.invoke(app, ["task", "2", "show"])
+    assert bad.exit_code == 1
+    assert "FEAT-000002" in bad.output and "feature" in bad.output and "not a task" in bad.output
+
+    # full ID with wrong prefix → same shape as bare-number mismatch (F1 fix)
+    bad_full = runner.invoke(app, ["task", "FEAT-000002", "show"])
+    assert bad_full.exit_code == 1
+    assert (
+        "FEAT-000002" in bad_full.output
+        and "feature" in bad_full.output
+        and "not a task" in bad_full.output
+    )
+
+    # bare number (correct type) → success
+    ok_bare = runner.invoke(app, ["feature", "2", "show"])
+    assert ok_bare.exit_code == 0
+
+    # full ID (correct type) → success
+    ok_full = runner.invoke(app, ["feature", "FEAT-000002", "show"])
+    assert ok_full.exit_code == 0
 
 
 def test_item_grammar_refs_and_finding(runner, tmp_path, monkeypatch, frozen_time):
@@ -315,7 +424,7 @@ def test_tree_json_subtree_with_blocked_and_all(runner, tmp_path, monkeypatch, f
 
     # an unknown root is a clean error, not a KeyError traceback
     bad = runner.invoke(app, ["tree", "EPIC-999999", "--json"])
-    assert bad.exit_code == 1 and "to root the tree" in bad.output
+    assert bad.exit_code == 1 and ("999999" in bad.output or "to root the tree" in bad.output)
 
 
 def test_hoist_global_options():
@@ -559,3 +668,204 @@ def test_check_cli_flags_index_item_with_no_file(project, runner, frozen_time):
     assert r.exit_code == 1, r.output
     assert "TASK-000099" in r.output
     assert "no markdown" in r.output
+
+
+# ---------------------------------------------------------------------------
+# TASK-000047: resolver adoption sweep — CLI smoke for every ID-accepting surface
+# ---------------------------------------------------------------------------
+
+
+def test_create_parent_and_ref_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """create --parent and --ref accept bare numbers; unknown number errors mention both forms."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    # ROLE-000001 (seq 1); FEAT-000002 (seq 2)
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
+
+    # bare number for --parent (feature is a valid parent for task)
+    r = runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "2"])
+    assert r.exit_code == 0, r.output
+
+    # bare number for --ref (type-agnostic: any existing item)
+    r = runner.invoke(app, ["create", "task", "T2", "--author", "manager", "--ref", "2"])
+    assert r.exit_code == 0, r.output
+
+    # unknown number for --parent errors with both forms
+    bad = runner.invoke(app, ["create", "task", "Bad", "--author", "manager", "--parent", "999"])
+    assert bad.exit_code == 1
+    assert "999" in bad.output
+
+    # unknown number for --ref errors
+    bad2 = runner.invoke(app, ["create", "task", "Bad2", "--author", "manager", "--ref", "999"])
+    assert bad2.exit_code == 1
+    assert "999" in bad2.output
+
+
+def test_update_parent_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """update --parent accepts bare numbers."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000003
+
+    # bare number for --parent
+    r = runner.invoke(app, ["task", "3", "update", "--parent", "2"])
+    assert r.exit_code == 0, r.output
+
+    # full ID also works
+    r = runner.invoke(app, ["task", "3", "update", "--parent", "FEAT-000002"])
+    assert r.exit_code == 0, r.output
+
+    # unknown number errors
+    bad = runner.invoke(app, ["task", "3", "update", "--parent", "888"])
+    assert bad.exit_code == 1
+    assert "888" in bad.output
+
+
+def test_ref_add_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """ref add / ref rm accept bare numbers for the target."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000003
+
+    # ref add with bare number
+    r = runner.invoke(app, ["task", "3", "ref", "add", "2"])
+    assert r.exit_code == 0, r.output
+    out = runner.invoke(app, ["task", "3", "refs"]).output
+    assert "FEAT-000002" in out
+
+    # ref rm with bare number
+    r = runner.invoke(app, ["task", "3", "ref", "rm", "2"])
+    assert r.exit_code == 0, r.output
+
+    # unknown target errors
+    bad = runner.invoke(app, ["task", "3", "ref", "add", "777"])
+    assert bad.exit_code == 1
+    assert "777" in bad.output
+
+
+def test_tree_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """sq tree accepts a bare number as root; unknown number gives a clear error."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "epic", "E", "--author", "manager"])  # EPIC-000002
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager", "--parent", "EPIC-000002"])
+
+    # bare number for root
+    r = runner.invoke(app, ["tree", "2"])
+    assert r.exit_code == 0, r.output
+    assert "EPIC-000002" in r.output
+
+    # full ID also works
+    r = runner.invoke(app, ["tree", "EPIC-000002"])
+    assert r.exit_code == 0, r.output
+
+    # unknown number is a clean error
+    bad = runner.invoke(app, ["tree", "555"])
+    assert bad.exit_code == 1
+    assert "555" in bad.output
+
+
+def test_list_parent_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """sq list --parent accepts a bare number."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000002"])
+
+    # bare number for --parent
+    r = runner.invoke(app, ["list", "--parent", "2"])
+    assert r.exit_code == 0, r.output
+    assert "TASK-" in r.output
+
+    # unknown number errors
+    bad = runner.invoke(app, ["list", "--parent", "444"])
+    assert bad.exit_code == 1
+    assert "444" in bad.output
+
+
+def test_role_regen_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """sq role regen / rm accept bare numbers; wrong-type errors cleanly."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    # ROLE-000001 is the only role after minimal init
+
+    # bare number for regen
+    r = runner.invoke(app, ["role", "regen", "1"])
+    assert r.exit_code == 0, r.output
+
+    # wrong-type token for regen errors
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    bad = runner.invoke(app, ["role", "regen", "2"])
+    assert bad.exit_code == 1
+    assert "feature" in bad.output and "not a role" in bad.output
+
+    # bare number for rm — use a fresh init to preserve seq 1
+    runner.invoke(app, ["role", "activate", "qa"])  # activates as ROLE-000003
+    r = runner.invoke(app, ["role", "rm", "3"])
+    assert r.exit_code == 0, r.output
+
+
+def test_skill_show_regen_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """sq skill show / regen / rm accept bare numbers; wrong-type errors cleanly."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    # Add a skill; after init the next seq is 2
+    runner.invoke(app, ["skill", "add", "my-skill", "--desc", "test skill"])  # SKILL-000002
+
+    # bare number for show
+    r = runner.invoke(app, ["skill", "show", "2"])
+    assert r.exit_code == 0, r.output
+    assert "my-skill" in r.output
+
+    # bare number for regen
+    r = runner.invoke(app, ["skill", "regen", "2"])
+    assert r.exit_code == 0, r.output
+
+    # wrong-type token errors
+    bad = runner.invoke(app, ["skill", "show", "1"])
+    assert bad.exit_code == 1
+    assert "not a skill" in bad.output
+
+    # bare number for rm
+    r = runner.invoke(app, ["skill", "rm", "2"])
+    assert r.exit_code == 0, r.output
+
+
+def test_operator_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """sq operator rm accepts a bare number; wrong-type errors cleanly."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["operator", "add", "Test User"])  # OPER-000002
+
+    # bare number for rm
+    r = runner.invoke(app, ["operator", "rm", "2"])
+    assert r.exit_code == 0, r.output
+
+    # wrong-type token errors (seq 1 is a role)
+    runner.invoke(app, ["operator", "add", "Test User2"])  # OPER-000003
+    bad = runner.invoke(app, ["operator", "rm", "1"])
+    assert bad.exit_code == 1
+    assert "not an operator" in bad.output or "role" in bad.output
+
+
+def test_subtask_story_bare_number(runner, tmp_path, monkeypatch, frozen_time):
+    """add-subtask --story accepts bare number like '1' normalized to 'US1'."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000002"])
+    runner.invoke(app, ["feature", "2", "add-story", "Story One"])  # US1
+
+    # bare number '1' → normalizes to 'US1'
+    r = runner.invoke(app, ["task", "3", "add-subtask", "ST", "--story", "1"])
+    assert r.exit_code == 0, r.output
+
+    # canonical form 'US1' also works
+    r = runner.invoke(app, ["task", "3", "add-subtask", "ST2", "--story", "US1"])
+    assert r.exit_code == 0, r.output
+
+    # unknown story errors from service
+    bad = runner.invoke(app, ["task", "3", "add-subtask", "ST3", "--story", "99"])
+    assert bad.exit_code == 1

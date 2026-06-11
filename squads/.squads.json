@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 45,
+  "counter": 48,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -276,7 +276,7 @@
       "type": "feature",
       "title": "Uniform item addressing: every command accepts both ID and number",
       "slug": "uniform-item-addressing-every-command-accepts-both-id-and-nu",
-      "status": "Ready",
+      "status": "Done",
       "description": "Every ID-accepting surface (verbs, tree, --parent, ref add, search args) understands both the full ID (FEAT-000013) and the bare number (13), with one shared resolver",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -288,7 +288,7 @@
         {
           "local_id": "US1",
           "title": "As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -296,7 +296,7 @@
         {
           "local_id": "US2",
           "title": "As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -304,7 +304,7 @@
         {
           "local_id": "US3",
           "title": "As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -312,7 +312,7 @@
       ],
       "path": "features/FEAT-000019-uniform-item-addressing-every-command-accepts-both-id-and-nu.md",
       "created_at": "2026-06-10T12:56:45Z",
-      "updated_at": "2026-06-11T07:54:54Z",
+      "updated_at": "2026-06-11T14:41:09Z",
       "extra": {},
       "id": "FEAT-000019"
     },
@@ -1708,6 +1708,137 @@
       "updated_at": "2026-06-11T12:50:45Z",
       "extra": {},
       "id": "TASK-000045"
+    },
+    "46": {
+      "sequence_id": 46,
+      "type": "task",
+      "title": "Shared item-address resolver + typed-surface type enforcement",
+      "slug": "shared-item-address-resolver-typed-surface-type-enforcement",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000019",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000047:blocks"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Shared resolver: typed (live-DB type check) + type-less variants, both-forms unknown-item errors",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Close the silent type-mismatch hole on the item-verb surface (13 is FEAT-000013, not a task)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000046-shared-item-address-resolver-typed-surface-type-enforcement.md",
+      "created_at": "2026-06-11T13:59:31Z",
+      "updated_at": "2026-06-11T14:32:38Z",
+      "extra": {},
+      "id": "TASK-000046"
+    },
+    "47": {
+      "sequence_id": 47,
+      "type": "task",
+      "title": "Adopt the shared resolver across all ID-accepting surfaces + uniform error wording",
+      "slug": "adopt-the-shared-resolver-across-all-id-accepting-surfaces-u",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000019",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator targets, subtask --story through the resolver",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Uniform unknown-item error wording mentioning both accepted forms everywhere",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000047-adopt-the-shared-resolver-across-all-id-accepting-surfaces-u.md",
+      "created_at": "2026-06-11T13:59:33Z",
+      "updated_at": "2026-06-11T14:32:39Z",
+      "extra": {},
+      "id": "TASK-000047"
+    },
+    "48": {
+      "sequence_id": 48,
+      "type": "review",
+      "title": "FEAT-000019 — uniform item addressing",
+      "slug": "feat-000019-uniform-item-addressing",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000019:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Type-mismatch wording is inconsistent on typed surfaces depending on input form. For the SAME item, 'sq task 2 show' errors '2 is FEAT-000002 (feature), not a task' (names actual item+type, matches the recorded decision) but 'sq task FEAT-000002 show' errors 'FEAT-000002 is not a task (expected TASK-…)' — it never tells the user FEAT-000002 IS a feature. resolve_item_id_typed short-circuits the full-ID branch on the prefix string check (_common.py ~line 280) before the DB lookup, reusing the old wording. Acceptance requires wrong-type errors 'consistently everywhere, naming the actual item and type'. Fix: in the full-ID branch, when prefix mismatches, do the DB lookup and emit the same 'X is <id> (<type>), not a <type>' wording as the bare-number branch.",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Unknown-item error wording drifts across the four resolver branches; acceptance demands 'both accepted forms, consistently everywhere'. Variants observed: (a) typed bare: 'no item with number 999 (use TASK-000999 or bare 999)'; (b) any bare: 'no item with number 999 (use a bare number like 999 or a full ID like TYPE-000999)'; (c) any full-ID: 'no item with number 999 (tried FEAT-000999 or bare 999)' — this one names neither form as a 'form' and omits the full-ID guidance; (d) typed full-ID uses the command prefix while any uses literal 'TYPE-'. Pick one canonical phrasing for 'mentions both forms' and use it in all four branches of resolve_item_id_typed/_any in _common.py.",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Old resolve_item_id (_common.py:231) is now dead production code — no production caller remains after _items.py switched its verb callback to resolve_item_id_typed (only its own test_resolve_item_id references it). The two new resolvers re-implement the same lexical prefix/rpartition munging internally, so the lexical phase is now written three times. Either delete resolve_item_id (and fold its lexical assertions into the typed test) or have the new resolvers delegate to it for the lexical phase. Quality/maintainability, not correctness.",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Minor grammar in type-mismatch messages: 'not a operator' / 'not a epic' (a/an agreement) — produced for OPERATOR and EPIC types. The recorded example is 'not a task' so it reads fine for most types but not vowel-initial ones. Low cosmetic; can be folded with the F1/F2 wording cleanup.",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000048-feat-000019-uniform-item-addressing.md",
+      "created_at": "2026-06-11T14:19:22Z",
+      "updated_at": "2026-06-11T14:32:32Z",
+      "extra": {},
+      "id": "REV-000048"
     }
   }
 }

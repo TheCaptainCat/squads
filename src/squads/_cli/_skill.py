@@ -4,7 +4,14 @@ import typer
 from rich.panel import Panel
 from rich.table import Table
 
-from squads._cli._common import console, e, get_service, handle_errors
+from squads._cli._common import (
+    console,
+    e,
+    get_service,
+    handle_errors,
+    resolve_item_id_any,
+    resolve_item_id_typed,
+)
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 
@@ -22,8 +29,13 @@ def skill_add(
 ):
     """Create a skill item and its Claude pointer."""
     svc = get_service()
+    resolved_parent = resolve_item_id_any(parent, svc) if parent else None
     item = svc.add_skill(
-        name, description=desc, when_to_use=when_to_use, allowed_tools=allowed_tools, parent=parent
+        name,
+        description=desc,
+        when_to_use=when_to_use,
+        allowed_tools=allowed_tools,
+        parent=resolved_parent,
     )
     console.print(f"created skill [bold]{item.id}[/bold] → {item.path}")
 
@@ -48,7 +60,8 @@ def skill_list():
 @handle_errors
 def skill_show(item_id: str = typer.Argument(...)):
     svc = get_service()
-    it = svc.get(item_id)
+    resolved = resolve_item_id_typed(item_id, ItemType.SKILL, svc)
+    it = svc.get(resolved)
     rows = [
         f"[bold]{it.id}[/bold] {e(it.title)}",
         f"[bold]slug:[/bold] {it.extra.get(X.SLUG, it.slug)}",
@@ -64,8 +77,10 @@ def skill_show(item_id: str = typer.Argument(...)):
 @handle_errors
 def skill_regen(item_id: str = typer.Argument(...)):
     """Regenerate the Claude pointer from the item."""
-    get_service().regen(item_id)
-    console.print(f"regenerated pointer for {item_id}")
+    svc = get_service()
+    resolved = resolve_item_id_typed(item_id, ItemType.SKILL, svc)
+    svc.regen(resolved)
+    console.print(f"regenerated pointer for {resolved}")
 
 
 @skill_app.command("rm")
@@ -75,5 +90,7 @@ def skill_rm(
     purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
 ):
     """Remove a skill (and its pointer; --purge also deletes the markdown)."""
-    get_service().remove_item(item_id, purge=purge)
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    svc = get_service()
+    resolved = resolve_item_id_typed(item_id, ItemType.SKILL, svc)
+    svc.remove_item(resolved, purge=purge)
+    console.print(f"removed {resolved}" + (" (purged)" if purge else ""))

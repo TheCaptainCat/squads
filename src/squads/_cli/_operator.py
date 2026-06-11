@@ -3,7 +3,8 @@
 import typer
 from rich.table import Table
 
-from squads._cli._common import console, e, get_service, handle_errors
+from squads._cli._common import console, e, get_service, handle_errors, resolve_item_id_typed
+from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 
 operator_app = typer.Typer(no_args_is_help=True, help="Manage human operators.")
@@ -49,6 +50,7 @@ def operator_rm(
 ):
     """Remove an operator (--purge also deletes the markdown)."""
     svc = get_service()
-    svc.remove_item(item_id, purge=purge)
+    resolved = resolve_item_id_typed(item_id, ItemType.OPERATOR, svc)
+    svc.remove_item(resolved, purge=purge)
     svc.refresh_managed()
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    console.print(f"removed {resolved}" + (" (purged)" if purge else ""))
