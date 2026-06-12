@@ -233,6 +233,21 @@ class ServiceCore:
                 return it
         return None
 
+    def role_body(self, slug: str) -> str | None:
+        """Return the body-region content of the active role item for ``slug``, or None.
+
+        Returns ``None`` when no tracked item exists for this slug (bundled-only role).
+        The returned string is stripped of leading/trailing newlines.
+        """
+        item = self._role_item(slug)
+        if item is None:
+            return None
+        text = item_file(self.paths, item).read_text(encoding="utf-8")
+        body = sections.get_section(text, markers.BODY)
+        if body is None:
+            return None
+        return body.strip("\n")
+
     def _skill_item(self, slug: str) -> Item | None:
         for it in self.store.load().items.values():
             if it.type is ItemType.SKILL and it.extra.get(X.SLUG, it.slug) == slug:

@@ -807,6 +807,24 @@ def test_role_regen_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     assert r.exit_code == 0, r.output
 
 
+def test_role_show_includes_body_and_degrades_for_bundled(
+    runner, tmp_path, monkeypatch, frozen_time
+):
+    """sq role show: active role shows working agreements; bundled-only degrades with hint."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])  # activates `manager` only
+
+    # Active role: output must include the working agreements from the item body.
+    r = runner.invoke(app, ["role", "show", "manager"])
+    assert r.exit_code == 0, r.output
+    assert "Working agreements" in r.output
+
+    # Bundled-only role (not activated): must still exit 0 with an activation hint.
+    r = runner.invoke(app, ["role", "show", "qa"])
+    assert r.exit_code == 0, r.output
+    assert "activate" in r.output
+
+
 def test_skill_show_regen_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     """sq skill show / regen / rm accept bare numbers; wrong-type errors cleanly."""
     monkeypatch.chdir(tmp_path)
