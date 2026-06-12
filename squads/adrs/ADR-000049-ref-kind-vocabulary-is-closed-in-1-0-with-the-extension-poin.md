@@ -10,8 +10,9 @@ refs:
 - FEAT-000035
 - FEAT-000013
 - FEAT-000014
+- GUIDE-000079
 created_at: '2026-06-11T20:19:55Z'
-updated_at: '2026-06-11T21:27:25Z'
+updated_at: '2026-06-12T14:26:22Z'
 ---
 <!-- sq:body -->
 ## Context

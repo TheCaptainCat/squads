@@ -23,7 +23,7 @@ subentities:
     files) explicitly marked non-public, so that I don't build on the wrong layer
   status: Todo
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-12T11:58:22Z'
+updated_at: '2026-06-12T14:30:00Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -146,4 +146,6 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
   - (3) Bundled catalog: 'sq role catalog' is the dedicated subcommand for the bundled-but-not-activated role catalog (slug, name, title, default). 'sq role list --available' is gone.
   - (4) Standalone list commands removed: 'sq role list', 'sq skill list', 'sq operator list' are removed in favor of 'sq list -t <type>'. No deprecation shim — pre-1.0 removal is allowed.
   - (5) Slug resolution: for role show/regen/rm, slug is a valid address form in addition to full ID and bare number.
+- [2026-06-12T14:30:00Z] Catherine Manager:
+  - Deferral from FEAT-000018 (architecture backfill, shipped): the retroactive ADR record now exists — ADR-000071..078 (frontmatter-as-truth, global counter, forward-only refs, marker-safe editing, pluggable backends, schema-version scheme, injectable clock, module privacy), all Accepted, cross-linked with GUIDE-000079 (the architecture guide, Published). The capstone doc can cite ADR numbers directly; the schema_version and Python-floor ADRs called for by this feature and FEAT-000017 attach to the same record when authored.
 <!-- sq:discussion:end -->
