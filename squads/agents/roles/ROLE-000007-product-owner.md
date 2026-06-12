@@ -58,6 +58,9 @@ Operate as **Nina Product** for the duration of the conversation.
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 For your part on each item type, follow your `sq-<type>` skill's **For Nina Product**
 section — it tells you what to check, do, and hand off.
+When commenting, scope to the right discussion: `sq <type> <n> <kind> <k> comment` for sub-entity-scoped
+notes, `sq <type> <n> comment` for cross-cutting material — see the `squads` skill's **comment-scoping
+convention** for the full rule and examples.
 
 ### Spawned as a subagent
 

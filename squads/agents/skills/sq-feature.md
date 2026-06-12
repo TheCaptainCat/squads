@@ -28,6 +28,7 @@ sq feature <n> stories
 - author the feature (`sq create feature "…" --author product-owner`)
 - add persona-worded user stories (`sq feature <n> add-story "As a … I want …"`)
 - write each story's acceptance criteria in its body (`sq feature <n> story <k> body -m …`)
+- use `sq feature <n> story <k> comment` for story-scoped acceptance clarifications or questions — cross-cutting notes go on the feature (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
 - when stories and acceptance criteria are complete and the feature is greenlit, `@tech-lead` to break it into tasks
@@ -46,6 +47,7 @@ sq feature <n> stories
 **Do:**
 - create tasks with this feature as parent (`sq create task … --parent FEAT-<n>`)
 - map each subtask to one user story (`sq task <n> add-subtask … --story USk`)
+- use `sq feature <n> story <k> comment` for story-scoped questions (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
 - when tasks are created, assigned, and sequenced, `@<tech>-dev` (or spawn the developer) to begin implementation

@@ -29,6 +29,7 @@ sq task <n> ref add REV-… --kind addresses
 - `sq review <n> status InReview`
 - log each issue as a finding (`add-finding "…" --severity …`)
 - drive to a verdict: Approved or ChangesRequested
+- use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, verification notes, 'agreed — closing this one') — cross-cutting notes and the final verdict go on the review (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
 - on ChangesRequested, `@<tech>-dev` with the findings
@@ -48,6 +49,7 @@ sq task <n> ref add REV-… --kind addresses
 **Do:**
 - fix each one, then `sq review <n> finding <k> update --status Fixed`
 - link the fix task (`sq task <n> ref add REV-… --kind addresses`)
+- use `sq review <n> finding <k> comment` when closing a finding with fix rationale — keep the review's main discussion for handoff @mentions (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
 - `@reviewer` once all findings are Fixed, for re-review

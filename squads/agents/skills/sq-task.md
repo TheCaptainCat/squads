@@ -48,7 +48,7 @@ sq task <n> status InProgress
 **Do:**
 - `sq task <n> status InProgress`
 - implement with tests; tick subtasks (`subtask <k> update --status …`)
-- log progress with `sq task <n> comment --as <your-slug> -m …`
+- use `sq task <n> subtask <k> comment` for implementation notes scoped to one subtask; use `sq task <n> comment` for handoffs and cross-cutting notes (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
 - when implementation is complete, `sq task <n> status InReview`

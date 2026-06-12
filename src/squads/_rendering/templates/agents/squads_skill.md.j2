@@ -42,6 +42,23 @@ to stay disciplined:
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
   -m "…"` summarising what changed — that's how the manager's loop (and the next agent) picks up
   where you left off.
+- **Scope your comment to the right discussion.** Sub-entities (stories, subtasks, findings) each
+  have their own discussion region alongside the parent item's main discussion. Use
+  `sq <type> <n> <kind> <k> comment` for anything scoped to that one sub-entity; use
+  `sq <type> <n> comment` for cross-cutting material that applies to the whole item.
+
+  | Scope | Command | When to use |
+  |---|---|---|
+  | One finding | `sq review <n> finding <k> comment` | Fix rationale, reproduction notes, "agreed — closing this one" |
+  | One story | `sq feature <n> story <k> comment` | Acceptance clarification, story-local blocker or question |
+  | One subtask | `sq task <n> subtask <k> comment` | Implementation note, decision local to this unit of work |
+  | Whole item | `sq <type> <n> comment` | Handoff @mentions, decisions spanning multiple sub-entities, item-level status summaries |
+
+  @mentions are surfaced by `sq inbox` wherever they live in the file — in a sub-entity discussion
+  or the main one. Prefer the main discussion for @mentions that announce a transition or request
+  action from the next agent (they read as item-level handoffs); a sub-entity discussion is fine for
+  a scoped question (e.g. `sq review N finding 1 comment --as reviewer -m "@dev does this fix
+  satisfy the requirement?"`). This is guidance, not a hard rule — the inbox never misses a mention.
 - **Stay in lane.** File anything you discover that's out of scope as its own item (e.g. a bug);
   don't silently expand the work.
 

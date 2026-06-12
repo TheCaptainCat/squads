@@ -373,6 +373,31 @@ def test_inbox_accepts_at_prefix(svc):
     assert {i.id for i, _ in svc.inbox("@reviewer")} == {t.id}
 
 
+def test_inbox_surfaces_mention_in_subentity_discussion(svc):
+    # FEAT-000062 US3 no-regression: @mentions written in sub-entity discussions (story, subtask,
+    # finding) must be surfaced by sq inbox exactly like item-level mentions.
+    # Story discussion on a feature
+    feat = svc.create(ItemType.FEATURE, "Login feature").item
+    svc.add_story(feat.id, "Password reset")  # US1
+    svc.comment(feat.id, ["@qa please verify acceptance"], as_slug="product-owner", story="US1")
+    ids = {it.id for it, _ in svc.inbox("qa")}
+    assert feat.id in ids
+
+    # Subtask discussion on a task
+    task = svc.create(ItemType.TASK, "Implement reset").item
+    svc.add_subtask(task.id, "Wire endpoint")  # ST1
+    svc.comment(task.id, ["@reviewer look at this subtask"], as_slug="manager", subtask="ST1")
+    ids = {it.id for it, _ in svc.inbox("reviewer")}
+    assert task.id in ids
+
+    # Finding discussion on a review
+    rev = svc.create(ItemType.REVIEW, "Code review").item
+    svc.add_finding(rev.id, "Null deref")  # F1
+    svc.comment(rev.id, ["@qa does this fix satisfy?"], as_slug="reviewer", finding="F1")
+    ids = {it.id for it, _ in svc.inbox("qa")}
+    assert rev.id in ids
+
+
 # --------------------------------------------------------------------------- check
 
 
