@@ -11,6 +11,7 @@ Address resolution order (exact match, no fuzzy):
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
 
+import json
 from typing import ClassVar
 
 import typer
@@ -81,11 +82,25 @@ def _resolve_addr(ctx: typer.Context, addr: str = typer.Argument(..., metavar="A
 def operator_show(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Show an operator's metadata panel and body."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     it = svc.get(item_id)
+    if json_out:
+        console.print_json(
+            json.dumps(
+                {
+                    "id": it.id,
+                    "slug": it.extra.get(X.SLUG, it.slug),
+                    "full_name": it.extra.get(X.FULL_NAME, it.title),
+                    "status": it.status.value,
+                    "path": it.path,
+                }
+            )
+        )
+        return
     rows = [
         f"[bold]{e(it.extra.get(X.FULL_NAME, it.title))}[/bold]",
         f"[bold]slug:[/bold] {e(it.extra.get(X.SLUG, it.slug))}",

@@ -3,7 +3,7 @@ id: FEAT-000014
 sequence_id: 14
 type: feature
 title: Project-level template and role overrides
-status: Ready
+status: InProgress
 parent: EPIC-000012
 author: product-owner
 priority: high
@@ -27,7 +27,7 @@ subentities:
     creation, so that my squad's roster is named the way my team wants
   status: Todo
 created_at: '2026-06-10T12:41:06Z'
-updated_at: '2026-06-11T07:54:52Z'
+updated_at: '2026-06-12T15:45:34Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -157,4 +157,14 @@ _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-12T15:25:19Z] Catherine Manager:
+  - Kicking off the design phase per op-pierre's go (2026-06-12). @architect please draft the ADR: override locations, lookup precedence (project override → bundled default), partial-override behaviour, staleness across upgrades, and the agent-naming surface at init/role creation. Implementation waits for the accepted ADR.
+  - The override layout joins the durable contract — leave a deferral comment on FEAT-000013 once the decision is proposed.
+- [2026-06-12T15:30:16Z] Robert Architect:
+  - Design phase done: ADR-000085 is Proposed (refs this feature). Proposal in brief — (1) Locations: one umbrella `<squad-dir>/.overrides/` with `templates/` (mirrors the bundled template tree 1:1, override key = existing render() name) and `roles/<slug>.toml` (structured, feeds RoleDef). Chose `.overrides` over the body's `.templates` because scope is broader than templates and one named root is cleaner for the contract; under the squad folder so it travels with the data and reuses the existing path resolution + traversal guard. (2) Precedence: per-file, project → bundled, presence is the override (no all-or-nothing, no manifest). Templates override whole-file; roles merge field-wise by slug (rename/remodel a bundled role, or define a new one). Engine: PackageLoader → squad-aware ChoiceLoader, render() and all call sites unchanged. (3) Staleness: `squads:override-base:<version>` stamp + a shipped per-template content-hash manifest; `sq check` WARNS on version drift, ERRORS on a missing required marker; valid overrides always render; `sq migrate` never rewrites them. (4) Naming: names become input at `sq init` (`--name slug=Full Name` + optional `[init.names]`) and at `sq role activate`/`sq dev add`; unnamed → bundled pool; the name rides the existing `extra.full_name` channel to roster/pointers/CLAUDE.md; slugs stay canonical and non-renamable.
+  - Open questions for acceptance (op-pierre / @manager): (a) `.overrides` vs the body's `.templates` name — confirm the rename. (b) Naming UX at init: is repeatable `--name slug=Name` the right surface, or do we want an interactive prompt for 1.0? (b is deferrable; the contract only freezes that names live in extra.) (c) The drift check needs a per-release content-hash manifest shipped as package data — acceptable build cost, or prefer a coarser 'base-version older than current' warning with no per-file precision? (d) Confirm slugs are frozen as non-renamable (teams rename who the architect IS, not the architect slot). Left at Proposed deliberately — acceptance is yours. @manager
+- [2026-06-12T15:45:34Z] Robert Architect:
+  - @manager @op-pierre ADR-000085 is revised and ready for acceptance — still Proposed (acceptance is op-pierre's call).
+  - Both requested revisions are integrated: (1) §3 spells out the stale-override update loop end-to-end — sq check warns on real drift → `sq override diff` shows BOTH deltas (what you changed vs current bundled, AND what the upgrade changed: base-bundled vs current bundled) → you merge by hand (never auto-rewritten) → `sq override update` re-stamps and clears the warning. The command group is scaffold/diff/update/list and joins the durable contract. (2) §4 naming UX: at a TTY sq init prompts for missing names unless --default-names; non-TTY implies --default-names; --name flags and [init.names] stay declarative and pre-answer prompts.
+  - The confirmed rulings (.overrides/ location, frozen canonical slugs) are folded in too. Review with: uv run sq decision 85 show --full --comments.
 <!-- sq:discussion:end -->

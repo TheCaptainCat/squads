@@ -12,6 +12,8 @@ Address resolution order (exact match, no fuzzy):
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
 
+import json
+
 import typer
 from rich.panel import Panel
 
@@ -83,11 +85,28 @@ def _resolve_addr(ctx: typer.Context, addr: str = typer.Argument(..., metavar="A
 def skill_show(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Show a skill's metadata panel and body."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     it = svc.get(item_id)
+    if json_out:
+        console.print_json(
+            json.dumps(
+                {
+                    "id": it.id,
+                    "slug": it.extra.get(X.SLUG, it.slug),
+                    "title": it.title,
+                    "status": it.status.value,
+                    "description": it.extra.get(X.DESCRIPTION, ""),
+                    "when_to_use": it.extra.get(X.WHEN_TO_USE, ""),
+                    "allowed_tools": it.extra.get(X.ALLOWED_TOOLS, ""),
+                    "path": it.path,
+                }
+            )
+        )
+        return
     rows = [
         f"[bold]{it.id}[/bold] {e(it.title)}",
         f"[bold]slug:[/bold] {it.extra.get(X.SLUG, it.slug)}",

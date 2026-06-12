@@ -442,10 +442,18 @@ def show_any(
 
 @app.command()
 @handle_errors
-def check():
+def check(json_out: bool = typer.Option(False, "--json")):
     """Lint the squad: markers, dangling links, invalid status, index drift."""
     svc = get_service()
     issues = svc.check()
+    if json_out:
+        console.print_json(
+            json.dumps([{"level": i.level, "item": i.item, "message": i.message} for i in issues])
+        )
+        errors = sum(1 for i in issues if i.level == "error")
+        if errors:
+            raise typer.Exit(3)
+        return
     if not issues:
         console.print("[green]✓ no issues[/green]")
         return
@@ -455,4 +463,4 @@ def check():
         loc = f" [dim]{i.item}[/dim]" if i.item else ""
         console.print(f"[{color}]{i.level}[/{color}]{loc}: {i.message}")
     if errors:
-        raise typer.Exit(1)
+        raise typer.Exit(3)

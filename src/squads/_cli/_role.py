@@ -13,6 +13,8 @@ Address resolution order (exact match, no fuzzy):
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
 
+import json
+
 import typer
 from rich.panel import Panel
 from rich.table import Table
@@ -49,8 +51,23 @@ role_app = typer.Typer(
 
 @role_app.command("catalog")
 @handle_errors
-def role_catalog() -> None:
+def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     """Show the bundled role catalog (slug, name, title, default indicator)."""
+    if json_out:
+        console.print_json(
+            json.dumps(
+                [
+                    {
+                        "slug": r.slug,
+                        "full_name": r.full_name,
+                        "title": r.title,
+                        "is_default": r.is_default,
+                    }
+                    for r in PREDEFINED
+                ]
+            )
+        )
+        return
     table = Table(box=None, pad_edge=False)
     for col in ("Slug", "Name", "Title", "Default"):
         table.add_column(col)
@@ -121,6 +138,7 @@ def _require_id(ctx: typer.Context) -> str:
 def show_role(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Show a role's catalog card plus active item body.
 
@@ -138,6 +156,38 @@ def show_role(
     else:
         # Bundled-only role: the addr IS the slug (slug resolution fell through without finding it).
         slug = addr
+
+    if json_out:
+        data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
+        try:
+            r = role_by_slug(slug)
+            data.update(
+                {
+                    "full_name": r.full_name,
+                    "title": r.title,
+                    "mission": r.mission,
+                    "model": r.model,
+                    "is_default": r.is_default,
+                    "responsibilities": list(r.responsibilities),
+                }
+            )
+        except SquadsError:
+            if item_id is not None:
+                it3 = svc.get(item_id)
+                data.update(
+                    {
+                        "full_name": it3.extra.get(X.FULL_NAME, it3.title),
+                        "title": it3.extra.get(X.TITLE, ""),
+                        "mission": it3.extra.get(X.MISSION, ""),
+                        "model": it3.extra.get(X.MODEL),
+                        "is_default": it3.extra.get(X.IS_DEFAULT, False),
+                        "responsibilities": it3.extra.get(X.RESPONSIBILITIES, []),
+                    }
+                )
+            else:
+                raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
+        console.print_json(json.dumps(data))
+        return
 
     # Build the catalog card from the bundled PREDEFINED entry (if available).
     try:
