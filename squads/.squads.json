@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 57,
+  "counter": 63,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -938,12 +938,12 @@
       "type": "feature",
       "title": "Rendered show output",
       "slug": "rendered-show-output",
-      "status": "Draft",
+      "status": "Done",
       "description": "sq show renders body and discussion as styled markdown on a TTY (headings, bullets, code), with --raw opt-out, NO_COLOR respected, and plain output when piped",
       "parent": "EPIC-000038",
       "author": "product-owner",
       "assignee": null,
-      "priority": "low",
+      "priority": "high",
       "labels": [],
       "refs": [
         "FEAT-000019:depends-on",
@@ -953,7 +953,7 @@
         {
           "local_id": "US1",
           "title": "As an operator reading the backlog in my terminal, I want show to render the markdown, so that sq tree + sq show covers browsing and reading without external viewers",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -961,7 +961,7 @@
         {
           "local_id": "US2",
           "title": "As an agent or script consuming show output, I want piped/--raw/NO_COLOR output plain and stable, so that rendering never breaks my parsing",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -969,7 +969,7 @@
         {
           "local_id": "US3",
           "title": "As a user with an ID or number in hand, I want a root sq show command that displays any item regardless of type, so that I can read anything in one step without naming its type",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -977,7 +977,7 @@
         {
           "local_id": "US4",
           "title": "As a reader of a feature, task or review, I want show to include the sub-entity summary table and the discussion, so that one command gives me the whole item, not just its body",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -985,7 +985,15 @@
         {
           "local_id": "US5",
           "title": "As a reader wanting the whole story, I want --full to render each sub-entity and its comments in tidy panes along with the main discussion, so that one command reads as the item's dossier",
-          "status": "Todo",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US6",
+          "title": "As an agent briefing on an item, I want the squads skill and the sq-<type> skills to teach reading with --full --comments as the standard briefing move, so that decisions captured in discussion comments are never missed",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -993,7 +1001,7 @@
       ],
       "path": "features/FEAT-000026-rendered-show-output.md",
       "created_at": "2026-06-10T14:57:23Z",
-      "updated_at": "2026-06-11T08:56:44Z",
+      "updated_at": "2026-06-12T09:43:53Z",
       "extra": {},
       "id": "FEAT-000026"
     },
@@ -2140,6 +2148,256 @@
       "updated_at": "2026-06-12T08:36:39Z",
       "extra": {},
       "id": "TASK-000057"
+    },
+    "58": {
+      "sequence_id": 58,
+      "type": "task",
+      "title": "Rendered show: markdown body, comments facet, scope flag, root sq show",
+      "slug": "rendered-show-markdown-body-comments-facet-scope-flag-root-s",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000026",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Render body as styled markdown on a TTY",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Plain/byte-stable output when piped, --raw, or NO_COLOR; --json unchanged",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Root sq show <id|number> for any work-item type",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST4",
+          "title": "Default summary table + --comments main discussion panes",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000058-rendered-show-markdown-body-comments-facet-scope-flag-root-s.md",
+      "created_at": "2026-06-12T08:58:26Z",
+      "updated_at": "2026-06-12T09:15:16Z",
+      "extra": {},
+      "id": "TASK-000058"
+    },
+    "59": {
+      "sequence_id": 59,
+      "type": "task",
+      "title": "Rendered show dossier: --full sub-entity panes with embedded comments",
+      "slug": "rendered-show-dossier-full-sub-entity-panes-with-embedded-co",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000026",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Sub-entity panes and the --full --comments dossier",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5"
+        }
+      ],
+      "path": "tasks/TASK-000059-rendered-show-dossier-full-sub-entity-panes-with-embedded-co.md",
+      "created_at": "2026-06-12T08:58:27Z",
+      "updated_at": "2026-06-12T09:22:18Z",
+      "extra": {},
+      "id": "TASK-000059"
+    },
+    "60": {
+      "sequence_id": 60,
+      "type": "task",
+      "title": "Teach show --full --comments in generated skills and onboarding (US6)",
+      "slug": "teach-show-full-comments-in-generated-skills-and-onboarding",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000026",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Teach --full --comments in generated skills and onboarding",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6"
+        }
+      ],
+      "path": "tasks/TASK-000060-teach-show-full-comments-in-generated-skills-and-onboarding.md",
+      "created_at": "2026-06-12T08:58:27Z",
+      "updated_at": "2026-06-12T09:27:15Z",
+      "extra": {},
+      "id": "TASK-000060"
+    },
+    "61": {
+      "sequence_id": 61,
+      "type": "review",
+      "title": "Review: FEAT-000026 rendered show output",
+      "slug": "review-feat-000026-rendered-show-output",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000026:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Plain-output escaping leak: sub-entity pane titles double-escaped in piped/NO_COLOR/--raw path",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Nit: badge/column duplication between _common.py and _discussion.py",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Nit: test gap — no assertion for literal-bracket fidelity in plain pane titles",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000061-review-feat-000026-rendered-show-output.md",
+      "created_at": "2026-06-12T09:32:57Z",
+      "updated_at": "2026-06-12T09:43:19Z",
+      "extra": {},
+      "id": "REV-000061"
+    },
+    "62": {
+      "sequence_id": 62,
+      "type": "feature",
+      "title": "Comment-scoping convention: sub-entity discussions vs main discussion",
+      "slug": "comment-scoping-convention-sub-entity-discussions-vs-main-di",
+      "status": "Done",
+      "description": "",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000026"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000062-comment-scoping-convention-sub-entity-discussions-vs-main-di.md",
+      "created_at": "2026-06-12T09:49:28Z",
+      "updated_at": "2026-06-12T10:03:47Z",
+      "extra": {},
+      "id": "FEAT-000062"
+    },
+    "63": {
+      "sequence_id": 63,
+      "type": "task",
+      "title": "Teach sub-entity comment scoping in the generated skills + role templates",
+      "slug": "teach-sub-entity-comment-scoping-in-the-generated-skills-rol",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000062",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "State the convention once in squads_skill.md.j2 (single source): sub-entity command for scoped material, main command for cross-cutting, with one example per sub-entity type; add the brief scoping-principle sentence + reference to role.md.j2 working agreements (both regimes)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add role-specific scoped-comment guidance to the per-role lines in _interactions.py — REVIEW reviewer/dev (finding-scoped), FEATURE po/tech-lead (story-scoped), TASK dev (subtask-scoped) — each pointing at the squads-skill convention, not restating it; verify sq sync regenerates every skill + role file with markers intact",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files carry the convention/guidance, and a no-regression assertion that an @mention in a sub-entity discussion is surfaced by sq inbox; keep pyright + ruff clean",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000063-teach-sub-entity-comment-scoping-in-the-generated-skills-rol.md",
+      "created_at": "2026-06-12T09:55:14Z",
+      "updated_at": "2026-06-12T10:00:52Z",
+      "extra": {},
+      "id": "TASK-000063"
     }
   }
 }

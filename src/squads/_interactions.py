@@ -103,6 +103,9 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     '(`sq feature <n> add-story "As a … I want …"`)',
                     "write each story's acceptance criteria in its body "
                     "(`sq feature <n> story <k> body -m …`)",
+                    "use `sq feature <n> story <k> comment` for story-scoped acceptance "
+                    "clarifications or questions — cross-cutting notes go on the feature "
+                    "(see the `squads` skill's comment-scoping convention)",
                 ),
                 handoff=(
                     "when stories and acceptance criteria are complete and the feature is "
@@ -119,6 +122,8 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "create tasks with this feature as parent "
                     "(`sq create task … --parent FEAT-<n>`)",
                     "map each subtask to one user story (`sq task <n> add-subtask … --story USk`)",
+                    "use `sq feature <n> story <k> comment` for story-scoped questions "
+                    "(see the `squads` skill's comment-scoping convention)",
                 ),
                 handoff=(
                     "when tasks are created, assigned, and sequenced, `@<tech>-dev` (or spawn "
@@ -180,7 +185,9 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                 do=(
                     "`sq task <n> status InProgress`",
                     "implement with tests; tick subtasks (`subtask <k> update --status …`)",
-                    "log progress with `sq task <n> comment --as <your-slug> -m …`",
+                    "use `sq task <n> subtask <k> comment` for implementation notes scoped to "
+                    "one subtask; use `sq task <n> comment` for handoffs and cross-cutting "
+                    "notes (see the `squads` skill's comment-scoping convention)",
                 ),
                 handoff=(
                     "when implementation is complete, `sq task <n> status InReview`",
@@ -316,6 +323,10 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "`sq review <n> status InReview`",
                     'log each issue as a finding (`add-finding "…" --severity …`)',
                     "drive to a verdict: Approved or ChangesRequested",
+                    "use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, "
+                    "verification notes, 'agreed — closing this one') — cross-cutting notes and "
+                    "the final verdict go on the review (see the `squads` skill's "
+                    "comment-scoping convention)",
                 ),
                 handoff=(
                     "on ChangesRequested, `@<tech>-dev` with the findings",
@@ -329,6 +340,9 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                 do=(
                     "fix each one, then `sq review <n> finding <k> update --status Fixed`",
                     "link the fix task (`sq task <n> ref add REV-… --kind addresses`)",
+                    "use `sq review <n> finding <k> comment` when closing a finding with fix "
+                    "rationale — keep the review's main discussion for handoff @mentions "
+                    "(see the `squads` skill's comment-scoping convention)",
                 ),
                 handoff=("`@reviewer` once all findings are Fixed, for re-review",),
                 watch=("don't close findings you didn't actually address",),

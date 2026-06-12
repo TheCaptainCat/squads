@@ -173,6 +173,54 @@ def test_role_body_has_operating_contract(svc):
     assert "when work actually moves" in body
 
 
+def test_squads_skill_teaches_comment_scoping_convention(project):
+    # FEAT-000062 US1: the squads skill must name the sub-entity comment command and give
+    # a concrete example for each sub-entity kind (finding, story, subtask).
+    body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
+    # the canonical convention is present (single source)
+    assert "Scope your comment to the right discussion" in body
+    # all three sub-entity command shapes appear as examples
+    assert "story <k> comment" in body
+    assert "subtask <k> comment" in body
+    assert "finding <k> comment" in body
+    # the inbox rule is explained (no gap when using sub-entity discussions)
+    assert "sq inbox" in body
+
+
+def test_per_type_skills_carry_scoped_comment_guidance(svc, project):
+    # FEAT-000062 US1: sq-review, sq-feature, sq-task each carry role-specific scoped-comment
+    # guidance that points at the squads skill convention (no restatement of the full text).
+    svc.activate_role("reviewer")
+    svc.activate_role("product-owner")
+    svc.activate_role("tech-lead")
+    svc.add_dev("python")
+    svc.refresh_managed()
+
+    review = _item_skill_body(project, ItemType.REVIEW)
+    # reviewer: finding-scoped comment when closing/responding
+    assert "finding <k> comment" in review
+    assert "comment-scoping convention" in review
+
+    feature = _item_skill_body(project, ItemType.FEATURE)
+    # product-owner and tech-lead: story-scoped comments for acceptance clarifications
+    assert "story <k> comment" in feature
+    assert "comment-scoping convention" in feature
+
+    task = _item_skill_body(project, ItemType.TASK)
+    # dev: subtask-scoped comments for implementation notes
+    assert "subtask <k> comment" in task
+    assert "comment-scoping convention" in task
+
+
+def test_role_body_has_comment_scoping_pointer(svc):
+    # FEAT-000062 US1: every activated role's working agreements name the scoping principle
+    # and point at the squads skill — a brief sentence, not a restatement of the full convention.
+    item = svc.activate_role("tech-writer")
+    body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
+    assert "comment-scoping" in body
+    assert "squads" in body  # points at the squads skill by name
+
+
 def test_sync_regenerates_role_bodies(svc, project):
     # activate a role, manually corrupt its body region, then verify sync restores both regimes
     item = svc.activate_role("qa")
