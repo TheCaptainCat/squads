@@ -31,6 +31,7 @@ extra:
   skills:
   - squads
   - greeting
+  agreements: []
 ---
 <!-- sq:body -->
 # Catherine Manager

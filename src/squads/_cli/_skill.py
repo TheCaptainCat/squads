@@ -1,21 +1,46 @@
-"""`sq skill` — manage agent skills (real definition under the squad folder + .claude pointer)."""
+"""`sq skill …` — manage agent skills (add/show/regen/rm).
+
+Grammar:
+  sq skill add <name> [options]      — create a skill item + pointer
+  sq skill <slug|id|n> show          — show a skill's metadata panel
+  sq skill <slug|id|n> regen         — regenerate the Claude pointer
+  sq skill <slug|id|n> rm [--purge]  — remove the skill item
+
+Address resolution order (exact match, no fuzzy):
+  full-ID shape (SKIL-000001) → bare number → exact slug
+"""
+# Commands registered via Typer decorators (side effects) read as unused to static analysis.
+# pyright: reportUnusedFunction=false
 
 import typer
 from rich.panel import Panel
-from rich.table import Table
 
 from squads._cli._common import (
+    AddressDispatchGroup,
     console,
     e,
     get_service,
     handle_errors,
+    render_body_text,
+    resolve_agent_addr,
     resolve_item_id_any,
-    resolve_item_id_typed,
 )
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 
-skill_app = typer.Typer(no_args_is_help=True, help="Manage agent skills.")
+skill_app = typer.Typer(
+    no_args_is_help=True,
+    help="Manage agent skills.",
+    epilog=(
+        "Address a skill:  sq skill <slug|id|n> show|regen|rm\n"
+        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-000002 rm\n"
+        "Note: a slug matching a group verb (add) is unaddressable by slug; "
+        "use the full ID or bare number instead."
+    ),
+    cls=AddressDispatchGroup,
+)
+
+# --------------------------------------------------------------------------- add
 
 
 @skill_app.command("add")
@@ -26,7 +51,7 @@ def skill_add(
     when_to_use: str = typer.Option("", "--when-to-use"),
     allowed_tools: str = typer.Option("", "--allowed-tools"),
     parent: str | None = typer.Option(None, "--parent"),
-):
+) -> None:
     """Create a skill item and its Claude pointer."""
     svc = get_service()
     resolved_parent = resolve_item_id_any(parent, svc) if parent else None
@@ -40,28 +65,29 @@ def skill_add(
     console.print(f"created skill [bold]{item.id}[/bold] → {item.path}")
 
 
-@skill_app.command("list")
-@handle_errors
-def skill_list():
-    svc = get_service()
-    skills = svc.list_items(item_type=ItemType.SKILL)
-    if not skills:
-        console.print("[dim]no skills[/dim]")
-        return
-    table = Table(box=None, pad_edge=False)
-    for col in ("ID", "Slug", "Name", "Status"):
-        table.add_column(col)
-    for it in skills:
-        table.add_row(it.id, it.extra.get(X.SLUG, it.slug), e(it.title), it.status.value)
-    console.print(table)
+# ---------------------------------------------------------------- addressed subgroup (_addr)
+
+_addr = typer.Typer(no_args_is_help=True, help="Operate on a skill by slug, ID, or number.")
 
 
-@skill_app.command("show")
+@_addr.callback()
 @handle_errors
-def skill_show(item_id: str = typer.Argument(...)):
+def _resolve_addr(ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")) -> None:
     svc = get_service()
-    resolved = resolve_item_id_typed(item_id, ItemType.SKILL, svc)
-    it = svc.get(resolved)
+    ctx.ensure_object(dict)
+    ctx.obj = {"id": resolve_agent_addr(addr, ItemType.SKILL, svc)}
+
+
+@_addr.command("show")
+@handle_errors
+def skill_show(
+    ctx: typer.Context,
+    raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
+) -> None:
+    """Show a skill's metadata panel and body."""
+    item_id: str = ctx.obj["id"]
+    svc = get_service()
+    it = svc.get(item_id)
     rows = [
         f"[bold]{it.id}[/bold] {e(it.title)}",
         f"[bold]slug:[/bold] {it.extra.get(X.SLUG, it.slug)}",
@@ -71,26 +97,35 @@ def skill_show(item_id: str = typer.Argument(...)):
     if it.extra.get(X.WHEN_TO_USE):
         rows.append(f"[bold]when to use:[/bold] {e(it.extra[X.WHEN_TO_USE])}")
     console.print(Panel("\n".join(rows), expand=False))
+    body = svc.read_body(it.id)
+    render_body_text(
+        body,
+        raw=raw,
+        empty_hint="(empty — run `sq sync` to regenerate the skill definition)",
+    )
 
 
-@skill_app.command("regen")
+@_addr.command("regen")
 @handle_errors
-def skill_regen(item_id: str = typer.Argument(...)):
+def skill_regen(ctx: typer.Context) -> None:
     """Regenerate the Claude pointer from the item."""
+    item_id: str = ctx.obj["id"]
     svc = get_service()
-    resolved = resolve_item_id_typed(item_id, ItemType.SKILL, svc)
-    svc.regen(resolved)
-    console.print(f"regenerated pointer for {resolved}")
+    svc.regen(item_id)
+    console.print(f"regenerated pointer for {item_id}")
 
 
-@skill_app.command("rm")
+@_addr.command("rm")
 @handle_errors
 def skill_rm(
-    item_id: str = typer.Argument(...),
+    ctx: typer.Context,
     purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
-):
+) -> None:
     """Remove a skill (and its pointer; --purge also deletes the markdown)."""
+    item_id: str = ctx.obj["id"]
     svc = get_service()
-    resolved = resolve_item_id_typed(item_id, ItemType.SKILL, svc)
-    svc.remove_item(resolved, purge=purge)
-    console.print(f"removed {resolved}" + (" (purged)" if purge else ""))
+    svc.remove_item(item_id, purge=purge)
+    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+
+
+skill_app.add_typer(_addr, name="_addr", hidden=True)

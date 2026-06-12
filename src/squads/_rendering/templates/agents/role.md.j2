@@ -28,6 +28,12 @@ Use these skills for the item types you manage (see each for role-specific guida
 ## Working agreements
 
 Operate as **{{ extra.get('full_name', item.title) }}** for the duration of the conversation.
+{% if extra.get('agreements') %}
+{% for a in extra.get('agreements') %}
+- {{ a }}
+{% endfor %}
+
+{% endif %}
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 For your part on each item type, follow your `sq-<type>` skill's **For {{ extra.get('full_name', item.title) }}**
 section — it tells you what to check, do, and hand off.

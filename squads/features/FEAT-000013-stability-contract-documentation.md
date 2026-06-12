@@ -23,7 +23,7 @@ subentities:
     files) explicitly marked non-public, so that I don't build on the wrong layer
   status: Todo
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-11T21:31:02Z'
+updated_at: '2026-06-12T11:58:22Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -138,4 +138,12 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
   - Sequencing decision: this feature runs LAST in the epic — it's the capstone. The contract decisions are made feature-by-feature as the epic progresses (each recorded where it happens, ADR or feature body) and deferred here via comments; by the time this runs it's a pure writing pass over settled facts, plus its one piece of original work: the post-1.0 schema_version ADR. Writing it earlier would mean rewriting after every grammar/format-touching feature.
   - Discipline for the loops until then: any feature that settles a format or grammar question must record the decision on its own item and leave a deferral comment here — the obligations list above is the running bill. @manager enforces this in every loop.
   - Pairs naturally with the other doc-flavored tail work: FEAT-000018 (architecture backfill) and FEAT-000016 (AGENTS.md backend) — consider scheduling the three together with @tech-writer.
+- [2026-06-12T11:58:22Z] Nina Product:
+  - Deferral obligation from FEAT-000064 (agent-type grammar alignment, 2026-06-12).
+  - Decisions to record in the CLI-grammar tier of the stability contract:
+  - (1) Item-first grammar for agent-type groups: role, skill, and operator commands that address an existing item follow 'sq <type> <id|n> <verb>' — same as every other item type. The historical verb-first form is removed pre-1.0.
+  - (2) Creation commands stay verb-first at the group level ('sq role activate <slug>', 'sq skill add <name>', 'sq operator add <name>') — these receive a catalog slug or a new name, not an existing item ID.
+  - (3) Bundled catalog: 'sq role catalog' is the dedicated subcommand for the bundled-but-not-activated role catalog (slug, name, title, default). 'sq role list --available' is gone.
+  - (4) Standalone list commands removed: 'sq role list', 'sq skill list', 'sq operator list' are removed in favor of 'sq list -t <type>'. No deprecation shim — pre-1.0 removal is allowed.
+  - (5) Slug resolution: for role show/regen/rm, slug is a valid address form in addition to full ID and bare number.
 <!-- sq:discussion:end -->

@@ -1,91 +1,70 @@
-"""`sq role …` — manage agent roles (list/show/activate)."""
+"""`sq role …` — manage agent roles (catalog/activate/show/regen/rm).
+
+Grammar:
+  sq role catalog                    — show the bundled role catalog
+  sq role activate <slug>            — activate a bundled role
+  sq role <slug|id|n> show           — show a role's card + body
+  sq role <slug|id|n> regen          — regenerate the Claude pointer
+  sq role <slug|id|n> rm [--purge]   — remove the role item
+
+Address resolution order (exact match, no fuzzy):
+  full-ID shape (ROLE-000001) → bare number → exact slug
+"""
+# Commands registered via Typer decorators (side effects) read as unused to static analysis.
+# pyright: reportUnusedFunction=false
 
 import typer
 from rich.panel import Panel
 from rich.table import Table
 
-from squads._cli._common import console, e, get_service, handle_errors, resolve_item_id_typed
+from squads._cli._common import (
+    AddressDispatchGroup,
+    _is_full_id_shape,  # pyright: ignore[reportPrivateUsage]
+    console,
+    e,
+    get_service,
+    handle_errors,
+    render_body_text,
+    resolve_agent_addr,
+)
 from squads._errors import SquadsError
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED, role_by_slug
 
-role_app = typer.Typer(no_args_is_help=True, help="Manage agent roles.")
-
-
-@role_app.command("list")
-@handle_errors
-def list_roles(
-    available: bool = typer.Option(
-        False, "--available", help="Show the bundled catalog, not active roles."
+role_app = typer.Typer(
+    no_args_is_help=True,
+    help="Manage agent roles.",
+    epilog=(
+        "Address a role:  sq role <slug|id|n> show|regen|rm\n"
+        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-000001 rm\n"
+        "Note: a slug matching a group verb (catalog, activate) is unaddressable by slug; "
+        "use the full ID or bare number instead."
     ),
-):
-    """List active roles (or the bundled catalog with --available)."""
+    cls=AddressDispatchGroup,
+)
+
+# --------------------------------------------------------------------------- catalog
+
+
+@role_app.command("catalog")
+@handle_errors
+def role_catalog() -> None:
+    """Show the bundled role catalog (slug, name, title, default indicator)."""
     table = Table(box=None, pad_edge=False)
-    if available:
-        for col in ("Slug", "Name", "Title", "Default"):
-            table.add_column(col)
-        for r in PREDEFINED:
-            table.add_row(r.slug, r.full_name, r.title, "✓" if r.is_default else "")
-        console.print(table)
-        return
-    svc = get_service()
-    roles = svc.list_items(item_type=ItemType.ROLE)
-    if not roles:
-        console.print("[dim]no active roles (try `sq role list --available`)[/dim]")
-        return
-    for col in ("ID", "Slug", "Name", "Status"):
+    for col in ("Slug", "Name", "Title", "Default"):
         table.add_column(col)
-    for it in roles:
-        table.add_row(
-            it.id,
-            it.extra.get(X.SLUG, it.slug),
-            it.extra.get(X.FULL_NAME, it.title),
-            it.status.value,
-        )
+    for r in PREDEFINED:
+        table.add_row(r.slug, r.full_name, r.title, "✓" if r.is_default else "")
     console.print(table)
 
 
-@role_app.command("show")
-@handle_errors
-def show_role(slug: str = typer.Argument(...)):
-    """Show a role's complete definition: catalog card plus active item body."""
-    r = role_by_slug(slug)
-    rows = [
-        f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
-        f"[bold]title:[/bold] {e(r.title)}",
-        f"[bold]model:[/bold] {e(r.model or 'inherit')}",
-        f"[bold]mission:[/bold] {e(r.mission)}",
-        "[bold]responsibilities:[/bold]",
-        *(f"  - {e(x)}" for x in r.responsibilities),
-    ]
-    console.print(Panel("\n".join(rows), expand=False))
-
-    # Attempt to show the active item body (working agreements, skills, etc.).
-    # FEAT-000026 (panes/--raw) has not landed; keep current Rich rendering style.
-    # If the squad is not initialized, treat it the same as a bundled-only role.
-    body: str | None = None
-    try:
-        svc = get_service()
-        body = svc.role_body(slug)
-    except SquadsError:
-        body = None
-
-    console.print()
-    if body:
-        console.print(e(body))
-    else:
-        # Bundled-only role (no tracked item) or squad not initialised.
-        # Degrade gracefully with an activation hint.
-        console.print(
-            f"[dim](no active item for {e(slug)} — run `sq role activate {e(slug)}`"
-            " then `sq sync` to populate the full definition)[/dim]"
-        )
+# --------------------------------------------------------------------------- activate
 
 
 @role_app.command("activate")
 @handle_errors
-def activate_role(slug: str = typer.Argument(...)):
+def activate_role(slug: str = typer.Argument(...)) -> None:
     """Activate a bundled role: create its tracked item and Claude pointer."""
     svc = get_service()
     item = svc.activate_role(slug)
@@ -93,25 +72,140 @@ def activate_role(slug: str = typer.Argument(...)):
     console.print(f"activated [bold]{item.extra.get(X.FULL_NAME, item.title)}[/bold] ({item.id})")
 
 
-@role_app.command("regen")
+# ---------------------------------------------------------------- addressed subgroup (_addr)
+
+_addr = typer.Typer(no_args_is_help=True, help="Operate on a role by slug, ID, or number.")
+
+# Context key for the raw address token (stored alongside the resolved id).
+_ADDR_KEY = "addr"
+_ID_KEY = "id"
+
+
+@_addr.callback()
 @handle_errors
-def regen_role(item_id: str = typer.Argument(...)):
-    """Regenerate a role's Claude pointer from its item."""
+def _resolve_addr(ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")) -> None:
+    """Resolve the address token; for ``show`` also allow bundled-only slugs (graceful fallback).
+
+    Stores ``{"addr": <raw>, "id": <resolved_or_None>}`` in ctx.obj.  The resolved id is None
+    when the token is a slug that exists only in the bundled catalog (not yet activated).  Commands
+    that require a live DB item (``regen``, ``rm``) must call ``_require_id()``; ``show`` handles
+    the None case by rendering a bundled catalog card with an activation hint.
+    """
     svc = get_service()
-    resolved = resolve_item_id_typed(item_id, ItemType.ROLE, svc)
-    svc.regen(resolved)
-    console.print(f"regenerated pointer for {resolved}")
+    ctx.ensure_object(dict)
+    ctx.obj = {_ADDR_KEY: addr}
+    t = addr.strip()
+    # Detect numeric or full-ID-shaped tokens (TYPE-NNNNNN).
+    if t.isdigit() or _is_full_id_shape(t):
+        # Numeric or full-ID tokens: strict DB resolution — wrong-type errors bubble up.
+        ctx.obj[_ID_KEY] = resolve_agent_addr(addr, ItemType.ROLE, svc)
+    else:
+        # Slug token: try DB; if not found, store None so show() can render a bundled card.
+        try:
+            ctx.obj[_ID_KEY] = resolve_agent_addr(addr, ItemType.ROLE, svc)
+        except SquadsError:
+            ctx.obj[_ID_KEY] = None
 
 
-@role_app.command("rm")
+def _require_id(ctx: typer.Context) -> str:
+    """Return the resolved item ID, or raise SquadsError for commands that need a live DB item."""
+    item_id: str | None = ctx.obj[_ID_KEY]
+    if item_id is None:
+        addr: str = ctx.obj[_ADDR_KEY]
+        raise SquadsError(f"no role with slug, ID, or number {addr!r} — activate it first")
+    return item_id
+
+
+@_addr.command("show")
+@handle_errors
+def show_role(
+    ctx: typer.Context,
+    raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
+) -> None:
+    """Show a role's catalog card plus active item body.
+
+    Works for both activated roles (resolves via DB) and bundled-only roles (catalog card +
+    activation hint).
+    """
+    item_id: str | None = ctx.obj[_ID_KEY]
+    addr: str = ctx.obj[_ADDR_KEY]
+    svc = get_service()
+
+    if item_id is not None:
+        # Activated role: resolve slug from the item.
+        it = svc.get(item_id)
+        slug: str = it.extra.get(X.SLUG, it.slug)
+    else:
+        # Bundled-only role: the addr IS the slug (slug resolution fell through without finding it).
+        slug = addr
+
+    # Build the catalog card from the bundled PREDEFINED entry (if available).
+    try:
+        r = role_by_slug(slug)
+        rows = [
+            f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
+            f"[bold]title:[/bold] {e(r.title)}",
+            f"[bold]model:[/bold] {e(r.model or 'inherit')}",
+            f"[bold]mission:[/bold] {e(r.mission)}",
+            "[bold]responsibilities:[/bold]",
+            *(f"  - {e(x)}" for x in r.responsibilities),
+        ]
+    except SquadsError:
+        # Custom role not in the bundled catalog — fall back to the item fields.
+        if item_id is not None:
+            it2 = svc.get(item_id)
+            rows = [
+                f"[bold]{e(it2.extra.get(X.FULL_NAME, it2.title))}[/bold] (`{e(slug)}`)",
+                f"[bold]id:[/bold] {it2.id}",
+                f"[bold]status:[/bold] {it2.status.value}",
+            ]
+        else:
+            raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
+    console.print(Panel("\n".join(rows), expand=False))
+
+    # Active item body — styled markdown on a TTY, plain with --raw or when piped.
+    body: str | None = None
+    try:
+        body = svc.role_body(slug)
+    except SquadsError:
+        body = None
+
+    if body is not None:
+        render_body_text(
+            body,
+            raw=raw,
+            empty_hint="(empty — run `sq sync` to regenerate the role definition)",
+        )
+    else:
+        console.print()
+        console.print(
+            f"[dim](no active item for {e(slug)} — run `sq role activate {e(slug)}`"
+            " then `sq sync` to populate the full definition)[/dim]"
+        )
+
+
+@_addr.command("regen")
+@handle_errors
+def regen_role(ctx: typer.Context) -> None:
+    """Regenerate a role's Claude pointer from its item."""
+    item_id = _require_id(ctx)
+    svc = get_service()
+    svc.regen(item_id)
+    console.print(f"regenerated pointer for {item_id}")
+
+
+@_addr.command("rm")
 @handle_errors
 def rm_role(
-    item_id: str = typer.Argument(...),
+    ctx: typer.Context,
     purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
-):
+) -> None:
     """Remove a role (and its pointer; --purge also deletes the markdown)."""
+    item_id = _require_id(ctx)
     svc = get_service()
-    resolved = resolve_item_id_typed(item_id, ItemType.ROLE, svc)
-    svc.remove_item(resolved, purge=purge)
+    svc.remove_item(item_id, purge=purge)
     svc.refresh_managed()
-    console.print(f"removed {resolved}" + (" (purged)" if purge else ""))
+    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+
+
+role_app.add_typer(_addr, name="_addr", hidden=True)

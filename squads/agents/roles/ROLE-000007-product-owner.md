@@ -28,6 +28,7 @@ extra:
   - greeting
   - sq-epic
   - sq-feature
+  agreements: []
 ---
 <!-- sq:body -->
 # Nina Product

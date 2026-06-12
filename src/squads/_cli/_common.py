@@ -5,8 +5,10 @@ import json
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any, ClassVar
 
 import typer
+import typer.core
 from rich.console import Console, Group, RenderableType
 from rich.markdown import Markdown
 from rich.markup import escape
@@ -218,19 +220,44 @@ def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: bool) -
             console.print()
 
 
+def _render_body(body_text: str, *, styled: bool, empty_hint: str | None = None) -> None:
+    """Low-level body renderer: styled Markdown or plain, preceded by a blank line.
+
+    Callers must pre-compute ``styled`` (``_is_styled() and not raw``).
+    Pass ``empty_hint`` to override the default "set it with `body`" hint, e.g. for
+    role/skill/operator groups where there is no ``body`` verb.
+    """
+    console.print()
+    if body_text:
+        if styled:
+            console.print(Markdown(body_text))
+        else:
+            console.print(body_text, markup=False, highlight=False)
+    else:
+        hint = empty_hint if empty_hint is not None else "(empty — set it with `body`)"
+        console.print(f"[dim]{hint}[/dim]")
+
+
+def render_body_text(body_text: str, *, raw: bool = False, empty_hint: str | None = None) -> None:
+    """Render a body string to the console: styled Markdown on a TTY, plain otherwise.
+
+    Computes the styled/plain decision via :func:`_is_styled` + ``raw``.  Use this from
+    role/skill/operator ``show`` commands; :func:`_print_item_content` uses :func:`_render_body`
+    directly with a pre-computed ``styled`` flag.
+    Always emits a leading blank line before the content.
+    Pass ``empty_hint`` to override the default empty-body hint (e.g. for groups without a
+    ``body`` verb — role/skill/operator bodies are template-managed, so ``sq sync`` is the
+    right pointer, not ``body``).
+    """
+    _render_body(body_text, styled=_is_styled() and not raw, empty_hint=empty_hint)
+
+
 def _print_item_content(
     svc: Service, it: Item, *, styled: bool, comments: bool, full: bool = False
 ) -> None:
     """Render the body, sub-entity summary, and optional comments for a non-role/skill item."""
     body = svc.read_body(it.id)
-    console.print()
-    if body:
-        if styled:
-            console.print(Markdown(body))
-        else:
-            console.print(body, markup=False, highlight=False)
-    else:
-        console.print("[dim](empty — set it with `body`)[/dim]")
+    _render_body(body, styled=styled)
 
     # Sub-entity summary table — always shown (not gated on --full); driven from the stored
     # sub-entities, not a re-parse of the markdown table.
@@ -275,9 +302,8 @@ def print_item(
     sub-entity pane embeds its own comments and the main discussion closes the output.
     """
     console.print(Panel("\n".join(_build_item_panel_rows(it)), expand=False))
-    if it.type not in (ItemType.ROLE, ItemType.SKILL):
-        styled = _is_styled() and not raw
-        _print_item_content(svc, it, styled=styled, comments=comments, full=full)
+    styled = _is_styled() and not raw
+    _print_item_content(svc, it, styled=styled, comments=comments, full=full)
 
 
 _SUBENTITY_KIND: dict[ItemType, str] = {
@@ -511,6 +537,88 @@ def resolve_item_id_any(token: str, svc: Service) -> str:
             raise SquadsError(f"{token} is {item.id} ({item.type.value})")
 
     return item.id
+
+
+def _is_full_id_shape(token: str) -> bool:
+    """Return True when *token* looks like a full item ID (``TYPE-NNNNNN``)."""
+    _, sep, tail = token.rpartition("-")
+    return bool(sep) and tail.isdigit()
+
+
+def resolve_agent_addr(token: str, item_type: ItemType, svc: Service) -> str:
+    """Resolve a CLI address token for role/skill/operator to a full item ID.
+
+    Resolution order (exact match only — no fuzzy):
+    1. Full-ID shape (``ROLE-000001``) → ``resolve_item_id_typed``
+    2. Bare number (``"1"``) → ``resolve_item_id_typed``
+    3. Exact slug match via the service's per-type slug lookup
+
+    Raises :class:`SquadsError` with a descriptive message when nothing matches.
+    """
+    t = token.strip()
+    # Paths 1 and 2: numeric or full-ID token — let the typed resolver handle it.
+    if t.isdigit() or _is_full_id_shape(t):
+        return resolve_item_id_typed(token, item_type, svc)
+    # Path 3: treat as a slug — delegate to the service's authoritative slug lookup.
+    _SLUG_LOOKUP = {
+        ItemType.ROLE: svc._role_item,  # pyright: ignore[reportPrivateUsage]
+        ItemType.SKILL: svc._skill_item,  # pyright: ignore[reportPrivateUsage]
+        ItemType.OPERATOR: svc._operator_item,  # pyright: ignore[reportPrivateUsage]
+    }
+    lookup = _SLUG_LOOKUP.get(item_type)
+    if lookup is not None:
+        item = lookup(t)
+        if item is not None:
+            return item.id
+    raise SquadsError(f"no {item_type.value} with slug, ID, or number {token!r}")
+
+
+class AddressDispatchGroup(typer.core.TyperGroup):
+    """A TyperGroup that routes unknown command tokens to a hidden ``_addr`` subgroup.
+
+    Named commands (e.g. ``catalog``, ``activate``, ``add``) dispatch normally.
+    Any other token is treated as an item address (slug / full-ID / bare number)
+    and routed to ``_addr`` with the full original args list so the subgroup's
+    callback can consume the address token as its ``ADDR`` positional argument.
+
+    Used by ``role_app``, ``skill_app``, and ``operator_app`` to provide the
+    ``sq role <addr> show|regen|rm`` surface alongside group-level verbs.
+
+    Set ``_ADDR_VERBS`` to the pipe-separated verb list used in missing-verb error messages.
+
+    Note: a role/skill/operator slugged exactly like a named group verb (``add``,
+    ``catalog``, ``activate``) is unaddressable by slug — the named verb wins in
+    ``get_command`` before ``_addr`` is tried.  Number/full-ID always work as the
+    escape hatch.
+    """
+
+    _ADDR_VERBS: ClassVar[str] = "show|regen|rm"
+
+    def _click_resolve_command(self, ctx: Any, args: list[str]) -> Any:  # type: ignore[override]
+        cmd_name = args[0]
+
+        # Try named commands first (catalog / activate / add / _addr itself).
+        cmd = self.get_command(ctx, cmd_name)
+        if cmd is not None:
+            return cmd_name, cmd, args[1:]
+
+        # Unknown token — treat as an item address and route to _addr.
+        addr_cmd = self.get_command(ctx, "_addr")
+        if addr_cmd is not None and not ctx.resilient_parsing:
+            # If no verb follows the address token, give a helpful error immediately
+            # rather than falling through to _addr's "Missing command" usage error.
+            remaining = args[1:]
+            has_verb = any(a for a in remaining if not a.startswith("-"))
+            if not has_verb and "--help" not in remaining:
+                err_console.print(
+                    f"[red]error:[/red] missing verb after address {cmd_name!r}. "
+                    f"Usage: sq {ctx.info_name} <slug|id|n> {self._ADDR_VERBS}"
+                )
+                raise typer.Exit(1)
+            # Use a readable display name instead of "_addr" so help/error output shows
+            # "sq role <slug|id|n>" rather than "sq role _addr".
+            return "<slug|id|n>", addr_cmd, args
+        return super()._click_resolve_command(ctx, args)
 
 
 def resolve_local_id(token: str, kind: str) -> str:

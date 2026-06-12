@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 63,
+  "counter": 68,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -67,7 +67,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-11T21:31:02Z",
+      "updated_at": "2026-06-12T11:58:22Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -2398,6 +2398,302 @@
       "updated_at": "2026-06-12T10:00:52Z",
       "extra": {},
       "id": "TASK-000063"
+    },
+    "64": {
+      "sequence_id": 64,
+      "type": "feature",
+      "title": "Align agent-type command groups with the item CLI grammar",
+      "slug": "align-agent-type-command-groups-with-the-item-cli-grammar",
+      "status": "Done",
+      "description": "Bring role/skill/operator command groups in line with the item grammar: item-first addressing, styled body rendering, and a single list surface",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000019",
+        "FEAT-000026",
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As the stability contract author, I want this feature's grammar decisions recorded as a deferral obligation on FEAT-000013 before it closes, so that the contract document reflects the final CLI surface accurately",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000064-align-agent-type-command-groups-with-the-item-cli-grammar.md",
+      "created_at": "2026-06-12T11:56:22Z",
+      "updated_at": "2026-06-12T13:12:14Z",
+      "extra": {},
+      "id": "FEAT-000064"
+    },
+    "65": {
+      "sequence_id": 65,
+      "type": "task",
+      "title": "Flip role/skill/operator to item-first grammar; add sq role catalog; remove the list subcommands",
+      "slug": "flip-role-skill-operator-to-item-first-grammar-add-sq-role-c",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000064",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Item-first grammar for role/skill/operator show/regen/rm (slug|id|n, exact match)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Extend the resolver with exact slug lookup (full-id, then number, then slug)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Add sq role catalog; remove role/skill/operator list and --available (no shim)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST4",
+          "title": "Update grammar in claude_section / greeting / squads templates; regen artifacts",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST5",
+          "title": "Rewrite CLI tests to item-first; add slug/id/n + catalog + removed-list coverage",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST6",
+          "title": "Top up the FEAT-000013 deferral comment if the shipped grammar deviated from the PO note",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000065-flip-role-skill-operator-to-item-first-grammar-add-sq-role-c.md",
+      "created_at": "2026-06-12T12:05:15Z",
+      "updated_at": "2026-06-12T12:26:29Z",
+      "extra": {},
+      "id": "TASK-000065"
+    },
+    "66": {
+      "sequence_id": 66,
+      "type": "task",
+      "title": "Render role/skill/operator show bodies through the FEAT-000026 styled path",
+      "slug": "render-role-skill-operator-show-bodies-through-the-feat-0000",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000064",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Route role/skill/operator show bodies through the FEAT-000026 styled path (TTY/raw/piped)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Preserve role catalog card + activation-hint fallback; add operator show",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Styled-vs-raw rendering tests; full-suite regression check on print_item",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000066-render-role-skill-operator-show-bodies-through-the-feat-0000.md",
+      "created_at": "2026-06-12T12:05:15Z",
+      "updated_at": "2026-06-12T12:39:04Z",
+      "extra": {},
+      "id": "TASK-000066"
+    },
+    "67": {
+      "sequence_id": 67,
+      "type": "review",
+      "title": "FEAT-000064: negative-path error UX leaks the internal _addr subgroup and fails 'error comprehensibly'",
+      "slug": "feat-000064-negative-path-error-ux-leaks-the-internal-addr-s",
+      "status": "Approved",
+      "description": "AddressDispatchGroup routes every unknown token to the hidden _addr subgroup; removed/typo'd/old-grammar invocations produce baffling errors that leak _addr and omit the documented migration hint.",
+      "parent": "FEAT-000064",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000065"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Removed list commands do not error comprehensibly (US3 acceptance)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "The hidden _addr name leaks into every negative-path usage/error line",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "show/regen/rm are undiscoverable from sq role / --help (US1 spirit)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "N1 slug shadowing: slug matching a group verb is unaddressable by slug",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "N2 resolver duplication: resolve_agent_addr iterates db.items inline instead of reusing item helpers",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F6",
+          "title": "N3 empty-body hint inaccurate: suggests a 'body' verb the groups do not have",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F7",
+          "title": "N4 inline shape check: _resolve_addr reimplements full-ID detection instead of _is_full_id_shape",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F8",
+          "title": "N5 stale comment: SKIL-000002 should be SKILL-000002 in test_skill_item_first_grammar",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F9",
+          "title": "N6 test coverage: no direct test for REV-000061 bracket/no-backslash fidelity on the new body path",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F10",
+          "title": "N7 sq dev consistency: still uses the old listing shape, reads inconsistently against the flipped groups",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000067-feat-000064-negative-path-error-ux-leaks-the-internal-addr-s.md",
+      "created_at": "2026-06-12T12:46:41Z",
+      "updated_at": "2026-06-12T13:18:41Z",
+      "extra": {},
+      "id": "REV-000067"
+    },
+    "68": {
+      "sequence_id": 68,
+      "type": "task",
+      "title": "Per-role working-agreement lines: reviewer files findings as sub-entities",
+      "slug": "per-role-working-agreement-lines-reviewer-files-findings-as",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "REV-000067:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000068-per-role-working-agreement-lines-reviewer-files-findings-as.md",
+      "created_at": "2026-06-12T13:31:43Z",
+      "updated_at": "2026-06-12T13:37:48Z",
+      "extra": {},
+      "id": "TASK-000068"
     }
   }
 }

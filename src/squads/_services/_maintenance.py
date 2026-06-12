@@ -7,7 +7,9 @@ from typing import Any
 
 from squads import __version__
 from squads import _sections as sections
-from squads._itemfile import read_frontmatter, rewrite_ids
+from squads._errors import RoleNotFoundError
+from squads._index._resolver import item_file
+from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
 from squads._models._enums import ItemType
@@ -17,7 +19,7 @@ from squads._models._item import VALID_REF_KINDS, Item, split_ref
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import number_for_id
 from squads._rendering._engine import render
-from squads._roles._catalog import RoleDef
+from squads._roles._catalog import RoleDef, role_by_slug
 from squads._services._base import SUBENTITY_KIND, ServiceCore
 from squads._services._results import CheckIssue, RepairResult
 from squads._workflow import parent_allowed, parent_hint, subentity_workflow, workflow_for
@@ -69,12 +71,39 @@ class MaintenanceMixin(ServiceCore):
         ctx = self._ctx
         backend.ensure_scaffold(ctx)
         for it in self.list_items(item_type=ItemType.ROLE):
+            self._refresh_catalog_extra(it)
             backend.generate_role_pointer(ctx, it, RoleDef.from_extra(it.extra))
             self._regen_role_body(it)
         for it in self.list_items(item_type=ItemType.SKILL):
             backend.generate_skill_pointer(ctx, it)
         backend.write_managed(ctx, self.roster(), self.operators())
         self._stamp_version(__version__)
+
+    def _refresh_catalog_extra(self, item: Item) -> None:
+        """Merge current catalog fields into a predefined role's item extra.
+
+        When a new field is added to :class:`RoleDef` (e.g. ``agreements``), existing items
+        created before that field existed will lack it in their frontmatter.  Sync is the
+        reconciliation point: for every predefined role we pull the authoritative definition
+        from the catalog and merge its ``to_extra()`` output into the live item, then persist
+        the updated frontmatter so subsequent reads see the new fields.
+
+        Developer roles (``is_dev=True``) and custom items without a catalog entry are skipped —
+        their extra is fully owned by the ``add_dev`` / ``create`` call-site.
+        """
+        slug = item.extra.get(X.SLUG, "")
+        try:
+            catalog_role = role_by_slug(slug)
+        except RoleNotFoundError:
+            return  # dev role or unknown slug — not catalog-managed
+        catalog_extra = catalog_role.to_extra()
+        changed = False
+        for key, value in catalog_extra.items():
+            if item.extra.get(key) != value:
+                item.extra[key] = value
+                changed = True
+        if changed:
+            update_frontmatter(item_file(self.paths, item), item)
 
     def _regen_role_body(self, item: Item) -> None:
         """Re-render the role template's body section into the existing role item file.

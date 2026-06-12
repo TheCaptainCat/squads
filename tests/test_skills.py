@@ -127,7 +127,7 @@ def test_greeting_skill_is_generated_and_preloaded(project):
     body = (project.squad_dir / "agents" / "skills" / "greeting.md").read_text(encoding="utf-8")
     # operator-facing only, and the three greeting beats (tone, who/help, project read)
     assert "spawned as a subagent" in body  # subagents skip the greeting
-    assert "sq operator list" in body and "git config user.name" in body  # detect + register
+    assert "sq list -t operator" in body and "git config user.name" in body  # detect + register
     assert "Match their tone" in body
     # every role pointer preloads it
     fm, _ = split_frontmatter(
@@ -171,6 +171,22 @@ def test_role_body_has_operating_contract(svc):
     assert "full record" in body
     # live regime: handoffs only when work actually moves
     assert "when work actually moves" in body
+
+
+def test_reviewer_role_body_carries_findings_agreement(svc):
+    # TASK-000068: the reviewer's working agreements must include the findings-as-sub-entities line
+    item = svc.activate_role("reviewer")
+    body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
+    assert "add-finding" in body
+    assert "never as body prose" in body
+
+
+def test_non_reviewer_role_body_has_no_findings_agreement(svc):
+    # TASK-000068: roles without per-role agreements must not carry the findings line
+    item = svc.activate_role("tech-writer")
+    body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
+    assert "add-finding" not in body
+    assert "never as body prose" not in body
 
 
 def test_squads_skill_teaches_comment_scoping_convention(project):

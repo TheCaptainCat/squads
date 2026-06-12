@@ -26,6 +26,7 @@ extra:
   - squads
   - greeting
   - sq-guide
+  agreements: []
 ---
 <!-- sq:body -->
 # Theo Writer

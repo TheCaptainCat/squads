@@ -630,3 +630,140 @@ def test_plain_comment_header_literal_brackets_no_backslashes(
     assert "---" in r.output
     assert r"\[" not in r.output
     assert "Comment text." in r.output
+
+
+# ----------------------------------------------------------------- TASK-000066: role/skill/operator
+
+
+def test_role_show_tty_renders_styled_markdown(runner, styled, tmp_path, monkeypatch, frozen_time):
+    """On a TTY, sq role <n> show renders the body as styled Markdown.
+
+    The manager role template body contains '## Working agreements' — Rich Markdown
+    consumes the ## prefix so the literal marker must not appear in styled output.
+    """
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["role", "manager", "show"])
+    assert r.exit_code == 0, r.output
+    # Rich Markdown strips the ## prefix from headings
+    assert "## Working agreements" not in r.output
+    # Heading text still present
+    assert "Working agreements" in r.output
+
+
+def test_role_show_raw_flag_preserves_literal_markdown(
+    runner, styled, tmp_path, monkeypatch, frozen_time
+):
+    """--raw on a TTY still produces plain body text (literal ## markers preserved)."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["role", "manager", "show", "--raw"])
+    assert r.exit_code == 0, r.output
+    # Plain path — literal ## headings must survive
+    assert "## Working agreements" in r.output
+
+
+def test_role_show_piped_is_plain_and_byte_stable(runner, tmp_path, monkeypatch, frozen_time):
+    """Piped (no TTY) sq role show is plain and byte-stable across two runs."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r1 = runner.invoke(app, ["role", "manager", "show"])
+    r2 = runner.invoke(app, ["role", "manager", "show"])
+    assert r1.exit_code == 0 and r2.exit_code == 0
+    # Plain path preserves literal markdown headings
+    assert "## Working agreements" in r1.output
+    # Byte-stable
+    assert r1.output == r2.output
+
+
+def test_role_show_bundled_only_still_renders_hint(runner, tmp_path, monkeypatch, frozen_time):
+    """Bundled-only role (not activated) shows a catalog card + activation hint, no body error."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    # qa is not activated by --roles minimal (which only activates manager)
+    r = runner.invoke(app, ["role", "qa", "show"])
+    assert r.exit_code == 0, r.output
+    assert "activate" in r.output.lower()
+    assert "qa" in r.output
+
+
+def test_role_show_catalog_card_preserved_alongside_body(
+    runner, tmp_path, monkeypatch, frozen_time
+):
+    """Catalog card panel is preserved alongside the body — only body rendering changes.
+
+    Both the catalog card and body text must appear (no accidental removal).
+    """
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["role", "manager", "show"])
+    assert r.exit_code == 0, r.output
+    # Catalog card fields
+    assert "manager" in r.output
+    assert "mission" in r.output.lower() or "triage" in r.output.lower()
+    # Body content also present
+    assert "Working agreements" in r.output
+
+
+def test_skill_show_tty_renders_styled_markdown(runner, styled, tmp_path, monkeypatch, frozen_time):
+    """On a TTY, sq skill <n> show renders the body as styled Markdown.
+
+    The skill template body contains '## Instructions' — Rich Markdown strips the ## prefix,
+    so the literal marker must not appear in styled output.
+    """
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["skill", "add", "my-skill", "--desc", "A test skill."])
+    r = runner.invoke(app, ["skill", "2", "show"])
+    assert r.exit_code == 0, r.output
+    # Rich Markdown strips the ## prefix
+    assert "## Instructions" not in r.output
+    # Heading text still present
+    assert "Instructions" in r.output
+
+
+def test_skill_show_raw_flag_preserves_literal_markdown(
+    runner, styled, tmp_path, monkeypatch, frozen_time
+):
+    """--raw on a TTY preserves literal ## markers in the skill body."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["skill", "add", "my-skill", "--desc", "A test skill."])
+    r = runner.invoke(app, ["skill", "2", "show", "--raw"])
+    assert r.exit_code == 0, r.output
+    assert "## Instructions" in r.output
+
+
+def test_skill_show_piped_is_plain_and_byte_stable(runner, tmp_path, monkeypatch, frozen_time):
+    """Piped sq skill show produces plain text, byte-stable across two runs."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["skill", "add", "my-skill", "--desc", "A test skill."])
+    r1 = runner.invoke(app, ["skill", "2", "show"])
+    r2 = runner.invoke(app, ["skill", "2", "show"])
+    assert r1.exit_code == 0 and r2.exit_code == 0
+    assert "## Instructions" in r1.output
+    assert r1.output == r2.output
+
+
+def test_operator_show_renders_panel_and_body(runner, tmp_path, monkeypatch, frozen_time):
+    """sq operator <n> show shows metadata panel and body content from the template."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["operator", "add", "Alice Test"])
+    r = runner.invoke(app, ["operator", "2", "show"])
+    assert r.exit_code == 0, r.output
+    # Panel metadata
+    assert "Alice Test" in r.output
+    assert "op-alice" in r.output
+    # Body content from operator template (plain/piped path preserves literal markdown)
+    assert "Operator (human)" in r.output
+
+
+def test_operator_show_raw_flag_accepted(runner, tmp_path, monkeypatch, frozen_time):
+    """--raw is accepted by sq operator show (exits 0)."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["operator", "add", "Alice Test"])
+    r = runner.invoke(app, ["operator", "2", "show", "--raw"])
+    assert r.exit_code == 0, r.output

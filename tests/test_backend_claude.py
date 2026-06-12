@@ -41,7 +41,7 @@ def test_claude_md_has_operators_section_and_session_start(project, svc):
     before = project.claude_md.read_text(encoding="utf-8")
     assert "Operators (people)" in before
     assert "_None registered yet._" in before
-    assert "you MUST ask" in before and "sq operator list" in before
+    assert "you MUST ask" in before and "sq list -t operator" in before
     # registering one lists them by name + op- slug
     svc.add_operator("Pierre Chat")
     after = project.claude_md.read_text(encoding="utf-8")
@@ -87,15 +87,15 @@ def test_claude_md_injection_idempotent(project, svc):
 
 
 def test_claude_md_impersonation_uses_sq_command_not_path(project, svc):
-    """Generated CLAUDE.md section teaches sq role show, not a filesystem path."""
+    """Generated CLAUDE.md section teaches sq role <slug> show (item-first), not a path."""
     text = project.claude_md.read_text(encoding="utf-8")
-    # The impersonation paragraph must reference the CLI command.
-    assert "sq role show" in text
+    # The impersonation paragraph must reference the item-first CLI command.
+    assert "sq role <slug> show" in text
     # The filesystem path must not appear as an agent-facing instruction.
     assert "agents/roles/" not in text
 
     # sq sync must propagate the same constraint.
     svc.sync()
     synced = project.claude_md.read_text(encoding="utf-8")
-    assert "sq role show" in synced
+    assert "sq role <slug> show" in synced
     assert "agents/roles/" not in synced

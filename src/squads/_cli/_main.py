@@ -81,7 +81,8 @@ def init(
         lines.append(f"[bold]claude:[/bold] {sp.claude_dir} (pointers + squads skill + CLAUDE.md)")
     console.print(Panel("\n".join(lines), title="squads initialized", expand=False))
     console.print(
-        'Next: [cyan]sq create task "…"[/cyan] · [cyan]sq list[/cyan] · [cyan]sq role list[/cyan]'
+        'Next: [cyan]sq create task "…"[/cyan] · [cyan]sq list[/cyan]'
+        " · [cyan]sq role catalog[/cyan]"
     )
 
 
