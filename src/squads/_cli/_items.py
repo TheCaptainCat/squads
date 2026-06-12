@@ -308,9 +308,26 @@ def _sub_table(kind: str, blocks: list[SubEntity]) -> None:
 def _register_subentity(item: typer.Typer, kind: str, plural: str) -> None:
     @item.command(plural)
     @handle_errors
-    def list_sub(ctx: typer.Context):
+    def list_sub(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")):
         """List this item's sub-entities."""
         blocks = getattr(get_service(), f"list_{plural}")(_id(ctx))
+        if json_out:
+            console.print_json(
+                json.dumps(
+                    [
+                        {
+                            "local_id": b.local_id,
+                            "title": b.title,
+                            "status": b.status.value,
+                            "assignee": b.assignee,
+                            "severity": b.severity.value if b.severity else None,
+                            "story": b.story,
+                        }
+                        for b in blocks
+                    ]
+                )
+            )
+            return
         _sub_table(kind, blocks)
 
     _register_add(item, kind)

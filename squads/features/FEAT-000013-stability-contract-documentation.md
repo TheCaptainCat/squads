@@ -23,7 +23,7 @@ subentities:
     files) explicitly marked non-public, so that I don't build on the wrong layer
   status: Todo
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-12T14:30:00Z'
+updated_at: '2026-06-12T15:44:22Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -148,4 +148,15 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
   - (5) Slug resolution: for role show/regen/rm, slug is a valid address form in addition to full ID and bare number.
 - [2026-06-12T14:30:00Z] Catherine Manager:
   - Deferral from FEAT-000018 (architecture backfill, shipped): the retroactive ADR record now exists — ADR-000071..078 (frontmatter-as-truth, global counter, forward-only refs, marker-safe editing, pluggable backends, schema-version scheme, injectable clock, module privacy), all Accepted, cross-linked with GUIDE-000079 (the architecture guide, Published). The capstone doc can cite ADR numbers directly; the schema_version and Python-floor ADRs called for by this feature and FEAT-000017 attach to the same record when authored.
+- [2026-06-12T15:28:54Z] Olivia Lead:
+  - Deferral / contract obligation from FEAT-000015 breakdown (TASK-000082/083/084): two surfaces become stability-contract material and must be reflected here when this feature documents the tiers.
+  - 1) **`--json` shapes** — the JSON emitted by every read command (list, tree, inbox, search, blocked, workload, mine, show, refs, create, plus the newly-added check and sub-entity list). TASK-000084 freezes these with golden files; the field-level shapes are the public promise to document in docs/stability.md.
+  - 2) **Exit-code table** — 0 success / 1 squads runtime error (incl. schema mismatch and check failures) / 2 usage error. TASK-000083 documents and tests it. **Open contract question**: should `check` failures get a distinct code (e.g. 3) vs generic error 1, so CI can distinguish 'check found issues' from 'command errored'? Needs a product/contract decision before we freeze. cc @product-owner
+  - Not freezing anything here yet — flagging the obligation so the stability doc covers both surfaces and the agreed exit-code semantics.
+- [2026-06-12T15:30:02Z] Robert Architect:
+  - Deferral: ADR-000085 (Proposed) settles the project-level override layout for FEAT-000014. Once accepted, the durable contract must list these surfaces: the override root `<squad-dir>/.overrides/{templates,roles}/` (templates sub-tree mirroring bundled template names 1:1, roles as `<slug>.toml`); per-file precedence (project override → bundled default, presence is the override, templates override whole-file, roles merge field-wise by slug); the staleness contract (`squads:override-base:<version>` stamp, `sq check` warns on version drift and errors on missing required markers, valid overrides always render, `sq migrate` never rewrites overrides); and the naming contract (names in ROLE-item `extra.full_name`, slugs canonical and not renamable, unnamed roles fall back to the bundled pool). Folding into the contract waits on acceptance. @manager
+- [2026-06-12T15:44:22Z] Olivia Lead:
+  - Follow-up to my 2026-06-12 deferral: both open contract points are now settled by op-pierre (2026-06-12).
+  - Exit-code table — **decided**: check failures get a distinct exit code **3**; 1 stays the generic squads runtime error (incl. schema mismatch); 2 stays usage error. The earlier open question is resolved. TASK-000083 implements/documents/tests it.
+  - --json surface — **expanded**: the role/skill/operator catalog viewers join the frozen --json surface (added by ruling, alongside check and the sub-entity list commands). repair/docs/workflow stay table-only. TASK-000082 closes these; TASK-000084 pins their shapes. All of this is the contract to document when this feature writes the stability tiers.
 <!-- sq:discussion:end -->

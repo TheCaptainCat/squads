@@ -639,7 +639,7 @@ def test_repair_cli_holds_counter_after_file_loss(project, runner, frozen_time):
 
 
 def test_check_cli_flags_index_item_with_no_file(project, runner, frozen_time):
-    """sq check exits 1 and flags items in the index whose files are gone."""
+    """sq check exits 3 and flags items in the index whose files are gone."""
     import json
 
     from squads._models._enums import ItemType
@@ -665,7 +665,7 @@ def test_check_cli_flags_index_item_with_no_file(project, runner, frozen_time):
     svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
 
     r = runner.invoke(app, ["check"])
-    assert r.exit_code == 1, r.output
+    assert r.exit_code == 3, r.output
     assert "TASK-000099" in r.output
     assert "no markdown" in r.output
 
@@ -1192,3 +1192,206 @@ def test_item_update_title_cli_not_affected_by_guard(runner, tmp_path, monkeypat
     assert r.exit_code == 0, r.output
     md = next((tmp_path / "squads" / "tasks").glob("TASK-*.md")).read_text(encoding="utf-8")
     assert "[x] done label" in md
+
+
+# ---------------------------------------------------------------------------
+# TASK-000082: --json on check, sub-entity list commands, catalog viewers
+# ---------------------------------------------------------------------------
+
+
+def test_check_json_clean(runner, tmp_path, monkeypatch, frozen_time):
+    """sq check --json emits [] (exit 0) when there are no issues."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["check", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert data == []
+
+
+def test_check_json_with_issues(project, runner, frozen_time):
+    """sq check --json emits [{level, item, message}] and exits 3 when errors are present."""
+    from squads._services._service import Service
+
+    svc = Service(project)
+
+    # Inject a ghost item into the index (no file on disk) to produce an error.
+    raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    raw["items"]["99"] = {
+        "id": "TASK-000099",
+        "sequence_id": 99,
+        "type": "task",
+        "title": "ghost",
+        "slug": "ghost",
+        "status": "Draft",
+        "path": "tasks/TASK-000099-ghost.md",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z",
+    }
+    raw["counter"] = 99
+    svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    r = runner.invoke(app, ["check", "--json"])
+    assert r.exit_code == 3, r.output
+    data = json.loads(r.output)
+    assert len(data) >= 1
+    issue = next(d for d in data if d["item"] == "TASK-000099")
+    assert issue["level"] == "error"
+    assert "level" in issue and "item" in issue and "message" in issue
+
+
+def test_check_json_warnings_only_exits_0(runner, tmp_path, monkeypatch, frozen_time):
+    """sq check --json with only warnings exits 0 (not 3)."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "decision", "Old ADR", "--author", "manager"])  # ADR-000002
+    runner.invoke(app, ["decision", "2", "status", "Proposed"])
+    runner.invoke(app, ["decision", "2", "update", "--status", "Superseded", "--force"])
+    runner.invoke(app, ["repair"])
+
+    r = runner.invoke(app, ["check", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert all(d["level"] == "warn" for d in data)
+
+
+def test_stories_json(runner, tmp_path, monkeypatch, frozen_time):
+    """sq feature <n> stories --json emits [{local_id, title, status, assignee, …}]."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    runner.invoke(app, ["feature", "2", "add-story", "As a user I want X"])  # US1
+    runner.invoke(app, ["feature", "2", "add-story", "As a user I want Y"])  # US2
+
+    r = runner.invoke(app, ["feature", "2", "stories", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert len(data) == 2
+    s = data[0]
+    assert s["local_id"] == "US1"
+    assert s["title"] == "As a user I want X"
+    assert s["status"] == "Todo"
+    assert "assignee" in s
+    assert "severity" in s  # always present (null for stories)
+    assert "story" in s  # always present (null for stories)
+    assert s["severity"] is None
+    assert s["story"] is None
+
+
+def test_subtasks_json(runner, tmp_path, monkeypatch, frozen_time):
+    """sq task <n> subtasks --json emits [{local_id, title, status, assignee, severity, story}]."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    runner.invoke(  # TASK-000003
+        app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000002"]
+    )
+    runner.invoke(app, ["feature", "2", "add-story", "Story One"])  # US1
+    runner.invoke(app, ["task", "3", "add-subtask", "Do the thing", "--story", "US1"])  # ST1
+
+    r = runner.invoke(app, ["task", "3", "subtasks", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert len(data) == 1
+    st = data[0]
+    assert st["local_id"] == "ST1"
+    assert st["title"] == "Do the thing"
+    assert st["status"] == "Todo"
+    assert st["story"] == "US1"
+    assert st["severity"] is None
+
+
+def test_findings_json(runner, tmp_path, monkeypatch, frozen_time):
+    """sq review <n> findings --json emits [{local_id, title, status, severity, …}]."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "review", "R", "--author", "manager"])  # REV-000002
+    runner.invoke(  # F1
+        app, ["review", "2", "add-finding", "Null pointer risk", "--severity", "high"]
+    )
+
+    r = runner.invoke(app, ["review", "2", "findings", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert len(data) == 1
+    f = data[0]
+    assert f["local_id"] == "F1"
+    assert f["title"] == "Null pointer risk"
+    assert f["status"] == "Open"
+    assert f["severity"] == "high"
+    assert f["story"] is None
+
+
+def test_role_catalog_json(runner, tmp_path, monkeypatch, frozen_time):
+    """sq role catalog --json emits [{slug, full_name, title, is_default}] for all bundled roles."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["role", "catalog", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert len(data) >= 8  # all bundled roles
+    slugs = [d["slug"] for d in data]
+    assert "manager" in slugs and "qa" in slugs and "architect" in slugs
+    entry = next(d for d in data if d["slug"] == "manager")
+    assert entry["full_name"] == "Catherine Manager"
+    assert entry["is_default"] is True
+    assert "title" in entry
+
+
+def test_role_show_json_activated(runner, tmp_path, monkeypatch, frozen_time):
+    """sq role <slug> show --json emits role metadata for an activated role."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])  # activates manager → ROLE-000001
+    r = runner.invoke(app, ["role", "manager", "show", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert data["slug"] == "manager"
+    assert data["full_name"] == "Catherine Manager"
+    assert data["activated"] is True
+    assert data["id"] == "ROLE-000001"
+    assert isinstance(data["responsibilities"], list)
+
+
+def test_role_show_json_bundled_only(runner, tmp_path, monkeypatch, frozen_time):
+    """sq role <slug> show --json emits role metadata for a bundled-only (not activated) role."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])  # qa not activated
+    r = runner.invoke(app, ["role", "qa", "show", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert data["slug"] == "qa"
+    assert data["activated"] is False
+    assert data["id"] is None
+
+
+def test_skill_show_json(runner, tmp_path, monkeypatch, frozen_time):
+    """sq skill <addr> show --json emits {id, slug, title, status, description, when_to_use, …}."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(
+        app,
+        ["skill", "add", "my-skill", "--desc", "A handy skill", "--when-to-use", "When needed"],
+    )  # SKILL-000002
+    r = runner.invoke(app, ["skill", "2", "show", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert data["id"] == "SKILL-000002"
+    assert data["slug"] == "my-skill"
+    assert data["description"] == "A handy skill"
+    assert data["when_to_use"] == "When needed"
+    assert data["status"] == "Active"
+    assert "path" in data
+
+
+def test_operator_show_json(runner, tmp_path, monkeypatch, frozen_time):
+    """sq operator <addr> show --json emits {id, slug, full_name, status, path}."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["operator", "add", "Alice Tester"])  # OP-000002
+    r = runner.invoke(app, ["operator", "op-alice", "show", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.output)
+    assert data["slug"] == "op-alice"
+    assert data["full_name"] == "Alice Tester"
+    assert data["status"] == "Active"
+    assert "id" in data and "path" in data
