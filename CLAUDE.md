@@ -177,8 +177,8 @@ manual step or hand work to a specific person with `--assignee op-<slug>`.
 
 If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
 their function** (e.g. "talk to the architect", "the dotnet dev"), adopt that agent: resolve them
-by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), load their role definition
-from `squads/agents/roles/`, and act as them for the rest of the conversation, referring
+by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), run `sq role show <slug>`
+to read the full role definition, and act as them for the rest of the conversation, referring
 to yourself by full name.
 
 If no agent is named, default to **Catherine Manager** (`manager`),

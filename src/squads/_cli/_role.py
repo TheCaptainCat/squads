@@ -4,7 +4,8 @@ import typer
 from rich.panel import Panel
 from rich.table import Table
 
-from squads._cli._common import console, get_service, handle_errors, resolve_item_id_typed
+from squads._cli._common import console, e, get_service, handle_errors, resolve_item_id_typed
+from squads._errors import SquadsError
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED, role_by_slug
@@ -48,17 +49,38 @@ def list_roles(
 @role_app.command("show")
 @handle_errors
 def show_role(slug: str = typer.Argument(...)):
-    """Show a bundled role's definition."""
+    """Show a role's complete definition: catalog card plus active item body."""
     r = role_by_slug(slug)
     rows = [
-        f"[bold]{r.full_name}[/bold] (`{r.slug}`)",
-        f"[bold]title:[/bold] {r.title}",
-        f"[bold]model:[/bold] {r.model or 'inherit'}",
-        f"[bold]mission:[/bold] {r.mission}",
+        f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
+        f"[bold]title:[/bold] {e(r.title)}",
+        f"[bold]model:[/bold] {e(r.model or 'inherit')}",
+        f"[bold]mission:[/bold] {e(r.mission)}",
         "[bold]responsibilities:[/bold]",
-        *(f"  - {x}" for x in r.responsibilities),
+        *(f"  - {e(x)}" for x in r.responsibilities),
     ]
     console.print(Panel("\n".join(rows), expand=False))
+
+    # Attempt to show the active item body (working agreements, skills, etc.).
+    # FEAT-000026 (panes/--raw) has not landed; keep current Rich rendering style.
+    # If the squad is not initialized, treat it the same as a bundled-only role.
+    body: str | None = None
+    try:
+        svc = get_service()
+        body = svc.role_body(slug)
+    except SquadsError:
+        body = None
+
+    console.print()
+    if body:
+        console.print(e(body))
+    else:
+        # Bundled-only role (no tracked item) or squad not initialised.
+        # Degrade gracefully with an activation hint.
+        console.print(
+            f"[dim](no active item for {e(slug)} — run `sq role activate {e(slug)}`"
+            " then `sq sync` to populate the full definition)[/dim]"
+        )
 
 
 @role_app.command("activate")

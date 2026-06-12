@@ -299,6 +299,21 @@ def test_update_role_extra_regenerates_pointer(svc, project):
     assert "color: magenta" in pointer  # the pointer was regenerated from the edited config
 
 
+def test_role_body_active_contains_working_agreements(svc):
+    """role_body(slug) returns the item body including working agreements when active."""
+    # minimal init activates `manager` — its body is generated from the role template.
+    body = svc.role_body("manager")
+    assert body is not None
+    assert "Working agreements" in body
+
+
+def test_role_body_bundled_only_returns_none(svc):
+    """role_body(slug) returns None for a bundled-but-not-activated role."""
+    # `qa` is bundled but not activated under the minimal spec.
+    body = svc.role_body("qa")
+    assert body is None
+
+
 # --------------------------------------------------------------------------- sync / version
 
 

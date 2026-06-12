@@ -84,3 +84,18 @@ def test_claude_md_injection_idempotent(project, svc):
     after = project.claude_md.read_text(encoding="utf-8")
     assert before.count("<!-- squads:start -->") == 1
     assert after.count("<!-- squads:start -->") == 1
+
+
+def test_claude_md_impersonation_uses_sq_command_not_path(project, svc):
+    """Generated CLAUDE.md section teaches sq role show, not a filesystem path."""
+    text = project.claude_md.read_text(encoding="utf-8")
+    # The impersonation paragraph must reference the CLI command.
+    assert "sq role show" in text
+    # The filesystem path must not appear as an agent-facing instruction.
+    assert "agents/roles/" not in text
+
+    # sq sync must propagate the same constraint.
+    svc.sync()
+    synced = project.claude_md.read_text(encoding="utf-8")
+    assert "sq role show" in synced
+    assert "agents/roles/" not in synced
