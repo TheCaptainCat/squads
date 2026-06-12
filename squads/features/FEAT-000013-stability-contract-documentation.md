@@ -23,7 +23,7 @@ subentities:
     files) explicitly marked non-public, so that I don't build on the wrong layer
   status: Todo
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-11T07:54:52Z'
+updated_at: '2026-06-11T21:31:02Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -131,4 +131,11 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:discussion -->
 - [2026-06-11T07:54:11Z] Nina Product:
   - Sequencing note (from the readiness review): this doc is late-binding — it records decisions made by FEAT-000019/027/035/023/024/016/032. Start it early as a living draft, but its Done means 'reflects final decisions': it closes last in the epic.
+- [2026-06-11T21:28:59Z] Catherine Manager:
+  - Obligations accumulated from shipped features (so far): (1) FEAT-000019 — document the addressing rule in the CLI-grammar tier: anywhere an item is named, both the full ID and the bare number are accepted; addressing an existing item through the wrong type is an error. (2) FEAT-000035 / ADR-000049 — state the ref-kind policy verbatim: vocabulary closed in 1.0 (eight kinds, unknown kinds rejected); a project-declared custom-kind extension is reserved for a future release and will be additive and non-breaking, the built-in kinds' meanings stay fixed.
+  - Own scope reminder: the post-1.0 schema_version scheme needs its own ADR before the doc can state it.
+- [2026-06-11T21:31:02Z] Pierre Chat:
+  - Sequencing decision: this feature runs LAST in the epic — it's the capstone. The contract decisions are made feature-by-feature as the epic progresses (each recorded where it happens, ADR or feature body) and deferred here via comments; by the time this runs it's a pure writing pass over settled facts, plus its one piece of original work: the post-1.0 schema_version ADR. Writing it earlier would mean rewriting after every grammar/format-touching feature.
+  - Discipline for the loops until then: any feature that settles a format or grammar question must record the decision on its own item and leave a deferral comment here — the obligations list above is the running bill. @manager enforces this in every loop.
+  - Pairs naturally with the other doc-flavored tail work: FEAT-000018 (architecture backfill) and FEAT-000016 (AGENTS.md backend) — consider scheduling the three together with @tech-writer.
 <!-- sq:discussion:end -->
