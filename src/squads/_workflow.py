@@ -127,12 +127,19 @@ SUBENTITY_WORKFLOWS: dict[str, Workflow] = {
 }
 
 
-#: Statuses that mean "no further work expected" — used to scope the inbox to open items.
+#: Statuses that mean "no further work expected" — used to scope the inbox to open items,
+#: the default list/tree/mine filter, and the blocked view.
+#: Note: terminal does not imply no outgoing transitions — REJECTED, ACCEPTED, and PUBLISHED
+#: all have valid exits (Rejected→Proposed, Accepted→Superseded|Deprecated,
+#: Published→Deprecated|Draft). The transition map drives what moves are legal; this set only
+#: controls whether an item is considered settled for scoping purposes.
 TERMINAL: frozenset[Status] = frozenset(
     {
         S.DONE,
         S.CANCELLED,
         S.REJECTED,
+        S.ACCEPTED,
+        S.PUBLISHED,
         S.SUPERSEDED,
         S.DEPRECATED,
         S.ARCHIVED,
