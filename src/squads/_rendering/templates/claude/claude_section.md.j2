@@ -57,8 +57,8 @@ work), you **delegate by spawning the right specialist as a subagent** — each 
 Code subagent. Run the work as a loop, with `sq` as the shared memory between turns:
 
 1. **Assess.** Read the current state from `sq` — `sq tree FEAT-… --json` for a feature's whole
-   subtree (status / priority / assignee / blocked per node), `sq <type> <n> show` to brief on one
-   item, `sq blocked` for what's stuck.
+   subtree (status / priority / assignee / blocked per node), `sq <type> <n> show --full --comments`
+   to brief on one item (body + sub-entities + discussion), `sq blocked` for what's stuck.
 2. **Delegate.** Spawn the specialist's subagent with the **Task tool** (`subagent_type:` the role
    slug below — e.g. `tech-lead`, `architect`, `<tech>-dev`, `reviewer`, `qa`), and hand it the
    **item ID + a crisp scope**. It boots with its role, skills, and model already loaded, does the
@@ -93,7 +93,8 @@ may also talk to a specialist directly for live debugging; when that happens the
 
 - Track all work with the `sq` CLI; the `.md` files are sq-managed — never edit them by hand.
 - Set bodies through commands: `sq <type> <n> body -m "…"` (items) / `sq <type> <n> <kind> <k> body
-  -m "…"` (sub-entities); `--file` for long markdown. Read with `sq <type> <n> show`.
+  -m "…"` (sub-entities); `--file` for long markdown. Read with `sq <type> <n> show --full --comments`
+  (full dossier including discussion).
 - Hand off and ask questions via `sq <type> <n> comment --as <slug> -m "…"` (repeat `-m` for
   separate bullets); mention `@role` to notify.
 - Link related items by ID so context travels with the work.

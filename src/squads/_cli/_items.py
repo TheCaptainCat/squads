@@ -84,14 +84,26 @@ def build_item_app(item_type: ItemType) -> typer.Typer:
 def _cmd_show(item: typer.Typer) -> None:
     @item.command("show")
     @handle_errors
-    def show(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")):
-        """Show the item's metadata and body."""
+    def show(
+        ctx: typer.Context,
+        json_out: bool = typer.Option(False, "--json"),
+        raw: bool = typer.Option(
+            False, "--raw", help="Plain text output (opt out of markdown render)."
+        ),
+        comments: bool = typer.Option(
+            False, "--comments", help="Append the discussion as comment panes."
+        ),
+        full: bool = typer.Option(
+            False, "--full", help="Add one pane per sub-entity (body + badges)."
+        ),
+    ):
+        """Show the item's metadata, body, sub-entity summary, and optional panes."""
         svc = get_service()
         it = svc.get(_id(ctx))
         if json_out:
             console.print_json(it.model_dump_json())
             return
-        print_item(svc, it)
+        print_item(svc, it, raw=raw, comments=comments, full=full)
 
 
 def _cmd_update(item: typer.Typer) -> None:

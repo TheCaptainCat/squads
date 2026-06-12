@@ -14,6 +14,7 @@ touch them, via the frozen ``_migrations._meta_compat`` helpers.
 """
 
 import re
+from dataclasses import dataclass
 
 from squads._models import _markers as markers
 from squads._models._enums import SEVERITY_EMOJI, STATUS_EMOJI, Severity, Status
@@ -23,6 +24,10 @@ from squads._sections import get_section, replace_section
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
 _LOCAL_ID_PREFIX = {"story": "US", "subtask": "ST", "finding": "F"}
+
+# Matches the header line of a formatted comment, e.g.:
+#   - [2026-06-07T10:00:00Z] Author Name:
+_COMMENT_HEADER_RE = re.compile(r"^- \[([^\]]+)\] (.+?):$")
 
 _STORY_PLACEHOLDER = (
     "_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance "
@@ -54,6 +59,69 @@ def format_comment(timestamp_iso: str, author: str, messages: list[str]) -> str:
         # nested fenced code block — and its internal blank lines — stays inside the list item.
         lines += [f"    {ln}" for ln in rest]
     return "\n".join(lines)
+
+
+@dataclass
+class Comment:
+    """A single parsed comment from a discussion region."""
+
+    timestamp: str
+    author: str
+    body: str  # the raw bullet lines for this comment, stripped of their outer indentation
+
+
+def split_discussion(region: str) -> list[Comment]:
+    """Parse a discussion region (the content between sq:discussion markers) into Comment objects.
+
+    Each comment starts with ``- [TIMESTAMP] Author:`` and is followed by indented bullet lines
+    (``  - text`` or continuation lines ``    text``).  The body field preserves the bullets as-is
+    (including any fenced code blocks), stripping only the leading 2-space indent level so it reads
+    as standalone markdown.
+
+    Empty or whitespace-only regions return an empty list.  Lines that do not start a new header
+    are accumulated as the current comment's body.  This is the inverse of :func:`format_comment`.
+    """
+    comments: list[Comment] = []
+    current_ts: str | None = None
+    current_author: str | None = None
+    body_lines: list[str] = []
+
+    for raw_line in region.splitlines():
+        m = _COMMENT_HEADER_RE.match(raw_line)
+        if m:
+            # Flush any previous comment
+            if current_ts is not None and current_author is not None:
+                comments.append(
+                    Comment(
+                        timestamp=current_ts,
+                        author=current_author,
+                        body="\n".join(body_lines).strip(),
+                    )
+                )
+            current_ts = m.group(1)
+            current_author = m.group(2)
+            body_lines = []
+        elif current_ts is not None:
+            # Strip the 2-space indent that format_comment adds at the message level.
+            # Continuation lines have 4 spaces; after stripping 2 they become "  text", which
+            # renders correctly under the bullet.  We do NOT collapse blank lines — fenced code
+            # blocks depend on them staying in place.
+            if raw_line.startswith("  "):
+                body_lines.append(raw_line[2:])
+            else:
+                body_lines.append(raw_line)
+
+    # Flush the last comment
+    if current_ts is not None and current_author is not None:
+        comments.append(
+            Comment(
+                timestamp=current_ts,
+                author=current_author,
+                body="\n".join(body_lines).strip(),
+            )
+        )
+
+    return comments
 
 
 def extract_mentions(text: str) -> set[str]:

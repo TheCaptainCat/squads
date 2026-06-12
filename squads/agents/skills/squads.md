@@ -20,7 +20,8 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
 - Set a **sub-entity's** body with `sq <type> <n> <kind> <k> body -m "…"` (or `--file`); edit its
   metadata with `sq <type> <n> <kind> <k> update` (`--title`, `--status`, `--assignee`, a subtask's
   `--story`, a finding's `--severity`). Read either back with `sq <type> <n> show` /
-  `sq <type> <n> <kind> <k> show`.
+  `sq <type> <n> <kind> <k> show`. For a full dossier (body + sub-entities + discussion), use
+  `sq <type> <n> show --full --comments` — decisions and refinements often live in comments.
 - Reference related items by ID so others read the right context.
 - **Before acting on an item, open its `sq-<type>` skill and follow your role's _For …_ section** —
   it lists exactly what you check first, what you do, and when/how to hand off.
@@ -33,8 +34,10 @@ The operator sometimes talks to you directly — not through the manager — for
 debugging. The rest of the team only ever sees `sq`, **never your chat**, so this is exactly when
 to stay disciplined:
 
-- **Anchor to an item.** Confirm which item you're working on (`sq <type> <n> show`). If the work is
-  genuinely new, create the right item first so it's tracked.
+- **Anchor to an item.** Confirm which item you're working on — read it with
+  `sq <type> <n> show --full --comments` so you see the body, sub-entities, and any decisions
+  captured in discussion comments. If the work is genuinely new, create the right item first so
+  it's tracked.
 - **Keep status honest.** Move it to `InProgress` when you start; don't leave it stale.
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
   -m "…"` summarising what changed — that's how the manager's loop (and the next agent) picks up
@@ -73,7 +76,7 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
   open those for role-specific guidance. The default agent (Catherine Manager) triages and routes.
 - The `.md` files are sq-managed — never hand-edit them. Set an item's body with
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
-  "…"`; read back with `sq <type> <n> show`. Hand off with `sq <type> <n> comment --as <slug> -m "…"`
+  "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
 
 ## Ref kinds
@@ -98,7 +101,7 @@ The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. U
 ```bash
 sq create task "Title" --author <your-slug> [--parent FEAT-000002] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
 #   --author is required and must be a registered agent (your own role slug)
-sq task 3 show                                                  # details + body
+sq task 3 show --full --comments                                # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress                                     # transition (validated per type)
 sq task 3 update --assignee qa --priority high --parent FEAT-000002  # metadata (parent validated)
 sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)

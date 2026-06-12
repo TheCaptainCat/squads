@@ -17,6 +17,9 @@ sq decision <n> status Accepted
 ## For Robert Architect (`architect`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq decision <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - gather the context + the options you're weighing
 
 **Do:**
@@ -33,6 +36,9 @@ sq decision <n> status Accepted
 ## For Olivia Lead (`tech-lead`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq decision <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the proposed decision + its context
 
 **Do:**
@@ -46,4 +52,5 @@ The `.md` files are sq-managed — never edit them by hand. Items are addressed 
 `sq decision <n> <verb>`. Set this item's body with `sq decision <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
 get their bodies from `sq decision <n> <kind> <k> body -m "…"`. Read anything back with
-`sq decision <n> show` / `sq decision <n> <kind> <k> show`.
+`sq decision <n> show --full --comments` (full dossier, including discussion) /
+`sq decision <n> <kind> <k> show`.

@@ -171,6 +171,12 @@ class ItemsMixin(ServiceCore):
         text = item_file(self.paths, item).read_text(encoding="utf-8")
         return (sections.get_section(text, markers.BODY) or "").strip("\n")
 
+    def read_discussion(self, item_id: str) -> str:
+        """The item's top-level ``:discussion`` region content (for ``sq show --comments``)."""
+        item = self.get(item_id)
+        text = item_file(self.paths, item).read_text(encoding="utf-8")
+        return (sections.get_section(text, markers.DISCUSSION) or "").strip("\n")
+
     def remove_item(self, item_id: str, *, purge: bool = False) -> Item:
         with self.store.transaction() as db:
             item = require_item(db, item_id)

@@ -95,6 +95,31 @@ def test_squads_skill_has_direct_operator_rule(project):
     assert "never your chat" in body
 
 
+def test_squads_skill_teaches_full_comments_briefing(project):
+    # US6: the squads skill must teach show --full --comments as the standard briefing move so
+    # agents don't silently miss decisions captured only in discussion comments.
+    body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
+    assert "--full --comments" in body
+    # appears in the Anchor-to-an-item guidance (Working directly with the operator)
+    assert "show --full --comments" in body
+
+
+def test_item_skills_teach_full_comments_briefing(svc, project):
+    # US6: every per-type sq-<type> skill's Enter section must instruct reading with
+    # --full --comments. The guidance is injected by item_skill.md.j2 as the first Enter bullet.
+    svc.add_dev("python")
+    svc.refresh_managed()
+    for it in interactions.managed_item_types():
+        body = _item_skill_body(project, it)
+        assert "--full --comments" in body, (
+            f"sq-{it.value} skill is missing --full --comments briefing guidance"
+        )
+        # The Enter section specifically should carry the dossier instruction
+        assert "show --full --comments" in body, (
+            f"sq-{it.value} Enter section missing 'show --full --comments'"
+        )
+
+
 def test_greeting_skill_is_generated_and_preloaded(project):
     # the always-on greeting skill: real body under the squad folder, thin pointer in .claude
     pointer = (project.claude_dir / "skills" / "greeting" / "SKILL.md").read_text(encoding="utf-8")

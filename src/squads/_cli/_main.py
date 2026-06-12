@@ -21,6 +21,7 @@ from squads._cli._common import (
     parse_priority,
     parse_status,
     parse_type,
+    print_item,
     priority_badge,
     resolve_item_id_any,
     resolve_slug_or_raise,
@@ -407,6 +408,35 @@ def docs(
     else:
         # raw markdown, verbatim: no Rich markup interpretation, no reflow
         console.print(content, markup=False, highlight=False, soft_wrap=True)
+
+
+@app.command(name="show")
+@handle_errors
+def show_any(
+    item_id: str = typer.Argument(
+        ..., metavar="ID", help="Item ID (e.g. FEAT-000013) or bare number (e.g. 13)."
+    ),
+    json_out: bool = typer.Option(False, "--json"),
+    raw: bool = typer.Option(
+        False, "--raw", help="Plain text output (opt out of markdown render)."
+    ),
+    comments: bool = typer.Option(
+        False, "--comments", help="Append the discussion as comment panes."
+    ),
+    full: bool = typer.Option(False, "--full", help="Add one pane per sub-entity (body + badges)."),
+):
+    """Show any work item by ID or bare number, regardless of type.
+
+    Accepts both the full ID (e.g. ``FEAT-000013``) and a bare sequence number (e.g. ``13``).
+    Unknown IDs error cleanly.
+    """
+    svc = get_service()
+    resolved_id = resolve_item_id_any(item_id, svc)
+    it = svc.get(resolved_id)
+    if json_out:
+        console.print_json(it.model_dump_json())
+        return
+    print_item(svc, it, raw=raw, comments=comments, full=full)
 
 
 @app.command()

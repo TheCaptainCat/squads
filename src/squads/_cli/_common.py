@@ -7,7 +7,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 import typer
-from rich.console import Console
+from rich.console import Console, Group, RenderableType
+from rich.markdown import Markdown
 from rich.markup import escape
 from rich.panel import Panel
 
@@ -26,6 +27,7 @@ from squads._models._enums import (
 from squads._models._extras import ExtraKey as X
 from squads._models._item import DEFAULT_KIND, Item, split_ref
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
+from squads._models._subentity import SubEntity
 from squads._paths import resolve
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
@@ -85,8 +87,36 @@ def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
     )
 
 
-def print_item(svc: Service, it: Item) -> None:
-    """Render an item's metadata panel + its body (for `sq <type> <num> show`)."""
+def _is_styled() -> bool:
+    """True when Rich will actually render markup (TTY + color enabled)."""
+    # Console.is_terminal is False when stdout is piped; NO_COLOR collapses markup too.
+    return console.is_terminal and not console.no_color
+
+
+def _render_comments_plain(comments: list[discussion.Comment]) -> None:
+    """Render comments as plain delimited text (piped / NO_COLOR / --raw degradation).
+
+    Uses raw (un-escaped) values because markup=False is in effect — e() escaping must not be
+    applied here or it will leak backslashes into the plain output.
+    """
+    for cmt in comments:
+        header = f"--- [{cmt.timestamp}] {cmt.author} ---"
+        console.print(header, markup=False, highlight=False)
+        console.print(cmt.body, markup=False, highlight=False)
+        console.print()
+
+
+def _render_comments_styled(comments: list[discussion.Comment]) -> None:
+    """Render each comment as a Rich Panel (TTY, color enabled, not --raw)."""
+    for cmt in comments:
+        title = f"{e(cmt.timestamp)}  {e(cmt.author)}"
+        # Body is parsed markdown; pass through Markdown() so bullets/code are styled.
+        # We do NOT escape here — the body is trusted markdown content, not user-input markup.
+        console.print(Panel(Markdown(cmt.body), title=title, expand=False))
+
+
+def _build_item_panel_rows(it: Item) -> list[str]:
+    """Build the metadata rows for the item's info panel."""
     rows = [
         f"[bold]{it.id}[/bold]  ({it.type.value})",
         f"[bold]title:[/bold] {e(it.title)}",
@@ -114,11 +144,177 @@ def print_item(svc: Service, it: Item) -> None:
         )
         rows.append(f"[bold]refs:[/bold] {e(rendered)}")
     rows.append(f"[bold]file:[/bold] {it.path}")
-    console.print(Panel("\n".join(rows), expand=False))
-    if it.type not in (ItemType.ROLE, ItemType.SKILL):
-        body = svc.read_body(it.id)
+    return rows
+
+
+def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
+    """Build the raw (un-escaped) pane title for a sub-entity.
+
+    Returns plain text with no Rich markup escaping applied.  Callers that need to pass the title
+    into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
+    (plain path) use this value directly so no backslashes leak.
+    """
+    status_badge = discussion._status_badge(sub.status.value)  # pyright: ignore[reportPrivateUsage]
+    parts = [f"{sub.local_id} — {sub.title}  {status_badge}"]
+    if kind == "finding" and sub.severity:
+        sev_badge = f"{SEVERITY_EMOJI[sub.severity]} {sub.severity.value.title()}"
+        parts.append(sev_badge)
+    if sub.assignee:
+        parts.append(sub.assignee)
+    if kind == "subtask" and sub.story:
+        parts.append(sub.story)
+    return "  ".join(parts)
+
+
+def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: bool) -> None:
+    """Render one pane per sub-entity with its body (and optionally its comments).
+
+    Called when --full is set; comment embedding per sub is gated on --comments.
+    Sub-entity panes are printed after the summary table.  When comments is True,
+    the main discussion is NOT printed here — the caller (_print_item_content)
+    prints it last, after all sub panes.
+    """
+    kind = _SUBENTITY_KIND.get(it.type)
+    if not kind or not it.subentities:
+        return
+
+    get_detail = getattr(svc, f"get_{kind}")
+
+    for sub in it.subentities:
+        detail = get_detail(it.id, sub.local_id)
+        # Build the raw (un-escaped) title once; apply e() only at the styled Panel boundary.
+        raw_title = _subentity_pane_title_raw(sub, kind)
+        body_text = detail.body or ""
+
+        if styled:
+            inner_renderables: list[RenderableType] = []
+            if body_text:
+                inner_renderables.append(Markdown(body_text))
+            if comments:
+                sub_cmts = discussion.split_discussion(detail.discussion)
+                if sub_cmts:
+                    for cmt in sub_cmts:
+                        cmt_title = f"{e(cmt.timestamp)}  {e(cmt.author)}"
+                        inner_renderables.append(
+                            Panel(Markdown(cmt.body), title=cmt_title, expand=False)
+                        )
+
+            # If we have renderables, put them inside a Group so Panel gets one renderable.
+            body_renderable: RenderableType
+            if inner_renderables:
+                body_renderable = Group(*inner_renderables)
+            else:
+                body_renderable = Markdown("_(empty)_")
+            # e() applied here — only the styled Panel title needs Rich-escaped text.
+            console.print(Panel(body_renderable, title=e(raw_title), expand=False))
+        else:
+            # Plain degradation: use raw_title directly — markup=False, no escaping needed.
+            console.print(f"=== {raw_title} ===", markup=False, highlight=False)
+            if body_text:
+                console.print(body_text, markup=False, highlight=False)
+            if comments:
+                sub_cmts = discussion.split_discussion(detail.discussion)
+                _render_comments_plain(sub_cmts)
+            console.print()
+
+
+def _print_item_content(
+    svc: Service, it: Item, *, styled: bool, comments: bool, full: bool = False
+) -> None:
+    """Render the body, sub-entity summary, and optional comments for a non-role/skill item."""
+    body = svc.read_body(it.id)
+    console.print()
+    if body:
+        if styled:
+            console.print(Markdown(body))
+        else:
+            console.print(body, markup=False, highlight=False)
+    else:
+        console.print("[dim](empty — set it with `body`)[/dim]")
+
+    # Sub-entity summary table — always shown (not gated on --full); driven from the stored
+    # sub-entities, not a re-parse of the markdown table.
+    if it.subentities:
+        _print_subentity_summary(it)
+
+    # --full: one pane per sub-entity (body + optional per-sub comments)
+    if full:
+        _print_full_panes(svc, it, styled=styled, comments=comments)
+
+    # --comments: render the main discussion last (after sub panes when --full is set)
+    if comments:
+        _print_discussion(svc, it, styled=styled)
+
+
+def _print_discussion(svc: Service, it: Item, *, styled: bool) -> None:
+    """Render the main discussion as per-comment panes or plain blocks."""
+    cmt_list = discussion.split_discussion(svc.read_discussion(it.id))
+    if cmt_list:
         console.print()
-        console.print(e(body) if body else "[dim](empty — set it with `body`)[/dim]")
+        if styled:
+            _render_comments_styled(cmt_list)
+        else:
+            _render_comments_plain(cmt_list)
+    else:
+        console.print("[dim](no discussion)[/dim]")
+
+
+def print_item(
+    svc: Service,
+    it: Item,
+    *,
+    raw: bool = False,
+    comments: bool = False,
+    full: bool = False,
+) -> None:
+    """Render an item's metadata panel + its body (for ``sq <type> <num> show``).
+
+    On a TTY (with color) the body is styled Rich Markdown; piped / ``NO_COLOR`` / ``--raw`` falls
+    back to plain text.  ``--comments`` appends the discussion as per-comment panes.
+    ``--full`` adds one pane per sub-entity (body, badges); combined with ``--comments`` each
+    sub-entity pane embeds its own comments and the main discussion closes the output.
+    """
+    console.print(Panel("\n".join(_build_item_panel_rows(it)), expand=False))
+    if it.type not in (ItemType.ROLE, ItemType.SKILL):
+        styled = _is_styled() and not raw
+        _print_item_content(svc, it, styled=styled, comments=comments, full=full)
+
+
+_SUBENTITY_KIND: dict[ItemType, str] = {
+    ItemType.FEATURE: "story",
+    ItemType.TASK: "subtask",
+    ItemType.REVIEW: "finding",
+}
+
+
+def _print_subentity_summary(it: Item) -> None:
+    """Print the sub-entity summary table from the item's frontmatter sub-entities."""
+    from rich.table import Table as RichTable
+
+    kind = _SUBENTITY_KIND.get(it.type)
+    if kind is None:
+        return
+
+    cols = discussion._SUMMARY_COLS[kind]  # pyright: ignore[reportPrivateUsage]
+    table = RichTable(box=None, pad_edge=False)
+    for col in cols:
+        table.add_column(col)
+
+    for sub in it.subentities:
+        if kind == "finding":
+            sev_str = f"{SEVERITY_EMOJI[sub.severity]} {sub.severity.value}" if sub.severity else ""
+            table.add_row(
+                sub.local_id, sev_str, sub.status.value, e(sub.assignee or ""), e(sub.title)
+            )
+        elif kind == "subtask":
+            table.add_row(
+                sub.local_id, sub.status.value, e(sub.assignee or ""), e(sub.title), sub.story or ""
+            )
+        else:
+            table.add_row(sub.local_id, sub.status.value, e(sub.assignee or ""), e(sub.title))
+
+    console.print()
+    console.print(table)
 
 
 def print_subentity(detail: SubentityDetail, kind: str) -> None:

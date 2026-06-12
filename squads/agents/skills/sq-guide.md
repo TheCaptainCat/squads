@@ -17,6 +17,9 @@ sq guide <n> status Published
 ## For Robert Architect (`architect`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq guide <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - identify the recurring practice or anti-pattern worth capturing
 
 **Do:**
@@ -29,6 +32,9 @@ sq guide <n> status Published
 ## For Olivia Lead (`tech-lead`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq guide <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - spot a lesson from a real task worth generalising
 
 **Do:**
@@ -37,6 +43,9 @@ sq guide <n> status Published
 ## For Theo Writer (`tech-writer`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq guide <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the draft guide
 
 **Do:**
@@ -53,4 +62,5 @@ The `.md` files are sq-managed — never edit them by hand. Items are addressed 
 `sq guide <n> <verb>`. Set this item's body with `sq guide <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
 get their bodies from `sq guide <n> <kind> <k> body -m "…"`. Read anything back with
-`sq guide <n> show` / `sq guide <n> <kind> <k> show`.
+`sq guide <n> show --full --comments` (full dossier, including discussion) /
+`sq guide <n> <kind> <k> show`.

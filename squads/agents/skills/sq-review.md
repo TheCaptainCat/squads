@@ -20,6 +20,9 @@ sq task <n> ref add REV-… --kind addresses
 ## For Paul Reviewer (`reviewer`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq review <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the task/changes under review + the feature's acceptance criteria
 
 **Do:**
@@ -37,6 +40,9 @@ sq task <n> ref add REV-… --kind addresses
 ## For developers
 
 **Enter** — before you act:
+- Read the full item dossier: `sq review <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read every finding and its severity (`sq review <n> findings`)
 
 **Do:**
@@ -54,4 +60,5 @@ The `.md` files are sq-managed — never edit them by hand. Items are addressed 
 `sq review <n> <verb>`. Set this item's body with `sq review <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
 get their bodies from `sq review <n> <kind> <k> body -m "…"`. Read anything back with
-`sq review <n> show` / `sq review <n> <kind> <k> show`.
+`sq review <n> show --full --comments` (full dossier, including discussion) /
+`sq review <n> <kind> <k> show`.
