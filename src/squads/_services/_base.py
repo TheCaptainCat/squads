@@ -45,6 +45,28 @@ SUBENTITY_CONTAINER: dict[str, str] = {
 SUBENTITY_KIND: dict[ItemType, str] = {p: k for k, p in SUBENTITY_PARENT.items()}
 
 
+def reject_markers(text: str, what: str = "body") -> None:
+    """Raise ``SquadsError`` when *text* contains a well-formed sq marker tag.
+
+    All prose inputs that land inside marker-delimited regions must pass through
+    this guard before any file write.  The ``what`` label appears in the message
+    (e.g. ``"body"``, ``"comment message"``, ``"title"``).
+
+    For the legacy ``"body"`` label the message is kept verbatim so existing
+    callers and tests stay unchanged.  All other labels get the extended message
+    that points the author at a safe formulation.
+    """
+    if not sections.find_markers(text):
+        return
+    if what == "body":
+        raise SquadsError("body must not contain sq marker comments (<!-- sq:… -->)")
+    raise SquadsError(
+        f"{what} must not contain sq marker comments (<!-- sq:… -->). "
+        "Write the tag without its HTML-comment wrapper (e.g. sq:body rather than "
+        "the comment form) — backtick-wrapping does not neutralize a well-formed tag."
+    )
+
+
 def _template_for(item_type: ItemType) -> str:
     if item_type is ItemType.ROLE:
         return "agents/role.md.j2"
@@ -129,8 +151,7 @@ class ServiceCore:
                 _template_for(item_type), item=item, description=description, extra=item.extra
             )
             if body is not None:
-                if sections.find_markers(body):
-                    raise SquadsError("body must not contain sq marker comments (<!-- sq:… -->)")
+                reject_markers(body)
                 rendered = sections.replace_section(rendered, markers.BODY, body)
             write_new(self.paths.abspath(squad_rel), item, rendered)
             db.add(item)

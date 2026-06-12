@@ -397,3 +397,104 @@ def test_check_detects_broken_marker(svc):
     path.write_text(text, encoding="utf-8")
     issues = svc.check()
     assert any("sq:body" in i.message for i in issues)
+
+
+# --------------------------------------------------------------------------- marker-injection guard
+
+
+# Build the well-formed marker string at runtime so this source file itself does
+# not contain a literal marker tag (which would be caught by sq check).
+_MARKER_TAG = "<!-- sq:body -->"
+_BACKTICK_MARKER_TAG = f"`{_MARKER_TAG}`"
+
+
+def test_comment_with_marker_tag_rejected(svc):
+    """A comment message containing a well-formed sq marker tag raises SquadsError."""
+    task = svc.create(ItemType.TASK, "t").item
+    with pytest.raises(SquadsError, match="marker"):
+        svc.comment(task.id, [f"see the {_MARKER_TAG} region"], as_slug="manager")
+
+
+def test_comment_with_backtick_marker_rejected(svc):
+    """Backtick-wrapping does not neutralize a marker tag in a comment."""
+    task = svc.create(ItemType.TASK, "t").item
+    with pytest.raises(SquadsError, match="marker"):
+        svc.comment(task.id, [f"see {_BACKTICK_MARKER_TAG}"], as_slug="manager")
+
+
+def test_comment_marker_leaves_file_untouched(svc):
+    """A rejected comment must not partially write to the item file."""
+    task = svc.create(ItemType.TASK, "t").item
+    path = svc.paths.abspath(svc.get(task.id).path)
+    text_before = path.read_text(encoding="utf-8")
+    with pytest.raises(SquadsError):
+        svc.comment(task.id, [f"inject {_MARKER_TAG} here"], as_slug="manager")
+    assert path.read_text(encoding="utf-8") == text_before  # file completely untouched
+    assert svc.check() == []  # no marker integrity issues
+
+
+def test_comment_marker_in_any_message_rejected(svc):
+    """All -m messages are validated; a marker in a later message also rejects."""
+    task = svc.create(ItemType.TASK, "t").item
+    with pytest.raises(SquadsError, match="marker"):
+        svc.comment(task.id, ["safe first line", f"bad {_MARKER_TAG} line"], as_slug="manager")
+
+
+def test_subentity_targeted_comment_with_marker_rejected(svc):
+    """A sub-entity-targeted comment (story/subtask/finding) is also guarded."""
+    feat = svc.create(ItemType.FEATURE, "f").item
+    svc.add_story(feat.id, "A story")  # US1
+    with pytest.raises(SquadsError, match="marker"):
+        svc.comment(feat.id, [f"inject {_MARKER_TAG}"], as_slug="product-owner", story="US1")
+
+
+def test_add_story_title_with_marker_rejected(svc):
+    """Creating a story with a marker tag in the title raises SquadsError."""
+    feat = svc.create(ItemType.FEATURE, "f").item
+    with pytest.raises(SquadsError, match="marker"):
+        svc.add_story(feat.id, f"title {_MARKER_TAG} here")
+
+
+def test_add_subtask_title_with_marker_rejected(svc):
+    """Creating a subtask with a marker tag in the title raises SquadsError."""
+    task = svc.create(ItemType.TASK, "t").item
+    with pytest.raises(SquadsError, match="marker"):
+        svc.add_subtask(task.id, f"subtask {_MARKER_TAG}")
+
+
+def test_add_finding_title_with_marker_rejected(svc):
+    """Creating a finding with a marker tag in the title raises SquadsError."""
+    rev = svc.create(ItemType.REVIEW, "r").item
+    with pytest.raises(SquadsError, match="marker"):
+        svc.add_finding(rev.id, f"finding {_MARKER_TAG}")
+
+
+def test_update_subentity_title_with_marker_rejected(svc):
+    """Updating a sub-entity title to include a marker tag raises SquadsError."""
+    task = svc.create(ItemType.TASK, "t").item
+    svc.add_subtask(task.id, "clean title")
+    with pytest.raises(SquadsError, match="marker"):
+        svc.update_subtask(task.id, "ST1", title=f"inject {_MARKER_TAG}")
+    # the title must be unchanged after rejection
+    assert svc.list_subtasks(task.id)[0].title == "clean title"
+
+
+def test_item_update_title_description_not_affected(svc):
+    """Item-level update --title and --description with non-marker bracket/backtick content pass."""
+    task = svc.create(ItemType.TASK, "t").item
+    # bracket content that is not a well-formed marker tag → allowed
+    ok = svc.update(task.id, title="[x] done label")
+    assert ok.title == "[x] done label"
+    # a description containing backticks → allowed
+    ok2 = svc.update(task.id, description="Use `sq:body` syntax (plain text)")
+    assert "sq:body" in ok2.description
+    # a title containing sq: text without the HTML-comment wrapper → allowed
+    ok3 = svc.update(task.id, title="Edit the sq:body region")
+    assert ok3.title == "Edit the sq:body region"
+
+
+def test_body_guard_message_unchanged(svc):
+    """The existing body-guard message is preserved verbatim (regression guard)."""
+    task = svc.create(ItemType.TASK, "t").item
+    with pytest.raises(SquadsError, match="body must not contain sq marker comments"):
+        svc.set_body(task.id, f"bad body {_MARKER_TAG}")

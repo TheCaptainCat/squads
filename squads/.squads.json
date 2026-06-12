@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 52,
+  "counter": 57,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -67,7 +67,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-11T07:54:52Z",
+      "updated_at": "2026-06-11T21:31:02Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -1474,7 +1474,7 @@
       "type": "feature",
       "title": "Dual-regime role definitions: subagent invocation vs live conversation",
       "slug": "dual-regime-role-definitions-subagent-invocation-vs-live-con",
-      "status": "Ready",
+      "status": "Done",
       "description": "Bundled roles' working agreements split by regime: spawned-for-a-job (record everything before you vanish) vs live with the operator (judgment on when handoffs become true) — fixing the rigidity that produces false inbox signals",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -1488,7 +1488,7 @@
         {
           "local_id": "US1",
           "title": "As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1496,7 +1496,7 @@
         {
           "local_id": "US2",
           "title": "As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1504,7 +1504,7 @@
         {
           "local_id": "US3",
           "title": "As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1512,7 +1512,7 @@
       ],
       "path": "features/FEAT-000040-dual-regime-role-definitions-subagent-invocation-vs-live-con.md",
       "created_at": "2026-06-11T08:43:52Z",
-      "updated_at": "2026-06-11T09:16:31Z",
+      "updated_at": "2026-06-12T07:51:05Z",
       "extra": {},
       "id": "FEAT-000040"
     },
@@ -1521,7 +1521,7 @@
       "type": "feature",
       "title": "Onboard through the CLI: roles readable via sq, not the filesystem",
       "slug": "onboard-through-the-cli-roles-readable-via-sq-not-the-filesy",
-      "status": "Ready",
+      "status": "Done",
       "description": "sq role show displays the complete definition (working agreements included) and every onboarding text (CLAUDE.md section, skills) directs agents to sq commands instead of reading files under squads/",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -1536,7 +1536,7 @@
         {
           "local_id": "US1",
           "title": "As an agent adopting my persona, I want sq role show to give me the complete definition including working agreements, so that I never open the file to learn my job",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1544,7 +1544,7 @@
         {
           "local_id": "US2",
           "title": "As an agent following the onboarding texts, I want every read they prescribe to be an sq command, so that one interface covers work and identity — locally and, someday, remotely",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1552,7 +1552,7 @@
       ],
       "path": "features/FEAT-000041-onboard-through-the-cli-roles-readable-via-sq-not-the-filesy.md",
       "created_at": "2026-06-11T09:02:40Z",
-      "updated_at": "2026-06-11T09:17:28Z",
+      "updated_at": "2026-06-12T08:05:41Z",
       "extra": {},
       "id": "FEAT-000041"
     },
@@ -1978,6 +1978,168 @@
       "updated_at": "2026-06-11T20:43:14Z",
       "extra": {},
       "id": "REV-000052"
+    },
+    "53": {
+      "sequence_id": 53,
+      "type": "task",
+      "title": "Split bundled role working agreements into spawned vs live regimes",
+      "slug": "split-bundled-role-working-agreements-into-spawned-vs-live-r",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000040",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Restructure role.md.j2 working agreements into the two explicit regimes with the shared 'record when it becomes true' principle; sq sync propagates to all 8 roles + dev pool",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "In the live-regime text, separate recording a decision (--as, when made) from signalling a handoff (@mention, only when work moves); reference the squads skill's operator section instead of duplicating it",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Consistency pass on _interactions.py 'For <role>' handoff lines so each carries its trigger condition (e.g. 'when the feature is greenlit, @tech-lead'), keeping every @mention a real call-to-action; align greeting/squads skill cross-references",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000053-split-bundled-role-working-agreements-into-spawned-vs-live-r.md",
+      "created_at": "2026-06-12T07:38:11Z",
+      "updated_at": "2026-06-12T07:47:35Z",
+      "extra": {},
+      "id": "TASK-000053"
+    },
+    "54": {
+      "sequence_id": 54,
+      "type": "task",
+      "title": "sq role show renders the complete role definition (card + item body)",
+      "slug": "sq-role-show-renders-the-complete-role-definition-card-item",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000041",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Render active role item body (working agreements + skills) below the catalog card in sq role show, with a test asserting the agreements are present",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000054-sq-role-show-renders-the-complete-role-definition-card-item.md",
+      "created_at": "2026-06-12T07:52:37Z",
+      "updated_at": "2026-06-12T08:00:00Z",
+      "extra": {},
+      "id": "TASK-000054"
+    },
+    "55": {
+      "sequence_id": 55,
+      "type": "task",
+      "title": "Onboarding texts direct to sq commands, not squads/ file paths",
+      "slug": "onboarding-texts-direct-to-sq-commands-not-squads-file-paths",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000041",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rewrite the CLAUDE.md impersonation paragraph to direct to sq role show; verify the rest of the generated onboarding text is path-free and sync propagates",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000055-onboarding-texts-direct-to-sq-commands-not-squads-file-paths.md",
+      "created_at": "2026-06-12T07:52:37Z",
+      "updated_at": "2026-06-12T08:01:30Z",
+      "extra": {},
+      "id": "TASK-000055"
+    },
+    "56": {
+      "sequence_id": 56,
+      "type": "bug",
+      "title": "Comment text containing literal sq marker syntax breaks the item's marker integrity",
+      "slug": "comment-text-containing-literal-sq-marker-syntax-breaks-the",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000056-comment-text-containing-literal-sq-marker-syntax-breaks-the.md",
+      "created_at": "2026-06-12T08:06:24Z",
+      "updated_at": "2026-06-12T08:36:01Z",
+      "extra": {},
+      "id": "BUG-000056"
+    },
+    "57": {
+      "sequence_id": 57,
+      "type": "task",
+      "title": "Guard all prose inputs against literal sq marker syntax (comments, sub-entity titles)",
+      "slug": "guard-all-prose-inputs-against-literal-sq-marker-syntax-comm",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "BUG-000056:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add one shared marker-syntax guard; apply to comment messages and sub-entity titles (create + update)",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "ST2",
+          "title": "Tests: each newly-guarded path rejects marker tags (incl. backtick-wrapped); item title/description false-positive guard; body behaviour unchanged",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "tasks/TASK-000057-guard-all-prose-inputs-against-literal-sq-marker-syntax-comm.md",
+      "created_at": "2026-06-12T08:18:43Z",
+      "updated_at": "2026-06-12T08:36:39Z",
+      "extra": {},
+      "id": "TASK-000057"
     }
   }
 }
