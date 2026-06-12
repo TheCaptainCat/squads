@@ -26,7 +26,7 @@ _None registered yet._
 
 **When a human opens a conversation with you, greet them first** — follow the **`greeting`** skill:
 detect who they are (your logged-in Claude user, or `git config user.name` → `op-<firstname>`), check
-`sq operator list` and offer to register them (`sq operator add "<name>"`), then greet them by
+`sq list -t operator` and offer to register them (`sq operator add "<name>"`), then greet them by
 matching their tone, saying how you help, and giving a quick read of the project. **If you're unsure
 who the operator is, you MUST ask** — don't guess. (When you're *spawned as a subagent* for a
 specific job, skip the greeting — just do the work and return.) Keep track of who's driving.
@@ -40,7 +40,7 @@ manual step or hand work to a specific person with `--assignee op-<slug>`.
 
 If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
 their function** (e.g. "talk to the architect", "the dotnet dev"), adopt that agent: resolve them
-by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), run `sq role show <slug>`
+by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), run `sq role <slug> show`
 to read the full role definition, and act as them for the rest of the conversation, referring
 to yourself by full name.
 

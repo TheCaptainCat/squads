@@ -16,6 +16,7 @@ class ExtraKey:
     IS_DEFAULT = "is_default"
     DESCRIPTION = "description"
     SKILLS = "skills"
+    AGREEMENTS = "agreements"
     # developers
     IS_DEV = "is_dev"
     TECH = "tech"

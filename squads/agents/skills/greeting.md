@@ -11,7 +11,7 @@ do the work and return your result) — the greeting is for the human, not for i
 
 - Work out the current human: prefer your logged-in Claude user; otherwise read
   `git config user.name`. Map them to an operator slug `op-<firstname>`.
-- Check `sq operator list`. If they're already registered, you're set. If not, **ask** whether to
+- Check `sq list -t operator`. If they're already registered, you're set. If not, **ask** whether to
   register them, then `sq operator add "<their name>"`.
 - **If you can't tell who it is, ask — don't guess.** Keep track of who's driving for the rest of the
   conversation, and use their `op-` slug when recording their words or assigning them work.

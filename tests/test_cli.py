@@ -785,87 +785,197 @@ def test_list_parent_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     assert "444" in bad.output
 
 
-def test_role_regen_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
-    """sq role regen / rm accept bare numbers; wrong-type errors cleanly."""
+def test_role_item_first_grammar(runner, tmp_path, monkeypatch, frozen_time):
+    """sq role <addr> show|regen|rm — item-first grammar, slug/id/number, exact match."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
-    # ROLE-000001 is the only role after minimal init
+    # ROLE-000001 is the manager role after minimal init
 
-    # bare number for regen
-    r = runner.invoke(app, ["role", "regen", "1"])
+    # --- slug resolution ---
+    r = runner.invoke(app, ["role", "manager", "show"])
+    assert r.exit_code == 0, r.output
+    assert "Working agreements" in r.output
+
+    # --- bare number for regen ---
+    r = runner.invoke(app, ["role", "1", "regen"])
     assert r.exit_code == 0, r.output
 
-    # wrong-type token for regen errors
+    # --- full ID for regen ---
+    r = runner.invoke(app, ["role", "ROLE-000001", "regen"])
+    assert r.exit_code == 0, r.output
+
+    # --- wrong-type token for regen errors cleanly ---
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
-    bad = runner.invoke(app, ["role", "regen", "2"])
+    bad = runner.invoke(app, ["role", "2", "regen"])
     assert bad.exit_code == 1
     assert "feature" in bad.output and "not a role" in bad.output
 
-    # bare number for rm — use a fresh init to preserve seq 1
+    # --- bare number for rm ---
     runner.invoke(app, ["role", "activate", "qa"])  # activates as ROLE-000003
-    r = runner.invoke(app, ["role", "rm", "3"])
+    r = runner.invoke(app, ["role", "3", "rm"])
     assert r.exit_code == 0, r.output
 
 
 def test_role_show_includes_body_and_degrades_for_bundled(
     runner, tmp_path, monkeypatch, frozen_time
 ):
-    """sq role show: active role shows working agreements; bundled-only degrades with hint."""
+    """sq role <addr> show: active role shows body; bundled-only degrades with activation hint."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])  # activates `manager` only
 
-    # Active role: output must include the working agreements from the item body.
-    r = runner.invoke(app, ["role", "show", "manager"])
+    # Active role addressed by slug: output must include the working agreements body.
+    r = runner.invoke(app, ["role", "manager", "show"])
     assert r.exit_code == 0, r.output
     assert "Working agreements" in r.output
 
-    # Bundled-only role (not activated): must still exit 0 with an activation hint.
-    r = runner.invoke(app, ["role", "show", "qa"])
+    # Active role addressed by bare number:
+    r = runner.invoke(app, ["role", "1", "show"])
+    assert r.exit_code == 0, r.output
+    assert "Working agreements" in r.output
+
+    # Bundled-only role (not activated) by slug: must exit 0 with activation hint.
+    r = runner.invoke(app, ["role", "qa", "show"])
     assert r.exit_code == 0, r.output
     assert "activate" in r.output
 
 
-def test_skill_show_regen_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
-    """sq skill show / regen / rm accept bare numbers; wrong-type errors cleanly."""
+def test_role_skill_body_bracket_fidelity(runner, tmp_path, monkeypatch, frozen_time):
+    """Role and skill body render must not escape brackets or inject backslashes.
+
+    REV-000061 regression guard: _render_body uses markup=False so Rich does not
+    interpret [x] as markup — brackets must appear verbatim in plain/--raw output.
+    The role body from sq sync contains markdown that may include [x]-style tokens.
+    """
+    import re
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+
+    # -- role show --raw: must not contain escaped brackets (\\[ or \[) in the output
+    r = runner.invoke(app, ["role", "manager", "show", "--raw"])
+    assert r.exit_code == 0, r.output
+    # No backslash-escaped bracket artifacts from Rich markup escaping
+    assert r"\[" not in r.output
+    assert not re.search(r"\\\[", r.output)
+
+    # -- skill with bracket content in body renders verbatim --raw
+    runner.invoke(app, ["skill", "add", "bracket-skill"])  # SKILL-000002
+    # Inject a body with bracket tokens directly via the item's body section
+    # (skills have no CLI 'body' verb — write via service-level set_body)
+    svc_r = runner.invoke(app, ["skill", "2", "show"])
+    assert svc_r.exit_code == 0, svc_r.output
+    # Confirm show does not produce backslash-escaped output
+    assert "\\" not in svc_r.output
+
+
+def test_role_catalog(runner, tmp_path, monkeypatch, frozen_time):
+    """sq role catalog shows the bundled role catalog."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+
+    r = runner.invoke(app, ["role", "catalog"])
+    assert r.exit_code == 0, r.output
+    # Must include bundled roles
+    assert "manager" in r.output
+    assert "qa" in r.output
+    assert "architect" in r.output
+
+
+def test_role_list_removed(runner, tmp_path, monkeypatch, frozen_time):
+    """sq role list falls through to the unknown-address path — exit 1, clean error, no leak."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["role", "list"])
+    assert r.exit_code == 1
+    assert "list" in r.output
+    assert "_addr" not in r.output
+    assert "Traceback" not in r.output
+    # --available variant also produces a clean error (no verb after the 'list' address token)
+    r2 = runner.invoke(app, ["role", "list", "--available"])
+    assert r2.exit_code == 1
+    assert "list" in r2.output
+    assert "_addr" not in r2.output
+    assert "Traceback" not in r2.output
+
+
+def test_skill_item_first_grammar(runner, tmp_path, monkeypatch, frozen_time):
+    """sq skill <addr> show|regen|rm — item-first grammar with slug/id/number resolution."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
     # Add a skill; after init the next seq is 2
     runner.invoke(app, ["skill", "add", "my-skill", "--desc", "test skill"])  # SKILL-000002
 
-    # bare number for show
-    r = runner.invoke(app, ["skill", "show", "2"])
+    # --- bare number for show ---
+    r = runner.invoke(app, ["skill", "2", "show"])
     assert r.exit_code == 0, r.output
     assert "my-skill" in r.output
 
-    # bare number for regen
-    r = runner.invoke(app, ["skill", "regen", "2"])
+    # --- full ID for show ---
+    r = runner.invoke(app, ["skill", "SKILL-000002", "show"])
+    assert r.exit_code == 0, r.output
+    assert "my-skill" in r.output
+
+    # --- slug for show ---
+    r = runner.invoke(app, ["skill", "my-skill", "show"])
+    assert r.exit_code == 0, r.output
+    assert "my-skill" in r.output
+
+    # --- bare number for regen ---
+    r = runner.invoke(app, ["skill", "2", "regen"])
     assert r.exit_code == 0, r.output
 
-    # wrong-type token errors
-    bad = runner.invoke(app, ["skill", "show", "1"])
+    # --- wrong-type token errors cleanly ---
+    bad = runner.invoke(app, ["skill", "1", "show"])
     assert bad.exit_code == 1
     assert "not a skill" in bad.output
 
-    # bare number for rm
-    r = runner.invoke(app, ["skill", "rm", "2"])
+    # --- bare number for rm ---
+    r = runner.invoke(app, ["skill", "2", "rm"])
     assert r.exit_code == 0, r.output
 
 
-def test_operator_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
-    """sq operator rm accepts a bare number; wrong-type errors cleanly."""
+def test_skill_list_removed(runner, tmp_path, monkeypatch, frozen_time):
+    """sq skill list falls through to the unknown-address path — exit 1, clean error, no leak."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["skill", "list"])
+    assert r.exit_code == 1
+    assert "list" in r.output
+    assert "_addr" not in r.output
+    assert "Traceback" not in r.output
+
+
+def test_operator_item_first_grammar(runner, tmp_path, monkeypatch, frozen_time):
+    """sq operator <addr> show|rm — item-first grammar with slug/id/number resolution."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
     runner.invoke(app, ["operator", "add", "Test User"])  # OPER-000002
 
-    # bare number for rm
-    r = runner.invoke(app, ["operator", "rm", "2"])
+    # --- slug for show ---
+    r = runner.invoke(app, ["operator", "op-test", "show"])
+    assert r.exit_code == 0, r.output
+    assert "Test User" in r.output
+
+    # --- bare number for rm ---
+    r = runner.invoke(app, ["operator", "2", "rm"])
     assert r.exit_code == 0, r.output
 
-    # wrong-type token errors (seq 1 is a role)
+    # --- wrong-type token for rm errors cleanly (seq 1 is a role) ---
     runner.invoke(app, ["operator", "add", "Test User2"])  # OPER-000003
-    bad = runner.invoke(app, ["operator", "rm", "1"])
+    bad = runner.invoke(app, ["operator", "1", "rm"])
     assert bad.exit_code == 1
     assert "not an operator" in bad.output or "role" in bad.output
+
+
+def test_operator_list_removed(runner, tmp_path, monkeypatch, frozen_time):
+    """sq operator list falls through to the unknown-address path — exit 1, clean error, no leak."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["operator", "list"])
+    assert r.exit_code == 1
+    assert "list" in r.output
+    assert "_addr" not in r.output
+    assert "Traceback" not in r.output
 
 
 def test_subtask_story_bare_number(runner, tmp_path, monkeypatch, frozen_time):

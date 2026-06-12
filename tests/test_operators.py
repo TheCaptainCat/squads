@@ -110,8 +110,12 @@ def test_operator_not_counted_in_workload_but_is_not_spawnable(svc, project):
 def test_operator_cli_add_list_and_assign(project, runner):
     add = runner.invoke(app, ["operator", "add", "Pierre Chat"])
     assert add.exit_code == 0 and "op-pierre" in add.output
-    listed = runner.invoke(app, ["operator", "list"])
-    assert "Pierre Chat" in listed.output and "op-pierre" in listed.output
+    # sq operator list is removed; listing is via sq list -t operator (shows title/name)
+    listed = runner.invoke(app, ["list", "-t", "operator"])
+    assert "Pierre Chat" in listed.output
+    # operator show by slug confirms registration
+    shown = runner.invoke(app, ["operator", "op-pierre", "show"])
+    assert shown.exit_code == 0 and "Pierre Chat" in shown.output
     # assign a task to the human end to end
     runner.invoke(app, ["create", "task", "Manual step", "--author", "manager"])
     upd = runner.invoke(app, ["task", "3", "update", "--assignee", "op-pierre"])

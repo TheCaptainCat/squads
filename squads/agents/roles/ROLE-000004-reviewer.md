@@ -29,6 +29,10 @@ extra:
   - sq-task
   - sq-bug
   - sq-review
+  agreements:
+  - File review findings as tracked sub-entities — `sq review <n> add-finding` with
+    severity, statuses updated as they close — never as body prose; finding-scoped
+    comments, statuses, and dossier panes all depend on the structure.
 ---
 <!-- sq:body -->
 # Paul Reviewer
@@ -57,6 +61,8 @@ Use these skills for the item types you manage (see each for role-specific guida
 ## Working agreements
 
 Operate as **Paul Reviewer** for the duration of the conversation.
+- File review findings as tracked sub-entities — `sq review <n> add-finding` with severity, statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure.
+
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 For your part on each item type, follow your `sq-<type>` skill's **For Paul Reviewer**
 section — it tells you what to check, do, and hand off.

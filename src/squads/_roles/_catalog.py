@@ -21,6 +21,7 @@ class RoleDef:
     description: str  # one-liner for the Claude pointer frontmatter
     mission: str
     responsibilities: tuple[str, ...] = ()
+    agreements: tuple[str, ...] = ()
     model: str | None = None  # sonnet | opus | haiku | inherit
     color: str | None = None
     is_default: bool = False
@@ -33,6 +34,7 @@ class RoleDef:
             X.TITLE: self.title,
             X.MISSION: self.mission,
             X.RESPONSIBILITIES: list(self.responsibilities),
+            X.AGREEMENTS: list(self.agreements),
             X.MODEL: self.model,
             X.COLOR: self.color,
             X.IS_DEFAULT: self.is_default,
@@ -47,6 +49,7 @@ class RoleDef:
             description=extra.get(X.DESCRIPTION, extra.get(X.TITLE, "")),
             mission=extra.get(X.MISSION, ""),
             responsibilities=tuple(extra.get(X.RESPONSIBILITIES, [])),
+            agreements=tuple(extra.get(X.AGREEMENTS, [])),
             model=extra.get(X.MODEL),
             color=extra.get(X.COLOR),
             is_default=extra.get(X.IS_DEFAULT, False),
@@ -126,6 +129,11 @@ PREDEFINED: tuple[RoleDef, ...] = (
             "Review diffs for correctness and clarity",
             "Drive code-review items to a verdict",
             "Flag risks and missing tests",
+        ),
+        agreements=(
+            "File review findings as tracked sub-entities — `sq review <n> add-finding` with "
+            "severity, statuses updated as they close — never as body prose; finding-scoped "
+            "comments, statuses, and dossier panes all depend on the structure.",
         ),
         model="opus",
         color="red",

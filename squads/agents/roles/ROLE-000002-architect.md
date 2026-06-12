@@ -30,6 +30,7 @@ extra:
   - sq-epic
   - sq-decision
   - sq-guide
+  agreements: []
 ---
 <!-- sq:body -->
 # Robert Architect
