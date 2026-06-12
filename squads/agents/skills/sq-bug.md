@@ -18,6 +18,9 @@ sq bug <n> status InProgress
 ## For Mara Tester (`qa`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq bug <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - reproduce the defect and capture the exact steps
 
 **Do:**
@@ -31,6 +34,9 @@ sq bug <n> status InProgress
 ## For developers
 
 **Enter** — before you act:
+- Read the full item dossier: `sq bug <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the repro steps; confirm you can reproduce it
 
 **Do:**
@@ -46,6 +52,9 @@ sq bug <n> status InProgress
 ## For Olivia Lead (`tech-lead`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq bug <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - assess impact + severity against current work
 
 **Do:**
@@ -57,6 +66,9 @@ sq bug <n> status InProgress
 ## For Paul Reviewer (`reviewer`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq bug <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the bug + the fix task's changes
 
 **Do:**
@@ -70,4 +82,5 @@ The `.md` files are sq-managed — never edit them by hand. Items are addressed 
 `sq bug <n> <verb>`. Set this item's body with `sq bug <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
 get their bodies from `sq bug <n> <kind> <k> body -m "…"`. Read anything back with
-`sq bug <n> show` / `sq bug <n> <kind> <k> show`.
+`sq bug <n> show --full --comments` (full dossier, including discussion) /
+`sq bug <n> <kind> <k> show`.

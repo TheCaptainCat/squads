@@ -19,6 +19,9 @@ sq feature <n> stories
 ## For Nina Product (`product-owner`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq feature <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - confirm the user need and which epic (if any) it belongs under
 
 **Do:**
@@ -35,6 +38,9 @@ sq feature <n> stories
 ## For Olivia Lead (`tech-lead`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq feature <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read every user story + its acceptance criteria (`sq feature <n> show`)
 
 **Do:**
@@ -50,6 +56,9 @@ sq feature <n> stories
 ## For Mara Tester (`qa`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq feature <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the user stories + acceptance criteria
 
 **Do:**
@@ -64,4 +73,5 @@ The `.md` files are sq-managed — never edit them by hand. Items are addressed 
 `sq feature <n> <verb>`. Set this item's body with `sq feature <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
 get their bodies from `sq feature <n> <kind> <k> body -m "…"`. Read anything back with
-`sq feature <n> show` / `sq feature <n> <kind> <k> show`.
+`sq feature <n> show --full --comments` (full dossier, including discussion) /
+`sq feature <n> <kind> <k> show`.

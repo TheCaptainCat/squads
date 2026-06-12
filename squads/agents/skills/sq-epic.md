@@ -18,6 +18,9 @@ sq tree EPIC-… [--json]
 ## For Nina Product (`product-owner`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq epic <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - confirm the outcome the epic targets and who it's for
 
 **Do:**
@@ -33,6 +36,9 @@ sq tree EPIC-… [--json]
 ## For Robert Architect (`architect`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq epic <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the epic's goal and any related epics/ADRs
 
 **Do:**
@@ -44,6 +50,9 @@ sq tree EPIC-… [--json]
 ## For Olivia Lead (`tech-lead`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq epic <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - review the epic's features and their state (`sq tree EPIC-… --json`)
 
 **Do:**
@@ -58,4 +67,5 @@ The `.md` files are sq-managed — never edit them by hand. Items are addressed 
 `sq epic <n> <verb>`. Set this item's body with `sq epic <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
 get their bodies from `sq epic <n> <kind> <k> body -m "…"`. Read anything back with
-`sq epic <n> show` / `sq epic <n> <kind> <k> show`.
+`sq epic <n> show --full --comments` (full dossier, including discussion) /
+`sq epic <n> <kind> <k> show`.

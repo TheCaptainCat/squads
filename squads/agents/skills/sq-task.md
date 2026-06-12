@@ -20,6 +20,9 @@ sq task <n> status InProgress
 ## For Olivia Lead (`tech-lead`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq task <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - confirm the parent feature exists and its stories are clear
 
 **Do:**
@@ -36,6 +39,9 @@ sq task <n> status InProgress
 ## For developers
 
 **Enter** — before you act:
+- Read the full item dossier: `sq task <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the parent feature's stories + acceptance criteria (`sq feature <n> show`)
 - confirm your subtask→story mapping
 
@@ -56,6 +62,9 @@ sq task <n> status InProgress
 ## For Paul Reviewer (`reviewer`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq task <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - read the task's changes + the linked feature stories
 
 **Do:**
@@ -72,6 +81,9 @@ sq task <n> status InProgress
 ## For Mara Tester (`qa`)
 
 **Enter** — before you act:
+- Read the full item dossier: `sq task <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
 - derive test cases from the parent feature's stories + acceptance criteria
 
 **Do:**
@@ -89,4 +101,5 @@ The `.md` files are sq-managed — never edit them by hand. Items are addressed 
 `sq task <n> <verb>`. Set this item's body with `sq task <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
 get their bodies from `sq task <n> <kind> <k> body -m "…"`. Read anything back with
-`sq task <n> show` / `sq task <n> <kind> <k> show`.
+`sq task <n> show --full --comments` (full dossier, including discussion) /
+`sq task <n> <kind> <k> show`.
