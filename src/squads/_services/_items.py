@@ -10,7 +10,7 @@ from squads._models._enums import ItemType, Priority
 from squads._models._item import Item, Status
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
-from squads._services._base import ServiceCore
+from squads._services._base import ServiceCore, reject_markers
 from squads._util import slugify
 from squads._workflow import can_transition
 
@@ -148,8 +148,7 @@ class ItemsMixin(ServiceCore):
         The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
         summary. Role/skill bodies are generated from their fields, so they're rejected here.
         """
-        if sections.find_markers(body):
-            raise SquadsError("body must not contain sq marker comments (<!-- sq:… -->)")
+        reject_markers(body)
 
         def mutate(text: str, item: Item) -> str:
             if item.type in _AGENT_TYPES:

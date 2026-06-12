@@ -23,6 +23,7 @@ from squads._services._base import (
     SUBENTITY_KIND,
     SUBENTITY_PARENT,
     ServiceCore,
+    reject_markers,
 )
 from squads._services._results import BlockResult, SubentityDetail
 from squads._workflow import subentity_can_transition, subentity_initial
@@ -75,8 +76,9 @@ class SubentitiesMixin(ServiceCore):
         body: str | None = None,
     ) -> BlockResult:
         expect, container = SUBENTITY_PARENT[kind], SUBENTITY_CONTAINER[kind]
+        reject_markers(title, "title")
         if body is not None:
-            self._reject_markers(body)
+            reject_markers(body)
         with self.store.transaction() as db:
             item = self._require_parent(db, item_id, kind, expect)
             self._check_assignee(db, assignee)
@@ -291,6 +293,8 @@ class SubentitiesMixin(ServiceCore):
         status: Status | None = None,
         force: bool = False,
     ) -> None:
+        if title is not None:
+            reject_markers(title, "title")
         with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind, SUBENTITY_PARENT[kind])
             sub = self._find(item, kind, local_id)
@@ -316,7 +320,7 @@ class SubentitiesMixin(ServiceCore):
     def _set_block_body(
         self, parent_id: str, kind: str, local_id: str, body: str, *, append: bool
     ) -> None:
-        self._reject_markers(body)
+        reject_markers(body)
         btag = discussion.body_tag(kind, local_id)
 
         def mutate(text: str, item: Item) -> str:
@@ -408,8 +412,3 @@ class SubentitiesMixin(ServiceCore):
             if s.local_id == local_id:
                 return s
         raise SquadsError(f"no {kind} {local_id} in {item.id}")
-
-    @staticmethod
-    def _reject_markers(body: str) -> None:
-        if sections.find_markers(body):
-            raise SquadsError("body must not contain sq marker comments (<!-- sq:… -->)")

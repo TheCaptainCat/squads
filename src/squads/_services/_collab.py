@@ -8,7 +8,7 @@ from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._models._enums import ItemType
 from squads._models._item import Item
-from squads._services._base import ServiceCore
+from squads._services._base import ServiceCore, reject_markers
 from squads._workflow import is_open
 
 
@@ -35,6 +35,8 @@ class CollabMixin(ServiceCore):
     ) -> Item:
         if not messages:
             raise SquadsError("a comment needs at least one -m message")
+        for msg in messages:
+            reject_markers(msg, "comment message")
         tag = self._discussion_tag(story, subtask, finding)
         entry = discussion.format_comment(clock.iso(clock.now()), self.author(as_slug), messages)
 

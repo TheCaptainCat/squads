@@ -1033,3 +1033,52 @@ def test_ref_add_help_references_workflow(runner, tmp_path, monkeypatch):
     h = runner.invoke(app, ["task", "2", "ref", "add", "--help"])
     assert h.exit_code == 0, h.output
     assert "sq workflow" in h.output
+
+
+# --------------------------------------------------------------------------- marker-injection guard
+
+# Construct the marker tag at runtime so this file itself never contains a literal marker tag.
+_MARKER = "<!-- sq:body -->"
+
+
+def test_comment_cli_rejects_marker_tag(runner, tmp_path, monkeypatch, frozen_time):
+    """CLI: `sq task <n> comment -m <text-with-marker>` exits 1 with a marker error."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
+    r = runner.invoke(app, ["task", "2", "comment", "--as", "manager", "-m", f"inject {_MARKER}"])
+    assert r.exit_code == 1 and "marker" in r.output
+
+
+def test_add_subtask_cli_rejects_marker_title(runner, tmp_path, monkeypatch, frozen_time):
+    """CLI: `sq task <n> add-subtask` with a marker tag in the title exits 1."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
+    r = runner.invoke(app, ["task", "2", "add-subtask", f"title {_MARKER}"])
+    assert r.exit_code == 1 and "marker" in r.output
+
+
+def test_update_subtask_title_cli_rejects_marker(runner, tmp_path, monkeypatch, frozen_time):
+    """CLI: `sq task <n> subtask <k> update --title` with a marker tag exits 1."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
+    runner.invoke(app, ["task", "2", "add-subtask", "Clean title"])  # ST1
+    r = runner.invoke(app, ["task", "2", "subtask", "1", "update", "--title", f"inject {_MARKER}"])
+    assert r.exit_code == 1 and "marker" in r.output
+    # title must be unchanged after the failed update
+    md = next((tmp_path / "squads" / "tasks").glob("TASK-*.md")).read_text(encoding="utf-8")
+    # "Clean title" is still the heading; no "inject" text leaked in
+    assert "Clean title" in md and "inject" not in md
+
+
+def test_item_update_title_cli_not_affected_by_guard(runner, tmp_path, monkeypatch, frozen_time):
+    """CLI: item-level `update --title` with bracket/backtick content is not rejected."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
+    r = runner.invoke(app, ["task", "2", "update", "--title", "[x] done label"])
+    assert r.exit_code == 0, r.output
+    md = next((tmp_path / "squads" / "tasks").glob("TASK-*.md")).read_text(encoding="utf-8")
+    assert "[x] done label" in md
