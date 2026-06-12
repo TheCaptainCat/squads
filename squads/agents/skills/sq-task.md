@@ -28,7 +28,7 @@ sq task <n> status InProgress
 - set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`
 
 **Hand off:**
-- assign the developer (`sq task <n> update --assignee <tech>-dev`) — the spawn or `@<tech>-dev` carries it
+- once the task is fully defined, assign the developer (`sq task <n> update --assignee <tech>-dev`) — spawn or `@<tech>-dev` to start implementation
 
 **Watch for:**
 - a task's parent must be a feature; link bugs/reviews via refs, never as parent
@@ -45,7 +45,7 @@ sq task <n> status InProgress
 - log progress with `sq task <n> comment --as <your-slug> -m …`
 
 **Hand off:**
-- `sq task <n> status InReview`
+- when implementation is complete, `sq task <n> status InReview`
 - comment a summary of what changed + `@reviewer`/`@qa`
 - for a review follow-up, link it (`ref add REV-… --kind addresses`)
 

@@ -135,9 +135,37 @@ def test_role_body_lists_skills(svc):
 def test_role_body_has_operating_contract(svc):
     item = svc.activate_role("tech-writer")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
-    # the entry point reinforces: keep sq current, hand back, and follow the per-item skill section
-    assert "read `sq`, not your chat" in body
+    # the entry point reinforces: follow the per-item skill section
     assert "follow your `sq-<type>` skill" in body
+    # both regime headings must be present
+    assert "### Spawned as a subagent" in body
+    assert "### Live with the operator" in body
+    # the shared principle appears in the live regime
+    assert "Record what the next reader needs, when it becomes true" in body
+    # subagent regime: full record requirement before returning
+    assert "full record" in body
+    # live regime: handoffs only when work actually moves
+    assert "when work actually moves" in body
+
+
+def test_sync_regenerates_role_bodies(svc, project):
+    # activate a role, manually corrupt its body region, then verify sync restores both regimes
+    item = svc.activate_role("qa")
+    path = svc.paths.abspath(item.path)
+    from squads import _sections as sections
+    from squads._models import _markers as markers
+
+    corrupted = sections.replace_section(
+        path.read_text(encoding="utf-8"), markers.BODY, "\n_corrupted_\n"
+    )
+    path.write_text(corrupted, encoding="utf-8")
+    assert "Spawned as a subagent" not in path.read_text(encoding="utf-8")
+    # sync should re-render the body
+    svc.sync()
+    restored = path.read_text(encoding="utf-8")
+    assert "### Spawned as a subagent" in restored
+    assert "### Live with the operator" in restored
+    assert "Record what the next reader needs, when it becomes true" in restored
 
 
 # --------------------------------------------------------------------------- sq workflow / help

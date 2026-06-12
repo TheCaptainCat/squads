@@ -27,7 +27,7 @@ sq feature <n> stories
 - write each story's acceptance criteria in its body (`sq feature <n> story <k> body -m …`)
 
 **Hand off:**
-- tell the tech-lead it's ready to break into tasks (`@tech-lead`)
+- when stories and acceptance criteria are complete and the feature is greenlit, `@tech-lead` to break it into tasks
 
 **Watch for:**
 - stories describe user value + acceptance criteria — not implementation steps
@@ -42,7 +42,7 @@ sq feature <n> stories
 - map each subtask to one user story (`sq task <n> add-subtask … --story USk`)
 
 **Hand off:**
-- assign developers and sequence the tasks
+- when tasks are created, assigned, and sequenced, `@<tech>-dev` (or spawn the developer) to begin implementation
 
 **Watch for:**
 - if a story is ambiguous, ask the product-owner (`@product-owner`) first
@@ -57,7 +57,7 @@ sq feature <n> stories
 - verify the feature against its acceptance criteria once tasks land
 
 **Hand off:**
-- confirm in a comment when acceptance criteria pass; file bugs for failures
+- when acceptance criteria all pass, confirm in a comment so the feature can close; when one fails, file a bug and `@tech-lead`
 
 ---
 The `.md` files are sq-managed — never edit them by hand. Items are addressed as

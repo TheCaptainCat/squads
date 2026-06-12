@@ -16,6 +16,7 @@ from squads._models._index import SquadsDB
 from squads._models._item import VALID_REF_KINDS, Item, split_ref
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import number_for_id
+from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
 from squads._services._base import SUBENTITY_KIND, ServiceCore
 from squads._services._results import CheckIssue, RepairResult
@@ -69,10 +70,28 @@ class MaintenanceMixin(ServiceCore):
         backend.ensure_scaffold(ctx)
         for it in self.list_items(item_type=ItemType.ROLE):
             backend.generate_role_pointer(ctx, it, RoleDef.from_extra(it.extra))
+            self._regen_role_body(it)
         for it in self.list_items(item_type=ItemType.SKILL):
             backend.generate_skill_pointer(ctx, it)
         backend.write_managed(ctx, self.roster(), self.operators())
         self._stamp_version(__version__)
+
+    def _regen_role_body(self, item: Item) -> None:
+        """Re-render the role template's body section into the existing role item file.
+
+        Keeps the discussion region intact — only the ``<!-- sq:body -->`` region is touched.
+        The frontmatter is not modified; no index transaction is needed (no metadata change).
+        """
+        rendered = render(
+            "agents/role.md.j2", item=item, description=item.description, extra=item.extra
+        )
+        new_body_inner = sections.get_section(rendered, markers.BODY)
+        if new_body_inner is None:
+            return
+        path = self.paths.abspath(item.path)
+        existing = path.read_text(encoding="utf-8")
+        updated = sections.replace_section(existing, markers.BODY, new_body_inner)
+        path.write_text(updated, encoding="utf-8")
 
     def _stamp_version(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"squads_version": version})

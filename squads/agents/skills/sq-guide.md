@@ -24,7 +24,7 @@ sq guide <n> status Published
 - write good practice + anti-patterns in the body
 
 **Hand off:**
-- `sq guide <n> status Published`; `@tech-writer` to polish
+- when the first draft is complete, `@tech-writer` to polish; set `sq guide <n> status Published` once it's clean
 
 ## For Olivia Lead (`tech-lead`)
 

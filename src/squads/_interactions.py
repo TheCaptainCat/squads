@@ -55,7 +55,10 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     'author it (`sq create epic "…" --author product-owner`)',
                     "set the body to the goal + the outcomes it groups (`sq epic <n> body -m …`)",
                 ),
-                handoff=("create the features under it and let the tech-lead break them down",),
+                handoff=(
+                    "when the epic is ready, create the features under it and `@tech-lead` to "
+                    "break them down",
+                ),
                 watch=("an epic is an outcome, not a task list — keep it about the why",),
             ),
             RoleGuide(
@@ -65,7 +68,10 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "shape it technically; spin off ADRs (`sq create decision`) for cross-cutting "
                     "calls and link them (`sq epic <n> ref add ADR-… --kind related`)",
                 ),
-                handoff=("hand the technical shape to the tech-lead for breakdown",),
+                handoff=(
+                    "when the technical shape is settled, `@tech-lead` to break it into features "
+                    "and tasks",
+                ),
             ),
             RoleGuide(
                 "tech-lead",
@@ -98,7 +104,10 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "write each story's acceptance criteria in its body "
                     "(`sq feature <n> story <k> body -m …`)",
                 ),
-                handoff=("tell the tech-lead it's ready to break into tasks (`@tech-lead`)",),
+                handoff=(
+                    "when stories and acceptance criteria are complete and the feature is "
+                    "greenlit, `@tech-lead` to break it into tasks",
+                ),
                 watch=(
                     "stories describe user value + acceptance criteria — not implementation steps",
                 ),
@@ -111,7 +120,10 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "(`sq create task … --parent FEAT-<n>`)",
                     "map each subtask to one user story (`sq task <n> add-subtask … --story USk`)",
                 ),
-                handoff=("assign developers and sequence the tasks",),
+                handoff=(
+                    "when tasks are created, assigned, and sequenced, `@<tech>-dev` (or spawn "
+                    "the developer) to begin implementation",
+                ),
                 watch=("if a story is ambiguous, ask the product-owner (`@product-owner`) first",),
             ),
             RoleGuide(
@@ -122,7 +134,8 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "verify the feature against its acceptance criteria once tasks land",
                 ),
                 handoff=(
-                    "confirm in a comment when acceptance criteria pass; file bugs for failures",
+                    "when acceptance criteria all pass, confirm in a comment so the feature can "
+                    "close; when one fails, file a bug and `@tech-lead`",
                 ),
             ),
         ),
@@ -148,8 +161,9 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`",
                 ),
                 handoff=(
-                    "assign the developer (`sq task <n> update --assignee <tech>-dev`) — the spawn "
-                    "or `@<tech>-dev` carries it",
+                    "once the task is fully defined, assign the developer "
+                    "(`sq task <n> update --assignee <tech>-dev`) — spawn or `@<tech>-dev` to "
+                    "start implementation",
                 ),
                 watch=(
                     "a task's parent must be a feature; "
@@ -169,7 +183,7 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "log progress with `sq task <n> comment --as <your-slug> -m …`",
                 ),
                 handoff=(
-                    "`sq task <n> status InReview`",
+                    "when implementation is complete, `sq task <n> status InReview`",
                     "comment a summary of what changed + `@reviewer`/`@qa`",
                     "for a review follow-up, link it (`ref add REV-… --kind addresses`)",
                 ),
@@ -223,7 +237,10 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "in the body give repro steps + expected vs actual (`sq bug <n> body -m …`)",
                     "set `--severity`/`--priority`",
                 ),
-                handoff=("`@tech-lead` to triage; verify the fix once a task addresses it",),
+                handoff=(
+                    "once filed, `@tech-lead` to triage; once a fix task lands, verify it and "
+                    "confirm in a comment so the bug can close",
+                ),
             ),
             RoleGuide(
                 DEV,
@@ -232,14 +249,19 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "fix it inside a task and link it (`sq task <n> ref add BUG-… --kind fixes`)",
                     "add a regression test",
                 ),
-                handoff=("hand the task to review/QA; the bug closes when the fix is verified",),
+                handoff=(
+                    "when the fix is ready, move the task to InReview and `@reviewer`/`@qa`; "
+                    "the bug closes when the fix is verified",
+                ),
                 watch=("track the fix on a task — don't implement straight off the bug",),
             ),
             RoleGuide(
                 "tech-lead",
                 enter=("assess impact + severity against current work",),
                 do=("triage and prioritise; create the fix task and assign a developer",),
-                handoff=("`@<tech>-dev` with the fix task",),
+                handoff=(
+                    "once the fix task is created and assigned, `@<tech>-dev` to start the fix",
+                ),
             ),
             RoleGuide(
                 "reviewer",
@@ -263,7 +285,8 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     "link what it affects (`sq decision <n> ref add … --kind related`)",
                 ),
                 handoff=(
-                    "`sq decision <n> status Accepted` once agreed; `@tech-lead` to apply it",
+                    "once the decision is agreed, `sq decision <n> status Accepted` and "
+                    "`@tech-lead` to apply it in the affected tasks",
                 ),
                 watch=("supersede an old ADR rather than editing its decision after acceptance",),
             ),
@@ -327,7 +350,10 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                     'author it (`sq create guide "…" --author architect --tech …`)',
                     "write good practice + anti-patterns in the body",
                 ),
-                handoff=("`sq guide <n> status Published`; `@tech-writer` to polish",),
+                handoff=(
+                    "when the first draft is complete, `@tech-writer` to polish; set "
+                    "`sq guide <n> status Published` once it's clean",
+                ),
             ),
             RoleGuide(
                 "tech-lead",
