@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 68,
+  "counter": 81,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -67,7 +67,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-12T11:58:22Z",
+      "updated_at": "2026-06-12T14:30:00Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -231,7 +231,7 @@
       "type": "feature",
       "title": "Backfill architecture documentation into squads",
       "slug": "backfill-architecture-documentation-into-squads",
-      "status": "Ready",
+      "status": "Done",
       "description": "Put the architecture and the pre-bootstrap design decisions on the record as sq guides and ADRs, since the project started untracked",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -243,7 +243,7 @@
         {
           "local_id": "US1",
           "title": "As a new agent or contributor, I want an architecture guide readable through sq, so that I understand the system's shape without spelunking through git history",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -251,7 +251,7 @@
         {
           "local_id": "US2",
           "title": "As an architect, I want the standing design decisions on record as ADRs, so that future work can cite, build on, or formally revisit them",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -259,7 +259,7 @@
         {
           "local_id": "US3",
           "title": "As a team member working an item, I want guides and ADRs cross-linked by refs, so that the relevant context travels with the work",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -267,7 +267,7 @@
       ],
       "path": "features/FEAT-000018-backfill-architecture-documentation-into-squads.md",
       "created_at": "2026-06-10T12:49:50Z",
-      "updated_at": "2026-06-11T07:54:54Z",
+      "updated_at": "2026-06-12T14:30:00Z",
       "extra": {},
       "id": "FEAT-000018"
     },
@@ -1863,12 +1863,13 @@
       "refs": [
         "FEAT-000035",
         "FEAT-000013",
-        "FEAT-000014"
+        "FEAT-000014",
+        "GUIDE-000079"
       ],
       "subentities": [],
       "path": "adrs/ADR-000049-ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin.md",
       "created_at": "2026-06-11T20:19:55Z",
-      "updated_at": "2026-06-11T21:27:25Z",
+      "updated_at": "2026-06-12T14:26:22Z",
       "extra": {},
       "id": "ADR-000049"
     },
@@ -2694,6 +2695,332 @@
       "updated_at": "2026-06-12T13:37:48Z",
       "extra": {},
       "id": "TASK-000068"
+    },
+    "69": {
+      "sequence_id": 69,
+      "type": "task",
+      "title": "Backfill retroactive ADRs for squads' standing design decisions",
+      "slug": "backfill-retroactive-adrs-for-squads-standing-design-decisio",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000018",
+      "author": "tech-lead",
+      "assignee": "architect",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Author the six (plus up to two optional) retroactive ADRs as decisions in force, each Proposed",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000069-backfill-retroactive-adrs-for-squads-standing-design-decisio.md",
+      "created_at": "2026-06-12T14:18:09Z",
+      "updated_at": "2026-06-12T14:24:04Z",
+      "extra": {},
+      "id": "TASK-000069"
+    },
+    "70": {
+      "sequence_id": 70,
+      "type": "task",
+      "title": "Write the architecture guide and cross-link it to the retroactive ADRs",
+      "slug": "write-the-architecture-guide-and-cross-link-it-to-the-retroa",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000018",
+      "author": "tech-lead",
+      "assignee": "architect",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Draft the architecture guide covering layering, data model, and the marker mechanism",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Cross-link the guide and the retroactive ADRs both directions with related refs",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000070-write-the-architecture-guide-and-cross-link-it-to-the-retroa.md",
+      "created_at": "2026-06-12T14:18:09Z",
+      "updated_at": "2026-06-12T14:26:55Z",
+      "extra": {},
+      "id": "TASK-000070"
+    },
+    "71": {
+      "sequence_id": 71,
+      "type": "decision",
+      "title": "Frontmatter is the source of truth; the index is rebuildable",
+      "slug": "frontmatter-is-the-source-of-truth-the-index-is-rebuildable",
+      "status": "Accepted",
+      "description": "Item state lives in .md frontmatter; .squads.json is a derived index that sq repair reconstructs",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000071-frontmatter-is-the-source-of-truth-the-index-is-rebuildable.md",
+      "created_at": "2026-06-12T14:22:53Z",
+      "updated_at": "2026-06-12T14:29:31Z",
+      "extra": {},
+      "id": "ADR-000071"
+    },
+    "72": {
+      "sequence_id": 72,
+      "type": "decision",
+      "title": "One global monotonic ID counter across all item types",
+      "slug": "one-global-monotonic-id-counter-across-all-item-types",
+      "status": "Accepted",
+      "description": "A single counter makes every ID number globally unique; allocation only inside the index transaction",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000071",
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000072-one-global-monotonic-id-counter-across-all-item-types.md",
+      "created_at": "2026-06-12T14:22:56Z",
+      "updated_at": "2026-06-12T14:29:31Z",
+      "extra": {},
+      "id": "ADR-000072"
+    },
+    "73": {
+      "sequence_id": 73,
+      "type": "decision",
+      "title": "Forward-only refs with computed backrefs",
+      "slug": "forward-only-refs-with-computed-backrefs",
+      "status": "Accepted",
+      "description": "Items store outgoing refs with kind inline; backrefs are computed by inversion, never persisted",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000073-forward-only-refs-with-computed-backrefs.md",
+      "created_at": "2026-06-12T14:23:00Z",
+      "updated_at": "2026-06-12T14:29:31Z",
+      "extra": {},
+      "id": "ADR-000073"
+    },
+    "74": {
+      "sequence_id": 74,
+      "type": "decision",
+      "title": "Marker-safe editing: sq owns the anchor regions, agents own the prose",
+      "slug": "marker-safe-editing-sq-owns-the-anchor-regions-agents-own-th",
+      "status": "Accepted",
+      "description": "File content is mutated only through the sections layer; anchor tags delimit managed regions; agent prose is never rewritten",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "BUG-000056",
+        "ADR-000071",
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000074-marker-safe-editing-sq-owns-the-anchor-regions-agents-own-th.md",
+      "created_at": "2026-06-12T14:23:04Z",
+      "updated_at": "2026-06-12T14:29:31Z",
+      "extra": {},
+      "id": "ADR-000074"
+    },
+    "75": {
+      "sequence_id": 75,
+      "type": "decision",
+      "title": "Pluggable backends behind the AgentBackend ABC; .claude/ is pointers",
+      "slug": "pluggable-backends-behind-the-agentbackend-abc-claude-is-poi",
+      "status": "Accepted",
+      "description": "Harnesses sit behind an ABC + registry; real content lives under the squad folder, .claude/ holds only pointers",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000075-pluggable-backends-behind-the-agentbackend-abc-claude-is-poi.md",
+      "created_at": "2026-06-12T14:23:08Z",
+      "updated_at": "2026-06-12T14:29:32Z",
+      "extra": {},
+      "id": "ADR-000075"
+    },
+    "76": {
+      "sequence_id": 76,
+      "type": "decision",
+      "title": "Dotted 0.x schema-version scheme with the sq migrate runner",
+      "slug": "dotted-0-x-schema-version-scheme-with-the-sq-migrate-runner",
+      "status": "Accepted",
+      "description": "Schema version names the release that introduced it, compared as a tuple; upgrades run through ordered sq migrate steps",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000027",
+        "FEAT-000013",
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000076-dotted-0-x-schema-version-scheme-with-the-sq-migrate-runner.md",
+      "created_at": "2026-06-12T14:23:11Z",
+      "updated_at": "2026-06-12T14:29:32Z",
+      "extra": {},
+      "id": "ADR-000076"
+    },
+    "77": {
+      "sequence_id": 77,
+      "type": "decision",
+      "title": "Time is injectable through a single clock module",
+      "slug": "time-is-injectable-through-a-single-clock-module",
+      "status": "Accepted",
+      "description": "All timestamps route through _clock.now()/iso(); freezable in tests and forgeable via --at for history-preserving adoption",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000077-time-is-injectable-through-a-single-clock-module.md",
+      "created_at": "2026-06-12T14:23:17Z",
+      "updated_at": "2026-06-12T14:29:32Z",
+      "extra": {},
+      "id": "ADR-000077"
+    },
+    "78": {
+      "sequence_id": 78,
+      "type": "decision",
+      "title": "Module-privacy convention: underscore-prefixed internals, no re-exporting inits",
+      "slug": "module-privacy-convention-underscore-prefixed-internals-no-r",
+      "status": "Accepted",
+      "description": "Every implementation module is private with leading underscores and non-re-exporting inits, so 1.0 freezes no accidental public API",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000078-module-privacy-convention-underscore-prefixed-internals-no-r.md",
+      "created_at": "2026-06-12T14:23:20Z",
+      "updated_at": "2026-06-12T14:29:32Z",
+      "extra": {},
+      "id": "ADR-000078"
+    },
+    "79": {
+      "sequence_id": 79,
+      "type": "guide",
+      "title": "squads architecture: layering, data model, and the marker mechanism",
+      "slug": "squads-architecture-layering-data-model-and-the-marker-mecha",
+      "status": "Published",
+      "description": "A standalone-readable map of how squads is built: the cli to services to index/backends/rendering layering, the item/sub-entity/index data model, and the marker mechanism — pointing at sq docs internals for depth and citing the standing ADRs.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000071",
+        "ADR-000072",
+        "ADR-000073",
+        "ADR-000074",
+        "ADR-000075",
+        "ADR-000076",
+        "ADR-000077",
+        "ADR-000078",
+        "ADR-000049"
+      ],
+      "subentities": [],
+      "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
+      "created_at": "2026-06-12T14:25:59Z",
+      "updated_at": "2026-06-12T14:28:33Z",
+      "extra": {
+        "tech": "python",
+        "tags": [
+          "architecture"
+        ]
+      },
+      "id": "GUIDE-000079"
+    },
+    "80": {
+      "sequence_id": 80,
+      "type": "bug",
+      "title": "Inbox surfaces stale mentions from Accepted decisions and Published guides",
+      "slug": "inbox-surfaces-stale-mentions-from-accepted-decisions-and-pu",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "ADR-000049"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000080-inbox-surfaces-stale-mentions-from-accepted-decisions-and-pu.md",
+      "created_at": "2026-06-12T14:59:31Z",
+      "updated_at": "2026-06-12T15:08:27Z",
+      "extra": {},
+      "id": "BUG-000080"
+    },
+    "81": {
+      "sequence_id": 81,
+      "type": "task",
+      "title": "Add ACCEPTED and PUBLISHED to the TERMINAL status set",
+      "slug": "add-accepted-and-published-to-the-terminal-status-set",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "BUG-000080:fixes"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000081-add-accepted-and-published-to-the-terminal-status-set.md",
+      "created_at": "2026-06-12T14:59:32Z",
+      "updated_at": "2026-06-12T15:04:22Z",
+      "extra": {},
+      "id": "TASK-000081"
     }
   }
 }
