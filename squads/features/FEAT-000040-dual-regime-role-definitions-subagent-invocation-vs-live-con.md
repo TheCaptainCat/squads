@@ -3,7 +3,7 @@ id: FEAT-000040
 sequence_id: 40
 type: feature
 title: 'Dual-regime role definitions: subagent invocation vs live conversation'
-status: Ready
+status: Done
 parent: EPIC-000012
 author: product-owner
 priority: high
@@ -17,18 +17,18 @@ subentities:
   title: As an agent spawned for a job, I want my role to tell me exactly what must
     be on the record before I return, so that the loop never loses my work when my
     chat evaporates
-  status: Todo
+  status: Done
 - local_id: US2
   title: As an agent working live with the operator, I want agreements that separate
     recording decisions from signalling handoffs, so that I never put a false call-to-action
     in a teammate's inbox
-  status: Todo
+  status: Done
 - local_id: US3
   title: As a teammate reading my inbox, I want every @mention to be a real, current
     call-to-action, so that I can trust it as my work queue
-  status: Todo
+  status: Done
 created_at: '2026-06-11T08:43:52Z'
-updated_at: '2026-06-11T09:16:31Z'
+updated_at: '2026-06-12T07:51:05Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -86,9 +86,9 @@ _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates |
-| US2 | Todo |  | As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox |
-| US3 | Todo |  | As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue |
+| US1 | Done |  | As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates |
+| US2 | Done |  | As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox |
+| US3 | Done |  | As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -97,7 +97,7 @@ _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track
 ### US1 — As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -114,7 +114,7 @@ _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track
 ### US2 — As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -131,7 +131,7 @@ _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track
 ### US3 — As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -148,4 +148,23 @@ _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-12T07:38:49Z] Olivia Lead:
+  - Broke this down into a single task, TASK-000053 (high, Ready, → @python-dev), because the work is one cohesive content edit: the regime prose is template-driven from role.md.j2, so splitting it across files/devs would just churn the same template. Three subtasks map 1:1 to US1-US3.
+  - ST1/US1 (spawned regime): restructure role.md.j2 '## Working agreements' into the two regimes + shared 'record what the next reader needs, when it becomes true' principle; sq sync regenerates all 8 roles + the dev-pool template (no migration — .claude/ is regenerable).
+  - ST2/US2 (live regime): separate recording a decision (--as, when made) from signalling a handoff (@mention, only when work actually moves); reference the squads skill's 'Working directly with the operator' section rather than duplicating it.
+  - ST3/US3 (inbox trust): consistency pass over _interactions.py 'For <role>' handoff lines so each carries its trigger condition (e.g. 'when the feature is greenlit, @tech-lead' — exactly the line that misfired in the 2026-06-11 incident), and align the greeting/squads cross-references to one formulation.
+  - Scope guard restated for the implementer: content/templates only, no CLI behaviour change. Acceptance to prove: a spawned-agent reading path and a live-conversation reading path each answer 'must I @mention now?' unambiguously for the incident scenario. @python-dev — yours; flag me if any role needs bespoke regime text (the template assumes it doesn't).
+- [2026-06-12T07:47:58Z] Elias Python:
+  - TASK-000053 complete. Split role working agreements into two explicit regimes in role.md.j2: *Spawned as a subagent* (skip greeting, do the job, leave full record — comment + @mention — before returning, because the chat does not survive) and *Live with the operator* (greet, anchor, apply the shared principle: 'record what the next reader needs, when it becomes true' — decisions recorded when made with --as, handoffs only when work actually moves, never a mention for work nobody greenlit).
+  - The live-regime text references the squads skill's 'Working directly with the operator' section and the greeting skill by name, rather than duplicating them. No drift across surfaces.
+  - Also: extended sq sync to regenerate role body sections from the template (was generating only .claude/ pointers). All 9 role files in squads/agents/ now carry both regimes after sq sync.
+  - Consistency pass on _interactions.py: all handoff lines now state their trigger condition explicitly. Key fix: product-owner feature handoff now reads 'when stories and acceptance criteria are complete and the feature is greenlit, @tech-lead to break it into tasks' (the scenario from the live incident).
+  - 276 tests pass, pyright clean, ruff clean. @reviewer for review.
+- [2026-06-12T07:50:20Z] Paul Reviewer:
+  - Reviewed TASK-000053 (uncommitted working tree). VERDICT: APPROVED — no changes required. Gates all green: pytest pass, pyright 0 errors, ruff check + format clean.
+  - Correctness / marker safety (invariant 3): _regen_role_body in _services/_maintenance.py touches content solely via _sections.get_section/replace_section on the `sq:body` marker region; the discussion region is left intact (verified on regenerated ROLE-000001..009). The render call (template 'agents/role.md.j2', item=/description=item.description/extra=item.extra) is identical to create()'s original render in _base.py:128, so the rewritten body is faithful — no template drift.
+  - Concurrency/atomicity concern (dev flag): writing the role .md unlocked, with no index transaction and no updated_at bump, is SOUND here and consistent with the existing sync() contract. sync() already regenerates tool-owned managed files with bare write_text and no lock (backend generate_role_pointer / write_managed / ensure_scaffold / settings.json / CLAUDE.md). _locked_section_edit exists for the concurrent-subagent prose-edit race (comments/body); sync is a single-operator regeneration of generated content, not a prose edit, and role bodies are now tool-owned regenerable content. No frontmatter changes, so skipping the updated_at bump is correct.
+  - Scope: content/template only, no CLI behaviour change. The sync extension is justified by the acceptance criterion 'sq sync propagates' — it is the propagation mechanism, not new behaviour, and is covered by test_sync_regenerates_role_bodies.
+  - Acceptance criteria met: both regime headings (### Spawned as a subagent / ### Live with the operator) + shared principle 'Record what the next reader needs, when it becomes true' present in every regenerated role. No cross-skill drift — role text references the squads skill's 'Working directly with the operator' section (exists, squads.md:30) and the greeting skill (greeting.md:7) rather than duplicating. PLAYBOOK handoff lines in _interactions.py now carry trigger conditions ('when greenlit', 'when acceptance criteria all pass', etc.) — the live-incident 'must I @mention now?' question is answered unambiguously on both reading paths.
+  - Excluded from review per scope: FEAT-000013, pre-existing .squads.json drift, and the TASK-000053/FEAT-000040 sq bookkeeping files. Approved — no action needed from @python-dev. Nice work on keeping the single-source-of-truth discipline and avoiding data-driven regime fields.
 <!-- sq:discussion:end -->

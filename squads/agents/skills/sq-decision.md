@@ -25,7 +25,7 @@ sq decision <n> status Accepted
 - link what it affects (`sq decision <n> ref add … --kind related`)
 
 **Hand off:**
-- `sq decision <n> status Accepted` once agreed; `@tech-lead` to apply it
+- once the decision is agreed, `sq decision <n> status Accepted` and `@tech-lead` to apply it in the affected tasks
 
 **Watch for:**
 - supersede an old ADR rather than editing its decision after acceptance

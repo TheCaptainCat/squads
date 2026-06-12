@@ -25,7 +25,7 @@ sq tree EPIC-… [--json]
 - set the body to the goal + the outcomes it groups (`sq epic <n> body -m …`)
 
 **Hand off:**
-- create the features under it and let the tech-lead break them down
+- when the epic is ready, create the features under it and `@tech-lead` to break them down
 
 **Watch for:**
 - an epic is an outcome, not a task list — keep it about the why
@@ -39,7 +39,7 @@ sq tree EPIC-… [--json]
 - shape it technically; spin off ADRs (`sq create decision`) for cross-cutting calls and link them (`sq epic <n> ref add ADR-… --kind related`)
 
 **Hand off:**
-- hand the technical shape to the tech-lead for breakdown
+- when the technical shape is settled, `@tech-lead` to break it into features and tasks
 
 ## For Olivia Lead (`tech-lead`)
 

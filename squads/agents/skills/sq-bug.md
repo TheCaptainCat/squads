@@ -26,7 +26,7 @@ sq bug <n> status InProgress
 - set `--severity`/`--priority`
 
 **Hand off:**
-- `@tech-lead` to triage; verify the fix once a task addresses it
+- once filed, `@tech-lead` to triage; once a fix task lands, verify it and confirm in a comment so the bug can close
 
 ## For developers
 
@@ -38,7 +38,7 @@ sq bug <n> status InProgress
 - add a regression test
 
 **Hand off:**
-- hand the task to review/QA; the bug closes when the fix is verified
+- when the fix is ready, move the task to InReview and `@reviewer`/`@qa`; the bug closes when the fix is verified
 
 **Watch for:**
 - track the fix on a task — don't implement straight off the bug
@@ -52,7 +52,7 @@ sq bug <n> status InProgress
 - triage and prioritise; create the fix task and assign a developer
 
 **Hand off:**
-- `@<tech>-dev` with the fix task
+- once the fix task is created and assigned, `@<tech>-dev` to start the fix
 
 ## For Paul Reviewer (`reviewer`)
 
