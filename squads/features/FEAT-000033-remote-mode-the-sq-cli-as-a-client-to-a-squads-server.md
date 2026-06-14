@@ -30,7 +30,7 @@ subentities:
     untouched
   status: Todo
 created_at: '2026-06-10T15:33:16Z'
-updated_at: '2026-06-10T15:33:34Z'
+updated_at: '2026-06-14T20:32:56Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -151,4 +151,7 @@ _Add with `sq feature 33 add-story "As a <role>, I want … so that …"`; track
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-14T20:32:56Z] Catherine Manager:
+  - Remote-mode gap (flagged by Pierre, 2026-06-14): the Claude Code backend writes thin pointer files in .claude/ that use Claude Code's @-include to load the real role/skill body from local disk — .claude/agents/<role>.md → @squads/agents/roles/ROLE-…md (pointer_agent.md.j2:22) and .claude/skills/<name>/SKILL.md → @squads/agents/skills/<name>.md (pointer_skill.md.j2:8). In remote mode squads/agents/… won't be on the operator's disk, but subagents still boot locally, so those includes dangle.
+  - Resolution lives here, not in 1.0: this is purely a backend concern behind the AgentBackend ABC, and .claude/ is non-contract (ADR-000075). When remote mode lands, sq sync should materialize SELF-CONTAINED pointers — inline the role/skill body fetched from the server — instead of @-referencing local paths. No frozen surface is affected. @architect to own the approach (likely a follow-on ADR) when FEAT-000033 starts.
 <!-- sq:discussion:end -->
