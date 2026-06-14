@@ -19,7 +19,8 @@ from squads._models._item import VALID_REF_KINDS, Item, split_ref
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import number_for_id
 from squads._rendering._engine import render
-from squads._roles._catalog import RoleDef, role_by_slug
+from squads._roles._catalog import RoleDef
+from squads._roles._resolver import resolve_role
 from squads._services._base import SUBENTITY_KIND, ServiceCore
 from squads._services._results import CheckIssue, RepairResult
 from squads._workflow import parent_allowed, parent_hint, subentity_workflow, workflow_for
@@ -93,7 +94,7 @@ class MaintenanceMixin(ServiceCore):
         """
         slug = item.extra.get(X.SLUG, "")
         try:
-            catalog_role = role_by_slug(slug)
+            catalog_role = resolve_role(slug, self.paths.squad_dir)
         except RoleNotFoundError:
             return  # dev role or unknown slug — not catalog-managed
         catalog_extra = catalog_role.to_extra()
@@ -246,6 +247,8 @@ class MaintenanceMixin(ServiceCore):
 
     # ------------------------------------------------------------------ check
     def check(self) -> list[CheckIssue]:
+        from squads._overrides._service import check_override_issues
+
         index = self.store.load()
         issues, on_disk = self._scan_for_check()
         issues += self._check_reconciliation(index, on_disk)
@@ -253,6 +256,11 @@ class MaintenanceMixin(ServiceCore):
         issues += self._check_subtask_stories(index)
         issues += self._check_subentity_status(index)
         issues += self._check_decisions(index)
+        # ADR-000085 §3: two override checks — version-drift warn + missing-marker error.
+        issues += [
+            CheckIssue(level, item, msg)
+            for level, item, msg in check_override_issues(self.paths.squad_dir)
+        ]
         return issues
 
     def _scan_for_check(self) -> tuple[list[CheckIssue], dict[str, tuple[Path, dict[str, Any]]]]:

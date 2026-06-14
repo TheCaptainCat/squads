@@ -4,6 +4,10 @@ import pytest
 from typer.testing import CliRunner
 
 from squads import _clock as clock
+from squads._rendering._engine import (
+    _env_cache,  # pyright: ignore[reportPrivateUsage]
+    set_active_squad_dir,
+)
 from squads._services import _service as service
 
 
@@ -12,6 +16,20 @@ def _reset_clock_override():  # pyright: ignore[reportUnusedFunction]  # autouse
     """Ensure a forged `--at` timestamp from one test never leaks into the next."""
     yield
     clock.set_now(None)
+
+
+@pytest.fixture(autouse=True)
+def _reset_engine_state():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
+    """Reset rendering engine module-state between tests (REV-000093 F1).
+
+    ServiceCore.__init__ calls set_active_squad_dir() and never restores it, so a test that
+    constructs a service leaves that squad dir active for later tests that call bare render()
+    without setting it.  Clearing the ContextVar and evicting the cache after each test prevents
+    order-dependent coupling.
+    """
+    yield
+    set_active_squad_dir(None)
+    _env_cache.clear()
 
 
 @pytest.fixture

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 86,
+  "counter": 98,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -67,7 +67,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-12T15:44:22Z",
+      "updated_at": "2026-06-12T22:05:08Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -76,7 +76,7 @@
       "type": "feature",
       "title": "Project-level template and role overrides",
       "slug": "project-level-template-and-role-overrides",
-      "status": "InProgress",
+      "status": "Done",
       "description": "squads/.templates/ overrides; lookup path and precedence join the durable contract, so it must land before 1.0",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -120,7 +120,7 @@
       ],
       "path": "features/FEAT-000014-project-level-template-and-role-overrides.md",
       "created_at": "2026-06-10T12:41:06Z",
-      "updated_at": "2026-06-12T15:45:34Z",
+      "updated_at": "2026-06-12T22:08:38Z",
       "extra": {},
       "id": "FEAT-000014"
     },
@@ -129,7 +129,7 @@
       "type": "feature",
       "title": "Machine-readable surface audit",
       "slug": "machine-readable-surface-audit",
-      "status": "InProgress",
+      "status": "Done",
       "description": "--json on every read command, documented exit codes, golden-file tests freezing the JSON shapes",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -165,7 +165,7 @@
       ],
       "path": "features/FEAT-000015-machine-readable-surface-audit.md",
       "created_at": "2026-06-10T12:41:11Z",
-      "updated_at": "2026-06-12T15:44:25Z",
+      "updated_at": "2026-06-12T21:29:44Z",
       "extra": {},
       "id": "FEAT-000015"
     },
@@ -3058,19 +3058,21 @@
       "type": "task",
       "title": "Document and test the CLI exit-code table",
       "slug": "document-and-test-the-cli-exit-code-table",
-      "status": "Ready",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000015",
       "author": "tech-lead",
       "assignee": null,
       "priority": "high",
       "labels": [],
-      "refs": [],
+      "refs": [
+        "REV-000092:addresses"
+      ],
       "subentities": [
         {
           "local_id": "ST1",
           "title": "Documented exit-code table asserted in tests",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2"
@@ -3078,7 +3080,7 @@
       ],
       "path": "tasks/TASK-000083-document-and-test-the-cli-exit-code-table.md",
       "created_at": "2026-06-12T15:27:48Z",
-      "updated_at": "2026-06-12T20:42:44Z",
+      "updated_at": "2026-06-12T21:07:53Z",
       "extra": {},
       "id": "TASK-000083"
     },
@@ -3087,19 +3089,21 @@
       "type": "task",
       "title": "Golden-file tests freezing every --json shape",
       "slug": "golden-file-tests-freezing-every-json-shape",
-      "status": "Ready",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000015",
       "author": "tech-lead",
       "assignee": null,
       "priority": "high",
       "labels": [],
-      "refs": [],
+      "refs": [
+        "REV-000094:addresses"
+      ],
       "subentities": [
         {
           "local_id": "ST1",
           "title": "Golden files freezing every --json shape",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3"
@@ -3107,7 +3111,7 @@
       ],
       "path": "tasks/TASK-000084-golden-file-tests-freezing-every-json-shape.md",
       "created_at": "2026-06-12T15:27:48Z",
-      "updated_at": "2026-06-12T20:45:19Z",
+      "updated_at": "2026-06-12T21:29:43Z",
       "extra": {},
       "id": "TASK-000084"
     },
@@ -3169,6 +3173,434 @@
       "updated_at": "2026-06-12T20:44:49Z",
       "extra": {},
       "id": "REV-000086"
+    },
+    "87": {
+      "sequence_id": 87,
+      "type": "task",
+      "title": "Override loader + precedence plumbing under .overrides/",
+      "slug": "override-loader-precedence-plumbing-under-overrides",
+      "status": "Done",
+      "description": "Engine ChoiceLoader (project override → bundled), squad-aware cache key, .overrides path resolution",
+      "parent": "FEAT-000014",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000088:blocks",
+        "TASK-000089:blocks",
+        "REV-000093:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "ChoiceLoader engine swap + squad-aware cache key",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": ".overrides/ path resolution + traversal guard + partial-override test",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000087-override-loader-precedence-plumbing-under-overrides.md",
+      "created_at": "2026-06-12T20:56:38Z",
+      "updated_at": "2026-06-12T21:20:31Z",
+      "extra": {},
+      "id": "TASK-000087"
+    },
+    "88": {
+      "sequence_id": 88,
+      "type": "task",
+      "title": "Role override resolver: roles/<slug>.toml field-wise merge + new slugs",
+      "slug": "role-override-resolver-roles-slug-toml-field-wise-merge-new",
+      "status": "Done",
+      "description": "Layer .overrides/roles/<slug>.toml over PREDEFINED field-wise; admit new slugs; activate_role/add_dev read through the resolver",
+      "parent": "FEAT-000014",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000089:blocks",
+        "TASK-000091:blocks"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Field-wise roles/<slug>.toml resolver over PREDEFINED + new-slug admission",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "activate_role/add_dev read through resolver; full_name seed; tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000088-role-override-resolver-roles-slug-toml-field-wise-merge-new.md",
+      "created_at": "2026-06-12T20:56:51Z",
+      "updated_at": "2026-06-12T21:40:54Z",
+      "extra": {},
+      "id": "TASK-000088"
+    },
+    "89": {
+      "sequence_id": 89,
+      "type": "task",
+      "title": "sq override command group + staleness stamps, hash manifest, and sq check drift",
+      "slug": "sq-override-command-group-staleness-stamps-hash-manifest-and",
+      "status": "Done",
+      "description": "scaffold/diff/update/list; override-base stamp; per-release content-hash manifest; sq check version-drift warn + missing-marker error",
+      "parent": "FEAT-000014",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000091:blocks"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "override-base stamp + per-release content-hash manifest in package data",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "sq check: version-drift warn + missing-marker error",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST3",
+          "title": "sq override scaffold/diff/update/list command group",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000089-sq-override-command-group-staleness-stamps-hash-manifest-and.md",
+      "created_at": "2026-06-12T20:57:11Z",
+      "updated_at": "2026-06-12T22:08:30Z",
+      "extra": {},
+      "id": "TASK-000089"
+    },
+    "90": {
+      "sequence_id": 90,
+      "type": "task",
+      "title": "Agent naming at sq init and role creation (flags, [init.names], TTY prompt)",
+      "slug": "agent-naming-at-sq-init-and-role-creation-flags-init-names-t",
+      "status": "Done",
+      "description": "Repeatable --name slug=Full Name + [init.names] + TTY prompting/--default-names; flow to extra.full_name → roster/pointers/CLAUDE.md",
+      "parent": "FEAT-000014",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000091:blocks"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq init: --name flags + [init.names] + TTY prompt/--default-names",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        },
+        {
+          "local_id": "ST2",
+          "title": "sq role activate/dev add --name; flow to extra.full_name → roster/pointers/CLAUDE.md",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000090-agent-naming-at-sq-init-and-role-creation-flags-init-names-t.md",
+      "created_at": "2026-06-12T20:57:27Z",
+      "updated_at": "2026-06-12T21:55:47Z",
+      "extra": {},
+      "id": "TASK-000090"
+    },
+    "91": {
+      "sequence_id": 91,
+      "type": "task",
+      "title": "Document the override mechanism + add override layout to the 1.0 contract doc",
+      "slug": "document-the-override-mechanism-add-override-layout-to-the-1",
+      "status": "Done",
+      "description": "Docs/guide for overrides + naming; list the .overrides layout among the durable surfaces in the FEAT-13 contract doc",
+      "parent": "FEAT-000014",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Document override + naming mechanism in guide/skill surface",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "List the .overrides layout among durable surfaces in the contract doc",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000091-document-the-override-mechanism-add-override-layout-to-the-1.md",
+      "created_at": "2026-06-12T20:57:40Z",
+      "updated_at": "2026-06-12T22:05:47Z",
+      "extra": {},
+      "id": "TASK-000091"
+    },
+    "92": {
+      "sequence_id": 92,
+      "type": "review",
+      "title": "Review TASK-000083 — CLI exit-code table doc + tests",
+      "slug": "review-task-000083-cli-exit-code-table-doc-tests",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "reviews/REV-000092-review-task-000083-cli-exit-code-table-doc-tests.md",
+      "created_at": "2026-06-12T21:03:00Z",
+      "updated_at": "2026-06-12T21:03:26Z",
+      "extra": {},
+      "id": "REV-000092"
+    },
+    "93": {
+      "sequence_id": 93,
+      "type": "review",
+      "title": "Review TASK-000087 — override loader + precedence plumbing",
+      "slug": "review-task-000087-override-loader-precedence-plumbing",
+      "status": "Approved",
+      "description": "Engine ChoiceLoader + squad-aware cache + ContextVar; verdict for the FEAT-014 foundation task",
+      "parent": "FEAT-000014",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000087"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "No autouse fixture resets engine module-state between tests (_active_squad_dir ContextVar + _env_cache dict). conftest resets the clock but not the engine: ServiceCore.__init__ sets the _active_squad_dir ContextVar and never restores it, so a test that constructs a service leaves that squad dir active for any later test that calls bare render() without setting it. Today it doesn't bite (override tests set it explicitly; fresh tmp_path keys avoid cache collisions), but it's order-dependent coupling that will grow as T88/T89 add override tests. Suggest an autouse fixture that calls set_active_squad_dir(None) (and optionally clears _env_cache) on teardown, mirroring _reset_clock_override.",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000093-review-task-000087-override-loader-precedence-plumbing.md",
+      "created_at": "2026-06-12T21:10:56Z",
+      "updated_at": "2026-06-12T21:29:05Z",
+      "extra": {},
+      "id": "REV-000093"
+    },
+    "94": {
+      "sequence_id": 94,
+      "type": "review",
+      "title": "Review TASK-000084: golden-file harness freezing every --json shape",
+      "slug": "review-task-000084-golden-file-harness-freezing-every-json-s",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "print_block (add-story/add-subtask/add-finding --json) emits the .md file location under key 'file', while read-side show --json emits the same path concept under 'path'. Both are the item's markdown file path; a JSON consumer must special-case the key per command. Documented in the module docstring per Catherine's REV-86 carry-over (rename-or-document was sanctioned), and print_block is outside this task's frozen read surface — non-blocking. Recorded so a future consumer/contributor sees the asymmetry is deliberate, not accidental. Recommend revisiting file->path alignment when the write surface gets its own goldens.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000094-review-task-000084-golden-file-harness-freezing-every-json-s.md",
+      "created_at": "2026-06-12T21:23:52Z",
+      "updated_at": "2026-06-12T21:24:17Z",
+      "extra": {},
+      "id": "REV-000094"
+    },
+    "95": {
+      "sequence_id": 95,
+      "type": "review",
+      "title": "Review TASK-000088: role override resolver (field-wise merge + new slugs)",
+      "slug": "review-task-000088-role-override-resolver-field-wise-merge-n",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000088"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "New-slug admission checks key presence only, not non-emptiness. A TOML with required keys present but empty (title=\"\", mission=\"\") admits a degenerate role with blank fields. _apply_override uses [f for f in _REQUIRED_FOR_NEW if f not in data]; an empty string passes. Inconsistent with the NonEmpty guard used for titles elsewhere. ADR §2 does not strictly mandate non-empty, and the project owns its own TOML, so non-blocking.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "RoleDef is a frozen dataclass, so scalar override values are not type-validated. e.g. model=42 in a TOML is accepted and stored verbatim, flowing to extra/pointer; only TypeError (unknown/missing kwargs) is caught and wrapped. Low risk (project-owned file), but a wrong-typed model/color/is_default passes silently. Consider validating scalar types or coercing in _apply_override.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000095-review-task-000088-role-override-resolver-field-wise-merge-n.md",
+      "created_at": "2026-06-12T21:32:57Z",
+      "updated_at": "2026-06-12T21:33:39Z",
+      "extra": {},
+      "id": "REV-000095"
+    },
+    "96": {
+      "sequence_id": 96,
+      "type": "review",
+      "title": "Review TASK-000090 agent naming at sq init and role creation",
+      "slug": "review-task-000090-agent-naming-at-sq-init-and-role-creation",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000090"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000096-review-task-000090-agent-naming-at-sq-init-and-role-creation.md",
+      "created_at": "2026-06-12T21:42:47Z",
+      "updated_at": "2026-06-12T21:43:35Z",
+      "extra": {},
+      "id": "REV-000096"
+    },
+    "97": {
+      "sequence_id": 97,
+      "type": "review",
+      "title": "TASK-000089 — sq override group, staleness machinery, hash manifest (FEAT-000014, ADR-000085 §3)",
+      "slug": "task-000089-sq-override-group-staleness-machinery-hash-manif",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000089:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Manifest-freshness is unguarded — silent drift-miss at release. The whole feature fails OPEN if scripts/gen_template_manifest.py isn't re-run before a release that changes a template: template_changed_since() returns False for a missing/stale current-version entry, so every override silently shows no drift — exactly what the feature exists to prevent. The dev's @devops note documents the manual build step but nothing enforces it. test_manifest_loads_current_version_hashes only checks ONE template has *a* hash, not that it matches current bundled content, and not that all 20 are present. A single guard test would convert this from a release-time human-memory failure into a red build.",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "New --json read commands (override list/diff) are not golden-pinned. FEAT-000015/TASK-000084 established that EVERY --json read command gets a golden in tests/goldens/ pinned by test_golden_json.py, so any shape drift fails the build. override list --json and override diff --json are new read commands joining the 1.0 machine-readable surface but are only key-set-asserted in test_override_commands.py — not added to the golden suite. Consistency gap against a just-frozen convention; should be closed before 1.0.",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "gen_template_manifest.py docstring exit-code claim is wrong. Docstring says 'Exit codes: 0 = success, 1 = error (already at this version with unchanged hashes; nothing to write...)'. The no-change path actually prints and exits 0 (correct behaviour for a no-op), so the docstring contradicts the code. Fix the docstring (exit 0 on no-op is fine to keep).",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "diff with no name hides broken overrides. The bare 'sq override diff' path filters to STATE_DRIFTED only, so a user whose only override is BROKEN (missing marker) gets 'no drifted overrides found' with no hint that a broken override needs attention. ADR scopes bare diff to drifted, so not a contract violation, but a one-line note pointing at 'sq override list'/'sq check' for broken overrides would close the UX gap.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "base_version_template_content is hash-only, so Δ-upgrade is unavailable for any genuinely-upgraded template. By design the manifest stores hashes not snapshots, so base content is recoverable only when base_hash == current_hash (i.e. unchanged) — meaning the Δ-upgrade view degrades to the '(cannot recover...)' message in exactly the case it is most needed (template changed since base). ADR §3 step 2 describes Δ-upgrade as 'reconstructed from the manifest plus the bundled archive it indexes'; the manifest indexes nothing but hashes. The code handles this gracefully and the limitation is documented in the docstring, but it is a partial fulfilment of the ADR's stated Δ-upgrade capability — flagging so it is a deliberate, recorded deferral rather than an unnoticed shortfall.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000097-task-000089-sq-override-group-staleness-machinery-hash-manif.md",
+      "created_at": "2026-06-12T22:00:54Z",
+      "updated_at": "2026-06-12T22:07:19Z",
+      "extra": {},
+      "id": "REV-000097"
+    },
+    "98": {
+      "sequence_id": 98,
+      "type": "task",
+      "title": "Wire the template-manifest generation into the release build",
+      "slug": "wire-the-template-manifest-generation-into-the-release-build",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "manager",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000098-wire-the-template-manifest-generation-into-the-release-build.md",
+      "created_at": "2026-06-14T20:17:06Z",
+      "updated_at": "2026-06-14T20:22:05Z",
+      "extra": {},
+      "id": "TASK-000098"
     }
   }
 }

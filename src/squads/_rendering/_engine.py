@@ -2,21 +2,49 @@
 
 Templates are package data under ``templates/``. ``StrictUndefined`` makes a missing variable a
 loud error rather than a silent blank.
+
+Squad-aware lookup
+------------------
+Call ``set_active_squad_dir(squad_dir)`` before rendering to enable per-file project overrides.
+Templates in ``<squad_dir>/.overrides/templates/`` shadow bundled templates by name; every other
+template resolves to the bundled package default.  When no squad dir is active the bundled loader
+is used directly — identical behaviour to the previous single-loader setup.
+
+The function is idempotent for the same squad dir (the Environment is cached per-path); switching
+squad dirs replaces the active one.  Call ``set_active_squad_dir(None)`` to revert to the
+bundled-only loader (used by tests that want isolation).
 """
 
-from functools import lru_cache
+from contextvars import ContextVar
+from pathlib import Path
 
-from jinja2 import Environment, PackageLoader, StrictUndefined
+from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, StrictUndefined
 
 from squads._models import _markers as markers
 from squads._paths import number_for_id
 from squads._util import slugify
 
+# The active squad directory for this logical call stack. None means bundled-only.
+_active_squad_dir: ContextVar[Path | None] = ContextVar("_active_squad_dir", default=None)
 
-@lru_cache(maxsize=1)
-def _env() -> Environment:
+# Per-squad-dir Environment cache. None is the bundled-only environment.
+_env_cache: dict[Path | None, Environment] = {}
+
+
+def _make_env(squad_dir: Path | None) -> Environment:
+    """Build a Jinja2 Environment for *squad_dir* (or bundled-only when ``None``)."""
+    bundled = PackageLoader("squads._rendering", "templates")
+    if squad_dir is not None:
+        overrides_dir = squad_dir / ".overrides" / "templates"
+        if overrides_dir.is_dir():
+            loader = ChoiceLoader([FileSystemLoader(str(overrides_dir)), bundled])
+        else:
+            loader = bundled
+    else:
+        loader = bundled
+
     env = Environment(
-        loader=PackageLoader("squads._rendering", "templates"),
+        loader=loader,
         trim_blocks=True,
         lstrip_blocks=True,
         keep_trailing_newline=True,
@@ -31,6 +59,32 @@ def _env() -> Environment:
     env.filters["close_marker"] = markers.close_marker
     env.filters["idnum"] = _idnum  # "TASK-000007" | idnum → "7", for `sq task 7 …` hints
     return env
+
+
+def _env() -> Environment:
+    """Return the Environment for the currently-active squad dir (or bundled-only)."""
+    squad_dir = _active_squad_dir.get()
+    if squad_dir not in _env_cache:
+        _env_cache[squad_dir] = _make_env(squad_dir)
+    return _env_cache[squad_dir]
+
+
+def set_active_squad_dir(squad_dir: Path | None) -> None:
+    """Set the squad dir used by ``render()`` for the current logical call stack.
+
+    Pass ``None`` to revert to bundled-only resolution.  Calling with the same path a second time
+    is a no-op (the cached Environment is reused).  The cache entry for a squad dir is evicted
+    when ``invalidate_squad_dir(squad_dir)`` is called, or when the process exits.
+    """
+    _active_squad_dir.set(squad_dir)
+
+
+def invalidate_squad_dir(squad_dir: Path | None) -> None:
+    """Evict the cached Environment for *squad_dir*, forcing a rebuild on next use.
+
+    Useful in tests that mutate ``.overrides/`` after a service is already constructed.
+    """
+    _env_cache.pop(squad_dir, None)
 
 
 def _idnum(item_id: str) -> str:

@@ -1,0 +1,84 @@
+[
+  {
+    "id": "ROLE-000001",
+    "type": "role",
+    "status": "Active",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": []
+  },
+  {
+    "id": "FEAT-000002",
+    "type": "feature",
+    "status": "Draft",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": [
+      {
+        "id": "TASK-000003",
+        "type": "task",
+        "status": "InProgress",
+        "priority": null,
+        "assignee": null,
+        "blocked": true,
+        "children": []
+      }
+    ]
+  },
+  {
+    "id": "BUG-000004",
+    "type": "bug",
+    "status": "Draft",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": []
+  },
+  {
+    "id": "ADR-000005",
+    "type": "decision",
+    "status": "Proposed",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": []
+  },
+  {
+    "id": "REV-000006",
+    "type": "review",
+    "status": "Requested",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": []
+  },
+  {
+    "id": "GUIDE-000007",
+    "type": "guide",
+    "status": "Draft",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": []
+  },
+  {
+    "id": "SKILL-000008",
+    "type": "skill",
+    "status": "Active",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": []
+  },
+  {
+    "id": "OP-000009",
+    "type": "operator",
+    "status": "Active",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": []
+  }
+]

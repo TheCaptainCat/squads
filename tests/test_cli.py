@@ -1395,3 +1395,129 @@ def test_operator_show_json(runner, tmp_path, monkeypatch, frozen_time):
     assert data["full_name"] == "Alice Tester"
     assert data["status"] == "Active"
     assert "id" in data and "path" in data
+
+
+# ---------------------------------------------------------------------------
+# TASK-000083: exit-code contract — 0 success, 1 runtime error (incl. schema
+# mismatch), 2 usage error, 3 sq check found error-level issues
+# ---------------------------------------------------------------------------
+
+
+def test_exit_code_0_success(runner, tmp_path, monkeypatch, frozen_time):
+    """Exit 0: a clean squad and a successful read command."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["list"])
+    assert r.exit_code == 0, r.output
+
+
+def test_exit_code_0_check_clean(runner, tmp_path, monkeypatch, frozen_time):
+    """Exit 0: sq check with no issues."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["check"])
+    assert r.exit_code == 0, r.output
+    assert "no issues" in r.output
+
+
+def test_exit_code_0_check_warnings_only(runner, tmp_path, monkeypatch, frozen_time):
+    """Exit 0: sq check with warnings only (no error-level issues) does not exit 3."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    # A Superseded decision without a supersedes edge produces a warn, not an error.
+    runner.invoke(app, ["create", "decision", "Old ADR", "--author", "manager"])  # ADR-000002
+    runner.invoke(app, ["decision", "2", "status", "Proposed"])
+    runner.invoke(app, ["decision", "2", "update", "--status", "Superseded", "--force"])
+    runner.invoke(app, ["repair"])
+
+    r = runner.invoke(app, ["check"])
+    assert r.exit_code == 0, r.output
+    assert "warn" in r.output
+
+
+def test_exit_code_1_squads_runtime_error(runner, tmp_path, monkeypatch, frozen_time):
+    """Exit 1: a SquadsError (unknown item ID) produces exit code 1."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["task", "999", "show"])
+    assert r.exit_code == 1, r.output
+
+
+def test_exit_code_1_schema_mismatch(runner, tmp_path, monkeypatch, frozen_time):
+    """Exit 1: a schema-version mismatch hard-stops with exit code 1."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+
+    # Force the on-disk schema version to something old so the gate fires.
+    cfg = tmp_path / ".squads.toml"
+    cfg.write_text(
+        cfg.read_text(encoding="utf-8").replace('schema_version = "0.3"', 'schema_version = "0.1"'),
+        encoding="utf-8",
+    )
+
+    r = runner.invoke(app, ["list"])
+    assert r.exit_code == 1, r.output
+    # The error message should point the user at `sq migrate up`.
+    assert "migrate" in r.output.lower()
+
+
+def test_exit_code_2_invalid_at_timestamp(runner, tmp_path, monkeypatch, frozen_time):
+    """Exit 2: an invalid --at timestamp format produces exit code 2."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["--at", "not-a-date", "list"])
+    assert r.exit_code == 2, r.output
+
+
+def test_exit_code_3_check_error_level_issue(project, runner, frozen_time):
+    """Exit 3: sq check exits 3 when at least one error-level issue is present."""
+    from squads._services._service import Service
+
+    svc = Service(project)
+
+    # Inject a ghost item into the index (no file on disk) to produce an error-level check issue.
+    raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    raw["items"]["99"] = {
+        "id": "TASK-000099",
+        "sequence_id": 99,
+        "type": "task",
+        "title": "ghost",
+        "slug": "ghost",
+        "status": "Draft",
+        "path": "tasks/TASK-000099-ghost.md",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z",
+    }
+    raw["counter"] = 99
+    svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    r = runner.invoke(app, ["check"])
+    assert r.exit_code == 3, r.output
+    assert "TASK-000099" in r.output
+
+
+def test_exit_code_3_check_json_error_level_issue(project, runner, frozen_time):
+    """Exit 3: sq check --json also exits 3 on error-level issues."""
+    from squads._services._service import Service
+
+    svc = Service(project)
+
+    raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    raw["items"]["99"] = {
+        "id": "TASK-000099",
+        "sequence_id": 99,
+        "type": "task",
+        "title": "ghost",
+        "slug": "ghost",
+        "status": "Draft",
+        "path": "tasks/TASK-000099-ghost.md",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z",
+    }
+    raw["counter"] = 99
+    svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    r = runner.invoke(app, ["check", "--json"])
+    assert r.exit_code == 3, r.output
+    data = json.loads(r.output)
+    assert any(issue["level"] == "error" for issue in data)

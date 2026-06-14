@@ -71,6 +71,7 @@ from squads._cli import (  # noqa: E402
     _items,
     _migrate,
     _operator,
+    _override,
     _role,
     _skill,
 )
@@ -84,6 +85,11 @@ app.add_typer(_operator.operator_app, name="operator", help="Manage human operat
 app.add_typer(_skill.skill_app, name="skill", help="Manage agent skills.")
 app.add_typer(
     _migrate.migrate_app, name="migrate", help="Run schema migrations and read their steps."
+)
+app.add_typer(
+    _override.override_app,
+    name="override",
+    help="Manage project-level template and role overrides.",
 )
 
 # Resource-oriented item groups: `sq <type> <num> <verb> …`.

@@ -63,3 +63,20 @@ Implement a backend — see [backends.md](backends.md) — then `sq init --backe
 Commit `.squads.toml`, the `squads/` folder, `CLAUDE.md`, and `.claude/`. `squads/.gitignore`
 already excludes the lock/temp files. On a `.squads.json` conflict, take either side and
 `sq repair`; for duplicate ID numbers, `sq repair --renumber`.
+
+### What exit codes does `sq` use?
+
+The documented, stable contract:
+
+| Code | Meaning | When you see it |
+|------|---------|-----------------|
+| `0` | Success | Command completed normally (including `sq check` with no errors, or warnings only). |
+| `1` | squads runtime error | A `SquadsError` (unknown ID, invalid transition, etc.) or a schema-version mismatch (`sq migrate up` is needed). |
+| `2` | Usage error | Invalid `--at` timestamp format; Typer/Click usage errors (unknown option, missing required argument). |
+| `3` | `sq check` found error-level issues | One or more `error`-level issues were reported. `warn`-level-only results still exit 0. |
+
+Code `3` is the useful one for CI gates — scripts can use `sq check || exit 1` or test the code
+directly. Codes `1` and `2` indicate a broken invocation or squad state, not a lint failure.
+
+The formal stability contract (tiers, versioning, post-1.0 semantics) will live in
+`docs/stability.md` once FEAT-000013 is complete.

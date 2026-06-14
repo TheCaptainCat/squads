@@ -1,0 +1,13 @@
+[
+  {
+    "id": "TASK-000003",
+    "title": "Implement login",
+    "blockers": [
+      {
+        "id": "BUG-000004",
+        "title": "Login crashes on empty password",
+        "status": "Draft"
+      }
+    ]
+  }
+]

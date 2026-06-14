@@ -1,0 +1,21 @@
+[
+  {
+    "id": "FEAT-000002",
+    "type": "feature",
+    "status": "Draft",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": [
+      {
+        "id": "TASK-000003",
+        "type": "task",
+        "status": "InProgress",
+        "priority": null,
+        "assignee": null,
+        "blocked": true,
+        "children": []
+      }
+    ]
+  }
+]

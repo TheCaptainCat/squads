@@ -32,7 +32,8 @@ from squads._cli._common import (
 from squads._errors import SquadsError
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
-from squads._roles._catalog import PREDEFINED, role_by_slug
+from squads._roles._catalog import PREDEFINED
+from squads._roles._resolver import resolve_role
 
 role_app = typer.Typer(
     no_args_is_help=True,
@@ -81,10 +82,15 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
 
 @role_app.command("activate")
 @handle_errors
-def activate_role(slug: str = typer.Argument(...)) -> None:
+def activate_role(
+    slug: str = typer.Argument(...),
+    name: str | None = typer.Option(
+        None, "--name", help="Full name for this agent (overrides bundled default)."
+    ),
+) -> None:
     """Activate a bundled role: create its tracked item and Claude pointer."""
     svc = get_service()
-    item = svc.activate_role(slug)
+    item = svc.activate_role(slug, name=name)
     svc.refresh_managed()
     console.print(f"activated [bold]{item.extra.get(X.FULL_NAME, item.title)}[/bold] ({item.id})")
 
@@ -160,7 +166,7 @@ def show_role(
     if json_out:
         data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
         try:
-            r = role_by_slug(slug)
+            r = resolve_role(slug, svc.paths.squad_dir)
             data.update(
                 {
                     "full_name": r.full_name,
@@ -189,9 +195,9 @@ def show_role(
         console.print_json(json.dumps(data))
         return
 
-    # Build the catalog card from the bundled PREDEFINED entry (if available).
+    # Build the catalog card from the resolved role definition (project override → bundled).
     try:
-        r = role_by_slug(slug)
+        r = resolve_role(slug, svc.paths.squad_dir)
         rows = [
             f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
             f"[bold]title:[/bold] {e(r.title)}",

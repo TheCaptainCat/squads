@@ -5,6 +5,8 @@ resource-oriented `sq <type> <num> <verb> …` groups built by `_items.build_ite
 """
 
 import json
+import sys as _sys
+from collections.abc import Callable
 from typing import Any
 
 import typer
@@ -27,12 +29,55 @@ from squads._cli._common import (
     resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
+from squads._models._config import CONFIG_FILENAME
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
-from squads._paths import number_for_id
+from squads._paths import load_config, number_for_id
+from squads._roles._catalog import resolve_roles
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
 from squads._workflow import is_open
+
+# ---------------------------------------------------------------------------
+# TTY detection — injectable for testing.
+# The default implementation delegates to sys.stdin.isatty().
+# Tests can replace this with a monkeypatched callable that returns True/False.
+# ---------------------------------------------------------------------------
+
+
+def _default_is_tty() -> bool:
+    return _sys.stdin.isatty()
+
+
+# Module-level slot; tests monkeypatch this to control TTY behaviour.
+_is_tty: Callable[[], bool] = _default_is_tty
+
+
+# ---------------------------------------------------------------------------
+# Name-flag parser
+# ---------------------------------------------------------------------------
+
+
+def _parse_name_flags(raw: list[str]) -> dict[str, str]:
+    """Parse a list of ``slug=Full Name`` strings into a dict.
+
+    Raises :class:`~squads._errors.SquadsError` on any malformed entry.
+    """
+    result: dict[str, str] = {}
+    for entry in raw:
+        if "=" not in entry:
+            raise SquadsError(
+                f"--name {entry!r}: expected format slug=Full Name (e.g. architect='Ada Lovelace')"
+            )
+        slug, _, name = entry.partition("=")
+        slug = slug.strip()
+        name = name.strip()
+        if not slug:
+            raise SquadsError(f"--name {entry!r}: slug (before '=') must not be empty")
+        if not name:
+            raise SquadsError(f"--name {entry!r}: name (after '=') must not be empty")
+        result[slug] = name
+    return result
 
 
 def _item_table(items: list[Item]) -> Table:
@@ -65,10 +110,68 @@ def init(
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
     force: bool = typer.Option(False, "--force", help="Overwrite existing .squads.toml."),
+    name: list[str] = typer.Option(
+        [],
+        "--name",
+        help="Override a role's name: slug=Full Name (repeatable).",
+    ),
+    default_names: bool = typer.Option(
+        False,
+        "--default-names",
+        help="Skip interactive prompting; use bundled/pool names for every role.",
+    ),
 ):
     """Initialize squads in the current directory."""
+    from pathlib import Path
+
+    # Parse --name slug=Full Name flags.
+    names_from_flags = _parse_name_flags(name)
+
+    # Load [init.names] from a pre-existing .squads.toml (e.g. when using --force or when the
+    # user has created the file manually before running sq init).  Flags win on conflict.
+    names_from_config: dict[str, str] = {}
+    config_path = Path.cwd() / CONFIG_FILENAME
+    if config_path.is_file():
+        try:
+            existing_cfg = load_config(config_path)
+            names_from_config = existing_cfg.init_names
+        except SquadsError:
+            pass  # Malformed config — svc_init will raise AlreadyInitializedError or SquadsError.
+
+    # Determine whether to prompt interactively.
+    # Rule: prompt if (TTY and not --default-names), else skip.
+    interactive = _is_tty() and not default_names
+
+    # Collect the full set of role slugs that will be activated.
+    role_defs = resolve_roles(roles) if roles else []
+
+    # Build the combined names map: config < flags (flags win).
+    # A slug already covered by either source is not asked interactively.
+    combined_names: dict[str, str] = {**names_from_config, **names_from_flags}
+
+    if interactive:
+        for rdef in role_defs:
+            slug = rdef.slug
+            if slug in combined_names:
+                # Already supplied via flag — skip prompt.
+                continue
+            # Prompt: show the default name, allow blank to keep it.
+            default_name = rdef.full_name
+            typed = typer.prompt(
+                f"Name for {slug!r} (Enter to keep default '{default_name}')",
+                default="",
+                show_default=False,
+            ).strip()
+            if typed:
+                combined_names[slug] = typed
+
     result = svc_init(
-        squad_dir=squad_dir, backend=backend, roles_spec=roles, no_claude=no_claude, force=force
+        squad_dir=squad_dir,
+        backend=backend,
+        roles_spec=roles,
+        no_claude=no_claude,
+        force=force,
+        names=combined_names if combined_names else None,
     )
     sp = result.paths
     roles_line = ", ".join(r.extra.get(X.SLUG, r.slug) for r in result.roles) or "—"
@@ -443,7 +546,11 @@ def show_any(
 @app.command()
 @handle_errors
 def check(json_out: bool = typer.Option(False, "--json")):
-    """Lint the squad: markers, dangling links, invalid status, index drift."""
+    """Lint the squad: markers, dangling links, invalid status, index drift.
+
+    Exit codes: 0 = clean (or warnings only), 3 = one or more error-level issues found.
+    See `sq docs faq` for the full exit-code table.
+    """
     svc = get_service()
     issues = svc.check()
     if json_out:
