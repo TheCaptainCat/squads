@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 98,
+  "counter": 100,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -3601,6 +3601,77 @@
       "updated_at": "2026-06-14T20:22:05Z",
       "extra": {},
       "id": "TASK-000098"
+    },
+    "99": {
+      "sequence_id": 99,
+      "type": "epic",
+      "title": "VS Code extension — browse the squad in the editor",
+      "slug": "vs-code-extension-browse-the-squad-in-the-editor",
+      "status": "Draft",
+      "description": "A VS Code extension: a sidebar tree of the squad + items opened in the markdown preview; consumes the frozen --json surface; browse-first, mutations a later increment",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000015:depends-on",
+        "EPIC-000012",
+        "EPIC-000028",
+        "EPIC-000029",
+        "EPIC-000038"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000099-vs-code-extension-browse-the-squad-in-the-editor.md",
+      "created_at": "2026-06-14T20:45:06Z",
+      "updated_at": "2026-06-14T20:45:15Z",
+      "extra": {},
+      "id": "EPIC-000099"
+    },
+    "100": {
+      "sequence_id": 100,
+      "type": "feature",
+      "title": "Read-only browse: sidebar tree + rendered preview",
+      "slug": "read-only-browse-sidebar-tree-rendered-preview",
+      "status": "Draft",
+      "description": "VS Code activity-bar tree from sq tree --json; clicking an item opens rendered sq show in the markdown preview; filter/group + refresh",
+      "parent": "EPIC-000099",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator, I want the squad hierarchy in a VS Code sidebar tree with status, assignee and blocked-state at a glance, so that I can navigate the squad without leaving the editor",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an operator, I want clicking a tree item to open its rendered sq show in the markdown preview, so that I read a clean item without frontmatter or marker noise",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an operator, I want to filter and group the tree by type and open/closed state and refresh it on demand, so that I can focus on the work that matters right now",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
+      "created_at": "2026-06-14T20:45:15Z",
+      "updated_at": "2026-06-14T20:45:23Z",
+      "extra": {},
+      "id": "FEAT-000100"
     }
   }
 }
