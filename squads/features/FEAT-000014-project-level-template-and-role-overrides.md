@@ -3,7 +3,7 @@ id: FEAT-000014
 sequence_id: 14
 type: feature
 title: Project-level template and role overrides
-status: InProgress
+status: Done
 parent: EPIC-000012
 author: product-owner
 priority: high
@@ -27,7 +27,7 @@ subentities:
     creation, so that my squad's roster is named the way my team wants
   status: Todo
 created_at: '2026-06-10T12:41:06Z'
-updated_at: '2026-06-12T15:45:34Z'
+updated_at: '2026-06-12T22:08:38Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -167,4 +167,13 @@ _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track
   - @manager @op-pierre ADR-000085 is revised and ready for acceptance — still Proposed (acceptance is op-pierre's call).
   - Both requested revisions are integrated: (1) §3 spells out the stale-override update loop end-to-end — sq check warns on real drift → `sq override diff` shows BOTH deltas (what you changed vs current bundled, AND what the upgrade changed: base-bundled vs current bundled) → you merge by hand (never auto-rewritten) → `sq override update` re-stamps and clears the warning. The command group is scaffold/diff/update/list and joins the durable contract. (2) §4 naming UX: at a TTY sq init prompts for missing names unless --default-names; non-TTY implies --default-names; --name flags and [init.names] stay declarative and pre-answer prompts.
   - The confirmed rulings (.overrides/ location, frozen canonical slugs) are folded in too. Review with: uv run sq decision 85 show --full --comments.
+- [2026-06-12T20:58:40Z] Olivia Lead:
+  - Broke FEAT-000014 down into 5 tasks against accepted ADR-000085, all now **Ready**, sq check clean. Story mapping (subtasks):
+  - • **TASK-000087** — Override loader + precedence plumbing (US1). ChoiceLoader engine swap (PackageLoader → squad-aware ChoiceLoader), squad-keyed Environment cache, .overrides/ path resolution + traversal guard. The foundation both template and role overrides sit on.
+  - • **TASK-000088** — Role override resolver (US2). Field-wise roles/<slug>.toml merge over PREDEFINED + new-slug admission; activate_role/add_dev read through it; full_name seed.
+  - • **TASK-000089** — sq override group + staleness (US3). override-base stamp, per-release content-hash manifest in package data, sq check version-drift warn + missing-marker error, and the scaffold/diff/update/list command group (the durable-contract surface; diff shows both Δ-mine and Δ-upgrade, update re-stamps only).
+  - • **TASK-000090** — Agent naming at init/role creation (US4). --name slug=… flags + [init.names] + TTY prompt/--default-names (non-TTY implies default); flows to extra.full_name → roster/pointers/CLAUDE.md. Slugs stay canonical.
+  - • **TASK-000091** — Docs + contract doc (US3). Document the override + naming mechanism; list the .overrides layout among the durable surfaces in the FEAT-000013 contract doc. Co-author with @architect. Lands last.
+  - **Recommended order (blocks edges set):** T87 first (foundation) → T88 + T89 build on it (T89 also wants T88's role surface for scaffold --role / list, so T89 lands after or alongside T88's resolver) → T90 runs in parallel from the start (one coordination point: T88's roles/<slug>.toml full_name seed) → T91 last, after T87–T90 ship.
+  - **Flag — nothing blocks a dev from starting T87.** Two things worth confirming before T89/T91 land, neither a blocker: (1) the per-release content-hash manifest is a new build artifact — @devops should be aware it joins package data and the build must generate+verify it (ADR Consequences). (2) T91's contract doc edit assumes the FEAT-000013 contract doc exists and is the right home — @architect owns it, please confirm. The ADR itself is fully decided; no open design questions remain.
 <!-- sq:discussion:end -->

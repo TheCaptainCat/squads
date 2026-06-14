@@ -18,5 +18,8 @@ jobs:
         with:
           python-version-file: pyproject.toml
       - uses: astral-sh/setup-uv@v8.2.0
+      - run: uv sync --frozen
+      - name: regenerate template manifest
+        run: python scripts/gen_template_manifest.py
       - run: uv build
       - run: uv publish

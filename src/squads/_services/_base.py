@@ -24,8 +24,8 @@ from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import VALID_REF_KINDS, Item, split_ref
 from squads._paths import SquadPaths, number_for_id
-from squads._rendering._engine import render
-from squads._roles._catalog import role_by_slug
+from squads._rendering._engine import render, set_active_squad_dir
+from squads._roles._resolver import resolve_role
 from squads._services._results import CreateResult
 from squads._util import slugify
 from squads._workflow import initial_status, parent_allowed, parent_hint
@@ -81,6 +81,9 @@ class ServiceCore:
     def __init__(self, paths: SquadPaths):
         self.paths = paths
         self.store = IndexStore(paths.index_path, paths.lock_path)
+        # Activate the squad-aware template search path so render() picks up any project
+        # overrides under <squad_dir>/.overrides/templates/ for this service's squad.
+        set_active_squad_dir(paths.squad_dir)
 
     # ------------------------------------------------------------------ backend
     @property
@@ -289,7 +292,7 @@ class ServiceCore:
         if participant is not None:
             return participant.extra.get(X.FULL_NAME, slug)
         try:
-            return role_by_slug(slug).full_name
+            return resolve_role(slug, self.paths.squad_dir).full_name
         except SquadsError:
             return slug
 

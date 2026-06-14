@@ -3,7 +3,7 @@ id: FEAT-000015
 sequence_id: 15
 type: feature
 title: Machine-readable surface audit
-status: InProgress
+status: Done
 parent: EPIC-000012
 author: product-owner
 priority: high
@@ -24,7 +24,7 @@ subentities:
     upgrade can't break my parser unannounced
   status: Todo
 created_at: '2026-06-10T12:41:11Z'
-updated_at: '2026-06-12T15:44:25Z'
+updated_at: '2026-06-12T21:29:44Z'
 ---
 <!-- sq:body -->
 ## Problem

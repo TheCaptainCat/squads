@@ -46,17 +46,26 @@ def init(
     roles_spec: str = "all",
     no_claude: bool = False,
     force: bool = False,
+    names: dict[str, str] | None = None,
 ) -> InitResult:
+    """Initialise a new squad.
+
+    ``names`` maps role slug → full name for any roles that should have a custom name at
+    creation time (combines ``--name`` flags and ``[init.names]`` config).  Slugs not in
+    ``names`` fall through to the bundled pool / PREDEFINED.
+    """
     root = (root or Path.cwd()).resolve()
     config_path = root / CONFIG_FILENAME
     if config_path.exists() and not force:
         raise AlreadyInitializedError(f"{config_path} already exists (use --force to overwrite)")
 
+    effective_names = names or {}
     config = SquadsConfig(
         squad_dir=squad_dir,
         default_backend=backend,
         default_role="manager",
         squads_version=__version__,
+        init_names=effective_names,
     )
     config_path.write_text(config.to_toml(), encoding="utf-8")
 
@@ -74,7 +83,7 @@ def init(
         svc.scaffold_backend()
 
     role_defs: list[RoleDef] = resolve_roles(roles_spec) if roles_spec else []
-    created = [svc.activate_role(r.slug) for r in role_defs]
+    created = [svc.activate_role(r.slug, name=effective_names.get(r.slug)) for r in role_defs]
 
     if not no_claude:
         svc.refresh_managed()

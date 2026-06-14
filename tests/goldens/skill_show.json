@@ -1,0 +1,10 @@
+{
+  "id": "SKILL-000008",
+  "slug": "golden-skill",
+  "title": "golden-skill",
+  "status": "Active",
+  "description": "Test skill for golden snapshots",
+  "when_to_use": "",
+  "allowed_tools": "",
+  "path": "agents/skills/SKILL-000008-golden-skill.md"
+}

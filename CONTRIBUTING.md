@@ -69,3 +69,31 @@ Keep the gate green. PRs target `main` and run the `test` workflow. Releases are
 triggers `publish.yml` (PyPI trusted publishing). Bump `__version__` (in `squads/__init__.py` and
 `pyproject.toml`) and add a [CHANGELOG.md](CHANGELOG.md) entry when behaviour or the managed
 templates change — a version bump is also what nudges existing squads to `sq sync`.
+
+## Cutting a release
+
+1. Bump `__version__` in `src/squads/__init__.py` and `pyproject.toml` to the new version.
+2. Add a `CHANGELOG.md` entry.
+3. Regenerate the template manifest (required whenever bundled templates change, harmless otherwise):
+
+   ```bash
+   python scripts/gen_template_manifest.py
+   ```
+
+   This updates `src/squads/_rendering/templates_manifest.json`.  Commit the result alongside
+   any template changes.  The manifest ships automatically as package data — `uv build` picks it
+   up from the same directory.
+
+4. Commit, tag `v<version>`, and push.  The `publish` workflow runs `python
+   scripts/gen_template_manifest.py` (write mode) then `uv build` then `uv publish`.
+
+**Verification (optional local check):**
+
+```bash
+python scripts/gen_template_manifest.py --check   # exits 0 if manifest is current, 1 if stale
+uv build
+python -c "import zipfile, glob; z=zipfile.ZipFile(glob.glob('dist/*.whl')[0]); print([n for n in z.namelist() if 'templates_manifest' in n])"
+```
+
+The `test` CI also runs `python scripts/gen_template_manifest.py --check` as a named lint step, so
+a stale-manifest PR is caught before it reaches the release tag.

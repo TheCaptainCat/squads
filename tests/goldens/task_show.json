@@ -1,0 +1,31 @@
+{
+  "sequence_id": 3,
+  "type": "task",
+  "title": "Implement login",
+  "slug": "implement-login",
+  "status": "InProgress",
+  "description": "",
+  "parent": "FEAT-000002",
+  "author": "manager",
+  "assignee": null,
+  "priority": null,
+  "labels": [],
+  "refs": [
+    "BUG-000004:depends-on"
+  ],
+  "subentities": [
+    {
+      "local_id": "ST1",
+      "title": "Write login handler",
+      "status": "Todo",
+      "assignee": null,
+      "severity": null,
+      "story": "US1"
+    }
+  ],
+  "path": "tasks/TASK-000003-implement-login.md",
+  "created_at": "2026-06-07T10:00:00Z",
+  "updated_at": "2026-06-07T10:00:00Z",
+  "extra": {},
+  "id": "TASK-000003"
+}

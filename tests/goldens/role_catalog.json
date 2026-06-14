@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "manager",
+    "full_name": "Catherine Manager",
+    "title": "manager",
+    "is_default": true
+  },
+  {
+    "slug": "architect",
+    "full_name": "Robert Architect",
+    "title": "architect",
+    "is_default": false
+  },
+  {
+    "slug": "tech-lead",
+    "full_name": "Olivia Lead",
+    "title": "tech lead",
+    "is_default": false
+  },
+  {
+    "slug": "reviewer",
+    "full_name": "Paul Reviewer",
+    "title": "code reviewer",
+    "is_default": false
+  },
+  {
+    "slug": "qa",
+    "full_name": "Mara Tester",
+    "title": "QA engineer",
+    "is_default": false
+  },
+  {
+    "slug": "devops",
+    "full_name": "Hugo Ops",
+    "title": "DevOps engineer",
+    "is_default": false
+  },
+  {
+    "slug": "product-owner",
+    "full_name": "Nina Product",
+    "title": "product owner",
+    "is_default": false
+  },
+  {
+    "slug": "tech-writer",
+    "full_name": "Theo Writer",
+    "title": "technical writer",
+    "is_default": false
+  }
+]

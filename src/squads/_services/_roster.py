@@ -5,7 +5,7 @@ from squads._interactions import skills_for_role
 from squads._models._enums import ItemType, Status
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
-from squads._roles._catalog import dev_role, role_by_slug
+from squads._roles._resolver import resolve_dev_role, resolve_role
 from squads._services._base import ServiceCore
 from squads._services._results import WorkloadRow
 from squads._util import operator_slug, slugify
@@ -17,11 +17,22 @@ _NON_WORK_TYPES = _AGENT_TYPES | {ItemType.OPERATOR}
 
 
 class RosterMixin(ServiceCore):
-    def activate_role(self, slug: str) -> Item:
-        role = role_by_slug(slug)
+    def activate_role(self, slug: str, *, name: str | None = None) -> Item:
+        """Activate a bundled (or project-override) role.
+
+        ``name`` overrides the ``RoleDef.full_name`` that would otherwise be used.  When omitted
+        the name comes from the resolved ``RoleDef`` (which already reads project TOML overrides,
+        so a ``roles/<slug>.toml`` with ``full_name`` is also honoured).
+        """
+        role = resolve_role(slug, self.paths.squad_dir)
         existing = self._role_item(slug)
         if existing is not None:
             return existing
+        # Apply the explicit name override on top of whatever the resolver returned.
+        if name is not None:
+            from dataclasses import replace as dc_replace
+
+            role = dc_replace(role, full_name=name)
         res = self.create(
             ItemType.ROLE,
             role.full_name,
@@ -40,7 +51,9 @@ class RosterMixin(ServiceCore):
 
     def add_dev(self, tech: str, *, name: str | None = None, model: str | None = None) -> Item:
         seq = sum(1 for it in self.list_items(item_type=ItemType.ROLE) if it.extra.get(X.IS_DEV))
-        role = dev_role(tech, name=name, seq=seq, model=model)
+        role = resolve_dev_role(
+            tech, name=name, seq=seq, model=model, squad_dir=self.paths.squad_dir
+        )
         if self._role_item(role.slug) is not None:
             raise SquadsError(f"a developer with slug {role.slug!r} already exists")
         res = self.create(

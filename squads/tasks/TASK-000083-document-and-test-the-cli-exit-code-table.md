@@ -3,17 +3,19 @@ id: TASK-000083
 sequence_id: 83
 type: task
 title: Document and test the CLI exit-code table
-status: Ready
+status: Done
 parent: FEAT-000015
 author: tech-lead
 priority: high
+refs:
+- REV-000092:addresses
 subentities:
 - local_id: ST1
   title: Documented exit-code table asserted in tests
-  status: Todo
+  status: Done
   story: US2
 created_at: '2026-06-12T15:27:48Z'
-updated_at: '2026-06-12T20:42:44Z'
+updated_at: '2026-06-12T21:07:53Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -54,7 +56,7 @@ _Add with `sq task 83 add-subtask "<title>"`; track with `sq task 83 subtask <n>
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Documented exit-code table asserted in tests | US2 |
+| ST1 | Done |  | Documented exit-code table asserted in tests | US2 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -63,7 +65,7 @@ _Add with `sq task 83 add-subtask "<title>"`; track with `sq task 83 subtask <n>
 ### ST1 — Documented exit-code table asserted in tests
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US2 — As a CI pipeline author, I want documented exit codes, so that I can gate builds on commands like sq check
 <!-- sq:subtask:ST1:head:end -->
 
@@ -83,4 +85,16 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:discussion -->
 - [2026-06-12T20:42:44Z] Elias Python:
   - Note: the check exit-3 implementation (table path) landed early via REV-000086 F2. The table path of sq check now raises typer.Exit(3) on any error-level issues, matching the --json path. The existing test test_check_cli_flags_index_item_with_no_file was updated to assert exit 3. TASK-000083's remaining scope is: document the exit-code table (0/1/3) and add comprehensive exit-code tests — the implementation itself is already done.
+- [2026-06-12T21:00:12Z] Elias Python:
+  - Implementation complete. Here is what landed:
+  - **Code**: Updated the `check` command docstring in `src/squads/_cli/_main.py` to state the exit-0 / exit-3 contract and point at `sq docs faq`.
+  - **Docs**: Added an exit-code table FAQ entry to `docs/faq.md` covering codes 0, 1, 2, and 3 with a forward-link to FEAT-000013 for the formal stability doc. The entry also notes that warnings-only results exit 0.
+  - **Tests** (8 new in `tests/test_cli.py`, section TASK-000083): exit 0 on a clean squad, exit 0 on check with no issues, exit 0 on check with warnings only, exit 1 on SquadsError (unknown ID), exit 1 on schema-version mismatch, exit 2 on invalid --at timestamp, exit 3 on check with error-level issue (table path), exit 3 on check --json with error-level issue.
+  - Suite: 395 passed, 1 skipped. pyright clean, ruff clean. @reviewer ready for review.
+- [2026-06-12T21:03:38Z] Paul Reviewer:
+  - Reviewed under REV-000092 — **Approved**, no findings.
+  - Contract verified end-to-end: exit 0 (success / clean check / warnings-only), 1 (SquadsError + schema mismatch), 2 (bad --at), 3 (sq check error-level, both table and --json paths). The key invariant — exit 3 fires for error-level issues but NOT warnings-only — is directly proven by test_exit_code_0_check_warnings_only (asserts a warn is present yet exit_code == 0).
+  - Docs accurate: FAQ four-row table matches the frozen contract incl. the warnings-exit-0 note and FEAT-000013 forward-link; the docstring's `sq docs faq` cross-ref resolves (verified live).
+  - Suite green locally: uv run pytest → 395 passed, 1 skipped; pyright 0 errors; ruff check + format clean. The 8 new tests pass in isolation.
+  - Non-blocking nicety (not a finding): code 2's Typer/Click usage-error path (unknown option/missing arg) is documented but only the --at path is asserted — acceptable, since Typer owns that exit-2 guarantee. @tech-lead this task is good to move to Done.
 <!-- sq:discussion:end -->
