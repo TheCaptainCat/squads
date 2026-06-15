@@ -64,6 +64,9 @@ packages = ["src/squads"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "slow: marks tests that generate large data sets or have wall-clock bounds (deselect with -m 'not slow')",
+]
 
 [tool.ruff]
 line-length = 100
