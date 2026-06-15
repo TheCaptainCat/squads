@@ -89,6 +89,58 @@ def test_repair_rebuilds_index_from_frontmatter(svc):
     assert db.counter == 3
 
 
+def test_repair_carries_padding_forward(svc):
+    """repair() preserves stored padding as a floor (ADR-000104); default squads get 6."""
+    import json
+
+    svc.create(ItemType.TASK, "t")
+    # Default padding is 6.
+    assert svc.store.load().padding == 6
+    # repair on an unmodified squad keeps padding at 6.
+    result = svc.repair()
+    assert result.db.padding == 6
+
+    # Manually set padding to 7 in the index to simulate a post-repad squad.
+    raw = json.loads(svc.paths.index_path.read_text(encoding="utf-8"))
+    raw["padding"] = 7
+    svc.paths.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    # repair carries the stored floor forward (no files are at width 7, but stored > 6).
+    result = svc.repair()
+    assert result.db.padding == 7  # floor preserved
+
+
+def test_repair_writes_padding_for_pre_existing_index(svc):
+    """repair() materialises padding=6 into an index that predates the padding field."""
+    import json
+
+    svc.create(ItemType.TASK, "t")
+    # Remove padding from the index as if it were a pre-FEAT-000027 index.
+    raw = json.loads(svc.paths.index_path.read_text(encoding="utf-8"))
+    del raw["padding"]
+    svc.paths.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    # The model defaults missing padding to 6 on read, and repair writes it back.
+    result = svc.repair()
+    assert result.db.padding == 6
+    # Confirm it's physically in the file.
+    on_disk = json.loads(svc.paths.index_path.read_text(encoding="utf-8"))
+    assert on_disk["padding"] == 6
+
+
+def test_create_at_capacity_raises_index_full_error(svc):
+    """create raises SquadsError naming sq migrate repad when the counter hits capacity."""
+    import json
+
+    # Force the counter to the last valid slot for padding=6.
+    raw = json.loads(svc.paths.index_path.read_text(encoding="utf-8"))
+    raw["counter"] = 10**6 - 1  # 999_999
+    svc.paths.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    with pytest.raises(SquadsError, match="sq migrate repad"):
+        svc.create(ItemType.TASK, "overflow")
+
+
 def test_subentity_state_lives_in_frontmatter_not_markers(svc):
     feat = svc.create(ItemType.FEATURE, "Login").item
     svc.add_story(feat.id, "Reset password")  # US1
@@ -629,3 +681,383 @@ def test_check_no_warn_superseded_decision_with_edge(svc):
         if i.level == "warn" and "supersedes" in i.message and i.item == old_adr.id
     ]
     assert len(superseded_warns) == 0
+
+
+# ----------------------------------------------------------------- repair: F2 (REV-000105)
+
+
+def test_repair_raises_padding_from_filename_width(svc):
+    """repair() raises padding when an item file's digit-run is wider than the stored padding.
+
+    F2 (REV-000105): the filename-recompute arm of repair was untested.  Scenario: stored padding
+    is 6 but an item file was renamed to a width-7 name (as repad would do).  repair() must
+    detect the wider filename and raise padding to 7.
+    """
+    import json
+
+    from squads._models._enums import ItemType
+
+    task = svc.create(ItemType.TASK, "task").item
+    # Confirm default padding.
+    assert svc.store.load().padding == 6
+
+    # Rename the task file to a width-7 name to simulate a partial or completed repad.
+    old_path = svc.paths.abspath(task.path)
+    new_name = old_path.name.replace("TASK-000", "TASK-0000")  # e.g. TASK-0000002-task.md
+    new_path = old_path.parent / new_name
+    old_path.rename(new_path)
+
+    # Repair should detect the wider filename and raise padding to 7.
+    result = svc.repair()
+    assert result.db.padding == 7, "repair must raise padding to match the widest filename"
+
+    # The stored value must also be 7 on disk.
+    on_disk = json.loads(svc.paths.index_path.read_text(encoding="utf-8"))
+    assert on_disk["padding"] == 7
+
+
+# --------------------------------------------------------------------------- repad
+
+
+def test_repad_renames_files_and_bumps_padding(svc):
+    """repad(7) renames all item files to width-7 and stores padding=7."""
+    feat = svc.create(ItemType.FEATURE, "feat").item  # FEAT-000002
+    task = svc.create(ItemType.TASK, "task").item  # TASK-000003
+
+    renamed = svc.repad(7)
+
+    # All item files should now have width-7 digit runs.
+    for _, md in svc._iter_item_files():  # pyright: ignore[reportPrivateUsage]
+        stem = md.stem
+        _, _, digits_slug = stem.partition("-")
+        digit_run = digits_slug.split("-", 1)[0]
+        assert len(digit_run) == 7, f"expected width-7 digit run, got {digit_run!r} in {md.name}"
+
+    # The index must record the new padding.
+    db = svc.store.load()
+    assert db.padding == 7
+
+    # Items are keyed by sequence_id — all three items present.
+    assert feat.sequence_id in db.items
+    assert task.sequence_id in db.items
+
+    # renamed count: every item file (role + feat + task = 3)
+    assert renamed == 3
+
+
+def test_repad_refuses_to_lower(svc):
+    """repad raises SquadsError when the requested width is <= the current padding."""
+    svc.create(ItemType.TASK, "t")
+    assert svc.store.load().padding == 6
+
+    with pytest.raises(SquadsError, match="must be greater than"):
+        svc.repad(6)
+
+    with pytest.raises(SquadsError, match="must be greater than"):
+        svc.repad(5)
+
+
+def test_repad_leaves_file_contents_byte_identical(svc):
+    """repad only renames files; the bytes inside each file are unchanged."""
+    task = svc.create(ItemType.TASK, "byte check task").item
+
+    # Capture the file contents before repad.
+    old_path = svc.paths.abspath(task.path)
+    original_bytes = old_path.read_bytes()
+
+    svc.repad(7)
+
+    # The old path no longer exists.
+    assert not old_path.exists()
+
+    # Find the renamed file and check that its bytes are identical.
+    task_folder = svc.paths.folder_for(ItemType.TASK)
+    new_files = list(task_folder.glob("TASK-*.md"))
+    assert len(new_files) == 1, "expected exactly one task file after repad"
+    new_bytes = new_files[0].read_bytes()
+    assert new_bytes == original_bytes, "file contents must be byte-identical after repad"
+
+
+def test_repad_sq_check_clean_afterwards(svc):
+    """sq check must pass on a repadded squad."""
+    svc.create(ItemType.TASK, "t")
+    svc.repad(7)
+    issues = svc.check()
+    errors = [i for i in issues if i.level == "error"]
+    assert not errors, f"sq check errors after repad: {errors}"
+
+
+def test_repad_is_idempotent_on_already_wide_files(svc):
+    """repad(8) on a width-7 squad: files that are already width-8 are not re-renamed."""
+    svc.create(ItemType.TASK, "t")
+    svc.repad(7)
+    db7 = svc.store.load()
+    assert db7.padding == 7
+
+    renamed8 = svc.repad(8)
+    db8 = svc.store.load()
+    assert db8.padding == 8
+    # All files renamed from width-7 to width-8.
+    assert renamed8 > 0
+
+
+def test_renumber_plan_uses_supplied_padding(svc):
+    """_renumber_plan mints IDs at the supplied padding, not the hard-coded default.
+
+    F1 (REV-000105): simulate a width-7 squad by calling _renumber_plan with padding=7
+    and verifying that the minted collision-resolved IDs use 7-digit formatting.
+    """
+    from pathlib import Path
+
+    from squads._models._enums import ItemType
+    from squads._services._maintenance import MaintenanceMixin
+
+    # Build two synthetic _FileRec tuples that collide on sequence 3.
+    fid_a = "TASK-000003"
+    fid_b = "FEAT-000003"
+    fake_path = Path("/fake/path.md")
+    records = [
+        (fid_a, fake_path, ItemType.TASK, "task", 3),
+        (fid_b, fake_path, ItemType.FEATURE, "feat", 3),
+    ]
+    _, renames = MaintenanceMixin._renumber_plan(records, padding=7)  # pyright: ignore[reportPrivateUsage]
+    # The reassigned ID must use 7-digit formatting.
+    for _path, _item_type, _slug, new_id in renames:
+        _, digits_part = new_id.rsplit("-", 1)
+        assert len(digits_part) == 7, f"expected 7-digit id, got {new_id!r}"
+
+
+# --------------------------------------------------------------------------- width-tolerant IDs
+
+
+def test_display_uses_current_padding_after_repad(svc):
+    """After repad, item.id uses the new padding width (display always uses current padding).
+
+    The _propagate_padding model validator sets id_padding on all loaded items from
+    db.padding so item.id returns the current-width ID everywhere (FEAT-000027 / TASK-000103).
+    """
+    task = svc.create(ItemType.TASK, "t").item
+    assert task.id == "TASK-000002"  # width-6 before repad
+
+    svc.repad(7)
+
+    # After repad the stored padding is 7 and items loaded from the index must reflect it.
+    db = svc.store.load()
+    assert db.padding == 7
+    loaded_task = db.items[task.sequence_id]
+    assert loaded_task.id_padding == 7, "_propagate_padding must set id_padding from db.padding"
+    assert loaded_task.id == "TASK-0000002", "display must use the current (new) padding width"
+
+
+def test_refs_in_width_tolerant_after_repad(svc):
+    """refs_in() returns backrefs correctly when the stored ref uses the old padding.
+
+    Scenario: item A is created at width-6 and refs item B. Squad is then repadded to
+    width-7. refs_in(B's new-width ID) must still find A.
+    """
+    feat = svc.create(ItemType.FEATURE, "feat").item  # FEAT-000002
+    task = svc.create(ItemType.TASK, "task").item  # TASK-000003
+    svc.add_ref(task.id, feat.id)  # TASK-000003 → FEAT-000002 (width-6 stored ref)
+
+    svc.repad(7)
+
+    # After repad, feat's canonical ID becomes FEAT-0000002.
+    db = svc.store.load()
+    feat_new_id = db.items[feat.sequence_id].id
+    assert feat_new_id == "FEAT-0000002"
+
+    # refs_in must still find TASK-0000003 using the new-width ID.
+    backrefs = svc.refs_in(feat_new_id)
+    assert len(backrefs) == 1
+    task_new_id, kind = backrefs[0]
+    assert task_new_id == "TASK-0000003"
+    assert kind == "related"
+
+
+def test_backrefs_width_tolerant_after_repad(svc):
+    """SquadsDB.backrefs() works with old-width refs after a repad."""
+    feat = svc.create(ItemType.FEATURE, "feat").item
+    task = svc.create(ItemType.TASK, "task").item
+    svc.add_ref(task.id, feat.id)
+
+    svc.repad(7)
+    db = svc.store.load()
+
+    feat_new_id = db.items[feat.sequence_id].id  # "FEAT-0000002"
+    task_new_id = db.items[task.sequence_id].id  # "TASK-0000003"
+
+    result = db.backrefs(feat_new_id)
+    assert result == [task_new_id]
+
+
+def test_parent_lookup_width_tolerant_after_repad(svc):
+    """Parent stored with old-width ID still resolves correctly after repad.
+
+    index.get(item.parent) is width-tolerant via _seq; _check_items must not report a
+    dangling-parent error when parent holds an old-width string.
+    """
+    feat = svc.create(ItemType.FEATURE, "feat").item
+    task = svc.create(ItemType.TASK, "task", parent=feat.id).item
+    assert task.parent == "FEAT-000002"  # stored at width-6
+
+    svc.repad(7)
+
+    # The parent field in frontmatter still reads "FEAT-000002" (contents never rewritten).
+    db = svc.store.load()
+    loaded_task = db.items[task.sequence_id]
+    assert loaded_task.parent == "FEAT-000002"  # old width in frontmatter
+
+    # index.get resolves it correctly (width-tolerant via _seq).
+    parent_item = db.get(loaded_task.parent)
+    assert parent_item is not None
+    assert parent_item.sequence_id == feat.sequence_id
+
+    # sq check must be clean — no dangling-parent errors.
+    issues = svc.check()
+    errors = [i for i in issues if i.level == "error"]
+    assert not errors, f"errors after repad with old-width parent: {errors}"
+
+
+def test_add_ref_dedup_width_tolerant(svc):
+    """add_ref() does not duplicate a ref when re-adding across a repad boundary.
+
+    Before repad: item A refs item B ("FEAT-000002").
+    After repad:  add_ref(A, "FEAT-0000002") must replace the old ref, not add a second one.
+    """
+    feat = svc.create(ItemType.FEATURE, "feat").item
+    task = svc.create(ItemType.TASK, "task").item
+    svc.add_ref(task.id, feat.id)  # stores "FEAT-000002" in task's refs
+
+    svc.repad(7)
+
+    db = svc.store.load()
+    feat_new_id = db.items[feat.sequence_id].id  # "FEAT-0000002"
+    task_new_id = db.items[task.sequence_id].id
+
+    # Re-add the ref using the new-width ID.
+    updated_task = svc.add_ref(task_new_id, feat_new_id, kind="implements")
+
+    # Only one ref should exist, with the new-width ID and updated kind.
+    assert len(updated_task.refs) == 1
+    raw_ref = updated_task.refs[0]
+    ref_id, _, ref_kind_raw = raw_ref.partition(":")
+    ref_kind = ref_kind_raw or "related"
+    assert "FEAT" in ref_id  # canonical form
+    assert ref_kind == "implements"
+
+
+def test_rm_ref_width_tolerant(svc):
+    """rm_ref() removes a ref stored with old-width ID when addressed with new-width ID."""
+    feat = svc.create(ItemType.FEATURE, "feat").item
+    task = svc.create(ItemType.TASK, "task").item
+    svc.add_ref(task.id, feat.id)  # stores "FEAT-000002"
+
+    svc.repad(7)
+    db = svc.store.load()
+    feat_new_id = db.items[feat.sequence_id].id
+    task_new_id = db.items[task.sequence_id].id
+
+    # Remove using the new-width ID — must find and remove the old-width stored ref.
+    result = svc.rm_ref(task_new_id, feat_new_id)
+    assert result.refs == []
+
+
+def test_check_decisions_width_tolerant_after_repad(svc):
+    """_check_decisions does not false-warn when the supersedes ref uses the old width."""
+    adr1 = svc.create(ItemType.DECISION, "old decision").item
+    adr2 = svc.create(ItemType.DECISION, "new decision").item
+    svc.add_ref(adr2.id, adr1.id, kind="supersedes")
+    svc.set_status(adr1.id, Status.SUPERSEDED, force=True)
+
+    svc.repad(7)
+
+    # After repad, _check_decisions must not warn about the old-width supersedes ref.
+    issues = svc.check()
+    superseded_warns = [i for i in issues if "Superseded" in i.message and i.item == adr1.id]
+    assert not superseded_warns, f"spurious Superseded warning after repad: {superseded_warns}"
+
+
+def test_end_to_end_repad_resolution(svc):
+    """Full acceptance test: repad to width-7, every old-width ref/parent/mention still resolves.
+
+    This is the joint acceptance seam with TASK-000102: after sq migrate repad(7),
+    all old-width stored refs/parent/CLI addressing must work and sq check must be clean.
+    """
+    # Build a squad with cross-references and parent links (all width-6).
+    feat = svc.create(ItemType.FEATURE, "feat").item  # FEAT-000002
+    task = svc.create(ItemType.TASK, "task", parent=feat.id).item  # TASK-000003, parent FEAT-000002
+    bug = svc.create(ItemType.BUG, "bug").item  # BUG-000004
+    svc.add_ref(task.id, bug.id, kind="fixes")  # TASK-000003 fixes BUG-000004
+    svc.add_ref(feat.id, task.id, kind="related")  # FEAT-000002 refs TASK-000003
+
+    # Confirm width-6 state.
+    assert task.parent == "FEAT-000002"
+    assert svc.refs_in(bug.id) == [(task.id, "fixes")]
+
+    # --- Repad to width 7 ---
+    renamed = svc.repad(7)
+    assert renamed > 0
+
+    # After repad, the squad is at width-7.
+    db = svc.store.load()
+    assert db.padding == 7
+
+    # All items display at the new width.
+    feat7 = db.items[feat.sequence_id]
+    task7 = db.items[task.sequence_id]
+    bug7 = db.items[bug.sequence_id]
+    assert feat7.id == "FEAT-0000002"
+    assert task7.id == "TASK-0000003"
+    assert bug7.id == "BUG-0000004"
+
+    # Old-width parent ("FEAT-000002") resolves to the correct item.
+    parent_item = db.get(task7.parent)  # task7.parent is still "FEAT-000002"
+    assert parent_item is not None
+    assert parent_item.sequence_id == feat.sequence_id
+
+    # refs_in with new-width ID finds the old-width stored ref.
+    bug_backrefs = svc.refs_in(bug7.id)
+    assert any(seq_id == task7.id for seq_id, _ in bug_backrefs), (
+        f"TASK-0000003 must appear in BUG-0000004 backrefs; got {bug_backrefs}"
+    )
+
+    # backrefs on the DB level.
+    assert task7.id in db.backrefs(bug7.id)
+
+    # CLI addressing with the old-width ID resolves to the item (db.get is width-tolerant).
+    assert db.get("FEAT-000002") is feat7
+    assert db.get("TASK-000003") is task7
+    assert db.get("BUG-000004") is bug7
+
+    # CLI addressing with the new-width ID also resolves.
+    assert db.get("FEAT-0000002") is feat7
+    assert db.get("TASK-0000003") is task7
+
+    # sq check is clean (no dangling refs, no dangling parents, no reconciliation errors).
+    issues = svc.check()
+    errors = [i for i in issues if i.level == "error"]
+    assert not errors, f"sq check errors after repad: {errors}"
+
+
+def test_repair_after_repad_no_spurious_missing(svc):
+    """F3 (REV-000106): repair() after repad must not report any items as missing.
+
+    Before the F1 fix, _propagate_padding widens item.id strings in the prev snapshot
+    (width-7) while from_frontmatter rebuilds at the default width-6, so
+    previous_ids - found_ids equals the entire corpus.  This test must FAIL against that
+    bug and pass only after repair() computes missing_ids by sequence_id (int).
+    """
+    feat = svc.create(ItemType.FEATURE, "feat").item
+    task = svc.create(ItemType.TASK, "task", parent=feat.id).item
+    bug = svc.create(ItemType.BUG, "bug").item
+    svc.add_ref(task.id, bug.id, kind="fixes")
+
+    # Repad to width 7 — renames files, leaves frontmatter IDs at width 6.
+    renamed = svc.repad(7)
+    assert renamed > 0
+
+    # Running repair() again after repad must not report any spurious missing items.
+    rr = svc.repair()
+    assert rr.missing_ids == [], (
+        f"repair() reported spurious missing items after repad: {rr.missing_ids}"
+    )

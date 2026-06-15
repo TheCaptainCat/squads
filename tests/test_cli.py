@@ -1521,3 +1521,163 @@ def test_exit_code_3_check_json_error_level_issue(project, runner, frozen_time):
     assert r.exit_code == 3, r.output
     data = json.loads(r.output)
     assert any(issue["level"] == "error" for issue in data)
+
+
+# --------------------------------------------------------------------------- padding / FEAT-000027
+
+
+def test_repair_cli_holds_padding_after_file_loss(project, runner, frozen_time):
+    """sq repair preserves the stored padding floor even when item files are deleted."""
+    from squads._models._enums import ItemType
+    from squads._services._service import Service
+
+    svc = Service(project)
+    top = svc.create(ItemType.TASK, "task").item
+
+    # Bump padding to 7 in the index to simulate a post-repad squad.
+    raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    raw["padding"] = 7
+    svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    # Delete the task file so the corpus recompute would give width 6.
+    svc.paths.abspath(top.path).unlink()
+
+    r = runner.invoke(app, ["repair"])
+    assert r.exit_code == 0, r.output
+    # Padding must stay at 7 (floor from stored value, not regressed to 6).
+    assert svc.store.load().padding == 7
+
+
+def test_create_cli_exits_1_when_index_full(project, runner, frozen_time):
+    """sq create exits 1 with the index-full message naming sq migrate repad at capacity."""
+    from squads._services._service import Service
+
+    svc = Service(project)
+    # Force counter to 10^6 - 1 (all width-6 IDs exhausted).
+    raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    raw["counter"] = 10**6 - 1
+    svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
+
+    r = runner.invoke(app, ["create", "task", "overflow task", "--author", "manager"])
+    assert r.exit_code == 1, r.output
+    assert "sq migrate repad" in r.output
+
+
+def test_migrate_repad_cli(project, runner, frozen_time):
+    """sq migrate repad <width> renames files, prints summary, exits 0."""
+    from squads._models._enums import ItemType
+    from squads._services._service import Service
+
+    svc = Service(project)
+    svc.create(ItemType.TASK, "task one")
+
+    r = runner.invoke(app, ["migrate", "repad", "7"])
+    assert r.exit_code == 0, r.output
+    assert "repad done" in r.output
+    assert "6 → 7" in r.output
+    assert "sq check" in r.output
+
+    # Index padding updated.
+    assert svc.store.load().padding == 7
+
+    # All item files now have 7-digit widths.
+    for _, md in svc._iter_item_files():  # pyright: ignore[reportPrivateUsage]
+        stem = md.stem
+        _, _, digits_slug = stem.partition("-")
+        digit_run = digits_slug.split("-", 1)[0]
+        assert len(digit_run) == 7, f"expected 7-digit run, got {digit_run!r} in {md.name}"
+
+
+def test_migrate_repad_cli_refuses_to_lower(project, runner, frozen_time):
+    """sq migrate repad exits 1 when the requested width <= current padding."""
+    r = runner.invoke(app, ["migrate", "repad", "6"])
+    assert r.exit_code == 1, r.output
+    assert "must be greater than" in r.output
+
+
+# --------------------------------------------------------------------------- width-tolerant CLI
+
+
+def test_cli_old_width_address_resolves_after_repad(project, runner, frozen_time):
+    """CLI commands accept old-width IDs after a repad (width-tolerant addressing).
+
+    After sq migrate repad 7, 'sq task 2 show' must work whether the user passes
+    "TASK-000002" (old width), "TASK-0000002" (new width), or a bare number.
+    The item must display with the current (new) padding width.
+    """
+    import json as _json
+
+    from squads._models._enums import ItemType
+    from squads._services._service import Service
+
+    svc = Service(project)
+    svc.create(ItemType.TASK, "my task")  # TASK-000002
+
+    runner.invoke(app, ["migrate", "repad", "7"])
+
+    # Bare number — always works (width-agnostic).
+    r = runner.invoke(app, ["task", "2", "show", "--json"])
+    assert r.exit_code == 0, r.output
+    data = _json.loads(r.output)
+    assert data["id"] == "TASK-0000002", "display must use the current (new) padding width"
+
+    # Old-width full ID — must resolve.
+    r_old = runner.invoke(app, ["task", "TASK-000002", "show", "--json"])
+    assert r_old.exit_code == 0, r_old.output
+    data_old = _json.loads(r_old.output)
+    assert data_old["id"] == "TASK-0000002"
+
+    # New-width full ID — must also resolve.
+    r_new = runner.invoke(app, ["task", "TASK-0000002", "show", "--json"])
+    assert r_new.exit_code == 0, r_new.output
+    data_new = _json.loads(r_new.output)
+    assert data_new["id"] == "TASK-0000002"
+
+
+def test_cli_tree_with_mixed_width_after_repad(project, runner, frozen_time):
+    """sq tree resolves old-width and new-width root IDs correctly after a repad."""
+    import json as _json
+
+    from squads._models._enums import ItemType
+    from squads._services._service import Service
+
+    svc = Service(project)
+    svc.create(ItemType.FEATURE, "feat")  # FEAT-000002
+    svc.create(ItemType.TASK, "task", parent="FEAT-000002")  # TASK-000003
+
+    runner.invoke(app, ["migrate", "repad", "7"])
+
+    # sq tree with old-width ID must resolve and display current-width IDs.
+    r_old = runner.invoke(app, ["tree", "FEAT-000002", "--json"])
+    assert r_old.exit_code == 0, r_old.output
+    nodes = _json.loads(r_old.output)
+    assert len(nodes) == 1
+    assert nodes[0]["id"] == "FEAT-0000002"  # display uses current padding
+
+    # sq tree with new-width ID must also work.
+    r_new = runner.invoke(app, ["tree", "FEAT-0000002", "--json"])
+    assert r_new.exit_code == 0, r_new.output
+    nodes_new = _json.loads(r_new.output)
+    assert nodes_new[0]["id"] == "FEAT-0000002"
+
+    # The task appears as a child.
+    children = nodes[0]["children"]
+    assert any(c["id"] == "TASK-0000003" for c in children)
+
+
+def test_cli_check_clean_with_old_width_refs_after_repad(project, runner, frozen_time):
+    """sq check is clean when items hold old-width refs after a repad."""
+    from squads._models._enums import ItemType
+    from squads._services._service import Service
+
+    svc = Service(project)
+    feat = svc.create(ItemType.FEATURE, "feat").item  # FEAT-000002
+    task = svc.create(ItemType.TASK, "task").item  # TASK-000003
+    svc.add_ref(task.id, feat.id, kind="implements")  # TASK refs FEAT (width-6 stored)
+
+    runner.invoke(app, ["migrate", "repad", "7"])
+
+    r = runner.invoke(app, ["check", "--json"])
+    issues = json.loads(r.output)
+    errors = [i for i in issues if i["level"] == "error"]
+    assert not errors, f"sq check errors after repad with old-width refs: {errors}"

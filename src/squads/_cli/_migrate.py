@@ -90,6 +90,29 @@ def migrate_chlog(
         console.print(Markdown(f"{heading}\n\n{m.manual}"))
 
 
+@migrate_app.command("repad")
+@handle_errors
+def migrate_repad(
+    new_width: int = typer.Argument(
+        ..., metavar="WIDTH", help="New zero-pad digit width (must exceed current padding)."
+    ),
+):
+    """Raise the ID padding to WIDTH: rename every item file to the new width and rebuild the index.
+
+    One-way: WIDTH must be greater than the current stored padding. File *contents* are left
+    byte-untouched — only filenames change. Run `sq check` after to verify integrity.
+    """
+    svc = get_service()
+    db = svc.store.load()
+    current = db.padding
+    renamed = svc.repad(new_width)
+    console.print(
+        f"[green]repad done[/green]: padding {current} → {new_width}; "
+        f"{renamed} file(s) renamed; index rebuilt"
+    )
+    console.print("  run [cyan]`sq check`[/cyan] to verify integrity")
+
+
 def _parse_span(span: str) -> tuple[str, str]:
     lo, sep, hi = span.partition("..")
     if not sep:

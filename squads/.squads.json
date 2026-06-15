@@ -1,7 +1,8 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 100,
+  "counter": 106,
+  "padding": 6,
   "items": {
     "12": {
       "sequence_id": 12,
@@ -67,7 +68,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-12T22:05:08Z",
+      "updated_at": "2026-06-14T21:00:05Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -1010,7 +1011,7 @@
       "type": "feature",
       "title": "Explicit ID padding with a raise-padding migration",
       "slug": "explicit-id-padding-with-a-raise-padding-migration",
-      "status": "Ready",
+      "status": "Done",
       "description": "padding: 6 stored in the index; create errors when the counter would overflow it; a one-way repad command renames all files to the new width; ID parsing tolerant of any width since file contents are never rewritten",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -1019,13 +1020,14 @@
       "labels": [],
       "refs": [
         "FEAT-000013",
-        "FEAT-000019:depends-on"
+        "FEAT-000019:depends-on",
+        "ADR-000104"
       ],
       "subentities": [
         {
           "local_id": "US1",
           "title": "As a squad owner whose counter hits the cap, I want create to fail with a clear index-full error naming the fix, so that the format never silently grows a digit",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1033,7 +1035,7 @@
         {
           "local_id": "US2",
           "title": "As a squad owner raising the padding, I want one command that renames every file to the new width and rebuilds the index, so that the squad stays uniform without hand-work",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1041,7 +1043,7 @@
         {
           "local_id": "US3",
           "title": "As a teammate whose items hold old-width refs and mentions, I want ID parsing tolerant of any padding, so that content written before the raise keeps resolving forever",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1049,7 +1051,7 @@
       ],
       "path": "features/FEAT-000027-explicit-id-padding-with-a-raise-padding-migration.md",
       "created_at": "2026-06-10T15:04:04Z",
-      "updated_at": "2026-06-11T07:54:55Z",
+      "updated_at": "2026-06-14T22:07:30Z",
       "extra": {},
       "id": "FEAT-000027"
     },
@@ -3672,6 +3674,218 @@
       "updated_at": "2026-06-14T20:45:23Z",
       "extra": {},
       "id": "FEAT-000100"
+    },
+    "101": {
+      "sequence_id": 101,
+      "type": "task",
+      "title": "Store padding in the index, derive all ID formatting from it, and guard create against exhaustion",
+      "slug": "store-padding-in-the-index-derive-all-id-formatting-from-it",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000027",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000104",
+        "REV-000105:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Padding stored in index; all ID formatting derives from it; allocate_id raises index-full at capacity naming sq migrate repad",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000101-store-padding-in-the-index-derive-all-id-formatting-from-it.md",
+      "created_at": "2026-06-14T20:56:35Z",
+      "updated_at": "2026-06-14T21:20:14Z",
+      "extra": {},
+      "id": "TASK-000101"
+    },
+    "102": {
+      "sequence_id": 102,
+      "type": "task",
+      "title": "sq migrate repad: one-way padding bump that renames every item file to the new width and rebuilds the index",
+      "slug": "sq-migrate-repad-one-way-padding-bump-that-renames-every-ite",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000027",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000101:depends-on",
+        "REV-000106:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq migrate repad <width>: one-way bump, renames all item files to new width, rebuilds index, refuses to lower, file contents byte-untouched; sq check clean after",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000102-sq-migrate-repad-one-way-padding-bump-that-renames-every-ite.md",
+      "created_at": "2026-06-14T20:56:35Z",
+      "updated_at": "2026-06-14T22:06:25Z",
+      "extra": {},
+      "id": "TASK-000102"
+    },
+    "103": {
+      "sequence_id": 103,
+      "type": "task",
+      "title": "Width-tolerant ID reading everywhere; display always uses current padding",
+      "slug": "width-tolerant-id-reading-everywhere-display-always-uses-cur",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000027",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000101:depends-on",
+        "REV-000106:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Width-tolerant ID equality in resolver/backrefs/check; mixed-width refs+mentions+parent+CLI args resolve; display uses current padding; mixed-width fixture tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000103-width-tolerant-id-reading-everywhere-display-always-uses-cur.md",
+      "created_at": "2026-06-14T20:56:35Z",
+      "updated_at": "2026-06-14T22:06:25Z",
+      "extra": {},
+      "id": "TASK-000103"
+    },
+    "104": {
+      "sequence_id": 104,
+      "type": "decision",
+      "title": "The index may hold corpus-derived format parameters carried as a floor (padding, counter)",
+      "slug": "the-index-may-hold-corpus-derived-format-parameters-carried",
+      "status": "Accepted",
+      "description": "Refines invariant 1: squad-wide format/allocation parameters (counter, ID padding) are reconstructed from the file corpus with the stored value as a floor; this is permitted and is not per-item state in the index.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000071",
+        "ADR-000072",
+        "FEAT-000027"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000104-the-index-may-hold-corpus-derived-format-parameters-carried.md",
+      "created_at": "2026-06-14T20:59:27Z",
+      "updated_at": "2026-06-14T21:00:52Z",
+      "extra": {},
+      "id": "ADR-000104"
+    },
+    "105": {
+      "sequence_id": 105,
+      "type": "review",
+      "title": "Review of TASK-000101 — explicit ID padding foundation",
+      "slug": "review-of-task-000101-explicit-id-padding-foundation",
+      "status": "Approved",
+      "description": "Padding stored in index, single formatter, exhaustion guard, repair floor",
+      "parent": "TASK-000101",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000104"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "_renumber_plan formats collision-renumber IDs at DEFAULT padding, not db.padding. src/squads/_services/_maintenance.py:246 calls format_item_id(item_type.prefix, next_free) with no padding arg, so it always emits width-6 IDs. On a squad that has been repadded to width 7, a merge-collision repair --renumber would mint width-6 filenames into an otherwise width-7 corpus, re-introducing exactly the mixed-width state this feature exists to prevent. Borderline scope (renumber is merge-collision repair; the repad command is TASK-102), but the fix is one argument. Suggested fix: thread the rebuilt db.padding into _renumber_plan (it is a @staticmethod with no db access today) and pass it as the third arg to format_item_id, OR document explicitly that renumber-width follows in TASK-103 width-tolerant work. Flagging so it is a conscious decision, not an oversight.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "No test exercises the filename-recompute arm of repair's max(stored_floor, max_filename_width). Every padding test (test_service.py:92-127, test_cli.py:1529) only manipulates the STORED padding and keeps filenames at width 6; none creates item files whose digit-run is width 7 with a stored floor of 6 and asserts repair raises padding to 7. That recompute (src/squads/_services/_maintenance.py:199-203) is the heart of ADR-000104 and the architect's explicit guard (read the digit-run width, ignore non-item files). It is currently unverified. Suggested fix: add one test that renames a created item file to a width-7 name (TASK-0000007-...md), leaves the stored padding at 6, runs repair, and asserts result.db.padding == 7 — the partial-corpus / post-repad-pre-repair scenario the floor+recompute pair is designed for.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Dead/redundant code in the repair padding computation. src/squads/_services/_maintenance.py:204-208: 'max_filename_width if max_filename_width > 0 else 0' is a no-op (a value is already >0 or it is 0), and the following 'if db.padding < DEFAULT_ID_PADDING: db.padding = DEFAULT_ID_PADDING' guard can never fire — previous_padding is seeded to DEFAULT_ID_PADDING (6) and carried as the floor, so db.padding = max(>=6, ...) is always >=6. Harmless but it obscures the actual invariant. Suggested fix: collapse to db.padding = max(previous_padding, max_filename_width) and drop the trailing guard, with a one-line comment that previous_padding already floors at 6 via the model default. Clarity only.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000105-review-of-task-000101-explicit-id-padding-foundation.md",
+      "created_at": "2026-06-14T21:18:09Z",
+      "updated_at": "2026-06-14T21:19:00Z",
+      "extra": {},
+      "id": "REV-000105"
+    },
+    "106": {
+      "sequence_id": 106,
+      "type": "review",
+      "title": "Review of TASK-000102 + TASK-000103 — repad command and width-tolerant ID reading (FEAT-000027 completion)",
+      "slug": "review-of-task-000102-task-000103-repad-command-and-width-to",
+      "status": "Approved",
+      "description": "Joint review of the post-101 work: sq migrate repad and width-tolerant reads; one medium finding (spurious repair missing_ids after repad), one low (hand-rolled width in repad).",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "repad leaves sq repair reporting EVERY item as a spurious 'missing' warning",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "repad hand-rolls the zero-pad width instead of routing through format_item_id",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "End-to-end test does not exercise sq repair after repad, so the missing_ids regression slipped through",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000106-review-of-task-000102-task-000103-repad-command-and-width-to.md",
+      "created_at": "2026-06-14T21:56:33Z",
+      "updated_at": "2026-06-14T22:06:18Z",
+      "extra": {},
+      "id": "REV-000106"
     }
   }
 }

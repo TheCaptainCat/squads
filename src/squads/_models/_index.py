@@ -1,17 +1,23 @@
 """The single global index: ``<squad-dir>/.squads.json``.
 
-Holds the global monotonic counter and every item, **keyed by the item's integer sequence number**
-(``Item.sequence_id`` — a stored field; the formatted ``id`` is derived from it + ``type``). The
-``.md`` frontmatter is the durable truth (it persists both ``id`` and ``sequence_id``); this file is
-an authoritative-at-runtime index rebuildable from those files (``sq repair``).
+Holds the global monotonic counter, the ID-padding width, and every item, **keyed by the item's
+integer sequence number** (``Item.sequence_id`` — a stored field; the formatted ``id`` is derived
+from it + ``type``).  The ``.md`` frontmatter is the durable truth (it persists both ``id`` and
+``sequence_id``); this file is an authoritative-at-runtime index rebuildable from those files
+(``sq repair``).
+
+``padding`` is a squad-wide format/allocation parameter (see ADR-000104): reconstructed by
+``sq repair`` as ``max(stored_padding, max_filename_width)`` — like the counter is carried forward.
+Default is :data:`~squads._models._item.DEFAULT_ID_PADDING` (6) for pre-existing squads.
 """
 
 from typing import Any, cast
 
 from pydantic import BaseModel, NonNegativeInt, model_validator
 
+from squads._errors import SquadsError
 from squads._models._enums import ItemType
-from squads._models._item import Item, split_ref
+from squads._models._item import DEFAULT_ID_PADDING, Item, format_item_id, split_ref
 from squads._models._schema import SCHEMA_VERSION
 from squads._util import NonEmpty
 
@@ -29,6 +35,9 @@ class SquadsDB(BaseModel):
     squads_version: NonEmpty = "0.0.0"
     #: One global monotonic counter; numbers are unique across all types.
     counter: NonNegativeInt = 0
+    #: Zero-pad width for all item IDs in this squad (e.g. 6 → ``TASK-000007``).
+    #: Authoritative index state; see ADR-000104.  Never shrinks.
+    padding: NonNegativeInt = DEFAULT_ID_PADDING
     #: Items keyed by their global sequence number (the int behind the id).
     items: dict[int, Item] = {}
 
@@ -46,10 +55,39 @@ class SquadsDB(BaseModel):
             d = {**d, "items": {_seq(k): v for k, v in cast("dict[Any, Any]", items).items()}}
         return d
 
+    @model_validator(mode="after")
+    def _propagate_padding(self) -> SquadsDB:
+        """Propagate the squad's stored padding to every item's ``id_padding``.
+
+        ``id_padding`` is excluded from JSON serialisation (never persisted), so items loaded
+        from the index always come back with the default (6).  This post-load step sets the
+        correct value so ``item.id`` always reflects the current squad width everywhere —
+        display, CLI addressing, and equality comparisons are all consistent (FEAT-000027 /
+        ADR-000104).
+        """
+        for item in self.items.values():
+            item.id_padding = self.padding
+        return self
+
+    def format_id(self, item_type: ItemType, sequence_id: int) -> str:
+        """Format an item ID at this squad's current padding width."""
+        return format_item_id(item_type.prefix, sequence_id, self.padding)
+
     def allocate_id(self, item_type: ItemType) -> str:
-        """Bump the global counter and format the next ID for ``item_type``."""
+        """Bump the global counter and return the next ID for ``item_type``.
+
+        Raises :class:`~squads._errors.SquadsError` when the counter would exceed the capacity for
+        the current padding (e.g. 999 999 at width 6).  Run ``sq migrate repad <width>`` to raise
+        the padding and continue.
+        """
+        capacity = 10**self.padding - 1
+        if self.counter >= capacity:
+            raise SquadsError(
+                f"index is full: all {capacity:,} IDs at padding {self.padding} are used up. "
+                "Raise the padding with `sq migrate repad <new-width>`."
+            )
         self.counter += 1
-        return f"{item_type.prefix}-{self.counter:06d}"
+        return self.format_id(item_type, self.counter)
 
     def add(self, item: Item) -> None:
         self.items[item.sequence_id] = item
@@ -61,10 +99,27 @@ class SquadsDB(BaseModel):
             return None
 
     def backrefs(self, item_id: str) -> list[str]:
-        """Compute (never store) the items whose forward refs point at ``item_id``."""
-        return sorted(
-            i.id for i in self.items.values() if any(split_ref(r)[0] == item_id for r in i.refs)
-        )
+        """Compute (never store) the items whose forward refs point at ``item_id``.
+
+        Comparison is by (prefix, sequence-number) so old-width ref strings
+        (``"TASK-000007"``) and new-width item IDs (``"TASK-0000007"``) are treated as equal
+        — file contents are never rewritten by ``sq migrate repad``, so refs keep their
+        original width forever.  Type-prefix matching prevents false positives when two items
+        share a sequence number (collision state during renumber).
+        """
+        target_seq = _seq(item_id)
+        # Extract the type prefix from item_id (e.g. "TASK" from "TASK-000007").
+        target_prefix, _, _ = item_id.rpartition("-")
+        target_prefix = target_prefix.upper()
+
+        def _ref_matches(r: str) -> bool:
+            rid = split_ref(r)[0]
+            head, _, digits = rid.rpartition("-")
+            return bool(
+                digits.isdigit() and head.upper() == target_prefix and int(digits) == target_seq
+            )
+
+        return sorted(i.id for i in self.items.values() if any(_ref_matches(r) for r in i.refs))
 
     def to_json(self) -> str:
         return self.model_dump_json(indent=2, exclude_none=False)

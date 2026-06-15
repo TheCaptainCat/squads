@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, Field, computed_field
 
 from squads import _clock as clock
 from squads._models._enums import ItemType, Priority, Status
@@ -12,6 +12,19 @@ from squads._util import NonEmpty
 
 REF_SEP = ":"
 DEFAULT_KIND = "related"
+
+#: The default (and minimum) number of zero-padded digits in a formatted ID (e.g. ``TASK-000007``).
+#: Changing this requires a ``sq migrate repad`` run; see FEAT-000027.
+DEFAULT_ID_PADDING: int = 6
+
+
+def format_item_id(prefix: str, sequence_id: int, padding: int = DEFAULT_ID_PADDING) -> str:
+    """Format a typed item ID from its prefix, sequence number, and zero-pad width.
+
+    This is the single canonical formatter; all `:0Nd` formatting elsewhere must route through it.
+    """
+    return f"{prefix}-{sequence_id:0{padding}d}"
+
 
 #: The closed vocabulary of ref kinds for 1.0 — exhaustive, no custom-kind escape hatch.
 #: See ADR-000049. Consumers: blocks/depends-on → sq blocked; fixes/addresses → sq check
@@ -72,6 +85,10 @@ class Item(BaseModel):
     updated_at: datetime
     #: Type-specific fields (e.g. agent role config, dev tech, adr context).
     extra: dict[str, Any] = {}
+    #: Zero-pad width for this item's formatted ID.  Threaded in from ``SquadsDB.padding`` at
+    #: construction time; excluded from JSON/frontmatter serialisation so it is never persisted.
+    #: Defaults to :data:`DEFAULT_ID_PADDING` (6) for items loaded from disk (``from_frontmatter``).
+    id_padding: int = Field(default=DEFAULT_ID_PADDING, exclude=True, repr=False)
 
     model_config = {"use_enum_values": False}
 
@@ -80,9 +97,11 @@ class Item(BaseModel):
     def id(self) -> str:
         """The formatted id (``TASK-000007``) — derived from ``type`` + ``sequence_id``.
 
+        Width is governed by :attr:`id_padding` (default :data:`DEFAULT_ID_PADDING`); set from
+        ``SquadsDB.padding`` so the ID always matches the squad's current zero-pad width.
         Written to frontmatter as the durable human id; reconstructed via ``from_frontmatter``.
         """
-        return f"{self.type.prefix}-{self.sequence_id:06d}"
+        return format_item_id(self.type.prefix, self.sequence_id, self.id_padding)
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The mapping written into the markdown file's YAML frontmatter (durable truth)."""

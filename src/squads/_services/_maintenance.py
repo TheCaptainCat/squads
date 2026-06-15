@@ -7,7 +7,7 @@ from typing import Any
 
 from squads import __version__
 from squads import _sections as sections
-from squads._errors import RoleNotFoundError
+from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._resolver import item_file
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
@@ -15,7 +15,13 @@ from squads._models import _markers as markers
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import VALID_REF_KINDS, Item, split_ref
+from squads._models._item import (
+    DEFAULT_ID_PADDING,
+    VALID_REF_KINDS,
+    Item,
+    format_item_id,
+    split_ref,
+)
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import number_for_id
 from squads._rendering._engine import render
@@ -159,15 +165,22 @@ class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ repair / renumber
     def repair(self, *, renumber: bool = False) -> RepairResult:
         # Snapshot the previous index (if any) before rebuilding, so we can:
-        #  (a) preserve the high-water mark of the counter, and
-        #  (b) report items that were indexed but whose files have gone missing.
+        #  (a) preserve the high-water mark of the counter,
+        #  (b) preserve the padding floor (ADR-000104), and
+        #  (c) report items that were indexed but whose files have gone missing.
         previous_counter = 0
-        previous_ids: set[str] = set()
+        previous_padding = DEFAULT_ID_PADDING
+        # Keyed by sequence_id (int) so the comparison is width-tolerant: _propagate_padding
+        # widens item.id strings when loading from an already-repadded index, while
+        # from_frontmatter below rebuilds at the default width.  Comparing by the integer
+        # sequence number avoids the cross-width mismatch (mirrors _check_reconciliation).
+        previous_seq_to_id: dict[int, str] = {}
         if self.store.exists():
             try:
                 prev = self.store.load()
                 previous_counter = prev.counter
-                previous_ids = {it.id for it in prev.items.values()}
+                previous_padding = prev.padding
+                previous_seq_to_id = {it.sequence_id: it.id for it in prev.items.values()}
             except Exception:  # corrupt index — treat as empty
                 pass
 
@@ -175,8 +188,9 @@ class MaintenanceMixin(ServiceCore):
             self._renumber()
 
         db = SquadsDB(squads_version=__version__, counter=0)
-        found_ids: set[str] = set()
+        found_seqs: set[int] = set()
         max_n = 0
+        max_filename_width = 0
         for item_type, md in self._iter_item_files():
             data = read_frontmatter(md)
             if not data.get("id"):
@@ -184,16 +198,80 @@ class MaintenanceMixin(ServiceCore):
             squad_rel = self.paths.squad_relative(item_type, md.name)
             item = Item.from_frontmatter(data, path=squad_rel)
             db.add(item)
-            found_ids.add(item.id)
+            found_seqs.add(item.sequence_id)
             max_n = max(max_n, number_for_id(item.id))
+            # Derive the filename digit-run width (PREFIX-<digits>-<slug>.md).
+            # The filename, not the frontmatter id, is the in-corpus record of a repad.
+            stem = md.stem  # e.g. "TASK-000007-fix-login"
+            _, _, digits_slug = stem.partition("-")  # e.g. "000007-fix-login"
+            digit_run = digits_slug.split("-", 1)[0]  # e.g. "000007"
+            if digit_run.isdigit():
+                max_filename_width = max(max_filename_width, len(digit_run))
 
         # Never let the counter regress: keep whichever is higher — the previous high-water mark
         # or the maximum sequence number found on disk.
         db.counter = max(previous_counter, max_n)
+        # Padding (ADR-000104): max(stored_floor, corpus_max_filename_width).
+        # The stored value is the floor; the filename scan is the recompute.
+        # Backfill: previous_padding defaults to DEFAULT_ID_PADDING (6) for pre-existing squads.
+        # F3 (REV-000105): collapsed to a single max() — the <6 guard can never fire when
+        # previous_padding >= DEFAULT_ID_PADDING (always true via the model default), and the
+        # >0 conditional arm was a no-op because max(floor, 0) == floor already.
+        db.padding = max(previous_padding, max_filename_width)
         self.store.overwrite(db)
 
-        missing_ids = sorted(previous_ids - found_ids)
+        missing_seqs = sorted(previous_seq_to_id.keys() - found_seqs)
+        missing_ids = [previous_seq_to_id[s] for s in missing_seqs]
         return RepairResult(db=db, missing_ids=missing_ids)
+
+    # ------------------------------------------------------------------ repad
+    def repad(self, new_padding: int) -> int:
+        """Raise the squad's ID padding to ``new_padding`` and rename every item file.
+
+        One-way, irreversible format bump (FEAT-000027, ADR-000104):
+
+        - Refuses if ``new_padding`` <= the current stored padding (padding never shrinks).
+        - Renames every item file across all type folders to
+          ``PREFIX-<seq zero-padded to new_padding>-<slug>.md``.
+        - File *contents* are left byte-untouched — only filenames change.
+        - Calls :meth:`repair` afterwards to rebuild the index with the new padding stored and
+          all ``path`` fields updated.
+
+        Returns the number of files renamed.
+        """
+        db = self.store.load()
+        current = db.padding
+        if new_padding <= current:
+            raise SquadsError(
+                f"new padding {new_padding} must be greater than the current padding {current}; "
+                "padding can only increase (one-way format bump)"
+            )
+
+        renamed = 0
+        for item_type, md in self._iter_item_files():
+            stem = md.stem  # e.g. "TASK-000007-fix-login"
+            # Parse digit-run from the stem: PREFIX-<digits>-<slug>
+            _, _, digits_slug = stem.partition("-")  # "000007-fix-login"
+            digit_run, _, slug_part = digits_slug.partition("-")  # "000007", "fix-login"
+            if not digit_run.isdigit():
+                continue  # malformed filename — skip
+            seq = int(digit_run)
+            # Build the new filename via the canonical formatter — no hand-rolled :0Nd here.
+            base = format_item_id(item_type.prefix, seq, new_padding)
+            new_name = f"{base}-{slug_part}.md" if slug_part else f"{base}.md"
+            new_path = md.parent / new_name
+            if new_path != md:
+                md.rename(new_path)
+                renamed += 1
+
+        # Write the new padding into the index before calling repair, so repair's stored-floor
+        # logic picks it up and writes it back out.
+        with self.store.transaction() as _db:
+            _db.padding = new_padding
+
+        # Rebuild the index so path fields and all item IDs reflect the new width.
+        self.repair()
+        return renamed
 
     def _scan_records(self) -> list[_FileRec]:
         records: list[_FileRec] = []
@@ -209,8 +287,13 @@ class MaintenanceMixin(ServiceCore):
     @staticmethod
     def _renumber_plan(
         records: list[_FileRec],
+        padding: int = DEFAULT_ID_PADDING,
     ) -> tuple[dict[str, str], list[tuple[Path, ItemType, str, str]]]:
-        """Assign fresh numbers to ID-number collisions. Returns (id remap, files to rename)."""
+        """Assign fresh numbers to ID-number collisions. Returns (id remap, files to rename).
+
+        ``padding`` is the squad's current padding (from ``db.padding``); all minted IDs use it
+        so renumber on a width-7 squad does not produce width-6 filenames (F1, REV-000105).
+        """
         by_number: dict[int, list[_FileRec]] = {}
         for rec in records:
             by_number.setdefault(rec[4], []).append(rec)
@@ -219,7 +302,7 @@ class MaintenanceMixin(ServiceCore):
         renames: list[tuple[Path, ItemType, str, str]] = []
         for number in sorted(by_number):
             for fid, md, item_type, slug, _ in sorted(by_number[number], key=lambda r: r[0])[1:]:
-                new_id = f"{item_type.prefix}-{next_free:06d}"
+                new_id = format_item_id(item_type.prefix, next_free, padding)
                 next_free += 1
                 remap[fid] = new_id
                 renames.append((md, item_type, slug, new_id))
@@ -228,7 +311,8 @@ class MaintenanceMixin(ServiceCore):
     def _renumber(self) -> dict[str, str]:
         """Resolve duplicate global ID numbers from a merge: reassign + rewrite references."""
         records = self._scan_records()
-        remap, renames = self._renumber_plan(records)
+        padding = self.store.load().padding if self.store.exists() else DEFAULT_ID_PADDING
+        remap, renames = self._renumber_plan(records, padding)
         if not remap:
             return {}
         # rewrite every reference to a remapped id across all files (frontmatter + body + inline)
@@ -263,9 +347,19 @@ class MaintenanceMixin(ServiceCore):
         ]
         return issues
 
-    def _scan_for_check(self) -> tuple[list[CheckIssue], dict[str, tuple[Path, dict[str, Any]]]]:
+    def _scan_for_check(
+        self,
+    ) -> tuple[list[CheckIssue], dict[int, tuple[str, Path, dict[str, Any]]]]:
+        """Scan every item file for marker issues and frontmatter.
+
+        Returns ``(issues, on_disk)`` where ``on_disk`` is keyed by the item's **sequence
+        number** (int) so reconciliation comparisons are width-tolerant — frontmatter ``id``
+        fields keep their old width after ``sq migrate repad`` while the index reports the
+        new width.  The stored tuple is ``(fid, path, frontmatter_data)`` so error messages
+        can still name the original frontmatter ID.
+        """
         issues: list[CheckIssue] = []
-        on_disk: dict[str, tuple[Path, dict[str, Any]]] = {}
+        on_disk: dict[int, tuple[str, Path, dict[str, Any]]] = {}
         for _, md in self._iter_item_files():
             text = md.read_text(encoding="utf-8")
             issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
@@ -274,29 +368,36 @@ class MaintenanceMixin(ServiceCore):
             if not fid:
                 issues.append(CheckIssue("error", md.name, "file has no `id` in frontmatter"))
                 continue
-            on_disk[fid] = (md, data)
+            seq = number_for_id(fid)
+            on_disk[seq] = (fid, md, data)
         return issues, on_disk
 
     @staticmethod
     def _check_reconciliation(
-        index: SquadsDB, on_disk: dict[str, tuple[Path, dict[str, Any]]]
+        index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
     ) -> list[CheckIssue]:
-        index_ids = {it.id for it in index.items.values()}
+        """Reconcile index items against on-disk files, comparing by sequence number.
+
+        Using sequence numbers (not full-ID strings) makes the comparison width-tolerant:
+        frontmatter ``id`` fields keep their old padding after ``sq migrate repad``, but the
+        index reports the current-padding ID — both sides map to the same integer sequence.
+        """
+        index_seqs = {it.sequence_id for it in index.items.values()}
         issues = [
             CheckIssue("error", fid, "on disk but not in index (run `sq repair`)")
-            for fid in on_disk
-            if fid not in index_ids
+            for seq, (fid, _md, _data) in on_disk.items()
+            if seq not in index_seqs
         ]
         issues += [
             CheckIssue("error", it.id, "in index but no markdown file found")
             for it in index.items.values()
-            if it.id not in on_disk
+            if it.sequence_id not in on_disk
         ]
         return issues
 
     @staticmethod
     def _check_items(
-        index: SquadsDB, on_disk: dict[str, tuple[Path, dict[str, Any]]]
+        index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
     ) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
         registered = {
@@ -334,8 +435,10 @@ class MaintenanceMixin(ServiceCore):
                             "warn", iid, f"{field} {slug!r} is not a registered agent or operator"
                         )
                     )
-            if iid in on_disk:
-                issues += _drift_issues(iid, item, on_disk[iid][1])
+            # Lookup by sequence number: frontmatter id width may differ from item.id after repad.
+            disk_entry = on_disk.get(item.sequence_id)
+            if disk_entry is not None:
+                issues += _drift_issues(iid, item, disk_entry[2])
         return issues
 
     @staticmethod
@@ -384,21 +487,25 @@ class MaintenanceMixin(ServiceCore):
 
     @staticmethod
     def _check_decisions(index: SquadsDB) -> list[CheckIssue]:
-        """Warn on Superseded decisions with no incoming ``supersedes`` edge."""
+        """Warn on Superseded decisions with no incoming ``supersedes`` edge.
+
+        The ``supersedes`` target is stored as a ref string with whatever width it had when it
+        was written — sequence-number comparison makes it width-tolerant after a repad.
+        """
         from squads._models._enums import Status
 
         issues: list[CheckIssue] = []
-        # Collect decision ids that have an incoming supersedes edge from any item.
-        has_incoming_supersedes: set[str] = set()
+        # Collect sequence numbers of decisions that have an incoming supersedes edge.
+        has_incoming_supersedes: set[int] = set()
         for it in index.items.values():
             for r in it.refs:
                 rid, kind = split_ref(r)
                 if kind == "supersedes":
-                    has_incoming_supersedes.add(rid)
+                    has_incoming_supersedes.add(number_for_id(rid))
         for item in index.items.values():
             if item.type is not ItemType.DECISION:
                 continue
-            if item.status is Status.SUPERSEDED and item.id not in has_incoming_supersedes:
+            if item.status is Status.SUPERSEDED and item.sequence_id not in has_incoming_supersedes:
                 issues.append(
                     CheckIssue(
                         "warn",

@@ -27,7 +27,7 @@ from squads._models._enums import (
     Status,
 )
 from squads._models._extras import ExtraKey as X
-from squads._models._item import DEFAULT_KIND, Item, split_ref
+from squads._models._item import DEFAULT_KIND, Item, format_item_id, split_ref
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import resolve
@@ -499,13 +499,15 @@ def resolve_item_id_typed(token: str, item_type: ItemType, svc: Service) -> str:
         db = svc.store.load()
         item = db.get(str(seq))
         if item is None:
-            raise SquadsError(f"no item with number {seq} (use {prefix}-{seq:06d} or bare {seq})")
+            hint = format_item_id(prefix, seq, db.padding)
+            raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
         raise SquadsError(_mismatch_msg(token, item.id, item.type.value, item_type.value))
 
     db = svc.store.load()
     item = db.get(str(seq))
     if item is None:
-        raise SquadsError(f"no item with number {seq} (use {prefix}-{seq:06d} or bare {seq})")
+        hint = format_item_id(prefix, seq, db.padding)
+        raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
     if item.type is not item_type:
         raise SquadsError(_mismatch_msg(t, item.id, item.type.value, item_type.value))
     return item.id
@@ -527,9 +529,8 @@ def resolve_item_id_any(token: str, svc: Service) -> str:
     item = db.get(str(seq))
 
     if item is None:
-        raise SquadsError(
-            f"no item with number {seq} (use a full ID like TYPE-{seq:06d} or bare {seq})"
-        )
+        hint = format_item_id("TYPE", seq, db.padding)
+        raise SquadsError(f"no item with number {seq} (use a full ID like {hint} or bare {seq})")
 
     if given_prefix is not None:
         expected_prefix = PREFIX_BY_TYPE[item.type]
