@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 106,
+  "counter": 109,
   "padding": 6,
   "items": {
     "12": {
@@ -1339,7 +1339,7 @@
       "type": "feature",
       "title": "Type aliases in the CLI grammar",
       "slug": "type-aliases-in-the-cli-grammar",
-      "status": "Ready",
+      "status": "Done",
       "description": "Short and single-letter aliases for the item-type commands (sq feat / sq f, sq t, sq b, ...) — hidden from help clutter, documented once, frozen with the grammar",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -1353,7 +1353,7 @@
         {
           "local_id": "US1",
           "title": "As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1361,7 +1361,7 @@
         {
           "local_id": "US2",
           "title": "As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1369,7 +1369,7 @@
       ],
       "path": "features/FEAT-000036-type-aliases-in-the-cli-grammar.md",
       "created_at": "2026-06-11T07:37:01Z",
-      "updated_at": "2026-06-11T07:54:56Z",
+      "updated_at": "2026-06-15T08:11:14Z",
       "extra": {},
       "id": "FEAT-000036"
     },
@@ -3813,7 +3813,7 @@
       "subentities": [
         {
           "local_id": "F1",
-          "title": "_renumber_plan formats collision-renumber IDs at DEFAULT padding, not db.padding. src/squads/_services/_maintenance.py:246 calls format_item_id(item_type.prefix, next_free) with no padding arg, so it always emits width-6 IDs. On a squad that has been repadded to width 7, a merge-collision repair --renumber would mint width-6 filenames into an otherwise width-7 corpus, re-introducing exactly the mixed-width state this feature exists to prevent. Borderline scope (renumber is merge-collision repair; the repad command is TASK-102), but the fix is one argument. Suggested fix: thread the rebuilt db.padding into _renumber_plan (it is a @staticmethod with no db access today) and pass it as the third arg to format_item_id, OR document explicitly that renumber-width follows in TASK-103 width-tolerant work. Flagging so it is a conscious decision, not an oversight.",
+          "title": "_renumber_plan emits DEFAULT-width IDs, ignoring db.padding (_maintenance.py:246)",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -3821,7 +3821,7 @@
         },
         {
           "local_id": "F2",
-          "title": "No test exercises the filename-recompute arm of repair's max(stored_floor, max_filename_width). Every padding test (test_service.py:92-127, test_cli.py:1529) only manipulates the STORED padding and keeps filenames at width 6; none creates item files whose digit-run is width 7 with a stored floor of 6 and asserts repair raises padding to 7. That recompute (src/squads/_services/_maintenance.py:199-203) is the heart of ADR-000104 and the architect's explicit guard (read the digit-run width, ignore non-item files). It is currently unverified. Suggested fix: add one test that renames a created item file to a width-7 name (TASK-0000007-...md), leaves the stored padding at 6, runs repair, and asserts result.db.padding == 7 — the partial-corpus / post-repad-pre-repair scenario the floor+recompute pair is designed for.",
+          "title": "repair's filename-recompute arm (max stored_floor/filename_width) is untested",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -3829,7 +3829,7 @@
         },
         {
           "local_id": "F3",
-          "title": "Dead/redundant code in the repair padding computation. src/squads/_services/_maintenance.py:204-208: 'max_filename_width if max_filename_width > 0 else 0' is a no-op (a value is already >0 or it is 0), and the following 'if db.padding < DEFAULT_ID_PADDING: db.padding = DEFAULT_ID_PADDING' guard can never fire — previous_padding is seeded to DEFAULT_ID_PADDING (6) and carried as the floor, so db.padding = max(>=6, ...) is always >=6. Harmless but it obscures the actual invariant. Suggested fix: collapse to db.padding = max(previous_padding, max_filename_width) and drop the trailing guard, with a one-line comment that previous_padding already floors at 6 via the model default. Clarity only.",
+          "title": "Dead/redundant code in the repair padding computation",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -3838,7 +3838,7 @@
       ],
       "path": "reviews/REV-000105-review-of-task-000101-explicit-id-padding-foundation.md",
       "created_at": "2026-06-14T21:18:09Z",
-      "updated_at": "2026-06-14T21:19:00Z",
+      "updated_at": "2026-06-15T08:03:07Z",
       "extra": {},
       "id": "REV-000105"
     },
@@ -3886,6 +3886,106 @@
       "updated_at": "2026-06-14T22:06:18Z",
       "extra": {},
       "id": "REV-000106"
+    },
+    "107": {
+      "sequence_id": 107,
+      "type": "task",
+      "title": "Route type-command aliases to the full command tree",
+      "slug": "route-type-command-aliases-to-the-full-command-tree",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000036",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add a canonical ALIASES map and register each type sub-app under its hidden alias names",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "CLI test matrix: every alias routes deep chains; output and errors stay canonical",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000107-route-type-command-aliases-to-the-full-command-tree.md",
+      "created_at": "2026-06-15T07:42:47Z",
+      "updated_at": "2026-06-15T08:10:56Z",
+      "extra": {},
+      "id": "TASK-000107"
+    },
+    "108": {
+      "sequence_id": 108,
+      "type": "task",
+      "title": "Keep help clean and document the alias table in the contract",
+      "slug": "keep-help-clean-and-document-the-alias-table-in-the-contract",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000036",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Hide aliases from root help; mention the table once (epilog or type help)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Render the alias table in the workflow cheatsheet with the add-only rule; tie into FEAT-000013 contract",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000108-keep-help-clean-and-document-the-alias-table-in-the-contract.md",
+      "created_at": "2026-06-15T07:42:48Z",
+      "updated_at": "2026-06-15T08:10:56Z",
+      "extra": {},
+      "id": "TASK-000108"
+    },
+    "109": {
+      "sequence_id": 109,
+      "type": "review",
+      "title": "Review FEAT-000036 type aliases (TASK-107/108)",
+      "slug": "review-feat-000036-type-aliases-task-107-108",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000036",
+        "TASK-000107",
+        "TASK-000108"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000109-review-feat-000036-type-aliases-task-107-108.md",
+      "created_at": "2026-06-15T08:04:08Z",
+      "updated_at": "2026-06-15T08:05:15Z",
+      "extra": {},
+      "id": "REV-000109"
     }
   }
 }

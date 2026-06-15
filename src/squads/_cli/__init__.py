@@ -25,7 +25,9 @@ app = typer.Typer(
     ),
     epilog=(
         "Team workflow: `sq workflow`  ·  full docs offline: `sq docs`  ·  "
-        "per-command help: `sq <command> --help`"
+        "per-command help: `sq <command> --help`\n\n"
+        "Type-command aliases (e/f/t/b/d/r/g, feat/dec/rev) are hidden from this list "
+        "but fully supported — see the alias table in `sq workflow`."
     ),
     no_args_is_help=True,
     add_completion=False,
@@ -76,7 +78,7 @@ from squads._cli import (  # noqa: E402
     _skill,
 )
 from squads._cli import _main as _main  # noqa: E402
-from squads._models._enums import WORK_TYPES  # noqa: E402
+from squads._models._enums import TYPE_ALIASES, WORK_TYPES  # noqa: E402
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
@@ -93,12 +95,17 @@ app.add_typer(
 )
 
 # Resource-oriented item groups: `sq <type> <num> <verb> …`.
+# Build each type's sub-app once, then register it under its canonical name and
+# any hidden aliases so every alias routes to the identical command tree.
 for _type in WORK_TYPES:
+    _type_app = _items.build_item_app(_type)
     app.add_typer(
-        _items.build_item_app(_type),
+        _type_app,
         name=_type.value,
         help=f"Operate on a {_type.value} by number.",
     )
+    for _alias in TYPE_ALIASES.get(_type, ()):
+        app.add_typer(_type_app, name=_alias, hidden=True)
 
 # Global value-options live on the group callback, so Click only parses them *before* the
 # subcommand. Hoist them so `sq create … --at <when>` works the same as `sq --at <when> create …`.

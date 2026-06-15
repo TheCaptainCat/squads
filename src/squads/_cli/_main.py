@@ -501,9 +501,10 @@ def workflow():
     """Print the team workflow cheatsheet (who writes what, how items link)."""
     from rich.markdown import Markdown
 
+    from squads._models._enums import TYPE_ALIASES
     from squads._rendering._engine import render
 
-    console.print(Markdown(render("workflow.md.j2")))
+    console.print(Markdown(render("workflow.md.j2", type_aliases=TYPE_ALIASES)))
 
 
 @app.command()

@@ -66,6 +66,20 @@ WORK_TYPES: tuple[ItemType, ...] = (
     ItemType.GUIDE,
 )
 
+#: Short/single-letter input aliases for work-item type commands.
+#: Aliases are hidden from root --help and are pure input sugar —
+#: output always uses the canonical type name and full IDs.
+#: This is the single source of truth; TASK-000108 (docs) consumes it too.
+TYPE_ALIASES: dict[ItemType, tuple[str, ...]] = {
+    ItemType.EPIC: ("e",),
+    ItemType.FEATURE: ("feat", "f"),
+    ItemType.TASK: ("t",),
+    ItemType.BUG: ("b",),
+    ItemType.DECISION: ("dec", "d"),
+    ItemType.REVIEW: ("rev", "r"),
+    ItemType.GUIDE: ("g",),
+}
+
 
 class Status(StrEnum):
     # work items
