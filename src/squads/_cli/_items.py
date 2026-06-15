@@ -14,6 +14,7 @@ import json
 import typer
 from rich.table import Table
 
+from squads import _actor as actor
 from squads._cli._common import (
     console,
     e,
@@ -22,6 +23,7 @@ from squads._cli._common import (
     parse_priority,
     parse_severity,
     parse_status,
+    parse_type,
     print_block,
     print_item,
     print_subentity,
@@ -33,7 +35,7 @@ from squads._cli._common import (
     resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
-from squads._models._enums import SEVERITY_EMOJI, ItemType
+from squads._models._enums import SEVERITY_EMOJI, WORK_TYPES, ItemType
 from squads._models._item import DEFAULT_KIND, split_ref
 from squads._models._subentity import SubEntity
 
@@ -78,6 +80,9 @@ def build_item_app(item_type: ItemType) -> typer.Typer:
     _cmd_refs(item)
     if item_type in _SUBENTITY:
         _register_subentity(item, *_SUBENTITY[item_type])
+    if item_type in WORK_TYPES:
+        _cmd_retype(item)
+        _cmd_remove(item)
     return item
 
 
@@ -201,8 +206,97 @@ def _cmd_comment(item: typer.Typer) -> None:
         """Append a timestamped comment to the item's discussion."""
         svc = get_service()
         slug = resolve_slug_or_raise(as_, svc)
+        actor.set_actor(slug)
         svc.comment(_id(ctx), message, as_slug=slug)
         console.print(f"commented on {_id(ctx)} as {slug}")
+
+
+def _cmd_retype(item: typer.Typer) -> None:
+    @item.command("retype")
+    @handle_errors
+    def retype(
+        ctx: typer.Context,
+        new_type: str = typer.Argument(
+            ...,
+            metavar="NEW-TYPE",
+            help=(
+                "Target work-item type: epic|feature|task|bug|decision|review|guide. "
+                "The item number is preserved; only the ID prefix flips."
+            ),
+        ),
+    ):
+        """Reclassify this item to a different type, keeping its number and body.
+
+        The sequence number (and therefore the durable identity) is preserved — only the
+        ID prefix changes (e.g. TASK-000007 → BUG-000007). All incoming references,
+        children's parent links, and prose mentions are rewritten to the new ID.
+        """
+        target = parse_type(new_type)
+        if target not in WORK_TYPES:
+            work = ", ".join(t.value for t in WORK_TYPES)
+            raise SquadsError(f"cannot retype to {new_type!r}; valid targets: {work}")
+        svc = get_service()
+        res = svc.retype(_id(ctx), target)
+        console.print(
+            f"retyped {e(res.old_id)} → [bold]{e(res.item.id)}[/bold]  [dim]{res.item.path}[/dim]"
+        )
+        if res.status_reset:
+            console.print(
+                f"  status reset: {e(res.old_status)} → [yellow]{e(res.item.status.value)}[/yellow]"
+                f" (workflows differ)"
+            )
+        else:
+            console.print(f"  status carried: [bold]{e(res.item.status.value)}[/bold]")
+        if res.rewritten:
+            console.print(f"  rewritten refs in {len(res.rewritten)} file(s)")
+
+
+def _cmd_remove(item: typer.Typer) -> None:
+    @item.command("remove")
+    @handle_errors
+    def remove(
+        ctx: typer.Context,
+        force: bool = typer.Option(
+            False,
+            "--force",
+            help="Sever incoming refs from referrers' frontmatter instead of refusing.",
+        ),
+        yes: bool = typer.Option(
+            False,
+            "--yes",
+            help="Skip the interactive confirmation prompt.",
+        ),
+        json_out: bool = typer.Option(False, "--json"),
+    ):
+        """Hard-delete this item: remove its .md file and index entry atomically.
+
+        Refuses when the item has children (must be re-parented or removed first) or incoming
+        refs (list them and exit, unless --force severs them).  The counter high-water mark is
+        preserved — the freed sequence number is never reissued.
+
+        Use `sq <type> <n> status Cancelled` to drop work that was genuinely considered; use
+        `remove` only for items that should never have existed (mis-creations, test artifacts).
+        """
+        item_id = _id(ctx)
+        if not yes:
+            typer.confirm(f"Remove {item_id}? This cannot be undone.", abort=True)
+        svc = get_service()
+        res = svc.remove_work_item(item_id, force=force)
+        if json_out:
+            import json as _json
+
+            console.print_json(
+                _json.dumps(
+                    {
+                        "removed_id": res.removed_id,
+                        "severed_refs": res.severed_refs,
+                    }
+                )
+            )
+            return
+        console.print(f"removed {e(res.removed_id)}")
+        if res.severed_refs:
+            console.print(f"  severed refs in: {', '.join(e(r) for r in res.severed_refs)}")
 
 
 def _cmd_refs(item: typer.Typer) -> None:
@@ -580,5 +674,6 @@ def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
         pid, lid = ids(ctx)
         svc = get_service()
         slug = resolve_slug_or_raise(as_, svc)
+        actor.set_actor(slug)
         svc.comment(pid, message, as_slug=slug, **{kind: lid})
         console.print(f"commented on {pid} {lid} as {slug}")

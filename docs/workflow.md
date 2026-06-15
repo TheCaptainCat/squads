@@ -146,3 +146,69 @@ no manual markdown editing.
 a finding's `--severity`. Findings carry a **severity** (🔴 critical · 🟠 high · 🟡 medium · 🟢 low ·
 🔵 info), set at `add` time and changeable with `update --severity`. Transitions are validated by the
 sub-entity machines (`squads._workflow.SUBENTITY_WORKFLOWS`); `--force` overrides.
+
+---
+
+## Operation reflog (`sq reflog`)
+
+Every mutating `sq` command appends one JSON line to `squads/.reflog.jsonl` — an append-only
+**operation log** (FEAT-000024 / ADR-000117). The reflog is **advisory**: the index
+(`.squads.json`) and the markdown files remain the source of truth. `sq repair`, `sq check`, and
+`sq load` never read it.
+
+### Line shape
+
+Each line is a JSON object with these fields:
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `v` | `string` | Schema version (`"0.3"` — forward-compatible by addition) |
+| `ts` | `string` | ISO-8601 UTC timestamp of the operation |
+| `actor` | `string` | Role slug (`python-dev`, `system`, `op-pierre`, …) performing the write |
+| `op` | `string` | Operation name (see table below) |
+| `target` | `string` | Primary item ID affected (empty `""` for squad-level ops) |
+| `delta` | `object` | Free-form before/after detail — shape varies by `op` |
+
+**Op names:**
+
+| `op` | Triggered by |
+|------|-------------|
+| `create` | `sq create …` |
+| `status` | `sq <type> <n> status …` |
+| `update` | `sq <type> <n> update …` |
+| `body` | `sq <type> <n> body …` |
+| `comment` | `sq <type> <n> comment …` |
+| `subentity` | add-subtask / add-story / add-finding / sub-entity update/body |
+| `ref` | `sq <type> <n> ref add|rm …` |
+| `link` | `sq link` / `sq unlink` |
+| `remove` | `sq remove …` |
+| `retype` | `sq <type> <n> retype …` |
+| `repair` | `sq repair` |
+| `migrate` | `sq migrate up` / `sq migrate repad` |
+
+### Reading the reflog
+
+```bash
+sq reflog                          # last 50 entries (default)
+sq reflog --tail 0                 # all entries
+sq reflog --item TASK-000042       # filter to one item
+sq reflog --actor python-dev       # filter by actor slug
+sq reflog --op status              # filter by operation
+sq reflog --since 2026-06-01       # since a date (ISO 8601)
+sq reflog --json                   # machine-readable JSON array
+```
+
+Filters are AND-ed. `--json` emits a JSON array of `ReflogEntry` objects matching the line shape.
+
+### Durability and ordering guarantees
+
+- Each line is appended **after** the index `os.replace` commit while still holding the file lock.
+  Applied-without-logged is possible (crash between commit and append); logged-without-applied is
+  designed out.
+- The file is opened with `O_APPEND` — a single `write()` call is atomic on POSIX for the line
+  sizes used; no per-line `fsync`.
+- A missing or truncated reflog is always tolerated — never an error. Back-compat with pre-1.0
+  squads is guaranteed: squads without a reflog simply show empty results.
+
+> The `delta` sub-field keys are additive and may grow across releases. A full stability contract
+> for `delta` shapes is deferred to the FEAT-000013 freeze.

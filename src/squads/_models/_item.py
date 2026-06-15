@@ -54,6 +54,23 @@ def make_ref(item_id: str, kind: str = DEFAULT_KIND) -> str:
     return item_id if not kind or kind == DEFAULT_KIND else f"{item_id}{REF_SEP}{kind}"
 
 
+def ref_id_matches(stored_ref_id: str, prefix: str, seq: int) -> bool:
+    """Return True when *stored_ref_id* refers to the same item as *(prefix, seq)*.
+
+    Comparison is width-tolerant: a stored ref may carry an old zero-pad width after a
+    ``sq migrate repad`` while *seq* is the canonical integer identity.  Type-prefix
+    matching prevents false positives when two items share a sequence number (collision
+    state during renumber).
+
+    Alongside :func:`split_ref` and :func:`make_ref` as the shared ref-ID primitive; import
+    from here rather than duplicating in service modules.
+    """
+    head, _, digits = stored_ref_id.rpartition("-")
+    if not digits.isdigit():
+        return False
+    return head.upper() == prefix.upper() and int(digits) == seq
+
+
 def fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
     """Merge a pre-2 ``extra.ref_kinds`` ``{ID: kind}`` map into inline ``ID:kind`` ref strings."""
     return [make_ref(rid, legacy.get(rid, kind)) for rid, kind in (split_ref(r) for r in refs)]

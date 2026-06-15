@@ -34,6 +34,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import load_config, number_for_id
 from squads._roles._catalog import resolve_roles
+from squads._services._results import ReflogEntry
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
 from squads._workflow import is_open
@@ -532,6 +533,101 @@ def docs(
     else:
         # raw markdown, verbatim: no Rich markup interpretation, no reflow
         console.print(content, markup=False, highlight=False, soft_wrap=True)
+
+
+@app.command()
+@handle_errors
+def reflog(
+    item: str | None = typer.Option(
+        None,
+        "--item",
+        help="Filter by target item ID (e.g. TASK-000042).",
+        metavar="ID",
+    ),
+    actor: str | None = typer.Option(
+        None,
+        "--actor",
+        help="Filter by actor slug (e.g. python-dev, system).",
+    ),
+    op: str | None = typer.Option(
+        None,
+        "--op",
+        help="Filter by op name (create/status/update/body/comment/subentity/ref/link"
+        "/remove/repair/migrate).",
+    ),
+    since: str | None = typer.Option(
+        None,
+        "--since",
+        help="Include only entries at or after this ISO-8601 timestamp.",
+        metavar="WHEN",
+    ),
+    tail: int = typer.Option(
+        50,
+        "--tail",
+        "-n",
+        help="Maximum number of entries to show (most recent; 0 = all).",
+    ),
+    json_out: bool = typer.Option(False, "--json"),
+):
+    """Show the operation reflog — a chronological log of every mutating sq command.
+
+    Tails the most recent entries by default (``--tail 50``); use ``--tail 0`` for
+    all.  Filters are AND-ed: ``--item TASK-000042 --op status`` shows only status
+    changes on that item.
+
+    A squad with no reflog (pre-FEAT-000024 or first run) prints empty results —
+    never an error.  A truncated or partially-written reflog is tolerated silently.
+
+    **Exit codes:** 0 = normal; 1 = error; see ``sq docs faq`` for the full table.
+    """
+    from squads._clock import parse_iso
+
+    svc = get_service()
+    since_ts: str | None = None
+    if since:
+        try:
+            from squads import _clock as clock
+
+            since_ts = clock.iso(parse_iso(since))
+        except ValueError:
+            from squads._cli._common import err_console
+
+            err_console.print(
+                f"[red]error:[/red] invalid --since timestamp {since!r} "
+                "(use ISO 8601, e.g. 2026-01-15 or 2026-01-15T09:30:00Z)"
+            )
+            raise typer.Exit(1) from None
+
+    entries: list[ReflogEntry] = svc.read_reflog(
+        item=item,
+        actor_filter=actor,
+        op_filter=op,
+        since=since_ts,
+        tail=tail if tail > 0 else None,
+    )
+
+    if json_out:
+        import dataclasses
+
+        console.print_json(
+            json.dumps(
+                [dataclasses.asdict(entry) for entry in entries],
+                ensure_ascii=False,
+            )
+        )
+        return
+
+    if not entries:
+        console.print("[dim]no reflog entries[/dim]")
+        return
+
+    for entry in entries:
+        delta_str = json.dumps(entry.delta, separators=(",", ":"), ensure_ascii=False)
+        console.print(
+            f"[dim]{e(entry.ts)}[/dim]  [bold]{e(entry.op)}[/bold]"
+            f"  [cyan]{e(entry.target)}[/cyan]"
+            f"  [dim]actor={e(entry.actor)}[/dim]  {e(delta_str)}"
+        )
 
 
 @app.command(name="show")

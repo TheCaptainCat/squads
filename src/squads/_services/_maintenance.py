@@ -6,8 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from squads import __version__
+from squads import _actor as actor
+from squads import _clock as clock
 from squads import _sections as sections
 from squads._errors import RoleNotFoundError, SquadsError
+from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
@@ -28,7 +31,7 @@ from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role
 from squads._services._base import SUBENTITY_KIND, ServiceCore
-from squads._services._results import CheckIssue, RepairResult
+from squads._services._results import CheckIssue, ReflogEntry, RepairResult
 from squads._workflow import parent_allowed, parent_hint, subentity_workflow, workflow_for
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
@@ -151,6 +154,19 @@ class MaintenanceMixin(ServiceCore):
         if applied:
             self.repair()
             self._stamp_schema(SCHEMA_VERSION)
+            # Reflog: log the migration batch after repair has completed.
+            append_line(
+                reflog_path(self.paths.squad_dir),
+                ts=clock.iso(clock.now()),
+                actor=actor.current_actor(),
+                op="migrate",
+                target="",
+                delta={
+                    "from_schema": disk,
+                    "to_schema": SCHEMA_VERSION,
+                    "applied": [m.to_schema for m in applied],
+                },
+            )
         return applied
 
     # ------------------------------------------------------------------ scan helpers
@@ -222,6 +238,17 @@ class MaintenanceMixin(ServiceCore):
 
         missing_seqs = sorted(previous_seq_to_id.keys() - found_seqs)
         missing_ids = [previous_seq_to_id[s] for s in missing_seqs]
+
+        # Reflog: append after overwrite (repair uses overwrite, not transaction).
+        append_line(
+            reflog_path(self.paths.squad_dir),
+            ts=clock.iso(clock.now()),
+            actor=actor.current_actor(),
+            op="repair",
+            target="",
+            delta={"items": len(db.items), "missing": missing_ids},
+        )
+
         return RepairResult(db=db, missing_ids=missing_ids)
 
     # ------------------------------------------------------------------ repad
@@ -267,7 +294,18 @@ class MaintenanceMixin(ServiceCore):
         # Write the new padding into the index before calling repair, so repair's stored-floor
         # logic picks it up and writes it back out.
         with self.store.transaction() as _db:
+            old_padding = _db.padding
             _db.padding = new_padding
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "migrate",
+                "",
+                {
+                    "op": "repad",
+                    "old_padding": old_padding,
+                    "new_padding": new_padding,
+                    "renamed": renamed,
+                },
+            )
 
         # Rebuild the index so path fields and all item IDs reflect the new width.
         self.repair()
@@ -328,6 +366,58 @@ class MaintenanceMixin(ServiceCore):
                 fm["sequence_id"] = number_for_id(new_id)
                 new_path.write_text(sections.replace_frontmatter(text, fm), encoding="utf-8")
         return remap
+
+    # ------------------------------------------------------------------ reflog read
+    def read_reflog(
+        self,
+        *,
+        item: str | None = None,
+        actor_filter: str | None = None,
+        op_filter: str | None = None,
+        since: str | None = None,
+        tail: int | None = None,
+    ) -> list[ReflogEntry]:
+        """Read and filter the reflog (TASK-000113 / ADR-000117 reader contract).
+
+        - A missing or empty reflog returns an empty list (back-compat).
+        - A trailing partial line is skipped silently; interior malformed lines are warn-skipped.
+        - No lock is acquired — reads are lock-free, like ``store.load()``.
+
+        Filters are applied in order (AND semantics):
+        - ``item``: match ``target`` exactly.
+        - ``actor_filter``: match ``actor`` exactly.
+        - ``op_filter``: match ``op`` exactly.
+        - ``since``: only entries whose ``ts >= since`` (lexicographic ISO-8601 comparison).
+        - ``tail``: keep only the last N entries (applied after filtering).
+        """
+        from squads._index._reflog import read_lines
+
+        raw = read_lines(reflog_path(self.paths.squad_dir))
+
+        out: list[ReflogEntry] = []
+        for line in raw:
+            if item and line.target != item:
+                continue
+            if actor_filter and line.actor != actor_filter:
+                continue
+            if op_filter and line.op != op_filter:
+                continue
+            if since and line.ts < since:
+                continue
+            out.append(
+                ReflogEntry(
+                    v=line.v,
+                    ts=line.ts,
+                    actor=line.actor,
+                    op=line.op,
+                    target=line.target,
+                    delta=line.delta,
+                )
+            )
+
+        if tail is not None:
+            out = out[-tail:]
+        return out
 
     # ------------------------------------------------------------------ check
     def check(self) -> list[CheckIssue]:

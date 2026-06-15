@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 109,
+  "counter": 125,
   "padding": 6,
   "items": {
     "12": {
@@ -26,6 +26,142 @@
       "updated_at": "2026-06-11T07:54:52Z",
       "extra": {},
       "id": "EPIC-000012"
+    },
+    "28": {
+      "sequence_id": 28,
+      "type": "epic",
+      "title": "sq ui — a terminal UI for browsing the squad",
+      "slug": "sq-ui-a-terminal-ui-for-browsing-the-squad",
+      "status": "Draft",
+      "description": "An sq ui command opening a TUI: navigate the tree, read items with tabs for stories/body/discussion; browse-first, mutations a later increment",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000015:depends-on",
+        "FEAT-000019:depends-on"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000028-sq-ui-a-terminal-ui-for-browsing-the-squad.md",
+      "created_at": "2026-06-10T15:15:37Z",
+      "updated_at": "2026-06-11T07:40:17Z",
+      "extra": {},
+      "id": "EPIC-000028"
+    },
+    "29": {
+      "sequence_id": 29,
+      "type": "epic",
+      "title": "sq web — a local web view of the squad",
+      "slug": "sq-web-a-local-web-view-of-the-squad",
+      "status": "Draft",
+      "description": "An sq web command starting a local webserver to browse the squad in a browser; read-only first, with full CRUD as a possible long-term destination",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "EPIC-000028",
+        "FEAT-000015:depends-on"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000029-sq-web-a-local-web-view-of-the-squad.md",
+      "created_at": "2026-06-10T15:16:05Z",
+      "updated_at": "2026-06-11T07:40:18Z",
+      "extra": {},
+      "id": "EPIC-000029"
+    },
+    "31": {
+      "sequence_id": 31,
+      "type": "epic",
+      "title": "Squads backend",
+      "slug": "squads-backend",
+      "status": "Draft",
+      "description": "Umbrella for technical work on the sq engine itself — services, index, models, workflow, rendering, agent-backend plumbing — as opposed to product surfaces like the CLI grammar, TUI or web",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "epics/EPIC-000031-squads-backend.md",
+      "created_at": "2026-06-10T15:21:51Z",
+      "updated_at": "2026-06-10T15:21:51Z",
+      "extra": {},
+      "id": "EPIC-000031"
+    },
+    "38": {
+      "sequence_id": 38,
+      "type": "epic",
+      "title": "CLI frontend",
+      "slug": "cli-frontend",
+      "status": "Draft",
+      "description": "The daily terminal experience of sq: complete and rendered reading, graph navigation, and the ergonomics of driving a squad from the command line",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "epics/EPIC-000038-cli-frontend.md",
+      "created_at": "2026-06-11T07:57:10Z",
+      "updated_at": "2026-06-11T07:57:11Z",
+      "extra": {},
+      "id": "EPIC-000038"
+    },
+    "99": {
+      "sequence_id": 99,
+      "type": "epic",
+      "title": "VS Code extension — browse the squad in the editor",
+      "slug": "vs-code-extension-browse-the-squad-in-the-editor",
+      "status": "Draft",
+      "description": "A VS Code extension: a sidebar tree of the squad + items opened in the markdown preview; consumes the frozen --json surface; browse-first, mutations a later increment",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000015:depends-on",
+        "EPIC-000012",
+        "EPIC-000028",
+        "EPIC-000029",
+        "EPIC-000038"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000099-vs-code-extension-browse-the-squad-in-the-editor.md",
+      "created_at": "2026-06-14T20:45:06Z",
+      "updated_at": "2026-06-14T20:45:15Z",
+      "extra": {},
+      "id": "EPIC-000099"
+    },
+    "121": {
+      "sequence_id": 121,
+      "type": "epic",
+      "title": "squads control / trust plane",
+      "slug": "squads-control-trust-plane",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "REV-000118",
+        "REV-000119",
+        "BUG-000120"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000121-squads-control-trust-plane.md",
+      "created_at": "2026-06-15T11:53:01Z",
+      "updated_at": "2026-06-15T12:00:30Z",
+      "extra": {},
+      "id": "EPIC-000121"
     },
     "13": {
       "sequence_id": 13,
@@ -68,7 +204,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-14T21:00:05Z",
+      "updated_at": "2026-06-15T10:24:15Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -322,7 +458,7 @@
       "type": "feature",
       "title": "Retype an item in place",
       "slug": "retype-an-item-in-place",
-      "status": "Ready",
+      "status": "Done",
       "description": "sq <type> <n> retype <new-type>: fix a wrongly-filed item keeping its number, discussion and incoming refs",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -336,7 +472,7 @@
         {
           "local_id": "US1",
           "title": "As a user who filed work under the wrong type, I want to retype it in place, so that the number, body and discussion survive the fix",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -344,7 +480,7 @@
         {
           "local_id": "US2",
           "title": "As a teammate whose items reference the retyped one, I want every incoming ref, parent link and prose mention rewritten to the new ID, so that nothing dangles",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -352,476 +488,16 @@
       ],
       "path": "features/FEAT-000020-retype-an-item-in-place.md",
       "created_at": "2026-06-10T13:24:54Z",
-      "updated_at": "2026-06-11T07:54:54Z",
+      "updated_at": "2026-06-15T08:46:35Z",
       "extra": {},
       "id": "FEAT-000020"
-    },
-    "11": {
-      "sequence_id": 11,
-      "type": "bug",
-      "title": "sq check flags operator authors/assignees as unregistered",
-      "slug": "sq-check-flags-operator-authors-assignees-as-unregistered",
-      "status": "Done",
-      "description": "check() validates author/assignee against roles only, while the write gate accepts operators too",
-      "parent": null,
-      "author": "op-pierre",
-      "assignee": "python-dev",
-      "priority": "high",
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "bugs/BUG-000011-sq-check-flags-operator-authors-assignees-as-unregistered.md",
-      "created_at": "2026-06-10T12:30:52Z",
-      "updated_at": "2026-06-10T12:32:14Z",
-      "extra": {
-        "severity": "medium"
-      },
-      "id": "BUG-000011"
-    },
-    "21": {
-      "sequence_id": 21,
-      "type": "bug",
-      "title": "Slug arguments not validated: sq mine accepts unknown agents and silently defaults to manager",
-      "slug": "slug-arguments-not-validated-sq-mine-accepts-unknown-agents",
-      "status": "Done",
-      "description": "sq mine/inbox exit 0 for unknown slugs and bare sq mine defaults to manager; slug args should be required and validated against the roster across commands",
-      "parent": null,
-      "author": "op-pierre",
-      "assignee": null,
-      "priority": "medium",
-      "labels": [],
-      "refs": [
-        "FEAT-000019"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000021-slug-arguments-not-validated-sq-mine-accepts-unknown-agents.md",
-      "created_at": "2026-06-10T13:35:26Z",
-      "updated_at": "2026-06-11T13:19:21Z",
-      "extra": {},
-      "id": "BUG-000021"
-    },
-    "1": {
-      "sequence_id": 1,
-      "type": "role",
-      "title": "Catherine Manager",
-      "slug": "manager",
-      "status": "Active",
-      "description": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
-      "parent": null,
-      "author": "manager",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000001-manager.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Catherine Manager",
-        "slug": "manager",
-        "title": "manager",
-        "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
-        "responsibilities": [
-          "Triage incoming requests and clarify intent",
-          "Delegate work to the right specialist agents and integrate their results",
-          "Drive features through the loop (implement → review → fix) until done",
-          "Keep the backlog and statuses honest",
-          "Summarise progress for the operator"
-        ],
-        "model": "opus",
-        "color": "cyan",
-        "is_default": true,
-        "description": "Default agent: triages the operator's request and routes it to the right specialist.",
-        "skills": [
-          "squads",
-          "greeting"
-        ]
-      },
-      "id": "ROLE-000001"
-    },
-    "2": {
-      "sequence_id": 2,
-      "type": "role",
-      "title": "Robert Architect",
-      "slug": "architect",
-      "status": "Active",
-      "description": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000002-architect.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Robert Architect",
-        "slug": "architect",
-        "title": "architect",
-        "mission": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
-        "responsibilities": [
-          "Design components and their interactions",
-          "Write and maintain ADRs",
-          "Author cross-cutting guides",
-          "Review designs before implementation"
-        ],
-        "model": "opus",
-        "color": "blue",
-        "is_default": false,
-        "description": "System design and architecture decisions (ADRs).",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-epic",
-          "sq-decision",
-          "sq-guide"
-        ]
-      },
-      "id": "ROLE-000002"
-    },
-    "3": {
-      "sequence_id": 3,
-      "type": "role",
-      "title": "Olivia Lead",
-      "slug": "tech-lead",
-      "status": "Active",
-      "description": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000003-tech-lead.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Olivia Lead",
-        "slug": "tech-lead",
-        "title": "tech lead",
-        "mission": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
-        "responsibilities": [
-          "Author tasks (`sq create task`); set each task's parent to the feature it implements",
-          "Map each subtask to a single user story (`sq task <n> add-subtask \"…\" --story USn`)",
-          "For a bug fix or review follow-up, link via refs (`sq task <n> ref add <id> --kind fixes|addresses`)",
-          "Leave purely-technical tasks unlinked",
-          "Sequence and assign work; unblock developers",
-          "Co-author guides with the architect"
-        ],
-        "model": "opus",
-        "color": "purple",
-        "is_default": false,
-        "description": "Coordination and breaking features into tasks.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-epic",
-          "sq-feature",
-          "sq-task",
-          "sq-bug",
-          "sq-decision",
-          "sq-guide"
-        ]
-      },
-      "id": "ROLE-000003"
-    },
-    "4": {
-      "sequence_id": 4,
-      "type": "role",
-      "title": "Paul Reviewer",
-      "slug": "reviewer",
-      "status": "Active",
-      "description": "Guard quality: review changes critically, request changes when needed, approve when sound.",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000004-reviewer.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Paul Reviewer",
-        "slug": "reviewer",
-        "title": "code reviewer",
-        "mission": "Guard quality: review changes critically, request changes when needed, approve when sound.",
-        "responsibilities": [
-          "Review diffs for correctness and clarity",
-          "Drive code-review items to a verdict",
-          "Flag risks and missing tests"
-        ],
-        "model": "opus",
-        "color": "red",
-        "is_default": false,
-        "description": "Reviews code changes for correctness, clarity, and consistency.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-task",
-          "sq-bug",
-          "sq-review"
-        ]
-      },
-      "id": "ROLE-000004"
-    },
-    "5": {
-      "sequence_id": 5,
-      "type": "role",
-      "title": "Mara Tester",
-      "slug": "qa",
-      "status": "Active",
-      "description": "Prove the software works: design test cases from user stories and verify fixes.",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000005-qa.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Mara Tester",
-        "slug": "qa",
-        "title": "QA engineer",
-        "mission": "Prove the software works: design test cases from user stories and verify fixes.",
-        "responsibilities": [
-          "Derive test cases from user stories",
-          "Verify bug fixes and features",
-          "Report defects as bug items"
-        ],
-        "model": "sonnet",
-        "color": "green",
-        "is_default": false,
-        "description": "Designs and runs tests; verifies behaviour against acceptance criteria.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-feature",
-          "sq-task",
-          "sq-bug"
-        ]
-      },
-      "id": "ROLE-000005"
-    },
-    "6": {
-      "sequence_id": 6,
-      "type": "role",
-      "title": "Hugo Ops",
-      "slug": "devops",
-      "status": "Active",
-      "description": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
-      "parent": null,
-      "author": "devops",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000006-devops.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Hugo Ops",
-        "slug": "devops",
-        "title": "DevOps engineer",
-        "mission": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
-        "responsibilities": [
-          "Maintain CI/CD pipelines",
-          "Manage infrastructure and environments",
-          "Run releases"
-        ],
-        "model": "sonnet",
-        "color": "orange",
-        "is_default": false,
-        "description": "CI/CD, infrastructure, and releases.",
-        "skills": [
-          "squads",
-          "greeting"
-        ]
-      },
-      "id": "ROLE-000006"
-    },
-    "7": {
-      "sequence_id": 7,
-      "type": "role",
-      "title": "Nina Product",
-      "slug": "product-owner",
-      "status": "Active",
-      "description": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000007-product-owner.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Nina Product",
-        "slug": "product-owner",
-        "title": "product owner",
-        "mission": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
-        "responsibilities": [
-          "Author features (`sq create feature`)",
-          "Write each feature's user stories (`sq story add`)",
-          "Prioritise the backlog and define acceptance criteria"
-        ],
-        "model": "sonnet",
-        "color": "yellow",
-        "is_default": false,
-        "description": "Requirements, user stories, and backlog priorities.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-epic",
-          "sq-feature"
-        ]
-      },
-      "id": "ROLE-000007"
-    },
-    "8": {
-      "sequence_id": 8,
-      "type": "role",
-      "title": "Theo Writer",
-      "slug": "tech-writer",
-      "status": "Active",
-      "description": "Make the work understandable: write and maintain clear documentation and guides.",
-      "parent": null,
-      "author": "tech-writer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000008-tech-writer.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Theo Writer",
-        "slug": "tech-writer",
-        "title": "technical writer",
-        "mission": "Make the work understandable: write and maintain clear documentation and guides.",
-        "responsibilities": [
-          "Write user- and developer-facing docs",
-          "Keep guides current"
-        ],
-        "model": "haiku",
-        "color": "pink",
-        "is_default": false,
-        "description": "Documentation and guides.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-guide"
-        ]
-      },
-      "id": "ROLE-000008"
-    },
-    "9": {
-      "sequence_id": 9,
-      "type": "role",
-      "title": "Elias Python",
-      "slug": "python-dev",
-      "status": "Active",
-      "description": "Implement assigned tasks in Python, following the project's guides, with tests.",
-      "parent": null,
-      "author": "python-dev",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000009-python-dev.md",
-      "created_at": "2026-06-10T12:29:53Z",
-      "updated_at": "2026-06-10T12:29:53Z",
-      "extra": {
-        "full_name": "Elias Python",
-        "slug": "python-dev",
-        "title": "Python developer",
-        "mission": "Implement assigned tasks in Python, following the project's guides, with tests.",
-        "responsibilities": [
-          "Implement tasks in Python",
-          "Write tests for changes",
-          "Follow the relevant guides; ask the architect when unsure"
-        ],
-        "model": "sonnet",
-        "color": "green",
-        "is_default": false,
-        "description": "Implements Python code following the project's guides and standards.",
-        "is_dev": true,
-        "tech": "python",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-task",
-          "sq-bug",
-          "sq-review"
-        ]
-      },
-      "id": "ROLE-000009"
-    },
-    "10": {
-      "sequence_id": 10,
-      "type": "operator",
-      "title": "Pierre Chat",
-      "slug": "op-pierre",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "op-pierre",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "operators/OP-000010-op-pierre.md",
-      "created_at": "2026-06-10T12:29:53Z",
-      "updated_at": "2026-06-10T12:29:53Z",
-      "extra": {
-        "slug": "op-pierre",
-        "full_name": "Pierre Chat"
-      },
-      "id": "OP-000010"
-    },
-    "22": {
-      "sequence_id": 22,
-      "type": "bug",
-      "title": "Counter can regress, allowing sequence-number reuse after an item file disappears",
-      "slug": "counter-can-regress-allowing-sequence-number-reuse-after-an",
-      "status": "Done",
-      "description": "Hand-edited or repair-rebuilt indexes accept a regressed counter, so deleted items' numbers get reused; repair sets counter to max-found, ignoring the previous high-water mark",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [
-        "FEAT-000019",
-        "FEAT-000023"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000022-counter-can-regress-allowing-sequence-number-reuse-after-an.md",
-      "created_at": "2026-06-10T13:51:32Z",
-      "updated_at": "2026-06-11T20:40:07Z",
-      "extra": {},
-      "id": "BUG-000022"
     },
     "23": {
       "sequence_id": 23,
       "type": "feature",
       "title": "Sanctioned item removal",
       "slug": "sanctioned-item-removal",
-      "status": "Ready",
+      "status": "Done",
       "description": "sq <type> <n> remove: a safe, first-class way to delete or retire an item — today the only option is manual file surgery plus hand-editing the index",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -835,7 +511,7 @@
         {
           "local_id": "US1",
           "title": "As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -843,7 +519,7 @@
         {
           "local_id": "US2",
           "title": "As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -851,7 +527,7 @@
         {
           "local_id": "US3",
           "title": "As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -859,7 +535,7 @@
       ],
       "path": "features/FEAT-000023-sanctioned-item-removal.md",
       "created_at": "2026-06-10T13:52:25Z",
-      "updated_at": "2026-06-11T07:54:55Z",
+      "updated_at": "2026-06-15T09:21:50Z",
       "extra": {},
       "id": "FEAT-000023"
     },
@@ -868,7 +544,7 @@
       "type": "feature",
       "title": "Operation reflog",
       "slug": "operation-reflog",
-      "status": "Ready",
+      "status": "Done",
       "description": "An append-only JSONL log of every mutating sq operation (who, when, what, before/after), with a sq reflog command to read it",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -884,7 +560,7 @@
         {
           "local_id": "US1",
           "title": "As an operator, I want a chronological log of every mutation with its actor, so that I can review what the agents did without having been in their conversations",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -892,7 +568,7 @@
         {
           "local_id": "US2",
           "title": "As a team member investigating an anomaly, I want removals, retypes and forced transitions explainable from the squad directory alone, so that a gap or surprise reads as history, not corruption",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -900,7 +576,7 @@
         {
           "local_id": "US3",
           "title": "As a tool builder, I want the reflog as stable, documented JSONL, so that I can build dashboards and automation on the operation stream",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -908,31 +584,9 @@
       ],
       "path": "features/FEAT-000024-operation-reflog.md",
       "created_at": "2026-06-10T13:59:11Z",
-      "updated_at": "2026-06-11T07:54:55Z",
+      "updated_at": "2026-06-15T10:24:04Z",
       "extra": {},
       "id": "FEAT-000024"
-    },
-    "25": {
-      "sequence_id": 25,
-      "type": "bug",
-      "title": "show prints a redundant 'Body' literal before the body",
-      "slug": "show-prints-a-redundant-body-literal-before-the-body",
-      "status": "Done",
-      "description": "sq <type> <n> show prefixes the body with a bare 'Body' label; the body is self-evident after the metadata panel and usually opens with its own headings",
-      "parent": null,
-      "author": "op-pierre",
-      "assignee": null,
-      "priority": "low",
-      "labels": [],
-      "refs": [
-        "FEAT-000026"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000025-show-prints-a-redundant-body-literal-before-the-body.md",
-      "created_at": "2026-06-10T14:52:35Z",
-      "updated_at": "2026-06-11T20:40:08Z",
-      "extra": {},
-      "id": "BUG-000025"
     },
     "26": {
       "sequence_id": 26,
@@ -1054,92 +708,6 @@
       "updated_at": "2026-06-14T22:07:30Z",
       "extra": {},
       "id": "FEAT-000027"
-    },
-    "28": {
-      "sequence_id": 28,
-      "type": "epic",
-      "title": "sq ui — a terminal UI for browsing the squad",
-      "slug": "sq-ui-a-terminal-ui-for-browsing-the-squad",
-      "status": "Draft",
-      "description": "An sq ui command opening a TUI: navigate the tree, read items with tabs for stories/body/discussion; browse-first, mutations a later increment",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": "low",
-      "labels": [],
-      "refs": [
-        "FEAT-000015:depends-on",
-        "FEAT-000019:depends-on"
-      ],
-      "subentities": [],
-      "path": "epics/EPIC-000028-sq-ui-a-terminal-ui-for-browsing-the-squad.md",
-      "created_at": "2026-06-10T15:15:37Z",
-      "updated_at": "2026-06-11T07:40:17Z",
-      "extra": {},
-      "id": "EPIC-000028"
-    },
-    "29": {
-      "sequence_id": 29,
-      "type": "epic",
-      "title": "sq web — a local web view of the squad",
-      "slug": "sq-web-a-local-web-view-of-the-squad",
-      "status": "Draft",
-      "description": "An sq web command starting a local webserver to browse the squad in a browser; read-only first, with full CRUD as a possible long-term destination",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": "low",
-      "labels": [],
-      "refs": [
-        "EPIC-000028",
-        "FEAT-000015:depends-on"
-      ],
-      "subentities": [],
-      "path": "epics/EPIC-000029-sq-web-a-local-web-view-of-the-squad.md",
-      "created_at": "2026-06-10T15:16:05Z",
-      "updated_at": "2026-06-11T07:40:18Z",
-      "extra": {},
-      "id": "EPIC-000029"
-    },
-    "30": {
-      "sequence_id": 30,
-      "type": "bug",
-      "title": "tree: priority and title separated by a bare space",
-      "slug": "tree-priority-and-title-separated-by-a-bare-space",
-      "status": "Done",
-      "description": "In sq tree, '🟠 high Stability contract documentation' runs together — put a middle dot between priority and title",
-      "parent": null,
-      "author": "op-pierre",
-      "assignee": null,
-      "priority": "low",
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "bugs/BUG-000030-tree-priority-and-title-separated-by-a-bare-space.md",
-      "created_at": "2026-06-10T15:19:16Z",
-      "updated_at": "2026-06-11T13:19:46Z",
-      "extra": {},
-      "id": "BUG-000030"
-    },
-    "31": {
-      "sequence_id": 31,
-      "type": "epic",
-      "title": "Squads backend",
-      "slug": "squads-backend",
-      "status": "Draft",
-      "description": "Umbrella for technical work on the sq engine itself — services, index, models, workflow, rendering, agent-backend plumbing — as opposed to product surfaces like the CLI grammar, TUI or web",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "epics/EPIC-000031-squads-backend.md",
-      "created_at": "2026-06-10T15:21:51Z",
-      "updated_at": "2026-06-10T15:21:51Z",
-      "extra": {},
-      "id": "EPIC-000031"
     },
     "32": {
       "sequence_id": 32,
@@ -1422,26 +990,6 @@
       "extra": {},
       "id": "FEAT-000037"
     },
-    "38": {
-      "sequence_id": 38,
-      "type": "epic",
-      "title": "CLI frontend",
-      "slug": "cli-frontend",
-      "status": "Draft",
-      "description": "The daily terminal experience of sq: complete and rendered reading, graph navigation, and the ergonomics of driving a squad from the command line",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "epics/EPIC-000038-cli-frontend.md",
-      "created_at": "2026-06-11T07:57:10Z",
-      "updated_at": "2026-06-11T07:57:11Z",
-      "extra": {},
-      "id": "EPIC-000038"
-    },
     "39": {
       "sequence_id": 39,
       "type": "feature",
@@ -1565,6 +1113,314 @@
       "updated_at": "2026-06-12T08:05:41Z",
       "extra": {},
       "id": "FEAT-000041"
+    },
+    "62": {
+      "sequence_id": 62,
+      "type": "feature",
+      "title": "Comment-scoping convention: sub-entity discussions vs main discussion",
+      "slug": "comment-scoping-convention-sub-entity-discussions-vs-main-di",
+      "status": "Done",
+      "description": "",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000026"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000062-comment-scoping-convention-sub-entity-discussions-vs-main-di.md",
+      "created_at": "2026-06-12T09:49:28Z",
+      "updated_at": "2026-06-12T10:03:47Z",
+      "extra": {},
+      "id": "FEAT-000062"
+    },
+    "64": {
+      "sequence_id": 64,
+      "type": "feature",
+      "title": "Align agent-type command groups with the item CLI grammar",
+      "slug": "align-agent-type-command-groups-with-the-item-cli-grammar",
+      "status": "Done",
+      "description": "Bring role/skill/operator command groups in line with the item grammar: item-first addressing, styled body rendering, and a single list surface",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000019",
+        "FEAT-000026",
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As the stability contract author, I want this feature's grammar decisions recorded as a deferral obligation on FEAT-000013 before it closes, so that the contract document reflects the final CLI surface accurately",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000064-align-agent-type-command-groups-with-the-item-cli-grammar.md",
+      "created_at": "2026-06-12T11:56:22Z",
+      "updated_at": "2026-06-12T13:12:14Z",
+      "extra": {},
+      "id": "FEAT-000064"
+    },
+    "100": {
+      "sequence_id": 100,
+      "type": "feature",
+      "title": "Read-only browse: sidebar tree + rendered preview",
+      "slug": "read-only-browse-sidebar-tree-rendered-preview",
+      "status": "Draft",
+      "description": "VS Code activity-bar tree from sq tree --json; clicking an item opens rendered sq show in the markdown preview; filter/group + refresh",
+      "parent": "EPIC-000099",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator, I want the squad hierarchy in a VS Code sidebar tree with status, assignee and blocked-state at a glance, so that I can navigate the squad without leaving the editor",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an operator, I want clicking a tree item to open its rendered sq show in the markdown preview, so that I read a clean item without frontmatter or marker noise",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an operator, I want to filter and group the tree by type and open/closed state and refresh it on demand, so that I can focus on the work that matters right now",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
+      "created_at": "2026-06-14T20:45:15Z",
+      "updated_at": "2026-06-14T20:45:23Z",
+      "extra": {},
+      "id": "FEAT-000100"
+    },
+    "122": {
+      "sequence_id": 122,
+      "type": "feature",
+      "title": "Per-role capability attenuation",
+      "slug": "per-role-capability-attenuation",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000121",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000125:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a squad manager, I want each worker role to have a declared capability profile so that I can verify a spawned agent cannot exceed its remit (e.g. spawn sub-agents, modify items outside its lane).",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a reviewer-role agent, I want the system to prevent me from invoking the Agent/Task spawn tool so that I cannot accidentally (or autonomously) expand my own work scope.",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000122-per-role-capability-attenuation.md",
+      "created_at": "2026-06-15T11:56:09Z",
+      "updated_at": "2026-06-15T12:00:21Z",
+      "extra": {},
+      "id": "FEAT-000122"
+    },
+    "123": {
+      "sequence_id": 123,
+      "type": "feature",
+      "title": "Exclusive work leases / claims",
+      "slug": "exclusive-work-leases-claims",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000121",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000125:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As any agent, I want to see a clear conflict error when I attempt to mutate an item already claimed by another agent so that I do not silently overwrite concurrent work.",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a squad manager, I want to list all active leases so that I can see which items are locked, by whom, and when the lease expires.",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000123-exclusive-work-leases-claims.md",
+      "created_at": "2026-06-15T11:56:12Z",
+      "updated_at": "2026-06-15T12:00:21Z",
+      "extra": {},
+      "id": "FEAT-000123"
+    },
+    "124": {
+      "sequence_id": 124,
+      "type": "feature",
+      "title": "Enforced separation of duties",
+      "slug": "enforced-separation-of-duties",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000121",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000125:depends-on",
+        "REV-000118",
+        "REV-000119",
+        "BUG-000120"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a squad manager, I want sq check to flag any review whose author lineage matches the target item's author lineage so that I can detect self-review before the review closes.",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a solo operator running a single-agent workflow, I want to suppress the self-review guard with --force and a rationale comment so that the check does not block legitimate single-agent use.",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000124-enforced-separation-of-duties.md",
+      "created_at": "2026-06-15T11:56:15Z",
+      "updated_at": "2026-06-15T12:00:26Z",
+      "extra": {},
+      "id": "FEAT-000124"
+    },
+    "125": {
+      "sequence_id": 125,
+      "type": "feature",
+      "title": "Real agent identity and spawn lineage",
+      "slug": "real-agent-identity-and-spawn-lineage",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000121",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000024"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As any agent or operator, I want the reflog to record a structured actor (slug + session ID + parent session ID) so that I can reconstruct the spawn tree and distinguish self-declared authorship from verified identity.",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a squad manager, I want sq reflog to render a spawn-tree view so that I can trace which agent lineage performed which operations and verify that concurrent work was structurally independent.",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000125-real-agent-identity-and-spawn-lineage.md",
+      "created_at": "2026-06-15T11:56:19Z",
+      "updated_at": "2026-06-15T12:00:17Z",
+      "extra": {},
+      "id": "FEAT-000125"
     },
     "42": {
       "sequence_id": 42,
@@ -1795,86 +1651,6 @@
       "extra": {},
       "id": "TASK-000047"
     },
-    "48": {
-      "sequence_id": 48,
-      "type": "review",
-      "title": "FEAT-000019 — uniform item addressing",
-      "slug": "feat-000019-uniform-item-addressing",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000019:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "Type-mismatch wording is inconsistent on typed surfaces depending on input form. For the SAME item, 'sq task 2 show' errors '2 is FEAT-000002 (feature), not a task' (names actual item+type, matches the recorded decision) but 'sq task FEAT-000002 show' errors 'FEAT-000002 is not a task (expected TASK-…)' — it never tells the user FEAT-000002 IS a feature. resolve_item_id_typed short-circuits the full-ID branch on the prefix string check (_common.py ~line 280) before the DB lookup, reusing the old wording. Acceptance requires wrong-type errors 'consistently everywhere, naming the actual item and type'. Fix: in the full-ID branch, when prefix mismatches, do the DB lookup and emit the same 'X is <id> (<type>), not a <type>' wording as the bare-number branch.",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "Unknown-item error wording drifts across the four resolver branches; acceptance demands 'both accepted forms, consistently everywhere'. Variants observed: (a) typed bare: 'no item with number 999 (use TASK-000999 or bare 999)'; (b) any bare: 'no item with number 999 (use a bare number like 999 or a full ID like TYPE-000999)'; (c) any full-ID: 'no item with number 999 (tried FEAT-000999 or bare 999)' — this one names neither form as a 'form' and omits the full-ID guidance; (d) typed full-ID uses the command prefix while any uses literal 'TYPE-'. Pick one canonical phrasing for 'mentions both forms' and use it in all four branches of resolve_item_id_typed/_any in _common.py.",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        },
-        {
-          "local_id": "F3",
-          "title": "Old resolve_item_id (_common.py:231) is now dead production code — no production caller remains after _items.py switched its verb callback to resolve_item_id_typed (only its own test_resolve_item_id references it). The two new resolvers re-implement the same lexical prefix/rpartition munging internally, so the lexical phase is now written three times. Either delete resolve_item_id (and fold its lexical assertions into the typed test) or have the new resolvers delegate to it for the lexical phase. Quality/maintainability, not correctness.",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F4",
-          "title": "Minor grammar in type-mismatch messages: 'not a operator' / 'not a epic' (a/an agreement) — produced for OPERATOR and EPIC types. The recorded example is 'not a task' so it reads fine for most types but not vowel-initial ones. Low cosmetic; can be folded with the F1/F2 wording cleanup.",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000048-feat-000019-uniform-item-addressing.md",
-      "created_at": "2026-06-11T14:19:22Z",
-      "updated_at": "2026-06-11T14:32:32Z",
-      "extra": {},
-      "id": "REV-000048"
-    },
-    "49": {
-      "sequence_id": 49,
-      "type": "decision",
-      "title": "Ref-kind vocabulary is closed in 1.0, with the extension point reserved for post-1.0",
-      "slug": "ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin",
-      "status": "Accepted",
-      "description": "",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000035",
-        "FEAT-000013",
-        "FEAT-000014",
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000049-ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin.md",
-      "created_at": "2026-06-11T20:19:55Z",
-      "updated_at": "2026-06-12T14:26:22Z",
-      "extra": {},
-      "id": "ADR-000049"
-    },
     "50": {
       "sequence_id": 50,
       "type": "task",
@@ -1958,37 +1734,6 @@
       "updated_at": "2026-06-11T20:43:22Z",
       "extra": {},
       "id": "TASK-000051"
-    },
-    "52": {
-      "sequence_id": 52,
-      "type": "review",
-      "title": "FEAT-000035 — typed ref vocabulary",
-      "slug": "feat-000035-typed-ref-vocabulary",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000035:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "Style: _check_decisions() in _maintenance.py uses a function-local 'from squads._models._enums import Status' (line ~332) when ItemType is already imported from that same module at the top. Hoist Status to the module-level import for consistency. Non-blocking — no cycle, gates clean.",
-          "status": "Open",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000052-feat-000035-typed-ref-vocabulary.md",
-      "created_at": "2026-06-11T20:41:00Z",
-      "updated_at": "2026-06-11T20:43:14Z",
-      "extra": {},
-      "id": "REV-000052"
     },
     "53": {
       "sequence_id": 53,
@@ -2092,26 +1837,6 @@
       "updated_at": "2026-06-12T08:01:30Z",
       "extra": {},
       "id": "TASK-000055"
-    },
-    "56": {
-      "sequence_id": 56,
-      "type": "bug",
-      "title": "Comment text containing literal sq marker syntax breaks the item's marker integrity",
-      "slug": "comment-text-containing-literal-sq-marker-syntax-breaks-the",
-      "status": "Done",
-      "description": "",
-      "parent": null,
-      "author": "manager",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "bugs/BUG-000056-comment-text-containing-literal-sq-marker-syntax-breaks-the.md",
-      "created_at": "2026-06-12T08:06:24Z",
-      "updated_at": "2026-06-12T08:36:01Z",
-      "extra": {},
-      "id": "BUG-000056"
     },
     "57": {
       "sequence_id": 57,
@@ -2263,100 +1988,6 @@
       "extra": {},
       "id": "TASK-000060"
     },
-    "61": {
-      "sequence_id": 61,
-      "type": "review",
-      "title": "Review: FEAT-000026 rendered show output",
-      "slug": "review-feat-000026-rendered-show-output",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000026:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "Plain-output escaping leak: sub-entity pane titles double-escaped in piped/NO_COLOR/--raw path",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "Nit: badge/column duplication between _common.py and _discussion.py",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F3",
-          "title": "Nit: test gap — no assertion for literal-bracket fidelity in plain pane titles",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000061-review-feat-000026-rendered-show-output.md",
-      "created_at": "2026-06-12T09:32:57Z",
-      "updated_at": "2026-06-12T09:43:19Z",
-      "extra": {},
-      "id": "REV-000061"
-    },
-    "62": {
-      "sequence_id": 62,
-      "type": "feature",
-      "title": "Comment-scoping convention: sub-entity discussions vs main discussion",
-      "slug": "comment-scoping-convention-sub-entity-discussions-vs-main-di",
-      "status": "Done",
-      "description": "",
-      "parent": "EPIC-000012",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": "medium",
-      "labels": [],
-      "refs": [
-        "FEAT-000026"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000062-comment-scoping-convention-sub-entity-discussions-vs-main-di.md",
-      "created_at": "2026-06-12T09:49:28Z",
-      "updated_at": "2026-06-12T10:03:47Z",
-      "extra": {},
-      "id": "FEAT-000062"
-    },
     "63": {
       "sequence_id": 63,
       "type": "task",
@@ -2401,63 +2032,6 @@
       "updated_at": "2026-06-12T10:00:52Z",
       "extra": {},
       "id": "TASK-000063"
-    },
-    "64": {
-      "sequence_id": 64,
-      "type": "feature",
-      "title": "Align agent-type command groups with the item CLI grammar",
-      "slug": "align-agent-type-command-groups-with-the-item-cli-grammar",
-      "status": "Done",
-      "description": "Bring role/skill/operator command groups in line with the item grammar: item-first addressing, styled body rendering, and a single list surface",
-      "parent": "EPIC-000012",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [
-        "FEAT-000019",
-        "FEAT-000026",
-        "FEAT-000013"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US4",
-          "title": "As the stability contract author, I want this feature's grammar decisions recorded as a deferral obligation on FEAT-000013 before it closes, so that the contract document reflects the final CLI surface accurately",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000064-align-agent-type-command-groups-with-the-item-cli-grammar.md",
-      "created_at": "2026-06-12T11:56:22Z",
-      "updated_at": "2026-06-12T13:12:14Z",
-      "extra": {},
-      "id": "FEAT-000064"
     },
     "65": {
       "sequence_id": 65,
@@ -2573,109 +2147,6 @@
       "extra": {},
       "id": "TASK-000066"
     },
-    "67": {
-      "sequence_id": 67,
-      "type": "review",
-      "title": "FEAT-000064: negative-path error UX leaks the internal _addr subgroup and fails 'error comprehensibly'",
-      "slug": "feat-000064-negative-path-error-ux-leaks-the-internal-addr-s",
-      "status": "Approved",
-      "description": "AddressDispatchGroup routes every unknown token to the hidden _addr subgroup; removed/typo'd/old-grammar invocations produce baffling errors that leak _addr and omit the documented migration hint.",
-      "parent": "FEAT-000064",
-      "author": "reviewer",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [
-        "TASK-000065"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "Removed list commands do not error comprehensibly (US3 acceptance)",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "high",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "The hidden _addr name leaks into every negative-path usage/error line",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "high",
-          "story": null
-        },
-        {
-          "local_id": "F3",
-          "title": "show/regen/rm are undiscoverable from sq role / --help (US1 spirit)",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        },
-        {
-          "local_id": "F4",
-          "title": "N1 slug shadowing: slug matching a group verb is unaddressable by slug",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F5",
-          "title": "N2 resolver duplication: resolve_agent_addr iterates db.items inline instead of reusing item helpers",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F6",
-          "title": "N3 empty-body hint inaccurate: suggests a 'body' verb the groups do not have",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F7",
-          "title": "N4 inline shape check: _resolve_addr reimplements full-ID detection instead of _is_full_id_shape",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F8",
-          "title": "N5 stale comment: SKIL-000002 should be SKILL-000002 in test_skill_item_first_grammar",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F9",
-          "title": "N6 test coverage: no direct test for REV-000061 bracket/no-backslash fidelity on the new body path",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F10",
-          "title": "N7 sq dev consistency: still uses the old listing shape, reads inconsistently against the flipped groups",
-          "status": "WontFix",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000067-feat-000064-negative-path-error-ux-leaks-the-internal-addr-s.md",
-      "created_at": "2026-06-12T12:46:41Z",
-      "updated_at": "2026-06-12T13:18:41Z",
-      "extra": {},
-      "id": "REV-000067"
-    },
     "68": {
       "sequence_id": 68,
       "type": "task",
@@ -2763,244 +2234,6 @@
       "updated_at": "2026-06-12T14:26:55Z",
       "extra": {},
       "id": "TASK-000070"
-    },
-    "71": {
-      "sequence_id": 71,
-      "type": "decision",
-      "title": "Frontmatter is the source of truth; the index is rebuildable",
-      "slug": "frontmatter-is-the-source-of-truth-the-index-is-rebuildable",
-      "status": "Accepted",
-      "description": "Item state lives in .md frontmatter; .squads.json is a derived index that sq repair reconstructs",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000071-frontmatter-is-the-source-of-truth-the-index-is-rebuildable.md",
-      "created_at": "2026-06-12T14:22:53Z",
-      "updated_at": "2026-06-12T14:29:31Z",
-      "extra": {},
-      "id": "ADR-000071"
-    },
-    "72": {
-      "sequence_id": 72,
-      "type": "decision",
-      "title": "One global monotonic ID counter across all item types",
-      "slug": "one-global-monotonic-id-counter-across-all-item-types",
-      "status": "Accepted",
-      "description": "A single counter makes every ID number globally unique; allocation only inside the index transaction",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-000071",
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000072-one-global-monotonic-id-counter-across-all-item-types.md",
-      "created_at": "2026-06-12T14:22:56Z",
-      "updated_at": "2026-06-12T14:29:31Z",
-      "extra": {},
-      "id": "ADR-000072"
-    },
-    "73": {
-      "sequence_id": 73,
-      "type": "decision",
-      "title": "Forward-only refs with computed backrefs",
-      "slug": "forward-only-refs-with-computed-backrefs",
-      "status": "Accepted",
-      "description": "Items store outgoing refs with kind inline; backrefs are computed by inversion, never persisted",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000073-forward-only-refs-with-computed-backrefs.md",
-      "created_at": "2026-06-12T14:23:00Z",
-      "updated_at": "2026-06-12T14:29:31Z",
-      "extra": {},
-      "id": "ADR-000073"
-    },
-    "74": {
-      "sequence_id": 74,
-      "type": "decision",
-      "title": "Marker-safe editing: sq owns the anchor regions, agents own the prose",
-      "slug": "marker-safe-editing-sq-owns-the-anchor-regions-agents-own-th",
-      "status": "Accepted",
-      "description": "File content is mutated only through the sections layer; anchor tags delimit managed regions; agent prose is never rewritten",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "BUG-000056",
-        "ADR-000071",
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000074-marker-safe-editing-sq-owns-the-anchor-regions-agents-own-th.md",
-      "created_at": "2026-06-12T14:23:04Z",
-      "updated_at": "2026-06-12T14:29:31Z",
-      "extra": {},
-      "id": "ADR-000074"
-    },
-    "75": {
-      "sequence_id": 75,
-      "type": "decision",
-      "title": "Pluggable backends behind the AgentBackend ABC; .claude/ is pointers",
-      "slug": "pluggable-backends-behind-the-agentbackend-abc-claude-is-poi",
-      "status": "Accepted",
-      "description": "Harnesses sit behind an ABC + registry; real content lives under the squad folder, .claude/ holds only pointers",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000075-pluggable-backends-behind-the-agentbackend-abc-claude-is-poi.md",
-      "created_at": "2026-06-12T14:23:08Z",
-      "updated_at": "2026-06-12T14:29:32Z",
-      "extra": {},
-      "id": "ADR-000075"
-    },
-    "76": {
-      "sequence_id": 76,
-      "type": "decision",
-      "title": "Dotted 0.x schema-version scheme with the sq migrate runner",
-      "slug": "dotted-0-x-schema-version-scheme-with-the-sq-migrate-runner",
-      "status": "Accepted",
-      "description": "Schema version names the release that introduced it, compared as a tuple; upgrades run through ordered sq migrate steps",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000027",
-        "FEAT-000013",
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000076-dotted-0-x-schema-version-scheme-with-the-sq-migrate-runner.md",
-      "created_at": "2026-06-12T14:23:11Z",
-      "updated_at": "2026-06-12T14:29:32Z",
-      "extra": {},
-      "id": "ADR-000076"
-    },
-    "77": {
-      "sequence_id": 77,
-      "type": "decision",
-      "title": "Time is injectable through a single clock module",
-      "slug": "time-is-injectable-through-a-single-clock-module",
-      "status": "Accepted",
-      "description": "All timestamps route through _clock.now()/iso(); freezable in tests and forgeable via --at for history-preserving adoption",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000077-time-is-injectable-through-a-single-clock-module.md",
-      "created_at": "2026-06-12T14:23:17Z",
-      "updated_at": "2026-06-12T14:29:32Z",
-      "extra": {},
-      "id": "ADR-000077"
-    },
-    "78": {
-      "sequence_id": 78,
-      "type": "decision",
-      "title": "Module-privacy convention: underscore-prefixed internals, no re-exporting inits",
-      "slug": "module-privacy-convention-underscore-prefixed-internals-no-r",
-      "status": "Accepted",
-      "description": "Every implementation module is private with leading underscores and non-re-exporting inits, so 1.0 freezes no accidental public API",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "GUIDE-000079"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000078-module-privacy-convention-underscore-prefixed-internals-no-r.md",
-      "created_at": "2026-06-12T14:23:20Z",
-      "updated_at": "2026-06-12T14:29:32Z",
-      "extra": {},
-      "id": "ADR-000078"
-    },
-    "79": {
-      "sequence_id": 79,
-      "type": "guide",
-      "title": "squads architecture: layering, data model, and the marker mechanism",
-      "slug": "squads-architecture-layering-data-model-and-the-marker-mecha",
-      "status": "Published",
-      "description": "A standalone-readable map of how squads is built: the cli to services to index/backends/rendering layering, the item/sub-entity/index data model, and the marker mechanism — pointing at sq docs internals for depth and citing the standing ADRs.",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-000071",
-        "ADR-000072",
-        "ADR-000073",
-        "ADR-000074",
-        "ADR-000075",
-        "ADR-000076",
-        "ADR-000077",
-        "ADR-000078",
-        "ADR-000049"
-      ],
-      "subentities": [],
-      "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
-      "created_at": "2026-06-12T14:25:59Z",
-      "updated_at": "2026-06-12T14:28:33Z",
-      "extra": {
-        "tech": "python",
-        "tags": [
-          "architecture"
-        ]
-      },
-      "id": "GUIDE-000079"
-    },
-    "80": {
-      "sequence_id": 80,
-      "type": "bug",
-      "title": "Inbox surfaces stale mentions from Accepted decisions and Published guides",
-      "slug": "inbox-surfaces-stale-mentions-from-accepted-decisions-and-pu",
-      "status": "Done",
-      "description": "",
-      "parent": null,
-      "author": "manager",
-      "assignee": null,
-      "priority": "medium",
-      "labels": [],
-      "refs": [
-        "ADR-000049"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000080-inbox-surfaces-stale-mentions-from-accepted-decisions-and-pu.md",
-      "created_at": "2026-06-12T14:59:31Z",
-      "updated_at": "2026-06-12T15:08:27Z",
-      "extra": {},
-      "id": "BUG-000080"
     },
     "81": {
       "sequence_id": 81,
@@ -3116,65 +2349,6 @@
       "updated_at": "2026-06-12T21:29:43Z",
       "extra": {},
       "id": "TASK-000084"
-    },
-    "85": {
-      "sequence_id": 85,
-      "type": "decision",
-      "title": "Project-level overrides live under .overrides with per-file precedence, stamped staleness checks, and names in extra",
-      "slug": "project-level-overrides-live-under-overrides-with-per-file-p",
-      "status": "Accepted",
-      "description": "",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000014"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000085-project-level-overrides-live-under-overrides-with-per-file-p.md",
-      "created_at": "2026-06-12T15:29:52Z",
-      "updated_at": "2026-06-12T20:52:25Z",
-      "extra": {},
-      "id": "ADR-000085"
-    },
-    "86": {
-      "sequence_id": 86,
-      "type": "review",
-      "title": "TASK-000082: --json coverage on read commands (check, sub-entity lists, catalog viewers)",
-      "slug": "task-000082-json-coverage-on-read-commands-check-sub-entity",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "JSON show shapes use 'file' for the path; sibling --json surfaces use 'path'",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "check table path still exits 1 on errors while check --json exits 3 — same command, divergent exit codes",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000086-task-000082-json-coverage-on-read-commands-check-sub-entity.md",
-      "created_at": "2026-06-12T20:38:57Z",
-      "updated_at": "2026-06-12T20:44:49Z",
-      "extra": {},
-      "id": "REV-000086"
     },
     "87": {
       "sequence_id": 87,
@@ -3380,6 +2554,1123 @@
       "extra": {},
       "id": "TASK-000091"
     },
+    "98": {
+      "sequence_id": 98,
+      "type": "task",
+      "title": "Wire the template-manifest generation into the release build",
+      "slug": "wire-the-template-manifest-generation-into-the-release-build",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "manager",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000098-wire-the-template-manifest-generation-into-the-release-build.md",
+      "created_at": "2026-06-14T20:17:06Z",
+      "updated_at": "2026-06-14T20:22:05Z",
+      "extra": {},
+      "id": "TASK-000098"
+    },
+    "101": {
+      "sequence_id": 101,
+      "type": "task",
+      "title": "Store padding in the index, derive all ID formatting from it, and guard create against exhaustion",
+      "slug": "store-padding-in-the-index-derive-all-id-formatting-from-it",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000027",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000104",
+        "REV-000105:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Padding stored in index; all ID formatting derives from it; allocate_id raises index-full at capacity naming sq migrate repad",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000101-store-padding-in-the-index-derive-all-id-formatting-from-it.md",
+      "created_at": "2026-06-14T20:56:35Z",
+      "updated_at": "2026-06-14T21:20:14Z",
+      "extra": {},
+      "id": "TASK-000101"
+    },
+    "102": {
+      "sequence_id": 102,
+      "type": "task",
+      "title": "sq migrate repad: one-way padding bump that renames every item file to the new width and rebuilds the index",
+      "slug": "sq-migrate-repad-one-way-padding-bump-that-renames-every-ite",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000027",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000101:depends-on",
+        "REV-000106:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq migrate repad <width>: one-way bump, renames all item files to new width, rebuilds index, refuses to lower, file contents byte-untouched; sq check clean after",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000102-sq-migrate-repad-one-way-padding-bump-that-renames-every-ite.md",
+      "created_at": "2026-06-14T20:56:35Z",
+      "updated_at": "2026-06-14T22:06:25Z",
+      "extra": {},
+      "id": "TASK-000102"
+    },
+    "103": {
+      "sequence_id": 103,
+      "type": "task",
+      "title": "Width-tolerant ID reading everywhere; display always uses current padding",
+      "slug": "width-tolerant-id-reading-everywhere-display-always-uses-cur",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000027",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000101:depends-on",
+        "REV-000106:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Width-tolerant ID equality in resolver/backrefs/check; mixed-width refs+mentions+parent+CLI args resolve; display uses current padding; mixed-width fixture tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000103-width-tolerant-id-reading-everywhere-display-always-uses-cur.md",
+      "created_at": "2026-06-14T20:56:35Z",
+      "updated_at": "2026-06-14T22:06:25Z",
+      "extra": {},
+      "id": "TASK-000103"
+    },
+    "107": {
+      "sequence_id": 107,
+      "type": "task",
+      "title": "Route type-command aliases to the full command tree",
+      "slug": "route-type-command-aliases-to-the-full-command-tree",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000036",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add a canonical ALIASES map and register each type sub-app under its hidden alias names",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "CLI test matrix: every alias routes deep chains; output and errors stay canonical",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000107-route-type-command-aliases-to-the-full-command-tree.md",
+      "created_at": "2026-06-15T07:42:47Z",
+      "updated_at": "2026-06-15T08:10:56Z",
+      "extra": {},
+      "id": "TASK-000107"
+    },
+    "108": {
+      "sequence_id": 108,
+      "type": "task",
+      "title": "Keep help clean and document the alias table in the contract",
+      "slug": "keep-help-clean-and-document-the-alias-table-in-the-contract",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000036",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Hide aliases from root help; mention the table once (epilog or type help)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Render the alias table in the workflow cheatsheet with the add-only rule; tie into FEAT-000013 contract",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000108-keep-help-clean-and-document-the-alias-table-in-the-contract.md",
+      "created_at": "2026-06-15T07:42:48Z",
+      "updated_at": "2026-06-15T08:10:56Z",
+      "extra": {},
+      "id": "TASK-000108"
+    },
+    "110": {
+      "sequence_id": 110,
+      "type": "task",
+      "title": "Implement sq <type> <n> retype <new-type>",
+      "slug": "implement-sq-type-n-retype-new-type",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000020",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Retype operation: flip type, move file, carry/reset status, refuse conflicts, system comment",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rewrite all incoming edges (refs, children parent, prose mentions) to the new ID in one transaction",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Wire the CLI verb + service tests, CLI smoke, workflow docs",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000110-implement-sq-type-n-retype-new-type.md",
+      "created_at": "2026-06-15T08:20:30Z",
+      "updated_at": "2026-06-15T08:46:33Z",
+      "extra": {},
+      "id": "TASK-000110"
+    },
+    "111": {
+      "sequence_id": 111,
+      "type": "task",
+      "title": "Implement sq <type> <n> remove for work items",
+      "slug": "implement-sq-type-n-remove-for-work-items",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000023",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Atomic remove: delete .md + index entry in one transaction; counter high-water mark survives removal and a subsequent repair (never re-issues the number); interactive confirm unless --yes",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Ref/child safety: refuse removal when incoming refs or children exist (list them); --force severs incoming refs from referrers' frontmatter (no danglers); children must be re-parented first; sq check clean after any removal",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Traceable removal + docs: leave a queryable trace per the design ADR (tombstone/log) so a sequence-number gap reads as a recorded removal; document the remove-vs-cancel rule",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000111-implement-sq-type-n-remove-for-work-items.md",
+      "created_at": "2026-06-15T08:20:37Z",
+      "updated_at": "2026-06-15T09:21:47Z",
+      "extra": {},
+      "id": "TASK-000111"
+    },
+    "112": {
+      "sequence_id": 112,
+      "type": "task",
+      "title": "Reflog core: append-only JSONL log wired into the transaction seam",
+      "slug": "reflog-core-append-only-jsonl-log-wired-into-the-transaction",
+      "status": "Done",
+      "description": "Append-only operation log written atomically inside IndexStore.transaction(); the writer, the line schema, and actor threading.",
+      "parent": "FEAT-000024",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000015"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Append one well-formed JSONL line per mutating transaction, atomically with the index write (writer + line schema + op/delta capture)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Thread the actor (--as/--author/invoking agent) and op identity down to the store so removals/retypes/forced-status/repair are reconstructable from reflog lines alone",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000112-reflog-core-append-only-jsonl-log-wired-into-the-transaction.md",
+      "created_at": "2026-06-15T08:20:48Z",
+      "updated_at": "2026-06-15T10:24:01Z",
+      "extra": {},
+      "id": "TASK-000112"
+    },
+    "113": {
+      "sequence_id": 113,
+      "type": "task",
+      "title": "sq reflog read command + schema documentation and contract tiering",
+      "slug": "sq-reflog-read-command-schema-documentation-and-contract-tie",
+      "status": "Done",
+      "description": "sq reflog read/filter command with --json passthrough, golden tests, and the documented/versioned line schema feeding the stability contract.",
+      "parent": "FEAT-000024",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000015"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq reflog read command: tail by default, filter by --item/--actor/--op/--since, with --json passthrough",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Back-compat: a squad with no reflog file behaves identically; reflog never consulted for state, missing/truncated never an error",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Version and document the line schema; golden-test the --json shape and state its stability tier in the contract doc",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000113-sq-reflog-read-command-schema-documentation-and-contract-tie.md",
+      "created_at": "2026-06-15T08:20:49Z",
+      "updated_at": "2026-06-15T10:24:01Z",
+      "extra": {},
+      "id": "TASK-000113"
+    },
+    "11": {
+      "sequence_id": 11,
+      "type": "bug",
+      "title": "sq check flags operator authors/assignees as unregistered",
+      "slug": "sq-check-flags-operator-authors-assignees-as-unregistered",
+      "status": "Done",
+      "description": "check() validates author/assignee against roles only, while the write gate accepts operators too",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000011-sq-check-flags-operator-authors-assignees-as-unregistered.md",
+      "created_at": "2026-06-10T12:30:52Z",
+      "updated_at": "2026-06-10T12:32:14Z",
+      "extra": {
+        "severity": "medium"
+      },
+      "id": "BUG-000011"
+    },
+    "21": {
+      "sequence_id": 21,
+      "type": "bug",
+      "title": "Slug arguments not validated: sq mine accepts unknown agents and silently defaults to manager",
+      "slug": "slug-arguments-not-validated-sq-mine-accepts-unknown-agents",
+      "status": "Done",
+      "description": "sq mine/inbox exit 0 for unknown slugs and bare sq mine defaults to manager; slug args should be required and validated against the roster across commands",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000019"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000021-slug-arguments-not-validated-sq-mine-accepts-unknown-agents.md",
+      "created_at": "2026-06-10T13:35:26Z",
+      "updated_at": "2026-06-11T13:19:21Z",
+      "extra": {},
+      "id": "BUG-000021"
+    },
+    "22": {
+      "sequence_id": 22,
+      "type": "bug",
+      "title": "Counter can regress, allowing sequence-number reuse after an item file disappears",
+      "slug": "counter-can-regress-allowing-sequence-number-reuse-after-an",
+      "status": "Done",
+      "description": "Hand-edited or repair-rebuilt indexes accept a regressed counter, so deleted items' numbers get reused; repair sets counter to max-found, ignoring the previous high-water mark",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000019",
+        "FEAT-000023"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000022-counter-can-regress-allowing-sequence-number-reuse-after-an.md",
+      "created_at": "2026-06-10T13:51:32Z",
+      "updated_at": "2026-06-11T20:40:07Z",
+      "extra": {},
+      "id": "BUG-000022"
+    },
+    "25": {
+      "sequence_id": 25,
+      "type": "bug",
+      "title": "show prints a redundant 'Body' literal before the body",
+      "slug": "show-prints-a-redundant-body-literal-before-the-body",
+      "status": "Done",
+      "description": "sq <type> <n> show prefixes the body with a bare 'Body' label; the body is self-evident after the metadata panel and usually opens with its own headings",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [
+        "FEAT-000026"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000025-show-prints-a-redundant-body-literal-before-the-body.md",
+      "created_at": "2026-06-10T14:52:35Z",
+      "updated_at": "2026-06-11T20:40:08Z",
+      "extra": {},
+      "id": "BUG-000025"
+    },
+    "30": {
+      "sequence_id": 30,
+      "type": "bug",
+      "title": "tree: priority and title separated by a bare space",
+      "slug": "tree-priority-and-title-separated-by-a-bare-space",
+      "status": "Done",
+      "description": "In sq tree, '🟠 high Stability contract documentation' runs together — put a middle dot between priority and title",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000030-tree-priority-and-title-separated-by-a-bare-space.md",
+      "created_at": "2026-06-10T15:19:16Z",
+      "updated_at": "2026-06-11T13:19:46Z",
+      "extra": {},
+      "id": "BUG-000030"
+    },
+    "56": {
+      "sequence_id": 56,
+      "type": "bug",
+      "title": "Comment text containing literal sq marker syntax breaks the item's marker integrity",
+      "slug": "comment-text-containing-literal-sq-marker-syntax-breaks-the",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000056-comment-text-containing-literal-sq-marker-syntax-breaks-the.md",
+      "created_at": "2026-06-12T08:06:24Z",
+      "updated_at": "2026-06-12T08:36:01Z",
+      "extra": {},
+      "id": "BUG-000056"
+    },
+    "80": {
+      "sequence_id": 80,
+      "type": "bug",
+      "title": "Inbox surfaces stale mentions from Accepted decisions and Published guides",
+      "slug": "inbox-surfaces-stale-mentions-from-accepted-decisions-and-pu",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "ADR-000049"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000080-inbox-surfaces-stale-mentions-from-accepted-decisions-and-pu.md",
+      "created_at": "2026-06-12T14:59:31Z",
+      "updated_at": "2026-06-12T15:08:27Z",
+      "extra": {},
+      "id": "BUG-000080"
+    },
+    "120": {
+      "sequence_id": 120,
+      "type": "bug",
+      "title": "retype does not log to reflog (FEAT-000024 gap)",
+      "slug": "retype-does-not-log-to-reflog-feat-000024-gap",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000024",
+        "TASK-000112"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000120-retype-does-not-log-to-reflog-feat-000024-gap.md",
+      "created_at": "2026-06-15T10:16:30Z",
+      "updated_at": "2026-06-15T10:21:41Z",
+      "extra": {},
+      "id": "BUG-000120"
+    },
+    "49": {
+      "sequence_id": 49,
+      "type": "decision",
+      "title": "Ref-kind vocabulary is closed in 1.0, with the extension point reserved for post-1.0",
+      "slug": "ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000035",
+        "FEAT-000013",
+        "FEAT-000014",
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000049-ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin.md",
+      "created_at": "2026-06-11T20:19:55Z",
+      "updated_at": "2026-06-12T14:26:22Z",
+      "extra": {},
+      "id": "ADR-000049"
+    },
+    "71": {
+      "sequence_id": 71,
+      "type": "decision",
+      "title": "Frontmatter is the source of truth; the index is rebuildable",
+      "slug": "frontmatter-is-the-source-of-truth-the-index-is-rebuildable",
+      "status": "Accepted",
+      "description": "Item state lives in .md frontmatter; .squads.json is a derived index that sq repair reconstructs",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000071-frontmatter-is-the-source-of-truth-the-index-is-rebuildable.md",
+      "created_at": "2026-06-12T14:22:53Z",
+      "updated_at": "2026-06-12T14:29:31Z",
+      "extra": {},
+      "id": "ADR-000071"
+    },
+    "72": {
+      "sequence_id": 72,
+      "type": "decision",
+      "title": "One global monotonic ID counter across all item types",
+      "slug": "one-global-monotonic-id-counter-across-all-item-types",
+      "status": "Accepted",
+      "description": "A single counter makes every ID number globally unique; allocation only inside the index transaction",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000071",
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000072-one-global-monotonic-id-counter-across-all-item-types.md",
+      "created_at": "2026-06-12T14:22:56Z",
+      "updated_at": "2026-06-12T14:29:31Z",
+      "extra": {},
+      "id": "ADR-000072"
+    },
+    "73": {
+      "sequence_id": 73,
+      "type": "decision",
+      "title": "Forward-only refs with computed backrefs",
+      "slug": "forward-only-refs-with-computed-backrefs",
+      "status": "Accepted",
+      "description": "Items store outgoing refs with kind inline; backrefs are computed by inversion, never persisted",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000073-forward-only-refs-with-computed-backrefs.md",
+      "created_at": "2026-06-12T14:23:00Z",
+      "updated_at": "2026-06-12T14:29:31Z",
+      "extra": {},
+      "id": "ADR-000073"
+    },
+    "74": {
+      "sequence_id": 74,
+      "type": "decision",
+      "title": "Marker-safe editing: sq owns the anchor regions, agents own the prose",
+      "slug": "marker-safe-editing-sq-owns-the-anchor-regions-agents-own-th",
+      "status": "Accepted",
+      "description": "File content is mutated only through the sections layer; anchor tags delimit managed regions; agent prose is never rewritten",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "BUG-000056",
+        "ADR-000071",
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000074-marker-safe-editing-sq-owns-the-anchor-regions-agents-own-th.md",
+      "created_at": "2026-06-12T14:23:04Z",
+      "updated_at": "2026-06-12T14:29:31Z",
+      "extra": {},
+      "id": "ADR-000074"
+    },
+    "75": {
+      "sequence_id": 75,
+      "type": "decision",
+      "title": "Pluggable backends behind the AgentBackend ABC; .claude/ is pointers",
+      "slug": "pluggable-backends-behind-the-agentbackend-abc-claude-is-poi",
+      "status": "Accepted",
+      "description": "Harnesses sit behind an ABC + registry; real content lives under the squad folder, .claude/ holds only pointers",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000075-pluggable-backends-behind-the-agentbackend-abc-claude-is-poi.md",
+      "created_at": "2026-06-12T14:23:08Z",
+      "updated_at": "2026-06-12T14:29:32Z",
+      "extra": {},
+      "id": "ADR-000075"
+    },
+    "76": {
+      "sequence_id": 76,
+      "type": "decision",
+      "title": "Dotted 0.x schema-version scheme with the sq migrate runner",
+      "slug": "dotted-0-x-schema-version-scheme-with-the-sq-migrate-runner",
+      "status": "Accepted",
+      "description": "Schema version names the release that introduced it, compared as a tuple; upgrades run through ordered sq migrate steps",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000027",
+        "FEAT-000013",
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000076-dotted-0-x-schema-version-scheme-with-the-sq-migrate-runner.md",
+      "created_at": "2026-06-12T14:23:11Z",
+      "updated_at": "2026-06-12T14:29:32Z",
+      "extra": {},
+      "id": "ADR-000076"
+    },
+    "77": {
+      "sequence_id": 77,
+      "type": "decision",
+      "title": "Time is injectable through a single clock module",
+      "slug": "time-is-injectable-through-a-single-clock-module",
+      "status": "Accepted",
+      "description": "All timestamps route through _clock.now()/iso(); freezable in tests and forgeable via --at for history-preserving adoption",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000077-time-is-injectable-through-a-single-clock-module.md",
+      "created_at": "2026-06-12T14:23:17Z",
+      "updated_at": "2026-06-12T14:29:32Z",
+      "extra": {},
+      "id": "ADR-000077"
+    },
+    "78": {
+      "sequence_id": 78,
+      "type": "decision",
+      "title": "Module-privacy convention: underscore-prefixed internals, no re-exporting inits",
+      "slug": "module-privacy-convention-underscore-prefixed-internals-no-r",
+      "status": "Accepted",
+      "description": "Every implementation module is private with leading underscores and non-re-exporting inits, so 1.0 freezes no accidental public API",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-000079"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000078-module-privacy-convention-underscore-prefixed-internals-no-r.md",
+      "created_at": "2026-06-12T14:23:20Z",
+      "updated_at": "2026-06-12T14:29:32Z",
+      "extra": {},
+      "id": "ADR-000078"
+    },
+    "85": {
+      "sequence_id": 85,
+      "type": "decision",
+      "title": "Project-level overrides live under .overrides with per-file precedence, stamped staleness checks, and names in extra",
+      "slug": "project-level-overrides-live-under-overrides-with-per-file-p",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000014"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000085-project-level-overrides-live-under-overrides-with-per-file-p.md",
+      "created_at": "2026-06-12T15:29:52Z",
+      "updated_at": "2026-06-12T20:52:25Z",
+      "extra": {},
+      "id": "ADR-000085"
+    },
+    "104": {
+      "sequence_id": 104,
+      "type": "decision",
+      "title": "The index may hold corpus-derived format parameters carried as a floor (padding, counter)",
+      "slug": "the-index-may-hold-corpus-derived-format-parameters-carried",
+      "status": "Accepted",
+      "description": "Refines invariant 1: squad-wide format/allocation parameters (counter, ID padding) are reconstructed from the file corpus with the stored value as a floor; this is permitted and is not per-item state in the index.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000071",
+        "ADR-000072",
+        "FEAT-000027"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000104-the-index-may-hold-corpus-derived-format-parameters-carried.md",
+      "created_at": "2026-06-14T20:59:27Z",
+      "updated_at": "2026-06-14T21:00:52Z",
+      "extra": {},
+      "id": "ADR-000104"
+    },
+    "114": {
+      "sequence_id": 114,
+      "type": "decision",
+      "title": "Removal is a hard delete; the reflog is its audit trace",
+      "slug": "removal-is-a-hard-delete-the-reflog-is-its-audit-trace",
+      "status": "Accepted",
+      "description": "sq remove hard-deletes (file + index entry) in one transaction, preserving the counter high-water mark so the freed number is never reissued; forced removal severs incoming refs so sq check stays clean; the removal's audit trace is a single reflog line (FEAT-000024), not an index tombstone.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000023",
+        "TASK-000111",
+        "FEAT-000024",
+        "ADR-000104"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000114-removal-is-a-hard-delete-the-reflog-is-its-audit-trace.md",
+      "created_at": "2026-06-15T08:24:46Z",
+      "updated_at": "2026-06-15T08:25:54Z",
+      "extra": {},
+      "id": "ADR-000114"
+    },
+    "117": {
+      "sequence_id": 117,
+      "type": "decision",
+      "title": "Reflog durability, append atomicity, and actor threading",
+      "slug": "reflog-durability-append-atomicity-and-actor-threading",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000024",
+        "TASK-000112",
+        "TASK-000113",
+        "ADR-000114"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000117-reflog-durability-append-atomicity-and-actor-threading.md",
+      "created_at": "2026-06-15T09:22:28Z",
+      "updated_at": "2026-06-15T09:23:44Z",
+      "extra": {},
+      "id": "ADR-000117"
+    },
+    "48": {
+      "sequence_id": 48,
+      "type": "review",
+      "title": "FEAT-000019 — uniform item addressing",
+      "slug": "feat-000019-uniform-item-addressing",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000019:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Type-mismatch wording is inconsistent on typed surfaces depending on input form. For the SAME item, 'sq task 2 show' errors '2 is FEAT-000002 (feature), not a task' (names actual item+type, matches the recorded decision) but 'sq task FEAT-000002 show' errors 'FEAT-000002 is not a task (expected TASK-…)' — it never tells the user FEAT-000002 IS a feature. resolve_item_id_typed short-circuits the full-ID branch on the prefix string check (_common.py ~line 280) before the DB lookup, reusing the old wording. Acceptance requires wrong-type errors 'consistently everywhere, naming the actual item and type'. Fix: in the full-ID branch, when prefix mismatches, do the DB lookup and emit the same 'X is <id> (<type>), not a <type>' wording as the bare-number branch.",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Unknown-item error wording drifts across the four resolver branches; acceptance demands 'both accepted forms, consistently everywhere'. Variants observed: (a) typed bare: 'no item with number 999 (use TASK-000999 or bare 999)'; (b) any bare: 'no item with number 999 (use a bare number like 999 or a full ID like TYPE-000999)'; (c) any full-ID: 'no item with number 999 (tried FEAT-000999 or bare 999)' — this one names neither form as a 'form' and omits the full-ID guidance; (d) typed full-ID uses the command prefix while any uses literal 'TYPE-'. Pick one canonical phrasing for 'mentions both forms' and use it in all four branches of resolve_item_id_typed/_any in _common.py.",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Old resolve_item_id (_common.py:231) is now dead production code — no production caller remains after _items.py switched its verb callback to resolve_item_id_typed (only its own test_resolve_item_id references it). The two new resolvers re-implement the same lexical prefix/rpartition munging internally, so the lexical phase is now written three times. Either delete resolve_item_id (and fold its lexical assertions into the typed test) or have the new resolvers delegate to it for the lexical phase. Quality/maintainability, not correctness.",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Minor grammar in type-mismatch messages: 'not a operator' / 'not a epic' (a/an agreement) — produced for OPERATOR and EPIC types. The recorded example is 'not a task' so it reads fine for most types but not vowel-initial ones. Low cosmetic; can be folded with the F1/F2 wording cleanup.",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000048-feat-000019-uniform-item-addressing.md",
+      "created_at": "2026-06-11T14:19:22Z",
+      "updated_at": "2026-06-11T14:32:32Z",
+      "extra": {},
+      "id": "REV-000048"
+    },
+    "52": {
+      "sequence_id": 52,
+      "type": "review",
+      "title": "FEAT-000035 — typed ref vocabulary",
+      "slug": "feat-000035-typed-ref-vocabulary",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000035:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Style: _check_decisions() in _maintenance.py uses a function-local 'from squads._models._enums import Status' (line ~332) when ItemType is already imported from that same module at the top. Hoist Status to the module-level import for consistency. Non-blocking — no cycle, gates clean.",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000052-feat-000035-typed-ref-vocabulary.md",
+      "created_at": "2026-06-11T20:41:00Z",
+      "updated_at": "2026-06-11T20:43:14Z",
+      "extra": {},
+      "id": "REV-000052"
+    },
+    "61": {
+      "sequence_id": 61,
+      "type": "review",
+      "title": "Review: FEAT-000026 rendered show output",
+      "slug": "review-feat-000026-rendered-show-output",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000026:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Plain-output escaping leak: sub-entity pane titles double-escaped in piped/NO_COLOR/--raw path",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Nit: badge/column duplication between _common.py and _discussion.py",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Nit: test gap — no assertion for literal-bracket fidelity in plain pane titles",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000061-review-feat-000026-rendered-show-output.md",
+      "created_at": "2026-06-12T09:32:57Z",
+      "updated_at": "2026-06-12T09:43:19Z",
+      "extra": {},
+      "id": "REV-000061"
+    },
+    "67": {
+      "sequence_id": 67,
+      "type": "review",
+      "title": "FEAT-000064: negative-path error UX leaks the internal _addr subgroup and fails 'error comprehensibly'",
+      "slug": "feat-000064-negative-path-error-ux-leaks-the-internal-addr-s",
+      "status": "Approved",
+      "description": "AddressDispatchGroup routes every unknown token to the hidden _addr subgroup; removed/typo'd/old-grammar invocations produce baffling errors that leak _addr and omit the documented migration hint.",
+      "parent": "FEAT-000064",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000065"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Removed list commands do not error comprehensibly (US3 acceptance)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "The hidden _addr name leaks into every negative-path usage/error line",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "show/regen/rm are undiscoverable from sq role / --help (US1 spirit)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "N1 slug shadowing: slug matching a group verb is unaddressable by slug",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "N2 resolver duplication: resolve_agent_addr iterates db.items inline instead of reusing item helpers",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F6",
+          "title": "N3 empty-body hint inaccurate: suggests a 'body' verb the groups do not have",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F7",
+          "title": "N4 inline shape check: _resolve_addr reimplements full-ID detection instead of _is_full_id_shape",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F8",
+          "title": "N5 stale comment: SKIL-000002 should be SKILL-000002 in test_skill_item_first_grammar",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F9",
+          "title": "N6 test coverage: no direct test for REV-000061 bracket/no-backslash fidelity on the new body path",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F10",
+          "title": "N7 sq dev consistency: still uses the old listing shape, reads inconsistently against the flipped groups",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000067-feat-000064-negative-path-error-ux-leaks-the-internal-addr-s.md",
+      "created_at": "2026-06-12T12:46:41Z",
+      "updated_at": "2026-06-12T13:18:41Z",
+      "extra": {},
+      "id": "REV-000067"
+    },
+    "86": {
+      "sequence_id": 86,
+      "type": "review",
+      "title": "TASK-000082: --json coverage on read commands (check, sub-entity lists, catalog viewers)",
+      "slug": "task-000082-json-coverage-on-read-commands-check-sub-entity",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "JSON show shapes use 'file' for the path; sibling --json surfaces use 'path'",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "check table path still exits 1 on errors while check --json exits 3 — same command, divergent exit codes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000086-task-000082-json-coverage-on-read-commands-check-sub-entity.md",
+      "created_at": "2026-06-12T20:38:57Z",
+      "updated_at": "2026-06-12T20:44:49Z",
+      "extra": {},
+      "id": "REV-000086"
+    },
     "92": {
       "sequence_id": 92,
       "type": "review",
@@ -3584,217 +3875,6 @@
       "extra": {},
       "id": "REV-000097"
     },
-    "98": {
-      "sequence_id": 98,
-      "type": "task",
-      "title": "Wire the template-manifest generation into the release build",
-      "slug": "wire-the-template-manifest-generation-into-the-release-build",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000017",
-      "author": "manager",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "tasks/TASK-000098-wire-the-template-manifest-generation-into-the-release-build.md",
-      "created_at": "2026-06-14T20:17:06Z",
-      "updated_at": "2026-06-14T20:22:05Z",
-      "extra": {},
-      "id": "TASK-000098"
-    },
-    "99": {
-      "sequence_id": 99,
-      "type": "epic",
-      "title": "VS Code extension — browse the squad in the editor",
-      "slug": "vs-code-extension-browse-the-squad-in-the-editor",
-      "status": "Draft",
-      "description": "A VS Code extension: a sidebar tree of the squad + items opened in the markdown preview; consumes the frozen --json surface; browse-first, mutations a later increment",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": "low",
-      "labels": [],
-      "refs": [
-        "FEAT-000015:depends-on",
-        "EPIC-000012",
-        "EPIC-000028",
-        "EPIC-000029",
-        "EPIC-000038"
-      ],
-      "subentities": [],
-      "path": "epics/EPIC-000099-vs-code-extension-browse-the-squad-in-the-editor.md",
-      "created_at": "2026-06-14T20:45:06Z",
-      "updated_at": "2026-06-14T20:45:15Z",
-      "extra": {},
-      "id": "EPIC-000099"
-    },
-    "100": {
-      "sequence_id": 100,
-      "type": "feature",
-      "title": "Read-only browse: sidebar tree + rendered preview",
-      "slug": "read-only-browse-sidebar-tree-rendered-preview",
-      "status": "Draft",
-      "description": "VS Code activity-bar tree from sq tree --json; clicking an item opens rendered sq show in the markdown preview; filter/group + refresh",
-      "parent": "EPIC-000099",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": "low",
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As an operator, I want the squad hierarchy in a VS Code sidebar tree with status, assignee and blocked-state at a glance, so that I can navigate the squad without leaving the editor",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As an operator, I want clicking a tree item to open its rendered sq show in the markdown preview, so that I read a clean item without frontmatter or marker noise",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As an operator, I want to filter and group the tree by type and open/closed state and refresh it on demand, so that I can focus on the work that matters right now",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
-      "created_at": "2026-06-14T20:45:15Z",
-      "updated_at": "2026-06-14T20:45:23Z",
-      "extra": {},
-      "id": "FEAT-000100"
-    },
-    "101": {
-      "sequence_id": 101,
-      "type": "task",
-      "title": "Store padding in the index, derive all ID formatting from it, and guard create against exhaustion",
-      "slug": "store-padding-in-the-index-derive-all-id-formatting-from-it",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000027",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-000104",
-        "REV-000105:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Padding stored in index; all ID formatting derives from it; allocate_id raises index-full at capacity naming sq migrate repad",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000101-store-padding-in-the-index-derive-all-id-formatting-from-it.md",
-      "created_at": "2026-06-14T20:56:35Z",
-      "updated_at": "2026-06-14T21:20:14Z",
-      "extra": {},
-      "id": "TASK-000101"
-    },
-    "102": {
-      "sequence_id": 102,
-      "type": "task",
-      "title": "sq migrate repad: one-way padding bump that renames every item file to the new width and rebuilds the index",
-      "slug": "sq-migrate-repad-one-way-padding-bump-that-renames-every-ite",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000027",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "TASK-000101:depends-on",
-        "REV-000106:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "sq migrate repad <width>: one-way bump, renames all item files to new width, rebuilds index, refuses to lower, file contents byte-untouched; sq check clean after",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        }
-      ],
-      "path": "tasks/TASK-000102-sq-migrate-repad-one-way-padding-bump-that-renames-every-ite.md",
-      "created_at": "2026-06-14T20:56:35Z",
-      "updated_at": "2026-06-14T22:06:25Z",
-      "extra": {},
-      "id": "TASK-000102"
-    },
-    "103": {
-      "sequence_id": 103,
-      "type": "task",
-      "title": "Width-tolerant ID reading everywhere; display always uses current padding",
-      "slug": "width-tolerant-id-reading-everywhere-display-always-uses-cur",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000027",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "TASK-000101:depends-on",
-        "REV-000106:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Width-tolerant ID equality in resolver/backrefs/check; mixed-width refs+mentions+parent+CLI args resolve; display uses current padding; mixed-width fixture tests",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        }
-      ],
-      "path": "tasks/TASK-000103-width-tolerant-id-reading-everywhere-display-always-uses-cur.md",
-      "created_at": "2026-06-14T20:56:35Z",
-      "updated_at": "2026-06-14T22:06:25Z",
-      "extra": {},
-      "id": "TASK-000103"
-    },
-    "104": {
-      "sequence_id": 104,
-      "type": "decision",
-      "title": "The index may hold corpus-derived format parameters carried as a floor (padding, counter)",
-      "slug": "the-index-may-hold-corpus-derived-format-parameters-carried",
-      "status": "Accepted",
-      "description": "Refines invariant 1: squad-wide format/allocation parameters (counter, ID padding) are reconstructed from the file corpus with the stored value as a floor; this is permitted and is not per-item state in the index.",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-000071",
-        "ADR-000072",
-        "FEAT-000027"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000104-the-index-may-hold-corpus-derived-format-parameters-carried.md",
-      "created_at": "2026-06-14T20:59:27Z",
-      "updated_at": "2026-06-14T21:00:52Z",
-      "extra": {},
-      "id": "ADR-000104"
-    },
     "105": {
       "sequence_id": 105,
       "type": "review",
@@ -3887,82 +3967,6 @@
       "extra": {},
       "id": "REV-000106"
     },
-    "107": {
-      "sequence_id": 107,
-      "type": "task",
-      "title": "Route type-command aliases to the full command tree",
-      "slug": "route-type-command-aliases-to-the-full-command-tree",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000036",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Add a canonical ALIASES map and register each type sub-app under its hidden alias names",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "CLI test matrix: every alias routes deep chains; output and errors stay canonical",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000107-route-type-command-aliases-to-the-full-command-tree.md",
-      "created_at": "2026-06-15T07:42:47Z",
-      "updated_at": "2026-06-15T08:10:56Z",
-      "extra": {},
-      "id": "TASK-000107"
-    },
-    "108": {
-      "sequence_id": 108,
-      "type": "task",
-      "title": "Keep help clean and document the alias table in the contract",
-      "slug": "keep-help-clean-and-document-the-alias-table-in-the-contract",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000036",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000013"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Hide aliases from root help; mention the table once (epilog or type help)",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Render the alias table in the workflow cheatsheet with the add-only rule; tie into FEAT-000013 contract",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        }
-      ],
-      "path": "tasks/TASK-000108-keep-help-clean-and-document-the-alias-table-in-the-contract.md",
-      "created_at": "2026-06-15T07:42:48Z",
-      "updated_at": "2026-06-15T08:10:56Z",
-      "extra": {},
-      "id": "TASK-000108"
-    },
     "109": {
       "sequence_id": 109,
       "type": "review",
@@ -3986,6 +3990,682 @@
       "updated_at": "2026-06-15T08:05:15Z",
       "extra": {},
       "id": "REV-000109"
+    },
+    "115": {
+      "sequence_id": 115,
+      "type": "review",
+      "title": "Review TASK-000110: sq retype in place",
+      "slug": "review-task-000110-sq-retype-in-place",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000110:addresses",
+        "FEAT-000020"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Avoidable type suppression in _carry_or_reset_status",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Duplicated subentity-kind reverse map",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000115-review-task-000110-sq-retype-in-place.md",
+      "created_at": "2026-06-15T08:44:31Z",
+      "updated_at": "2026-06-15T08:45:19Z",
+      "extra": {},
+      "id": "REV-000115"
+    },
+    "116": {
+      "sequence_id": 116,
+      "type": "review",
+      "title": "TASK-000111 — Sanctioned item removal (sq remove) review",
+      "slug": "task-000111-sanctioned-item-removal-sq-remove-review",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000111:addresses",
+        "FEAT-000023",
+        "ADR-000114"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Unlink runs after the transaction commits, not inside it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Width-tolerant ref matcher forked instead of shared",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000116-task-000111-sanctioned-item-removal-sq-remove-review.md",
+      "created_at": "2026-06-15T09:02:53Z",
+      "updated_at": "2026-06-15T09:20:30Z",
+      "extra": {},
+      "id": "REV-000116"
+    },
+    "118": {
+      "sequence_id": 118,
+      "type": "review",
+      "title": "Reflog durability/threading review (TASK-112/113 vs ADR-117)",
+      "slug": "reflog-durability-threading-review-task-112-113-vs-adr-117",
+      "status": "Approved",
+      "description": "Narrow durability/threading correctness review of the reflog core + read command against ADR-000117 and ADR-000114.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000112",
+        "TASK-000113",
+        "FEAT-000024",
+        "ADR-000117"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Check 1 — Write ordering (ADR-117 §1): PASS",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Check 2 — Append atomicity (ADR-117 §2): PASS",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Check 3 — Actor threading (ADR-117 §3): PASS",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Check 4 — Invariant 1 / not-source-of-truth (ADR-114): PASS",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "Check 5 — Schema + version field + golden (ADR-117 §4): PASS",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        },
+        {
+          "local_id": "F6",
+          "title": "json.dumps is OUTSIDE the error-swallow in append_line — a non-serializable delta would propagate past the committed mutation",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F7",
+          "title": "Dead test: test_failed_reflog_append_does_not_rollback_mutation asserts nothing meaningful",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F8",
+          "title": "Stale doc comments + minor op-naming nit (non-blocking)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000118-reflog-durability-threading-review-task-112-113-vs-adr-117.md",
+      "created_at": "2026-06-15T09:57:14Z",
+      "updated_at": "2026-06-15T10:02:57Z",
+      "extra": {},
+      "id": "REV-000118"
+    },
+    "119": {
+      "sequence_id": 119,
+      "type": "review",
+      "title": "Reflog (FEAT-000024) — independent gate, supersedes REV-000118",
+      "slug": "reflog-feat-000024-independent-gate-supersedes-rev-000118",
+      "status": "Approved",
+      "description": "Independent re-review of TASK-112 (core) + TASK-113 (read) against ADR-000117; supersedes REV-000118 as the trustworthy gate (same lineage produced 118).",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000112",
+        "TASK-000113",
+        "FEAT-000024",
+        "REV-000118",
+        "ADR-000117"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Stale 'no-op until TASK-112' docstrings now factually wrong (two sites)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Inaccurate actor-reset comment in _cli/__init__.py",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "op/delta double-key: outer op='subentity'/'migrate' with inner delta['op']",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "No autouse actor-reset fixture in conftest (test hygiene)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "Reflog 'v' reuses index SCHEMA_VERSION (coupled bumps)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000119-reflog-feat-000024-independent-gate-supersedes-rev-000118.md",
+      "created_at": "2026-06-15T10:13:51Z",
+      "updated_at": "2026-06-15T10:21:30Z",
+      "extra": {},
+      "id": "REV-000119"
+    },
+    "79": {
+      "sequence_id": 79,
+      "type": "guide",
+      "title": "squads architecture: layering, data model, and the marker mechanism",
+      "slug": "squads-architecture-layering-data-model-and-the-marker-mecha",
+      "status": "Published",
+      "description": "A standalone-readable map of how squads is built: the cli to services to index/backends/rendering layering, the item/sub-entity/index data model, and the marker mechanism — pointing at sq docs internals for depth and citing the standing ADRs.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000071",
+        "ADR-000072",
+        "ADR-000073",
+        "ADR-000074",
+        "ADR-000075",
+        "ADR-000076",
+        "ADR-000077",
+        "ADR-000078",
+        "ADR-000049"
+      ],
+      "subentities": [],
+      "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
+      "created_at": "2026-06-12T14:25:59Z",
+      "updated_at": "2026-06-12T14:28:33Z",
+      "extra": {
+        "tech": "python",
+        "tags": [
+          "architecture"
+        ]
+      },
+      "id": "GUIDE-000079"
+    },
+    "1": {
+      "sequence_id": 1,
+      "type": "role",
+      "title": "Catherine Manager",
+      "slug": "manager",
+      "status": "Active",
+      "description": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000001-manager.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "extra": {
+        "full_name": "Catherine Manager",
+        "slug": "manager",
+        "title": "manager",
+        "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
+        "responsibilities": [
+          "Triage incoming requests and clarify intent",
+          "Delegate work to the right specialist agents and integrate their results",
+          "Drive features through the loop (implement → review → fix) until done",
+          "Keep the backlog and statuses honest",
+          "Summarise progress for the operator"
+        ],
+        "model": "opus",
+        "color": "cyan",
+        "is_default": true,
+        "description": "Default agent: triages the operator's request and routes it to the right specialist.",
+        "skills": [
+          "squads",
+          "greeting"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000001"
+    },
+    "2": {
+      "sequence_id": 2,
+      "type": "role",
+      "title": "Robert Architect",
+      "slug": "architect",
+      "status": "Active",
+      "description": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000002-architect.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "extra": {
+        "full_name": "Robert Architect",
+        "slug": "architect",
+        "title": "architect",
+        "mission": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
+        "responsibilities": [
+          "Design components and their interactions",
+          "Write and maintain ADRs",
+          "Author cross-cutting guides",
+          "Review designs before implementation"
+        ],
+        "model": "opus",
+        "color": "blue",
+        "is_default": false,
+        "description": "System design and architecture decisions (ADRs).",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-epic",
+          "sq-decision",
+          "sq-guide"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000002"
+    },
+    "3": {
+      "sequence_id": 3,
+      "type": "role",
+      "title": "Olivia Lead",
+      "slug": "tech-lead",
+      "status": "Active",
+      "description": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000003-tech-lead.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "extra": {
+        "full_name": "Olivia Lead",
+        "slug": "tech-lead",
+        "title": "tech lead",
+        "mission": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
+        "responsibilities": [
+          "Author tasks (`sq create task`); set each task's parent to the feature it implements",
+          "Map each subtask to a single user story (`sq task <n> add-subtask \"…\" --story USn`)",
+          "For a bug fix or review follow-up, link via refs (`sq task <n> ref add <id> --kind fixes|addresses`)",
+          "Leave purely-technical tasks unlinked",
+          "Sequence and assign work; unblock developers",
+          "Co-author guides with the architect"
+        ],
+        "model": "opus",
+        "color": "purple",
+        "is_default": false,
+        "description": "Coordination and breaking features into tasks.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-epic",
+          "sq-feature",
+          "sq-task",
+          "sq-bug",
+          "sq-decision",
+          "sq-guide"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000003"
+    },
+    "4": {
+      "sequence_id": 4,
+      "type": "role",
+      "title": "Paul Reviewer",
+      "slug": "reviewer",
+      "status": "Active",
+      "description": "Guard quality: review changes critically, request changes when needed, approve when sound.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000004-reviewer.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "extra": {
+        "full_name": "Paul Reviewer",
+        "slug": "reviewer",
+        "title": "code reviewer",
+        "mission": "Guard quality: review changes critically, request changes when needed, approve when sound.",
+        "responsibilities": [
+          "Review diffs for correctness and clarity",
+          "Drive code-review items to a verdict",
+          "Flag risks and missing tests"
+        ],
+        "model": "opus",
+        "color": "red",
+        "is_default": false,
+        "description": "Reviews code changes for correctness, clarity, and consistency.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-task",
+          "sq-bug",
+          "sq-review"
+        ],
+        "agreements": [
+          "File review findings as tracked sub-entities — `sq review <n> add-finding` with severity, statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure."
+        ]
+      },
+      "id": "ROLE-000004"
+    },
+    "5": {
+      "sequence_id": 5,
+      "type": "role",
+      "title": "Mara Tester",
+      "slug": "qa",
+      "status": "Active",
+      "description": "Prove the software works: design test cases from user stories and verify fixes.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000005-qa.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "extra": {
+        "full_name": "Mara Tester",
+        "slug": "qa",
+        "title": "QA engineer",
+        "mission": "Prove the software works: design test cases from user stories and verify fixes.",
+        "responsibilities": [
+          "Derive test cases from user stories",
+          "Verify bug fixes and features",
+          "Report defects as bug items"
+        ],
+        "model": "sonnet",
+        "color": "green",
+        "is_default": false,
+        "description": "Designs and runs tests; verifies behaviour against acceptance criteria.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-feature",
+          "sq-task",
+          "sq-bug"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000005"
+    },
+    "6": {
+      "sequence_id": 6,
+      "type": "role",
+      "title": "Hugo Ops",
+      "slug": "devops",
+      "status": "Active",
+      "description": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
+      "parent": null,
+      "author": "devops",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000006-devops.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "extra": {
+        "full_name": "Hugo Ops",
+        "slug": "devops",
+        "title": "DevOps engineer",
+        "mission": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
+        "responsibilities": [
+          "Maintain CI/CD pipelines",
+          "Manage infrastructure and environments",
+          "Run releases"
+        ],
+        "model": "sonnet",
+        "color": "orange",
+        "is_default": false,
+        "description": "CI/CD, infrastructure, and releases.",
+        "skills": [
+          "squads",
+          "greeting"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000006"
+    },
+    "7": {
+      "sequence_id": 7,
+      "type": "role",
+      "title": "Nina Product",
+      "slug": "product-owner",
+      "status": "Active",
+      "description": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000007-product-owner.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "extra": {
+        "full_name": "Nina Product",
+        "slug": "product-owner",
+        "title": "product owner",
+        "mission": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
+        "responsibilities": [
+          "Author features (`sq create feature`)",
+          "Write each feature's user stories (`sq story add`)",
+          "Prioritise the backlog and define acceptance criteria"
+        ],
+        "model": "sonnet",
+        "color": "yellow",
+        "is_default": false,
+        "description": "Requirements, user stories, and backlog priorities.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-epic",
+          "sq-feature"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000007"
+    },
+    "8": {
+      "sequence_id": 8,
+      "type": "role",
+      "title": "Theo Writer",
+      "slug": "tech-writer",
+      "status": "Active",
+      "description": "Make the work understandable: write and maintain clear documentation and guides.",
+      "parent": null,
+      "author": "tech-writer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000008-tech-writer.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "extra": {
+        "full_name": "Theo Writer",
+        "slug": "tech-writer",
+        "title": "technical writer",
+        "mission": "Make the work understandable: write and maintain clear documentation and guides.",
+        "responsibilities": [
+          "Write user- and developer-facing docs",
+          "Keep guides current"
+        ],
+        "model": "haiku",
+        "color": "pink",
+        "is_default": false,
+        "description": "Documentation and guides.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-guide"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000008"
+    },
+    "9": {
+      "sequence_id": 9,
+      "type": "role",
+      "title": "Elias Python",
+      "slug": "python-dev",
+      "status": "Active",
+      "description": "Implement assigned tasks in Python, following the project's guides, with tests.",
+      "parent": null,
+      "author": "python-dev",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000009-python-dev.md",
+      "created_at": "2026-06-10T12:29:53Z",
+      "updated_at": "2026-06-10T12:29:53Z",
+      "extra": {
+        "full_name": "Elias Python",
+        "slug": "python-dev",
+        "title": "Python developer",
+        "mission": "Implement assigned tasks in Python, following the project's guides, with tests.",
+        "responsibilities": [
+          "Implement tasks in Python",
+          "Write tests for changes",
+          "Follow the relevant guides; ask the architect when unsure"
+        ],
+        "model": "sonnet",
+        "color": "green",
+        "is_default": false,
+        "description": "Implements Python code following the project's guides and standards.",
+        "is_dev": true,
+        "tech": "python",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-task",
+          "sq-bug",
+          "sq-review"
+        ]
+      },
+      "id": "ROLE-000009"
+    },
+    "10": {
+      "sequence_id": 10,
+      "type": "operator",
+      "title": "Pierre Chat",
+      "slug": "op-pierre",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "operators/OP-000010-op-pierre.md",
+      "created_at": "2026-06-10T12:29:53Z",
+      "updated_at": "2026-06-10T12:29:53Z",
+      "extra": {
+        "slug": "op-pierre",
+        "full_name": "Pierre Chat"
+      },
+      "id": "OP-000010"
     }
   }
 }

@@ -45,6 +45,11 @@ class CollabMixin(ServiceCore):
                 raise SquadsError(
                     f"no discussion section {tag!r} in {item_id} (was it scaffolded?)"
                 )
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "comment",
+                _item.id,
+                {"author": as_slug},
+            )
             return sections.append_to_section(text, tag, entry)
 
         return self._locked_section_edit(item_id, mutate)
