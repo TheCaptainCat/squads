@@ -1,0 +1,431 @@
+"""Tests for ``Service.retype()`` and the ``sq <type> <n> retype <new-type>`` CLI verb."""
+
+import pytest
+
+from squads._cli import app
+from squads._errors import SquadsError
+from squads._itemfile import read_frontmatter
+from squads._models._enums import ItemType, Status
+from squads._models._item import Item
+from squads._sections import get_section
+
+# --------------------------------------------------------------------------- helpers
+
+
+def _read_file(svc, item: Item) -> str:
+    return svc.paths.abspath(item.path).read_text(encoding="utf-8")
+
+
+# --------------------------------------------------------------------------- service-level: basic
+
+
+def test_retype_task_to_bug_preserves_number(svc):
+    """Retyping task→bug keeps the sequence number; only the prefix changes."""
+    task = svc.create(ItemType.TASK, "Fix crash", description="crashes on null").item
+    old_id = task.id
+    assert old_id.startswith("TASK-")
+    seq = task.sequence_id
+
+    res = svc.retype(task.id, ItemType.BUG)
+    assert res.old_id == old_id
+    assert res.item.id.startswith("BUG-")
+    assert res.item.sequence_id == seq
+    # the number suffix is identical
+    assert res.item.id.split("-", 1)[1] == old_id.split("-", 1)[1]
+
+
+def test_retype_creates_file_in_new_folder(svc):
+    """File moves to the new type's folder."""
+    task = svc.create(ItemType.TASK, "My task").item
+    res = svc.retype(task.id, ItemType.BUG)
+
+    new_path = svc.paths.abspath(res.item.path)
+    assert new_path.exists()
+    assert "bugs" in str(new_path)
+    # old path is gone
+    old_path = svc.paths.squad_dir / "tasks" / f"{res.old_id}-my-task.md"
+    assert not old_path.exists()
+
+
+def test_retype_body_verbatim(svc):
+    """Body bytes survive verbatim after retype."""
+    task = svc.create(ItemType.TASK, "task").item
+    body_text = "## Details\n\nSpecial chars: ← → ✓"
+    svc.set_body(task.id, body_text)
+    res = svc.retype(task.id, ItemType.BUG)
+
+    text = _read_file(svc, res.item)
+    body = get_section(text, "body")
+    assert body is not None and body_text in body
+
+
+def test_retype_frontmatter_updated(svc):
+    """Frontmatter type and id fields reflect the new type."""
+    task = svc.create(ItemType.TASK, "task").item
+    res = svc.retype(task.id, ItemType.BUG)
+
+    fm = read_frontmatter(svc.paths.abspath(res.item.path))
+    assert fm["type"] == "bug"
+    assert fm["id"].startswith("BUG-")
+    assert fm["sequence_id"] == task.sequence_id
+
+
+def test_retype_appends_system_comment(svc):
+    """A system comment is appended to the discussion section."""
+    task = svc.create(ItemType.TASK, "task").item
+    old_id = task.id
+    res = svc.retype(task.id, ItemType.BUG)
+
+    text = _read_file(svc, res.item)
+    disc = get_section(text, "discussion")
+    assert disc is not None
+    assert old_id in disc
+    assert res.item.id in disc
+    assert "squads" in disc  # system comment author
+
+
+def test_retype_index_updated(svc):
+    """The index carries the new item under its sequence_id; the old type is gone."""
+    task = svc.create(ItemType.TASK, "t").item
+    res = svc.retype(task.id, ItemType.BUG)
+
+    db = svc.store.load()
+    indexed = db.items.get(task.sequence_id)
+    assert indexed is not None
+    assert indexed.type is ItemType.BUG
+    assert indexed.id == res.item.id
+
+
+# --------------------------------------------------------------------------- status carry vs reset
+
+
+def test_retype_task_to_bug_carries_status(svc):
+    """task↔bug share _WORK workflow → status is carried."""
+    task = svc.create(ItemType.TASK, "t").item
+    svc.set_status(task.id, Status.IN_PROGRESS)
+
+    res = svc.retype(task.id, ItemType.BUG)
+    assert not res.status_reset
+    assert res.item.status is Status.IN_PROGRESS
+
+
+def test_retype_feature_to_epic_carries_status(svc):
+    """feature↔epic share _WORK workflow → status carried."""
+    feat = svc.create(ItemType.FEATURE, "f").item
+    svc.set_status(feat.id, Status.READY)
+
+    res = svc.retype(feat.id, ItemType.EPIC)
+    assert not res.status_reset
+    assert res.item.status is Status.READY
+
+
+def test_retype_task_to_decision_resets_status(svc):
+    """task→decision crosses workflow boundaries → status resets to Proposed."""
+    task = svc.create(ItemType.TASK, "t").item
+    svc.set_status(task.id, Status.IN_PROGRESS)
+
+    res = svc.retype(task.id, ItemType.DECISION)
+    assert res.status_reset
+    assert res.old_status == Status.IN_PROGRESS.value
+    assert res.item.status is Status.PROPOSED
+
+
+def test_retype_task_to_guide_resets_status(svc):
+    """task→guide crosses workflow → status resets to Draft."""
+    task = svc.create(ItemType.TASK, "t").item
+    svc.set_status(task.id, Status.IN_PROGRESS)
+    res = svc.retype(task.id, ItemType.GUIDE)
+    assert res.status_reset
+    assert res.item.status is Status.DRAFT
+
+
+def test_retype_decision_to_review_resets_status(svc):
+    """decision (ADR) → review crosses workflow → status resets to Requested."""
+    dec = svc.create(ItemType.DECISION, "ADR").item
+    res = svc.retype(dec.id, ItemType.REVIEW)
+    assert res.status_reset
+    assert res.item.status is Status.REQUESTED
+
+
+# --------------------------------------------------------------------------- refusals
+
+
+def test_retype_refuses_non_work_type(svc):
+    """Retyping an agent type is refused."""
+    # ROLE-000001 is the manager role from the minimal init
+    with pytest.raises(SquadsError, match="only work items can be retyped"):
+        svc.retype("ROLE-000001", ItemType.TASK)
+
+
+def test_retype_refuses_same_type(svc):
+    """No-op retype to the same type is refused."""
+    task = svc.create(ItemType.TASK, "t").item
+    with pytest.raises(SquadsError, match="already of type task"):
+        svc.retype(task.id, ItemType.TASK)
+
+
+def test_retype_refuses_item_with_subentities(svc):
+    """Item with sub-entities cannot be retyped."""
+    feat = svc.create(ItemType.FEATURE, "f").item
+    svc.add_story(feat.id, "story 1")
+    with pytest.raises(SquadsError, match="sub-entities"):
+        svc.retype(feat.id, ItemType.EPIC)
+
+
+def test_retype_refuses_invalid_new_parent(svc):
+    """Refuse when existing parent would be invalid for the new type."""
+    # task's parent must be a feature; retyping task→feature when its parent is a feature
+    # would make it feature→feature, which is invalid (feature's parent must be epic).
+    feat = svc.create(ItemType.FEATURE, "f").item
+    task = svc.create(ItemType.TASK, "t", parent=feat.id).item
+    # Retyping task→feature: the task's parent is a feature, but feature's parent must be epic.
+    with pytest.raises(SquadsError, match="cannot retype"):
+        svc.retype(task.id, ItemType.FEATURE)
+
+
+def test_retype_refuses_children_would_become_invalid(svc):
+    """Refuse when a child would have an invalid parent under the new type.
+
+    TASK requires FEATURE parent; retyping the feature to BUG would leave the task
+    with an invalid (bug) parent → refused.
+    """
+    feat = svc.create(ItemType.FEATURE, "f").item
+    _task = svc.create(ItemType.TASK, "t", parent=feat.id).item
+    with pytest.raises(SquadsError, match="child item"):
+        svc.retype(feat.id, ItemType.BUG)
+
+
+# --------------------------------------------------------------------------- edge rewrites (US2)
+
+
+def test_retype_rewrites_refs_in_other_items(svc):
+    """Other items' refs are rewritten to the new ID."""
+    task = svc.create(ItemType.TASK, "t").item
+    bug = svc.create(ItemType.BUG, "b").item
+    svc.add_ref(bug.id, task.id, kind="related")
+
+    old_id = task.id
+    res = svc.retype(task.id, ItemType.FEATURE)
+
+    # The bug's ref should now point at the new ID
+    updated_bug = svc.get(bug.id)
+    assert old_id not in updated_bug.refs[0]
+    assert res.item.id in updated_bug.refs[0]
+
+
+def test_retype_rewrites_ref_kind_preserved(svc):
+    """Ref kind is preserved when the ID is rewritten."""
+    task = svc.create(ItemType.TASK, "t").item
+    bug = svc.create(ItemType.BUG, "b").item
+    svc.add_ref(bug.id, task.id, kind="blocks")
+
+    res = svc.retype(task.id, ItemType.FEATURE)
+    updated_bug = svc.get(bug.id)
+    # Should contain the new ID with :blocks kind
+    assert f"{res.item.id}:blocks" in updated_bug.refs
+
+
+def test_retype_rewrites_children_parent(svc):
+    """Children's parent field is rewritten to the new ID.
+
+    BUG is unconstrained (not in ALLOWED_PARENTS as a key), so a bug can have any parent.
+    We create a task, hang a bug off it as parent, then retype the task→feature. The bug's
+    parent field should flip from the old TASK id to the new FEAT id.
+    """
+    task = svc.create(ItemType.TASK, "t").item
+    # BUG is unconstrained; it can be parented to anything
+    bug = svc.create(ItemType.BUG, "b", parent=task.id).item
+
+    old_task_id = task.id
+    res = svc.retype(task.id, ItemType.FEATURE)
+
+    # The bug's parent should now be the feature ID
+    updated_bug = svc.get(bug.id)
+    assert updated_bug.parent == res.item.id
+    assert updated_bug.parent != old_task_id
+
+
+def test_retype_rewrites_prose_mentions(svc):
+    """Prose @-mentions and inline ID references in other items are rewritten."""
+    task = svc.create(ItemType.TASK, "t").item
+    other = svc.create(ItemType.BUG, "b").item
+    # Set a body that mentions the old task ID
+    svc.set_body(other.id, f"See {task.id} for context.\n\nRelated: {task.id}.")
+
+    res = svc.retype(task.id, ItemType.FEATURE)
+    body = svc.read_body(other.id)
+    assert task.id not in body
+    assert res.item.id in body
+
+
+def test_retype_rewritten_list_has_correct_paths(svc):
+    """RetypeResult.rewritten names the files that were actually modified."""
+    task = svc.create(ItemType.TASK, "t").item
+    other = svc.create(ItemType.BUG, "b").item
+    svc.set_body(other.id, f"Ref: {task.id}.")
+
+    res = svc.retype(task.id, ItemType.FEATURE)
+    # At least the other item's file should be in the rewritten list
+    assert any("bugs" in name for name in res.rewritten)
+
+
+# --------------------------------------------------------------------------- container scaffold
+
+
+def test_retype_to_feature_appends_stories_container(svc):
+    """Retyping to feature adds an empty stories container if absent."""
+    task = svc.create(ItemType.TASK, "t").item
+    res = svc.retype(task.id, ItemType.FEATURE)
+
+    text = _read_file(svc, res.item)
+    assert "<!-- sq:stories -->" in text
+    assert "<!-- sq:stories:end -->" in text
+
+
+def test_retype_to_task_appends_subtasks_container(svc):
+    """Retyping to task adds an empty subtasks container if absent."""
+    bug = svc.create(ItemType.BUG, "b").item
+    res = svc.retype(bug.id, ItemType.TASK)
+
+    text = _read_file(svc, res.item)
+    assert "<!-- sq:subtasks -->" in text
+    assert "<!-- sq:subtasks:end -->" in text
+
+
+def test_retype_to_review_appends_findings_container(svc):
+    """Retyping to review adds an empty findings container if absent."""
+    task = svc.create(ItemType.TASK, "t").item
+    res = svc.retype(task.id, ItemType.REVIEW)
+
+    text = _read_file(svc, res.item)
+    assert "<!-- sq:findings -->" in text
+    assert "<!-- sq:findings:end -->" in text
+
+
+def test_retype_to_bug_no_container_added(svc):
+    """Retyping to bug (no sub-entities) does not add extra containers."""
+    task = svc.create(ItemType.TASK, "t").item
+    # The task file already has subtasks container; after retype to bug it should not
+    res = svc.retype(task.id, ItemType.BUG)
+    text = _read_file(svc, res.item)
+    # Bug files do not have a subtasks/stories container
+    assert "<!-- sq:stories -->" not in text
+    # (subtasks container from the original task template would remain — that's OK as prose)
+
+
+# --------------------------------------------------------------------------- check / repair
+
+
+def test_retype_check_clean(svc):
+    """sq check is clean after a retype."""
+    task = svc.create(ItemType.TASK, "t").item
+    svc.retype(task.id, ItemType.BUG)
+    issues = svc.check()
+    errors = [i for i in issues if i.level == "error"]
+    assert not errors
+
+
+def test_retype_repair_stable(svc):
+    """sq repair is a no-op after a retype (frontmatter is the truth)."""
+    task = svc.create(ItemType.TASK, "t").item
+    svc.retype(task.id, ItemType.BUG)
+
+    result = svc.repair()
+    # Repair should report no missing IDs
+    assert result.missing_ids == []
+    # The index counter must not have changed
+    db = svc.store.load()
+    assert db.counter >= task.sequence_id
+
+
+def test_retype_repair_stable_with_parent_rewrite(svc):
+    """sq repair is a no-op when parent links were rewritten.
+
+    Use a BUG child (unconstrained parent) so the retype of the parent is not refused.
+    """
+    task = svc.create(ItemType.TASK, "t").item
+    bug = svc.create(ItemType.BUG, "b", parent=task.id).item
+
+    svc.retype(task.id, ItemType.FEATURE)
+    result = svc.repair()
+    assert result.missing_ids == []
+
+    # Bug's parent in the index should match what's on disk
+    db = svc.store.load()
+    bug_indexed = db.items.get(bug.sequence_id)
+    assert bug_indexed is not None
+    bug_on_disk = read_frontmatter(svc.paths.abspath(bug_indexed.path))
+    assert bug_indexed.parent == bug_on_disk.get("parent")
+
+
+# --------------------------------------------------------------------------- CLI smoke test
+
+
+def test_cli_retype_verb(runner, tmp_path, monkeypatch, frozen_time):
+    """The CLI `retype` verb works end-to-end."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+
+    # Create a task (TASK-000002)
+    runner.invoke(app, ["create", "task", "Fix crash", "--author", "manager"])
+
+    # Retype task → bug
+    r = runner.invoke(app, ["task", "2", "retype", "bug"])
+    assert r.exit_code == 0, r.output
+    assert "BUG-" in r.output
+    assert "TASK-" in r.output  # old ID shown
+
+    # Bug file should now exist
+    bugs_dir = tmp_path / "squads" / "bugs"
+    bug_files = list(bugs_dir.glob("BUG-*.md"))
+    assert len(bug_files) == 1
+
+    # Old task file gone
+    tasks_dir = tmp_path / "squads" / "tasks"
+    task_files = list(tasks_dir.glob("TASK-*-fix-crash.md"))
+    assert not task_files
+
+
+def test_cli_retype_status_reset_message(runner, tmp_path, monkeypatch, frozen_time):
+    """The CLI prints a status-reset notice when workflows differ."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])
+    runner.invoke(app, ["task", "2", "status", "InProgress"])
+
+    r = runner.invoke(app, ["task", "2", "retype", "decision"])
+    assert r.exit_code == 0, r.output
+    assert "reset" in r.output.lower()
+
+
+def test_cli_retype_status_carried_message(runner, tmp_path, monkeypatch, frozen_time):
+    """The CLI prints a carried-status message when workflows match."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])
+
+    r = runner.invoke(app, ["task", "2", "retype", "bug"])
+    assert r.exit_code == 0, r.output
+    assert "carried" in r.output.lower()
+
+
+def test_cli_retype_refuses_with_subentities(runner, tmp_path, monkeypatch, frozen_time):
+    """The CLI refuses retype when the item has sub-entities."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
+    runner.invoke(app, ["feature", "2", "add-story", "S1"])
+
+    r = runner.invoke(app, ["feature", "2", "retype", "epic"])
+    assert r.exit_code == 1
+    assert "sub-entities" in r.output
+
+
+def test_cli_retype_unknown_type_error(runner, tmp_path, monkeypatch, frozen_time):
+    """The CLI rejects an invalid new-type argument."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "task", "T", "--author", "manager"])
+
+    r = runner.invoke(app, ["task", "2", "retype", "bogustype"])
+    assert r.exit_code == 1

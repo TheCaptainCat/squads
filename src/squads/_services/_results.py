@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -67,6 +68,20 @@ class RetypeResult:
     rewritten: list[str]  # paths of files whose text was updated (relative display names)
 
 
+@dataclass(frozen=True)
+class RemoveResult:
+    """Outcome of ``Service.remove_work_item()``.
+
+    ``removed_id`` is the formatted ID of the deleted item.
+    ``severed_refs`` lists the IDs of referrer items whose forward refs were severed (``--force``).
+    The ``op=remove`` reflog entry with the gone-item snapshot is appended post-commit
+    (FEAT-000024 / TASK-000112).
+    """
+
+    removed_id: str
+    severed_refs: list[str]  # referrer IDs whose ref to removed_id was deleted
+
+
 @dataclass
 class RepairResult:
     """Outcome of ``Service.repair()``.
@@ -87,3 +102,23 @@ class WorkloadRow:
     open: int
     closed: int
     total: int
+
+
+@dataclass
+class ReflogEntry:
+    """One parsed reflog line, surfaced by ``sq reflog`` (FEAT-000024 / TASK-000113).
+
+    The ``delta`` field is a free-form ``dict`` whose shape depends on ``op``; see
+    the reflog schema documentation for the full field reference.  The ``v`` field
+    carries the schema version so readers can handle future additions gracefully.
+
+    Stability note: the *command shape* and the fields listed here are documented;
+    the exact ``delta`` sub-fields are additive and evolve per FEAT-000013's freeze.
+    """
+
+    v: str
+    ts: str
+    actor: str
+    op: str
+    target: str
+    delta: dict[str, Any]

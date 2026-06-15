@@ -6,11 +6,12 @@ from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _markers as markers
-from squads._models._enums import ItemType, Priority
-from squads._models._item import Item, Status
+from squads._models._enums import PREFIX_BY_TYPE, ItemType, Priority
+from squads._models._item import Item, Status, ref_id_matches, split_ref
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
 from squads._services._base import ServiceCore, reject_markers
+from squads._services._results import RemoveResult
 from squads._util import slugify
 from squads._workflow import can_transition
 
@@ -21,9 +22,15 @@ class ItemsMixin(ServiceCore):
     def set_status(self, item_id: str, status: Status, *, force: bool = False) -> Item:
         with self.store.transaction() as db:
             item = require_item(db, item_id)
+            old_status = item.status.value
             self._apply_status(item, status, force=force)
             item.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, item), item)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "status",
+                item.id,
+                {"status": [old_status, item.status.value]},
+            )
         return item
 
     def update(  # noqa: PLR0913 — the one metadata entry point
@@ -47,31 +54,43 @@ class ItemsMixin(ServiceCore):
     ) -> Item:
         with self.store.transaction() as db:
             item = require_item(db, item_id)
+            delta: dict[str, object] = {}
             if title is not None and title != item.title:
+                delta["title"] = [item.title, title]
                 self._rename(item, title)
             if description is not None:
+                delta["description"] = description
                 item.description = description
             if assignee is not None:
                 self._check_assignee(db, assignee or None)
+                delta["assignee"] = assignee or None
                 item.assignee = assignee or None
             if clear_priority:
+                delta["priority"] = None
                 item.priority = None
             elif priority is not None:
+                delta["priority"] = priority.value
                 item.priority = priority
             if author is not None:
                 self._check_author(db, item.type, author, item.slug)
+                delta["author"] = author
                 item.author = author
             if status is not None:
+                old_st = item.status.value
                 self._apply_status(item, status, force=force)
+                delta["status"] = [old_st, item.status.value]
             if clear_parent:
+                delta["parent"] = None
                 item.parent = None
             elif parent is not None:
                 self._check_parent(db, item.type, parent)
+                delta["parent"] = parent
                 item.parent = parent
             self._apply_labels(item, add_labels, rm_labels)
             self._apply_extra(item, set_extra, unset_extra)
             item.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, item), item)
+            self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
         if item.type in _AGENT_TYPES:
             self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
         return item
@@ -117,18 +136,30 @@ class ItemsMixin(ServiceCore):
     def link(self, child_id: str, parent_id: str) -> Item:
         with self.store.transaction() as db:
             child = require_item(db, child_id)
+            old_parent = child.parent
             self._check_parent(db, child.type, parent_id)
             child.parent = parent_id
             child.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, child), child)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "link",
+                child.id,
+                {"parent": [old_parent, parent_id]},
+            )
         return child
 
     def unlink(self, child_id: str) -> Item:
         with self.store.transaction() as db:
             child = require_item(db, child_id)
+            old_parent = child.parent
             child.parent = None
             child.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, child), child)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "link",
+                child.id,
+                {"parent": [old_parent, None]},
+            )
         return child
 
     def regen(self, item_id: str) -> Item:
@@ -161,6 +192,7 @@ class ItemsMixin(ServiceCore):
                 current = (sections.get_section(text, markers.BODY) or "").strip("\n")
                 if current:
                     new_body = f"{current}\n\n{body}"
+            self.store._log("body", item.id, {})  # pyright: ignore[reportPrivateUsage]
             return sections.replace_section(text, markers.BODY, new_body)
 
         return self._locked_section_edit(item_id, mutate)
@@ -178,6 +210,12 @@ class ItemsMixin(ServiceCore):
         return (sections.get_section(text, markers.DISCUSSION) or "").strip("\n")
 
     def remove_item(self, item_id: str, *, purge: bool = False) -> Item:
+        """Remove an agent-type item (role/skill/operator) from the index.
+
+        For **work items** (feature/task/bug/decision/review/epic/guide), use
+        :meth:`remove_work_item` instead — it enforces ref/child safety, always unlinks the
+        ``.md``, and carries the reflog op stub.
+        """
         with self.store.transaction() as db:
             item = require_item(db, item_id)
             del db.items[item.sequence_id]
@@ -186,3 +224,100 @@ class ItemsMixin(ServiceCore):
         if purge:
             item_file(self.paths, item).unlink(missing_ok=True)
         return item
+
+    def remove_work_item(
+        self,
+        item_id: str,
+        *,
+        force: bool = False,
+    ) -> RemoveResult:
+        """Hard-delete a work item: unlink the ``.md`` and drop its index entry atomically.
+
+        **Safety checks** (performed inside the transaction):
+
+        - Refuses when the item has children (items whose ``parent`` == *item_id*), even with
+          ``--force``.  Children must be re-parented or removed first.
+        - Refuses when the item has incoming refs **and** ``force`` is False; lists every
+          referrer so the operator can act.
+        - When ``force`` is True, severs every incoming ref by removing the matching forward-
+          edge entry from each referrer's frontmatter, inside the **same transaction**.
+
+        **Counter invariant (ADR-000114 / BUG-000022):**
+        ``db.counter`` is **never modified** here.  A freed sequence number is a sanctioned
+        gap — it is never reissued.
+
+        **Reflog (FEAT-000024 / TASK-000112):**
+        The op identity (``op=remove``) and gone-item snapshot are assembled here and appended
+        post-commit via ``store._log()`` inside the transaction.
+        """
+        with self.store.transaction() as db:
+            item = require_item(db, item_id)
+
+            # ------------------------------------------------------------------
+            # 1. Children check — refuse regardless of --force
+            # ------------------------------------------------------------------
+            child_ids = db.children(item.id)
+            if child_ids:
+                listed = ", ".join(child_ids)
+                raise SquadsError(
+                    f"cannot remove {item.id}: it has child items: {listed}. "
+                    "Re-parent or remove each child first."
+                )
+
+            # ------------------------------------------------------------------
+            # 2. Incoming refs check
+            # ------------------------------------------------------------------
+            referrer_ids = db.backrefs(item.id)
+            if referrer_ids and not force:
+                listed = ", ".join(referrer_ids)
+                raise SquadsError(
+                    f"cannot remove {item.id}: it is referenced by: {listed}. "
+                    "Re-parent/remove those items first, or re-run with --force to sever refs."
+                )
+
+            # ------------------------------------------------------------------
+            # 3. Sever incoming refs from referrers' frontmatter (--force path)
+            # ------------------------------------------------------------------
+            severed: list[str] = []
+            if force and referrer_ids:
+                target_prefix = PREFIX_BY_TYPE[item.type]
+                target_seq = item.sequence_id
+                for ref_id in referrer_ids:
+                    referrer = db.get(ref_id)
+                    if referrer is None:
+                        continue
+                    referrer.refs = [
+                        r
+                        for r in referrer.refs
+                        if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
+                    ]
+                    referrer.updated_at = clock.now()
+                    update_frontmatter(item_file(self.paths, referrer), referrer)
+                    severed.append(ref_id)
+
+            # ------------------------------------------------------------------
+            # 4. Hard-delete: drop index entry + unlink the .md
+            # ------------------------------------------------------------------
+            path = item_file(self.paths, item)
+            # Unlink BEFORE the index commit so the safe failure direction is preserved:
+            # a crash here leaves the file gone with the index still referencing it —
+            # sq repair drops the orphan entry.  The reverse (index-gone / file-survives)
+            # would let sq repair resurrect the removed item (ADR-000114 §1).
+            path.unlink(missing_ok=True)
+            del db.items[item.sequence_id]
+            # counter is intentionally NOT modified — the gap is sanctioned (ADR-000114 §4)
+
+            # Reflog: op=remove + gone-item snapshot (ADR-000114 §2 / FEAT-000024 / TASK-000112).
+            # Appended AFTER os.replace by the store's transaction machinery.
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "remove",
+                item.id,
+                {
+                    "type": item.type.value,
+                    "title": item.title,
+                    "status": item.status.value,
+                    "severed_refs": severed,
+                },
+            )
+
+        return RemoveResult(removed_id=item.id, severed_refs=severed)

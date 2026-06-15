@@ -1,0 +1,15 @@
+{
+  "fields": [
+    "v",
+    "ts",
+    "actor",
+    "op",
+    "target",
+    "delta"
+  ],
+  "schema_version": "0.3",
+  "example_ops": [
+    "create",
+    "status"
+  ]
+}

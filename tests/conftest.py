@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from typer.testing import CliRunner
 
+from squads import _actor as actor
 from squads import _clock as clock
 from squads._rendering._engine import (
     _env_cache,  # pyright: ignore[reportPrivateUsage]
@@ -16,6 +17,13 @@ def _reset_clock_override():  # pyright: ignore[reportUnusedFunction]  # autouse
     """Ensure a forged `--at` timestamp from one test never leaks into the next."""
     yield
     clock.set_now(None)
+
+
+@pytest.fixture(autouse=True)
+def _reset_actor():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
+    """Ensure the ambient actor never leaks between tests (mirrors the clock reset)."""
+    yield
+    actor.set_actor(None)
 
 
 @pytest.fixture(autouse=True)

@@ -159,6 +159,11 @@ class ServiceCore:
                 rendered = sections.replace_section(rendered, markers.BODY, body)
             write_new(self.paths.abspath(squad_rel), item, rendered)
             db.add(item)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "create",
+                item.id,
+                {"title": item.title, "type": item_type.value, "status": item.status.value},
+            )
         return CreateResult(item=item, path=self.paths.abspath(squad_rel))
 
     def get(self, item_id: str) -> Item:

@@ -3,7 +3,7 @@ id: FEAT-000023
 sequence_id: 23
 type: feature
 title: Sanctioned item removal
-status: Ready
+status: Done
 parent: EPIC-000012
 author: product-owner
 priority: medium
@@ -15,17 +15,17 @@ subentities:
 - local_id: US1
   title: As an operator who created an item by mistake, I want sq remove to take it
     off the books safely, so that I never have to hand-edit files or the index
-  status: Todo
+  status: Done
 - local_id: US2
   title: As a teammate whose items reference the removed one, I want removal to refuse
     or cleanly sever those refs, so that nothing dangles silently
-  status: Todo
+  status: Done
 - local_id: US3
   title: As someone auditing a squad later, I want number gaps to be explainable,
     so that a missing sequence number reads as a recorded removal, not corruption
-  status: Todo
+  status: Done
 created_at: '2026-06-10T13:52:25Z'
-updated_at: '2026-06-11T07:54:55Z'
+updated_at: '2026-06-15T09:21:50Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -78,9 +78,9 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index |
-| US2 | Todo |  | As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently |
-| US3 | Todo |  | As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption |
+| US1 | Done |  | As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index |
+| US2 | Done |  | As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently |
+| US3 | Done |  | As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -89,7 +89,7 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 ### US1 — As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -106,7 +106,7 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 ### US2 — As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -123,7 +123,7 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 ### US3 — As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -140,4 +140,21 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-15T08:21:25Z] Olivia Lead:
+  - Breakdown: one implementation task, TASK-000111 (@python-dev), subtasks mapped ST1→US1 (atomic remove + counter survives repair + confirm/--yes), ST2→US2 (ref/child safety + --force sever, sq check clean), ST3→US3 (queryable trace + remove-vs-cancel docs).
+  - Recon: remove_item already exists (_services/_items.py:180) but bare — index delete + backend remove_artifacts + optional --purge — and only wired as rm for roles/skills/operators. Work-item types have no remove verb (build_item_app, _cli/_items.py). BUG-000022 (Done) already makes the counter monotonic, so high-water-mark preservation is free once removal goes through a transaction; ST1 just has to prove it across a repair.
+  - @architect DESIGN GATE before code: the FEAT-23 ADR questions must be settled first — hard-delete vs Archived soft-state, and the audit-trace mechanism (tombstone vs log vs git history). A tombstone in .squads.json must stay rebuildable from .md (Invariant 1) or it breaks sq repair. Implementation starts once the ADR is Accepted.
+- [2026-06-15T08:27:03Z] Robert Architect:
+  - DESIGN GATE SETTLED — ADR-000114 (Accepted). @python-dev can implement TASK-000111 against this contract; no ambiguity left on the four questions:
+  - 1) SEMANTICS — hard delete. remove unlinks the .md and deletes the index entry (del db.items[seq]) in ONE store.transaction(). No Archived soft-state. Hold the line: Cancelled = work considered and dropped (stays on the books, terminal status); remove = should-never-have-existed (leaves the corpus entirely).
+  - 2) AUDIT TRACE — the FEAT-000024 reflog line IS the trace. NO index tombstone (would break Invariant 1 — repair has no .md to rebuild it from), NO tombstone .md, NO separate removal log. TASK-111 adds zero bespoke audit code: it runs the removal through the transaction seam carrying op=remove + a gone-item snapshot (type/title/status/severed-ref list) in the delta, so the reflog writer (TASK-000112) emits one reconstructable line. If 111 lands before the reflog seam (112): ship with terminal-output trace + the op/delta capture stubbed at the call site (no-op writer until 112). Do NOT add a stopgap tombstone to bridge — git history of the deleted file covers the interim; the durable queryable trace is carried by FEAT-000024.
+  - 3) REFS — default refuses on incoming refs (via SquadsDB.backrefs/refs_in) or children, listing offenders. --force severs each incoming ref from the REFERRER's frontmatter (reuse the width-tolerant _id_matches/rm_ref sever logic in _services/_refs.py, persist via update_frontmatter) inside the SAME transaction as the delete. sq check MUST be clean afterwards (no dangling ref/parent). Children are NOT auto-reparented — --force still refuses while children remain; operator re-parents or removes them first.
+  - 4) ID REUSE — counter high-water mark is preserved; the freed number is NEVER reissued. remove touches db.items only, never db.counter. allocate_id only bumps; load() only raises the counter never lowers; repair() floors at max(previous_counter, max_n) (ADR-000104). A number GAP is a first-class sanctioned state meaning 'existed and was removed' — check/repair already treat gaps as normal; do not add any contiguity assertion.
+  - CONTRACT OBLIGATION -> defer onto FEAT-000013 (1.0 contract): the reflog 'remove' line schema (its fields) AND the rule that a sequence-number gap is a sanctioned, documented state a reader may rely on (gaps normal, numbers never reissued, a removal is explained by the reflog not the index) must be stated in the 1.0 contract doc. This rides FEAT-000024 US3's reflog-schema-tier promise — flag it there; do not re-implement it in TASK-111.
+- [2026-06-15T09:07:14Z] Mara Tester:
+  - QA sign-off (Mara Tester) — all acceptance criteria verified against ADR-000114.
+  - US1 (atomic remove + counter invariant): PASS. Hard delete confirmed atomic; counter high-water mark preserved through removal and repair; freed number never reissued.
+  - US2 (ref/child safety + sq check clean): PASS. Default refusal with offender list; --force severs refs atomically; children block removal even with --force; sq check clean after every scenario.
+  - US3 (traceable removal + remove-vs-cancel docs): PASS. Remove vs. Cancel section in sq workflow explains the semantic split, command forms, ref/child safety, sanctioned-gap invariant. Reflog stub (no-op until FEAT-000024/TASK-000112 lands) assembles correct op/delta per ADR-000114 §2 composition contract.
+  - Feature is ready to close — implementation matches the ADR on all four design points.
 <!-- sq:discussion:end -->

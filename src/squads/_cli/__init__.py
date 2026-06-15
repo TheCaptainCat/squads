@@ -6,6 +6,7 @@ import sys
 import typer
 
 from squads import __version__
+from squads import _actor as actor
 from squads._cli import _common as common
 
 # The generated output (workflow cheatsheet, tables, panels) contains → • — and box-drawing
@@ -61,6 +62,12 @@ def main_callback(
 ):
     common.set_active_dir(dir)
     common.apply_timestamp(at)
+    # Set the ambient actor to "system" for this invocation; commands that know the
+    # acting identity (e.g. `comment --as`, `create --author`) may override this via
+    # actor.set_actor() before the mutation.  This unconditional re-set at callback start
+    # is what prevents actor state from leaking across invocations — the same mechanism
+    # apply_timestamp uses for the clock (no try/finally needed).
+    actor.set_actor("system")
     common.require_current_schema(ctx.invoked_subcommand)
     common.version_notice()
 

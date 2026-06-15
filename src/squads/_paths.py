@@ -57,6 +57,11 @@ class SquadPaths:
     def config_path(self) -> Path:
         return self.root / CONFIG_FILENAME
 
+    @property
+    def reflog_path(self) -> Path:
+        """Path to the append-only operation log (FEAT-000024)."""
+        return self.squad_dir / ".reflog.jsonl"
+
     # --- claude integration (project-level) ---
     @property
     def claude_dir(self) -> Path:

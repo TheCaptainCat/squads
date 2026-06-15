@@ -5,24 +5,17 @@ from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models._enums import PREFIX_BY_TYPE
-from squads._models._item import DEFAULT_KIND, VALID_REF_KINDS, Item, make_ref, split_ref
+from squads._models._item import (
+    DEFAULT_KIND,
+    VALID_REF_KINDS,
+    Item,
+    make_ref,
+    ref_id_matches,
+    split_ref,
+)
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._workflow import is_open
-
-
-def _id_matches(stored_ref_id: str, prefix: str, seq: int) -> bool:
-    """Return True when *stored_ref_id* refers to the same item as *(prefix, seq)*.
-
-    Comparison is width-tolerant: the stored ref may carry an old zero-pad width after a
-    ``sq migrate repad`` while *seq* is the canonical integer identity.  Type-prefix
-    matching prevents false positives when two items share a sequence number (collision
-    state during renumber).
-    """
-    head, _, digits = stored_ref_id.rpartition("-")
-    if not digits.isdigit():
-        return False
-    return head.upper() == prefix.upper() and int(digits) == seq
 
 
 class RefsMixin(ServiceCore):
@@ -42,11 +35,16 @@ class RefsMixin(ServiceCore):
             tgt_prefix = PREFIX_BY_TYPE[tgt.type]
             tgt_seq = tgt.sequence_id
             src.refs = [
-                r for r in src.refs if not _id_matches(split_ref(r)[0], tgt_prefix, tgt_seq)
+                r for r in src.refs if not ref_id_matches(split_ref(r)[0], tgt_prefix, tgt_seq)
             ]
             src.refs.append(make_ref(to_id, kind))
             src.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, src), src)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "ref",
+                src.id,
+                {"add": to_id, "kind": kind},
+            )
         return src
 
     def rm_ref(self, from_id: str, to_id: str) -> Item:
@@ -59,13 +57,18 @@ class RefsMixin(ServiceCore):
                 to_prefix = head.upper()
                 to_seq = int(digits)
                 src.refs = [
-                    r for r in src.refs if not _id_matches(split_ref(r)[0], to_prefix, to_seq)
+                    r for r in src.refs if not ref_id_matches(split_ref(r)[0], to_prefix, to_seq)
                 ]
             else:
                 # Bare number or malformed — fall back to literal string comparison.
                 src.refs = [r for r in src.refs if split_ref(r)[0] != to_id]
             src.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, src), src)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "ref",
+                src.id,
+                {"remove": to_id},
+            )
         return src
 
     def refs_out(self, item_id: str) -> list[tuple[str, str]]:
@@ -86,7 +89,7 @@ class RefsMixin(ServiceCore):
         for it in db.items.values():
             for r in it.refs:
                 rid, kind = split_ref(r)
-                if _id_matches(rid, target_prefix, target_seq):
+                if ref_id_matches(rid, target_prefix, target_seq):
                     out.append((it.id, kind))
         return sorted(out, key=lambda p: number_for_id(p[0]))
 

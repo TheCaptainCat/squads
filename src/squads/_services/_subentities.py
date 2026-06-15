@@ -102,6 +102,11 @@ class SubentitiesMixin(ServiceCore):
             block = discussion.build_block(kind, local_id, title, body=body)
             text = sections.append_to_section(text, container, block)
             self._write_block_file(db, item, path, text=text, head_for=sub)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "subentity",
+                item.id,
+                {"op": "add", "kind": kind, "local_id": local_id, "title": title},
+            )
         btag = discussion.body_tag(kind, local_id)
         span = sections.region_lines(path.read_text(encoding="utf-8"), btag)
         return BlockResult(
@@ -253,9 +258,20 @@ class SubentitiesMixin(ServiceCore):
         with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind, SUBENTITY_PARENT[kind])
             sub = self._find(item, kind, local_id)
+            old_status = sub.status.value
             self._apply_subentity_status(kind, sub, status, force=force)
             item.updated_at = clock.now()
             self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "subentity",
+                item.id,
+                {
+                    "op": "status",
+                    "kind": kind,
+                    "local_id": local_id,
+                    "status": [old_status, sub.status.value],
+                },
+            )
 
     @staticmethod
     def _apply_subentity_status(kind: str, sub: SubEntity, status: Status, *, force: bool) -> None:
@@ -277,6 +293,11 @@ class SubentitiesMixin(ServiceCore):
             sub.assignee = assignee
             item.updated_at = clock.now()
             self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "subentity",
+                item.id,
+                {"op": "assignee", "kind": kind, "local_id": local_id, "assignee": assignee},
+            )
 
     def _update_block(  # noqa: PLR0913 — the sub-entity metadata entry point, like item `update`
         self,
@@ -316,6 +337,11 @@ class SubentitiesMixin(ServiceCore):
                 self._apply_subentity_status(kind, sub, status, force=force)
             item.updated_at = clock.now()
             self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "subentity",
+                item.id,
+                {"op": "update", "kind": kind, "local_id": local_id},
+            )
 
     def _set_block_body(
         self, parent_id: str, kind: str, local_id: str, body: str, *, append: bool
@@ -331,6 +357,11 @@ class SubentitiesMixin(ServiceCore):
                 current = (sections.get_section(text, btag) or "").strip("\n")
                 if current and current.strip() != discussion.body_placeholder(kind):
                     new_body = f"{current}\n\n{body}"
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "subentity",
+                item.id,
+                {"op": "body", "kind": kind, "local_id": local_id},
+            )
             return sections.replace_section(text, btag, new_body)
 
         self._locked_section_edit(parent_id, mutate)

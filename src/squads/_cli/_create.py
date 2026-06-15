@@ -2,6 +2,7 @@
 
 import typer
 
+from squads import _actor as actor
 from squads._cli._common import (
     console,
     get_service,
@@ -56,6 +57,7 @@ def _make(item_type: ItemType):
         json_out: bool = typer.Option(False, "--json"),
     ):
         svc = get_service()
+        actor.set_actor(author)
         resolved_parent = resolve_item_id_any(parent, svc) if parent else None
         resolved_refs: list[str] | None = None
         if ref:

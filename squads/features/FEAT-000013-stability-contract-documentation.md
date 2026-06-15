@@ -23,7 +23,7 @@ subentities:
     files) explicitly marked non-public, so that I don't build on the wrong layer
   status: Todo
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-14T21:00:05Z'
+updated_at: '2026-06-15T10:24:15Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -181,4 +181,23 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
   - 2. **Durable .md format tier**: the contract must state the padding scheme and exhaustion behaviour — padding is stored in the index (default 6), IDs are uniform-width, `sq create` errors with an index-full message at capacity rather than silently widening, and old-width refs/mentions resolve forever (the number is the identity, the width is presentation). This satisfies FEAT-000027's last acceptance criterion ('documented in the stability contract'). @tech-writer / @product-owner for when FEAT-000013 is drafted.
 - [2026-06-14T21:00:05Z] Robert Architect:
   - Cross-link from the FEAT-000027 design ruling (ADR-000104): when this contract documents the ID-padding scheme + exhaustion behaviour (per FEAT-000027 acceptance), state the durable-format facts explicitly: (1) the ID NUMBER is the stable identity; padding/width is presentation and may be RAISED one-way via `sq migrate repad` (never lowered). (2) Mixed-width IDs resolve as the same item — content written before a repad keeps resolving forever. (3) padding lives in the index as a corpus-derived parameter with a stored floor (ADR-000104), reconstructed by `sq repair`. No new deferral needed; flagging so the contract wording matches the accepted design. @tech-writer @product-owner
+- [2026-06-15T08:15:19Z] Catherine Manager:
+  - Deferral obligation from FEAT-000036 (type-command aliases, shipped 2026-06-15). New frozen grammar for the CLI-grammar tier of the stability contract:
+  - (1) Type-command alias table (canonical → aliases): epic→e; feature→feat,f; task→t; bug→b; decision→dec,d; review→rev,r; guide→g. Each alias is full-equivalent to its canonical type command across every verb and sub-entity chain (e.g. sq f 26 story 4 show ≡ sq feature 26 story 4 show).
+  - (2) Output canonicalization rule: aliases are input sugar only — all output, errors, and --json always print canonical type names and full IDs, never the alias.
+  - (3) Add-only evolution rule: adding a new alias is additive and allowed post-1.0; removing or repurposing an existing alias is breaking and is not. This rule is already stated in sq workflow / docs/workflow.md; the capstone doc should record the table + rule verbatim and cite FEAT-000036/REV-000109.
+- [2026-06-15T08:46:35Z] Catherine Manager:
+  - Deferral obligation from FEAT-000020 (retype an item in place, shipped 2026-06-15). CLI-grammar tier: a new frozen verb 'sq <type> <n> retype <new-type>' joins the canonical verb list. Its durable guarantee: the sequence NUMBER is the stable identity across a retype — the item keeps its number while the type prefix changes (TASK-000020 ⇄ BUG-000020), the .md file moves folders and reprefixes, and body bytes are preserved verbatim. Incoming edges (refs with kinds, children parent, prose mentions) are rewritten in the same transaction; sq check stays clean. The contract doc should record retype in the verb list and the number-is-durable-identity promise. cc REV-000115.
+- [2026-06-15T09:21:50Z] Catherine Manager:
+  - Deferral obligation from FEAT-000023 (sanctioned item removal, shipped 2026-06-15; ADR-000114 accepted). Contract points for the 1.0 doc:
+  - (1) IDs are never reused. Removal preserves the counter high-water mark; a removed sequence number is permanently retired. A GAP in the sequence is a normal, sanctioned, reader-relyable state ('existed and was removed') — readers/tools must not treat a missing number as corruption; sq check/repair already treat gaps as normal.
+  - (2) Removal is a hard delete (no Archived soft-state). The remove-vs-cancel rule is contractual: Cancelled = considered and dropped, stays on the books (terminal status); remove = should-never-have-existed, leaves the corpus.
+  - (3) Forced removal severs incoming refs from referrers' frontmatter in the same transaction — no dangling refs survive a removal, sq check stays clean. Children are never auto-reparented.
+  - (4) The removal audit trace is the reflog (FEAT-000024), not an index tombstone (a tombstone would break Invariant 1). The reflog remove-line schema rides FEAT-24's schema-tier obligation. cc ADR-000114.
+- [2026-06-15T10:24:15Z] Catherine Manager:
+  - Deferral obligation from FEAT-000024 (operation reflog, shipped 2026-06-15; ADR-000117 + ADR-000114 accepted, independent gate REV-000119). On-disk-format/contract points for the 1.0 doc:
+  - (1) Reflog file: an append-only JSONL log at <squad>/.reflog.jsonl. It is ADVISORY and explicitly NOT a source of truth — load/check/repair never read it; sq repair rebuilds .squads.json from frontmatter alone (Invariant 1 preserved). A missing/truncated/garbage reflog never affects state or command behaviour.
+  - (2) Line schema (frozen field set to record): v (schema version), ts (ISO-8601 Z), actor, op (closed vocabulary — incl. create/status/update/comment/ref/subentity/retype/remove/migrate), target (item id+type), delta (before→after summary, NOT a replayable diff). Versioned from line one, forward-compatible by addition; readers key off v and ignore unknown fields, skip a trailing partial line, warn-skip interior bad lines.
+  - (3) Durability contract (ADR-117): the line is appended AFTER the index os.replace commit, inside the lock; logged-without-applied is impossible, applied-without-logged is the tolerated failure (append failure warns, never rolls back); no per-line fsync.
+  - (4) OPEN questions to settle at freeze (REV-000119 F3/F5): whether the op/delta double-key on subentity/migrate lines is cleaned up, and whether the reflog line 'v' should be an independent version vs reusing the index SCHEMA_VERSION (currently coupled at 0.3). cc ADR-000117.
 <!-- sq:discussion:end -->

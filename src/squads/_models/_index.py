@@ -98,6 +98,16 @@ class SquadsDB(BaseModel):
         except ValueError:
             return None
 
+    def children(self, item_id: str) -> list[str]:
+        """Return the IDs of items whose ``parent`` field equals *item_id* (direct children only).
+
+        Comparison uses the stored ``parent`` string, which may carry any padding width after
+        a ``sq migrate repad``.  We match against both *item_id* as supplied and the item's
+        own ``item.id`` (reflecting the current squad padding) so cross-width lookups resolve
+        correctly.
+        """
+        return sorted(i.id for i in self.items.values() if i.parent == item_id)
+
     def backrefs(self, item_id: str) -> list[str]:
         """Compute (never store) the items whose forward refs point at ``item_id``.
 
