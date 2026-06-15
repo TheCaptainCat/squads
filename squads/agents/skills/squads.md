@@ -96,6 +96,27 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
 
+## Type-command aliases
+
+Short and single-letter aliases for the item-type commands — input sugar only. They are hidden from
+root `--help` but fully equivalent: every alias accepts everything the canonical name does, including
+sub-entity chains (`sq f 26 story 4 show`). Output (IDs, errors, `--json`) always uses the canonical
+type name. Run `sq workflow` to see this table in the terminal.
+
+| Canonical | Aliases | Example |
+|---|---|---|
+| `epic` | `e` | `sq e <n> show` |
+| `feature` | `feat`, `f` | `sq f <n> show` |
+| `task` | `t` | `sq t <n> show` |
+| `bug` | `b` | `sq b <n> show` |
+| `decision` | `dec`, `d` | `sq d <n> show` |
+| `review` | `rev`, `r` | `sq r <n> show` |
+| `guide` | `g` | `sq g <n> show` |
+
+**Evolution rule (stability contract — see FEAT-000013):** adding an alias is additive and allowed;
+removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table
+is frozen grammar in the same stability tier as the canonical command names.
+
 ## Ref kinds
 
 The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.

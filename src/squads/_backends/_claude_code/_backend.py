@@ -12,7 +12,7 @@ from squads import _interactions as interactions
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code import _claude_md as claude_md
 from squads._backends._claude_code._frontmatter import normalize_model, oneline
-from squads._models._enums import ItemType
+from squads._models._enums import TYPE_ALIASES, ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
@@ -67,7 +67,12 @@ class ClaudeCodeBackend(AgentBackend):
                 "How to track work on this project with the squads (`sq`) CLI: create/transition "
                 "items, comment, link context. Use whenever you start, hand off, or update work."
             ),
-            body=render("agents/squads_skill.md.j2", version=ctx.version, squad_dir=squad_dir),
+            body=render(
+                "agents/squads_skill.md.j2",
+                version=ctx.version,
+                squad_dir=squad_dir,
+                type_aliases=TYPE_ALIASES,
+            ),
         )
         # greeting skill — the start-of-conversation ritual (detect the human, register, greet)
         artifacts += self._write_managed_skill(

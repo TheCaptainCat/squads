@@ -69,6 +69,24 @@ sq task 3 comment --as op-pierre -m "approved" # record the human's own words
 
 ---
 
+## Type-command aliases
+
+Short and single-letter aliases for the item-type commands provide input sugar for faster typing. They are hidden from the root `--help` listing but fully equivalent: every alias accepts everything the canonical type command does, including sub-entity chains (e.g., `sq f 26 story 4 show` ≡ `sq feature 26 story 4 show`). Output and errors always use the canonical type names and full IDs, regardless of the alias used.
+
+| Canonical | Aliases | Example |
+|---|---|---|
+| `epic` | `e` | `sq e <n> show` |
+| `feature` | `feat`, `f` | `sq f <n> show` |
+| `task` | `t` | `sq t <n> show` |
+| `bug` | `b` | `sq b <n> show` |
+| `decision` | `dec`, `d` | `sq d <n> show` |
+| `review` | `rev`, `r` | `sq r <n> show` |
+| `guide` | `g` | `sq g <n> show` |
+
+**Evolution rule (stability contract — see [FEAT-000013](../squads/features/FEAT-000013-stable-cli-grammar-after-1-0.md)):** adding an alias is additive and allowed; removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table is frozen grammar in the same stability tier as the canonical command names.
+
+---
+
 ## Status lifecycles
 
 Every item type has its own state machine. `sq status <ID> <Status>` only allows a transition the
