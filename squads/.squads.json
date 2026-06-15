@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 125,
+  "counter": 130,
   "padding": 6,
   "items": {
     "12": {
@@ -204,7 +204,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-15T10:24:15Z",
+      "updated_at": "2026-06-15T12:31:53Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -348,7 +348,7 @@
       "type": "feature",
       "title": "1.0 hardening",
       "slug": "1-0-hardening",
-      "status": "Ready",
+      "status": "Done",
       "description": "Migration fixture corpus in CI, ~1000-item scale sanity test, verified shell completion, decision on the Python >= 3.14 floor",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -359,7 +359,7 @@
       "subentities": [],
       "path": "features/FEAT-000017-1-0-hardening.md",
       "created_at": "2026-06-10T12:41:22Z",
-      "updated_at": "2026-06-11T07:54:53Z",
+      "updated_at": "2026-06-15T12:31:52Z",
       "extra": {},
       "id": "FEAT-000017"
     },
@@ -4666,6 +4666,131 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-000010"
+    },
+    "126": {
+      "sequence_id": 126,
+      "type": "task",
+      "title": "Migration fixture corpus: frozen per-schema squads migrated + checked in CI",
+      "slug": "migration-fixture-corpus-frozen-per-schema-squads-migrated-c",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000126-migration-fixture-corpus-frozen-per-schema-squads-migrated-c.md",
+      "created_at": "2026-06-15T12:10:12Z",
+      "updated_at": "2026-06-15T12:31:51Z",
+      "extra": {},
+      "id": "TASK-000126"
+    },
+    "127": {
+      "sequence_id": 127,
+      "type": "task",
+      "title": "Scale sanity test: ~1000-item squad with asserted time bounds",
+      "slug": "scale-sanity-test-1000-item-squad-with-asserted-time-bounds",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000127-scale-sanity-test-1000-item-squad-with-asserted-time-bounds.md",
+      "created_at": "2026-06-15T12:10:12Z",
+      "updated_at": "2026-06-15T12:31:51Z",
+      "extra": {},
+      "id": "TASK-000127"
+    },
+    "128": {
+      "sequence_id": 128,
+      "type": "task",
+      "title": "Shell completion: enable, verify bash+zsh, document install",
+      "slug": "shell-completion-enable-verify-bash-zsh-document-install",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000128-shell-completion-enable-verify-bash-zsh-document-install.md",
+      "created_at": "2026-06-15T12:10:13Z",
+      "updated_at": "2026-06-15T12:31:51Z",
+      "extra": {},
+      "id": "TASK-000128"
+    },
+    "129": {
+      "sequence_id": 129,
+      "type": "decision",
+      "title": "Python >= 3.14 floor: PEP 649 lazy annotations vs installable audience",
+      "slug": "python-3-14-floor-pep-649-lazy-annotations-vs-installable-au",
+      "status": "Accepted",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000013",
+        "FEAT-000017"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000129-python-3-14-floor-pep-649-lazy-annotations-vs-installable-au.md",
+      "created_at": "2026-06-15T12:10:13Z",
+      "updated_at": "2026-06-15T12:30:16Z",
+      "extra": {},
+      "id": "ADR-000129"
+    },
+    "130": {
+      "sequence_id": 130,
+      "type": "review",
+      "title": "FEAT-17 1.0 hardening: independent gate (corpus, scale, completion, Py3.14 ADR)",
+      "slug": "feat-17-1-0-hardening-independent-gate-corpus-scale-completi",
+      "status": "Approved",
+      "description": "Independent review of the four FEAT-17 deliverables; gate run clean.",
+      "parent": "FEAT-000017",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000126",
+        "TASK-000127",
+        "TASK-000128",
+        "ADR-000129"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Corpus does not exercise the 0.1->0.2 review findings-skeleton path",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "README completion claim about 'uv run sq' is slightly overstated",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000130-feat-17-1-0-hardening-independent-gate-corpus-scale-completi.md",
+      "created_at": "2026-06-15T12:29:05Z",
+      "updated_at": "2026-06-15T12:29:56Z",
+      "extra": {},
+      "id": "REV-000130"
     }
   }
 }

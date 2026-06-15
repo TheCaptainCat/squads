@@ -47,6 +47,36 @@ uvx --from squads sq --help     # or: uvx --from . sq --help  in a checkout
 > `uv run sq …`. The examples below use bare `sq` (tool install); prefix with `uv run` if you're
 > working from a source checkout.
 
+## Shell completion
+
+`sq` supports tab-completion for **bash** and **zsh** (and also fish and PowerShell).
+
+**bash**
+
+```bash
+sq --install-completion bash
+# then restart your terminal (or source the new file printed by the command)
+```
+
+**zsh**
+
+```bash
+sq --install-completion zsh
+# then restart your terminal (or source the new file printed by the command)
+```
+
+`--install-completion` writes a shell-specific script to your home directory and prints the path.
+Once the shell is restarted, pressing `Tab` after `sq ` completes commands, options, and arguments.
+
+To inspect the script without installing it:
+
+```bash
+sq --show-completion bash
+sq --show-completion zsh
+```
+
+> **Note:** completion requires `sq` to be on your `PATH` (i.e. installed as a tool via `uv tool install` or `pipx install`). It will not work through `uv run sq` because `uv run` wraps the entry point in a way that the shell cannot discover.
+
 ## Quickstart
 
 ```bash

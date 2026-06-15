@@ -31,7 +31,7 @@ app = typer.Typer(
         "but fully supported — see the alias table in `sq workflow`."
     ),
     no_args_is_help=True,
-    add_completion=False,
+    add_completion=True,
 )
 
 

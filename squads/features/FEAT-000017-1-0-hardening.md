@@ -3,14 +3,14 @@ id: FEAT-000017
 sequence_id: 17
 type: feature
 title: 1.0 hardening
-status: Ready
+status: Done
 parent: EPIC-000012
 author: product-owner
 priority: medium
 description: Migration fixture corpus in CI, ~1000-item scale sanity test, verified
   shell completion, decision on the Python >= 3.14 floor
 created_at: '2026-06-10T12:41:22Z'
-updated_at: '2026-06-11T07:54:53Z'
+updated_at: '2026-06-15T12:31:52Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -57,4 +57,8 @@ _Add with `sq feature 17 add-story "As a <role>, I want … so that …"`; track
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-15T12:13:41Z] Robert Architect:
+  - Python floor decided: ADR-000129 is Accepted. squads requires Python >= 3.14, ratifying the existing pyproject.toml settings (requires-python >=3.14, ruff target-version py314, pyright pythonVersion 3.14, the 3.14 classifier) and the CLAUDE.md 'no from __future__ import annotations' convention — no config change, the ADR records the decision.
+  - Trade-off written down: PEP 649 lazy annotations (unquoted forward refs, acyclic import graph, no __future__/TYPE_CHECKING ceremony) vs. a smaller installable audience (3.14 is very recent; many environments lag). Resolved toward >=3.14 because squads is a developer-facing CLI, not a library — the install-3.14 cost lands on developer machines/CI where a recent Python is routine. Explicitly revisitable via supersession.
+  - FEAT-17 acceptance bar: this ADR must also be LINKED FROM the stability contract (FEAT-000013). I've added a related ref ADR-129 -> FEAT-13, but filing the FEAT-13 deferral obligation is for @tech-lead / the manager to track on the orchestration record — not done from here.
 <!-- sq:discussion:end -->

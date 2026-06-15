@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-from squads._cli import app
+from squads._cli import _hoist_global_options, app  # pyright: ignore[reportPrivateUsage]
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="cp1252 console encoding is Windows-specific")
@@ -1681,3 +1681,50 @@ def test_cli_check_clean_with_old_width_refs_after_repad(project, runner, frozen
     issues = json.loads(r.output)
     errors = [i for i in issues if i["level"] == "error"]
     assert not errors, f"sq check errors after repad with old-width refs: {errors}"
+
+
+# ---------------------------------------------------------------------------
+# Shell completion (FEAT-000017 / TASK-000128)
+# ---------------------------------------------------------------------------
+
+
+def test_shell_completion_scripts_are_non_empty(runner):
+    # --show-completion must emit a non-empty, well-formed script for bash and zsh.
+    # We disable Typer's auto-detection so the explicit shell name is always honoured
+    # regardless of the host shell (test suite runs under bash on CI).
+    os.environ["_TYPER_COMPLETE_TEST_DISABLE_SHELL_DETECTION"] = "1"
+    try:
+        bash_r = runner.invoke(app, ["--show-completion", "bash"])
+        zsh_r = runner.invoke(app, ["--show-completion", "zsh"])
+    finally:
+        os.environ.pop("_TYPER_COMPLETE_TEST_DISABLE_SHELL_DETECTION", None)
+
+    assert bash_r.exit_code == 0, bash_r.output
+    assert zsh_r.exit_code == 0, zsh_r.output
+
+    # bash script contains the complete built-in and the bash-specific env var
+    assert "_sq_completion" in bash_r.output
+    assert "complete_bash" in bash_r.output
+    assert len(bash_r.output.strip()) > 0
+
+    # zsh script starts with the compdef directive (distinct from bash)
+    assert "#compdef sq" in zsh_r.output
+    assert "complete_zsh" in zsh_r.output
+    assert len(zsh_r.output.strip()) > 0
+
+    # the two scripts must be distinct — they target different shells
+    assert bash_r.output != zsh_r.output
+
+
+def test_hoist_global_options_does_not_break_completion_args():
+    # The _hoist_global_options shim must pass --show-completion / --install-completion
+    # through untouched; they are not global value-options and must not be reordered.
+    assert _hoist_global_options(["--show-completion", "bash"]) == ["--show-completion", "bash"]
+    assert _hoist_global_options(["--show-completion", "zsh"]) == ["--show-completion", "zsh"]
+    assert _hoist_global_options(["--install-completion", "zsh"]) == [
+        "--install-completion",
+        "zsh",
+    ]
+    # a real global option mixed after completion args is hoisted, completion args stay in place
+    result = _hoist_global_options(["--show-completion", "bash", "--dir", "/tmp"])
+    assert result == ["--dir", "/tmp", "--show-completion", "bash"]
