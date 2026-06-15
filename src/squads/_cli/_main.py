@@ -252,6 +252,28 @@ def list_items(
     console.print(_item_table(items))
 
 
+def _build_children(
+    listed: list[Item],
+) -> dict[str | None, list[Item]]:
+    """Group items by their canonical parent ID (width-tolerant).
+
+    ``item.parent`` stores the old zero-pad width after a ``sq migrate repad`` while
+    ``item.id`` uses the current width.  Resolving via sequence number makes the tree
+    correct across a repad boundary (FEAT-000027 / TASK-000103).
+    """
+    all_ids = {i.id for i in listed}
+    seq_to_id = {number_for_id(i.id): i.id for i in listed}
+    children: dict[str | None, list[Item]] = {}
+    for it in listed:
+        parent_canonical: str | None = None
+        if it.parent:
+            canonical = seq_to_id.get(number_for_id(it.parent))
+            if canonical is not None and canonical in all_ids:
+                parent_canonical = canonical
+        children.setdefault(parent_canonical, []).append(it)
+    return children
+
+
 @app.command()
 @handle_errors
 def tree(
@@ -273,10 +295,7 @@ def tree(
     if not all_:
         listed = [i for i in listed if is_open(i.status)]
     all_items = {i.id: i for i in listed}
-    children: dict[str | None, list[Item]] = {}
-    for it in all_items.values():
-        key = it.parent if it.parent in all_items else None
-        children.setdefault(key, []).append(it)
+    children = _build_children(listed)
 
     def kids(item_id: str) -> list[Item]:
         return sorted(children.get(item_id, []), key=lambda i: number_for_id(i.id))

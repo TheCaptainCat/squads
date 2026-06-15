@@ -4,10 +4,25 @@ from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
+from squads._models._enums import PREFIX_BY_TYPE
 from squads._models._item import DEFAULT_KIND, VALID_REF_KINDS, Item, make_ref, split_ref
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._workflow import is_open
+
+
+def _id_matches(stored_ref_id: str, prefix: str, seq: int) -> bool:
+    """Return True when *stored_ref_id* refers to the same item as *(prefix, seq)*.
+
+    Comparison is width-tolerant: the stored ref may carry an old zero-pad width after a
+    ``sq migrate repad`` while *seq* is the canonical integer identity.  Type-prefix
+    matching prevents false positives when two items share a sequence number (collision
+    state during renumber).
+    """
+    head, _, digits = stored_ref_id.rpartition("-")
+    if not digits.isdigit():
+        return False
+    return head.upper() == prefix.upper() and int(digits) == seq
 
 
 class RefsMixin(ServiceCore):
@@ -19,9 +34,16 @@ class RefsMixin(ServiceCore):
             raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
         with self.store.transaction() as db:
             src = require_item(db, from_id)
-            require_item(db, to_id)
-            # the kind rides with the edge; re-adding an existing edge updates its kind
-            src.refs = [r for r in src.refs if split_ref(r)[0] != to_id]
+            tgt = require_item(db, to_id)
+            # The kind rides with the edge; re-adding an existing edge updates its kind.
+            # Dedup by (prefix, seq) so old-width stored refs ("TASK-000007") are replaced
+            # when re-adding across a repad boundary where to_id is "TASK-0000007"
+            # (FEAT-000027: file contents are never rewritten, widths diverge).
+            tgt_prefix = PREFIX_BY_TYPE[tgt.type]
+            tgt_seq = tgt.sequence_id
+            src.refs = [
+                r for r in src.refs if not _id_matches(split_ref(r)[0], tgt_prefix, tgt_seq)
+            ]
             src.refs.append(make_ref(to_id, kind))
             src.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, src), src)
@@ -30,7 +52,18 @@ class RefsMixin(ServiceCore):
     def rm_ref(self, from_id: str, to_id: str) -> Item:
         with self.store.transaction() as db:
             src = require_item(db, from_id)
-            src.refs = [r for r in src.refs if split_ref(r)[0] != to_id]
+            # Determine (prefix, seq) from the caller's to_id — width-tolerant: the stored
+            # ref may carry an old width, the to_id may carry the new width.
+            head, _, digits = to_id.rpartition("-")
+            if head and digits.isdigit():
+                to_prefix = head.upper()
+                to_seq = int(digits)
+                src.refs = [
+                    r for r in src.refs if not _id_matches(split_ref(r)[0], to_prefix, to_seq)
+                ]
+            else:
+                # Bare number or malformed — fall back to literal string comparison.
+                src.refs = [r for r in src.refs if split_ref(r)[0] != to_id]
             src.updated_at = clock.now()
             update_frontmatter(item_file(self.paths, src), src)
         return src
@@ -39,14 +72,21 @@ class RefsMixin(ServiceCore):
         return [split_ref(r) for r in self.get(item_id).refs]
 
     def refs_in(self, item_id: str) -> list[tuple[str, str]]:
-        """Backrefs computed by inverting forward edges (never stored)."""
+        """Backrefs computed by inverting forward edges (never stored).
+
+        Comparison is by (prefix, seq) so old-width ref strings (``"TASK-000007"``) and
+        new-width item IDs (``"TASK-0000007"``) match correctly after a ``sq migrate repad``
+        (file contents are never rewritten, so refs keep their original width).
+        """
         db = self.store.load()
-        require_item(db, item_id)
+        target = require_item(db, item_id)
+        target_prefix = PREFIX_BY_TYPE[target.type]
+        target_seq = target.sequence_id
         out: list[tuple[str, str]] = []
         for it in db.items.values():
             for r in it.refs:
                 rid, kind = split_ref(r)
-                if rid == item_id:
+                if _id_matches(rid, target_prefix, target_seq):
                     out.append((it.id, kind))
         return sorted(out, key=lambda p: number_for_id(p[0]))
 

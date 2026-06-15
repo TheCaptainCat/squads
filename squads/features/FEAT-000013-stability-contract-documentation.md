@@ -23,7 +23,7 @@ subentities:
     files) explicitly marked non-public, so that I don't build on the wrong layer
   status: Todo
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-12T22:05:08Z'
+updated_at: '2026-06-14T21:00:05Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -175,4 +175,10 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
     **Exit-code contract (FEAT-000015):** override errors (missing markers) → exit 3; version-drift warnings → exit 0. Preserved intact.
 - [2026-06-12T22:05:08Z] Theo Writer:
   - Override surfaces documented in user guide (docs/overrides.md, accessible via 'sq docs overrides'). FEAT-000013 should list in the durable contract tier the four surfaces recorded by TASK-089 / Elias Python's 2026-06-12T21:54:21Z comment: (1) override layout and precedence rule, (2) staleness + update contract with the sq override command set, (3) diff's two-delta contract and update's re-stamp-only behavior, (4) template manifest indexing. These are now documented for users in docs/overrides.md §Staleness and drift + §The sq override command group.
+- [2026-06-14T20:56:26Z] Olivia Lead:
+  - OBLIGATIONS BILL — deferral from FEAT-000027 (Explicit ID padding). Two contract sentences land here, per the epic's CLI-grammar discipline:
+  - 1. **CLI grammar tier**: the raise-padding command is **`sq migrate repad <width>`** (decided on FEAT-000027). When the stability contract freezes the CLI grammar, `sq migrate repad` joins the frozen surface alongside `up`/`help`/`chlog`.
+  - 2. **Durable .md format tier**: the contract must state the padding scheme and exhaustion behaviour — padding is stored in the index (default 6), IDs are uniform-width, `sq create` errors with an index-full message at capacity rather than silently widening, and old-width refs/mentions resolve forever (the number is the identity, the width is presentation). This satisfies FEAT-000027's last acceptance criterion ('documented in the stability contract'). @tech-writer / @product-owner for when FEAT-000013 is drafted.
+- [2026-06-14T21:00:05Z] Robert Architect:
+  - Cross-link from the FEAT-000027 design ruling (ADR-000104): when this contract documents the ID-padding scheme + exhaustion behaviour (per FEAT-000027 acceptance), state the durable-format facts explicitly: (1) the ID NUMBER is the stable identity; padding/width is presentation and may be RAISED one-way via `sq migrate repad` (never lowered). (2) Mixed-width IDs resolve as the same item — content written before a repad keeps resolving forever. (3) padding lives in the index as a corpus-derived parameter with a stored floor (ADR-000104), reconstructed by `sq repair`. No new deferral needed; flagging so the contract wording matches the accepted design. @tech-writer @product-owner
 <!-- sq:discussion:end -->

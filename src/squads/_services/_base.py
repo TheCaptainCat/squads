@@ -149,6 +149,7 @@ class ServiceCore:
                 created_at=now,
                 updated_at=now,
                 extra=extra or {},
+                id_padding=db.padding,
             )
             rendered = render(
                 _template_for(item_type), item=item, description=description, extra=item.extra
