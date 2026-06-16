@@ -11,17 +11,13 @@ refs:
 - FEAT-000024
 subentities:
 - local_id: US1
-  title: As any agent or operator, I want the reflog to record a structured actor
-    (slug + session ID + parent session ID) so that I can reconstruct the spawn tree
-    and distinguish self-declared authorship from verified identity.
+  title: Structured actor record in the reflog (slug + session + parent)
   status: Todo
 - local_id: US2
-  title: As a squad manager, I want sq reflog to render a spawn-tree view so that
-    I can trace which agent lineage performed which operations and verify that concurrent
-    work was structurally independent.
+  title: Spawn-tree view in sq reflog
   status: Todo
 created_at: '2026-06-15T11:56:19Z'
-updated_at: '2026-06-15T12:00:17Z'
+updated_at: '2026-06-16T09:53:02Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -107,21 +103,23 @@ _Add with `sq feature 125 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As any agent or operator, I want the reflog to record a structured actor (slug + session ID + parent session ID) so that I can reconstruct the spawn tree and distinguish self-declared authorship from verified identity. |
-| US2 | Todo |  | As a squad manager, I want sq reflog to render a spawn-tree view so that I can trace which agent lineage performed which operations and verify that concurrent work was structurally independent. |
+| US1 | Todo |  | Structured actor record in the reflog (slug + session + parent) |
+| US2 | Todo |  | Spawn-tree view in sq reflog |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As any agent or operator, I want the reflog to record a structured actor (slug + session ID + parent session ID) so that I can reconstruct the spawn tree and distinguish self-declared authorship from verified identity.
+### US1 — Structured actor record in the reflog (slug + session + parent)
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As any agent or operator, I want the reflog to record a structured actor (slug + session ID + parent session ID) on every mutating operation, so that I can reconstruct the spawn tree and distinguish self-declared authorship from verified identity.
+
+**Acceptance:** every `sq` mutating operation records `{slug, session_id, parent_session_id}` in the reflog entry; the session identity is issued at agent-spawn time and cannot be set by the agent after the fact; the model is backward-compatible — existing reflog entries (slug-only) remain valid; `sq <type> <n> show --full` surfaces the session identity for the creating and last-modifying actor.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -131,14 +129,16 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a squad manager, I want sq reflog to render a spawn-tree view so that I can trace which agent lineage performed which operations and verify that concurrent work was structurally independent.
+### US2 — Spawn-tree view in sq reflog
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a squad manager, I want `sq reflog` to render a spawn-tree view, so that I can trace which agent lineage performed which operations and verify that concurrent work was structurally independent.
+
+**Acceptance:** `sq reflog --tree` (or equivalent flag) renders a nested tree of operations grouped by spawn lineage; the view covers a configurable time window; operations with no parent session ID appear as root nodes; the incident of 2026-06-15 (architect self-reviewing its own code) would produce a visibly non-independent tree.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
