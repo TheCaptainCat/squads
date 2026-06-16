@@ -71,7 +71,8 @@ def test_settings_merge_does_not_clobber(project, svc):
     data["customKey"] = 123
     settings.write_text(json.dumps(data), encoding="utf-8")
     # re-run scaffold (idempotent merge)
-    svc._backend().ensure_scaffold(svc._ctx)
+    for _be in svc._backends():
+        _be.ensure_scaffold(svc._ctx)
     merged = json.loads(settings.read_text(encoding="utf-8"))
     assert merged["customKey"] == 123  # preserved
     assert "Bash(git status)" in merged["permissions"]["allow"]  # preserved

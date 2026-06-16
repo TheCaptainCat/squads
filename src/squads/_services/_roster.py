@@ -46,7 +46,9 @@ class RosterMixin(ServiceCore):
                 X.SKILLS: skills_for_role(role.slug),
             },
         )
-        self._backend().generate_role_entry(self._ctx, res.item, role)
+        ctx = self._ctx
+        for backend in self._backends():
+            backend.generate_role_entry(ctx, res.item, role)
         return res.item
 
     def add_dev(self, tech: str, *, name: str | None = None, model: str | None = None) -> Item:
@@ -71,7 +73,9 @@ class RosterMixin(ServiceCore):
                 X.SKILLS: skills_for_role(role.slug),
             },
         )
-        self._backend().generate_role_entry(self._ctx, res.item, role)
+        ctx = self._ctx
+        for backend in self._backends():
+            backend.generate_role_entry(ctx, res.item, role)
         self.refresh_managed()
         return res.item
 
@@ -102,7 +106,9 @@ class RosterMixin(ServiceCore):
                 X.ALLOWED_TOOLS: allowed_tools,
             },
         )
-        self._backend().generate_skill_entry(self._ctx, res.item)
+        ctx = self._ctx
+        for backend in self._backends():
+            backend.generate_skill_entry(ctx, res.item)
         return res.item
 
     def add_operator(self, name: str, *, slug: str | None = None) -> Item:

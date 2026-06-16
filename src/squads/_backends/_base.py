@@ -83,3 +83,16 @@ class AgentBackend(ABC):
     @abstractmethod
     def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         """Delete the backend entry/entries for an item."""
+
+    @abstractmethod
+    def managed_paths(self, ctx: BackendContext) -> list[str]:
+        """Root-relative paths this backend owns and that sq check expects to exist.
+
+        Read-only: must not create or modify any file.  Returns the same root-relative
+        paths that ``ensure_scaffold`` / ``write_managed`` would write, without writing
+        them.  Used by ``sq check`` to verify that scaffolding exists (present-only check
+        — not a currency/drift check).
+
+        Implementations should scope this to the always-present top-level files whose
+        absence means the backend was never scaffolded/synced.
+        """

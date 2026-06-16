@@ -90,12 +90,18 @@ class ServiceCore:
     def _ctx(self) -> BackendContext:
         return BackendContext(paths=self.paths, version=__version__)
 
-    def _backend(self) -> AgentBackend:
-        return get_backend(self.paths.config.default_backend)
+    def _backends(self) -> list[AgentBackend]:
+        """Return one backend instance for each active (deduped) backend name.
+
+        Empty ``active_backends`` returns an empty list (sq-only squad).
+        """
+        return [get_backend(name) for name in self.paths.config.active_backends]
 
     def scaffold_backend(self) -> None:
-        """Public entry for init(): create backend scaffolding."""
-        self._backend().ensure_scaffold(self._ctx)
+        """Public entry for init(): create backend scaffolding for every active backend."""
+        ctx = self._ctx
+        for backend in self._backends():
+            backend.ensure_scaffold(ctx)
 
     # ------------------------------------------------------------------ create / read
     def create(  # noqa: PLR0913 — a creation entrypoint with clear keyword-only fields
@@ -323,4 +329,8 @@ class ServiceCore:
         ]
 
     def refresh_managed(self) -> None:
-        self._backend().write_managed(self._ctx, self.roster(), self.operators())
+        ctx = self._ctx
+        roster = self.roster()
+        ops = self.operators()
+        for backend in self._backends():
+            backend.write_managed(ctx, roster, ops)

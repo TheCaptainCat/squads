@@ -224,3 +224,11 @@ class ClaudeCodeBackend(AgentBackend):
                 shutil.rmtree(skill_dir)
         else:
             (cdir / _AGENTS / f"{slug}.md").unlink(missing_ok=True)
+
+    def managed_paths(self, ctx: BackendContext) -> list[str]:
+        """Root-relative paths owned by this backend (present-only check; read-only)."""
+        cdir = ctx.root / _CLAUDE_DIR
+        return [
+            ctx.rel(ctx.root / _CLAUDE_MD),
+            ctx.rel(cdir / "settings.json"),
+        ]

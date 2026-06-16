@@ -44,7 +44,7 @@ def init(
     *,
     root: Path | None = None,
     squad_dir: str = "squads",
-    backend: str = "claude_code",
+    backend: list[str] | None = None,
     roles_spec: str = "all",
     no_claude: bool = False,
     force: bool = False,
@@ -62,9 +62,10 @@ def init(
         raise AlreadyInitializedError(f"{config_path} already exists (use --force to overwrite)")
 
     effective_names = names or {}
+    effective_backends: list[str] = backend if backend is not None else ["claude_code"]
     config = SquadsConfig(
         squad_dir=squad_dir,
-        default_backend=backend,
+        active_backends=effective_backends,
         default_role="manager",
         squads_version=__version__,
         init_names=effective_names,
@@ -97,7 +98,7 @@ def adopt(
     *,
     root: Path | None = None,
     squad_dir: str = "squads",
-    backend: str = "claude_code",
+    backend: list[str] | None = None,
     roles_spec: str = "all",
     no_claude: bool = False,
 ) -> AdoptResult:
@@ -113,9 +114,10 @@ def adopt(
         config = load_config(config_path)
         squad_dir = config.squad_dir
     else:
+        effective_backends: list[str] = backend if backend is not None else ["claude_code"]
         config = SquadsConfig(
             squad_dir=squad_dir,
-            default_backend=backend,
+            active_backends=effective_backends,
             default_role="manager",
             squads_version=__version__,
         )
