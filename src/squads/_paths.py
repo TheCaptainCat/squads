@@ -40,7 +40,7 @@ def load_config(config_path: Path) -> SquadsConfig:
 class SquadPaths:
     """Resolved locations for one active squad."""
 
-    root: Path  # project root (holds .squads.toml, CLAUDE.md, .claude/)
+    root: Path  # project root (holds .squads.toml)
     squad_dir: Path  # self-contained squad folder (holds .squads.json + type subfolders)
     config: SquadsConfig
 
@@ -61,15 +61,6 @@ class SquadPaths:
     def reflog_path(self) -> Path:
         """Path to the append-only operation log (FEAT-000024)."""
         return self.squad_dir / ".reflog.jsonl"
-
-    # --- claude integration (project-level) ---
-    @property
-    def claude_dir(self) -> Path:
-        return self.root / ".claude"
-
-    @property
-    def claude_md(self) -> Path:
-        return self.root / "CLAUDE.md"
 
     # --- type folders / item files ---
     def folder_for(self, item_type: ItemType) -> Path:

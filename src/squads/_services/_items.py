@@ -166,11 +166,11 @@ class ItemsMixin(ServiceCore):
         """Regenerate the backend pointer for a role or skill from its current item data."""
         item = self.get(item_id)
         if item.type is ItemType.ROLE:
-            self._backend().generate_role_pointer(self._ctx, item, RoleDef.from_extra(item.extra))
+            self._backend().generate_role_entry(self._ctx, item, RoleDef.from_extra(item.extra))
         elif item.type is ItemType.SKILL:
-            self._backend().generate_skill_pointer(self._ctx, item)
+            self._backend().generate_skill_entry(self._ctx, item)
         else:
-            raise SquadsError(f"{item_id} is a {item.type.value}; only roles/skills have pointers")
+            raise SquadsError(f"{item_id} is a {item.type.value}; only roles/skills have entries")
         return item
 
     def set_body(self, item_id: str, body: str, *, append: bool = False) -> Item:

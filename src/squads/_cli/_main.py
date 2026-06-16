@@ -182,7 +182,7 @@ def init(
         f"[bold]roles:[/bold] {roles_line}",
     ]
     if not no_claude:
-        lines.append(f"[bold]claude:[/bold] {sp.claude_dir} (pointers + squads skill + CLAUDE.md)")
+        lines.append("[bold]agent backend:[/bold] " + sp.config.default_backend)
     console.print(Panel("\n".join(lines), title="squads initialized", expand=False))
     console.print(
         'Next: [cyan]sq create task "…"[/cyan] · [cyan]sq list[/cyan]'

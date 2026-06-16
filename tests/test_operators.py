@@ -101,7 +101,7 @@ def test_operator_not_counted_in_workload_but_is_not_spawnable(svc, project):
     assert rows["op-pierre"].open == 1  # work assigned to the human counts
     assert None not in rows  # the operator *definition* item is not counted as work
     # operators are humans, not agents: no .claude subagent pointer is generated
-    assert not (project.claude_dir / "agents" / "op-pierre.md").exists()
+    assert not (project.root / ".claude" / "agents" / "op-pierre.md").exists()
 
 
 # --------------------------------------------------------------------------- CLI

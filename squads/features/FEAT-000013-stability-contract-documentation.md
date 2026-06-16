@@ -23,7 +23,7 @@ subentities:
     files) explicitly marked non-public, so that I don't build on the wrong layer
   status: Todo
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-15T12:31:53Z'
+updated_at: '2026-06-15T14:23:08Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -205,4 +205,9 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
   - (1) ADR-000129 (Python >= 3.14 floor — Accepted) must be cited/linked from the stability contract: the floor is part of the 1.0 promise, with the PEP 649 lazy-annotations vs installable-audience trade-off recorded and explicitly revisitable by supersession. ADR-129 already carries a 'related' ref to this feature; the contract body needs to state the floor and cite the ADR.
   - (2) Shell completion: the verified bash/zsh install steps (README) are part of the supported-surface documentation the contract should reference.
   - Also noted (not contract, just tracking): REV-000130 F1 — the migration fixture corpus does not yet exercise the 0.1->0.2 review findings-skeleton branch (covered by unit tests only); add a pre-0.2 review fixture to tests/fixtures/corpus/v0_1/ when convenient.
+- [2026-06-15T14:23:08Z] Catherine Manager:
+  - Deferral obligation from FEAT-000016 (second backend: generic AGENTS.md, shipped 2026-06-15; ADR-000133 accepted, independent gate REV-000135). The pre-1.0 de-Claude-ification of the AgentBackend ABC is stability-contract material — the contract must record the FROZEN ABC surface as corrected:
+  - (1) ABC method names: generate_role_entry / generate_skill_entry (renamed from *_pointer — 'pointer' was a Claude-specific file mechanic; a backend may write a section, not a pointer file). These names are now the frozen 1.0 surface.
+  - (2) Path-ownership seam: the shared SquadPaths no longer carries backend-specific paths (claude_dir/claude_md removed). A backend owns its own root files relative to ctx.root; shared modules stay backend-neutral (Invariant 6).
+  - (3) Backend registration: built-in backends register via the _BUILTIN_BACKEND_MODULES list; third-party backends via the register() hook. squads ships two backends at 1.0 — claude_code and agents_md — and both pass a shared conformance suite (the ABC-is-honest proof). Backend selection: sq init --backend <name> or default_backend in .squads.toml. The contract should state the supported backends and the selection mechanism.
 <!-- sq:discussion:end -->

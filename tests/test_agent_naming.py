@@ -471,7 +471,7 @@ class TestCliRoleActivateName:
     def test_activate_name_flows_to_pointer_file(self, project, runner):
         """Custom name appears in the agent pointer file."""
         runner.invoke(app, ["role", "activate", "devops", "--name", "Dev Ops Custom"])
-        pointer = project.claude_dir / "agents" / "devops.md"
+        pointer = project.root / ".claude" / "agents" / "devops.md"
         if pointer.exists():
             content = pointer.read_text(encoding="utf-8")
             assert "Dev Ops Custom" in content

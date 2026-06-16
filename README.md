@@ -249,6 +249,40 @@ must be an epic. Invalid links are rejected at create/link time and flagged by `
 
 ---
 
+## Backends
+
+squads ships two backends; select with `--backend` at `sq init` or via `default_backend` in
+`.squads.toml`.
+
+### `claude_code` (default)
+
+Writes thin pointer files into `.claude/agents/` and `.claude/skills/`, plus a managed section in
+`CLAUDE.md`. Each role and skill gets its own pointer file that @-includes the real definition
+from `squads/agents/`. Designed for Claude Code.
+
+```bash
+sq init --backend claude_code   # default; creates .claude/ + CLAUDE.md
+```
+
+Commit `.squads.toml`, the `squads/` folder, `CLAUDE.md`, and `.claude/`.
+
+### `agents_md`
+
+Writes a single `AGENTS.md` file at the project root — the cross-tool AGENTS.md convention
+(understood by Gemini CLI, Cursor, and other AI-enabled editors). No pointer files are created.
+`sq sync` keeps the managed section current without touching user prose outside the
+`<!-- squads:start -->` / `<!-- squads:end -->` markers.
+
+```bash
+sq init --backend agents_md     # creates AGENTS.md at the project root
+sq sync                         # refresh AGENTS.md after adding roles/operators
+```
+
+Internal staging files live in `.agents_md/` (one per role/skill); commit `AGENTS.md` but
+`.agents_md/` can be gitignored.
+
+---
+
 ## Git notes
 
 Commit `.squads.toml`, the `squads/` folder, `CLAUDE.md`, and `.claude/` (the pointers + squads

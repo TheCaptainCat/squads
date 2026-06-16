@@ -82,10 +82,10 @@ class MaintenanceMixin(ServiceCore):
         backend.ensure_scaffold(ctx)
         for it in self.list_items(item_type=ItemType.ROLE):
             self._refresh_catalog_extra(it)
-            backend.generate_role_pointer(ctx, it, RoleDef.from_extra(it.extra))
+            backend.generate_role_entry(ctx, it, RoleDef.from_extra(it.extra))
             self._regen_role_body(it)
         for it in self.list_items(item_type=ItemType.SKILL):
-            backend.generate_skill_pointer(ctx, it)
+            backend.generate_skill_entry(ctx, it)
         backend.write_managed(ctx, self.roster(), self.operators())
         self._stamp_version(__version__)
 
