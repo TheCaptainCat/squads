@@ -11,6 +11,13 @@ Sub-entity state thus becomes single-sourced in frontmatter (visible to the inde
 (``:body`` / ``:discussion``) and the rolled-up ``:summary`` stay in the body. Deterministic,
 marker-safe, idempotent (a file whose blocks carry no ``:meta`` is already at 0.3). Invoked by
 ``sq migrate`` via ``_migrations._registry`` — never run directly (module is private).
+
+Note on ``.squads.toml`` canonicalization: after this runner returns,
+``run_pending_migrations`` calls ``_stamp_schema(SCHEMA_VERSION)``, which re-serializes the
+config via ``SquadsConfig.to_toml()``.  ``to_toml()`` only ever emits ``active_backends`` (never
+``default_backend``), and ``from_toml_dict()`` already translates the legacy ``default_backend``
+key on load — so the stamp path alone normalizes the toml key.  No explicit toml rewrite is
+needed in this runner.
 """
 
 from pathlib import Path
