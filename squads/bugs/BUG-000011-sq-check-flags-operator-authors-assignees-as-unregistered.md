@@ -3,7 +3,7 @@ id: BUG-000011
 sequence_id: 11
 type: bug
 title: sq check flags operator authors/assignees as unregistered
-status: Done
+status: Verified
 author: op-pierre
 assignee: python-dev
 priority: high

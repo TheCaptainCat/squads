@@ -4,7 +4,7 @@ sequence_id: 21
 type: bug
 title: 'Slug arguments not validated: sq mine accepts unknown agents and silently
   defaults to manager'
-status: Done
+status: Verified
 author: op-pierre
 priority: medium
 refs:

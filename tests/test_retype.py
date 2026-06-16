@@ -99,14 +99,15 @@ def test_retype_index_updated(svc):
 # --------------------------------------------------------------------------- status carry vs reset
 
 
-def test_retype_task_to_bug_carries_status(svc):
-    """task↔bug share _WORK workflow → status is carried."""
+def test_retype_task_to_bug_resets_status(svc):
+    """task→bug crosses workflow boundaries (_WORK→_BUG) → status resets to Open."""
     task = svc.create(ItemType.TASK, "t").item
     svc.set_status(task.id, Status.IN_PROGRESS)
 
     res = svc.retype(task.id, ItemType.BUG)
-    assert not res.status_reset
-    assert res.item.status is Status.IN_PROGRESS
+    assert res.status_reset
+    assert res.old_status == Status.IN_PROGRESS.value
+    assert res.item.status is Status.OPEN
 
 
 def test_retype_feature_to_epic_carries_status(svc):
@@ -398,13 +399,25 @@ def test_cli_retype_status_reset_message(runner, tmp_path, monkeypatch, frozen_t
     assert "reset" in r.output.lower()
 
 
-def test_cli_retype_status_carried_message(runner, tmp_path, monkeypatch, frozen_time):
-    """The CLI prints a carried-status message when workflows match."""
+def test_cli_retype_task_to_bug_status_reset_message(runner, tmp_path, monkeypatch, frozen_time):
+    """task→bug crosses workflow boundaries; CLI prints a status-reset notice."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
 
     r = runner.invoke(app, ["task", "2", "retype", "bug"])
+    assert r.exit_code == 0, r.output
+    assert "reset" in r.output.lower()
+
+
+def test_cli_retype_feat_to_epic_status_carried(runner, tmp_path, monkeypatch, frozen_time):
+    """feature↔epic share _WORK workflow; CLI prints a carried-status message."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
+    runner.invoke(app, ["feature", "2", "status", "InProgress"])
+
+    r = runner.invoke(app, ["feature", "2", "retype", "epic"])
     assert r.exit_code == 0, r.output
     assert "carried" in r.output.lower()
 

@@ -27,3 +27,7 @@ class InvalidTransitionError(SquadsError):
 
 class RoleNotFoundError(SquadsError):
     pass
+
+
+class StatusNotInWorkflowError(SquadsError):
+    pass

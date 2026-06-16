@@ -3,7 +3,7 @@ id: BUG-000080
 sequence_id: 80
 type: bug
 title: Inbox surfaces stale mentions from Accepted decisions and Published guides
-status: Done
+status: Verified
 author: manager
 priority: medium
 refs:

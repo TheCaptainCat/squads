@@ -3,7 +3,7 @@ id: BUG-000030
 sequence_id: 30
 type: bug
 title: 'tree: priority and title separated by a bare space'
-status: Done
+status: Verified
 author: op-pierre
 priority: low
 description: In sq tree, '🟠 high Stability contract documentation' runs together —

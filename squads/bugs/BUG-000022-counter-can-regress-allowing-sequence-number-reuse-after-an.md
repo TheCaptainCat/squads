@@ -3,7 +3,7 @@ id: BUG-000022
 sequence_id: 22
 type: bug
 title: Counter can regress, allowing sequence-number reuse after an item file disappears
-status: Done
+status: Verified
 author: product-owner
 priority: high
 refs:

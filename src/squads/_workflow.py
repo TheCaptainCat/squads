@@ -62,6 +62,20 @@ _REVIEW = Workflow(
     },
 )
 
+# Bug: Open -> InProgress -> Fixed -> Verified (+ WontFix, Blocked, Cancelled)
+_BUG = Workflow(
+    initial=S.OPEN,
+    transitions={
+        S.OPEN: (S.IN_PROGRESS, S.WONT_FIX, S.CANCELLED),
+        S.IN_PROGRESS: (S.FIXED, S.BLOCKED, S.WONT_FIX, S.CANCELLED),
+        S.FIXED: (S.VERIFIED, S.IN_PROGRESS),
+        S.VERIFIED: (S.IN_PROGRESS,),
+        S.BLOCKED: (S.IN_PROGRESS, S.WONT_FIX, S.CANCELLED),
+        S.WONT_FIX: (S.OPEN,),
+        S.CANCELLED: (S.OPEN,),
+    },
+)
+
 # Guide: Draft -> Published -> Deprecated
 _GUIDE = Workflow(
     initial=S.DRAFT,
@@ -86,7 +100,7 @@ WORKFLOWS: dict[ItemType, Workflow] = {
     ItemType.EPIC: _WORK,
     ItemType.FEATURE: _WORK,
     ItemType.TASK: _WORK,
-    ItemType.BUG: _WORK,
+    ItemType.BUG: _BUG,
     ItemType.DECISION: _ADR,
     ItemType.REVIEW: _REVIEW,
     ItemType.GUIDE: _GUIDE,

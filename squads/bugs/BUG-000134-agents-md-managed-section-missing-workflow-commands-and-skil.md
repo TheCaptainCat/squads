@@ -4,11 +4,11 @@ sequence_id: 134
 type: bug
 title: AGENTS.md managed section missing workflow commands and skill content (agents_md
   backend)
-status: Fixed
+status: Verified
 parent: FEAT-000016
 author: qa
 created_at: '2026-06-15T13:54:47Z'
-updated_at: '2026-06-15T14:13:21Z'
+updated_at: '2026-06-16T09:42:35Z'
 ---
 <!-- sq:body -->
 ## Symptom

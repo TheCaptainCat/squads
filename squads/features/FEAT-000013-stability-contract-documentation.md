@@ -23,7 +23,7 @@ subentities:
     files) explicitly marked non-public, so that I don't build on the wrong layer
   status: Todo
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-15T14:23:08Z'
+updated_at: '2026-06-16T13:51:18Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -210,4 +210,14 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
   - (1) ABC method names: generate_role_entry / generate_skill_entry (renamed from *_pointer — 'pointer' was a Claude-specific file mechanic; a backend may write a section, not a pointer file). These names are now the frozen 1.0 surface.
   - (2) Path-ownership seam: the shared SquadPaths no longer carries backend-specific paths (claude_dir/claude_md removed). A backend owns its own root files relative to ctx.root; shared modules stay backend-neutral (Invariant 6).
   - (3) Backend registration: built-in backends register via the _BUILTIN_BACKEND_MODULES list; third-party backends via the register() hook. squads ships two backends at 1.0 — claude_code and agents_md — and both pass a shared conformance suite (the ABC-is-honest proof). Backend selection: sq init --backend <name> or default_backend in .squads.toml. The contract should state the supported backends and the selection mechanism.
+- [2026-06-16T13:01:05Z] Catherine Manager:
+  - Deferral obligation from FEAT-000138 (multi-active agent backends, shipped 2026-06-16; ADR-000141, independent gate REV-000144). The .squads.toml backend-selection surface to FREEZE at 1.0:
+  - (1) **active_backends: list[str]** replaces the singular default_backend. A squad runs zero or more backends; sync/scaffold/check fan out over all of them. NOTE: this is part of schema 0.3 (no version bump) — the config reads a legacy singular default_backend transparently as a single-element list, so both shapes are valid 0.3 input.
+  - (2) **Empty active_backends = [] is valid** — a 'sq-only' squad: no agent files generated, sq check finds nothing to verify. Reachable only by deliberate intent (e.g. --backend none); never produced by the legacy read (missing/empty default_backend → ["claude_code"], never silently sq-only).
+  - (3) **Deactivation = ignore, not delete** — dropping a backend from the list leaves its files on disk untouched; sync stops refreshing and check stops verifying them. (Active removal/cleanup is post-1.0 FEAT-000137.)
+  - (4) **sq check rule is present-only** — each active backend's managed files (its managed_paths) must exist; drift/currency detection deferred. Order is not significant; the list is deduped first-occurrence. CLI: --backend is repeatable, with a 'none' sentinel for empty. cc ADR-000141, FEAT-000137.
+- [2026-06-16T13:51:18Z] Catherine Manager:
+  - Deferral obligation from BUG-000142 (bug lifecycle + set-time validation, fixed 2026-06-16; ADR-000143, independent gate REV-000145). Stability-contract surface to FREEZE at 1.0:
+  - (1) **Bugs have their own workflow** (no longer the generic work-item machine): initial Open; Open→{InProgress,WontFix,Cancelled}; InProgress→{Fixed,Blocked,WontFix,Cancelled}; Fixed→{Verified,InProgress}; Verified→{InProgress}; Blocked→{InProgress,WontFix,Cancelled}; WontFix→{Open}; Cancelled→{Open}. Terminal: Verified, WontFix, Cancelled. The status vocabulary Open/Fixed/Verified/WontFix is now live (was orphan). All on schema 0.3, no bump — existing bugs were remapped in place (Done→Verified etc.).
+  - (2) **Status-setting validates against the TYPE'S workflow at set-time**, not just the global enum: an out-of-workflow status (e.g. Done for a bug) is rejected with StatusNotInWorkflowError when set, and --force does NOT bypass the vocabulary check (it relaxes only the transition edge). The contract should state this validation guarantee. cc ADR-000143.
 <!-- sq:discussion:end -->

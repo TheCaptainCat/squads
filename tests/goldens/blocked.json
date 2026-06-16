@@ -6,7 +6,7 @@
       {
         "id": "BUG-000004",
         "title": "Login crashes on empty password",
-        "status": "Draft"
+        "status": "Open"
       }
     ]
   }
