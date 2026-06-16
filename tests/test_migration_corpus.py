@@ -105,3 +105,47 @@ def test_corpus_cli_smoke(
         f"sq check failed after migrating corpus {corpus_name!r} (schema {schema_label!r}):\n"
         + check_result.output
     )
+
+
+def test_v0_2_migration_rewrites_backend_key(tmp_path: Path) -> None:
+    """After migrating a v0.2 corpus, .squads.toml must carry ``active_backends`` (not
+    ``default_backend``).
+
+    This pins the end-to-end contract: a squad migrated from 0.2 ends with the canonical
+    ``active_backends`` shape on disk.  The canonicalization comes from the schema-stamp step
+    in ``run_pending_migrations``: after the 0.2→0.3 runner returns, ``_stamp_schema`` re-
+    serializes the config via ``SquadsConfig.to_toml()``, which only ever emits
+    ``active_backends`` (never ``default_backend``), and ``from_toml_dict()`` already
+    translated the legacy key on load.  There is no explicit toml-rewrite step in the runner
+    itself — the stamp is the mechanism.  Do not add one looking for it.
+    """
+    import tomllib
+
+    src = _CORPUS_DIR / "v0_2"
+    dst = tmp_path / "v0_2"
+    shutil.copytree(src, dst)
+
+    # Precondition: the v0.2 fixture uses the legacy key.
+    with (dst / ".squads.toml").open("rb") as fh:
+        pre = tomllib.load(fh)
+    assert "default_backend" in pre, "v0_2 fixture must carry default_backend (precondition)"
+    assert "active_backends" not in pre, (
+        "v0_2 fixture must not carry active_backends (precondition)"
+    )
+
+    paths = _load_paths(dst)
+    svc = Service(paths)
+    svc.run_pending_migrations()
+
+    with (dst / ".squads.toml").open("rb") as fh:
+        post = tomllib.load(fh)
+
+    assert "active_backends" in post, (
+        "migrated .squads.toml must carry active_backends (canonical 0.3 shape)"
+    )
+    assert "default_backend" not in post, (
+        "migrated .squads.toml must not carry legacy default_backend"
+    )
+    assert post["active_backends"] == ["claude_code"], (
+        "active_backends must preserve the original default_backend value"
+    )

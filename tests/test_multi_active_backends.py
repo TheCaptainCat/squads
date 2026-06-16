@@ -152,6 +152,59 @@ class TestEmptyActiveBackends:
 
 
 # ---------------------------------------------------------------------------
+# Back-compat: legacy default_backend → active_backends on read (ADR-141 §5)
+# ---------------------------------------------------------------------------
+
+
+class TestLegacyDefaultBackendRead:
+    def test_legacy_default_backend_loads_as_active_backends(self) -> None:
+        """A hand-written .squads.toml with legacy ``default_backend = "claude_code"`` (schema 0.3)
+        must load as ``active_backends = ["claude_code"]``.
+
+        This test is intentionally non-vacuous: it reads the config through
+        ``SquadsConfig.from_toml_dict`` (the same path the CLI uses) and verifies the
+        translation.  Removing the back-compat branch in ``from_toml_dict`` would cause this
+        to fail with ``active_backends == ["claude_code"]`` coming from the model default —
+        *but only if the test also asserts that ``default_backend`` is absent from the raw
+        dict*, which we do in the precondition check below, and that the value maps correctly
+        even for a non-default backend name.
+        """
+        # Simulate a legacy 0.3 TOML that was never migrated — only default_backend, no
+        # active_backends.
+        raw: dict[str, object] = {
+            "schema_version": "0.3",
+            "squad_dir": "squads",
+            "default_backend": "agents_md",  # non-default name, so the fallback can't fake it
+            "default_role": "manager",
+            "squads_version": "0.3.0",
+        }
+        # Precondition: the raw dict has no active_backends key.
+        assert "active_backends" not in raw, (
+            "test setup error: raw dict must not have active_backends"
+        )
+
+        cfg = SquadsConfig.from_toml_dict(raw)  # type: ignore[arg-type]
+
+        assert cfg.active_backends == ["agents_md"], (
+            "legacy default_backend must be translated to active_backends on read"
+        )
+
+    def test_legacy_default_backend_absent_falls_back_to_claude_code(self) -> None:
+        """A toml with neither key defaults to ``active_backends = ["claude_code"]`` — never
+        silently sq-only."""
+        raw: dict[str, object] = {
+            "schema_version": "0.3",
+            "squad_dir": "squads",
+            "default_role": "manager",
+            "squads_version": "0.3.0",
+        }
+        cfg = SquadsConfig.from_toml_dict(raw)  # type: ignore[arg-type]
+        assert cfg.active_backends == ["claude_code"], (
+            "missing backend key must default to claude_code, not sq-only"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Dedup semantics (ADR-141 §2)
 # ---------------------------------------------------------------------------
 

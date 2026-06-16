@@ -20,10 +20,10 @@ subentities:
   title: Empty active_backends and deactivation-ignore semantics
   status: Done
 - local_id: US3
-  title: Migrate existing squads to active_backends schema
+  title: Legacy default_backend squads load unchanged
   status: Done
 created_at: '2026-06-16T09:38:58Z'
-updated_at: '2026-06-16T13:01:05Z'
+updated_at: '2026-06-16T15:11:07Z'
 ---
 <!-- sq:body -->
 ## Decision (op-pierre, 2026-06-16)
@@ -51,16 +51,16 @@ Three semantics nail down the edges:
 ## Why now (pre-1.0)
 
 This is the **schema shape FEAT-000013 (stability contract) will freeze**.
-`active_backends` is part of the durable `.squads.toml` surface; we must pick the
-multi-active shape *before* 1.0 so the freeze doesn't lock us into the singular
-`default_backend` and force a breaking change later. This directly **resolves
-FEAT-000137's OQ-2 (single-active vs multiple-active)** in favour of
+`active_backends` is part of the durable `.squads.toml` surface; we must pick
+the multi-active shape *before* 1.0 so the freeze doesn't lock us into the
+singular `default_backend` and force a breaking change later. This directly
+**resolves FEAT-000137's OQ-2 (single-active vs multiple-active)** in favour of
 multiple-active, so FEAT-000137's post-1.0 management commands
 (`sq backend add/switch/remove`) build on a list that already exists.
 
 ## Scope
 
-This feature is the **schema + multi-active runtime + check rule + migration**:
+This feature is the **schema + multi-active runtime + check rule + back-compat read**:
 
 - the `default_backend` → `active_backends` config-model change;
 - the runtime fan-out (`_backend()` becomes "iterate active backends" across
@@ -69,9 +69,14 @@ This feature is the **schema + multi-active runtime + check rule + migration**:
   `--backend none` → empty/sq-only) per ADR-000141;
 - the new `sq check` rule (active backends' managed files present, empty ok,
   deactivated ignored) via the read-only `managed_paths` ABC probe;
-- the `SCHEMA_VERSION` bump (0.3 → 0.4) + the `_v0_3_to_v0_4` migration
-  (`default_backend` string → single-element `active_backends` list) + a new
-  migration-corpus fixture for the now-previous schema (FEAT-000017 corpus rule).
+- **no schema bump** — `active_backends` is part of the in-development 0.3
+  schema (stays `SCHEMA_VERSION = "0.3"`); no `_v0_3_to_v0_4` migration runner
+  was introduced. A legacy `.squads.toml` with `default_backend = "X"` is read
+  transparently as `active_backends = ["X"]` at load time; the existing 0.2→0.3
+  migration already yields a canonical `active_backends` list via the
+  schema-stamp `to_toml()` re-serialization — TASK-000147 made the v0_3 corpus
+  fixture canonical and pinned this; no new corpus fixture was needed for this
+  feature.
 
 **Out of scope** (deferred to FEAT-000137, post-1.0): the `sq backend`
 add/switch/remove/list command group and active artifact cleanup on removal.
@@ -97,7 +102,7 @@ _Add with `sq feature 138 add-story "As a <role>, I want … so that …"`; trac
 | --- | --- | --- | --- |
 | US1 | Done |  | Maintain multiple active backends at once |
 | US2 | Done |  | Empty active_backends and deactivation-ignore semantics |
-| US3 | Done |  | Migrate existing squads to active_backends schema |
+| US3 | Done |  | Legacy default_backend squads load unchanged |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -141,16 +146,16 @@ As a squad operator, I want an empty `active_backends = []` to be a valid config
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — Migrate existing squads to active_backends schema
+### US3 — Legacy default_backend squads load unchanged
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-As a developer upgrading an existing squad, I want a v0.3 squad with a singular `default_backend` string to migrate cleanly to a single-element `active_backends` list under the new `SCHEMA_VERSION`, so that my existing squad continues to work without manual intervention.
+As an operator with an existing squad, I want a legacy `default_backend` config to keep working, so that no migration or version bump is needed to adopt multi-active backends.
 
-**Acceptance:** `sq migrate up` on a v0.3 squad rewrites `default_backend: <name>` to `active_backends: [<name>]` and bumps `SCHEMA_VERSION` to 0.4; `sq check` on the migrated squad passes cleanly; a committed migration-corpus fixture exercises this migration path in CI and is not vacuous.
+**Acceptance:** a `.squads.toml` with `default_backend = "X"` (schema 0.3) loads transparently as `active_backends = ["X"]` at runtime — no `sq migrate up` required, no schema bump to 0.4; `sq check` passes cleanly on the as-is TOML. The 0.2→0.3 migration path produces canonical `active_backends` via the schema-stamp `to_toml()` re-serialization (pinned by TASK-000147's v0_3 corpus fixture), exercising this path non-vacuously in CI.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

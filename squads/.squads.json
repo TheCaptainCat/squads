@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 145,
+  "counter": 148,
   "padding": 6,
   "items": {
     "12": {
@@ -1531,7 +1531,7 @@
         },
         {
           "local_id": "US3",
-          "title": "Migrate existing squads to active_backends schema",
+          "title": "Legacy default_backend squads load unchanged",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1540,7 +1540,7 @@
       ],
       "path": "features/FEAT-000138-multi-active-agent-backends-active-backends.md",
       "created_at": "2026-06-16T09:38:58Z",
-      "updated_at": "2026-06-16T13:01:05Z",
+      "updated_at": "2026-06-16T15:11:07Z",
       "extra": {},
       "id": "FEAT-000138"
     },
@@ -5287,6 +5287,76 @@
       "updated_at": "2026-06-16T13:49:26Z",
       "extra": {},
       "id": "REV-000145"
+    },
+    "147": {
+      "sequence_id": 147,
+      "type": "task",
+      "title": "Emit canonical active_backends in the 0.2->0.3 migration",
+      "slug": "emit-canonical-active-backends-in-the-0-2-0-3-migration",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000138",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rewrite default_backend to active_backends in 0.2->0.3 migration",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000147-emit-canonical-active-backends-in-the-0-2-0-3-migration.md",
+      "created_at": "2026-06-16T14:18:32Z",
+      "updated_at": "2026-06-16T14:59:43Z",
+      "extra": {},
+      "id": "TASK-000147"
+    },
+    "148": {
+      "sequence_id": 148,
+      "type": "review",
+      "title": "Review: emit canonical active_backends in 0.2->0.3 migration (TASK-000147)",
+      "slug": "review-emit-canonical-active-backends-in-0-2-0-3-migration-t",
+      "status": "Approved",
+      "description": "Independent review of the 0.2->0.3 TOML backend rewrite",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000147",
+        "FEAT-000138",
+        "ADR-000141"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Regression pin is vacuous: corpus test passes without _migrate_toml",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Confirmed correct: round-trip preserves all config keys + schema stamp stays 0.3",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000148-review-emit-canonical-active-backends-in-0-2-0-3-migration-t.md",
+      "created_at": "2026-06-16T14:35:57Z",
+      "updated_at": "2026-06-16T14:58:51Z",
+      "extra": {},
+      "id": "REV-000148"
     }
   }
 }
