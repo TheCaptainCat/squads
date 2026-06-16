@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 137,
+  "counter": 145,
   "padding": 6,
   "items": {
     "12": {
@@ -163,6 +163,29 @@
       "extra": {},
       "id": "EPIC-000121"
     },
+    "136": {
+      "sequence_id": 136,
+      "type": "epic",
+      "title": "Agent backends — management and ecosystem",
+      "slug": "agent-backends-management-and-ecosystem",
+      "status": "Draft",
+      "description": "Post-1.0 umbrella: manage, switch, and grow the ecosystem of agent backends on a live squad",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000016",
+        "ADR-000133"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000136-agent-backends-management-and-ecosystem.md",
+      "created_at": "2026-06-15T18:23:19Z",
+      "updated_at": "2026-06-15T18:23:37Z",
+      "extra": {},
+      "id": "EPIC-000136"
+    },
     "13": {
       "sequence_id": 13,
       "type": "feature",
@@ -204,7 +227,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-15T14:23:08Z",
+      "updated_at": "2026-06-16T13:51:18Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -1281,7 +1304,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a squad manager, I want each worker role to have a declared capability profile so that I can verify a spawned agent cannot exceed its remit (e.g. spawn sub-agents, modify items outside its lane).",
+          "title": "Declared capability profile per worker role",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1289,7 +1312,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a reviewer-role agent, I want the system to prevent me from invoking the Agent/Task spawn tool so that I cannot accidentally (or autonomously) expand my own work scope.",
+          "title": "Reviewer role structurally blocked from spawning agents",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1298,7 +1321,7 @@
       ],
       "path": "features/FEAT-000122-per-role-capability-attenuation.md",
       "created_at": "2026-06-15T11:56:09Z",
-      "updated_at": "2026-06-15T12:00:21Z",
+      "updated_at": "2026-06-16T09:52:10Z",
       "extra": {},
       "id": "FEAT-000122"
     },
@@ -1320,7 +1343,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As any agent, I want to see a clear conflict error when I attempt to mutate an item already claimed by another agent so that I do not silently overwrite concurrent work.",
+          "title": "Clear conflict error on concurrent item mutation",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1328,7 +1351,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a squad manager, I want to list all active leases so that I can see which items are locked, by whom, and when the lease expires.",
+          "title": "Manager visibility into all active leases",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1337,7 +1360,7 @@
       ],
       "path": "features/FEAT-000123-exclusive-work-leases-claims.md",
       "created_at": "2026-06-15T11:56:12Z",
-      "updated_at": "2026-06-15T12:00:21Z",
+      "updated_at": "2026-06-16T09:52:28Z",
       "extra": {},
       "id": "FEAT-000123"
     },
@@ -1362,7 +1385,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a squad manager, I want sq check to flag any review whose author lineage matches the target item's author lineage so that I can detect self-review before the review closes.",
+          "title": "sq check flags self-review by same spawn lineage",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1370,7 +1393,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a solo operator running a single-agent workflow, I want to suppress the self-review guard with --force and a rationale comment so that the check does not block legitimate single-agent use.",
+          "title": "Suppressible self-review guard for solo workflows",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1379,7 +1402,7 @@
       ],
       "path": "features/FEAT-000124-enforced-separation-of-duties.md",
       "created_at": "2026-06-15T11:56:15Z",
-      "updated_at": "2026-06-15T12:00:26Z",
+      "updated_at": "2026-06-16T09:52:43Z",
       "extra": {},
       "id": "FEAT-000124"
     },
@@ -1401,7 +1424,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As any agent or operator, I want the reflog to record a structured actor (slug + session ID + parent session ID) so that I can reconstruct the spawn tree and distinguish self-declared authorship from verified identity.",
+          "title": "Structured actor record in the reflog (slug + session + parent)",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1409,7 +1432,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a squad manager, I want sq reflog to render a spawn-tree view so that I can trace which agent lineage performed which operations and verify that concurrent work was structurally independent.",
+          "title": "Spawn-tree view in sq reflog",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1418,9 +1441,108 @@
       ],
       "path": "features/FEAT-000125-real-agent-identity-and-spawn-lineage.md",
       "created_at": "2026-06-15T11:56:19Z",
-      "updated_at": "2026-06-15T12:00:17Z",
+      "updated_at": "2026-06-16T09:53:02Z",
       "extra": {},
       "id": "FEAT-000125"
+    },
+    "137": {
+      "sequence_id": 137,
+      "type": "feature",
+      "title": "Manage backends on an existing squad",
+      "slug": "manage-backends-on-an-existing-squad",
+      "status": "Draft",
+      "description": "sq backend command group to add, switch, list, and remove backends with clean artifact transitions",
+      "parent": "EPIC-000136",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000016",
+        "ADR-000133",
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Switch active backend cleanly",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "List configured backends and active status",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Reject non-conformant backends at registration",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000137-manage-backends-on-an-existing-squad.md",
+      "created_at": "2026-06-15T18:23:41Z",
+      "updated_at": "2026-06-16T09:51:29Z",
+      "extra": {},
+      "id": "FEAT-000137"
+    },
+    "138": {
+      "sequence_id": 138,
+      "type": "feature",
+      "title": "Multi-active agent backends (active_backends)",
+      "slug": "multi-active-agent-backends-active-backends",
+      "status": "Done",
+      "description": "",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000016",
+        "ADR-000133",
+        "FEAT-000137",
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Maintain multiple active backends at once",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "Empty active_backends and deactivation-ignore semantics",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Migrate existing squads to active_backends schema",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000138-multi-active-agent-backends-active-backends.md",
+      "created_at": "2026-06-16T09:38:58Z",
+      "updated_at": "2026-06-16T13:01:05Z",
+      "extra": {},
+      "id": "FEAT-000138"
     },
     "42": {
       "sequence_id": 42,
@@ -2922,12 +3044,215 @@
       "extra": {},
       "id": "TASK-000113"
     },
+    "126": {
+      "sequence_id": 126,
+      "type": "task",
+      "title": "Migration fixture corpus: frozen per-schema squads migrated + checked in CI",
+      "slug": "migration-fixture-corpus-frozen-per-schema-squads-migrated-c",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000126-migration-fixture-corpus-frozen-per-schema-squads-migrated-c.md",
+      "created_at": "2026-06-15T12:10:12Z",
+      "updated_at": "2026-06-15T12:31:51Z",
+      "extra": {},
+      "id": "TASK-000126"
+    },
+    "127": {
+      "sequence_id": 127,
+      "type": "task",
+      "title": "Scale sanity test: ~1000-item squad with asserted time bounds",
+      "slug": "scale-sanity-test-1000-item-squad-with-asserted-time-bounds",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000127-scale-sanity-test-1000-item-squad-with-asserted-time-bounds.md",
+      "created_at": "2026-06-15T12:10:12Z",
+      "updated_at": "2026-06-15T12:31:51Z",
+      "extra": {},
+      "id": "TASK-000127"
+    },
+    "128": {
+      "sequence_id": 128,
+      "type": "task",
+      "title": "Shell completion: enable, verify bash+zsh, document install",
+      "slug": "shell-completion-enable-verify-bash-zsh-document-install",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000128-shell-completion-enable-verify-bash-zsh-document-install.md",
+      "created_at": "2026-06-15T12:10:13Z",
+      "updated_at": "2026-06-15T12:31:51Z",
+      "extra": {},
+      "id": "TASK-000128"
+    },
+    "131": {
+      "sequence_id": 131,
+      "type": "task",
+      "title": "Backend conformance suite + ABC de-Claude-ification",
+      "slug": "backend-conformance-suite-abc-de-claude-ification",
+      "status": "Done",
+      "description": "Shared conformance suite capturing the AgentBackend contract; run against Claude; merge ABC corrections before 1.0",
+      "parent": "FEAT-000016",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Write the shared backend conformance suite (parametrized factory fixture) and make it green against claude_code",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Merge the ABC corrections the suite surfaces (de-Claude-ify the contract) so a non-Claude backend can implement it",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000131-backend-conformance-suite-abc-de-claude-ification.md",
+      "created_at": "2026-06-15T13:02:37Z",
+      "updated_at": "2026-06-15T14:22:45Z",
+      "extra": {},
+      "id": "TASK-000131"
+    },
+    "132": {
+      "sequence_id": 132,
+      "type": "task",
+      "title": "Implement the agents_md backend (AGENTS.md)",
+      "slug": "implement-the-agents-md-backend-agents-md",
+      "status": "Done",
+      "description": "Second AgentBackend writing a single project AGENTS.md; passes the shared conformance suite; sq init/sync target it",
+      "parent": "FEAT-000016",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000131:depends-on",
+        "BUG-000134:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow, skill content); sq init/sync target it; README",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Parametrize the conformance suite over agents_md and make both backends pass it",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000132-implement-the-agents-md-backend-agents-md.md",
+      "created_at": "2026-06-15T13:03:01Z",
+      "updated_at": "2026-06-15T14:22:45Z",
+      "extra": {},
+      "id": "TASK-000132"
+    },
+    "139": {
+      "sequence_id": 139,
+      "type": "task",
+      "title": "Migrate default_backend to active_backends (schema 0.4)",
+      "slug": "migrate-default-backend-to-active-backends-schema-0-4",
+      "status": "Cancelled",
+      "description": "",
+      "parent": "FEAT-000138",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Bump SCHEMA_VERSION 0.3→0.4, add _v0_3_to_v0_4 runner (default_backend→active_backends in .squads.toml) + register it, commit a v0_4 corpus fixture and wire it into _CORPUS_CASES",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000139-migrate-default-backend-to-active-backends-schema-0-4.md",
+      "created_at": "2026-06-16T09:39:30Z",
+      "updated_at": "2026-06-16T12:43:45Z",
+      "extra": {},
+      "id": "TASK-000139"
+    },
+    "140": {
+      "sequence_id": 140,
+      "type": "task",
+      "title": "Multi-active backend runtime and sq check rule",
+      "slug": "multi-active-backend-runtime-and-sq-check-rule",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000138",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Config model active_backends + runtime fan-out over all active backends in scaffold/sync/write_managed + init/adopt populate the list; tests proving multiple backends (CLAUDE.md + AGENTS.md) are generated and checked",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "sq check rule: each active backend's files present & current, empty active_backends=[] verifies nothing (sq-only squad), deactivated backend's lingering files are ignored not flagged; tests for empty + deactivation semantics",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000140-multi-active-backend-runtime-and-sq-check-rule.md",
+      "created_at": "2026-06-16T09:39:30Z",
+      "updated_at": "2026-06-16T13:01:00Z",
+      "extra": {},
+      "id": "TASK-000140"
+    },
     "11": {
       "sequence_id": 11,
       "type": "bug",
       "title": "sq check flags operator authors/assignees as unregistered",
       "slug": "sq-check-flags-operator-authors-assignees-as-unregistered",
-      "status": "Done",
+      "status": "Verified",
       "description": "check() validates author/assignee against roles only, while the write gate accepts operators too",
       "parent": null,
       "author": "op-pierre",
@@ -2949,7 +3274,7 @@
       "type": "bug",
       "title": "Slug arguments not validated: sq mine accepts unknown agents and silently defaults to manager",
       "slug": "slug-arguments-not-validated-sq-mine-accepts-unknown-agents",
-      "status": "Done",
+      "status": "Verified",
       "description": "sq mine/inbox exit 0 for unknown slugs and bare sq mine defaults to manager; slug args should be required and validated against the roster across commands",
       "parent": null,
       "author": "op-pierre",
@@ -2971,7 +3296,7 @@
       "type": "bug",
       "title": "Counter can regress, allowing sequence-number reuse after an item file disappears",
       "slug": "counter-can-regress-allowing-sequence-number-reuse-after-an",
-      "status": "Done",
+      "status": "Verified",
       "description": "Hand-edited or repair-rebuilt indexes accept a regressed counter, so deleted items' numbers get reused; repair sets counter to max-found, ignoring the previous high-water mark",
       "parent": null,
       "author": "product-owner",
@@ -2994,7 +3319,7 @@
       "type": "bug",
       "title": "show prints a redundant 'Body' literal before the body",
       "slug": "show-prints-a-redundant-body-literal-before-the-body",
-      "status": "Done",
+      "status": "Verified",
       "description": "sq <type> <n> show prefixes the body with a bare 'Body' label; the body is self-evident after the metadata panel and usually opens with its own headings",
       "parent": null,
       "author": "op-pierre",
@@ -3016,7 +3341,7 @@
       "type": "bug",
       "title": "tree: priority and title separated by a bare space",
       "slug": "tree-priority-and-title-separated-by-a-bare-space",
-      "status": "Done",
+      "status": "Verified",
       "description": "In sq tree, '🟠 high Stability contract documentation' runs together — put a middle dot between priority and title",
       "parent": null,
       "author": "op-pierre",
@@ -3036,7 +3361,7 @@
       "type": "bug",
       "title": "Comment text containing literal sq marker syntax breaks the item's marker integrity",
       "slug": "comment-text-containing-literal-sq-marker-syntax-breaks-the",
-      "status": "Done",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "manager",
@@ -3056,7 +3381,7 @@
       "type": "bug",
       "title": "Inbox surfaces stale mentions from Accepted decisions and Published guides",
       "slug": "inbox-surfaces-stale-mentions-from-accepted-decisions-and-pu",
-      "status": "Done",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "manager",
@@ -3078,7 +3403,7 @@
       "type": "bug",
       "title": "retype does not log to reflog (FEAT-000024 gap)",
       "slug": "retype-does-not-log-to-reflog-feat-000024-gap",
-      "status": "Done",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -3095,6 +3420,48 @@
       "updated_at": "2026-06-15T10:21:41Z",
       "extra": {},
       "id": "BUG-000120"
+    },
+    "134": {
+      "sequence_id": 134,
+      "type": "bug",
+      "title": "AGENTS.md managed section missing workflow commands and skill content (agents_md backend)",
+      "slug": "agents-md-managed-section-missing-workflow-commands-and-skil",
+      "status": "Verified",
+      "description": "",
+      "parent": "FEAT-000016",
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000134-agents-md-managed-section-missing-workflow-commands-and-skil.md",
+      "created_at": "2026-06-15T13:54:47Z",
+      "updated_at": "2026-06-16T09:42:35Z",
+      "extra": {},
+      "id": "BUG-000134"
+    },
+    "142": {
+      "sequence_id": 142,
+      "type": "bug",
+      "title": "Orphan bug statuses; sq status validates against enum not workflow",
+      "slug": "orphan-bug-statuses-sq-status-validates-against-enum-not-wor",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000013"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000142-orphan-bug-statuses-sq-status-validates-against-enum-not-wor.md",
+      "created_at": "2026-06-16T11:55:12Z",
+      "updated_at": "2026-06-16T13:49:37Z",
+      "extra": {},
+      "id": "BUG-000142"
     },
     "49": {
       "sequence_id": 49,
@@ -3397,6 +3764,103 @@
       "updated_at": "2026-06-15T09:23:44Z",
       "extra": {},
       "id": "ADR-000117"
+    },
+    "129": {
+      "sequence_id": 129,
+      "type": "decision",
+      "title": "Python >= 3.14 floor: PEP 649 lazy annotations vs installable audience",
+      "slug": "python-3-14-floor-pep-649-lazy-annotations-vs-installable-au",
+      "status": "Accepted",
+      "description": "",
+      "parent": "FEAT-000017",
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000013",
+        "FEAT-000017"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000129-python-3-14-floor-pep-649-lazy-annotations-vs-installable-au.md",
+      "created_at": "2026-06-15T12:10:13Z",
+      "updated_at": "2026-06-15T12:30:16Z",
+      "extra": {},
+      "id": "ADR-000129"
+    },
+    "133": {
+      "sequence_id": 133,
+      "type": "decision",
+      "title": "De-Claude-ify the AgentBackend ABC before the 1.0 freeze",
+      "slug": "de-claude-ify-the-agentbackend-abc-before-the-1-0-freeze",
+      "status": "Accepted",
+      "description": "Rename generate_*_pointer→generate_*_entry, move claude_dir/claude_md ownership into the Claude backend, and register built-in backends via an explicit import list. Apply CC-001/002/004 cosmetics alongside.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000016",
+        "TASK-000131"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000133-de-claude-ify-the-agentbackend-abc-before-the-1-0-freeze.md",
+      "created_at": "2026-06-15T13:16:56Z",
+      "updated_at": "2026-06-15T13:18:11Z",
+      "extra": {},
+      "id": "ADR-000133"
+    },
+    "141": {
+      "sequence_id": 141,
+      "type": "decision",
+      "title": "Multi-active agent backends: active_backends list, fan-out, migration, and the check-present rule",
+      "slug": "multi-active-agent-backends-active-backends-list-fan-out-mig",
+      "status": "Accepted",
+      "description": "Replace singular default_backend with active_backends: list[str]; fan-out over all active backends; SCHEMA 0.3->0.4 migration; present-only sq check via a new read-only managed_paths ABC probe",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000138",
+        "TASK-000139",
+        "TASK-000140",
+        "FEAT-000016",
+        "ADR-000133",
+        "FEAT-000137"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000141-multi-active-agent-backends-active-backends-list-fan-out-mig.md",
+      "created_at": "2026-06-16T09:44:28Z",
+      "updated_at": "2026-06-16T12:43:45Z",
+      "extra": {},
+      "id": "ADR-000141"
+    },
+    "143": {
+      "sequence_id": 143,
+      "type": "decision",
+      "title": "Bug lifecycle workflow and set-time status validation against the type workflow",
+      "slug": "bug-lifecycle-workflow-and-set-time-status-validation-agains",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "BUG-000142:addresses",
+        "FEAT-000013",
+        "FEAT-000138"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000143-bug-lifecycle-workflow-and-set-time-status-validation-agains.md",
+      "created_at": "2026-06-16T11:58:36Z",
+      "updated_at": "2026-06-16T11:59:52Z",
+      "extra": {},
+      "id": "ADR-000143"
     },
     "48": {
       "sequence_id": 48,
@@ -4229,6 +4693,131 @@
       "extra": {},
       "id": "REV-000119"
     },
+    "130": {
+      "sequence_id": 130,
+      "type": "review",
+      "title": "FEAT-17 1.0 hardening: independent gate (corpus, scale, completion, Py3.14 ADR)",
+      "slug": "feat-17-1-0-hardening-independent-gate-corpus-scale-completi",
+      "status": "Approved",
+      "description": "Independent review of the four FEAT-17 deliverables; gate run clean.",
+      "parent": "FEAT-000017",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000126",
+        "TASK-000127",
+        "TASK-000128",
+        "ADR-000129"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Corpus does not exercise the 0.1->0.2 review findings-skeleton path",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "README completion claim about 'uv run sq' is slightly overstated",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000130-feat-17-1-0-hardening-independent-gate-corpus-scale-completi.md",
+      "created_at": "2026-06-15T12:29:05Z",
+      "updated_at": "2026-06-15T12:29:56Z",
+      "extra": {},
+      "id": "REV-000130"
+    },
+    "135": {
+      "sequence_id": 135,
+      "type": "review",
+      "title": "Review: FEAT-16 second backend (agents_md) + ABC de-Claude-ification",
+      "slug": "review-feat-16-second-backend-agents-md-abc-de-claude-ificat",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000133:addresses",
+        "TASK-000131",
+        "TASK-000132",
+        "FEAT-000016"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "AGENTS.md carries no workflow/skill content; role definitions are title-only stubs",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "CLI init summary hardcodes Claude wording '(pointers + squads skill + CLAUDE.md)' for all backends",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "agents_md backend docstring claims write_managed compiles staging entries into AGENTS.md; it does not",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000135-review-feat-16-second-backend-agents-md-abc-de-claude-ificat.md",
+      "created_at": "2026-06-15T13:56:34Z",
+      "updated_at": "2026-06-15T14:21:57Z",
+      "extra": {},
+      "id": "REV-000135"
+    },
+    "144": {
+      "sequence_id": 144,
+      "type": "review",
+      "title": "Multi-active agent backends (FEAT-138) runtime + check rule",
+      "slug": "multi-active-agent-backends-feat-138-runtime-check-rule",
+      "status": "Approved",
+      "description": "",
+      "parent": "TASK-000140",
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000140",
+        "FEAT-000138",
+        "ADR-000141"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Stale schema_version=\"0.4\" in test_agent_naming.py config-parsing tests",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000144-multi-active-agent-backends-feat-138-runtime-check-rule.md",
+      "created_at": "2026-06-16T12:58:05Z",
+      "updated_at": "2026-06-16T12:59:17Z",
+      "extra": {},
+      "id": "REV-000144"
+    },
     "79": {
       "sequence_id": 79,
       "type": "guide",
@@ -4667,372 +5256,37 @@
       },
       "id": "OP-000010"
     },
-    "126": {
-      "sequence_id": 126,
-      "type": "task",
-      "title": "Migration fixture corpus: frozen per-schema squads migrated + checked in CI",
-      "slug": "migration-fixture-corpus-frozen-per-schema-squads-migrated-c",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000017",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "tasks/TASK-000126-migration-fixture-corpus-frozen-per-schema-squads-migrated-c.md",
-      "created_at": "2026-06-15T12:10:12Z",
-      "updated_at": "2026-06-15T12:31:51Z",
-      "extra": {},
-      "id": "TASK-000126"
-    },
-    "127": {
-      "sequence_id": 127,
-      "type": "task",
-      "title": "Scale sanity test: ~1000-item squad with asserted time bounds",
-      "slug": "scale-sanity-test-1000-item-squad-with-asserted-time-bounds",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000017",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "tasks/TASK-000127-scale-sanity-test-1000-item-squad-with-asserted-time-bounds.md",
-      "created_at": "2026-06-15T12:10:12Z",
-      "updated_at": "2026-06-15T12:31:51Z",
-      "extra": {},
-      "id": "TASK-000127"
-    },
-    "128": {
-      "sequence_id": 128,
-      "type": "task",
-      "title": "Shell completion: enable, verify bash+zsh, document install",
-      "slug": "shell-completion-enable-verify-bash-zsh-document-install",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000017",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "tasks/TASK-000128-shell-completion-enable-verify-bash-zsh-document-install.md",
-      "created_at": "2026-06-15T12:10:13Z",
-      "updated_at": "2026-06-15T12:31:51Z",
-      "extra": {},
-      "id": "TASK-000128"
-    },
-    "129": {
-      "sequence_id": 129,
-      "type": "decision",
-      "title": "Python >= 3.14 floor: PEP 649 lazy annotations vs installable audience",
-      "slug": "python-3-14-floor-pep-649-lazy-annotations-vs-installable-au",
-      "status": "Accepted",
-      "description": "",
-      "parent": "FEAT-000017",
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000013",
-        "FEAT-000017"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000129-python-3-14-floor-pep-649-lazy-annotations-vs-installable-au.md",
-      "created_at": "2026-06-15T12:10:13Z",
-      "updated_at": "2026-06-15T12:30:16Z",
-      "extra": {},
-      "id": "ADR-000129"
-    },
-    "130": {
-      "sequence_id": 130,
+    "145": {
+      "sequence_id": 145,
       "type": "review",
-      "title": "FEAT-17 1.0 hardening: independent gate (corpus, scale, completion, Py3.14 ADR)",
-      "slug": "feat-17-1-0-hardening-independent-gate-corpus-scale-completi",
+      "title": "Review BUG-142 fix: bug lifecycle + set-time status vocabulary validation",
+      "slug": "review-bug-142-fix-bug-lifecycle-set-time-status-vocabulary",
       "status": "Approved",
-      "description": "Independent review of the four FEAT-17 deliverables; gate run clean.",
-      "parent": "FEAT-000017",
+      "description": "",
+      "parent": null,
       "author": "reviewer",
       "assignee": null,
       "priority": null,
       "labels": [],
       "refs": [
-        "TASK-000126",
-        "TASK-000127",
-        "TASK-000128",
-        "ADR-000129"
+        "BUG-000142",
+        "ADR-000143:addresses"
       ],
       "subentities": [
         {
           "local_id": "F1",
-          "title": "Corpus does not exercise the 0.1->0.2 review findings-skeleton path",
-          "status": "Open",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "README completion claim about 'uv run sq' is slightly overstated",
-          "status": "Open",
+          "title": "All ADR-143 acceptance points verified; no defects",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null
         }
       ],
-      "path": "reviews/REV-000130-feat-17-1-0-hardening-independent-gate-corpus-scale-completi.md",
-      "created_at": "2026-06-15T12:29:05Z",
-      "updated_at": "2026-06-15T12:29:56Z",
+      "path": "reviews/REV-000145-review-bug-142-fix-bug-lifecycle-set-time-status-vocabulary.md",
+      "created_at": "2026-06-16T13:48:41Z",
+      "updated_at": "2026-06-16T13:49:26Z",
       "extra": {},
-      "id": "REV-000130"
-    },
-    "131": {
-      "sequence_id": 131,
-      "type": "task",
-      "title": "Backend conformance suite + ABC de-Claude-ification",
-      "slug": "backend-conformance-suite-abc-de-claude-ification",
-      "status": "Done",
-      "description": "Shared conformance suite capturing the AgentBackend contract; run against Claude; merge ABC corrections before 1.0",
-      "parent": "FEAT-000016",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Write the shared backend conformance suite (parametrized factory fixture) and make it green against claude_code",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Merge the ABC corrections the suite surfaces (de-Claude-ify the contract) so a non-Claude backend can implement it",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000131-backend-conformance-suite-abc-de-claude-ification.md",
-      "created_at": "2026-06-15T13:02:37Z",
-      "updated_at": "2026-06-15T14:22:45Z",
-      "extra": {},
-      "id": "TASK-000131"
-    },
-    "132": {
-      "sequence_id": 132,
-      "type": "task",
-      "title": "Implement the agents_md backend (AGENTS.md)",
-      "slug": "implement-the-agents-md-backend-agents-md",
-      "status": "Done",
-      "description": "Second AgentBackend writing a single project AGENTS.md; passes the shared conformance suite; sq init/sync target it",
-      "parent": "FEAT-000016",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [
-        "TASK-000131:depends-on",
-        "BUG-000134:fixes"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow, skill content); sq init/sync target it; README",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Parametrize the conformance suite over agents_md and make both backends pass it",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        }
-      ],
-      "path": "tasks/TASK-000132-implement-the-agents-md-backend-agents-md.md",
-      "created_at": "2026-06-15T13:03:01Z",
-      "updated_at": "2026-06-15T14:22:45Z",
-      "extra": {},
-      "id": "TASK-000132"
-    },
-    "133": {
-      "sequence_id": 133,
-      "type": "decision",
-      "title": "De-Claude-ify the AgentBackend ABC before the 1.0 freeze",
-      "slug": "de-claude-ify-the-agentbackend-abc-before-the-1-0-freeze",
-      "status": "Accepted",
-      "description": "Rename generate_*_pointer→generate_*_entry, move claude_dir/claude_md ownership into the Claude backend, and register built-in backends via an explicit import list. Apply CC-001/002/004 cosmetics alongside.",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [
-        "FEAT-000016",
-        "TASK-000131"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000133-de-claude-ify-the-agentbackend-abc-before-the-1-0-freeze.md",
-      "created_at": "2026-06-15T13:16:56Z",
-      "updated_at": "2026-06-15T13:18:11Z",
-      "extra": {},
-      "id": "ADR-000133"
-    },
-    "134": {
-      "sequence_id": 134,
-      "type": "bug",
-      "title": "AGENTS.md managed section missing workflow commands and skill content (agents_md backend)",
-      "slug": "agents-md-managed-section-missing-workflow-commands-and-skil",
-      "status": "Fixed",
-      "description": "",
-      "parent": "FEAT-000016",
-      "author": "qa",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "bugs/BUG-000134-agents-md-managed-section-missing-workflow-commands-and-skil.md",
-      "created_at": "2026-06-15T13:54:47Z",
-      "updated_at": "2026-06-15T14:13:21Z",
-      "extra": {},
-      "id": "BUG-000134"
-    },
-    "135": {
-      "sequence_id": 135,
-      "type": "review",
-      "title": "Review: FEAT-16 second backend (agents_md) + ABC de-Claude-ification",
-      "slug": "review-feat-16-second-backend-agents-md-abc-de-claude-ificat",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-000133:addresses",
-        "TASK-000131",
-        "TASK-000132",
-        "FEAT-000016"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "AGENTS.md carries no workflow/skill content; role definitions are title-only stubs",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "high",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "CLI init summary hardcodes Claude wording '(pointers + squads skill + CLAUDE.md)' for all backends",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F3",
-          "title": "agents_md backend docstring claims write_managed compiles staging entries into AGENTS.md; it does not",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000135-review-feat-16-second-backend-agents-md-abc-de-claude-ificat.md",
-      "created_at": "2026-06-15T13:56:34Z",
-      "updated_at": "2026-06-15T14:21:57Z",
-      "extra": {},
-      "id": "REV-000135"
-    },
-    "136": {
-      "sequence_id": 136,
-      "type": "epic",
-      "title": "Agent backends — management and ecosystem",
-      "slug": "agent-backends-management-and-ecosystem",
-      "status": "Draft",
-      "description": "Post-1.0 umbrella: manage, switch, and grow the ecosystem of agent backends on a live squad",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000016",
-        "ADR-000133"
-      ],
-      "subentities": [],
-      "path": "epics/EPIC-000136-agent-backends-management-and-ecosystem.md",
-      "created_at": "2026-06-15T18:23:19Z",
-      "updated_at": "2026-06-15T18:23:37Z",
-      "extra": {},
-      "id": "EPIC-000136"
-    },
-    "137": {
-      "sequence_id": 137,
-      "type": "feature",
-      "title": "Manage backends on an existing squad",
-      "slug": "manage-backends-on-an-existing-squad",
-      "status": "Draft",
-      "description": "sq backend command group to add, switch, list, and remove backends with clean artifact transitions",
-      "parent": "EPIC-000136",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000016",
-        "ADR-000133",
-        "FEAT-000013"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As a developer switching agent tools, I want to run `sq backend switch <name>` on an existing squad so that my new tool's context file is generated and the old one is removed without leaving orphaned files on disk",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As a team using mixed agent tooling, I want to list the backends configured on my squad so that I can see which is active and which are available",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As a backend author, I want the registry to reject any backend that fails the conformance suite so that managed backends cannot be added in a broken state",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000137-manage-backends-on-an-existing-squad.md",
-      "created_at": "2026-06-15T18:23:41Z",
-      "updated_at": "2026-06-15T18:24:32Z",
-      "extra": {},
-      "id": "FEAT-000137"
+      "id": "REV-000145"
     }
   }
 }

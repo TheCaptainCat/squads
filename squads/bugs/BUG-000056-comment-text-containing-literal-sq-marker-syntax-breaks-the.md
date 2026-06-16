@@ -3,7 +3,7 @@ id: BUG-000056
 sequence_id: 56
 type: bug
 title: Comment text containing literal sq marker syntax breaks the item's marker integrity
-status: Done
+status: Verified
 author: manager
 priority: high
 created_at: '2026-06-12T08:06:24Z'

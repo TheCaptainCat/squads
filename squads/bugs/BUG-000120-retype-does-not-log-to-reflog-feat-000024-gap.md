@@ -3,7 +3,7 @@ id: BUG-000120
 sequence_id: 120
 type: bug
 title: retype does not log to reflog (FEAT-000024 gap)
-status: Done
+status: Verified
 author: qa
 refs:
 - FEAT-000024

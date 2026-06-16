@@ -2,7 +2,7 @@
 
 from squads import _clock as clock
 from squads import _sections as sections
-from squads._errors import InvalidTransitionError, SquadsError
+from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _markers as markers
@@ -13,7 +13,7 @@ from squads._roles._catalog import RoleDef
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import RemoveResult
 from squads._util import slugify
-from squads._workflow import can_transition
+from squads._workflow import can_transition, workflow_for
 
 _AGENT_TYPES = {ItemType.ROLE, ItemType.SKILL}
 
@@ -111,6 +111,12 @@ class ItemsMixin(ServiceCore):
             item.extra.pop(key, None)
 
     def _apply_status(self, item: Item, status: Status, *, force: bool) -> None:
+        states = workflow_for(item.type).states
+        if status not in states:
+            allowed = ", ".join(sorted(s.value for s in states))
+            raise StatusNotInWorkflowError(
+                f"{status.value!r} is not a valid status for {item.type.value} (allowed: {allowed})"
+            )
         if (
             not force
             and item.status != status

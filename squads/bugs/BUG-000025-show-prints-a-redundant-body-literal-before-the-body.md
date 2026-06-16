@@ -3,7 +3,7 @@ id: BUG-000025
 sequence_id: 25
 type: bug
 title: show prints a redundant 'Body' literal before the body
-status: Done
+status: Verified
 author: op-pierre
 priority: low
 refs:

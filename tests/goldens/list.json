@@ -105,7 +105,7 @@
     "type": "bug",
     "title": "Login crashes on empty password",
     "slug": "login-crashes-on-empty-password",
-    "status": "Draft",
+    "status": "Open",
     "description": "",
     "parent": null,
     "author": "manager",
