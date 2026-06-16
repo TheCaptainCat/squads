@@ -265,7 +265,7 @@ def test_dev_add_auto_name_and_slug(svc):
 
 def test_dev_pointer_generated(svc):
     svc.add_dev("rust")
-    pointer = svc.paths.claude_dir / "agents" / "rust-dev.md"
+    pointer = svc.paths.root / ".claude" / "agents" / "rust-dev.md"
     assert pointer.exists()
     assert "Rust" in pointer.read_text(encoding="utf-8")
 
@@ -279,7 +279,7 @@ def test_skill_add_generates_pointer(svc):
     )
     assert skill.type is ItemType.SKILL
     assert skill.status is Status.ACTIVE
-    pointer = svc.paths.claude_dir / "skills" / "pdf-extract" / "SKILL.md"
+    pointer = svc.paths.root / ".claude" / "skills" / "pdf-extract" / "SKILL.md"
     assert pointer.exists()
     assert skill.path in pointer.read_text(encoding="utf-8")
 
@@ -287,7 +287,7 @@ def test_skill_add_generates_pointer(svc):
 def test_skill_rm_purge_removes_pointer_and_file(svc):
     skill = svc.add_skill("Temp skill")
     path = svc.paths.abspath(skill.path)
-    pointer_dir = svc.paths.claude_dir / "skills" / "temp-skill"
+    pointer_dir = svc.paths.root / ".claude" / "skills" / "temp-skill"
     assert path.exists() and pointer_dir.exists()
     svc.remove_item(skill.id, purge=True)
     assert skill.sequence_id not in svc.store.load().items
@@ -347,7 +347,7 @@ def test_update_role_extra_regenerates_pointer(svc, project):
     # minimal roster registers `manager` as ROLE-000001 with a generated .claude pointer
     svc.update("ROLE-000001", set_extra={"color": "magenta"})
     assert svc.get("ROLE-000001").extra["color"] == "magenta"
-    pointer = (project.claude_dir / "agents" / "manager.md").read_text(encoding="utf-8")
+    pointer = (project.root / ".claude" / "agents" / "manager.md").read_text(encoding="utf-8")
     assert "color: magenta" in pointer  # the pointer was regenerated from the edited config
 
 

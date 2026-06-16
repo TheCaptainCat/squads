@@ -21,6 +21,8 @@ from squads._roles._catalog import RoleDef
 _AGENTS = "agents"
 _SKILLS = "skills"
 _SKILL_FILE = "SKILL.md"
+_CLAUDE_DIR = ".claude"
+_CLAUDE_MD = "CLAUDE.md"
 
 
 class ClaudeCodeBackend(AgentBackend):
@@ -28,7 +30,7 @@ class ClaudeCodeBackend(AgentBackend):
 
     # ------------------------------------------------------------------ scaffold
     def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]:
-        cdir = ctx.paths.claude_dir
+        cdir = ctx.root / _CLAUDE_DIR
         (cdir / _AGENTS).mkdir(parents=True, exist_ok=True)
         (cdir / _SKILLS / "squads").mkdir(parents=True, exist_ok=True)
         settings = cdir / "settings.json"
@@ -95,8 +97,8 @@ class ClaudeCodeBackend(AgentBackend):
             default_role_full_name=default.full_name if default else "the manager",
             default_role_slug=default.slug if default else "manager",
         )
-        claude_md.inject(ctx.paths.claude_md, section)
-        artifacts.append(Artifact(ctx.rel(ctx.paths.claude_md), "claude_md", self.name))
+        claude_md.inject(ctx.root / _CLAUDE_MD, section)
+        artifacts.append(Artifact(ctx.rel(ctx.root / _CLAUDE_MD), "claude_md", self.name))
         artifacts.extend(self._write_item_skills(ctx, roster))
         return artifacts
 
@@ -107,7 +109,7 @@ class ClaudeCodeBackend(AgentBackend):
         body_path = ctx.squad_dir / _AGENTS / _SKILLS / f"{name}.md"
         body_path.parent.mkdir(parents=True, exist_ok=True)
         body_path.write_text(body, encoding="utf-8")
-        pointer = ctx.paths.claude_dir / _SKILLS / name / _SKILL_FILE
+        pointer = ctx.root / _CLAUDE_DIR / _SKILLS / name / _SKILL_FILE
         pointer.parent.mkdir(parents=True, exist_ok=True)
         pointer.write_text(
             render(
@@ -177,9 +179,9 @@ class ClaudeCodeBackend(AgentBackend):
             )
         return out
 
-    # ------------------------------------------------------------------ pointers
-    def generate_role_pointer(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
-        pointer = ctx.paths.claude_dir / _AGENTS / f"{role.slug}.md"
+    # ------------------------------------------------------------------ entries
+    def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
+        pointer = ctx.root / _CLAUDE_DIR / _AGENTS / f"{role.slug}.md"
         pointer.parent.mkdir(parents=True, exist_ok=True)
         pointer.write_text(
             render(
@@ -197,9 +199,9 @@ class ClaudeCodeBackend(AgentBackend):
         )
         return Artifact(ctx.rel(pointer), "agent", self.name)
 
-    def generate_skill_pointer(self, ctx: BackendContext, item: Item) -> Artifact:
+    def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
         slug = item.extra.get(X.SLUG, item.slug)
-        pointer = ctx.paths.claude_dir / _SKILLS / slug / _SKILL_FILE
+        pointer = ctx.root / _CLAUDE_DIR / _SKILLS / slug / _SKILL_FILE
         pointer.parent.mkdir(parents=True, exist_ok=True)
         description = item.extra.get(X.DESCRIPTION) or item.description or item.title
         pointer.write_text(
@@ -215,9 +217,10 @@ class ClaudeCodeBackend(AgentBackend):
 
     def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         slug = item.extra.get(X.SLUG, item.slug)
+        cdir = ctx.root / _CLAUDE_DIR
         if item.type is ItemType.SKILL:
-            skill_dir = ctx.paths.claude_dir / _SKILLS / slug
+            skill_dir = cdir / _SKILLS / slug
             if skill_dir.is_dir():
                 shutil.rmtree(skill_dir)
         else:
-            (ctx.paths.claude_dir / _AGENTS / f"{slug}.md").unlink(missing_ok=True)
+            (cdir / _AGENTS / f"{slug}.md").unlink(missing_ok=True)

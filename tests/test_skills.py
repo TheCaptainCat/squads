@@ -36,7 +36,7 @@ def _item_skill_body(project, item_type):
 
 
 def test_item_skills_generated_with_active_role_sections(project):
-    skills_dir = project.claude_dir / "skills"
+    skills_dir = project.root / ".claude" / "skills"
     for it in interactions.managed_item_types():
         # thin pointer in .claude → real body under the squad folder
         pointer = (skills_dir / interactions.item_skill_name(it) / "SKILL.md").read_text(
@@ -122,7 +122,9 @@ def test_item_skills_teach_full_comments_briefing(svc, project):
 
 def test_greeting_skill_is_generated_and_preloaded(project):
     # the always-on greeting skill: real body under the squad folder, thin pointer in .claude
-    pointer = (project.claude_dir / "skills" / "greeting" / "SKILL.md").read_text(encoding="utf-8")
+    pointer = (project.root / ".claude" / "skills" / "greeting" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
     assert "@squads/agents/skills/greeting.md" in pointer
     body = (project.squad_dir / "agents" / "skills" / "greeting.md").read_text(encoding="utf-8")
     # operator-facing only, and the three greeting beats (tone, who/help, project read)
@@ -131,7 +133,7 @@ def test_greeting_skill_is_generated_and_preloaded(project):
     assert "Match their tone" in body
     # every role pointer preloads it
     fm, _ = split_frontmatter(
-        (project.claude_dir / "agents" / "manager.md").read_text(encoding="utf-8")
+        (project.root / ".claude" / "agents" / "manager.md").read_text(encoding="utf-8")
     )
     assert "greeting" in fm["skills"]
 
@@ -140,12 +142,12 @@ def test_pointer_lists_skills_frontmatter(svc, project):
     svc.activate_role("product-owner")
     svc.refresh_managed()
     fm, _ = split_frontmatter(
-        (project.claude_dir / "agents" / "product-owner.md").read_text(encoding="utf-8")
+        (project.root / ".claude" / "agents" / "product-owner.md").read_text(encoding="utf-8")
     )
     assert fm["skills"] == ["squads", "greeting", "sq-epic", "sq-feature"]
     # manager (default, no managed item type) lists just the always-on skills
     mfm, _ = split_frontmatter(
-        (project.claude_dir / "agents" / "manager.md").read_text(encoding="utf-8")
+        (project.root / ".claude" / "agents" / "manager.md").read_text(encoding="utf-8")
     )
     assert mfm["skills"] == ["squads", "greeting"]
 

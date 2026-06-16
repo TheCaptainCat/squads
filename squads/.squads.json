@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 130,
+  "counter": 137,
   "padding": 6,
   "items": {
     "12": {
@@ -204,7 +204,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-15T12:31:53Z",
+      "updated_at": "2026-06-15T14:23:08Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -311,7 +311,7 @@
       "type": "feature",
       "title": "Second backend: generic AGENTS.md",
       "slug": "second-backend-generic-agents-md",
-      "status": "Ready",
+      "status": "Done",
       "description": "Prove the AgentBackend ABC with a cross-tool AGENTS.md implementation before the ABC freezes",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -323,7 +323,7 @@
         {
           "local_id": "US1",
           "title": "As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so that we can run squads with our own tooling",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -331,7 +331,7 @@
         {
           "local_id": "US2",
           "title": "As a future backend implementer, I want a backend conformance test suite, so that I know exactly what the AgentBackend contract requires of me",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -339,7 +339,7 @@
       ],
       "path": "features/FEAT-000016-second-backend-generic-agents-md.md",
       "created_at": "2026-06-10T12:41:16Z",
-      "updated_at": "2026-06-11T07:54:53Z",
+      "updated_at": "2026-06-15T14:22:47Z",
       "extra": {},
       "id": "FEAT-000016"
     },
@@ -4791,6 +4791,248 @@
       "updated_at": "2026-06-15T12:29:56Z",
       "extra": {},
       "id": "REV-000130"
+    },
+    "131": {
+      "sequence_id": 131,
+      "type": "task",
+      "title": "Backend conformance suite + ABC de-Claude-ification",
+      "slug": "backend-conformance-suite-abc-de-claude-ification",
+      "status": "Done",
+      "description": "Shared conformance suite capturing the AgentBackend contract; run against Claude; merge ABC corrections before 1.0",
+      "parent": "FEAT-000016",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Write the shared backend conformance suite (parametrized factory fixture) and make it green against claude_code",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Merge the ABC corrections the suite surfaces (de-Claude-ify the contract) so a non-Claude backend can implement it",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000131-backend-conformance-suite-abc-de-claude-ification.md",
+      "created_at": "2026-06-15T13:02:37Z",
+      "updated_at": "2026-06-15T14:22:45Z",
+      "extra": {},
+      "id": "TASK-000131"
+    },
+    "132": {
+      "sequence_id": 132,
+      "type": "task",
+      "title": "Implement the agents_md backend (AGENTS.md)",
+      "slug": "implement-the-agents-md-backend-agents-md",
+      "status": "Done",
+      "description": "Second AgentBackend writing a single project AGENTS.md; passes the shared conformance suite; sq init/sync target it",
+      "parent": "FEAT-000016",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-000131:depends-on",
+        "BUG-000134:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow, skill content); sq init/sync target it; README",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Parametrize the conformance suite over agents_md and make both backends pass it",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000132-implement-the-agents-md-backend-agents-md.md",
+      "created_at": "2026-06-15T13:03:01Z",
+      "updated_at": "2026-06-15T14:22:45Z",
+      "extra": {},
+      "id": "TASK-000132"
+    },
+    "133": {
+      "sequence_id": 133,
+      "type": "decision",
+      "title": "De-Claude-ify the AgentBackend ABC before the 1.0 freeze",
+      "slug": "de-claude-ify-the-agentbackend-abc-before-the-1-0-freeze",
+      "status": "Accepted",
+      "description": "Rename generate_*_pointer→generate_*_entry, move claude_dir/claude_md ownership into the Claude backend, and register built-in backends via an explicit import list. Apply CC-001/002/004 cosmetics alongside.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000016",
+        "TASK-000131"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000133-de-claude-ify-the-agentbackend-abc-before-the-1-0-freeze.md",
+      "created_at": "2026-06-15T13:16:56Z",
+      "updated_at": "2026-06-15T13:18:11Z",
+      "extra": {},
+      "id": "ADR-000133"
+    },
+    "134": {
+      "sequence_id": 134,
+      "type": "bug",
+      "title": "AGENTS.md managed section missing workflow commands and skill content (agents_md backend)",
+      "slug": "agents-md-managed-section-missing-workflow-commands-and-skil",
+      "status": "Fixed",
+      "description": "",
+      "parent": "FEAT-000016",
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000134-agents-md-managed-section-missing-workflow-commands-and-skil.md",
+      "created_at": "2026-06-15T13:54:47Z",
+      "updated_at": "2026-06-15T14:13:21Z",
+      "extra": {},
+      "id": "BUG-000134"
+    },
+    "135": {
+      "sequence_id": 135,
+      "type": "review",
+      "title": "Review: FEAT-16 second backend (agents_md) + ABC de-Claude-ification",
+      "slug": "review-feat-16-second-backend-agents-md-abc-de-claude-ificat",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000133:addresses",
+        "TASK-000131",
+        "TASK-000132",
+        "FEAT-000016"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "AGENTS.md carries no workflow/skill content; role definitions are title-only stubs",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "CLI init summary hardcodes Claude wording '(pointers + squads skill + CLAUDE.md)' for all backends",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "agents_md backend docstring claims write_managed compiles staging entries into AGENTS.md; it does not",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000135-review-feat-16-second-backend-agents-md-abc-de-claude-ificat.md",
+      "created_at": "2026-06-15T13:56:34Z",
+      "updated_at": "2026-06-15T14:21:57Z",
+      "extra": {},
+      "id": "REV-000135"
+    },
+    "136": {
+      "sequence_id": 136,
+      "type": "epic",
+      "title": "Agent backends — management and ecosystem",
+      "slug": "agent-backends-management-and-ecosystem",
+      "status": "Draft",
+      "description": "Post-1.0 umbrella: manage, switch, and grow the ecosystem of agent backends on a live squad",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000016",
+        "ADR-000133"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000136-agent-backends-management-and-ecosystem.md",
+      "created_at": "2026-06-15T18:23:19Z",
+      "updated_at": "2026-06-15T18:23:37Z",
+      "extra": {},
+      "id": "EPIC-000136"
+    },
+    "137": {
+      "sequence_id": 137,
+      "type": "feature",
+      "title": "Manage backends on an existing squad",
+      "slug": "manage-backends-on-an-existing-squad",
+      "status": "Draft",
+      "description": "sq backend command group to add, switch, list, and remove backends with clean artifact transitions",
+      "parent": "EPIC-000136",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000016",
+        "ADR-000133",
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a developer switching agent tools, I want to run `sq backend switch <name>` on an existing squad so that my new tool's context file is generated and the old one is removed without leaving orphaned files on disk",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a team using mixed agent tooling, I want to list the backends configured on my squad so that I can see which is active and which are available",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a backend author, I want the registry to reject any backend that fails the conformance suite so that managed backends cannot be added in a broken state",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000137-manage-backends-on-an-existing-squad.md",
+      "created_at": "2026-06-15T18:23:41Z",
+      "updated_at": "2026-06-15T18:24:32Z",
+      "extra": {},
+      "id": "FEAT-000137"
     }
   }
 }

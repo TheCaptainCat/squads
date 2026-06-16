@@ -6,7 +6,7 @@ from squads._sections import split_frontmatter
 
 
 def _read_pointer(project, slug):
-    return (project.claude_dir / "agents" / f"{slug}.md").read_text(encoding="utf-8")
+    return (project.root / ".claude" / "agents" / f"{slug}.md").read_text(encoding="utf-8")
 
 
 def test_init_creates_claude_pointers_and_managed_files(project):
@@ -20,7 +20,7 @@ def test_init_creates_claude_pointers_and_managed_files(project):
     assert "Catherine Manager" in body
 
     # the squads skill is a thin pointer in .claude → real body under the squad folder
-    skill_pointer = (project.claude_dir / "skills" / "squads" / "SKILL.md").read_text(
+    skill_pointer = (project.root / ".claude" / "skills" / "squads" / "SKILL.md").read_text(
         encoding="utf-8"
     )
     assert "@squads/agents/skills/squads.md" in skill_pointer
@@ -28,7 +28,7 @@ def test_init_creates_claude_pointers_and_managed_files(project):
     assert "sq create" in skill_body
     assert "squads:version:" in skill_body
 
-    claude_md = project.claude_md.read_text(encoding="utf-8")
+    claude_md = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     assert "<!-- squads:start -->" in claude_md
     assert "Catherine Manager" in claude_md  # default role on greeting
     # the orchestration loop is taught: delegate by spawning specialists via the Task tool
@@ -38,13 +38,13 @@ def test_init_creates_claude_pointers_and_managed_files(project):
 
 def test_claude_md_has_operators_section_and_session_start(project, svc):
     # the people roster + session-start ritual render even with no operators registered yet
-    before = project.claude_md.read_text(encoding="utf-8")
+    before = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     assert "Operators (people)" in before
     assert "_None registered yet._" in before
     assert "you MUST ask" in before and "sq list -t operator" in before
     # registering one lists them by name + op- slug
     svc.add_operator("Pierre Chat")
-    after = project.claude_md.read_text(encoding="utf-8")
+    after = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     assert "Pierre Chat" in after and "op-pierre" in after
     assert "_None registered yet._" not in after
 
@@ -65,7 +65,7 @@ def test_pointer_frontmatter_is_valid_yaml(project):
 
 
 def test_settings_merge_does_not_clobber(project, svc):
-    settings = project.claude_dir / "settings.json"
+    settings = project.root / ".claude" / "settings.json"
     data = json.loads(settings.read_text(encoding="utf-8"))
     data["permissions"]["allow"].append("Bash(git status)")
     data["customKey"] = 123
@@ -79,16 +79,16 @@ def test_settings_merge_does_not_clobber(project, svc):
 
 
 def test_claude_md_injection_idempotent(project, svc):
-    before = project.claude_md.read_text(encoding="utf-8")
+    before = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     svc.refresh_managed()
-    after = project.claude_md.read_text(encoding="utf-8")
+    after = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     assert before.count("<!-- squads:start -->") == 1
     assert after.count("<!-- squads:start -->") == 1
 
 
 def test_claude_md_impersonation_uses_sq_command_not_path(project, svc):
     """Generated CLAUDE.md section teaches sq role <slug> show (item-first), not a path."""
-    text = project.claude_md.read_text(encoding="utf-8")
+    text = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     # The impersonation paragraph must reference the item-first CLI command.
     assert "sq role <slug> show" in text
     # The filesystem path must not appear as an agent-facing instruction.
@@ -96,6 +96,6 @@ def test_claude_md_impersonation_uses_sq_command_not_path(project, svc):
 
     # sq sync must propagate the same constraint.
     svc.sync()
-    synced = project.claude_md.read_text(encoding="utf-8")
+    synced = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     assert "sq role <slug> show" in synced
     assert "agents/roles/" not in synced
