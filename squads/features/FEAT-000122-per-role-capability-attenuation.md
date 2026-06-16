@@ -11,17 +11,13 @@ refs:
 - FEAT-000125:depends-on
 subentities:
 - local_id: US1
-  title: As a squad manager, I want each worker role to have a declared capability
-    profile so that I can verify a spawned agent cannot exceed its remit (e.g. spawn
-    sub-agents, modify items outside its lane).
+  title: Declared capability profile per worker role
   status: Todo
 - local_id: US2
-  title: As a reviewer-role agent, I want the system to prevent me from invoking the
-    Agent/Task spawn tool so that I cannot accidentally (or autonomously) expand my
-    own work scope.
+  title: Reviewer role structurally blocked from spawning agents
   status: Todo
 created_at: '2026-06-15T11:56:09Z'
-updated_at: '2026-06-15T12:00:21Z'
+updated_at: '2026-06-16T09:52:10Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -86,21 +82,23 @@ _Add with `sq feature 122 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a squad manager, I want each worker role to have a declared capability profile so that I can verify a spawned agent cannot exceed its remit (e.g. spawn sub-agents, modify items outside its lane). |
-| US2 | Todo |  | As a reviewer-role agent, I want the system to prevent me from invoking the Agent/Task spawn tool so that I cannot accidentally (or autonomously) expand my own work scope. |
+| US1 | Todo |  | Declared capability profile per worker role |
+| US2 | Todo |  | Reviewer role structurally blocked from spawning agents |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a squad manager, I want each worker role to have a declared capability profile so that I can verify a spawned agent cannot exceed its remit (e.g. spawn sub-agents, modify items outside its lane).
+### US1 — Declared capability profile per worker role
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a squad manager, I want each worker role to have a declared capability profile, so that I can verify a spawned agent cannot exceed its remit (e.g. spawn sub-agents, modify items outside its lane).
+
+**Acceptance:** a role declaration in squads (or its backend config) carries a structured capability profile listing permitted tool categories; the profile is visible via `sq role <slug> show`; the backend respects the profile when constructing the agent session.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -110,14 +108,16 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a reviewer-role agent, I want the system to prevent me from invoking the Agent/Task spawn tool so that I cannot accidentally (or autonomously) expand my own work scope.
+### US2 — Reviewer role structurally blocked from spawning agents
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a reviewer-role agent, I want the system to prevent me from invoking the Agent/Task spawn tool, so that I cannot accidentally (or autonomously) expand my own work scope.
+
+**Acceptance:** a reviewer session launched via squads cannot invoke the Agent or Task spawn tool; attempting to do so produces a clear, immediate error (not a silent no-op); the constraint is enforced at the backend/session level, not merely advised in the skill file.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

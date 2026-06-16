@@ -14,17 +14,13 @@ refs:
 - BUG-000120
 subentities:
 - local_id: US1
-  title: As a squad manager, I want sq check to flag any review whose author lineage
-    matches the target item's author lineage so that I can detect self-review before
-    the review closes.
+  title: sq check flags self-review by same spawn lineage
   status: Todo
 - local_id: US2
-  title: As a solo operator running a single-agent workflow, I want to suppress the
-    self-review guard with --force and a rationale comment so that the check does
-    not block legitimate single-agent use.
+  title: Suppressible self-review guard for solo workflows
   status: Todo
 created_at: '2026-06-15T11:56:15Z'
-updated_at: '2026-06-15T12:00:26Z'
+updated_at: '2026-06-16T09:52:43Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -93,21 +89,23 @@ _Add with `sq feature 124 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a squad manager, I want sq check to flag any review whose author lineage matches the target item's author lineage so that I can detect self-review before the review closes. |
-| US2 | Todo |  | As a solo operator running a single-agent workflow, I want to suppress the self-review guard with --force and a rationale comment so that the check does not block legitimate single-agent use. |
+| US1 | Todo |  | sq check flags self-review by same spawn lineage |
+| US2 | Todo |  | Suppressible self-review guard for solo workflows |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a squad manager, I want sq check to flag any review whose author lineage matches the target item's author lineage so that I can detect self-review before the review closes.
+### US1 — sq check flags self-review by same spawn lineage
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a squad manager, I want `sq check` to flag any review whose author lineage matches the target item's author lineage, so that I can detect self-review before the review closes.
+
+**Acceptance:** a review item carries a lineage identifier alongside its `author` slug; `sq check` emits a warning (or error with `--strict`) when the review's lineage matches the target item's author lineage; the violation is machine-readable via a structured code in `--json` output; `sq create review --of <id>` emits the same warning at filing time.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -117,14 +115,16 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a solo operator running a single-agent workflow, I want to suppress the self-review guard with --force and a rationale comment so that the check does not block legitimate single-agent use.
+### US2 — Suppressible self-review guard for solo workflows
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a solo operator running a single-agent workflow, I want to suppress the self-review guard with `--force` and a rationale comment, so that the check does not block legitimate single-agent use.
+
+**Acceptance:** `sq create review --of <id> --force -m "<rationale>"` bypasses the lineage check and records the rationale in the review's discussion; the override is visible in the reflog; `sq check` does not re-raise the violation for a forced review.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

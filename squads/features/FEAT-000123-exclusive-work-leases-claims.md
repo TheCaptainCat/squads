@@ -11,16 +11,13 @@ refs:
 - FEAT-000125:depends-on
 subentities:
 - local_id: US1
-  title: As any agent, I want to see a clear conflict error when I attempt to mutate
-    an item already claimed by another agent so that I do not silently overwrite concurrent
-    work.
+  title: Clear conflict error on concurrent item mutation
   status: Todo
 - local_id: US2
-  title: As a squad manager, I want to list all active leases so that I can see which
-    items are locked, by whom, and when the lease expires.
+  title: Manager visibility into all active leases
   status: Todo
 created_at: '2026-06-15T11:56:12Z'
-updated_at: '2026-06-15T12:00:21Z'
+updated_at: '2026-06-16T09:52:28Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -88,21 +85,23 @@ _Add with `sq feature 123 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As any agent, I want to see a clear conflict error when I attempt to mutate an item already claimed by another agent so that I do not silently overwrite concurrent work. |
-| US2 | Todo |  | As a squad manager, I want to list all active leases so that I can see which items are locked, by whom, and when the lease expires. |
+| US1 | Todo |  | Clear conflict error on concurrent item mutation |
+| US2 | Todo |  | Manager visibility into all active leases |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As any agent, I want to see a clear conflict error when I attempt to mutate an item already claimed by another agent so that I do not silently overwrite concurrent work.
+### US1 — Clear conflict error on concurrent item mutation
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As any agent, I want to see a clear conflict error when I attempt to mutate an item already claimed by another agent, so that I do not silently overwrite concurrent work.
+
+**Acceptance:** `sq claim <ID>` acquires an exclusive lease atomically within the index transaction; a second `sq claim` on the same item from a different identity fails with a structured error (and a machine-readable code in `--json` mode); body, status, and comment mutations by a non-holder are rejected while a valid lease is held; expired leases are auto-released on next access.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -112,14 +111,16 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a squad manager, I want to list all active leases so that I can see which items are locked, by whom, and when the lease expires.
+### US2 — Manager visibility into all active leases
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a squad manager, I want to list all active leases, so that I can see which items are locked, by whom, and when the lease expires.
+
+**Acceptance:** `sq leases` lists every currently active lease with holder identity, acquired timestamp, and expiry; the list includes the leased item ID and type; output is machine-readable with `--json`; expired leases do not appear.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

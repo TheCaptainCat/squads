@@ -14,20 +14,16 @@ description: sq backend command group to add, switch, list, and remove backends 
   clean artifact transitions
 subentities:
 - local_id: US1
-  title: As a developer switching agent tools, I want to run `sq backend switch <name>`
-    on an existing squad so that my new tool's context file is generated and the old
-    one is removed without leaving orphaned files on disk
+  title: Switch active backend cleanly
   status: Todo
 - local_id: US2
-  title: As a team using mixed agent tooling, I want to list the backends configured
-    on my squad so that I can see which is active and which are available
+  title: List configured backends and active status
   status: Todo
 - local_id: US3
-  title: As a backend author, I want the registry to reject any backend that fails
-    the conformance suite so that managed backends cannot be added in a broken state
+  title: Reject non-conformant backends at registration
   status: Todo
 created_at: '2026-06-15T18:23:41Z'
-updated_at: '2026-06-15T18:24:32Z'
+updated_at: '2026-06-16T09:51:29Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -100,22 +96,24 @@ _Add with `sq feature 137 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a developer switching agent tools, I want to run `sq backend switch <name>` on an existing squad so that my new tool's context file is generated and the old one is removed without leaving orphaned files on disk |
-| US2 | Todo |  | As a team using mixed agent tooling, I want to list the backends configured on my squad so that I can see which is active and which are available |
-| US3 | Todo |  | As a backend author, I want the registry to reject any backend that fails the conformance suite so that managed backends cannot be added in a broken state |
+| US1 | Todo |  | Switch active backend cleanly |
+| US2 | Todo |  | List configured backends and active status |
+| US3 | Todo |  | Reject non-conformant backends at registration |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a developer switching agent tools, I want to run `sq backend switch <name>` on an existing squad so that my new tool's context file is generated and the old one is removed without leaving orphaned files on disk
+### US1 — Switch active backend cleanly
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a developer switching agent tools, I want to run `sq backend switch <name>` on an existing squad, so that my new tool's context file is generated and the old one is removed without leaving orphaned files on disk.
+
+**Acceptance:** `sq backend switch <name>` produces the new backend's artifacts (e.g. `AGENTS.md`); the previous backend's managed files (e.g. `CLAUDE.md`, `.claude/` pointer files) are cleaned up by calling its `remove_artifacts`; no orphaned files remain on disk after the switch; a test asserts the old backend's file is absent post-switch.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -125,14 +123,16 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a team using mixed agent tooling, I want to list the backends configured on my squad so that I can see which is active and which are available
+### US2 — List configured backends and active status
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a team using mixed agent tooling, I want to list the backends configured on my squad, so that I can see which is active and which are available.
+
+**Acceptance:** `sq backend list` (or equivalent) shows every configured backend with a clear indicator of which is active; the command works on a fresh squad and on a squad with multiple backends registered; output is machine-readable with `--json`.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -142,14 +142,16 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a backend author, I want the registry to reject any backend that fails the conformance suite so that managed backends cannot be added in a broken state
+### US3 — Reject non-conformant backends at registration
 
 <!-- sq:story:US3:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a backend author, I want the registry to reject any backend that fails the conformance suite, so that managed backends cannot be added in a broken state.
+
+**Acceptance:** adding a backend (via `sq backend add` or equivalent) runs the shared conformance suite (`tests/test_backend_conformance.py`); a backend that fails any conformance test is refused with a clear error; the gate cannot be bypassed without an explicit override flag.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
