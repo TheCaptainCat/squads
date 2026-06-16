@@ -2,17 +2,29 @@
 
 from typing import Any, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from squads._models._schema import SCHEMA_VERSION
 from squads._util import NonEmpty
+
+
+def _dedup_preserving_order(items: list[str]) -> list[str]:
+    """Deduplicate a list preserving first-occurrence order."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            out.append(item)
+    return out
 
 
 class SquadsConfig(BaseModel):
     schema_version: NonEmpty = SCHEMA_VERSION
     #: Folder (relative to the project root) that holds the squad's content + .squads.json.
     squad_dir: NonEmpty = "squads"
-    default_backend: NonEmpty = "claude_code"
+    #: Active agent backends (ordered list; duplicates silently collapsed on read).
+    active_backends: list[str] = Field(default_factory=lambda: ["claude_code"])
     #: Role slug impersonated when the operator names no agent.
     default_role: NonEmpty = "manager"
     #: squads version that last generated the managed (tool-owned) files.
@@ -23,12 +35,19 @@ class SquadsConfig(BaseModel):
 
     model_config = {"extra": "ignore"}
 
+    @field_validator("active_backends", mode="after")
+    @classmethod
+    def _dedup_active_backends(cls, v: list[str]) -> list[str]:
+        """Collapse duplicate backend names, preserving first-occurrence order."""
+        return _dedup_preserving_order(v)
+
     def to_toml(self) -> str:
+        backends_toml = "[" + ", ".join(f'"{b}"' for b in self.active_backends) + "]"
         lines = [
             "# squads project configuration",
             f'schema_version = "{self.schema_version}"',
             f'squad_dir = "{self.squad_dir}"',
-            f'default_backend = "{self.default_backend}"',
+            f"active_backends = {backends_toml}",
             f'default_role = "{self.default_role}"',
             f'squads_version = "{self.squads_version}"',
             "",
@@ -52,6 +71,17 @@ class SquadsConfig(BaseModel):
             names: Any = init_as_str_any.get("names")
             if isinstance(names, dict):
                 flat["init_names"] = names
+        # Back-compat: translate legacy default_backend → active_backends on read.
+        # This handles old TOML files that pre-date the 0.3 schema (active_backends
+        # is part of the 0.3 shape; no migration is needed — the read is tolerant).
+        if "active_backends" not in flat:
+            legacy: Any = flat.pop("default_backend", None)
+            if isinstance(legacy, str) and legacy:
+                flat["active_backends"] = [legacy]
+            else:
+                flat["active_backends"] = ["claude_code"]
+        else:
+            flat.pop("default_backend", None)  # discard if both somehow present
         return cls.model_validate(flat)
 
 

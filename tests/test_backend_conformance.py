@@ -67,7 +67,7 @@ def squad_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 @pytest.fixture
 def paths(squad_root: Path) -> SquadPaths:
     """Minimal SquadPaths wired to the temp root — no sq init required."""
-    config = SquadsConfig(squad_dir="squads", default_backend="claude_code")
+    config = SquadsConfig(squad_dir="squads", active_backends=["claude_code"])
     squad_dir = squad_root / "squads"
     squad_dir.mkdir()
     return SquadPaths(root=squad_root, squad_dir=squad_dir, config=config)
@@ -732,6 +732,58 @@ class TestBackendName:
         """Every artifact returned by ensure_scaffold carries the backend's own name."""
         for artifact in backend.ensure_scaffold(ctx):
             assert artifact.backend == backend.name
+
+
+# ---------------------------------------------------------------------------
+# Contract: managed_paths (ADR-000141 §4)
+# ---------------------------------------------------------------------------
+
+
+class TestManagedPaths:
+    """managed_paths must be read-only and return root-relative forward-slash paths.
+
+    Contract (ADR-000141 §4):
+    - Returns a list[str] of root-relative paths.
+    - Must not create or modify any files on disk (read-only probe).
+    - After a full sync (scaffold + write_managed), all returned paths must exist.
+    """
+
+    def test_returns_list_of_str(self, backend: AgentBackend, ctx: BackendContext) -> None:
+        result = backend.managed_paths(ctx)
+        assert isinstance(result, list)
+        assert all(isinstance(p, str) for p in result)
+
+    def test_paths_are_relative_forward_slash(
+        self, backend: AgentBackend, ctx: BackendContext
+    ) -> None:
+        for p in backend.managed_paths(ctx):
+            assert not Path(p).is_absolute(), f"managed_paths must be relative, got: {p!r}"
+            assert "\\" not in p, f"managed_paths must use forward slashes, got: {p!r}"
+
+    def test_managed_paths_does_not_create_files(
+        self, backend: AgentBackend, ctx: BackendContext
+    ) -> None:
+        """managed_paths must be read-only — calling it must not create any new files."""
+        before = set(ctx.root.rglob("*"))
+        backend.managed_paths(ctx)
+        after = set(ctx.root.rglob("*"))
+        assert before == after, f"managed_paths created new files: {after - before}"
+
+    def test_managed_paths_exist_after_sync(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+    ) -> None:
+        """After scaffold + write_managed, every path returned by managed_paths must exist."""
+        backend.ensure_scaffold(ctx)
+        backend.write_managed(ctx, roster, operators)
+        for p in backend.managed_paths(ctx):
+            full = ctx.root / p
+            assert full.exists(), (
+                f"managed_paths declared {p!r} but it does not exist after scaffold + write_managed"
+            )
 
 
 # ---------------------------------------------------------------------------

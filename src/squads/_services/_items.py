@@ -165,10 +165,13 @@ class ItemsMixin(ServiceCore):
     def regen(self, item_id: str) -> Item:
         """Regenerate the backend pointer for a role or skill from its current item data."""
         item = self.get(item_id)
+        ctx = self._ctx
         if item.type is ItemType.ROLE:
-            self._backend().generate_role_entry(self._ctx, item, RoleDef.from_extra(item.extra))
+            for backend in self._backends():
+                backend.generate_role_entry(ctx, item, RoleDef.from_extra(item.extra))
         elif item.type is ItemType.SKILL:
-            self._backend().generate_skill_entry(self._ctx, item)
+            for backend in self._backends():
+                backend.generate_skill_entry(ctx, item)
         else:
             raise SquadsError(f"{item_id} is a {item.type.value}; only roles/skills have entries")
         return item
@@ -220,7 +223,9 @@ class ItemsMixin(ServiceCore):
             item = require_item(db, item_id)
             del db.items[item.sequence_id]
         if item.type in _AGENT_TYPES:
-            self._backend().remove_artifacts(self._ctx, item)
+            ctx = self._ctx
+            for backend in self._backends():
+                backend.remove_artifacts(ctx, item)
         if purge:
             item_file(self.paths, item).unlink(missing_ok=True)
         return item

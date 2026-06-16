@@ -99,13 +99,40 @@ def _item_table(items: list[Item]) -> Table:
     return table
 
 
+def _parse_backend_option(raw: list[str]) -> list[str]:
+    """Parse the repeatable ``--backend`` values into an ``active_backends`` list.
+
+    ``--backend none`` (case-insensitive) means sq-only (no backends → ``[]``).
+    Combining ``none`` with a real backend name raises :class:`~squads._errors.SquadsError`.
+    Empty input defaults to ``["claude_code"]``.
+    """
+    if not raw:
+        return ["claude_code"]
+    lowered = [v.lower() for v in raw]
+    has_none = "none" in lowered
+    real = [v for v in raw if v.lower() != "none"]
+    if has_none and real:
+        raise SquadsError(
+            "--backend none cannot be combined with a real backend name "
+            f"(got: {', '.join(real)}). Use --backend none alone for a sq-only squad."
+        )
+    return [] if has_none else raw
+
+
 @app.command()
 @handle_errors
 def init(
     squad_dir: str = typer.Option(
         "squads", "--squad-dir", help="Folder name for the squad's content."
     ),
-    backend: str = typer.Option("claude_code", "--backend"),
+    backend: list[str] = typer.Option(
+        [],
+        "--backend",
+        help=(
+            "Active backend(s): repeatable (e.g. --backend claude_code --backend agents_md). "
+            "Use --backend none for a sq-only squad (no agent files)."
+        ),
+    ),
     roles: str = typer.Option(
         "all", "--roles", help="Bundle (all|core|minimal) or comma-separated slugs."
     ),
@@ -124,6 +151,9 @@ def init(
 ):
     """Initialize squads in the current directory."""
     from pathlib import Path
+
+    # Parse --backend flags (repeatable; "none" sentinel → sq-only squad).
+    active_backends = _parse_backend_option(backend)
 
     # Parse --name slug=Full Name flags.
     names_from_flags = _parse_name_flags(name)
@@ -168,7 +198,7 @@ def init(
 
     result = svc_init(
         squad_dir=squad_dir,
-        backend=backend,
+        backend=active_backends,
         roles_spec=roles,
         no_claude=no_claude,
         force=force,
@@ -181,8 +211,11 @@ def init(
         f"[bold]index:[/bold] {sp.index_path}",
         f"[bold]roles:[/bold] {roles_line}",
     ]
-    if not no_claude:
-        lines.append("[bold]agent backend:[/bold] " + sp.config.default_backend)
+    if sp.config.active_backends:
+        backends_str = ", ".join(sp.config.active_backends)
+        lines.append(f"[bold]agent backends:[/bold] {backends_str}")
+    else:
+        lines.append("[bold]agent backends:[/bold] (none)")
     console.print(Panel("\n".join(lines), title="squads initialized", expand=False))
     console.print(
         'Next: [cyan]sq create task "…"[/cyan] · [cyan]sq list[/cyan]'
@@ -196,14 +229,24 @@ def adopt(
     squad_dir: str = typer.Option(
         "squads", "--squad-dir", help="Folder name to adopt (default if no .squads.toml yet)."
     ),
-    backend: str = typer.Option("claude_code", "--backend"),
+    backend: list[str] = typer.Option(
+        [],
+        "--backend",
+        help=(
+            "Active backend(s): repeatable (e.g. --backend claude_code --backend agents_md). "
+            "Use --backend none for a sq-only squad (no agent files)."
+        ),
+    ),
     roles: str = typer.Option(
         "all", "--roles", help="Bundle (all|core|minimal) or comma-separated slugs."
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
 ):
     """Adopt an existing squad-structured folder (non-destructive; imports existing items)."""
-    result = svc_adopt(squad_dir=squad_dir, backend=backend, roles_spec=roles, no_claude=no_claude)
+    active_backends = _parse_backend_option(backend)
+    result = svc_adopt(
+        squad_dir=squad_dir, backend=active_backends, roles_spec=roles, no_claude=no_claude
+    )
     sp = result.paths
     new_roles = ", ".join(r.extra.get(X.SLUG, r.slug) for r in result.roles) or "—"
     lines = [

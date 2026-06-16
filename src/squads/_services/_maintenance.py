@@ -77,16 +77,22 @@ class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ sync
     def sync(self) -> None:
         """Regenerate all tool-owned managed files to the current version; stamp the config."""
-        backend = self._backend()
+        backends = self._backends()
         ctx = self._ctx
-        backend.ensure_scaffold(ctx)
+        for backend in backends:
+            backend.ensure_scaffold(ctx)
         for it in self.list_items(item_type=ItemType.ROLE):
             self._refresh_catalog_extra(it)
-            backend.generate_role_entry(ctx, it, RoleDef.from_extra(it.extra))
+            for backend in backends:
+                backend.generate_role_entry(ctx, it, RoleDef.from_extra(it.extra))
             self._regen_role_body(it)
         for it in self.list_items(item_type=ItemType.SKILL):
-            backend.generate_skill_entry(ctx, it)
-        backend.write_managed(ctx, self.roster(), self.operators())
+            for backend in backends:
+                backend.generate_skill_entry(ctx, it)
+        roster = self.roster()
+        ops = self.operators()
+        for backend in backends:
+            backend.write_managed(ctx, roster, ops)
         self._stamp_version(__version__)
 
     def _refresh_catalog_extra(self, item: Item) -> None:
@@ -435,6 +441,29 @@ class MaintenanceMixin(ServiceCore):
             CheckIssue(level, item, msg)
             for level, item, msg in check_override_issues(self.paths.squad_dir)
         ]
+        # ADR-000141 §4: verify each active backend's managed files are present.
+        issues += self._check_backends()
+        return issues
+
+    def _check_backends(self) -> list[CheckIssue]:
+        """For each active (deduped) backend, verify its managed files exist on disk.
+
+        Empty ``active_backends = []`` → nothing to check (sq-only squad is clean).
+        Deactivated backends are not probed.
+        """
+        ctx = self._ctx
+        issues: list[CheckIssue] = []
+        for backend in self._backends():
+            for rel_path in backend.managed_paths(ctx):
+                full = ctx.root / rel_path
+                if not full.exists():
+                    issues.append(
+                        CheckIssue(
+                            "error",
+                            rel_path,
+                            f"managed file missing — run `sq sync` (backend: {backend.name})",
+                        )
+                    )
         return issues
 
     def _scan_for_check(

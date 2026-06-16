@@ -161,7 +161,7 @@ class TestSquadsConfigInitNames:
     def test_to_toml_writes_init_names_section(self):
         cfg = SquadsConfig(
             squad_dir="squads",
-            default_backend="claude_code",
+            active_backends=["claude_code"],
             default_role="manager",
             squads_version="0.1.0",
             init_names={"architect": "Ada Lovelace", "manager": "Grace Hopper"},
@@ -174,7 +174,7 @@ class TestSquadsConfigInitNames:
     def test_to_toml_omits_section_when_empty(self):
         cfg = SquadsConfig(
             squad_dir="squads",
-            default_backend="claude_code",
+            active_backends=["claude_code"],
             default_role="manager",
             squads_version="0.1.0",
         )
@@ -183,9 +183,9 @@ class TestSquadsConfigInitNames:
 
     def test_from_toml_dict_hoists_init_names(self):
         data = {
-            "schema_version": "0.2",
+            "schema_version": "0.3",
             "squad_dir": "squads",
-            "default_backend": "claude_code",
+            "active_backends": ["claude_code"],
             "default_role": "manager",
             "squads_version": "0.1.0",
             "init": {"names": {"architect": "Ada Lovelace"}},
@@ -195,9 +195,9 @@ class TestSquadsConfigInitNames:
 
     def test_from_toml_dict_no_init_section(self):
         data = {
-            "schema_version": "0.2",
+            "schema_version": "0.3",
             "squad_dir": "squads",
-            "default_backend": "claude_code",
+            "active_backends": ["claude_code"],
             "default_role": "manager",
             "squads_version": "0.1.0",
         }
@@ -209,7 +209,7 @@ class TestSquadsConfigInitNames:
 
         original = SquadsConfig(
             squad_dir="squads",
-            default_backend="claude_code",
+            active_backends=["claude_code"],
             default_role="manager",
             squads_version="0.1.0",
             init_names={"qa": "Mara Tester", "manager": "Grace Hopper"},
@@ -364,7 +364,7 @@ class TestCliInitName:
         # Write a config with [init.names] before running sq init.
         cfg = SquadsConfig(
             squad_dir="squads",
-            default_backend="claude_code",
+            active_backends=["claude_code"],
             default_role="manager",
             squads_version="0.1.0",
             init_names={"manager": "Grace Hopper"},
@@ -392,7 +392,7 @@ class TestCliInitName:
         monkeypatch.chdir(tmp_path)
         cfg = SquadsConfig(
             squad_dir="squads",
-            default_backend="claude_code",
+            active_backends=["claude_code"],
             default_role="manager",
             squads_version="0.1.0",
             init_names={"manager": "From Config"},

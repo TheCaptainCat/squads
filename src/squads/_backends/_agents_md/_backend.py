@@ -143,3 +143,7 @@ class AgentsMdBackend(AgentBackend):
             (ctx.root / _STAGING_DIR / _SKILLS_DIR / f"{slug}.md").unlink(missing_ok=True)
         else:
             (ctx.root / _STAGING_DIR / _ROLES_DIR / f"{slug}.md").unlink(missing_ok=True)
+
+    def managed_paths(self, ctx: BackendContext) -> list[str]:
+        """Root-relative paths owned by this backend (present-only check; read-only)."""
+        return [ctx.rel(ctx.root / _AGENTS_MD)]

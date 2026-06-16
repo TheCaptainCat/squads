@@ -28,7 +28,7 @@ def squad_root(tmp_path, monkeypatch):
 
 @pytest.fixture
 def ctx(squad_root):
-    config = SquadsConfig(squad_dir="squads", default_backend="agents_md")
+    config = SquadsConfig(squad_dir="squads", active_backends=["agents_md"])
     squad_dir = squad_root / "squads"
     squad_dir.mkdir()
     paths = SquadPaths(root=squad_root, squad_dir=squad_dir, config=config)
@@ -163,7 +163,7 @@ class TestAgentsMdUsefulnessPin:
         regression to a roster-only template fails immediately.
         """
         monkeypatch.chdir(tmp_path)
-        result = service.init(root=tmp_path, backend="agents_md", roles_spec="minimal")
+        result = service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         svc = service.Service(result.paths)
         svc.sync()
         text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
@@ -182,7 +182,7 @@ class TestAgentsMdUsefulnessPin:
         causes this test to fail.
         """
         monkeypatch.chdir(tmp_path)
-        result = service.init(root=tmp_path, backend="agents_md", roles_spec="minimal")
+        result = service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         svc = service.Service(result.paths)
         svc.sync()
         text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
@@ -200,7 +200,7 @@ class TestAgentsMdUsefulnessPin:
         no mission content.  This test guards that regression.
         """
         monkeypatch.chdir(tmp_path)
-        result = service.init(root=tmp_path, backend="agents_md", roles_spec="minimal")
+        result = service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         svc = service.Service(result.paths)
         svc.sync()
         text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
@@ -234,7 +234,7 @@ class TestCLIRoundTrip:
     def test_sq_init_backend_agents_md(self, tmp_path, monkeypatch):
         """sq init --backend agents_md produces a valid AGENTS.md."""
         monkeypatch.chdir(tmp_path)
-        service.init(root=tmp_path, backend="agents_md", roles_spec="minimal")
+        service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         agents_md = tmp_path / "AGENTS.md"
         assert agents_md.exists(), "AGENTS.md must exist after sq init --backend agents_md"
         text = agents_md.read_text(encoding="utf-8")
@@ -244,7 +244,7 @@ class TestCLIRoundTrip:
     def test_sq_sync_refreshes_agents_md(self, tmp_path, monkeypatch):
         """sq sync (via service) refreshes AGENTS.md idempotently."""
         monkeypatch.chdir(tmp_path)
-        result = service.init(root=tmp_path, backend="agents_md", roles_spec="minimal")
+        result = service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         svc = service.Service(result.paths)
 
         # Add an operator and re-sync.
@@ -263,7 +263,7 @@ class TestCLIRoundTrip:
     def test_sq_init_agents_md_no_claude_dir(self, tmp_path, monkeypatch):
         """sq init --backend agents_md must not create a .claude directory."""
         monkeypatch.chdir(tmp_path)
-        service.init(root=tmp_path, backend="agents_md", roles_spec="minimal")
+        service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         assert not (tmp_path / ".claude").exists(), (
             ".claude/ must not be created by the agents_md backend"
         )
