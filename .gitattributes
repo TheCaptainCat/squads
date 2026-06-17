@@ -1,0 +1,4 @@
+# Normalize line endings to LF on commit and checkout so template hashes
+# remain consistent across platforms. Without this, Windows git may check out
+# .j2 and other text files as CRLF, flipping every hash in templates_manifest.json.
+* text=auto eol=lf

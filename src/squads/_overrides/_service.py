@@ -181,7 +181,7 @@ def scan_overrides(squad_dir: Path) -> list[OverrideEntry]:
     tmpl_dir = _template_overrides_dir(squad_dir)
     if tmpl_dir.is_dir():
         for path in sorted(tmpl_dir.rglob("*.md.j2")):
-            rel = str(path.relative_to(tmpl_dir))
+            rel = path.relative_to(tmpl_dir).as_posix()
             text = path.read_text(encoding="utf-8")
             stamp = read_template_stamp(text)
             state = _template_state(rel, path, text)
@@ -432,7 +432,7 @@ def _update_all(squad_dir: Path) -> list[str]:
     tmpl_dir = _template_overrides_dir(squad_dir)
     if tmpl_dir.is_dir():
         for path in sorted(tmpl_dir.rglob("*.md.j2")):
-            rel = str(path.relative_to(tmpl_dir))
+            rel = path.relative_to(tmpl_dir).as_posix()
             text = path.read_text(encoding="utf-8")
             if _is_item_or_role_template(rel) and _missing_required_markers(rel, text):
                 continue  # Skip broken overrides silently in bulk mode
@@ -463,7 +463,7 @@ def check_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
     tmpl_dir = _template_overrides_dir(squad_dir)
     if tmpl_dir.is_dir():
         for path in sorted(tmpl_dir.rglob("*.md.j2")):
-            rel = str(path.relative_to(tmpl_dir))
+            rel = path.relative_to(tmpl_dir).as_posix()
             display = f".overrides/templates/{rel}"
             text = path.read_text(encoding="utf-8")
 

@@ -188,11 +188,19 @@ def init(
                 continue
             # Prompt: show the default name, allow blank to keep it.
             default_name = rdef.full_name
-            typed = typer.prompt(
-                f"Name for {slug!r} (Enter to keep default '{default_name}')",
-                default="",
-                show_default=False,
-            ).strip()
+            try:
+                typed = typer.prompt(
+                    f"Name for {slug!r} (Enter to keep default '{default_name}')",
+                    default="",
+                    show_default=False,
+                ).strip()
+            except typer.Abort, EOFError:
+                # On Windows, sys.stdin.isatty() may report a console even inside a
+                # subprocess with a closed/empty stdin pipe, causing typer.prompt to
+                # raise EOFError (or typer.Abort) on the first read. Degrade gracefully:
+                # fall back to bundled defaults and stop prompting rather than aborting
+                # the whole init.
+                break
             if typed:
                 combined_names[slug] = typed
 
