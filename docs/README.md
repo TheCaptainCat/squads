@@ -26,6 +26,7 @@ backend.
 
 | Doc | Read it for |
 |-----|-------------|
+| **[stability.md](stability.md)** | The 1.0 contract: which surfaces are stable after 1.0, what each promises, and the post-1.0 versioning scheme. Five tiers from durable `.md` format down to tool-owned files. |
 | **[internals.md](internals.md)** | How squads works — the index & counter, frontmatter-as-truth, markers, refs, the backend & pointers, the playbook, a worked lifecycle. |
 | **[backends.md](backends.md)** | Writing a new agent backend (the `AgentBackend` ABC). |
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | Dev setup, the gate, conventions, how to add things. |

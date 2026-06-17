@@ -3,7 +3,7 @@ id: FEAT-000013
 sequence_id: 13
 type: feature
 title: Stability contract documentation
-status: Ready
+status: Done
 parent: EPIC-000012
 author: product-owner
 priority: high
@@ -13,17 +13,17 @@ subentities:
 - local_id: US1
   title: As a squad user on 0.x, I want a written promise that my items reach 1.0
     via sq migrate up, so that adopting squads before 1.0 is safe
-  status: Todo
+  status: Done
 - local_id: US2
   title: As a script author, I want to know which CLI and --json surfaces are SemVer-stable,
     so that my automation survives upgrades
-  status: Todo
+  status: Done
 - local_id: US3
   title: As an integrator, I want internals (Python import paths, generated .claude/
     files) explicitly marked non-public, so that I don't build on the wrong layer
-  status: Todo
+  status: Done
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-16T13:51:18Z'
+updated_at: '2026-06-17T08:31:00Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -67,9 +67,9 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe |
-| US2 | Todo |  | As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades |
-| US3 | Todo |  | As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer |
+| US1 | Done |  | As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe |
+| US2 | Done |  | As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades |
+| US3 | Done |  | As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -78,7 +78,7 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 ### US1 — As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -95,7 +95,7 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 ### US2 — As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -112,7 +112,7 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 ### US3 — As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -220,4 +220,9 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
   - Deferral obligation from BUG-000142 (bug lifecycle + set-time validation, fixed 2026-06-16; ADR-000143, independent gate REV-000145). Stability-contract surface to FREEZE at 1.0:
   - (1) **Bugs have their own workflow** (no longer the generic work-item machine): initial Open; Open→{InProgress,WontFix,Cancelled}; InProgress→{Fixed,Blocked,WontFix,Cancelled}; Fixed→{Verified,InProgress}; Verified→{InProgress}; Blocked→{InProgress,WontFix,Cancelled}; WontFix→{Open}; Cancelled→{Open}. Terminal: Verified, WontFix, Cancelled. The status vocabulary Open/Fixed/Verified/WontFix is now live (was orphan). All on schema 0.3, no bump — existing bugs were remapped in place (Done→Verified etc.).
   - (2) **Status-setting validates against the TYPE'S workflow at set-time**, not just the global enum: an out-of-workflow status (e.g. Done for a bug) is rejected with StatusNotInWorkflowError when set, and --force does NOT bypass the vocabulary check (it relaxes only the transition edge). The contract should state this validation guarantee. cc ADR-000143.
+- [2026-06-17T08:31:00Z] Catherine Manager:
+  - Capstone shipped. docs/stability.md written and approved at the independent gate (REV-000150, Approved — re-gated clean after a first ChangesRequested pass). All three user stories Done; the obligations bill accumulated across the epic is fully discharged into the five tiers (durable .md format / CLI grammar / --json shapes / Python-not-public / generated .claude). ADR-000149 (post-1.0 schema_version scheme: keep the dotted-string-tracks-introducing-release scheme, post-1.0 bumps ride MAJOR) Accepted and reflected in Tier 1.
+  - Operator ruling folded in (op-pierre): the shipped user-facing docs must NOT cite internal squad items or carry external/github URLs — the contract stands on its own terms, cross-linking only other docs/*.md. The first draft violated this (fabricated github.com/anthropic-ai/squads links + a full internal-item References section); both removed. Recorded as REV-000150 F7.
+  - RESIDUAL pre-1.0-freeze items (NOT 0.3.0 blockers; carried forward, flagged open in the doc's reflog section): (1) REV-000119 F3 — whether the op/delta double-key on subentity/migrate reflog lines is cleaned up; (2) REV-000119 F5 — whether the reflog line 'v' decouples from the index SCHEMA_VERSION (today coupled at 0.3). Settle before declaring 1.0.
+  - Tracking nit for cleanup (not blocking): ADR-000141's body still describes the abandoned 0.3→0.4 bump framing for active_backends; the shipped reality is no-bump on 0.3 (commit 6538396). @architect to tidy when convenient.
 <!-- sq:discussion:end -->

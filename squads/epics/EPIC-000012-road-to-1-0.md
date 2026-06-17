@@ -11,7 +11,7 @@ refs:
 - BUG-000021:depends-on
 description: Define and prove the 1.0 stability promise across our public surfaces
 created_at: '2026-06-10T12:40:41Z'
-updated_at: '2026-06-11T07:54:52Z'
+updated_at: '2026-06-17T08:31:32Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -59,4 +59,7 @@ other features make; it starts early as a living draft and closes last.
   - Also: epic itself carries no priority — fine for an umbrella, flagging for consistency. No transitions performed; operator reviews next.
 - [2026-06-11T07:54:51Z] Pierre Chat:
   - Readiness review accepted — definition approved, transitioning the epic, its thirteen features and the two gating bugs (BUG-000021, BUG-000022) to Ready.
+- [2026-06-17T08:31:32Z] Catherine Manager:
+  - Capstone FEAT-000013 (stability contract) is Done and gated — it was the last open feature under this epic; all planned grammar/format-settling features have landed.
+  - Deliberately keeping this epic OPEN, not closing it. 'Road to 1.0' completes when 1.0 is declared, and op-pierre is shipping 0.3.0 first to exercise the contract before committing to 1.0. Remaining gate to 1.0: settle the two pre-freeze reflog questions (REV-000119 F3/F5) and complete real-world testing. Close this epic at the 1.0 cut.
 <!-- sq:discussion:end -->

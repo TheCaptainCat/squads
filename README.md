@@ -145,6 +145,7 @@ Full docs (with diagrams) live in **[docs/](docs/README.md)**:
 - **[roles](docs/roles.md)** — the bundled roster, bundles, and stack developers.
 - **[recipes](docs/recipes.md)** — copy-paste sequences · **[faq](docs/faq.md)** — common errors.
 - **[adoption](docs/adoption.md)** — migrating an existing project (`sq adopt`, `--at`).
+- **[stability](docs/stability.md)** — the 1.0 contract: which surfaces are stable after 1.0 and what each promises.
 - **[internals](docs/internals.md)** / **[backends](docs/backends.md)** — under the hood & writing a backend.
 
 Contributing: **[CONTRIBUTING.md](CONTRIBUTING.md)** · contributors: **[CONTRIBUTORS.md](CONTRIBUTORS.md)** · changes: **[CHANGELOG.md](CHANGELOG.md)**.
