@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 151,
+  "counter": 152,
   "padding": 6,
   "items": {
     "12": {
@@ -1321,7 +1321,7 @@
       ],
       "path": "features/FEAT-000122-per-role-capability-attenuation.md",
       "created_at": "2026-06-15T11:56:09Z",
-      "updated_at": "2026-06-16T09:52:10Z",
+      "updated_at": "2026-06-17T20:12:08Z",
       "extra": {},
       "id": "FEAT-000122"
     },
@@ -5479,6 +5479,28 @@
       "updated_at": "2026-06-17T13:00:48Z",
       "extra": {},
       "id": "BUG-000151"
+    },
+    "152": {
+      "sequence_id": 152,
+      "type": "bug",
+      "title": "Spawned dev subagent self-spawns recursively (cascade up to 6 levels)",
+      "slug": "spawned-dev-subagent-self-spawns-recursively-cascade-up-to-6",
+      "status": "Open",
+      "description": "A spawned specialist re-delegates instead of working, cascading same-role subagents many levels deep",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": "qa",
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000122"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000152-spawned-dev-subagent-self-spawns-recursively-cascade-up-to-6.md",
+      "created_at": "2026-06-17T20:08:34Z",
+      "updated_at": "2026-06-17T20:12:08Z",
+      "extra": {},
+      "id": "BUG-000152"
     }
   }
 }

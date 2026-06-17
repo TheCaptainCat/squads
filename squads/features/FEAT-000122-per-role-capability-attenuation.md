@@ -17,7 +17,7 @@ subentities:
   title: Reviewer role structurally blocked from spawning agents
   status: Todo
 created_at: '2026-06-15T11:56:09Z'
-updated_at: '2026-06-16T09:52:10Z'
+updated_at: '2026-06-17T20:12:08Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -130,4 +130,6 @@ As a reviewer-role agent, I want the system to prevent me from invoking the Agen
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-17T20:12:08Z] Pierre Chat:
+  - Prioritised: real-world incident BUG-000152 (a python-dev subagent self-spawned ~6 levels deep) is the motivating case for this feature — leaf specialists must not carry the Agent/Task spawn tool. Picking this up very soon.
 <!-- sq:discussion:end -->
