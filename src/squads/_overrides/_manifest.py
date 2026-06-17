@@ -55,7 +55,11 @@ def current_template_hash(template_name: str) -> str | None:
         raw = ref.read_bytes()
     except FileNotFoundError, IsADirectoryError:
         return None
-    return hashlib.sha256(raw).hexdigest()
+    # Normalize CRLF → LF before hashing so the digest is identical on Windows
+    # (where git may check out text files as CRLF) and Linux/macOS (LF only).
+    # The manifest was generated from LF content, so normalized bytes must match.
+    normalized = raw.replace(b"\r\n", b"\n")
+    return hashlib.sha256(normalized).hexdigest()
 
 
 def bundled_template_content(template_name: str) -> str | None:

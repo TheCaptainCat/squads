@@ -53,13 +53,18 @@ def _current_version() -> str:
 
 
 def _hash_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    # Normalize CRLF → LF before hashing so the digest is platform-independent.
+    # Windows git may check out .j2 files as CRLF without a .gitattributes; the
+    # runtime hasher applies the same normalization, so the values stay consistent.
+    raw = path.read_bytes()
+    normalized = raw.replace(b"\r\n", b"\n")
+    return hashlib.sha256(normalized).hexdigest()
 
 
 def _collect_hashes() -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in sorted(_TEMPLATES_DIR.rglob("*.md.j2")):
-        rel = str(path.relative_to(_TEMPLATES_DIR))
+        rel = path.relative_to(_TEMPLATES_DIR).as_posix()
         hashes[rel] = _hash_file(path)
     return hashes
 
