@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 148,
+  "counter": 150,
   "padding": 6,
   "items": {
     "12": {
@@ -23,7 +23,7 @@
       "subentities": [],
       "path": "epics/EPIC-000012-road-to-1-0.md",
       "created_at": "2026-06-10T12:40:41Z",
-      "updated_at": "2026-06-11T07:54:52Z",
+      "updated_at": "2026-06-17T08:31:32Z",
       "extra": {},
       "id": "EPIC-000012"
     },
@@ -191,7 +191,7 @@
       "type": "feature",
       "title": "Stability contract documentation",
       "slug": "stability-contract-documentation",
-      "status": "Ready",
+      "status": "Done",
       "description": "docs/stability.md + README tiering the public surfaces and what each promises through 1.0",
       "parent": "EPIC-000012",
       "author": "product-owner",
@@ -203,7 +203,7 @@
         {
           "local_id": "US1",
           "title": "As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -211,7 +211,7 @@
         {
           "local_id": "US2",
           "title": "As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -219,7 +219,7 @@
         {
           "local_id": "US3",
           "title": "As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -227,7 +227,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-16T13:51:18Z",
+      "updated_at": "2026-06-17T08:31:00Z",
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -3814,10 +3814,10 @@
     "141": {
       "sequence_id": 141,
       "type": "decision",
-      "title": "Multi-active agent backends: active_backends list, fan-out, migration, and the check-present rule",
-      "slug": "multi-active-agent-backends-active-backends-list-fan-out-mig",
+      "title": "Multi-active agent backends: active_backends list, fan-out, and the check-present rule",
+      "slug": "multi-active-agent-backends-active-backends-list-fan-out-and",
       "status": "Accepted",
-      "description": "Replace singular default_backend with active_backends: list[str]; fan-out over all active backends; SCHEMA 0.3->0.4 migration; present-only sq check via a new read-only managed_paths ABC probe",
+      "description": "Replace singular default_backend with active_backends: list[str]; fan-out over all active backends; stays on schema 0.3 with NO bump — a legacy default_backend is read transparently as a one-element list (no migration runner); present-only sq check via a new read-only managed_paths ABC probe",
       "parent": null,
       "author": "architect",
       "assignee": null,
@@ -3832,9 +3832,9 @@
         "FEAT-000137"
       ],
       "subentities": [],
-      "path": "adrs/ADR-000141-multi-active-agent-backends-active-backends-list-fan-out-mig.md",
+      "path": "adrs/ADR-000141-multi-active-agent-backends-active-backends-list-fan-out-and.md",
       "created_at": "2026-06-16T09:44:28Z",
-      "updated_at": "2026-06-16T12:43:45Z",
+      "updated_at": "2026-06-17T08:39:11Z",
       "extra": {},
       "id": "ADR-000141"
     },
@@ -5357,6 +5357,106 @@
       "updated_at": "2026-06-16T14:58:51Z",
       "extra": {},
       "id": "REV-000148"
+    },
+    "149": {
+      "sequence_id": 149,
+      "type": "decision",
+      "title": "Post-1.0 schema_version scheme: dotted-string tracking the introducing release",
+      "slug": "post-1-0-schema-version-scheme-dotted-string-tracking-the-in",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000013",
+        "ADR-000076"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000149-post-1-0-schema-version-scheme-dotted-string-tracking-the-in.md",
+      "created_at": "2026-06-17T07:56:27Z",
+      "updated_at": "2026-06-17T08:30:12Z",
+      "extra": {},
+      "id": "ADR-000149"
+    },
+    "150": {
+      "sequence_id": 150,
+      "type": "review",
+      "title": "FEAT-000013 stability contract — independent gate",
+      "slug": "feat-000013-stability-contract-independent-gate",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Ref-kind vocabulary table is WRONG: lists nonexistent kinds, omits real ones",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "F5 (reflog v decoupling) presented as SETTLED in Tier 1, contradicting Open-questions section and the bill",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "References section uses fabricated github.com URLs instead of item-ID references",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "In-body cross-reference anchors are broken — point to heading slugs that do not exist",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "Migration promise not verbatim: inserts 'and beyond' into the AC-pinned sentence",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F6",
+          "title": "ADR-114 remove-vs-cancel + ref-severance contract points not reflected in the doc",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F7",
+          "title": "Official docs must not reference internal squad items or fabricated URLs",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000150-feat-000013-stability-contract-independent-gate.md",
+      "created_at": "2026-06-17T08:03:01Z",
+      "updated_at": "2026-06-17T08:29:38Z",
+      "extra": {},
+      "id": "REV-000150"
     }
   }
 }

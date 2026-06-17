@@ -2,8 +2,8 @@
 id: ADR-000141
 sequence_id: 141
 type: decision
-title: 'Multi-active agent backends: active_backends list, fan-out, migration, and
-  the check-present rule'
+title: 'Multi-active agent backends: active_backends list, fan-out, and the check-present
+  rule'
 status: Accepted
 author: architect
 refs:
@@ -14,10 +14,11 @@ refs:
 - ADR-000133
 - FEAT-000137
 description: 'Replace singular default_backend with active_backends: list[str]; fan-out
-  over all active backends; SCHEMA 0.3->0.4 migration; present-only sq check via a
-  new read-only managed_paths ABC probe'
+  over all active backends; stays on schema 0.3 with NO bump — a legacy default_backend
+  is read transparently as a one-element list (no migration runner); present-only
+  sq check via a new read-only managed_paths ABC probe'
 created_at: '2026-06-16T09:44:28Z'
-updated_at: '2026-06-16T12:43:45Z'
+updated_at: '2026-06-17T08:39:11Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -28,8 +29,11 @@ once (e.g. both `CLAUDE.md` and `AGENTS.md`). This is the schema shape FEAT-0000
 **freeze at 1.0**, so it must be settled now. ADR-000133 already de-Claude-ified the
 `AgentBackend` ABC, so the two backends are symmetric enough to run side by side. This ADR
 resolves FEAT-000137's OQ-2 (single-vs-multiple active) in favour of **multiple-active** and
-fixes the exact mechanics so TASK-000139 (schema + migration) and TASK-000140 (config model +
-runtime fan-out + check) need make no further design calls.
+fixes the exact mechanics so the config-model + runtime-fan-out + check work (TASK-000140)
+need make no further design calls. `active_backends` is part of the **still-in-development
+0.3 schema**, so there is no version bump and no migration runner — a legacy `default_backend`
+is read transparently as a one-element list (see §1); TASK-000139, which would have carried a
+0.3→0.4 migration, is **cancelled as void**.
 
 The decision (replace the singular field; multi-active; empty `[]` valid; check verifies
 active backends present; deactivation = ignore-not-delete) is **already made** — this ADR makes
@@ -53,37 +57,35 @@ it precise and implementable. Two facts established from the code grounded the r
   `NonEmpty`** — empty is a legal value, not a misconfiguration.
 - `[init.names]` and all other fields are unchanged.
 
-### 1. Migration mapping (SCHEMA 0.3 → 0.4)
+### 1. No schema bump — back-compat by transparent read (no migration)
 
-- **Bump `SCHEMA_VERSION` `"0.3"` → `"0.4"`** in `_models/_schema.py` (single source of truth;
-  compare via `schema_tuple`, never raw string).
-- **New runner `_migrations/_v0_3_to_v0_4.py`** with `migrate(paths) -> int` + `MANUAL = ""`
-  (fully automatic), registered in `_migrations/_registry.py::MIGRATIONS` as
-  `Migration(version="0.4.0", from_schema="0.3", to_schema="0.4", summary="…", run=…, manual="")`.
-  It rewrites **`.squads.toml` only** (not item frontmatter); the returned `int` is the count of
-  config files rewritten (0 or 1 for a normal squad).
-- **Mapping rule — be literal about the source key:**
-  - `default_backend = "X"` (any non-empty string) → `active_backends = ["X"]`.
-    In practice the only real value in the wild is `"claude_code"` → `["claude_code"]`.
-  - **Missing or empty `default_backend`** in an old squad → **`active_backends = ["claude_code"]`**,
-    NOT `[]`. Rationale: pre-0.4 there was no way to express "sq-only"; every 0.3 squad had a
-    backend, and the model default was `"claude_code"`. An absent key meant "fell back to the
-    default", i.e. claude_code was active — so the faithful migration preserves that behaviour.
-    `[]` (sq-only) is a *new, deliberate* post-migration choice an operator makes explicitly via
-    FEAT-000137's management commands; the migration must never silently turn an existing
-    agent-file-bearing squad into a sq-only one (that would orphan a `CLAUDE.md` the user relies
-    on). **Empty is reachable only by intent, never by migration.**
-  - If `active_backends` is already present (idempotent re-run / hand-edited), leave it untouched.
-- **Corpus fixture (FEAT-000017 standing rule, `tests/fixtures/corpus/README.md`):**
-  1. Copy current `v0_3` → new `v0_4` (the new *current* schema), stamp its `.squads.toml`
-     `schema_version = "0.4"` and replace `default_backend = "claude_code"` with
-     `active_backends = ["claude_code"]`.
-  2. **Keep `v0_3` as the now-previous from-schema** — its `.squads.toml` must KEEP the singular
-     `default_backend = "claude_code"` (it already does) so the new runner is actually exercised
-     and not vacuous (REV-000130 lesson).
-  3. Add `("0.3", "v0_3")` is already present; add `("0.4", "v0_4")` to `_CORPUS_CASES` in
-     `tests/test_migration_corpus.py` and confirm
-     `test_corpus_migrates_to_current_and_passes_check` is green for every entry.
+`active_backends` ships on **schema 0.3, which is still in development** — so there is **no
+`SCHEMA_VERSION` bump, no migration runner, and no new corpus fixture**. `SCHEMA_VERSION`
+**stays `"0.3"`** in `_models/_schema.py`; there is **no `_migrations/_v0_3_to_v0_4.py`** and
+**no `to_schema="0.4"` entry** in `_migrations/_registry.py`. Both the legacy singular shape
+and the new list shape are valid 0.3 input.
+
+Back-compat is handled instead by a **tolerant read** in `from_toml_dict`
+(`_models/_config.py`), never by rewriting files on disk:
+
+- `default_backend = "X"` (any non-empty string) is read as `active_backends = ["X"]`.
+  In practice the only real value in the wild is `"claude_code"` → `["claude_code"]`.
+- **Missing or empty `default_backend`** is read as **`active_backends = ["claude_code"]`**,
+  NOT `[]`. Rationale: there was no way to express "sq-only" before this shape; every existing
+  squad had a backend, and the model default was `"claude_code"`. An absent key meant "fell
+  back to the default", i.e. claude_code was active — so the faithful read preserves that
+  behaviour. `[]` (sq-only) is a **new, deliberate** choice an operator makes explicitly
+  (`sq init --backend none`, or FEAT-000137's management commands), so we never silently turn
+  an existing agent-file-bearing squad into a sq-only one (that would orphan a `CLAUDE.md` the
+  user relies on). **Empty is reachable only by intent, never implicitly.**
+- If `active_backends` is already present, it is used as-is (a present `default_backend` is
+  discarded). The read is idempotent.
+
+This means there is **nothing to run**: an existing 0.3 `.squads.toml` with a singular
+`default_backend` loads transparently and `sq check` passes against it unchanged — no
+`sq migrate up` required. (The existing 0.2→0.3 migration already yields a canonical
+`active_backends` list via the schema-stamp `to_toml()` re-serialization; TASK-000147 pinned
+that path with a canonical v0_3 corpus fixture, so no new fixture was owed here.)
 
 ### 2. Order & dedup
 
@@ -183,8 +185,23 @@ in this feature.** Active removal/cleanup (`sq backend remove`) is the post-1.0 
 ## Decision status
 
 Accepted (op-pierre's call; this ADR fixes the mechanics). `@python-dev` implements via
-TASK-000139 (schema + migration + corpus) then TASK-000140 (config model + fan-out + init/adopt +
-the `managed_paths` probe + check rule).
+TASK-000140 (config model + back-compat read + fan-out + init/adopt + the `managed_paths` probe +
+check rule). TASK-000139 (the 0.3→0.4 migration half) is **cancelled as void** — see the
+correction note.
+
+## Correction note
+
+This body was **corrected post-hoc** to the shipped no-bump reality. As first written, §1 and the
+title/summary described a `SCHEMA 0.3 → 0.4` migration (a `SCHEMA_VERSION` bump, a
+`_migrations/_v0_3_to_v0_4.py` runner, and a v0_4 corpus fixture). That framing was **abandoned**
+with op-pierre's no-0.4 decision (recorded in this ADR's discussion): 0.3 was still in development,
+so `active_backends` became part of 0.3 with **no version bump and no migration**, and back-compat
+is handled by the transparent read in §1 instead. The **decision** this ADR records was
+implemented; only the migration *mechanics* it originally described were dropped. TASK-000139, the
+migration task, was **cancelled as void**. This edit keeps the record honest about what shipped;
+all other rulings (config-model shape, order/dedup, repeatable `--backend` + `none` sentinel, the
+`managed_paths` probe + present-only check rule, deactivation-ignore, consequences) stand
+unchanged. Status remains **Accepted**.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -192,4 +209,6 @@ the `managed_paths` probe + check rule).
 <!-- sq:discussion -->
 - [2026-06-16T12:43:45Z] Catherine Manager:
   - Override (op-pierre, 2026-06-16): ADR-141's 0.3→0.4 schema bump + _v0_3_to_v0_4 migration are NOT applied — 0.3 is still in development, so active_backends is part of 0.3 with no version bump and no migration; the config reads legacy default_backend transparently. All other ADR-141 rulings stand and are implemented (list shape, dedup, order-insignificance, repeatable --backend + none sentinel, present-only check via the managed_paths probe).
+- [2026-06-17T08:39:11Z] Robert Architect:
+  - Corrected the stale 0.3→0.4 migration framing in this ADR's body to the shipped no-bump reality (mirrors the FEAT-000138 correction in commit 6538396). Title and summary no longer claim a migration; §1 was rewritten from 'Migration mapping (SCHEMA 0.3 → 0.4)' to 'No schema bump — back-compat by transparent read (no migration)'; the Context sentence about TASK-000139 making 'no further design calls' was reframed; added a Correction note. Verified against code: SCHEMA_VERSION stays 0.3, no _v0_3_to_v0_4 runner, no to_schema=0.4 in the registry, and _config.py reads legacy default_backend transparently as a one-element active_backends list. The decision itself was implemented and stands; only the abandoned migration mechanics were corrected. Status kept Accepted. TASK-000139 confirmed Cancelled. sq check clean.
 <!-- sq:discussion:end -->
