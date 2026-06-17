@@ -6,7 +6,104 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-06-17
+## [0.4.0] - 2026-06-17
+
+### Added
+
+- **Uniform item addressing.** Every command accepts both the full formatted ID (`TASK-000035`) and
+  the bare sequence number (`35`); the type word validates it, so there is no ambiguity.
+  `sq <type> <number> <verb> …` works identically whether you pass `35`, `000035`, or `TASK-000035`.
+- **Typed ref-kind vocabulary.** Forward references now carry a validated kind chosen from eight
+  closed terms: `related`, `blocks`, `depends-on`, `implements`, `fixes`, `addresses`, `supersedes`,
+  `duplicates`. Unknown kinds are rejected at set-time; consumers validate that the kind makes sense
+  for the edge (e.g. only a task/bug can `implements` a feature, only a task can `addresses` a
+  decision).
+- **Explicit ID padding stored in the index.** All ID formatting goes through a single formatter
+  driven by a padding width stored in `.squads.json`; `sq migrate repad <width>` is a one-way command
+  that renames every item file to the new width and rebuilds the index with contents byte-untouched.
+  ID reads are width-tolerant by sequence number, so old and new padding can coexist during
+  migration. An exhaustion guard checks the index for capacity under the new width.
+- **Type-command aliases in the CLI grammar.** Shorthand aliases provide full verb and sub-entity
+  equivalence with the canonical form: `e` (epic), `feat`/`f` (feature), `t` (task), `b` (bug),
+  `dec`/`d` (decision), `rev`/`r` (review), `g` (guide). Aliases render into the workflow cheatsheet
+  with an add-only evolution rule to preserve documentation stability.
+- **`sq <type> <n> retype <new-type>`** — flip an item's type while preserving its sequence number as
+  durable identity. The file is moved, incoming edges are rewritten, and the entire operation is
+  atomic inside the index lock. Useful when an issue is initially misfiled.
+- **Sanctioned item removal — `sq <type> <n> remove`** hard-deletes the item file, unlinks it from
+  the index, and updates `.squads.json` atomically. Pass `--force` to sever incoming references; by
+  default, removal is rejected if anything points to the item. IDs are never reused, so a gap in the
+  sequence is a normal artifact of removal.
+- **Operation reflog — `<squad>/.reflog.jsonl`** is an append-only log written after every index
+  commit inside the lock (logged-without-applied impossible; applied-without-logged tolerated under
+  crash). Entries record the actor (ambient per-invocation), the operation (create/update/remove/…),
+  item(s) affected, and a timestamp. An `sq reflog` reader tolerates partial lines and filters by
+  type/actor. The reflog is advisory (not a source of truth) and gitignored per-clone.
+- **Project-level overrides — `.overrides/templates/` and `.overrides/roles/`** let squads customize
+  the generated item templates and role definitions without forking the package. A stamped update
+  workflow (`sq override scaffold/diff/update/list`) detects drift from the release version and
+  manages upgrades; the CLI rejects any override at load-time if its stamp is newer than the release
+  (unknown future version). Template and role manifests are generated and shipped with every release.
+  Agent naming via overrides is supported.
+- **Frozen machine-readable surface — `--json` on every read command** emits valid JSON; the CLI
+  documents its exit-code table (0: success, 1: squads runtime error, 2: usage error, 3: check failure) and all
+  JSON shapes are golden-file tested. This gives agents and scripts a stable contract to consume.
+- **Shell completion enabled and verified for bash and zsh** via the entry-point shim. Completion
+  works out of the box after install and is documented in the README.
+- **Second agent backend — a generic `AGENTS.md` backend** proves the `AgentBackend` ABC is honest
+  before the 1.0 freeze. The de-Claude-ified ABC (`generate_*_entry` instead of pointer-specific
+  names, backend-owned root files via `ctx.root` instead of hard-coded `claude_dir`) works for both
+  the Claude Code backend and the new AGENTS.md backend; both pass a shared conformance suite. The
+  agents_md backend renders roster, workflow, and role missions into a single idempotent,
+  marker-safe `AGENTS.md`.
+- **Multi-active agent backends.** `.squads.toml` now carries `active_backends: [list]` instead of a
+  singular `default_backend`; a squad maintains zero or more backends at once. Sync / scaffold /
+  check / roster / regen / remove fan out over every active backend. An empty list is valid (a
+  squad-only mode with no agent files). Legacy configs with singular `default_backend` read
+  transparently as a single-element list — no breaking change for users. `sq init --backend` is
+  repeatable with a `none` sentinel for empty; the list is deduped on first-occurrence.
+- **Bugs get a real lifecycle.** A new bug-specific workflow (`Open → InProgress → Fixed → Verified`,
+  terminal states `WontFix` / `Cancelled`) replaces the generic machine. Status-setting is validated
+  against the type's workflow at set-time (independent of `--force`, which relaxes only the edge,
+  never the vocabulary). This closes the prior hole that let bugs reach invalid statuses.
+- **Stability contract — `docs/stability.md`** and `sq docs stability` tiers five public surfaces
+  — durable `.md` format, CLI grammar, `--json` shapes, Python import paths (not public), and
+  generated `.claude/` files — and states the migration promise: any squad created on any 0.x
+  release reaches 1.0 intact via `sq migrate up`. The schema version post-1.0 follows a dotted-string
+  scheme (the release that introduced it), and post-1.0 schema bumps ride the MAJOR version.
+- **Rendered `sq show` output** displays items as markdown panes (title, summary, body, metadata
+  badges) with a `--full` dossier (frontmatter fields in a sidebar) and `--comments` facet (full
+  discussion thread). Sub-entity `show` (e.g. `sq feature 12 story 1 show`) renders the block
+  (heading, state badges, body, discussion). This is the canonical read for an agent briefing on an
+  item before acting on it.
+- **Python >= 3.14 is now required.** The floor is PEP 649 lazy annotations (Python 3.14+) so
+  forward references work unquoted in type hints. This is a deliberate architecture choice to keep
+  the import graph acyclic and annotation handling simple.
+
+### Changed
+
+- **Bug lifecycle introduces per-type status validation.** Status-setting is now validated against the
+  item type's workflow at set-time, independent of `--force` (which relaxes only the edge, never the
+  vocabulary).
+
+### Fixed
+
+- **`sq check` no longer flags operator authors/assignees.** The check validated `author`/`assignee`
+  against registered *roles* only, while the write gate accepts roles **or operators** — so any
+  operator-authored item drew a bogus `not a registered agent` warning. The check now uses the same
+  participant set as the gate.
+- **Marker injection is now guarded.** Comments and sub-entity titles are scanned for sq marker tags
+  (`<!-- sq:* -->`) at set-time and rejected if found, preventing users from breaking the parsing
+  machinery via a quoted marker in a comment or title.
+- **Stale inbox mentions are cleared.** Accepted decisions and published guides are terminal; they
+  now leave the work views (`sq inbox <role>`) so agents don't revisit settled items looking for an
+  update that won't come.
+
+### Migration
+
+**No migration required — `schema_version` stays `0.3`** (this release introduces no on-disk format change).
+
+## [0.3.0] - 2026-06-10
 
 ### Added
 
@@ -86,75 +183,6 @@ All notable changes to this project are documented here. The format follows
   — **matching the human's tone** ("Hello Robert" → "Good morning, Pierre"; "Hi Mara!" → "Hey
   Pierre!"), saying how they can help, and giving a quick read of the project. Subagents spawned for
   internal work skip the greeting. (Preloaded alongside `squads` for all roles.)
-- **Uniform item addressing.** Every command accepts both the full formatted ID (`TASK-000035`) and
-  the bare sequence number (`35`); the type word validates it, so there is no ambiguity.
-  `sq <type> <number> <verb> …` works identically whether you pass `35`, `000035`, or `TASK-000035`.
-- **Typed ref-kind vocabulary.** Forward references now carry a validated kind chosen from eight
-  closed terms: `related`, `blocks`, `depends-on`, `implements`, `fixes`, `addresses`, `supersedes`,
-  `duplicates`. Unknown kinds are rejected at set-time; consumers validate that the kind makes sense
-  for the edge (e.g. only a task/bug can `implements` a feature, only a task can `addresses` a
-  decision).
-- **Explicit ID padding stored in the index.** All ID formatting goes through a single formatter
-  driven by a padding width stored in `.squads.json`; `sq migrate repad <width>` is a one-way command
-  that renames every item file to the new width and rebuilds the index with contents byte-untouched.
-  ID reads are width-tolerant by sequence number, so old and new padding can coexist during
-  migration. An exhaustion guard checks the index for capacity under the new width.
-- **Type-command aliases in the CLI grammar.** Shorthand aliases provide full verb and sub-entity
-  equivalence with the canonical form: `e` (epic), `feat`/`f` (feature), `t` (task), `b` (bug),
-  `dec`/`d` (decision), `rev`/`r` (review), `g` (guide). Aliases render into the workflow cheatsheet
-  with an add-only evolution rule to preserve documentation stability.
-- **`sq <type> <n> retype <new-type>`** — flip an item's type while preserving its sequence number as
-  durable identity. The file is moved, incoming edges are rewritten, and the entire operation is
-  atomic inside the index lock. Useful when an issue is initially misfiled.
-- **Sanctioned item removal — `sq <type> <n> remove`** hard-deletes the item file, unlinks it from
-  the index, and updates `.squads.json` atomically. Pass `--force` to sever incoming references; by
-  default, removal is rejected if anything points to the item. IDs are never reused, so a gap in the
-  sequence is a normal artifact of removal.
-- **Operation reflog — `<squad>/.reflog.jsonl`** is an append-only log written after every index
-  commit inside the lock (logged-without-applied impossible; applied-without-logged tolerated under
-  crash). Entries record the actor (ambient per-invocation), the operation (create/update/remove/…),
-  item(s) affected, and a timestamp. An `sq reflog` reader tolerates partial lines and filters by
-  type/actor. The reflog is advisory (not a source of truth) and gitignored per-clone.
-- **Project-level overrides — `.overrides/templates/` and `.overrides/roles/`** let squads customize
-  the generated item templates and role definitions without forking the package. A stamped update
-  workflow (`sq override scaffold/diff/update/list`) detects drift from the release version and
-  manages upgrades; the CLI rejects any override at load-time if its stamp is newer than the release
-  (unknown future version). Template and role manifests are generated and shipped with every release.
-  Agent naming via overrides is supported.
-- **Frozen machine-readable surface — `--json` on every read command** emits valid JSON; the CLI
-  documents its exit-code table (0: success, 1: squads runtime error, 2: usage error, 3: check failure) and all
-  JSON shapes are golden-file tested. This gives agents and scripts a stable contract to consume.
-- **Shell completion enabled and verified for bash and zsh** via the entry-point shim. Completion
-  works out of the box after install and is documented in the README.
-- **Second agent backend — a generic `AGENTS.md` backend** proves the `AgentBackend` ABC is honest
-  before the 1.0 freeze. The de-Claude-ified ABC (`generate_*_entry` instead of pointer-specific
-  names, backend-owned root files via `ctx.root` instead of hard-coded `claude_dir`) works for both
-  the Claude Code backend and the new AGENTS.md backend; both pass a shared conformance suite. The
-  agents_md backend renders roster, workflow, and role missions into a single idempotent,
-  marker-safe `AGENTS.md`.
-- **Multi-active agent backends.** `.squads.toml` now carries `active_backends: [list]` instead of a
-  singular `default_backend`; a squad maintains zero or more backends at once. Sync / scaffold /
-  check / roster / regen / remove fan out over every active backend. An empty list is valid (a
-  squad-only mode with no agent files). Legacy configs with singular `default_backend` read
-  transparently as a single-element list — no breaking change for users. `sq init --backend` is
-  repeatable with a `none` sentinel for empty; the list is deduped on first-occurrence.
-- **Bugs get a real lifecycle.** A new bug-specific workflow (`Open → InProgress → Fixed → Verified`,
-  terminal states `WontFix` / `Cancelled`) replaces the generic machine. Status-setting is validated
-  against the type's workflow at set-time (independent of `--force`, which relaxes only the edge,
-  never the vocabulary). This closes the prior hole that let bugs reach invalid statuses.
-- **Stability contract — `docs/stability.md`** and `sq docs stability` tiers five public surfaces
-  — durable `.md` format, CLI grammar, `--json` shapes, Python import paths (not public), and
-  generated `.claude/` files — and states the migration promise: any squad created on any 0.x
-  release reaches 1.0 intact via `sq migrate up`. The schema version post-1.0 follows a dotted-string
-  scheme (the release that introduced it), and post-1.0 schema bumps ride the MAJOR version.
-- **Rendered `sq show` output** displays items as markdown panes (title, summary, body, metadata
-  badges) with a `--full` dossier (frontmatter fields in a sidebar) and `--comments` facet (full
-  discussion thread). Sub-entity `show` (e.g. `sq feature 12 story 1 show`) renders the block
-  (heading, state badges, body, discussion). This is the canonical read for an agent briefing on an
-  item before acting on it.
-- **Python >= 3.14 is now required.** The floor is PEP 649 lazy annotations (Python 3.14+) so
-  forward references work unquoted in type hints. This is a deliberate architecture choice to keep
-  the import graph acyclic and annotation handling simple.
 - **Operators — humans as first-class participants.** A new `operator` item type represents the
   people who work on the project (slug `op-<firstname>`). Register them with `sq operator add
   "<name>"` (`list`/`rm` too); an `op-` slug is then a valid `--author`/`--assignee` on items and
@@ -233,16 +261,6 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
-- **`sq check` no longer flags operator authors/assignees.** The check validated `author`/`assignee`
-  against registered *roles* only, while the write gate accepts roles **or operators** — so any
-  operator-authored item drew a bogus `not a registered agent` warning. The check now uses the same
-  participant set as the gate.
-- **Marker injection is now guarded.** Comments and sub-entity titles are scanned for sq marker tags
-  (`<!-- sq:* -->`) at set-time and rejected if found, preventing users from breaking the parsing
-  machinery via a quoted marker in a comment or title.
-- **Stale inbox mentions are cleared.** Accepted decisions and published guides are terminal; they
-  now leave the work views (`sq inbox <role>`) so agents don't revisit settled items looking for an
-  update that won't come.
 - **Global `--at` / `--dir` now work after the subcommand too** (e.g. `sq create task "X" --at
   2024-01-01`), not only before it. They're hoisted to the front at the entry point, so position no
   longer matters.
@@ -327,7 +345,8 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
-[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/TheCaptainCat/squads/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/TheCaptainCat/squads/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/TheCaptainCat/squads/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/TheCaptainCat/squads/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/TheCaptainCat/squads/compare/v0.1.0...v0.1.1

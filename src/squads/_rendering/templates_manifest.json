@@ -1,5 +1,5 @@
 {
-  "0.3.0": {
+  "0.4.0": {
     "agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",
     "agents/item_skill.md.j2": "329fdd9afb50df913d274968ef37e7367dfe1a3e499b77ae8afd7d26c68c34b4",
     "agents/operator.md.j2": "5f2b6962dc47cd36983a9140e8fa310f58d4ec6746a6597c4a473edf5c22fc11",
