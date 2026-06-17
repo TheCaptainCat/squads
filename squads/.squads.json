@@ -5463,7 +5463,7 @@
       "type": "bug",
       "title": "Windows CI: override path separators, template-hash CRLF, and init prompt abort",
       "slug": "windows-ci-override-path-separators-template-hash-crlf-and-i",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "manager",
@@ -5476,7 +5476,7 @@
       "subentities": [],
       "path": "bugs/BUG-000151-windows-ci-override-path-separators-template-hash-crlf-and-i.md",
       "created_at": "2026-06-17T12:37:46Z",
-      "updated_at": "2026-06-17T12:48:46Z",
+      "updated_at": "2026-06-17T13:00:48Z",
       "extra": {},
       "id": "BUG-000151"
     }
