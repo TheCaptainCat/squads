@@ -19,13 +19,13 @@ from squads._workflow import is_open
 
 
 class RefsMixin(ServiceCore):
-    def add_ref(self, from_id: str, to_id: str, *, kind: str = DEFAULT_KIND) -> Item:
+    async def add_ref(self, from_id: str, to_id: str, *, kind: str = DEFAULT_KIND) -> Item:
         if from_id == to_id:
             raise SquadsError("an item cannot reference itself")
         if kind not in VALID_REF_KINDS:
             valid = ", ".join(sorted(VALID_REF_KINDS))
             raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             src = require_item(db, from_id)
             tgt = require_item(db, to_id)
             # The kind rides with the edge; re-adding an existing edge updates its kind.
@@ -39,7 +39,7 @@ class RefsMixin(ServiceCore):
             ]
             src.refs.append(make_ref(to_id, kind))
             src.updated_at = clock.now()
-            update_frontmatter(item_file(self.paths, src), src)
+            await update_frontmatter(item_file(self.paths, src), src)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "ref",
                 src.id,
@@ -47,8 +47,8 @@ class RefsMixin(ServiceCore):
             )
         return src
 
-    def rm_ref(self, from_id: str, to_id: str) -> Item:
-        with self.store.transaction() as db:
+    async def rm_ref(self, from_id: str, to_id: str) -> Item:
+        async with self.store.transaction() as db:
             src = require_item(db, from_id)
             # Determine (prefix, seq) from the caller's to_id — width-tolerant: the stored
             # ref may carry an old width, the to_id may carry the new width.
@@ -63,7 +63,7 @@ class RefsMixin(ServiceCore):
                 # Bare number or malformed — fall back to literal string comparison.
                 src.refs = [r for r in src.refs if split_ref(r)[0] != to_id]
             src.updated_at = clock.now()
-            update_frontmatter(item_file(self.paths, src), src)
+            await update_frontmatter(item_file(self.paths, src), src)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "ref",
                 src.id,
@@ -71,17 +71,17 @@ class RefsMixin(ServiceCore):
             )
         return src
 
-    def refs_out(self, item_id: str) -> list[tuple[str, str]]:
-        return [split_ref(r) for r in self.get(item_id).refs]
+    async def refs_out(self, item_id: str) -> list[tuple[str, str]]:
+        return [split_ref(r) for r in (await self.get(item_id)).refs]
 
-    def refs_in(self, item_id: str) -> list[tuple[str, str]]:
+    async def refs_in(self, item_id: str) -> list[tuple[str, str]]:
         """Backrefs computed by inverting forward edges (never stored).
 
         Comparison is by (prefix, seq) so old-width ref strings (``"TASK-000007"``) and
         new-width item IDs (``"TASK-0000007"``) match correctly after a ``sq migrate repad``
         (file contents are never rewritten, so refs keep their original width).
         """
-        db = self.store.load()
+        db = await self.store.load()
         target = require_item(db, item_id)
         target_prefix = PREFIX_BY_TYPE[target.type]
         target_seq = target.sequence_id
@@ -93,7 +93,7 @@ class RefsMixin(ServiceCore):
                     out.append((it.id, kind))
         return sorted(out, key=lambda p: number_for_id(p[0]))
 
-    def blocked(self) -> list[tuple[Item, list[Item]]]:
+    async def blocked(self) -> list[tuple[Item, list[Item]]]:
         """Open items with ≥1 open blocker, paired with those blockers.
 
         Two equivalent spellings are supported:
@@ -105,7 +105,7 @@ class RefsMixin(ServiceCore):
         Both spellings are consumed identically. An item blocked through both edges is
         deduplicated — it appears once with the union of its open blockers.
         """
-        db = self.store.load()
+        db = await self.store.load()
         # keyed by the blocked item's id; value is a set of blocker ids (dedup)
         blockers_by_target: dict[str, set[str]] = {}
         for it in db.items.values():

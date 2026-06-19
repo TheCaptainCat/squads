@@ -229,7 +229,7 @@ def test_subtask_body_cli(runner, tmp_path, monkeypatch, frozen_time):
     assert "Born with a body." in runner.invoke(app, ["task", "2", "subtask", "2", "show"]).output
 
 
-def test_resolve_item_id_typed(svc):
+async def test_resolve_item_id_typed(svc):
     """Service-level: typed resolver verifies actual DB type; both-forms errors.
 
     Also covers the lexical-parsing layer (bare number, zero-padded, full ID, case-insensitive
@@ -240,88 +240,88 @@ def test_resolve_item_id_typed(svc):
     from squads._models._enums import ItemType
 
     # create a feature (seq 2 — ROLE-000001 is seq 1 from init --roles minimal)
-    svc.create(ItemType.FEATURE, "Feat A", author="manager")  # FEAT-000002
+    await svc.create(ItemType.FEATURE, "Feat A", author="manager")  # FEAT-000002
 
     # bare number resolves to the feature
-    assert resolve_item_id_typed("2", ItemType.FEATURE, svc) == "FEAT-000002"
+    assert await resolve_item_id_typed("2", ItemType.FEATURE, svc) == "FEAT-000002"
 
     # zero-padded bare number resolves to the feature
-    assert resolve_item_id_typed("000002", ItemType.FEATURE, svc) == "FEAT-000002"
+    assert await resolve_item_id_typed("000002", ItemType.FEATURE, svc) == "FEAT-000002"
 
     # full ID resolves to the feature
-    assert resolve_item_id_typed("FEAT-000002", ItemType.FEATURE, svc) == "FEAT-000002"
+    assert await resolve_item_id_typed("FEAT-000002", ItemType.FEATURE, svc) == "FEAT-000002"
 
     # case-insensitive prefix
-    assert resolve_item_id_typed("feat-2", ItemType.FEATURE, svc) == "FEAT-000002"
+    assert await resolve_item_id_typed("feat-2", ItemType.FEATURE, svc) == "FEAT-000002"
 
     # bare number that belongs to a feature, asked as a task → type-mismatch error
     # (F1) both forms produce the same shape: "<token> is FEAT-000002 (feature), not a task"
     with pytest.raises(SquadsError, match=r"2 is FEAT-000002 \(feature\), not a task"):
-        resolve_item_id_typed("2", ItemType.TASK, svc)
+        await resolve_item_id_typed("2", ItemType.TASK, svc)
 
     # full ID with wrong prefix → same shape as bare-number mismatch (F1 fix)
     with pytest.raises(SquadsError, match=r"FEAT-000002 is FEAT-000002 \(feature\), not a task"):
-        resolve_item_id_typed("FEAT-000002", ItemType.TASK, svc)
+        await resolve_item_id_typed("FEAT-000002", ItemType.TASK, svc)
 
     # unknown bare number → error mentioning both forms (F2)
     with pytest.raises(
         SquadsError,
         match=r"no item with number 99 \(use TASK-000099 or bare 99\)",
     ):
-        resolve_item_id_typed("99", ItemType.TASK, svc)
+        await resolve_item_id_typed("99", ItemType.TASK, svc)
 
     # unknown full ID → same wording mentioning both forms (F2)
     with pytest.raises(
         SquadsError,
         match=r"no item with number 99 \(use TASK-000099 or bare 99\)",
     ):
-        resolve_item_id_typed("TASK-000099", ItemType.TASK, svc)
+        await resolve_item_id_typed("TASK-000099", ItemType.TASK, svc)
 
     # invalid token → uses shared error (F3)
     with pytest.raises(SquadsError, match="invalid item id"):
-        resolve_item_id_typed("abc", ItemType.TASK, svc)
+        await resolve_item_id_typed("abc", ItemType.TASK, svc)
 
 
-def test_resolve_item_id_any(svc):
+async def test_resolve_item_id_any(svc):
     """Service-level: type-less resolver resolves bare number or full ID regardless of type."""
     from squads._cli._common import resolve_item_id_any  # pyright: ignore[reportPrivateUsage]
     from squads._errors import SquadsError
     from squads._models._enums import ItemType
 
-    svc.create(ItemType.FEATURE, "Feat B", author="manager")  # FEAT-000002
-    svc.create(ItemType.TASK, "Task C", author="manager")  # TASK-000003
+    await svc.create(ItemType.FEATURE, "Feat B", author="manager")  # FEAT-000002
+    await svc.create(ItemType.TASK, "Task C", author="manager")  # TASK-000003
 
     # bare number resolves to feature
-    assert resolve_item_id_any("2", svc) == "FEAT-000002"
+    assert await resolve_item_id_any("2", svc) == "FEAT-000002"
 
     # bare number resolves to task
-    assert resolve_item_id_any("3", svc) == "TASK-000003"
+    assert await resolve_item_id_any("3", svc) == "TASK-000003"
 
     # full IDs work too
-    assert resolve_item_id_any("FEAT-000002", svc) == "FEAT-000002"
-    assert resolve_item_id_any("TASK-000003", svc) == "TASK-000003"
+    assert await resolve_item_id_any("FEAT-000002", svc) == "FEAT-000002"
+    assert await resolve_item_id_any("TASK-000003", svc) == "TASK-000003"
 
     # mismatched prefix on a full ID → names actual item+type (F1/F2 consistent)
     with pytest.raises(SquadsError, match=r"TASK-000002 is FEAT-000002 \(feature\)"):
-        resolve_item_id_any("TASK-000002", svc)
+        await resolve_item_id_any("TASK-000002", svc)
 
     # unknown number → mentions both forms (F2): "use a full ID like TYPE-... or bare N"
     with pytest.raises(
         SquadsError,
         match=r"no item with number 99 \(use a full ID like TYPE-000099 or bare 99\)",
     ):
-        resolve_item_id_any("99", svc)
+        await resolve_item_id_any("99", svc)
 
     # unknown full ID → same wording (F2)
     with pytest.raises(
         SquadsError,
         match=r"no item with number 99 \(use a full ID like TYPE-000099 or bare 99\)",
     ):
-        resolve_item_id_any("TASK-000099", svc)
+        await resolve_item_id_any("TASK-000099", svc)
 
     # invalid token (F3: shared _parse_item_token error)
     with pytest.raises(SquadsError, match="invalid item id"):
-        resolve_item_id_any("abc", svc)
+        await resolve_item_id_any("abc", svc)
 
 
 def test_item_verb_type_enforcement(runner, tmp_path, monkeypatch, frozen_time):
@@ -617,20 +617,20 @@ def test_dir_override(runner, tmp_path, monkeypatch, frozen_time):
 # --------------------------------------------------------------------------- counter monotonicity
 
 
-def test_repair_cli_holds_counter_after_file_loss(project, runner, frozen_time):
+async def test_repair_cli_holds_counter_after_file_loss(project, invoke, frozen_time):
     """sq repair reports missing items and holds the counter when the top file is deleted."""
     # Create two items so counter reaches 3 (ROLE-000001 + FEAT-000002 + TASK-000003).
     from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    svc.create(ItemType.FEATURE, "feat")  # FEAT-000002
-    top = svc.create(ItemType.TASK, "task").item  # TASK-000003
+    await svc.create(ItemType.FEATURE, "feat")  # FEAT-000002
+    top = (await svc.create(ItemType.TASK, "task")).item  # TASK-000003
 
     # Delete the top item's file.
     svc.paths.abspath(top.path).unlink()
 
-    r = runner.invoke(app, ["repair"])
+    r = await invoke(["repair"])
     assert r.exit_code == 0, r.output
     # Counter must stay at 3 (not drop to 2).
     assert "counter=3" in r.output, f"expected counter=3 in output: {r.output!r}"
@@ -638,7 +638,7 @@ def test_repair_cli_holds_counter_after_file_loss(project, runner, frozen_time):
     assert top.id in r.output
 
 
-def test_check_cli_flags_index_item_with_no_file(project, runner, frozen_time):
+async def test_check_cli_flags_index_item_with_no_file(project, invoke, frozen_time):
     """sq check exits 3 and flags items in the index whose files are gone."""
     import json
 
@@ -646,7 +646,7 @@ def test_check_cli_flags_index_item_with_no_file(project, runner, frozen_time):
     from squads._services._service import Service
 
     svc = Service(project)
-    svc.create(ItemType.TASK, "real task")  # TASK-000002
+    await svc.create(ItemType.TASK, "real task")  # TASK-000002
 
     # Inject a ghost item into the index (no file on disk).
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
@@ -664,7 +664,7 @@ def test_check_cli_flags_index_item_with_no_file(project, runner, frozen_time):
     raw["counter"] = 99
     svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
 
-    r = runner.invoke(app, ["check"])
+    r = await invoke(["check"])
     assert r.exit_code == 3, r.output
     assert "TASK-000099" in r.output
     assert "no markdown" in r.output
@@ -1209,7 +1209,7 @@ def test_check_json_clean(runner, tmp_path, monkeypatch, frozen_time):
     assert data == []
 
 
-def test_check_json_with_issues(project, runner, frozen_time):
+async def test_check_json_with_issues(project, invoke, frozen_time):
     """sq check --json emits [{level, item, message}] and exits 3 when errors are present."""
     from squads._services._service import Service
 
@@ -1231,7 +1231,7 @@ def test_check_json_with_issues(project, runner, frozen_time):
     raw["counter"] = 99
     svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
 
-    r = runner.invoke(app, ["check", "--json"])
+    r = await invoke(["check", "--json"])
     assert r.exit_code == 3, r.output
     data = json.loads(r.output)
     assert len(data) >= 1
@@ -1469,7 +1469,7 @@ def test_exit_code_2_invalid_at_timestamp(runner, tmp_path, monkeypatch, frozen_
     assert r.exit_code == 2, r.output
 
 
-def test_exit_code_3_check_error_level_issue(project, runner, frozen_time):
+async def test_exit_code_3_check_error_level_issue(project, invoke, frozen_time):
     """Exit 3: sq check exits 3 when at least one error-level issue is present."""
     from squads._services._service import Service
 
@@ -1491,12 +1491,12 @@ def test_exit_code_3_check_error_level_issue(project, runner, frozen_time):
     raw["counter"] = 99
     svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
 
-    r = runner.invoke(app, ["check"])
+    r = await invoke(["check"])
     assert r.exit_code == 3, r.output
     assert "TASK-000099" in r.output
 
 
-def test_exit_code_3_check_json_error_level_issue(project, runner, frozen_time):
+async def test_exit_code_3_check_json_error_level_issue(project, invoke, frozen_time):
     """Exit 3: sq check --json also exits 3 on error-level issues."""
     from squads._services._service import Service
 
@@ -1517,7 +1517,7 @@ def test_exit_code_3_check_json_error_level_issue(project, runner, frozen_time):
     raw["counter"] = 99
     svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
 
-    r = runner.invoke(app, ["check", "--json"])
+    r = await invoke(["check", "--json"])
     assert r.exit_code == 3, r.output
     data = json.loads(r.output)
     assert any(issue["level"] == "error" for issue in data)
@@ -1526,13 +1526,13 @@ def test_exit_code_3_check_json_error_level_issue(project, runner, frozen_time):
 # --------------------------------------------------------------------------- padding / FEAT-000027
 
 
-def test_repair_cli_holds_padding_after_file_loss(project, runner, frozen_time):
+async def test_repair_cli_holds_padding_after_file_loss(project, invoke, frozen_time):
     """sq repair preserves the stored padding floor even when item files are deleted."""
     from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    top = svc.create(ItemType.TASK, "task").item
+    top = (await svc.create(ItemType.TASK, "task")).item
 
     # Bump padding to 7 in the index to simulate a post-repad squad.
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
@@ -1542,13 +1542,13 @@ def test_repair_cli_holds_padding_after_file_loss(project, runner, frozen_time):
     # Delete the task file so the corpus recompute would give width 6.
     svc.paths.abspath(top.path).unlink()
 
-    r = runner.invoke(app, ["repair"])
+    r = await invoke(["repair"])
     assert r.exit_code == 0, r.output
     # Padding must stay at 7 (floor from stored value, not regressed to 6).
-    assert svc.store.load().padding == 7
+    assert (await svc.store.load()).padding == 7
 
 
-def test_create_cli_exits_1_when_index_full(project, runner, frozen_time):
+async def test_create_cli_exits_1_when_index_full(project, invoke, frozen_time):
     """sq create exits 1 with the index-full message naming sq migrate repad at capacity."""
     from squads._services._service import Service
 
@@ -1558,27 +1558,27 @@ def test_create_cli_exits_1_when_index_full(project, runner, frozen_time):
     raw["counter"] = 10**6 - 1
     svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
 
-    r = runner.invoke(app, ["create", "task", "overflow task", "--author", "manager"])
+    r = await invoke(["create", "task", "overflow task", "--author", "manager"])
     assert r.exit_code == 1, r.output
     assert "sq migrate repad" in r.output
 
 
-def test_migrate_repad_cli(project, runner, frozen_time):
+async def test_migrate_repad_cli(project, invoke, frozen_time):
     """sq migrate repad <width> renames files, prints summary, exits 0."""
     from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    svc.create(ItemType.TASK, "task one")
+    await svc.create(ItemType.TASK, "task one")
 
-    r = runner.invoke(app, ["migrate", "repad", "7"])
+    r = await invoke(["migrate", "repad", "7"])
     assert r.exit_code == 0, r.output
     assert "repad done" in r.output
     assert "6 → 7" in r.output
     assert "sq check" in r.output
 
     # Index padding updated.
-    assert svc.store.load().padding == 7
+    assert (await svc.store.load()).padding == 7
 
     # All item files now have 7-digit widths.
     for _, md in svc._iter_item_files():  # pyright: ignore[reportPrivateUsage]
@@ -1588,9 +1588,9 @@ def test_migrate_repad_cli(project, runner, frozen_time):
         assert len(digit_run) == 7, f"expected 7-digit run, got {digit_run!r} in {md.name}"
 
 
-def test_migrate_repad_cli_refuses_to_lower(project, runner, frozen_time):
+async def test_migrate_repad_cli_refuses_to_lower(project, invoke, frozen_time):
     """sq migrate repad exits 1 when the requested width <= current padding."""
-    r = runner.invoke(app, ["migrate", "repad", "6"])
+    r = await invoke(["migrate", "repad", "6"])
     assert r.exit_code == 1, r.output
     assert "must be greater than" in r.output
 
@@ -1598,7 +1598,7 @@ def test_migrate_repad_cli_refuses_to_lower(project, runner, frozen_time):
 # --------------------------------------------------------------------------- width-tolerant CLI
 
 
-def test_cli_old_width_address_resolves_after_repad(project, runner, frozen_time):
+async def test_cli_old_width_address_resolves_after_repad(project, invoke, frozen_time):
     """CLI commands accept old-width IDs after a repad (width-tolerant addressing).
 
     After sq migrate repad 7, 'sq task 2 show' must work whether the user passes
@@ -1611,30 +1611,30 @@ def test_cli_old_width_address_resolves_after_repad(project, runner, frozen_time
     from squads._services._service import Service
 
     svc = Service(project)
-    svc.create(ItemType.TASK, "my task")  # TASK-000002
+    await svc.create(ItemType.TASK, "my task")  # TASK-000002
 
-    runner.invoke(app, ["migrate", "repad", "7"])
+    await invoke(["migrate", "repad", "7"])
 
     # Bare number — always works (width-agnostic).
-    r = runner.invoke(app, ["task", "2", "show", "--json"])
+    r = await invoke(["task", "2", "show", "--json"])
     assert r.exit_code == 0, r.output
     data = _json.loads(r.output)
     assert data["id"] == "TASK-0000002", "display must use the current (new) padding width"
 
     # Old-width full ID — must resolve.
-    r_old = runner.invoke(app, ["task", "TASK-000002", "show", "--json"])
+    r_old = await invoke(["task", "TASK-000002", "show", "--json"])
     assert r_old.exit_code == 0, r_old.output
     data_old = _json.loads(r_old.output)
     assert data_old["id"] == "TASK-0000002"
 
     # New-width full ID — must also resolve.
-    r_new = runner.invoke(app, ["task", "TASK-0000002", "show", "--json"])
+    r_new = await invoke(["task", "TASK-0000002", "show", "--json"])
     assert r_new.exit_code == 0, r_new.output
     data_new = _json.loads(r_new.output)
     assert data_new["id"] == "TASK-0000002"
 
 
-def test_cli_tree_with_mixed_width_after_repad(project, runner, frozen_time):
+async def test_cli_tree_with_mixed_width_after_repad(project, invoke, frozen_time):
     """sq tree resolves old-width and new-width root IDs correctly after a repad."""
     import json as _json
 
@@ -1642,20 +1642,20 @@ def test_cli_tree_with_mixed_width_after_repad(project, runner, frozen_time):
     from squads._services._service import Service
 
     svc = Service(project)
-    svc.create(ItemType.FEATURE, "feat")  # FEAT-000002
-    svc.create(ItemType.TASK, "task", parent="FEAT-000002")  # TASK-000003
+    await svc.create(ItemType.FEATURE, "feat")  # FEAT-000002
+    await svc.create(ItemType.TASK, "task", parent="FEAT-000002")  # TASK-000003
 
-    runner.invoke(app, ["migrate", "repad", "7"])
+    await invoke(["migrate", "repad", "7"])
 
     # sq tree with old-width ID must resolve and display current-width IDs.
-    r_old = runner.invoke(app, ["tree", "FEAT-000002", "--json"])
+    r_old = await invoke(["tree", "FEAT-000002", "--json"])
     assert r_old.exit_code == 0, r_old.output
     nodes = _json.loads(r_old.output)
     assert len(nodes) == 1
     assert nodes[0]["id"] == "FEAT-0000002"  # display uses current padding
 
     # sq tree with new-width ID must also work.
-    r_new = runner.invoke(app, ["tree", "FEAT-0000002", "--json"])
+    r_new = await invoke(["tree", "FEAT-0000002", "--json"])
     assert r_new.exit_code == 0, r_new.output
     nodes_new = _json.loads(r_new.output)
     assert nodes_new[0]["id"] == "FEAT-0000002"
@@ -1665,19 +1665,19 @@ def test_cli_tree_with_mixed_width_after_repad(project, runner, frozen_time):
     assert any(c["id"] == "TASK-0000003" for c in children)
 
 
-def test_cli_check_clean_with_old_width_refs_after_repad(project, runner, frozen_time):
+async def test_cli_check_clean_with_old_width_refs_after_repad(project, invoke, frozen_time):
     """sq check is clean when items hold old-width refs after a repad."""
     from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    feat = svc.create(ItemType.FEATURE, "feat").item  # FEAT-000002
-    task = svc.create(ItemType.TASK, "task").item  # TASK-000003
-    svc.add_ref(task.id, feat.id, kind="implements")  # TASK refs FEAT (width-6 stored)
+    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-000002
+    task = (await svc.create(ItemType.TASK, "task")).item  # TASK-000003
+    await svc.add_ref(task.id, feat.id, kind="implements")  # TASK refs FEAT (width-6 stored)
 
-    runner.invoke(app, ["migrate", "repad", "7"])
+    await invoke(["migrate", "repad", "7"])
 
-    r = runner.invoke(app, ["check", "--json"])
+    r = await invoke(["check", "--json"])
     issues = json.loads(r.output)
     errors = [i for i in issues if i["level"] == "error"]
     assert not errors, f"sq check errors after repad with old-width refs: {errors}"

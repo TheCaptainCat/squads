@@ -5,7 +5,7 @@ the schema version indicated by its directory name.  These tests copy it to a tm
 ``run_pending_migrations()`` (the same path ``sq migrate up`` uses), and assert:
 
   - the squad reaches the current schema version (SCHEMA_VERSION),
-  - ``svc.check()`` reports zero error-level issues,
+  - ``await svc.check()`` reports zero error-level issues,
   - a CLI smoke test via ``sq migrate up`` + ``sq check`` both exit 0.
 
 **Standing rule**: every future schema bump must add a new ``vN_M`` corpus fixture here.
@@ -48,7 +48,7 @@ def _load_paths(squad_dir: Path) -> SquadPaths:
 
 
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
-def test_corpus_migrates_to_current_and_passes_check(
+async def test_corpus_migrates_to_current_and_passes_check(
     schema_label: str, corpus_name: str, tmp_path: Path
 ) -> None:
     """Copy the frozen corpus to tmp_path, migrate, and check — must reach SCHEMA_VERSION clean."""
@@ -61,7 +61,7 @@ def test_corpus_migrates_to_current_and_passes_check(
     paths = _load_paths(dst)
     svc = Service(paths)
 
-    applied = svc.run_pending_migrations()
+    applied = await svc.run_pending_migrations()
 
     # After migration the config on disk must reflect the current schema.
     import tomllib
@@ -74,7 +74,7 @@ def test_corpus_migrates_to_current_and_passes_check(
     )
 
     # No error-level check issues.
-    issues = svc.check()
+    issues = await svc.check()
     errors = [i for i in issues if i.level == "error"]
     assert not errors, (
         f"sq check produced errors after migrating {corpus_name!r} from schema {schema_label!r}:\n"
@@ -107,7 +107,7 @@ def test_corpus_cli_smoke(
     )
 
 
-def test_v0_2_migration_rewrites_backend_key(tmp_path: Path) -> None:
+async def test_v0_2_migration_rewrites_backend_key(tmp_path: Path) -> None:
     """After migrating a v0.2 corpus, .squads.toml must carry ``active_backends`` (not
     ``default_backend``).
 
@@ -135,7 +135,7 @@ def test_v0_2_migration_rewrites_backend_key(tmp_path: Path) -> None:
 
     paths = _load_paths(dst)
     svc = Service(paths)
-    svc.run_pending_migrations()
+    await svc.run_pending_migrations()
 
     with (dst / ".squads.toml").open("rb") as fh:
         post = tomllib.load(fh)

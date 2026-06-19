@@ -7,7 +7,7 @@ concern mixin under ``_services/``.
 
 from pathlib import Path
 
-from squads import __version__
+from squads import __version__, _aio
 from squads._errors import AlreadyInitializedError
 from squads._index._store import IndexStore
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
@@ -40,7 +40,7 @@ class Service(
     """
 
 
-def init(
+async def init(
     *,
     root: Path | None = None,
     squad_dir: str = "squads",
@@ -58,7 +58,7 @@ def init(
     """
     root = (root or Path.cwd()).resolve()
     config_path = root / CONFIG_FILENAME
-    if config_path.exists() and not force:
+    if await _aio.path_exists(config_path) and not force:
         raise AlreadyInitializedError(f"{config_path} already exists (use --force to overwrite)")
 
     effective_names = names or {}
@@ -70,31 +70,31 @@ def init(
         squads_version=__version__,
         init_names=effective_names,
     )
-    config_path.write_text(config.to_toml(), encoding="utf-8")
+    await _aio.write_text(config_path, config.to_toml())
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
-    sp.squad_dir.mkdir(parents=True, exist_ok=True)
+    await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
     for folder in FOLDER_BY_TYPE.values():
-        (sp.squad_dir / folder).mkdir(parents=True, exist_ok=True)
-    (sp.squad_dir / ".gitignore").write_text(".squads.json.lock\n*.tmp\n", encoding="utf-8")
+        await _aio.mkdir(sp.squad_dir / folder, parents=True, exist_ok=True)
+    await _aio.write_text(sp.squad_dir / ".gitignore", ".squads.json.lock\n*.tmp\n")
 
     store = IndexStore(sp.index_path, sp.lock_path)
-    store.create_empty(__version__)
+    await store.create_empty_threaded(__version__)
 
     svc = Service(sp)
     if not no_claude:
-        svc.scaffold_backend()
+        await svc.scaffold_backend()
 
     role_defs: list[RoleDef] = resolve_roles(roles_spec) if roles_spec else []
-    created = [svc.activate_role(r.slug, name=effective_names.get(r.slug)) for r in role_defs]
+    created = [await svc.activate_role(r.slug, name=effective_names.get(r.slug)) for r in role_defs]
 
     if not no_claude:
-        svc.refresh_managed()
+        await svc.refresh_managed()
 
     return InitResult(paths=sp, roles=created)
 
 
-def adopt(
+async def adopt(
     *,
     root: Path | None = None,
     squad_dir: str = "squads",
@@ -110,7 +110,7 @@ def adopt(
     """
     root = (root or Path.cwd()).resolve()
     config_path = root / CONFIG_FILENAME
-    if config_path.exists():
+    if await _aio.path_exists(config_path):
         config = load_config(config_path)
         squad_dir = config.squad_dir
     else:
@@ -121,33 +121,33 @@ def adopt(
             default_role="manager",
             squads_version=__version__,
         )
-        config_path.write_text(config.to_toml(), encoding="utf-8")
+        await _aio.write_text(config_path, config.to_toml())
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
-    sp.squad_dir.mkdir(parents=True, exist_ok=True)
+    await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
     for folder in FOLDER_BY_TYPE.values():
-        (sp.squad_dir / folder).mkdir(parents=True, exist_ok=True)
+        await _aio.mkdir(sp.squad_dir / folder, parents=True, exist_ok=True)
     gitignore = sp.squad_dir / ".gitignore"
-    if not gitignore.exists():
-        gitignore.write_text(".squads.json.lock\n*.tmp\n", encoding="utf-8")
+    if not await _aio.path_exists(gitignore):
+        await _aio.write_text(gitignore, ".squads.json.lock\n*.tmp\n")
 
     store = IndexStore(sp.index_path, sp.lock_path)
     if not store.exists():
-        store.create_empty(__version__)
+        await store.create_empty_threaded(__version__)
 
     svc = Service(sp)
     # Import any existing squads-native .md files (sets counter from them).
-    repair_result = svc.repair()
+    repair_result = await svc.repair()
     existing_roles = {
         it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type is ItemType.ROLE
     }
 
     if not no_claude:
-        svc.scaffold_backend()
+        await svc.scaffold_backend()
     role_defs: list[RoleDef] = resolve_roles(roles_spec) if roles_spec else []
-    created = [svc.activate_role(r.slug) for r in role_defs if r.slug not in existing_roles]
+    created = [await svc.activate_role(r.slug) for r in role_defs if r.slug not in existing_roles]
     if not no_claude:
-        svc.refresh_managed()
+        await svc.refresh_managed()
 
     return AdoptResult(paths=sp, imported=len(repair_result.db.items), roles=created)
 

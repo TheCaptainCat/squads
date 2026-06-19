@@ -1,14 +1,19 @@
 import json
-from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
+import anyio
+import anyio.lowlevel
+import anyio.to_thread
 import pytest
+from filelock import FileLock, Timeout
 
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
 from squads._models._enums import ItemType, Status
 from squads._models._index import SquadsDB
 from squads._models._item import DEFAULT_ID_PADDING, Item, format_item_id
+
+pytestmark = pytest.mark.anyio
 
 
 def test_index_keys_items_by_sequence_number():
@@ -40,11 +45,11 @@ def test_index_keys_items_by_sequence_number():
     assert set(SquadsDB.model_validate_json(legacy).items) == {7}
 
 
-def test_global_counter_unique_across_types(tmp_path):
+async def test_global_counter_unique_across_types(tmp_path):
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
     ids = []
-    with store.transaction() as db:
+    async with store.transaction() as db:
         ids.append(db.allocate_id(ItemType.EPIC))
         ids.append(db.allocate_id(ItemType.FEATURE))
         ids.append(db.allocate_id(ItemType.TASK))
@@ -53,49 +58,58 @@ def test_global_counter_unique_across_types(tmp_path):
     assert len(set(numbers)) == 3  # no number shared across types
 
 
-def test_atomic_write_roundtrips_valid_json(tmp_path):
+async def test_atomic_write_roundtrips_valid_json(tmp_path):
     path = tmp_path / ".squads.json"
     store = IndexStore(path, tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
-    with store.transaction() as db:
+    async with store.transaction() as db:
         db.allocate_id(ItemType.BUG)
     data = json.loads(path.read_text(encoding="utf-8"))
     assert data["counter"] == 1
     SquadsDB.model_validate_json(path.read_text(encoding="utf-8"))  # validates
 
 
-def test_atomic_write_leaves_no_temp_file(tmp_path):
-    # guards the write path: the index commits and the per-pid .tmp is consumed by the rename
+async def test_atomic_write_leaves_no_temp_file(tmp_path):
+    # guards the write path: index commits and the .pid.tid.tmp is consumed by the rename
     path = tmp_path / ".squads.json"
     store = IndexStore(path, tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
-    with store.transaction() as db:
+    async with store.transaction() as db:
         db.allocate_id(ItemType.TASK)
     assert path.is_file()
     assert list(tmp_path.glob("*.tmp")) == []
 
 
-def test_concurrent_allocation_distinct_ids(tmp_path):
+async def test_concurrent_allocation_distinct_ids(tmp_path):
+    """Concurrent allocations from separate threads use distinct IDs.
+
+    Each thread runs its own anyio event loop: thread-level parallelism + file-lock exclusion.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
 
-    def alloc(_):
-        with store.transaction() as db:
-            return db.allocate_id(ItemType.TASK)
+    def alloc(_: int) -> str:
+        async def _do() -> str:
+            async with store.transaction() as db:
+                return db.allocate_id(ItemType.TASK)
+
+        return anyio.run(_do)
 
     with ThreadPoolExecutor(max_workers=8) as ex:
         ids = list(ex.map(alloc, range(50)))
     assert len(set(ids)) == 50  # lock prevents collisions
-    assert store.load().counter == 50
+    assert (await store.load()).counter == 50
 
 
-def test_load_wraps_corruption_in_squads_error(tmp_path):
+async def test_load_wraps_corruption_in_squads_error(tmp_path):
     path = tmp_path / ".squads.json"
     store = IndexStore(path, tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
     path.write_text('{"counter": -1}', encoding="utf-8")  # violates ge=0
     with pytest.raises(SquadsError, match="corrupt index"):
-        store.load()
+        await store.load()
 
 
 def test_backrefs_computed_not_stored(tmp_path):
@@ -153,29 +167,30 @@ def test_db_format_id_uses_stored_padding():
     assert db7.format_id(ItemType.TASK, 7) == "TASK-0000007"
 
 
-def test_allocate_id_uses_stored_padding(tmp_path):
+async def test_allocate_id_uses_stored_padding(tmp_path):
     """allocate_id() honours the stored padding when formatting the returned ID."""
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
-    with store.transaction() as db:
+    async with store.transaction() as db:
         db.padding = 7
         item_id = db.allocate_id(ItemType.TASK)
     assert item_id == "TASK-0000001"
-    assert store.load().counter == 1
+    assert (await store.load()).counter == 1
 
 
-def test_allocate_id_raises_index_full_at_capacity(tmp_path):
+async def test_allocate_id_raises_index_full_at_capacity(tmp_path):
     """allocate_id() raises SquadsError naming sq migrate repad when the counter hits capacity."""
     store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
     # Set the counter to the max value for padding=6 (999_999 IDs used up).
-    with store.transaction() as db:
+    async with store.transaction() as db:
         db.counter = 10**6 - 1  # 999_999 — the last valid ID
     # One more allocation must fail.
-    with store.transaction() as db, pytest.raises(SquadsError, match="sq migrate repad"):
-        db.allocate_id(ItemType.TASK)
+    async with store.transaction() as db:
+        with pytest.raises(SquadsError, match="sq migrate repad"):
+            db.allocate_id(ItemType.TASK)
     # Counter must not have advanced.
-    assert store.load().counter == 10**6 - 1
+    assert (await store.load()).counter == 10**6 - 1
 
 
 def test_item_id_field_not_persisted_in_json():
@@ -278,3 +293,65 @@ def test_db_get_width_tolerant():
     assert db.get("TASK-000007") is db.items[7]
     assert db.get("TASK-0000007") is db.items[7]
     assert db.get("TASK-00000007") is db.items[7]
+
+
+# --------------------------------------------------------------------------- locking
+
+
+async def test_locking_timeout_propagates(tmp_path):
+    """A competing FileLock forces filelock.Timeout through the async transaction (F6,
+    REV-000154)."""
+    store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
+    store.create_empty("0.1.0")
+
+    # Hold the lock with a separate FileLock instance (simulates another process).
+    competing = FileLock(str(tmp_path / ".squads.json.lock"), timeout=0)
+    competing.acquire()
+    try:
+        # The async transaction uses a very short timeout so it fires quickly.
+        fast_store = IndexStore(
+            tmp_path / ".squads.json", tmp_path / ".squads.json.lock", lock_timeout=0.1
+        )
+        with pytest.raises(Timeout):
+            async with fast_store.transaction() as db:
+                _ = db  # pragma: no cover — acquire must fail before yielding
+    finally:
+        competing.release()
+
+
+async def test_concurrent_coroutines_allocate_distinct_ids(tmp_path):
+    """Concurrent coroutines on one event loop must allocate distinct IDs (F1, REV-000154).
+
+    Exercises Layer 1 (per-loop ``anyio.Lock``, ADR-000153 Decision 2). Forcing the thread
+    limiter to 1 token makes a single-layer implementation fail deterministically: every
+    coroutine's ``acquire`` lands on the one reused worker thread, sees the file lock as a
+    reentrant no-op, and enters the critical section simultaneously.
+    """
+    store = IndexStore(tmp_path / ".squads.json", tmp_path / ".squads.json.lock")
+    store.create_empty("0.1.0")
+
+    N = 8
+    ids: list[str] = []
+
+    # Force thread limiter to 1 token so all threaded acquire/release calls share ONE worker
+    # thread — this is the exact condition that exposes the single-layer race.
+    limiter = anyio.to_thread.current_default_thread_limiter()
+    original_tokens = limiter.total_tokens
+    limiter.total_tokens = 1
+    try:
+
+        async def allocate() -> None:
+            async with store.transaction() as db:
+                ids.append(db.allocate_id(ItemType.TASK))
+                # Yield inside the held lock so the event loop can schedule another coroutine —
+                # this is what forces thread-reuse and triggers the race in a single-layer model.
+                await anyio.lowlevel.checkpoint()
+
+        async with anyio.create_task_group() as tg:
+            for _ in range(N):
+                tg.start_soon(allocate)
+    finally:
+        limiter.total_tokens = original_tokens
+
+    assert len(set(ids)) == N, f"duplicate IDs allocated: {ids}"
+    assert (await store.load()).counter == N

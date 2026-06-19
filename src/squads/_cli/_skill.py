@@ -17,12 +17,12 @@ import json
 import typer
 from rich.panel import Panel
 
+import squads._cli._common as common
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
     e,
     get_service,
-    handle_errors,
     render_body_text,
     resolve_agent_addr,
     resolve_item_id_any,
@@ -46,8 +46,8 @@ skill_app = typer.Typer(
 
 
 @skill_app.command("add")
-@handle_errors
-def skill_add(
+@common.command
+async def skill_add(
     name: str = typer.Argument(...),
     desc: str = typer.Option("", "--desc"),
     when_to_use: str = typer.Option("", "--when-to-use"),
@@ -56,8 +56,8 @@ def skill_add(
 ) -> None:
     """Create a skill item and its Claude pointer."""
     svc = get_service()
-    resolved_parent = resolve_item_id_any(parent, svc) if parent else None
-    item = svc.add_skill(
+    resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+    item = await svc.add_skill(
         name,
         description=desc,
         when_to_use=when_to_use,
@@ -73,16 +73,18 @@ _addr = typer.Typer(no_args_is_help=True, help="Operate on a skill by slug, ID, 
 
 
 @_addr.callback()
-@handle_errors
-def _resolve_addr(ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")) -> None:
+@common.command
+async def _resolve_addr(
+    ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")
+) -> None:
     svc = get_service()
     ctx.ensure_object(dict)
-    ctx.obj = {"id": resolve_agent_addr(addr, ItemType.SKILL, svc)}
+    ctx.obj = {"id": await resolve_agent_addr(addr, ItemType.SKILL, svc)}
 
 
 @_addr.command("show")
-@handle_errors
-def skill_show(
+@common.command
+async def skill_show(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
     json_out: bool = typer.Option(False, "--json"),
@@ -90,7 +92,7 @@ def skill_show(
     """Show a skill's metadata panel and body."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    it = svc.get(item_id)
+    it = await svc.get(item_id)
     if json_out:
         console.print_json(
             json.dumps(
@@ -116,7 +118,7 @@ def skill_show(
     if it.extra.get(X.WHEN_TO_USE):
         rows.append(f"[bold]when to use:[/bold] {e(it.extra[X.WHEN_TO_USE])}")
     console.print(Panel("\n".join(rows), expand=False))
-    body = svc.read_body(it.id)
+    body = await svc.read_body(it.id)
     render_body_text(
         body,
         raw=raw,
@@ -125,25 +127,25 @@ def skill_show(
 
 
 @_addr.command("regen")
-@handle_errors
-def skill_regen(ctx: typer.Context) -> None:
+@common.command
+async def skill_regen(ctx: typer.Context) -> None:
     """Regenerate the Claude pointer from the item."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    svc.regen(item_id)
+    await svc.regen(item_id)
     console.print(f"regenerated pointer for {item_id}")
 
 
 @_addr.command("rm")
-@handle_errors
-def skill_rm(
+@common.command
+async def skill_rm(
     ctx: typer.Context,
     purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
 ) -> None:
     """Remove a skill (and its pointer; --purge also deletes the markdown)."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    svc.remove_item(item_id, purge=purge)
+    await svc.remove_item(item_id, purge=purge)
     console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
 
 

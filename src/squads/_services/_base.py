@@ -9,7 +9,7 @@ only ever call core methods + their own.
 from collections.abc import Callable
 from typing import Any
 
-from squads import __version__
+from squads import __version__, _aio
 from squads import _clock as clock
 from squads import _sections as sections
 from squads._backends._base import AgentBackend, BackendContext, OperatorView, RoleView
@@ -97,14 +97,14 @@ class ServiceCore:
         """
         return [get_backend(name) for name in self.paths.config.active_backends]
 
-    def scaffold_backend(self) -> None:
+    async def scaffold_backend(self) -> None:
         """Public entry for init(): create backend scaffolding for every active backend."""
         ctx = self._ctx
         for backend in self._backends():
-            backend.ensure_scaffold(ctx)
+            await backend.ensure_scaffold(ctx)
 
     # ------------------------------------------------------------------ create / read
-    def create(  # noqa: PLR0913 — a creation entrypoint with clear keyword-only fields
+    async def create(  # noqa: PLR0913 — a creation entrypoint with clear keyword-only fields
         self,
         item_type: ItemType,
         title: str,
@@ -130,7 +130,7 @@ class ServiceCore:
                     valid = ", ".join(sorted(VALID_REF_KINDS))
                     raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
         now = clock.now()
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             if parent:
                 self._check_parent(db, item_type, parent)
             self._check_author(db, item_type, author, slug)
@@ -163,7 +163,7 @@ class ServiceCore:
             if body is not None:
                 reject_markers(body)
                 rendered = sections.replace_section(rendered, markers.BODY, body)
-            write_new(self.paths.abspath(squad_rel), item, rendered)
+            await write_new(self.paths.abspath(squad_rel), item, rendered)
             db.add(item)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "create",
@@ -172,10 +172,10 @@ class ServiceCore:
             )
         return CreateResult(item=item, path=self.paths.abspath(squad_rel))
 
-    def get(self, item_id: str) -> Item:
-        return require_item(self.store.load(), item_id)
+    async def get(self, item_id: str) -> Item:
+        return require_item(await self.store.load(), item_id)
 
-    def list_items(
+    async def list_items(
         self,
         *,
         item_type: ItemType | None = None,
@@ -186,7 +186,7 @@ class ServiceCore:
         priority: Priority | None = None,
     ) -> list[Item]:
         out: list[Item] = []
-        for it in self.store.load().items.values():
+        for it in (await self.store.load()).items.values():
             if item_type and it.type is not item_type:
                 continue
             if status and it.status is not status:
@@ -234,73 +234,74 @@ class ServiceCore:
             )
 
     # ------------------------------------------------------------------ shared helpers
-    def _read(self, item_id: str) -> str:
-        return item_file(self.paths, self.get(item_id)).read_text(encoding="utf-8")
+    async def _read(self, item_id: str) -> str:
+        """Read an item's file text on a worker thread."""
+        return await _aio.read_text(item_file(self.paths, await self.get(item_id)))
 
-    def _bump(self, item_id: str) -> None:
-        with self.store.transaction() as db:
+    async def _bump(self, item_id: str) -> None:
+        async with self.store.transaction() as db:
             it = require_item(db, item_id)
             it.updated_at = clock.now()
-            update_frontmatter(item_file(self.paths, it), it)
+            await update_frontmatter(item_file(self.paths, it), it)
 
-    def _locked_section_edit(self, item_id: str, mutate: Callable[[str, Item], str]) -> Item:
+    async def _locked_section_edit(self, item_id: str, mutate: Callable[[str, Item], str]) -> Item:
         """Edit an item's prose under the index lock, atomically with the ``updated_at`` bump.
 
-        ``mutate(text, item)`` returns the new file text (and may raise to abort before any write):
-        validation must happen *inside* it so nothing is written on failure. The whole read →
-        mutate → write happens within one ``transaction()``, so concurrent ``sq`` processes
-        (e.g. parallel subagents commenting on the same item) can't lose each other's edits —
-        unlike a bare read-modify-write, which only the index, not the ``.md`` body, was guarding.
+        ``mutate(text, item)`` returns the new file text (sync callable — may raise to abort
+        before any write). The whole read → mutate → write happens within one ``transaction()``,
+        so concurrent ``sq`` processes (e.g. parallel subagents commenting on the same item)
+        can't lose each other's edits.
         """
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             it = require_item(db, item_id)
             path = item_file(self.paths, it)
-            text = mutate(path.read_text(encoding="utf-8"), it)
+            text = await _aio.read_text(path)
+            new_text = mutate(text, it)
             it.updated_at = clock.now()
-            path.write_text(
-                sections.replace_frontmatter(text, it.to_frontmatter_dict()), encoding="utf-8"
+            await _aio.write_text(
+                path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict())
             )
         return it
 
     # ------------------------------------------------------------------ role / skill lookups
-    def _role_item(self, slug: str) -> Item | None:
-        for it in self.store.load().items.values():
+    async def _role_item(self, slug: str) -> Item | None:
+        for it in (await self.store.load()).items.values():
             if it.type is ItemType.ROLE and it.extra.get(X.SLUG) == slug:
                 return it
         return None
 
-    def role_body(self, slug: str) -> str | None:
+    async def role_body(self, slug: str) -> str | None:
         """Return the body-region content of the active role item for ``slug``, or None.
 
         Returns ``None`` when no tracked item exists for this slug (bundled-only role).
         The returned string is stripped of leading/trailing newlines.
         """
-        item = self._role_item(slug)
+        item = await self._role_item(slug)
         if item is None:
             return None
-        text = item_file(self.paths, item).read_text(encoding="utf-8")
+        text = await _aio.read_text(item_file(self.paths, item))
         body = sections.get_section(text, markers.BODY)
         if body is None:
             return None
         return body.strip("\n")
 
-    def _skill_item(self, slug: str) -> Item | None:
-        for it in self.store.load().items.values():
+    async def _skill_item(self, slug: str) -> Item | None:
+        for it in (await self.store.load()).items.values():
             if it.type is ItemType.SKILL and it.extra.get(X.SLUG, it.slug) == slug:
                 return it
         return None
 
-    def _operator_item(self, slug: str) -> Item | None:
-        for it in self.store.load().items.values():
+    async def _operator_item(self, slug: str) -> Item | None:
+        for it in (await self.store.load()).items.values():
             if it.type is ItemType.OPERATOR and it.extra.get(X.SLUG) == slug:
                 return it
         return None
 
-    def author(self, slug: str) -> str:
+    async def author(self, slug: str) -> str:
         """Display (full) name for a participant slug; falls back to the slug if unknown."""
         if slug == "operator":
             return "Operator"
-        participant = self._role_item(slug) or self._operator_item(slug)
+        participant = await self._role_item(slug) or await self._operator_item(slug)
         if participant is not None:
             return participant.extra.get(X.FULL_NAME, slug)
         try:
@@ -308,7 +309,7 @@ class ServiceCore:
         except SquadsError:
             return slug
 
-    def roster(self) -> list[RoleView]:
+    async def roster(self) -> list[RoleView]:
         return [
             RoleView(
                 slug=it.extra.get(X.SLUG, it.slug),
@@ -316,21 +317,21 @@ class ServiceCore:
                 title=it.extra.get(X.TITLE, it.title),
                 is_default=it.extra.get(X.IS_DEFAULT, False),
             )
-            for it in self.list_items(item_type=ItemType.ROLE)
+            for it in await self.list_items(item_type=ItemType.ROLE)
         ]
 
-    def operators(self) -> list[OperatorView]:
+    async def operators(self) -> list[OperatorView]:
         return [
             OperatorView(
                 slug=it.extra.get(X.SLUG, it.slug),
                 full_name=it.extra.get(X.FULL_NAME, it.title),
             )
-            for it in self.list_items(item_type=ItemType.OPERATOR)
+            for it in await self.list_items(item_type=ItemType.OPERATOR)
         ]
 
-    def refresh_managed(self) -> None:
+    async def refresh_managed(self) -> None:
         ctx = self._ctx
-        roster = self.roster()
-        ops = self.operators()
+        roster = await self.roster()
+        ops = await self.operators()
         for backend in self._backends():
-            backend.write_managed(ctx, roster, ops)
+            await backend.write_managed(ctx, roster, ops)

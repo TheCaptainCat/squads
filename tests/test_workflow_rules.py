@@ -4,6 +4,8 @@ from squads import _workflow as workflow
 from squads._errors import SquadsError
 from squads._models._enums import ItemType
 
+pytestmark = pytest.mark.anyio
+
 # --------------------------------------------------------------------------- parent rules (unit)
 
 
@@ -25,84 +27,84 @@ def test_parent_hint_mentions_refs_for_task():
 # --------------------------------------------------------------------------- create / link
 
 
-def test_task_parent_must_be_feature(svc):
-    epic = svc.create(ItemType.EPIC, "e").item
-    feat = svc.create(ItemType.FEATURE, "f", parent=epic.id).item  # feature→epic OK
+async def test_task_parent_must_be_feature(svc):
+    epic = (await svc.create(ItemType.EPIC, "e")).item
+    feat = (await svc.create(ItemType.FEATURE, "f", parent=epic.id)).item  # feature→epic OK
     # task under a feature is fine
-    task = svc.create(ItemType.TASK, "t", parent=feat.id).item
+    task = (await svc.create(ItemType.TASK, "t", parent=feat.id)).item
     assert task.parent == feat.id
     # task under an epic is rejected at create time
     with pytest.raises(SquadsError, match="must be of type feature"):
-        svc.create(ItemType.TASK, "bad", parent=epic.id)
+        await svc.create(ItemType.TASK, "bad", parent=epic.id)
     # ...and at link time
-    standalone = svc.create(ItemType.TASK, "tech").item
+    standalone = (await svc.create(ItemType.TASK, "tech")).item
     with pytest.raises(SquadsError, match="must be of type feature"):
-        svc.link(standalone.id, epic.id)
+        await svc.link(standalone.id, epic.id)
 
 
-def test_feature_parent_must_be_epic(svc):
-    feat = svc.create(ItemType.FEATURE, "f").item
+async def test_feature_parent_must_be_epic(svc):
+    feat = (await svc.create(ItemType.FEATURE, "f")).item
     with pytest.raises(SquadsError, match="must be of type epic"):
-        svc.create(ItemType.FEATURE, "f2", parent=feat.id)
+        await svc.create(ItemType.FEATURE, "f2", parent=feat.id)
 
 
-def test_task_links_bug_via_ref(svc):
-    bug = svc.create(ItemType.BUG, "npe").item
-    task = svc.create(ItemType.TASK, "fix it").item  # no feature parent (technical/bugfix)
-    svc.add_ref(task.id, bug.id, kind="fixes")
-    assert svc.refs_out(task.id) == [(bug.id, "fixes")]
+async def test_task_links_bug_via_ref(svc):
+    bug = (await svc.create(ItemType.BUG, "npe")).item
+    task = (await svc.create(ItemType.TASK, "fix it")).item  # no feature parent (technical/bugfix)
+    await svc.add_ref(task.id, bug.id, kind="fixes")
+    assert await svc.refs_out(task.id) == [(bug.id, "fixes")]
 
 
 # --------------------------------------------------------------------------- subtask → US
 
 
-def test_subtask_story_records_and_validates(svc):
-    feat = svc.create(ItemType.FEATURE, "Login").item
-    svc.add_story(feat.id, "reset password")  # US1
-    task = svc.create(ItemType.TASK, "Tokens", parent=feat.id).item
-    res = svc.add_subtask(task.id, "Validate expiry", story="US1")
-    text = svc.paths.abspath(svc.get(task.id).path).read_text(encoding="utf-8")
+async def test_subtask_story_records_and_validates(svc):
+    feat = (await svc.create(ItemType.FEATURE, "Login")).item
+    await svc.add_story(feat.id, "reset password")  # US1
+    task = (await svc.create(ItemType.TASK, "Tokens", parent=feat.id)).item
+    res = await svc.add_subtask(task.id, "Validate expiry", story="US1")
+    text = svc.paths.abspath((await svc.get(task.id)).path).read_text(encoding="utf-8")
     assert "story: US1" in text  # the US mapping lives in the sq-owned :meta region
-    (sub,) = svc.list_subtasks(task.id)
+    (sub,) = await svc.list_subtasks(task.id)
     assert sub.local_id == res.local_id
     assert sub.title == "Validate expiry" and sub.story == "US1" and sub.status == "Todo"
 
 
-def test_subtask_story_unknown_us_rejected(svc):
-    feat = svc.create(ItemType.FEATURE, "Login").item
-    task = svc.create(ItemType.TASK, "Tokens", parent=feat.id).item
+async def test_subtask_story_unknown_us_rejected(svc):
+    feat = (await svc.create(ItemType.FEATURE, "Login")).item
+    task = (await svc.create(ItemType.TASK, "Tokens", parent=feat.id)).item
     with pytest.raises(SquadsError, match="US9 not found"):
-        svc.add_subtask(task.id, "x", story="US9")
+        await svc.add_subtask(task.id, "x", story="US9")
 
 
-def test_subtask_story_requires_feature_parent(svc):
-    task = svc.create(ItemType.TASK, "tech").item  # no parent
+async def test_subtask_story_requires_feature_parent(svc):
+    task = (await svc.create(ItemType.TASK, "tech")).item  # no parent
     with pytest.raises(SquadsError, match="no feature parent"):
-        svc.add_subtask(task.id, "x", story="US1")
+        await svc.add_subtask(task.id, "x", story="US1")
 
 
 # --------------------------------------------------------------------------- check
 
 
-def test_check_flags_bad_task_parent(svc):
-    epic = svc.create(ItemType.EPIC, "e").item
-    task = svc.create(ItemType.TASK, "t").item
+async def test_check_flags_bad_task_parent(svc):
+    epic = (await svc.create(ItemType.EPIC, "e")).item
+    task = (await svc.create(ItemType.TASK, "t")).item
     # corrupt the index to point a task at an epic
-    with svc.store.transaction() as db:
+    async with svc.store.transaction() as db:
         db.items[task.sequence_id].parent = epic.id
-    issues = svc.check()
+    issues = await svc.check()
     assert any(i.item == task.id and "must be of type feature" in i.message for i in issues)
 
 
-def test_check_flags_dangling_subtask_story(svc):
-    feat = svc.create(ItemType.FEATURE, "Login").item
-    svc.add_story(feat.id, "reset")  # US1
-    task = svc.create(ItemType.TASK, "Tokens", parent=feat.id).item
-    svc.add_subtask(task.id, "ok", story="US1")
+async def test_check_flags_dangling_subtask_story(svc):
+    feat = (await svc.create(ItemType.FEATURE, "Login")).item
+    await svc.add_story(feat.id, "reset")  # US1
+    task = (await svc.create(ItemType.TASK, "Tokens", parent=feat.id)).item
+    await svc.add_subtask(task.id, "ok", story="US1")
     # now hand-edit the frontmatter to reference a non-existent US, then resync the index from it
-    path = svc.paths.abspath(svc.get(task.id).path)
+    path = svc.paths.abspath((await svc.get(task.id)).path)
     text = path.read_text(encoding="utf-8").replace("story: US1", "story: US7")
     path.write_text(text, encoding="utf-8")
-    svc.repair()
-    issues = svc.check()
+    await svc.repair()
+    issues = await svc.check()
     assert any(i.item == task.id and "US7" in i.message for i in issues)

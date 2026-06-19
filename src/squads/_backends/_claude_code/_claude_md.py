@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from squads import _aio
+
 START = "<!-- squads:start -->"
 END = "<!-- squads:end -->"
 
@@ -10,17 +12,17 @@ def wrap(section_body: str) -> str:
     return f"{START}\n{section_body.rstrip()}\n{END}\n"
 
 
-def inject(claude_md: Path, section_body: str) -> None:
+async def inject(claude_md: Path, section_body: str) -> None:
     """Insert or replace the managed section, preserving everything else in the file."""
     block = wrap(section_body)
-    if not claude_md.exists():
-        claude_md.write_text(f"# Project guidance\n\n{block}", encoding="utf-8")
+    if not await _aio.path_exists(claude_md):
+        await _aio.write_text(claude_md, f"# Project guidance\n\n{block}")
         return
-    text = claude_md.read_text(encoding="utf-8")
+    text = await _aio.read_text(claude_md)
     si, ei = text.find(START), text.find(END)
     if si != -1 and ei != -1:
         new = text[:si] + block.rstrip("\n") + text[ei + len(END) :]
-        claude_md.write_text(new, encoding="utf-8")
+        await _aio.write_text(claude_md, new)
     else:
         sep = "" if text.endswith("\n") else "\n"
-        claude_md.write_text(f"{text}{sep}\n{block}", encoding="utf-8")
+        await _aio.write_text(claude_md, f"{text}{sep}\n{block}")

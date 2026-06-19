@@ -203,42 +203,50 @@ class TestArtifactContract:
 class TestEnsureScaffold:
     """ensure_scaffold must be idempotent and return Artifacts describing what it wrote."""
 
-    def test_returns_list_of_artifacts(self, backend: AgentBackend, ctx: BackendContext) -> None:
-        result = backend.ensure_scaffold(ctx)
+    async def test_returns_list_of_artifacts(
+        self, backend: AgentBackend, ctx: BackendContext
+    ) -> None:
+        result = await backend.ensure_scaffold(ctx)
         assert isinstance(result, list)
         assert all(isinstance(a, Artifact) for a in result)
 
-    def test_artifacts_have_backend_name(self, backend: AgentBackend, ctx: BackendContext) -> None:
-        for artifact in backend.ensure_scaffold(ctx):
+    async def test_artifacts_have_backend_name(
+        self, backend: AgentBackend, ctx: BackendContext
+    ) -> None:
+        for artifact in await backend.ensure_scaffold(ctx):
             assert artifact.backend == backend.name
 
-    def test_artifact_paths_are_relative(self, backend: AgentBackend, ctx: BackendContext) -> None:
+    async def test_artifact_paths_are_relative(
+        self, backend: AgentBackend, ctx: BackendContext
+    ) -> None:
         """Paths must be root-relative (no leading slash, no Windows drive letter)."""
-        for artifact in backend.ensure_scaffold(ctx):
+        for artifact in await backend.ensure_scaffold(ctx):
             p = Path(artifact.path)
             assert not p.is_absolute(), f"Artifact.path must be relative, got: {artifact.path!r}"
 
-    def test_artifact_paths_use_forward_slashes(
+    async def test_artifact_paths_use_forward_slashes(
         self, backend: AgentBackend, ctx: BackendContext
     ) -> None:
-        for artifact in backend.ensure_scaffold(ctx):
+        for artifact in await backend.ensure_scaffold(ctx):
             assert "\\" not in artifact.path, (
                 f"Artifact.path must use forward slashes, got: {artifact.path!r}"
             )
 
-    def test_artifact_files_exist_on_disk(self, backend: AgentBackend, ctx: BackendContext) -> None:
+    async def test_artifact_files_exist_on_disk(
+        self, backend: AgentBackend, ctx: BackendContext
+    ) -> None:
         """Every path an artifact declares must actually exist on disk after scaffold."""
-        for artifact in backend.ensure_scaffold(ctx):
+        for artifact in await backend.ensure_scaffold(ctx):
             full = ctx.root / artifact.path
             assert full.exists(), f"Declared artifact not on disk: {artifact.path!r}"
 
-    def test_scaffold_is_idempotent(self, backend: AgentBackend, ctx: BackendContext) -> None:
+    async def test_scaffold_is_idempotent(self, backend: AgentBackend, ctx: BackendContext) -> None:
         """Running scaffold twice must not error and must produce the same artifact paths."""
-        first = [a.path for a in backend.ensure_scaffold(ctx)]
-        second = [a.path for a in backend.ensure_scaffold(ctx)]
+        first = [a.path for a in await backend.ensure_scaffold(ctx)]
+        second = [a.path for a in await backend.ensure_scaffold(ctx)]
         assert first == second
 
-    def test_scaffold_does_not_clobber_user_content(
+    async def test_scaffold_does_not_clobber_user_content(
         self, backend: AgentBackend, ctx: BackendContext
     ) -> None:
         """A file the backend manages must not lose user-added content on re-scaffold.
@@ -251,7 +259,7 @@ class TestEnsureScaffold:
         If a backend produces no pre-existing mergeable file at all, this test is a no-op
         (the loop body never executes).
         """
-        artifacts = backend.ensure_scaffold(ctx)
+        artifacts = await backend.ensure_scaffold(ctx)
         for artifact in artifacts:
             full = ctx.root / artifact.path
             if not full.exists():
@@ -264,7 +272,7 @@ class TestEnsureScaffold:
                 # Add a custom user key that should survive the merge.
                 data["_conformance_user_key"] = "preserved"
                 full.write_text(json.dumps(data), encoding="utf-8")
-                backend.ensure_scaffold(ctx)
+                await backend.ensure_scaffold(ctx)
                 after = json.loads(full.read_text(encoding="utf-8"))
                 assert after.get("_conformance_user_key") == "preserved", (
                     f"ensure_scaffold clobbered user content in {artifact.path!r}"
@@ -285,55 +293,55 @@ class TestWriteManaged:
     injected once (not duplicated).
     """
 
-    def test_returns_list_of_artifacts(
+    async def test_returns_list_of_artifacts(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         roster: list[RoleView],
         operators: list[OperatorView],
     ) -> None:
-        backend.ensure_scaffold(ctx)
-        result = backend.write_managed(ctx, roster, operators)
+        await backend.ensure_scaffold(ctx)
+        result = await backend.write_managed(ctx, roster, operators)
         assert isinstance(result, list)
         assert all(isinstance(a, Artifact) for a in result)
 
-    def test_artifacts_have_backend_name(
+    async def test_artifacts_have_backend_name(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         roster: list[RoleView],
         operators: list[OperatorView],
     ) -> None:
-        backend.ensure_scaffold(ctx)
-        for artifact in backend.write_managed(ctx, roster, operators):
+        await backend.ensure_scaffold(ctx)
+        for artifact in await backend.write_managed(ctx, roster, operators):
             assert artifact.backend == backend.name
 
-    def test_artifact_paths_are_relative_forward_slash(
+    async def test_artifact_paths_are_relative_forward_slash(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         roster: list[RoleView],
         operators: list[OperatorView],
     ) -> None:
-        backend.ensure_scaffold(ctx)
-        for artifact in backend.write_managed(ctx, roster, operators):
+        await backend.ensure_scaffold(ctx)
+        for artifact in await backend.write_managed(ctx, roster, operators):
             assert not Path(artifact.path).is_absolute()
             assert "\\" not in artifact.path
 
-    def test_artifact_files_exist_on_disk(
+    async def test_artifact_files_exist_on_disk(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         roster: list[RoleView],
         operators: list[OperatorView],
     ) -> None:
-        backend.ensure_scaffold(ctx)
-        for artifact in backend.write_managed(ctx, roster, operators):
+        await backend.ensure_scaffold(ctx)
+        for artifact in await backend.write_managed(ctx, roster, operators):
             assert (ctx.root / artifact.path).exists(), (
                 f"Declared managed artifact not on disk: {artifact.path!r}"
             )
 
-    def test_write_managed_is_idempotent(
+    async def test_write_managed_is_idempotent(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
@@ -341,9 +349,9 @@ class TestWriteManaged:
         operators: list[OperatorView],
     ) -> None:
         """Running write_managed twice must produce byte-identical results for every artifact."""
-        backend.ensure_scaffold(ctx)
-        first_arts = backend.write_managed(ctx, roster, operators)
-        second_arts = backend.write_managed(ctx, roster, operators)
+        await backend.ensure_scaffold(ctx)
+        first_arts = await backend.write_managed(ctx, roster, operators)
+        second_arts = await backend.write_managed(ctx, roster, operators)
         assert [a.path for a in first_arts] == [a.path for a in second_arts]
         for artifact in first_arts:
             full = ctx.root / artifact.path
@@ -353,7 +361,7 @@ class TestWriteManaged:
             content_b = (ctx.root / artifact.path).read_text(encoding="utf-8")
             assert content_a == content_b, f"write_managed is not idempotent for {artifact.path!r}"
 
-    def test_managed_region_not_duplicated(
+    async def test_managed_region_not_duplicated(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
@@ -361,12 +369,12 @@ class TestWriteManaged:
         operators: list[OperatorView],
     ) -> None:
         """Calling write_managed twice must not duplicate the managed section inside any file."""
-        backend.ensure_scaffold(ctx)
-        backend.write_managed(ctx, roster, operators)
-        backend.write_managed(ctx, roster, operators)
+        await backend.ensure_scaffold(ctx)
+        await backend.write_managed(ctx, roster, operators)
+        await backend.write_managed(ctx, roster, operators)
         # Heuristic: any managed-marker start tag must appear at most once per file.
         MANAGED_MARKERS = ["<!-- squads:start -->", "<!-- squads:managed"]
-        for artifact in backend.write_managed(ctx, roster, operators):
+        for artifact in await backend.write_managed(ctx, roster, operators):
             full = ctx.root / artifact.path
             if not full.exists():
                 continue
@@ -378,7 +386,7 @@ class TestWriteManaged:
                     "(write_managed must replace, not duplicate)"
                 )
 
-    def test_roster_role_names_appear_in_managed_output(
+    async def test_roster_role_names_appear_in_managed_output(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
@@ -386,8 +394,8 @@ class TestWriteManaged:
         operators: list[OperatorView],
     ) -> None:
         """Roles from the roster must be reflected somewhere in the managed output."""
-        backend.ensure_scaffold(ctx)
-        artifacts = backend.write_managed(ctx, roster, operators)
+        await backend.ensure_scaffold(ctx)
+        artifacts = await backend.write_managed(ctx, roster, operators)
         all_text = ""
         for artifact in artifacts:
             full = ctx.root / artifact.path
@@ -403,7 +411,7 @@ class TestWriteManaged:
                 "not reflected in write_managed output"
             )
 
-    def test_operator_names_appear_in_managed_output(
+    async def test_operator_names_appear_in_managed_output(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
@@ -411,8 +419,8 @@ class TestWriteManaged:
         operators: list[OperatorView],
     ) -> None:
         """Operators must be reflected somewhere in the managed output."""
-        backend.ensure_scaffold(ctx)
-        artifacts = backend.write_managed(ctx, roster, operators)
+        await backend.ensure_scaffold(ctx)
+        artifacts = await backend.write_managed(ctx, roster, operators)
         all_text = ""
         for artifact in artifacts:
             full = ctx.root / artifact.path
@@ -437,79 +445,79 @@ class TestWriteManaged:
 class TestGenerateRoleEntry:
     """generate_role_entry must produce exactly one Artifact per call."""
 
-    def test_returns_artifact(
+    async def test_returns_artifact(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        artifact = backend.generate_role_entry(ctx, item, role_def)
+        artifact = await backend.generate_role_entry(ctx, item, role_def)
         assert isinstance(artifact, Artifact)
 
-    def test_artifact_backend_matches(
+    async def test_artifact_backend_matches(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        artifact = backend.generate_role_entry(ctx, item, role_def)
+        artifact = await backend.generate_role_entry(ctx, item, role_def)
         assert artifact.backend == backend.name
 
-    def test_artifact_path_is_relative_forward_slash(
+    async def test_artifact_path_is_relative_forward_slash(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        artifact = backend.generate_role_entry(ctx, item, role_def)
+        artifact = await backend.generate_role_entry(ctx, item, role_def)
         assert not Path(artifact.path).is_absolute()
         assert "\\" not in artifact.path
 
-    def test_artifact_file_exists_on_disk(
+    async def test_artifact_file_exists_on_disk(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        artifact = backend.generate_role_entry(ctx, item, role_def)
+        artifact = await backend.generate_role_entry(ctx, item, role_def)
         assert (ctx.root / artifact.path).exists(), (
             f"Role pointer artifact not on disk: {artifact.path!r}"
         )
 
-    def test_pointer_file_references_real_definition(
+    async def test_pointer_file_references_real_definition(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
         """The pointer file must reference the real definition somewhere in its body."""
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        artifact = backend.generate_role_entry(ctx, item, role_def)
+        artifact = await backend.generate_role_entry(ctx, item, role_def)
         content = (ctx.root / artifact.path).read_text(encoding="utf-8")
         # The pointer must contain the slug or role name so an agent can identify the role.
         assert role_def.slug in content or role_def.full_name in content, (
             f"Role pointer at {artifact.path!r} does not reference the role slug/name"
         )
 
-    def test_generate_role_entry_is_idempotent(
+    async def test_generate_role_entry_is_idempotent(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        a1 = backend.generate_role_entry(ctx, item, role_def)
-        a2 = backend.generate_role_entry(ctx, item, role_def)
+        a1 = await backend.generate_role_entry(ctx, item, role_def)
+        a2 = await backend.generate_role_entry(ctx, item, role_def)
         assert a1.path == a2.path
         text1 = (ctx.root / a1.path).read_text(encoding="utf-8")
         text2 = (ctx.root / a2.path).read_text(encoding="utf-8")
@@ -524,58 +532,58 @@ class TestGenerateRoleEntry:
 class TestGenerateSkillEntry:
     """generate_skill_entry must produce exactly one Artifact per call."""
 
-    def test_returns_artifact(
+    async def test_returns_artifact(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_skill_item(2, "my-skill", ctx.squad_dir)
-        artifact = backend.generate_skill_entry(ctx, item)
+        artifact = await backend.generate_skill_entry(ctx, item)
         assert isinstance(artifact, Artifact)
 
-    def test_artifact_backend_matches(
+    async def test_artifact_backend_matches(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_skill_item(2, "my-skill", ctx.squad_dir)
-        artifact = backend.generate_skill_entry(ctx, item)
+        artifact = await backend.generate_skill_entry(ctx, item)
         assert artifact.backend == backend.name
 
-    def test_artifact_path_is_relative_forward_slash(
+    async def test_artifact_path_is_relative_forward_slash(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_skill_item(2, "my-skill", ctx.squad_dir)
-        artifact = backend.generate_skill_entry(ctx, item)
+        artifact = await backend.generate_skill_entry(ctx, item)
         assert not Path(artifact.path).is_absolute()
         assert "\\" not in artifact.path
 
-    def test_artifact_file_exists_on_disk(
+    async def test_artifact_file_exists_on_disk(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_skill_item(2, "my-skill", ctx.squad_dir)
-        artifact = backend.generate_skill_entry(ctx, item)
+        artifact = await backend.generate_skill_entry(ctx, item)
         assert (ctx.root / artifact.path).exists(), (
             f"Skill pointer artifact not on disk: {artifact.path!r}"
         )
 
-    def test_generate_skill_entry_is_idempotent(
+    async def test_generate_skill_entry_is_idempotent(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
     ) -> None:
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_skill_item(2, "my-skill", ctx.squad_dir)
-        a1 = backend.generate_skill_entry(ctx, item)
-        a2 = backend.generate_skill_entry(ctx, item)
+        a1 = await backend.generate_skill_entry(ctx, item)
+        a2 = await backend.generate_skill_entry(ctx, item)
         assert a1.path == a2.path
         text1 = (ctx.root / a1.path).read_text(encoding="utf-8")
         text2 = (ctx.root / a2.path).read_text(encoding="utf-8")
@@ -592,65 +600,65 @@ class TestRemoveArtifacts:
     and must leave no orphaned files behind.
     """
 
-    def test_remove_role_artifacts_when_nothing_exists(
+    async def test_remove_role_artifacts_when_nothing_exists(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
         """remove_artifacts is safe to call even when no files have been generated."""
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
         # Must not raise.
-        backend.remove_artifacts(ctx, item)
+        await backend.remove_artifacts(ctx, item)
 
-    def test_remove_role_artifacts_cleans_up(
+    async def test_remove_role_artifacts_cleans_up(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
         """Artifacts generated by generate_role_entry must be absent after remove_artifacts."""
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        artifact = backend.generate_role_entry(ctx, item, role_def)
+        artifact = await backend.generate_role_entry(ctx, item, role_def)
         full = ctx.root / artifact.path
         assert full.exists(), "Precondition: role pointer must exist before removal"
-        backend.remove_artifacts(ctx, item)
+        await backend.remove_artifacts(ctx, item)
         assert not full.exists(), (
             f"Role pointer {artifact.path!r} still on disk after remove_artifacts"
         )
 
-    def test_remove_skill_artifacts_cleans_up(
+    async def test_remove_skill_artifacts_cleans_up(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
     ) -> None:
         """Artifacts generated by generate_skill_entry must be absent after remove_artifacts."""
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_skill_item(2, "my-skill", ctx.squad_dir)
-        artifact = backend.generate_skill_entry(ctx, item)
+        artifact = await backend.generate_skill_entry(ctx, item)
         full = ctx.root / artifact.path
         assert full.exists(), "Precondition: skill pointer must exist before removal"
-        backend.remove_artifacts(ctx, item)
+        await backend.remove_artifacts(ctx, item)
         # The pointer file (and its parent dir for skills) must be gone.
         assert not full.exists(), (
             f"Skill pointer {artifact.path!r} still on disk after remove_artifacts"
         )
 
-    def test_remove_artifacts_is_idempotent(
+    async def test_remove_artifacts_is_idempotent(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
         role_def: RoleDef,
     ) -> None:
         """Calling remove_artifacts twice must not raise on the second call."""
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        backend.generate_role_entry(ctx, item, role_def)
-        backend.remove_artifacts(ctx, item)
+        await backend.generate_role_entry(ctx, item, role_def)
+        await backend.remove_artifacts(ctx, item)
         # Must not raise (missing_ok semantics).
-        backend.remove_artifacts(ctx, item)
+        await backend.remove_artifacts(ctx, item)
 
 
 # ---------------------------------------------------------------------------
@@ -661,7 +669,7 @@ class TestRemoveArtifacts:
 class TestRoundTrip:
     """End-to-end round-trip: after all lifecycle operations no orphaned backend files remain."""
 
-    def test_full_round_trip_leaves_no_orphans(
+    async def test_full_round_trip_leaves_no_orphans(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
@@ -671,30 +679,30 @@ class TestRoundTrip:
     ) -> None:
         """scaffold → write_managed → generate pointers → remove → no orphaned pointer files."""
         # 1. Scaffold
-        backend.ensure_scaffold(ctx)
+        await backend.ensure_scaffold(ctx)
 
         # 2. Write managed files (roster + operators).
-        backend.write_managed(ctx, roster, operators)
+        await backend.write_managed(ctx, roster, operators)
 
         # 3. Generate a role pointer and a skill pointer.
         role_item = _make_role_item(1, role_def.slug, ctx.squad_dir)
-        role_artifact = backend.generate_role_entry(ctx, role_item, role_def)
+        role_artifact = await backend.generate_role_entry(ctx, role_item, role_def)
 
         skill_item = _make_skill_item(2, "my-skill", ctx.squad_dir)
-        skill_artifact = backend.generate_skill_entry(ctx, skill_item)
+        skill_artifact = await backend.generate_skill_entry(ctx, skill_item)
 
         # Confirm both exist.
         assert (ctx.root / role_artifact.path).exists()
         assert (ctx.root / skill_artifact.path).exists()
 
         # 4. Remove — no orphans.
-        backend.remove_artifacts(ctx, role_item)
-        backend.remove_artifacts(ctx, skill_item)
+        await backend.remove_artifacts(ctx, role_item)
+        await backend.remove_artifacts(ctx, skill_item)
 
         assert not (ctx.root / role_artifact.path).exists()
         assert not (ctx.root / skill_artifact.path).exists()
 
-    def test_scaffold_then_sync_via_service(
+    async def test_scaffold_then_sync_via_service(
         self,
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
@@ -705,11 +713,11 @@ class TestRoundTrip:
         future backend only needs to be wired into get_backend to run here.
         """
         monkeypatch.chdir(tmp_path)
-        result = service.init(root=tmp_path, roles_spec="minimal")
+        result = await service.init(root=tmp_path, roles_spec="minimal")
         svc = service.Service(result.paths)
         # A second sync must be idempotent.
-        svc.sync()
-        svc.sync()
+        await svc.sync()
+        await svc.sync()
 
 
 # ---------------------------------------------------------------------------
@@ -724,13 +732,13 @@ class TestBackendName:
         assert isinstance(backend.name, str)
         assert backend.name, "backend.name must be non-empty"
 
-    def test_name_matches_artifact_backend(
+    async def test_name_matches_artifact_backend(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
     ) -> None:
         """Every artifact returned by ensure_scaffold carries the backend's own name."""
-        for artifact in backend.ensure_scaffold(ctx):
+        for artifact in await backend.ensure_scaffold(ctx):
             assert artifact.backend == backend.name
 
 
@@ -769,7 +777,7 @@ class TestManagedPaths:
         after = set(ctx.root.rglob("*"))
         assert before == after, f"managed_paths created new files: {after - before}"
 
-    def test_managed_paths_exist_after_sync(
+    async def test_managed_paths_exist_after_sync(
         self,
         backend: AgentBackend,
         ctx: BackendContext,
@@ -777,8 +785,8 @@ class TestManagedPaths:
         operators: list[OperatorView],
     ) -> None:
         """After scaffold + write_managed, every path returned by managed_paths must exist."""
-        backend.ensure_scaffold(ctx)
-        backend.write_managed(ctx, roster, operators)
+        await backend.ensure_scaffold(ctx)
+        await backend.write_managed(ctx, roster, operators)
         for p in backend.managed_paths(ctx):
             full = ctx.root / p
             assert full.exists(), (

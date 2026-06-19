@@ -9,6 +9,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from squads import _aio
 from squads._models._item import Item
 from squads._sections import join_frontmatter, replace_frontmatter, split_frontmatter
 
@@ -21,25 +22,27 @@ def read_frontmatter(path: Path | None = None, *, text: str | None = None) -> di
     return split_frontmatter(text)[0]
 
 
-def load_item(path: Path, *, squad_relative: str) -> Item:
-    data = read_frontmatter(path)
+async def load_item(path: Path, *, squad_relative: str) -> Item:
+    """Read and parse the item file on a worker thread."""
+    text = await _aio.read_text(path)
+    data = split_frontmatter(text)[0]
     return Item.from_frontmatter(data, path=squad_relative)
 
 
-def write_new(path: Path, item: Item, rendered_body: str) -> None:
+async def write_new(path: Path, item: Item, rendered_body: str) -> None:
     """Create a brand-new item file: frontmatter + the rendered (templated) body."""
-    path.parent.mkdir(parents=True, exist_ok=True)
     text = join_frontmatter(item.to_frontmatter_dict(), rendered_body)
-    path.write_text(text, encoding="utf-8")
+    await _aio.mkdir(path.parent, parents=True, exist_ok=True)
+    await _aio.write_text(path, text)
 
 
-def update_frontmatter(path: Path, item: Item) -> None:
+async def update_frontmatter(path: Path, item: Item) -> None:
     """Rewrite the frontmatter from the item; body is preserved verbatim."""
-    text = path.read_text(encoding="utf-8")
-    path.write_text(replace_frontmatter(text, item.to_frontmatter_dict()), encoding="utf-8")
+    text = await _aio.read_text(path)
+    await _aio.write_text(path, replace_frontmatter(text, item.to_frontmatter_dict()))
 
 
-def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
+async def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
     """Whole-word substitution of every old ID → new ID across the given files.
 
     Replaces all occurrences of ``\\bOLD\\b → NEW`` (exact whole-word match so e.g. a longer ID
@@ -47,11 +50,11 @@ def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
     """
     touched: list[Path] = []
     for path in paths:
-        text = path.read_text(encoding="utf-8")
+        text = await _aio.read_text(path)
         new_text = text
         for old, new in remap.items():
             new_text = re.sub(rf"\b{re.escape(old)}\b", new, new_text)
         if new_text != text:
-            path.write_text(new_text, encoding="utf-8")
+            await _aio.write_text(path, new_text)
             touched.append(path)
     return touched

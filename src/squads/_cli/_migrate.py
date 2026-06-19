@@ -9,6 +9,7 @@ import typer
 from rich.markdown import Markdown
 from rich.table import Table
 
+import squads._cli._common as common
 from squads import __version__
 from squads._cli._common import (
     console,
@@ -25,8 +26,8 @@ migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and 
 
 
 @migrate_app.command("up")
-@handle_errors
-def migrate_up():
+@common.command
+async def migrate_up():
     """Run the automatic migration(s) to bring this squad to the current schema version."""
     svc = get_service()
     disk = svc.paths.config.schema_version
@@ -35,7 +36,7 @@ def migrate_up():
             f"this squad is at schema v{disk}, newer than this squads (v{SCHEMA_VERSION}); "
             "upgrade the squads package"
         )
-    applied = svc.run_pending_migrations()
+    applied = await svc.run_pending_migrations()
     if not applied:
         console.print(f"already at schema v{SCHEMA_VERSION}; nothing to migrate")
         return
@@ -91,8 +92,8 @@ def migrate_chlog(
 
 
 @migrate_app.command("repad")
-@handle_errors
-def migrate_repad(
+@common.command
+async def migrate_repad(
     new_width: int = typer.Argument(
         ..., metavar="WIDTH", help="New zero-pad digit width (must exceed current padding)."
     ),
@@ -103,9 +104,9 @@ def migrate_repad(
     byte-untouched — only filenames change. Run `sq check` after to verify integrity.
     """
     svc = get_service()
-    db = svc.store.load()
+    db = await svc.store.load()
     current = db.padding
-    renamed = svc.repad(new_width)
+    renamed = await svc.repad(new_width)
     console.print(
         f"[green]repad done[/green]: padding {current} → {new_width}; "
         f"{renamed} file(s) renamed; index rebuilt"

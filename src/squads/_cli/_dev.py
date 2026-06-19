@@ -3,7 +3,8 @@
 import typer
 from rich.table import Table
 
-from squads._cli._common import console, e, get_service, handle_errors
+import squads._cli._common as common
+from squads._cli._common import console, e, get_service
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 
@@ -11,8 +12,8 @@ dev_app = typer.Typer(no_args_is_help=True, help="Manage stack-specific develope
 
 
 @dev_app.command("add")
-@handle_errors
-def dev_add(
+@common.command
+async def dev_add(
     tech: str = typer.Option(..., "--tech", help="Technology, e.g. dotnet, python, react."),
     name: str | None = typer.Option(
         None, "--name", help="Full name (auto from a pool if omitted)."
@@ -21,7 +22,7 @@ def dev_add(
 ):
     """Bootstrap a developer for a technology (e.g. `sq dev add --tech dotnet`)."""
     svc = get_service()
-    item = svc.add_dev(tech, name=name, model=model)
+    item = await svc.add_dev(tech, name=name, model=model)
     console.print(
         f"added [bold]{e(item.extra.get(X.FULL_NAME, item.title))}[/bold] "
         f"(`{item.extra.get(X.SLUG)}`) {item.id}"
@@ -29,11 +30,11 @@ def dev_add(
 
 
 @dev_app.command("list")
-@handle_errors
-def dev_list():
+@common.command
+async def dev_list():
     """List the activated developer roles."""
     svc = get_service()
-    devs = [it for it in svc.list_items(item_type=ItemType.ROLE) if it.extra.get(X.IS_DEV)]
+    devs = [it for it in await svc.list_items(item_type=ItemType.ROLE) if it.extra.get(X.IS_DEV)]
     if not devs:
         console.print("[dim]no developers (try `sq dev add --tech <t>`)[/dim]")
         return

@@ -1,5 +1,6 @@
 """Discussion: comments, author resolution, and the @mention inbox."""
 
+from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
@@ -23,7 +24,7 @@ def _strip_frontmatter(text: str) -> str:
 
 
 class CollabMixin(ServiceCore):
-    def comment(
+    async def comment(
         self,
         item_id: str,
         messages: list[str],
@@ -38,7 +39,9 @@ class CollabMixin(ServiceCore):
         for msg in messages:
             reject_markers(msg, "comment message")
         tag = self._discussion_tag(story, subtask, finding)
-        entry = discussion.format_comment(clock.iso(clock.now()), self.author(as_slug), messages)
+        entry = discussion.format_comment(
+            clock.iso(clock.now()), await self.author(as_slug), messages
+        )
 
         def mutate(text: str, _item: Item) -> str:
             if not sections.has_section(text, tag):
@@ -52,7 +55,7 @@ class CollabMixin(ServiceCore):
             )
             return sections.append_to_section(text, tag, entry)
 
-        return self._locked_section_edit(item_id, mutate)
+        return await self._locked_section_edit(item_id, mutate)
 
     @staticmethod
     def _discussion_tag(story: str | None, subtask: str | None, finding: str | None) -> str:
@@ -66,24 +69,24 @@ class CollabMixin(ServiceCore):
             return markers.discussion_tag(markers.finding_tag(finding))
         return markers.DISCUSSION
 
-    def inbox(self, slug: str) -> list[tuple[Item, list[str]]]:
+    async def inbox(self, slug: str) -> list[tuple[Item, list[str]]]:
         """Open items whose body/discussion mentions ``@slug``, with the matching lines."""
         slug = slug.lstrip("@").lower()
         out: list[tuple[Item, list[str]]] = []
-        for item in self.list_items():
+        for item in await self.list_items():
             if not is_open(item.status):
                 continue
             path = item_file(self.paths, item)
-            if not path.exists():
+            if not await _aio.path_exists(path):
                 continue
-            text = path.read_text(encoding="utf-8")
+            text = await _aio.read_text(path)
             if slug not in discussion.extract_mentions(text):
                 continue
             hits = [ln.strip() for ln in text.splitlines() if f"@{slug}" in ln.lower()]
             out.append((item, hits))
         return out
 
-    def search(
+    async def search(
         self, text: str, *, item_type: ItemType | None = None
     ) -> list[tuple[Item, list[str]]]:
         """Items whose title, summary, or body/discussion contains ``text`` (case-insensitive)."""
@@ -91,9 +94,12 @@ class CollabMixin(ServiceCore):
         if not needle:
             raise SquadsError("search needs a non-empty query")
         out: list[tuple[Item, list[str]]] = []
-        for item in self.list_items(item_type=item_type):
+        for item in await self.list_items(item_type=item_type):
             path = item_file(self.paths, item)
-            prose = _strip_frontmatter(path.read_text(encoding="utf-8")) if path.exists() else ""
+            if await _aio.path_exists(path):
+                prose = _strip_frontmatter(await _aio.read_text(path))
+            else:
+                prose = ""
             candidates = [item.title, item.description, *prose.splitlines()]
             hits = [ln.strip() for ln in candidates if ln and needle in ln.lower()]
             if hits:

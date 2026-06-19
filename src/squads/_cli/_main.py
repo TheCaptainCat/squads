@@ -14,6 +14,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
+import squads._cli._common as common
 from squads._cli import app
 from squads._cli._common import (
     console,
@@ -120,8 +121,8 @@ def _parse_backend_option(raw: list[str]) -> list[str]:
 
 
 @app.command()
-@handle_errors
-def init(
+@common.command
+async def init(
     squad_dir: str = typer.Option(
         "squads", "--squad-dir", help="Folder name for the squad's content."
     ),
@@ -204,7 +205,7 @@ def init(
             if typed:
                 combined_names[slug] = typed
 
-    result = svc_init(
+    result = await svc_init(
         squad_dir=squad_dir,
         backend=active_backends,
         roles_spec=roles,
@@ -232,8 +233,8 @@ def init(
 
 
 @app.command()
-@handle_errors
-def adopt(
+@common.command
+async def adopt(
     squad_dir: str = typer.Option(
         "squads", "--squad-dir", help="Folder name to adopt (default if no .squads.toml yet)."
     ),
@@ -252,7 +253,7 @@ def adopt(
 ):
     """Adopt an existing squad-structured folder (non-destructive; imports existing items)."""
     active_backends = _parse_backend_option(backend)
-    result = svc_adopt(
+    result = await svc_adopt(
         squad_dir=squad_dir, backend=active_backends, roles_spec=roles, no_claude=no_claude
     )
     sp = result.paths
@@ -270,8 +271,8 @@ def adopt(
 
 
 @app.command(name="list")
-@handle_errors
-def list_items(
+@common.command
+async def list_items(
     type: str | None = typer.Option(None, "--type", "-t"),
     status: str | None = typer.Option(None, "--status", "-s"),
     parent: str | None = typer.Option(None, "--parent"),
@@ -283,9 +284,9 @@ def list_items(
 ):
     """List items in a table (closed items are hidden unless --all or --status is given)."""
     svc = get_service()
-    validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
-    resolved_parent = resolve_item_id_any(parent, svc) if parent else None
-    items = svc.list_items(
+    validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+    resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+    items = await svc.list_items(
         item_type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
         parent=resolved_parent,
@@ -327,8 +328,8 @@ def _build_children(
 
 
 @app.command()
-@handle_errors
-def tree(
+@common.command
+async def tree(
     root_id: str | None = typer.Argument(None),
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
     json_out: bool = typer.Option(False, "--json", help="Emit the nested subtree as JSON."),
@@ -342,8 +343,8 @@ def tree(
     # Resolve root_id early so bare numbers work and unknown IDs get a clear error.
     resolved_root: str | None = None
     if root_id is not None:
-        resolved_root = resolve_item_id_any(root_id, svc)
-    listed = svc.list_items()
+        resolved_root = await resolve_item_id_any(root_id, svc)
+    listed = await svc.list_items()
     if not all_:
         listed = [i for i in listed if is_open(i.status)]
     all_items = {i.id: i for i in listed}
@@ -364,7 +365,7 @@ def tree(
     )
 
     if json_out:
-        blocked_ids = {t.id for t, _ in svc.blocked()}
+        blocked_ids = {t.id for t, _ in await svc.blocked()}
 
         def node(it: Item) -> dict[str, Any]:
             return {
@@ -395,11 +396,11 @@ def tree(
 
 
 @app.command()
-@handle_errors
-def repair(renumber: bool = typer.Option(False, "--renumber")):
+@common.command
+async def repair(renumber: bool = typer.Option(False, "--renumber")):
     """Rebuild the index from the markdown frontmatter."""
     svc = get_service()
-    result = svc.repair(renumber=renumber)
+    result = await svc.repair(renumber=renumber)
     console.print(f"rebuilt index: {len(result.db.items)} items, counter={result.db.counter}")
     for mid in result.missing_ids:
         console.print(
@@ -408,15 +409,15 @@ def repair(renumber: bool = typer.Option(False, "--renumber")):
 
 
 @app.command()
-@handle_errors
-def inbox(
+@common.command
+async def inbox(
     role: str = typer.Argument(..., help="Role slug (e.g. qa)."),
     json_out: bool = typer.Option(False, "--json"),
 ):
     """Open items whose discussion mentions @role."""
     svc = get_service()
-    slug = resolve_slug_or_raise(role, svc)
-    hits = svc.inbox(slug)
+    slug = await resolve_slug_or_raise(role, svc)
+    hits = await svc.inbox(slug)
     if json_out:
         console.print_json(
             json.dumps([{"id": it.id, "title": it.title, "lines": lines} for it, lines in hits])
@@ -432,15 +433,15 @@ def inbox(
 
 
 @app.command()
-@handle_errors
-def search(
+@common.command
+async def search(
     text: str = typer.Argument(..., help="Text to find (case-insensitive)."),
     type: str | None = typer.Option(None, "--type", "-t"),
     json_out: bool = typer.Option(False, "--json"),
 ):
     """Search item titles, summaries, and bodies/discussion for text."""
     svc = get_service()
-    hits = svc.search(text, item_type=parse_type(type) if type else None)
+    hits = await svc.search(text, item_type=parse_type(type) if type else None)
     if json_out:
         console.print_json(
             json.dumps([{"id": it.id, "title": it.title, "hits": lines} for it, lines in hits])
@@ -456,11 +457,11 @@ def search(
 
 
 @app.command()
-@handle_errors
-def blocked(json_out: bool = typer.Option(False, "--json")):
+@common.command
+async def blocked(json_out: bool = typer.Option(False, "--json")):
     """Show open items blocked by other open items (via the `blocks` ref kind)."""
     svc = get_service()
-    rows = svc.blocked()
+    rows = await svc.blocked()
     if json_out:
         console.print_json(
             json.dumps(
@@ -491,11 +492,11 @@ def blocked(json_out: bool = typer.Option(False, "--json")):
 
 
 @app.command()
-@handle_errors
-def workload(json_out: bool = typer.Option(False, "--json")):
+@common.command
+async def workload(json_out: bool = typer.Option(False, "--json")):
     """Per-assignee open/closed/total work-item counts (busiest first)."""
     svc = get_service()
-    rows = svc.workload()
+    rows = await svc.workload()
     if json_out:
         console.print_json(
             json.dumps(
@@ -518,16 +519,16 @@ def workload(json_out: bool = typer.Option(False, "--json")):
 
 
 @app.command()
-@handle_errors
-def mine(
+@common.command
+async def mine(
     role: str = typer.Argument(..., help="Role slug (e.g. python-dev or op-pierre)."),
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
     json_out: bool = typer.Option(False, "--json"),
 ):
     """Items assigned to a role slug."""
     svc = get_service()
-    slug = resolve_slug_or_raise(role, svc)
-    items = svc.list_items(assignee=slug)
+    slug = await resolve_slug_or_raise(role, svc)
+    items = await svc.list_items(assignee=slug)
     if not all_:
         items = [i for i in items if is_open(i.status)]
     if json_out:
@@ -540,11 +541,11 @@ def mine(
 
 
 @app.command()
-@handle_errors
-def sync():
+@common.command
+async def sync():
     """Regenerate tool-owned managed files to the current squads version."""
     svc = get_service()
-    svc.sync()
+    await svc.sync()
     console.print("[green]synced[/green] managed files to this squads version")
 
 
@@ -587,8 +588,8 @@ def docs(
 
 
 @app.command()
-@handle_errors
-def reflog(
+@common.command
+async def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
@@ -649,7 +650,7 @@ def reflog(
             )
             raise typer.Exit(1) from None
 
-    entries: list[ReflogEntry] = svc.read_reflog(
+    entries: list[ReflogEntry] = await svc.read_reflog(
         item=item,
         actor_filter=actor,
         op_filter=op,
@@ -682,8 +683,8 @@ def reflog(
 
 
 @app.command(name="show")
-@handle_errors
-def show_any(
+@common.command
+async def show_any(
     item_id: str = typer.Argument(
         ..., metavar="ID", help="Item ID (e.g. FEAT-000013) or bare number (e.g. 13)."
     ),
@@ -702,24 +703,24 @@ def show_any(
     Unknown IDs error cleanly.
     """
     svc = get_service()
-    resolved_id = resolve_item_id_any(item_id, svc)
-    it = svc.get(resolved_id)
+    resolved_id = await resolve_item_id_any(item_id, svc)
+    it = await svc.get(resolved_id)
     if json_out:
         console.print_json(it.model_dump_json())
         return
-    print_item(svc, it, raw=raw, comments=comments, full=full)
+    await print_item(svc, it, raw=raw, comments=comments, full=full)
 
 
 @app.command()
-@handle_errors
-def check(json_out: bool = typer.Option(False, "--json")):
+@common.command
+async def check(json_out: bool = typer.Option(False, "--json")):
     """Lint the squad: markers, dangling links, invalid status, index drift.
 
     Exit codes: 0 = clean (or warnings only), 3 = one or more error-level issues found.
     See `sq docs faq` for the full exit-code table.
     """
     svc = get_service()
-    issues = svc.check()
+    issues = await svc.check()
     if json_out:
         console.print_json(
             json.dumps([{"level": i.level, "item": i.item, "message": i.message} for i in issues])

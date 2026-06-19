@@ -1,15 +1,25 @@
+from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from typer.testing import CliRunner
 
 from squads import _actor as actor
+from squads import _aio
 from squads import _clock as clock
+from squads._cli import app
 from squads._rendering._engine import (
     _env_cache,  # pyright: ignore[reportPrivateUsage]
     set_active_squad_dir,
 )
 from squads._services import _service as service
+
+
+@pytest.fixture
+def anyio_backend():
+    """Pin the anyio test backend to asyncio (trio not needed for this project)."""
+    return "asyncio"
 
 
 @pytest.fixture(autouse=True)
@@ -48,10 +58,10 @@ def frozen_time(monkeypatch):
 
 
 @pytest.fixture
-def project(tmp_path, monkeypatch, frozen_time):
+async def project(tmp_path, monkeypatch, frozen_time):
     """A freshly-initialized squad in a temp dir; cwd is set to it."""
     monkeypatch.chdir(tmp_path)
-    result = service.init(root=tmp_path, roles_spec="minimal")
+    result = await service.init(root=tmp_path, roles_spec="minimal")
     return result.paths
 
 
@@ -63,3 +73,40 @@ def svc(project):
 @pytest.fixture
 def runner():
     return CliRunner()
+
+
+def run_in_thread(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    """Run a sync function from inside an async test on a worker thread.
+
+    Use this when a sync function (e.g. one that internally calls anyio.run())
+    cannot be called directly from an async test (which already has a running loop).
+
+    Usage in an async test::
+
+        result = await run_in_thread(some_sync_fn, arg1, kwarg=val)
+    """
+    import functools
+
+    return _aio.to_thread(functools.partial(fn, *args, **kwargs))
+
+
+@pytest.fixture
+def invoke(runner: CliRunner):
+    """Async-safe runner.invoke wrapper for tests that mix ``await`` and CLI invocations.
+
+    From inside an async test, ``runner.invoke(app, [...])`` fails because the CLI
+    calls ``anyio.run()`` which raises ``RuntimeError: Already running asyncio in
+    this thread``.  Wrapping it in a worker thread avoids that.
+
+    Usage::
+
+        async def test_something(invoke):
+            r = await invoke(["some", "cmd"])
+            assert r.exit_code == 0
+    """
+    import functools
+
+    def _invoke(args: list[str], **kw: Any) -> Any:
+        return _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
+
+    return _invoke

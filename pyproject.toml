@@ -29,6 +29,7 @@ dependencies = [
     "filelock>=3.13",
     "rich>=13.7",
     "pyyaml>=6.0",
+    "anyio>=4",
 ]
 
 [project.scripts]
@@ -47,6 +48,7 @@ dev = [
     "freezegun>=1.4",
     "ruff>=0.6",
     "pyright>=1.1.380",
+    "anyio[trio]>=4.14.0",
 ]
 
 [build-system]
@@ -64,6 +66,7 @@ packages = ["src/squads"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+anyio_mode = "auto"
 markers = [
     "slow: marks tests that generate large data sets or have wall-clock bounds (deselect with -m 'not slow')",
 ]
@@ -80,6 +83,7 @@ select = [
     "SIM", "PERF", "PTH", "RUF",             # smells / perf / pathlib / ruff
     "TRY",                                   # exception hygiene
     "PLR0911", "PLR0912", "PLR0913", "PLR0915",  # too many returns/branches/args/statements
+    "ASYNC",                                 # blocking calls inside async fns (ADR-000153)
 ]
 ignore = [
     "TRY003",  # long messages in raise() are intentional (user-facing SquadsError text)

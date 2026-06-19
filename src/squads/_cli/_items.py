@@ -14,6 +14,7 @@ import json
 import typer
 from rich.table import Table
 
+import squads._cli._common as common
 from squads import _actor as actor
 from squads._cli._common import (
     console,
@@ -64,13 +65,13 @@ def build_item_app(item_type: ItemType) -> typer.Typer:
     item = typer.Typer(no_args_is_help=True, help=f"Operate on a {item_type.value} by number/id.")
 
     @item.callback()
-    @handle_errors
-    def _resolve(
+    @common.command
+    async def _resolve(
         ctx: typer.Context,
         num: str = typer.Argument(..., metavar="N", help=f"{item_type.value} number or id."),
     ):
         svc = get_service()
-        ctx.obj = {"id": resolve_item_id_typed(num, item_type, svc)}
+        ctx.obj = {"id": await resolve_item_id_typed(num, item_type, svc)}
 
     _cmd_show(item)
     _cmd_update(item)
@@ -88,8 +89,8 @@ def build_item_app(item_type: ItemType) -> typer.Typer:
 
 def _cmd_show(item: typer.Typer) -> None:
     @item.command("show")
-    @handle_errors
-    def show(
+    @common.command
+    async def show(
         ctx: typer.Context,
         json_out: bool = typer.Option(False, "--json"),
         raw: bool = typer.Option(
@@ -104,17 +105,17 @@ def _cmd_show(item: typer.Typer) -> None:
     ):
         """Show the item's metadata, body, sub-entity summary, and optional panes."""
         svc = get_service()
-        it = svc.get(_id(ctx))
+        it = await svc.get(_id(ctx))
         if json_out:
             console.print_json(it.model_dump_json())
             return
-        print_item(svc, it, raw=raw, comments=comments, full=full)
+        await print_item(svc, it, raw=raw, comments=comments, full=full)
 
 
 def _cmd_update(item: typer.Typer) -> None:
     @item.command("update")
-    @handle_errors
-    def update(  # noqa: PLR0913 — the one metadata entry point
+    @common.command
+    async def update(  # noqa: PLR0913 — the one metadata entry point
         ctx: typer.Context,
         title: str | None = typer.Option(None, "--title"),
         desc: str | None = typer.Option(None, "--desc", help="Short summary (not the body)."),
@@ -145,10 +146,10 @@ def _cmd_update(item: typer.Typer) -> None:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
             set_extra[key.strip()] = value
         svc = get_service()
-        validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
-        validated_author = resolve_slug_or_raise(author, svc) if author else None
-        resolved_parent = resolve_item_id_any(parent, svc) if parent else None
-        it = svc.update(
+        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+        validated_author = await resolve_slug_or_raise(author, svc) if author else None
+        resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+        it = await svc.update(
             _id(ctx),
             title=title,
             description=desc,
@@ -170,51 +171,51 @@ def _cmd_update(item: typer.Typer) -> None:
 
 def _cmd_status(item: typer.Typer) -> None:
     @item.command("status")
-    @handle_errors
-    def status(
+    @common.command
+    async def status(
         ctx: typer.Context,
         new_status: str = typer.Argument(..., metavar="STATUS"),
         force: bool = typer.Option(False, "--force"),
     ):
         """Transition the item's status (shortcut for `update --status`)."""
-        it = get_service().set_status(_id(ctx), parse_status(new_status), force=force)
+        it = await get_service().set_status(_id(ctx), parse_status(new_status), force=force)
         console.print(f"{it.id} → [bold]{it.status.value}[/bold]")
 
 
 def _cmd_body(item: typer.Typer) -> None:
     @item.command("body")
-    @handle_errors
-    def body(
+    @common.command
+    async def body(
         ctx: typer.Context,
         message: list[str] = typer.Option(None, "-m", "--message", help="Body paragraph."),
         file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
         append: bool = typer.Option(False, "--append", help="Append instead of replacing."),
     ):
         """Set (or --append to) the item's body."""
-        get_service().set_body(_id(ctx), resolve_body(message or None, file), append=append)
+        await get_service().set_body(_id(ctx), resolve_body(message or None, file), append=append)
         console.print(f"{_id(ctx)}: body {'appended' if append else 'set'}")
 
 
 def _cmd_comment(item: typer.Typer) -> None:
     @item.command("comment")
-    @handle_errors
-    def comment(
+    @common.command
+    async def comment(
         ctx: typer.Context,
         message: list[str] = typer.Option(..., "-m", "--message", help="A talking point."),
         as_: str = typer.Option("operator", "--as", help="Author: a role slug or 'operator'."),
     ):
         """Append a timestamped comment to the item's discussion."""
         svc = get_service()
-        slug = resolve_slug_or_raise(as_, svc)
+        slug = await resolve_slug_or_raise(as_, svc)
         actor.set_actor(slug)
-        svc.comment(_id(ctx), message, as_slug=slug)
+        await svc.comment(_id(ctx), message, as_slug=slug)
         console.print(f"commented on {_id(ctx)} as {slug}")
 
 
 def _cmd_retype(item: typer.Typer) -> None:
     @item.command("retype")
-    @handle_errors
-    def retype(
+    @common.command
+    async def retype(
         ctx: typer.Context,
         new_type: str = typer.Argument(
             ...,
@@ -236,7 +237,7 @@ def _cmd_retype(item: typer.Typer) -> None:
             work = ", ".join(t.value for t in WORK_TYPES)
             raise SquadsError(f"cannot retype to {new_type!r}; valid targets: {work}")
         svc = get_service()
-        res = svc.retype(_id(ctx), target)
+        res = await svc.retype(_id(ctx), target)
         console.print(
             f"retyped {e(res.old_id)} → [bold]{e(res.item.id)}[/bold]  [dim]{res.item.path}[/dim]"
         )
@@ -253,8 +254,8 @@ def _cmd_retype(item: typer.Typer) -> None:
 
 def _cmd_remove(item: typer.Typer) -> None:
     @item.command("remove")
-    @handle_errors
-    def remove(
+    @common.command
+    async def remove(
         ctx: typer.Context,
         force: bool = typer.Option(
             False,
@@ -281,7 +282,7 @@ def _cmd_remove(item: typer.Typer) -> None:
         if not yes:
             typer.confirm(f"Remove {item_id}? This cannot be undone.", abort=True)
         svc = get_service()
-        res = svc.remove_work_item(item_id, force=force)
+        res = await svc.remove_work_item(item_id, force=force)
         if json_out:
             import json as _json
 
@@ -301,8 +302,8 @@ def _cmd_remove(item: typer.Typer) -> None:
 
 def _cmd_refs(item: typer.Typer) -> None:
     @item.command("refs")
-    @handle_errors
-    def refs(
+    @common.command
+    async def refs(
         ctx: typer.Context,
         out: bool = typer.Option(False, "--out", help="Forward refs (default)."),
         incoming: bool = typer.Option(False, "--in", help="Backrefs (computed)."),
@@ -314,9 +315,9 @@ def _cmd_refs(item: typer.Typer) -> None:
         show_out = out or all_ or not (incoming or all_)
         data: dict[str, list[dict[str, str]]] = {}
         if show_out:
-            data["out"] = [{"id": i, "kind": k} for i, k in svc.refs_out(_id(ctx))]
+            data["out"] = [{"id": i, "kind": k} for i, k in await svc.refs_out(_id(ctx))]
         if incoming or all_:
-            data["in"] = [{"id": i, "kind": k} for i, k in svc.refs_in(_id(ctx))]
+            data["in"] = [{"id": i, "kind": k} for i, k in await svc.refs_in(_id(ctx))]
         if json_out:
             console.print_json(json.dumps(data))
             return
@@ -336,8 +337,8 @@ def _cmd_refs(item: typer.Typer) -> None:
     ref_app = typer.Typer(no_args_is_help=True, help="Manage forward reference edges.")
 
     @ref_app.command("add")
-    @handle_errors
-    def ref_add(
+    @common.command
+    async def ref_add(
         ctx: typer.Context,
         target: str = typer.Argument(..., help="Target item ID."),
         kind: str = typer.Option(
@@ -354,19 +355,19 @@ def _cmd_refs(item: typer.Typer) -> None:
         svc = get_service()
         # target may be a bare number, full ID, or ID:kind — resolve the ID part only
         raw_id, embedded_kind = split_ref(target)
-        resolved_id = resolve_item_id_any(raw_id, svc)
+        resolved_id = await resolve_item_id_any(raw_id, svc)
         effective_kind = embedded_kind if embedded_kind != DEFAULT_KIND else kind
-        svc.add_ref(_id(ctx), resolved_id, kind=effective_kind)
+        await svc.add_ref(_id(ctx), resolved_id, kind=effective_kind)
         console.print(f"{_id(ctx)} → {resolved_id} ([dim]{effective_kind}[/dim])")
 
     @ref_app.command("rm")
-    @handle_errors
-    def ref_rm(ctx: typer.Context, target: str = typer.Argument(..., help="Target item ID.")):
+    @common.command
+    async def ref_rm(ctx: typer.Context, target: str = typer.Argument(..., help="Target item ID.")):
         """Remove a forward reference to TARGET."""
         svc = get_service()
         raw_id, _ = split_ref(target)
-        resolved_id = resolve_item_id_any(raw_id, svc)
-        svc.rm_ref(_id(ctx), resolved_id)
+        resolved_id = await resolve_item_id_any(raw_id, svc)
+        await svc.rm_ref(_id(ctx), resolved_id)
         console.print(f"removed {_id(ctx)} → {resolved_id}")
 
     item.add_typer(ref_app, name="ref")
@@ -401,10 +402,10 @@ def _sub_table(kind: str, blocks: list[SubEntity]) -> None:
 
 def _register_subentity(item: typer.Typer, kind: str, plural: str) -> None:
     @item.command(plural)
-    @handle_errors
-    def list_sub(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")):
+    @common.command
+    async def list_sub(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")):
         """List this item's sub-entities."""
-        blocks = getattr(get_service(), f"list_{plural}")(_id(ctx))
+        blocks = await getattr(get_service(), f"list_{plural}")(_id(ctx))
         if json_out:
             console.print_json(
                 json.dumps(
@@ -445,8 +446,8 @@ def _register_add(item: typer.Typer, kind: str) -> None:
     if kind == "story":
 
         @item.command("add-story")
-        @handle_errors
-        def add_story(
+        @common.command
+        async def add_story(
             ctx: typer.Context,
             title: str = typer.Argument("", help="Optional short label; set the story in body."),
             assignee: str | None = typer.Option(None, "--assignee"),
@@ -456,8 +457,8 @@ def _register_add(item: typer.Typer, kind: str) -> None:
         ):
             """Scaffold a user story on this feature."""
             svc = get_service()
-            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
-            res = svc.add_story(
+            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+            res = await svc.add_story(
                 _id(ctx),
                 title,
                 assignee=validated_assignee,
@@ -468,8 +469,8 @@ def _register_add(item: typer.Typer, kind: str) -> None:
     elif kind == "subtask":
 
         @item.command("add-subtask")
-        @handle_errors
-        def add_subtask(
+        @common.command
+        async def add_subtask(
             ctx: typer.Context,
             title: str = typer.Argument("", help="Optional checklist label; detail in body."),
             story: str | None = typer.Option(
@@ -482,9 +483,9 @@ def _register_add(item: typer.Typer, kind: str) -> None:
         ):
             """Scaffold a subtask on this task."""
             svc = get_service()
-            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
             normalized_story = resolve_local_id(story, "story") if story else None
-            res = svc.add_subtask(
+            res = await svc.add_subtask(
                 _id(ctx),
                 title,
                 story=normalized_story,
@@ -496,8 +497,8 @@ def _register_add(item: typer.Typer, kind: str) -> None:
     else:  # finding
 
         @item.command("add-finding")
-        @handle_errors
-        def add_finding(
+        @common.command
+        async def add_finding(
             ctx: typer.Context,
             title: str = typer.Argument("", help="Optional short label; detail in body."),
             severity: str = typer.Option(
@@ -510,8 +511,8 @@ def _register_add(item: typer.Typer, kind: str) -> None:
         ):
             """Scaffold a finding on this review."""
             svc = get_service()
-            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
-            res = svc.add_finding(
+            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+            res = await svc.add_finding(
                 _id(ctx),
                 title,
                 severity=parse_severity(severity),
@@ -530,8 +531,8 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
     if kind == "subtask":
 
         @sub.command("update")
-        @handle_errors
-        def u_subtask(
+        @common.command
+        async def u_subtask(
             ctx: typer.Context,
             title: str | None = typer.Option(None, "--title"),
             story: str | None = typer.Option(None, "--story", help="Remap to a user story (USn)."),
@@ -551,9 +552,9 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
                 clear_assignee=clear_assignee,
             )
             svc = get_service()
-            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
+            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
             normalized_story = resolve_local_id(story, "story") if story else None
-            svc.update_subtask(
+            await svc.update_subtask(
                 pid,
                 lid,
                 title=title,
@@ -569,8 +570,8 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
     elif kind == "finding":
 
         @sub.command("update")
-        @handle_errors
-        def u_finding(
+        @common.command
+        async def u_finding(
             ctx: typer.Context,
             title: str | None = typer.Option(None, "--title"),
             severity: str | None = typer.Option(
@@ -589,8 +590,8 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
                 clear_assignee=clear_assignee,
             )
             svc = get_service()
-            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
-            svc.update_finding(
+            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+            await svc.update_finding(
                 pid,
                 lid,
                 title=title,
@@ -605,8 +606,8 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
     else:  # story
 
         @sub.command("update")
-        @handle_errors
-        def u_story(
+        @common.command
+        async def u_story(
             ctx: typer.Context,
             title: str | None = typer.Option(None, "--title"),
             assignee: str | None = typer.Option(None, "--assignee"),
@@ -622,8 +623,8 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
                 clear_assignee=clear_assignee,
             )
             svc = get_service()
-            validated_assignee = resolve_slug_or_raise(assignee, svc) if assignee else None
-            svc.update_story(
+            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+            await svc.update_story(
                 pid,
                 lid,
                 title=title,
@@ -640,17 +641,17 @@ def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
         return ctx.obj["id"], ctx.obj["local"]
 
     @sub.command("show")
-    @handle_errors
-    def s_show(ctx: typer.Context):
+    @common.command
+    async def s_show(ctx: typer.Context):
         """Show the sub-entity's status/assignee, body, and discussion."""
         pid, lid = ids(ctx)
-        print_subentity(getattr(get_service(), f"get_{kind}")(pid, lid), kind)
+        print_subentity(await getattr(get_service(), f"get_{kind}")(pid, lid), kind)
 
     _register_update(sub, kind)
 
     @sub.command("body")
-    @handle_errors
-    def s_body(
+    @common.command
+    async def s_body(
         ctx: typer.Context,
         message: list[str] = typer.Option(None, "-m", "--message"),
         file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
@@ -658,14 +659,14 @@ def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
     ):
         """Set (or --append to) the sub-entity's body."""
         pid, lid = ids(ctx)
-        getattr(get_service(), f"set_{kind}_body")(
+        await getattr(get_service(), f"set_{kind}_body")(
             pid, lid, resolve_body(message or None, file), append=append
         )
         console.print(f"{pid} {lid}: body {'appended' if append else 'set'}")
 
     @sub.command("comment")
-    @handle_errors
-    def s_comment(
+    @common.command
+    async def s_comment(
         ctx: typer.Context,
         message: list[str] = typer.Option(..., "-m", "--message"),
         as_: str = typer.Option("operator", "--as"),
@@ -673,7 +674,7 @@ def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
         """Comment on the sub-entity's discussion."""
         pid, lid = ids(ctx)
         svc = get_service()
-        slug = resolve_slug_or_raise(as_, svc)
+        slug = await resolve_slug_or_raise(as_, svc)
         actor.set_actor(slug)
-        svc.comment(pid, message, as_slug=slug, **{kind: lid})
+        await svc.comment(pid, message, as_slug=slug, **{kind: lid})
         console.print(f"commented on {pid} {lid} as {slug}")

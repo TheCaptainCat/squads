@@ -1,15 +1,19 @@
 import re
 
+import pytest
+
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations import _meta_compat, _v0_1_to_v0_2, _v0_2_to_v0_3
 from squads._models import _markers as markers
 from squads._models._enums import ItemType, Severity
 
+pytestmark = pytest.mark.anyio
 
-def _write_legacy_task(svc) -> str:
+
+async def _write_legacy_task(svc) -> str:
     """A task created normally, then hand-rewritten to the pre-2 (bare refs + ref_kinds) shape."""
-    task = svc.create(ItemType.TASK, "t").item
+    task = (await svc.create(ItemType.TASK, "t")).item
     path = svc.paths.abspath(task.path)
     text = path.read_text(encoding="utf-8")
     fm, _ = sections.split_frontmatter(text)
@@ -19,9 +23,9 @@ def _write_legacy_task(svc) -> str:
     return task.id
 
 
-def test_migrate_folds_kinds_and_is_idempotent(svc):
-    task_id = _write_legacy_task(svc)
-    path = svc.paths.abspath(svc.get(task_id).path)
+async def test_migrate_folds_kinds_and_is_idempotent(svc):
+    task_id = await _write_legacy_task(svc)
+    path = svc.paths.abspath((await svc.get(task_id)).path)
     body_before = sections.split_frontmatter(path.read_text(encoding="utf-8"))[1]
 
     changed = _v0_1_to_v0_2.migrate(svc.paths)
@@ -37,13 +41,13 @@ def test_migrate_folds_kinds_and_is_idempotent(svc):
     assert _v0_1_to_v0_2.migrate(svc.paths) == 0
 
 
-def test_migrate_noop_on_already_v2(svc):
-    svc.create(ItemType.TASK, "fresh")  # written in the new format already
+async def test_migrate_noop_on_already_v2(svc):
+    await svc.create(ItemType.TASK, "fresh")  # written in the new format already
     assert _v0_1_to_v0_2.migrate(svc.paths) == 0
 
 
-def test_migrate_gives_legacy_review_a_findings_skeleton(svc):
-    rev = svc.create(ItemType.REVIEW, "R").item
+async def test_migrate_gives_legacy_review_a_findings_skeleton(svc):
+    rev = (await svc.create(ItemType.REVIEW, "R")).item
     path = svc.paths.abspath(rev.path)
     # devolve to pre-2: a review with no findings container / summary region (free-form prose only)
     text = path.read_text(encoding="utf-8")
@@ -58,14 +62,14 @@ def test_migrate_gives_legacy_review_a_findings_skeleton(svc):
     final = path.read_text(encoding="utf-8")
     assert sections.has_section(final, "findings") and sections.has_section(final, "summary")
     # the new finding commands now work on the migrated review (the manual LLM step)
-    svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
-    assert svc.list_findings(rev.id)[0].title == "Null deref"
+    await svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
+    assert (await svc.list_findings(rev.id))[0].title == "Null deref"
 
 
-def _devolve_to_v0_2(svc, item_id: str, kind: str) -> None:
+async def _devolve_to_v0_2(svc, item_id: str, kind: str) -> None:
     """Turn a live (0.3) item file back into 0.2 shape: each sub-entity's state in a body ``:meta``
     region, no frontmatter ``subentities``, no ``:head``."""
-    p = svc.paths.abspath(svc.get(item_id).path)
+    p = svc.paths.abspath((await svc.get(item_id)).path)
     fm, body = sections.split_frontmatter(p.read_text(encoding="utf-8"))
     subs = fm.pop("subentities", []) or []
     body = re.sub(
@@ -82,18 +86,18 @@ def _devolve_to_v0_2(svc, item_id: str, kind: str) -> None:
     p.write_text(sections.join_frontmatter(fm, body), encoding="utf-8")
 
 
-def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_head(svc):
-    svc.add_dev("python", name="Grace Hopper")  # python-dev
-    feat = svc.create(ItemType.FEATURE, "Login").item
-    svc.add_story(feat.id, "As a user, I want to reset my password")  # US1
-    task = svc.create(ItemType.TASK, "Auth", parent=feat.id).item
-    svc.add_subtask(task.id, "Validate", story="US1", assignee="python-dev")
-    rev = svc.create(ItemType.REVIEW, "r").item
-    svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
+async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_head(svc):
+    await svc.add_dev("python", name="Grace Hopper")  # python-dev
+    feat = (await svc.create(ItemType.FEATURE, "Login")).item
+    await svc.add_story(feat.id, "As a user, I want to reset my password")  # US1
+    task = (await svc.create(ItemType.TASK, "Auth", parent=feat.id)).item
+    await svc.add_subtask(task.id, "Validate", story="US1", assignee="python-dev")
+    rev = (await svc.create(ItemType.REVIEW, "r")).item
+    await svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
 
     for item_id, kind in ((feat.id, "story"), (task.id, "subtask"), (rev.id, "finding")):
-        _devolve_to_v0_2(svc, item_id, kind)
-    sub_path = svc.paths.abspath(svc.get(task.id).path)
+        await _devolve_to_v0_2(svc, item_id, kind)
+    sub_path = svc.paths.abspath((await svc.get(task.id)).path)
     # sanity: genuinely 0.2 now — state in :meta, nothing in frontmatter
     assert _meta_compat.has_meta(sub_path.read_text(encoding="utf-8"), "subtask")
     assert "subentities" not in sections.split_frontmatter(sub_path.read_text(encoding="utf-8"))[0]
@@ -118,15 +122,15 @@ def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_head(svc):
     assert "**Status:** ⚪ Todo" in sub_head
     assert "**Assignee:** Grace Hopper" in sub_head  # slug resolved to the role's full name
     assert "**Implements:** US1 — As a user, I want to reset my password" in sub_head
-    find_path = svc.paths.abspath(svc.get(rev.id).path)
+    find_path = svc.paths.abspath((await svc.get(rev.id)).path)
     find_head = sections.get_section(find_path.read_text(encoding="utf-8"), "finding:F1:head")
     assert find_head is not None and "**Severity:** 🟠 High" in find_head
     # idempotent: nothing left to lift
     assert _v0_2_to_v0_3.migrate(svc.paths) == 0
 
 
-def test_v0_2_to_v0_3_backfills_sequence_id(svc):
-    task = svc.create(ItemType.TASK, "t").item  # TASK-000002 (sequence 2)
+async def test_v0_2_to_v0_3_backfills_sequence_id(svc):
+    task = (await svc.create(ItemType.TASK, "t")).item  # TASK-000002 (sequence 2)
     p = svc.paths.abspath(task.path)
     # simulate a file written before sequence_id was persisted: drop the line
     stripped = re.sub(r"\nsequence_id: \d+", "", p.read_text(encoding="utf-8"))

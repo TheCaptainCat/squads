@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from squads import _aio
 from squads import _interactions as interactions
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code import _claude_md as claude_md
@@ -29,20 +30,21 @@ class ClaudeCodeBackend(AgentBackend):
     name = "claude_code"
 
     # ------------------------------------------------------------------ scaffold
-    def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]:
+    async def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]:
         cdir = ctx.root / _CLAUDE_DIR
-        (cdir / _AGENTS).mkdir(parents=True, exist_ok=True)
-        (cdir / _SKILLS / "squads").mkdir(parents=True, exist_ok=True)
+        await _aio.mkdir(cdir / _AGENTS, parents=True, exist_ok=True)
+        await _aio.mkdir(cdir / _SKILLS / "squads", parents=True, exist_ok=True)
         settings = cdir / "settings.json"
-        self._merge_settings(settings)
+        await self._merge_settings(settings)
         return [Artifact(ctx.rel(settings), "settings", self.name)]
 
-    def _merge_settings(self, settings: Path) -> None:
+    async def _merge_settings(self, settings: Path) -> None:
         default: dict[str, Any] = json.loads(render("claude/settings.json.j2"))
-        if settings.exists():
+        if await _aio.path_exists(settings):
             current: dict[str, Any]
             try:
-                current = json.loads(settings.read_text(encoding="utf-8"))
+                raw = await _aio.read_text(settings)
+                current = json.loads(raw)
             except json.JSONDecodeError:
                 current = {}
             perms: dict[str, Any] = current.setdefault("permissions", {})
@@ -51,18 +53,18 @@ class ClaudeCodeBackend(AgentBackend):
                 if rule not in allow:
                     allow.append(rule)
             perms.setdefault("deny", [])
-            settings.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
+            await _aio.write_text(settings, json.dumps(current, indent=2) + "\n")
         else:
-            settings.write_text(json.dumps(default, indent=2) + "\n", encoding="utf-8")
+            await _aio.write_text(settings, json.dumps(default, indent=2) + "\n")
 
     # ------------------------------------------------------------------ managed files
-    def write_managed(
+    async def write_managed(
         self, ctx: BackendContext, roster: list[RoleView], operators: list[OperatorView]
     ) -> list[Artifact]:
         squad_dir = ctx.paths.config.squad_dir
         artifacts: list[Artifact] = []
         # squads skill (real body under squads/agents/skills/, thin pointer in .claude/)
-        artifacts += self._write_managed_skill(
+        artifacts += await self._write_managed_skill(
             ctx,
             name="squads",
             description=(
@@ -77,7 +79,7 @@ class ClaudeCodeBackend(AgentBackend):
             ),
         )
         # greeting skill — the start-of-conversation ritual (detect the human, register, greet)
-        artifacts += self._write_managed_skill(
+        artifacts += await self._write_managed_skill(
             ctx,
             name="greeting",
             description=(
@@ -97,35 +99,37 @@ class ClaudeCodeBackend(AgentBackend):
             default_role_full_name=default.full_name if default else "the manager",
             default_role_slug=default.slug if default else "manager",
         )
-        claude_md.inject(ctx.root / _CLAUDE_MD, section)
+        await claude_md.inject(ctx.root / _CLAUDE_MD, section)
         artifacts.append(Artifact(ctx.rel(ctx.root / _CLAUDE_MD), "claude_md", self.name))
-        artifacts.extend(self._write_item_skills(ctx, roster))
+        artifacts.extend(await self._write_item_skills(ctx, roster))
         return artifacts
 
-    def _write_managed_skill(
+    async def _write_managed_skill(
         self, ctx: BackendContext, *, name: str, description: str, body: str
     ) -> list[Artifact]:
         """Write a managed skill's real body under squads/ and a thin pointer in .claude/."""
         body_path = ctx.squad_dir / _AGENTS / _SKILLS / f"{name}.md"
-        body_path.parent.mkdir(parents=True, exist_ok=True)
-        body_path.write_text(body, encoding="utf-8")
+        await _aio.mkdir(body_path.parent, parents=True, exist_ok=True)
+        await _aio.write_text(body_path, body)
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / name / _SKILL_FILE
-        pointer.parent.mkdir(parents=True, exist_ok=True)
-        pointer.write_text(
+        await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
+        await _aio.write_text(
+            pointer,
             render(
                 "claude/pointer_skill.md.j2",
                 slug=name,
                 description=oneline(description),
                 squad_path=ctx.rel(body_path),
             ),
-            encoding="utf-8",
         )
         return [
             Artifact(ctx.rel(body_path), "skill_body", self.name),
             Artifact(ctx.rel(pointer), "skill_pointer", self.name),
         ]
 
-    def _write_item_skills(self, ctx: BackendContext, roster: list[RoleView]) -> list[Artifact]:
+    async def _write_item_skills(
+        self, ctx: BackendContext, roster: list[RoleView]
+    ) -> list[Artifact]:
         """One managed skill per item type, with a section per *active* interacting role.
 
         The shared ``developers`` section renders only when the roster has at least one developer
@@ -168,7 +172,7 @@ class ClaudeCodeBackend(AgentBackend):
                 commands=list(pb.commands),
                 sections=sections,
             )
-            out += self._write_managed_skill(
+            out += await self._write_managed_skill(
                 ctx,
                 name=name,
                 description=(
@@ -180,10 +184,11 @@ class ClaudeCodeBackend(AgentBackend):
         return out
 
     # ------------------------------------------------------------------ entries
-    def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
+    async def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
         pointer = ctx.root / _CLAUDE_DIR / _AGENTS / f"{role.slug}.md"
-        pointer.parent.mkdir(parents=True, exist_ok=True)
-        pointer.write_text(
+        await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
+        await _aio.write_text(
+            pointer,
             render(
                 "claude/pointer_agent.md.j2",
                 slug=role.slug,
@@ -195,35 +200,34 @@ class ClaudeCodeBackend(AgentBackend):
                 squad_path=ctx.root_relative(item),
                 skills=interactions.skills_for_role(role.slug),
             ),
-            encoding="utf-8",
         )
         return Artifact(ctx.rel(pointer), "agent", self.name)
 
-    def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
+    async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
         slug = item.extra.get(X.SLUG, item.slug)
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / slug / _SKILL_FILE
-        pointer.parent.mkdir(parents=True, exist_ok=True)
+        await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
         description = item.extra.get(X.DESCRIPTION) or item.description or item.title
-        pointer.write_text(
+        await _aio.write_text(
+            pointer,
             render(
                 "claude/pointer_skill.md.j2",
                 slug=slug,
                 description=oneline(description),
                 squad_path=ctx.root_relative(item),
             ),
-            encoding="utf-8",
         )
         return Artifact(ctx.rel(pointer), "skill_pointer", self.name)
 
-    def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
+    async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         slug = item.extra.get(X.SLUG, item.slug)
         cdir = ctx.root / _CLAUDE_DIR
         if item.type is ItemType.SKILL:
             skill_dir = cdir / _SKILLS / slug
             if skill_dir.is_dir():
-                shutil.rmtree(skill_dir)
+                await _aio.to_thread(lambda: shutil.rmtree(skill_dir))
         else:
-            (cdir / _AGENTS / f"{slug}.md").unlink(missing_ok=True)
+            await _aio.path_unlink(cdir / _AGENTS / f"{slug}.md", missing_ok=True)
 
     def managed_paths(self, ctx: BackendContext) -> list[str]:
         """Root-relative paths owned by this backend (present-only check; read-only)."""
