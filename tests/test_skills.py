@@ -1,7 +1,11 @@
+import pytest
+
 from squads import _interactions as interactions
 from squads._cli import app
 from squads._models._enums import ItemType
 from squads._sections import split_frontmatter
+
+pytestmark = pytest.mark.anyio
 
 # --------------------------------------------------------------------------- matrix
 
@@ -35,7 +39,7 @@ def _item_skill_body(project, item_type):
     ).read_text(encoding="utf-8")
 
 
-def test_item_skills_generated_with_active_role_sections(project):
+async def test_item_skills_generated_with_active_role_sections(project):
     skills_dir = project.root / ".claude" / "skills"
     for it in interactions.managed_item_types():
         # thin pointer in .claude → real body under the squad folder
@@ -52,18 +56,18 @@ def test_item_skills_generated_with_active_role_sections(project):
     assert "add-story" in feature
 
 
-def test_item_skill_shows_only_active_roles(svc, project):
-    svc.activate_role("product-owner")
-    svc.activate_role("qa")
-    svc.refresh_managed()
+async def test_item_skill_shows_only_active_roles(svc, project):
+    await svc.activate_role("product-owner")
+    await svc.activate_role("qa")
+    await svc.refresh_managed()
     feature = _item_skill_body(project, ItemType.FEATURE)
     assert "Nina Product" in feature  # active PO section present
     assert "Olivia Lead" not in feature  # tech-lead not activated → no section
 
 
-def test_item_skill_actor_guidance_is_structured(svc, project):
-    svc.add_dev("python")  # the developers section is gated on an active dev (see below)
-    svc.refresh_managed()
+async def test_item_skill_actor_guidance_is_structured(svc, project):
+    await svc.add_dev("python")  # the developers section is gated on an active dev (see below)
+    await svc.refresh_managed()
     task = _item_skill_body(project, ItemType.TASK)
     assert "## For developers" in task
     for label in ("**Enter**", "**Do:**", "**Hand off:**", "**Watch for:**"):
@@ -73,29 +77,29 @@ def test_item_skill_actor_guidance_is_structured(svc, project):
     assert "don't author features/tasks" in task  # watch: scope discipline
 
 
-def test_dev_section_gated_on_active_dev(svc, project):
+async def test_dev_section_gated_on_active_dev(svc, project):
     # no dev in the roster → no developers section anywhere
     assert "## For developers" not in _item_skill_body(project, ItemType.TASK)
-    svc.add_dev("rust")
-    svc.refresh_managed()
+    await svc.add_dev("rust")
+    await svc.refresh_managed()
     assert "## For developers" in _item_skill_body(project, ItemType.TASK)
 
 
-def test_item_skill_watch_for_reviewer(svc, project):
-    svc.activate_role("reviewer")
-    svc.refresh_managed()
+async def test_item_skill_watch_for_reviewer(svc, project):
+    await svc.activate_role("reviewer")
+    await svc.refresh_managed()
     task = _item_skill_body(project, ItemType.TASK)
     assert "Paul Reviewer" in task
     assert "don't fix the code yourself" in task  # reviewer scope discipline
 
 
-def test_squads_skill_has_direct_operator_rule(project):
+async def test_squads_skill_has_direct_operator_rule(project):
     body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
     assert "Working directly with the operator" in body
     assert "never your chat" in body
 
 
-def test_squads_skill_teaches_full_comments_briefing(project):
+async def test_squads_skill_teaches_full_comments_briefing(project):
     # US6: the squads skill must teach show --full --comments as the standard briefing move so
     # agents don't silently miss decisions captured only in discussion comments.
     body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
@@ -104,11 +108,11 @@ def test_squads_skill_teaches_full_comments_briefing(project):
     assert "show --full --comments" in body
 
 
-def test_item_skills_teach_full_comments_briefing(svc, project):
+async def test_item_skills_teach_full_comments_briefing(svc, project):
     # US6: every per-type sq-<type> skill's Enter section must instruct reading with
     # --full --comments. The guidance is injected by item_skill.md.j2 as the first Enter bullet.
-    svc.add_dev("python")
-    svc.refresh_managed()
+    await svc.add_dev("python")
+    await svc.refresh_managed()
     for it in interactions.managed_item_types():
         body = _item_skill_body(project, it)
         assert "--full --comments" in body, (
@@ -120,7 +124,7 @@ def test_item_skills_teach_full_comments_briefing(svc, project):
         )
 
 
-def test_greeting_skill_is_generated_and_preloaded(project):
+async def test_greeting_skill_is_generated_and_preloaded(project):
     # the always-on greeting skill: real body under the squad folder, thin pointer in .claude
     pointer = (project.root / ".claude" / "skills" / "greeting" / "SKILL.md").read_text(
         encoding="utf-8"
@@ -138,9 +142,9 @@ def test_greeting_skill_is_generated_and_preloaded(project):
     assert "greeting" in fm["skills"]
 
 
-def test_pointer_lists_skills_frontmatter(svc, project):
-    svc.activate_role("product-owner")
-    svc.refresh_managed()
+async def test_pointer_lists_skills_frontmatter(svc, project):
+    await svc.activate_role("product-owner")
+    await svc.refresh_managed()
     fm, _ = split_frontmatter(
         (project.root / ".claude" / "agents" / "product-owner.md").read_text(encoding="utf-8")
     )
@@ -152,15 +156,15 @@ def test_pointer_lists_skills_frontmatter(svc, project):
     assert mfm["skills"] == ["squads", "greeting"]
 
 
-def test_role_body_lists_skills(svc):
-    item = svc.activate_role("tech-writer")
+async def test_role_body_lists_skills(svc):
+    item = await svc.activate_role("tech-writer")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     assert "## Skills" in body
     assert "`sq-guide`" in body
 
 
-def test_role_body_has_operating_contract(svc):
-    item = svc.activate_role("tech-writer")
+async def test_role_body_has_operating_contract(svc):
+    item = await svc.activate_role("tech-writer")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     # the entry point reinforces: follow the per-item skill section
     assert "follow your `sq-<type>` skill" in body
@@ -175,23 +179,23 @@ def test_role_body_has_operating_contract(svc):
     assert "when work actually moves" in body
 
 
-def test_reviewer_role_body_carries_findings_agreement(svc):
+async def test_reviewer_role_body_carries_findings_agreement(svc):
     # TASK-000068: the reviewer's working agreements must include the findings-as-sub-entities line
-    item = svc.activate_role("reviewer")
+    item = await svc.activate_role("reviewer")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     assert "add-finding" in body
     assert "never as body prose" in body
 
 
-def test_non_reviewer_role_body_has_no_findings_agreement(svc):
+async def test_non_reviewer_role_body_has_no_findings_agreement(svc):
     # TASK-000068: roles without per-role agreements must not carry the findings line
-    item = svc.activate_role("tech-writer")
+    item = await svc.activate_role("tech-writer")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     assert "add-finding" not in body
     assert "never as body prose" not in body
 
 
-def test_squads_skill_teaches_comment_scoping_convention(project):
+async def test_squads_skill_teaches_comment_scoping_convention(project):
     # FEAT-000062 US1: the squads skill must name the sub-entity comment command and give
     # a concrete example for each sub-entity kind (finding, story, subtask).
     body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
@@ -205,14 +209,14 @@ def test_squads_skill_teaches_comment_scoping_convention(project):
     assert "sq inbox" in body
 
 
-def test_per_type_skills_carry_scoped_comment_guidance(svc, project):
+async def test_per_type_skills_carry_scoped_comment_guidance(svc, project):
     # FEAT-000062 US1: sq-review, sq-feature, sq-task each carry role-specific scoped-comment
     # guidance that points at the squads skill convention (no restatement of the full text).
-    svc.activate_role("reviewer")
-    svc.activate_role("product-owner")
-    svc.activate_role("tech-lead")
-    svc.add_dev("python")
-    svc.refresh_managed()
+    await svc.activate_role("reviewer")
+    await svc.activate_role("product-owner")
+    await svc.activate_role("tech-lead")
+    await svc.add_dev("python")
+    await svc.refresh_managed()
 
     review = _item_skill_body(project, ItemType.REVIEW)
     # reviewer: finding-scoped comment when closing/responding
@@ -230,18 +234,18 @@ def test_per_type_skills_carry_scoped_comment_guidance(svc, project):
     assert "comment-scoping convention" in task
 
 
-def test_role_body_has_comment_scoping_pointer(svc):
+async def test_role_body_has_comment_scoping_pointer(svc):
     # FEAT-000062 US1: every activated role's working agreements name the scoping principle
     # and point at the squads skill — a brief sentence, not a restatement of the full convention.
-    item = svc.activate_role("tech-writer")
+    item = await svc.activate_role("tech-writer")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     assert "comment-scoping" in body
     assert "squads" in body  # points at the squads skill by name
 
 
-def test_sync_regenerates_role_bodies(svc, project):
+async def test_sync_regenerates_role_bodies(svc, project):
     # activate a role, manually corrupt its body region, then verify sync restores both regimes
-    item = svc.activate_role("qa")
+    item = await svc.activate_role("qa")
     path = svc.paths.abspath(item.path)
     from squads import _sections as sections
     from squads._models import _markers as markers
@@ -252,7 +256,7 @@ def test_sync_regenerates_role_bodies(svc, project):
     path.write_text(corrupted, encoding="utf-8")
     assert "Spawned as a subagent" not in path.read_text(encoding="utf-8")
     # sync should re-render the body
-    svc.sync()
+    await svc.sync()
     restored = path.read_text(encoding="utf-8")
     assert "### Spawned as a subagent" in restored
     assert "### Live with the operator" in restored
@@ -262,9 +266,9 @@ def test_sync_regenerates_role_bodies(svc, project):
 # --------------------------------------------------------------------------- sq workflow / help
 
 
-def test_workflow_command(runner, project, monkeypatch):
+async def test_workflow_command(invoke, project, monkeypatch):
     monkeypatch.chdir(project.root)
-    r = runner.invoke(app, ["workflow"])
+    r = await invoke(["workflow"])
     assert r.exit_code == 0, r.output
     assert "Team workflow" in r.output
     assert "parent" in r.output and "feature" in r.output

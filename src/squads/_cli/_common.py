@@ -3,10 +3,11 @@
 import functools
 import json
 import sys
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, ClassVar
 
+import anyio
 import typer
 import typer.core
 from rich.console import Console, Group, RenderableType
@@ -168,7 +169,7 @@ def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
     return "  ".join(parts)
 
 
-def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: bool) -> None:
+async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: bool) -> None:
     """Render one pane per sub-entity with its body (and optionally its comments).
 
     Called when --full is set; comment embedding per sub is gated on --comments.
@@ -183,7 +184,7 @@ def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: bool) -
     get_detail = getattr(svc, f"get_{kind}")
 
     for sub in it.subentities:
-        detail = get_detail(it.id, sub.local_id)
+        detail = await get_detail(it.id, sub.local_id)
         # Build the raw (un-escaped) title once; apply e() only at the styled Panel boundary.
         raw_title = _subentity_pane_title_raw(sub, kind)
         body_text = detail.body or ""
@@ -252,11 +253,11 @@ def render_body_text(body_text: str, *, raw: bool = False, empty_hint: str | Non
     _render_body(body_text, styled=_is_styled() and not raw, empty_hint=empty_hint)
 
 
-def _print_item_content(
+async def _print_item_content(
     svc: Service, it: Item, *, styled: bool, comments: bool, full: bool = False
 ) -> None:
     """Render the body, sub-entity summary, and optional comments for a non-role/skill item."""
-    body = svc.read_body(it.id)
+    body = await svc.read_body(it.id)
     _render_body(body, styled=styled)
 
     # Sub-entity summary table — always shown (not gated on --full); driven from the stored
@@ -266,16 +267,16 @@ def _print_item_content(
 
     # --full: one pane per sub-entity (body + optional per-sub comments)
     if full:
-        _print_full_panes(svc, it, styled=styled, comments=comments)
+        await _print_full_panes(svc, it, styled=styled, comments=comments)
 
     # --comments: render the main discussion last (after sub panes when --full is set)
     if comments:
-        _print_discussion(svc, it, styled=styled)
+        await _print_discussion(svc, it, styled=styled)
 
 
-def _print_discussion(svc: Service, it: Item, *, styled: bool) -> None:
+async def _print_discussion(svc: Service, it: Item, *, styled: bool) -> None:
     """Render the main discussion as per-comment panes or plain blocks."""
-    cmt_list = discussion.split_discussion(svc.read_discussion(it.id))
+    cmt_list = discussion.split_discussion(await svc.read_discussion(it.id))
     if cmt_list:
         console.print()
         if styled:
@@ -286,7 +287,7 @@ def _print_discussion(svc: Service, it: Item, *, styled: bool) -> None:
         console.print("[dim](no discussion)[/dim]")
 
 
-def print_item(
+async def print_item(
     svc: Service,
     it: Item,
     *,
@@ -303,7 +304,7 @@ def print_item(
     """
     console.print(Panel("\n".join(_build_item_panel_rows(it)), expand=False))
     styled = _is_styled() and not raw
-    _print_item_content(svc, it, styled=styled, comments=comments, full=full)
+    await _print_item_content(svc, it, styled=styled, comments=comments, full=full)
 
 
 _SUBENTITY_KIND: dict[ItemType, str] = {
@@ -400,6 +401,25 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
     return wrapper
 
 
+def command[**P](fn: Callable[P, Awaitable[None]]) -> Callable[P, None]:
+    """The single sync→async bridge for CLI commands (ADR-000153 Decision 3).
+
+    Wraps an ``async def`` Typer command so Typer sees a sync callable, there is exactly one
+    ``anyio.run`` per invocation, and ``SquadsError`` becomes a clean message + ``typer.Exit(1)``
+    (subsuming the old ``@handle_errors``).
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
+        try:
+            anyio.run(functools.partial(fn, *args, **kwargs))
+        except SquadsError as exc:
+            err_console.print(f"[red]error:[/red] {exc}")
+            raise typer.Exit(1) from exc
+
+    return wrapper
+
+
 def version_tuple(version: str) -> tuple[int, ...]:
     parts: list[int] = []
     for p in version.split("."):
@@ -481,7 +501,7 @@ def _parse_item_token(token: str) -> tuple[int, str | None]:
     )
 
 
-def resolve_item_id_typed(token: str, item_type: ItemType, svc: Service) -> str:
+async def resolve_item_id_typed(token: str, item_type: ItemType, svc: Service) -> str:
     """Resolve a CLI token and verify the item's **actual type** in the live DB.
 
     Accepts ``35`` / ``000035`` / ``TASK-000035``.  Raises a friendly
@@ -496,14 +516,14 @@ def resolve_item_id_typed(token: str, item_type: ItemType, svc: Service) -> str:
     seq, given_prefix = _parse_item_token(token)
     if given_prefix is not None and given_prefix != prefix:
         # Full ID with wrong prefix — look up the actual item so we can name it.
-        db = svc.store.load()
+        db = await svc.store.load()
         item = db.get(str(seq))
         if item is None:
             hint = format_item_id(prefix, seq, db.padding)
             raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
         raise SquadsError(_mismatch_msg(token, item.id, item.type.value, item_type.value))
 
-    db = svc.store.load()
+    db = await svc.store.load()
     item = db.get(str(seq))
     if item is None:
         hint = format_item_id(prefix, seq, db.padding)
@@ -513,7 +533,7 @@ def resolve_item_id_typed(token: str, item_type: ItemType, svc: Service) -> str:
     return item.id
 
 
-def resolve_item_id_any(token: str, svc: Service) -> str:
+async def resolve_item_id_any(token: str, svc: Service) -> str:
     """Resolve a CLI token to the full ID of **whatever item owns that sequence number**.
 
     Accepts a bare number (``35`` / ``000035``) or a full ID (``FEAT-000013``).  The type word in a
@@ -525,7 +545,7 @@ def resolve_item_id_any(token: str, svc: Service) -> str:
     One DB read per call.
     """
     seq, given_prefix = _parse_item_token(token)
-    db = svc.store.load()
+    db = await svc.store.load()
     item = db.get(str(seq))
 
     if item is None:
@@ -546,7 +566,7 @@ def _is_full_id_shape(token: str) -> bool:
     return bool(sep) and tail.isdigit()
 
 
-def resolve_agent_addr(token: str, item_type: ItemType, svc: Service) -> str:
+async def resolve_agent_addr(token: str, item_type: ItemType, svc: Service) -> str:
     """Resolve a CLI address token for role/skill/operator to a full item ID.
 
     Resolution order (exact match only — no fuzzy):
@@ -559,7 +579,7 @@ def resolve_agent_addr(token: str, item_type: ItemType, svc: Service) -> str:
     t = token.strip()
     # Paths 1 and 2: numeric or full-ID token — let the typed resolver handle it.
     if t.isdigit() or _is_full_id_shape(t):
-        return resolve_item_id_typed(token, item_type, svc)
+        return await resolve_item_id_typed(token, item_type, svc)
     # Path 3: treat as a slug — delegate to the service's authoritative slug lookup.
     _SLUG_LOOKUP = {
         ItemType.ROLE: svc._role_item,  # pyright: ignore[reportPrivateUsage]
@@ -568,7 +588,7 @@ def resolve_agent_addr(token: str, item_type: ItemType, svc: Service) -> str:
     }
     lookup = _SLUG_LOOKUP.get(item_type)
     if lookup is not None:
-        item = lookup(t)
+        item = await lookup(t)
         if item is not None:
             return item.id
     raise SquadsError(f"no {item_type.value} with slug, ID, or number {token!r}")
@@ -627,7 +647,7 @@ def resolve_local_id(token: str, kind: str) -> str:
     return discussion.local_id_for(kind, token)
 
 
-def resolve_slug_or_raise(slug: str, svc: Service) -> str:
+async def resolve_slug_or_raise(slug: str, svc: Service) -> str:
     """Validate ``slug`` against the roster (agents + operators) and return it normalised.
 
     Mirrors :func:`resolve_item_id` in shape: one validation idiom for slugs, one for item IDs.
@@ -637,8 +657,8 @@ def resolve_slug_or_raise(slug: str, svc: Service) -> str:
     normalised = slug.lstrip("@").lower()
     if normalised == "operator":
         return normalised
-    agent_slugs = [r.slug for r in svc.roster()]
-    operator_slugs = [o.slug for o in svc.operators()]
+    agent_slugs = [r.slug for r in await svc.roster()]
+    operator_slugs = [o.slug for o in await svc.operators()]
     if normalised in agent_slugs or normalised in operator_slugs:
         return normalised
     valid = sorted(agent_slugs + operator_slugs)

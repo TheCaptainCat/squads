@@ -1,87 +1,90 @@
 """Priority field, hide-closed defaults, and the search / blocked / workload / mine views."""
 
-from squads._cli import app
+import pytest
+
 from squads._itemfile import read_frontmatter
 from squads._models._enums import ItemType, Priority, Status
+
+pytestmark = pytest.mark.anyio
 
 # --------------------------------------------------------------------------- priority (service)
 
 
-def test_create_with_priority_writes_frontmatter(svc):
-    res = svc.create(ItemType.TASK, "Token validation", priority=Priority.HIGH)
+async def test_create_with_priority_writes_frontmatter(svc):
+    res = await svc.create(ItemType.TASK, "Token validation", priority=Priority.HIGH)
     assert res.item.priority is Priority.HIGH
     fm = read_frontmatter(res.path)
     assert fm["priority"] == "high"
 
 
-def test_create_without_priority_omits_it(svc):
-    res = svc.create(ItemType.TASK, "no prio")
+async def test_create_without_priority_omits_it(svc):
+    res = await svc.create(ItemType.TASK, "no prio")
     assert res.item.priority is None
     assert "priority" not in read_frontmatter(res.path)
 
 
-def test_update_sets_and_clears_priority(svc):
-    res = svc.create(ItemType.TASK, "t")
-    svc.update(res.item.id, priority=Priority.URGENT)
+async def test_update_sets_and_clears_priority(svc):
+    res = await svc.create(ItemType.TASK, "t")
+    await svc.update(res.item.id, priority=Priority.URGENT)
     assert read_frontmatter(res.path)["priority"] == "urgent"
-    assert svc.get(res.item.id).priority is Priority.URGENT
-    svc.update(res.item.id, clear_priority=True)
+    assert (await svc.get(res.item.id)).priority is Priority.URGENT
+    await svc.update(res.item.id, clear_priority=True)
     assert "priority" not in read_frontmatter(res.path)
-    assert svc.get(res.item.id).priority is None
+    assert (await svc.get(res.item.id)).priority is None
 
 
-def test_list_filters_by_priority(svc):
-    hi = svc.create(ItemType.TASK, "hi", priority=Priority.HIGH)
-    svc.create(ItemType.TASK, "lo", priority=Priority.LOW)
-    got = svc.list_items(priority=Priority.HIGH)
+async def test_list_filters_by_priority(svc):
+    hi = await svc.create(ItemType.TASK, "hi", priority=Priority.HIGH)
+    await svc.create(ItemType.TASK, "lo", priority=Priority.LOW)
+    got = await svc.list_items(priority=Priority.HIGH)
     assert [i.id for i in got] == [hi.item.id]
 
 
-def test_priority_survives_repair(svc):
+async def test_priority_survives_repair(svc):
     """Frontmatter is the source of truth: a rebuilt index keeps the priority."""
-    res = svc.create(ItemType.BUG, "b", priority=Priority.MEDIUM)
-    svc.repair()
-    assert svc.get(res.item.id).priority is Priority.MEDIUM
+    res = await svc.create(ItemType.BUG, "b", priority=Priority.MEDIUM)
+    await svc.repair()
+    assert (await svc.get(res.item.id)).priority is Priority.MEDIUM
 
 
 # --------------------------------------------------------------------------- search
 
 
-def test_search_matches_title_and_body(svc):
-    res = svc.create(ItemType.TASK, "Token validation")
-    svc.set_body(res.item.id, "Validate the JWT expiry and signature.")
-    by_title = svc.search("token")
+async def test_search_matches_title_and_body(svc):
+    res = await svc.create(ItemType.TASK, "Token validation")
+    await svc.set_body(res.item.id, "Validate the JWT expiry and signature.")
+    by_title = await svc.search("token")
     assert [i.id for i, _ in by_title] == [res.item.id]
-    by_body = svc.search("expiry")
+    by_body = await svc.search("expiry")
     assert res.item.id in [i.id for i, _ in by_body]
-    assert svc.search("nonexistent-needle") == []
+    assert await svc.search("nonexistent-needle") == []
 
 
 # --------------------------------------------------------------------------- blocked
 
 
-def test_blocked_view(svc):
-    a = svc.create(ItemType.TASK, "blocked one").item
-    b = svc.create(ItemType.TASK, "the blocker").item
-    svc.add_ref(b.id, a.id, kind="blocks")  # "B blocks A" → A is blocked while B is open
-    rows = svc.blocked()
+async def test_blocked_view(svc):
+    a = (await svc.create(ItemType.TASK, "blocked one")).item
+    b = (await svc.create(ItemType.TASK, "the blocker")).item
+    await svc.add_ref(b.id, a.id, kind="blocks")  # "B blocks A" → A is blocked while B is open
+    rows = await svc.blocked()
     assert [(t.id, [x.id for x in bs]) for t, bs in rows] == [(a.id, [b.id])]
     # closing the blocker clears it
-    svc.set_status(b.id, Status.IN_PROGRESS)
-    svc.set_status(b.id, Status.DONE)
-    assert svc.blocked() == []
+    await svc.set_status(b.id, Status.IN_PROGRESS)
+    await svc.set_status(b.id, Status.DONE)
+    assert await svc.blocked() == []
 
 
 # --------------------------------------------------------------------------- workload
 
 
-def test_workload_counts_open_and_closed(svc):
-    svc.create(ItemType.TASK, "t1", assignee="manager")
-    done = svc.create(ItemType.TASK, "t2", assignee="manager").item
-    svc.set_status(done.id, Status.IN_PROGRESS)
-    svc.set_status(done.id, Status.DONE)
-    svc.create(ItemType.TASK, "unassigned")
-    rows = {r.assignee: r for r in svc.workload()}
+async def test_workload_counts_open_and_closed(svc):
+    await svc.create(ItemType.TASK, "t1", assignee="manager")
+    done = (await svc.create(ItemType.TASK, "t2", assignee="manager")).item
+    await svc.set_status(done.id, Status.IN_PROGRESS)
+    await svc.set_status(done.id, Status.DONE)
+    await svc.create(ItemType.TASK, "unassigned")
+    rows = {r.assignee: r for r in await svc.workload()}
     assert rows["manager"].open == 1 and rows["manager"].closed == 1 and rows["manager"].total == 2
     assert rows[None].open == 1
 
@@ -89,87 +92,86 @@ def test_workload_counts_open_and_closed(svc):
 # --------------------------------------------------------------------------- CLI smoke
 
 
-def test_priority_cli(project, runner):
-    runner.invoke(app, ["create", "task", "T", "--author", "manager", "--priority", "high"])
-    shown = runner.invoke(app, ["task", "2", "show"])
+async def test_priority_cli(project, invoke):
+    await invoke(["create", "task", "T", "--author", "manager", "--priority", "high"])
+    shown = await invoke(["task", "2", "show"])
     assert shown.exit_code == 0 and "high" in shown.output
-    listed = runner.invoke(app, ["list", "--priority", "high"])
+    listed = await invoke(["list", "--priority", "high"])
     assert "TASK-000002" in listed.output
-    none = runner.invoke(app, ["list", "--priority", "low"])
+    none = await invoke(["list", "--priority", "low"])
     assert "no items" in none.output
 
 
-def test_priority_cli_rejects_unknown(project, runner):
-    r = runner.invoke(app, ["create", "task", "T", "--author", "manager", "--priority", "huge"])
+async def test_priority_cli_rejects_unknown(project, invoke):
+    r = await invoke(["create", "task", "T", "--author", "manager", "--priority", "huge"])
     assert r.exit_code == 1 and "unknown priority" in r.output
 
 
-def test_hide_closed_in_list_and_tree(project, runner):
-    runner.invoke(app, ["create", "task", "Open one", "--author", "manager"])
-    runner.invoke(app, ["create", "task", "Closed one", "--author", "manager"])
-    runner.invoke(app, ["task", "3", "status", "InProgress"])
-    runner.invoke(app, ["task", "3", "status", "Done"])
-    default = runner.invoke(app, ["list", "--type", "task"])
+async def test_hide_closed_in_list_and_tree(project, invoke):
+    await invoke(["create", "task", "Open one", "--author", "manager"])
+    await invoke(["create", "task", "Closed one", "--author", "manager"])
+    await invoke(["task", "3", "status", "InProgress"])
+    await invoke(["task", "3", "status", "Done"])
+    default = await invoke(["list", "--type", "task"])
     assert "TASK-000002" in default.output and "TASK-000003" not in default.output
-    with_all = runner.invoke(app, ["list", "--type", "task", "--all"])
+    with_all = await invoke(["list", "--type", "task", "--all"])
     assert "TASK-000003" in with_all.output
-    by_status = runner.invoke(app, ["list", "--status", "Done"])
+    by_status = await invoke(["list", "--status", "Done"])
     assert "TASK-000003" in by_status.output
-    tree_default = runner.invoke(app, ["tree"])
+    tree_default = await invoke(["tree"])
     assert "TASK-000003" not in tree_default.output
-    tree_all = runner.invoke(app, ["tree", "--all"])
+    tree_all = await invoke(["tree", "--all"])
     assert "TASK-000003" in tree_all.output
 
 
-def test_search_cli(project, runner):
-    runner.invoke(app, ["create", "task", "Token validation", "--author", "manager"])
-    r = runner.invoke(app, ["search", "token"])
+async def test_search_cli(project, invoke):
+    await invoke(["create", "task", "Token validation", "--author", "manager"])
+    r = await invoke(["search", "token"])
     assert r.exit_code == 0 and "TASK-000002" in r.output
-    j = runner.invoke(app, ["search", "token", "--json"])
+    j = await invoke(["search", "token", "--json"])
     import json
 
     assert json.loads(j.output)[0]["id"] == "TASK-000002"
 
 
-def test_blocked_and_workload_cli(project, runner):
-    runner.invoke(app, ["create", "task", "A", "--author", "manager", "--assignee", "manager"])
-    runner.invoke(app, ["create", "task", "B", "--author", "manager"])
-    runner.invoke(app, ["task", "3", "ref", "add", "TASK-000002", "--kind", "blocks"])
-    blocked = runner.invoke(app, ["blocked"])
+async def test_blocked_and_workload_cli(project, invoke):
+    await invoke(["create", "task", "A", "--author", "manager", "--assignee", "manager"])
+    await invoke(["create", "task", "B", "--author", "manager"])
+    await invoke(["task", "3", "ref", "add", "TASK-000002", "--kind", "blocks"])
+    blocked = await invoke(["blocked"])
     assert "TASK-000002" in blocked.output and "blocked by" in blocked.output
-    work = runner.invoke(app, ["workload", "--json"])
+    work = await invoke(["workload", "--json"])
     import json
 
     rows = {r["assignee"]: r for r in json.loads(work.output)}
     assert rows["manager"]["open"] == 1
 
 
-def test_mine_cli(project, runner):
-    runner.invoke(app, ["create", "task", "Mine", "--author", "manager", "--assignee", "manager"])
+async def test_mine_cli(project, invoke):
+    await invoke(["create", "task", "Mine", "--author", "manager", "--assignee", "manager"])
     # slug is now required; pass manager explicitly
-    r = runner.invoke(app, ["mine", "manager"])
+    r = await invoke(["mine", "manager"])
     assert "TASK-000002" in r.output
     # unknown slug is an error (exit 1) — bare sq mine is also an error
-    bare = runner.invoke(app, ["mine"])
+    bare = await invoke(["mine"])
     assert bare.exit_code != 0
-    unknown = runner.invoke(app, ["mine", "ghost"])
+    unknown = await invoke(["mine", "ghost"])
     assert unknown.exit_code == 1 and "unknown slug" in unknown.output
 
 
-def test_tree_priority_dot_separator(project, runner):
+async def test_tree_priority_dot_separator(project, invoke):
     """BUG-000030: sq tree human rendering separates priority and title with a middle dot."""
-    runner.invoke(
-        app,
+    await invoke(
         ["create", "task", "My important task", "--author", "manager", "--priority", "high"],
     )
-    out = runner.invoke(app, ["tree"]).output
+    out = (await invoke(["tree"])).output
     assert "·" in out, f"middle dot separator missing from tree output: {out!r}"
     # priority badge and title should be separated by ' · ' not a bare space
     assert "high · My important task" in out
     # --json surface is untouched (no dot in priority value)
     import json
 
-    all_nodes = json.loads(runner.invoke(app, ["tree", "--json"]).output)
+    all_nodes = json.loads((await invoke(["tree", "--json"])).output)
 
     def find_node(nodes: list[dict[str, object]], item_id: str) -> dict[str, object] | None:
         for n in nodes:

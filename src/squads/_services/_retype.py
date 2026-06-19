@@ -7,6 +7,7 @@ only the frontmatter is rewritten via ``update_frontmatter``.
 
 from pathlib import Path
 
+from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
@@ -97,7 +98,7 @@ def _carry_or_reset_status(
 
 
 class RetypeMixin(ServiceCore):
-    def retype(self, item_id: str, new_type: ItemType) -> RetypeResult:
+    async def retype(self, item_id: str, new_type: ItemType) -> RetypeResult:
         """Reclassify *item_id* to *new_type* in place.
 
         - Both the current type and *new_type* must be members of :data:`WORK_TYPES`.
@@ -112,7 +113,7 @@ class RetypeMixin(ServiceCore):
           :func:`~squads._itemfile.rewrite_ids`.
         - A system comment recording the retype is appended to the item's discussion.
         """
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             item = require_item(db, item_id)
             old_type = item.type
             old_id = item.id
@@ -131,13 +132,13 @@ class RetypeMixin(ServiceCore):
             new_id = item.id  # @computed_field reflects the new type
             new_rel = self.paths.squad_relative(new_type, f"{new_id}-{item.slug}.md")
             new_path = self.paths.abspath(new_rel)
-            old_path.rename(new_path)
+            await _aio.path_rename(old_path, new_path)
             item.path = new_rel
             item.updated_at = clock.now()
-            update_frontmatter(new_path, item)
+            await update_frontmatter(new_path, item)
 
             # Append sub-entity container if the new type hosts one and it is absent
-            _ensure_subentity_container(new_type, new_path)
+            await _ensure_subentity_container(new_type, new_path)
 
             # Rewrite all incoming edges (refs, parent links, prose mentions)
             all_paths = [
@@ -146,7 +147,7 @@ class RetypeMixin(ServiceCore):
                 if it.sequence_id != item.sequence_id
             ]
             all_paths.append(new_path)
-            touched = rewrite_ids(all_paths, {old_id: new_id})
+            touched = await rewrite_ids(all_paths, {old_id: new_id})
 
             # Re-sync in-memory items
             _resync_edges(db, item.sequence_id, old_id, new_id)
@@ -155,7 +156,7 @@ class RetypeMixin(ServiceCore):
             db.add(item)
 
             # Append system comment
-            _append_retype_comment(new_path, old_id, new_id, status_reset, item)
+            await _append_retype_comment(new_path, old_id, new_id, status_reset, item)
 
             rewritten_names = [str(p.relative_to(self.paths.squad_dir)) for p in touched]
 
@@ -184,16 +185,16 @@ class RetypeMixin(ServiceCore):
         )
 
 
-def _ensure_subentity_container(new_type: ItemType, path: Path) -> None:
+async def _ensure_subentity_container(new_type: ItemType, path: Path) -> None:
     """Append an empty sub-entity container block when *new_type* hosts sub-entities."""
     kind = SUBENTITY_KIND.get(new_type)
     if kind is None:
         return
     container_tag = SUBENTITY_CONTAINER[kind]
-    text = path.read_text(encoding="utf-8")
+    text = await _aio.read_text(path)
     heading = _CONTAINER_HEADINGS[kind]
     text = discussion.ensure_container(text, heading, container_tag)
-    path.write_text(text, encoding="utf-8")
+    await _aio.write_text(path, text)
 
 
 def _resync_edges(db: SquadsDB, own_seq: int, old_id: str, new_id: str) -> None:
@@ -209,7 +210,7 @@ def _resync_edges(db: SquadsDB, own_seq: int, old_id: str, new_id: str) -> None:
         ]
 
 
-def _append_retype_comment(
+async def _append_retype_comment(
     path: Path,
     old_id: str,
     new_id: str,
@@ -224,7 +225,7 @@ def _append_retype_comment(
         status_note = f"status carried as {item.status.value}"
     msg = f"retyped {old_id} → {new_id}; {status_note}"
     entry = discussion.format_comment(now_iso, "squads", [msg])
-    text = path.read_text(encoding="utf-8")
+    text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
         text = sections.append_to_section(text, markers.DISCUSSION, entry)
-        path.write_text(text, encoding="utf-8")
+        await _aio.write_text(path, text)

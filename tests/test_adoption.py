@@ -7,6 +7,8 @@ from squads._cli import app
 from squads._models._enums import ItemType
 from squads._services import _service as service
 
+pytestmark = pytest.mark.anyio
+
 # --------------------------------------------------------------------------- clock override
 
 
@@ -28,15 +30,15 @@ def test_parse_iso_variants():
 # --------------------------------------------------------------------------- adopt
 
 
-def test_adopt_imports_existing_and_is_idempotent(tmp_path, monkeypatch, frozen_time):
+async def test_adopt_imports_existing_and_is_idempotent(tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
     # a pre-existing squad with one task, but no config/index (legacy/native files only)
-    init = service.init(root=tmp_path, roles_spec="minimal")
-    service.Service(init.paths).create(ItemType.TASK, "legacy")
+    init = await service.init(root=tmp_path, roles_spec="minimal")
+    await service.Service(init.paths).create(ItemType.TASK, "legacy")
     (tmp_path / ".squads.toml").unlink()
     (tmp_path / "squads" / ".squads.json").unlink()
 
-    res = service.adopt(root=tmp_path, roles_spec="core")
+    res = await service.adopt(root=tmp_path, roles_spec="core")
     assert (tmp_path / ".squads.toml").exists()
     assert res.imported == 2  # manager role + the legacy task
     # manager already existed (imported) → not re-activated; the rest of core are
@@ -45,7 +47,7 @@ def test_adopt_imports_existing_and_is_idempotent(tmp_path, monkeypatch, frozen_
     assert {"architect", "tech-lead", "reviewer"} <= activated
 
     # idempotent: a second adopt imports everything, activates nothing new
-    again = service.adopt(root=tmp_path, roles_spec="core")
+    again = await service.adopt(root=tmp_path, roles_spec="core")
     assert again.roles == []
 
 

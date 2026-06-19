@@ -83,74 +83,74 @@ def test_bug_terminals_in_terminal_set():
 # --------------------------------------------------------------------------- set-time validation
 
 
-def test_set_status_rejects_out_of_workflow_vocabulary(svc):
+async def test_set_status_rejects_out_of_workflow_vocabulary(svc):
     """StatusNotInWorkflowError raised at set-time for a status not in the bug workflow."""
-    bug = svc.create(ItemType.BUG, "crash on login").item
+    bug = (await svc.create(ItemType.BUG, "crash on login")).item
     assert bug.status is Status.OPEN
 
     with pytest.raises(StatusNotInWorkflowError, match="'Done' is not a valid status for bug"):
-        svc.set_status(bug.id, Status.DONE)
+        await svc.set_status(bug.id, Status.DONE)
 
 
-def test_force_does_not_bypass_vocabulary_check(svc):
+async def test_force_does_not_bypass_vocabulary_check(svc):
     """--force only relaxes transition edges, never the vocabulary check."""
-    bug = svc.create(ItemType.BUG, "crash").item
+    bug = (await svc.create(ItemType.BUG, "crash")).item
 
     with pytest.raises(StatusNotInWorkflowError, match="not a valid status for bug"):
-        svc.set_status(bug.id, Status.DONE, force=True)
+        await svc.set_status(bug.id, Status.DONE, force=True)
 
 
-def test_force_bypasses_transition_edge_within_bug_vocabulary(svc):
+async def test_force_bypasses_transition_edge_within_bug_vocabulary(svc):
     """--force lets you skip an edge (Open→Verified) when the target is in the bug vocabulary."""
-    bug = svc.create(ItemType.BUG, "crash").item
+    bug = (await svc.create(ItemType.BUG, "crash")).item
     # Open→Verified is not a legal edge, but Verified is a valid bug state
     # Without force this raises InvalidTransitionError (not StatusNotInWorkflowError)
     with pytest.raises(InvalidTransitionError):
-        svc.set_status(bug.id, Status.VERIFIED)
+        await svc.set_status(bug.id, Status.VERIFIED)
     # With force it succeeds
-    result = svc.set_status(bug.id, Status.VERIFIED, force=True)
+    result = await svc.set_status(bug.id, Status.VERIFIED, force=True)
     assert result.status is Status.VERIFIED
 
 
-def test_set_status_rejects_multiple_invalid_statuses(svc):
+async def test_set_status_rejects_multiple_invalid_statuses(svc):
     """All work-item-only statuses are rejected for bugs."""
-    bug = svc.create(ItemType.BUG, "crash").item
+    bug = (await svc.create(ItemType.BUG, "crash")).item
     for invalid in (Status.DRAFT, Status.READY, Status.IN_REVIEW, Status.DONE):
         with pytest.raises(StatusNotInWorkflowError):
-            svc.set_status(bug.id, invalid, force=True)
+            await svc.set_status(bug.id, invalid, force=True)
 
 
-def test_bug_happy_path_lifecycle(svc):
+async def test_bug_happy_path_lifecycle(svc):
     """Full Open → InProgress → Fixed → Verified lifecycle works."""
-    bug = svc.create(ItemType.BUG, "null pointer").item
+    bug = (await svc.create(ItemType.BUG, "null pointer")).item
     assert bug.status is Status.OPEN
 
-    bug = svc.set_status(bug.id, Status.IN_PROGRESS)
+    bug = await svc.set_status(bug.id, Status.IN_PROGRESS)
     assert bug.status is Status.IN_PROGRESS
 
-    bug = svc.set_status(bug.id, Status.FIXED)
+    bug = await svc.set_status(bug.id, Status.FIXED)
     assert bug.status is Status.FIXED
 
-    bug = svc.set_status(bug.id, Status.VERIFIED)
+    bug = await svc.set_status(bug.id, Status.VERIFIED)
     assert bug.status is Status.VERIFIED
 
 
-def test_bug_wontfix_and_reopen(svc):
+async def test_bug_wontfix_and_reopen(svc):
     """Open → WontFix → Open reopen works."""
-    bug = svc.create(ItemType.BUG, "by design").item
-    bug = svc.set_status(bug.id, Status.WONT_FIX)
+    bug = (await svc.create(ItemType.BUG, "by design")).item
+    bug = await svc.set_status(bug.id, Status.WONT_FIX)
     assert bug.status is Status.WONT_FIX
-    bug = svc.set_status(bug.id, Status.OPEN)
+    bug = await svc.set_status(bug.id, Status.OPEN)
     assert bug.status is Status.OPEN
 
 
-def test_bug_regression_reopen(svc):
+async def test_bug_regression_reopen(svc):
     """Verified → InProgress reopens a regressed bug."""
-    bug = svc.create(ItemType.BUG, "flicker").item
-    svc.set_status(bug.id, Status.IN_PROGRESS)
-    svc.set_status(bug.id, Status.FIXED)
-    svc.set_status(bug.id, Status.VERIFIED)
-    bug = svc.set_status(bug.id, Status.IN_PROGRESS)
+    bug = (await svc.create(ItemType.BUG, "flicker")).item
+    await svc.set_status(bug.id, Status.IN_PROGRESS)
+    await svc.set_status(bug.id, Status.FIXED)
+    await svc.set_status(bug.id, Status.VERIFIED)
+    bug = await svc.set_status(bug.id, Status.IN_PROGRESS)
     assert bug.status is Status.IN_PROGRESS
 
 

@@ -8,6 +8,7 @@ Each sub-entity's prose (``:body`` + ``:discussion``) stays marker-owned in the 
 
 from pathlib import Path
 
+from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
@@ -30,7 +31,7 @@ from squads._workflow import subentity_can_transition, subentity_initial
 
 
 class SubentitiesMixin(ServiceCore):
-    def add_story(
+    async def add_story(
         self,
         feature_id: str,
         title: str = "",
@@ -38,9 +39,9 @@ class SubentitiesMixin(ServiceCore):
         assignee: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
-        return self._add_block(feature_id, "story", title, assignee=assignee, body=body)
+        return await self._add_block(feature_id, "story", title, assignee=assignee, body=body)
 
-    def add_subtask(
+    async def add_subtask(
         self,
         task_id: str,
         title: str = "",
@@ -49,9 +50,11 @@ class SubentitiesMixin(ServiceCore):
         assignee: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
-        return self._add_block(task_id, "subtask", title, story=story, assignee=assignee, body=body)
+        return await self._add_block(
+            task_id, "subtask", title, story=story, assignee=assignee, body=body
+        )
 
-    def add_finding(
+    async def add_finding(
         self,
         review_id: str,
         title: str = "",
@@ -60,11 +63,11 @@ class SubentitiesMixin(ServiceCore):
         assignee: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
-        return self._add_block(
+        return await self._add_block(
             review_id, "finding", title, severity=severity, assignee=assignee, body=body
         )
 
-    def _add_block(
+    async def _add_block(
         self,
         item_id: str,
         kind: str,
@@ -79,13 +82,13 @@ class SubentitiesMixin(ServiceCore):
         reject_markers(title, "title")
         if body is not None:
             reject_markers(body)
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             item = self._require_parent(db, item_id, kind, expect)
             self._check_assignee(db, assignee)
             if kind == "subtask" and story:
                 self._validate_subtask_story(db, item, story)
             path = item_file(self.paths, item)
-            text = path.read_text(encoding="utf-8")
+            text = await _aio.read_text(path)
             if not sections.has_section(text, container):
                 raise SquadsError(f"no {container} section in {item_id}")
             local_id = discussion.next_local_id(item.subentities, kind)
@@ -101,14 +104,14 @@ class SubentitiesMixin(ServiceCore):
             item.updated_at = clock.now()
             block = discussion.build_block(kind, local_id, title, body=body)
             text = sections.append_to_section(text, container, block)
-            self._write_block_file(db, item, path, text=text, head_for=sub)
+            await self._write_block_file(db, item, path, text=text, head_for=sub)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "subentity",
                 item.id,
                 {"op": "add", "kind": kind, "local_id": local_id, "title": title},
             )
         btag = discussion.body_tag(kind, local_id)
-        span = sections.region_lines(path.read_text(encoding="utf-8"), btag)
+        span = sections.region_lines(await _aio.read_text(path), btag)
         return BlockResult(
             local_id=local_id,
             path=path,
@@ -117,60 +120,70 @@ class SubentitiesMixin(ServiceCore):
             end_line=span[1] if span else None,
         )
 
-    def list_stories(self, feature_id: str) -> list[SubEntity]:
-        return self._list_blocks(feature_id, "story")
+    async def list_stories(self, feature_id: str) -> list[SubEntity]:
+        return await self._list_blocks(feature_id, "story")
 
-    def list_subtasks(self, task_id: str) -> list[SubEntity]:
-        return self._list_blocks(task_id, "subtask")
+    async def list_subtasks(self, task_id: str) -> list[SubEntity]:
+        return await self._list_blocks(task_id, "subtask")
 
-    def list_findings(self, review_id: str) -> list[SubEntity]:
-        return self._list_blocks(review_id, "finding")
+    async def list_findings(self, review_id: str) -> list[SubEntity]:
+        return await self._list_blocks(review_id, "finding")
 
-    def _list_blocks(self, parent_id: str, kind: str) -> list[SubEntity]:
-        item = self.get(parent_id)
+    async def _list_blocks(self, parent_id: str, kind: str) -> list[SubEntity]:
+        item = await self.get(parent_id)
         self._check_type(item, kind)
         return item.subentities
 
-    def set_subtask_status(self, task_id: str, local_id: str, status: Status, **kw: bool) -> None:
-        self._set_block_status(task_id, "subtask", local_id, status, **kw)
+    async def set_subtask_status(
+        self, task_id: str, local_id: str, status: Status, **kw: bool
+    ) -> None:
+        await self._set_block_status(task_id, "subtask", local_id, status, **kw)
 
-    def set_story_status(self, feature_id: str, local_id: str, status: Status, **kw: bool) -> None:
-        self._set_block_status(feature_id, "story", local_id, status, **kw)
+    async def set_story_status(
+        self, feature_id: str, local_id: str, status: Status, **kw: bool
+    ) -> None:
+        await self._set_block_status(feature_id, "story", local_id, status, **kw)
 
-    def set_finding_status(self, review_id: str, local_id: str, status: Status, **kw: bool) -> None:
-        self._set_block_status(review_id, "finding", local_id, status, **kw)
+    async def set_finding_status(
+        self, review_id: str, local_id: str, status: Status, **kw: bool
+    ) -> None:
+        await self._set_block_status(review_id, "finding", local_id, status, **kw)
 
-    def set_subtask_done(self, task_id: str, local_id: str, *, done: bool = True) -> None:
+    async def set_subtask_done(self, task_id: str, local_id: str, *, done: bool = True) -> None:
         # convenience toggle (forces past intermediate states, like the old checkbox)
-        self._set_block_status(
+        await self._set_block_status(
             task_id, "subtask", local_id, Status.DONE if done else Status.TODO, force=True
         )
 
-    def set_subtask_assignee(self, task_id: str, local_id: str, assignee: str | None) -> None:
-        self._set_block_assignee(task_id, "subtask", local_id, assignee)
+    async def set_subtask_assignee(self, task_id: str, local_id: str, assignee: str | None) -> None:
+        await self._set_block_assignee(task_id, "subtask", local_id, assignee)
 
-    def set_story_assignee(self, feature_id: str, local_id: str, assignee: str | None) -> None:
-        self._set_block_assignee(feature_id, "story", local_id, assignee)
+    async def set_story_assignee(
+        self, feature_id: str, local_id: str, assignee: str | None
+    ) -> None:
+        await self._set_block_assignee(feature_id, "story", local_id, assignee)
 
-    def set_finding_assignee(self, review_id: str, local_id: str, assignee: str | None) -> None:
-        self._set_block_assignee(review_id, "finding", local_id, assignee)
+    async def set_finding_assignee(
+        self, review_id: str, local_id: str, assignee: str | None
+    ) -> None:
+        await self._set_block_assignee(review_id, "finding", local_id, assignee)
 
-    def set_subtask_body(
+    async def set_subtask_body(
         self, task_id: str, local_id: str, body: str, *, append: bool = False
     ) -> None:
-        self._set_block_body(task_id, "subtask", local_id, body, append=append)
+        await self._set_block_body(task_id, "subtask", local_id, body, append=append)
 
-    def set_story_body(
+    async def set_story_body(
         self, feature_id: str, local_id: str, body: str, *, append: bool = False
     ) -> None:
-        self._set_block_body(feature_id, "story", local_id, body, append=append)
+        await self._set_block_body(feature_id, "story", local_id, body, append=append)
 
-    def set_finding_body(
+    async def set_finding_body(
         self, review_id: str, local_id: str, body: str, *, append: bool = False
     ) -> None:
-        self._set_block_body(review_id, "finding", local_id, body, append=append)
+        await self._set_block_body(review_id, "finding", local_id, body, append=append)
 
-    def update_story(
+    async def update_story(
         self,
         feature_id: str,
         local_id: str,
@@ -181,7 +194,7 @@ class SubentitiesMixin(ServiceCore):
         status: Status | None = None,
         force: bool = False,
     ) -> None:
-        self._update_block(
+        await self._update_block(
             feature_id,
             "story",
             local_id,
@@ -192,7 +205,7 @@ class SubentitiesMixin(ServiceCore):
             force=force,
         )
 
-    def update_subtask(  # noqa: PLR0913 — full metadata entry point for a subtask
+    async def update_subtask(  # noqa: PLR0913 — full metadata entry point for a subtask
         self,
         task_id: str,
         local_id: str,
@@ -205,7 +218,7 @@ class SubentitiesMixin(ServiceCore):
         status: Status | None = None,
         force: bool = False,
     ) -> None:
-        self._update_block(
+        await self._update_block(
             task_id,
             "subtask",
             local_id,
@@ -218,7 +231,7 @@ class SubentitiesMixin(ServiceCore):
             force=force,
         )
 
-    def update_finding(
+    async def update_finding(
         self,
         review_id: str,
         local_id: str,
@@ -230,7 +243,7 @@ class SubentitiesMixin(ServiceCore):
         status: Status | None = None,
         force: bool = False,
     ) -> None:
-        self._update_block(
+        await self._update_block(
             review_id,
             "finding",
             local_id,
@@ -242,26 +255,26 @@ class SubentitiesMixin(ServiceCore):
             force=force,
         )
 
-    def get_subtask(self, task_id: str, local_id: str) -> SubentityDetail:
-        return self._get_block(task_id, "subtask", local_id)
+    async def get_subtask(self, task_id: str, local_id: str) -> SubentityDetail:
+        return await self._get_block(task_id, "subtask", local_id)
 
-    def get_story(self, feature_id: str, local_id: str) -> SubentityDetail:
-        return self._get_block(feature_id, "story", local_id)
+    async def get_story(self, feature_id: str, local_id: str) -> SubentityDetail:
+        return await self._get_block(feature_id, "story", local_id)
 
-    def get_finding(self, review_id: str, local_id: str) -> SubentityDetail:
-        return self._get_block(review_id, "finding", local_id)
+    async def get_finding(self, review_id: str, local_id: str) -> SubentityDetail:
+        return await self._get_block(review_id, "finding", local_id)
 
     # ------------------------------------------------------------------ helpers
-    def _set_block_status(
+    async def _set_block_status(
         self, parent_id: str, kind: str, local_id: str, status: Status, *, force: bool = False
     ) -> None:
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind, SUBENTITY_PARENT[kind])
             sub = self._find(item, kind, local_id)
             old_status = sub.status.value
             self._apply_subentity_status(kind, sub, status, force=force)
             item.updated_at = clock.now()
-            self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+            await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "subentity",
                 item.id,
@@ -283,23 +296,23 @@ class SubentitiesMixin(ServiceCore):
             )
         sub.status = status
 
-    def _set_block_assignee(
+    async def _set_block_assignee(
         self, parent_id: str, kind: str, local_id: str, assignee: str | None
     ) -> None:
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             self._check_assignee(db, assignee)
             item = self._require_parent(db, parent_id, kind, SUBENTITY_PARENT[kind])
             sub = self._find(item, kind, local_id)
             sub.assignee = assignee
             item.updated_at = clock.now()
-            self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+            await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "subentity",
                 item.id,
                 {"op": "assignee", "kind": kind, "local_id": local_id, "assignee": assignee},
             )
 
-    def _update_block(  # noqa: PLR0913 — the sub-entity metadata entry point, like item `update`
+    async def _update_block(  # noqa: PLR0913 — the sub-entity metadata entry point, like item `update`
         self,
         parent_id: str,
         kind: str,
@@ -316,7 +329,7 @@ class SubentitiesMixin(ServiceCore):
     ) -> None:
         if title is not None:
             reject_markers(title, "title")
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind, SUBENTITY_PARENT[kind])
             sub = self._find(item, kind, local_id)
             if title is not None:
@@ -336,14 +349,14 @@ class SubentitiesMixin(ServiceCore):
             if status is not None:
                 self._apply_subentity_status(kind, sub, status, force=force)
             item.updated_at = clock.now()
-            self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+            await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "subentity",
                 item.id,
                 {"op": "update", "kind": kind, "local_id": local_id},
             )
 
-    def _set_block_body(
+    async def _set_block_body(
         self, parent_id: str, kind: str, local_id: str, body: str, *, append: bool
     ) -> None:
         reject_markers(body)
@@ -364,32 +377,34 @@ class SubentitiesMixin(ServiceCore):
             )
             return sections.replace_section(text, btag, new_body)
 
-        self._locked_section_edit(parent_id, mutate)
+        await self._locked_section_edit(parent_id, mutate)
 
-    def _get_block(self, parent_id: str, kind: str, local_id: str) -> SubentityDetail:
-        item = self.get(parent_id)
+    async def _get_block(self, parent_id: str, kind: str, local_id: str) -> SubentityDetail:
+        item = await self.get(parent_id)
         self._check_type(item, kind)
         sub = self._find(item, kind, local_id)
-        text = item_file(self.paths, item).read_text(encoding="utf-8")
+        text = await _aio.read_text(item_file(self.paths, item))
         body = (sections.get_section(text, discussion.body_tag(kind, local_id)) or "").strip("\n")
         disc = (
             sections.get_section(text, markers.discussion_tag(f"{kind}:{local_id}")) or ""
         ).strip("\n")
         return SubentityDetail(info=sub, body=body, discussion=disc)
 
-    def _write_block_file(
+    async def _write_block_file(
         self, db: SquadsDB, item: Item, path: Path, *, text: str | None = None, head_for: SubEntity
     ) -> None:
         """Persist the item's frontmatter from the model + re-render its block's head + summary."""
         kind, container = SUBENTITY_KIND[item.type], SUBENTITY_CONTAINER[SUBENTITY_KIND[item.type]]
-        text = path.read_text(encoding="utf-8") if text is None else text
+        text = await _aio.read_text(path) if text is None else text
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
         text = discussion.set_heading(text, kind, head_for.local_id, head_for.title)
-        text = self._refresh_head(text, db, item, kind, head_for)
+        text = await self._refresh_head(text, db, item, kind, head_for)
         text = discussion.ensure_summary(text, kind, container, item.subentities)
-        path.write_text(text, encoding="utf-8")
+        await _aio.write_text(path, text)
 
-    def _refresh_head(self, text: str, db: SquadsDB, item: Item, kind: str, sub: SubEntity) -> str:
+    async def _refresh_head(
+        self, text: str, db: SquadsDB, item: Item, kind: str, sub: SubEntity
+    ) -> str:
         """Re-render the block's ``:head`` from its current state (resolving slugs/story titles)."""
         return discussion.set_head(
             text,
@@ -398,7 +413,7 @@ class SubentitiesMixin(ServiceCore):
             status=sub.status.value,
             severity=sub.severity.value if sub.severity else None,
             story=self._story_label(db, item, sub.story),
-            assignee_name=self.author(sub.assignee) if sub.assignee else None,
+            assignee_name=await self.author(sub.assignee) if sub.assignee else None,
         )
 
     def _story_label(self, db: SquadsDB, task: Item, us_id: str | None) -> str | None:

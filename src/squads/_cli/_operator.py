@@ -17,12 +17,12 @@ from typing import ClassVar
 import typer
 from rich.panel import Panel
 
+import squads._cli._common as common
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
     e,
     get_service,
-    handle_errors,
     render_body_text,
     resolve_agent_addr,
 )
@@ -50,14 +50,14 @@ operator_app = typer.Typer(
 
 
 @operator_app.command("add")
-@handle_errors
-def operator_add(
+@common.command
+async def operator_add(
     name: str = typer.Argument(..., help='The human\'s display name, e.g. "Pierre Chat".'),
     slug: str | None = typer.Option(None, "--slug", help="Override the derived `op-<first>` slug."),
 ) -> None:
     """Register a human operator (assignable + can author items/comments)."""
     svc = get_service()
-    item = svc.add_operator(name, slug=slug)
+    item = await svc.add_operator(name, slug=slug)
     console.print(
         f"registered [bold]{e(item.extra.get(X.FULL_NAME, item.title))}[/bold] "
         f"(`{item.extra.get(X.SLUG)}`) {item.id}"
@@ -70,16 +70,18 @@ _addr = typer.Typer(no_args_is_help=True, help="Operate on an operator by slug, 
 
 
 @_addr.callback()
-@handle_errors
-def _resolve_addr(ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")) -> None:
+@common.command
+async def _resolve_addr(
+    ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")
+) -> None:
     svc = get_service()
     ctx.ensure_object(dict)
-    ctx.obj = {"id": resolve_agent_addr(addr, ItemType.OPERATOR, svc)}
+    ctx.obj = {"id": await resolve_agent_addr(addr, ItemType.OPERATOR, svc)}
 
 
 @_addr.command("show")
-@handle_errors
-def operator_show(
+@common.command
+async def operator_show(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
     json_out: bool = typer.Option(False, "--json"),
@@ -87,7 +89,7 @@ def operator_show(
     """Show an operator's metadata panel and body."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    it = svc.get(item_id)
+    it = await svc.get(item_id)
     if json_out:
         console.print_json(
             json.dumps(
@@ -109,7 +111,7 @@ def operator_show(
         f"[bold]file:[/bold] {it.path}",
     ]
     console.print(Panel("\n".join(rows), expand=False))
-    body = svc.read_body(it.id)
+    body = await svc.read_body(it.id)
     render_body_text(
         body,
         raw=raw,
@@ -118,16 +120,16 @@ def operator_show(
 
 
 @_addr.command("rm")
-@handle_errors
-def operator_rm(
+@common.command
+async def operator_rm(
     ctx: typer.Context,
     purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
 ) -> None:
     """Remove an operator (--purge also deletes the markdown)."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    svc.remove_item(item_id, purge=purge)
-    svc.refresh_managed()
+    await svc.remove_item(item_id, purge=purge)
+    await svc.refresh_managed()
     console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
 
 

@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from squads import __version__
+from squads import __version__, _aio
 from squads import _actor as actor
 from squads import _clock as clock
 from squads import _sections as sections
@@ -75,27 +75,27 @@ def _drift_issues(iid: str, item: Item, fdata: dict[str, Any]) -> list[CheckIssu
 
 class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ sync
-    def sync(self) -> None:
+    async def sync(self) -> None:
         """Regenerate all tool-owned managed files to the current version; stamp the config."""
         backends = self._backends()
         ctx = self._ctx
         for backend in backends:
-            backend.ensure_scaffold(ctx)
-        for it in self.list_items(item_type=ItemType.ROLE):
-            self._refresh_catalog_extra(it)
+            await backend.ensure_scaffold(ctx)
+        for it in await self.list_items(item_type=ItemType.ROLE):
+            await self._refresh_catalog_extra(it)
             for backend in backends:
-                backend.generate_role_entry(ctx, it, RoleDef.from_extra(it.extra))
-            self._regen_role_body(it)
-        for it in self.list_items(item_type=ItemType.SKILL):
+                await backend.generate_role_entry(ctx, it, RoleDef.from_extra(it.extra))
+            await self._regen_role_body(it)
+        for it in await self.list_items(item_type=ItemType.SKILL):
             for backend in backends:
-                backend.generate_skill_entry(ctx, it)
-        roster = self.roster()
-        ops = self.operators()
+                await backend.generate_skill_entry(ctx, it)
+        roster = await self.roster()
+        ops = await self.operators()
         for backend in backends:
-            backend.write_managed(ctx, roster, ops)
-        self._stamp_version(__version__)
+            await backend.write_managed(ctx, roster, ops)
+        await self._stamp_version(__version__)
 
-    def _refresh_catalog_extra(self, item: Item) -> None:
+    async def _refresh_catalog_extra(self, item: Item) -> None:
         """Merge current catalog fields into a predefined role's item extra.
 
         When a new field is added to :class:`RoleDef` (e.g. ``agreements``), existing items
@@ -119,9 +119,9 @@ class MaintenanceMixin(ServiceCore):
                 item.extra[key] = value
                 changed = True
         if changed:
-            update_frontmatter(item_file(self.paths, item), item)
+            await update_frontmatter(item_file(self.paths, item), item)
 
-    def _regen_role_body(self, item: Item) -> None:
+    async def _regen_role_body(self, item: Item) -> None:
         """Re-render the role template's body section into the existing role item file.
 
         Keeps the discussion region intact — only the ``<!-- sq:body -->`` region is touched.
@@ -134,20 +134,20 @@ class MaintenanceMixin(ServiceCore):
         if new_body_inner is None:
             return
         path = self.paths.abspath(item.path)
-        existing = path.read_text(encoding="utf-8")
+        existing = await _aio.read_text(path)
         updated = sections.replace_section(existing, markers.BODY, new_body_inner)
-        path.write_text(updated, encoding="utf-8")
+        await _aio.write_text(path, updated)
 
-    def _stamp_version(self, version: str) -> None:
+    async def _stamp_version(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"squads_version": version})
-        self.paths.config_path.write_text(cfg.to_toml(), encoding="utf-8")
+        await _aio.write_text(self.paths.config_path, cfg.to_toml())
 
-    def _stamp_schema(self, version: str) -> None:
+    async def _stamp_schema(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"schema_version": version})
-        self.paths.config_path.write_text(cfg.to_toml(), encoding="utf-8")
+        await _aio.write_text(self.paths.config_path, cfg.to_toml())
 
     # ------------------------------------------------------------------ migrations
-    def run_pending_migrations(self) -> list[Migration]:
+    async def run_pending_migrations(self) -> list[Migration]:
         """Apply each migration whose target schema exceeds the on-disk one, in order.
 
         Rebuilds the index from the migrated frontmatter and stamps the new schema version.
@@ -158,10 +158,10 @@ class MaintenanceMixin(ServiceCore):
         for m in applied:
             m.run(self.paths)
         if applied:
-            self.repair()
-            self._stamp_schema(SCHEMA_VERSION)
+            await self.repair()
+            await self._stamp_schema(SCHEMA_VERSION)
             # Reflog: log the migration batch after repair has completed.
-            append_line(
+            await append_line(
                 reflog_path(self.paths.squad_dir),
                 ts=clock.iso(clock.now()),
                 actor=actor.current_actor(),
@@ -185,7 +185,7 @@ class MaintenanceMixin(ServiceCore):
             yield from ((item_type, md) for md in sorted(folder.glob(f"{item_type.prefix}-*.md")))
 
     # ------------------------------------------------------------------ repair / renumber
-    def repair(self, *, renumber: bool = False) -> RepairResult:
+    async def repair(self, *, renumber: bool = False) -> RepairResult:
         # Snapshot the previous index (if any) before rebuilding, so we can:
         #  (a) preserve the high-water mark of the counter,
         #  (b) preserve the padding floor (ADR-000104), and
@@ -199,7 +199,7 @@ class MaintenanceMixin(ServiceCore):
         previous_seq_to_id: dict[int, str] = {}
         if self.store.exists():
             try:
-                prev = self.store.load()
+                prev = await self.store.load()
                 previous_counter = prev.counter
                 previous_padding = prev.padding
                 previous_seq_to_id = {it.sequence_id: it.id for it in prev.items.values()}
@@ -207,14 +207,14 @@ class MaintenanceMixin(ServiceCore):
                 pass
 
         if renumber:
-            self._renumber()
+            await self._renumber()
 
         db = SquadsDB(squads_version=__version__, counter=0)
         found_seqs: set[int] = set()
         max_n = 0
         max_filename_width = 0
         for item_type, md in self._iter_item_files():
-            data = read_frontmatter(md)
+            data = read_frontmatter(text=await _aio.read_text(md))
             if not data.get("id"):
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name)
@@ -240,13 +240,13 @@ class MaintenanceMixin(ServiceCore):
         # previous_padding >= DEFAULT_ID_PADDING (always true via the model default), and the
         # >0 conditional arm was a no-op because max(floor, 0) == floor already.
         db.padding = max(previous_padding, max_filename_width)
-        self.store.overwrite(db)
+        await self.store.overwrite(db)
 
         missing_seqs = sorted(previous_seq_to_id.keys() - found_seqs)
         missing_ids = [previous_seq_to_id[s] for s in missing_seqs]
 
         # Reflog: append after overwrite (repair uses overwrite, not transaction).
-        append_line(
+        await append_line(
             reflog_path(self.paths.squad_dir),
             ts=clock.iso(clock.now()),
             actor=actor.current_actor(),
@@ -258,7 +258,7 @@ class MaintenanceMixin(ServiceCore):
         return RepairResult(db=db, missing_ids=missing_ids)
 
     # ------------------------------------------------------------------ repad
-    def repad(self, new_padding: int) -> int:
+    async def repad(self, new_padding: int) -> int:
         """Raise the squad's ID padding to ``new_padding`` and rename every item file.
 
         One-way, irreversible format bump (FEAT-000027, ADR-000104):
@@ -272,7 +272,7 @@ class MaintenanceMixin(ServiceCore):
 
         Returns the number of files renamed.
         """
-        db = self.store.load()
+        db = await self.store.load()
         current = db.padding
         if new_padding <= current:
             raise SquadsError(
@@ -294,12 +294,12 @@ class MaintenanceMixin(ServiceCore):
             new_name = f"{base}-{slug_part}.md" if slug_part else f"{base}.md"
             new_path = md.parent / new_name
             if new_path != md:
-                md.rename(new_path)
+                await _aio.path_rename(md, new_path)
                 renamed += 1
 
         # Write the new padding into the index before calling repair, so repair's stored-floor
         # logic picks it up and writes it back out.
-        with self.store.transaction() as _db:
+        async with self.store.transaction() as _db:
             old_padding = _db.padding
             _db.padding = new_padding
             self.store._log(  # pyright: ignore[reportPrivateUsage]
@@ -314,13 +314,13 @@ class MaintenanceMixin(ServiceCore):
             )
 
         # Rebuild the index so path fields and all item IDs reflect the new width.
-        self.repair()
+        await self.repair()
         return renamed
 
-    def _scan_records(self) -> list[_FileRec]:
+    async def _scan_records(self) -> list[_FileRec]:
         records: list[_FileRec] = []
         for item_type, md in self._iter_item_files():
-            fid = read_frontmatter(md).get("id")
+            fid = read_frontmatter(text=await _aio.read_text(md)).get("id")
             if not fid:
                 continue
             stem = md.name.removesuffix(".md")
@@ -352,29 +352,29 @@ class MaintenanceMixin(ServiceCore):
                 renames.append((md, item_type, slug, new_id))
         return remap, renames
 
-    def _renumber(self) -> dict[str, str]:
+    async def _renumber(self) -> dict[str, str]:
         """Resolve duplicate global ID numbers from a merge: reassign + rewrite references."""
-        records = self._scan_records()
-        padding = self.store.load().padding if self.store.exists() else DEFAULT_ID_PADDING
+        records = await self._scan_records()
+        padding = (await self.store.load()).padding if self.store.exists() else DEFAULT_ID_PADDING
         remap, renames = self._renumber_plan(records, padding)
         if not remap:
             return {}
         # rewrite every reference to a remapped id across all files (frontmatter + body + inline)
-        rewrite_ids([md for _, md, *_ in records], remap)
+        await rewrite_ids([md for _, md, *_ in records], remap)
         # rename the files whose own id changed, and resync their stored sequence_id
         for old_path, item_type, slug, new_id in renames:
             new_name = f"{new_id}-{slug}.md" if slug else f"{new_id}.md"
             new_path = self.paths.folder_for(item_type) / new_name
-            old_path.rename(new_path)
-            text = new_path.read_text(encoding="utf-8")
+            await _aio.path_rename(old_path, new_path)
+            text = await _aio.read_text(new_path)
             fm, _ = sections.split_frontmatter(text)
             if fm:
                 fm["sequence_id"] = number_for_id(new_id)
-                new_path.write_text(sections.replace_frontmatter(text, fm), encoding="utf-8")
+                await _aio.write_text(new_path, sections.replace_frontmatter(text, fm))
         return remap
 
     # ------------------------------------------------------------------ reflog read
-    def read_reflog(
+    async def read_reflog(
         self,
         *,
         item: str | None = None,
@@ -398,7 +398,7 @@ class MaintenanceMixin(ServiceCore):
         """
         from squads._index._reflog import read_lines
 
-        raw = read_lines(reflog_path(self.paths.squad_dir))
+        raw = await read_lines(reflog_path(self.paths.squad_dir))
 
         out: list[ReflogEntry] = []
         for line in raw:
@@ -426,11 +426,11 @@ class MaintenanceMixin(ServiceCore):
         return out
 
     # ------------------------------------------------------------------ check
-    def check(self) -> list[CheckIssue]:
+    async def check(self) -> list[CheckIssue]:
         from squads._overrides._service import check_override_issues
 
-        index = self.store.load()
-        issues, on_disk = self._scan_for_check()
+        index = await self.store.load()
+        issues, on_disk = await self._scan_for_check()
         issues += self._check_reconciliation(index, on_disk)
         issues += self._check_items(index, on_disk)
         issues += self._check_subtask_stories(index)
@@ -466,7 +466,7 @@ class MaintenanceMixin(ServiceCore):
                     )
         return issues
 
-    def _scan_for_check(
+    async def _scan_for_check(
         self,
     ) -> tuple[list[CheckIssue], dict[int, tuple[str, Path, dict[str, Any]]]]:
         """Scan every item file for marker issues and frontmatter.
@@ -480,7 +480,7 @@ class MaintenanceMixin(ServiceCore):
         issues: list[CheckIssue] = []
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]] = {}
         for _, md in self._iter_item_files():
-            text = md.read_text(encoding="utf-8")
+            text = await _aio.read_text(md)
             issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
             data = read_frontmatter(text=text)
             fid = data.get("id")

@@ -61,7 +61,7 @@ def reflog_path(squad_dir: Path) -> Path:
     return squad_dir / ".reflog.jsonl"
 
 
-def append_line(
+async def append_line(
     path: Path,
     *,
     ts: str,
@@ -70,12 +70,14 @@ def append_line(
     target: str,
     delta: dict[str, Any],
 ) -> None:
-    """Append one compact JSON line to the reflog file.
+    """Append one compact JSON line to the reflog file (IO runs on a worker thread).
 
-    The line is newline-terminated.  Embedded newlines in values are JSON-escaped
-    by ``json.dumps`` so the line never spans rows.  A failed append is swallowed
-    to stderr — it must never propagate or roll back an already-committed mutation.
+    The swallow of ``(OSError, TypeError, ValueError)`` is kept **inside** the
+    threaded closure so no exception ever crosses the loop boundary
+    (ADR-000153 Decision 2 — reflog never-raise contract).
     """
+    from squads import _aio
+
     record: dict[str, Any] = {
         "v": SCHEMA_VERSION,
         "ts": ts,
@@ -84,34 +86,35 @@ def append_line(
         "target": target,
         "delta": delta,
     }
-    # Serialize and write inside the guard: this runs *after* the index commit
-    # (ADR-000117 §1), so neither a serialization failure (e.g. a non-JSON-safe
-    # delta value) nor an I/O error may propagate past an already-committed
-    # mutation. Both are the tolerated failure — warn, never raise.
-    try:
-        # One write() call under O_APPEND is atomic on POSIX for our line sizes.
-        line = json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
-        with path.open("a", encoding="utf-8") as fh:
-            fh.write(line)
-    except (OSError, TypeError, ValueError) as exc:
-        print(
-            f"[squads reflog] warning: could not append to {path}: {exc}",
-            file=sys.stderr,
-        )
+
+    def _write() -> None:
+        try:
+            line = json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(line)
+        except (OSError, TypeError, ValueError) as exc:
+            print(
+                f"[squads reflog] warning: could not append to {path}: {exc}",
+                file=sys.stderr,
+            )
+
+    await _aio.to_thread(_write)
 
 
-def read_lines(path: Path) -> list[ReflogLine]:
-    """Read and parse the reflog file, tolerating a missing or partially-written file.
+async def read_lines(path: Path) -> list[ReflogLine]:
+    """Read and parse the reflog file on a worker thread, tolerating missing/partial files.
 
     - A missing file returns an empty list (back-compat: squads without a reflog).
     - A trailing partial line (no terminating ``\\n``) is skipped silently.
     - An interior unparseable line is warn-skipped; the rest of the log is returned.
     """
-    if not path.exists():
+    from squads import _aio
+
+    if not await _aio.path_exists(path):
         return []
 
     try:
-        raw = path.read_text(encoding="utf-8")
+        raw = await _aio.read_text(path)
     except OSError:
         return []
 

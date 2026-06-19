@@ -19,13 +19,13 @@ _AGENT_TYPES = {ItemType.ROLE, ItemType.SKILL}
 
 
 class ItemsMixin(ServiceCore):
-    def set_status(self, item_id: str, status: Status, *, force: bool = False) -> Item:
-        with self.store.transaction() as db:
+    async def set_status(self, item_id: str, status: Status, *, force: bool = False) -> Item:
+        async with self.store.transaction() as db:
             item = require_item(db, item_id)
             old_status = item.status.value
             self._apply_status(item, status, force=force)
             item.updated_at = clock.now()
-            update_frontmatter(item_file(self.paths, item), item)
+            await update_frontmatter(item_file(self.paths, item), item)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "status",
                 item.id,
@@ -33,7 +33,7 @@ class ItemsMixin(ServiceCore):
             )
         return item
 
-    def update(  # noqa: PLR0913 — the one metadata entry point
+    async def update(  # noqa: PLR0913 — the one metadata entry point
         self,
         item_id: str,
         *,
@@ -52,7 +52,7 @@ class ItemsMixin(ServiceCore):
         set_extra: dict[str, str] | None = None,
         unset_extra: list[str] | None = None,
     ) -> Item:
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             item = require_item(db, item_id)
             delta: dict[str, object] = {}
             if title is not None and title != item.title:
@@ -89,10 +89,10 @@ class ItemsMixin(ServiceCore):
             self._apply_labels(item, add_labels, rm_labels)
             self._apply_extra(item, set_extra, unset_extra)
             item.updated_at = clock.now()
-            update_frontmatter(item_file(self.paths, item), item)
+            await update_frontmatter(item_file(self.paths, item), item)
             self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
         if item.type in _AGENT_TYPES:
-            self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
+            await self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
         return item
 
     @staticmethod
@@ -139,14 +139,14 @@ class ItemsMixin(ServiceCore):
         item.slug = new_slug
         item.path = new_rel
 
-    def link(self, child_id: str, parent_id: str) -> Item:
-        with self.store.transaction() as db:
+    async def link(self, child_id: str, parent_id: str) -> Item:
+        async with self.store.transaction() as db:
             child = require_item(db, child_id)
             old_parent = child.parent
             self._check_parent(db, child.type, parent_id)
             child.parent = parent_id
             child.updated_at = clock.now()
-            update_frontmatter(item_file(self.paths, child), child)
+            await update_frontmatter(item_file(self.paths, child), child)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "link",
                 child.id,
@@ -154,13 +154,13 @@ class ItemsMixin(ServiceCore):
             )
         return child
 
-    def unlink(self, child_id: str) -> Item:
-        with self.store.transaction() as db:
+    async def unlink(self, child_id: str) -> Item:
+        async with self.store.transaction() as db:
             child = require_item(db, child_id)
             old_parent = child.parent
             child.parent = None
             child.updated_at = clock.now()
-            update_frontmatter(item_file(self.paths, child), child)
+            await update_frontmatter(item_file(self.paths, child), child)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "link",
                 child.id,
@@ -168,21 +168,21 @@ class ItemsMixin(ServiceCore):
             )
         return child
 
-    def regen(self, item_id: str) -> Item:
+    async def regen(self, item_id: str) -> Item:
         """Regenerate the backend pointer for a role or skill from its current item data."""
-        item = self.get(item_id)
+        item = await self.get(item_id)
         ctx = self._ctx
         if item.type is ItemType.ROLE:
             for backend in self._backends():
-                backend.generate_role_entry(ctx, item, RoleDef.from_extra(item.extra))
+                await backend.generate_role_entry(ctx, item, RoleDef.from_extra(item.extra))
         elif item.type is ItemType.SKILL:
             for backend in self._backends():
-                backend.generate_skill_entry(ctx, item)
+                await backend.generate_skill_entry(ctx, item)
         else:
             raise SquadsError(f"{item_id} is a {item.type.value}; only roles/skills have entries")
         return item
 
-    def set_body(self, item_id: str, body: str, *, append: bool = False) -> Item:
+    async def set_body(self, item_id: str, body: str, *, append: bool = False) -> Item:
         """Set (or ``--append`` to) an item's top-level ``:body`` region — no manual editing.
 
         The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
@@ -204,39 +204,43 @@ class ItemsMixin(ServiceCore):
             self.store._log("body", item.id, {})  # pyright: ignore[reportPrivateUsage]
             return sections.replace_section(text, markers.BODY, new_body)
 
-        return self._locked_section_edit(item_id, mutate)
+        return await self._locked_section_edit(item_id, mutate)
 
-    def read_body(self, item_id: str) -> str:
-        """The item's top-level ``:body`` region content (for `sq show`)."""
-        item = self.get(item_id)
-        text = item_file(self.paths, item).read_text(encoding="utf-8")
+    async def read_body(self, item_id: str) -> str:
+        """The item's top-level ``:body`` region content (for ``sq show``) — read on a thread."""
+        from squads import _aio
+
+        item = await self.get(item_id)
+        text = await _aio.read_text(item_file(self.paths, item))
         return (sections.get_section(text, markers.BODY) or "").strip("\n")
 
-    def read_discussion(self, item_id: str) -> str:
+    async def read_discussion(self, item_id: str) -> str:
         """The item's top-level ``:discussion`` region content (for ``sq show --comments``)."""
-        item = self.get(item_id)
-        text = item_file(self.paths, item).read_text(encoding="utf-8")
+        from squads import _aio
+
+        item = await self.get(item_id)
+        text = await _aio.read_text(item_file(self.paths, item))
         return (sections.get_section(text, markers.DISCUSSION) or "").strip("\n")
 
-    def remove_item(self, item_id: str, *, purge: bool = False) -> Item:
+    async def remove_item(self, item_id: str, *, purge: bool = False) -> Item:
         """Remove an agent-type item (role/skill/operator) from the index.
 
         For **work items** (feature/task/bug/decision/review/epic/guide), use
         :meth:`remove_work_item` instead — it enforces ref/child safety, always unlinks the
         ``.md``, and carries the reflog op stub.
         """
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             item = require_item(db, item_id)
             del db.items[item.sequence_id]
         if item.type in _AGENT_TYPES:
             ctx = self._ctx
             for backend in self._backends():
-                backend.remove_artifacts(ctx, item)
+                await backend.remove_artifacts(ctx, item)
         if purge:
             item_file(self.paths, item).unlink(missing_ok=True)
         return item
 
-    def remove_work_item(
+    async def remove_work_item(
         self,
         item_id: str,
         *,
@@ -261,7 +265,7 @@ class ItemsMixin(ServiceCore):
         The op identity (``op=remove``) and gone-item snapshot are assembled here and appended
         post-commit via ``store._log()`` inside the transaction.
         """
-        with self.store.transaction() as db:
+        async with self.store.transaction() as db:
             item = require_item(db, item_id)
 
             # ------------------------------------------------------------------
@@ -303,7 +307,7 @@ class ItemsMixin(ServiceCore):
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
                     referrer.updated_at = clock.now()
-                    update_frontmatter(item_file(self.paths, referrer), referrer)
+                    await update_frontmatter(item_file(self.paths, referrer), referrer)
                     severed.append(ref_id)
 
             # ------------------------------------------------------------------

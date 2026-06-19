@@ -19,6 +19,7 @@ import typer
 from rich.panel import Panel
 from rich.table import Table
 
+import squads._cli._common as common
 from squads._cli._common import (
     AddressDispatchGroup,
     _is_full_id_shape,  # pyright: ignore[reportPrivateUsage]
@@ -81,8 +82,8 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
 
 
 @role_app.command("activate")
-@handle_errors
-def activate_role(
+@common.command
+async def activate_role(
     slug: str = typer.Argument(...),
     name: str | None = typer.Option(
         None, "--name", help="Full name for this agent (overrides bundled default)."
@@ -90,8 +91,8 @@ def activate_role(
 ) -> None:
     """Activate a bundled role: create its tracked item and Claude pointer."""
     svc = get_service()
-    item = svc.activate_role(slug, name=name)
-    svc.refresh_managed()
+    item = await svc.activate_role(slug, name=name)
+    await svc.refresh_managed()
     console.print(f"activated [bold]{item.extra.get(X.FULL_NAME, item.title)}[/bold] ({item.id})")
 
 
@@ -105,8 +106,10 @@ _ID_KEY = "id"
 
 
 @_addr.callback()
-@handle_errors
-def _resolve_addr(ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")) -> None:
+@common.command
+async def _resolve_addr(
+    ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")
+) -> None:
     """Resolve the address token; for ``show`` also allow bundled-only slugs (graceful fallback).
 
     Stores ``{"addr": <raw>, "id": <resolved_or_None>}`` in ctx.obj.  The resolved id is None
@@ -121,11 +124,11 @@ def _resolve_addr(ctx: typer.Context, addr: str = typer.Argument(..., metavar="A
     # Detect numeric or full-ID-shaped tokens (TYPE-NNNNNN).
     if t.isdigit() or _is_full_id_shape(t):
         # Numeric or full-ID tokens: strict DB resolution — wrong-type errors bubble up.
-        ctx.obj[_ID_KEY] = resolve_agent_addr(addr, ItemType.ROLE, svc)
+        ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, ItemType.ROLE, svc)
     else:
         # Slug token: try DB; if not found, store None so show() can render a bundled card.
         try:
-            ctx.obj[_ID_KEY] = resolve_agent_addr(addr, ItemType.ROLE, svc)
+            ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, ItemType.ROLE, svc)
         except SquadsError:
             ctx.obj[_ID_KEY] = None
 
@@ -140,8 +143,8 @@ def _require_id(ctx: typer.Context) -> str:
 
 
 @_addr.command("show")
-@handle_errors
-def show_role(
+@common.command
+async def show_role(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
     json_out: bool = typer.Option(False, "--json"),
@@ -157,7 +160,7 @@ def show_role(
 
     if item_id is not None:
         # Activated role: resolve slug from the item.
-        it = svc.get(item_id)
+        it = await svc.get(item_id)
         slug: str = it.extra.get(X.SLUG, it.slug)
     else:
         # Bundled-only role: the addr IS the slug (slug resolution fell through without finding it).
@@ -179,7 +182,7 @@ def show_role(
             )
         except SquadsError:
             if item_id is not None:
-                it3 = svc.get(item_id)
+                it3 = await svc.get(item_id)
                 data.update(
                     {
                         "full_name": it3.extra.get(X.FULL_NAME, it3.title),
@@ -209,7 +212,7 @@ def show_role(
     except SquadsError:
         # Custom role not in the bundled catalog — fall back to the item fields.
         if item_id is not None:
-            it2 = svc.get(item_id)
+            it2 = await svc.get(item_id)
             rows = [
                 f"[bold]{e(it2.extra.get(X.FULL_NAME, it2.title))}[/bold] (`{e(slug)}`)",
                 f"[bold]id:[/bold] {it2.id}",
@@ -222,7 +225,7 @@ def show_role(
     # Active item body — styled markdown on a TTY, plain with --raw or when piped.
     body: str | None = None
     try:
-        body = svc.role_body(slug)
+        body = await svc.role_body(slug)
     except SquadsError:
         body = None
 
@@ -241,26 +244,26 @@ def show_role(
 
 
 @_addr.command("regen")
-@handle_errors
-def regen_role(ctx: typer.Context) -> None:
+@common.command
+async def regen_role(ctx: typer.Context) -> None:
     """Regenerate a role's Claude pointer from its item."""
     item_id = _require_id(ctx)
     svc = get_service()
-    svc.regen(item_id)
+    await svc.regen(item_id)
     console.print(f"regenerated pointer for {item_id}")
 
 
 @_addr.command("rm")
-@handle_errors
-def rm_role(
+@common.command
+async def rm_role(
     ctx: typer.Context,
     purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
 ) -> None:
     """Remove a role (and its pointer; --purge also deletes the markdown)."""
     item_id = _require_id(ctx)
     svc = get_service()
-    svc.remove_item(item_id, purge=purge)
-    svc.refresh_managed()
+    await svc.remove_item(item_id, purge=purge)
+    await svc.refresh_managed()
     console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
 
 

@@ -25,6 +25,8 @@ from squads._services import (
     _service as service,
 )
 
+pytestmark = pytest.mark.anyio
+
 # ------------------------------------------------------------------ helpers
 
 
@@ -42,14 +44,14 @@ def _place_role_toml(squad_dir: Path, slug: str, content: str) -> Path:
 # ------------------------------------------------------------------ bundled baseline
 
 
-def test_resolve_role_no_override_returns_bundled(project):
+async def test_resolve_role_no_override_returns_bundled(project):
     """With no override file, resolve_role returns the PREDEFINED entry unchanged."""
     r = resolve_role("architect", project.squad_dir)
     bundled = next(x for x in PREDEFINED if x.slug == "architect")
     assert r == bundled
 
 
-def test_resolve_role_unknown_slug_no_override_raises(project):
+async def test_resolve_role_unknown_slug_no_override_raises(project):
     """An unknown slug with no override file raises RoleNotFoundError."""
     with pytest.raises(RoleNotFoundError):
         resolve_role("nonexistent-slug", project.squad_dir)
@@ -65,7 +67,7 @@ def test_resolve_role_none_squad_dir_returns_bundled():
 # ------------------------------------------------------------------ field-wise merge (bundled slug)
 
 
-def test_field_wise_override_changes_only_set_fields(project):
+async def test_field_wise_override_changes_only_set_fields(project):
     """A TOML for a bundled slug overrides only the fields it specifies; rest are inherited."""
     _place_role_toml(
         project.squad_dir,
@@ -89,7 +91,7 @@ def test_field_wise_override_changes_only_set_fields(project):
     assert r.is_default == bundled.is_default
 
 
-def test_field_wise_override_tuple_fields(project):
+async def test_field_wise_override_tuple_fields(project):
     """Responsibilities and agreements in TOML produce correct tuples on the RoleDef."""
     _place_role_toml(
         project.squad_dir,
@@ -104,7 +106,7 @@ def test_field_wise_override_tuple_fields(project):
     assert r.mission == bundled.mission
 
 
-def test_slug_field_in_toml_is_ignored(project):
+async def test_slug_field_in_toml_is_ignored(project):
     """A slug key in the TOML is silently ignored; the filename-derived slug is canonical."""
     _place_role_toml(
         project.squad_dir,
@@ -116,7 +118,7 @@ def test_slug_field_in_toml_is_ignored(project):
     assert r.full_name == "Helen Reviewer"
 
 
-def test_unknown_keys_in_toml_are_ignored(project):
+async def test_unknown_keys_in_toml_are_ignored(project):
     """Extra keys in the TOML that don't map to RoleDef fields are silently dropped."""
     _place_role_toml(
         project.squad_dir,
@@ -131,7 +133,7 @@ def test_unknown_keys_in_toml_are_ignored(project):
 # ------------------------------------------------------------------ new-slug admission
 
 
-def test_new_slug_toml_defines_whole_role(project):
+async def test_new_slug_toml_defines_whole_role(project):
     """A TOML for a slug not in PREDEFINED defines a brand-new RoleDef."""
     _place_role_toml(
         project.squad_dir,
@@ -152,7 +154,7 @@ def test_new_slug_toml_defines_whole_role(project):
     assert r.mission == "Find and fix security issues."
 
 
-def test_new_slug_missing_required_field_raises(project):
+async def test_new_slug_missing_required_field_raises(project):
     """A new-slug TOML missing a required field raises SquadsError."""
     _place_role_toml(
         project.squad_dir,
@@ -167,7 +169,7 @@ def test_new_slug_missing_required_field_raises(project):
 # ------------------------------------------------------------------ malformed TOML
 
 
-def test_malformed_toml_raises_squads_error(project):
+async def test_malformed_toml_raises_squads_error(project):
     """A TOML file with a parse error raises SquadsError with a clear message."""
     bad = _roles_dir(project.squad_dir) / "manager.toml"
     bad.parent.mkdir(parents=True, exist_ok=True)
@@ -179,7 +181,7 @@ def test_malformed_toml_raises_squads_error(project):
 # ------------------------------------------------------------------ service-level: activate_role
 
 
-def test_activate_role_picks_up_field_override(project, svc):
+async def test_activate_role_picks_up_field_override(project, svc):
     """activate_role reads through the resolver; a TOML full_name seeds the ROLE item."""
     _place_role_toml(
         project.squad_dir,
@@ -188,7 +190,7 @@ def test_activate_role_picks_up_field_override(project, svc):
     )
     # reviewer is not activated yet (project fixture uses roles_spec="minimal" → manager only).
     svc2 = service.Service(project)
-    item = svc2.activate_role("reviewer")
+    item = await svc2.activate_role("reviewer")
 
     assert item.extra.get(X.FULL_NAME) == "Helen Reviewer"
     assert item.extra.get(X.MODEL) == "haiku"
@@ -197,7 +199,7 @@ def test_activate_role_picks_up_field_override(project, svc):
     assert item.extra.get(X.MISSION) == bundled.mission
 
 
-def test_activate_role_new_slug_creates_item(project):
+async def test_activate_role_new_slug_creates_item(project):
     """activate_role admits a brand-new slug defined only in a project TOML."""
     _place_role_toml(
         project.squad_dir,
@@ -210,18 +212,18 @@ def test_activate_role_new_slug_creates_item(project):
         ),
     )
     svc = service.Service(project)
-    item = svc.activate_role("security-expert")
+    item = await svc.activate_role("security-expert")
 
     assert item.type is ItemType.ROLE
     assert item.extra.get(X.FULL_NAME) == "Sam Security"
     assert item.extra.get(X.SLUG) == "security-expert"
 
 
-def test_activate_role_bundled_no_override_unchanged(project):
+async def test_activate_role_bundled_no_override_unchanged(project):
     """activate_role with no override produces the standard bundled extra for the role."""
     svc = service.Service(project)
     # Activate architect (not activated in minimal project fixture).
-    item = svc.activate_role("architect")
+    item = await svc.activate_role("architect")
     bundled = next(x for x in PREDEFINED if x.slug == "architect")
 
     assert item.extra.get(X.FULL_NAME) == bundled.full_name
@@ -232,7 +234,7 @@ def test_activate_role_bundled_no_override_unchanged(project):
 # ------------------------------------------------------------------ service-level: add_dev
 
 
-def test_add_dev_picks_up_dev_toml_override(project):
+async def test_add_dev_picks_up_dev_toml_override(project):
     """add_dev reads through resolve_dev_role; a TOML model override is applied."""
     _place_role_toml(
         project.squad_dir,
@@ -240,14 +242,14 @@ def test_add_dev_picks_up_dev_toml_override(project):
         'model = "opus"\n',
     )
     svc = service.Service(project)
-    item = svc.add_dev("python")
+    item = await svc.add_dev("python")
 
     assert item.extra.get(X.MODEL) == "opus"
     # full_name still auto-generated from pool (no name kwarg, no full_name in TOML).
     assert item.extra.get(X.FULL_NAME)  # non-empty
 
 
-def test_add_dev_explicit_name_wins_over_toml_full_name(project):
+async def test_add_dev_explicit_name_wins_over_toml_full_name(project):
     """Explicit name kwarg to add_dev takes precedence over full_name in the TOML."""
     _place_role_toml(
         project.squad_dir,
@@ -255,16 +257,16 @@ def test_add_dev_explicit_name_wins_over_toml_full_name(project):
         'full_name = "TOML Go Dev"\nmodel = "haiku"\n',
     )
     svc = service.Service(project)
-    item = svc.add_dev("go", name="Alice Go")
+    item = await svc.add_dev("go", name="Alice Go")
 
     assert item.extra.get(X.FULL_NAME) == "Alice Go"
     assert item.extra.get(X.MODEL) == "haiku"  # model override still applied
 
 
-def test_add_dev_no_toml_uses_pool_name(project):
+async def test_add_dev_no_toml_uses_pool_name(project):
     """add_dev with no TOML override uses the DEV_NAME_POOL name as before."""
     svc = service.Service(project)
-    item = svc.add_dev("rust")
+    item = await svc.add_dev("rust")
 
     full_name: str = item.extra.get(X.FULL_NAME, "")
     assert full_name.endswith("Rust")  # pool-first-name + tech surname
@@ -280,7 +282,7 @@ def test_resolve_dev_role_no_override():
     assert r.full_name.endswith("Dotnet")
 
 
-def test_resolve_dev_role_with_override(project):
+async def test_resolve_dev_role_with_override(project):
     """resolve_dev_role applies TOML overrides when present."""
     _place_role_toml(project.squad_dir, "dotnet-dev", 'model = "opus"\n')
     r = resolve_dev_role("dotnet", seq=0, squad_dir=project.squad_dir)
@@ -291,23 +293,21 @@ def test_resolve_dev_role_with_override(project):
 # ------------------------------------------------------------------ CLI smoke test
 
 
-def test_cli_activate_role_with_toml_override(project, runner):
+async def test_cli_activate_role_with_toml_override(project, invoke):
     """CLI: `sq role activate` picks up the TOML override and reports the custom name."""
-    from squads._cli import app
 
     _place_role_toml(
         project.squad_dir,
         "reviewer",
         'full_name = "Helen Reviewer"\n',
     )
-    result = runner.invoke(app, ["role", "activate", "reviewer"])
+    result = await invoke(["role", "activate", "reviewer"])
     assert result.exit_code == 0, result.output
     assert "Helen Reviewer" in result.output
 
 
-def test_cli_activate_new_slug_role(project, runner):
+async def test_cli_activate_new_slug_role(project, invoke):
     """CLI: `sq role activate` can activate a brand-new slug defined in a project TOML."""
-    from squads._cli import app
 
     _place_role_toml(
         project.squad_dir,
@@ -319,6 +319,6 @@ def test_cli_activate_new_slug_role(project, runner):
             'mission = "Find and fix security issues."\n'
         ),
     )
-    result = runner.invoke(app, ["role", "activate", "security-expert"])
+    result = await invoke(["role", "activate", "security-expert"])
     assert result.exit_code == 0, result.output
     assert "Sam Security" in result.output

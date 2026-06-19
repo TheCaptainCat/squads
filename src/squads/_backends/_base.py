@@ -63,25 +63,25 @@ class AgentBackend(ABC):
     name: str
 
     @abstractmethod
-    def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]:
+    async def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]:
         """Create backend dirs and base config (idempotent; never clobber user content)."""
 
     @abstractmethod
-    def write_managed(
+    async def write_managed(
         self, ctx: BackendContext, roster: list[RoleView], operators: list[OperatorView]
     ) -> list[Artifact]:
         """(Re)write roster/version-dependent files: skill definitions and backend config."""
 
     @abstractmethod
-    def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
+    async def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
         """Write the backend's entry for a role (loads the role's real definition)."""
 
     @abstractmethod
-    def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
+    async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
         """Write the backend's entry for a skill (loads the skill's real definition)."""
 
     @abstractmethod
-    def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
+    async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         """Delete the backend entry/entries for an item."""
 
     @abstractmethod

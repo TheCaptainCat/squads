@@ -18,6 +18,8 @@ from squads._cli import app
 from squads._models._enums import ItemType
 from squads._services import _service as service
 
+pytestmark = pytest.mark.anyio
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -29,21 +31,21 @@ _BUGS = 200
 _TOTAL_ITEMS = 1 + _FEATURES + _TASKS + _BUGS
 
 
-def _build_scale_squad(tmp_path: Path) -> service.Service:
-    """Initialise a squad and populate it with ~1000 items.
+async def _build_scale_squad_async(tmp_path: Path) -> service.Service:
+    """Initialise a squad and populate it with ~1000 items (async version).
 
     Uses ``no_claude=True`` to skip backend scaffolding (pointer files, CLAUDE.md
     section) so that the generation time is dominated by item I/O, not rendering.
     The minimal role spec registers one role (manager), which is sufficient as an
     author for all created items.
     """
-    result = service.init(root=tmp_path, roles_spec="minimal", no_claude=True)
+    result = await service.init(root=tmp_path, roles_spec="minimal", no_claude=True)
     svc = service.Service(result.paths)
 
     # 200 features
     feat_ids: list[str] = []
     for i in range(_FEATURES):
-        r = svc.create(
+        r = await svc.create(
             ItemType.FEATURE,
             f"Feature {i}",
             description=f"Generated feature {i} for scale testing.",
@@ -52,7 +54,7 @@ def _build_scale_squad(tmp_path: Path) -> service.Service:
 
     # 600 tasks — distributed across all features (3 per feature on average)
     for i in range(_TASKS):
-        svc.create(
+        await svc.create(
             ItemType.TASK,
             f"Task {i}",
             parent=feat_ids[i % len(feat_ids)],
@@ -60,7 +62,7 @@ def _build_scale_squad(tmp_path: Path) -> service.Service:
 
     # 200 bugs
     for i in range(_BUGS):
-        svc.create(
+        await svc.create(
             ItemType.BUG,
             f"Bug {i}",
             description=f"Generated bug {i} for scale testing.",
@@ -69,18 +71,25 @@ def _build_scale_squad(tmp_path: Path) -> service.Service:
     return svc
 
 
+def _build_scale_squad(tmp_path: Path) -> service.Service:
+    """Sync wrapper around _build_scale_squad_async for use in sync test functions."""
+    import anyio
+
+    return anyio.run(_build_scale_squad_async, tmp_path)
+
+
 # ---------------------------------------------------------------------------
 # Scale tests
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.slow
-def test_scale_list_completes_within_bound(tmp_path: Path) -> None:
+async def test_scale_list_completes_within_bound(tmp_path: Path) -> None:
     """list_items() over ~1000 items must complete in under 5 seconds."""
-    svc = _build_scale_squad(tmp_path)
+    svc = await _build_scale_squad_async(tmp_path)
 
     t0 = time.perf_counter()
-    items = svc.list_items()
+    items = await svc.list_items()
     elapsed = time.perf_counter() - t0
 
     assert len(items) == _TOTAL_ITEMS, f"expected {_TOTAL_ITEMS} items, got {len(items)}"
@@ -88,12 +97,12 @@ def test_scale_list_completes_within_bound(tmp_path: Path) -> None:
 
 
 @pytest.mark.slow
-def test_scale_search_completes_within_bound(tmp_path: Path) -> None:
+async def test_scale_search_completes_within_bound(tmp_path: Path) -> None:
     """search() scanning ~1000 items must complete in under 5 seconds."""
-    svc = _build_scale_squad(tmp_path)
+    svc = await _build_scale_squad_async(tmp_path)
 
     t0 = time.perf_counter()
-    results = svc.search("feature")
+    results = await svc.search("feature")
     elapsed = time.perf_counter() - t0
 
     # Every feature's title / description contains "feature" — at least one hit expected.
@@ -102,15 +111,15 @@ def test_scale_search_completes_within_bound(tmp_path: Path) -> None:
 
 
 @pytest.mark.slow
-def test_scale_repair_completes_within_bound(tmp_path: Path) -> None:
+async def test_scale_repair_completes_within_bound(tmp_path: Path) -> None:
     """repair() (full index rebuild from disk) over ~1000 items must complete in under 10s."""
-    svc = _build_scale_squad(tmp_path)
+    svc = await _build_scale_squad_async(tmp_path)
 
     # Nuke the index to force a full disk scan.
     svc.paths.index_path.unlink()
 
     t0 = time.perf_counter()
-    result = svc.repair()
+    result = await svc.repair()
     elapsed = time.perf_counter() - t0
 
     assert len(result.db.items) == _TOTAL_ITEMS, (

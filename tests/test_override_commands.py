@@ -17,7 +17,6 @@ from pathlib import Path
 
 import pytest
 
-from squads._cli import app
 from squads._overrides._manifest import (
     bundled_template_content,
     current_template_hash,
@@ -43,6 +42,8 @@ from squads._overrides._stamp import (
     write_toml_stamp,
 )
 from squads._services import _service as service
+
+pytestmark = pytest.mark.anyio
 
 # ─── Fixtures / helpers ────────────────────────────────────────────────────────
 
@@ -276,7 +277,7 @@ def test_write_toml_stamp_replaces():
 # ─── scaffold_template ─────────────────────────────────────────────────────────
 
 
-def test_scaffold_template_creates_stamped_copy(project):
+async def test_scaffold_template_creates_stamped_copy(project):
     """scaffold_template copies the bundled template with the current-version stamp."""
     from squads import __version__
 
@@ -290,7 +291,7 @@ def test_scaffold_template_creates_stamped_copy(project):
     assert "<!-- sq:discussion -->" in text
 
 
-def test_scaffold_template_refuses_clobber(project):
+async def test_scaffold_template_refuses_clobber(project):
     """scaffold_template raises SquadsError when the override exists and --force not set."""
     from squads._errors import SquadsError
 
@@ -300,7 +301,7 @@ def test_scaffold_template_refuses_clobber(project):
         scaffold_template(squad_dir, "items/task.md.j2")
 
 
-def test_scaffold_template_force_overwrites(project):
+async def test_scaffold_template_force_overwrites(project):
     """--force allows clobbering an existing override."""
     squad_dir = project.squad_dir
     scaffold_template(squad_dir, "items/task.md.j2")
@@ -315,7 +316,7 @@ def test_scaffold_template_force_overwrites(project):
     assert "custom content" not in text
 
 
-def test_scaffold_template_unknown_raises(project):
+async def test_scaffold_template_unknown_raises(project):
     """scaffold_template raises SquadsError for a non-existent bundled template."""
     from squads._errors import SquadsError
 
@@ -323,7 +324,7 @@ def test_scaffold_template_unknown_raises(project):
         scaffold_template(project.squad_dir, "items/nonexistent.md.j2")
 
 
-def test_scaffold_template_all_item_types(project):
+async def test_scaffold_template_all_item_types(project):
     """scaffold_template works for every known item template."""
     squad_dir = project.squad_dir
     for template_name in [
@@ -344,7 +345,7 @@ def test_scaffold_template_all_item_types(project):
 # ─── scaffold_role ─────────────────────────────────────────────────────────────
 
 
-def test_scaffold_role_creates_stamped_toml(project):
+async def test_scaffold_role_creates_stamped_toml(project):
     """scaffold_role creates a role TOML with the override-base stamp comment."""
     from squads import __version__
 
@@ -355,7 +356,7 @@ def test_scaffold_role_creates_stamped_toml(project):
     assert read_toml_stamp(text) == __version__
 
 
-def test_scaffold_role_refuses_clobber(project):
+async def test_scaffold_role_refuses_clobber(project):
     """scaffold_role raises SquadsError when the TOML exists and --force not set."""
     from squads._errors import SquadsError
 
@@ -365,7 +366,7 @@ def test_scaffold_role_refuses_clobber(project):
         scaffold_role(squad_dir, slug="architect")
 
 
-def test_scaffold_role_force_overwrites(project):
+async def test_scaffold_role_force_overwrites(project):
     """--force allows clobbering an existing role TOML."""
     squad_dir = project.squad_dir
     scaffold_role(squad_dir, slug="architect")
@@ -379,12 +380,12 @@ def test_scaffold_role_force_overwrites(project):
 # ─── scan_overrides ────────────────────────────────────────────────────────────
 
 
-def test_scan_overrides_empty(project):
+async def test_scan_overrides_empty(project):
     """scan_overrides returns [] when .overrides/ is absent."""
     assert scan_overrides(project.squad_dir) == []
 
 
-def test_scan_overrides_stamped_current(project):
+async def test_scan_overrides_stamped_current(project):
     """An override stamped with the running version is STATE_CURRENT."""
     from squads import __version__
 
@@ -400,7 +401,7 @@ def test_scan_overrides_stamped_current(project):
     assert entries[0].state == STATE_CURRENT
 
 
-def test_scan_overrides_broken_template(project):
+async def test_scan_overrides_broken_template(project):
     """A template override missing required markers is STATE_BROKEN."""
     squad_dir = project.squad_dir
     _place_template_override(squad_dir, "items/task.md.j2", _broken_task_override(), stamp="0.3.0")
@@ -409,7 +410,7 @@ def test_scan_overrides_broken_template(project):
     assert entries[0].state == STATE_BROKEN
 
 
-def test_scan_overrides_role_toml(project):
+async def test_scan_overrides_role_toml(project):
     """scan_overrides includes role TOML overrides."""
     from squads import __version__
 
@@ -422,7 +423,7 @@ def test_scan_overrides_role_toml(project):
     assert entries[0].state == STATE_CURRENT
 
 
-def test_scan_overrides_multiple(project):
+async def test_scan_overrides_multiple(project):
     """scan_overrides returns all overrides (templates + roles)."""
     from squads import __version__
 
@@ -440,7 +441,7 @@ def test_scan_overrides_multiple(project):
 # ─── diff_override ─────────────────────────────────────────────────────────────
 
 
-def test_diff_template_missing_override_raises(project):
+async def test_diff_template_missing_override_raises(project):
     """diff_override raises SquadsError when the override file is not present."""
     from squads._errors import SquadsError
 
@@ -448,7 +449,7 @@ def test_diff_template_missing_override_raises(project):
         diff_override(project.squad_dir, "items/task.md.j2", "template")
 
 
-def test_diff_template_delta_mine_shows_customisation(project):
+async def test_diff_template_delta_mine_shows_customisation(project):
     """Δ-mine shows the diff between the override and the current bundled template."""
     from squads import __version__
 
@@ -465,7 +466,7 @@ def test_diff_template_delta_mine_shows_customisation(project):
     assert "MY_CUSTOM_CONTENT" in result.delta_mine or result.delta_mine != ""
 
 
-def test_diff_template_delta_upgrade_same_version(project):
+async def test_diff_template_delta_upgrade_same_version(project):
     """Δ-upgrade is empty when base_version == current (no upgrade happened)."""
     from squads import __version__
 
@@ -478,7 +479,7 @@ def test_diff_template_delta_upgrade_same_version(project):
     assert result.delta_upgrade == ""
 
 
-def test_diff_role_missing_override_raises(project):
+async def test_diff_role_missing_override_raises(project):
     """diff_override raises SquadsError for a missing role TOML."""
     from squads._errors import SquadsError
 
@@ -486,7 +487,7 @@ def test_diff_role_missing_override_raises(project):
         diff_override(project.squad_dir, "architect", "role")
 
 
-def test_diff_role_shows_delta_mine(project):
+async def test_diff_role_shows_delta_mine(project):
     """Δ-mine for a role override is non-empty when the TOML has content."""
     from squads import __version__
 
@@ -498,7 +499,7 @@ def test_diff_role_shows_delta_mine(project):
     assert "Ada" in result.delta_mine
 
 
-def test_diff_unknown_kind_raises(project):
+async def test_diff_unknown_kind_raises(project):
     """diff_override raises SquadsError for an unknown kind."""
     from squads._errors import SquadsError
 
@@ -509,7 +510,7 @@ def test_diff_unknown_kind_raises(project):
 # ─── update_stamp ─────────────────────────────────────────────────────────────
 
 
-def test_update_stamp_re_stamps_template(project):
+async def test_update_stamp_re_stamps_template(project):
     """update_stamp re-stamps a template override to the current version."""
     from squads import __version__
 
@@ -525,7 +526,7 @@ def test_update_stamp_re_stamps_template(project):
     assert "CUSTOM" in text or "<!-- sq:body -->" in text
 
 
-def test_update_stamp_does_not_touch_body(project):
+async def test_update_stamp_does_not_touch_body(project):
     """update_stamp only rewrites the stamp comment; all other content is preserved."""
     from squads import __version__
 
@@ -539,7 +540,7 @@ def test_update_stamp_does_not_touch_body(project):
     assert read_template_stamp(text) == __version__
 
 
-def test_update_stamp_skips_broken(project):
+async def test_update_stamp_skips_broken(project):
     """update_stamp raises SquadsError for a broken (missing-marker) override."""
     from squads._errors import SquadsError
 
@@ -549,7 +550,7 @@ def test_update_stamp_skips_broken(project):
         update_stamp(squad_dir, "items/task.md.j2", "template")
 
 
-def test_update_stamp_bulk_skips_broken(project):
+async def test_update_stamp_bulk_skips_broken(project):
     """Bulk update_stamp (no name) re-stamps valid overrides and skips broken ones."""
     from squads import __version__
 
@@ -565,7 +566,7 @@ def test_update_stamp_bulk_skips_broken(project):
     assert read_template_stamp(text) == __version__
 
 
-def test_update_stamp_role(project):
+async def test_update_stamp_role(project):
     """update_stamp re-stamps a role TOML override."""
     from squads import __version__
 
@@ -581,7 +582,7 @@ def test_update_stamp_role(project):
     assert "Ada" in text
 
 
-def test_update_stamp_missing_raises(project):
+async def test_update_stamp_missing_raises(project):
     """update_stamp raises SquadsError when the named override does not exist."""
     from squads._errors import SquadsError
 
@@ -592,7 +593,7 @@ def test_update_stamp_missing_raises(project):
 # ─── sq check: drift warnings + structural errors ──────────────────────────────
 
 
-def test_check_clean_with_current_stamp(project, svc):
+async def test_check_clean_with_current_stamp(project, svc):
     """sq check emits no override issues when overrides are stamped at the running version."""
     from squads import __version__
 
@@ -600,22 +601,22 @@ def test_check_clean_with_current_stamp(project, svc):
     _place_template_override(
         squad_dir, "items/task.md.j2", _minimal_task_override(), stamp=__version__
     )
-    issues = svc.check()
+    issues = await svc.check()
     override_issues = [i for i in issues if ".overrides" in i.item]
     assert not override_issues, f"unexpected override issues: {override_issues}"
 
 
-def test_check_warns_on_missing_stamp(project, svc):
+async def test_check_warns_on_missing_stamp(project, svc):
     """sq check warns when an override has no stamp (manually-placed file)."""
     squad_dir = project.squad_dir
     # Place without stamp.
     _place_template_override(squad_dir, "items/task.md.j2", _minimal_task_override())
-    issues = svc.check()
+    issues = await svc.check()
     override_issues = [i for i in issues if ".overrides" in i.item]
     assert any(i.level == "warn" for i in override_issues)
 
 
-def test_check_errors_on_missing_required_marker(project, svc):
+async def test_check_errors_on_missing_required_marker(project, svc):
     """sq check emits an error for a template override missing required sq markers."""
     from squads import __version__
 
@@ -623,13 +624,13 @@ def test_check_errors_on_missing_required_marker(project, svc):
     _place_template_override(
         squad_dir, "items/task.md.j2", _broken_task_override(), stamp=__version__
     )
-    issues = svc.check()
+    issues = await svc.check()
     override_errors = [i for i in issues if i.level == "error" and ".overrides" in i.item]
     assert override_errors, "expected an error-level override issue for missing markers"
     assert any("missing required sq marker" in i.message for i in override_errors)
 
 
-def test_check_exit3_on_missing_marker(project, runner):
+async def test_check_exit3_on_missing_marker(project, invoke):
     """CLI: sq check exits 3 for missing required markers (FEAT-000015 contract)."""
     from squads import __version__
 
@@ -637,20 +638,20 @@ def test_check_exit3_on_missing_marker(project, runner):
     _place_template_override(
         squad_dir, "items/task.md.j2", _broken_task_override(), stamp=__version__
     )
-    result = runner.invoke(app, ["check"])
+    result = await invoke(["check"])
     assert result.exit_code == 3, f"expected exit 3, got {result.exit_code}\n{result.output}"
 
 
-def test_check_exit0_on_warn_only(project, runner):
+async def test_check_exit0_on_warn_only(project, invoke):
     """CLI: sq check exits 0 (not 3) when only warnings are emitted (FEAT-000015 contract)."""
     squad_dir = project.squad_dir
     # Unstamped → warn only, not error.
     _place_template_override(squad_dir, "items/task.md.j2", _minimal_task_override())
-    result = runner.invoke(app, ["check"])
+    result = await invoke(["check"])
     assert result.exit_code == 0, f"expected exit 0 for warn-only, got {result.exit_code}"
 
 
-def test_check_override_issues_function(project):
+async def test_check_override_issues_function(project):
     """check_override_issues() returns correct (level, path, msg) tuples directly."""
     from squads import __version__
 
@@ -663,12 +664,12 @@ def test_check_override_issues_function(project):
     assert issues == []
 
 
-def test_check_override_valid_renders_no_block(project, svc):
+async def test_check_override_valid_renders_no_block(project, svc):
     """A valid (stale but structurally-valid) override still renders; sq check warns only."""
     squad_dir = project.squad_dir
     # Stamp it as old (won't be in manifest → won't trigger drift).
     _place_template_override(squad_dir, "items/task.md.j2", _minimal_task_override(), stamp="0.0.1")
-    issues = svc.check()
+    issues = await svc.check()
     # Only warnings (not errors) for this override.
     override_errors = [i for i in issues if i.level == "error" and ".overrides" in i.item]
     assert not override_errors
@@ -677,7 +678,7 @@ def test_check_override_valid_renders_no_block(project, svc):
 # ─── Full staleness loop ───────────────────────────────────────────────────────
 
 
-def test_full_staleness_loop(project, svc, runner):
+async def test_full_staleness_loop(project, svc, invoke):
     """Full loop: warn → diff → hand-merge (simulated) → update → warning clears."""
     from squads import __version__
 
@@ -687,19 +688,19 @@ def test_full_staleness_loop(project, svc, runner):
     _place_template_override(squad_dir, "items/task.md.j2", _minimal_task_override())
 
     # sq check warns (unstamped).
-    issues_before = svc.check()
+    issues_before = await svc.check()
     warn_issues = [i for i in issues_before if ".overrides" in i.item and i.level == "warn"]
     assert warn_issues, "expected a drift warning before update"
 
     # sq override diff (smoke test — just verify it doesn't crash).
-    diff_result = runner.invoke(app, ["override", "diff", "items/task.md.j2"])
+    diff_result = await invoke(["override", "diff", "items/task.md.j2"])
     assert diff_result.exit_code == 0, diff_result.output
 
     # 3. "Hand-merge" = place the override stamped with the old version.
     _place_template_override(squad_dir, "items/task.md.j2", _minimal_task_override(), stamp="0.1.0")
 
     # 4. sq override update re-stamps to current.
-    update_result = runner.invoke(app, ["override", "update", "items/task.md.j2"])
+    update_result = await invoke(["override", "update", "items/task.md.j2"])
     assert update_result.exit_code == 0, update_result.output
 
     # 5. sq check warning clears (stamp now matches running version).
@@ -709,7 +710,7 @@ def test_full_staleness_loop(project, svc, runner):
 
     # Re-run check to confirm.
     svc2 = service.Service(project)
-    issues_after = svc2.check()
+    issues_after = await svc2.check()
     override_issues = [i for i in issues_after if ".overrides" in i.item]
     assert not override_issues, f"expected no override issues after update: {override_issues}"
 
@@ -717,7 +718,7 @@ def test_full_staleness_loop(project, svc, runner):
 # ─── migrate: never touches .overrides/ ────────────────────────────────────────
 
 
-def test_migrate_does_not_touch_overrides(project, runner):
+async def test_migrate_does_not_touch_overrides(project, invoke):
     """sq migrate up never rewrites files under .overrides/ (ADR §3 invariant)."""
     from squads import __version__
 
@@ -729,7 +730,7 @@ def test_migrate_does_not_touch_overrides(project, runner):
     stat_before = dest.stat()
 
     # Run migrate (should be no-op since schema is current, but it must not touch overrides).
-    result = runner.invoke(app, ["migrate", "up"])
+    result = await invoke(["migrate", "up"])
     assert result.exit_code == 0, result.output
 
     # File is unchanged.
@@ -742,61 +743,61 @@ def test_migrate_does_not_touch_overrides(project, runner):
 # ─── CLI smoke tests ───────────────────────────────────────────────────────────
 
 
-def test_cli_scaffold_template(project, runner):
+async def test_cli_scaffold_template(project, invoke):
     """CLI: sq override scaffold items/task.md.j2 creates the override."""
-    result = runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
+    result = await invoke(["override", "scaffold", "items/task.md.j2"])
     assert result.exit_code == 0, result.output
     dest = _tmpl_overrides_dir(project.squad_dir) / "items/task.md.j2"
     assert dest.exists()
     assert read_template_stamp(dest.read_text(encoding="utf-8")) is not None
 
 
-def test_cli_scaffold_role(project, runner):
+async def test_cli_scaffold_role(project, invoke):
     """CLI: sq override scaffold --role architect creates the TOML stub."""
-    result = runner.invoke(app, ["override", "scaffold", "--role", "architect"])
+    result = await invoke(["override", "scaffold", "--role", "architect"])
     assert result.exit_code == 0, result.output
     dest = _role_overrides_dir(project.squad_dir) / "architect.toml"
     assert dest.exists()
 
 
-def test_cli_scaffold_refuses_clobber(project, runner):
+async def test_cli_scaffold_refuses_clobber(project, invoke):
     """CLI: sq override scaffold without --force exits 1 when the override exists."""
-    runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
-    result = runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
+    await invoke(["override", "scaffold", "items/task.md.j2"])
+    result = await invoke(["override", "scaffold", "items/task.md.j2"])
     assert result.exit_code == 1
 
 
-def test_cli_scaffold_force_clobber(project, runner):
+async def test_cli_scaffold_force_clobber(project, invoke):
     """CLI: sq override scaffold --force succeeds even when the override exists."""
-    runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
-    result = runner.invoke(app, ["override", "scaffold", "--force", "items/task.md.j2"])
+    await invoke(["override", "scaffold", "items/task.md.j2"])
+    result = await invoke(["override", "scaffold", "--force", "items/task.md.j2"])
     assert result.exit_code == 0, result.output
 
 
-def test_cli_list_empty(project, runner):
+async def test_cli_list_empty(project, invoke):
     """CLI: sq override list exits 0 and reports no overrides when .overrides/ is absent."""
-    result = runner.invoke(app, ["override", "list"])
+    result = await invoke(["override", "list"])
     assert result.exit_code == 0, result.output
     assert "no overrides" in result.output.lower()
 
 
-def test_cli_list_shows_overrides(project, runner):
+async def test_cli_list_shows_overrides(project, invoke):
     """CLI: sq override list shows the scaffold'd override."""
     from squads import __version__
 
-    runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
-    result = runner.invoke(app, ["override", "list"])
+    await invoke(["override", "scaffold", "items/task.md.j2"])
+    result = await invoke(["override", "list"])
     assert result.exit_code == 0, result.output
     assert "items/task.md.j2" in result.output
     assert __version__ in result.output
 
 
-def test_cli_list_json(project, runner):
+async def test_cli_list_json(project, invoke):
     """CLI: sq override list --json emits a valid JSON array."""
     import json as _json
 
-    runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
-    result = runner.invoke(app, ["override", "list", "--json"])
+    await invoke(["override", "scaffold", "items/task.md.j2"])
+    result = await invoke(["override", "list", "--json"])
     assert result.exit_code == 0, result.output
     data = _json.loads(result.output)
     assert isinstance(data, list)
@@ -808,29 +809,29 @@ def test_cli_list_json(project, runner):
     assert entry["state"] == STATE_CURRENT
 
 
-def test_cli_diff_named_template(project, runner):
+async def test_cli_diff_named_template(project, invoke):
     """CLI: sq override diff <name> exits 0 and prints both delta sections."""
-    runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
-    result = runner.invoke(app, ["override", "diff", "items/task.md.j2"])
+    await invoke(["override", "scaffold", "items/task.md.j2"])
+    result = await invoke(["override", "diff", "items/task.md.j2"])
     assert result.exit_code == 0, result.output
     assert "Δ-mine" in result.output
     assert "Δ-upgrade" in result.output
 
 
-def test_cli_diff_no_drifted(project, runner):
+async def test_cli_diff_no_drifted(project, invoke):
     """CLI: sq override diff (no name) exits 0 with message when no drifted overrides."""
-    runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
-    result = runner.invoke(app, ["override", "diff"])
+    await invoke(["override", "scaffold", "items/task.md.j2"])
+    result = await invoke(["override", "diff"])
     assert result.exit_code == 0
     assert "no drifted" in result.output.lower()
 
 
-def test_cli_diff_json(project, runner):
+async def test_cli_diff_json(project, invoke):
     """CLI: sq override diff --json emits a valid JSON array."""
     import json as _json
 
-    runner.invoke(app, ["override", "scaffold", "items/task.md.j2"])
-    result = runner.invoke(app, ["override", "diff", "items/task.md.j2", "--json"])
+    await invoke(["override", "scaffold", "items/task.md.j2"])
+    result = await invoke(["override", "diff", "items/task.md.j2", "--json"])
     assert result.exit_code == 0, result.output
     data = _json.loads(result.output)
     assert isinstance(data, list)
@@ -839,33 +840,33 @@ def test_cli_diff_json(project, runner):
     assert "name" in r and "delta_mine" in r and "delta_upgrade" in r and "base_available" in r
 
 
-def test_cli_update_single(project, runner):
+async def test_cli_update_single(project, invoke):
     """CLI: sq override update <name> re-stamps the override and exits 0."""
     from squads import __version__
 
     squad_dir = project.squad_dir
     _place_template_override(squad_dir, "items/task.md.j2", _minimal_task_override(), stamp="0.1.0")
-    result = runner.invoke(app, ["override", "update", "items/task.md.j2"])
+    result = await invoke(["override", "update", "items/task.md.j2"])
     assert result.exit_code == 0, result.output
     path = _tmpl_overrides_dir(squad_dir) / "items/task.md.j2"
     assert read_template_stamp(path.read_text(encoding="utf-8")) == __version__
 
 
-def test_cli_update_bulk(project, runner):
+async def test_cli_update_bulk(project, invoke):
     """CLI: sq override update (no name) re-stamps all valid overrides."""
     from squads import __version__
 
     squad_dir = project.squad_dir
     _place_template_override(squad_dir, "items/task.md.j2", _minimal_task_override(), stamp="0.1.0")
     _place_template_override(squad_dir, "items/bug.md.j2", _minimal_task_override(), stamp="0.1.0")
-    result = runner.invoke(app, ["override", "update"])
+    result = await invoke(["override", "update"])
     assert result.exit_code == 0, result.output
     for name in ("items/task.md.j2", "items/bug.md.j2"):
         path = _tmpl_overrides_dir(squad_dir) / name
         assert read_template_stamp(path.read_text(encoding="utf-8")) == __version__
 
 
-def test_cli_update_role(project, runner):
+async def test_cli_update_role(project, invoke):
     """CLI: sq override update --role <slug> re-stamps the role TOML."""
     from squads import __version__
 
@@ -873,13 +874,13 @@ def test_cli_update_role(project, runner):
     _place_role_override(
         squad_dir, "architect", "# squads:override-base:0.1.0\nfull_name = 'Ada'\n"
     )
-    result = runner.invoke(app, ["override", "update", "--role", "architect"])
+    result = await invoke(["override", "update", "--role", "architect"])
     assert result.exit_code == 0, result.output
     path = _role_overrides_dir(squad_dir) / "architect.toml"
     assert read_toml_stamp(path.read_text(encoding="utf-8")) == __version__
 
 
-def test_cli_check_json_override_error(project, runner):
+async def test_cli_check_json_override_error(project, invoke):
     """CLI: sq check --json includes override errors in JSON output and exits 3."""
     import json as _json
 
@@ -889,14 +890,14 @@ def test_cli_check_json_override_error(project, runner):
     _place_template_override(
         squad_dir, "items/task.md.j2", _broken_task_override(), stamp=__version__
     )
-    result = runner.invoke(app, ["check", "--json"])
+    result = await invoke(["check", "--json"])
     assert result.exit_code == 3
     data = _json.loads(result.output)
     error_items = [d for d in data if d["level"] == "error" and ".overrides" in d["item"]]
     assert error_items
 
 
-def test_cli_scaffold_missing_name_exits_nonzero(project, runner):
+async def test_cli_scaffold_missing_name_exits_nonzero(project, invoke):
     """CLI: sq override scaffold with no name and no --role exits non-zero."""
-    result = runner.invoke(app, ["override", "scaffold"])
+    result = await invoke(["override", "scaffold"])
     assert result.exit_code != 0

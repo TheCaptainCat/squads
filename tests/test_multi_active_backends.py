@@ -18,6 +18,8 @@ from squads._cli import app
 from squads._models._config import SquadsConfig
 from squads._services import _service as service
 
+pytestmark = pytest.mark.anyio
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -41,9 +43,9 @@ def runner() -> CliRunner:
 
 
 class TestMultiActiveSync:
-    def test_both_backends_scaffolded_on_init(self, tmp_squad: Path) -> None:
+    async def test_both_backends_scaffolded_on_init(self, tmp_squad: Path) -> None:
         """sq init with two backends creates both CLAUDE.md and AGENTS.md."""
-        service.init(
+        await service.init(
             root=tmp_squad,
             backend=["claude_code", "agents_md"],
             roles_spec="minimal",
@@ -51,23 +53,23 @@ class TestMultiActiveSync:
         assert (tmp_squad / "CLAUDE.md").exists(), "CLAUDE.md must exist for claude_code backend"
         assert (tmp_squad / "AGENTS.md").exists(), "AGENTS.md must exist for agents_md backend"
 
-    def test_both_backends_synced(self, tmp_squad: Path) -> None:
+    async def test_both_backends_synced(self, tmp_squad: Path) -> None:
         """sq sync with two active backends refreshes both files."""
-        result = service.init(
+        result = await service.init(
             root=tmp_squad,
             backend=["claude_code", "agents_md"],
             roles_spec="minimal",
         )
         svc = service.Service(result.paths)
-        svc.sync()
+        await svc.sync()
         assert (tmp_squad / "CLAUDE.md").exists()
         assert (tmp_squad / "AGENTS.md").exists()
 
-    def test_config_stores_active_backends_list(self, tmp_squad: Path) -> None:
+    async def test_config_stores_active_backends_list(self, tmp_squad: Path) -> None:
         """sq init writes active_backends as a TOML array."""
         import tomllib
 
-        service.init(
+        await service.init(
             root=tmp_squad,
             backend=["claude_code", "agents_md"],
             roles_spec="minimal",
@@ -84,9 +86,9 @@ class TestMultiActiveSync:
 
 
 class TestEmptyActiveBackends:
-    def test_empty_backends_no_scaffold(self, tmp_squad: Path) -> None:
+    async def test_empty_backends_no_scaffold(self, tmp_squad: Path) -> None:
         """active_backends=[] means no backend files are created."""
-        service.init(
+        await service.init(
             root=tmp_squad,
             backend=[],
             roles_spec="minimal",
@@ -94,29 +96,21 @@ class TestEmptyActiveBackends:
         assert not (tmp_squad / "CLAUDE.md").exists(), "sq-only squad must not create CLAUDE.md"
         assert not (tmp_squad / "AGENTS.md").exists(), "sq-only squad must not create AGENTS.md"
 
-    def test_empty_backends_check_clean(self, tmp_squad: Path) -> None:
+    async def test_empty_backends_check_clean(self, tmp_squad: Path) -> None:
         """sq check reports no backend errors for an empty active_backends squad."""
-        result = service.init(
-            root=tmp_squad,
-            backend=[],
-            roles_spec="minimal",
-        )
+        result = await service.init(root=tmp_squad, backend=[], roles_spec="minimal")
         svc = service.Service(result.paths)
-        issues = svc.check()
+        issues = await svc.check()
         backend_issues = [i for i in issues if "managed file missing" in i.message]
         assert not backend_issues, (
             "sq-only squad (active_backends=[]) must not have backend check errors: "
             f"{backend_issues}"
         )
 
-    def test_deactivated_backend_files_not_flagged(self, tmp_squad: Path) -> None:
+    async def test_deactivated_backend_files_not_flagged(self, tmp_squad: Path) -> None:
         """Lingering files from a deactivated backend are not flagged by sq check."""
         # Init with claude_code backend — creates CLAUDE.md.
-        service.init(
-            root=tmp_squad,
-            backend=["claude_code"],
-            roles_spec="minimal",
-        )
+        await service.init(root=tmp_squad, backend=["claude_code"], roles_spec="minimal")
         assert (tmp_squad / "CLAUDE.md").exists()
 
         # Now manually switch to sq-only (deactivate claude_code).
@@ -144,7 +138,7 @@ class TestEmptyActiveBackends:
         from squads._paths import resolve
 
         svc = service.Service(resolve())
-        issues = svc.check()
+        issues = await svc.check()
         backend_issues = [i for i in issues if "managed file missing" in i.message]
         assert not backend_issues, (
             f"Deactivated backend's lingering files must not be flagged: {backend_issues}"
@@ -220,9 +214,9 @@ class TestDedup:
         cfg = SquadsConfig(active_backends=["agents_md", "claude_code", "agents_md"])
         assert cfg.active_backends == ["agents_md", "claude_code"]
 
-    def test_dedup_single_run_only_once(self, tmp_squad: Path) -> None:
+    async def test_dedup_single_run_only_once(self, tmp_squad: Path) -> None:
         """A duplicated backend name must only scaffold/sync once (write once)."""
-        result = service.init(
+        result = await service.init(
             root=tmp_squad,
             backend=["claude_code", "claude_code"],
             roles_spec="minimal",

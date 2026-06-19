@@ -1,7 +1,7 @@
 {
   "schema_version": "0.3",
   "squads_version": "0.3.0",
-  "counter": 152,
+  "counter": 154,
   "padding": 6,
   "items": {
     "12": {
@@ -834,7 +834,7 @@
       "type": "feature",
       "title": "Async to the core: the service and IO go async end-to-end",
       "slug": "async-to-the-core-the-service-and-io-go-async-end-to-end",
-      "status": "Draft",
+      "status": "Done",
       "description": "Make the service layer, index store and file IO async (anyio or similar) all the way down, with the sync bridge only at the CLI entry edge — so the protocol seam, TUI, web server and remote client are all async-native",
       "parent": "EPIC-000031",
       "author": "product-owner",
@@ -865,7 +865,7 @@
       ],
       "path": "features/FEAT-000034-async-to-the-core-the-service-and-io-go-async-end-to-end.md",
       "created_at": "2026-06-10T15:49:05Z",
-      "updated_at": "2026-06-11T07:40:17Z",
+      "updated_at": "2026-06-19T15:38:27Z",
       "extra": {},
       "id": "FEAT-000034"
     },
@@ -5501,6 +5501,99 @@
       "updated_at": "2026-06-17T20:12:08Z",
       "extra": {},
       "id": "BUG-000152"
+    },
+    "153": {
+      "sequence_id": 153,
+      "type": "decision",
+      "title": "Async-core conversion: anyio, locking, and the single-bridge rule",
+      "slug": "async-core-conversion-anyio-locking-and-the-single-bridge-ru",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000034:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000153-async-core-conversion-anyio-locking-and-the-single-bridge-ru.md",
+      "created_at": "2026-06-17T20:29:57Z",
+      "updated_at": "2026-06-19T14:05:33Z",
+      "extra": {},
+      "id": "ADR-000153"
+    },
+    "154": {
+      "sequence_id": 154,
+      "type": "review",
+      "title": "Phase 1 async conversion review",
+      "slug": "phase-1-async-conversion-review",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000034:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "transaction() in-process exclusion is not guaranteed: concurrent coroutines can corrupt the index",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "repair() calls blocking store.overwrite() on the event loop",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Blocking path.exists() in inbox/search loops below the async edge",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Blocking sync IO in init/adopt: mkdir/exists/create_empty on the event loop",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "repair/_scan_records use sync read_frontmatter() in a per-file loop",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F6",
+          "title": "C8 not finished: tests/test_async_spike.py still exists; Timeout test not migrated",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000154-phase-1-async-conversion-review.md",
+      "created_at": "2026-06-18T11:49:41Z",
+      "updated_at": "2026-06-19T14:23:04Z",
+      "extra": {},
+      "id": "REV-000154"
     }
   }
 }

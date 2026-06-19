@@ -17,7 +17,7 @@ _NON_WORK_TYPES = _AGENT_TYPES | {ItemType.OPERATOR}
 
 
 class RosterMixin(ServiceCore):
-    def activate_role(self, slug: str, *, name: str | None = None) -> Item:
+    async def activate_role(self, slug: str, *, name: str | None = None) -> Item:
         """Activate a bundled (or project-override) role.
 
         ``name`` overrides the ``RoleDef.full_name`` that would otherwise be used.  When omitted
@@ -25,7 +25,7 @@ class RosterMixin(ServiceCore):
         so a ``roles/<slug>.toml`` with ``full_name`` is also honoured).
         """
         role = resolve_role(slug, self.paths.squad_dir)
-        existing = self._role_item(slug)
+        existing = await self._role_item(slug)
         if existing is not None:
             return existing
         # Apply the explicit name override on top of whatever the resolver returned.
@@ -33,7 +33,7 @@ class RosterMixin(ServiceCore):
             from dataclasses import replace as dc_replace
 
             role = dc_replace(role, full_name=name)
-        res = self.create(
+        res = await self.create(
             ItemType.ROLE,
             role.full_name,
             description=role.mission,
@@ -48,17 +48,21 @@ class RosterMixin(ServiceCore):
         )
         ctx = self._ctx
         for backend in self._backends():
-            backend.generate_role_entry(ctx, res.item, role)
+            await backend.generate_role_entry(ctx, res.item, role)
         return res.item
 
-    def add_dev(self, tech: str, *, name: str | None = None, model: str | None = None) -> Item:
-        seq = sum(1 for it in self.list_items(item_type=ItemType.ROLE) if it.extra.get(X.IS_DEV))
+    async def add_dev(
+        self, tech: str, *, name: str | None = None, model: str | None = None
+    ) -> Item:
+        seq = sum(
+            1 for it in await self.list_items(item_type=ItemType.ROLE) if it.extra.get(X.IS_DEV)
+        )
         role = resolve_dev_role(
             tech, name=name, seq=seq, model=model, squad_dir=self.paths.squad_dir
         )
-        if self._role_item(role.slug) is not None:
+        if await self._role_item(role.slug) is not None:
             raise SquadsError(f"a developer with slug {role.slug!r} already exists")
-        res = self.create(
+        res = await self.create(
             ItemType.ROLE,
             role.full_name,
             description=role.mission,
@@ -75,11 +79,11 @@ class RosterMixin(ServiceCore):
         )
         ctx = self._ctx
         for backend in self._backends():
-            backend.generate_role_entry(ctx, res.item, role)
-        self.refresh_managed()
+            await backend.generate_role_entry(ctx, res.item, role)
+        await self.refresh_managed()
         return res.item
 
-    def add_skill(
+    async def add_skill(
         self,
         name: str,
         *,
@@ -89,9 +93,9 @@ class RosterMixin(ServiceCore):
         parent: str | None = None,
     ) -> Item:
         slug = slugify(name)
-        if self._skill_item(slug) is not None:
+        if await self._skill_item(slug) is not None:
             raise SquadsError(f"a skill with slug {slug!r} already exists")
-        res = self.create(
+        res = await self.create(
             ItemType.SKILL,
             name,
             description=description,
@@ -108,15 +112,15 @@ class RosterMixin(ServiceCore):
         )
         ctx = self._ctx
         for backend in self._backends():
-            backend.generate_skill_entry(ctx, res.item)
+            await backend.generate_skill_entry(ctx, res.item)
         return res.item
 
-    def add_operator(self, name: str, *, slug: str | None = None) -> Item:
+    async def add_operator(self, name: str, *, slug: str | None = None) -> Item:
         """Register a human operator (assignable + can author items/comments), e.g. `op-pierre`."""
         slug = slug or operator_slug(name)
-        if self._operator_item(slug) is not None:
+        if await self._operator_item(slug) is not None:
             raise SquadsError(f"an operator with slug {slug!r} already exists")
-        res = self.create(
+        res = await self.create(
             ItemType.OPERATOR,
             name,
             status=Status.ACTIVE,
@@ -124,16 +128,16 @@ class RosterMixin(ServiceCore):
             author=slug,  # an operator authors itself
             extra={X.SLUG: slug, X.FULL_NAME: name},
         )
-        self.refresh_managed()  # so the CLAUDE.md operator roster picks it up
+        await self.refresh_managed()  # so the CLAUDE.md operator roster picks it up
         return res.item
 
-    def list_operators(self) -> list[Item]:
-        return self.list_items(item_type=ItemType.OPERATOR)
+    async def list_operators(self) -> list[Item]:
+        return await self.list_items(item_type=ItemType.OPERATOR)
 
-    def workload(self) -> list[WorkloadRow]:
+    async def workload(self) -> list[WorkloadRow]:
         """Open/closed/total work-item counts per assignee (busiest first; unassigned last)."""
         counts: dict[str | None, list[int]] = {}
-        for it in self.list_items():
+        for it in await self.list_items():
             if it.type in _NON_WORK_TYPES:
                 continue
             bucket = counts.setdefault(it.assignee, [0, 0])

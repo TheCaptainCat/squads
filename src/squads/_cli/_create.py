@@ -2,11 +2,11 @@
 
 import typer
 
+import squads._cli._common as common
 from squads import _actor as actor
 from squads._cli._common import (
     console,
     get_service,
-    handle_errors,
     parse_priority,
     resolve_body_optional,
     resolve_item_id_any,
@@ -30,8 +30,8 @@ _CREATABLE = (
 
 
 def _make(item_type: ItemType):
-    @handle_errors
-    def cmd(  # noqa: PLR0913 — Typer options are the command's surface
+    @common.command
+    async def cmd(  # noqa: PLR0913 — Typer options are the command's surface
         title: str = typer.Argument(..., help="Item title."),
         author: str = typer.Option(
             ..., "--author", help="Authoring agent (role slug); must be registered."
@@ -58,14 +58,14 @@ def _make(item_type: ItemType):
     ):
         svc = get_service()
         actor.set_actor(author)
-        resolved_parent = resolve_item_id_any(parent, svc) if parent else None
+        resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
         resolved_refs: list[str] | None = None
         if ref:
             resolved_refs = []
             for r in ref:
                 rid, kind = split_ref(r)
-                resolved_refs.append(make_ref(resolve_item_id_any(rid, svc), kind))
-        res = svc.create(
+                resolved_refs.append(make_ref(await resolve_item_id_any(rid, svc), kind))
+        res = await svc.create(
             item_type,
             title,
             description=desc,
@@ -91,8 +91,8 @@ for _t in _CREATABLE:
 
 
 @create_app.command("guide", help="Create a guide.")
-@handle_errors
-def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
+@common.command
+async def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
     title: str = typer.Argument(..., help="Guide title."),
     author: str = typer.Option(..., "--author", help="Authoring agent (role slug)."),
     tech: str | None = typer.Option(None, "--tech", help="Technology (e.g. python, react)."),
@@ -114,8 +114,8 @@ def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
     if tag:
         extra[X.TAGS] = list(tag)
     svc = get_service()
-    resolved_parent = resolve_item_id_any(parent, svc) if parent else None
-    res = svc.create(
+    resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+    res = await svc.create(
         ItemType.GUIDE,
         title,
         description=desc,

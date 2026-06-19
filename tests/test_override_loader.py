@@ -9,9 +9,13 @@ Verifies that:
 
 from pathlib import Path
 
+import pytest
+
 from squads._models._enums import ItemType
 from squads._rendering._engine import invalidate_squad_dir, render, set_active_squad_dir
 from squads._services import _service as service
+
+pytestmark = pytest.mark.anyio
 
 # --------------------------------------------------------------------------- helpers
 
@@ -37,7 +41,7 @@ def _place_override(squad_dir: Path, template_name: str, content: str) -> Path:
 # --------------------------------------------------------------------------- bundled baseline
 
 
-def test_bundled_render_unchanged_when_no_override_exists(project):
+async def test_bundled_render_unchanged_when_no_override_exists(project):
     """render() with no .overrides/ present must produce exactly the bundled output."""
     set_active_squad_dir(project.squad_dir)
     out = render("items/task.md.j2", **_task_ctx())
@@ -50,7 +54,7 @@ def test_bundled_render_unchanged_when_no_override_exists(project):
     assert "OVERRIDDEN" not in out
 
 
-def test_bundled_other_templates_unchanged_under_partial_override(project):
+async def test_bundled_other_templates_unchanged_under_partial_override(project):
     """Non-overridden templates still resolve to the bundle when only task is overridden."""
     squad_dir = project.squad_dir
     _place_override(squad_dir, "items/task.md.j2", _minimal_override("task"))
@@ -69,7 +73,7 @@ def test_bundled_other_templates_unchanged_under_partial_override(project):
 # --------------------------------------------------------------------------- service-level override
 
 
-def test_service_create_uses_override_template(project, svc):
+async def test_service_create_uses_override_template(project, svc):
     """Creating a task with an active template override renders the override body."""
     squad_dir = project.squad_dir
     # Write a custom task template that still keeps the required sq markers.
@@ -88,15 +92,15 @@ def test_service_create_uses_override_template(project, svc):
     svc2 = service.Service(project)
 
     # The minimal fixture roster registers `manager`; use the default author.
-    result = svc2.create(ItemType.TASK, "Override smoke test")
+    result = await svc2.create(ItemType.TASK, "Override smoke test")
     body = result.path.read_text(encoding="utf-8")
     assert "OVERRIDDEN_BODY" in body
     assert "Custom Project Section" in body
 
 
-def test_service_create_bundled_template_unchanged(project, svc):
+async def test_service_create_bundled_template_unchanged(project, svc):
     """Without an override, service.create() must produce the standard bundled output."""
-    result = svc.create(ItemType.TASK, "Bundled task")
+    result = await svc.create(ItemType.TASK, "Bundled task")
     body = result.path.read_text(encoding="utf-8")
     # Bundled task template always has these.
     assert "## Description" in body
@@ -107,7 +111,7 @@ def test_service_create_bundled_template_unchanged(project, svc):
 # --------------------------------------------------------------------------- cache isolation
 
 
-def test_env_cache_does_not_cross_contaminate(tmp_path, frozen_time, monkeypatch):
+async def test_env_cache_does_not_cross_contaminate(tmp_path, frozen_time, monkeypatch):
     """Two squad dirs get independent Environments; overriding one doesn't affect the other."""
     # Create two minimal squads.
     root_a = tmp_path / "a"
@@ -115,9 +119,9 @@ def test_env_cache_does_not_cross_contaminate(tmp_path, frozen_time, monkeypatch
     root_a.mkdir()
     root_b.mkdir()
     monkeypatch.chdir(root_a)
-    result_a = service.init(root=root_a, roles_spec="minimal")
+    result_a = await service.init(root=root_a, roles_spec="minimal")
     monkeypatch.chdir(root_b)
-    result_b = service.init(root=root_b, roles_spec="minimal")
+    result_b = await service.init(root=root_b, roles_spec="minimal")
 
     squad_a = result_a.paths.squad_dir
     squad_b = result_b.paths.squad_dir
@@ -140,10 +144,8 @@ def test_env_cache_does_not_cross_contaminate(tmp_path, frozen_time, monkeypatch
 # --------------------------------------------------------------------------- cli smoke test
 
 
-def test_cli_create_task_with_override(project, runner):
+async def test_cli_create_task_with_override(project, invoke):
     """CLI: `sq task create` with a task template override produces the custom body."""
-    from squads._cli import app
-
     squad_dir = project.squad_dir
     custom = (
         "<!-- sq:body -->\n"
@@ -156,7 +158,7 @@ def test_cli_create_task_with_override(project, runner):
     )
     _place_override(squad_dir, "items/task.md.j2", custom)
 
-    result = runner.invoke(app, ["create", "task", "CLI override task", "--author", "manager"])
+    result = await invoke(["create", "task", "CLI override task", "--author", "manager"])
     assert result.exit_code == 0, result.output
 
     # Find the created task file under the squad dir.
