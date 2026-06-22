@@ -15,27 +15,19 @@ description: 'Bring role/skill/operator command groups in line with the item gra
   item-first addressing, styled body rendering, and a single list surface'
 subentities:
 - local_id: US1
-  title: As a CLI user, I want to address roles, skills, and operators with the same
-    item-first grammar I use for every other type (sq role N show, sq skill N show,
-    sq operator N show), so that one habit works everywhere without exceptions
+  title: Item-first grammar for roles, skills, and operators
   status: Done
 - local_id: US2
-  title: As a CLI user reading a role or skill definition, I want the body rendered
-    as styled markdown (headings, bullets, code blocks, panes) just like any other
-    item show, so that role bodies are as readable as feature bodies
+  title: Role and skill bodies rendered as styled markdown like any item show
   status: Done
 - local_id: US3
-  title: As a CLI user, I want a single list surface for tracked items (sq list -t
-    role|skill|operator) and a dedicated catalog command for the bundled role catalog
-    (sq role catalog), so that the command surface is clean and unambiguous
+  title: Single list surface for tracked agents; sq role catalog for bundled ones
   status: Done
 - local_id: US4
-  title: As the stability contract author, I want this feature's grammar decisions
-    recorded as a deferral obligation on FEAT-000013 before it closes, so that the
-    contract document reflects the final CLI surface accurately
+  title: Grammar decisions recorded as deferral obligation on FEAT-000013
   status: Done
 created_at: '2026-06-12T11:56:22Z'
-updated_at: '2026-06-12T13:12:14Z'
+updated_at: '2026-06-23T10:01:25Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -164,31 +156,23 @@ _Add with `sq feature 64 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions |
-| US2 | Done |  | As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies |
-| US3 | Done |  | As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous |
-| US4 | Done |  | As the stability contract author, I want this feature's grammar decisions recorded as a deferral obligation on FEAT-000013 before it closes, so that the contract document reflects the final CLI surface accurately |
+| US1 | Done |  | Item-first grammar for roles, skills, and operators |
+| US2 | Done |  | Role and skill bodies rendered as styled markdown like any item show |
+| US3 | Done |  | Single list surface for tracked agents; sq role catalog for bundled ones |
+| US4 | Done |  | Grammar decisions recorded as deferral obligation on FEAT-000013 |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions
+### US1 — Item-first grammar for roles, skills, and operators
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance criteria**
-
-- `sq role <slug>` resolves by slug; `sq role <id>` resolves by full ID; `sq role <n>` resolves by bare sequence number — all three forms work for show, regen, and rm.
-
-- `sq skill <id|n>` and `sq operator <id|n>` resolve by full ID or bare number for show, regen, and rm.
-
-- Verb-first invocations (e.g. `sq role show manager`, `sq skill show squads`) no longer exist or error clearly.
-
-- Tests cover slug, ID, and number resolution for at minimum show and rm on role and skill.
+As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -202,22 +186,14 @@ _Add with `sq feature 64 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies
+### US2 — Role and skill bodies rendered as styled markdown like any item show
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance criteria**
-
-- On a TTY, `sq role <n> show` and `sq skill <n> show` render the body using the FEAT-000026 styled markdown renderer (same path as `sq feature <n> show`).
-
-- `--raw` prints the raw body text (same as today's default behaviour).
-
-- When stdout is piped or `NO_COLOR` is set, output is plain and byte-stable.
-
-- No change to the panel (metadata card) — only the body rendering changes.
+As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -231,22 +207,14 @@ _Add with `sq feature 64 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous
+### US3 — Single list surface for tracked agents; sq role catalog for bundled ones
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-**Acceptance criteria**
-
-- `sq role list`, `sq skill list`, and `sq operator list` are removed (no deprecation shim — pre-1.0 removal is allowed).
-
-- `sq list -t role`, `sq list -t skill`, and `sq list -t operator` continue to work and cover all tracked items.
-
-- `sq role catalog` is a new group-level subcommand that shows the bundled catalog (the view formerly at `sq role list --available`): slug, full name, title, default indicator.
-
-- `sq role list --available` is gone alongside `sq role list`.
+As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -260,18 +228,14 @@ _Add with `sq feature 64 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US3:end -->
 
 <!-- sq:story:US4 -->
-### US4 — As the stability contract author, I want this feature's grammar decisions recorded as a deferral obligation on FEAT-000013 before it closes, so that the contract document reflects the final CLI surface accurately
+### US4 — Grammar decisions recorded as deferral obligation on FEAT-000013
 
 <!-- sq:story:US4:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
-**Acceptance criteria**
-
-- A deferral comment on FEAT-000013 records the decisions made by this feature: (a) item-first grammar for agent-type groups, (b) catalog command home, (c) list command removal, (d) pre-1.0 backward-compat stance (removal without shim).
-
-- The comment is left before FEAT-000064 closes.
+As the stability contract author, I want this feature's grammar decisions recorded as a deferral obligation on FEAT-000013 before it closes, so that the contract document reflects the final CLI surface accurately.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion

@@ -14,15 +14,13 @@ description: Short and single-letter aliases for the item-type commands (sq feat
   the grammar
 subentities:
 - local_id: US1
-  title: As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full
-    type word does, so that the commands I type all day are as short as they are unambiguous
+  title: Short type aliases (sq f/t/b) work everywhere the full word does
   status: Done
 - local_id: US2
-  title: As a newcomer reading help and docs, I want aliases out of the command list
-    but documented in one table, so that discoverability doesn't cost clarity
+  title: Aliases hidden from help but documented in one table
   status: Done
 created_at: '2026-06-11T07:37:01Z'
-updated_at: '2026-06-15T08:11:14Z'
+updated_at: '2026-06-23T09:59:04Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -83,21 +81,21 @@ _Add with `sq feature 36 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous |
-| US2 | Done |  | As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity |
+| US1 | Done |  | Short type aliases (sq f/t/b) work everywhere the full word does |
+| US2 | Done |  | Aliases hidden from help but documented in one table |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous
+### US1 — Short type aliases (sq f/t/b) work everywhere the full word does
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance:** sq f 26 story 4 show ≡ sq feature 26 story 4 show (and likewise e/t/b/d/r/g, feat/dec/rev) across every verb and sub-entity chain; outputs and errors always print canonical names.
+As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -107,14 +105,14 @@ _Add with `sq feature 36 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity
+### US2 — Aliases hidden from help but documented in one table
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance:** root --help lists only the seven canonical type commands; the alias table lives in sq docs workflow and each type's help; the stability contract records the table with its add-only rule.
+As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

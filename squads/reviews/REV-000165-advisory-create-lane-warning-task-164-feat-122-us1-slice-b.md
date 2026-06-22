@@ -9,22 +9,15 @@ refs:
 - TASK-000164:addresses
 subentities:
 - local_id: F1
-  title: Inline duplicate json imports in _cli/_create.py (import json in _make, import
-    json as _json in create_guide) — prefer one top-level import json reused in both.
-    Cosmetic; ruff clean.
+  title: Inline duplicate json imports in _cli/_create.py
   status: Fixed
   severity: low
 - local_id: F2
-  title: Internal artifact commands (sq dev add, role activate) routed through ServiceCore.create
-    write an advisory lane_warning to the reflog with expected:[] (e.g. architect
-    authoring a 'role' item). Harmless + not surfaced to the user (only _create.py
-    renders it), but it is reflog noise. Consider exempting non-CREATE_LANES item
-    types (role/skill/operator/dev) or internal-author paths in a follow-up. Not a
-    blocker for this advisory cut.
+  title: Internal artifact create writes advisory lane_warning reflog noise
   status: Fixed
   severity: low
 created_at: '2026-06-22T13:31:03Z'
-updated_at: '2026-06-22T13:40:45Z'
+updated_at: '2026-06-23T09:59:45Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-000164 — advisory create-lane warning (FEAT-000122 US1 / Slice B, under ADR-000163 Option A). Reviewed the uncommitted diff on `feat/async-core`.
@@ -65,14 +58,14 @@ _Add with `sq review 165 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Inline duplicate json imports in _cli/_create.py (import json in _make, import json as _json in create_guide) — prefer one top-level import json reused in both. Cosmetic; ruff clean. |
-| F2 | 🟢 low | Fixed |  | Internal artifact commands (sq dev add, role activate) routed through ServiceCore.create write an advisory lane_warning to the reflog with expected:[] (e.g. architect authoring a 'role' item). Harmless + not surfaced to the user (only _create.py renders it), but it is reflog noise. Consider exempting non-CREATE_LANES item types (role/skill/operator/dev) or internal-author paths in a follow-up. Not a blocker for this advisory cut. |
+| F1 | 🟢 low | Fixed |  | Inline duplicate json imports in _cli/_create.py |
+| F2 | 🟢 low | Fixed |  | Internal artifact create writes advisory lane_warning reflog noise |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
-### F1 — Inline duplicate json imports in _cli/_create.py (import json in _make, import json as _json in create_guide) — prefer one top-level import json reused in both. Cosmetic; ruff clean.
+### F1 — Inline duplicate json imports in _cli/_create.py
 
 <!-- sq:finding:F1:head -->
 **Status:** 🟡 Fixed
@@ -80,7 +73,7 @@ _Add with `sq review 165 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+Inline duplicate json imports in _cli/_create.py (import json in _make, import json as _json in create_guide) — prefer one top-level import json reused in both. Cosmetic; ruff clean.
 <!-- sq:finding:F1:body:end -->
 
 #### Discussion
@@ -90,7 +83,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F1:end -->
 
 <!-- sq:finding:F2 -->
-### F2 — Internal artifact commands (sq dev add, role activate) routed through ServiceCore.create write an advisory lane_warning to the reflog with expected:[] (e.g. architect authoring a 'role' item). Harmless + not surfaced to the user (only _create.py renders it), but it is reflog noise. Consider exempting non-CREATE_LANES item types (role/skill/operator/dev) or internal-author paths in a follow-up. Not a blocker for this advisory cut.
+### F2 — Internal artifact create writes advisory lane_warning reflog noise
 
 <!-- sq:finding:F2:head -->
 **Status:** 🟡 Fixed
@@ -98,7 +91,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+Internal artifact commands (sq dev add, role activate) routed through ServiceCore.create write an advisory lane_warning to the reflog with expected:[] (e.g. architect authoring a 'role' item). Harmless + not surfaced to the user (only _create.py renders it), but it is reflog noise. Consider exempting non-CREATE_LANES item types (role/skill/operator/dev) or internal-author paths in a follow-up. Not a blocker for this advisory cut.
 <!-- sq:finding:F2:body:end -->
 
 #### Discussion

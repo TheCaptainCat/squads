@@ -15,20 +15,16 @@ description: An append-only JSONL log of every mutating sq operation (who, when,
   before/after), with a sq reflog command to read it
 subentities:
 - local_id: US1
-  title: As an operator, I want a chronological log of every mutation with its actor,
-    so that I can review what the agents did without having been in their conversations
+  title: Chronological mutation log per actor for agent activity review
   status: Done
 - local_id: US2
-  title: As a team member investigating an anomaly, I want removals, retypes and forced
-    transitions explainable from the squad directory alone, so that a gap or surprise
-    reads as history, not corruption
+  title: Removals, retypes, forced transitions reconstructable from reflog
   status: Done
 - local_id: US3
-  title: As a tool builder, I want the reflog as stable, documented JSONL, so that
-    I can build dashboards and automation on the operation stream
+  title: Reflog as stable documented JSONL for automation and dashboards
   status: Done
 created_at: '2026-06-10T13:59:11Z'
-updated_at: '2026-06-15T10:24:04Z'
+updated_at: '2026-06-23T10:00:09Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -86,15 +82,15 @@ _Add with `sq feature 24 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As an operator, I want a chronological log of every mutation with its actor, so that I can review what the agents did without having been in their conversations |
-| US2 | Done |  | As a team member investigating an anomaly, I want removals, retypes and forced transitions explainable from the squad directory alone, so that a gap or surprise reads as history, not corruption |
-| US3 | Done |  | As a tool builder, I want the reflog as stable, documented JSONL, so that I can build dashboards and automation on the operation stream |
+| US1 | Done |  | Chronological mutation log per actor for agent activity review |
+| US2 | Done |  | Removals, retypes, forced transitions reconstructable from reflog |
+| US3 | Done |  | Reflog as stable documented JSONL for automation and dashboards |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As an operator, I want a chronological log of every mutation with its actor, so that I can review what the agents did without having been in their conversations
+### US1 — Chronological mutation log per actor for agent activity review
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
@@ -102,6 +98,8 @@ _Add with `sq feature 24 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** every mutating command appends one line (timestamp, actor, op, item, delta) atomically with the change; `sq reflog` tails and filters by --item/--actor/--op/--since.
+
+As an operator, I want a chronological log of every mutation with its actor, so that I can review what the agents did without having been in their conversations.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -111,7 +109,7 @@ _Add with `sq feature 24 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a team member investigating an anomaly, I want removals, retypes and forced transitions explainable from the squad directory alone, so that a gap or surprise reads as history, not corruption
+### US2 — Removals, retypes, forced transitions reconstructable from reflog
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -119,6 +117,8 @@ _Add with `sq feature 24 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** remove/retype/forced-status/repair operations are reconstructable from reflog lines alone (FEAT-000023's audit trail and BUG-000022's repair-reporting wish land here); a squad with no reflog file still works identically.
+
+As a team member investigating an anomaly, I want removals, retypes and forced transitions explainable from the squad directory alone, so that a gap or surprise reads as history, not corruption.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -128,7 +128,7 @@ _Add with `sq feature 24 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a tool builder, I want the reflog as stable, documented JSONL, so that I can build dashboards and automation on the operation stream
+### US3 — Reflog as stable documented JSONL for automation and dashboards
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
@@ -136,6 +136,8 @@ _Add with `sq feature 24 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US3:body -->
 **Acceptance:** the line schema is versioned and documented; `sq reflog --json` shape is golden-tested (FEAT-000015) and its stability tier stated in the contract doc (FEAT-000013).
+
+As a tool builder, I want the reflog as stable, documented JSONL, so that I can build dashboards and automation on the operation stream.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

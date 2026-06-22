@@ -13,19 +13,16 @@ description: 'sq <type> <n> remove: a safe, first-class way to delete or retire 
   item — today the only option is manual file surgery plus hand-editing the index'
 subentities:
 - local_id: US1
-  title: As an operator who created an item by mistake, I want sq remove to take it
-    off the books safely, so that I never have to hand-edit files or the index
+  title: Safe item removal without hand-editing files or index
   status: Done
 - local_id: US2
-  title: As a teammate whose items reference the removed one, I want removal to refuse
-    or cleanly sever those refs, so that nothing dangles silently
+  title: Removal refuses or severs incoming refs to prevent dangling links
   status: Done
 - local_id: US3
-  title: As someone auditing a squad later, I want number gaps to be explainable,
-    so that a missing sequence number reads as a recorded removal, not corruption
+  title: Sequence number gaps explained as recorded removals
   status: Done
 created_at: '2026-06-10T13:52:25Z'
-updated_at: '2026-06-15T09:21:50Z'
+updated_at: '2026-06-23T09:59:43Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -78,15 +75,15 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index |
-| US2 | Done |  | As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently |
-| US3 | Done |  | As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption |
+| US1 | Done |  | Safe item removal without hand-editing files or index |
+| US2 | Done |  | Removal refuses or severs incoming refs to prevent dangling links |
+| US3 | Done |  | Sequence number gaps explained as recorded removals |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index
+### US1 — Safe item removal without hand-editing files or index
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
@@ -94,6 +91,8 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** `sq <type> <n> remove` deletes the .md and index entry in one transaction with interactive confirmation (`--yes` to skip); the counter's high-water mark survives removal and a subsequent `sq repair` (never re-issues the number).
+
+As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -103,7 +102,7 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently
+### US2 — Removal refuses or severs incoming refs to prevent dangling links
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -111,6 +110,8 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** removal refuses when incoming refs or children exist, listing them; `--force` severs refs from referrers' frontmatter and requires children to be re-parented first; `sq check` is clean after any removal.
+
+As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -120,7 +121,7 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption
+### US3 — Sequence number gaps explained as recorded removals
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
@@ -128,6 +129,8 @@ _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US3:body -->
 **Acceptance:** every removal leaves a queryable trace (tombstone/log per the design ADR); docs state the remove-vs-cancel rule (cancel = dropped work, remove = should never have existed).
+
+As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

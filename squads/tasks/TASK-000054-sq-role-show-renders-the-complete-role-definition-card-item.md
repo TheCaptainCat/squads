@@ -10,12 +10,11 @@ assignee: python-dev
 priority: high
 subentities:
 - local_id: ST1
-  title: Render active role item body (working agreements + skills) below the catalog
-    card in sq role show, with a test asserting the agreements are present
+  title: Render active role body below the catalog card in sq role show
   status: Done
   story: US1
 created_at: '2026-06-12T07:52:37Z'
-updated_at: '2026-06-12T08:00:00Z'
+updated_at: '2026-06-23T09:58:02Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -48,13 +47,13 @@ _Add with `sq task 54 add-subtask "<title>"`; track with `sq task 54 subtask <n>
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Render active role item body (working agreements + skills) below the catalog card in sq role show, with a test asserting the agreements are present | US1 |
+| ST1 | Done |  | Render active role body below the catalog card in sq role show | US1 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Render active role item body (working agreements + skills) below the catalog card in sq role show, with a test asserting the agreements are present
+### ST1 — Render active role body below the catalog card in sq role show
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -62,7 +61,7 @@ _Add with `sq task 54 add-subtask "<title>"`; track with `sq task 54 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Render active role item body (working agreements + skills) below the catalog card in sq role show, with a test asserting the agreements are present.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

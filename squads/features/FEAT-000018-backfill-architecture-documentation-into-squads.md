@@ -11,19 +11,16 @@ description: Put the architecture and the pre-bootstrap design decisions on the 
   as sq guides and ADRs, since the project started untracked
 subentities:
 - local_id: US1
-  title: As a new agent or contributor, I want an architecture guide readable through
-    sq, so that I understand the system's shape without spelunking through git history
+  title: Architecture guide readable through sq
   status: Done
 - local_id: US2
-  title: As an architect, I want the standing design decisions on record as ADRs,
-    so that future work can cite, build on, or formally revisit them
+  title: Standing design decisions on record as ADRs
   status: Done
 - local_id: US3
-  title: As a team member working an item, I want guides and ADRs cross-linked by
-    refs, so that the relevant context travels with the work
+  title: Guides and ADRs cross-linked by refs
   status: Done
 created_at: '2026-06-10T12:49:50Z'
-updated_at: '2026-06-12T14:30:00Z'
+updated_at: '2026-06-23T09:59:10Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -75,15 +72,15 @@ _Add with `sq feature 18 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As a new agent or contributor, I want an architecture guide readable through sq, so that I understand the system's shape without spelunking through git history |
-| US2 | Done |  | As an architect, I want the standing design decisions on record as ADRs, so that future work can cite, build on, or formally revisit them |
-| US3 | Done |  | As a team member working an item, I want guides and ADRs cross-linked by refs, so that the relevant context travels with the work |
+| US1 | Done |  | Architecture guide readable through sq |
+| US2 | Done |  | Standing design decisions on record as ADRs |
+| US3 | Done |  | Guides and ADRs cross-linked by refs |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a new agent or contributor, I want an architecture guide readable through sq, so that I understand the system's shape without spelunking through git history
+### US1 — Architecture guide readable through sq
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
@@ -91,6 +88,8 @@ _Add with `sq feature 18 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** a guide item covers the layering (_cli → _services → index/backends/rendering), the data model (items, sub-entities, index) and the marker mechanism; `sq search architecture` finds it.
+
+As a new agent or contributor, I want an architecture guide readable through sq, so that I understand the system's shape without spelunking through git history.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -106,7 +105,7 @@ _Add with `sq feature 18 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As an architect, I want the standing design decisions on record as ADRs, so that future work can cite, build on, or formally revisit them
+### US2 — Standing design decisions on record as ADRs
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -114,6 +113,8 @@ _Add with `sq feature 18 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** each standing call (frontmatter as source of truth, global counter, forward-only refs, marker-safe edits, pluggable backends, schema-version scheme) has its own ADR item written as a decision in force, with context and consequences.
+
+As an architect, I want the standing design decisions on record as ADRs, so that future work can cite, build on, or formally revisit them.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -125,7 +126,7 @@ _Add with `sq feature 18 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a team member working an item, I want guides and ADRs cross-linked by refs, so that the relevant context travels with the work
+### US3 — Guides and ADRs cross-linked by refs
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
@@ -133,6 +134,8 @@ _Add with `sq feature 18 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US3:body -->
 **Acceptance:** guides ref the ADRs they explain and vice versa (`--kind related`); the schema_version and Python-floor ADRs called for by FEAT-000013 / FEAT-000017 can join the same record.
+
+As a team member working an item, I want guides and ADRs cross-linked by refs, so that the relevant context travels with the work.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

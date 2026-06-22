@@ -15,17 +15,13 @@ description: sq role show displays the complete definition (working agreements i
   instead of reading files under squads/
 subentities:
 - local_id: US1
-  title: As an agent adopting my persona, I want sq role show to give me the complete
-    definition including working agreements, so that I never open the file to learn
-    my job
+  title: sq role show gives complete definition including working agreements
   status: Done
 - local_id: US2
-  title: As an agent following the onboarding texts, I want every read they prescribe
-    to be an sq command, so that one interface covers work and identity — locally
-    and, someday, remotely
+  title: Onboarding texts prescribe sq commands only, not file reads
   status: Done
 created_at: '2026-06-11T09:02:40Z'
-updated_at: '2026-06-12T08:05:41Z'
+updated_at: '2026-06-23T10:00:19Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -78,21 +74,21 @@ _Add with `sq feature 41 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As an agent adopting my persona, I want sq role show to give me the complete definition including working agreements, so that I never open the file to learn my job |
-| US2 | Done |  | As an agent following the onboarding texts, I want every read they prescribe to be an sq command, so that one interface covers work and identity — locally and, someday, remotely |
+| US1 | Done |  | sq role show gives complete definition including working agreements |
+| US2 | Done |  | Onboarding texts prescribe sq commands only, not file reads |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As an agent adopting my persona, I want sq role show to give me the complete definition including working agreements, so that I never open the file to learn my job
+### US1 — sq role show gives complete definition including working agreements
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance:** sq role show <slug> renders catalog card + item body (mission, responsibilities, working agreements, skills); content matches the .md; test asserts the agreements are present.
+As an agent adopting my persona, I want sq role show to give me the complete definition including working agreements, so that I never open the file to learn my job.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -102,14 +98,14 @@ _Add with `sq feature 41 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As an agent following the onboarding texts, I want every read they prescribe to be an sq command, so that one interface covers work and identity — locally and, someday, remotely
+### US2 — Onboarding texts prescribe sq commands only, not file reads
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance:** the CLAUDE.md impersonation paragraph and the bundled skills reference sq role show / sq docs / sq <type> show only; grep for 'squads/agents/roles' in agent-facing generated text comes back empty (pointer files exempt); sq sync propagates.
+As an agent following the onboarding texts, I want every read they prescribe to be an sq command, so that one interface covers work and identity — locally and, someday, remotely.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

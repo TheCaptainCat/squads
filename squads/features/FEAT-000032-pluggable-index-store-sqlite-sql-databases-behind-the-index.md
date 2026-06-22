@@ -16,20 +16,16 @@ description: Abstract the index behind a store interface and offer SQLite (and r
   only source of truth
 subentities:
 - local_id: US1
-  title: As a team running many agents in parallel, I want the index behind real transactions,
-    so that concurrent sq calls stop serializing on one file lock
+  title: Real transactions for parallel sq calls without global file lock
   status: Todo
 - local_id: US2
-  title: As an owner of a large squad, I want an indexed store keeping list/tree/search
-    fast at thousands of items, so that scale doesn't degrade the daily loop
+  title: Indexed store keeps list/tree/search fast at thousands of items
   status: Todo
 - local_id: US3
-  title: As a user choosing a store, I want switching to be config plus sq repair
-    — reversible both ways, so that the .md files remain the only thing I must never
-    lose
+  title: Store switching via config plus sq repair, reversible both ways
   status: Todo
 created_at: '2026-06-10T15:24:10Z'
-updated_at: '2026-06-11T07:40:16Z'
+updated_at: '2026-06-23T10:01:14Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -92,15 +88,15 @@ _Add with `sq feature 32 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a team running many agents in parallel, I want the index behind real transactions, so that concurrent sq calls stop serializing on one file lock |
-| US2 | Todo |  | As an owner of a large squad, I want an indexed store keeping list/tree/search fast at thousands of items, so that scale doesn't degrade the daily loop |
-| US3 | Todo |  | As a user choosing a store, I want switching to be config plus sq repair — reversible both ways, so that the .md files remain the only thing I must never lose |
+| US1 | Todo |  | Real transactions for parallel sq calls without global file lock |
+| US2 | Todo |  | Indexed store keeps list/tree/search fast at thousands of items |
+| US3 | Todo |  | Store switching via config plus sq repair, reversible both ways |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a team running many agents in parallel, I want the index behind real transactions, so that concurrent sq calls stop serializing on one file lock
+### US1 — Real transactions for parallel sq calls without global file lock
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
@@ -108,6 +104,8 @@ _Add with `sq feature 32 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** a concurrency test with N parallel writers shows no lost updates and no global-lock serialization on the SQLite store; JSON store behaviour unchanged.
+
+As a team running many agents in parallel, I want the index behind real transactions, so that concurrent sq calls stop serializing on one file lock.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -117,7 +115,7 @@ _Add with `sq feature 32 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As an owner of a large squad, I want an indexed store keeping list/tree/search fast at thousands of items, so that scale doesn't degrade the daily loop
+### US2 — Indexed store keeps list/tree/search fast at thousands of items
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
@@ -125,6 +123,8 @@ _Add with `sq feature 32 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** on the FEAT-000017 ~1000-item fixture, list/tree/search/backrefs on the SQLite store meet the scale test's time bounds.
+
+As an owner of a large squad, I want an indexed store keeping list/tree/search fast at thousands of items, so that scale doesn't degrade the daily loop.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -134,7 +134,7 @@ _Add with `sq feature 32 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a user choosing a store, I want switching to be config plus sq repair — reversible both ways, so that the .md files remain the only thing I must never lose
+### US3 — Store switching via config plus sq repair, reversible both ways
 
 <!-- sq:story:US3:head -->
 **Status:** ⚪ Todo
@@ -142,6 +142,8 @@ _Add with `sq feature 32 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US3:body -->
 **Acceptance:** store chosen in .squads.toml; sq repair rebuilds the configured store from frontmatter alone; a squad switched json→sqlite→json is byte-equivalent in its .md files and behaviour-equivalent in every command.
+
+As a user choosing a store, I want switching to be config plus sq repair — reversible both ways, so that the .md files remain the only thing I must never lose.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

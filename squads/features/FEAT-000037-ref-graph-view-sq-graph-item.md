@@ -16,20 +16,16 @@ description: 'An ego-centric graph command: walk the ref edges from one item to 
   export for the full picture'
 subentities:
 - local_id: US1
-  title: As an operator sequencing work, I want the dependency tree of one item to
-    a chosen depth, so that I can see what it waits on and what waits on it before
-    greenlighting
+  title: Depth-bounded dependency tree for one item before greenlighting
   status: Todo
 - local_id: US2
-  title: As an agent briefing on an item, I want to filter the graph by kind and direction,
-    so that I pull only the context that matters for my job
+  title: Filter graph by kind and direction to pull only relevant context
   status: Todo
 - local_id: US3
-  title: As a user wanting the big picture, I want a dot/mermaid export, so that the
-    full graph renders in tools made for it instead of flooding my terminal
+  title: dot/mermaid export for full-graph rendering outside the terminal
   status: Todo
 created_at: '2026-06-11T07:45:02Z'
-updated_at: '2026-06-11T07:57:11Z'
+updated_at: '2026-06-23T09:59:26Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -84,22 +80,22 @@ _Add with `sq feature 37 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As an operator sequencing work, I want the dependency tree of one item to a chosen depth, so that I can see what it waits on and what waits on it before greenlighting |
-| US2 | Todo |  | As an agent briefing on an item, I want to filter the graph by kind and direction, so that I pull only the context that matters for my job |
-| US3 | Todo |  | As a user wanting the big picture, I want a dot/mermaid export, so that the full graph renders in tools made for it instead of flooding my terminal |
+| US1 | Todo |  | Depth-bounded dependency tree for one item before greenlighting |
+| US2 | Todo |  | Filter graph by kind and direction to pull only relevant context |
+| US3 | Todo |  | dot/mermaid export for full-graph rendering outside the terminal |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As an operator sequencing work, I want the dependency tree of one item to a chosen depth, so that I can see what it waits on and what waits on it before greenlighting
+### US1 — Depth-bounded dependency tree for one item before greenlighting
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance:** sq graph <item> --depth N walks both directions by default, labels edge kinds, badges status/priority per node, normalizes depends-on/blocks into one arrow, and marks revisited nodes (seen).
+As an operator sequencing work, I want the dependency tree of one item to a chosen depth, so that I can see what it waits on and what waits on it before greenlighting.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -109,14 +105,14 @@ _Add with `sq feature 37 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As an agent briefing on an item, I want to filter the graph by kind and direction, so that I pull only the context that matters for my job
+### US2 — Filter graph by kind and direction to pull only relevant context
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance:** --kind (repeatable) and --direction out|in|both restrict traversal; defaults are all kinds, both directions, depth 2; closed items need --all.
+As an agent briefing on an item, I want to filter the graph by kind and direction, so that I pull only the context that matters for my job.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -126,14 +122,14 @@ _Add with `sq feature 37 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a user wanting the big picture, I want a dot/mermaid export, so that the full graph renders in tools made for it instead of flooding my terminal
+### US3 — dot/mermaid export for full-graph rendering outside the terminal
 
 <!-- sq:story:US3:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-**Acceptance:** --format dot|mermaid emits the filtered graph in valid syntax (graphviz/mermaid render untouched); --json is documented and golden-tested per FEAT-000015.
+As a user wanting the big picture, I want a dot/mermaid export, so that the full graph renders in tools made for it instead of flooding my terminal.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

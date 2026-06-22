@@ -11,8 +11,7 @@ assignee: python-dev
 priority: high
 subentities:
 - local_id: ST1
-  title: Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator
-    targets, subtask --story through the resolver
+  title: Wire all ID-accepting paths through the resolver
   status: Done
   story: US2
 - local_id: ST2
@@ -20,7 +19,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-11T13:59:33Z'
-updated_at: '2026-06-11T14:32:39Z'
+updated_at: '2026-06-23T09:57:41Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -69,14 +68,14 @@ _Add with `sq task 47 add-subtask "<title>"`; track with `sq task 47 subtask <n>
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator targets, subtask --story through the resolver | US2 |
+| ST1 | Done |  | Wire all ID-accepting paths through the resolver | US2 |
 | ST2 | Done |  | Uniform unknown-item error wording mentioning both accepted forms everywhere | US3 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator targets, subtask --story through the resolver
+### ST1 — Wire all ID-accepting paths through the resolver
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -84,7 +83,7 @@ _Add with `sq task 47 add-subtask "<title>"`; track with `sq task 47 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator targets, subtask --story through the resolver.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

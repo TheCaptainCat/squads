@@ -11,22 +11,16 @@ refs:
 - FEAT-000026
 subentities:
 - local_id: US1
-  title: As an agent writing a comment, I want the skills I load to tell me whether
-    to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that
-    I never route fix rationale or acceptance notes to the wrong discussion
+  title: Skills tell agents which comment command to use for each scope
   status: Done
 - local_id: US2
-  title: As an agent reading a dossier with `--full --comments`, I want each sub-entity
-    pane to contain the discussion that is scoped to it, so that I can brief on a
-    finding or story without hunting through the parent item's main discussion
+  title: Sub-entity panes hold their scoped discussion, not a cross-cutting blob
   status: Done
 - local_id: US3
-  title: As an agent reading my inbox, I want @mentions placed in sub-entity discussions
-    to reach me just as reliably as item-level mentions, so that I can trust the inbox
-    regardless of where in the item the mention was written
+  title: Sub-entity @mentions reach the inbox as reliably as item-level ones
   status: Done
 created_at: '2026-06-12T09:49:28Z'
-updated_at: '2026-06-12T10:03:47Z'
+updated_at: '2026-06-23T10:00:43Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -85,28 +79,22 @@ _Add with `sq feature 62 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion |
-| US2 | Done |  | As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion |
-| US3 | Done |  | As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written |
+| US1 | Done |  | Skills tell agents which comment command to use for each scope |
+| US2 | Done |  | Sub-entity panes hold their scoped discussion, not a cross-cutting blob |
+| US3 | Done |  | Sub-entity @mentions reach the inbox as reliably as item-level ones |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion
+### US1 — Skills tell agents which comment command to use for each scope
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance criteria:**
-- The `squads` skill explicitly names `sq <type> <n> <kind> <k> comment` as the command for sub-entity-scoped comments and gives at least one concrete example (finding fix rationale, story acceptance note)
-- The `sq-review`, `sq-feature`, and `sq-task` skills each contain role-specific guidance on when to write sub-entity comments vs main-item comments
-- Role working agreements include a brief statement of the scoping principle
-
-**Replay test (REV-000061 scenario):**
-- A reviewer reading only the updated sq-review skill knows to run `sq review N finding K comment` when closing a finding with a rationale, without having to infer or guess
+As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -121,17 +109,14 @@ _Add with `sq feature 62 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion
+### US2 — Sub-entity panes hold their scoped discussion, not a cross-cutting blob
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance criteria:**
-- An agent running `sq review N show --full --comments` after findings are resolved under the new convention sees each finding's fix rationale in that finding's own pane
-- For the REV-000061 replay specifically: F1, F2, F3 each show their own rationale comment in their pane; the main discussion contains only cross-cutting material (the final approval, the @mention handoff)
-- A feature story's acceptance debate (`sq feature N story K comment`) appears in the story's pane, not only in the feature's main discussion
+As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -146,17 +131,14 @@ _Add with `sq feature 62 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written
+### US3 — Sub-entity @mentions reach the inbox as reliably as item-level ones
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-**Acceptance criteria:**
-- `sq inbox <role>` surfaces @mentions written in sub-entity discussions (empirically verified 2026-06-12 — the inbox reads the full item file)
-- The updated skill text does not introduce any guidance that would move @mentions away from sub-entity discussions in cases where the sub-entity scope is correct — it only adds precision, not restrictions
-- No regression test: the inbox test from the empirical verification (subtask comment with @mention → inbox shows it) continues to pass
+As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

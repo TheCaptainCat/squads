@@ -11,19 +11,16 @@ description: docs/stability.md + README tiering the public surfaces and what eac
   promises through 1.0
 subentities:
 - local_id: US1
-  title: As a squad user on 0.x, I want a written promise that my items reach 1.0
-    via sq migrate up, so that adopting squads before 1.0 is safe
+  title: Migration promise for 0.x squads reaching 1.0
   status: Done
 - local_id: US2
-  title: As a script author, I want to know which CLI and --json surfaces are SemVer-stable,
-    so that my automation survives upgrades
+  title: SemVer-stable CLI and --json surfaces documented
   status: Done
 - local_id: US3
-  title: As an integrator, I want internals (Python import paths, generated .claude/
-    files) explicitly marked non-public, so that I don't build on the wrong layer
+  title: Internals explicitly marked non-public
   status: Done
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-17T08:31:00Z'
+updated_at: '2026-06-23T09:58:31Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -67,15 +64,15 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe |
-| US2 | Done |  | As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades |
-| US3 | Done |  | As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer |
+| US1 | Done |  | Migration promise for 0.x squads reaching 1.0 |
+| US2 | Done |  | SemVer-stable CLI and --json surfaces documented |
+| US3 | Done |  | Internals explicitly marked non-public |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe
+### US1 — Migration promise for 0.x squads reaching 1.0
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
@@ -83,6 +80,8 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** docs/stability.md states the migration promise verbatim — any squad created on any 0.x release reaches 1.0 intact via `sq migrate up` — and names it the strongest tier.
+
+As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -92,7 +91,7 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades
+### US2 — SemVer-stable CLI and --json surfaces documented
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -100,6 +99,8 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** the doc tiers CLI grammar and --json shapes as SemVer-stable from 1.0, says what 'additive change' means for JSON, and the README paragraph links to it.
+
+As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -109,7 +110,7 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer
+### US3 — Internals explicitly marked non-public
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
@@ -117,6 +118,8 @@ _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US3:body -->
 **Acceptance:** Python import paths are documented as not public (underscore convention is the contract) and generated .claude/ files as regenerable-never-migrated; the post-1.0 schema_version scheme is settled and recorded in an ADR linked from the doc.
+
+As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

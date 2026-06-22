@@ -16,16 +16,13 @@ subentities:
     so that one habit works everywhere
   status: Done
 - local_id: US2
-  title: As a user copy-pasting an ID from a comment or tree, I want it accepted by
-    every command including tree, --parent and ref add, so that handoffs never need
-    manual reformatting
+  title: Full ID accepted in tree, --parent, and ref add without reformatting
   status: Done
 - local_id: US3
-  title: As a user who typos the type, I want sq to tell me 13 is a feature instead
-    of silently obeying, so that I never act on the wrong item
+  title: Type mismatch on bare number surfaces the actual item type
   status: Done
 created_at: '2026-06-10T12:56:45Z'
-updated_at: '2026-06-11T14:41:09Z'
+updated_at: '2026-06-23T09:59:20Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -79,8 +76,8 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
 | US1 | Done |  | As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere |
-| US2 | Done |  | As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting |
-| US3 | Done |  | As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item |
+| US2 | Done |  | Full ID accepted in tree, --parent, and ref add without reformatting |
+| US3 | Done |  | Type mismatch on bare number surfaces the actual item type |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -103,7 +100,7 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting
+### US2 — Full ID accepted in tree, --parent, and ref add without reformatting
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -111,6 +108,8 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** `sq tree 13`, `--parent 12` and `sq task <n> ref add 19` work with bare numbers, and all verbs work with full IDs; unknown-item errors mention both accepted forms.
+
+As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -120,7 +119,7 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item
+### US3 — Type mismatch on bare number surfaces the actual item type
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
@@ -128,6 +127,8 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US3:body -->
 **Acceptance:** addressing an existing item through the wrong type errors, naming the actual item and type (`13 is FEAT-000013 (feature), not a task`); behaviour is identical across all commands and covered by tests. (Decided by op-pierre: error, never silently obey.)
+
+As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

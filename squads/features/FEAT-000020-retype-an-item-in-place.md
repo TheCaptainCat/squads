@@ -13,15 +13,13 @@ description: 'sq <type> <n> retype <new-type>: fix a wrongly-filed item keeping 
   number, discussion and incoming refs'
 subentities:
 - local_id: US1
-  title: As a user who filed work under the wrong type, I want to retype it in place,
-    so that the number, body and discussion survive the fix
+  title: Retype item in place preserving number, body, and discussion
   status: Done
 - local_id: US2
-  title: As a teammate whose items reference the retyped one, I want every incoming
-    ref, parent link and prose mention rewritten to the new ID, so that nothing dangles
+  title: Incoming refs and prose mentions rewritten to new ID after retype
   status: Done
 created_at: '2026-06-10T13:24:54Z'
-updated_at: '2026-06-15T08:46:35Z'
+updated_at: '2026-06-23T09:59:30Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -68,14 +66,14 @@ _Add with `sq feature 20 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As a user who filed work under the wrong type, I want to retype it in place, so that the number, body and discussion survive the fix |
-| US2 | Done |  | As a teammate whose items reference the retyped one, I want every incoming ref, parent link and prose mention rewritten to the new ID, so that nothing dangles |
+| US1 | Done |  | Retype item in place preserving number, body, and discussion |
+| US2 | Done |  | Incoming refs and prose mentions rewritten to new ID after retype |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a user who filed work under the wrong type, I want to retype it in place, so that the number, body and discussion survive the fix
+### US1 — Retype item in place preserving number, body, and discussion
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
@@ -83,6 +81,8 @@ _Add with `sq feature 20 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** `sq task <n> retype bug` yields BUG-<same number>, file moved to bugs/, body verbatim, discussion intact + a system comment recording the change; status carried on same-workflow pairs, reset-and-announced otherwise; sub-entity/parent/children conflicts refuse with actionable errors.
+
+As a user who filed work under the wrong type, I want to retype it in place, so that the number, body and discussion survive the fix.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -92,7 +92,7 @@ _Add with `sq feature 20 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a teammate whose items reference the retyped one, I want every incoming ref, parent link and prose mention rewritten to the new ID, so that nothing dangles
+### US2 — Incoming refs and prose mentions rewritten to new ID after retype
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -100,6 +100,8 @@ _Add with `sq feature 20 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** other items' refs (kinds preserved), children's parent fields and prose mentions all show the new ID after retype; sq check clean and sq repair stable afterwards.
+
+As a teammate whose items reference the retyped one, I want every incoming ref, parent link and prose mention rewritten to the new ID, so that nothing dangles.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

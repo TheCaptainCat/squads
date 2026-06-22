@@ -14,21 +14,16 @@ description: 'Bundled roles'' working agreements split by regime: spawned-for-a-
   handoffs become true) — fixing the rigidity that produces false inbox signals'
 subentities:
 - local_id: US1
-  title: As an agent spawned for a job, I want my role to tell me exactly what must
-    be on the record before I return, so that the loop never loses my work when my
-    chat evaporates
+  title: Role tells spawned agent exactly what to record before returning
   status: Done
 - local_id: US2
-  title: As an agent working live with the operator, I want agreements that separate
-    recording decisions from signalling handoffs, so that I never put a false call-to-action
-    in a teammate's inbox
+  title: 'Live-regime role: record decisions separately from signalling handoffs'
   status: Done
 - local_id: US3
-  title: As a teammate reading my inbox, I want every @mention to be a real, current
-    call-to-action, so that I can trust it as my work queue
+  title: Every inbox @mention is a real, current call-to-action
   status: Done
 created_at: '2026-06-11T08:43:52Z'
-updated_at: '2026-06-12T07:51:05Z'
+updated_at: '2026-06-23T10:00:03Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -86,22 +81,22 @@ _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates |
-| US2 | Done |  | As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox |
-| US3 | Done |  | As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue |
+| US1 | Done |  | Role tells spawned agent exactly what to record before returning |
+| US2 | Done |  | Live-regime role: record decisions separately from signalling handoffs |
+| US3 | Done |  | Every inbox @mention is a real, current call-to-action |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates
+### US1 — Role tells spawned agent exactly what to record before returning
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance:** the spawned-regime section lists the non-negotiables (status current, comment summarizing, @mention the next role) and states why (chat does not survive); generated for all roles via the template.
+As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -111,14 +106,14 @@ _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox
+### US2 — Live-regime role: record decisions separately from signalling handoffs
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance:** the live-regime section carries the 'record what the next reader needs, when it becomes true' principle with the decision-vs-handoff distinction, and references the squads skill's operator section instead of duplicating it.
+As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -128,14 +123,14 @@ _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue
+### US3 — Every inbox @mention is a real, current call-to-action
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-**Acceptance:** per-type skill handoff lines state their trigger ('when greenlit', 'when findings are filed', …); the drafting-session scenario (Ready epic, no greenlight) resolves to no mention, decision recorded.
+As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
