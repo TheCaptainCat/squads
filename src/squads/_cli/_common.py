@@ -135,7 +135,19 @@ def _build_item_panel_rows(it: Item) -> list[str]:
     if it.parent:
         rows.append(f"[bold]parent:[/bold] {it.parent}")
     if it.author:
-        rows.append(f"[bold]author:[/bold] {e(it.author)}")
+        if it.created_session:
+            rows.append(
+                f"[bold]author:[/bold] {e(it.author)}"
+                f" [dim]@ {e(it.created_session)}[/dim]"
+                " [dim](best-effort session, untrusted)[/dim]"
+            )
+        else:
+            rows.append(f"[bold]author:[/bold] {e(it.author)}")
+    if it.modified_session:
+        rows.append(
+            f"[bold]last-modified session:[/bold] [dim]{e(it.modified_session)}[/dim]"
+            " [dim](best-effort, untrusted)[/dim]"
+        )
     if it.assignee:
         rows.append(f"[bold]assignee:[/bold] {e(it.assignee)}")
     if it.labels:

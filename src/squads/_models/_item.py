@@ -100,6 +100,16 @@ class Item(BaseModel):
     path: NonEmpty
     created_at: datetime
     updated_at: datetime
+    #: Session id at creation time (ADR-000158).  **Best-effort, untrusted, observability-only.**
+    #: squads reads ``SQUADS_SESSION_ID`` from its own invocation environment and records it here
+    #: when present.  Absent == legacy item (no session env was set).  This is a self-declaration
+    #: from the invocation environment — squads never mints, injects, spawns, or verifies it.
+    #: Must NOT be used as an authorisation input.
+    created_session: str | None = None
+    #: Session id at last mutation time (ADR-000158).  Same untrusted guarantee as
+    #: :attr:`created_session`.  Updated on every frontmatter-touching mutation (status, update,
+    #: body, comment, subentity, ref).
+    modified_session: str | None = None
     #: Type-specific fields (e.g. agent role config, dev tech, adr context).
     extra: dict[str, Any] = {}
     #: Zero-pad width for this item's formatted ID.  Threaded in from ``SquadsDB.padding`` at
@@ -147,6 +157,11 @@ class Item(BaseModel):
             data["subentities"] = [s.to_frontmatter_dict() for s in self.subentities]
         data["created_at"] = clock.iso(self.created_at)
         data["updated_at"] = clock.iso(self.updated_at)
+        # Session fields are omitted when unset to keep legacy files unchanged (ADR-000158 §3).
+        if self.created_session is not None:
+            data["created_session"] = self.created_session
+        if self.modified_session is not None:
+            data["modified_session"] = self.modified_session
         if self.extra:
             data["extra"] = self.extra
         return data
@@ -174,6 +189,9 @@ class Item(BaseModel):
             path=path,
             created_at=_parse_dt(data.get("created_at")),
             updated_at=_parse_dt(data.get("updated_at")),
+            # Session fields are optional — absent from legacy files; None == unset.
+            created_session=data.get("created_session") or None,
+            modified_session=data.get("modified_session") or None,
             extra=_read_extra(data),
         )
 

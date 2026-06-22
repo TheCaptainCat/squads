@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Optional session lineage on every recorded operation (ADR-000158, schema 0.4).**
+  squads now reads two optional environment variables — `SQUADS_SESSION_ID` and
+  `SQUADS_PARENT_SESSION_ID` — once at the CLI root callback and carries them through the
+  invocation.  When present, both the reflog line (as additive sibling fields `session_id` /
+  `parent_session_id` alongside the flat `actor` string, back-compat preserved) and the item
+  frontmatter (as optional `created_session` / `modified_session` fields) record them.  When
+  absent the behaviour is identical to before — actor is still just the slug.  Session fields
+  are **not** settable by `--as` / `--author` or any later CLI flag; env vars are the only path.
+  **Guarantee: best-effort, untrusted, observability-only.**  squads is a passive tool, never in
+  the spawn path; it reads and records whatever its invocation environment carries.  A forged,
+  copied, or absent session id is indistinguishable from a real one — these fields must never be
+  used as an authorisation input.
+
+### Migration
+
+**Schema 0.3 → 0.4 — additive session lineage fields (ADR-000158).**  Run `sq migrate up` to
+stamp the new schema version.  No file rewrites are required; all new fields are optional and
+additive.  Existing item files and reflog lines remain valid and load unchanged.  The session
+fields simply default to absent (treated as `None` / legacy) until your orchestrator skills
+propagate the env vars.
+
 ## [0.4.0] - 2026-06-17
 
 ### Added

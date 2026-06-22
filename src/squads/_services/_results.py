@@ -14,6 +14,7 @@ from squads._paths import SquadPaths
 class CreateResult:
     item: Item
     path: Path
+    lane_warning: str | None = None
 
 
 @dataclass
@@ -112,6 +113,11 @@ class ReflogEntry:
     the reflog schema documentation for the full field reference.  The ``v`` field
     carries the schema version so readers can handle future additions gracefully.
 
+    ``session_id`` and ``parent_session_id`` are ``None`` for entries written before
+    schema 0.4 (ADR-000158).  They record **best-effort, untrusted** lineage only —
+    squads is a passive tool that reads optional env vars and records them; it does
+    not mint, spawn, or verify.  Never use these fields as an authorisation input.
+
     Stability note: the *command shape* and the fields listed here are documented;
     the exact ``delta`` sub-fields are additive and evolve per FEAT-000013's freeze.
     """
@@ -122,3 +128,5 @@ class ReflogEntry:
     op: str
     target: str
     delta: dict[str, Any]
+    session_id: str | None = None
+    parent_session_id: str | None = None

@@ -3,6 +3,7 @@ name: product-owner
 description: "Requirements, user stories, and backlog priorities."
 model: sonnet
 color: yellow
+disallowedTools: Agent
 skills:
   - squads
   - greeting

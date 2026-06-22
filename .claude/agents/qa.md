@@ -3,6 +3,7 @@ name: qa
 description: "Designs and runs tests; verifies behaviour against acceptance criteria."
 model: sonnet
 color: green
+disallowedTools: Agent
 skills:
   - squads
   - greeting

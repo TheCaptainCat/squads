@@ -1,11 +1,14 @@
 """`sq create <type> TITLE …` — one command per item type, sharing one implementation."""
 
+import json
+
 import typer
 
 import squads._cli._common as common
 from squads import _actor as actor
 from squads._cli._common import (
     console,
+    e,
     get_service,
     parse_priority,
     resolve_body_optional,
@@ -78,9 +81,14 @@ def _make(item_type: ItemType):
             body=resolve_body_optional(message or None, file),
         )
         if json_out:
-            console.print_json(res.item.model_dump_json())
+            data = json.loads(res.item.model_dump_json())
+            if res.lane_warning is not None:
+                data["lane_warning"] = res.lane_warning
+            console.print_json(json.dumps(data))
         else:
             console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
+            if res.lane_warning is not None:
+                console.print(e(res.lane_warning))
 
     cmd.__name__ = f"create_{item_type.value}"
     return cmd
@@ -114,6 +122,7 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
     if tag:
         extra[X.TAGS] = list(tag)
     svc = get_service()
+    actor.set_actor(author)
     resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
     res = await svc.create(
         ItemType.GUIDE,
@@ -126,6 +135,11 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
         body=resolve_body_optional(message or None, file),
     )
     if json_out:
-        console.print_json(res.item.model_dump_json())
+        data = json.loads(res.item.model_dump_json())
+        if res.lane_warning is not None:
+            data["lane_warning"] = res.lane_warning
+        console.print_json(json.dumps(data))
     else:
         console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
+        if res.lane_warning is not None:
+            console.print(e(res.lane_warning))

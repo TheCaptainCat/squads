@@ -33,6 +33,7 @@ extra:
   - File review findings as tracked sub-entities — `sq review <n> add-finding` with
     severity, statuses updated as they close — never as body prose; finding-scoped
     comments, statuses, and dossier panes all depend on the structure.
+  can_spawn: false
 ---
 <!-- sq:body -->
 # Paul Reviewer

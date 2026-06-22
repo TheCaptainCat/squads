@@ -25,6 +25,7 @@ class RoleDef:
     model: str | None = None  # sonnet | opus | haiku | inherit
     color: str | None = None
     is_default: bool = False
+    can_spawn: bool = False  # True only for orchestrating roles (manager, tech-lead)
 
     def to_extra(self) -> dict[str, Any]:
         """Type-specific fields stored on the ROLE item."""
@@ -38,6 +39,7 @@ class RoleDef:
             X.MODEL: self.model,
             X.COLOR: self.color,
             X.IS_DEFAULT: self.is_default,
+            X.CAN_SPAWN: self.can_spawn,
         }
 
     @classmethod
@@ -53,6 +55,7 @@ class RoleDef:
             model=extra.get(X.MODEL),
             color=extra.get(X.COLOR),
             is_default=extra.get(X.IS_DEFAULT, False),
+            can_spawn=extra.get(X.CAN_SPAWN, False),
         )
 
 
@@ -79,6 +82,7 @@ PREDEFINED: tuple[RoleDef, ...] = (
         model="opus",
         color="cyan",
         is_default=True,
+        can_spawn=True,
     ),
     RoleDef(
         slug="architect",
@@ -115,6 +119,7 @@ PREDEFINED: tuple[RoleDef, ...] = (
         ),
         model="opus",
         color="purple",
+        can_spawn=True,
     ),
     RoleDef(
         slug="reviewer",

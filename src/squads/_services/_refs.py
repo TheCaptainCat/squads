@@ -1,5 +1,6 @@
 """Forward reference edges (typed cross-links); backrefs are computed by inversion."""
 
+from squads import _actor as actor
 from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
@@ -39,6 +40,7 @@ class RefsMixin(ServiceCore):
             ]
             src.refs.append(make_ref(to_id, kind))
             src.updated_at = clock.now()
+            src.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, src), src)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "ref",
@@ -63,6 +65,7 @@ class RefsMixin(ServiceCore):
                 # Bare number or malformed — fall back to literal string comparison.
                 src.refs = [r for r in src.refs if split_ref(r)[0] != to_id]
             src.updated_at = clock.now()
+            src.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, src), src)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "ref",

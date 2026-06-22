@@ -173,7 +173,7 @@ def test_cli_reflog_json_shape(cli_squad):
         entry = data[0]
         for field in ("v", "ts", "actor", "op", "target", "delta"):
             assert field in entry, f"missing field {field!r} in --json output"
-        assert entry["v"] == "0.3"  # SCHEMA_VERSION
+        assert entry["v"] == "0.4"  # SCHEMA_VERSION
 
 
 def test_cli_reflog_filter_item(cli_squad):
@@ -295,9 +295,13 @@ def test_golden_reflog_json(tmp_path, monkeypatch, frozen_time):
     _UPDATE = os.getenv("UPDATE_GOLDENS") == "1"
 
     # We only store the structural descriptor (not exact values) in the golden.
+    # Use the actual schema version from the output rather than a hardcoded string so
+    # the golden stays valid across schema bumps.
+    from squads._models._schema import SCHEMA_VERSION as _SV
+
     shape_descriptor = {
         "fields": ["v", "ts", "actor", "op", "target", "delta"],
-        "schema_version": "0.3",
+        "schema_version": _SV,
         "example_ops": sorted(set(ops)),
     }
     if _UPDATE:

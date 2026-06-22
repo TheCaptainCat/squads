@@ -27,6 +27,7 @@ extra:
   - greeting
   - sq-guide
   agreements: []
+  can_spawn: false
 ---
 <!-- sq:body -->
 # Theo Writer

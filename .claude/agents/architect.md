@@ -3,6 +3,7 @@ name: architect
 description: "System design and architecture decisions (ADRs)."
 model: opus
 color: blue
+disallowedTools: Agent
 skills:
   - squads
   - greeting

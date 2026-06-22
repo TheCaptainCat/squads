@@ -11,7 +11,7 @@ steps that ``up`` can't do. Adding a step = drop a ``_vNtoM.py`` runner, append 
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from squads._migrations import _v0_1_to_v0_2, _v0_2_to_v0_3
+from squads._migrations import _v0_1_to_v0_2, _v0_2_to_v0_3, _v0_3_to_v0_4
 from squads._paths import SquadPaths
 
 
@@ -41,5 +41,17 @@ MIGRATIONS: list[Migration] = [
         summary="Backfill the human-readable :head region (status/assignee/severity/story badges).",
         run=_v0_2_to_v0_3.migrate,
         manual=_v0_2_to_v0_3.MANUAL,
+    ),
+    Migration(
+        version="0.5.0",
+        from_schema="0.3",
+        to_schema="0.4",
+        summary=(
+            "Additive session lineage fields: optional session_id/parent_session_id on reflog "
+            "lines and created_session/modified_session on item frontmatter (ADR-000158). "
+            "Best-effort, untrusted, observability-only — no file rewrite required."
+        ),
+        run=_v0_3_to_v0_4.migrate,
+        manual=_v0_3_to_v0_4.MANUAL,
     ),
 ]

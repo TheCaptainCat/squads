@@ -10,7 +10,7 @@
     "agents_md/role_entry.md.j2": "1f05b89116be3fc46f7aa83ed8c89013c6d6089dd179fb412c07328e8de6a61e",
     "agents_md/skill_entry.md.j2": "a4c6b30998a20a2267415bc01cb98270fc7266b6ea2cea249f67ebd2b12bac5c",
     "claude/claude_section.md.j2": "57731432e500cc10fa2266b00fa22fcae90f70e35a8fa8eb06d24d3d151e5f66",
-    "claude/pointer_agent.md.j2": "df4333a7865fddb6ee6ae91a4a376ebe4e2934f06171acd78ee9d010856418e0",
+    "claude/pointer_agent.md.j2": "861107f40429c6e708536b293c1aa6fdefb3b12113f92d095bada60dbee2d4bc",
     "claude/pointer_skill.md.j2": "fe90d18620a923a11b4c5957eeef66206145546a7f3dec23d62481f0cd1a64c6",
     "items/bug.md.j2": "8a095bcbf5c792a8c4b543c17089d8e7f35235d77b1b76bf787aae077fc42f42",
     "items/decision.md.j2": "0300f0b2f9df7fbb7182e4c93d50305744830d4ee5711ee3692e4bf1bef18464",

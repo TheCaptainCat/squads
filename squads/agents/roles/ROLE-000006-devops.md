@@ -27,6 +27,7 @@ extra:
   - squads
   - greeting
   agreements: []
+  can_spawn: false
 ---
 <!-- sq:body -->
 # Hugo Ops
