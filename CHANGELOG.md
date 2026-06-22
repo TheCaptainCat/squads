@@ -6,7 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-22
+
 ### Added
+
+- **Per-role spawn attenuation — leaf roles can no longer spawn sub-agents (ADR-000155).**
+  Roles now carry a `can_spawn` capability, held only by `manager` and `tech-lead`.  Every other
+  role (developers, reviewer, QA, architect, …) is rendered with `disallowedTools: Agent` in its
+  Claude Code agent definition, so a spawned specialist structurally cannot re-delegate.  The
+  capability is visible via `sq role <slug> show`.
 
 - **Optional session lineage on every recorded operation (ADR-000158, schema 0.4).**
   squads now reads two optional environment variables — `SQUADS_SESSION_ID` and
@@ -20,6 +28,24 @@ All notable changes to this project are documented here. The format follows
   the spawn path; it reads and records whatever its invocation environment carries.  A forged,
   copied, or absent session id is indistinguishable from a real one — these fields must never be
   used as an authorisation input.
+
+- **`sq reflog --tree` and session surfacing in `show --full` (ADR-000158).**  `sq reflog --tree`
+  renders the recorded spawn lineage as a nested, best-effort tree; operations with no or unknown
+  parent session appear as forest roots, and forged cycles degrade gracefully without dropping any
+  entry.  `sq <type> <n> show --full` surfaces the creating and last-modifying session when present.
+
+- **Advisory create-lane warnings (ADR-000163).**  `sq create` now emits a best-effort advisory
+  warning when a role authors an item type outside its lane (for example a developer creating a
+  feature), names the expected owner role, and proceeds anyway (exit 0; the warning is recorded in
+  the reflog).  Lanes are derived from the team playbook; `manager` and operators are exempt, and
+  each role's create-lane is shown in `sq role <slug> show`.  **Advisory only — keyed on the
+  self-declared actor, never an authorisation boundary.**
+
+### Fixed
+
+- **Recursive self-spawn cascade (BUG-000152).**  A spawned developer subagent no longer
+  re-delegates to a same-role child many levels deep instead of doing the work — leaf roles now
+  structurally lack the spawn tool (see the spawn-attenuation entry above).
 
 ### Migration
 

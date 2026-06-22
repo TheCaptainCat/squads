@@ -43,7 +43,7 @@ MIGRATIONS: list[Migration] = [
         manual=_v0_2_to_v0_3.MANUAL,
     ),
     Migration(
-        version="0.5.0",
+        version="0.4.1",
         from_schema="0.3",
         to_schema="0.4",
         summary=(

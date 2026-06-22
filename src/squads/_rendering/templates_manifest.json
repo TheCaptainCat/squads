@@ -23,5 +23,30 @@
     "subentities/head.md.j2": "d7e763183703eddad674c25f9fe64ec49a071221dc26f9518faa630d38307bab",
     "subentities/summary.md.j2": "8a025754bdfdda21747270a9f7fbee0420c17e6070b2a3bc5e38c2d8dd60f0e7",
     "workflow.md.j2": "3cdfa91f012c1fa8a94b6bb33a6b8fd2953a92fe5fdb8412943faaf535584393"
+  },
+  "0.4.1": {
+    "agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",
+    "agents/item_skill.md.j2": "329fdd9afb50df913d274968ef37e7367dfe1a3e499b77ae8afd7d26c68c34b4",
+    "agents/operator.md.j2": "5f2b6962dc47cd36983a9140e8fa310f58d4ec6746a6597c4a473edf5c22fc11",
+    "agents/role.md.j2": "1d9e2e29b1f2dd6cdda7ee5608131e40839fe84489207eeb291db9803261c0b8",
+    "agents/skill.md.j2": "3d9780f63e59e1b3ce07256e236c63015e78fb43be1e094e01501b27802c5358",
+    "agents/squads_skill.md.j2": "9b27c9f5c56e38c8dd3173a142126deec985a0d4d131cccd6badc914d0b0cff8",
+    "agents_md/agents_section.md.j2": "89b5216cd1721588390e0c44465bb644bfa8ca17e2c9f2d33793f64077583419",
+    "agents_md/role_entry.md.j2": "1f05b89116be3fc46f7aa83ed8c89013c6d6089dd179fb412c07328e8de6a61e",
+    "agents_md/skill_entry.md.j2": "a4c6b30998a20a2267415bc01cb98270fc7266b6ea2cea249f67ebd2b12bac5c",
+    "claude/claude_section.md.j2": "57731432e500cc10fa2266b00fa22fcae90f70e35a8fa8eb06d24d3d151e5f66",
+    "claude/pointer_agent.md.j2": "861107f40429c6e708536b293c1aa6fdefb3b12113f92d095bada60dbee2d4bc",
+    "claude/pointer_skill.md.j2": "fe90d18620a923a11b4c5957eeef66206145546a7f3dec23d62481f0cd1a64c6",
+    "items/bug.md.j2": "8a095bcbf5c792a8c4b543c17089d8e7f35235d77b1b76bf787aae077fc42f42",
+    "items/decision.md.j2": "0300f0b2f9df7fbb7182e4c93d50305744830d4ee5711ee3692e4bf1bef18464",
+    "items/epic.md.j2": "c511dc1bdb4420648b020de82606f6e121b2017e6f9d78cae5688fe62435f7b6",
+    "items/feature.md.j2": "18dcfe8bed07c43ff5cb0bde25dfb6b7949eef965048d802943dc76168b96dd2",
+    "items/guide.md.j2": "afdd02fe38f564723d38b324ab4ef51a3b0980078073d75e861e04e38f6c6397",
+    "items/review.md.j2": "acd4826217f05fc3e9b69c755932998d7b63806429c7aab3641fca0579b90458",
+    "items/task.md.j2": "74169756e9824b751b69938f1570b174078f1d5a0e6b5d24c1dbf87535bbfc61",
+    "subentities/block.md.j2": "80610456c63488244be6fa68c29b8af655dda7cf3966b5ac0eb84167647925d1",
+    "subentities/head.md.j2": "d7e763183703eddad674c25f9fe64ec49a071221dc26f9518faa630d38307bab",
+    "subentities/summary.md.j2": "8a025754bdfdda21747270a9f7fbee0420c17e6070b2a3bc5e38c2d8dd60f0e7",
+    "workflow.md.j2": "3cdfa91f012c1fa8a94b6bb33a6b8fd2953a92fe5fdb8412943faaf535584393"
   }
 }
