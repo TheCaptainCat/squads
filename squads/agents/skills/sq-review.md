@@ -27,7 +27,7 @@ sq task <n> ref add REV-… --kind addresses
 
 **Do:**
 - `sq review <n> status InReview`
-- log each issue as a finding (`add-finding "…" --severity …`)
+- log each issue as a finding (`add-finding "…" --severity …`) — the title is a short handle; the full description goes in the finding body (`sq review <n> finding <k> body -m …`)
 - drive to a verdict: Approved or ChangesRequested
 - use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, verification notes, 'agreed — closing this one') — cross-cutting notes and the final verdict go on the review (see the `squads` skill's comment-scoping convention)
 

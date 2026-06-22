@@ -14,6 +14,7 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
+from squads._interactions import TITLE_ADVISORY_MAX
 from squads._models import _markers as markers
 from squads._models._enums import DEFAULT_SEVERITY, ItemType, Severity, Status
 from squads._models._index import SquadsDB
@@ -105,10 +106,28 @@ class SubentitiesMixin(ServiceCore):
             block = discussion.build_block(kind, local_id, title, body=body)
             text = sections.append_to_section(text, container, block)
             await self._write_block_file(db, item, path, text=text, head_for=sub)
+            # Advisory title-length check (ADR-000167 / FEAT-000166).
+            # Fires when title length > TITLE_ADVISORY_MAX.  Service must NOT print;
+            # the warning rides back on the result to be rendered at the CLI edge.
+            title_advisory: str | None = None
+            if len(title) > TITLE_ADVISORY_MAX:
+                body_cmd = f'sq {item.type.value} {item.sequence_id} {kind} {local_id} body -m "…"'
+                title_advisory = (
+                    f"Title is {len(title)} chars — a sub-entity title is a one-line handle,"
+                    f" not the description. Put the detail in the body:\n  {body_cmd}"
+                )
+            log_delta: dict[str, object] = {
+                "op": "add",
+                "kind": kind,
+                "local_id": local_id,
+                "title": title,
+            }
+            if title_advisory is not None:
+                log_delta["title_advisory"] = {"advisory": True, "title_len": len(title)}
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "subentity",
                 item.id,
-                {"op": "add", "kind": kind, "local_id": local_id, "title": title},
+                log_delta,
             )
         btag = discussion.body_tag(kind, local_id)
         span = sections.region_lines(await _aio.read_text(path), btag)
@@ -118,6 +137,7 @@ class SubentitiesMixin(ServiceCore):
             body_tag=btag,
             start_line=span[0] if span else None,
             end_line=span[1] if span else None,
+            title_advisory=title_advisory,
         )
 
     async def list_stories(self, feature_id: str) -> list[SubEntity]:

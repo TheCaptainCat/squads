@@ -70,17 +70,16 @@ def e(value: object) -> str:
 def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
     """Report a scaffolded story/subtask/finding block + where the agent should write its body."""
     if json_out:
-        console.print_json(
-            json.dumps(
-                {
-                    "local_id": res.local_id,
-                    "file": str(res.path),
-                    "region": res.body_tag,
-                    "start_line": res.start_line,
-                    "end_line": res.end_line,
-                }
-            )
-        )
+        data: dict[str, object] = {
+            "local_id": res.local_id,
+            "file": str(res.path),
+            "region": res.body_tag,
+            "start_line": res.start_line,
+            "end_line": res.end_line,
+        }
+        if res.title_advisory is not None:
+            data["title_advisory"] = res.title_advisory
+        console.print_json(json.dumps(data))
         return
     kind = res.body_tag.split(":")[0]  # e.g. "subtask:ST1:body" → "subtask"
     console.print(f"added [bold]{res.local_id}[/bold] to {parent_id}")
@@ -88,6 +87,8 @@ def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
         f'  set its body:  [cyan]sq {kind} body {parent_id} {res.local_id} -m "…"[/cyan]'
         "  [dim](or --file body.md / --file -)[/dim]"
     )
+    if res.title_advisory is not None:
+        console.print(e(res.title_advisory))
 
 
 def _is_styled() -> bool:
