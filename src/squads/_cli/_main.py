@@ -619,6 +619,16 @@ async def reflog(
         "-n",
         help="Maximum number of entries to show (most recent; 0 = all).",
     ),
+    tree_view: bool = typer.Option(
+        False,
+        "--tree",
+        help=(
+            "Render a spawn-lineage tree grouped by session_id/parent_session_id edges. "
+            "BEST-EFFORT, UNTRUSTED, OBSERVABILITY-ONLY — reflects declared lineage; "
+            "a copied session id appears as a legitimate edge. "
+            "Missing intermediate sessions degrade to a forest (multiple roots), never an error."
+        ),
+    ),
     json_out: bool = typer.Option(False, "--json"),
 ):
     """Show the operation reflog — a chronological log of every mutating sq command.
@@ -669,6 +679,10 @@ async def reflog(
         )
         return
 
+    if tree_view:
+        _render_reflog_tree(entries)
+        return
+
     if not entries:
         console.print("[dim]no reflog entries[/dim]")
         return
@@ -680,6 +694,145 @@ async def reflog(
             f"  [cyan]{e(entry.target)}[/cyan]"
             f"  [dim]actor={e(entry.actor)}[/dim]  {e(delta_str)}"
         )
+
+
+def _reflog_entry_line(entry: ReflogEntry) -> str:
+    """Format a single reflog entry as a Rich-markup line for tree display."""
+    delta_str = json.dumps(entry.delta, separators=(",", ":"), ensure_ascii=False)
+    return (
+        f"[dim]{e(entry.ts)}[/dim]  [bold]{e(entry.op)}[/bold]"
+        f"  [cyan]{e(entry.target)}[/cyan]"
+        f"  [dim]actor={e(entry.actor)}[/dim]  {e(delta_str)}"
+    )
+
+
+def _build_session_maps(
+    entries: list[ReflogEntry],
+) -> tuple[
+    dict[str, list[ReflogEntry]],
+    dict[str, str | None],
+    dict[str, list[str]],
+    list[ReflogEntry],
+]:
+    """Partition entries into session buckets and build parent/children maps.
+
+    Returns:
+        session_entries:  session_id → entries in that session
+        session_parents:  session_id → parent_session_id (first-occurrence wins)
+        children_map:     session_id → list of child session_ids
+        no_session:       entries that carry no session_id at all
+    """
+    session_entries: dict[str, list[ReflogEntry]] = {}
+    session_parents: dict[str, str | None] = {}
+    no_session: list[ReflogEntry] = []
+
+    for entry in entries:
+        sid = entry.session_id
+        if sid is None:
+            no_session.append(entry)
+        else:
+            session_entries.setdefault(sid, []).append(entry)
+            if sid not in session_parents:
+                session_parents[sid] = entry.parent_session_id
+
+    known = set(session_entries.keys())
+    children_map: dict[str, list[str]] = {}
+    for sid in session_entries:
+        p = session_parents.get(sid)
+        if p and p in known:
+            children_map.setdefault(p, []).append(sid)
+
+    return session_entries, session_parents, children_map, no_session
+
+
+def _attach_session_node(
+    parent_node: Tree,
+    sid: str,
+    session_entries: dict[str, list[ReflogEntry]],
+    children_map: dict[str, list[str]],
+    visited: set[str],
+) -> None:
+    """Recursively attach child session nodes under *parent_node*.
+
+    *visited* is updated in-place as nodes are attached.  The guard prevents
+    revisiting a node so the recursion cannot loop even on cyclic edge inputs.
+    """
+    for child_sid in sorted(children_map.get(sid, [])):
+        if child_sid in visited:
+            continue
+        visited.add(child_sid)
+        child_node = parent_node.add(f"[dim]session:[/dim] {e(child_sid)}")
+        for child_entry in session_entries.get(child_sid, []):
+            child_node.add(_reflog_entry_line(child_entry))
+        _attach_session_node(child_node, child_sid, session_entries, children_map, visited)
+
+
+def _render_reflog_tree(entries: list[ReflogEntry]) -> None:
+    """Render reflog entries as a spawn-lineage tree grouped by session edges.
+
+    Best-effort, untrusted, observability-only.  Reflects declared lineage only —
+    a copied session id appears as a legitimate edge; a missing intermediate session
+    degrades to a forest (extra roots), never an error.  Entries with no session_id
+    are grouped as slug-only roots.
+    """
+    console.print("[dim]Spawn-lineage tree — BEST-EFFORT / UNTRUSTED / OBSERVABILITY-ONLY[/dim]")
+    console.print(
+        "[dim]Reflects declared lineage; no tamper-evidence or enforcement guarantee.[/dim]"
+    )
+    console.print()
+
+    if not entries:
+        console.print("[dim]no reflog entries[/dim]")
+        return
+
+    session_entries, session_parents, children_map, no_session = _build_session_maps(entries)
+    known_sessions = set(session_entries.keys())
+
+    tree_root = Tree("[dim]reflog[/dim]")
+    visited: set[str] = set()
+
+    # Attach session-based roots (sessions whose parent is absent or outside the view).
+    for sid in sorted(session_entries.keys()):
+        p = session_parents.get(sid)
+        if p is None or p not in known_sessions:
+            if p and p not in known_sessions:
+                root_label = (
+                    f"[dim]session:[/dim] {e(sid)}"
+                    f"  [dim](parent {e(p)} not in view — forest root)[/dim]"
+                )
+            else:
+                root_label = f"[dim]session:[/dim] {e(sid)}"
+            visited.add(sid)
+            root_node = tree_root.add(root_label)
+            for root_entry in session_entries.get(sid, []):
+                root_node.add(_reflog_entry_line(root_entry))
+            _attach_session_node(root_node, sid, session_entries, children_map, visited)
+
+    # Reachability pass — any session not yet visited (e.g. pure cycles in forged/corrupt
+    # declared edges) is surfaced here so no recorded session is silently discarded.
+    for sid in sorted(session_entries.keys()):
+        if sid in visited:
+            continue
+        visited.add(sid)
+        p = session_parents.get(sid)
+        cycle_label = (
+            f"[dim]session:[/dim] {e(sid)}  [dim](parent {e(p)} — cycle/forest root)[/dim]"
+            if p
+            else f"[dim]session:[/dim] {e(sid)}  [dim](cycle/forest root)[/dim]"
+        )
+        cycle_node = tree_root.add(cycle_label)
+        for cycle_entry in session_entries.get(sid, []):
+            cycle_node.add(_reflog_entry_line(cycle_entry))
+        _attach_session_node(cycle_node, sid, session_entries, children_map, visited)
+
+    # Attach no-session entries as individual roots.
+    for entry in no_session:
+        slug_node = tree_root.add(
+            f"[dim]actor=[/dim]{e(entry.actor)}  [dim](no session recorded)[/dim]"
+        )
+        slug_node.add(_reflog_entry_line(entry))
+
+    console.print(tree_root)
 
 
 @app.command(name="show")

@@ -3,6 +3,7 @@ name: python-dev
 description: "Implements Python code following the project's guides and standards."
 model: sonnet
 color: green
+disallowedTools: Agent
 skills:
   - squads
   - greeting

@@ -29,6 +29,7 @@ extra:
   - sq-epic
   - sq-feature
   agreements: []
+  can_spawn: false
 ---
 <!-- sq:body -->
 # Nina Product

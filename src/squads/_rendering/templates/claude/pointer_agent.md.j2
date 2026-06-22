@@ -7,6 +7,9 @@ model: {{ model }}
 {% if color %}
 color: {{ color }}
 {% endif %}
+{% if not can_spawn %}
+disallowedTools: Agent
+{% endif %}
 {% if skills %}
 skills:
 {% for s in skills %}

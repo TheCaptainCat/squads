@@ -31,6 +31,7 @@ from squads._cli._common import (
     resolve_agent_addr,
 )
 from squads._errors import SquadsError
+from squads._interactions import allowed_create_types
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
@@ -177,6 +178,8 @@ async def show_role(
                     "mission": r.mission,
                     "model": r.model,
                     "is_default": r.is_default,
+                    "can_spawn": r.can_spawn,
+                    "create_lane": sorted(t.value for t in allowed_create_types(slug)),
                     "responsibilities": list(r.responsibilities),
                 }
             )
@@ -190,6 +193,8 @@ async def show_role(
                         "mission": it3.extra.get(X.MISSION, ""),
                         "model": it3.extra.get(X.MODEL),
                         "is_default": it3.extra.get(X.IS_DEFAULT, False),
+                        "can_spawn": it3.extra.get(X.CAN_SPAWN, False),
+                        "create_lane": sorted(t.value for t in allowed_create_types(slug)),
                         "responsibilities": it3.extra.get(X.RESPONSIBILITIES, []),
                     }
                 )
@@ -201,10 +206,14 @@ async def show_role(
     # Build the catalog card from the resolved role definition (project override → bundled).
     try:
         r = resolve_role(slug, svc.paths.squad_dir)
+        lane_types = sorted(t.value for t in allowed_create_types(slug))
+        creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
         rows = [
             f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
             f"[bold]title:[/bold] {e(r.title)}",
             f"[bold]model:[/bold] {e(r.model or 'inherit')}",
+            f"[bold]can spawn:[/bold] {'yes' if r.can_spawn else 'no'}",
+            f"[bold]creates:[/bold] {e(creates_display)}",
             f"[bold]mission:[/bold] {e(r.mission)}",
             "[bold]responsibilities:[/bold]",
             *(f"  - {e(x)}" for x in r.responsibilities),

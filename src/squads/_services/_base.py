@@ -10,6 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 from squads import __version__, _aio
+from squads import _actor as actor
 from squads import _clock as clock
 from squads import _sections as sections
 from squads._backends._base import AgentBackend, BackendContext, OperatorView, RoleView
@@ -17,6 +18,12 @@ from squads._backends._registry import get_backend
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
+from squads._interactions import (
+    LANED_TYPES,
+    allowed_create_types,
+    in_lane_owner,
+    is_lane_exempt,
+)
 from squads._itemfile import update_frontmatter, write_new
 from squads._models import _markers as markers
 from squads._models._enums import ItemType, Priority, Status
@@ -138,6 +145,7 @@ class ServiceCore:
             item_id = db.allocate_id(item_type)  # bumps the counter; item_id == its formatted form
             filename = f"{item_id}-{slug}.md"
             squad_rel = self.paths.squad_relative(item_type, filename)
+            sid, _psid = actor.current_session()
             item = Item(
                 sequence_id=db.counter,
                 type=item_type,
@@ -154,6 +162,8 @@ class ServiceCore:
                 path=squad_rel,
                 created_at=now,
                 updated_at=now,
+                created_session=sid,
+                modified_session=sid,
                 extra=extra or {},
                 id_padding=db.padding,
             )
@@ -165,12 +175,46 @@ class ServiceCore:
                 rendered = sections.replace_section(rendered, markers.BODY, body)
             await write_new(self.paths.abspath(squad_rel), item, rendered)
             db.add(item)
+            # Advisory lane check (ADR-000163 / FEAT-000122 Slice B).
+            # Keyed on the declared author slug (ADR §3.1).  Exempt before lookup.
+            # Service must NOT print — warning rides back in the result.
+            # Only laned item types (those in LANED_TYPES) participate in the lane domain;
+            # internal artifact types (role, skill, operator) are never lane-checked.
+            lane_warning: str | None = None
+            if (
+                item_type in LANED_TYPES
+                and not is_lane_exempt(author)
+                and item_type not in allowed_create_types(author)
+            ):
+                owners = in_lane_owner(item_type)
+                owner_str = (
+                    ", ".join(f"'{s}'" for s in sorted(owners)) if owners else "no defined owner"
+                )
+                lane_warning = (
+                    f"advisory: '{author}' is not the in-lane author for '{item_type.value}' items"
+                    f" (expected: {owner_str})."
+                    " Lane checks are best-effort and advisory — proceeding."
+                )
+            log_delta: dict[str, object] = {
+                "title": item.title,
+                "type": item_type.value,
+                "status": item.status.value,
+            }
+            if lane_warning is not None:
+                log_delta["lane_warning"] = {
+                    "advisory": True,
+                    "actor": author,
+                    "expected": sorted(in_lane_owner(item_type)),
+                    "type": item_type.value,
+                }
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "create",
                 item.id,
-                {"title": item.title, "type": item_type.value, "status": item.status.value},
+                log_delta,
             )
-        return CreateResult(item=item, path=self.paths.abspath(squad_rel))
+        return CreateResult(
+            item=item, path=self.paths.abspath(squad_rel), lane_warning=lane_warning
+        )
 
     async def get(self, item_id: str) -> Item:
         return require_item(await self.store.load(), item_id)
@@ -258,6 +302,7 @@ class ServiceCore:
             text = await _aio.read_text(path)
             new_text = mutate(text, it)
             it.updated_at = clock.now()
+            it.modified_session, _ = actor.current_session()
             await _aio.write_text(
                 path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict())
             )

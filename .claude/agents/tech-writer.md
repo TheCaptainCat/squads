@@ -3,6 +3,7 @@ name: tech-writer
 description: "Documentation and guides."
 model: haiku
 color: pink
+disallowedTools: Agent
 skills:
   - squads
   - greeting

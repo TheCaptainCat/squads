@@ -68,6 +68,10 @@ def main_callback(
     # is what prevents actor state from leaking across invocations — the same mechanism
     # apply_timestamp uses for the clock (no try/finally needed).
     actor.set_actor("system")
+    # Seed the optional session pair from env vars (ADR-000158).  Read once here so every
+    # subsequent mutation in this invocation picks up the same pair via current_session().
+    # Session fields are env-only — NOT settable by any later CLI flag.
+    actor.seed_session(from_env=True)
     common.require_current_schema(ctx.invoked_subcommand)
     common.version_notice()
 

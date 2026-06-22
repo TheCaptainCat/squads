@@ -394,6 +394,75 @@ def is_dev_slug(slug: str) -> bool:
     return slug.endswith("-dev")
 
 
+# ---------------------------------------------------------------------------
+# Advisory create-lane derivation (ADR-000163 / FEAT-000122 Slice B)
+#
+# The lane is derived from PLAYBOOK using a declarative CREATE_LANES map that is
+# co-located here and asserted-equal-to-the-playbook prose in the mandatory
+# table-pinning test (tests/test_lane_derivation.py).  This is the ADR §2
+# fallback: prose-scanning was considered but the "sq create <type>" author verb
+# is not always in the item type's own playbook section (e.g. reviewer's
+# "sq create review" appears in the task playbook's reviewer guide, not in the
+# review playbook's reviewer guide).  The declarative map is one source, still
+# in this module, still test-locked to the playbook.
+#
+# ADD a new entry here when a playbook edit makes a role an in-lane author of a
+# new type; the table-pinning test will fail if the two diverge.
+# ---------------------------------------------------------------------------
+
+#: Declarative create-lane map: role slug → set of item types it is in-lane to author.
+#: ``DEV`` sentinel covers all ``<tech>-dev`` slugs → empty lane (devs have no sq create verbs).
+#: Asserted-equal-to-the-playbook in tests/test_lane_derivation.py (table-pinning test).
+CREATE_LANES: dict[str, set[ItemType]] = {
+    "product-owner": {ItemType.FEATURE, ItemType.EPIC},
+    "tech-lead": {ItemType.TASK},
+    "architect": {ItemType.DECISION, ItemType.GUIDE},
+    "reviewer": {ItemType.REVIEW},
+    "qa": {ItemType.BUG},
+    "tech-writer": {ItemType.GUIDE},
+    DEV: set(),  # *dev sentinel: any <tech>-dev slug derives an empty lane
+}
+
+#: The union of all item types that participate in the create-lane domain.
+#: Derived from CREATE_LANES (single source); types outside this set (role, skill, operator)
+#: are internal artifact types that are never lane-checked.
+LANED_TYPES: frozenset[ItemType] = frozenset(t for lane in CREATE_LANES.values() for t in lane)
+
+
+def is_lane_exempt(slug: str) -> bool:
+    """Return True for slugs that are fully exempt from all advisory lane checks.
+
+    Exempt slugs: the ``manager`` orchestrator (authors any type for
+    coordination) and any ``op-*`` operator (humans coordinate freely).
+    """
+    return slug == "manager" or slug.startswith("op-")
+
+
+def allowed_create_types(slug: str) -> set[ItemType]:
+    """Return the set of item types *slug* is in-lane to author via ``sq create``.
+
+    Derived from :data:`CREATE_LANES`.  The ``*dev``/``DEV`` sentinel covers any
+    ``<tech>-dev`` slug (empty lane).  ``manager`` and ``op-*`` slugs should be
+    checked via :func:`is_lane_exempt` **before** calling this — the exemption
+    is the meaningful check for those slugs; this function returns an empty set
+    for them since they have no explicit entry in CREATE_LANES.
+    """
+    if is_dev_slug(slug):
+        return set(CREATE_LANES.get(DEV, set()))
+    return set(CREATE_LANES.get(slug, set()))
+
+
+def in_lane_owner(item_type: ItemType) -> set[str]:
+    """Return the set of role slugs that are in-lane to create *item_type*.
+
+    This is the inverse of :func:`allowed_create_types`: which role slug(s)
+    have ``item_type`` in their derived lane.  Expands the ``*dev``/``DEV``
+    sentinel using its literal slug string (not all possible tech stacks) — the
+    result is used for advisory warning text, not access control.
+    """
+    return {slug for slug, types in CREATE_LANES.items() if item_type in types and slug != DEV}
+
+
 def item_skill_name(item_type: ItemType) -> str:
     return f"sq-{item_type.value}"
 

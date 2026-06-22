@@ -1,5 +1,6 @@
 """Item lifecycle: status transitions, edits, links, regen, removal."""
 
+from squads import _actor as actor
 from squads import _clock as clock
 from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
@@ -25,6 +26,7 @@ class ItemsMixin(ServiceCore):
             old_status = item.status.value
             self._apply_status(item, status, force=force)
             item.updated_at = clock.now()
+            item.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, item), item)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "status",
@@ -89,6 +91,7 @@ class ItemsMixin(ServiceCore):
             self._apply_labels(item, add_labels, rm_labels)
             self._apply_extra(item, set_extra, unset_extra)
             item.updated_at = clock.now()
+            item.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, item), item)
             self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
         if item.type in _AGENT_TYPES:
@@ -146,6 +149,7 @@ class ItemsMixin(ServiceCore):
             self._check_parent(db, child.type, parent_id)
             child.parent = parent_id
             child.updated_at = clock.now()
+            child.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, child), child)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "link",
@@ -160,6 +164,7 @@ class ItemsMixin(ServiceCore):
             old_parent = child.parent
             child.parent = None
             child.updated_at = clock.now()
+            child.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, child), child)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "link",

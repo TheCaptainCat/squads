@@ -31,6 +31,7 @@ extra:
   - sq-decision
   - sq-guide
   agreements: []
+  can_spawn: false
 ---
 <!-- sq:body -->
 # Robert Architect

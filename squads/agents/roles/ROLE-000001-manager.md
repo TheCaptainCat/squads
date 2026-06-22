@@ -32,6 +32,7 @@ extra:
   - squads
   - greeting
   agreements: []
+  can_spawn: true
 ---
 <!-- sq:body -->
 # Catherine Manager

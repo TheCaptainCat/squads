@@ -165,6 +165,7 @@ class IndexStore:
                             rpath = reflog_path(self.index_path.parent)
                             ts = clock.iso(clock.now())
                             act = actor.current_actor()
+                            sid, psid = actor.current_session()
                             for entry in ctx.reflog_ops:
                                 await append_line(
                                     rpath,
@@ -173,6 +174,8 @@ class IndexStore:
                                     op=entry.op,
                                     target=entry.target,
                                     delta=entry.delta,
+                                    session_id=sid,
+                                    parent_session_id=psid,
                                 )
                         except Exception as exc:  # never fail a committed mutation
                             print(

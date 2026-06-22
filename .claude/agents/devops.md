@@ -3,6 +3,7 @@ name: devops
 description: "CI/CD, infrastructure, and releases."
 model: sonnet
 color: orange
+disallowedTools: Agent
 skills:
   - squads
   - greeting

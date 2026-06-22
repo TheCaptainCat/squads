@@ -1,7 +1,7 @@
 {
-  "schema_version": "0.3",
-  "squads_version": "0.3.0",
-  "counter": 154,
+  "schema_version": "0.4",
+  "squads_version": "0.4.0",
+  "counter": 165,
   "padding": 6,
   "items": {
     "12": {
@@ -24,6 +24,8 @@
       "path": "epics/EPIC-000012-road-to-1-0.md",
       "created_at": "2026-06-10T12:40:41Z",
       "updated_at": "2026-06-17T08:31:32Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "EPIC-000012"
     },
@@ -47,6 +49,8 @@
       "path": "epics/EPIC-000028-sq-ui-a-terminal-ui-for-browsing-the-squad.md",
       "created_at": "2026-06-10T15:15:37Z",
       "updated_at": "2026-06-11T07:40:17Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "EPIC-000028"
     },
@@ -70,6 +74,8 @@
       "path": "epics/EPIC-000029-sq-web-a-local-web-view-of-the-squad.md",
       "created_at": "2026-06-10T15:16:05Z",
       "updated_at": "2026-06-11T07:40:18Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "EPIC-000029"
     },
@@ -90,6 +96,8 @@
       "path": "epics/EPIC-000031-squads-backend.md",
       "created_at": "2026-06-10T15:21:51Z",
       "updated_at": "2026-06-10T15:21:51Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "EPIC-000031"
     },
@@ -110,6 +118,8 @@
       "path": "epics/EPIC-000038-cli-frontend.md",
       "created_at": "2026-06-11T07:57:10Z",
       "updated_at": "2026-06-11T07:57:11Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "EPIC-000038"
     },
@@ -136,6 +146,8 @@
       "path": "epics/EPIC-000099-vs-code-extension-browse-the-squad-in-the-editor.md",
       "created_at": "2026-06-14T20:45:06Z",
       "updated_at": "2026-06-14T20:45:15Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "EPIC-000099"
     },
@@ -160,6 +172,8 @@
       "path": "epics/EPIC-000121-squads-control-trust-plane.md",
       "created_at": "2026-06-15T11:53:01Z",
       "updated_at": "2026-06-15T12:00:30Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "EPIC-000121"
     },
@@ -183,6 +197,8 @@
       "path": "epics/EPIC-000136-agent-backends-management-and-ecosystem.md",
       "created_at": "2026-06-15T18:23:19Z",
       "updated_at": "2026-06-15T18:23:37Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "EPIC-000136"
     },
@@ -228,6 +244,8 @@
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
       "updated_at": "2026-06-17T08:31:00Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000013"
     },
@@ -281,6 +299,8 @@
       "path": "features/FEAT-000014-project-level-template-and-role-overrides.md",
       "created_at": "2026-06-10T12:41:06Z",
       "updated_at": "2026-06-12T22:08:38Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000014"
     },
@@ -326,6 +346,8 @@
       "path": "features/FEAT-000015-machine-readable-surface-audit.md",
       "created_at": "2026-06-10T12:41:11Z",
       "updated_at": "2026-06-12T21:29:44Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000015"
     },
@@ -363,6 +385,8 @@
       "path": "features/FEAT-000016-second-backend-generic-agents-md.md",
       "created_at": "2026-06-10T12:41:16Z",
       "updated_at": "2026-06-15T14:22:47Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000016"
     },
@@ -383,6 +407,8 @@
       "path": "features/FEAT-000017-1-0-hardening.md",
       "created_at": "2026-06-10T12:41:22Z",
       "updated_at": "2026-06-15T12:31:52Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000017"
     },
@@ -428,6 +454,8 @@
       "path": "features/FEAT-000018-backfill-architecture-documentation-into-squads.md",
       "created_at": "2026-06-10T12:49:50Z",
       "updated_at": "2026-06-12T14:30:00Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000018"
     },
@@ -473,6 +501,8 @@
       "path": "features/FEAT-000019-uniform-item-addressing-every-command-accepts-both-id-and-nu.md",
       "created_at": "2026-06-10T12:56:45Z",
       "updated_at": "2026-06-11T14:41:09Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000019"
     },
@@ -512,6 +542,8 @@
       "path": "features/FEAT-000020-retype-an-item-in-place.md",
       "created_at": "2026-06-10T13:24:54Z",
       "updated_at": "2026-06-15T08:46:35Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000020"
     },
@@ -559,6 +591,8 @@
       "path": "features/FEAT-000023-sanctioned-item-removal.md",
       "created_at": "2026-06-10T13:52:25Z",
       "updated_at": "2026-06-15T09:21:50Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000023"
     },
@@ -608,6 +642,8 @@
       "path": "features/FEAT-000024-operation-reflog.md",
       "created_at": "2026-06-10T13:59:11Z",
       "updated_at": "2026-06-15T10:24:04Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000024"
     },
@@ -680,6 +716,8 @@
       "path": "features/FEAT-000026-rendered-show-output.md",
       "created_at": "2026-06-10T14:57:23Z",
       "updated_at": "2026-06-12T09:43:53Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000026"
     },
@@ -729,6 +767,8 @@
       "path": "features/FEAT-000027-explicit-id-padding-with-a-raise-padding-migration.md",
       "created_at": "2026-06-10T15:04:04Z",
       "updated_at": "2026-06-14T22:07:30Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000027"
     },
@@ -778,6 +818,8 @@
       "path": "features/FEAT-000032-pluggable-index-store-sqlite-sql-databases-behind-the-index.md",
       "created_at": "2026-06-10T15:24:10Z",
       "updated_at": "2026-06-11T07:40:16Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000032"
     },
@@ -826,6 +868,8 @@
       "path": "features/FEAT-000033-remote-mode-the-sq-cli-as-a-client-to-a-squads-server.md",
       "created_at": "2026-06-10T15:33:16Z",
       "updated_at": "2026-06-14T20:32:56Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000033"
     },
@@ -866,6 +910,8 @@
       "path": "features/FEAT-000034-async-to-the-core-the-service-and-io-go-async-end-to-end.md",
       "created_at": "2026-06-10T15:49:05Z",
       "updated_at": "2026-06-19T15:38:27Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000034"
     },
@@ -922,6 +968,8 @@
       "path": "features/FEAT-000035-typed-ref-vocabulary-validated-kinds-optional-by-design.md",
       "created_at": "2026-06-11T07:19:35Z",
       "updated_at": "2026-06-11T20:50:05Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000035"
     },
@@ -961,6 +1009,8 @@
       "path": "features/FEAT-000036-type-aliases-in-the-cli-grammar.md",
       "created_at": "2026-06-11T07:37:01Z",
       "updated_at": "2026-06-15T08:11:14Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000036"
     },
@@ -1010,6 +1060,8 @@
       "path": "features/FEAT-000037-ref-graph-view-sq-graph-item.md",
       "created_at": "2026-06-11T07:45:02Z",
       "updated_at": "2026-06-11T07:57:11Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000037"
     },
@@ -1047,6 +1099,8 @@
       "path": "features/FEAT-000039-tree-filters.md",
       "created_at": "2026-06-11T07:58:43Z",
       "updated_at": "2026-06-11T07:58:45Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000039"
     },
@@ -1094,6 +1148,8 @@
       "path": "features/FEAT-000040-dual-regime-role-definitions-subagent-invocation-vs-live-con.md",
       "created_at": "2026-06-11T08:43:52Z",
       "updated_at": "2026-06-12T07:51:05Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000040"
     },
@@ -1134,6 +1190,8 @@
       "path": "features/FEAT-000041-onboard-through-the-cli-roles-readable-via-sq-not-the-filesy.md",
       "created_at": "2026-06-11T09:02:40Z",
       "updated_at": "2026-06-12T08:05:41Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000041"
     },
@@ -1181,6 +1239,8 @@
       "path": "features/FEAT-000062-comment-scoping-convention-sub-entity-discussions-vs-main-di.md",
       "created_at": "2026-06-12T09:49:28Z",
       "updated_at": "2026-06-12T10:03:47Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000062"
     },
@@ -1238,6 +1298,8 @@
       "path": "features/FEAT-000064-align-agent-type-command-groups-with-the-item-cli-grammar.md",
       "created_at": "2026-06-12T11:56:22Z",
       "updated_at": "2026-06-12T13:12:14Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000064"
     },
@@ -1283,6 +1345,8 @@
       "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
       "created_at": "2026-06-14T20:45:15Z",
       "updated_at": "2026-06-14T20:45:23Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000100"
     },
@@ -1291,7 +1355,7 @@
       "type": "feature",
       "title": "Per-role capability attenuation",
       "slug": "per-role-capability-attenuation",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000121",
       "author": "product-owner",
@@ -1299,21 +1363,21 @@
       "priority": "low",
       "labels": [],
       "refs": [
-        "FEAT-000125:depends-on"
+        "FEAT-000125"
       ],
       "subentities": [
         {
           "local_id": "US1",
-          "title": "Declared capability profile per worker role",
-          "status": "Todo",
+          "title": "Full structured capability profile per role (Slice B — gated on FEAT-000125)",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
         },
         {
           "local_id": "US2",
-          "title": "Reviewer role structurally blocked from spawning agents",
-          "status": "Todo",
+          "title": "Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-000152)",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1321,7 +1385,9 @@
       ],
       "path": "features/FEAT-000122-per-role-capability-attenuation.md",
       "created_at": "2026-06-15T11:56:09Z",
-      "updated_at": "2026-06-17T20:12:08Z",
+      "updated_at": "2026-06-22T13:49:32Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000122"
     },
@@ -1361,6 +1427,8 @@
       "path": "features/FEAT-000123-exclusive-work-leases-claims.md",
       "created_at": "2026-06-15T11:56:12Z",
       "updated_at": "2026-06-16T09:52:28Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000123"
     },
@@ -1403,15 +1471,17 @@
       "path": "features/FEAT-000124-enforced-separation-of-duties.md",
       "created_at": "2026-06-15T11:56:15Z",
       "updated_at": "2026-06-16T09:52:43Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000124"
     },
     "125": {
       "sequence_id": 125,
       "type": "feature",
-      "title": "Real agent identity and spawn lineage",
-      "slug": "real-agent-identity-and-spawn-lineage",
-      "status": "Draft",
+      "title": "Best-effort spawn-lineage recording (untrusted)",
+      "slug": "best-effort-spawn-lineage-recording-untrusted",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000121",
       "author": "product-owner",
@@ -1419,13 +1489,14 @@
       "priority": "low",
       "labels": [],
       "refs": [
-        "FEAT-000024"
+        "FEAT-000024",
+        "ADR-000158"
       ],
       "subentities": [
         {
           "local_id": "US1",
           "title": "Structured actor record in the reflog (slug + session + parent)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -1433,15 +1504,17 @@
         {
           "local_id": "US2",
           "title": "Spawn-tree view in sq reflog",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
         }
       ],
-      "path": "features/FEAT-000125-real-agent-identity-and-spawn-lineage.md",
+      "path": "features/FEAT-000125-best-effort-spawn-lineage-recording-untrusted.md",
       "created_at": "2026-06-15T11:56:19Z",
-      "updated_at": "2026-06-16T09:53:02Z",
+      "updated_at": "2026-06-22T12:01:00Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000125"
     },
@@ -1491,6 +1564,8 @@
       "path": "features/FEAT-000137-manage-backends-on-an-existing-squad.md",
       "created_at": "2026-06-15T18:23:41Z",
       "updated_at": "2026-06-16T09:51:29Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000137"
     },
@@ -1541,6 +1616,8 @@
       "path": "features/FEAT-000138-multi-active-agent-backends-active-backends.md",
       "created_at": "2026-06-16T09:38:58Z",
       "updated_at": "2026-06-16T15:11:07Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "FEAT-000138"
     },
@@ -1596,6 +1673,8 @@
       "path": "tasks/TASK-000042-fix-counter-regression-and-sequence-number-reuse-bug-000022.md",
       "created_at": "2026-06-11T12:14:51Z",
       "updated_at": "2026-06-11T13:00:51Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000042"
     },
@@ -1651,6 +1730,8 @@
       "path": "tasks/TASK-000043-validate-slug-arguments-across-mine-inbox-and-slug-accepting.md",
       "created_at": "2026-06-11T12:14:52Z",
       "updated_at": "2026-06-11T12:56:40Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000043"
     },
@@ -1674,6 +1755,8 @@
       "path": "tasks/TASK-000044-cosmetic-cleanup-drop-redundant-show-body-label-and-add-tree.md",
       "created_at": "2026-06-11T12:14:53Z",
       "updated_at": "2026-06-11T12:50:23Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000044"
     },
@@ -1694,6 +1777,8 @@
       "path": "tasks/TASK-000045-clear-pre-existing-lint-format-debt-on-the-release-branch-f4.md",
       "created_at": "2026-06-11T12:49:16Z",
       "updated_at": "2026-06-11T12:50:45Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000045"
     },
@@ -1733,6 +1818,8 @@
       "path": "tasks/TASK-000046-shared-item-address-resolver-typed-surface-type-enforcement.md",
       "created_at": "2026-06-11T13:59:31Z",
       "updated_at": "2026-06-11T14:32:38Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000046"
     },
@@ -1770,6 +1857,8 @@
       "path": "tasks/TASK-000047-adopt-the-shared-resolver-across-all-id-accepting-surfaces-u.md",
       "created_at": "2026-06-11T13:59:33Z",
       "updated_at": "2026-06-11T14:32:39Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000047"
     },
@@ -1817,6 +1906,8 @@
       "path": "tasks/TASK-000050-ref-kind-vocabulary-constant-validation-at-all-authoring-ent.md",
       "created_at": "2026-06-11T20:21:59Z",
       "updated_at": "2026-06-11T20:43:22Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000050"
     },
@@ -1854,6 +1945,8 @@
       "path": "tasks/TASK-000051-ref-kind-consumers-canonical-kinds-table-in-docs.md",
       "created_at": "2026-06-11T20:22:02Z",
       "updated_at": "2026-06-11T20:43:22Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000051"
     },
@@ -1899,6 +1992,8 @@
       "path": "tasks/TASK-000053-split-bundled-role-working-agreements-into-spawned-vs-live-r.md",
       "created_at": "2026-06-12T07:38:11Z",
       "updated_at": "2026-06-12T07:47:35Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000053"
     },
@@ -1928,6 +2023,8 @@
       "path": "tasks/TASK-000054-sq-role-show-renders-the-complete-role-definition-card-item.md",
       "created_at": "2026-06-12T07:52:37Z",
       "updated_at": "2026-06-12T08:00:00Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000054"
     },
@@ -1957,6 +2054,8 @@
       "path": "tasks/TASK-000055-onboarding-texts-direct-to-sq-commands-not-squads-file-paths.md",
       "created_at": "2026-06-12T07:52:37Z",
       "updated_at": "2026-06-12T08:01:30Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000055"
     },
@@ -1996,6 +2095,8 @@
       "path": "tasks/TASK-000057-guard-all-prose-inputs-against-literal-sq-marker-syntax-comm.md",
       "created_at": "2026-06-12T08:18:43Z",
       "updated_at": "2026-06-12T08:36:39Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000057"
     },
@@ -2049,6 +2150,8 @@
       "path": "tasks/TASK-000058-rendered-show-markdown-body-comments-facet-scope-flag-root-s.md",
       "created_at": "2026-06-12T08:58:26Z",
       "updated_at": "2026-06-12T09:15:16Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000058"
     },
@@ -2078,6 +2181,8 @@
       "path": "tasks/TASK-000059-rendered-show-dossier-full-sub-entity-panes-with-embedded-co.md",
       "created_at": "2026-06-12T08:58:27Z",
       "updated_at": "2026-06-12T09:22:18Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000059"
     },
@@ -2107,6 +2212,8 @@
       "path": "tasks/TASK-000060-teach-show-full-comments-in-generated-skills-and-onboarding.md",
       "created_at": "2026-06-12T08:58:27Z",
       "updated_at": "2026-06-12T09:27:15Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000060"
     },
@@ -2152,6 +2259,8 @@
       "path": "tasks/TASK-000063-teach-sub-entity-comment-scoping-in-the-generated-skills-rol.md",
       "created_at": "2026-06-12T09:55:14Z",
       "updated_at": "2026-06-12T10:00:52Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000063"
     },
@@ -2221,6 +2330,8 @@
       "path": "tasks/TASK-000065-flip-role-skill-operator-to-item-first-grammar-add-sq-role-c.md",
       "created_at": "2026-06-12T12:05:15Z",
       "updated_at": "2026-06-12T12:26:29Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000065"
     },
@@ -2266,6 +2377,8 @@
       "path": "tasks/TASK-000066-render-role-skill-operator-show-bodies-through-the-feat-0000.md",
       "created_at": "2026-06-12T12:05:15Z",
       "updated_at": "2026-06-12T12:39:04Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000066"
     },
@@ -2288,6 +2401,8 @@
       "path": "tasks/TASK-000068-per-role-working-agreement-lines-reviewer-files-findings-as.md",
       "created_at": "2026-06-12T13:31:43Z",
       "updated_at": "2026-06-12T13:37:48Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000068"
     },
@@ -2317,6 +2432,8 @@
       "path": "tasks/TASK-000069-backfill-retroactive-adrs-for-squads-standing-design-decisio.md",
       "created_at": "2026-06-12T14:18:09Z",
       "updated_at": "2026-06-12T14:24:04Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000069"
     },
@@ -2354,6 +2471,8 @@
       "path": "tasks/TASK-000070-write-the-architecture-guide-and-cross-link-it-to-the-retroa.md",
       "created_at": "2026-06-12T14:18:09Z",
       "updated_at": "2026-06-12T14:26:55Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000070"
     },
@@ -2376,6 +2495,8 @@
       "path": "tasks/TASK-000081-add-accepted-and-published-to-the-terminal-status-set.md",
       "created_at": "2026-06-12T14:59:32Z",
       "updated_at": "2026-06-12T15:04:22Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000081"
     },
@@ -2407,6 +2528,8 @@
       "path": "tasks/TASK-000082-close-the-json-coverage-gaps-on-read-commands.md",
       "created_at": "2026-06-12T15:27:47Z",
       "updated_at": "2026-06-12T20:42:47Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000082"
     },
@@ -2438,6 +2561,8 @@
       "path": "tasks/TASK-000083-document-and-test-the-cli-exit-code-table.md",
       "created_at": "2026-06-12T15:27:48Z",
       "updated_at": "2026-06-12T21:07:53Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000083"
     },
@@ -2469,6 +2594,8 @@
       "path": "tasks/TASK-000084-golden-file-tests-freezing-every-json-shape.md",
       "created_at": "2026-06-12T15:27:48Z",
       "updated_at": "2026-06-12T21:29:43Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000084"
     },
@@ -2510,6 +2637,8 @@
       "path": "tasks/TASK-000087-override-loader-precedence-plumbing-under-overrides.md",
       "created_at": "2026-06-12T20:56:38Z",
       "updated_at": "2026-06-12T21:20:31Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000087"
     },
@@ -2550,6 +2679,8 @@
       "path": "tasks/TASK-000088-role-override-resolver-roles-slug-toml-field-wise-merge-new.md",
       "created_at": "2026-06-12T20:56:51Z",
       "updated_at": "2026-06-12T21:40:54Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000088"
     },
@@ -2597,6 +2728,8 @@
       "path": "tasks/TASK-000089-sq-override-command-group-staleness-stamps-hash-manifest-and.md",
       "created_at": "2026-06-12T20:57:11Z",
       "updated_at": "2026-06-12T22:08:30Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000089"
     },
@@ -2636,6 +2769,8 @@
       "path": "tasks/TASK-000090-agent-naming-at-sq-init-and-role-creation-flags-init-names-t.md",
       "created_at": "2026-06-12T20:57:27Z",
       "updated_at": "2026-06-12T21:55:47Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000090"
     },
@@ -2673,6 +2808,8 @@
       "path": "tasks/TASK-000091-document-the-override-mechanism-add-override-layout-to-the-1.md",
       "created_at": "2026-06-12T20:57:40Z",
       "updated_at": "2026-06-12T22:05:47Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000091"
     },
@@ -2693,6 +2830,8 @@
       "path": "tasks/TASK-000098-wire-the-template-manifest-generation-into-the-release-build.md",
       "created_at": "2026-06-14T20:17:06Z",
       "updated_at": "2026-06-14T20:22:05Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000098"
     },
@@ -2725,6 +2864,8 @@
       "path": "tasks/TASK-000101-store-padding-in-the-index-derive-all-id-formatting-from-it.md",
       "created_at": "2026-06-14T20:56:35Z",
       "updated_at": "2026-06-14T21:20:14Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000101"
     },
@@ -2757,6 +2898,8 @@
       "path": "tasks/TASK-000102-sq-migrate-repad-one-way-padding-bump-that-renames-every-ite.md",
       "created_at": "2026-06-14T20:56:35Z",
       "updated_at": "2026-06-14T22:06:25Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000102"
     },
@@ -2789,6 +2932,8 @@
       "path": "tasks/TASK-000103-width-tolerant-id-reading-everywhere-display-always-uses-cur.md",
       "created_at": "2026-06-14T20:56:35Z",
       "updated_at": "2026-06-14T22:06:25Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000103"
     },
@@ -2826,6 +2971,8 @@
       "path": "tasks/TASK-000107-route-type-command-aliases-to-the-full-command-tree.md",
       "created_at": "2026-06-15T07:42:47Z",
       "updated_at": "2026-06-15T08:10:56Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000107"
     },
@@ -2865,6 +3012,8 @@
       "path": "tasks/TASK-000108-keep-help-clean-and-document-the-alias-table-in-the-contract.md",
       "created_at": "2026-06-15T07:42:48Z",
       "updated_at": "2026-06-15T08:10:56Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000108"
     },
@@ -2910,6 +3059,8 @@
       "path": "tasks/TASK-000110-implement-sq-type-n-retype-new-type.md",
       "created_at": "2026-06-15T08:20:30Z",
       "updated_at": "2026-06-15T08:46:33Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000110"
     },
@@ -2955,6 +3106,8 @@
       "path": "tasks/TASK-000111-implement-sq-type-n-remove-for-work-items.md",
       "created_at": "2026-06-15T08:20:37Z",
       "updated_at": "2026-06-15T09:21:47Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000111"
     },
@@ -2994,6 +3147,8 @@
       "path": "tasks/TASK-000112-reflog-core-append-only-jsonl-log-wired-into-the-transaction.md",
       "created_at": "2026-06-15T08:20:48Z",
       "updated_at": "2026-06-15T10:24:01Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000112"
     },
@@ -3041,6 +3196,8 @@
       "path": "tasks/TASK-000113-sq-reflog-read-command-schema-documentation-and-contract-tie.md",
       "created_at": "2026-06-15T08:20:49Z",
       "updated_at": "2026-06-15T10:24:01Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000113"
     },
@@ -3061,6 +3218,8 @@
       "path": "tasks/TASK-000126-migration-fixture-corpus-frozen-per-schema-squads-migrated-c.md",
       "created_at": "2026-06-15T12:10:12Z",
       "updated_at": "2026-06-15T12:31:51Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000126"
     },
@@ -3081,6 +3240,8 @@
       "path": "tasks/TASK-000127-scale-sanity-test-1000-item-squad-with-asserted-time-bounds.md",
       "created_at": "2026-06-15T12:10:12Z",
       "updated_at": "2026-06-15T12:31:51Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000127"
     },
@@ -3101,6 +3262,8 @@
       "path": "tasks/TASK-000128-shell-completion-enable-verify-bash-zsh-document-install.md",
       "created_at": "2026-06-15T12:10:13Z",
       "updated_at": "2026-06-15T12:31:51Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000128"
     },
@@ -3138,6 +3301,8 @@
       "path": "tasks/TASK-000131-backend-conformance-suite-abc-de-claude-ification.md",
       "created_at": "2026-06-15T13:02:37Z",
       "updated_at": "2026-06-15T14:22:45Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000131"
     },
@@ -3178,6 +3343,8 @@
       "path": "tasks/TASK-000132-implement-the-agents-md-backend-agents-md.md",
       "created_at": "2026-06-15T13:03:01Z",
       "updated_at": "2026-06-15T14:22:45Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000132"
     },
@@ -3207,6 +3374,8 @@
       "path": "tasks/TASK-000139-migrate-default-backend-to-active-backends-schema-0-4.md",
       "created_at": "2026-06-16T09:39:30Z",
       "updated_at": "2026-06-16T12:43:45Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000139"
     },
@@ -3244,8 +3413,138 @@
       "path": "tasks/TASK-000140-multi-active-backend-runtime-and-sq-check-rule.md",
       "created_at": "2026-06-16T09:39:30Z",
       "updated_at": "2026-06-16T13:01:00Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "TASK-000140"
+    },
+    "147": {
+      "sequence_id": 147,
+      "type": "task",
+      "title": "Emit canonical active_backends in the 0.2->0.3 migration",
+      "slug": "emit-canonical-active-backends-in-the-0-2-0-3-migration",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000138",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rewrite default_backend to active_backends in 0.2->0.3 migration",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000147-emit-canonical-active-backends-in-the-0-2-0-3-migration.md",
+      "created_at": "2026-06-16T14:18:32Z",
+      "updated_at": "2026-06-16T14:59:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000147"
+    },
+    "156": {
+      "sequence_id": 156,
+      "type": "task",
+      "title": "Leaf roles cannot spawn: can_spawn on RoleDef + backend Agent denylist",
+      "slug": "leaf-roles-cannot-spawn-can-spawn-on-roledef-backend-agent-d",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000122",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "BUG-000152:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Block leaf roles from spawning (US2)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000156-leaf-roles-cannot-spawn-can-spawn-on-roledef-backend-agent-d.md",
+      "created_at": "2026-06-21T21:46:41Z",
+      "updated_at": "2026-06-21T22:27:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000156"
+    },
+    "159": {
+      "sequence_id": 159,
+      "type": "task",
+      "title": "Record optional session lineage on the actor (reflog + frontmatter, additive)",
+      "slug": "record-optional-session-lineage-on-the-actor-reflog-frontmat",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000125",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Structured actor record: read env session pair, additive reflog + frontmatter fields, schema 0.4 migration",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000159-record-optional-session-lineage-on-the-actor-reflog-frontmat.md",
+      "created_at": "2026-06-22T09:11:18Z",
+      "updated_at": "2026-06-22T10:37:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000159"
+    },
+    "160": {
+      "sequence_id": 160,
+      "type": "task",
+      "title": "sq reflog --tree: render best-effort spawn lineage + show --full session surface",
+      "slug": "sq-reflog-tree-render-best-effort-spawn-lineage-show-full-se",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000125",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000159:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Spawn-tree view + show --full session surfacing (best-effort, untrusted)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000160-sq-reflog-tree-render-best-effort-spawn-lineage-show-full-se.md",
+      "created_at": "2026-06-22T09:11:24Z",
+      "updated_at": "2026-06-22T11:59:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000160"
     },
     "11": {
       "sequence_id": 11,
@@ -3264,6 +3563,8 @@
       "path": "bugs/BUG-000011-sq-check-flags-operator-authors-assignees-as-unregistered.md",
       "created_at": "2026-06-10T12:30:52Z",
       "updated_at": "2026-06-10T12:32:14Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {
         "severity": "medium"
       },
@@ -3288,6 +3589,8 @@
       "path": "bugs/BUG-000021-slug-arguments-not-validated-sq-mine-accepts-unknown-agents.md",
       "created_at": "2026-06-10T13:35:26Z",
       "updated_at": "2026-06-11T13:19:21Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000021"
     },
@@ -3311,6 +3614,8 @@
       "path": "bugs/BUG-000022-counter-can-regress-allowing-sequence-number-reuse-after-an.md",
       "created_at": "2026-06-10T13:51:32Z",
       "updated_at": "2026-06-11T20:40:07Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000022"
     },
@@ -3333,6 +3638,8 @@
       "path": "bugs/BUG-000025-show-prints-a-redundant-body-literal-before-the-body.md",
       "created_at": "2026-06-10T14:52:35Z",
       "updated_at": "2026-06-11T20:40:08Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000025"
     },
@@ -3353,6 +3660,8 @@
       "path": "bugs/BUG-000030-tree-priority-and-title-separated-by-a-bare-space.md",
       "created_at": "2026-06-10T15:19:16Z",
       "updated_at": "2026-06-11T13:19:46Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000030"
     },
@@ -3373,6 +3682,8 @@
       "path": "bugs/BUG-000056-comment-text-containing-literal-sq-marker-syntax-breaks-the.md",
       "created_at": "2026-06-12T08:06:24Z",
       "updated_at": "2026-06-12T08:36:01Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000056"
     },
@@ -3395,6 +3706,8 @@
       "path": "bugs/BUG-000080-inbox-surfaces-stale-mentions-from-accepted-decisions-and-pu.md",
       "created_at": "2026-06-12T14:59:31Z",
       "updated_at": "2026-06-12T15:08:27Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000080"
     },
@@ -3418,6 +3731,8 @@
       "path": "bugs/BUG-000120-retype-does-not-log-to-reflog-feat-000024-gap.md",
       "created_at": "2026-06-15T10:16:30Z",
       "updated_at": "2026-06-15T10:21:41Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000120"
     },
@@ -3438,6 +3753,8 @@
       "path": "bugs/BUG-000134-agents-md-managed-section-missing-workflow-commands-and-skil.md",
       "created_at": "2026-06-15T13:54:47Z",
       "updated_at": "2026-06-16T09:42:35Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000134"
     },
@@ -3460,8 +3777,58 @@
       "path": "bugs/BUG-000142-orphan-bug-statuses-sq-status-validates-against-enum-not-wor.md",
       "created_at": "2026-06-16T11:55:12Z",
       "updated_at": "2026-06-16T13:49:37Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "BUG-000142"
+    },
+    "151": {
+      "sequence_id": 151,
+      "type": "bug",
+      "title": "Windows CI: override path separators, template-hash CRLF, and init prompt abort",
+      "slug": "windows-ci-override-path-separators-template-hash-crlf-and-i",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000015"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000151-windows-ci-override-path-separators-template-hash-crlf-and-i.md",
+      "created_at": "2026-06-17T12:37:46Z",
+      "updated_at": "2026-06-17T13:00:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-000151"
+    },
+    "152": {
+      "sequence_id": 152,
+      "type": "bug",
+      "title": "Spawned dev subagent self-spawns recursively (cascade up to 6 levels)",
+      "slug": "spawned-dev-subagent-self-spawns-recursively-cascade-up-to-6",
+      "status": "Verified",
+      "description": "A spawned specialist re-delegates instead of working, cascading same-role subagents many levels deep",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": "qa",
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000122"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000152-spawned-dev-subagent-self-spawns-recursively-cascade-up-to-6.md",
+      "created_at": "2026-06-17T20:08:34Z",
+      "updated_at": "2026-06-21T22:27:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-000152"
     },
     "49": {
       "sequence_id": 49,
@@ -3485,6 +3852,8 @@
       "path": "adrs/ADR-000049-ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin.md",
       "created_at": "2026-06-11T20:19:55Z",
       "updated_at": "2026-06-12T14:26:22Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000049"
     },
@@ -3507,6 +3876,8 @@
       "path": "adrs/ADR-000071-frontmatter-is-the-source-of-truth-the-index-is-rebuildable.md",
       "created_at": "2026-06-12T14:22:53Z",
       "updated_at": "2026-06-12T14:29:31Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000071"
     },
@@ -3530,6 +3901,8 @@
       "path": "adrs/ADR-000072-one-global-monotonic-id-counter-across-all-item-types.md",
       "created_at": "2026-06-12T14:22:56Z",
       "updated_at": "2026-06-12T14:29:31Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000072"
     },
@@ -3552,6 +3925,8 @@
       "path": "adrs/ADR-000073-forward-only-refs-with-computed-backrefs.md",
       "created_at": "2026-06-12T14:23:00Z",
       "updated_at": "2026-06-12T14:29:31Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000073"
     },
@@ -3576,6 +3951,8 @@
       "path": "adrs/ADR-000074-marker-safe-editing-sq-owns-the-anchor-regions-agents-own-th.md",
       "created_at": "2026-06-12T14:23:04Z",
       "updated_at": "2026-06-12T14:29:31Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000074"
     },
@@ -3598,6 +3975,8 @@
       "path": "adrs/ADR-000075-pluggable-backends-behind-the-agentbackend-abc-claude-is-poi.md",
       "created_at": "2026-06-12T14:23:08Z",
       "updated_at": "2026-06-12T14:29:32Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000075"
     },
@@ -3622,6 +4001,8 @@
       "path": "adrs/ADR-000076-dotted-0-x-schema-version-scheme-with-the-sq-migrate-runner.md",
       "created_at": "2026-06-12T14:23:11Z",
       "updated_at": "2026-06-12T14:29:32Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000076"
     },
@@ -3644,6 +4025,8 @@
       "path": "adrs/ADR-000077-time-is-injectable-through-a-single-clock-module.md",
       "created_at": "2026-06-12T14:23:17Z",
       "updated_at": "2026-06-12T14:29:32Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000077"
     },
@@ -3666,6 +4049,8 @@
       "path": "adrs/ADR-000078-module-privacy-convention-underscore-prefixed-internals-no-r.md",
       "created_at": "2026-06-12T14:23:20Z",
       "updated_at": "2026-06-12T14:29:32Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000078"
     },
@@ -3688,6 +4073,8 @@
       "path": "adrs/ADR-000085-project-level-overrides-live-under-overrides-with-per-file-p.md",
       "created_at": "2026-06-12T15:29:52Z",
       "updated_at": "2026-06-12T20:52:25Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000085"
     },
@@ -3712,6 +4099,8 @@
       "path": "adrs/ADR-000104-the-index-may-hold-corpus-derived-format-parameters-carried.md",
       "created_at": "2026-06-14T20:59:27Z",
       "updated_at": "2026-06-14T21:00:52Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000104"
     },
@@ -3737,6 +4126,8 @@
       "path": "adrs/ADR-000114-removal-is-a-hard-delete-the-reflog-is-its-audit-trace.md",
       "created_at": "2026-06-15T08:24:46Z",
       "updated_at": "2026-06-15T08:25:54Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000114"
     },
@@ -3762,6 +4153,8 @@
       "path": "adrs/ADR-000117-reflog-durability-append-atomicity-and-actor-threading.md",
       "created_at": "2026-06-15T09:22:28Z",
       "updated_at": "2026-06-15T09:23:44Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000117"
     },
@@ -3785,6 +4178,8 @@
       "path": "adrs/ADR-000129-python-3-14-floor-pep-649-lazy-annotations-vs-installable-au.md",
       "created_at": "2026-06-15T12:10:13Z",
       "updated_at": "2026-06-15T12:30:16Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000129"
     },
@@ -3808,6 +4203,8 @@
       "path": "adrs/ADR-000133-de-claude-ify-the-agentbackend-abc-before-the-1-0-freeze.md",
       "created_at": "2026-06-15T13:16:56Z",
       "updated_at": "2026-06-15T13:18:11Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000133"
     },
@@ -3835,6 +4232,8 @@
       "path": "adrs/ADR-000141-multi-active-agent-backends-active-backends-list-fan-out-and.md",
       "created_at": "2026-06-16T09:44:28Z",
       "updated_at": "2026-06-17T08:39:11Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000141"
     },
@@ -3859,8 +4258,110 @@
       "path": "adrs/ADR-000143-bug-lifecycle-workflow-and-set-time-status-validation-agains.md",
       "created_at": "2026-06-16T11:58:36Z",
       "updated_at": "2026-06-16T11:59:52Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "ADR-000143"
+    },
+    "149": {
+      "sequence_id": 149,
+      "type": "decision",
+      "title": "Post-1.0 schema_version scheme: dotted-string tracking the introducing release",
+      "slug": "post-1-0-schema-version-scheme-dotted-string-tracking-the-in",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000013",
+        "ADR-000076"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000149-post-1-0-schema-version-scheme-dotted-string-tracking-the-in.md",
+      "created_at": "2026-06-17T07:56:27Z",
+      "updated_at": "2026-06-17T08:30:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000149"
+    },
+    "153": {
+      "sequence_id": 153,
+      "type": "decision",
+      "title": "Async-core conversion: anyio, locking, and the single-bridge rule",
+      "slug": "async-core-conversion-anyio-locking-and-the-single-bridge-ru",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000034:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000153-async-core-conversion-anyio-locking-and-the-single-bridge-ru.md",
+      "created_at": "2026-06-17T20:29:57Z",
+      "updated_at": "2026-06-19T14:05:33Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000153"
+    },
+    "155": {
+      "sequence_id": 155,
+      "type": "decision",
+      "title": "Capability attenuation: leaf roles cannot spawn; enforced at the backend",
+      "slug": "capability-attenuation-leaf-roles-cannot-spawn-enforced-at-t",
+      "status": "Accepted",
+      "description": "Spawn authority reserved to manager+tech-lead via per-role tool lists; identity-aware profiles gated on FEAT-000125",
+      "parent": "EPIC-000121",
+      "author": "architect",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "FEAT-000122",
+        "BUG-000152:fixes"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000155-capability-attenuation-leaf-roles-cannot-spawn-enforced-at-t.md",
+      "created_at": "2026-06-21T21:40:15Z",
+      "updated_at": "2026-06-22T09:58:26Z",
+      "created_session": null,
+      "modified_session": "verify-sess-001",
+      "extra": {},
+      "id": "ADR-000155"
+    },
+    "158": {
+      "sequence_id": 158,
+      "type": "decision",
+      "title": "Agent identity & spawn lineage: best-effort, untrusted lineage observability (squads records env, never spawns)",
+      "slug": "agent-identity-spawn-lineage-best-effort-untrusted-lineage-o",
+      "status": "Accepted",
+      "description": "squads reads optional SQUADS_SESSION_ID/PARENT from its own invocation env if present and records them additively (reflog + frontmatter, back-compat); it never mints, spawns, or injects (it is never in the spawn path). Guarantee is best-effort, untrusted, observability-only — not verified identity; lane enforcement on it is advisory.",
+      "parent": "EPIC-000121",
+      "author": "architect",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000125:implements",
+        "ADR-000155",
+        "FEAT-000024"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000158-agent-identity-spawn-lineage-best-effort-untrusted-lineage-o.md",
+      "created_at": "2026-06-22T07:44:10Z",
+      "updated_at": "2026-06-22T09:10:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000158"
     },
     "48": {
       "sequence_id": 48,
@@ -3914,6 +4415,8 @@
       "path": "reviews/REV-000048-feat-000019-uniform-item-addressing.md",
       "created_at": "2026-06-11T14:19:22Z",
       "updated_at": "2026-06-11T14:32:32Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000048"
     },
@@ -3945,6 +4448,8 @@
       "path": "reviews/REV-000052-feat-000035-typed-ref-vocabulary.md",
       "created_at": "2026-06-11T20:41:00Z",
       "updated_at": "2026-06-11T20:43:14Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000052"
     },
@@ -3992,6 +4497,8 @@
       "path": "reviews/REV-000061-review-feat-000026-rendered-show-output.md",
       "created_at": "2026-06-12T09:32:57Z",
       "updated_at": "2026-06-12T09:43:19Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000061"
     },
@@ -4095,6 +4602,8 @@
       "path": "reviews/REV-000067-feat-000064-negative-path-error-ux-leaks-the-internal-addr-s.md",
       "created_at": "2026-06-12T12:46:41Z",
       "updated_at": "2026-06-12T13:18:41Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000067"
     },
@@ -4132,6 +4641,8 @@
       "path": "reviews/REV-000086-task-000082-json-coverage-on-read-commands-check-sub-entity.md",
       "created_at": "2026-06-12T20:38:57Z",
       "updated_at": "2026-06-12T20:44:49Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000086"
     },
@@ -4152,6 +4663,8 @@
       "path": "reviews/REV-000092-review-task-000083-cli-exit-code-table-doc-tests.md",
       "created_at": "2026-06-12T21:03:00Z",
       "updated_at": "2026-06-12T21:03:26Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000092"
     },
@@ -4183,6 +4696,8 @@
       "path": "reviews/REV-000093-review-task-000087-override-loader-precedence-plumbing.md",
       "created_at": "2026-06-12T21:10:56Z",
       "updated_at": "2026-06-12T21:29:05Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000093"
     },
@@ -4212,6 +4727,8 @@
       "path": "reviews/REV-000094-review-task-000084-golden-file-harness-freezing-every-json-s.md",
       "created_at": "2026-06-12T21:23:52Z",
       "updated_at": "2026-06-12T21:24:17Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000094"
     },
@@ -4251,6 +4768,8 @@
       "path": "reviews/REV-000095-review-task-000088-role-override-resolver-field-wise-merge-n.md",
       "created_at": "2026-06-12T21:32:57Z",
       "updated_at": "2026-06-12T21:33:39Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000095"
     },
@@ -4273,6 +4792,8 @@
       "path": "reviews/REV-000096-review-task-000090-agent-naming-at-sq-init-and-role-creation.md",
       "created_at": "2026-06-12T21:42:47Z",
       "updated_at": "2026-06-12T21:43:35Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000096"
     },
@@ -4336,6 +4857,8 @@
       "path": "reviews/REV-000097-task-000089-sq-override-group-staleness-machinery-hash-manif.md",
       "created_at": "2026-06-12T22:00:54Z",
       "updated_at": "2026-06-12T22:07:19Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000097"
     },
@@ -4383,6 +4906,8 @@
       "path": "reviews/REV-000105-review-of-task-000101-explicit-id-padding-foundation.md",
       "created_at": "2026-06-14T21:18:09Z",
       "updated_at": "2026-06-15T08:03:07Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000105"
     },
@@ -4428,6 +4953,8 @@
       "path": "reviews/REV-000106-review-of-task-000102-task-000103-repad-command-and-width-to.md",
       "created_at": "2026-06-14T21:56:33Z",
       "updated_at": "2026-06-14T22:06:18Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000106"
     },
@@ -4452,6 +4979,8 @@
       "path": "reviews/REV-000109-review-feat-000036-type-aliases-task-107-108.md",
       "created_at": "2026-06-15T08:04:08Z",
       "updated_at": "2026-06-15T08:05:15Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000109"
     },
@@ -4492,6 +5021,8 @@
       "path": "reviews/REV-000115-review-task-000110-sq-retype-in-place.md",
       "created_at": "2026-06-15T08:44:31Z",
       "updated_at": "2026-06-15T08:45:19Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000115"
     },
@@ -4533,6 +5064,8 @@
       "path": "reviews/REV-000116-task-000111-sanctioned-item-removal-sq-remove-review.md",
       "created_at": "2026-06-15T09:02:53Z",
       "updated_at": "2026-06-15T09:20:30Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000116"
     },
@@ -4623,6 +5156,8 @@
       "path": "reviews/REV-000118-reflog-durability-threading-review-task-112-113-vs-adr-117.md",
       "created_at": "2026-06-15T09:57:14Z",
       "updated_at": "2026-06-15T10:02:57Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000118"
     },
@@ -4690,6 +5225,8 @@
       "path": "reviews/REV-000119-reflog-feat-000024-independent-gate-supersedes-rev-000118.md",
       "created_at": "2026-06-15T10:13:51Z",
       "updated_at": "2026-06-15T10:21:30Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000119"
     },
@@ -4732,6 +5269,8 @@
       "path": "reviews/REV-000130-feat-17-1-0-hardening-independent-gate-corpus-scale-completi.md",
       "created_at": "2026-06-15T12:29:05Z",
       "updated_at": "2026-06-15T12:29:56Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000130"
     },
@@ -4782,6 +5321,8 @@
       "path": "reviews/REV-000135-review-feat-16-second-backend-agents-md-abc-de-claude-ificat.md",
       "created_at": "2026-06-15T13:56:34Z",
       "updated_at": "2026-06-15T14:21:57Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000135"
     },
@@ -4815,446 +5356,10 @@
       "path": "reviews/REV-000144-multi-active-agent-backends-feat-138-runtime-check-rule.md",
       "created_at": "2026-06-16T12:58:05Z",
       "updated_at": "2026-06-16T12:59:17Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000144"
-    },
-    "79": {
-      "sequence_id": 79,
-      "type": "guide",
-      "title": "squads architecture: layering, data model, and the marker mechanism",
-      "slug": "squads-architecture-layering-data-model-and-the-marker-mecha",
-      "status": "Published",
-      "description": "A standalone-readable map of how squads is built: the cli to services to index/backends/rendering layering, the item/sub-entity/index data model, and the marker mechanism — pointing at sq docs internals for depth and citing the standing ADRs.",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-000071",
-        "ADR-000072",
-        "ADR-000073",
-        "ADR-000074",
-        "ADR-000075",
-        "ADR-000076",
-        "ADR-000077",
-        "ADR-000078",
-        "ADR-000049"
-      ],
-      "subentities": [],
-      "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
-      "created_at": "2026-06-12T14:25:59Z",
-      "updated_at": "2026-06-12T14:28:33Z",
-      "extra": {
-        "tech": "python",
-        "tags": [
-          "architecture"
-        ]
-      },
-      "id": "GUIDE-000079"
-    },
-    "1": {
-      "sequence_id": 1,
-      "type": "role",
-      "title": "Catherine Manager",
-      "slug": "manager",
-      "status": "Active",
-      "description": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
-      "parent": null,
-      "author": "manager",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000001-manager.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Catherine Manager",
-        "slug": "manager",
-        "title": "manager",
-        "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
-        "responsibilities": [
-          "Triage incoming requests and clarify intent",
-          "Delegate work to the right specialist agents and integrate their results",
-          "Drive features through the loop (implement → review → fix) until done",
-          "Keep the backlog and statuses honest",
-          "Summarise progress for the operator"
-        ],
-        "model": "opus",
-        "color": "cyan",
-        "is_default": true,
-        "description": "Default agent: triages the operator's request and routes it to the right specialist.",
-        "skills": [
-          "squads",
-          "greeting"
-        ],
-        "agreements": []
-      },
-      "id": "ROLE-000001"
-    },
-    "2": {
-      "sequence_id": 2,
-      "type": "role",
-      "title": "Robert Architect",
-      "slug": "architect",
-      "status": "Active",
-      "description": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000002-architect.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Robert Architect",
-        "slug": "architect",
-        "title": "architect",
-        "mission": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
-        "responsibilities": [
-          "Design components and their interactions",
-          "Write and maintain ADRs",
-          "Author cross-cutting guides",
-          "Review designs before implementation"
-        ],
-        "model": "opus",
-        "color": "blue",
-        "is_default": false,
-        "description": "System design and architecture decisions (ADRs).",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-epic",
-          "sq-decision",
-          "sq-guide"
-        ],
-        "agreements": []
-      },
-      "id": "ROLE-000002"
-    },
-    "3": {
-      "sequence_id": 3,
-      "type": "role",
-      "title": "Olivia Lead",
-      "slug": "tech-lead",
-      "status": "Active",
-      "description": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000003-tech-lead.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Olivia Lead",
-        "slug": "tech-lead",
-        "title": "tech lead",
-        "mission": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
-        "responsibilities": [
-          "Author tasks (`sq create task`); set each task's parent to the feature it implements",
-          "Map each subtask to a single user story (`sq task <n> add-subtask \"…\" --story USn`)",
-          "For a bug fix or review follow-up, link via refs (`sq task <n> ref add <id> --kind fixes|addresses`)",
-          "Leave purely-technical tasks unlinked",
-          "Sequence and assign work; unblock developers",
-          "Co-author guides with the architect"
-        ],
-        "model": "opus",
-        "color": "purple",
-        "is_default": false,
-        "description": "Coordination and breaking features into tasks.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-epic",
-          "sq-feature",
-          "sq-task",
-          "sq-bug",
-          "sq-decision",
-          "sq-guide"
-        ],
-        "agreements": []
-      },
-      "id": "ROLE-000003"
-    },
-    "4": {
-      "sequence_id": 4,
-      "type": "role",
-      "title": "Paul Reviewer",
-      "slug": "reviewer",
-      "status": "Active",
-      "description": "Guard quality: review changes critically, request changes when needed, approve when sound.",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000004-reviewer.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Paul Reviewer",
-        "slug": "reviewer",
-        "title": "code reviewer",
-        "mission": "Guard quality: review changes critically, request changes when needed, approve when sound.",
-        "responsibilities": [
-          "Review diffs for correctness and clarity",
-          "Drive code-review items to a verdict",
-          "Flag risks and missing tests"
-        ],
-        "model": "opus",
-        "color": "red",
-        "is_default": false,
-        "description": "Reviews code changes for correctness, clarity, and consistency.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-task",
-          "sq-bug",
-          "sq-review"
-        ],
-        "agreements": [
-          "File review findings as tracked sub-entities — `sq review <n> add-finding` with severity, statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure."
-        ]
-      },
-      "id": "ROLE-000004"
-    },
-    "5": {
-      "sequence_id": 5,
-      "type": "role",
-      "title": "Mara Tester",
-      "slug": "qa",
-      "status": "Active",
-      "description": "Prove the software works: design test cases from user stories and verify fixes.",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000005-qa.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Mara Tester",
-        "slug": "qa",
-        "title": "QA engineer",
-        "mission": "Prove the software works: design test cases from user stories and verify fixes.",
-        "responsibilities": [
-          "Derive test cases from user stories",
-          "Verify bug fixes and features",
-          "Report defects as bug items"
-        ],
-        "model": "sonnet",
-        "color": "green",
-        "is_default": false,
-        "description": "Designs and runs tests; verifies behaviour against acceptance criteria.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-feature",
-          "sq-task",
-          "sq-bug"
-        ],
-        "agreements": []
-      },
-      "id": "ROLE-000005"
-    },
-    "6": {
-      "sequence_id": 6,
-      "type": "role",
-      "title": "Hugo Ops",
-      "slug": "devops",
-      "status": "Active",
-      "description": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
-      "parent": null,
-      "author": "devops",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000006-devops.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Hugo Ops",
-        "slug": "devops",
-        "title": "DevOps engineer",
-        "mission": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
-        "responsibilities": [
-          "Maintain CI/CD pipelines",
-          "Manage infrastructure and environments",
-          "Run releases"
-        ],
-        "model": "sonnet",
-        "color": "orange",
-        "is_default": false,
-        "description": "CI/CD, infrastructure, and releases.",
-        "skills": [
-          "squads",
-          "greeting"
-        ],
-        "agreements": []
-      },
-      "id": "ROLE-000006"
-    },
-    "7": {
-      "sequence_id": 7,
-      "type": "role",
-      "title": "Nina Product",
-      "slug": "product-owner",
-      "status": "Active",
-      "description": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000007-product-owner.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Nina Product",
-        "slug": "product-owner",
-        "title": "product owner",
-        "mission": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
-        "responsibilities": [
-          "Author features (`sq create feature`)",
-          "Write each feature's user stories (`sq story add`)",
-          "Prioritise the backlog and define acceptance criteria"
-        ],
-        "model": "sonnet",
-        "color": "yellow",
-        "is_default": false,
-        "description": "Requirements, user stories, and backlog priorities.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-epic",
-          "sq-feature"
-        ],
-        "agreements": []
-      },
-      "id": "ROLE-000007"
-    },
-    "8": {
-      "sequence_id": 8,
-      "type": "role",
-      "title": "Theo Writer",
-      "slug": "tech-writer",
-      "status": "Active",
-      "description": "Make the work understandable: write and maintain clear documentation and guides.",
-      "parent": null,
-      "author": "tech-writer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000008-tech-writer.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "extra": {
-        "full_name": "Theo Writer",
-        "slug": "tech-writer",
-        "title": "technical writer",
-        "mission": "Make the work understandable: write and maintain clear documentation and guides.",
-        "responsibilities": [
-          "Write user- and developer-facing docs",
-          "Keep guides current"
-        ],
-        "model": "haiku",
-        "color": "pink",
-        "is_default": false,
-        "description": "Documentation and guides.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-guide"
-        ],
-        "agreements": []
-      },
-      "id": "ROLE-000008"
-    },
-    "9": {
-      "sequence_id": 9,
-      "type": "role",
-      "title": "Elias Python",
-      "slug": "python-dev",
-      "status": "Active",
-      "description": "Implement assigned tasks in Python, following the project's guides, with tests.",
-      "parent": null,
-      "author": "python-dev",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000009-python-dev.md",
-      "created_at": "2026-06-10T12:29:53Z",
-      "updated_at": "2026-06-10T12:29:53Z",
-      "extra": {
-        "full_name": "Elias Python",
-        "slug": "python-dev",
-        "title": "Python developer",
-        "mission": "Implement assigned tasks in Python, following the project's guides, with tests.",
-        "responsibilities": [
-          "Implement tasks in Python",
-          "Write tests for changes",
-          "Follow the relevant guides; ask the architect when unsure"
-        ],
-        "model": "sonnet",
-        "color": "green",
-        "is_default": false,
-        "description": "Implements Python code following the project's guides and standards.",
-        "is_dev": true,
-        "tech": "python",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-task",
-          "sq-bug",
-          "sq-review"
-        ]
-      },
-      "id": "ROLE-000009"
-    },
-    "10": {
-      "sequence_id": 10,
-      "type": "operator",
-      "title": "Pierre Chat",
-      "slug": "op-pierre",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "op-pierre",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "operators/OP-000010-op-pierre.md",
-      "created_at": "2026-06-10T12:29:53Z",
-      "updated_at": "2026-06-10T12:29:53Z",
-      "extra": {
-        "slug": "op-pierre",
-        "full_name": "Pierre Chat"
-      },
-      "id": "OP-000010"
     },
     "145": {
       "sequence_id": 145,
@@ -5285,37 +5390,10 @@
       "path": "reviews/REV-000145-review-bug-142-fix-bug-lifecycle-set-time-status-vocabulary.md",
       "created_at": "2026-06-16T13:48:41Z",
       "updated_at": "2026-06-16T13:49:26Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000145"
-    },
-    "147": {
-      "sequence_id": 147,
-      "type": "task",
-      "title": "Emit canonical active_backends in the 0.2->0.3 migration",
-      "slug": "emit-canonical-active-backends-in-the-0-2-0-3-migration",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000138",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Rewrite default_backend to active_backends in 0.2->0.3 migration",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        }
-      ],
-      "path": "tasks/TASK-000147-emit-canonical-active-backends-in-the-0-2-0-3-migration.md",
-      "created_at": "2026-06-16T14:18:32Z",
-      "updated_at": "2026-06-16T14:59:43Z",
-      "extra": {},
-      "id": "TASK-000147"
     },
     "148": {
       "sequence_id": 148,
@@ -5355,31 +5433,10 @@
       "path": "reviews/REV-000148-review-emit-canonical-active-backends-in-0-2-0-3-migration-t.md",
       "created_at": "2026-06-16T14:35:57Z",
       "updated_at": "2026-06-16T14:58:51Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000148"
-    },
-    "149": {
-      "sequence_id": 149,
-      "type": "decision",
-      "title": "Post-1.0 schema_version scheme: dotted-string tracking the introducing release",
-      "slug": "post-1-0-schema-version-scheme-dotted-string-tracking-the-in",
-      "status": "Accepted",
-      "description": "",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000013",
-        "ADR-000076"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000149-post-1-0-schema-version-scheme-dotted-string-tracking-the-in.md",
-      "created_at": "2026-06-17T07:56:27Z",
-      "updated_at": "2026-06-17T08:30:12Z",
-      "extra": {},
-      "id": "ADR-000149"
     },
     "150": {
       "sequence_id": 150,
@@ -5455,74 +5512,10 @@
       "path": "reviews/REV-000150-feat-000013-stability-contract-independent-gate.md",
       "created_at": "2026-06-17T08:03:01Z",
       "updated_at": "2026-06-17T08:29:38Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000150"
-    },
-    "151": {
-      "sequence_id": 151,
-      "type": "bug",
-      "title": "Windows CI: override path separators, template-hash CRLF, and init prompt abort",
-      "slug": "windows-ci-override-path-separators-template-hash-crlf-and-i",
-      "status": "Verified",
-      "description": "",
-      "parent": null,
-      "author": "manager",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [
-        "FEAT-000015"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000151-windows-ci-override-path-separators-template-hash-crlf-and-i.md",
-      "created_at": "2026-06-17T12:37:46Z",
-      "updated_at": "2026-06-17T13:00:48Z",
-      "extra": {},
-      "id": "BUG-000151"
-    },
-    "152": {
-      "sequence_id": 152,
-      "type": "bug",
-      "title": "Spawned dev subagent self-spawns recursively (cascade up to 6 levels)",
-      "slug": "spawned-dev-subagent-self-spawns-recursively-cascade-up-to-6",
-      "status": "Open",
-      "description": "A spawned specialist re-delegates instead of working, cascading same-role subagents many levels deep",
-      "parent": null,
-      "author": "op-pierre",
-      "assignee": "qa",
-      "priority": "high",
-      "labels": [],
-      "refs": [
-        "FEAT-000122"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000152-spawned-dev-subagent-self-spawns-recursively-cascade-up-to-6.md",
-      "created_at": "2026-06-17T20:08:34Z",
-      "updated_at": "2026-06-17T20:12:08Z",
-      "extra": {},
-      "id": "BUG-000152"
-    },
-    "153": {
-      "sequence_id": 153,
-      "type": "decision",
-      "title": "Async-core conversion: anyio, locking, and the single-bridge rule",
-      "slug": "async-core-conversion-anyio-locking-and-the-single-bridge-ru",
-      "status": "Accepted",
-      "description": "",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000034:addresses"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000153-async-core-conversion-anyio-locking-and-the-single-bridge-ru.md",
-      "created_at": "2026-06-17T20:29:57Z",
-      "updated_at": "2026-06-19T14:05:33Z",
-      "extra": {},
-      "id": "ADR-000153"
     },
     "154": {
       "sequence_id": 154,
@@ -5592,8 +5585,685 @@
       "path": "reviews/REV-000154-phase-1-async-conversion-review.md",
       "created_at": "2026-06-18T11:49:41Z",
       "updated_at": "2026-06-19T14:23:04Z",
+      "created_session": null,
+      "modified_session": null,
       "extra": {},
       "id": "REV-000154"
+    },
+    "157": {
+      "sequence_id": 157,
+      "type": "review",
+      "title": "Slice A leaf-no-spawn: can_spawn + Agent denylist",
+      "slug": "slice-a-leaf-no-spawn-can-spawn-agent-denylist",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000156:addresses"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000157-slice-a-leaf-no-spawn-can-spawn-agent-denylist.md",
+      "created_at": "2026-06-21T22:20:11Z",
+      "updated_at": "2026-06-21T22:20:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000157"
+    },
+    "79": {
+      "sequence_id": 79,
+      "type": "guide",
+      "title": "squads architecture: layering, data model, and the marker mechanism",
+      "slug": "squads-architecture-layering-data-model-and-the-marker-mecha",
+      "status": "Published",
+      "description": "A standalone-readable map of how squads is built: the cli to services to index/backends/rendering layering, the item/sub-entity/index data model, and the marker mechanism — pointing at sq docs internals for depth and citing the standing ADRs.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000071",
+        "ADR-000072",
+        "ADR-000073",
+        "ADR-000074",
+        "ADR-000075",
+        "ADR-000076",
+        "ADR-000077",
+        "ADR-000078",
+        "ADR-000049"
+      ],
+      "subentities": [],
+      "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
+      "created_at": "2026-06-12T14:25:59Z",
+      "updated_at": "2026-06-12T14:28:33Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "tech": "python",
+        "tags": [
+          "architecture"
+        ]
+      },
+      "id": "GUIDE-000079"
+    },
+    "1": {
+      "sequence_id": 1,
+      "type": "role",
+      "title": "Catherine Manager",
+      "slug": "manager",
+      "status": "Active",
+      "description": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000001-manager.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Catherine Manager",
+        "slug": "manager",
+        "title": "manager",
+        "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
+        "responsibilities": [
+          "Triage incoming requests and clarify intent",
+          "Delegate work to the right specialist agents and integrate their results",
+          "Drive features through the loop (implement → review → fix) until done",
+          "Keep the backlog and statuses honest",
+          "Summarise progress for the operator"
+        ],
+        "model": "opus",
+        "color": "cyan",
+        "is_default": true,
+        "description": "Default agent: triages the operator's request and routes it to the right specialist.",
+        "skills": [
+          "squads",
+          "greeting"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000001"
+    },
+    "2": {
+      "sequence_id": 2,
+      "type": "role",
+      "title": "Robert Architect",
+      "slug": "architect",
+      "status": "Active",
+      "description": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000002-architect.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Robert Architect",
+        "slug": "architect",
+        "title": "architect",
+        "mission": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
+        "responsibilities": [
+          "Design components and their interactions",
+          "Write and maintain ADRs",
+          "Author cross-cutting guides",
+          "Review designs before implementation"
+        ],
+        "model": "opus",
+        "color": "blue",
+        "is_default": false,
+        "description": "System design and architecture decisions (ADRs).",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-epic",
+          "sq-decision",
+          "sq-guide"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000002"
+    },
+    "3": {
+      "sequence_id": 3,
+      "type": "role",
+      "title": "Olivia Lead",
+      "slug": "tech-lead",
+      "status": "Active",
+      "description": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000003-tech-lead.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Olivia Lead",
+        "slug": "tech-lead",
+        "title": "tech lead",
+        "mission": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
+        "responsibilities": [
+          "Author tasks (`sq create task`); set each task's parent to the feature it implements",
+          "Map each subtask to a single user story (`sq task <n> add-subtask \"…\" --story USn`)",
+          "For a bug fix or review follow-up, link via refs (`sq task <n> ref add <id> --kind fixes|addresses`)",
+          "Leave purely-technical tasks unlinked",
+          "Sequence and assign work; unblock developers",
+          "Co-author guides with the architect"
+        ],
+        "model": "opus",
+        "color": "purple",
+        "is_default": false,
+        "description": "Coordination and breaking features into tasks.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-epic",
+          "sq-feature",
+          "sq-task",
+          "sq-bug",
+          "sq-decision",
+          "sq-guide"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000003"
+    },
+    "4": {
+      "sequence_id": 4,
+      "type": "role",
+      "title": "Paul Reviewer",
+      "slug": "reviewer",
+      "status": "Active",
+      "description": "Guard quality: review changes critically, request changes when needed, approve when sound.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000004-reviewer.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Paul Reviewer",
+        "slug": "reviewer",
+        "title": "code reviewer",
+        "mission": "Guard quality: review changes critically, request changes when needed, approve when sound.",
+        "responsibilities": [
+          "Review diffs for correctness and clarity",
+          "Drive code-review items to a verdict",
+          "Flag risks and missing tests"
+        ],
+        "model": "opus",
+        "color": "red",
+        "is_default": false,
+        "description": "Reviews code changes for correctness, clarity, and consistency.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-task",
+          "sq-bug",
+          "sq-review"
+        ],
+        "agreements": [
+          "File review findings as tracked sub-entities — `sq review <n> add-finding` with severity, statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure."
+        ]
+      },
+      "id": "ROLE-000004"
+    },
+    "5": {
+      "sequence_id": 5,
+      "type": "role",
+      "title": "Mara Tester",
+      "slug": "qa",
+      "status": "Active",
+      "description": "Prove the software works: design test cases from user stories and verify fixes.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000005-qa.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Mara Tester",
+        "slug": "qa",
+        "title": "QA engineer",
+        "mission": "Prove the software works: design test cases from user stories and verify fixes.",
+        "responsibilities": [
+          "Derive test cases from user stories",
+          "Verify bug fixes and features",
+          "Report defects as bug items"
+        ],
+        "model": "sonnet",
+        "color": "green",
+        "is_default": false,
+        "description": "Designs and runs tests; verifies behaviour against acceptance criteria.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-feature",
+          "sq-task",
+          "sq-bug"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000005"
+    },
+    "6": {
+      "sequence_id": 6,
+      "type": "role",
+      "title": "Hugo Ops",
+      "slug": "devops",
+      "status": "Active",
+      "description": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
+      "parent": null,
+      "author": "devops",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000006-devops.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Hugo Ops",
+        "slug": "devops",
+        "title": "DevOps engineer",
+        "mission": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
+        "responsibilities": [
+          "Maintain CI/CD pipelines",
+          "Manage infrastructure and environments",
+          "Run releases"
+        ],
+        "model": "sonnet",
+        "color": "orange",
+        "is_default": false,
+        "description": "CI/CD, infrastructure, and releases.",
+        "skills": [
+          "squads",
+          "greeting"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000006"
+    },
+    "7": {
+      "sequence_id": 7,
+      "type": "role",
+      "title": "Nina Product",
+      "slug": "product-owner",
+      "status": "Active",
+      "description": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000007-product-owner.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Nina Product",
+        "slug": "product-owner",
+        "title": "product owner",
+        "mission": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
+        "responsibilities": [
+          "Author features (`sq create feature`)",
+          "Write each feature's user stories (`sq story add`)",
+          "Prioritise the backlog and define acceptance criteria"
+        ],
+        "model": "sonnet",
+        "color": "yellow",
+        "is_default": false,
+        "description": "Requirements, user stories, and backlog priorities.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-epic",
+          "sq-feature"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000007"
+    },
+    "8": {
+      "sequence_id": 8,
+      "type": "role",
+      "title": "Theo Writer",
+      "slug": "tech-writer",
+      "status": "Active",
+      "description": "Make the work understandable: write and maintain clear documentation and guides.",
+      "parent": null,
+      "author": "tech-writer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000008-tech-writer.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Theo Writer",
+        "slug": "tech-writer",
+        "title": "technical writer",
+        "mission": "Make the work understandable: write and maintain clear documentation and guides.",
+        "responsibilities": [
+          "Write user- and developer-facing docs",
+          "Keep guides current"
+        ],
+        "model": "haiku",
+        "color": "pink",
+        "is_default": false,
+        "description": "Documentation and guides.",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-guide"
+        ],
+        "agreements": []
+      },
+      "id": "ROLE-000008"
+    },
+    "9": {
+      "sequence_id": 9,
+      "type": "role",
+      "title": "Elias Python",
+      "slug": "python-dev",
+      "status": "Active",
+      "description": "Implement assigned tasks in Python, following the project's guides, with tests.",
+      "parent": null,
+      "author": "python-dev",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000009-python-dev.md",
+      "created_at": "2026-06-10T12:29:53Z",
+      "updated_at": "2026-06-10T12:29:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "full_name": "Elias Python",
+        "slug": "python-dev",
+        "title": "Python developer",
+        "mission": "Implement assigned tasks in Python, following the project's guides, with tests.",
+        "responsibilities": [
+          "Implement tasks in Python",
+          "Write tests for changes",
+          "Follow the relevant guides; ask the architect when unsure"
+        ],
+        "model": "sonnet",
+        "color": "green",
+        "is_default": false,
+        "description": "Implements Python code following the project's guides and standards.",
+        "is_dev": true,
+        "tech": "python",
+        "skills": [
+          "squads",
+          "greeting",
+          "sq-task",
+          "sq-bug",
+          "sq-review"
+        ]
+      },
+      "id": "ROLE-000009"
+    },
+    "10": {
+      "sequence_id": 10,
+      "type": "operator",
+      "title": "Pierre Chat",
+      "slug": "op-pierre",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "operators/OP-000010-op-pierre.md",
+      "created_at": "2026-06-10T12:29:53Z",
+      "updated_at": "2026-06-10T12:29:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "op-pierre",
+        "full_name": "Pierre Chat"
+      },
+      "id": "OP-000010"
+    },
+    "161": {
+      "sequence_id": 161,
+      "type": "review",
+      "title": "Session lineage on actor (TASK-159): schema 0.4 + back-compat",
+      "slug": "session-lineage-on-actor-task-159-schema-0-4-back-compat",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "TASK-000159:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "v0_4 corpus fixture: .squads.json stuck at schema 0.3 (toml says 0.4)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000161-session-lineage-on-actor-task-159-schema-0-4-back-compat.md",
+      "created_at": "2026-06-22T10:08:44Z",
+      "updated_at": "2026-06-22T10:09:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000161"
+    },
+    "162": {
+      "sequence_id": 162,
+      "type": "review",
+      "title": "reflog --tree + show session surfacing (TASK-000160)",
+      "slug": "reflog-tree-show-session-surfacing-task-000160",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000160:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Session cycle silently drops entries from the tree",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "No cycle/pathological-edge test for the renderer",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000162-reflog-tree-show-session-surfacing-task-000160.md",
+      "created_at": "2026-06-22T11:07:55Z",
+      "updated_at": "2026-06-22T11:50:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000162"
+    },
+    "163": {
+      "sequence_id": 163,
+      "type": "decision",
+      "title": "Advisory create-lane enforcement (Slice B)",
+      "slug": "advisory-create-lane-enforcement-slice-b",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000122:implements",
+        "ADR-000155",
+        "ADR-000158",
+        "FEAT-000125"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000163-advisory-create-lane-enforcement-slice-b.md",
+      "created_at": "2026-06-22T12:14:44Z",
+      "updated_at": "2026-06-22T12:35:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000163"
+    },
+    "164": {
+      "sequence_id": 164,
+      "type": "task",
+      "title": "Advisory create-lane warning: derive from playbook, warn-and-proceed, surface in role show",
+      "slug": "advisory-create-lane-warning-derive-from-playbook-warn-and-p",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000122",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "ADR-000163"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Seam A: allowed_create_types/in_lane_owner/_is_lane_exempt in _interactions.py + table-pinning test",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Seam B: compute warning in ServiceCore.create, return on CreateResult.lane_warning, tag reflog delta (no print)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Seam C: CLI render warning (escaped, exit 0, --json) + creates row in sq role show",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000164-advisory-create-lane-warning-derive-from-playbook-warn-and-p.md",
+      "created_at": "2026-06-22T12:37:03Z",
+      "updated_at": "2026-06-22T13:48:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000164"
+    },
+    "165": {
+      "sequence_id": 165,
+      "type": "review",
+      "title": "Advisory create-lane warning (TASK-164, FEAT-122 US1/Slice B)",
+      "slug": "advisory-create-lane-warning-task-164-feat-122-us1-slice-b",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000164:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Inline duplicate json imports in _cli/_create.py (import json in _make, import json as _json in create_guide) — prefer one top-level import json reused in both. Cosmetic; ruff clean.",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Internal artifact commands (sq dev add, role activate) routed through ServiceCore.create write an advisory lane_warning to the reflog with expected:[] (e.g. architect authoring a 'role' item). Harmless + not surfaced to the user (only _create.py renders it), but it is reflog noise. Consider exempting non-CREATE_LANES item types (role/skill/operator/dev) or internal-author paths in a follow-up. Not a blocker for this advisory cut.",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000165-advisory-create-lane-warning-task-164-feat-122-us1-slice-b.md",
+      "created_at": "2026-06-22T13:31:03Z",
+      "updated_at": "2026-06-22T13:40:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000165"
     }
   }
 }

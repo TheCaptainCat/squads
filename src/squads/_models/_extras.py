@@ -14,6 +14,7 @@ class ExtraKey:
     MODEL = "model"
     COLOR = "color"
     IS_DEFAULT = "is_default"
+    CAN_SPAWN = "can_spawn"
     DESCRIPTION = "description"
     SKILLS = "skills"
     AGREEMENTS = "agreements"

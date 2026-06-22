@@ -161,6 +161,7 @@ class MaintenanceMixin(ServiceCore):
             await self.repair()
             await self._stamp_schema(SCHEMA_VERSION)
             # Reflog: log the migration batch after repair has completed.
+            sid, psid = actor.current_session()
             await append_line(
                 reflog_path(self.paths.squad_dir),
                 ts=clock.iso(clock.now()),
@@ -172,6 +173,8 @@ class MaintenanceMixin(ServiceCore):
                     "to_schema": SCHEMA_VERSION,
                     "applied": [m.to_schema for m in applied],
                 },
+                session_id=sid,
+                parent_session_id=psid,
             )
         return applied
 
@@ -246,6 +249,7 @@ class MaintenanceMixin(ServiceCore):
         missing_ids = [previous_seq_to_id[s] for s in missing_seqs]
 
         # Reflog: append after overwrite (repair uses overwrite, not transaction).
+        sid, psid = actor.current_session()
         await append_line(
             reflog_path(self.paths.squad_dir),
             ts=clock.iso(clock.now()),
@@ -253,6 +257,8 @@ class MaintenanceMixin(ServiceCore):
             op="repair",
             target="",
             delta={"items": len(db.items), "missing": missing_ids},
+            session_id=sid,
+            parent_session_id=psid,
         )
 
         return RepairResult(db=db, missing_ids=missing_ids)
@@ -418,6 +424,8 @@ class MaintenanceMixin(ServiceCore):
                     op=line.op,
                     target=line.target,
                     delta=line.delta,
+                    session_id=line.session_id,
+                    parent_session_id=line.parent_session_id,
                 )
             )
 

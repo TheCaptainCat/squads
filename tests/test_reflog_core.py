@@ -59,7 +59,7 @@ async def test_append_line_writes_valid_jsonl(tmp_path):
     lines = content.strip().splitlines()
     assert len(lines) == 1
     record = json.loads(lines[0])
-    assert record["v"] == "0.3"
+    assert record["v"] == "0.4"
     assert record["ts"] == "2026-06-15T10:00:00Z"
     assert record["actor"] == "system"
     assert record["op"] == "create"

@@ -199,6 +199,7 @@ class ClaudeCodeBackend(AgentBackend):
                 color=role.color,
                 squad_path=ctx.root_relative(item),
                 skills=interactions.skills_for_role(role.slug),
+                can_spawn=role.can_spawn,
             ),
         )
         return Artifact(ctx.rel(pointer), "agent", self.name)

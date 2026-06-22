@@ -6,6 +6,7 @@ import sys
 import pytest
 
 from squads._cli import _hoist_global_options, app  # pyright: ignore[reportPrivateUsage]
+from squads._models._schema import SCHEMA_VERSION
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="cp1252 console encoding is Windows-specific")
@@ -471,7 +472,7 @@ def test_migrate_up_noop_when_current(runner, tmp_path, monkeypatch, frozen_time
     runner.invoke(app, ["init", "--roles", "minimal"])
     r = runner.invoke(app, ["migrate", "up"])
     assert r.exit_code == 0, r.output
-    assert "already at schema v0.3" in r.output
+    assert f"already at schema v{SCHEMA_VERSION}" in r.output
 
 
 def test_migrate_help_and_chlog(runner, tmp_path, monkeypatch, frozen_time):
@@ -504,7 +505,9 @@ def test_schema_gate_blocks_until_migrate(runner, tmp_path, monkeypatch, frozen_
     # forge the pre-0.2 on-disk shape: schema 0.1 in config + bare ref + a ref_kinds map
     cfg = tmp_path / ".squads.toml"
     cfg.write_text(
-        cfg.read_text(encoding="utf-8").replace('schema_version = "0.3"', 'schema_version = "0.1"'),
+        cfg.read_text(encoding="utf-8").replace(
+            f'schema_version = "{SCHEMA_VERSION}"', 'schema_version = "0.1"'
+        ),
         encoding="utf-8",
     )
     task_md = next((tmp_path / "squads" / "tasks").glob("TASK-000002-*.md"))
@@ -523,10 +526,10 @@ def test_schema_gate_blocks_until_migrate(runner, tmp_path, monkeypatch, frozen_
     # migrate is exempt from the gate and upgrades the squad
     done = runner.invoke(app, ["migrate", "up"])
     assert done.exit_code == 0, done.output
-    assert "migrated" in done.output and "v0.3" in done.output
+    assert "migrated" in done.output and f"v{SCHEMA_VERSION}" in done.output
 
     # config bumped, file folded inline, gate now passes
-    assert 'schema_version = "0.3"' in cfg.read_text(encoding="utf-8")
+    assert f'schema_version = "{SCHEMA_VERSION}"' in cfg.read_text(encoding="utf-8")
     text = task_md.read_text(encoding="utf-8")
     assert "GUIDE-000003:implements" in text and "ref_kinds" not in text
     assert runner.invoke(app, ["list"]).exit_code == 0
@@ -1451,7 +1454,9 @@ def test_exit_code_1_schema_mismatch(runner, tmp_path, monkeypatch, frozen_time)
     # Force the on-disk schema version to something old so the gate fires.
     cfg = tmp_path / ".squads.toml"
     cfg.write_text(
-        cfg.read_text(encoding="utf-8").replace('schema_version = "0.3"', 'schema_version = "0.1"'),
+        cfg.read_text(encoding="utf-8").replace(
+            f'schema_version = "{SCHEMA_VERSION}"', 'schema_version = "0.1"'
+        ),
         encoding="utf-8",
     )
 

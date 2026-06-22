@@ -3,6 +3,7 @@ name: reviewer
 description: "Reviews code changes for correctness, clarity, and consistency."
 model: opus
 color: red
+disallowedTools: Agent
 skills:
   - squads
   - greeting
