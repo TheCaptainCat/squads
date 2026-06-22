@@ -234,6 +234,33 @@ async def test_per_type_skills_carry_scoped_comment_guidance(svc, project):
     assert "comment-scoping convention" in task
 
 
+async def test_item_skills_teach_handle_vs_body_note(svc, project):
+    # FEAT-000166 US3 (TASK-000170): sq-review, sq-task, and sq-feature each carry guidance
+    # that a sub-entity title is a short one-line handle and the description goes in the body.
+    await svc.activate_role("reviewer")
+    await svc.activate_role("product-owner")
+    await svc.activate_role("tech-lead")
+    await svc.refresh_managed()
+
+    review = _item_skill_body(project, ItemType.REVIEW)
+    # reviewer finding guidance must note title is handle, description goes in body
+    assert "short handle" in review
+    assert "full description goes in the finding body" in review
+    assert "finding <k> body" in review
+
+    feature = _item_skill_body(project, ItemType.FEATURE)
+    # product-owner story guidance must note title is user-story phrase, criteria in body
+    assert "user-story phrase" in feature
+    assert "acceptance criteria and detail go in the story body" in feature
+    assert "story <k> body" in feature
+
+    task = _item_skill_body(project, ItemType.TASK)
+    # tech-lead subtask guidance must note title is handle, implementation detail in body
+    assert "short handle" in task
+    assert "implementation detail goes in the subtask body" in task
+    assert "subtask <k> body" in task
+
+
 async def test_role_body_has_comment_scoping_pointer(svc):
     # FEAT-000062 US1: every activated role's working agreements name the scoping principle
     # and point at the squads skill — a brief sentence, not a restatement of the full convention.

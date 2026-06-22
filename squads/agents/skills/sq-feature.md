@@ -26,8 +26,7 @@ sq feature <n> stories
 
 **Do:**
 - author the feature (`sq create feature "…" --author product-owner`)
-- add persona-worded user stories (`sq feature <n> add-story "As a … I want …"`)
-- write each story's acceptance criteria in its body (`sq feature <n> story <k> body -m …`)
+- add persona-worded user stories (`sq feature <n> add-story "As a … I want …"`) — the title is the user-story phrase; acceptance criteria and detail go in the story body (`sq feature <n> story <k> body -m …`)
 - use `sq feature <n> story <k> comment` for story-scoped acceptance clarifications or questions — cross-cutting notes go on the feature (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**

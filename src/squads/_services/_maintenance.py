@@ -12,6 +12,7 @@ from squads import _sections as sections
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
+from squads._interactions import TITLE_ADVISORY_MAX
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
@@ -451,6 +452,8 @@ class MaintenanceMixin(ServiceCore):
         ]
         # ADR-000141 §4: verify each active backend's managed files are present.
         issues += self._check_backends()
+        # ADR-000167 / FEAT-000166: advisory title-length audit across all sub-entities.
+        issues += self._check_subentity_title_lengths(index)
         return issues
 
     def _check_backends(self) -> list[CheckIssue]:
@@ -640,4 +643,33 @@ class MaintenanceMixin(ServiceCore):
                         "status is Superseded but no incoming supersedes edge found",
                     )
                 )
+        return issues
+
+    @staticmethod
+    def _check_subentity_title_lengths(index: SquadsDB) -> list[CheckIssue]:
+        """Advisory: flag sub-entity titles longer than TITLE_ADVISORY_MAX chars.
+
+        Read-only — does not mutate any item. Each over-long title emits a warn-level
+        CheckIssue (advisory only; does not affect the exit code). Fires strictly above
+        the threshold (> 120); titles at or below 120 are silent.
+
+        See ADR-000167 / FEAT-000166.
+        """
+        issues: list[CheckIssue] = []
+        for item in index.items.values():
+            kind = SUBENTITY_KIND.get(item.type)
+            if kind is None:
+                continue
+            issues.extend(
+                CheckIssue(
+                    "warn",
+                    item.id,
+                    f"advisory: {kind} {sub.local_id} title is {len(sub.title)} chars"
+                    f" (threshold: {TITLE_ADVISORY_MAX})"
+                    " — a sub-entity title is a one-line handle;"
+                    " put the detail in the body",
+                )
+                for sub in item.subentities
+                if len(sub.title) > TITLE_ADVISORY_MAX
+            )
         return issues

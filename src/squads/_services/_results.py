@@ -33,6 +33,7 @@ class BlockResult:
     body_tag: str
     start_line: int | None
     end_line: int | None
+    title_advisory: str | None = None
 
 
 @dataclass

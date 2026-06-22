@@ -27,7 +27,7 @@ sq task <n> status InProgress
 
 **Do:**
 - author the task (`sq create task "…" --author tech-lead --parent FEAT-…`)
-- add subtasks, each mapped to a story (`add-subtask … --story USn`)
+- add subtasks, each mapped to a story (`add-subtask … --story USn`) — the title is a short handle; implementation detail goes in the subtask body (`sq task <n> subtask <k> body -m …`)
 - set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`
 
 **Hand off:**

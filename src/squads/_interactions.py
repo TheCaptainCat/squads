@@ -100,9 +100,9 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                 do=(
                     'author the feature (`sq create feature "…" --author product-owner`)',
                     "add persona-worded user stories "
-                    '(`sq feature <n> add-story "As a … I want …"`)',
-                    "write each story's acceptance criteria in its body "
-                    "(`sq feature <n> story <k> body -m …`)",
+                    '(`sq feature <n> add-story "As a … I want …"`) — '
+                    "the title is the user-story phrase; acceptance criteria and detail go in the "
+                    "story body (`sq feature <n> story <k> body -m …`)",
                     "use `sq feature <n> story <k> comment` for story-scoped acceptance "
                     "clarifications or questions — cross-cutting notes go on the feature "
                     "(see the `squads` skill's comment-scoping convention)",
@@ -162,7 +162,9 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                 enter=("confirm the parent feature exists and its stories are clear",),
                 do=(
                     'author the task (`sq create task "…" --author tech-lead --parent FEAT-…`)',
-                    "add subtasks, each mapped to a story (`add-subtask … --story USn`)",
+                    "add subtasks, each mapped to a story (`add-subtask … --story USn`) — "
+                    "the title is a short handle; implementation detail goes in the subtask body "
+                    "(`sq task <n> subtask <k> body -m …`)",
                     "set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`",
                 ),
                 handoff=(
@@ -321,7 +323,9 @@ PLAYBOOK: dict[ItemType, ItemPlaybook] = {
                 enter=("read the task/changes under review + the feature's acceptance criteria",),
                 do=(
                     "`sq review <n> status InReview`",
-                    'log each issue as a finding (`add-finding "…" --severity …`)',
+                    'log each issue as a finding (`add-finding "…" --severity …`) — the title '
+                    "is a short handle; the full description goes in the finding body "
+                    "(`sq review <n> finding <k> body -m …`)",
                     "drive to a verdict: Approved or ChangesRequested",
                     "use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, "
                     "verification notes, 'agreed — closing this one') — cross-cutting notes and "
@@ -393,6 +397,19 @@ GREETING_SKILL = "greeting"
 def is_dev_slug(slug: str) -> bool:
     return slug.endswith("-dev")
 
+
+# ---------------------------------------------------------------------------
+# Advisory sub-entity title threshold (ADR-000167 / FEAT-000166)
+#
+# Titles above this limit trigger an advisory warn-and-proceed message on all three
+# add-* entry points (add-finding, add-subtask, add-story).  Titles at or below this
+# value are silent.  Single source of truth — not .squads.toml-configurable; revisit
+# only on demand.
+# ---------------------------------------------------------------------------
+
+#: Advisory threshold for sub-entity titles (characters).
+#: Titles > 120 trigger a warn-and-proceed advisory; titles ≤ 120 are silent.
+TITLE_ADVISORY_MAX: int = 120
 
 # ---------------------------------------------------------------------------
 # Advisory create-lane derivation (ADR-000163 / FEAT-000122 Slice B)
