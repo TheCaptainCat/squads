@@ -15,25 +15,19 @@ description: ref add validates --kind against the documented vocabulary (typos r
   one canonical kinds table in the docs
 subentities:
 - local_id: US1
-  title: As a user adding a typed ref, I want a typo'd kind rejected on the spot with
-    the valid vocabulary, so that I can't silently create an edge nothing consumes
+  title: Unknown ref kind rejected immediately with the valid vocabulary
   status: Done
 - local_id: US2
-  title: As a user linking context, I want plain untyped refs to stay first-class,
-    so that not every link needs a taxonomy decision
+  title: 'Untyped refs remain first-class: context links without taxonomy'
   status: Done
 - local_id: US3
-  title: As a team member learning the system, I want one documented table of kinds
-    with direction and consumers, so that I pick the right kind without archaeology
-    across five docs
+  title: 'Single canonical kinds table: direction and consumers documented'
   status: Done
 - local_id: US4
-  title: As a user drafting an item that needs another one first, I want to record
-    depends-on from the item I'm editing, so that dependencies are authorable without
-    touching the blocker
+  title: depends-on authorable from the dependent without touching the blocker
   status: Done
 created_at: '2026-06-11T07:19:35Z'
-updated_at: '2026-06-11T20:50:05Z'
+updated_at: '2026-06-23T09:58:49Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -108,23 +102,23 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes |
-| US2 | Done |  | As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision |
-| US3 | Done |  | As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs |
-| US4 | Done |  | As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker |
+| US1 | Done |  | Unknown ref kind rejected immediately with the valid vocabulary |
+| US2 | Done |  | Untyped refs remain first-class: context links without taxonomy |
+| US3 | Done |  | Single canonical kinds table: direction and consumers documented |
+| US4 | Done |  | depends-on authorable from the dependent without touching the blocker |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes
+### US1 — Unknown ref kind rejected immediately with the valid vocabulary
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance:** `ref add X --kind banana` exits 1 listing valid kinds; all five documented kinds succeed; `sq check` warns (not errors) on unknown kinds already in files, naming item and edge.
+As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -134,14 +128,14 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision
+### US2 — Untyped refs remain first-class: context links without taxonomy
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance:** bare `ref add <id>` behaviour is byte-identical to today (stored kindless, displayed as related); docs frame untyped refs as the recommended default for plain context, not a degraded form.
+As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -151,14 +145,14 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs
+### US3 — Single canonical kinds table: direction and consumers documented
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-**Acceptance:** one canonical table (kind | meaning | direction | consumed by) lands in the docs; ref add --help references it; the stability contract (FEAT-000013) records the vocabulary and its extension policy.
+As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -168,14 +162,14 @@ _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US3:end -->
 
 <!-- sq:story:US4 -->
-### US4 — As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker
+### US4 — depends-on authorable from the dependent without touching the blocker
 
 <!-- sq:story:US4:head -->
 **Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
-**Acceptance:** `sq feature <n> ref add <other> --kind depends-on` stores the edge on the dependent; `sq blocked` reports the dependent as blocked while the other is open, exactly as if the inverse blocks edge existed; the docs table states the equivalence.
+As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion

@@ -11,9 +11,7 @@ description: --json on every read command, documented exit codes, golden-file te
   freezing the JSON shapes
 subentities:
 - local_id: US1
-  title: As a script author, I want --json on every read command (blocked, mine, workload,
-    inbox, check, refs included), so that I can parse squad state without scraping
-    tables
+  title: --json on every read command including blocked, mine, workload, inbox
   status: Todo
 - local_id: US2
   title: As a CI pipeline author, I want documented exit codes, so that I can gate
@@ -24,7 +22,7 @@ subentities:
     upgrade can't break my parser unannounced
   status: Todo
 created_at: '2026-06-10T12:41:11Z'
-updated_at: '2026-06-12T21:29:44Z'
+updated_at: '2026-06-23T09:58:49Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -64,7 +62,7 @@ _Add with `sq feature 15 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a script author, I want --json on every read command (blocked, mine, workload, inbox, check, refs included), so that I can parse squad state without scraping tables |
+| US1 | Todo |  | --json on every read command including blocked, mine, workload, inbox |
 | US2 | Todo |  | As a CI pipeline author, I want documented exit codes, so that I can gate builds on commands like sq check |
 | US3 | Todo |  | As a tool builder, I want the JSON shapes frozen by tests, so that an sq upgrade can't break my parser unannounced |
 <!-- sq:summary:end -->
@@ -72,7 +70,7 @@ _Add with `sq feature 15 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a script author, I want --json on every read command (blocked, mine, workload, inbox, check, refs included), so that I can parse squad state without scraping tables
+### US1 — --json on every read command including blocked, mine, workload, inbox
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
@@ -80,6 +78,8 @@ _Add with `sq feature 15 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** blocked, mine, workload, inbox, check and refs all accept --json; every read command emits a documented shape.
+
+As a script author, I want --json on every read command (blocked, mine, workload, inbox, check, refs included), so that I can parse squad state without scraping tables.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion

@@ -11,23 +11,20 @@ description: squads/.templates/ overrides; lookup path and precedence join the d
   contract, so it must land before 1.0
 subentities:
 - local_id: US1
-  title: As a project lead, I want to override item templates from squads/.templates/,
-    so that generated items follow our house format
+  title: Override item templates from squads/.templates/
   status: Todo
 - local_id: US2
   title: As a project lead, I want to add or override role definitions for my project,
     so that the squad matches my actual team
   status: Todo
 - local_id: US3
-  title: As a maintainer upgrading squads, I want defined precedence and staleness
-    behaviour for my overrides, so that an upgrade never silently breaks them
+  title: Defined precedence and staleness behaviour for overrides
   status: Todo
 - local_id: US4
-  title: As a project lead, I want to supply each agent's name at init and at role
-    creation, so that my squad's roster is named the way my team wants
+  title: Supply agent names at init and role creation
   status: Todo
 created_at: '2026-06-10T12:41:06Z'
-updated_at: '2026-06-12T22:08:38Z'
+updated_at: '2026-06-23T09:58:43Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -77,16 +74,16 @@ _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a project lead, I want to override item templates from squads/.templates/, so that generated items follow our house format |
+| US1 | Todo |  | Override item templates from squads/.templates/ |
 | US2 | Todo |  | As a project lead, I want to add or override role definitions for my project, so that the squad matches my actual team |
-| US3 | Todo |  | As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them |
-| US4 | Todo |  | As a project lead, I want to supply each agent's name at init and at role creation, so that my squad's roster is named the way my team wants |
+| US3 | Todo |  | Defined precedence and staleness behaviour for overrides |
+| US4 | Todo |  | Supply agent names at init and role creation |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a project lead, I want to override item templates from squads/.templates/, so that generated items follow our house format
+### US1 — Override item templates from squads/.templates/
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
@@ -94,6 +91,8 @@ _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** dropping a template under squads/.templates/ shadows the bundled one for item rendering, without touching package data; covered by a test.
+
+As a project lead, I want to override item templates from squads/.templates/, so that generated items follow our house format.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -120,7 +119,7 @@ _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them
+### US3 — Defined precedence and staleness behaviour for overrides
 
 <!-- sq:story:US3:head -->
 **Status:** ⚪ Todo
@@ -128,6 +127,8 @@ _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US3:body -->
 **Acceptance:** the ADR from the design phase defines lookup order (project override → bundled default), partial-override behaviour, and what happens when an override goes stale across an upgrade; sq surfaces stale overrides rather than failing silently.
+
+As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -137,7 +138,7 @@ _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US3:end -->
 
 <!-- sq:story:US4 -->
-### US4 — As a project lead, I want to supply each agent's name at init and at role creation, so that my squad's roster is named the way my team wants
+### US4 — Supply agent names at init and role creation
 
 <!-- sq:story:US4:head -->
 **Status:** ⚪ Todo
@@ -145,6 +146,8 @@ _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US4:body -->
 **Acceptance:** `sq init` accepts per-role names (and the role-creation command accepts a name) instead of always drawing from the bundled pool; roles without a supplied name still get a pool name; the chosen names flow through to the roster, pointer files and CLAUDE.md section; covered by a test.
+
+As a project lead, I want to supply each agent's name at init and at role creation, so that my squad's roster is named the way my team wants.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion

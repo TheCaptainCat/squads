@@ -9,14 +9,11 @@ refs:
 - FEAT-000035:addresses
 subentities:
 - local_id: F1
-  title: 'Style: _check_decisions() in _maintenance.py uses a function-local ''from
-    squads._models._enums import Status'' (line ~332) when ItemType is already imported
-    from that same module at the top. Hoist Status to the module-level import for
-    consistency. Non-blocking — no cycle, gates clean.'
+  title: Function-local Status import in _check_decisions; hoist to module top
   status: Open
   severity: low
 created_at: '2026-06-11T20:41:00Z'
-updated_at: '2026-06-11T20:43:14Z'
+updated_at: '2026-06-23T09:59:39Z'
 ---
 <!-- sq:body -->
 Formal review of FEAT-000035 (typed ref vocabulary) — TASK-000050 (VALID_REF_KINDS constant + validation at add_ref and ServiceCore.create) and TASK-000051 (depends-on≡blocks in sq blocked, sq check unknown-kind + Superseded-without-supersedes warnings, eight-row kinds table in workflow.md.j2, refreshed --kind help). Reviewed the full working-tree diff against acceptance criteria, ADR-000049 conformance, CLAUDE.md invariants, and quality. Gates green; live spot-checks pass.
@@ -31,13 +28,13 @@ _Add with `sq review 52 add-finding "…" --severity high`; track with `sq revie
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Style: _check_decisions() in _maintenance.py uses a function-local 'from squads._models._enums import Status' (line ~332) when ItemType is already imported from that same module at the top. Hoist Status to the module-level import for consistency. Non-blocking — no cycle, gates clean. |
+| F1 | 🟢 low | Open |  | Function-local Status import in _check_decisions; hoist to module top |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
-### F1 — Style: _check_decisions() in _maintenance.py uses a function-local 'from squads._models._enums import Status' (line ~332) when ItemType is already imported from that same module at the top. Hoist Status to the module-level import for consistency. Non-blocking — no cycle, gates clean.
+### F1 — Function-local Status import in _check_decisions; hoist to module top
 
 <!-- sq:finding:F1:head -->
 **Status:** 🔴 Open
@@ -45,7 +42,7 @@ _Add with `sq review 52 add-finding "…" --severity high`; track with `sq revie
 <!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+Style: _check_decisions() in _maintenance.py uses a function-local 'from squads._models._enums import Status' (line ~332) when ItemType is already imported from that same module at the top. Hoist Status to the module-level import for consistency. Non-blocking — no cycle, gates clean.
 <!-- sq:finding:F1:body:end -->
 
 #### Discussion

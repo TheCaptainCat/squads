@@ -7,18 +7,11 @@ status: Approved
 author: reviewer
 subentities:
 - local_id: F1
-  title: print_block (add-story/add-subtask/add-finding --json) emits the .md file
-    location under key 'file', while read-side show --json emits the same path concept
-    under 'path'. Both are the item's markdown file path; a JSON consumer must special-case
-    the key per command. Documented in the module docstring per Catherine's REV-86
-    carry-over (rename-or-document was sanctioned), and print_block is outside this
-    task's frozen read surface — non-blocking. Recorded so a future consumer/contributor
-    sees the asymmetry is deliberate, not accidental. Recommend revisiting file->path
-    alignment when the write surface gets its own goldens.
+  title: print_block --json uses 'file' key vs show --json 'path' for same path
   status: Open
   severity: low
 created_at: '2026-06-12T21:23:52Z'
-updated_at: '2026-06-12T21:24:17Z'
+updated_at: '2026-06-23T09:59:40Z'
 ---
 <!-- sq:body -->
 Scope: golden-file test harness for TASK-000084 (US3 of FEAT-000015) — tests/test_golden_json.py + tests/goldens/ (24 snapshots, 25 tests). Read surface only; write-side print_block out of scope by design.
@@ -35,13 +28,13 @@ _Add with `sq review 94 add-finding "…" --severity high`; track with `sq revie
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | print_block (add-story/add-subtask/add-finding --json) emits the .md file location under key 'file', while read-side show --json emits the same path concept under 'path'. Both are the item's markdown file path; a JSON consumer must special-case the key per command. Documented in the module docstring per Catherine's REV-86 carry-over (rename-or-document was sanctioned), and print_block is outside this task's frozen read surface — non-blocking. Recorded so a future consumer/contributor sees the asymmetry is deliberate, not accidental. Recommend revisiting file->path alignment when the write surface gets its own goldens. |
+| F1 | 🟢 low | Open |  | print_block --json uses 'file' key vs show --json 'path' for same path |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
-### F1 — print_block (add-story/add-subtask/add-finding --json) emits the .md file location under key 'file', while read-side show --json emits the same path concept under 'path'. Both are the item's markdown file path; a JSON consumer must special-case the key per command. Documented in the module docstring per Catherine's REV-86 carry-over (rename-or-document was sanctioned), and print_block is outside this task's frozen read surface — non-blocking. Recorded so a future consumer/contributor sees the asymmetry is deliberate, not accidental. Recommend revisiting file->path alignment when the write surface gets its own goldens.
+### F1 — print_block --json uses 'file' key vs show --json 'path' for same path
 
 <!-- sq:finding:F1:head -->
 **Status:** 🔴 Open
@@ -49,7 +42,7 @@ _Add with `sq review 94 add-finding "…" --severity high`; track with `sq revie
 <!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+print_block (add-story/add-subtask/add-finding --json) emits the .md file location under key 'file', while read-side show --json emits the same path concept under 'path'. Both are the item's markdown file path; a JSON consumer must special-case the key per command. Documented in the module docstring per Catherine's REV-86 carry-over (rename-or-document was sanctioned), and print_block is outside this task's frozen read surface — non-blocking. Recorded so a future consumer/contributor sees the asymmetry is deliberate, not accidental. Recommend revisiting file->path alignment when the write surface gets its own goldens.
 <!-- sq:finding:F1:body:end -->
 
 #### Discussion

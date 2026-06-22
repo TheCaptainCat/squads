@@ -15,22 +15,16 @@ description: 'A mode switch in .squads.toml (offline default / remote): in remot
   a Protocol-typed service interface the CLI depends on'
 subentities:
 - local_id: US1
-  title: As a maintainer of the codebase, I want the CLI decoupled from the concrete
-    Service behind Python Protocols, so that plugging a different service implementation
-    (remote or otherwise) is possible without touching the commands
+  title: CLI decoupled from concrete Service via Python Protocols
   status: Todo
 - local_id: US2
-  title: As an operator or agent on a remote squad, I want every offline command and
-    flag to work identically in remote mode, so that the transport never changes how
-    I work
+  title: 'Full offline/remote parity: transport never changes how I work'
   status: Todo
 - local_id: US3
-  title: As a squad owner, I want the mode set in .squads.toml with offline as the
-    default, so that remote is an explicit per-squad choice and existing squads are
-    untouched
+  title: Remote mode opt-in via .squads.toml; offline is the default
   status: Todo
 created_at: '2026-06-10T15:33:16Z'
-updated_at: '2026-06-14T20:32:56Z'
+updated_at: '2026-06-23T09:58:01Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -89,22 +83,22 @@ _Add with `sq feature 33 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a maintainer of the codebase, I want the CLI decoupled from the concrete Service behind Python Protocols, so that plugging a different service implementation (remote or otherwise) is possible without touching the commands |
-| US2 | Todo |  | As an operator or agent on a remote squad, I want every offline command and flag to work identically in remote mode, so that the transport never changes how I work |
-| US3 | Todo |  | As a squad owner, I want the mode set in .squads.toml with offline as the default, so that remote is an explicit per-squad choice and existing squads are untouched |
+| US1 | Todo |  | CLI decoupled from concrete Service via Python Protocols |
+| US2 | Todo |  | Full offline/remote parity: transport never changes how I work |
+| US3 | Todo |  | Remote mode opt-in via .squads.toml; offline is the default |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a maintainer of the codebase, I want the CLI decoupled from the concrete Service behind Python Protocols, so that plugging a different service implementation (remote or otherwise) is possible without touching the commands
+### US1 — CLI decoupled from concrete Service via Python Protocols
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance:** protocol(s) define the service interface (granularity mirrors the mixin concerns per design); _cli imports only the protocol; LocalService keeps its mixin composition and conforms structurally under pyright strict; existing test suite green without modification. This story has standalone value and can ship before any remote work.
+As a maintainer of the codebase, I want the CLI decoupled from the concrete Service behind Python Protocols, so that plugging a different service implementation (remote or otherwise) is possible without touching the commands.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -114,14 +108,14 @@ _Add with `sq feature 33 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As an operator or agent on a remote squad, I want every offline command and flag to work identically in remote mode, so that the transport never changes how I work
+### US2 — Full offline/remote parity: transport never changes how I work
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance:** RemoteService implements the same protocols over HTTP; the full CLI test matrix runs against both implementations with identical outputs, exit codes and --json bytes; offline-only concepts (--dir, repair, …) have a defined remote meaning rather than silent gaps.
+As an operator or agent on a remote squad, I want every offline command and flag to work identically in remote mode, so that the transport never changes how I work.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -131,14 +125,14 @@ _Add with `sq feature 33 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a squad owner, I want the mode set in .squads.toml with offline as the default, so that remote is an explicit per-squad choice and existing squads are untouched
+### US3 — Remote mode opt-in via .squads.toml; offline is the default
 
 <!-- sq:story:US3:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-**Acceptance:** .squads.toml carries mode = "offline" (default) | "remote" + server URL; absent setting = today's behaviour exactly; unreachable or unauthenticated server yields a clean SquadsError naming the configured endpoint.
+As a squad owner, I want the mode set in .squads.toml with offline as the default, so that remote is an explicit per-squad choice and existing squads are untouched.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

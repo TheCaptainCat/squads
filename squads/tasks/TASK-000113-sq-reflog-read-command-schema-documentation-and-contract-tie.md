@@ -18,8 +18,7 @@ subentities:
   status: Done
   story: US1
 - local_id: ST2
-  title: 'Back-compat: a squad with no reflog file behaves identically; reflog never
-    consulted for state, missing/truncated never an error'
+  title: 'Reflog back-compat: absent/truncated file never an error'
   status: Done
   story: US2
 - local_id: ST3
@@ -28,7 +27,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-15T08:20:49Z'
-updated_at: '2026-06-15T10:24:01Z'
+updated_at: '2026-06-23T09:58:55Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -91,7 +90,7 @@ _Add with `sq task 113 add-subtask "<title>"`; track with `sq task 113 subtask <
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
 | ST1 | Done |  | sq reflog read command: tail by default, filter by --item/--actor/--op/--since, with --json passthrough | US1 |
-| ST2 | Done |  | Back-compat: a squad with no reflog file behaves identically; reflog never consulted for state, missing/truncated never an error | US2 |
+| ST2 | Done |  | Reflog back-compat: absent/truncated file never an error | US2 |
 | ST3 | Done |  | Version and document the line schema; golden-test the --json shape and state its stability tier in the contract doc | US3 |
 <!-- sq:summary:end -->
 
@@ -116,7 +115,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST1:end -->
 
 <!-- sq:subtask:ST2 -->
-### ST2 — Back-compat: a squad with no reflog file behaves identically; reflog never consulted for state, missing/truncated never an error
+### ST2 — Reflog back-compat: absent/truncated file never an error
 
 <!-- sq:subtask:ST2:head -->
 **Status:** 🟢 Done
@@ -124,7 +123,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Back-compat: a squad with no reflog file behaves identically; reflog never consulted for state, missing/truncated never an error.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

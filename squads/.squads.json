@@ -218,7 +218,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq migrate up, so that adopting squads before 1.0 is safe",
+          "title": "Migration promise for 0.x squads reaching 1.0",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -226,7 +226,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a script author, I want to know which CLI and --json surfaces are SemVer-stable, so that my automation survives upgrades",
+          "title": "SemVer-stable CLI and --json surfaces documented",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -234,7 +234,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As an integrator, I want internals (Python import paths, generated .claude/ files) explicitly marked non-public, so that I don't build on the wrong layer",
+          "title": "Internals explicitly marked non-public",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -243,7 +243,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-17T08:31:00Z",
+      "updated_at": "2026-06-23T09:58:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -265,7 +265,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a project lead, I want to override item templates from squads/.templates/, so that generated items follow our house format",
+          "title": "Override item templates from squads/.templates/",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -281,7 +281,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them",
+          "title": "Defined precedence and staleness behaviour for overrides",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -289,7 +289,7 @@
         },
         {
           "local_id": "US4",
-          "title": "As a project lead, I want to supply each agent's name at init and at role creation, so that my squad's roster is named the way my team wants",
+          "title": "Supply agent names at init and role creation",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -298,7 +298,7 @@
       ],
       "path": "features/FEAT-000014-project-level-template-and-role-overrides.md",
       "created_at": "2026-06-10T12:41:06Z",
-      "updated_at": "2026-06-12T22:08:38Z",
+      "updated_at": "2026-06-23T09:58:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -320,7 +320,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a script author, I want --json on every read command (blocked, mine, workload, inbox, check, refs included), so that I can parse squad state without scraping tables",
+          "title": "--json on every read command including blocked, mine, workload, inbox",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -345,7 +345,7 @@
       ],
       "path": "features/FEAT-000015-machine-readable-surface-audit.md",
       "created_at": "2026-06-10T12:41:11Z",
-      "updated_at": "2026-06-12T21:29:44Z",
+      "updated_at": "2026-06-23T09:58:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -367,7 +367,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so that we can run squads with our own tooling",
+          "title": "AGENTS.md backend for non-Claude agent tooling",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -375,7 +375,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a future backend implementer, I want a backend conformance test suite, so that I know exactly what the AgentBackend contract requires of me",
+          "title": "Backend conformance test suite for AgentBackend implementers",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -384,7 +384,7 @@
       ],
       "path": "features/FEAT-000016-second-backend-generic-agents-md.md",
       "created_at": "2026-06-10T12:41:16Z",
-      "updated_at": "2026-06-15T14:22:47Z",
+      "updated_at": "2026-06-23T09:58:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -428,7 +428,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a new agent or contributor, I want an architecture guide readable through sq, so that I understand the system's shape without spelunking through git history",
+          "title": "Architecture guide readable through sq",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -436,7 +436,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an architect, I want the standing design decisions on record as ADRs, so that future work can cite, build on, or formally revisit them",
+          "title": "Standing design decisions on record as ADRs",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -444,7 +444,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a team member working an item, I want guides and ADRs cross-linked by refs, so that the relevant context travels with the work",
+          "title": "Guides and ADRs cross-linked by refs",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -453,7 +453,7 @@
       ],
       "path": "features/FEAT-000018-backfill-architecture-documentation-into-squads.md",
       "created_at": "2026-06-10T12:49:50Z",
-      "updated_at": "2026-06-12T14:30:00Z",
+      "updated_at": "2026-06-23T09:59:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -483,7 +483,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting",
+          "title": "Full ID accepted in tree, --parent, and ref add without reformatting",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -491,7 +491,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item",
+          "title": "Type mismatch on bare number surfaces the actual item type",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -500,7 +500,7 @@
       ],
       "path": "features/FEAT-000019-uniform-item-addressing-every-command-accepts-both-id-and-nu.md",
       "created_at": "2026-06-10T12:56:45Z",
-      "updated_at": "2026-06-11T14:41:09Z",
+      "updated_at": "2026-06-23T09:59:20Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -524,7 +524,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a user who filed work under the wrong type, I want to retype it in place, so that the number, body and discussion survive the fix",
+          "title": "Retype item in place preserving number, body, and discussion",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -532,7 +532,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a teammate whose items reference the retyped one, I want every incoming ref, parent link and prose mention rewritten to the new ID, so that nothing dangles",
+          "title": "Incoming refs and prose mentions rewritten to new ID after retype",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -541,7 +541,7 @@
       ],
       "path": "features/FEAT-000020-retype-an-item-in-place.md",
       "created_at": "2026-06-10T13:24:54Z",
-      "updated_at": "2026-06-15T08:46:35Z",
+      "updated_at": "2026-06-23T09:59:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -565,7 +565,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index",
+          "title": "Safe item removal without hand-editing files or index",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -573,7 +573,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently",
+          "title": "Removal refuses or severs incoming refs to prevent dangling links",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -581,7 +581,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption",
+          "title": "Sequence number gaps explained as recorded removals",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -590,7 +590,7 @@
       ],
       "path": "features/FEAT-000023-sanctioned-item-removal.md",
       "created_at": "2026-06-10T13:52:25Z",
-      "updated_at": "2026-06-15T09:21:50Z",
+      "updated_at": "2026-06-23T09:59:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -616,7 +616,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an operator, I want a chronological log of every mutation with its actor, so that I can review what the agents did without having been in their conversations",
+          "title": "Chronological mutation log per actor for agent activity review",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -624,7 +624,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a team member investigating an anomaly, I want removals, retypes and forced transitions explainable from the squad directory alone, so that a gap or surprise reads as history, not corruption",
+          "title": "Removals, retypes, forced transitions reconstructable from reflog",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -632,7 +632,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a tool builder, I want the reflog as stable, documented JSONL, so that I can build dashboards and automation on the operation stream",
+          "title": "Reflog as stable documented JSONL for automation and dashboards",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -641,7 +641,7 @@
       ],
       "path": "features/FEAT-000024-operation-reflog.md",
       "created_at": "2026-06-10T13:59:11Z",
-      "updated_at": "2026-06-15T10:24:04Z",
+      "updated_at": "2026-06-23T10:00:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -666,7 +666,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an operator reading the backlog in my terminal, I want show to render the markdown, so that sq tree + sq show covers browsing and reading without external viewers",
+          "title": "Rendered markdown in show output for terminal browsing",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -674,7 +674,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an agent or script consuming show output, I want piped/--raw/NO_COLOR output plain and stable, so that rendering never breaks my parsing",
+          "title": "Plain stable output when piped, --raw, or NO_COLOR",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -682,7 +682,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a user with an ID or number in hand, I want a root sq show command that displays any item regardless of type, so that I can read anything in one step without naming its type",
+          "title": "Root sq show command accepts any item ID without naming its type",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -690,7 +690,7 @@
         },
         {
           "local_id": "US4",
-          "title": "As a reader of a feature, task or review, I want show to include the sub-entity summary table and the discussion, so that one command gives me the whole item, not just its body",
+          "title": "show includes sub-entity summary table and main discussion",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -698,7 +698,7 @@
         },
         {
           "local_id": "US5",
-          "title": "As a reader wanting the whole story, I want --full to render each sub-entity and its comments in tidy panes along with the main discussion, so that one command reads as the item's dossier",
+          "title": "--full renders each sub-entity with comments as a dossier",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -706,7 +706,7 @@
         },
         {
           "local_id": "US6",
-          "title": "As an agent briefing on an item, I want the squads skill and the sq-<type> skills to teach reading with --full --comments as the standard briefing move, so that decisions captured in discussion comments are never missed",
+          "title": "Skills teach --full --comments as the standard briefing move",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -715,7 +715,7 @@
       ],
       "path": "features/FEAT-000026-rendered-show-output.md",
       "created_at": "2026-06-10T14:57:23Z",
-      "updated_at": "2026-06-12T09:43:53Z",
+      "updated_at": "2026-06-23T10:00:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -741,7 +741,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a squad owner whose counter hits the cap, I want create to fail with a clear index-full error naming the fix, so that the format never silently grows a digit",
+          "title": "Index-full error with fix instructions at sequence cap",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -749,7 +749,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a squad owner raising the padding, I want one command that renames every file to the new width and rebuilds the index, so that the squad stays uniform without hand-work",
+          "title": "Single command renames all files to new padding width",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -757,7 +757,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a teammate whose items hold old-width refs and mentions, I want ID parsing tolerant of any padding, so that content written before the raise keeps resolving forever",
+          "title": "ID parsing tolerates any padding width for old refs",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -766,7 +766,7 @@
       ],
       "path": "features/FEAT-000027-explicit-id-padding-with-a-raise-padding-migration.md",
       "created_at": "2026-06-10T15:04:04Z",
-      "updated_at": "2026-06-14T22:07:30Z",
+      "updated_at": "2026-06-23T10:01:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -792,7 +792,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a team running many agents in parallel, I want the index behind real transactions, so that concurrent sq calls stop serializing on one file lock",
+          "title": "Real transactions for parallel sq calls without global file lock",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -800,7 +800,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an owner of a large squad, I want an indexed store keeping list/tree/search fast at thousands of items, so that scale doesn't degrade the daily loop",
+          "title": "Indexed store keeps list/tree/search fast at thousands of items",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -808,7 +808,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a user choosing a store, I want switching to be config plus sq repair — reversible both ways, so that the .md files remain the only thing I must never lose",
+          "title": "Store switching via config plus sq repair, reversible both ways",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -817,7 +817,7 @@
       ],
       "path": "features/FEAT-000032-pluggable-index-store-sqlite-sql-databases-behind-the-index.md",
       "created_at": "2026-06-10T15:24:10Z",
-      "updated_at": "2026-06-11T07:40:16Z",
+      "updated_at": "2026-06-23T10:01:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -842,7 +842,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a maintainer of the codebase, I want the CLI decoupled from the concrete Service behind Python Protocols, so that plugging a different service implementation (remote or otherwise) is possible without touching the commands",
+          "title": "CLI decoupled from concrete Service via Python Protocols",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -850,7 +850,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an operator or agent on a remote squad, I want every offline command and flag to work identically in remote mode, so that the transport never changes how I work",
+          "title": "Full offline/remote parity: transport never changes how I work",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -858,7 +858,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a squad owner, I want the mode set in .squads.toml with offline as the default, so that remote is an explicit per-squad choice and existing squads are untouched",
+          "title": "Remote mode opt-in via .squads.toml; offline is the default",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -867,7 +867,7 @@
       ],
       "path": "features/FEAT-000033-remote-mode-the-sq-cli-as-a-client-to-a-squads-server.md",
       "created_at": "2026-06-10T15:33:16Z",
-      "updated_at": "2026-06-14T20:32:56Z",
+      "updated_at": "2026-06-23T09:58:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -892,7 +892,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a developer of an async consumer (TUI, web server, remote client), I want the service async-native, so that I never wrap calls in executor threads",
+          "title": "Async-native service: no executor thread wrapping for consumers",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -900,7 +900,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a CLI user, I want the async conversion invisible, so that every command behaves and outputs byte-identically to today",
+          "title": "Async conversion invisible to CLI users: byte-identical outputs",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -909,7 +909,7 @@
       ],
       "path": "features/FEAT-000034-async-to-the-core-the-service-and-io-go-async-end-to-end.md",
       "created_at": "2026-06-10T15:49:05Z",
-      "updated_at": "2026-06-19T15:38:27Z",
+      "updated_at": "2026-06-23T09:58:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -934,7 +934,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes",
+          "title": "Unknown ref kind rejected immediately with the valid vocabulary",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -942,7 +942,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision",
+          "title": "Untyped refs remain first-class: context links without taxonomy",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -950,7 +950,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs",
+          "title": "Single canonical kinds table: direction and consumers documented",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -958,7 +958,7 @@
         },
         {
           "local_id": "US4",
-          "title": "As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker",
+          "title": "depends-on authorable from the dependent without touching the blocker",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -967,7 +967,7 @@
       ],
       "path": "features/FEAT-000035-typed-ref-vocabulary-validated-kinds-optional-by-design.md",
       "created_at": "2026-06-11T07:19:35Z",
-      "updated_at": "2026-06-11T20:50:05Z",
+      "updated_at": "2026-06-23T09:58:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -991,7 +991,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous",
+          "title": "Short type aliases (sq f/t/b) work everywhere the full word does",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -999,7 +999,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity",
+          "title": "Aliases hidden from help but documented in one table",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1008,7 +1008,7 @@
       ],
       "path": "features/FEAT-000036-type-aliases-in-the-cli-grammar.md",
       "created_at": "2026-06-11T07:37:01Z",
-      "updated_at": "2026-06-15T08:11:14Z",
+      "updated_at": "2026-06-23T09:59:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1034,7 +1034,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an operator sequencing work, I want the dependency tree of one item to a chosen depth, so that I can see what it waits on and what waits on it before greenlighting",
+          "title": "Depth-bounded dependency tree for one item before greenlighting",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1042,7 +1042,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an agent briefing on an item, I want to filter the graph by kind and direction, so that I pull only the context that matters for my job",
+          "title": "Filter graph by kind and direction to pull only relevant context",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1050,7 +1050,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a user wanting the big picture, I want a dot/mermaid export, so that the full graph renders in tools made for it instead of flooding my terminal",
+          "title": "dot/mermaid export for full-graph rendering outside the terminal",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1059,7 +1059,7 @@
       ],
       "path": "features/FEAT-000037-ref-graph-view-sq-graph-item.md",
       "created_at": "2026-06-11T07:45:02Z",
-      "updated_at": "2026-06-11T07:57:11Z",
+      "updated_at": "2026-06-23T09:59:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1081,7 +1081,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an operator reviewing the board, I want to filter the tree by status, priority, assignee or type, so that greenlight discussions look at exactly the slice that matters",
+          "title": "Filter tree by status/priority/assignee/type for focused reviews",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1089,7 +1089,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a reader of a deep backlog, I want --depth and context-preserving pruning, so that a filtered tree stays readable and every match keeps its place in the hierarchy",
+          "title": "--depth and context-preserving pruning keep filtered trees readable",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1098,7 +1098,7 @@
       ],
       "path": "features/FEAT-000039-tree-filters.md",
       "created_at": "2026-06-11T07:58:43Z",
-      "updated_at": "2026-06-11T07:58:45Z",
+      "updated_at": "2026-06-23T09:59:41Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1122,7 +1122,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates",
+          "title": "Role tells spawned agent exactly what to record before returning",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1130,7 +1130,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox",
+          "title": "Live-regime role: record decisions separately from signalling handoffs",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1138,7 +1138,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue",
+          "title": "Every inbox @mention is a real, current call-to-action",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1147,7 +1147,7 @@
       ],
       "path": "features/FEAT-000040-dual-regime-role-definitions-subagent-invocation-vs-live-con.md",
       "created_at": "2026-06-11T08:43:52Z",
-      "updated_at": "2026-06-12T07:51:05Z",
+      "updated_at": "2026-06-23T10:00:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1172,7 +1172,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an agent adopting my persona, I want sq role show to give me the complete definition including working agreements, so that I never open the file to learn my job",
+          "title": "sq role show gives complete definition including working agreements",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1180,7 +1180,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an agent following the onboarding texts, I want every read they prescribe to be an sq command, so that one interface covers work and identity — locally and, someday, remotely",
+          "title": "Onboarding texts prescribe sq commands only, not file reads",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1189,7 +1189,7 @@
       ],
       "path": "features/FEAT-000041-onboard-through-the-cli-roles-readable-via-sq-not-the-filesy.md",
       "created_at": "2026-06-11T09:02:40Z",
-      "updated_at": "2026-06-12T08:05:41Z",
+      "updated_at": "2026-06-23T10:00:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1213,7 +1213,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion",
+          "title": "Skills tell agents which comment command to use for each scope",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1221,7 +1221,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion",
+          "title": "Sub-entity panes hold their scoped discussion, not a cross-cutting blob",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1229,7 +1229,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written",
+          "title": "Sub-entity @mentions reach the inbox as reliably as item-level ones",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1238,7 +1238,7 @@
       ],
       "path": "features/FEAT-000062-comment-scoping-convention-sub-entity-discussions-vs-main-di.md",
       "created_at": "2026-06-12T09:49:28Z",
-      "updated_at": "2026-06-12T10:03:47Z",
+      "updated_at": "2026-06-23T10:00:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1264,7 +1264,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions",
+          "title": "Item-first grammar for roles, skills, and operators",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1272,7 +1272,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies",
+          "title": "Role and skill bodies rendered as styled markdown like any item show",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1280,7 +1280,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous",
+          "title": "Single list surface for tracked agents; sq role catalog for bundled ones",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1288,7 +1288,7 @@
         },
         {
           "local_id": "US4",
-          "title": "As the stability contract author, I want this feature's grammar decisions recorded as a deferral obligation on FEAT-000013 before it closes, so that the contract document reflects the final CLI surface accurately",
+          "title": "Grammar decisions recorded as deferral obligation on FEAT-000013",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1297,7 +1297,7 @@
       ],
       "path": "features/FEAT-000064-align-agent-type-command-groups-with-the-item-cli-grammar.md",
       "created_at": "2026-06-12T11:56:22Z",
-      "updated_at": "2026-06-12T13:12:14Z",
+      "updated_at": "2026-06-23T10:01:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1319,7 +1319,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an operator, I want the squad hierarchy in a VS Code sidebar tree with status, assignee and blocked-state at a glance, so that I can navigate the squad without leaving the editor",
+          "title": "Squad hierarchy in VS Code sidebar with status and blocked-state",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1327,7 +1327,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As an operator, I want clicking a tree item to open its rendered sq show in the markdown preview, so that I read a clean item without frontmatter or marker noise",
+          "title": "Clicking a tree node opens rendered sq show in markdown preview",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1335,7 +1335,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As an operator, I want to filter and group the tree by type and open/closed state and refresh it on demand, so that I can focus on the work that matters right now",
+          "title": "Filter and group tree by type/state, refresh on demand",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1344,7 +1344,7 @@
       ],
       "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
       "created_at": "2026-06-14T20:45:15Z",
-      "updated_at": "2026-06-14T20:45:23Z",
+      "updated_at": "2026-06-23T10:01:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1886,7 +1886,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator targets, subtask --story through the resolver",
+          "title": "Wire all ID-accepting paths through the resolver",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1903,7 +1903,7 @@
       ],
       "path": "tasks/TASK-000047-adopt-the-shared-resolver-across-all-id-accepting-surfaces-u.md",
       "created_at": "2026-06-11T13:59:33Z",
-      "updated_at": "2026-06-11T14:32:39Z",
+      "updated_at": "2026-06-23T09:57:41Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1927,7 +1927,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind in add_ref, rejecting unknowns with the valid list",
+          "title": "Define VALID_REF_KINDS and validate --kind in add_ref",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1943,7 +1943,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create --ref id:kind; authorable from the dependent",
+          "title": "Accept depends-on/supersedes/duplicates ref kinds",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -1952,7 +1952,7 @@
       ],
       "path": "tasks/TASK-000050-ref-kind-vocabulary-constant-validation-at-all-authoring-ent.md",
       "created_at": "2026-06-11T20:21:59Z",
-      "updated_at": "2026-06-11T20:43:22Z",
+      "updated_at": "2026-06-23T09:57:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2013,7 +2013,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Restructure role.md.j2 working agreements into the two explicit regimes with the shared 'record when it becomes true' principle; sq sync propagates to all 8 roles + dev pool",
+          "title": "Restructure role.md.j2 working agreements into two regimes",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2021,7 +2021,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "In the live-regime text, separate recording a decision (--as, when made) from signalling a handoff (@mention, only when work moves); reference the squads skill's operator section instead of duplicating it",
+          "title": "Separate decision-recording from handoff-signalling in live regime",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2029,7 +2029,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "Consistency pass on _interactions.py 'For <role>' handoff lines so each carries its trigger condition (e.g. 'when the feature is greenlit, @tech-lead'), keeping every @mention a real call-to-action; align greeting/squads skill cross-references",
+          "title": "Normalize 'For <role>' handoff lines in _interactions.py",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2038,7 +2038,7 @@
       ],
       "path": "tasks/TASK-000053-split-bundled-role-working-agreements-into-spawned-vs-live-r.md",
       "created_at": "2026-06-12T07:38:11Z",
-      "updated_at": "2026-06-12T07:47:35Z",
+      "updated_at": "2026-06-23T09:57:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2060,7 +2060,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Render active role item body (working agreements + skills) below the catalog card in sq role show, with a test asserting the agreements are present",
+          "title": "Render active role body below the catalog card in sq role show",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2069,7 +2069,7 @@
       ],
       "path": "tasks/TASK-000054-sq-role-show-renders-the-complete-role-definition-card-item.md",
       "created_at": "2026-06-12T07:52:37Z",
-      "updated_at": "2026-06-12T08:00:00Z",
+      "updated_at": "2026-06-23T09:58:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2091,7 +2091,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Rewrite the CLAUDE.md impersonation paragraph to direct to sq role show; verify the rest of the generated onboarding text is path-free and sync propagates",
+          "title": "Rewrite CLAUDE.md impersonation paragraph to direct to sq role show",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2100,7 +2100,7 @@
       ],
       "path": "tasks/TASK-000055-onboarding-texts-direct-to-sq-commands-not-squads-file-paths.md",
       "created_at": "2026-06-12T07:52:37Z",
-      "updated_at": "2026-06-12T08:01:30Z",
+      "updated_at": "2026-06-23T09:58:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2132,7 +2132,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Tests: each newly-guarded path rejects marker tags (incl. backtick-wrapped); item title/description false-positive guard; body behaviour unchanged",
+          "title": "Tests for marker-syntax guard on newly-guarded paths",
           "status": "Done",
           "assignee": "python-dev",
           "severity": null,
@@ -2141,7 +2141,7 @@
       ],
       "path": "tasks/TASK-000057-guard-all-prose-inputs-against-literal-sq-marker-syntax-comm.md",
       "created_at": "2026-06-12T08:18:43Z",
-      "updated_at": "2026-06-12T08:36:39Z",
+      "updated_at": "2026-06-23T09:58:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2280,7 +2280,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "State the convention once in squads_skill.md.j2 (single source): sub-entity command for scoped material, main command for cross-cutting, with one example per sub-entity type; add the brief scoping-principle sentence + reference to role.md.j2 working agreements (both regimes)",
+          "title": "State the scoping convention once in squads_skill.md.j2",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2288,7 +2288,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Add role-specific scoped-comment guidance to the per-role lines in _interactions.py — REVIEW reviewer/dev (finding-scoped), FEATURE po/tech-lead (story-scoped), TASK dev (subtask-scoped) — each pointing at the squads-skill convention, not restating it; verify sq sync regenerates every skill + role file with markers intact",
+          "title": "Add role-specific scoped-comment guidance in _interactions.py",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2296,7 +2296,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files carry the convention/guidance, and a no-regression assertion that an @mention in a sub-entity discussion is surfaced by sq inbox; keep pyright + ruff clean",
+          "title": "Tests: scoping convention in skills/roles + @mention inbox no-regression",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2305,7 +2305,7 @@
       ],
       "path": "tasks/TASK-000063-teach-sub-entity-comment-scoping-in-the-generated-skills-rol.md",
       "created_at": "2026-06-12T09:55:14Z",
-      "updated_at": "2026-06-12T10:00:52Z",
+      "updated_at": "2026-06-23T09:58:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2901,7 +2901,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Padding stored in index; all ID formatting derives from it; allocate_id raises index-full at capacity naming sq migrate repad",
+          "title": "Store padding in index; ID formatting derives from it",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2910,7 +2910,7 @@
       ],
       "path": "tasks/TASK-000101-store-padding-in-the-index-derive-all-id-formatting-from-it.md",
       "created_at": "2026-06-14T20:56:35Z",
-      "updated_at": "2026-06-14T21:20:14Z",
+      "updated_at": "2026-06-23T09:58:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2935,7 +2935,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "sq migrate repad <width>: one-way bump, renames all item files to new width, rebuilds index, refuses to lower, file contents byte-untouched; sq check clean after",
+          "title": "sq migrate repad <width>: one-way bump renaming all item files",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2944,7 +2944,7 @@
       ],
       "path": "tasks/TASK-000102-sq-migrate-repad-one-way-padding-bump-that-renames-every-ite.md",
       "created_at": "2026-06-14T20:56:35Z",
-      "updated_at": "2026-06-14T22:06:25Z",
+      "updated_at": "2026-06-23T09:58:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2969,7 +2969,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Width-tolerant ID equality in resolver/backrefs/check; mixed-width refs+mentions+parent+CLI args resolve; display uses current padding; mixed-width fixture tests",
+          "title": "Width-tolerant ID equality across resolver/backrefs/check",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -2978,7 +2978,7 @@
       ],
       "path": "tasks/TASK-000103-width-tolerant-id-reading-everywhere-display-always-uses-cur.md",
       "created_at": "2026-06-14T20:56:35Z",
-      "updated_at": "2026-06-14T22:06:25Z",
+      "updated_at": "2026-06-23T09:58:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3127,7 +3127,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Atomic remove: delete .md + index entry in one transaction; counter high-water mark survives removal and a subsequent repair (never re-issues the number); interactive confirm unless --yes",
+          "title": "Atomic remove preserving counter high-water mark",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3135,7 +3135,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Ref/child safety: refuse removal when incoming refs or children exist (list them); --force severs incoming refs from referrers' frontmatter (no danglers); children must be re-parented first; sq check clean after any removal",
+          "title": "Ref/child safety on removal; --force severs incoming refs",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3143,7 +3143,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "Traceable removal + docs: leave a queryable trace per the design ADR (tombstone/log) so a sequence-number gap reads as a recorded removal; document the remove-vs-cancel rule",
+          "title": "Traceable removal trace + remove-vs-cancel docs",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3152,7 +3152,7 @@
       ],
       "path": "tasks/TASK-000111-implement-sq-type-n-remove-for-work-items.md",
       "created_at": "2026-06-15T08:20:37Z",
-      "updated_at": "2026-06-15T09:21:47Z",
+      "updated_at": "2026-06-23T09:58:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3176,7 +3176,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Append one well-formed JSONL line per mutating transaction, atomically with the index write (writer + line schema + op/delta capture)",
+          "title": "Append one JSONL reflog line per mutating transaction",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3184,7 +3184,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Thread the actor (--as/--author/invoking agent) and op identity down to the store so removals/retypes/forced-status/repair are reconstructable from reflog lines alone",
+          "title": "Thread actor + op identity down to the store",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3193,7 +3193,7 @@
       ],
       "path": "tasks/TASK-000112-reflog-core-append-only-jsonl-log-wired-into-the-transaction.md",
       "created_at": "2026-06-15T08:20:48Z",
-      "updated_at": "2026-06-15T10:24:01Z",
+      "updated_at": "2026-06-23T09:58:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3225,7 +3225,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Back-compat: a squad with no reflog file behaves identically; reflog never consulted for state, missing/truncated never an error",
+          "title": "Reflog back-compat: absent/truncated file never an error",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3242,7 +3242,7 @@
       ],
       "path": "tasks/TASK-000113-sq-reflog-read-command-schema-documentation-and-contract-tie.md",
       "created_at": "2026-06-15T08:20:49Z",
-      "updated_at": "2026-06-15T10:24:01Z",
+      "updated_at": "2026-06-23T09:58:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3372,7 +3372,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow, skill content); sq init/sync target it; README",
+          "title": "Implement AgentsMdBackend writing/refreshing AGENTS.md",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3389,7 +3389,7 @@
       ],
       "path": "tasks/TASK-000132-implement-the-agents-md-backend-agents-md.md",
       "created_at": "2026-06-15T13:03:01Z",
-      "updated_at": "2026-06-15T14:22:45Z",
+      "updated_at": "2026-06-23T09:58:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3411,7 +3411,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Bump SCHEMA_VERSION 0.3→0.4, add _v0_3_to_v0_4 runner (default_backend→active_backends in .squads.toml) + register it, commit a v0_4 corpus fixture and wire it into _CORPUS_CASES",
+          "title": "Bump SCHEMA_VERSION 0.3→0.4 + _v0_3_to_v0_4 runner and fixture",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3420,7 +3420,7 @@
       ],
       "path": "tasks/TASK-000139-migrate-default-backend-to-active-backends-schema-0-4.md",
       "created_at": "2026-06-16T09:39:30Z",
-      "updated_at": "2026-06-16T12:43:45Z",
+      "updated_at": "2026-06-23T09:58:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3442,7 +3442,7 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Config model active_backends + runtime fan-out over all active backends in scaffold/sync/write_managed + init/adopt populate the list; tests proving multiple backends (CLAUDE.md + AGENTS.md) are generated and checked",
+          "title": "active_backends config model + runtime fan-out over all backends",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3450,7 +3450,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "sq check rule: each active backend's files present & current, empty active_backends=[] verifies nothing (sq-only squad), deactivated backend's lingering files are ignored not flagged; tests for empty + deactivation semantics",
+          "title": "sq check rule for active backends (empty + deactivation semantics)",
           "status": "Done",
           "assignee": null,
           "severity": null,
@@ -3459,7 +3459,7 @@
       ],
       "path": "tasks/TASK-000140-multi-active-backend-runtime-and-sq-check-rule.md",
       "created_at": "2026-06-16T09:39:30Z",
-      "updated_at": "2026-06-16T13:01:00Z",
+      "updated_at": "2026-06-23T09:59:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4692,7 +4692,7 @@
       "subentities": [
         {
           "local_id": "F1",
-          "title": "Type-mismatch wording is inconsistent on typed surfaces depending on input form. For the SAME item, 'sq task 2 show' errors '2 is FEAT-000002 (feature), not a task' (names actual item+type, matches the recorded decision) but 'sq task FEAT-000002 show' errors 'FEAT-000002 is not a task (expected TASK-…)' — it never tells the user FEAT-000002 IS a feature. resolve_item_id_typed short-circuits the full-ID branch on the prefix string check (_common.py ~line 280) before the DB lookup, reusing the old wording. Acceptance requires wrong-type errors 'consistently everywhere, naming the actual item and type'. Fix: in the full-ID branch, when prefix mismatches, do the DB lookup and emit the same 'X is <id> (<type>), not a <type>' wording as the bare-number branch.",
+          "title": "Type-mismatch wording differs between full-ID and bare-number forms",
           "status": "Verified",
           "assignee": null,
           "severity": "medium",
@@ -4700,7 +4700,7 @@
         },
         {
           "local_id": "F2",
-          "title": "Unknown-item error wording drifts across the four resolver branches; acceptance demands 'both accepted forms, consistently everywhere'. Variants observed: (a) typed bare: 'no item with number 999 (use TASK-000999 or bare 999)'; (b) any bare: 'no item with number 999 (use a bare number like 999 or a full ID like TYPE-000999)'; (c) any full-ID: 'no item with number 999 (tried FEAT-000999 or bare 999)' — this one names neither form as a 'form' and omits the full-ID guidance; (d) typed full-ID uses the command prefix while any uses literal 'TYPE-'. Pick one canonical phrasing for 'mentions both forms' and use it in all four branches of resolve_item_id_typed/_any in _common.py.",
+          "title": "Unknown-item error wording drifts across the four resolver branches",
           "status": "Verified",
           "assignee": null,
           "severity": "medium",
@@ -4708,7 +4708,7 @@
         },
         {
           "local_id": "F3",
-          "title": "Old resolve_item_id (_common.py:231) is now dead production code — no production caller remains after _items.py switched its verb callback to resolve_item_id_typed (only its own test_resolve_item_id references it). The two new resolvers re-implement the same lexical prefix/rpartition munging internally, so the lexical phase is now written three times. Either delete resolve_item_id (and fold its lexical assertions into the typed test) or have the new resolvers delegate to it for the lexical phase. Quality/maintainability, not correctness.",
+          "title": "Dead code: old resolve_item_id; lexical munging now written 3x",
           "status": "Verified",
           "assignee": null,
           "severity": "low",
@@ -4716,7 +4716,7 @@
         },
         {
           "local_id": "F4",
-          "title": "Minor grammar in type-mismatch messages: 'not a operator' / 'not a epic' (a/an agreement) — produced for OPERATOR and EPIC types. The recorded example is 'not a task' so it reads fine for most types but not vowel-initial ones. Low cosmetic; can be folded with the F1/F2 wording cleanup.",
+          "title": "Grammar: 'not a operator'/'not a epic' a/an agreement in mismatch msgs",
           "status": "Verified",
           "assignee": null,
           "severity": "low",
@@ -4725,7 +4725,7 @@
       ],
       "path": "reviews/REV-000048-feat-000019-uniform-item-addressing.md",
       "created_at": "2026-06-11T14:19:22Z",
-      "updated_at": "2026-06-11T14:32:32Z",
+      "updated_at": "2026-06-23T09:59:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4749,7 +4749,7 @@
       "subentities": [
         {
           "local_id": "F1",
-          "title": "Style: _check_decisions() in _maintenance.py uses a function-local 'from squads._models._enums import Status' (line ~332) when ItemType is already imported from that same module at the top. Hoist Status to the module-level import for consistency. Non-blocking — no cycle, gates clean.",
+          "title": "Function-local Status import in _check_decisions; hoist to module top",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -4758,7 +4758,7 @@
       ],
       "path": "reviews/REV-000052-feat-000035-typed-ref-vocabulary.md",
       "created_at": "2026-06-11T20:41:00Z",
-      "updated_at": "2026-06-11T20:43:14Z",
+      "updated_at": "2026-06-23T09:59:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4997,7 +4997,7 @@
       "subentities": [
         {
           "local_id": "F1",
-          "title": "No autouse fixture resets engine module-state between tests (_active_squad_dir ContextVar + _env_cache dict). conftest resets the clock but not the engine: ServiceCore.__init__ sets the _active_squad_dir ContextVar and never restores it, so a test that constructs a service leaves that squad dir active for any later test that calls bare render() without setting it. Today it doesn't bite (override tests set it explicitly; fresh tmp_path keys avoid cache collisions), but it's order-dependent coupling that will grow as T88/T89 add override tests. Suggest an autouse fixture that calls set_active_squad_dir(None) (and optionally clears _env_cache) on teardown, mirroring _reset_clock_override.",
+          "title": "No autouse fixture resets engine ContextVar/cache between tests",
           "status": "Fixed",
           "assignee": null,
           "severity": "low",
@@ -5006,7 +5006,7 @@
       ],
       "path": "reviews/REV-000093-review-task-000087-override-loader-precedence-plumbing.md",
       "created_at": "2026-06-12T21:10:56Z",
-      "updated_at": "2026-06-12T21:29:05Z",
+      "updated_at": "2026-06-23T09:59:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5028,7 +5028,7 @@
       "subentities": [
         {
           "local_id": "F1",
-          "title": "print_block (add-story/add-subtask/add-finding --json) emits the .md file location under key 'file', while read-side show --json emits the same path concept under 'path'. Both are the item's markdown file path; a JSON consumer must special-case the key per command. Documented in the module docstring per Catherine's REV-86 carry-over (rename-or-document was sanctioned), and print_block is outside this task's frozen read surface — non-blocking. Recorded so a future consumer/contributor sees the asymmetry is deliberate, not accidental. Recommend revisiting file->path alignment when the write surface gets its own goldens.",
+          "title": "print_block --json uses 'file' key vs show --json 'path' for same path",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -5037,7 +5037,7 @@
       ],
       "path": "reviews/REV-000094-review-task-000084-golden-file-harness-freezing-every-json-s.md",
       "created_at": "2026-06-12T21:23:52Z",
-      "updated_at": "2026-06-12T21:24:17Z",
+      "updated_at": "2026-06-23T09:59:40Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5061,7 +5061,7 @@
       "subentities": [
         {
           "local_id": "F1",
-          "title": "New-slug admission checks key presence only, not non-emptiness. A TOML with required keys present but empty (title=\"\", mission=\"\") admits a degenerate role with blank fields. _apply_override uses [f for f in _REQUIRED_FOR_NEW if f not in data]; an empty string passes. Inconsistent with the NonEmpty guard used for titles elsewhere. ADR §2 does not strictly mandate non-empty, and the project owns its own TOML, so non-blocking.",
+          "title": "New-slug admission checks key presence only, not non-emptiness",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -5069,7 +5069,7 @@
         },
         {
           "local_id": "F2",
-          "title": "RoleDef is a frozen dataclass, so scalar override values are not type-validated. e.g. model=42 in a TOML is accepted and stored verbatim, flowing to extra/pointer; only TypeError (unknown/missing kwargs) is caught and wrapped. Low risk (project-owned file), but a wrong-typed model/color/is_default passes silently. Consider validating scalar types or coercing in _apply_override.",
+          "title": "RoleDef frozen dataclass: scalar override values not type-validated",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -5078,7 +5078,7 @@
       ],
       "path": "reviews/REV-000095-review-task-000088-role-override-resolver-field-wise-merge-n.md",
       "created_at": "2026-06-12T21:32:57Z",
-      "updated_at": "2026-06-12T21:33:39Z",
+      "updated_at": "2026-06-23T09:59:41Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5126,7 +5126,7 @@
       "subentities": [
         {
           "local_id": "F1",
-          "title": "Manifest-freshness is unguarded — silent drift-miss at release. The whole feature fails OPEN if scripts/gen_template_manifest.py isn't re-run before a release that changes a template: template_changed_since() returns False for a missing/stale current-version entry, so every override silently shows no drift — exactly what the feature exists to prevent. The dev's @devops note documents the manual build step but nothing enforces it. test_manifest_loads_current_version_hashes only checks ONE template has *a* hash, not that it matches current bundled content, and not that all 20 are present. A single guard test would convert this from a release-time human-memory failure into a red build.",
+          "title": "Manifest-freshness unguarded — silent drift-miss at release",
           "status": "Fixed",
           "assignee": null,
           "severity": "medium",
@@ -5134,7 +5134,7 @@
         },
         {
           "local_id": "F2",
-          "title": "New --json read commands (override list/diff) are not golden-pinned. FEAT-000015/TASK-000084 established that EVERY --json read command gets a golden in tests/goldens/ pinned by test_golden_json.py, so any shape drift fails the build. override list --json and override diff --json are new read commands joining the 1.0 machine-readable surface but are only key-set-asserted in test_override_commands.py — not added to the golden suite. Consistency gap against a just-frozen convention; should be closed before 1.0.",
+          "title": "New override list/diff --json read commands not golden-pinned",
           "status": "Fixed",
           "assignee": null,
           "severity": "medium",
@@ -5142,7 +5142,7 @@
         },
         {
           "local_id": "F3",
-          "title": "gen_template_manifest.py docstring exit-code claim is wrong. Docstring says 'Exit codes: 0 = success, 1 = error (already at this version with unchanged hashes; nothing to write...)'. The no-change path actually prints and exits 0 (correct behaviour for a no-op), so the docstring contradicts the code. Fix the docstring (exit 0 on no-op is fine to keep).",
+          "title": "gen_template_manifest.py docstring exit-code claim is wrong",
           "status": "Fixed",
           "assignee": null,
           "severity": "low",
@@ -5150,7 +5150,7 @@
         },
         {
           "local_id": "F4",
-          "title": "diff with no name hides broken overrides. The bare 'sq override diff' path filters to STATE_DRIFTED only, so a user whose only override is BROKEN (missing marker) gets 'no drifted overrides found' with no hint that a broken override needs attention. ADR scopes bare diff to drifted, so not a contract violation, but a one-line note pointing at 'sq override list'/'sq check' for broken overrides would close the UX gap.",
+          "title": "Bare 'sq override diff' hides broken overrides (filters to drifted)",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -5158,7 +5158,7 @@
         },
         {
           "local_id": "F5",
-          "title": "base_version_template_content is hash-only, so Δ-upgrade is unavailable for any genuinely-upgraded template. By design the manifest stores hashes not snapshots, so base content is recoverable only when base_hash == current_hash (i.e. unchanged) — meaning the Δ-upgrade view degrades to the '(cannot recover...)' message in exactly the case it is most needed (template changed since base). ADR §3 step 2 describes Δ-upgrade as 'reconstructed from the manifest plus the bundled archive it indexes'; the manifest indexes nothing but hashes. The code handles this gracefully and the limitation is documented in the docstring, but it is a partial fulfilment of the ADR's stated Δ-upgrade capability — flagging so it is a deliberate, recorded deferral rather than an unnoticed shortfall.",
+          "title": "Delta-upgrade blocked: base_version_template_content is hash-only",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -5167,7 +5167,7 @@
       ],
       "path": "reviews/REV-000097-task-000089-sq-override-group-staleness-machinery-hash-manif.md",
       "created_at": "2026-06-12T22:00:54Z",
-      "updated_at": "2026-06-12T22:07:19Z",
+      "updated_at": "2026-06-23T09:59:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5441,7 +5441,7 @@
         },
         {
           "local_id": "F6",
-          "title": "json.dumps is OUTSIDE the error-swallow in append_line — a non-serializable delta would propagate past the committed mutation",
+          "title": "json.dumps outside append_line swallow could break committed write",
           "status": "Fixed",
           "assignee": null,
           "severity": "low",
@@ -5466,7 +5466,7 @@
       ],
       "path": "reviews/REV-000118-reflog-durability-threading-review-task-112-113-vs-adr-117.md",
       "created_at": "2026-06-15T09:57:14Z",
-      "updated_at": "2026-06-15T10:02:57Z",
+      "updated_at": "2026-06-23T10:00:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6017,7 +6017,7 @@
       "subentities": [
         {
           "local_id": "F1",
-          "title": "Inline duplicate json imports in _cli/_create.py (import json in _make, import json as _json in create_guide) — prefer one top-level import json reused in both. Cosmetic; ruff clean.",
+          "title": "Inline duplicate json imports in _cli/_create.py",
           "status": "Fixed",
           "assignee": null,
           "severity": "low",
@@ -6025,7 +6025,7 @@
         },
         {
           "local_id": "F2",
-          "title": "Internal artifact commands (sq dev add, role activate) routed through ServiceCore.create write an advisory lane_warning to the reflog with expected:[] (e.g. architect authoring a 'role' item). Harmless + not surfaced to the user (only _create.py renders it), but it is reflog noise. Consider exempting non-CREATE_LANES item types (role/skill/operator/dev) or internal-author paths in a follow-up. Not a blocker for this advisory cut.",
+          "title": "Internal artifact create writes advisory lane_warning reflog noise",
           "status": "Fixed",
           "assignee": null,
           "severity": "low",
@@ -6034,7 +6034,7 @@
       ],
       "path": "reviews/REV-000165-advisory-create-lane-warning-task-164-feat-122-us1-slice-b.md",
       "created_at": "2026-06-22T13:31:03Z",
-      "updated_at": "2026-06-22T13:40:45Z",
+      "updated_at": "2026-06-23T09:59:45Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},

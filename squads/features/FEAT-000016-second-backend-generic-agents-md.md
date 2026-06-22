@@ -11,15 +11,13 @@ description: Prove the AgentBackend ABC with a cross-tool AGENTS.md implementati
   before the ABC freezes
 subentities:
 - local_id: US1
-  title: As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md,
-    so that we can run squads with our own tooling
+  title: AGENTS.md backend for non-Claude agent tooling
   status: Done
 - local_id: US2
-  title: As a future backend implementer, I want a backend conformance test suite,
-    so that I know exactly what the AgentBackend contract requires of me
+  title: Backend conformance test suite for AgentBackend implementers
   status: Done
 created_at: '2026-06-10T12:41:16Z'
-updated_at: '2026-06-15T14:22:47Z'
+updated_at: '2026-06-23T09:58:59Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -57,14 +55,14 @@ _Add with `sq feature 16 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so that we can run squads with our own tooling |
-| US2 | Done |  | As a future backend implementer, I want a backend conformance test suite, so that I know exactly what the AgentBackend contract requires of me |
+| US1 | Done |  | AGENTS.md backend for non-Claude agent tooling |
+| US2 | Done |  | Backend conformance test suite for AgentBackend implementers |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so that we can run squads with our own tooling
+### US1 — AGENTS.md backend for non-Claude agent tooling
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
@@ -72,6 +70,8 @@ _Add with `sq feature 16 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** sq init / sq sync can target the agents-md backend and produce a valid AGENTS.md carrying roster, workflow and skill content; documented in the README.
+
+As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so that we can run squads with our own tooling.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -81,7 +81,7 @@ _Add with `sq feature 16 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a future backend implementer, I want a backend conformance test suite, so that I know exactly what the AgentBackend contract requires of me
+### US2 — Backend conformance test suite for AgentBackend implementers
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -89,6 +89,8 @@ _Add with `sq feature 16 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** a shared conformance suite runs against both backends and passes; any AgentBackend ABC changes surfaced by the second implementation are merged before 1.0.
+
+As a future backend implementer, I want a backend conformance test suite, so that I know exactly what the AgentBackend contract requires of me.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

@@ -13,13 +13,11 @@ refs:
 - REV-000106:addresses
 subentities:
 - local_id: ST1
-  title: 'sq migrate repad <width>: one-way bump, renames all item files to new width,
-    rebuilds index, refuses to lower, file contents byte-untouched; sq check clean
-    after'
+  title: 'sq migrate repad <width>: one-way bump renaming all item files'
   status: Done
   story: US2
 created_at: '2026-06-14T20:56:35Z'
-updated_at: '2026-06-14T22:06:25Z'
+updated_at: '2026-06-23T09:58:30Z'
 ---
 <!-- sq:body -->
 Add `sq migrate repad <new-width>` — a sibling of `up`/`help`/`chlog` under the `sq migrate` Typer app (`_cli/_migrate.py`); service logic near `repair` in `_services/_maintenance.py`.
@@ -46,13 +44,13 @@ _Add with `sq task 102 add-subtask "<title>"`; track with `sq task 102 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | sq migrate repad <width>: one-way bump, renames all item files to new width, rebuilds index, refuses to lower, file contents byte-untouched; sq check clean after | US2 |
+| ST1 | Done |  | sq migrate repad <width>: one-way bump renaming all item files | US2 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — sq migrate repad <width>: one-way bump, renames all item files to new width, rebuilds index, refuses to lower, file contents byte-untouched; sq check clean after
+### ST1 — sq migrate repad <width>: one-way bump renaming all item files
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -60,7 +58,7 @@ _Add with `sq task 102 add-subtask "<title>"`; track with `sq task 102 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+sq migrate repad <width>: one-way bump, renames all item files to new width, rebuilds index, refuses to lower, file contents byte-untouched; sq check clean after.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

@@ -10,27 +10,19 @@ assignee: python-dev
 priority: medium
 subentities:
 - local_id: ST1
-  title: 'State the convention once in squads_skill.md.j2 (single source): sub-entity
-    command for scoped material, main command for cross-cutting, with one example
-    per sub-entity type; add the brief scoping-principle sentence + reference to role.md.j2
-    working agreements (both regimes)'
+  title: State the scoping convention once in squads_skill.md.j2
   status: Done
   story: US1
 - local_id: ST2
-  title: Add role-specific scoped-comment guidance to the per-role lines in _interactions.py
-    — REVIEW reviewer/dev (finding-scoped), FEATURE po/tech-lead (story-scoped), TASK
-    dev (subtask-scoped) — each pointing at the squads-skill convention, not restating
-    it; verify sq sync regenerates every skill + role file with markers intact
+  title: Add role-specific scoped-comment guidance in _interactions.py
   status: Done
   story: US2
 - local_id: ST3
-  title: 'Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role
-    files carry the convention/guidance, and a no-regression assertion that an @mention
-    in a sub-entity discussion is surfaced by sq inbox; keep pyright + ruff clean'
+  title: 'Tests: scoping convention in skills/roles + @mention inbox no-regression'
   status: Done
   story: US3
 created_at: '2026-06-12T09:55:14Z'
-updated_at: '2026-06-12T10:00:52Z'
+updated_at: '2026-06-23T09:58:09Z'
 ---
 <!-- sq:body -->
 **Goal.** Teach agents the comment-scoping convention — sub-entity discussions for scoped material, the main item discussion for cross-cutting material — across the generated skills and role templates. Content/template only — NO CLI behaviour changes, no parsing or inbox changes (the inbox already surfaces sub-entity @mentions; the PO verified this empirically 2026-06-12). The convention is preference-based guidance, not a hard rule.
@@ -61,15 +53,15 @@ _Add with `sq task 63 add-subtask "<title>"`; track with `sq task 63 subtask <n>
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | State the convention once in squads_skill.md.j2 (single source): sub-entity command for scoped material, main command for cross-cutting, with one example per sub-entity type; add the brief scoping-principle sentence + reference to role.md.j2 working agreements (both regimes) | US1 |
-| ST2 | Done |  | Add role-specific scoped-comment guidance to the per-role lines in _interactions.py — REVIEW reviewer/dev (finding-scoped), FEATURE po/tech-lead (story-scoped), TASK dev (subtask-scoped) — each pointing at the squads-skill convention, not restating it; verify sq sync regenerates every skill + role file with markers intact | US2 |
-| ST3 | Done |  | Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files carry the convention/guidance, and a no-regression assertion that an @mention in a sub-entity discussion is surfaced by sq inbox; keep pyright + ruff clean | US3 |
+| ST1 | Done |  | State the scoping convention once in squads_skill.md.j2 | US1 |
+| ST2 | Done |  | Add role-specific scoped-comment guidance in _interactions.py | US2 |
+| ST3 | Done |  | Tests: scoping convention in skills/roles + @mention inbox no-regression | US3 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — State the convention once in squads_skill.md.j2 (single source): sub-entity command for scoped material, main command for cross-cutting, with one example per sub-entity type; add the brief scoping-principle sentence + reference to role.md.j2 working agreements (both regimes)
+### ST1 — State the scoping convention once in squads_skill.md.j2
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -77,7 +69,7 @@ _Add with `sq task 63 add-subtask "<title>"`; track with `sq task 63 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+State the convention once in squads_skill.md.j2 (single source): sub-entity command for scoped material, main command for cross-cutting, with one example per sub-entity type; add the brief scoping-principle sentence + reference to role.md.j2 working agreements (both regimes).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -91,7 +83,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST1:end -->
 
 <!-- sq:subtask:ST2 -->
-### ST2 — Add role-specific scoped-comment guidance to the per-role lines in _interactions.py — REVIEW reviewer/dev (finding-scoped), FEATURE po/tech-lead (story-scoped), TASK dev (subtask-scoped) — each pointing at the squads-skill convention, not restating it; verify sq sync regenerates every skill + role file with markers intact
+### ST2 — Add role-specific scoped-comment guidance in _interactions.py
 
 <!-- sq:subtask:ST2:head -->
 **Status:** 🟢 Done
@@ -99,7 +91,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add role-specific scoped-comment guidance to the per-role lines in _interactions.py — REVIEW reviewer/dev (finding-scoped), FEATURE po/tech-lead (story-scoped), TASK dev (subtask-scoped) — each pointing at the squads-skill convention, not restating it; verify sq sync regenerates every skill + role file with markers intact.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -112,7 +104,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:end -->
 
 <!-- sq:subtask:ST3 -->
-### ST3 — Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files carry the convention/guidance, and a no-regression assertion that an @mention in a sub-entity discussion is surfaced by sq inbox; keep pyright + ruff clean
+### ST3 — Tests: scoping convention in skills/roles + @mention inbox no-regression
 
 <!-- sq:subtask:ST3:head -->
 **Status:** 🟢 Done
@@ -120,7 +112,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files carry the convention/guidance, and a no-regression assertion that an @mention in a sub-entity discussion is surfaced by sq inbox; keep pyright + ruff clean.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

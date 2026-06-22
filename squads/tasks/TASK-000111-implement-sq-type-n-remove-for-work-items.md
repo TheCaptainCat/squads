@@ -9,25 +9,19 @@ author: tech-lead
 priority: medium
 subentities:
 - local_id: ST1
-  title: 'Atomic remove: delete .md + index entry in one transaction; counter high-water
-    mark survives removal and a subsequent repair (never re-issues the number); interactive
-    confirm unless --yes'
+  title: Atomic remove preserving counter high-water mark
   status: Done
   story: US1
 - local_id: ST2
-  title: 'Ref/child safety: refuse removal when incoming refs or children exist (list
-    them); --force severs incoming refs from referrers'' frontmatter (no danglers);
-    children must be re-parented first; sq check clean after any removal'
+  title: Ref/child safety on removal; --force severs incoming refs
   status: Done
   story: US2
 - local_id: ST3
-  title: 'Traceable removal + docs: leave a queryable trace per the design ADR (tombstone/log)
-    so a sequence-number gap reads as a recorded removal; document the remove-vs-cancel
-    rule'
+  title: Traceable removal trace + remove-vs-cancel docs
   status: Done
   story: US3
 created_at: '2026-06-15T08:20:37Z'
-updated_at: '2026-06-15T09:21:47Z'
+updated_at: '2026-06-23T09:58:35Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -81,15 +75,15 @@ _Add with `sq task 111 add-subtask "<title>"`; track with `sq task 111 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Atomic remove: delete .md + index entry in one transaction; counter high-water mark survives removal and a subsequent repair (never re-issues the number); interactive confirm unless --yes | US1 |
-| ST2 | Done |  | Ref/child safety: refuse removal when incoming refs or children exist (list them); --force severs incoming refs from referrers' frontmatter (no danglers); children must be re-parented first; sq check clean after any removal | US2 |
-| ST3 | Done |  | Traceable removal + docs: leave a queryable trace per the design ADR (tombstone/log) so a sequence-number gap reads as a recorded removal; document the remove-vs-cancel rule | US3 |
+| ST1 | Done |  | Atomic remove preserving counter high-water mark | US1 |
+| ST2 | Done |  | Ref/child safety on removal; --force severs incoming refs | US2 |
+| ST3 | Done |  | Traceable removal trace + remove-vs-cancel docs | US3 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Atomic remove: delete .md + index entry in one transaction; counter high-water mark survives removal and a subsequent repair (never re-issues the number); interactive confirm unless --yes
+### ST1 — Atomic remove preserving counter high-water mark
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -97,7 +91,7 @@ _Add with `sq task 111 add-subtask "<title>"`; track with `sq task 111 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Atomic remove: delete .md + index entry in one transaction; counter high-water mark survives removal and a subsequent repair (never re-issues the number); interactive confirm unless --yes.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -107,7 +101,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST1:end -->
 
 <!-- sq:subtask:ST2 -->
-### ST2 — Ref/child safety: refuse removal when incoming refs or children exist (list them); --force severs incoming refs from referrers' frontmatter (no danglers); children must be re-parented first; sq check clean after any removal
+### ST2 — Ref/child safety on removal; --force severs incoming refs
 
 <!-- sq:subtask:ST2:head -->
 **Status:** 🟢 Done
@@ -115,7 +109,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Ref/child safety: refuse removal when incoming refs or children exist (list them); --force severs incoming refs from referrers' frontmatter (no danglers); children must be re-parented first; sq check clean after any removal.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -125,7 +119,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:end -->
 
 <!-- sq:subtask:ST3 -->
-### ST3 — Traceable removal + docs: leave a queryable trace per the design ADR (tombstone/log) so a sequence-number gap reads as a recorded removal; document the remove-vs-cancel rule
+### ST3 — Traceable removal trace + remove-vs-cancel docs
 
 <!-- sq:subtask:ST3:head -->
 **Status:** 🟢 Done
@@ -133,7 +127,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Traceable removal + docs: leave a queryable trace per the design ADR (tombstone/log) so a sequence-number gap reads as a recorded removal; document the remove-vs-cancel rule.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

@@ -13,12 +13,11 @@ refs:
 - REV-000105:addresses
 subentities:
 - local_id: ST1
-  title: Padding stored in index; all ID formatting derives from it; allocate_id raises
-    index-full at capacity naming sq migrate repad
+  title: Store padding in index; ID formatting derives from it
   status: Done
   story: US1
 created_at: '2026-06-14T20:56:35Z'
-updated_at: '2026-06-14T21:20:14Z'
+updated_at: '2026-06-23T09:58:29Z'
 ---
 <!-- sq:body -->
 Make ID width an explicit, stored part of the on-disk format.
@@ -49,13 +48,13 @@ _Add with `sq task 101 add-subtask "<title>"`; track with `sq task 101 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Padding stored in index; all ID formatting derives from it; allocate_id raises index-full at capacity naming sq migrate repad | US1 |
+| ST1 | Done |  | Store padding in index; ID formatting derives from it | US1 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Padding stored in index; all ID formatting derives from it; allocate_id raises index-full at capacity naming sq migrate repad
+### ST1 — Store padding in index; ID formatting derives from it
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -63,7 +62,7 @@ _Add with `sq task 101 add-subtask "<title>"`; track with `sq task 101 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Padding stored in index; all ID formatting derives from it; allocate_id raises index-full at capacity naming sq migrate repad.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

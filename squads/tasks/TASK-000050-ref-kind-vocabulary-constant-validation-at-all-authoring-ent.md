@@ -12,8 +12,7 @@ refs:
 - TASK-000051:blocks
 subentities:
 - local_id: ST1
-  title: Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind
-    in add_ref, rejecting unknowns with the valid list
+  title: Define VALID_REF_KINDS and validate --kind in add_ref
   status: Done
   story: US1
 - local_id: ST2
@@ -22,12 +21,11 @@ subentities:
   status: Done
   story: US2
 - local_id: ST3
-  title: Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create
-    --ref id:kind; authorable from the dependent
+  title: Accept depends-on/supersedes/duplicates ref kinds
   status: Done
   story: US4
 created_at: '2026-06-11T20:21:59Z'
-updated_at: '2026-06-11T20:43:22Z'
+updated_at: '2026-06-23T09:57:43Z'
 ---
 <!-- sq:body -->
 Make the ref-kind vocabulary a finite, single-source-of-truth list and enforce it at every authoring entry point. Per **ADR-000049** (Proposed): the 1.0 vocabulary is **explicitly CLOSED** — eight kinds, no project-config lookup on the validation path, no custom-kind escape hatch.
@@ -69,15 +67,15 @@ _Add with `sq task 50 add-subtask "<title>"`; track with `sq task 50 subtask <n>
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind in add_ref, rejecting unknowns with the valid list | US1 |
+| ST1 | Done |  | Define VALID_REF_KINDS and validate --kind in add_ref | US1 |
 | ST2 | Done |  | Keep bare ref add first-class: default related validates trivially, no nudge, no warning | US2 |
-| ST3 | Done |  | Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create --ref id:kind; authorable from the dependent | US4 |
+| ST3 | Done |  | Accept depends-on/supersedes/duplicates ref kinds | US4 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind in add_ref, rejecting unknowns with the valid list
+### ST1 — Define VALID_REF_KINDS and validate --kind in add_ref
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -85,7 +83,7 @@ _Add with `sq task 50 add-subtask "<title>"`; track with `sq task 50 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind in add_ref, rejecting unknowns with the valid list.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -113,7 +111,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:end -->
 
 <!-- sq:subtask:ST3 -->
-### ST3 — Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create --ref id:kind; authorable from the dependent
+### ST3 — Accept depends-on/supersedes/duplicates ref kinds
 
 <!-- sq:subtask:ST3:head -->
 **Status:** 🟢 Done
@@ -121,7 +119,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create --ref id:kind; authorable from the dependent.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

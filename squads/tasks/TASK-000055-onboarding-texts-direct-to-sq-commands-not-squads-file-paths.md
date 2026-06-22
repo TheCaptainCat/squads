@@ -10,12 +10,11 @@ assignee: python-dev
 priority: high
 subentities:
 - local_id: ST1
-  title: Rewrite the CLAUDE.md impersonation paragraph to direct to sq role show;
-    verify the rest of the generated onboarding text is path-free and sync propagates
+  title: Rewrite CLAUDE.md impersonation paragraph to direct to sq role show
   status: Done
   story: US2
 created_at: '2026-06-12T07:52:37Z'
-updated_at: '2026-06-12T08:01:30Z'
+updated_at: '2026-06-23T09:58:03Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -52,13 +51,13 @@ _Add with `sq task 55 add-subtask "<title>"`; track with `sq task 55 subtask <n>
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Rewrite the CLAUDE.md impersonation paragraph to direct to sq role show; verify the rest of the generated onboarding text is path-free and sync propagates | US2 |
+| ST1 | Done |  | Rewrite CLAUDE.md impersonation paragraph to direct to sq role show | US2 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Rewrite the CLAUDE.md impersonation paragraph to direct to sq role show; verify the rest of the generated onboarding text is path-free and sync propagates
+### ST1 — Rewrite CLAUDE.md impersonation paragraph to direct to sq role show
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -66,7 +65,7 @@ _Add with `sq task 55 add-subtask "<title>"`; track with `sq task 55 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Rewrite the CLAUDE.md impersonation paragraph to direct to sq role show; verify the rest of the generated onboarding text is path-free and sync propagates.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

@@ -14,8 +14,7 @@ description: Second AgentBackend writing a single project AGENTS.md; passes the 
   conformance suite; sq init/sync target it
 subentities:
 - local_id: ST1
-  title: Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow,
-    skill content); sq init/sync target it; README
+  title: Implement AgentsMdBackend writing/refreshing AGENTS.md
   status: Done
   story: US1
 - local_id: ST2
@@ -24,7 +23,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-15T13:03:01Z'
-updated_at: '2026-06-15T14:22:45Z'
+updated_at: '2026-06-23T09:58:57Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -73,22 +72,22 @@ _Add with `sq task 132 add-subtask "<title>"`; track with `sq task 132 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow, skill content); sq init/sync target it; README | US1 |
+| ST1 | Done |  | Implement AgentsMdBackend writing/refreshing AGENTS.md | US1 |
 | ST2 | Done |  | Parametrize the conformance suite over agents_md and make both backends pass it | US2 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow, skill content); sq init/sync target it; README
+### ST1 — Implement AgentsMdBackend writing/refreshing AGENTS.md
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
-**Implements:** US1 — As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so that we can run squads with our own tooling
+**Implements:** US1 — AGENTS.md backend for non-Claude agent tooling
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow, skill content); sq init/sync target it; README.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

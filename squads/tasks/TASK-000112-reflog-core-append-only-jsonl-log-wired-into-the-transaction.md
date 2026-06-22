@@ -13,18 +13,15 @@ description: Append-only operation log written atomically inside IndexStore.tran
   the writer, the line schema, and actor threading.
 subentities:
 - local_id: ST1
-  title: Append one well-formed JSONL line per mutating transaction, atomically with
-    the index write (writer + line schema + op/delta capture)
+  title: Append one JSONL reflog line per mutating transaction
   status: Done
   story: US1
 - local_id: ST2
-  title: Thread the actor (--as/--author/invoking agent) and op identity down to the
-    store so removals/retypes/forced-status/repair are reconstructable from reflog
-    lines alone
+  title: Thread actor + op identity down to the store
   status: Done
   story: US2
 created_at: '2026-06-15T08:20:48Z'
-updated_at: '2026-06-15T10:24:01Z'
+updated_at: '2026-06-23T09:58:54Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -97,14 +94,14 @@ _Add with `sq task 112 add-subtask "<title>"`; track with `sq task 112 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Append one well-formed JSONL line per mutating transaction, atomically with the index write (writer + line schema + op/delta capture) | US1 |
-| ST2 | Done |  | Thread the actor (--as/--author/invoking agent) and op identity down to the store so removals/retypes/forced-status/repair are reconstructable from reflog lines alone | US2 |
+| ST1 | Done |  | Append one JSONL reflog line per mutating transaction | US1 |
+| ST2 | Done |  | Thread actor + op identity down to the store | US2 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Append one well-formed JSONL line per mutating transaction, atomically with the index write (writer + line schema + op/delta capture)
+### ST1 — Append one JSONL reflog line per mutating transaction
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -112,7 +109,7 @@ _Add with `sq task 112 add-subtask "<title>"`; track with `sq task 112 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Append one well-formed JSONL line per mutating transaction, atomically with the index write (writer + line schema + op/delta capture).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -122,7 +119,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST1:end -->
 
 <!-- sq:subtask:ST2 -->
-### ST2 — Thread the actor (--as/--author/invoking agent) and op identity down to the store so removals/retypes/forced-status/repair are reconstructable from reflog lines alone
+### ST2 — Thread actor + op identity down to the store
 
 <!-- sq:subtask:ST2:head -->
 **Status:** 🟢 Done
@@ -130,7 +127,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Thread the actor (--as/--author/invoking agent) and op identity down to the store so removals/retypes/forced-status/repair are reconstructable from reflog lines alone.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

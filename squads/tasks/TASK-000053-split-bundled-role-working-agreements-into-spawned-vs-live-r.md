@@ -10,25 +10,19 @@ assignee: python-dev
 priority: high
 subentities:
 - local_id: ST1
-  title: Restructure role.md.j2 working agreements into the two explicit regimes with
-    the shared 'record when it becomes true' principle; sq sync propagates to all
-    8 roles + dev pool
+  title: Restructure role.md.j2 working agreements into two regimes
   status: Done
   story: US1
 - local_id: ST2
-  title: In the live-regime text, separate recording a decision (--as, when made)
-    from signalling a handoff (@mention, only when work moves); reference the squads
-    skill's operator section instead of duplicating it
+  title: Separate decision-recording from handoff-signalling in live regime
   status: Done
   story: US2
 - local_id: ST3
-  title: Consistency pass on _interactions.py 'For <role>' handoff lines so each carries
-    its trigger condition (e.g. 'when the feature is greenlit, @tech-lead'), keeping
-    every @mention a real call-to-action; align greeting/squads skill cross-references
+  title: Normalize 'For <role>' handoff lines in _interactions.py
   status: Done
   story: US3
 created_at: '2026-06-12T07:38:11Z'
-updated_at: '2026-06-12T07:47:35Z'
+updated_at: '2026-06-23T09:57:47Z'
 ---
 <!-- sq:body -->
 **Goal.** Rewrite the bundled roles' 'Working agreements' so they read correctly in BOTH regimes an agent operates in, fixing the rigidity that forces a choice between honesty and compliance (see FEAT-000040 Problem: the 2026-06-11 false-inbox incident). Content/template only — NO CLI behaviour changes.
@@ -55,15 +49,15 @@ _Add with `sq task 53 add-subtask "<title>"`; track with `sq task 53 subtask <n>
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Restructure role.md.j2 working agreements into the two explicit regimes with the shared 'record when it becomes true' principle; sq sync propagates to all 8 roles + dev pool | US1 |
-| ST2 | Done |  | In the live-regime text, separate recording a decision (--as, when made) from signalling a handoff (@mention, only when work moves); reference the squads skill's operator section instead of duplicating it | US2 |
-| ST3 | Done |  | Consistency pass on _interactions.py 'For <role>' handoff lines so each carries its trigger condition (e.g. 'when the feature is greenlit, @tech-lead'), keeping every @mention a real call-to-action; align greeting/squads skill cross-references | US3 |
+| ST1 | Done |  | Restructure role.md.j2 working agreements into two regimes | US1 |
+| ST2 | Done |  | Separate decision-recording from handoff-signalling in live regime | US2 |
+| ST3 | Done |  | Normalize 'For <role>' handoff lines in _interactions.py | US3 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Restructure role.md.j2 working agreements into the two explicit regimes with the shared 'record when it becomes true' principle; sq sync propagates to all 8 roles + dev pool
+### ST1 — Restructure role.md.j2 working agreements into two regimes
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -71,7 +65,7 @@ _Add with `sq task 53 add-subtask "<title>"`; track with `sq task 53 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Restructure role.md.j2 working agreements into the two explicit regimes with the shared 'record when it becomes true' principle; sq sync propagates to all 8 roles + dev pool.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -81,7 +75,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST1:end -->
 
 <!-- sq:subtask:ST2 -->
-### ST2 — In the live-regime text, separate recording a decision (--as, when made) from signalling a handoff (@mention, only when work moves); reference the squads skill's operator section instead of duplicating it
+### ST2 — Separate decision-recording from handoff-signalling in live regime
 
 <!-- sq:subtask:ST2:head -->
 **Status:** 🟢 Done
@@ -89,7 +83,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+In the live-regime text, separate recording a decision (--as, when made) from signalling a handoff (@mention, only when work moves); reference the squads skill's operator section instead of duplicating it.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -99,7 +93,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:end -->
 
 <!-- sq:subtask:ST3 -->
-### ST3 — Consistency pass on _interactions.py 'For <role>' handoff lines so each carries its trigger condition (e.g. 'when the feature is greenlit, @tech-lead'), keeping every @mention a real call-to-action; align greeting/squads skill cross-references
+### ST3 — Normalize 'For <role>' handoff lines in _interactions.py
 
 <!-- sq:subtask:ST3:head -->
 **Status:** 🟢 Done
@@ -107,7 +101,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Consistency pass on _interactions.py 'For <role>' handoff lines so each carries its trigger condition (e.g. 'when the feature is greenlit, @tech-lead'), keeping every @mention a real call-to-action; align greeting/squads skill cross-references.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

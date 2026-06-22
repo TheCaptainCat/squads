@@ -10,59 +10,27 @@ refs:
 - TASK-000089:addresses
 subentities:
 - local_id: F1
-  title: 'Manifest-freshness is unguarded — silent drift-miss at release. The whole
-    feature fails OPEN if scripts/gen_template_manifest.py isn''t re-run before a
-    release that changes a template: template_changed_since() returns False for a
-    missing/stale current-version entry, so every override silently shows no drift
-    — exactly what the feature exists to prevent. The dev''s @devops note documents
-    the manual build step but nothing enforces it. test_manifest_loads_current_version_hashes
-    only checks ONE template has *a* hash, not that it matches current bundled content,
-    and not that all 20 are present. A single guard test would convert this from a
-    release-time human-memory failure into a red build.'
+  title: Manifest-freshness unguarded — silent drift-miss at release
   status: Fixed
   severity: medium
 - local_id: F2
-  title: New --json read commands (override list/diff) are not golden-pinned. FEAT-000015/TASK-000084
-    established that EVERY --json read command gets a golden in tests/goldens/ pinned
-    by test_golden_json.py, so any shape drift fails the build. override list --json
-    and override diff --json are new read commands joining the 1.0 machine-readable
-    surface but are only key-set-asserted in test_override_commands.py — not added
-    to the golden suite. Consistency gap against a just-frozen convention; should
-    be closed before 1.0.
+  title: New override list/diff --json read commands not golden-pinned
   status: Fixed
   severity: medium
 - local_id: F3
-  title: 'gen_template_manifest.py docstring exit-code claim is wrong. Docstring says
-    ''Exit codes: 0 = success, 1 = error (already at this version with unchanged hashes;
-    nothing to write...)''. The no-change path actually prints and exits 0 (correct
-    behaviour for a no-op), so the docstring contradicts the code. Fix the docstring
-    (exit 0 on no-op is fine to keep).'
+  title: gen_template_manifest.py docstring exit-code claim is wrong
   status: Fixed
   severity: low
 - local_id: F4
-  title: diff with no name hides broken overrides. The bare 'sq override diff' path
-    filters to STATE_DRIFTED only, so a user whose only override is BROKEN (missing
-    marker) gets 'no drifted overrides found' with no hint that a broken override
-    needs attention. ADR scopes bare diff to drifted, so not a contract violation,
-    but a one-line note pointing at 'sq override list'/'sq check' for broken overrides
-    would close the UX gap.
+  title: Bare 'sq override diff' hides broken overrides (filters to drifted)
   status: Open
   severity: low
 - local_id: F5
-  title: base_version_template_content is hash-only, so Δ-upgrade is unavailable for
-    any genuinely-upgraded template. By design the manifest stores hashes not snapshots,
-    so base content is recoverable only when base_hash == current_hash (i.e. unchanged)
-    — meaning the Δ-upgrade view degrades to the '(cannot recover...)' message in
-    exactly the case it is most needed (template changed since base). ADR §3 step
-    2 describes Δ-upgrade as 'reconstructed from the manifest plus the bundled archive
-    it indexes'; the manifest indexes nothing but hashes. The code handles this gracefully
-    and the limitation is documented in the docstring, but it is a partial fulfilment
-    of the ADR's stated Δ-upgrade capability — flagging so it is a deliberate, recorded
-    deferral rather than an unnoticed shortfall.
+  title: 'Delta-upgrade blocked: base_version_template_content is hash-only'
   status: Open
   severity: low
 created_at: '2026-06-12T22:00:54Z'
-updated_at: '2026-06-12T22:07:19Z'
+updated_at: '2026-06-23T09:59:44Z'
 ---
 <!-- sq:body -->
 Review of TASK-000089 — the `sq override` command group, staleness stamps, per-release content-hash manifest, and `sq check` drift integration under FEAT-000014, against accepted ADR-000085 §3.
@@ -91,17 +59,17 @@ _Add with `sq review 97 add-finding "…" --severity high`; track with `sq revie
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Manifest-freshness is unguarded — silent drift-miss at release. The whole feature fails OPEN if scripts/gen_template_manifest.py isn't re-run before a release that changes a template: template_changed_since() returns False for a missing/stale current-version entry, so every override silently shows no drift — exactly what the feature exists to prevent. The dev's @devops note documents the manual build step but nothing enforces it. test_manifest_loads_current_version_hashes only checks ONE template has *a* hash, not that it matches current bundled content, and not that all 20 are present. A single guard test would convert this from a release-time human-memory failure into a red build. |
-| F2 | 🟡 medium | Fixed |  | New --json read commands (override list/diff) are not golden-pinned. FEAT-000015/TASK-000084 established that EVERY --json read command gets a golden in tests/goldens/ pinned by test_golden_json.py, so any shape drift fails the build. override list --json and override diff --json are new read commands joining the 1.0 machine-readable surface but are only key-set-asserted in test_override_commands.py — not added to the golden suite. Consistency gap against a just-frozen convention; should be closed before 1.0. |
-| F3 | 🟢 low | Fixed |  | gen_template_manifest.py docstring exit-code claim is wrong. Docstring says 'Exit codes: 0 = success, 1 = error (already at this version with unchanged hashes; nothing to write...)'. The no-change path actually prints and exits 0 (correct behaviour for a no-op), so the docstring contradicts the code. Fix the docstring (exit 0 on no-op is fine to keep). |
-| F4 | 🟢 low | Open |  | diff with no name hides broken overrides. The bare 'sq override diff' path filters to STATE_DRIFTED only, so a user whose only override is BROKEN (missing marker) gets 'no drifted overrides found' with no hint that a broken override needs attention. ADR scopes bare diff to drifted, so not a contract violation, but a one-line note pointing at 'sq override list'/'sq check' for broken overrides would close the UX gap. |
-| F5 | 🟢 low | Open |  | base_version_template_content is hash-only, so Δ-upgrade is unavailable for any genuinely-upgraded template. By design the manifest stores hashes not snapshots, so base content is recoverable only when base_hash == current_hash (i.e. unchanged) — meaning the Δ-upgrade view degrades to the '(cannot recover...)' message in exactly the case it is most needed (template changed since base). ADR §3 step 2 describes Δ-upgrade as 'reconstructed from the manifest plus the bundled archive it indexes'; the manifest indexes nothing but hashes. The code handles this gracefully and the limitation is documented in the docstring, but it is a partial fulfilment of the ADR's stated Δ-upgrade capability — flagging so it is a deliberate, recorded deferral rather than an unnoticed shortfall. |
+| F1 | 🟡 medium | Fixed |  | Manifest-freshness unguarded — silent drift-miss at release |
+| F2 | 🟡 medium | Fixed |  | New override list/diff --json read commands not golden-pinned |
+| F3 | 🟢 low | Fixed |  | gen_template_manifest.py docstring exit-code claim is wrong |
+| F4 | 🟢 low | Open |  | Bare 'sq override diff' hides broken overrides (filters to drifted) |
+| F5 | 🟢 low | Open |  | Delta-upgrade blocked: base_version_template_content is hash-only |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
-### F1 — Manifest-freshness is unguarded — silent drift-miss at release. The whole feature fails OPEN if scripts/gen_template_manifest.py isn't re-run before a release that changes a template: template_changed_since() returns False for a missing/stale current-version entry, so every override silently shows no drift — exactly what the feature exists to prevent. The dev's @devops note documents the manual build step but nothing enforces it. test_manifest_loads_current_version_hashes only checks ONE template has *a* hash, not that it matches current bundled content, and not that all 20 are present. A single guard test would convert this from a release-time human-memory failure into a red build.
+### F1 — Manifest-freshness unguarded — silent drift-miss at release
 
 <!-- sq:finding:F1:head -->
 **Status:** 🟡 Fixed
@@ -109,7 +77,7 @@ _Add with `sq review 97 add-finding "…" --severity high`; track with `sq revie
 <!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+Manifest-freshness is unguarded — silent drift-miss at release. The whole feature fails OPEN if scripts/gen_template_manifest.py isn't re-run before a release that changes a template: template_changed_since() returns False for a missing/stale current-version entry, so every override silently shows no drift — exactly what the feature exists to prevent. The dev's @devops note documents the manual build step but nothing enforces it. test_manifest_loads_current_version_hashes only checks ONE template has *a* hash, not that it matches current bundled content, and not that all 20 are present. A single guard test would convert this from a release-time human-memory failure into a red build.
 <!-- sq:finding:F1:body:end -->
 
 #### Discussion
@@ -119,7 +87,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F1:end -->
 
 <!-- sq:finding:F2 -->
-### F2 — New --json read commands (override list/diff) are not golden-pinned. FEAT-000015/TASK-000084 established that EVERY --json read command gets a golden in tests/goldens/ pinned by test_golden_json.py, so any shape drift fails the build. override list --json and override diff --json are new read commands joining the 1.0 machine-readable surface but are only key-set-asserted in test_override_commands.py — not added to the golden suite. Consistency gap against a just-frozen convention; should be closed before 1.0.
+### F2 — New override list/diff --json read commands not golden-pinned
 
 <!-- sq:finding:F2:head -->
 **Status:** 🟡 Fixed
@@ -127,7 +95,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+New --json read commands (override list/diff) are not golden-pinned. FEAT-000015/TASK-000084 established that EVERY --json read command gets a golden in tests/goldens/ pinned by test_golden_json.py, so any shape drift fails the build. override list --json and override diff --json are new read commands joining the 1.0 machine-readable surface but are only key-set-asserted in test_override_commands.py — not added to the golden suite. Consistency gap against a just-frozen convention; should be closed before 1.0.
 <!-- sq:finding:F2:body:end -->
 
 #### Discussion
@@ -137,7 +105,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F2:end -->
 
 <!-- sq:finding:F3 -->
-### F3 — gen_template_manifest.py docstring exit-code claim is wrong. Docstring says 'Exit codes: 0 = success, 1 = error (already at this version with unchanged hashes; nothing to write...)'. The no-change path actually prints and exits 0 (correct behaviour for a no-op), so the docstring contradicts the code. Fix the docstring (exit 0 on no-op is fine to keep).
+### F3 — gen_template_manifest.py docstring exit-code claim is wrong
 
 <!-- sq:finding:F3:head -->
 **Status:** 🟡 Fixed
@@ -145,7 +113,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+gen_template_manifest.py docstring exit-code claim is wrong. Docstring says 'Exit codes: 0 = success, 1 = error (already at this version with unchanged hashes; nothing to write...)'. The no-change path actually prints and exits 0 (correct behaviour for a no-op), so the docstring contradicts the code. Fix the docstring (exit 0 on no-op is fine to keep).
 <!-- sq:finding:F3:body:end -->
 
 #### Discussion
@@ -155,7 +123,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F3:end -->
 
 <!-- sq:finding:F4 -->
-### F4 — diff with no name hides broken overrides. The bare 'sq override diff' path filters to STATE_DRIFTED only, so a user whose only override is BROKEN (missing marker) gets 'no drifted overrides found' with no hint that a broken override needs attention. ADR scopes bare diff to drifted, so not a contract violation, but a one-line note pointing at 'sq override list'/'sq check' for broken overrides would close the UX gap.
+### F4 — Bare 'sq override diff' hides broken overrides (filters to drifted)
 
 <!-- sq:finding:F4:head -->
 **Status:** 🔴 Open
@@ -163,7 +131,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+diff with no name hides broken overrides. The bare 'sq override diff' path filters to STATE_DRIFTED only, so a user whose only override is BROKEN (missing marker) gets 'no drifted overrides found' with no hint that a broken override needs attention. ADR scopes bare diff to drifted, so not a contract violation, but a one-line note pointing at 'sq override list'/'sq check' for broken overrides would close the UX gap.
 <!-- sq:finding:F4:body:end -->
 
 #### Discussion
@@ -173,7 +141,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F4:end -->
 
 <!-- sq:finding:F5 -->
-### F5 — base_version_template_content is hash-only, so Δ-upgrade is unavailable for any genuinely-upgraded template. By design the manifest stores hashes not snapshots, so base content is recoverable only when base_hash == current_hash (i.e. unchanged) — meaning the Δ-upgrade view degrades to the '(cannot recover...)' message in exactly the case it is most needed (template changed since base). ADR §3 step 2 describes Δ-upgrade as 'reconstructed from the manifest plus the bundled archive it indexes'; the manifest indexes nothing but hashes. The code handles this gracefully and the limitation is documented in the docstring, but it is a partial fulfilment of the ADR's stated Δ-upgrade capability — flagging so it is a deliberate, recorded deferral rather than an unnoticed shortfall.
+### F5 — Delta-upgrade blocked: base_version_template_content is hash-only
 
 <!-- sq:finding:F5:head -->
 **Status:** 🔴 Open
@@ -181,7 +149,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+base_version_template_content is hash-only, so Δ-upgrade is unavailable for any genuinely-upgraded template. By design the manifest stores hashes not snapshots, so base content is recoverable only when base_hash == current_hash (i.e. unchanged) — meaning the Δ-upgrade view degrades to the '(cannot recover...)' message in exactly the case it is most needed (template changed since base). ADR §3 step 2 describes Δ-upgrade as 'reconstructed from the manifest plus the bundled archive it indexes'; the manifest indexes nothing but hashes. The code handles this gracefully and the limitation is documented in the docstring, but it is a partial fulfilment of the ADR's stated Δ-upgrade capability — flagging so it is a deliberate, recorded deferral rather than an unnoticed shortfall.
 <!-- sq:finding:F5:body:end -->
 
 #### Discussion

@@ -9,19 +9,15 @@ author: tech-lead
 priority: high
 subentities:
 - local_id: ST1
-  title: Config model active_backends + runtime fan-out over all active backends in
-    scaffold/sync/write_managed + init/adopt populate the list; tests proving multiple
-    backends (CLAUDE.md + AGENTS.md) are generated and checked
+  title: active_backends config model + runtime fan-out over all backends
   status: Done
   story: US1
 - local_id: ST2
-  title: 'sq check rule: each active backend''s files present & current, empty active_backends=[]
-    verifies nothing (sq-only squad), deactivated backend''s lingering files are ignored
-    not flagged; tests for empty + deactivation semantics'
+  title: sq check rule for active backends (empty + deactivation semantics)
   status: Done
   story: US2
 created_at: '2026-06-16T09:39:30Z'
-updated_at: '2026-06-16T13:01:00Z'
+updated_at: '2026-06-23T09:59:00Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -76,14 +72,14 @@ _Add with `sq task 140 add-subtask "<title>"`; track with `sq task 140 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Config model active_backends + runtime fan-out over all active backends in scaffold/sync/write_managed + init/adopt populate the list; tests proving multiple backends (CLAUDE.md + AGENTS.md) are generated and checked | US1 |
-| ST2 | Done |  | sq check rule: each active backend's files present & current, empty active_backends=[] verifies nothing (sq-only squad), deactivated backend's lingering files are ignored not flagged; tests for empty + deactivation semantics | US2 |
+| ST1 | Done |  | active_backends config model + runtime fan-out over all backends | US1 |
+| ST2 | Done |  | sq check rule for active backends (empty + deactivation semantics) | US2 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Config model active_backends + runtime fan-out over all active backends in scaffold/sync/write_managed + init/adopt populate the list; tests proving multiple backends (CLAUDE.md + AGENTS.md) are generated and checked
+### ST1 — active_backends config model + runtime fan-out over all backends
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
@@ -91,7 +87,7 @@ _Add with `sq task 140 add-subtask "<title>"`; track with `sq task 140 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Config model active_backends + runtime fan-out over all active backends in scaffold/sync/write_managed + init/adopt populate the list; tests proving multiple backends (CLAUDE.md + AGENTS.md) are generated and checked.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -101,7 +97,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST1:end -->
 
 <!-- sq:subtask:ST2 -->
-### ST2 — sq check rule: each active backend's files present & current, empty active_backends=[] verifies nothing (sq-only squad), deactivated backend's lingering files are ignored not flagged; tests for empty + deactivation semantics
+### ST2 — sq check rule for active backends (empty + deactivation semantics)
 
 <!-- sq:subtask:ST2:head -->
 **Status:** 🟢 Done
@@ -109,7 +105,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+sq check rule: each active backend's files present & current, empty active_backends=[] verifies nothing (sq-only squad), deactivated backend's lingering files are ignored not flagged; tests for empty + deactivation semantics.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

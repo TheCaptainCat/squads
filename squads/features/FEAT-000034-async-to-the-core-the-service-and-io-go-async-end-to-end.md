@@ -15,15 +15,13 @@ description: Make the service layer, index store and file IO async (anyio or sim
   seam, TUI, web server and remote client are all async-native
 subentities:
 - local_id: US1
-  title: As a developer of an async consumer (TUI, web server, remote client), I want
-    the service async-native, so that I never wrap calls in executor threads
+  title: 'Async-native service: no executor thread wrapping for consumers'
   status: Todo
 - local_id: US2
-  title: As a CLI user, I want the async conversion invisible, so that every command
-    behaves and outputs byte-identically to today
+  title: 'Async conversion invisible to CLI users: byte-identical outputs'
   status: Todo
 created_at: '2026-06-10T15:49:05Z'
-updated_at: '2026-06-19T15:38:27Z'
+updated_at: '2026-06-23T09:58:23Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -79,21 +77,21 @@ _Add with `sq feature 34 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a developer of an async consumer (TUI, web server, remote client), I want the service async-native, so that I never wrap calls in executor threads |
-| US2 | Todo |  | As a CLI user, I want the async conversion invisible, so that every command behaves and outputs byte-identically to today |
+| US1 | Todo |  | Async-native service: no executor thread wrapping for consumers |
+| US2 | Todo |  | Async conversion invisible to CLI users: byte-identical outputs |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a developer of an async consumer (TUI, web server, remote client), I want the service async-native, so that I never wrap calls in executor threads
+### US1 — Async-native service: no executor thread wrapping for consumers
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-**Acceptance:** an async context drives the full service (create/update/comment/list) without threads or sync shims; FEAT-000033's protocols are typed async def; FEAT-000032 aligns on the async SQLAlchemy engine.
+As a developer of an async consumer (TUI, web server, remote client), I want the service async-native, so that I never wrap calls in executor threads.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -103,14 +101,14 @@ _Add with `sq feature 34 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a CLI user, I want the async conversion invisible, so that every command behaves and outputs byte-identically to today
+### US2 — Async conversion invisible to CLI users: byte-identical outputs
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance:** the CLI test matrix passes unmodified with byte-identical outputs and exit codes; the only sync↔async bridge is at the command entry edge (single anyio.run per invocation).
+As a CLI user, I want the async conversion invisible, so that every command behaves and outputs byte-identically to today.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

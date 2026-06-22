@@ -34,8 +34,7 @@ subentities:
   status: Open
   severity: info
 - local_id: F6
-  title: json.dumps is OUTSIDE the error-swallow in append_line — a non-serializable
-    delta would propagate past the committed mutation
+  title: json.dumps outside append_line swallow could break committed write
   status: Fixed
   severity: low
 - local_id: F7
@@ -48,7 +47,7 @@ subentities:
   status: Open
   severity: info
 created_at: '2026-06-15T09:57:14Z'
-updated_at: '2026-06-15T10:02:57Z'
+updated_at: '2026-06-23T10:00:09Z'
 ---
 <!-- sq:body -->
 Narrow durability/threading correctness review of the reflog implementation for FEAT-000024 (TASK-000112 reflog core, TASK-000113 read command), reviewed against ADR-000117 (durability/append-atomicity/actor-threading) and ADR-000114 (removal trace / NOT-source-of-truth).
@@ -72,7 +71,7 @@ _Add with `sq review 118 add-finding "…" --severity high`; track with `sq revi
 | F3 | 🔵 info | Open |  | Check 3 — Actor threading (ADR-117 §3): PASS |
 | F4 | 🔵 info | Open |  | Check 4 — Invariant 1 / not-source-of-truth (ADR-114): PASS |
 | F5 | 🔵 info | Open |  | Check 5 — Schema + version field + golden (ADR-117 §4): PASS |
-| F6 | 🟢 low | Fixed |  | json.dumps is OUTSIDE the error-swallow in append_line — a non-serializable delta would propagate past the committed mutation |
+| F6 | 🟢 low | Fixed |  | json.dumps outside append_line swallow could break committed write |
 | F7 | 🟢 low | Fixed |  | Dead test: test_failed_reflog_append_does_not_rollback_mutation asserts nothing meaningful |
 | F8 | 🔵 info | Open |  | Stale doc comments + minor op-naming nit (non-blocking) |
 <!-- sq:summary:end -->
@@ -172,7 +171,7 @@ Every line carries v=SCHEMA_VERSION ('0.3'), present from line one (_reflog.py:8
 <!-- sq:finding:F5:end -->
 
 <!-- sq:finding:F6 -->
-### F6 — json.dumps is OUTSIDE the error-swallow in append_line — a non-serializable delta would propagate past the committed mutation
+### F6 — json.dumps outside append_line swallow could break committed write
 
 <!-- sq:finding:F6:head -->
 **Status:** 🟡 Fixed

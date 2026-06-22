@@ -14,36 +14,25 @@ description: sq show renders body and discussion as styled markdown on a TTY (he
   bullets, code), with --raw opt-out, NO_COLOR respected, and plain output when piped
 subentities:
 - local_id: US1
-  title: As an operator reading the backlog in my terminal, I want show to render
-    the markdown, so that sq tree + sq show covers browsing and reading without external
-    viewers
+  title: Rendered markdown in show output for terminal browsing
   status: Done
 - local_id: US2
-  title: As an agent or script consuming show output, I want piped/--raw/NO_COLOR
-    output plain and stable, so that rendering never breaks my parsing
+  title: Plain stable output when piped, --raw, or NO_COLOR
   status: Done
 - local_id: US3
-  title: As a user with an ID or number in hand, I want a root sq show command that
-    displays any item regardless of type, so that I can read anything in one step
-    without naming its type
+  title: Root sq show command accepts any item ID without naming its type
   status: Done
 - local_id: US4
-  title: As a reader of a feature, task or review, I want show to include the sub-entity
-    summary table and the discussion, so that one command gives me the whole item,
-    not just its body
+  title: show includes sub-entity summary table and main discussion
   status: Done
 - local_id: US5
-  title: As a reader wanting the whole story, I want --full to render each sub-entity
-    and its comments in tidy panes along with the main discussion, so that one command
-    reads as the item's dossier
+  title: --full renders each sub-entity with comments as a dossier
   status: Done
 - local_id: US6
-  title: As an agent briefing on an item, I want the squads skill and the sq-<type>
-    skills to teach reading with --full --comments as the standard briefing move,
-    so that decisions captured in discussion comments are never missed
+  title: Skills teach --full --comments as the standard briefing move
   status: Done
 created_at: '2026-06-10T14:57:23Z'
-updated_at: '2026-06-12T09:43:53Z'
+updated_at: '2026-06-23T10:00:47Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -133,18 +122,18 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | As an operator reading the backlog in my terminal, I want show to render the markdown, so that sq tree + sq show covers browsing and reading without external viewers |
-| US2 | Done |  | As an agent or script consuming show output, I want piped/--raw/NO_COLOR output plain and stable, so that rendering never breaks my parsing |
-| US3 | Done |  | As a user with an ID or number in hand, I want a root sq show command that displays any item regardless of type, so that I can read anything in one step without naming its type |
-| US4 | Done |  | As a reader of a feature, task or review, I want show to include the sub-entity summary table and the discussion, so that one command gives me the whole item, not just its body |
-| US5 | Done |  | As a reader wanting the whole story, I want --full to render each sub-entity and its comments in tidy panes along with the main discussion, so that one command reads as the item's dossier |
-| US6 | Done |  | As an agent briefing on an item, I want the squads skill and the sq-<type> skills to teach reading with --full --comments as the standard briefing move, so that decisions captured in discussion comments are never missed |
+| US1 | Done |  | Rendered markdown in show output for terminal browsing |
+| US2 | Done |  | Plain stable output when piped, --raw, or NO_COLOR |
+| US3 | Done |  | Root sq show command accepts any item ID without naming its type |
+| US4 | Done |  | show includes sub-entity summary table and main discussion |
+| US5 | Done |  | --full renders each sub-entity with comments as a dossier |
+| US6 | Done |  | Skills teach --full --comments as the standard briefing move |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As an operator reading the backlog in my terminal, I want show to render the markdown, so that sq tree + sq show covers browsing and reading without external viewers
+### US1 — Rendered markdown in show output for terminal browsing
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
@@ -152,6 +141,8 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US1:body -->
 **Acceptance:** headings, bold, bullets and code blocks display styled on a TTY for body, sub-entity prose and discussion; no redundant viewer-injected labels.
+
+As an operator reading the backlog in my terminal, I want show to render the markdown, so that sq tree + sq show covers browsing and reading without external viewers.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -161,7 +152,7 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As an agent or script consuming show output, I want piped/--raw/NO_COLOR output plain and stable, so that rendering never breaks my parsing
+### US2 — Plain stable output when piped, --raw, or NO_COLOR
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -169,6 +160,8 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2:body -->
 **Acceptance:** when piped, with --raw, or with NO_COLOR set, output is unstyled and byte-stable; --json byte-identical to pre-change.
+
+As an agent or script consuming show output, I want piped/--raw/NO_COLOR output plain and stable, so that rendering never breaks my parsing.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -178,7 +171,7 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — As a user with an ID or number in hand, I want a root sq show command that displays any item regardless of type, so that I can read anything in one step without naming its type
+### US3 — Root sq show command accepts any item ID without naming its type
 
 <!-- sq:story:US3:head -->
 **Status:** 🟢 Done
@@ -186,6 +179,8 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US3:body -->
 **Acceptance:** `sq show FEAT-000013` and `sq show 13` both work for every work-item type, with the same rendered output as `sq <type> <n> show`; unknown id/number errors cleanly. Resolution follows FEAT-000019's shared-resolver rules (bare numbers are unambiguous via the global counter; no type to mismatch since none is named).
+
+As a user with an ID or number in hand, I want a root sq show command that displays any item regardless of type, so that I can read anything in one step without naming its type.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -195,7 +190,7 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US3:end -->
 
 <!-- sq:story:US4 -->
-### US4 — As a reader of a feature, task or review, I want show to include the sub-entity summary table and the discussion, so that one command gives me the whole item, not just its body
+### US4 — show includes sub-entity summary table and main discussion
 
 <!-- sq:story:US4:head -->
 **Status:** 🟢 Done
@@ -203,6 +198,8 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US4:body -->
 **Acceptance:** default `show` = panel + rendered body + compact summary table; `--comments` alone adds the item's main discussion only (one pretty pane per comment, author + timestamp as title) — sub-entity comments stay out because subs aren't in scope. Today show stops at the body (verified 2026-06-11).
+
+As a reader of a feature, task or review, I want show to include the sub-entity summary table and the discussion, so that one command gives me the whole item, not just its body.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -212,7 +209,7 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US4:end -->
 
 <!-- sq:story:US5 -->
-### US5 — As a reader wanting the whole story, I want --full to render each sub-entity and its comments in tidy panes along with the main discussion, so that one command reads as the item's dossier
+### US5 — --full renders each sub-entity with comments as a dossier
 
 <!-- sq:story:US5:head -->
 **Status:** 🟢 Done
@@ -220,6 +217,8 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US5:body -->
 **Acceptance:** `--full` alone adds one pane per sub-entity (local id + title + badges as pane title, rendered body, no comments); `--full --comments` embeds each sub-entity's comments in its pane and closes with the main discussion. Rule: comments follow scope. Panes degrade to plain text when piped/NO_COLOR; --json unaffected by flags.
+
+As a reader wanting the whole story, I want --full to render each sub-entity and its comments in tidy panes along with the main discussion, so that one command reads as the item's dossier.
 <!-- sq:story:US5:body:end -->
 
 #### Discussion
@@ -229,7 +228,7 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 <!-- sq:story:US5:end -->
 
 <!-- sq:story:US6 -->
-### US6 — As an agent briefing on an item, I want the squads skill and the sq-<type> skills to teach reading with --full --comments as the standard briefing move, so that decisions captured in discussion comments are never missed
+### US6 — Skills teach --full --comments as the standard briefing move
 
 <!-- sq:story:US6:head -->
 **Status:** 🟢 Done
@@ -247,6 +246,8 @@ _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track
 - Replayable: an agent that follows only the generated skills will automatically read the full dossier — including decisions captured exclusively in discussion comments — without needing to know about the flags from other context.
 
 - The guidance is present in the generated output of `sq sync` / `sq backend sync`, not just in handwritten notes.
+
+As an agent briefing on an item, I want the squads skill and the sq-<type> skills to teach reading with --full --comments as the standard briefing move, so that decisions captured in discussion comments are never missed.
 <!-- sq:story:US6:body:end -->
 
 #### Discussion

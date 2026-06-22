@@ -17,12 +17,11 @@ subentities:
   status: Done
   assignee: python-dev
 - local_id: ST2
-  title: 'Tests: each newly-guarded path rejects marker tags (incl. backtick-wrapped);
-    item title/description false-positive guard; body behaviour unchanged'
+  title: Tests for marker-syntax guard on newly-guarded paths
   status: Done
   assignee: python-dev
 created_at: '2026-06-12T08:18:43Z'
-updated_at: '2026-06-12T08:36:39Z'
+updated_at: '2026-06-23T09:58:04Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -119,7 +118,7 @@ _Add with `sq task 57 add-subtask "<title>"`; track with `sq task 57 subtask <n>
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
 | ST1 | Done | python-dev | Add one shared marker-syntax guard; apply to comment messages and sub-entity titles (create + update) |  |
-| ST2 | Done | python-dev | Tests: each newly-guarded path rejects marker tags (incl. backtick-wrapped); item title/description false-positive guard; body behaviour unchanged |  |
+| ST2 | Done | python-dev | Tests for marker-syntax guard on newly-guarded paths |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -143,7 +142,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST1:end -->
 
 <!-- sq:subtask:ST2 -->
-### ST2 — Tests: each newly-guarded path rejects marker tags (incl. backtick-wrapped); item title/description false-positive guard; body behaviour unchanged
+### ST2 — Tests for marker-syntax guard on newly-guarded paths
 
 <!-- sq:subtask:ST2:head -->
 **Status:** 🟢 Done
@@ -151,7 +150,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Tests: each newly-guarded path rejects marker tags (incl. backtick-wrapped); item title/description false-positive guard; body behaviour unchanged.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
