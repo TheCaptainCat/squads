@@ -7,6 +7,7 @@ only ever call core methods + their own.
 """
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from squads import __version__, _aio
@@ -33,9 +34,9 @@ from squads._models._item import VALID_REF_KINDS, Item, split_ref
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, set_active_squad_dir
 from squads._roles._resolver import resolve_role
-from squads._services._results import CreateResult
+from squads._services._results import CreateResult, TreeNode
 from squads._util import slugify
-from squads._workflow import initial_status, parent_allowed, parent_hint
+from squads._workflow import initial_status, is_open, parent_allowed, parent_hint
 
 # Body-local sub-entities: kind → parent item type and its container marker. Package-internal
 # (non-underscore so sibling mixins can import them without tripping reportPrivateUsage).
@@ -50,6 +51,126 @@ SUBENTITY_CONTAINER: dict[str, str] = {
     "finding": markers.FINDINGS,
 }
 SUBENTITY_KIND: dict[ItemType, str] = {p: k for k, p in SUBENTITY_PARENT.items()}
+
+
+@dataclass(frozen=True)
+class ItemFilter:
+    """The shared list/tree filter spec.  One match predicate, used by both ``list_items``
+    and ``tree_view`` so the two commands can never drift.
+
+    All fields default to ``None`` (no constraint on that dimension).  ``matches()``
+    applies every non-``None`` field as an AND condition.  ``is_empty()`` is True when no
+    field is set — an empty filter matches every item.
+    """
+
+    item_type: ItemType | None = None
+    status: Status | None = None
+    parent: str | None = None
+    label: str | None = None
+    assignee: str | None = None
+    priority: Priority | None = None
+
+    def matches(self, it: Item) -> bool:
+        """Return True iff *it* satisfies every non-None dimension of this filter."""
+        return (
+            (not self.item_type or it.type is self.item_type)
+            and (not self.status or it.status is self.status)
+            and (not self.parent or it.parent == self.parent)
+            and (not self.label or self.label in it.labels)
+            and (not self.assignee or it.assignee == self.assignee)
+            and (not self.priority or it.priority is self.priority)
+        )
+
+    def is_empty(self) -> bool:
+        """Return True when no filter dimension is set (matches all items)."""
+        return not any(
+            (self.item_type, self.status, self.parent, self.label, self.assignee, self.priority)
+        )
+
+
+def _compute_keep_set(
+    match_set: set[str],
+    id_map: dict[str, Item],
+    seq_to_id: dict[int, str],
+) -> set[str]:
+    """Return match_set UNION all ancestors of each matched item.
+
+    Walks parent links upward through the candidate set (width-tolerant via sequence
+    numbers).  Items whose parent is not in the candidate set are treated as roots.
+    """
+    keep_set: set[str] = set(match_set)
+    for mid in match_set:
+        item = id_map.get(mid)
+        while item is not None and item.parent is not None:
+            p_seq = number_for_id(item.parent)
+            canonical = seq_to_id.get(p_seq)
+            if canonical is None or canonical not in id_map:
+                break
+            keep_set.add(canonical)
+            item = id_map.get(canonical)
+    return keep_set
+
+
+def _walk_tree(
+    it: Item,
+    current_depth: int,
+    *,
+    keep_set: set[str],
+    match_set: set[str],
+    children_map: dict[str | None, list[Item]],
+    depth: int | None,
+) -> TreeNode | None:
+    """Recursive downward walk that prunes to *keep_set* and bounds to *depth*.
+
+    Returns ``None`` when the node should be dropped (not in keep set, or is a
+    path-only anchor with no surviving children).  ``depth`` is measured from the
+    root (root = level 0); ``None`` means unbounded.
+    """
+    if it.id not in keep_set:
+        return None
+    path_only = it.id not in match_set
+    child_nodes: list[TreeNode] = []
+    if depth is None or current_depth < depth:
+        for child in sorted(children_map.get(it.id, []), key=lambda i: number_for_id(i.id)):
+            child_node = _walk_tree(
+                child,
+                current_depth + 1,
+                keep_set=keep_set,
+                match_set=match_set,
+                children_map=children_map,
+                depth=depth,
+            )
+            if child_node is not None:
+                child_nodes.append(child_node)
+    # Drop a path_only anchor with no surviving children (would be an empty branch)
+    if path_only and not child_nodes:
+        return None
+    return TreeNode(item=it, path_only=path_only, children=child_nodes)
+
+
+def _build_tree_children(
+    listed: list[Item],
+) -> dict[str | None, list[Item]]:
+    """Group items by their canonical parent ID (width-tolerant).
+
+    ``item.parent`` may store an old zero-pad width after ``sq migrate repad`` while
+    ``item.id`` uses the current width.  Resolving via sequence number makes the tree
+    correct across a repad boundary (FEAT-000027 / TASK-000103).
+
+    Used by ``tree_view`` and shared by any future caller that needs the same
+    parent-resolution logic; keeps parent resolution in one place.
+    """
+    all_ids = {i.id for i in listed}
+    seq_to_id: dict[int, str] = {number_for_id(i.id): i.id for i in listed}
+    children: dict[str | None, list[Item]] = {}
+    for it in listed:
+        parent_canonical: str | None = None
+        if it.parent:
+            canonical = seq_to_id.get(number_for_id(it.parent))
+            if canonical is not None and canonical in all_ids:
+                parent_canonical = canonical
+        children.setdefault(parent_canonical, []).append(it)
+    return children
 
 
 def reject_markers(text: str, what: str = "body") -> None:
@@ -229,22 +350,94 @@ class ServiceCore:
         assignee: str | None = None,
         priority: Priority | None = None,
     ) -> list[Item]:
+        f = ItemFilter(
+            item_type=item_type,
+            status=status,
+            parent=parent,
+            label=label,
+            assignee=assignee,
+            priority=priority,
+        )
         out: list[Item] = []
         for it in (await self.store.load()).items.values():
-            if item_type and it.type is not item_type:
-                continue
-            if status and it.status is not status:
-                continue
-            if parent and it.parent != parent:
-                continue
-            if label and label not in it.labels:
-                continue
-            if assignee and it.assignee != assignee:
-                continue
-            if priority and it.priority is not priority:
+            if not f.matches(it):
                 continue
             out.append(it)
         return sorted(out, key=lambda i: number_for_id(i.id))
+
+    async def tree_view(
+        self,
+        root_id: str | None = None,
+        *,
+        filter: ItemFilter | None = None,
+        depth: int | None = None,
+        include_closed: bool = False,
+    ) -> list[TreeNode]:
+        """Return the filtered, depth-bounded item hierarchy as a list of root ``TreeNode`` s.
+
+        Algorithm (per TASK-000185 spec):
+
+        1. Load candidate set — all items; drop closed ones unless ``include_closed``.
+        2. Build parent→children map and id→item map via ``_build_tree_children``.
+        3. Determine roots: explicit ``root_id`` → that item; else the parentless forest.
+        4. Compute match set = items that satisfy ``filter`` (all items when filter is
+           None/empty).
+        5. Compute keep set = match set UNION all ancestors of each matched item.
+           Ancestors not themselves in the match set are flagged ``path_only=True``.
+        6. Single downward walk: include a node iff it is in the keep set; stop recursing
+           when the next level would exceed ``depth`` (depth measured from each root = 0).
+           Depth wins — a match deeper than the cut is not shown.
+        7. Drop empty/orphaned roots (roots with no kept descendants and not themselves a
+           match).
+        """
+        db = await self.store.load()
+        all_items_list = list(db.items.values())
+
+        # Step 1: candidate set
+        candidates: list[Item] = (
+            all_items_list if include_closed else [i for i in all_items_list if is_open(i.status)]
+        )
+
+        # Step 2: build maps
+        id_map: dict[str, Item] = {i.id: i for i in candidates}
+        children_map: dict[str | None, list[Item]] = _build_tree_children(candidates)
+        seq_to_id: dict[int, str] = {number_for_id(i.id): i.id for i in candidates}
+
+        # Step 3: determine root(s)
+        if root_id is not None:
+            if root_id not in id_map:
+                what = "item" if include_closed else "open item"
+                raise SquadsError(
+                    f"no {what} {root_id!r} to root the tree"
+                    " (add --all to include closed items, or check it exists)"
+                )
+            root_items: list[Item] = [id_map[root_id]]
+        else:
+            root_items = sorted(children_map.get(None, []), key=lambda i: number_for_id(i.id))
+
+        # Step 4: compute match set (all candidates when filter is empty)
+        effective_filter = filter if filter is not None else ItemFilter()
+        match_set: set[str] = (
+            {i.id for i in candidates}
+            if effective_filter.is_empty()
+            else {i.id for i in candidates if effective_filter.matches(i)}
+        )
+
+        # Step 5 + 6 + 7: compute keep set, walk down, prune and apply depth
+        keep_set = _compute_keep_set(match_set, id_map, seq_to_id)
+        result: list[TreeNode] = []
+        for r in root_items:
+            node = _walk_tree(
+                r,
+                0,
+                keep_set=keep_set,
+                match_set=match_set,
+                children_map=children_map,
+                depth=depth,
+            )
+            if node is not None:
+                result.append(node)
+        return result
 
     def _check_parent(self, db: SquadsDB, child_type: ItemType, parent_id: str) -> None:
         parent = db.get(parent_id)

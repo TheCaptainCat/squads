@@ -11,6 +11,23 @@ from squads._paths import SquadPaths
 
 
 @dataclass(frozen=True)
+class TreeNode:
+    """One node in the filtered/pruned hierarchy returned by ``ServiceCore.tree_view()``.
+
+    ``path_only=True`` marks an ancestor that is kept solely to anchor a descendant match —
+    it did not itself pass the ``ItemFilter``.  This flag drives dimmed rendering at the CLI
+    edge; it is **not** serialised in ``--json`` output (path-only ancestors appear as
+    ordinary nodes in JSON consumers).
+
+    ``children`` lists the surviving child nodes after filter + depth pruning.
+    """
+
+    item: Item
+    path_only: bool  # True = ancestor kept only to anchor a descendant match
+    children: list[TreeNode] = field(default_factory=lambda: list[TreeNode]())
+
+
+@dataclass(frozen=True)
 class GraphNode:
     """One node in the ego-centric ref graph returned by ``RefsMixin.graph()``.
 
