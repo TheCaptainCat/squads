@@ -3,7 +3,7 @@ id: FEAT-000039
 sequence_id: 39
 type: feature
 title: Tree filters
-status: Draft
+status: Done
 parent: EPIC-000038
 author: product-owner
 priority: low
@@ -17,7 +17,7 @@ subentities:
   title: --depth and context-preserving pruning keep filtered trees readable
   status: Todo
 created_at: '2026-06-11T07:58:43Z'
-updated_at: '2026-06-23T09:59:41Z'
+updated_at: '2026-06-24T14:14:34Z'
 ---
 <!-- sq:body -->
 ## Problem

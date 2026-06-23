@@ -1,0 +1,31 @@
+[
+  {
+    "id": "EPIC-000002",
+    "type": "epic",
+    "status": "Draft",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "children": [
+      {
+        "id": "FEAT-000003",
+        "type": "feature",
+        "status": "Draft",
+        "priority": null,
+        "assignee": null,
+        "blocked": false,
+        "children": [
+          {
+            "id": "TASK-000004",
+            "type": "task",
+            "status": "Draft",
+            "priority": "high",
+            "assignee": null,
+            "blocked": false,
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.4",
   "squads_version": "0.4.1",
-  "counter": 184,
+  "counter": 186,
   "padding": 6,
   "items": {
     "12": {
@@ -1070,7 +1070,7 @@
       "type": "feature",
       "title": "Tree filters",
       "slug": "tree-filters",
-      "status": "Draft",
+      "status": "Done",
       "description": "sq tree gains the same filters as list (--status, --priority, --assignee, --type) plus --depth; matches keep their ancestor path so the tree stays a tree",
       "parent": "EPIC-000038",
       "author": "product-owner",
@@ -1098,7 +1098,7 @@
       ],
       "path": "features/FEAT-000039-tree-filters.md",
       "created_at": "2026-06-11T07:58:43Z",
-      "updated_at": "2026-06-23T09:59:41Z",
+      "updated_at": "2026-06-24T14:14:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6950,6 +6950,87 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-000184"
+    },
+    "185": {
+      "sequence_id": 185,
+      "type": "task",
+      "title": "sq tree filters + --depth, sharing list's filter spec",
+      "slug": "sq-tree-filters-depth-sharing-list-s-filter-spec",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000039",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Shared ItemFilter predicate + tree filter flags",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Ancestor-preserving prune, --depth, path-only render + JSON",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000185-sq-tree-filters-depth-sharing-list-s-filter-spec.md",
+      "created_at": "2026-06-24T13:13:35Z",
+      "updated_at": "2026-06-24T14:14:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000185"
+    },
+    "186": {
+      "sequence_id": 186,
+      "type": "review",
+      "title": "Review: sq tree filters (FEAT-000039)",
+      "slug": "review-sq-tree-filters-feat-000039",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000039:addresses",
+        "TASK-000185:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "dim-render CLI test asserts nothing about dimming",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "stale docstring references removed CLI helper _build_children",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000186-review-sq-tree-filters-feat-000039.md",
+      "created_at": "2026-06-24T14:09:38Z",
+      "updated_at": "2026-06-24T14:14:10Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000186"
     }
   }
 }

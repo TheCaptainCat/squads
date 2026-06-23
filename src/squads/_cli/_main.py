@@ -35,10 +35,11 @@ from squads._models._config import CONFIG_FILENAME
 from squads._models._enums import Priority
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
-from squads._paths import load_config, number_for_id
+from squads._paths import load_config
 from squads._roles._catalog import resolve_roles
+from squads._services._base import ItemFilter
 from squads._services._refs import graph_to_dot, graph_to_mermaid
-from squads._services._results import GraphNode, ReflogEntry
+from squads._services._results import GraphNode, ReflogEntry, TreeNode
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
 from squads._workflow import is_open
@@ -308,36 +309,23 @@ async def list_items(
     console.print(_item_table(items))
 
 
-def _build_children(
-    listed: list[Item],
-) -> dict[str | None, list[Item]]:
-    """Group items by their canonical parent ID (width-tolerant).
-
-    ``item.parent`` stores the old zero-pad width after a ``sq migrate repad`` while
-    ``item.id`` uses the current width.  Resolving via sequence number makes the tree
-    correct across a repad boundary (FEAT-000027 / TASK-000103).
-    """
-    all_ids = {i.id for i in listed}
-    seq_to_id = {number_for_id(i.id): i.id for i in listed}
-    children: dict[str | None, list[Item]] = {}
-    for it in listed:
-        parent_canonical: str | None = None
-        if it.parent:
-            canonical = seq_to_id.get(number_for_id(it.parent))
-            if canonical is not None and canonical in all_ids:
-                parent_canonical = canonical
-        children.setdefault(parent_canonical, []).append(it)
-    return children
-
-
 @app.command()
 @common.command
 async def tree(
     root_id: str | None = typer.Argument(None),
+    type: str | None = typer.Option(None, "--type", "-t"),
+    status: str | None = typer.Option(None, "--status", "-s"),
+    assignee: str | None = typer.Option(None, "--assignee"),
+    priority: str | None = typer.Option(None, "--priority", help="urgent|high|medium|low."),
+    depth: int | None = typer.Option(None, "--depth", help="Maximum depth from root (root = 0)."),
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
     json_out: bool = typer.Option(False, "--json", help="Emit the nested subtree as JSON."),
 ):
-    """Show the item hierarchy (closed items are hidden unless --all).
+    """Show the item hierarchy (closed items are hidden unless --all or --status is given).
+
+    Filters (--type, --status, --assignee, --priority) narrow the tree to matching nodes;
+    ancestor paths are always preserved so every match shows in context (ancestors that only
+    serve as path are rendered dimmed).  --depth N limits the tree to N levels from the root.
 
     `--json` emits the subtree (`id/type/status/priority/assignee/blocked` + nested `children`) —
     the read an orchestrating agent uses to see a feature's state and decide what to do next.
@@ -347,30 +335,32 @@ async def tree(
     resolved_root: str | None = None
     if root_id is not None:
         resolved_root = await resolve_item_id_any(root_id, svc)
-    listed = await svc.list_items()
-    if not all_:
-        listed = [i for i in listed if is_open(i.status)]
-    all_items = {i.id: i for i in listed}
-    children = _build_children(listed)
+    validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
 
-    def kids(item_id: str) -> list[Item]:
-        return sorted(children.get(item_id, []), key=lambda i: number_for_id(i.id))
+    # Mirror list's closed-item gate exactly:
+    #   --status filter (or --all) reveals matching closed items;
+    #   --priority / --assignee / --type alone do NOT widen to closed.
+    include_closed = bool(all_ or status)
 
-    if resolved_root and resolved_root not in all_items:
-        raise SquadsError(
-            f"no {'item' if all_ else 'open item'} {resolved_root!r} to root the tree"
-            " (add --all to include closed items, or check it exists)"
-        )
-    roots = (
-        [all_items[resolved_root]]
-        if resolved_root
-        else sorted(children.get(None, []), key=lambda i: number_for_id(i.id))
+    item_filter = ItemFilter(
+        item_type=parse_type(type) if type else None,
+        status=parse_status(status) if status else None,
+        assignee=validated_assignee,
+        priority=parse_priority(priority) if priority else None,
+    )
+
+    nodes = await svc.tree_view(
+        resolved_root,
+        filter=item_filter,
+        depth=depth,
+        include_closed=include_closed,
     )
 
     if json_out:
         blocked_ids = {t.id for t, _ in await svc.blocked()}
 
-        def node(it: Item) -> dict[str, Any]:
+        def node(tn: TreeNode) -> dict[str, Any]:
+            it = tn.item
             return {
                 "id": it.id,
                 "type": it.type.value,
@@ -378,24 +368,28 @@ async def tree(
                 "priority": it.priority.value if it.priority else None,
                 "assignee": it.assignee,
                 "blocked": it.id in blocked_ids,
-                "children": [node(c) for c in kids(it.id)],
+                "children": [node(c) for c in tn.children],
             }
 
-        print_json_clean(json.dumps([node(r) for r in roots]))
+        print_json_clean(json.dumps([node(n) for n in nodes]))
         return
 
-    def label(it: Item) -> str:
+    def _label(it: Item, path_only: bool) -> str:
         prio = f"{e(priority_badge(it.priority))} · " if it.priority else ""
-        return f"[bold]{it.id}[/bold] {prio}{e(it.title)} [dim]({it.status.value})[/dim]"
+        base = f"[bold]{it.id}[/bold] {prio}{e(it.title)} [dim]({it.status.value})[/dim]"
+        if path_only:
+            return f"[dim]{base}[/dim]"
+        return base
 
-    def attach(parent: Tree, item: Item) -> None:
-        for child in kids(item.id):
-            attach(parent.add(label(child)), child)
+    def _attach(parent: Tree, tn: TreeNode) -> None:
+        branch = parent.add(_label(tn.item, tn.path_only))
+        for child in tn.children:
+            _attach(branch, child)
 
-    tree_view = Tree("squad")
-    for r in roots:
-        attach(tree_view.add(label(r)), r)
-    console.print(tree_view)
+    rich_tree = Tree("squad")
+    for n in nodes:
+        _attach(rich_tree, n)
+    console.print(rich_tree)
 
 
 @app.command()
