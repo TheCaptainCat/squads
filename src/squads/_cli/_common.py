@@ -38,6 +38,17 @@ from squads._services._service import Service, open_service
 console = Console()
 err_console = Console(stderr=True)
 
+
+def print_json_clean(s: str) -> None:
+    """Emit JSON to stdout with no ANSI codes, unconditionally.
+
+    Uses plain ``print()`` so FORCE_COLOR / CLICOLOR_FORCE / PY_COLORS have no effect.
+    The indent matches Rich's ``print_json`` default (2 spaces).  All ``--json`` output
+    must go through this function — never through ``console.print_json()``.
+    """
+    print(json.dumps(json.loads(s), indent=2))
+
+
 # The active squad folder from the global --dir option, set once by the root callback.
 _active_dir: str | None = None
 
@@ -79,7 +90,7 @@ def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
         }
         if res.title_advisory is not None:
             data["title_advisory"] = res.title_advisory
-        console.print_json(json.dumps(data))
+        print_json_clean(json.dumps(data))
         return
     kind = res.body_tag.split(":")[0]  # e.g. "subtask:ST1:body" → "subtask"
     console.print(f"added [bold]{res.local_id}[/bold] to {parent_id}")

@@ -1,19 +1,30 @@
-from collections.abc import Callable
-from datetime import UTC, datetime
-from typing import Any
+import os
 
-import pytest
-from typer.testing import CliRunner
+# Neutralise color-forcing env vars BEFORE importing the CLI: squads._cli._common builds a
+# module-level rich Console() at import time, which latches terminal/color detection from the
+# environment then.  Some CI runners and the Claude Code agent harness export FORCE_COLOR, which
+# makes Rich emit ANSI into CliRunner-captured output and breaks every plain-output / --json
+# assertion.  Stripping these here (before the import below, and session-wide) keeps the suite
+# deterministic regardless of where it runs.  An autouse fixture re-strips per test as a backstop.
+for _color_var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
+    os.environ.pop(_color_var, None)
 
-from squads import _actor as actor
-from squads import _aio
-from squads import _clock as clock
-from squads._cli import app
-from squads._rendering._engine import (
+from collections.abc import Callable  # noqa: E402
+from datetime import UTC, datetime  # noqa: E402
+from typing import Any  # noqa: E402
+
+import pytest  # noqa: E402
+from typer.testing import CliRunner  # noqa: E402
+
+from squads import _actor as actor  # noqa: E402
+from squads import _aio  # noqa: E402
+from squads import _clock as clock  # noqa: E402
+from squads._cli import app  # noqa: E402
+from squads._rendering._engine import (  # noqa: E402
     _env_cache,  # pyright: ignore[reportPrivateUsage]
     set_active_squad_dir,
 )
-from squads._services import _service as service
+from squads._services import _service as service  # noqa: E402
 
 
 @pytest.fixture
@@ -48,6 +59,20 @@ def _reset_engine_state():  # pyright: ignore[reportUnusedFunction]  # autouse: 
     yield
     set_active_squad_dir(None)
     _env_cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def _neutralize_forced_color(monkeypatch):  # pyright: ignore[reportUnusedFunction]  # autouse
+    """Strip color-forcing env vars so terminal detection falls back to isatty().
+
+    The suite asserts piped/plain output (CliRunner captures stdout, so isatty() is False →
+    Rich emits no ANSI).  But an ambient FORCE_COLOR/CLICOLOR_FORCE/PY_COLORS (set by some CI
+    runners and by the Claude Code agent harness) makes Rich force color into that captured
+    output, breaking every plain-output and --json assertion.  Neutralise them per-test so the
+    suite is deterministic regardless of the environment it runs in.
+    """
+    for var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
+        monkeypatch.delenv(var, raising=False)
 
 
 @pytest.fixture

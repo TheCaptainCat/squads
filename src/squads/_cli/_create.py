@@ -11,6 +11,7 @@ from squads._cli._common import (
     e,
     get_service,
     parse_priority,
+    print_json_clean,
     resolve_body_optional,
     resolve_item_id_any,
 )
@@ -84,7 +85,7 @@ def _make(item_type: ItemType):
             data = json.loads(res.item.model_dump_json())
             if res.lane_warning is not None:
                 data["lane_warning"] = res.lane_warning
-            console.print_json(json.dumps(data))
+            print_json_clean(json.dumps(data))
         else:
             console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
             if res.lane_warning is not None:
@@ -138,7 +139,7 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
         data = json.loads(res.item.model_dump_json())
         if res.lane_warning is not None:
             data["lane_warning"] = res.lane_warning
-        console.print_json(json.dumps(data))
+        print_json_clean(json.dumps(data))
     else:
         console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
         if res.lane_warning is not None:

@@ -25,6 +25,7 @@ from squads._cli._common import (
     parse_status,
     parse_type,
     print_item,
+    print_json_clean,
     priority_badge,
     resolve_item_id_any,
     resolve_slug_or_raise,
@@ -297,7 +298,7 @@ async def list_items(
     if not (all_ or status):
         items = [i for i in items if is_open(i.status)]
     if json_out:
-        console.print_json(json.dumps([i.model_dump(mode="json") for i in items]))
+        print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
         return
     if not items:
         console.print("[dim]no items[/dim]")
@@ -378,7 +379,7 @@ async def tree(
                 "children": [node(c) for c in kids(it.id)],
             }
 
-        console.print_json(json.dumps([node(r) for r in roots]))
+        print_json_clean(json.dumps([node(r) for r in roots]))
         return
 
     def label(it: Item) -> str:
@@ -419,7 +420,7 @@ async def inbox(
     slug = await resolve_slug_or_raise(role, svc)
     hits = await svc.inbox(slug)
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps([{"id": it.id, "title": it.title, "lines": lines} for it, lines in hits])
         )
         return
@@ -443,7 +444,7 @@ async def search(
     svc = get_service()
     hits = await svc.search(text, item_type=parse_type(type) if type else None)
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps([{"id": it.id, "title": it.title, "hits": lines} for it, lines in hits])
         )
         return
@@ -463,7 +464,7 @@ async def blocked(json_out: bool = typer.Option(False, "--json")):
     svc = get_service()
     rows = await svc.blocked()
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps(
                 [
                     {
@@ -498,7 +499,7 @@ async def workload(json_out: bool = typer.Option(False, "--json")):
     svc = get_service()
     rows = await svc.workload()
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps(
                 [
                     {"assignee": r.assignee, "open": r.open, "closed": r.closed, "total": r.total}
@@ -532,7 +533,7 @@ async def mine(
     if not all_:
         items = [i for i in items if is_open(i.status)]
     if json_out:
-        console.print_json(json.dumps([i.model_dump(mode="json") for i in items]))
+        print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
         return
     if not items:
         console.print(f"[dim]nothing assigned to {e(slug)}[/dim]")
@@ -671,7 +672,7 @@ async def reflog(
     if json_out:
         import dataclasses
 
-        console.print_json(
+        print_json_clean(
             json.dumps(
                 [dataclasses.asdict(entry) for entry in entries],
                 ensure_ascii=False,
@@ -859,7 +860,7 @@ async def show_any(
     resolved_id = await resolve_item_id_any(item_id, svc)
     it = await svc.get(resolved_id)
     if json_out:
-        console.print_json(it.model_dump_json())
+        print_json_clean(it.model_dump_json())
         return
     await print_item(svc, it, raw=raw, comments=comments, full=full)
 
@@ -875,7 +876,7 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     svc = get_service()
     issues = await svc.check()
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps([{"level": i.level, "item": i.item, "message": i.message} for i in issues])
         )
         errors = sum(1 for i in issues if i.level == "error")

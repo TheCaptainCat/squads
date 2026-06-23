@@ -27,6 +27,7 @@ from squads._cli._common import (
     parse_type,
     print_block,
     print_item,
+    print_json_clean,
     print_subentity,
     resolve_body,
     resolve_body_optional,
@@ -107,7 +108,7 @@ def _cmd_show(item: typer.Typer) -> None:
         svc = get_service()
         it = await svc.get(_id(ctx))
         if json_out:
-            console.print_json(it.model_dump_json())
+            print_json_clean(it.model_dump_json())
             return
         await print_item(svc, it, raw=raw, comments=comments, full=full)
 
@@ -286,7 +287,7 @@ def _cmd_remove(item: typer.Typer) -> None:
         if json_out:
             import json as _json
 
-            console.print_json(
+            print_json_clean(
                 _json.dumps(
                     {
                         "removed_id": res.removed_id,
@@ -319,7 +320,7 @@ def _cmd_refs(item: typer.Typer) -> None:
         if incoming or all_:
             data["in"] = [{"id": i, "kind": k} for i, k in await svc.refs_in(_id(ctx))]
         if json_out:
-            console.print_json(json.dumps(data))
+            print_json_clean(json.dumps(data))
             return
         for direction, label in (("out", "→ refs"), ("in", "← backrefs")):
             if direction not in data:
@@ -407,7 +408,7 @@ def _register_subentity(item: typer.Typer, kind: str, plural: str) -> None:
         """List this item's sub-entities."""
         blocks = await getattr(get_service(), f"list_{plural}")(_id(ctx))
         if json_out:
-            console.print_json(
+            print_json_clean(
                 json.dumps(
                     [
                         {
