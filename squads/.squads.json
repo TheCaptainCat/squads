@@ -1,7 +1,7 @@
 {
   "schema_version": "0.4",
   "squads_version": "0.4.1",
-  "counter": 175,
+  "counter": 181,
   "padding": 6,
   "items": {
     "12": {
@@ -6603,6 +6603,222 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-000010"
+    },
+    "176": {
+      "sequence_id": 176,
+      "type": "feature",
+      "title": "Parameterized item-file storage: layout and identity",
+      "slug": "parameterized-item-file-storage-layout-and-identity",
+      "status": "Draft",
+      "description": "Config knobs for ID prefix and file layout (flat vs per-type subfolders) behind the local item-file store",
+      "parent": "EPIC-000031",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000177",
+        "FEAT-000032"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a team, I want one configurable ID/folder prefix for all item types so that our squad reflects our project code instead of the built-in type taxonomy",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a team, I want all item files in one flat directory so that our squad doesn't fragment files across per-type subfolders",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000176-parameterized-item-file-storage-layout-and-identity.md",
+      "created_at": "2026-06-23T12:32:58Z",
+      "updated_at": "2026-06-23T12:59:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000176"
+    },
+    "177": {
+      "sequence_id": 177,
+      "type": "feature",
+      "title": "Pluggable item-file serialization format (JSON/XML)",
+      "slug": "pluggable-item-file-serialization-format-json-xml",
+      "status": "Draft",
+      "description": "Allow JSON or XML as the serialization format for item files in place of markdown-with-comment-tags, configured via .squads.toml",
+      "parent": "EPIC-000031",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000176",
+        "FEAT-000032"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a team using agent tooling, I want item files stored as JSON so that I can use standard JSON tooling and skip the markdown parser",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a team integrating with XML-based systems, I want item files stored as XML so that I can pipe squad data into existing XML toolchains without conversion",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000177-pluggable-item-file-serialization-format-json-xml.md",
+      "created_at": "2026-06-23T12:33:42Z",
+      "updated_at": "2026-06-23T12:59:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000177"
+    },
+    "178": {
+      "sequence_id": 178,
+      "type": "feature",
+      "title": "Skills as first-class ID'd entities (SKILL-… prefix, migration)",
+      "slug": "skills-as-first-class-id-d-entities-skill-prefix-migration",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000031",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000176",
+        "FEAT-000177"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Stable SKILL-… ID per skill for cross-entity referencing",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "Automatic migration retrofits existing skills with IDs on sq migrate up",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Fresh sq init produces skills already carrying IDs from the start",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "Architect ADR approved before implementation begins",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000178-skills-as-first-class-id-d-entities-skill-prefix-migration.md",
+      "created_at": "2026-06-23T12:51:19Z",
+      "updated_at": "2026-06-23T12:59:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000178"
+    },
+    "179": {
+      "sequence_id": 179,
+      "type": "decision",
+      "title": "Parameterized item-file storage: prefix scope vs layout, and the ItemStore locator seam",
+      "slug": "parameterized-item-file-storage-prefix-scope-vs-layout-and-t",
+      "status": "Proposed",
+      "description": "Global prefix changes the ID prefix only; folder layout is a separate knob; both plug into a shared ItemStore locator",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000176:addresses",
+        "ADR-000180"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000179-parameterized-item-file-storage-prefix-scope-vs-layout-and-t.md",
+      "created_at": "2026-06-23T12:58:51Z",
+      "updated_at": "2026-06-23T12:59:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000179"
+    },
+    "180": {
+      "sequence_id": 180,
+      "type": "decision",
+      "title": "Format-neutral item-file storage contract: codec seam + named body/prose regions",
+      "slug": "format-neutral-item-file-storage-contract-codec-seam-named-b",
+      "status": "Proposed",
+      "description": "Split the store into a format-agnostic locator and a pluggable codec; define body regions as named fields, not text spans, so the two invariants hold across markdown/JSON/XML",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000177:addresses",
+        "ADR-000179"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000180-format-neutral-item-file-storage-contract-codec-seam-named-b.md",
+      "created_at": "2026-06-23T12:59:22Z",
+      "updated_at": "2026-06-23T12:59:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000180"
+    },
+    "181": {
+      "sequence_id": 181,
+      "type": "decision",
+      "title": "Skills as first-class entities: full Item of type SKILL on the role/operator meta-type profile",
+      "slug": "skills-as-first-class-entities-full-item-of-type-skill-on-th",
+      "status": "Proposed",
+      "description": "A skill is a full Item of the existing ItemType.SKILL with the lightweight role/operator profile (Active/Archived, no sub-entities), not a separate lighter class; frontmatter stamped onto the existing body file via migration",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000178:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000181-skills-as-first-class-entities-full-item-of-type-skill-on-th.md",
+      "created_at": "2026-06-23T12:59:27Z",
+      "updated_at": "2026-06-23T12:59:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000181"
     }
   }
 }
