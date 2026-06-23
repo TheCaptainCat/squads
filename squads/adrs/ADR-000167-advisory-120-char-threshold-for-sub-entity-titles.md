@@ -3,14 +3,14 @@ id: ADR-000167
 sequence_id: 167
 type: decision
 title: Advisory 120-char threshold for sub-entity titles
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - FEAT-000166
 description: Warn-and-proceed above 120 chars on finding/subtask/story titles; no
   body gating
 created_at: '2026-06-23T08:26:01Z'
-updated_at: '2026-06-23T08:26:01Z'
+updated_at: '2026-06-23T13:56:48Z'
 ---
 <!-- sq:body -->
 ## Context
