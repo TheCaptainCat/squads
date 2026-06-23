@@ -23,6 +23,7 @@ from squads._cli._common import (
     console,
     e,
     get_service,
+    print_json_clean,
     render_body_text,
     resolve_agent_addr,
     resolve_item_id_any,
@@ -94,7 +95,7 @@ async def skill_show(
     svc = get_service()
     it = await svc.get(item_id)
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps(
                 {
                     "id": it.id,

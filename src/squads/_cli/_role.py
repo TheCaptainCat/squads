@@ -27,6 +27,7 @@ from squads._cli._common import (
     e,
     get_service,
     handle_errors,
+    print_json_clean,
     render_body_text,
     resolve_agent_addr,
 )
@@ -57,7 +58,7 @@ role_app = typer.Typer(
 def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     """Show the bundled role catalog (slug, name, title, default indicator)."""
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps(
                 [
                     {
@@ -200,7 +201,7 @@ async def show_role(
                 )
             else:
                 raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
-        console.print_json(json.dumps(data))
+        print_json_clean(json.dumps(data))
         return
 
     # Build the catalog card from the resolved role definition (project override → bundled).

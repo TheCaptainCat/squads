@@ -16,7 +16,7 @@ import json
 import typer
 from rich.table import Table
 
-from squads._cli._common import console, e, get_service, handle_errors
+from squads._cli._common import console, e, get_service, handle_errors, print_json_clean
 from squads._overrides._service import (
     STATE_BROKEN,
     STATE_CURRENT,
@@ -108,7 +108,7 @@ def list_overrides(
     entries = scan_overrides(svc.paths.squad_dir)
 
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps(
                 [
                     {
@@ -201,7 +201,7 @@ def diff(
         )
 
     if json_out:
-        console.print_json(
+        print_json_clean(
             json.dumps(
                 [
                     {
