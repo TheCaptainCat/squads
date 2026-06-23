@@ -1,0 +1,23 @@
+{
+  "id": "FEAT-000002",
+  "type": "feature",
+  "status": "Draft",
+  "priority": null,
+  "assignee": null,
+  "edge_kind": null,
+  "direction": null,
+  "seen": false,
+  "children": [
+    {
+      "id": "TASK-000003",
+      "type": "task",
+      "status": "Draft",
+      "priority": null,
+      "assignee": null,
+      "edge_kind": "depends-on",
+      "direction": "in",
+      "seen": false,
+      "children": []
+    }
+  ]
+}

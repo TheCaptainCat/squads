@@ -10,6 +10,55 @@ from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths
 
 
+@dataclass(frozen=True)
+class GraphNode:
+    """One node in the ego-centric ref graph returned by ``RefsMixin.graph()``.
+
+    ``edge_kind`` is the **normalized** kind of the edge that reached this node, or ``None``
+    for the root.  Dependency edges are always stored as ``"depends-on"`` regardless of
+    whether the on-disk edge was authored as ``depends-on`` or ``blocks``; ``direction``
+    disambiguates the two ends:
+
+    - ``edge_kind="depends-on"``, ``direction="out"`` → this node is the blocker; the
+      expanded item depends on it → display label "depends on"
+    - ``edge_kind="depends-on"``, ``direction="in"`` → this node is the dependent; the
+      expanded item is required by it → display label "required by"
+
+    For symmetric kinds (``related``, ``implements``, ``fixes``, ``addresses``, ``supersedes``,
+    ``duplicates``) the label is the kind name; ``direction`` records the traversal direction
+    for callers that care.
+
+    ``seen=True`` marks a node that was already emitted higher in the tree; the traversal does
+    not recurse into it (cycle / breadth-first revisit termination).
+
+    ``children`` is empty when ``seen=True`` or when the depth limit was reached.
+    """
+
+    id: str
+    type: str  # ItemType.value string
+    status: str  # Status.value string
+    priority: str | None  # Priority.value string, or None
+    assignee: str | None
+    edge_kind: str | None  # None for root; normalized kind for all other nodes
+    direction: str | None  # "out" | "in" | None (None for root)
+    seen: bool
+    children: list[GraphNode] = field(default_factory=lambda: list[GraphNode]())
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise to a plain dict (for ``--json`` output)."""
+        return {
+            "id": self.id,
+            "type": self.type,
+            "status": self.status,
+            "priority": self.priority,
+            "assignee": self.assignee,
+            "edge_kind": self.edge_kind,
+            "direction": self.direction,
+            "seen": self.seen,
+            "children": [c.to_dict() for c in self.children],
+        }
+
+
 @dataclass
 class CreateResult:
     item: Item

@@ -32,11 +32,13 @@ from squads._cli._common import (
 )
 from squads._errors import SquadsError
 from squads._models._config import CONFIG_FILENAME
+from squads._models._enums import Priority
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import load_config, number_for_id
 from squads._roles._catalog import resolve_roles
-from squads._services._results import ReflogEntry
+from squads._services._refs import graph_to_dot, graph_to_mermaid
+from squads._services._results import GraphNode, ReflogEntry
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
 from squads._workflow import is_open
@@ -490,6 +492,123 @@ async def blocked(json_out: bool = typer.Option(False, "--json")):
             console.print(
                 f"    [red]blocked by[/red] {b.id} {e(b.title)} [dim]({b.status.value})[/dim]"
             )
+
+
+def _graph_edge_label(edge_kind: str, direction: str) -> str:
+    """Return the human-readable branch label for a graph edge.
+
+    Dependency edges (``edge_kind="depends-on"``) are surfaced as a two-way binding:
+
+    - ``direction="out"`` → the expanded node depends on the child → ``"depends on"``
+    - ``direction="in"``  → the child depends on the expanded node → ``"required by"``
+
+    All other kinds show the kind name verbatim (e.g. ``"related"``, ``"fixes"``).
+    The raw strings ``"depends-on"`` and ``"blocks"`` are never shown as labels.
+    """
+    if edge_kind == "depends-on":
+        return "depends on" if direction == "out" else "required by"
+    return edge_kind
+
+
+def _attach_graph_node(parent_tree: Tree, node: GraphNode) -> None:
+    """Recursively attach a GraphNode's children to a Rich Tree node."""
+    for child in node.children:
+        # Build the branch label
+        if child.edge_kind is not None and child.direction is not None:
+            label_text = _graph_edge_label(child.edge_kind, child.direction)
+            edge_part = f" [dim]({e(label_text)})[/dim]"
+        else:
+            edge_part = ""
+
+        prio = f"{e(priority_badge(Priority(child.priority)))} · " if child.priority else ""
+        seen_mark = " [dim](seen)[/dim]" if child.seen else ""
+        node_label = f"{edge_part} [bold]{child.id}[/bold] {prio}{e(child.status)}{seen_mark}"
+        branch = parent_tree.add(node_label)
+        if not child.seen:
+            _attach_graph_node(branch, child)
+
+
+@app.command()
+@common.command
+async def graph(
+    root_id: str = typer.Argument(..., metavar="ID", help="Item ID or bare number."),
+    depth: int = typer.Option(2, "--depth", "-d", help="BFS depth (default 2; 0 = root only)."),
+    kind: list[str] = typer.Option(
+        [],
+        "--kind",
+        "-k",
+        help="Ref kind to follow (repeatable; default all).",
+    ),
+    direction: str = typer.Option(
+        "both",
+        "--direction",
+        help="'out' (forward refs), 'in' (backrefs), or 'both' (default).",
+    ),
+    all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
+    json_out: bool = typer.Option(False, "--json"),
+    format_: str = typer.Option(
+        "",
+        "--format",
+        help="Export format: 'dot' or 'mermaid' (overrides Rich tree).",
+    ),
+):
+    """Show the ref graph around an item (ego-centric BFS traversal).
+
+    ``--json`` emits a nested root object (``id/type/status/priority/assignee/edge_kind/
+    direction/seen/children``) — the read surface for agents and orchestrators. Shape::
+
+        {
+          "id": "BUG-000022", "type": "bug", "status": "Open", "priority": "high",
+          "assignee": null, "edge_kind": null, "direction": null, "seen": false,
+          "children": [
+            { "id": "FEAT-000035", ..., "edge_kind": "depends-on", "direction": "out",
+              "seen": false, "children": [...] },
+            { "id": "TASK-000100", ..., "edge_kind": "related", "direction": "in",
+              "seen": true, "children": [] }
+          ]
+        }
+
+    ``edge_kind`` for dependency edges is always ``"depends-on"`` (never ``"blocks"``);
+    ``direction="out"`` means the root depends on the child, ``direction="in"`` means the
+    child depends on the root.  In the Rich tree these render as human-readable labels:
+    ``"depends on"`` and ``"required by"`` respectively.
+
+    ``--format dot|mermaid`` emits a serialized graph instead of the Rich tree; suitable
+    for piping to ``dot``, ``mmdc``, or pasting into Mermaid Live.
+    """
+    if format_ and format_ not in ("dot", "mermaid"):
+        raise SquadsError(f"invalid --format {format_!r}; expected 'dot' or 'mermaid'")
+
+    svc = get_service()
+    resolved_id = await resolve_item_id_any(root_id, svc)
+    kinds_filter: set[str] | None = set(kind) if kind else None
+
+    root_node = await svc.graph(
+        resolved_id,
+        depth=depth,
+        kinds=kinds_filter,
+        direction=direction,
+        include_closed=all_,
+    )
+
+    if json_out:
+        print_json_clean(json.dumps(root_node.to_dict()))
+        return
+
+    if format_ == "dot":
+        console.print(graph_to_dot(root_node), markup=False, highlight=False)
+        return
+
+    if format_ == "mermaid":
+        console.print(graph_to_mermaid(root_node), markup=False, highlight=False)
+        return
+
+    # Rich tree rendering
+    prio = f"{e(priority_badge(Priority(root_node.priority)))} · " if root_node.priority else ""
+    root_label = f"[bold]{root_node.id}[/bold] {prio}{e(root_node.status)}"
+    tree_view = Tree(root_label)
+    _attach_graph_node(tree_view, root_node)
+    console.print(tree_view)
 
 
 @app.command()
