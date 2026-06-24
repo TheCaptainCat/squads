@@ -545,7 +545,7 @@ def graph_squad(tmp_path, monkeypatch, frozen_time):
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup {args!r} failed (exit {r.exit_code}):\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "feature", "Feature A", "--author", "manager"])
     inv(["create", "task", "Task B", "--author", "manager", "--parent", "FEAT-000002"])
     inv(["create", "bug", "Bug C", "--author", "manager"])
@@ -686,7 +686,7 @@ def test_cli_graph_priority_badge_renders(tmp_path, monkeypatch, frozen_time):
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup {args!r} failed:\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "feature", "Root Feature", "--author", "manager", "--priority", "high"])
     inv(["create", "task", "Priority Task", "--author", "manager", "--priority", "urgent"])
     inv(["task", "3", "ref", "add", "FEAT-000002", "--kind", "depends-on"])
@@ -712,7 +712,7 @@ def test_cli_graph_all_includes_closed(tmp_path, monkeypatch, frozen_time):
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup {args!r} failed:\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "feature", "Root", "--author", "manager"])
     inv(["create", "task", "Done task", "--author", "manager"])
     inv(["task", "3", "status", "InProgress"])

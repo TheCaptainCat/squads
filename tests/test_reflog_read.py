@@ -149,7 +149,7 @@ def cli_squad(tmp_path, monkeypatch, frozen_time):
     """A minimal squad with some reflog entries, ready for CLI tests."""
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "CLI test task", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["task", "2", "status", "InProgress"])
     runner.invoke(app, ["task", "2", "comment", "--as", "manager", "-m", "A comment"])
@@ -173,7 +173,7 @@ def test_cli_reflog_json_shape(cli_squad):
         entry = data[0]
         for field in ("v", "ts", "actor", "op", "target", "delta"):
             assert field in entry, f"missing field {field!r} in --json output"
-        assert entry["v"] == "0.4"  # SCHEMA_VERSION
+        assert entry["v"] == "0.5"  # SCHEMA_VERSION
 
 
 def test_cli_reflog_filter_item(cli_squad):
@@ -204,7 +204,7 @@ def test_cli_reflog_no_reflog_file(tmp_path, monkeypatch, frozen_time):
     """sq reflog on a squad with no .reflog.jsonl exits 0 with empty output (back-compat)."""
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     rpath = tmp_path / "squads" / ".reflog.jsonl"
     if rpath.exists():
         rpath.unlink()
@@ -217,7 +217,7 @@ def test_cli_reflog_truncated_file(tmp_path, monkeypatch, frozen_time):
     """sq reflog on a truncated reflog exits 0 and returns partial results."""
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     # Corrupt the last line.
     rpath = tmp_path / "squads" / ".reflog.jsonl"
@@ -245,7 +245,7 @@ def test_cli_reflog_check_does_not_read_reflog(tmp_path, monkeypatch, frozen_tim
     """sq check exits 0 even when the reflog is corrupt — it never reads it."""
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     rpath = tmp_path / "squads" / ".reflog.jsonl"
     rpath.write_text("this is garbage\n", encoding="utf-8")
     r = runner.invoke(app, ["check"])
@@ -264,7 +264,7 @@ def test_golden_reflog_json(tmp_path, monkeypatch, frozen_time):
 
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Reflog golden task", "--author", "manager"])
     runner.invoke(app, ["task", "2", "status", "InProgress"])
 

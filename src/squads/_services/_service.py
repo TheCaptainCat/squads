@@ -49,12 +49,17 @@ async def init(
     no_claude: bool = False,
     force: bool = False,
     names: dict[str, str] | None = None,
+    _skip_skill_seed: bool = False,
 ) -> InitResult:
     """Initialise a new squad.
 
     ``names`` maps role slug → full name for any roles that should have a custom name at
     creation time (combines ``--name`` flags and ``[init.names]`` config).  Slugs not in
     ``names`` fall through to the bundled pool / PREDEFINED.
+
+    ``_skip_skill_seed`` is an **internal testing hook** — production callers must never
+    set it.  When ``True``, the bundled-skill id-stamping step is omitted so existing tests
+    that pre-date skill seeding are not disrupted by the shifted global counter.
     """
     root = (root or Path.cwd()).resolve()
     config_path = root / CONFIG_FILENAME
@@ -90,6 +95,11 @@ async def init(
 
     if not no_claude:
         await svc.refresh_managed()
+        # After refresh_managed has written the skill body files (with sq:body markers),
+        # stamp each managed skill as a first-class SKILL item in lexical-by-slug order
+        # (ADR-000181 decisions #4 and #5).
+        if not _skip_skill_seed:
+            await svc.seed_bundled_skills()
 
     return InitResult(paths=sp, roles=created)
 

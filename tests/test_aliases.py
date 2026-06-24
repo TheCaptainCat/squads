@@ -17,7 +17,7 @@ from squads._models._enums import TYPE_ALIASES, WORK_TYPES
 def _init_squad(runner, tmp_path, monkeypatch, frozen_time):
     """Initialize a squad with minimal roles; return the runner and tmp_path."""
     monkeypatch.chdir(tmp_path)
-    r = runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     assert r.exit_code == 0, r.output
 
 

@@ -732,11 +732,14 @@ async def test_repad_renames_files_and_bumps_padding(svc):
 
     renamed = await svc.repad(7)
 
-    # All item files should now have width-7 digit runs.
+    # All ID-prefixed item files should now have width-7 digit runs.
+    # Skill files use slug-only names (e.g. squads.md, sq-bug.md) and are not repadded — skip them.
     for _, md in svc._iter_item_files():  # pyright: ignore[reportPrivateUsage]
         stem = md.stem
-        _, _, digits_slug = stem.partition("-")
-        digit_run = digits_slug.split("-", 1)[0]
+        _, sep, digits_slug = stem.partition("-")
+        digit_run = digits_slug.split("-", 1)[0] if sep else ""
+        if not digit_run.isdigit():
+            continue  # slug-only or non-ID filename (skill files like squads.md) — not repadded
         assert len(digit_run) == 7, f"expected width-7 digit run, got {digit_run!r} in {md.name}"
 
     # The index must record the new padding.

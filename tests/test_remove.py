@@ -207,7 +207,7 @@ async def test_remove_children_helper_returns_correct_list(svc):
 def test_cli_remove_basic(runner, tmp_path, monkeypatch, frozen_time):
     """sq <type> <n> remove --yes removes the item without a prompt."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Oops", "--author", "manager"])  # TASK-000002
 
     r = runner.invoke(app, ["task", "2", "remove", "--yes"])
@@ -220,7 +220,7 @@ def test_cli_remove_basic(runner, tmp_path, monkeypatch, frozen_time):
 def test_cli_remove_requires_confirm(runner, tmp_path, monkeypatch, frozen_time):
     """Without --yes, the command asks for confirmation; 'n' aborts."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Oops", "--author", "manager"])  # TASK-000002
 
     # typer.confirm with abort=True raises SystemExit when input is 'n'
@@ -232,7 +232,7 @@ def test_cli_remove_requires_confirm(runner, tmp_path, monkeypatch, frozen_time)
 def test_cli_remove_json_output(runner, tmp_path, monkeypatch, frozen_time):
     """sq <type> <n> remove --yes --json returns structured JSON."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Gone", "--author", "manager"])  # TASK-000002
 
     r = runner.invoke(app, ["task", "2", "remove", "--yes", "--json"])
@@ -246,7 +246,7 @@ def test_cli_remove_json_output(runner, tmp_path, monkeypatch, frozen_time):
 def test_cli_remove_refuses_on_incoming_refs(runner, tmp_path, monkeypatch, frozen_time):
     """CLI remove without --force exits 1 and names the referrer."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Target", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["create", "task", "Referrer", "--author", "manager"])  # TASK-000003
     runner.invoke(app, ["task", "3", "ref", "add", "TASK-000002"])
@@ -260,7 +260,7 @@ def test_cli_remove_refuses_on_incoming_refs(runner, tmp_path, monkeypatch, froz
 def test_cli_remove_force_severs_refs(runner, tmp_path, monkeypatch, frozen_time):
     """CLI remove --force severs refs and prints the severed list."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Target", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["create", "task", "Referrer", "--author", "manager"])  # TASK-000003
     runner.invoke(app, ["task", "3", "ref", "add", "TASK-000002"])
@@ -275,7 +275,7 @@ def test_cli_remove_force_severs_refs(runner, tmp_path, monkeypatch, frozen_time
 def test_cli_remove_refuses_children_even_with_force(runner, tmp_path, monkeypatch, frozen_time):
     """Children block removal even with --force."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "Feat", "--author", "manager"])  # FEAT-000002
     runner.invoke(  # TASK-000003
         app, ["create", "task", "Task", "--author", "manager", "--parent", "FEAT-000002"]
@@ -350,7 +350,7 @@ async def test_remove_unlink_happens_before_index_commit_no_resurrection(svc, mo
 def test_cli_remove_counter_and_repair(runner, tmp_path, monkeypatch, frozen_time):
     """After remove + repair the counter is stable and number is not reissued."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Removed", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["create", "task", "Kept", "--author", "manager"])  # TASK-000003
 

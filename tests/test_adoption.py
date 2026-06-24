@@ -33,7 +33,8 @@ def test_parse_iso_variants():
 async def test_adopt_imports_existing_and_is_idempotent(tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
     # a pre-existing squad with one task, but no config/index (legacy/native files only)
-    init = await service.init(root=tmp_path, roles_spec="minimal")
+    # _skip_skill_seed=True keeps the counter at 2 so the legacy task is TASK-000002.
+    init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     await service.Service(init.paths).create(ItemType.TASK, "legacy")
     (tmp_path / ".squads.toml").unlink()
     (tmp_path / "squads" / ".squads.json").unlink()
@@ -57,7 +58,7 @@ async def test_adopt_imports_existing_and_is_idempotent(tmp_path, monkeypatch, f
 def test_at_forges_timestamps(runner, tmp_path, monkeypatch):
     # deliberately NOT using frozen_time so clock honours the --at override
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["--at", "2020-05-06", "create", "task", "old", "--author", "manager"])
     assert r.exit_code == 0, r.output
     text = next((tmp_path / "squads" / "tasks").glob("*.md")).read_text(encoding="utf-8")
@@ -67,7 +68,7 @@ def test_at_forges_timestamps(runner, tmp_path, monkeypatch):
 
 def test_at_forges_comment_timestamp(runner, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "t", "--author", "manager"])
     runner.invoke(
         app,
@@ -79,7 +80,7 @@ def test_at_forges_comment_timestamp(runner, tmp_path, monkeypatch):
 
 def test_at_invalid_is_rejected(runner, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["--at", "nope", "list"])
     assert r.exit_code == 2
     assert "invalid --at" in r.output

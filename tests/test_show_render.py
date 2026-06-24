@@ -36,7 +36,7 @@ def styled(monkeypatch):
 def test_tty_show_renders_markdown_not_raw(runner, styled, tmp_path, monkeypatch, frozen_time):
     """On a TTY (_is_styled patched True), body is rendered through Rich Markdown."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(
         app,
         [
@@ -62,7 +62,7 @@ def test_tty_show_renders_markdown_not_raw(runner, styled, tmp_path, monkeypatch
 def test_raw_flag_suppresses_markdown_render(runner, styled, tmp_path, monkeypatch, frozen_time):
     """--raw on a TTY still produces plain body text (literal ## markers preserved)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(
         app,
         ["create", "task", "Raw test", "--author", "manager", "-m", "## Heading\n\nBody text."],
@@ -80,7 +80,7 @@ def test_raw_flag_suppresses_markdown_render(runner, styled, tmp_path, monkeypat
 def test_piped_show_preserves_raw_markdown(runner, tmp_path, monkeypatch, frozen_time):
     """When stdout is not a TTY, body renders as plain text preserving literal markdown."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(
         app,
         ["create", "task", "Plain", "--author", "manager", "-m", "## Heading\n\nContent here."],
@@ -94,7 +94,7 @@ def test_piped_show_preserves_raw_markdown(runner, tmp_path, monkeypatch, frozen
 def test_piped_output_is_byte_stable(runner, tmp_path, monkeypatch, frozen_time):
     """Running show twice on the same item produces identical output."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Stable", "--author", "manager", "-m", "Stable body."])
     r1 = runner.invoke(app, ["task", "2", "show"])
     r2 = runner.invoke(app, ["task", "2", "show"])
@@ -105,7 +105,7 @@ def test_piped_output_is_byte_stable(runner, tmp_path, monkeypatch, frozen_time)
 def test_json_unaffected_by_render_flags(runner, tmp_path, monkeypatch, frozen_time):
     """--json output is byte-identical regardless of --raw or --comments."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "JSON test", "--author", "manager", "-m", "Body."])
     runner.invoke(app, ["task", "2", "comment", "--as", "manager", "-m", "A comment."])
     r_base = runner.invoke(app, ["task", "2", "show", "--json"])
@@ -123,7 +123,7 @@ def test_json_unaffected_by_render_flags(runner, tmp_path, monkeypatch, frozen_t
 def test_root_show_by_full_id(runner, tmp_path, monkeypatch, frozen_time):
     """sq show FEAT-000002 resolves a feature by full ID."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "My Feature", "--author", "manager"])
     r = runner.invoke(app, ["show", "FEAT-000002"])
     assert r.exit_code == 0, r.output
@@ -134,7 +134,7 @@ def test_root_show_by_full_id(runner, tmp_path, monkeypatch, frozen_time):
 def test_root_show_by_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     """sq show 2 resolves via bare sequence number without naming the type."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "bug", "Crash", "--author", "manager"])
     r = runner.invoke(app, ["show", "2"])
     assert r.exit_code == 0, r.output
@@ -145,7 +145,7 @@ def test_root_show_by_bare_number(runner, tmp_path, monkeypatch, frozen_time):
 def test_root_show_multiple_types(runner, tmp_path, monkeypatch, frozen_time):
     """sq show works for features, tasks, bugs, decisions, and reviews."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # 2
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # 3
     runner.invoke(app, ["create", "bug", "B", "--author", "manager"])  # 4
@@ -167,7 +167,7 @@ def test_root_show_multiple_types(runner, tmp_path, monkeypatch, frozen_time):
 def test_root_show_unknown_id_errors_cleanly(runner, tmp_path, monkeypatch, frozen_time):
     """sq show with an unknown id exits non-zero with informative output."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["show", "999"])
     assert r.exit_code != 0
     assert "999" in r.output
@@ -176,7 +176,7 @@ def test_root_show_unknown_id_errors_cleanly(runner, tmp_path, monkeypatch, froz
 def test_root_show_wrong_type_prefix_errors_cleanly(runner, tmp_path, monkeypatch, frozen_time):
     """sq show TASK-000002 where 2 is actually a feature errors naming the real type."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
     r = runner.invoke(app, ["show", "TASK-000002"])
     assert r.exit_code != 0
@@ -186,7 +186,7 @@ def test_root_show_wrong_type_prefix_errors_cleanly(runner, tmp_path, monkeypatc
 def test_root_show_accepts_all_flags(runner, tmp_path, monkeypatch, frozen_time):
     """--raw, --comments, --json are all accepted by root show."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "-m", "Body."])
     assert runner.invoke(app, ["show", "2", "--raw"]).exit_code == 0
     assert runner.invoke(app, ["show", "2", "--json"]).exit_code == 0
@@ -199,7 +199,7 @@ def test_root_show_accepts_all_flags(runner, tmp_path, monkeypatch, frozen_time)
 def test_task_summary_shown_in_default_output(runner, tmp_path, monkeypatch, frozen_time):
     """Default task show includes the subtask summary table driven from frontmatter."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "Validate input"])  # ST1
     runner.invoke(app, ["task", "2", "add-subtask", "Write tests"])  # ST2
@@ -213,7 +213,7 @@ def test_task_summary_shown_in_default_output(runner, tmp_path, monkeypatch, fro
 def test_feature_summary_shown_in_default_output(runner, tmp_path, monkeypatch, frozen_time):
     """Feature show includes user stories summary table."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
     runner.invoke(app, ["feature", "2", "add-story", "As a user, I want X"])
     r = runner.invoke(app, ["feature", "2", "show"])
@@ -224,7 +224,7 @@ def test_feature_summary_shown_in_default_output(runner, tmp_path, monkeypatch, 
 def test_review_summary_shown_in_default_output(runner, tmp_path, monkeypatch, frozen_time):
     """Review show includes findings summary table."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "review", "R", "--author", "manager"])
     runner.invoke(app, ["review", "2", "add-finding", "Null deref", "--severity", "high"])
     r = runner.invoke(app, ["review", "2", "show"])
@@ -235,7 +235,7 @@ def test_review_summary_shown_in_default_output(runner, tmp_path, monkeypatch, f
 def test_comments_flag_shows_discussion_plain(runner, tmp_path, monkeypatch, frozen_time):
     """--comments renders the main discussion in plain mode (piped runner)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "-m", "Body."])
     runner.invoke(
         app,
@@ -252,7 +252,7 @@ def test_comments_flag_shows_discussion_plain(runner, tmp_path, monkeypatch, fro
 def test_comments_flag_empty_discussion(runner, tmp_path, monkeypatch, frozen_time):
     """--comments with no discussion prints the no-discussion fallback."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "-m", "Body."])
     r = runner.invoke(app, ["task", "2", "show", "--comments"])
     assert r.exit_code == 0, r.output
@@ -262,7 +262,7 @@ def test_comments_flag_empty_discussion(runner, tmp_path, monkeypatch, frozen_ti
 def test_comments_tty_renders_author_in_output(runner, styled, tmp_path, monkeypatch, frozen_time):
     """On a TTY, --comments includes author and message text (Panel rendering)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "-m", "Body."])
     runner.invoke(
         app,
@@ -277,7 +277,7 @@ def test_comments_tty_renders_author_in_output(runner, styled, tmp_path, monkeyp
 def test_default_show_no_body_label(runner, tmp_path, monkeypatch, frozen_time):
     """BUG-000025 regression: sq show must not inject a bare 'Body' literal."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Show test", "--author", "manager", "-m", "Content."])
     r = runner.invoke(app, ["task", "2", "show"])
     assert r.exit_code == 0, r.output
@@ -366,7 +366,7 @@ def test_split_is_inverse_of_format(frozen_time):
 def test_full_flag_shows_subentity_body_plain(runner, tmp_path, monkeypatch, frozen_time):
     """--full in plain mode includes each sub-entity's body content."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "First subtask"])  # ST1
     runner.invoke(app, ["task", "2", "add-subtask", "Second subtask"])  # ST2
@@ -393,7 +393,7 @@ def test_full_flag_shows_subentity_body_plain(runner, tmp_path, monkeypatch, fro
 def test_full_flag_no_comments_by_default(runner, tmp_path, monkeypatch, frozen_time):
     """--full alone does NOT include sub-entity or main discussion comments."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "A subtask"])  # ST1
     # Comment on the subtask
@@ -417,7 +417,7 @@ def test_full_comments_includes_per_sub_comments_then_main(
 ):
     """--full --comments: sub-entity comments appear before main discussion."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "A subtask"])  # ST1
     runner.invoke(
@@ -441,7 +441,7 @@ def test_full_comments_includes_per_sub_comments_then_main(
 def test_full_feature_stories_panes(runner, tmp_path, monkeypatch, frozen_time):
     """--full on a feature shows one pane per user story with body content."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
     runner.invoke(app, ["feature", "2", "add-story", "As a user I want X"])  # US1
     runner.invoke(app, ["feature", "2", "story", "1", "body", "-m", "Acceptance criteria here."])
@@ -454,7 +454,7 @@ def test_full_feature_stories_panes(runner, tmp_path, monkeypatch, frozen_time):
 def test_full_review_findings_panes(runner, tmp_path, monkeypatch, frozen_time):
     """--full on a review shows one pane per finding with body content and badge."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "review", "R", "--author", "manager"])
     runner.invoke(app, ["review", "2", "add-finding", "Null deref", "--severity", "high"])  # F1
     runner.invoke(
@@ -471,7 +471,7 @@ def test_full_review_findings_panes(runner, tmp_path, monkeypatch, frozen_time):
 def test_full_no_subentities_degrades_gracefully(runner, tmp_path, monkeypatch, frozen_time):
     """--full on an item with no sub-entities exits 0 and shows nothing extra."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "-m", "Body text."])
     r = runner.invoke(app, ["task", "2", "show", "--full"])
     assert r.exit_code == 0, r.output
@@ -483,7 +483,7 @@ def test_full_no_subentities_degrades_gracefully(runner, tmp_path, monkeypatch, 
 def test_full_plain_byte_stable(runner, tmp_path, monkeypatch, frozen_time):
     """--full plain output is byte-stable (identical across two runs)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "Stable sub"])
     runner.invoke(app, ["task", "2", "subtask", "1", "body", "-m", "Stable body content."])
@@ -496,7 +496,7 @@ def test_full_plain_byte_stable(runner, tmp_path, monkeypatch, frozen_time):
 def test_json_unaffected_by_full_flag(runner, tmp_path, monkeypatch, frozen_time):
     """--json output is byte-identical regardless of --full."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "A sub"])
     r_base = runner.invoke(app, ["task", "2", "show", "--json"])
@@ -509,7 +509,7 @@ def test_json_unaffected_by_full_flag(runner, tmp_path, monkeypatch, frozen_time
 def test_full_tty_renders_styled_panes(runner, styled, tmp_path, monkeypatch, frozen_time):
     """On a TTY, --full renders sub-entity bodies through Rich Markdown (## stripped)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "A subtask"])
     runner.invoke(
@@ -527,7 +527,7 @@ def test_full_tty_renders_styled_panes(runner, styled, tmp_path, monkeypatch, fr
 def test_full_tty_comments_embeds_sub_comments(runner, styled, tmp_path, monkeypatch, frozen_time):
     """On a TTY, --full --comments embeds per-sub comments as nested panels."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "A subtask"])
     runner.invoke(
@@ -548,7 +548,7 @@ def test_full_tty_comments_embeds_sub_comments(runner, styled, tmp_path, monkeyp
 def test_full_status_badge_in_pane_title(runner, tmp_path, monkeypatch, frozen_time):
     """Sub-entity pane title includes the status badge (local_id, title, status)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "My subtask"])  # ST1, Todo
     r = runner.invoke(app, ["task", "2", "show", "--full"])
@@ -562,7 +562,7 @@ def test_full_status_badge_in_pane_title(runner, tmp_path, monkeypatch, frozen_t
 def test_root_show_full_flag_works(runner, tmp_path, monkeypatch, frozen_time):
     """root sq show supports --full flag and shows sub-entity panes."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
     runner.invoke(app, ["feature", "2", "add-story", "US title"])
     runner.invoke(app, ["feature", "2", "story", "1", "body", "-m", "Story body."])
@@ -584,7 +584,7 @@ def test_plain_pane_title_literal_brackets_no_backslashes(
     plain path never leaks Rich-escape backslashes (e.g. '\\[red]' instead of '[red]').
     """
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     # Title with bracket-like tokens similar to Rich markup and a checkbox idiom
     runner.invoke(app, ["task", "2", "add-subtask", "Danger [red]x[/red] and [x] checkbox"])
@@ -602,7 +602,7 @@ def test_plain_pane_title_literal_brackets_styled_path(
 ):
     """F3: styled path also renders the literal bracket text (e() escapes it for Rich correctly)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "add-subtask", "Danger [red]x[/red] and [x] checkbox"])
     r = runner.invoke(app, ["task", "2", "show", "--full"])
@@ -621,7 +621,7 @@ def test_plain_comment_header_literal_brackets_no_backslashes(
     author names would appear verbatim. Validates the fix is consistent for this path.
     """
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "-m", "Body."])
     runner.invoke(app, ["task", "2", "comment", "--as", "manager", "-m", "Comment text."])
     r = runner.invoke(app, ["task", "2", "show", "--comments"])
@@ -642,7 +642,7 @@ def test_role_show_tty_renders_styled_markdown(runner, styled, tmp_path, monkeyp
     consumes the ## prefix so the literal marker must not appear in styled output.
     """
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["role", "manager", "show"])
     assert r.exit_code == 0, r.output
     # Rich Markdown strips the ## prefix from headings
@@ -656,7 +656,7 @@ def test_role_show_raw_flag_preserves_literal_markdown(
 ):
     """--raw on a TTY still produces plain body text (literal ## markers preserved)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["role", "manager", "show", "--raw"])
     assert r.exit_code == 0, r.output
     # Plain path — literal ## headings must survive
@@ -666,7 +666,7 @@ def test_role_show_raw_flag_preserves_literal_markdown(
 def test_role_show_piped_is_plain_and_byte_stable(runner, tmp_path, monkeypatch, frozen_time):
     """Piped (no TTY) sq role show is plain and byte-stable across two runs."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r1 = runner.invoke(app, ["role", "manager", "show"])
     r2 = runner.invoke(app, ["role", "manager", "show"])
     assert r1.exit_code == 0 and r2.exit_code == 0
@@ -679,7 +679,7 @@ def test_role_show_piped_is_plain_and_byte_stable(runner, tmp_path, monkeypatch,
 def test_role_show_bundled_only_still_renders_hint(runner, tmp_path, monkeypatch, frozen_time):
     """Bundled-only role (not activated) shows a catalog card + activation hint, no body error."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # qa is not activated by --roles minimal (which only activates manager)
     r = runner.invoke(app, ["role", "qa", "show"])
     assert r.exit_code == 0, r.output
@@ -695,7 +695,7 @@ def test_role_show_catalog_card_preserved_alongside_body(
     Both the catalog card and body text must appear (no accidental removal).
     """
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["role", "manager", "show"])
     assert r.exit_code == 0, r.output
     # Catalog card fields
@@ -712,7 +712,7 @@ def test_skill_show_tty_renders_styled_markdown(runner, styled, tmp_path, monkey
     so the literal marker must not appear in styled output.
     """
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["skill", "add", "my-skill", "--desc", "A test skill."])
     r = runner.invoke(app, ["skill", "2", "show"])
     assert r.exit_code == 0, r.output
@@ -727,7 +727,7 @@ def test_skill_show_raw_flag_preserves_literal_markdown(
 ):
     """--raw on a TTY preserves literal ## markers in the skill body."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["skill", "add", "my-skill", "--desc", "A test skill."])
     r = runner.invoke(app, ["skill", "2", "show", "--raw"])
     assert r.exit_code == 0, r.output
@@ -737,7 +737,7 @@ def test_skill_show_raw_flag_preserves_literal_markdown(
 def test_skill_show_piped_is_plain_and_byte_stable(runner, tmp_path, monkeypatch, frozen_time):
     """Piped sq skill show produces plain text, byte-stable across two runs."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["skill", "add", "my-skill", "--desc", "A test skill."])
     r1 = runner.invoke(app, ["skill", "2", "show"])
     r2 = runner.invoke(app, ["skill", "2", "show"])
@@ -749,7 +749,7 @@ def test_skill_show_piped_is_plain_and_byte_stable(runner, tmp_path, monkeypatch
 def test_operator_show_renders_panel_and_body(runner, tmp_path, monkeypatch, frozen_time):
     """sq operator <n> show shows metadata panel and body content from the template."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["operator", "add", "Alice Test"])
     r = runner.invoke(app, ["operator", "2", "show"])
     assert r.exit_code == 0, r.output
@@ -763,7 +763,7 @@ def test_operator_show_renders_panel_and_body(runner, tmp_path, monkeypatch, fro
 def test_operator_show_raw_flag_accepted(runner, tmp_path, monkeypatch, frozen_time):
     """--raw is accepted by sq operator show (exits 0)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["operator", "add", "Alice Test"])
     r = runner.invoke(app, ["operator", "2", "show", "--raw"])
     assert r.exit_code == 0, r.output

@@ -9,14 +9,15 @@ from squads import __version__, _aio
 from squads import _actor as actor
 from squads import _clock as clock
 from squads import _sections as sections
+from squads._backends._base import BackendContext
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
-from squads._interactions import TITLE_ADVISORY_MAX
+from squads._interactions import TITLE_ADVISORY_MAX, bundled_skill_slugs, skill_description
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
-from squads._models._enums import ItemType
+from squads._models._enums import ItemType, Status
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
@@ -31,6 +32,7 @@ from squads._paths import number_for_id
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role
+from squads._sections import join_frontmatter
 from squads._services._base import SUBENTITY_KIND, ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RepairResult
 from squads._workflow import parent_allowed, parent_hint, subentity_workflow, workflow_for
@@ -90,10 +92,14 @@ class MaintenanceMixin(ServiceCore):
         for it in await self.list_items(item_type=ItemType.SKILL):
             for backend in backends:
                 await backend.generate_skill_entry(ctx, it)
+        skill_map = await self._skill_paths()
+        ctx_with_skills = BackendContext(
+            paths=self.paths, version=__version__, skill_paths=skill_map
+        )
         roster = await self.roster()
         ops = await self.operators()
         for backend in backends:
-            await backend.write_managed(ctx, roster, ops)
+            await backend.write_managed(ctx_with_skills, roster, ops)
         await self._stamp_version(__version__)
 
     async def _refresh_catalog_extra(self, item: Item) -> None:
@@ -157,7 +163,7 @@ class MaintenanceMixin(ServiceCore):
         disk = self.paths.config.schema_version
         applied = [m for m in MIGRATIONS if schema_tuple(m.to_schema) > schema_tuple(disk)]
         for m in applied:
-            m.run(self.paths)
+            await m.run(self.paths)
         if applied:
             await self.repair()
             await self._stamp_schema(SCHEMA_VERSION)
@@ -179,14 +185,115 @@ class MaintenanceMixin(ServiceCore):
             )
         return applied
 
+    # ------------------------------------------------------------------ skill seeding
+    async def seed_bundled_skills(self) -> list[Item]:
+        """Stamp SKILL-… ids onto the bundled managed skill body files (idempotent).
+
+        Called by ``sq init`` after ``refresh_managed()`` has written the skill body files.
+        Each bundled skill receives a full ``Item`` of ``ItemType.SKILL`` with the meta-type
+        profile (status ``Active``, no sub-entities), allocated through
+        ``IndexStore.transaction()`` in lexical-by-slug order (ADR-000181 decision #5).
+
+        Files are written with the convention-correct name
+        ``agents/skills/SKILL-<NNNNNN>-<slug>.md`` (ADR-000181 decision #3, amended).
+        The legacy slug-named file written by ``write_managed`` (``<slug>.md``) is renamed to
+        the convention name at this step; the ``sq init`` flow always ends with
+        convention-named files on disk.
+
+        Idempotent: if a convention-named file ``SKILL-*-<slug>.md`` already exists for a
+        slug, it is left completely untouched (ADR-000181 decision #4).
+
+        Returns the list of ``Item``s that were stamped (not including already-stamped ones).
+        """
+        now = clock.now()
+        seeded: list[Item] = []
+        skills_folder = self.paths.squad_dir / ItemType.SKILL.folder
+        for slug in bundled_skill_slugs():
+            desc = skill_description(slug)
+
+            # Check if a convention-named file already exists — idempotent skip.
+            existing_convention = list(skills_folder.glob(f"{ItemType.SKILL.prefix}-*-{slug}.md"))
+            if existing_convention:
+                continue  # already at convention name — leave id/sequence_id untouched (#4)
+
+            # Look for the legacy slug-named body file written by write_managed.
+            legacy_path = skills_folder / f"{slug}.md"
+            if not legacy_path.is_file():
+                continue  # body file not written yet (shouldn't happen after refresh_managed)
+            existing_text = await _aio.read_text(legacy_path)
+
+            # Allocate a new SKILL id through the single global counter.
+            sid, _psid = actor.current_session()
+            async with self.store.transaction() as db:
+                item_id = db.allocate_id(ItemType.SKILL)
+                # Convention-correct filename from the allocated id.
+                seq = number_for_id(item_id)
+                new_name = f"{ItemType.SKILL.prefix}-{seq:0{db.padding}d}-{slug}.md"
+                squad_rel = self.paths.squad_relative(ItemType.SKILL, new_name)
+                item = Item(
+                    sequence_id=db.counter,
+                    type=ItemType.SKILL,
+                    title=slug,
+                    slug=slug,
+                    status=Status.ACTIVE,
+                    description=desc,
+                    author=slug,
+                    path=squad_rel,
+                    created_at=now,
+                    updated_at=now,
+                    created_session=sid,
+                    modified_session=sid,
+                    extra={X.SLUG: slug},
+                    id_padding=db.padding,
+                )
+                # Stamp frontmatter and write to the convention-named file.
+                stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
+                convention_path = skills_folder / new_name
+                await _aio.write_text(convention_path, stamped)
+                db.add(item)
+                self.store._log(  # pyright: ignore[reportPrivateUsage]
+                    "create",
+                    item_id,
+                    {"title": slug, "type": ItemType.SKILL.value, "status": Status.ACTIVE.value},
+                )
+            # Remove the legacy slug-named file now that convention file is written.
+            await _aio.path_unlink(legacy_path)
+            # Rewrite each backend's .claude pointer to reference the convention-named body.
+            # write_managed ran before seeding and wrote the pointer to the old slug path;
+            # generate_skill_entry rewrites it to item.path (= SKILL-NNNNNN-slug.md).
+            ctx = self._ctx
+            for backend in self._backends():
+                await backend.generate_skill_entry(ctx, item)
+            seeded.append(item)
+        return seeded
+
     # ------------------------------------------------------------------ scan helpers
     def _iter_item_files(self) -> Iterator[tuple[ItemType, Path]]:
-        """Yield (item_type, markdown path) for every item file across the type folders."""
+        """Yield (item_type, markdown path) for every item file across the type folders.
+
+        Skill files follow the ``SKILL-<NNNNNN>-<slug>.md`` convention (ADR-000181 decision
+        #3, amended) so they are scanned with the same ``PREFIX-*.md`` glob as every other
+        type.  Legacy slug-named files (pre-migration) are also yielded so callers can detect
+        them; files without an ``id`` in their frontmatter are silently skipped by the
+        repair/check callers.
+        """
         for item_type in ItemType:
             folder = self.paths.folder_for(item_type)
             if not folder.is_dir():
                 continue
-            yield from ((item_type, md) for md in sorted(folder.glob(f"{item_type.prefix}-*.md")))
+            if item_type is ItemType.SKILL:
+                # Convention files follow SKILL-*.md (post-migration / fresh init).
+                # Also include legacy <slug>.md files so pre-migration squads can still be
+                # repaired/checked (they will be silently skipped by callers that require an id).
+                convention = sorted(folder.glob(f"{item_type.prefix}-*.md"))
+                legacy = sorted(
+                    md for md in folder.glob("*.md") if not md.name.startswith(item_type.prefix)
+                )
+                yield from ((item_type, md) for md in convention + legacy)
+            else:
+                yield from (
+                    (item_type, md) for md in sorted(folder.glob(f"{item_type.prefix}-*.md"))
+                )
 
     # ------------------------------------------------------------------ repair / renumber
     async def repair(self, *, renumber: bool = False) -> RepairResult:
@@ -487,15 +594,24 @@ class MaintenanceMixin(ServiceCore):
         fields keep their old width after ``sq migrate repad`` while the index reports the
         new width.  The stored tuple is ``(fid, path, frontmatter_data)`` so error messages
         can still name the original frontmatter ID.
+
+        Skill files with no ``id`` in their frontmatter are silently skipped (pre-migration
+        body files that have not yet been stamped as SKILL items).  Only ID-prefixed skill
+        files (``SKILL-*.md``) without a valid frontmatter id are reported as errors.
         """
         issues: list[CheckIssue] = []
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]] = {}
-        for _, md in self._iter_item_files():
+        skill_prefix = ItemType.SKILL.prefix + "-"
+        for item_type, md in self._iter_item_files():
             text = await _aio.read_text(md)
             issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
             data = read_frontmatter(text=text)
             fid = data.get("id")
             if not fid:
+                # Slug-named skill body files (e.g. squads.md) are pre-migration: skip silently.
+                # Only ID-prefixed files that are missing an id are a real error.
+                if item_type is ItemType.SKILL and not md.name.startswith(skill_prefix):
+                    continue
                 issues.append(CheckIssue("error", md.name, "file has no `id` in frontmatter"))
                 continue
             seq = number_for_id(fid)
@@ -533,7 +649,7 @@ class MaintenanceMixin(ServiceCore):
         registered = {
             r.extra.get(X.SLUG)
             for r in index.items.values()
-            if r.type in (ItemType.ROLE, ItemType.OPERATOR)
+            if r.type in (ItemType.ROLE, ItemType.OPERATOR, ItemType.SKILL)
         }
         for item in index.items.values():
             iid = item.id

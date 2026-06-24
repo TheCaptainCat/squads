@@ -109,7 +109,7 @@ def golden_squad(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, frozen_time: A
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup step {args!r} failed (exit {r.exit_code}):\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])  # ROLE-000001
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])  # ROLE-000001
     inv(
         [
             "create",

@@ -235,7 +235,10 @@ class TestNoneSentinel:
         """sq init --backend none writes active_backends=[] to config."""
         import tomllib
 
-        r = runner.invoke(app, ["init", "--backend", "none", "--no-claude", "--roles", "minimal"])
+        r = runner.invoke(
+            app,
+            ["init", "--no-seed-skills", "--backend", "none", "--no-claude", "--roles", "minimal"],
+        )
         assert r.exit_code == 0, r.output
         with (tmp_squad / ".squads.toml").open("rb") as fh:
             cfg = tomllib.load(fh)
@@ -245,7 +248,10 @@ class TestNoneSentinel:
         """--backend NONE (upper-case) is treated as the none sentinel."""
         import tomllib
 
-        r = runner.invoke(app, ["init", "--backend", "NONE", "--no-claude", "--roles", "minimal"])
+        r = runner.invoke(
+            app,
+            ["init", "--no-seed-skills", "--backend", "NONE", "--no-claude", "--roles", "minimal"],
+        )
         assert r.exit_code == 0, r.output
         with (tmp_squad / ".squads.toml").open("rb") as fh:
             cfg = tomllib.load(fh)
@@ -257,7 +263,16 @@ class TestNoneSentinel:
         """--backend none combined with a real backend name is an error."""
         r = runner.invoke(
             app,
-            ["init", "--backend", "none", "--backend", "claude_code", "--roles", "minimal"],
+            [
+                "init",
+                "--no-seed-skills",
+                "--backend",
+                "none",
+                "--backend",
+                "claude_code",
+                "--roles",
+                "minimal",
+            ],
         )
         assert r.exit_code == 1, r.output
         assert "none" in r.output.lower() or "cannot be combined" in r.output.lower()
@@ -273,7 +288,16 @@ class TestCliMultiBackend:
         """sq init --backend X --backend Y prints both in the 'agent backends' line."""
         r = runner.invoke(
             app,
-            ["init", "--backend", "claude_code", "--backend", "agents_md", "--roles", "minimal"],
+            [
+                "init",
+                "--no-seed-skills",
+                "--backend",
+                "claude_code",
+                "--backend",
+                "agents_md",
+                "--roles",
+                "minimal",
+            ],
         )
         assert r.exit_code == 0, r.output
         assert "agent backends" in r.output.lower()

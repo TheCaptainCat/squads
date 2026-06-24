@@ -393,6 +393,47 @@ SQUADS_SKILL = "squads"
 #: Always-loaded skill for the start-of-conversation ritual (detect the human, register, greet).
 GREETING_SKILL = "greeting"
 
+# ---------------------------------------------------------------------------
+# Skill description registry — single source of truth (TASK-000204)
+#
+# Every bundled skill's description lives here exactly once.  Both the backend
+# (write_managed / _write_item_skills) and the seeding/migration code read from
+# this map when they set the description on the SKILL item and the .claude
+# pointer.  Nothing else should hard-code these strings.
+# ---------------------------------------------------------------------------
+
+#: Slug → one-line description for each bundled skill.
+SKILL_DESCRIPTIONS: dict[str, str] = {
+    SQUADS_SKILL: (
+        "How to track work on this project with the squads (`sq`) CLI: create/transition "
+        "items, comment, link context. Use whenever you start, hand off, or update work."
+    ),
+    GREETING_SKILL: (
+        "Start of a conversation with a human: detect & register the operator, then greet "
+        "them — match their tone, say how you help, and give a quick read of the project. "
+        "Use when a person opens a session; skip it when spawned as a subagent for a job."
+    ),
+    # sq-<type> descriptions — iterate PLAYBOOK directly (same source as managed_item_types()
+    # and bundled_skill_slugs()) so the set stays in sync if a new ItemType is added to the
+    # playbook (F2 — no duplicate hand-written exclusion list).
+    **{
+        f"sq-{item_type.value}": (
+            f"Working with {item_type.value} items in this squad: "
+            "lifecycle, commands, and role-specific guidance."
+        )
+        for item_type in PLAYBOOK
+    },
+}
+
+
+def skill_description(slug: str) -> str:
+    """Return the canonical description for a bundled skill slug.
+
+    Falls back to the slug itself if the slug is not in the registry (should
+    not happen for bundled skills, but avoids a KeyError for unknown slugs).
+    """
+    return SKILL_DESCRIPTIONS.get(slug, slug)
+
 
 def is_dev_slug(slug: str) -> bool:
     return slug.endswith("-dev")
@@ -502,3 +543,15 @@ def item_types_for_role(slug: str) -> list[ItemType]:
 def skills_for_role(slug: str) -> list[str]:
     """Skill names a role's pointer preloads: the always-on skills + the role's item skills."""
     return [SQUADS_SKILL, GREETING_SKILL, *(item_skill_name(t) for t in item_types_for_role(slug))]
+
+
+def bundled_skill_slugs() -> list[str]:
+    """All bundled skill slugs in deterministic lexical order.
+
+    This is the **single shared ordering primitive** consumed by both ``sq init`` seeding and
+    the migration (TASK-000188 / ADR-000181 decision #5).  Any code that allocates SKILL ids
+    must iterate this list so migration and fresh-init assign the same relative ordinal to
+    each skill (identical absolute numbers are impossible because the global counter may differ).
+    """
+    all_slugs = [SQUADS_SKILL, GREETING_SKILL, *(item_skill_name(t) for t in managed_item_types())]
+    return sorted(set(all_slugs))

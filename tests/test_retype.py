@@ -367,7 +367,7 @@ async def test_retype_repair_stable_with_parent_rewrite(svc):
 def test_cli_retype_verb(runner, tmp_path, monkeypatch, frozen_time):
     """The CLI `retype` verb works end-to-end."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
 
     # Create a task (TASK-000002)
     runner.invoke(app, ["create", "task", "Fix crash", "--author", "manager"])
@@ -392,7 +392,7 @@ def test_cli_retype_verb(runner, tmp_path, monkeypatch, frozen_time):
 def test_cli_retype_status_reset_message(runner, tmp_path, monkeypatch, frozen_time):
     """The CLI prints a status-reset notice when workflows differ."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     runner.invoke(app, ["task", "2", "status", "InProgress"])
 
@@ -404,7 +404,7 @@ def test_cli_retype_status_reset_message(runner, tmp_path, monkeypatch, frozen_t
 def test_cli_retype_task_to_bug_status_reset_message(runner, tmp_path, monkeypatch, frozen_time):
     """task→bug crosses workflow boundaries; CLI prints a status-reset notice."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
 
     r = runner.invoke(app, ["task", "2", "retype", "bug"])
@@ -415,7 +415,7 @@ def test_cli_retype_task_to_bug_status_reset_message(runner, tmp_path, monkeypat
 def test_cli_retype_feat_to_epic_status_carried(runner, tmp_path, monkeypatch, frozen_time):
     """feature↔epic share _WORK workflow; CLI prints a carried-status message."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
     runner.invoke(app, ["feature", "2", "status", "InProgress"])
 
@@ -427,7 +427,7 @@ def test_cli_retype_feat_to_epic_status_carried(runner, tmp_path, monkeypatch, f
 def test_cli_retype_refuses_with_subentities(runner, tmp_path, monkeypatch, frozen_time):
     """The CLI refuses retype when the item has sub-entities."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
     runner.invoke(app, ["feature", "2", "add-story", "S1"])
 
@@ -439,7 +439,7 @@ def test_cli_retype_refuses_with_subentities(runner, tmp_path, monkeypatch, froz
 def test_cli_retype_unknown_type_error(runner, tmp_path, monkeypatch, frozen_time):
     """The CLI rejects an invalid new-type argument."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
 
     r = runner.invoke(app, ["task", "2", "retype", "bogustype"])

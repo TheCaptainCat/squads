@@ -41,6 +41,19 @@ class OperatorView:
 class BackendContext:
     paths: SquadPaths
     version: str
+    # Slug → absolute body path for already-seeded skill items.  Populated by
+    # refresh_managed() from the index before calling write_managed, so backends
+    # never need to load the index themselves (layering: _backends reads no index).
+    # Empty dict on first-write paths (pre-seeding); skill_paths.get(slug) returns
+    # None in that case and the backend falls back to the slug-named temporary path.
+    skill_paths: dict[str, Path]
+
+    def __init__(
+        self, paths: SquadPaths, version: str, skill_paths: dict[str, Path] | None = None
+    ) -> None:
+        self.paths = paths
+        self.version = version
+        self.skill_paths = skill_paths if skill_paths is not None else {}
 
     @property
     def root(self) -> Path:
