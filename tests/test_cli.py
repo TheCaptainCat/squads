@@ -42,7 +42,7 @@ def test_docs_lists_and_prints(runner):
 
 def test_author_required_and_must_be_registered(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # missing --author → Typer rejects it
     missing = runner.invoke(app, ["create", "task", "T"])
     assert missing.exit_code != 0 and "author" in missing.output.lower()
@@ -60,7 +60,7 @@ def test_author_required_and_must_be_registered(runner, tmp_path, monkeypatch, f
 
 def test_update_sets_global_and_per_type_metadata(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "review", "R", "--author", "manager"])  # REV-000002
     # global fields: status (validated) + a per-type extra via --set
     out = runner.invoke(
@@ -82,7 +82,7 @@ def test_update_sets_global_and_per_type_metadata(runner, tmp_path, monkeypatch,
 
 def test_update_author_and_parent(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000002"])
     # change author (must be registered) and clear the parent
@@ -98,7 +98,7 @@ def test_update_author_and_parent(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_subtask_assignee_cli(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["dev", "add", "--tech", "python"])  # registers python-dev (ROLE-000002)
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000003
     add = runner.invoke(app, ["task", "3", "add-subtask", "Wire API", "--assignee", "python-dev"])
@@ -125,7 +125,7 @@ def test_subtask_assignee_cli(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_subtask_update_cli(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["feature", "2", "add-story", "Reset"])  # US1
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000002"])
@@ -150,7 +150,7 @@ def test_subtask_update_cli(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_finding_update_severity_cli(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "review", "R", "--author", "manager"])  # REV-000002
     runner.invoke(app, ["review", "2", "add-finding", "Null deref", "--severity", "low"])
     ok = runner.invoke(app, ["review", "2", "finding", "1", "update", "--severity", "critical"])
@@ -161,7 +161,7 @@ def test_finding_update_severity_cli(runner, tmp_path, monkeypatch, frozen_time)
 
 def test_bug_severity_cli(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "bug", "Crash on logout", "--author", "manager"])  # BUG-000002
     # severity is a validated per-type field, set via `update --set`
     ok = runner.invoke(app, ["bug", "2", "update", "--set", "severity=high"])
@@ -178,7 +178,7 @@ def test_bug_severity_cli(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_item_body_cli(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # body set at create time via -m, plus a separate --desc summary
     runner.invoke(
         app,
@@ -200,7 +200,7 @@ def test_item_body_cli(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_subtask_body_cli(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["task", "2", "add-subtask", "Validate"])  # ST1
     # -m sets the body; show reads it back
@@ -328,7 +328,7 @@ async def test_resolve_item_id_any(svc):
 def test_item_verb_type_enforcement(runner, tmp_path, monkeypatch, frozen_time):
     """CLI smoke: sq task <feat-num> show errors with actual item+type; valid both-forms work."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
 
     # bare number against wrong type → mismatch error naming actual item+type (F1)
@@ -356,7 +356,7 @@ def test_item_verb_type_enforcement(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_item_grammar_refs_and_finding(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["create", "review", "R", "--author", "manager"])  # REV-000003
     # findings: add → list (severity badge) → transition
@@ -389,7 +389,7 @@ def test_tree_json_subtree_with_blocked_and_all(runner, tmp_path, monkeypatch, f
     import json as _json
 
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])  # manager = ROLE-000001
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])  # manager = ROLE-000001
     runner.invoke(app, ["create", "epic", "E", "--author", "manager"])  # EPIC-000002
     runner.invoke(app, ["create", "feature", "F", "--author", "manager", "--parent", "EPIC-000002"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000003"])
@@ -460,7 +460,7 @@ def test_at_after_subcommand_works(tmp_path, monkeypatch):
     run = lambda *a: subprocess.run(  # noqa: E731
         [sys.executable, "-m", "squads", *a], capture_output=True, text=True, cwd=tmp_path
     )
-    assert run("init", "--roles", "minimal").returncode == 0
+    assert run("init", "--no-seed-skills", "--roles", "minimal").returncode == 0
     r = run("create", "task", "Old work", "--author", "manager", "--at", "2020-05-06")
     assert r.returncode == 0, r.stderr
     md = next((tmp_path / "squads" / "tasks").glob("TASK-*.md")).read_text(encoding="utf-8")
@@ -468,6 +468,7 @@ def test_at_after_subcommand_works(tmp_path, monkeypatch):
 
 
 def test_migrate_up_noop_when_current(runner, tmp_path, monkeypatch, frozen_time):
+    """Runs with production-default seeding to guard seeded squads against migrate regressions."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
     r = runner.invoke(app, ["migrate", "up"])
@@ -477,7 +478,7 @@ def test_migrate_up_noop_when_current(runner, tmp_path, monkeypatch, frozen_time
 
 def test_migrate_help_and_chlog(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # help: the changelog index lists the shipped migration(s)
     h = runner.invoke(app, ["migrate", "help"])
     assert h.exit_code == 0, h.output
@@ -498,7 +499,7 @@ def test_schema_gate_blocks_until_migrate(runner, tmp_path, monkeypatch, frozen_
     from squads import _sections as sections
 
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["create", "guide", "G", "--author", "manager"])  # GUIDE-000003
 
@@ -537,7 +538,7 @@ def test_schema_gate_blocks_until_migrate(runner, tmp_path, monkeypatch, frozen_
 
 def test_init_and_create_flow(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    r = runner.invoke(app, ["init", "--roles", "minimal"])
+    r = runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     assert r.exit_code == 0, r.output
     assert (tmp_path / ".squads.toml").exists()
     assert (tmp_path / "squads" / ".squads.json").exists()
@@ -553,7 +554,7 @@ def test_init_and_create_flow(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_status_transitions_via_cli(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "t", "--author", "manager"])
     bad = runner.invoke(app, ["task", "2", "status", "Done"])
     assert bad.exit_code == 1
@@ -566,7 +567,7 @@ def test_status_transitions_via_cli(runner, tmp_path, monkeypatch, frozen_time):
 def test_show_has_no_body_label(runner, tmp_path, monkeypatch, frozen_time):
     """BUG-000025: sq show must not inject a bare 'Body' literal between the panel and content."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Show test", "--author", "manager", "-m", "Content."])
     shown = runner.invoke(app, ["task", "2", "show"])
     assert shown.exit_code == 0, shown.output
@@ -579,7 +580,7 @@ def test_show_has_no_body_label(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_list_json(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "f", "--author", "manager"])
     r = runner.invoke(app, ["list", "--type", "feature", "--json"])
     assert r.exit_code == 0, r.output
@@ -589,7 +590,7 @@ def test_list_json(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_collab_commands_via_cli(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "core"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "core"])
     runner.invoke(app, ["create", "feature", "Login", "--author", "manager"])
     runner.invoke(
         app, ["create", "task", "Tokens", "--author", "manager", "--parent", "FEAT-000005"]
@@ -607,7 +608,7 @@ def test_collab_commands_via_cli(runner, tmp_path, monkeypatch, frozen_time):
 
 def test_dir_override(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--squad-dir", "alt", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--squad-dir", "alt", "--roles", "minimal"])
     # from an unrelated cwd, target the squad via --dir
     other = tmp_path / "sub"
     other.mkdir()
@@ -681,7 +682,7 @@ async def test_check_cli_flags_index_item_with_no_file(project, invoke, frozen_t
 def test_create_parent_and_ref_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     """create --parent and --ref accept bare numbers; unknown number errors mention both forms."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # ROLE-000001 (seq 1); FEAT-000002 (seq 2)
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
 
@@ -707,7 +708,7 @@ def test_create_parent_and_ref_bare_number(runner, tmp_path, monkeypatch, frozen
 def test_update_parent_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     """update --parent accepts bare numbers."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000003
 
@@ -728,7 +729,7 @@ def test_update_parent_bare_number(runner, tmp_path, monkeypatch, frozen_time):
 def test_ref_add_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     """ref add / ref rm accept bare numbers for the target."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000003
 
@@ -751,7 +752,7 @@ def test_ref_add_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
 def test_tree_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     """sq tree accepts a bare number as root; unknown number gives a clear error."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "epic", "E", "--author", "manager"])  # EPIC-000002
     runner.invoke(app, ["create", "feature", "F", "--author", "manager", "--parent", "EPIC-000002"])
 
@@ -773,7 +774,7 @@ def test_tree_bare_number(runner, tmp_path, monkeypatch, frozen_time):
 def test_list_parent_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     """sq list --parent accepts a bare number."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000002"])
 
@@ -791,7 +792,7 @@ def test_list_parent_bare_number(runner, tmp_path, monkeypatch, frozen_time):
 def test_role_item_first_grammar(runner, tmp_path, monkeypatch, frozen_time):
     """sq role <addr> show|regen|rm — item-first grammar, slug/id/number, exact match."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # ROLE-000001 is the manager role after minimal init
 
     # --- slug resolution ---
@@ -824,7 +825,9 @@ def test_role_show_includes_body_and_degrades_for_bundled(
 ):
     """sq role <addr> show: active role shows body; bundled-only degrades with activation hint."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])  # activates `manager` only
+    runner.invoke(
+        app, ["init", "--no-seed-skills", "--roles", "minimal"]
+    )  # activates `manager` only
 
     # Active role addressed by slug: output must include the working agreements body.
     r = runner.invoke(app, ["role", "manager", "show"])
@@ -852,7 +855,7 @@ def test_role_skill_body_bracket_fidelity(runner, tmp_path, monkeypatch, frozen_
     import re
 
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
 
     # -- role show --raw: must not contain escaped brackets (\\[ or \[) in the output
     r = runner.invoke(app, ["role", "manager", "show", "--raw"])
@@ -874,7 +877,7 @@ def test_role_skill_body_bracket_fidelity(runner, tmp_path, monkeypatch, frozen_
 def test_role_catalog(runner, tmp_path, monkeypatch, frozen_time):
     """sq role catalog shows the bundled role catalog."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
 
     r = runner.invoke(app, ["role", "catalog"])
     assert r.exit_code == 0, r.output
@@ -887,7 +890,7 @@ def test_role_catalog(runner, tmp_path, monkeypatch, frozen_time):
 def test_role_list_removed(runner, tmp_path, monkeypatch, frozen_time):
     """sq role list falls through to the unknown-address path — exit 1, clean error, no leak."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["role", "list"])
     assert r.exit_code == 1
     assert "list" in r.output
@@ -904,7 +907,7 @@ def test_role_list_removed(runner, tmp_path, monkeypatch, frozen_time):
 def test_skill_item_first_grammar(runner, tmp_path, monkeypatch, frozen_time):
     """sq skill <addr> show|regen|rm — item-first grammar with slug/id/number resolution."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # Add a skill; after init the next seq is 2
     runner.invoke(app, ["skill", "add", "my-skill", "--desc", "test skill"])  # SKILL-000002
 
@@ -940,7 +943,7 @@ def test_skill_item_first_grammar(runner, tmp_path, monkeypatch, frozen_time):
 def test_skill_list_removed(runner, tmp_path, monkeypatch, frozen_time):
     """sq skill list falls through to the unknown-address path — exit 1, clean error, no leak."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["skill", "list"])
     assert r.exit_code == 1
     assert "list" in r.output
@@ -951,7 +954,7 @@ def test_skill_list_removed(runner, tmp_path, monkeypatch, frozen_time):
 def test_operator_item_first_grammar(runner, tmp_path, monkeypatch, frozen_time):
     """sq operator <addr> show|rm — item-first grammar with slug/id/number resolution."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["operator", "add", "Test User"])  # OPER-000002
 
     # --- slug for show ---
@@ -973,7 +976,7 @@ def test_operator_item_first_grammar(runner, tmp_path, monkeypatch, frozen_time)
 def test_operator_list_removed(runner, tmp_path, monkeypatch, frozen_time):
     """sq operator list falls through to the unknown-address path — exit 1, clean error, no leak."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["operator", "list"])
     assert r.exit_code == 1
     assert "list" in r.output
@@ -984,7 +987,7 @@ def test_operator_list_removed(runner, tmp_path, monkeypatch, frozen_time):
 def test_subtask_story_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     """add-subtask --story accepts bare number like '1' normalized to 'US1'."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000002"])
     runner.invoke(app, ["feature", "2", "add-story", "Story One"])  # US1
@@ -1008,7 +1011,7 @@ def test_ref_kind_vocabulary_validation(runner, tmp_path, monkeypatch, frozen_ti
     Bare add (no --kind) stays frictionless.
     """
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000003
 
@@ -1038,7 +1041,7 @@ def test_ref_kind_vocabulary_validation(runner, tmp_path, monkeypatch, frozen_ti
 def test_create_ref_kind_validation(runner, tmp_path, monkeypatch, frozen_time):
     """create --ref id:kind rejects unknown kinds; accepts valid kinds; bare id defaults related."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
 
     # unknown kind via create --ref ID:kind exits 1
@@ -1064,7 +1067,7 @@ def test_create_ref_kind_validation(runner, tmp_path, monkeypatch, frozen_time):
 def test_blocked_depends_on_cli(runner, tmp_path, monkeypatch, frozen_time):
     """sq blocked lists an item blocked via a depends-on edge."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Blocker", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["create", "task", "Dependent", "--author", "manager"])  # TASK-000003
 
@@ -1088,7 +1091,7 @@ def test_check_warns_unknown_kind_and_superseded_cli(runner, tmp_path, monkeypat
     from squads._itemfile import read_frontmatter
 
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "A", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["create", "task", "B", "--author", "manager"])  # TASK-000003
     runner.invoke(app, ["create", "decision", "Old ADR", "--author", "manager"])  # ADR-000004
@@ -1140,7 +1143,7 @@ def test_workflow_contains_all_eight_kinds(runner):
 def test_ref_add_help_references_workflow(runner, tmp_path, monkeypatch):
     """ref add --help lists the eight kinds and points at sq workflow."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # ref add --help needs a resolved item number, so create one first
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])
     h = runner.invoke(app, ["task", "2", "ref", "add", "--help"])
@@ -1157,7 +1160,7 @@ _MARKER = "<!-- sq:body -->"
 def test_comment_cli_rejects_marker_tag(runner, tmp_path, monkeypatch, frozen_time):
     """CLI: `sq task <n> comment -m <text-with-marker>` exits 1 with a marker error."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
     r = runner.invoke(app, ["task", "2", "comment", "--as", "manager", "-m", f"inject {_MARKER}"])
     assert r.exit_code == 1 and "marker" in r.output
@@ -1166,7 +1169,7 @@ def test_comment_cli_rejects_marker_tag(runner, tmp_path, monkeypatch, frozen_ti
 def test_add_subtask_cli_rejects_marker_title(runner, tmp_path, monkeypatch, frozen_time):
     """CLI: `sq task <n> add-subtask` with a marker tag in the title exits 1."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
     r = runner.invoke(app, ["task", "2", "add-subtask", f"title {_MARKER}"])
     assert r.exit_code == 1 and "marker" in r.output
@@ -1175,7 +1178,7 @@ def test_add_subtask_cli_rejects_marker_title(runner, tmp_path, monkeypatch, fro
 def test_update_subtask_title_cli_rejects_marker(runner, tmp_path, monkeypatch, frozen_time):
     """CLI: `sq task <n> subtask <k> update --title` with a marker tag exits 1."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
     runner.invoke(app, ["task", "2", "add-subtask", "Clean title"])  # ST1
     r = runner.invoke(app, ["task", "2", "subtask", "1", "update", "--title", f"inject {_MARKER}"])
@@ -1189,7 +1192,7 @@ def test_update_subtask_title_cli_rejects_marker(runner, tmp_path, monkeypatch, 
 def test_item_update_title_cli_not_affected_by_guard(runner, tmp_path, monkeypatch, frozen_time):
     """CLI: item-level `update --title` with bracket/backtick content is not rejected."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "T", "--author", "manager"])  # TASK-000002
     r = runner.invoke(app, ["task", "2", "update", "--title", "[x] done label"])
     assert r.exit_code == 0, r.output
@@ -1203,9 +1206,21 @@ def test_item_update_title_cli_not_affected_by_guard(runner, tmp_path, monkeypat
 
 
 def test_check_json_clean(runner, tmp_path, monkeypatch, frozen_time):
-    """sq check --json emits [] (exit 0) when there are no issues."""
+    """sq check --json emits [] (exit 0) when there are no issues.
+
+    Runs with the production default (skill seeding enabled) so a regression in
+    default seeding behaviour is caught here (F3 regression guard, FEAT-000178).
+    """
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--roles", "minimal"])
+    # Seeded skills must be present in the listing.
+    ls = runner.invoke(app, ["list", "--type", "skill", "--json"])
+    assert ls.exit_code == 0, ls.output
+    skills = json.loads(ls.output)
+    assert len(skills) > 0, "sq init must seed bundled skills by default"
+    slugs = {sk["slug"] for sk in skills}
+    assert "squads" in slugs and "greeting" in slugs
+    # sq check must still be clean after seeding.
     r = runner.invoke(app, ["check", "--json"])
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
@@ -1246,7 +1261,7 @@ async def test_check_json_with_issues(project, invoke, frozen_time):
 def test_check_json_warnings_only_exits_0(runner, tmp_path, monkeypatch, frozen_time):
     """sq check --json with only warnings exits 0 (not 3)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "decision", "Old ADR", "--author", "manager"])  # ADR-000002
     runner.invoke(app, ["decision", "2", "status", "Proposed"])
     runner.invoke(app, ["decision", "2", "update", "--status", "Superseded", "--force"])
@@ -1261,7 +1276,7 @@ def test_check_json_warnings_only_exits_0(runner, tmp_path, monkeypatch, frozen_
 def test_stories_json(runner, tmp_path, monkeypatch, frozen_time):
     """sq feature <n> stories --json emits [{local_id, title, status, assignee, …}]."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(app, ["feature", "2", "add-story", "As a user I want X"])  # US1
     runner.invoke(app, ["feature", "2", "add-story", "As a user I want Y"])  # US2
@@ -1284,7 +1299,7 @@ def test_stories_json(runner, tmp_path, monkeypatch, frozen_time):
 def test_subtasks_json(runner, tmp_path, monkeypatch, frozen_time):
     """sq task <n> subtasks --json emits [{local_id, title, status, assignee, severity, story}]."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
     runner.invoke(  # TASK-000003
         app, ["create", "task", "T", "--author", "manager", "--parent", "FEAT-000002"]
@@ -1307,7 +1322,7 @@ def test_subtasks_json(runner, tmp_path, monkeypatch, frozen_time):
 def test_findings_json(runner, tmp_path, monkeypatch, frozen_time):
     """sq review <n> findings --json emits [{local_id, title, status, severity, …}]."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "review", "R", "--author", "manager"])  # REV-000002
     runner.invoke(  # F1
         app, ["review", "2", "add-finding", "Null pointer risk", "--severity", "high"]
@@ -1328,7 +1343,7 @@ def test_findings_json(runner, tmp_path, monkeypatch, frozen_time):
 def test_role_catalog_json(runner, tmp_path, monkeypatch, frozen_time):
     """sq role catalog --json emits [{slug, full_name, title, is_default}] for all bundled roles."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["role", "catalog", "--json"])
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
@@ -1344,7 +1359,9 @@ def test_role_catalog_json(runner, tmp_path, monkeypatch, frozen_time):
 def test_role_show_json_activated(runner, tmp_path, monkeypatch, frozen_time):
     """sq role <slug> show --json emits role metadata for an activated role."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])  # activates manager → ROLE-000001
+    runner.invoke(
+        app, ["init", "--no-seed-skills", "--roles", "minimal"]
+    )  # activates manager → ROLE-000001
     r = runner.invoke(app, ["role", "manager", "show", "--json"])
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
@@ -1358,7 +1375,7 @@ def test_role_show_json_activated(runner, tmp_path, monkeypatch, frozen_time):
 def test_role_show_json_bundled_only(runner, tmp_path, monkeypatch, frozen_time):
     """sq role <slug> show --json emits role metadata for a bundled-only (not activated) role."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])  # qa not activated
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])  # qa not activated
     r = runner.invoke(app, ["role", "qa", "show", "--json"])
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
@@ -1370,7 +1387,7 @@ def test_role_show_json_bundled_only(runner, tmp_path, monkeypatch, frozen_time)
 def test_skill_show_json(runner, tmp_path, monkeypatch, frozen_time):
     """sq skill <addr> show --json emits {id, slug, title, status, description, when_to_use, …}."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(
         app,
         ["skill", "add", "my-skill", "--desc", "A handy skill", "--when-to-use", "When needed"],
@@ -1389,7 +1406,7 @@ def test_skill_show_json(runner, tmp_path, monkeypatch, frozen_time):
 def test_operator_show_json(runner, tmp_path, monkeypatch, frozen_time):
     """sq operator <addr> show --json emits {id, slug, full_name, status, path}."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["operator", "add", "Alice Tester"])  # OP-000002
     r = runner.invoke(app, ["operator", "op-alice", "show", "--json"])
     assert r.exit_code == 0, r.output
@@ -1409,7 +1426,7 @@ def test_operator_show_json(runner, tmp_path, monkeypatch, frozen_time):
 def test_exit_code_0_success(runner, tmp_path, monkeypatch, frozen_time):
     """Exit 0: a clean squad and a successful read command."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["list"])
     assert r.exit_code == 0, r.output
 
@@ -1417,7 +1434,7 @@ def test_exit_code_0_success(runner, tmp_path, monkeypatch, frozen_time):
 def test_exit_code_0_check_clean(runner, tmp_path, monkeypatch, frozen_time):
     """Exit 0: sq check with no issues."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["check"])
     assert r.exit_code == 0, r.output
     assert "no issues" in r.output
@@ -1426,7 +1443,7 @@ def test_exit_code_0_check_clean(runner, tmp_path, monkeypatch, frozen_time):
 def test_exit_code_0_check_warnings_only(runner, tmp_path, monkeypatch, frozen_time):
     """Exit 0: sq check with warnings only (no error-level issues) does not exit 3."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     # A Superseded decision without a supersedes edge produces a warn, not an error.
     runner.invoke(app, ["create", "decision", "Old ADR", "--author", "manager"])  # ADR-000002
     runner.invoke(app, ["decision", "2", "status", "Proposed"])
@@ -1441,7 +1458,7 @@ def test_exit_code_0_check_warnings_only(runner, tmp_path, monkeypatch, frozen_t
 def test_exit_code_1_squads_runtime_error(runner, tmp_path, monkeypatch, frozen_time):
     """Exit 1: a SquadsError (unknown item ID) produces exit code 1."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["task", "999", "show"])
     assert r.exit_code == 1, r.output
 
@@ -1449,7 +1466,7 @@ def test_exit_code_1_squads_runtime_error(runner, tmp_path, monkeypatch, frozen_
 def test_exit_code_1_schema_mismatch(runner, tmp_path, monkeypatch, frozen_time):
     """Exit 1: a schema-version mismatch hard-stops with exit code 1."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
 
     # Force the on-disk schema version to something old so the gate fires.
     cfg = tmp_path / ".squads.toml"
@@ -1469,7 +1486,7 @@ def test_exit_code_1_schema_mismatch(runner, tmp_path, monkeypatch, frozen_time)
 def test_exit_code_2_invalid_at_timestamp(runner, tmp_path, monkeypatch, frozen_time):
     """Exit 2: an invalid --at timestamp format produces exit code 2."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["--at", "not-a-date", "list"])
     assert r.exit_code == 2, r.output
 
@@ -1585,11 +1602,14 @@ async def test_migrate_repad_cli(project, invoke, frozen_time):
     # Index padding updated.
     assert (await svc.store.load()).padding == 7
 
-    # All item files now have 7-digit widths.
+    # All ID-prefixed item files now have 7-digit widths.
+    # Skill files use slug-only names (e.g. squads.md, sq-bug.md) and are not repadded — skip them.
     for _, md in svc._iter_item_files():  # pyright: ignore[reportPrivateUsage]
         stem = md.stem
-        _, _, digits_slug = stem.partition("-")
-        digit_run = digits_slug.split("-", 1)[0]
+        _, sep, digits_slug = stem.partition("-")
+        digit_run = digits_slug.split("-", 1)[0] if sep else ""
+        if not digit_run.isdigit():
+            continue  # slug-only or non-ID filename (skill files like squads.md) — not repadded
         assert len(digit_run) == 7, f"expected 7-digit run, got {digit_run!r} in {md.name}"
 
 

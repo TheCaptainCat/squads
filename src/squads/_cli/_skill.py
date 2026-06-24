@@ -1,13 +1,16 @@
-"""`sq skill …` — manage agent skills (add/show/regen/rm).
+"""`sq skill …` — manage agent skills (add/show/regen/rm/refs).
 
 Grammar:
   sq skill add <name> [options]      — create a skill item + pointer
   sq skill <slug|id|n> show          — show a skill's metadata panel
+  sq skill <slug|id|n> refs          — show forward refs and backrefs
+  sq skill <slug|id|n> ref add <id>  — add a forward reference
+  sq skill <slug|id|n> ref rm <id>   — remove a forward reference
   sq skill <slug|id|n> regen         — regenerate the Claude pointer
   sq skill <slug|id|n> rm [--purge]  — remove the skill item
 
 Address resolution order (exact match, no fuzzy):
-  full-ID shape (SKIL-000001) → bare number → exact slug
+  full-ID shape (SKILL-000001) → bare number → exact slug
 """
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
@@ -30,6 +33,7 @@ from squads._cli._common import (
 )
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
+from squads._models._item import DEFAULT_KIND, split_ref
 
 skill_app = typer.Typer(
     no_args_is_help=True,
@@ -125,6 +129,73 @@ async def skill_show(
         raw=raw,
         empty_hint="(empty — run `sq sync` to regenerate the skill definition)",
     )
+
+
+@_addr.command("refs")
+@common.command
+async def skill_refs(
+    ctx: typer.Context,
+    out: bool = typer.Option(False, "--out", help="Forward refs (default)."),
+    incoming: bool = typer.Option(False, "--in", help="Backrefs (computed)."),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """Show the skill's references (forward stored; backrefs computed)."""
+    item_id: str = ctx.obj["id"]
+    svc = get_service()
+    show_out = out or not incoming
+    show_in = incoming
+    data: dict[str, list[dict[str, str]]] = {}
+    if show_out:
+        data["out"] = [{"id": i, "kind": k} for i, k in await svc.refs_out(item_id)]
+    if show_in:
+        data["in"] = [{"id": i, "kind": k} for i, k in await svc.refs_in(item_id)]
+    if json_out:
+        print_json_clean(json.dumps(data))
+        return
+    for direction, label in (("out", "→ refs"), ("in", "← backrefs")):
+        if direction not in data:
+            continue
+        for entry in data[direction]:
+            console.print(f"{label}  {e(entry['id'])}  [dim]{entry['kind']}[/dim]")
+
+
+# ---------------------------------------------------------------- ref add / rm
+
+_ref_app = typer.Typer(no_args_is_help=True, help="Manage forward reference edges.")
+
+
+@_ref_app.command("add")
+@common.command
+async def skill_ref_add(
+    ctx: typer.Context,
+    target: str = typer.Argument(..., help="Target item ID."),
+    kind: str = typer.Option("related", "--kind", help="Edge kind (related, implements, …)."),
+) -> None:
+    """Add a forward reference from this skill to TARGET."""
+    item_id: str = ctx.obj["id"]
+    svc = get_service()
+    raw_id, embedded_kind = split_ref(target)
+    resolved_id = await resolve_item_id_any(raw_id, svc)
+    effective_kind = embedded_kind if embedded_kind != DEFAULT_KIND else kind
+    await svc.add_ref(item_id, resolved_id, kind=effective_kind)
+    console.print(f"{item_id} → {resolved_id} ([dim]{effective_kind}[/dim])")
+
+
+@_ref_app.command("rm")
+@common.command
+async def skill_ref_rm(
+    ctx: typer.Context, target: str = typer.Argument(..., help="Target item ID.")
+) -> None:
+    """Remove a forward reference from this skill to TARGET."""
+    item_id: str = ctx.obj["id"]
+    svc = get_service()
+    raw_id, _ = split_ref(target)
+    resolved_id = await resolve_item_id_any(raw_id, svc)
+    await svc.rm_ref(item_id, resolved_id)
+    console.print(f"removed {item_id} → {resolved_id}")
+
+
+_addr.add_typer(_ref_app, name="ref")
 
 
 @_addr.command("regen")

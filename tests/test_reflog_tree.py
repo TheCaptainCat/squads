@@ -44,7 +44,7 @@ def _make_entry(
     ts: str = _TS,
 ) -> ReflogEntry:
     return ReflogEntry(
-        v="0.4",
+        v="0.5",
         ts=ts,
         actor=actor_slug,
         op=op,
@@ -315,7 +315,7 @@ def test_cli_reflog_tree_exits_0_on_empty(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SQUADS_SESSION_ID", raising=False)
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["reflog", "--tree"])
     assert r.exit_code == 0, r.output
 
@@ -325,7 +325,7 @@ def test_cli_reflog_tree_shows_best_effort_note(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SQUADS_SESSION_ID", raising=False)
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     r = runner.invoke(app, ["reflog", "--tree"])
     assert r.exit_code == 0
     assert "BEST-EFFORT" in r.output or "UNTRUSTED" in r.output or "OBSERVABILITY" in r.output
@@ -336,7 +336,7 @@ def test_cli_reflog_tree_nested_from_session_env(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("SQUADS_SESSION_ID", "tree-sid")
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Tree task", "--author", "manager"])
     r = runner.invoke(app, ["reflog", "--tree"])
     assert r.exit_code == 0
@@ -348,7 +348,7 @@ def test_cli_reflog_tree_flat_forest_for_slug_only(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SQUADS_SESSION_ID", raising=False)
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Slug-only task", "--author", "manager"])
     r = runner.invoke(app, ["reflog", "--tree"])
     assert r.exit_code == 0
@@ -361,7 +361,7 @@ def test_cli_reflog_tree_and_json_coexist(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SQUADS_SESSION_ID", raising=False)
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "JSON task", "--author", "manager"])
     r = runner.invoke(app, ["reflog", "--json"])
     assert r.exit_code == 0
@@ -379,7 +379,7 @@ def test_show_full_surfaces_session_when_present(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("SQUADS_SESSION_ID", "show-session-abc")
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     create_r = runner.invoke(app, ["create", "task", "Session item", "--author", "manager"])
     # Extract the item ID from the create output (e.g. "created TASK-000002 → …")
     import re
@@ -397,7 +397,7 @@ def test_show_full_slug_only_when_no_session(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("SQUADS_SESSION_ID", raising=False)
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     create_r = runner.invoke(app, ["create", "task", "Slug-only item", "--author", "manager"])
     import re
 

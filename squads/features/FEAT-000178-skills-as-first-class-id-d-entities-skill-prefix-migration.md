@@ -3,7 +3,7 @@ id: FEAT-000178
 sequence_id: 178
 type: feature
 title: Skills as first-class ID'd entities (SKILL-… prefix, migration)
-status: Draft
+status: Done
 parent: EPIC-000031
 author: product-owner
 refs:
@@ -23,7 +23,7 @@ subentities:
   title: Architect ADR approved before implementation begins
   status: Todo
 created_at: '2026-06-23T12:51:19Z'
-updated_at: '2026-06-23T12:59:54Z'
+updated_at: '2026-06-25T09:59:02Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -40,25 +40,27 @@ This feature bumps `SCHEMA_VERSION` to the next release's schema — currently a
 
 ## Scope
 
-- New `SKILL` entry in `_models/_enums.py`: prefix `SKILL`, folder mapping under `agents/skills/`.
+- `SKILL` already exists as an entry in `_models/_enums.py` (prefix `SKILL`, folder `agents/skills/`) — no new enum entry is needed. The real work is seeding and migration: an ordered migration runner entry that walks `agents/skills/` in lexical-by-slug order, allocates IDs through `IndexStore.transaction()`, and stamps sq frontmatter (id, sequence_id, title, status, author, schema_version) onto each skill file, leaving skill bodies and pointer files intact. `sq init` seeds bundled skills in the same lexical order so fresh squads are consistent with migrated ones.
 
 - The global-counter invariant is preserved: skill IDs are allocated through `IndexStore.transaction()` like every other type.
 
 - Frontmatter ↔ model mapping: skill files carry sq frontmatter (id, title, status, author, schema_version) so `sq repair` can reconstruct the index from files alone.
 
-- Migration: an ordered migration runner entry that walks the existing `agents/skills/` directory, allocates IDs, and stamps frontmatter into each skill file, leaving the skill bodies and pointer files intact.
+- Status profile: `Active` / `Archived` (meta-type profile, matching the role/operator pattern) — no work lifecycle, no sub-entities.
 
 - `sq list -t skill`, `sq skill <n> show`, basic ref support (`sq <type> <n> ref add SKILL-…`) so skills can be linked from features, tasks, or roles.
 
-## Open question — architect ADR required (prerequisite dependency)
+- `sq sync` must be frontmatter-preserving and marker-safe for skill body files: the skill-body regen path must replace only the `sq:body` region (as roles already do via `_regen_role_body`) rather than performing a full-file overwrite. This is required so that the stamped `id`/`sequence_id`/`schema_version` frontmatter is not wiped on the next `sq sync` run. A skill's `id`/`sequence_id` are allocated exactly once and never reallocated; re-running `sq sync` on an already-stamped skill updates only the body region.
 
-Before implementation begins, an **architect ADR is required** on the model-design choice: is a `Skill` a full `Item` type (same pydantic model, same sub-entity machinery, same workflow states), or a lighter id'd entity the way operators currently are? This choice drives the weight of the schema change and how much of the existing item pipeline skills reuse. **This feature depends on that ADR — do not start implementation until it is approved.**
+## Design decision (ADR-000181)
 
-Key trade-offs to address in the ADR:
+The model-design question posed in the original backlog — full `Item` type vs. lighter id'd entity "the way operators currently are" — is settled by ADR-000181 (currently Proposed; implementation is gated on it reaching Approved per US4).
 
-- Full `Item` type: reuses `_itemfile.py`, `_sections.py`, the rendering pipeline, and the workflow engine. Heavier, but skills get stories, comments, lifecycle transitions.
+**Decision:** A skill is a full `Item` of the existing `ItemType.SKILL`, following the role/operator meta-type pattern. The premise of the original question was inaccurate: operators and roles are already full `Item`s in the index today (`SKILL` likewise already exists in `ItemType`), so there is no lighter non-`Item` alternative to choose. The genuine choice was the weight of the Item profile — and the ADR settles it as the meta-type profile (Active/Archived, no sub-entities, no work lifecycle), not the work-item profile.
 
-- Lighter id'd entity (operator-style): smaller surface, no workflow, just an indexed record. Faster to land, but forfeits extensibility.
+Frontmatter is stamped onto the existing `agents/skills/<slug>.md` body file — one file per skill, pointers unchanged (invariant 5). The skill-body regen path must become frontmatter-preserving/marker-safe before implementation proceeds, per the ADR.
+
+See ADR-000181 for full context, trade-off analysis, and consequences.
 
 ## Acceptance criteria
 
@@ -68,9 +70,11 @@ Key trade-offs to address in the ADR:
 
 3. `sq check` is green; no dangling refs, no index drift.
 
-4. An existing squad upgraded via `sq migrate up` is indistinguishable from a fresh `sq init` squad (same structure, same ids for the same skills — or a defined deterministic ordering).
+4. Running `sq sync` twice on a squad whose skills are already stamped leaves every skill's `id`/`sequence_id` unchanged — idempotent sync is verified by a test.
 
-5. The architect ADR is Approved before implementation begins.
+5. Migration and fresh-init produce the same relative allocation order (lexical-by-slug): a squad upgraded via `sq migrate up` and a squad created fresh with `sq init` place the same skill in the same ordinal position. Identical numeric ids are not required (the single global counter makes that impossible on an already-populated squad); ordering parity is the assertion.
+
+6. The architect ADR (ADR-000181) is Approved before implementation begins.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -153,9 +157,9 @@ As a new user running `sq init`, I want the bundled skills to already carry `SKI
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
-As the team, we want an architect ADR to settle whether a Skill is a full Item type or a lighter id'd entity (operator-style) before any code is written, so that the model design is deliberate and the implementation doesn't need to be reversed.
+As the team, we want the architect ADR (ADR-000181) to reach Approved status before any implementation code is written, so that the settled model-design decision is on the record and the implementation does not need to be reversed.
 
-**Acceptance:** an ADR item exists, is linked to this feature, and its status is Approved before FEAT-000178 moves to InProgress. Implementation tasks must not be created until that ADR is closed.
+**Acceptance:** ADR-000181 exists (it does — filed as a ref on this feature) and its status is Approved before FEAT-000178 moves to InProgress. ADR-000181 is currently Proposed; implementation tasks must not be created until it is Approved.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -174,4 +178,26 @@ As the team, we want an architect ADR to settle whether a Skill is a full Item t
   - The choice drives how much of the existing item pipeline skills reuse, the weight of the schema change, and whether skills get lifecycle transitions/comments/stories in the future. US4 gates implementation on your ADR being Approved. Please author a decision item and link it to this feature.
 - [2026-06-23T12:59:54Z] Robert Architect:
   - @product-owner ADR-000181 now exists, settling the model-design question. One grounding note worth flagging: operators and roles are already full Items in the index today (and SKILL already exists as an ItemType), so the real choice is the weight of the Item profile, not Item-vs-lighter. Recommendation: a skill is a full Item of type SKILL on the role/operator META-type profile — Active/Archived, no sub-entities, no work lifecycle — with migration stamping frontmatter onto the existing skill body file. Left Proposed for review — not Accepted, no tasks created.
+- [2026-06-24T15:11:53Z] Nina Product:
+  - Reconciled feature body and acceptance criteria against the revised ADR-000181.
+  - Scope updated: removed the stale 'New SKILL entry in _models/_enums.py' bullet (SKILL already exists); replaced with accurate scope covering seeding/migration in lexical-by-slug order, status profile (Active/Archived), sq skill show / sq list -t skill / basic refs, and the new frontmatter-preserving/marker-safe/idempotent sq sync requirement.
+  - Open question section replaced with a 'Design decision (ADR-000181)' section stating the decision is made (full Item of type SKILL on the meta-type profile) and noting ADR-000181 is currently Proposed — implementation remains gated on it reaching Approved (US4 unchanged).
+  - AC#4 tightened to ordering parity (lexical-by-slug): identical numeric ids are not asserted (the global counter makes that impossible on a populated squad); the assertion is that migration and fresh-init place the same skill in the same ordinal position. New AC#4 added for idempotent sync (sq sync twice leaves id/sequence_id unchanged); old AC#4 becomes AC#5; old AC#5 (ADR gate) becomes AC#6. US4 body updated to reflect ADR-000181 exists at Proposed status.
+- [2026-06-24T18:45:19Z] Catherine Manager:
+  - ADR-000181 accepted and FEAT-000178 moved to Ready per @op-pierre's greenlight. US4's gate (architect ADR Approved) is now satisfied. Feature is queued for breakdown; no implementation tasks created yet — tech-lead to break it into tasks when work is scheduled.
+- [2026-06-24T18:48:41Z] Olivia Lead:
+  - Broke FEAT-000178 into 4 implementation tasks (TASK-000187..190), conforming to ADR-000181.
+  - TASK-000187 make skill-body regen frontmatter-preserving/marker-safe (the riskiest piece, ADR #3) with a dedicated idempotence test [US1]; TASK-000188 lexical-by-slug allocation + sq init seeding via the one shared ordering primitive [US1, US3]; TASK-000189 ordered _migrations runner that retrofits agents/skills, allocates via IndexStore.transaction, stamps frontmatter, repairs + bumps schema [US2]; TASK-000190 wiring sq list -t skill / sq skill show / SKILL ref support [US1].
+  - Suggested order: 187 first (regen safety is a prerequisite — without it the next sync wipes stamped ids), then 188 (allocation/seeding, also a prereq for migration), then 189 (migration reuses 188's ordering for parity). 190 can land in parallel once 187 is in. US4 is already satisfied (ADR Accepted) so it has no implementation subtask. Tasks left at initial status; no code written, no devs spawned.
+  - @manager breakdown done and sq check green — ready to schedule the build.
+- [2026-06-24T21:10:26Z] Catherine Manager:
+  - Implementation complete and closed. ADR-000181 Accepted; 4 tasks Done (187 regen-safety, 188 seeding+lexical allocation, 189 migration, 190 wiring); 2 independent reviews Approved (REV-191, REV-201). All acceptance criteria verified hands-on: fresh init seeds 9 stamped SKILL items in lexical order, sq migrate up retrofits a 0.4 squad with ordering parity + idempotence, double-sync preserves ids, sq skill show / refs --in/--out + SKILL ref round-trip work, repair/check green. Schema bumped to 0.5; package __version__ 0.5.0. NOTE: this repo's own squad is migrated (schema 0.5, SKILL-192..200) but managed files still stamped 0.4.1 — a sq sync is the pending refresh step.
+- [2026-06-25T07:55:28Z] Catherine Manager:
+  - Reopening: skill body files were left slug-named (greeting.md) instead of following the SKILL-NNNNNN-<slug>.md convention that every other type uses — including the role/operator meta-types this feature was modeled on (ROLE-000001-manager.md, OP-000010-op-pierre.md). Per @op-pierre: the 0.5 migration must RENAME the files and update the .claude skill pointer to match. Corrective task incoming under this feature; ADR-181 #3 to be amended for the filename convention.
+- [2026-06-25T09:23:57Z] Catherine Manager:
+  - Filename-convention gap (caught by @op-pierre) fixed and verified. TASK-202 Done, REV-203 Approved. Skill files now follow SKILL-NNNNNN-slug.md like ROLE/OP across fresh init AND migration; .claude pointers rewritten to match and resolve; F3 layering fixed (backend no longer reads IndexStore — skill paths flow via BackendContext). Our own repo re-migrated in place: 9 files renamed, ids 192-200 preserved (no realloc), pointers resolve, check/repair clean. Feature complete.
+- [2026-06-25T09:27:39Z] Catherine Manager:
+  - Reopening again (caught by @op-pierre): SKILL items carry empty descriptions, so generate_skill_entry falls back to item.title (the slug) and the .claude pointer descriptions degraded from rich text ('Working with bug items… lifecycle, commands, role-specific guidance') to bare slugs — breaking skill discoverability (Claude Code keys skill-loading on that description). Root cause: skills became items but their descriptions were never carried onto the item (they're generated in the backend). Fix: single slug→description registry as source of truth, used by backend write_managed AND seeding/migration to stamp item.description — mirroring how ROLE items already carry descriptions in frontmatter (frontmatter-as-truth). Corrective task incoming.
+- [2026-06-25T09:59:02Z] Catherine Manager:
+  - Description regression fixed and verified. TASK-204 Done, REV-205 Approved. Single SKILL_DESCRIPTIONS registry (one source, derived from PLAYBOOK) feeds backend + seeding + migration; descriptions stamped onto SKILL items (frontmatter-as-truth, like ROLE). Live repo re-migrated: 9/9 skill descriptions backfilled, ids 192-200 + convention filenames preserved, all .claude pointers resolve with rich descriptions, check/repair clean. Feature complete.
 <!-- sq:discussion:end -->

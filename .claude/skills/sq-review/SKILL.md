@@ -5,6 +5,6 @@ description: "Working with review items in this squad: lifecycle, commands, and 
 
 This is a squads-managed skill. Load and follow its full definition before using it:
 
-@squads/agents/skills/sq-review.md
+@squads/agents/skills/SKILL-000198-sq-review.md
 
 Track related work with the `sq` CLI. Never edit the `<!-- sq:* -->` marker lines in managed files.

@@ -248,7 +248,15 @@ class TestCliInitName:
         monkeypatch.chdir(tmp_path)
         result = runner.invoke(
             app,
-            ["init", "--roles", "minimal", "--no-claude", "--name", "manager=Grace Hopper"],
+            [
+                "init",
+                "--no-seed-skills",
+                "--roles",
+                "minimal",
+                "--no-claude",
+                "--name",
+                "manager=Grace Hopper",
+            ],
         )
         assert result.exit_code == 0, result.output
         from squads._paths import resolve
@@ -264,6 +272,7 @@ class TestCliInitName:
             app,
             [
                 "init",
+                "--no-seed-skills",
                 "--roles",
                 "core",
                 "--no-claude",
@@ -290,7 +299,8 @@ class TestCliInitName:
         # Simulate a TTY — would normally prompt; --default-names suppresses it.
         monkeypatch.setattr(main_mod, "_is_tty", lambda: True)
         result = runner.invoke(
-            app, ["init", "--roles", "minimal", "--no-claude", "--default-names"]
+            app,
+            ["init", "--no-seed-skills", "--roles", "minimal", "--no-claude", "--default-names"],
         )
         assert result.exit_code == 0, result.output
         # No interactive prompt text in output.
@@ -309,7 +319,9 @@ class TestCliInitName:
 
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(main_mod, "_is_tty", lambda: False)
-        result = runner.invoke(app, ["init", "--roles", "minimal", "--no-claude"])
+        result = runner.invoke(
+            app, ["init", "--no-seed-skills", "--roles", "minimal", "--no-claude"]
+        )
         assert result.exit_code == 0, result.output
         assert "Name for" not in result.output
         from squads._paths import resolve
@@ -328,7 +340,7 @@ class TestCliInitName:
         # CliRunner can simulate user input for prompts.
         result = runner.invoke(
             app,
-            ["init", "--roles", "minimal", "--no-claude"],
+            ["init", "--no-seed-skills", "--roles", "minimal", "--no-claude"],
             input="Grace Hopper\n",  # answer for the manager prompt
         )
         assert result.exit_code == 0, result.output
@@ -347,7 +359,7 @@ class TestCliInitName:
         monkeypatch.setattr(main_mod, "_is_tty", lambda: True)
         result = runner.invoke(
             app,
-            ["init", "--roles", "minimal", "--no-claude"],
+            ["init", "--no-seed-skills", "--roles", "minimal", "--no-claude"],
             input="\n",  # blank — keep default
         )
         assert result.exit_code == 0, result.output
@@ -367,7 +379,15 @@ class TestCliInitName:
         # manager is named via flag; with minimal roles there is only manager, so no prompts.
         result = runner.invoke(
             app,
-            ["init", "--roles", "minimal", "--no-claude", "--name", "manager=Grace Hopper"],
+            [
+                "init",
+                "--no-seed-skills",
+                "--roles",
+                "minimal",
+                "--no-claude",
+                "--name",
+                "manager=Grace Hopper",
+            ],
             input="",  # no prompts expected; any input would cause an error
         )
         assert result.exit_code == 0, result.output
@@ -391,7 +411,7 @@ class TestCliInitName:
         monkeypatch.setattr(main_mod, "_is_tty", lambda: True)
         result = runner.invoke(
             app,
-            ["init", "--roles", "minimal", "--no-claude", "--force"],
+            ["init", "--no-seed-skills", "--roles", "minimal", "--no-claude", "--force"],
             input="",  # no prompts expected
         )
         assert result.exit_code == 0, result.output
@@ -418,7 +438,16 @@ class TestCliInitName:
         monkeypatch.setattr(main_mod, "_is_tty", lambda: False)
         result = runner.invoke(
             app,
-            ["init", "--roles", "minimal", "--no-claude", "--force", "--name", "manager=From Flag"],
+            [
+                "init",
+                "--no-seed-skills",
+                "--roles",
+                "minimal",
+                "--no-claude",
+                "--force",
+                "--name",
+                "manager=From Flag",
+            ],
         )
         assert result.exit_code == 0, result.output
         from squads._paths import resolve
@@ -431,7 +460,16 @@ class TestCliInitName:
         """A --name without '=' exits with code 1 and an error message."""
         monkeypatch.chdir(tmp_path)
         result = runner.invoke(
-            app, ["init", "--roles", "minimal", "--no-claude", "--name", "architect"]
+            app,
+            [
+                "init",
+                "--no-seed-skills",
+                "--roles",
+                "minimal",
+                "--no-claude",
+                "--name",
+                "architect",
+            ],
         )
         assert result.exit_code == 1
         output_lower = result.output.lower()
@@ -441,7 +479,16 @@ class TestCliInitName:
         """A --name '=Full Name' (empty slug) exits with code 1."""
         monkeypatch.chdir(tmp_path)
         result = runner.invoke(
-            app, ["init", "--roles", "minimal", "--no-claude", "--name", "=Full Name"]
+            app,
+            [
+                "init",
+                "--no-seed-skills",
+                "--roles",
+                "minimal",
+                "--no-claude",
+                "--name",
+                "=Full Name",
+            ],
         )
         assert result.exit_code == 1
         assert "slug" in result.output.lower()
@@ -450,7 +497,16 @@ class TestCliInitName:
         """A --name 'slug=' (empty name) exits with code 1."""
         monkeypatch.chdir(tmp_path)
         result = runner.invoke(
-            app, ["init", "--roles", "minimal", "--no-claude", "--name", "architect="]
+            app,
+            [
+                "init",
+                "--no-seed-skills",
+                "--roles",
+                "minimal",
+                "--no-claude",
+                "--name",
+                "architect=",
+            ],
         )
         assert result.exit_code == 1
 

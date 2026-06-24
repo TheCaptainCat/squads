@@ -372,7 +372,7 @@ def test_session_not_set_by_cli_as_flag(tmp_path, monkeypatch):
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
 
     runner = CliRunner()
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "Test", "--author", "manager"])
     result = runner.invoke(app, ["task", "2", "comment", "--as", "manager", "-m", "A note"])
     assert result.exit_code == 0
@@ -401,7 +401,7 @@ def test_cli_reflog_json_has_session_fields_when_env_set(tmp_path, monkeypatch):
     monkeypatch.setenv("SQUADS_PARENT_SESSION_ID", "cli-psid")
 
     runner = CliRunner()
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "CLI session task", "--author", "manager"])
 
     r = runner.invoke(app, ["reflog", "--json"])
@@ -422,7 +422,7 @@ def test_cli_reflog_json_no_session_when_env_absent(tmp_path, monkeypatch):
     monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
 
     runner = CliRunner()
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "task", "No-session CLI task", "--author", "manager"])
 
     r = runner.invoke(app, ["reflog", "--json"])
@@ -450,23 +450,23 @@ async def test_v0_3_to_v0_4_migration_is_noop_runner():
     assert count == 0
 
 
-async def test_schema_version_is_0_4():
-    """SCHEMA_VERSION is now 0.4 after the bump."""
-    assert SCHEMA_VERSION == "0.4"
+async def test_schema_version_is_0_5():
+    """SCHEMA_VERSION is now 0.5 after the bump (FEAT-000178 skill-id migration)."""
+    assert SCHEMA_VERSION == "0.5"
 
 
-async def test_v0_3_migration_stamps_0_4(project, frozen_time):
-    """run_pending_migrations() on a 0.3 squad stamps the schema to 0.4."""
+async def test_v0_3_migration_stamps_current_schema(project, frozen_time):
+    """run_pending_migrations() on a 0.3 squad stamps the schema to SCHEMA_VERSION."""
     import tomllib
 
     from squads import _aio
     from squads._services._service import Service
 
-    # The `project` fixture initialises a fresh squad at SCHEMA_VERSION (0.4); forcibly
+    # The `project` fixture initialises a fresh squad at SCHEMA_VERSION; forcibly
     # downgrade the on-disk config to 0.3 to simulate a pre-migration squad.
     cfg_path = project.config_path
     cfg_text = await _aio.read_text(cfg_path)
-    cfg_text_03 = cfg_text.replace('schema_version = "0.4"', 'schema_version = "0.3"')
+    cfg_text_03 = cfg_text.replace(f'schema_version = "{SCHEMA_VERSION}"', 'schema_version = "0.3"')
     await _aio.write_text(cfg_path, cfg_text_03)
 
     # Re-load paths from disk so in-memory config reflects the downgrade.
@@ -480,14 +480,15 @@ async def test_v0_3_migration_stamps_0_4(project, frozen_time):
     svc_03 = Service(paths_03)
 
     applied = await svc_03.run_pending_migrations()
-    assert len(applied) == 1, f"Expected 1 migration, got {len(applied)}: {applied}"
-    assert applied[0].from_schema == "0.3"
-    assert applied[0].to_schema == "0.4"
+    # Two migrations are applied: 0.3→0.4 (session lineage) and 0.4→0.5 (skill ids).
+    assert len(applied) == 2, f"Expected 2 migrations, got {len(applied)}: {applied}"
+    assert applied[0].from_schema == "0.3" and applied[0].to_schema == "0.4"
+    assert applied[1].from_schema == "0.4" and applied[1].to_schema == "0.5"
 
     # Verify on-disk stamp.
     with cfg_path.open("rb") as fh:
         stamped = tomllib.load(fh)
-    assert stamped["schema_version"] == "0.4"
+    assert stamped["schema_version"] == SCHEMA_VERSION
 
     issues = await svc_03.check()
     errors = [i for i in issues if i.level == "error"]

@@ -459,7 +459,7 @@ def tree_squad(tmp_path, monkeypatch, frozen_time):
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup {args!r} failed (exit {r.exit_code}):\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "epic", "Epic A", "--author", "manager"])
     inv(["create", "feature", "Feature B", "--author", "manager", "--parent", "EPIC-000002"])
     inv(
@@ -522,7 +522,7 @@ def test_cli_tree_filter_assignee(tmp_path, monkeypatch, frozen_time):
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup {args!r} failed (exit {r.exit_code}):\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "epic", "Epic", "--author", "manager"])
     inv(["create", "feature", "Feat", "--author", "manager", "--parent", "EPIC-000002"])
     inv(["create", "task", "Task", "--author", "manager", "--parent", "FEAT-000003"])
@@ -622,7 +622,7 @@ def test_cli_tree_status_reveals_closed_with_status_flag(tmp_path, monkeypatch, 
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup {args!r} failed:\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "feature", "F", "--author", "manager"])
     inv(["feature", "2", "status", "InProgress"])
     inv(["feature", "2", "status", "Done"])
@@ -641,7 +641,7 @@ def test_cli_tree_non_status_filter_does_not_widen_to_closed(tmp_path, monkeypat
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup {args!r} failed:\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "feature", "F", "--author", "manager", "--priority", "high"])
     inv(["feature", "2", "status", "InProgress"])
     inv(["feature", "2", "status", "Done"])
@@ -661,7 +661,7 @@ def test_cli_tree_all_includes_closed(tmp_path, monkeypatch, frozen_time):
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup {args!r} failed:\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "feature", "F", "--author", "manager"])
     inv(["feature", "2", "status", "InProgress"])
     inv(["feature", "2", "status", "Done"])

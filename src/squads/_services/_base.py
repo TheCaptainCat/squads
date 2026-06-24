@@ -8,6 +8,7 @@ only ever call core methods + their own.
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from squads import __version__, _aio
@@ -567,8 +568,22 @@ class ServiceCore:
             for it in await self.list_items(item_type=ItemType.OPERATOR)
         ]
 
+    async def _skill_paths(self) -> dict[str, Path]:
+        """Build a slug→absolute-body-path map for all SKILL items in the index.
+
+        Backends receive this via BackendContext so they never need to load the
+        index themselves (layering invariant: _backends must not import _index).
+        """
+        skill_items = await self.list_items(item_type=ItemType.SKILL)
+        return {
+            it.extra[X.SLUG]: self.paths.abspath(it.path)
+            for it in skill_items
+            if X.SLUG in it.extra
+        }
+
     async def refresh_managed(self) -> None:
-        ctx = self._ctx
+        skill_map = await self._skill_paths()
+        ctx = BackendContext(paths=self.paths, version=__version__, skill_paths=skill_map)
         roster = await self.roster()
         ops = await self.operators()
         for backend in self._backends():

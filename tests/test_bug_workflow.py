@@ -160,7 +160,7 @@ async def test_bug_regression_reopen(svc):
 def test_cli_bug_status_rejects_done(runner, tmp_path, monkeypatch, frozen_time):
     """CLI: `sq bug N status Done` is rejected at set-time with a clear error."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "bug", "Crash", "--author", "manager"])
 
     r = runner.invoke(app, ["bug", "2", "status", "Done"])
@@ -171,7 +171,7 @@ def test_cli_bug_status_rejects_done(runner, tmp_path, monkeypatch, frozen_time)
 def test_cli_bug_status_force_no_vocabulary_bypass(runner, tmp_path, monkeypatch, frozen_time):
     """CLI: `sq bug N status Done --force` is still rejected (vocabulary, not edge)."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "bug", "Crash", "--author", "manager"])
 
     r = runner.invoke(app, ["bug", "2", "status", "Done", "--force"])
@@ -182,7 +182,7 @@ def test_cli_bug_status_force_no_vocabulary_bypass(runner, tmp_path, monkeypatch
 def test_cli_bug_full_lifecycle(runner, tmp_path, monkeypatch, frozen_time):
     """CLI: complete bug lifecycle from Open to Verified."""
     monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--roles", "minimal"])
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
     runner.invoke(app, ["create", "bug", "Null pointer", "--author", "manager"])
 
     r = runner.invoke(app, ["bug", "2", "status", "InProgress"])

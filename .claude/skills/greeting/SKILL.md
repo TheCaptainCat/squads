@@ -5,6 +5,6 @@ description: "Start of a conversation with a human: detect & register the operat
 
 This is a squads-managed skill. Load and follow its full definition before using it:
 
-@squads/agents/skills/greeting.md
+@squads/agents/skills/SKILL-000192-greeting.md
 
 Track related work with the `sq` CLI. Never edit the `<!-- sq:* -->` marker lines in managed files.

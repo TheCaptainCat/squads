@@ -84,9 +84,15 @@ def frozen_time(monkeypatch):
 
 @pytest.fixture
 async def project(tmp_path, monkeypatch, frozen_time):
-    """A freshly-initialized squad in a temp dir; cwd is set to it."""
+    """A freshly-initialized squad in a temp dir; cwd is set to it.
+
+    Skill seeding (FEAT-000178) is intentionally skipped here so existing tests are not
+    disrupted by the global-counter shift that seeding causes.  Tests that specifically
+    exercise skill seeding use a dedicated ``project_with_skills`` fixture or call
+    ``svc.seed_bundled_skills()`` directly.
+    """
     monkeypatch.chdir(tmp_path)
-    result = await service.init(root=tmp_path, roles_spec="minimal")
+    result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     return result.paths
 
 

@@ -142,6 +142,12 @@ async def init(
         "all", "--roles", help="Bundle (all|core|minimal) or comma-separated slugs."
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
+    no_seed_skills: bool = typer.Option(
+        False,
+        "--no-seed-skills",
+        help="Skip stamping SKILL ids onto bundled skill files (for test compatibility).",
+        hidden=True,
+    ),
     force: bool = typer.Option(False, "--force", help="Overwrite existing .squads.toml."),
     name: list[str] = typer.Option(
         [],
@@ -216,6 +222,7 @@ async def init(
         no_claude=no_claude,
         force=force,
         names=combined_names if combined_names else None,
+        _skip_skill_seed=no_seed_skills,
     )
     sp = result.paths
     roles_line = ", ".join(r.extra.get(X.SLUG, r.slug) for r in result.roles) or "—"

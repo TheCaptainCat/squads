@@ -1,7 +1,7 @@
 {
-  "schema_version": "0.4",
-  "squads_version": "0.4.1",
-  "counter": 186,
+  "schema_version": "0.5",
+  "squads_version": "0.5.0",
+  "counter": 205,
   "padding": 6,
   "items": {
     "12": {
@@ -1757,7 +1757,7 @@
       "type": "feature",
       "title": "Skills as first-class ID'd entities (SKILL-… prefix, migration)",
       "slug": "skills-as-first-class-id-d-entities-skill-prefix-migration",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000031",
       "author": "product-owner",
@@ -1804,7 +1804,7 @@
       ],
       "path": "features/FEAT-000178-skills-as-first-class-id-d-entities-skill-prefix-migration.md",
       "created_at": "2026-06-23T12:51:19Z",
-      "updated_at": "2026-06-23T12:59:54Z",
+      "updated_at": "2026-06-25T09:59:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3995,6 +3995,295 @@
       "extra": {},
       "id": "TASK-000182"
     },
+    "185": {
+      "sequence_id": 185,
+      "type": "task",
+      "title": "sq tree filters + --depth, sharing list's filter spec",
+      "slug": "sq-tree-filters-depth-sharing-list-s-filter-spec",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000039",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Shared ItemFilter predicate + tree filter flags",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Ancestor-preserving prune, --depth, path-only render + JSON",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000185-sq-tree-filters-depth-sharing-list-s-filter-spec.md",
+      "created_at": "2026-06-24T13:13:35Z",
+      "updated_at": "2026-06-24T14:14:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000185"
+    },
+    "187": {
+      "sequence_id": 187,
+      "type": "task",
+      "title": "Make skill-body regen path frontmatter-preserving and marker-safe",
+      "slug": "make-skill-body-regen-path-frontmatter-preserving-and-marker",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000178",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Body-region-only marker-safe regen preserves stamped frontmatter",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Idempotence test: sq sync twice leaves id/sequence_id unchanged",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000187-make-skill-body-regen-path-frontmatter-preserving-and-marker.md",
+      "created_at": "2026-06-24T18:46:55Z",
+      "updated_at": "2026-06-24T20:00:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000187"
+    },
+    "188": {
+      "sequence_id": 188,
+      "type": "task",
+      "title": "Lexical-by-slug SKILL id allocation, shared by init seeding and migration",
+      "slug": "lexical-by-slug-skill-id-allocation-shared-by-init-seeding-a",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000178",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Shared lexical-by-slug ordering primitive consumed by init and migration",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "sq init seeds bundled skills as SKILL Items via IndexStore.transaction",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000188-lexical-by-slug-skill-id-allocation-shared-by-init-seeding-a.md",
+      "created_at": "2026-06-24T18:46:55Z",
+      "updated_at": "2026-06-24T20:00:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000188"
+    },
+    "189": {
+      "sequence_id": 189,
+      "type": "task",
+      "title": "Migration runner entry: retrofit existing agents/skills with SKILL ids",
+      "slug": "migration-runner-entry-retrofit-existing-agents-skills-with",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000178",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Ordered migration walks agents/skills, allocates ids, stamps frontmatter",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Migration runs repair, stamps schema bump, ordering parity with init",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000189-migration-runner-entry-retrofit-existing-agents-skills-with.md",
+      "created_at": "2026-06-24T18:46:56Z",
+      "updated_at": "2026-06-24T21:09:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000189"
+    },
+    "190": {
+      "sequence_id": 190,
+      "type": "task",
+      "title": "Wire sq list -t skill, sq skill show, and SKILL ref support",
+      "slug": "wire-sq-list-t-skill-sq-skill-show-and-skill-ref-support",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000178",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq list -t skill and sq skill show render SKILL items",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Basic SKILL ref support: ref add SKILL- shows on source and backref",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000190-wire-sq-list-t-skill-sq-skill-show-and-skill-ref-support.md",
+      "created_at": "2026-06-24T18:46:56Z",
+      "updated_at": "2026-06-24T21:09:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000190"
+    },
+    "202": {
+      "sequence_id": 202,
+      "type": "task",
+      "title": "Rename skill files to SKILL-NNNNNN-slug.md convention + update .claude pointer",
+      "slug": "rename-skill-files-to-skill-nnnnnn-slug-md-convention-update",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000178",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Migration renames legacy slug-named files to SKILL-NNNNNN-slug.md idempotently",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Fresh sq init seeds skill files with the SKILL-NNNNNN-slug.md convention",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Backend derives body path from id; .claude pointer resolves to renamed file",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000202-rename-skill-files-to-skill-nnnnnn-slug-md-convention-update.md",
+      "created_at": "2026-06-25T07:56:03Z",
+      "updated_at": "2026-06-25T09:22:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000202"
+    },
+    "204": {
+      "sequence_id": 204,
+      "type": "task",
+      "title": "Carry skill descriptions onto SKILL items (single registry) so pointers/list keep rich text",
+      "slug": "carry-skill-descriptions-onto-skill-items-single-registry-so",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000178",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Single slug->description registry in _interactions; backend reads it for pointers; descriptions on items",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Migration stamps and backfills descriptions onto skill items",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Fresh sq init stamps skill descriptions from the registry",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000204-carry-skill-descriptions-onto-skill-items-single-registry-so.md",
+      "created_at": "2026-06-25T09:28:03Z",
+      "updated_at": "2026-06-25T09:58:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000204"
+    },
     "11": {
       "sequence_id": 11,
       "type": "bug",
@@ -4944,7 +5233,7 @@
       "type": "decision",
       "title": "Skills as first-class entities: full Item of type SKILL on the role/operator meta-type profile",
       "slug": "skills-as-first-class-entities-full-item-of-type-skill-on-th",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "A skill is a full Item of the existing ItemType.SKILL with the lightweight role/operator profile (Active/Archived, no sub-entities), not a separate lighter class; frontmatter stamped onto the existing body file via migration",
       "parent": null,
       "author": "architect",
@@ -4957,7 +5246,7 @@
       "subentities": [],
       "path": "adrs/ADR-000181-skills-as-first-class-entities-full-item-of-type-skill-on-th.md",
       "created_at": "2026-06-23T12:59:27Z",
-      "updated_at": "2026-06-23T12:59:38Z",
+      "updated_at": "2026-06-25T07:56:42Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6425,6 +6714,348 @@
       "extra": {},
       "id": "REV-000175"
     },
+    "184": {
+      "sequence_id": 184,
+      "type": "review",
+      "title": "Review: sq graph ref-graph view (FEAT-000037)",
+      "slug": "review-sq-graph-ref-graph-view-feat-000037",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000037:addresses",
+        "TASK-000182:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Rich tree crashes on any node with a priority",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Dangling-ref stub branch in _build_graph_node is dead code",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "graph_to_dot _q does not escape backslashes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "dot/mermaid arrows follow traversal direction, not dependency semantics",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000184-review-sq-graph-ref-graph-view-feat-000037.md",
+      "created_at": "2026-06-24T11:56:36Z",
+      "updated_at": "2026-06-24T12:25:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000184"
+    },
+    "186": {
+      "sequence_id": 186,
+      "type": "review",
+      "title": "Review: sq tree filters (FEAT-000039)",
+      "slug": "review-sq-tree-filters-feat-000039",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000039:addresses",
+        "TASK-000185:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "dim-render CLI test asserts nothing about dimming",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "stale docstring references removed CLI helper _build_children",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000186-review-sq-tree-filters-feat-000039.md",
+      "created_at": "2026-06-24T14:09:38Z",
+      "updated_at": "2026-06-24T14:14:10Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000186"
+    },
+    "191": {
+      "sequence_id": 191,
+      "type": "review",
+      "title": "Foundation review: FEAT-178 skills (TASK-187/188)",
+      "slug": "foundation-review-feat-178-skills-task-187-188",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000178",
+        "TASK-000187",
+        "TASK-000188"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Regen else-branch wipes frontmatter when body region is missing/partial",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "sq check: skills added to registered-authors set is an out-of-scope semantic change",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Existing test suite runs the non-default no-seed path; default seed-on-init under-tested",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "sq adopt does not seed bundled skills; init/adopt asymmetry",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "Counter bump before file write can leak an id on stamp failure",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000191-foundation-review-feat-178-skills-task-187-188.md",
+      "created_at": "2026-06-24T19:49:42Z",
+      "updated_at": "2026-06-24T20:00:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000191"
+    },
+    "201": {
+      "sequence_id": 201,
+      "type": "review",
+      "title": "Migration+wiring review: FEAT-178 (TASK-189/190)",
+      "slug": "migration-wiring-review-feat-178-task-189-190",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000178",
+        "TASK-000189",
+        "TASK-000190"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "migrate chlog hint points at the wrong release range — 0.5 manual steps are unreachable",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Interrupted migration can mint duplicate SKILL ids (counter persisted once at end, not per-allocation)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Dead/misleading manual .squads.json write in the runner — clobbered by the following repair()",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "v0_5 corpus fixture is mislabeled — schema_version=0.4 on disk under a dir registered as 0.5",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "_skip_skill_seed test hook is now load-bearing suite-wide; seeded state under-covered by default",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000201-migration-wiring-review-feat-178-task-189-190.md",
+      "created_at": "2026-06-24T20:32:56Z",
+      "updated_at": "2026-06-24T21:09:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000201"
+    },
+    "203": {
+      "sequence_id": 203,
+      "type": "review",
+      "title": "Skill filename convention review: FEAT-178 TASK-202",
+      "slug": "skill-filename-convention-review-feat-178-task-202",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000178",
+        "TASK-000202"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Backend swallows index-corruption errors with bare except",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Orphan slug.md beside a convention file is never detected or cleaned",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Backend reaches into IndexStore directly (layering smell)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Freshly-migrated unstamped skills get an empty pointer description",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000203-skill-filename-convention-review-feat-178-task-202.md",
+      "created_at": "2026-06-25T08:43:18Z",
+      "updated_at": "2026-06-25T09:23:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000203"
+    },
+    "205": {
+      "sequence_id": 205,
+      "type": "review",
+      "title": "Skill descriptions registry review: FEAT-178 TASK-204",
+      "slug": "skill-descriptions-registry-review-feat-178-task-204",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000178",
+        "TASK-000204"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Migration reimplements pointer rendering instead of delegating to backend",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Registry sq-type comprehension and bundled_skill_slugs use two independent type filters",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Description write semantics inconsistent across the three migration paths (fill-if-empty vs overwrite)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000205-skill-descriptions-registry-review-feat-178-task-204.md",
+      "created_at": "2026-06-25T09:53:57Z",
+      "updated_at": "2026-06-25T09:58:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000205"
+    },
     "79": {
       "sequence_id": 79,
       "type": "guide",
@@ -6868,6 +7499,222 @@
       },
       "id": "ROLE-000009"
     },
+    "192": {
+      "sequence_id": 192,
+      "type": "skill",
+      "title": "greeting",
+      "slug": "greeting",
+      "status": "Active",
+      "description": "Start of a conversation with a human: detect & register the operator, then greet them — match their tone, say how you help, and give a quick read of the project. Use when a person opens a session; skip it when spawned as a subagent for a job.",
+      "parent": null,
+      "author": "greeting",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000192-greeting.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "greeting"
+      },
+      "id": "SKILL-000192"
+    },
+    "193": {
+      "sequence_id": 193,
+      "type": "skill",
+      "title": "sq-bug",
+      "slug": "sq-bug",
+      "status": "Active",
+      "description": "Working with bug items in this squad: lifecycle, commands, and role-specific guidance.",
+      "parent": null,
+      "author": "sq-bug",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000193-sq-bug.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "sq-bug"
+      },
+      "id": "SKILL-000193"
+    },
+    "194": {
+      "sequence_id": 194,
+      "type": "skill",
+      "title": "sq-decision",
+      "slug": "sq-decision",
+      "status": "Active",
+      "description": "Working with decision items in this squad: lifecycle, commands, and role-specific guidance.",
+      "parent": null,
+      "author": "sq-decision",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000194-sq-decision.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "sq-decision"
+      },
+      "id": "SKILL-000194"
+    },
+    "195": {
+      "sequence_id": 195,
+      "type": "skill",
+      "title": "sq-epic",
+      "slug": "sq-epic",
+      "status": "Active",
+      "description": "Working with epic items in this squad: lifecycle, commands, and role-specific guidance.",
+      "parent": null,
+      "author": "sq-epic",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000195-sq-epic.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "sq-epic"
+      },
+      "id": "SKILL-000195"
+    },
+    "196": {
+      "sequence_id": 196,
+      "type": "skill",
+      "title": "sq-feature",
+      "slug": "sq-feature",
+      "status": "Active",
+      "description": "Working with feature items in this squad: lifecycle, commands, and role-specific guidance.",
+      "parent": null,
+      "author": "sq-feature",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000196-sq-feature.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "sq-feature"
+      },
+      "id": "SKILL-000196"
+    },
+    "197": {
+      "sequence_id": 197,
+      "type": "skill",
+      "title": "sq-guide",
+      "slug": "sq-guide",
+      "status": "Active",
+      "description": "Working with guide items in this squad: lifecycle, commands, and role-specific guidance.",
+      "parent": null,
+      "author": "sq-guide",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000197-sq-guide.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "sq-guide"
+      },
+      "id": "SKILL-000197"
+    },
+    "198": {
+      "sequence_id": 198,
+      "type": "skill",
+      "title": "sq-review",
+      "slug": "sq-review",
+      "status": "Active",
+      "description": "Working with review items in this squad: lifecycle, commands, and role-specific guidance.",
+      "parent": null,
+      "author": "sq-review",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000198-sq-review.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "sq-review"
+      },
+      "id": "SKILL-000198"
+    },
+    "199": {
+      "sequence_id": 199,
+      "type": "skill",
+      "title": "sq-task",
+      "slug": "sq-task",
+      "status": "Active",
+      "description": "Working with task items in this squad: lifecycle, commands, and role-specific guidance.",
+      "parent": null,
+      "author": "sq-task",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000199-sq-task.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "sq-task"
+      },
+      "id": "SKILL-000199"
+    },
+    "200": {
+      "sequence_id": 200,
+      "type": "skill",
+      "title": "squads",
+      "slug": "squads",
+      "status": "Active",
+      "description": "How to track work on this project with the squads (`sq`) CLI: create/transition items, comment, link context. Use whenever you start, hand off, or update work.",
+      "parent": null,
+      "author": "squads",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000200-squads.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "squads"
+      },
+      "id": "SKILL-000200"
+    },
     "10": {
       "sequence_id": 10,
       "type": "operator",
@@ -6892,145 +7739,6 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-000010"
-    },
-    "184": {
-      "sequence_id": 184,
-      "type": "review",
-      "title": "Review: sq graph ref-graph view (FEAT-000037)",
-      "slug": "review-sq-graph-ref-graph-view-feat-000037",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000037:addresses",
-        "TASK-000182:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "Rich tree crashes on any node with a priority",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "high",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "Dangling-ref stub branch in _build_graph_node is dead code",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F3",
-          "title": "graph_to_dot _q does not escape backslashes",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F4",
-          "title": "dot/mermaid arrows follow traversal direction, not dependency semantics",
-          "status": "WontFix",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000184-review-sq-graph-ref-graph-view-feat-000037.md",
-      "created_at": "2026-06-24T11:56:36Z",
-      "updated_at": "2026-06-24T12:25:46Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "REV-000184"
-    },
-    "185": {
-      "sequence_id": 185,
-      "type": "task",
-      "title": "sq tree filters + --depth, sharing list's filter spec",
-      "slug": "sq-tree-filters-depth-sharing-list-s-filter-spec",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-000039",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Shared ItemFilter predicate + tree filter flags",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Ancestor-preserving prune, --depth, path-only render + JSON",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        }
-      ],
-      "path": "tasks/TASK-000185-sq-tree-filters-depth-sharing-list-s-filter-spec.md",
-      "created_at": "2026-06-24T13:13:35Z",
-      "updated_at": "2026-06-24T14:14:32Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-000185"
-    },
-    "186": {
-      "sequence_id": 186,
-      "type": "review",
-      "title": "Review: sq tree filters (FEAT-000039)",
-      "slug": "review-sq-tree-filters-feat-000039",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-000039:addresses",
-        "TASK-000185:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "dim-render CLI test asserts nothing about dimming",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "stale docstring references removed CLI helper _build_children",
-          "status": "Verified",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000186-review-sq-tree-filters-feat-000039.md",
-      "created_at": "2026-06-24T14:09:38Z",
-      "updated_at": "2026-06-24T14:14:10Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "REV-000186"
     }
   }
 }

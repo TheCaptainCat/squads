@@ -10,9 +10,11 @@ from typing import Any
 
 from squads import _aio
 from squads import _interactions as interactions
+from squads import _sections as sections
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code import _claude_md as claude_md
 from squads._backends._claude_code._frontmatter import normalize_model, oneline
+from squads._models import _markers as markers
 from squads._models._enums import TYPE_ALIASES, ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
@@ -67,10 +69,7 @@ class ClaudeCodeBackend(AgentBackend):
         artifacts += await self._write_managed_skill(
             ctx,
             name="squads",
-            description=(
-                "How to track work on this project with the squads (`sq`) CLI: create/transition "
-                "items, comment, link context. Use whenever you start, hand off, or update work."
-            ),
+            description=interactions.skill_description("squads"),
             body=render(
                 "agents/squads_skill.md.j2",
                 version=ctx.version,
@@ -82,11 +81,7 @@ class ClaudeCodeBackend(AgentBackend):
         artifacts += await self._write_managed_skill(
             ctx,
             name="greeting",
-            description=(
-                "Start of a conversation with a human: detect & register the operator, then greet "
-                "them — match their tone, say how you help, and give a quick read of the project. "
-                "Use when a person opens a session; skip it when spawned as a subagent for a job."
-            ),
+            description=interactions.skill_description("greeting"),
             body=render("agents/greeting_skill.md.j2", version=ctx.version, squad_dir=squad_dir),
         )
         # CLAUDE.md managed section
@@ -107,10 +102,67 @@ class ClaudeCodeBackend(AgentBackend):
     async def _write_managed_skill(
         self, ctx: BackendContext, *, name: str, description: str, body: str
     ) -> list[Artifact]:
-        """Write a managed skill's real body under squads/ and a thin pointer in .claude/."""
-        body_path = ctx.squad_dir / _AGENTS / _SKILLS / f"{name}.md"
+        """Write a managed skill's real body under squads/ and a thin pointer in .claude/.
+
+        Body path derivation (ADR-000181 decision #3, amended):
+        - If the skill is already in the index (i.e. it has been stamped as a SKILL item),
+          the body path is resolved from ``item.path`` — which encodes the convention-correct
+          name ``agents/skills/SKILL-<NNNNNN>-<slug>.md``.  This is the normal sync path.
+        - On a first write (no index entry yet — during ``sq init`` before ``seed_bundled_skills``
+          runs), the legacy slug-named path ``agents/skills/<slug>.md`` is used as a temporary
+          landing spot.  ``seed_bundled_skills`` will rename it to the convention name
+          immediately afterwards.
+
+        Body-region-only regen: if the skill file already exists and carries sq frontmatter
+        (i.e. it has been stamped as a SKILL item), only the ``sq:body`` region is replaced —
+        the frontmatter and every other region are left intact (ADR-000181 decision #3).
+
+        If the file does not yet exist or has no frontmatter, the body is written wrapped in
+        ``sq:body`` markers so the file is region-compatible for future frontmatter-preserving
+        regenerations (invariant 3).
+        """
+        # Resolve the body path from the caller-supplied skill_paths map.
+        # refresh_managed() populates ctx.skill_paths from the index before calling
+        # write_managed, so this backend never needs to load the index itself
+        # (layering invariant: _backends must not import _index).
+        #
+        # On first write (sq init, before seeding): skill_paths is empty so we fall back
+        # to a slug-named temporary path; seed_bundled_skills renames it to the convention
+        # name right after and rewrites the pointer.
+        resolved = ctx.skill_paths.get(name)
+        body_path: Path = (
+            resolved if resolved is not None else (ctx.squad_dir / _AGENTS / _SKILLS / f"{name}.md")
+        )
         await _aio.mkdir(body_path.parent, parents=True, exist_ok=True)
-        await _aio.write_text(body_path, body)
+
+        # Wrap the rendered body in sq:body markers so the file is marker-structured.
+        # This makes the region detectable on subsequent syncs regardless of whether
+        # frontmatter has been stamped yet.
+        body_with_markers = (
+            f"{markers.open_marker(markers.BODY)}\n{body}\n{markers.close_marker(markers.BODY)}\n"
+        )
+
+        if await _aio.path_exists(body_path):
+            existing = await _aio.read_text(body_path)
+            fm, _ = sections.split_frontmatter(existing)
+            if fm and sections.has_section(existing, markers.BODY):
+                # File has been stamped with frontmatter: preserve it, only update body region.
+                new_inner = f"\n{body}\n"
+                updated = sections.replace_section(existing, markers.BODY, new_inner)
+                await _aio.write_text(body_path, updated)
+            elif fm:
+                # Frontmatter present but sq:body region absent/partial — fail-safe: re-emit
+                # the existing frontmatter so the stamped id/sequence_id are never lost
+                # (ADR-000181 decision #3 guard).  Body region becomes freshly wrapped.
+                await _aio.write_text(body_path, sections.join_frontmatter(fm, body_with_markers))
+            else:
+                # Genuinely no frontmatter (first-write or pre-stamp file): write bare body
+                # with markers.  We do NOT invent frontmatter here — allocation is a separate
+                # step (TASK-000188).
+                await _aio.write_text(body_path, body_with_markers)
+        else:
+            await _aio.write_text(body_path, body_with_markers)
+
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / name / _SKILL_FILE
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
         await _aio.write_text(
@@ -175,10 +227,7 @@ class ClaudeCodeBackend(AgentBackend):
             out += await self._write_managed_skill(
                 ctx,
                 name=name,
-                description=(
-                    f"Working with {item_type.value} items in this squad: "
-                    "lifecycle, commands, and role-specific guidance."
-                ),
+                description=interactions.skill_description(name),
                 body=body,
             )
         return out

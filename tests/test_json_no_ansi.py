@@ -35,7 +35,7 @@ def force_color_squad(
         r = runner.invoke(app, args)
         assert r.exit_code == 0, f"setup step {args!r} failed (exit {r.exit_code}):\n{r.output}"
 
-    inv(["init", "--roles", "minimal"])
+    inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "task", "Test task", "--author", "manager"])
 
     # Re-inject forced-color after setup so only the test assertions run under it.
