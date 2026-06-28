@@ -285,7 +285,7 @@ async def test_update_applies_several_fields_and_validates_status(svc):
     with pytest.raises(SquadsError, match="cannot move"):
         await svc.update_subtask(task.id, "ST1", status=Status.TODO)
     await svc.update_subtask(task.id, "ST1", status=Status.TODO, force=True)
-    assert (await svc.list_subtasks(task.id))[0].status is Status.TODO
+    assert (await svc.list_subtasks(task.id))[0].status == Status.TODO
 
     # an unregistered assignee is rejected
     with pytest.raises(SquadsError, match="not a registered agent"):

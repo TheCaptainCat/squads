@@ -56,7 +56,7 @@ def test_subentity_roundtrips_through_frontmatter():
     }
     back = SubEntity.from_frontmatter(data)
     assert back == sub
-    assert back.status is Status.OPEN and back.severity is Severity.HIGH
+    assert back.status == Status.OPEN and back.severity is Severity.HIGH
 
 
 def test_item_subentities_roundtrip_through_frontmatter():

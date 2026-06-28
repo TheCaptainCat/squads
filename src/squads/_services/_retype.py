@@ -15,12 +15,11 @@ from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import rewrite_ids, update_frontmatter
 from squads._models import _markers as markers
-from squads._models._enums import WORK_TYPES, ItemType
 from squads._models._index import SquadsDB
-from squads._models._item import Item, Status
+from squads._models._item import Item
 from squads._services._base import SUBENTITY_CONTAINER, SUBENTITY_KIND, ServiceCore
 from squads._services._results import RetypeResult
-from squads._workflow import initial_status, parent_allowed, parent_hint, workflow_for
+from squads._workflow import initial_status, parent_allowed, parent_hint, work_types, workflow_for
 
 # Sub-entity container headings for each kind that has one.
 _CONTAINER_HEADINGS: dict[str, str] = {
@@ -30,26 +29,25 @@ _CONTAINER_HEADINGS: dict[str, str] = {
 }
 
 
-def _validate_work_types(old_type: ItemType, new_type: ItemType, old_id: str) -> None:
+def _validate_work_types(old_type: str, new_type: str, old_id: str) -> None:
     """Raise if either type is not a work type, or they are the same."""
-    if old_type not in WORK_TYPES:
+    wt = work_types()
+    if old_type not in wt:
         raise SquadsError(
-            f"{old_id} is a {old_type.value}; only work items can be retyped "
-            f"({', '.join(t.value for t in WORK_TYPES)})"
+            f"{old_id} is a {old_type}; only work items can be retyped ({', '.join(sorted(wt))})"
         )
-    if new_type not in WORK_TYPES:
+    if new_type not in wt:
         raise SquadsError(
-            f"cannot retype to {new_type.value!r}; target must be a work type "
-            f"({', '.join(t.value for t in WORK_TYPES)})"
+            f"cannot retype to {new_type!r}; target must be a work type ({', '.join(sorted(wt))})"
         )
-    if new_type is old_type:
-        raise SquadsError(f"{old_id} is already of type {old_type.value}")
+    if new_type == old_type:
+        raise SquadsError(f"{old_id} is already of type {old_type}")
 
 
 def _validate_refusals(
     db: SquadsDB,
     old_id: str,
-    new_type: ItemType,
+    new_type: str,
     item_parent: str | None,
     has_subentities: bool,
 ) -> None:
@@ -63,9 +61,9 @@ def _validate_refusals(
         parent_item = db.get(item_parent)
         if parent_item is not None and not parent_allowed(new_type, parent_item.type):
             raise SquadsError(
-                f"cannot retype {old_id} to {new_type.value}: "
+                f"cannot retype {old_id} to {new_type}: "
                 f"{parent_hint(new_type)} "
-                f"(current parent {item_parent} is a {parent_item.type.value}). "
+                f"(current parent {item_parent} is a {parent_item.type}). "
                 "Remove or update the parent first."
             )
     invalid_children = [
@@ -74,17 +72,17 @@ def _validate_refusals(
     if invalid_children:
         ids = ", ".join(c.id for c in invalid_children)
         raise SquadsError(
-            f"cannot retype {old_id} to {new_type.value}: "
+            f"cannot retype {old_id} to {new_type}: "
             f"child item(s) {ids} would have an invalid parent type. "
             "Re-parent or remove those children first."
         )
 
 
 def _carry_or_reset_status(
-    old_type: ItemType,
-    new_type: ItemType,
-    current_status: Status,
-) -> tuple[bool, Status]:
+    old_type: str,
+    new_type: str,
+    current_status: str,
+) -> tuple[bool, str]:
     """Return ``(status_reset, new_status_or_same)``.
 
     Carries the status when old and new share the same :class:`~squads._workflow.Workflow`
@@ -98,7 +96,7 @@ def _carry_or_reset_status(
 
 
 class RetypeMixin(ServiceCore):
-    async def retype(self, item_id: str, new_type: ItemType) -> RetypeResult:
+    async def retype(self, item_id: str, new_type: str) -> RetypeResult:
         """Reclassify *item_id* to *new_type* in place.
 
         - Both the current type and *new_type* must be members of :data:`WORK_TYPES`.
@@ -113,6 +111,7 @@ class RetypeMixin(ServiceCore):
           :func:`~squads._itemfile.rewrite_ids`.
         - A system comment recording the retype is appended to the item's discussion.
         """
+        new_type = str(new_type)  # coerce StrEnum members to plain str
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
             old_type = item.type
@@ -168,24 +167,24 @@ class RetypeMixin(ServiceCore):
                 {
                     "old_id": old_id,
                     "new_id": new_id,
-                    "old_type": old_type.value,
-                    "new_type": new_type.value,
+                    "old_type": old_type,
+                    "new_type": new_type,
                     "status_carried": not status_reset,
-                    "status": item.status.value,
+                    "status": item.status,
                 },
             )
 
         return RetypeResult(
             item=item,
             old_id=old_id,
-            old_type=old_type.value,
+            old_type=old_type,
             status_reset=status_reset,
-            old_status=old_status.value,
+            old_status=old_status,
             rewritten=rewritten_names,
         )
 
 
-async def _ensure_subentity_container(new_type: ItemType, path: Path) -> None:
+async def _ensure_subentity_container(new_type: str, path: Path) -> None:
     """Append an empty sub-entity container block when *new_type* hosts sub-entities."""
     kind = SUBENTITY_KIND.get(new_type)
     if kind is None:
@@ -220,9 +219,9 @@ async def _append_retype_comment(
     """Append a system comment recording the retype to the item's discussion."""
     now_iso = clock.iso(clock.now())
     if status_reset:
-        status_note = f"status reset to {item.status.value} (workflows differ)"
+        status_note = f"status reset to {item.status} (workflows differ)"
     else:
-        status_note = f"status carried as {item.status.value}"
+        status_note = f"status carried as {item.status}"
     msg = f"retyped {old_id} → {new_id}; {status_note}"
     entry = discussion.format_comment(now_iso, "squads", [msg])
     text = await _aio.read_text(path)

@@ -8,22 +8,20 @@ from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _markers as markers
 from squads._models._enums import PREFIX_BY_TYPE, ItemType, Priority
-from squads._models._item import Item, Status, ref_id_matches, split_ref
+from squads._models._item import Item, ref_id_matches, split_ref
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import RemoveResult
 from squads._util import slugify
-from squads._workflow import can_transition, workflow_for
-
-_AGENT_TYPES = {ItemType.ROLE, ItemType.SKILL}
+from squads._workflow import can_transition, item_is_meta, workflow_for
 
 
 class ItemsMixin(ServiceCore):
-    async def set_status(self, item_id: str, status: Status, *, force: bool = False) -> Item:
+    async def set_status(self, item_id: str, status: str, *, force: bool = False) -> Item:
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
-            old_status = item.status.value
+            old_status = item.status
             self._apply_status(item, status, force=force)
             item.updated_at = clock.now()
             item.modified_session, _ = actor.current_session()
@@ -31,7 +29,7 @@ class ItemsMixin(ServiceCore):
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "status",
                 item.id,
-                {"status": [old_status, item.status.value]},
+                {"status": [old_status, item.status]},
             )
         return item
 
@@ -47,7 +45,7 @@ class ItemsMixin(ServiceCore):
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
         author: str | None = None,
-        status: Status | None = None,
+        status: str | None = None,
         force: bool = False,
         parent: str | None = None,
         clear_parent: bool = False,
@@ -78,9 +76,9 @@ class ItemsMixin(ServiceCore):
                 delta["author"] = author
                 item.author = author
             if status is not None:
-                old_st = item.status.value
+                old_st = item.status
                 self._apply_status(item, status, force=force)
-                delta["status"] = [old_st, item.status.value]
+                delta["status"] = [old_st, item.status]
             if clear_parent:
                 delta["parent"] = None
                 item.parent = None
@@ -94,7 +92,7 @@ class ItemsMixin(ServiceCore):
             item.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, item), item)
             self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
-        if item.type in _AGENT_TYPES:
+        if item_is_meta(item.type) and item.type != ItemType.OPERATOR:
             await self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
         return item
 
@@ -113,12 +111,16 @@ class ItemsMixin(ServiceCore):
         for key in unset or []:
             item.extra.pop(key, None)
 
-    def _apply_status(self, item: Item, status: Status, *, force: bool) -> None:
+    def _apply_status(self, item: Item, status: str, *, force: bool) -> None:
+        # Coerce to plain str — callers may pass a Status enum member (which is a StrEnum
+        # and compares equal to its value, but pydantic won't auto-coerce when
+        # use_enum_values=False).
+        status = str(status)
         states = workflow_for(item.type).states
         if status not in states:
-            allowed = ", ".join(sorted(s.value for s in states))
+            allowed = ", ".join(sorted(states))
             raise StatusNotInWorkflowError(
-                f"{status.value!r} is not a valid status for {item.type.value} (allowed: {allowed})"
+                f"'{status}' is not a valid status for {item.type} (allowed: {allowed})"
             )
         if (
             not force
@@ -126,8 +128,7 @@ class ItemsMixin(ServiceCore):
             and not can_transition(item.type, item.status, status)
         ):
             raise InvalidTransitionError(
-                f"{item.type.value} cannot move {item.status.value} → {status.value}"
-                " (use --force to override)"
+                f"{item.type} cannot move {item.status} → {status} (use --force to override)"
             )
         item.status = status
 
@@ -177,14 +178,14 @@ class ItemsMixin(ServiceCore):
         """Regenerate the backend pointer for a role or skill from its current item data."""
         item = await self.get(item_id)
         ctx = self._ctx
-        if item.type is ItemType.ROLE:
+        if item.type == ItemType.ROLE:
             for backend in self._backends():
                 await backend.generate_role_entry(ctx, item, RoleDef.from_extra(item.extra))
-        elif item.type is ItemType.SKILL:
+        elif item.type == ItemType.SKILL:
             for backend in self._backends():
                 await backend.generate_skill_entry(ctx, item)
         else:
-            raise SquadsError(f"{item_id} is a {item.type.value}; only roles/skills have entries")
+            raise SquadsError(f"{item_id} is a {item.type}; only roles/skills have entries")
         return item
 
     async def set_body(self, item_id: str, body: str, *, append: bool = False) -> Item:
@@ -196,9 +197,9 @@ class ItemsMixin(ServiceCore):
         reject_markers(body)
 
         def mutate(text: str, item: Item) -> str:
-            if item.type in _AGENT_TYPES:
+            if item_is_meta(item.type) and item.type != ItemType.OPERATOR:
                 raise SquadsError(
-                    f"{item_id} is a {item.type.value}; its body is generated from its fields"
+                    f"{item_id} is a {item.type}; its body is generated from its fields"
                     " (edit via `sq update --set …` / `sq sync`)"
                 )
             new_body = body
@@ -237,7 +238,7 @@ class ItemsMixin(ServiceCore):
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
             del db.items[item.sequence_id]
-        if item.type in _AGENT_TYPES:
+        if item_is_meta(item.type) and item.type != ItemType.OPERATOR:
             ctx = self._ctx
             for backend in self._backends():
                 await backend.remove_artifacts(ctx, item)
@@ -333,9 +334,9 @@ class ItemsMixin(ServiceCore):
                 "remove",
                 item.id,
                 {
-                    "type": item.type.value,
+                    "type": item.type,
                     "title": item.title,
-                    "status": item.status.value,
+                    "status": item.status,
                     "severed_refs": severed,
                 },
             )

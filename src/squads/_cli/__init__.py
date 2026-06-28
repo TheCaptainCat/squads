@@ -89,7 +89,11 @@ from squads._cli import (  # noqa: E402
     _skill,
 )
 from squads._cli import _main as _main  # noqa: E402
-from squads._models._enums import TYPE_ALIASES, WORK_TYPES  # noqa: E402
+from squads._models._enums import TYPE_ALIASES, ItemType  # noqa: E402
+from squads._workflow import work_types as _work_types  # noqa: E402
+
+# Work types in declaration order (stable for CLI registration and help output).
+_ORDERED_WORK_TYPES = [t for t in ItemType if t in _work_types()]
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
@@ -108,7 +112,7 @@ app.add_typer(
 # Resource-oriented item groups: `sq <type> <num> <verb> …`.
 # Build each type's sub-app once, then register it under its canonical name and
 # any hidden aliases so every alias routes to the identical command tree.
-for _type in WORK_TYPES:
+for _type in _ORDERED_WORK_TYPES:
     _type_app = _items.build_item_app(_type)
     app.add_typer(
         _type_app,

@@ -214,7 +214,7 @@ async def test_activate_role_new_slug_creates_item(project):
     svc = service.Service(project)
     item = await svc.activate_role("security-expert")
 
-    assert item.type is ItemType.ROLE
+    assert item.type == ItemType.ROLE
     assert item.extra.get(X.FULL_NAME) == "Sam Security"
     assert item.extra.get(X.SLUG) == "security-expert"
 

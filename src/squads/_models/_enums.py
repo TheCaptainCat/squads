@@ -25,7 +25,8 @@ class ItemType(StrEnum):
 
 
 # ID prefix per type. One global counter feeds the number; the prefix only marks the type.
-PREFIX_BY_TYPE: dict[ItemType, str] = {
+# Keyed by str so callers with a widened Item.type (str) can look up without casting.
+PREFIX_BY_TYPE: dict[str, str] = {
     ItemType.EPIC: "EPIC",
     ItemType.FEATURE: "FEAT",
     ItemType.TASK: "TASK",
@@ -38,10 +39,11 @@ PREFIX_BY_TYPE: dict[ItemType, str] = {
     ItemType.OPERATOR: "OP",
 }
 
-TYPE_BY_PREFIX: dict[str, ItemType] = {v: k for k, v in PREFIX_BY_TYPE.items()}
+TYPE_BY_PREFIX: dict[str, str] = {v: k for k, v in PREFIX_BY_TYPE.items()}
 
 # Squad-folder-relative subfolder that holds each type's markdown files.
-FOLDER_BY_TYPE: dict[ItemType, str] = {
+# Keyed by str so callers with a widened Item.type (str) can look up without casting.
+FOLDER_BY_TYPE: dict[str, str] = {
     ItemType.EPIC: "epics",
     ItemType.FEATURE: "features",
     ItemType.TASK: "tasks",

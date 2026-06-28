@@ -35,7 +35,18 @@ from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
 from squads._services._base import SUBENTITY_KIND, ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RepairResult
-from squads._workflow import parent_allowed, parent_hint, subentity_workflow, workflow_for
+from squads._workflow import (
+    _DEFAULT_SPEC,  # pyright: ignore[reportPrivateUsage]
+    item_is_meta,
+    item_parent_required,
+    item_ref_rules,
+    item_subentity_kind,
+    parent_allowed,
+    parent_hint,
+    status_role,
+    subentity_workflow,
+    workflow_for,
+)
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 type _FileRec = tuple[str, Path, ItemType, str, int]
@@ -65,7 +76,7 @@ def _marker_issues(text: str) -> list[str]:
 
 def _drift_issues(iid: str, item: Item, fdata: dict[str, Any]) -> list[CheckIssue]:
     issues: list[CheckIssue] = []
-    if fdata.get("status") != item.status.value:
+    if fdata.get("status") != item.status:
         issues.append(
             CheckIssue("warn", iid, "status drift between frontmatter and index (run `sq repair`)")
         )
@@ -281,7 +292,7 @@ class MaintenanceMixin(ServiceCore):
             folder = self.paths.folder_for(item_type)
             if not folder.is_dir():
                 continue
-            if item_type is ItemType.SKILL:
+            if item_type == ItemType.SKILL:
                 # Convention files follow SKILL-*.md (post-migration / fresh init).
                 # Also include legacy <slug>.md files so pre-migration squads can still be
                 # repaired/checked (they will be silently skipped by callers that require an id).
@@ -330,6 +341,27 @@ class MaintenanceMixin(ServiceCore):
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name)
             item = Item.from_frontmatter(data, path=squad_rel)
+            # Load-boundary vocab validation (ADR-000232 §1 / TASK-000235 F1/F5):
+            # reject items with an unknown type, status, or sub-entity status before
+            # they enter the rebuilt index.
+            if item.type not in _DEFAULT_SPEC.items:
+                raise SquadsError(
+                    f"item {item.id} has unknown type {item.type!r} in {md.name}; "
+                    f"fix the frontmatter before running `sq repair`"
+                )
+            if item.status not in _DEFAULT_SPEC.statuses:
+                raise SquadsError(
+                    f"item {item.id} has unknown status {item.status!r} in {md.name}; "
+                    f"fix the frontmatter before running `sq repair`"
+                )
+            # F5: sub-entity statuses share the same vocabulary.
+            for sub in item.subentities:
+                if sub.status not in _DEFAULT_SPEC.statuses:
+                    raise SquadsError(
+                        f"item {item.id} sub-entity {sub.local_id} has unknown status "
+                        f"{sub.status!r} in {md.name}; fix the frontmatter before "
+                        f"running `sq repair`"
+                    )
             db.add(item)
             found_seqs.add(item.sequence_id)
             max_n = max(max_n, number_for_id(item.id))
@@ -610,7 +642,7 @@ class MaintenanceMixin(ServiceCore):
             if not fid:
                 # Slug-named skill body files (e.g. squads.md) are pre-migration: skip silently.
                 # Only ID-prefixed files that are missing an id are a real error.
-                if item_type is ItemType.SKILL and not md.name.startswith(skill_prefix):
+                if item_type == ItemType.SKILL and not md.name.startswith(skill_prefix):
                     continue
                 issues.append(CheckIssue("error", md.name, "file has no `id` in frontmatter"))
                 continue
@@ -646,24 +678,18 @@ class MaintenanceMixin(ServiceCore):
         index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
     ) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
-        registered = {
-            r.extra.get(X.SLUG)
-            for r in index.items.values()
-            if r.type in (ItemType.ROLE, ItemType.OPERATOR, ItemType.SKILL)
-        }
+        registered = {r.extra.get(X.SLUG) for r in index.items.values() if item_is_meta(r.type)}
         for item in index.items.values():
             iid = item.id
             if item.status not in workflow_for(item.type).states:
                 issues.append(
-                    CheckIssue(
-                        "error", iid, f"status {item.status.value!r} invalid for {item.type.value}"
-                    )
+                    CheckIssue("error", iid, f"status {item.status!r} invalid for {item.type}")
                 )
             parent = index.get(item.parent) if item.parent else None
             if item.parent and parent is None:
                 issues.append(CheckIssue("error", iid, f"dangling parent {item.parent}"))
             elif parent is not None and not parent_allowed(item.type, parent.type):
-                msg = f"{parent_hint(item.type)} (got {parent.type.value})"
+                msg = f"{parent_hint(item.type)} (got {parent.type})"
                 issues.append(CheckIssue("error", iid, msg))
             for r in item.refs:
                 rid, kind = split_ref(r)
@@ -691,13 +717,14 @@ class MaintenanceMixin(ServiceCore):
     def _check_subtask_stories(index: SquadsDB) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
         for item in index.items.values():
-            if item.type is not ItemType.TASK:
+            if item_subentity_kind(item.type) != "subtask":
                 continue
             refs = [(s.local_id, s.story) for s in item.subentities if s.story]
             if not refs:
                 continue
             parent = index.get(item.parent) if item.parent else None
-            if parent is None or parent.type is not ItemType.FEATURE:
+            required_parent = item_parent_required(item.type)
+            if parent is None or (required_parent is not None and parent.type != required_parent):
                 issues.append(
                     CheckIssue(
                         "error",
@@ -721,13 +748,11 @@ class MaintenanceMixin(ServiceCore):
             kind = SUBENTITY_KIND.get(item.type)
             if kind is None:
                 continue
-            valid = {s.value for s in subentity_workflow(kind).states}
+            valid = subentity_workflow(kind).states
             issues += [
-                CheckIssue(
-                    "error", item.id, f"{kind} {s.local_id} has invalid status {s.status.value!r}"
-                )
+                CheckIssue("error", item.id, f"{kind} {s.local_id} has invalid status {s.status!r}")
                 for s in item.subentities
-                if s.status.value not in valid
+                if s.status not in valid
             ]
         return issues
 
@@ -738,10 +763,8 @@ class MaintenanceMixin(ServiceCore):
         The ``supersedes`` target is stored as a ref string with whatever width it had when it
         was written — sequence-number comparison makes it width-tolerant after a repad.
         """
-        from squads._models._enums import Status
-
         issues: list[CheckIssue] = []
-        # Collect sequence numbers of decisions that have an incoming supersedes edge.
+        # Collect sequence numbers of items that have an incoming supersedes edge.
         has_incoming_supersedes: set[int] = set()
         for it in index.items.values():
             for r in it.refs:
@@ -749,9 +772,13 @@ class MaintenanceMixin(ServiceCore):
                 if kind == "supersedes":
                     has_incoming_supersedes.add(number_for_id(rid))
         for item in index.items.values():
-            if item.type is not ItemType.DECISION:
+            # Only types that declare a "supersedes" ref rule need the check.
+            if not any(rr.kind == "supersedes" for rr in item_ref_rules(item.type)):
                 continue
-            if item.status is Status.SUPERSEDED and item.sequence_id not in has_incoming_supersedes:
+            if (
+                status_role(item.status) == "superseded"
+                and item.sequence_id not in has_incoming_supersedes
+            ):
                 issues.append(
                     CheckIssue(
                         "warn",

@@ -210,7 +210,7 @@ async def test_remove_emits_reflog_line(svc, frozen_time):
     """Service.remove_work_item() appends one reflog line with op=remove + gone-item snapshot."""
     item = (await svc.create(ItemType.TASK, "Gone")).item
     item_id = item.id
-    item_type = item.type.value
+    item_type = item.type
     item_title = item.title
     await svc.remove_work_item(item_id)
     lines = await read_lines(reflog_path(svc.paths.squad_dir))

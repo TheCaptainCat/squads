@@ -14,7 +14,7 @@ from pydantic import ValidationError
 
 from squads._errors import InvalidIdError, NotInitializedError, SquadsError
 from squads._models._config import CONFIG_FILENAME, INDEX_FILENAME, LOCK_FILENAME, SquadsConfig
-from squads._models._enums import TYPE_BY_PREFIX, ItemType
+from squads._models._enums import FOLDER_BY_TYPE, TYPE_BY_PREFIX
 
 
 def find_config(start: Path | None = None) -> Path | None:
@@ -63,8 +63,8 @@ class SquadPaths:
         return self.squad_dir / ".reflog.jsonl"
 
     # --- type folders / item files ---
-    def folder_for(self, item_type: ItemType) -> Path:
-        return self.squad_dir / item_type.folder
+    def folder_for(self, item_type: str) -> Path:
+        return self.squad_dir / FOLDER_BY_TYPE[item_type]
 
     def abspath(self, squad_relative: str) -> Path:
         """Absolute path from a squad-folder-relative item path.
@@ -78,8 +78,8 @@ class SquadPaths:
             raise InvalidIdError(f"path {squad_relative!r} escapes the squad folder")
         return self.squad_dir / squad_relative
 
-    def squad_relative(self, item_type: ItemType, filename: str) -> str:
-        return f"{item_type.folder}/{filename}"
+    def squad_relative(self, item_type: str, filename: str) -> str:
+        return f"{FOLDER_BY_TYPE[item_type]}/{filename}"
 
 
 def resolve(dir_override: str | None = None, *, require_init: bool = True) -> SquadPaths:
@@ -110,8 +110,8 @@ def resolve(dir_override: str | None = None, *, require_init: bool = True) -> Sq
     return SquadPaths(root=root, squad_dir=root / config.squad_dir, config=config)
 
 
-def type_for_id(item_id: str) -> ItemType:
-    """Map an ID (e.g. ``TASK-000003``) back to its item type via the prefix."""
+def type_for_id(item_id: str) -> str:
+    """Map an ID (e.g. ``TASK-000003``) back to its item type string via the prefix."""
     prefix = item_id.split("-", 1)[0]
     try:
         return TYPE_BY_PREFIX[prefix]

@@ -25,7 +25,6 @@ from squads._models._enums import (
     ItemType,
     Priority,
     Severity,
-    Status,
 )
 from squads._models._extras import ExtraKey as X
 from squads._models._item import DEFAULT_KIND, Item, format_item_id, split_ref
@@ -34,6 +33,7 @@ from squads._models._subentity import SubEntity
 from squads._paths import resolve
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
+from squads._workflow import item_has_severity, item_subentity_kind
 
 console = Console()
 err_console = Console(stderr=True)
@@ -133,13 +133,13 @@ def _render_comments_styled(comments: list[discussion.Comment]) -> None:
 def _build_item_panel_rows(it: Item) -> list[str]:
     """Build the metadata rows for the item's info panel."""
     rows = [
-        f"[bold]{it.id}[/bold]  ({it.type.value})",
+        f"[bold]{it.id}[/bold]  ({it.type})",
         f"[bold]title:[/bold] {e(it.title)}",
-        f"[bold]status:[/bold] {it.status.value}",
+        f"[bold]status:[/bold] {it.status}",
     ]
     if it.priority:
         rows.append(f"[bold]priority:[/bold] {e(priority_badge(it.priority))}")
-    sev = it.extra.get(X.SEVERITY) if it.type is ItemType.BUG else None
+    sev = it.extra.get(X.SEVERITY) if item_has_severity(it.type) else None
     if sev:
         rows.append(f"[bold]severity:[/bold] {e(f'{SEVERITY_EMOJI[Severity(sev)]} {sev}')}")
     if it.description:
@@ -181,7 +181,7 @@ def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
     into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
     (plain path) use this value directly so no backslashes leak.
     """
-    status_badge = discussion._status_badge(sub.status.value)  # pyright: ignore[reportPrivateUsage]
+    status_badge = discussion._status_badge(sub.status)  # pyright: ignore[reportPrivateUsage]
     parts = [f"{sub.local_id} — {sub.title}  {status_badge}"]
     if kind == "finding" and sub.severity:
         sev_badge = f"{SEVERITY_EMOJI[sub.severity]} {sub.severity.value.title()}"
@@ -201,7 +201,7 @@ async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: b
     the main discussion is NOT printed here — the caller (_print_item_content)
     prints it last, after all sub panes.
     """
-    kind = _SUBENTITY_KIND.get(it.type)
+    kind = item_subentity_kind(it.type)
     if not kind or not it.subentities:
         return
 
@@ -331,18 +331,11 @@ async def print_item(
     await _print_item_content(svc, it, styled=styled, comments=comments, full=full)
 
 
-_SUBENTITY_KIND: dict[ItemType, str] = {
-    ItemType.FEATURE: "story",
-    ItemType.TASK: "subtask",
-    ItemType.REVIEW: "finding",
-}
-
-
 def _print_subentity_summary(it: Item) -> None:
     """Print the sub-entity summary table from the item's frontmatter sub-entities."""
     from rich.table import Table as RichTable
 
-    kind = _SUBENTITY_KIND.get(it.type)
+    kind = item_subentity_kind(it.type)
     if kind is None:
         return
 
@@ -354,15 +347,13 @@ def _print_subentity_summary(it: Item) -> None:
     for sub in it.subentities:
         if kind == "finding":
             sev_str = f"{SEVERITY_EMOJI[sub.severity]} {sub.severity.value}" if sub.severity else ""
-            table.add_row(
-                sub.local_id, sev_str, sub.status.value, e(sub.assignee or ""), e(sub.title)
-            )
+            table.add_row(sub.local_id, sev_str, sub.status, e(sub.assignee or ""), e(sub.title))
         elif kind == "subtask":
             table.add_row(
-                sub.local_id, sub.status.value, e(sub.assignee or ""), e(sub.title), sub.story or ""
+                sub.local_id, sub.status, e(sub.assignee or ""), e(sub.title), sub.story or ""
             )
         else:
-            table.add_row(sub.local_id, sub.status.value, e(sub.assignee or ""), e(sub.title))
+            table.add_row(sub.local_id, sub.status, e(sub.assignee or ""), e(sub.title))
 
     console.print()
     console.print(table)
@@ -545,15 +536,15 @@ async def resolve_item_id_typed(token: str, item_type: ItemType, svc: Service) -
         if item is None:
             hint = format_item_id(prefix, seq, db.padding)
             raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
-        raise SquadsError(_mismatch_msg(token, item.id, item.type.value, item_type.value))
+        raise SquadsError(_mismatch_msg(token, item.id, item.type, item_type))
 
     db = await svc.store.load()
     item = db.get(str(seq))
     if item is None:
         hint = format_item_id(prefix, seq, db.padding)
         raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
-    if item.type is not item_type:
-        raise SquadsError(_mismatch_msg(t, item.id, item.type.value, item_type.value))
+    if item.type != item_type:
+        raise SquadsError(_mismatch_msg(t, item.id, item.type, item_type))
     return item.id
 
 
@@ -579,7 +570,7 @@ async def resolve_item_id_any(token: str, svc: Service) -> str:
     if given_prefix is not None:
         expected_prefix = PREFIX_BY_TYPE[item.type]
         if given_prefix != expected_prefix:
-            raise SquadsError(f"{token} is {item.id} ({item.type.value})")
+            raise SquadsError(f"{token} is {item.id} ({item.type})")
 
     return item.id
 
@@ -615,7 +606,7 @@ async def resolve_agent_addr(token: str, item_type: ItemType, svc: Service) -> s
         item = await lookup(t)
         if item is not None:
             return item.id
-    raise SquadsError(f"no {item_type.value} with slug, ID, or number {token!r}")
+    raise SquadsError(f"no {item_type} with slug, ID, or number {token!r}")
 
 
 class AddressDispatchGroup(typer.core.TyperGroup):
@@ -690,21 +681,38 @@ async def resolve_slug_or_raise(slug: str, svc: Service) -> str:
     raise SquadsError(f"unknown slug {slug!r}; valid slugs: {hint}")
 
 
-def parse_type(value: str) -> ItemType:
-    try:
-        return ItemType(value)
-    except ValueError:
-        choices = ", ".join(t.value for t in ItemType)
-        raise SquadsError(f"unknown type {value!r} (one of: {choices})") from None
+def parse_type(value: str) -> str:
+    """Validate *value* is a known item type and return it as a plain string.
+
+    Checks against the loaded WorkflowSpec's known item types (the spec singleton
+    is the authoritative vocabulary — not the ItemType enum directly).
+    """
+    from squads._workflow import _DEFAULT_SPEC  # pyright: ignore[reportPrivateUsage]
+
+    if value in _DEFAULT_SPEC.items:
+        return value
+    choices = ", ".join(sorted(_DEFAULT_SPEC.items))
+    raise SquadsError(f"unknown type {value!r} (one of: {choices})") from None
 
 
-def parse_status(value: str) -> Status:
-    # accept either the canonical value ("InProgress") or a loose form ("in_progress", "inprogress")
+def parse_status(value: str) -> str:
+    """Validate *value* is a known status and return it as a plain string.
+
+    Accepts either the canonical value ("InProgress") or a loose form ("in_progress",
+    "inprogress").  Checks against the loaded WorkflowSpec's known statuses (the spec
+    singleton is the authoritative vocabulary — not the Status enum directly).
+    """
+    from squads._workflow import _DEFAULT_SPEC  # pyright: ignore[reportPrivateUsage]
+
+    # Exact match first (fast path).
+    if value in _DEFAULT_SPEC.statuses:
+        return value
+    # Loose match: strip separators, lower-case compare.
     norm = value.replace("_", "").replace("-", "").lower()
-    for s in Status:
-        if s.value.lower() == norm or s.value == value:
+    for s in _DEFAULT_SPEC.statuses:
+        if s.lower() == norm:
             return s
-    choices = ", ".join(s.value for s in Status)
+    choices = ", ".join(sorted(_DEFAULT_SPEC.statuses))
     raise SquadsError(f"unknown status {value!r} (one of: {choices})") from None
 
 

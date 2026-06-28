@@ -30,7 +30,7 @@ def test_to_subentity_types_the_state():
     (b,) = _meta_compat.list_blocks(out, "subtask")
     sub = _meta_compat.to_subentity(b)
     assert sub.local_id == "ST1"
-    assert sub.status is Status.DONE
+    assert sub.status == Status.DONE
     assert sub.story == "US2"
 
 

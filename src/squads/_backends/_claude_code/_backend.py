@@ -272,7 +272,7 @@ class ClaudeCodeBackend(AgentBackend):
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         slug = item.extra.get(X.SLUG, item.slug)
         cdir = ctx.root / _CLAUDE_DIR
-        if item.type is ItemType.SKILL:
+        if item.type == ItemType.SKILL:
             skill_dir = cdir / _SKILLS / slug
             if skill_dir.is_dir():
                 await _aio.to_thread(lambda: shutil.rmtree(skill_dir))

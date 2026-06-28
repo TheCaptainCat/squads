@@ -140,7 +140,7 @@ class AgentsMdBackend(AgentBackend):
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         """Remove the per-item staging file for a role or skill (missing_ok semantics)."""
         slug = item.extra.get(X.SLUG, item.slug)
-        if item.type is ItemType.SKILL:
+        if item.type == ItemType.SKILL:
             await _aio.path_unlink(
                 ctx.root / _STAGING_DIR / _SKILLS_DIR / f"{slug}.md", missing_ok=True
             )

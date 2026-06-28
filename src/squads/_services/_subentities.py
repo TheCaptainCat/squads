@@ -16,7 +16,7 @@ from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._interactions import TITLE_ADVISORY_MAX
 from squads._models import _markers as markers
-from squads._models._enums import DEFAULT_SEVERITY, ItemType, Severity, Status
+from squads._models._enums import DEFAULT_SEVERITY, Severity, Status
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -28,7 +28,7 @@ from squads._services._base import (
     reject_markers,
 )
 from squads._services._results import BlockResult, SubentityDetail
-from squads._workflow import subentity_can_transition, subentity_initial
+from squads._workflow import item_parent_required, subentity_can_transition, subentity_initial
 
 
 class SubentitiesMixin(ServiceCore):
@@ -111,7 +111,7 @@ class SubentitiesMixin(ServiceCore):
             # the warning rides back on the result to be rendered at the CLI edge.
             title_advisory: str | None = None
             if len(title) > TITLE_ADVISORY_MAX:
-                body_cmd = f'sq {item.type.value} {item.sequence_id} {kind} {local_id} body -m "…"'
+                body_cmd = f'sq {item.type} {item.sequence_id} {kind} {local_id} body -m "…"'
                 title_advisory = (
                     f"Title is {len(title)} chars — a sub-entity title is a one-line handle,"
                     f" not the description. Put the detail in the body:\n  {body_cmd}"
@@ -155,17 +155,17 @@ class SubentitiesMixin(ServiceCore):
         return item.subentities
 
     async def set_subtask_status(
-        self, task_id: str, local_id: str, status: Status, **kw: bool
+        self, task_id: str, local_id: str, status: str, **kw: bool
     ) -> None:
         await self._set_block_status(task_id, "subtask", local_id, status, **kw)
 
     async def set_story_status(
-        self, feature_id: str, local_id: str, status: Status, **kw: bool
+        self, feature_id: str, local_id: str, status: str, **kw: bool
     ) -> None:
         await self._set_block_status(feature_id, "story", local_id, status, **kw)
 
     async def set_finding_status(
-        self, review_id: str, local_id: str, status: Status, **kw: bool
+        self, review_id: str, local_id: str, status: str, **kw: bool
     ) -> None:
         await self._set_block_status(review_id, "finding", local_id, status, **kw)
 
@@ -211,7 +211,7 @@ class SubentitiesMixin(ServiceCore):
         title: str | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        status: Status | None = None,
+        status: str | None = None,
         force: bool = False,
     ) -> None:
         await self._update_block(
@@ -235,7 +235,7 @@ class SubentitiesMixin(ServiceCore):
         clear_story: bool = False,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        status: Status | None = None,
+        status: str | None = None,
         force: bool = False,
     ) -> None:
         await self._update_block(
@@ -260,7 +260,7 @@ class SubentitiesMixin(ServiceCore):
         severity: Severity | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        status: Status | None = None,
+        status: str | None = None,
         force: bool = False,
     ) -> None:
         await self._update_block(
@@ -286,12 +286,12 @@ class SubentitiesMixin(ServiceCore):
 
     # ------------------------------------------------------------------ helpers
     async def _set_block_status(
-        self, parent_id: str, kind: str, local_id: str, status: Status, *, force: bool = False
+        self, parent_id: str, kind: str, local_id: str, status: str, *, force: bool = False
     ) -> None:
         async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind, SUBENTITY_PARENT[kind])
             sub = self._find(item, kind, local_id)
-            old_status = sub.status.value
+            old_status = sub.status
             self._apply_subentity_status(kind, sub, status, force=force)
             item.updated_at = clock.now()
             await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
@@ -302,17 +302,19 @@ class SubentitiesMixin(ServiceCore):
                     "op": "status",
                     "kind": kind,
                     "local_id": local_id,
-                    "status": [old_status, sub.status.value],
+                    "status": [old_status, sub.status],
                 },
             )
 
     @staticmethod
-    def _apply_subentity_status(kind: str, sub: SubEntity, status: Status, *, force: bool) -> None:
+    def _apply_subentity_status(kind: str, sub: SubEntity, status: str, *, force: bool) -> None:
+        # Coerce to plain str — callers may pass a Status StrEnum member
+        # (use_enum_values=False prevents auto-coercion).
+        status = str(status)
         current = sub.status
         if not force and current != status and not subentity_can_transition(kind, current, status):
             raise InvalidTransitionError(
-                f"{kind} {sub.local_id} cannot move {current.value} → {status.value}"
-                " (use --force to override)"
+                f"{kind} {sub.local_id} cannot move {current} → {status} (use --force to override)"
             )
         sub.status = status
 
@@ -344,7 +346,7 @@ class SubentitiesMixin(ServiceCore):
         clear_story: bool = False,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        status: Status | None = None,
+        status: str | None = None,
         force: bool = False,
     ) -> None:
         if title is not None:
@@ -430,7 +432,7 @@ class SubentitiesMixin(ServiceCore):
             text,
             kind,
             sub.local_id,
-            status=sub.status.value,
+            status=sub.status,
             severity=sub.severity.value if sub.severity else None,
             story=self._story_label(db, item, sub.story),
             assignee_name=await self.author(sub.assignee) if sub.assignee else None,
@@ -452,25 +454,24 @@ class SubentitiesMixin(ServiceCore):
                 f"{task.id} has no feature parent; set one before mapping a subtask to {story}"
             )
         parent = db.get(task.parent)
-        if parent is None or parent.type is not ItemType.FEATURE:
-            kind = parent.type.value if parent else "missing parent"
+        required = item_parent_required(task.type)
+        if parent is None or (required is not None and parent.type != required):
+            kind = parent.type if parent else "missing parent"
             raise SquadsError(f"{task.id}'s parent is a {kind}, not a feature")
         if story not in {s.local_id for s in parent.subentities}:
             raise SquadsError(f"user story {story} not found in {parent.id}")
 
-    def _require_parent(self, db: SquadsDB, parent_id: str, kind: str, expect: ItemType) -> Item:
+    def _require_parent(self, db: SquadsDB, parent_id: str, kind: str, expect: str) -> Item:
         item = require_item(db, parent_id)
-        if item.type is not expect:
-            raise SquadsError(
-                f"{parent_id} is a {item.type.value}; {kind}s live on a {expect.value}"
-            )
+        if item.type != expect:
+            raise SquadsError(f"{parent_id} is a {item.type}; {kind}s live on a {expect}")
         return item
 
     @staticmethod
     def _check_type(item: Item, kind: str) -> None:
         expect = SUBENTITY_PARENT[kind]
-        if item.type is not expect:
-            raise SquadsError(f"{item.id} is a {item.type.value}; {kind}s live on a {expect.value}")
+        if item.type != expect:
+            raise SquadsError(f"{item.id} is a {item.type}; {kind}s live on a {expect}")
 
     @staticmethod
     def _find(item: Item, kind: str, local_id: str) -> SubEntity:

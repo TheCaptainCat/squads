@@ -17,7 +17,7 @@ from squads._models._enums import ItemType, Status
 
 
 def test_bug_initial_status_is_open():
-    assert workflow.initial_status(ItemType.BUG) is Status.OPEN
+    assert workflow.initial_status(ItemType.BUG) == Status.OPEN
 
 
 def test_bug_workflow_states():
@@ -86,7 +86,7 @@ def test_bug_terminals_in_terminal_set():
 async def test_set_status_rejects_out_of_workflow_vocabulary(svc):
     """StatusNotInWorkflowError raised at set-time for a status not in the bug workflow."""
     bug = (await svc.create(ItemType.BUG, "crash on login")).item
-    assert bug.status is Status.OPEN
+    assert bug.status == Status.OPEN
 
     with pytest.raises(StatusNotInWorkflowError, match="'Done' is not a valid status for bug"):
         await svc.set_status(bug.id, Status.DONE)
@@ -109,7 +109,7 @@ async def test_force_bypasses_transition_edge_within_bug_vocabulary(svc):
         await svc.set_status(bug.id, Status.VERIFIED)
     # With force it succeeds
     result = await svc.set_status(bug.id, Status.VERIFIED, force=True)
-    assert result.status is Status.VERIFIED
+    assert result.status == Status.VERIFIED
 
 
 async def test_set_status_rejects_multiple_invalid_statuses(svc):
@@ -123,25 +123,25 @@ async def test_set_status_rejects_multiple_invalid_statuses(svc):
 async def test_bug_happy_path_lifecycle(svc):
     """Full Open → InProgress → Fixed → Verified lifecycle works."""
     bug = (await svc.create(ItemType.BUG, "null pointer")).item
-    assert bug.status is Status.OPEN
+    assert bug.status == Status.OPEN
 
     bug = await svc.set_status(bug.id, Status.IN_PROGRESS)
-    assert bug.status is Status.IN_PROGRESS
+    assert bug.status == Status.IN_PROGRESS
 
     bug = await svc.set_status(bug.id, Status.FIXED)
-    assert bug.status is Status.FIXED
+    assert bug.status == Status.FIXED
 
     bug = await svc.set_status(bug.id, Status.VERIFIED)
-    assert bug.status is Status.VERIFIED
+    assert bug.status == Status.VERIFIED
 
 
 async def test_bug_wontfix_and_reopen(svc):
     """Open → WontFix → Open reopen works."""
     bug = (await svc.create(ItemType.BUG, "by design")).item
     bug = await svc.set_status(bug.id, Status.WONT_FIX)
-    assert bug.status is Status.WONT_FIX
+    assert bug.status == Status.WONT_FIX
     bug = await svc.set_status(bug.id, Status.OPEN)
-    assert bug.status is Status.OPEN
+    assert bug.status == Status.OPEN
 
 
 async def test_bug_regression_reopen(svc):
@@ -151,7 +151,7 @@ async def test_bug_regression_reopen(svc):
     await svc.set_status(bug.id, Status.FIXED)
     await svc.set_status(bug.id, Status.VERIFIED)
     bug = await svc.set_status(bug.id, Status.IN_PROGRESS)
-    assert bug.status is Status.IN_PROGRESS
+    assert bug.status == Status.IN_PROGRESS
 
 
 # --------------------------------------------------------------------------- CLI smoke tests

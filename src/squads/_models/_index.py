@@ -16,7 +16,7 @@ from typing import Any, cast
 from pydantic import BaseModel, NonNegativeInt, model_validator
 
 from squads._errors import SquadsError
-from squads._models._enums import ItemType
+from squads._models._enums import PREFIX_BY_TYPE
 from squads._models._item import DEFAULT_ID_PADDING, Item, format_item_id, split_ref
 from squads._models._schema import SCHEMA_VERSION
 from squads._util import NonEmpty
@@ -69,11 +69,12 @@ class SquadsDB(BaseModel):
             item.id_padding = self.padding
         return self
 
-    def format_id(self, item_type: ItemType, sequence_id: int) -> str:
+    def format_id(self, item_type: str, sequence_id: int) -> str:
         """Format an item ID at this squad's current padding width."""
-        return format_item_id(item_type.prefix, sequence_id, self.padding)
+        prefix = PREFIX_BY_TYPE.get(item_type, item_type.upper())
+        return format_item_id(prefix, sequence_id, self.padding)
 
-    def allocate_id(self, item_type: ItemType) -> str:
+    def allocate_id(self, item_type: str) -> str:
         """Bump the global counter and return the next ID for ``item_type``.
 
         Raises :class:`~squads._errors.SquadsError` when the counter would exceed the capacity for

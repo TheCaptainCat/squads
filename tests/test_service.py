@@ -30,7 +30,7 @@ async def test_status_transition_and_validation(svc):
         await svc.set_status(res.item.id, Status.DONE)  # Draft -> Done illegal
     await svc.set_status(res.item.id, Status.IN_PROGRESS)
     forced = await svc.set_status(res.item.id, Status.DONE, force=False)  # InProgress -> Done legal
-    assert forced.status is Status.DONE
+    assert forced.status == Status.DONE
     # frontmatter mirrors the index
     assert read_frontmatter(svc.paths.abspath(forced.path))["status"] == "Done"
 
@@ -279,8 +279,8 @@ async def test_skill_add_generates_pointer(svc):
     skill = await svc.add_skill(
         "PDF extract", description="Pull text", when_to_use="when a pdf is attached"
     )
-    assert skill.type is ItemType.SKILL
-    assert skill.status is Status.ACTIVE
+    assert skill.type == ItemType.SKILL
+    assert skill.status == Status.ACTIVE
     pointer = svc.paths.root / ".claude" / "skills" / "pdf-extract" / "SKILL.md"
     assert pointer.exists()
     assert skill.path in pointer.read_text(encoding="utf-8")

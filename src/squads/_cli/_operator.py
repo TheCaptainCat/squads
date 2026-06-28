@@ -98,7 +98,7 @@ async def operator_show(
                     "id": it.id,
                     "slug": it.extra.get(X.SLUG, it.slug),
                     "full_name": it.extra.get(X.FULL_NAME, it.title),
-                    "status": it.status.value,
+                    "status": it.status,
                     "path": it.path,
                 }
             )
@@ -108,7 +108,7 @@ async def operator_show(
         f"[bold]{e(it.extra.get(X.FULL_NAME, it.title))}[/bold]",
         f"[bold]slug:[/bold] {e(it.extra.get(X.SLUG, it.slug))}",
         f"[bold]id:[/bold] {it.id}",
-        f"[bold]status:[/bold] {it.status.value}",
+        f"[bold]status:[/bold] {it.status}",
         f"[bold]file:[/bold] {it.path}",
     ]
     console.print(Panel("\n".join(rows), expand=False))

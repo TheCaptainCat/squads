@@ -8,16 +8,17 @@ and the derived ``:head`` badge line are re-rendered from this state.
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
-from squads._models._enums import Severity, Status
+from squads._models._enums import Severity
 
 
 class SubEntity(BaseModel):
     #: Local id within its parent, kind-prefixed: ``US1`` story / ``ST1`` subtask / ``F1`` finding.
     local_id: str
     title: str = ""
-    status: Status
+    #: Status as a plain string (widened from ``Status`` in TASK-000235).
+    status: str
     #: Registered agent slug responsible for it (optional).
     assignee: str | None = None
     #: Findings only — the finding's severity.
@@ -27,12 +28,25 @@ class SubEntity(BaseModel):
 
     model_config = {"use_enum_values": False}
 
+    @field_validator("status", mode="before")
+    @classmethod
+    def _coerce_status(cls, v: object) -> str:
+        """Coerce StrEnum members to plain str (use_enum_values=False prevents auto-coercion).
+
+        Only ``str`` (and subclasses such as ``StrEnum``) are accepted.  Anything else
+        — ``int``, ``None``, etc. — raises ``ValueError`` so Pydantic surfaces a
+        ``ValidationError`` rather than silently stringifying the bad value.
+        """
+        if not isinstance(v, str):
+            raise ValueError(f"expected str, got {type(v).__name__!r}: {v!r}")  # noqa: TRY004
+        return str(v)
+
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The compact mapping written into the parent's ``subentities`` frontmatter list."""
         data: dict[str, Any] = {
             "local_id": self.local_id,
             "title": self.title,
-            "status": self.status.value,
+            "status": self.status,
         }
         if self.assignee:
             data["assignee"] = self.assignee
@@ -47,7 +61,7 @@ class SubEntity(BaseModel):
         return cls(
             local_id=data["local_id"],
             title=data.get("title", ""),
-            status=Status(data["status"]),
+            status=data["status"],
             assignee=data.get("assignee"),
             severity=Severity(data["severity"]) if data.get("severity") else None,
             story=data.get("story"),
