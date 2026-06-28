@@ -129,7 +129,7 @@ type name. Run `sq workflow` to see this table in the terminal.
 | `review` | `rev`, `r` | `sq r <n> show` |
 | `guide` | `g` | `sq g <n> show` |
 
-**Evolution rule (stability contract — see FEAT-000013):** adding an alias is additive and allowed;
+**Evolution rule (stability contract):** adding an alias is additive and allowed;
 removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table
 is frozen grammar in the same stability tier as the canonical command names.
 
@@ -181,7 +181,7 @@ sq <type> <n> remove --force     # also sever incoming refs from referrers' fron
 **Sequence gaps are sanctioned, not corruption.** Removal deletes the index entry but never
 touches the counter high-water mark — the freed number is never reissued.  A gap means "an item
 with that sequence number existed and was removed."  `sq check` and `sq repair` treat gaps as
-normal; the reflog (FEAT-000024) records a reconstructable removal line that explains each gap.
+normal; the reflog records a reconstructable removal line that explains each gap.
 
 ## Ref kinds
 

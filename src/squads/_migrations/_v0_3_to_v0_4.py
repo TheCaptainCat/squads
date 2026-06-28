@@ -36,7 +36,7 @@ fields):
 from squads._paths import SquadPaths
 
 MANUAL = """\
-## Schema 0.3 → 0.4 — additive session lineage fields (ADR-000158)
+## Schema 0.3 → 0.4 — additive session lineage fields
 
 No manual steps are required for existing squads.  The new fields are entirely
 optional and additive; all existing item files and reflog lines remain valid
