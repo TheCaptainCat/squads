@@ -19,7 +19,7 @@ subentities:
     list output
   status: Todo
 created_at: '2026-06-25T13:20:36Z'
-updated_at: '2026-06-25T13:22:22Z'
+updated_at: '2026-06-26T09:44:14Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -108,4 +108,6 @@ As a team member, I want custom statuses to render with their declared badge emo
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-26T09:44:14Z] Catherine Manager:
+  - Process rule (from the FEAT-220 incident, REV-000230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]].
 <!-- sq:discussion:end -->

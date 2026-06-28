@@ -21,7 +21,7 @@ subentities:
   title: Coverage ledger preserves previously-caught bugs
   status: Todo
 created_at: '2026-06-26T09:33:10Z'
-updated_at: '2026-06-26T09:37:36Z'
+updated_at: '2026-06-26T14:38:35Z'
 ---
 <!-- sq:body -->
 ## Overview
@@ -301,4 +301,12 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-26T14:38:35Z] Catherine Manager:
+  - Design principle (Pierre) — the test overhaul follows directly from squads being generic now. The suite was built for the OLD hardcoded-per-type design: exhaustive per-type happy-path coverage, but structurally blind to genericity failure modes (bad vocab was impossible when types were enums). Restructure the battery around FOUR pillars, not per-type re-testing:
+    1. Generic-engine tests — the mechanism once (transitions/terminal/parent/flags keyed on a spec), not per type.
+    2. Spec-validation + golden — the bundled spec is now a tested artifact (shape + correct flag values).
+    3. Thin behavioral spine — a SMALL set proving the configured types behave end-to-end (sq check / retype / skill-gen).
+    4. Failure/edge surface (FIRST-CLASS, the part the old suite lacked) — invalid/unknown vocab at the load boundary, malformed spec, reserved-vocab violations, override-merge conflicts, custom-type/status scenarios.
+    
+    Motivating case = the FEAT-208 F1 miss: a 1247-test suite missed that corrupt frontmatter (an invalid type/status) is silently indexed then crashes sq check — because the bad-vocab path never existed under enums and was never characterized. Genericity opened the failure mode; the battery must cover it. Net: fewer per-type tests, but the genericity earns its own validation/edge pile — budget for it explicitly. Pairs with the FORCE_COLOR / has_dev / is-vs-== entries in the coverage ledger.
 <!-- sq:discussion:end -->
