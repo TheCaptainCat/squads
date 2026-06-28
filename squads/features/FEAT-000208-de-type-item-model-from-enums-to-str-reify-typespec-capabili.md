@@ -18,7 +18,7 @@ subentities:
     custom types can declare their own semantics
   status: Todo
 created_at: '2026-06-25T13:17:57Z'
-updated_at: '2026-06-25T13:22:19Z'
+updated_at: '2026-06-26T07:31:04Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -111,4 +111,6 @@ As a squads maintainer, I want every hardcoded `is ItemType.TASK` / `is ItemType
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-26T07:31:04Z] Catherine Manager:
+  - Design constraint (from op-pierre): this feature relaxes the `spec == enums` equality that currently forces all meta-types/statuses to be present. When it does, introduce an explicit RESERVED_TYPES / RESERVED_STATUSES invariant (role/skill/operator + the structural statuses the agent + sub-entity lifecycles need) and make the loader FAIL CLOSED if a custom spec omits any reserved member — replacing the blunt `== enums` check that does this job by accident today.
 <!-- sq:discussion:end -->

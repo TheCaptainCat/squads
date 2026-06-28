@@ -88,11 +88,11 @@ def _carry_or_reset_status(
     """Return ``(status_reset, new_status_or_same)``.
 
     Carries the status when old and new share the same :class:`~squads._workflow.Workflow`
-    object **and** the current status is valid in the new workflow.
+    (same transitions/initial) **and** the current status is valid in the new workflow.
     """
     old_wf = workflow_for(old_type)
     new_wf = workflow_for(new_type)
-    if old_wf is new_wf and current_status in new_wf.states:
+    if old_wf == new_wf and current_status in new_wf.states:
         return False, current_status
     return True, initial_status(new_type)
 

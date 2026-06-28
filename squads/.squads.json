@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 213,
+  "counter": 220,
   "padding": 6,
   "items": {
     "12": {
@@ -7758,7 +7758,7 @@
       "subentities": [],
       "path": "epics/EPIC-000206-config-driven-workflow-engine-custom-types-statuses-state-ma.md",
       "created_at": "2026-06-25T13:04:19Z",
-      "updated_at": "2026-06-25T13:10:55Z",
+      "updated_at": "2026-06-26T07:31:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7769,7 +7769,7 @@
       "type": "feature",
       "title": "Externalize hardcoded workflow into a bundled spec (enums intact)",
       "slug": "externalize-hardcoded-workflow-into-a-bundled-spec-enums-int",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -7797,7 +7797,7 @@
       ],
       "path": "features/FEAT-000207-externalize-hardcoded-workflow-into-a-bundled-spec-enums-int.md",
       "created_at": "2026-06-25T13:17:00Z",
-      "updated_at": "2026-06-25T13:17:53Z",
+      "updated_at": "2026-06-25T15:17:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7838,7 +7838,7 @@
       ],
       "path": "features/FEAT-000208-de-type-item-model-from-enums-to-str-reify-typespec-capabili.md",
       "created_at": "2026-06-25T13:17:57Z",
-      "updated_at": "2026-06-25T13:22:19Z",
+      "updated_at": "2026-06-26T07:31:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7906,7 +7906,8 @@
       "priority": null,
       "labels": [],
       "refs": [
-        "FEAT-000209:depends-on"
+        "FEAT-000209:depends-on",
+        "FEAT-000220"
       ],
       "subentities": [
         {
@@ -7936,7 +7937,7 @@
       ],
       "path": "features/FEAT-000210-custom-types-end-to-end-cli-folder-skill-spec-derived-workfl.md",
       "created_at": "2026-06-25T13:19:37Z",
-      "updated_at": "2026-06-25T13:22:37Z",
+      "updated_at": "2026-06-26T07:31:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8047,6 +8048,275 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-000213"
+    },
+    "214": {
+      "sequence_id": 214,
+      "type": "decision",
+      "title": "Workflow spec: bundled TOML schema + loader, enums intact, default golden-locked",
+      "slug": "workflow-spec-bundled-toml-schema-loader-enums-intact-defaul",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000207:addresses",
+        "ADR-000179"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000214-workflow-spec-bundled-toml-schema-loader-enums-intact-defaul.md",
+      "created_at": "2026-06-25T14:18:42Z",
+      "updated_at": "2026-06-25T14:20:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000214"
+    },
+    "215": {
+      "sequence_id": 215,
+      "type": "task",
+      "title": "Build WorkflowSpec pydantic models and author bundled default_workflow.toml",
+      "slug": "build-workflowspec-pydantic-models-and-author-bundled-defaul",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000207",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "WorkflowSpec/TypeSpec/StatusSpec/StateMachine models, enum-typed fields",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Author bundled default_workflow.toml encoding today's vocabulary",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000215-build-workflowspec-pydantic-models-and-author-bundled-defaul.md",
+      "created_at": "2026-06-25T14:21:29Z",
+      "updated_at": "2026-06-25T15:17:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000215"
+    },
+    "216": {
+      "sequence_id": 216,
+      "type": "task",
+      "title": "WorkflowSpec loader with fail-closed enum validation; rewire _workflow/_enums to source from spec",
+      "slug": "workflowspec-loader-with-fail-closed-enum-validation-rewire",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000207",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "load_workflow_spec with importlib.resources/tomllib + fail-closed enum validation",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rewire _workflow/_enums tables and free functions onto the loaded spec singleton",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000216-workflowspec-loader-with-fail-closed-enum-validation-rewire.md",
+      "created_at": "2026-06-25T14:21:30Z",
+      "updated_at": "2026-06-25T15:17:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000216"
+    },
+    "217": {
+      "sequence_id": 217,
+      "type": "task",
+      "title": "Golden-lock test: loaded default spec == today's behavior; verify TOML ships in wheel",
+      "slug": "golden-lock-test-loaded-default-spec-today-s-behavior-verify",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000207",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Golden-lock test: loaded default spec == frozen snapshot of today",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Build test: default_workflow.toml ships in the wheel",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000217-golden-lock-test-loaded-default-spec-today-s-behavior-verify.md",
+      "created_at": "2026-06-25T14:21:31Z",
+      "updated_at": "2026-06-25T15:17:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000217"
+    },
+    "218": {
+      "sequence_id": 218,
+      "type": "review",
+      "title": "FEAT-207 review: workflow externalized to bundled spec",
+      "slug": "feat-207-review-workflow-externalized-to-bundled-spec",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000207",
+        "TASK-000215",
+        "TASK-000216",
+        "TASK-000217"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Loader does not enforce Status-enum completeness (ADR 5-6 partial)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000218-feat-207-review-workflow-externalized-to-bundled-spec.md",
+      "created_at": "2026-06-25T14:52:56Z",
+      "updated_at": "2026-06-25T15:17:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000218"
+    },
+    "219": {
+      "sequence_id": 219,
+      "type": "feature",
+      "title": "Externalize role catalog into a bundled roles.toml (golden-locked)",
+      "slug": "externalize-role-catalog-into-a-bundled-roles-toml-golden-lo",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000207:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a maintainer, I want role definitions loaded from roles.toml so adding a role needs no Python edit",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a maintainer, I want a golden test asserting the loaded catalog == today's hardcoded roles so regressions are caught",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000219-externalize-role-catalog-into-a-bundled-roles-toml-golden-lo.md",
+      "created_at": "2026-06-26T07:17:14Z",
+      "updated_at": "2026-06-26T07:19:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000219"
+    },
+    "220": {
+      "sequence_id": 220,
+      "type": "feature",
+      "title": "Externalize playbook into a bundled playbook.toml; drives skill generation",
+      "slug": "externalize-playbook-into-a-bundled-playbook-toml-drives-ski",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000219:depends-on",
+        "FEAT-000207:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a maintainer, I want the PLAYBOOK loaded from playbook.toml so skill content lives in data not code",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "Project admin can add playbook entries for custom types so generated skills have role guidance",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a maintainer, I want a golden test asserting generated skills are byte-identical before and after this change",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000220-externalize-playbook-into-a-bundled-playbook-toml-drives-ski.md",
+      "created_at": "2026-06-26T07:17:58Z",
+      "updated_at": "2026-06-26T07:31:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000220"
     }
   }
 }
