@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 231,
+  "counter": 238,
   "padding": 6,
   "items": {
     "12": {
@@ -7808,7 +7808,7 @@
       "type": "feature",
       "title": "De-type Item model from enums to str + reify TypeSpec capability flags",
       "slug": "de-type-item-model-from-enums-to-str-reify-typespec-capabili",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -7838,7 +7838,7 @@
       ],
       "path": "features/FEAT-000208-de-type-item-model-from-enums-to-str-reify-typespec-capabili.md",
       "created_at": "2026-06-25T13:17:57Z",
-      "updated_at": "2026-06-26T07:31:04Z",
+      "updated_at": "2026-06-26T15:17:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7937,7 +7937,7 @@
       ],
       "path": "features/FEAT-000210-custom-types-end-to-end-cli-folder-skill-spec-derived-workfl.md",
       "created_at": "2026-06-25T13:19:37Z",
-      "updated_at": "2026-06-26T07:31:05Z",
+      "updated_at": "2026-06-26T15:22:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7979,7 +7979,7 @@
       ],
       "path": "features/FEAT-000211-custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari.md",
       "created_at": "2026-06-25T13:20:36Z",
-      "updated_at": "2026-06-25T13:22:22Z",
+      "updated_at": "2026-06-26T09:44:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8751,11 +8751,312 @@
       ],
       "path": "features/FEAT-000231-ground-up-test-battery-behavior-named-fast-redundancy-pruned.md",
       "created_at": "2026-06-26T09:33:10Z",
-      "updated_at": "2026-06-26T09:37:36Z",
+      "updated_at": "2026-06-26T14:38:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "FEAT-000231"
+    },
+    "232": {
+      "sequence_id": 232,
+      "type": "decision",
+      "title": "De-type Item to str: spec-validated vocabulary, TypeSpec capability flags, reserved-vocab core",
+      "slug": "de-type-item-to-str-spec-validated-vocabulary-typespec-capab",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000208:addresses",
+        "ADR-000214"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000232-de-type-item-to-str-spec-validated-vocabulary-typespec-capab.md",
+      "created_at": "2026-06-26T09:45:13Z",
+      "updated_at": "2026-06-26T09:48:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000232"
+    },
+    "233": {
+      "sequence_id": 233,
+      "type": "task",
+      "title": "Add TypeSpec/StatusSpec capability flags, encode in default_workflow.toml, harden loader (extra=forbid)",
+      "slug": "add-typespec-statusspec-capability-flags-encode-in-default-w",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000208",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add capability flags to TypeSpec/StatusSpec + encode in default_workflow.toml",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "extra=forbid + model_validate hardening; characterization tests pin 22 checks",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000233-add-typespec-statusspec-capability-flags-encode-in-default-w.md",
+      "created_at": "2026-06-26T09:48:47Z",
+      "updated_at": "2026-06-26T10:26:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000233"
+    },
+    "234": {
+      "sequence_id": 234,
+      "type": "task",
+      "title": "Reify the ~22 is-ItemType/is-Status identity checks onto capability flags (byte-identical)",
+      "slug": "reify-the-22-is-itemtype-is-status-identity-checks-onto-capa",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000208",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Reify the ~22 is-ItemType/is-Status checks onto flags across engine + backends",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Replace WORK_TYPES/_SUBENTITY maps/parent_hint with spec-derived flag queries",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000234-reify-the-22-is-itemtype-is-status-identity-checks-onto-capa.md",
+      "created_at": "2026-06-26T09:48:48Z",
+      "updated_at": "2026-06-26T15:17:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000234"
+    },
+    "235": {
+      "sequence_id": 235,
+      "type": "task",
+      "title": "Widen Item type/status to str; validate at service boundary; reserved-vocab subset check",
+      "slug": "widen-item-type-status-to-str-validate-at-service-boundary-r",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000208",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Widen Item type/status + SubEntity status to str; move validation to load boundary",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Reserved-vocab subset/coverage check replaces ==enums; spec parsers + negative tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000235-widen-item-type-status-to-str-validate-at-service-boundary-r.md",
+      "created_at": "2026-06-26T09:48:48Z",
+      "updated_at": "2026-06-26T15:17:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000235"
+    },
+    "236": {
+      "sequence_id": 236,
+      "type": "review",
+      "title": "TASK-233 characterization completeness gate (FEAT-208)",
+      "slug": "task-233-characterization-completeness-gate-feat-208",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000208",
+        "TASK-000233"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "operator self-author bypass not characterized in spine tests",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "workload exclusion of role/skill items not characterized",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000236-task-233-characterization-completeness-gate-feat-208.md",
+      "created_at": "2026-06-26T10:21:15Z",
+      "updated_at": "2026-06-26T10:26:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000236"
+    },
+    "237": {
+      "sequence_id": 237,
+      "type": "feature",
+      "title": "Codebase docstring/comment hygiene: terse, pure, history-free",
+      "slug": "codebase-docstring-comment-hygiene-terse-pure-history-free",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000231"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Code comments carry no squad-item references",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "Comments describe current behavior, not history",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "A CI gate blocks new ticket refs in comments",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000237-codebase-docstring-comment-hygiene-terse-pure-history-free.md",
+      "created_at": "2026-06-26T14:19:55Z",
+      "updated_at": "2026-06-26T14:20:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000237"
+    },
+    "238": {
+      "sequence_id": 238,
+      "type": "review",
+      "title": "FEAT-208 review: de-type to str + capability flags + reserved-vocab",
+      "slug": "feat-208-review-de-type-to-str-capability-flags-reserved-voc",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000208",
+        "TASK-000233",
+        "TASK-000234",
+        "TASK-000235"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Load-boundary vocab validation (ADR-232 §1) not implemented: unknown type/status in frontmatter is silently indexed, then crashes check/list with raw KeyError",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Reserved-status set is ALL of Status, not the accepted structural floor — over-restrictive vs ADR-accept pin; will block F5 custom statuses",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "parse_type/parse_status still iterate ItemType/Status enums, not spec.managed_types()/spec status set as ADR scope states (behaviour-identical for default vocab)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Item._coerce_str_fields/_coerce_status do str(v) with no type guard — a non-str non-enum (e.g. int) silently stringifies instead of raising",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "Residual: sub-entity status is still an unguarded ingestion path — bad sub-entity status survives load/repair and crashes sq show --full with a raw ValueError (check reports it cleanly)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000238-feat-208-review-de-type-to-str-capability-flags-reserved-voc.md",
+      "created_at": "2026-06-26T14:32:39Z",
+      "updated_at": "2026-06-26T15:12:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000238"
     }
   }
 }

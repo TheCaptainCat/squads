@@ -22,7 +22,7 @@ subentities:
   title: AI agents learn custom vocab from CLAUDE.md after sq sync
   status: Todo
 created_at: '2026-06-25T13:19:37Z'
-updated_at: '2026-06-26T07:31:05Z'
+updated_at: '2026-06-26T15:22:23Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -150,4 +150,8 @@ As an AI agent working in a squad with custom types, I want the managed CLAUDE.m
 <!-- sq:discussion -->
 - [2026-06-26T07:31:05Z] Catherine Manager:
   - Design constraint (from op-pierre): custom types are ADDITIVE over the reserved core — a project may add types but may NOT drop the reserved meta-types (role/skill/operator) that the role backend / skill generation / operator machinery depend on. Enforce via the RESERVED_TYPES invariant introduced in FEAT-000208.
+- [2026-06-26T09:44:13Z] Catherine Manager:
+  - Process rule (from the FEAT-220 incident, REV-000230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]].
+- [2026-06-26T15:22:23Z] Catherine Manager:
+  - Implementation note (carry-forward from FEAT-208): the dynamic CLI build must source per-type ALIASES from the spec too, not just the type set. FEAT-208 added the aliases flag to TypeSpec (and encoded the built-in aliases as values in default_workflow.toml), but nothing consumes it yet — the alias registration in _cli/__init__.py still reads the hardcoded TYPE_ALIASES dict in _enums.py. So the dynamic build has two enum->spec swaps, not one: (1) the app-build loop iterates the loaded spec types instead of `for t in ItemType`, and (2) alias sub-app registration reads each TypeSpec.aliases instead of TYPE_ALIASES. After this, TYPE_ALIASES can be retired (its values now live in the spec). Same startup-ordering caveat applies (spec loaded before the app tree is built).
 <!-- sq:discussion:end -->
