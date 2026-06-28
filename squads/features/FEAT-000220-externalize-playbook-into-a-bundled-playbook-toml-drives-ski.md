@@ -3,7 +3,7 @@ id: FEAT-000220
 sequence_id: 220
 type: feature
 title: Externalize playbook into a bundled playbook.toml; drives skill generation
-status: Draft
+status: Done
 parent: EPIC-000206
 author: product-owner
 refs:
@@ -23,7 +23,7 @@ subentities:
     before and after this change
   status: Todo
 created_at: '2026-06-26T07:17:58Z'
-updated_at: '2026-06-26T07:31:06Z'
+updated_at: '2026-06-26T09:27:33Z'
 ---
 <!-- sq:body -->
 ## What this delivers
