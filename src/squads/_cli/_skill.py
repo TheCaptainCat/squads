@@ -105,7 +105,7 @@ async def skill_show(
                     "id": it.id,
                     "slug": it.extra.get(X.SLUG, it.slug),
                     "title": it.title,
-                    "status": it.status.value,
+                    "status": it.status,
                     "description": it.extra.get(X.DESCRIPTION, ""),
                     "when_to_use": it.extra.get(X.WHEN_TO_USE, ""),
                     "allowed_tools": it.extra.get(X.ALLOWED_TOOLS, ""),
@@ -117,7 +117,7 @@ async def skill_show(
     rows = [
         f"[bold]{it.id}[/bold] {e(it.title)}",
         f"[bold]slug:[/bold] {it.extra.get(X.SLUG, it.slug)}",
-        f"[bold]status:[/bold] {it.status.value}",
+        f"[bold]status:[/bold] {it.status}",
         f"[bold]file:[/bold] {it.path}",
     ]
     if it.extra.get(X.WHEN_TO_USE):

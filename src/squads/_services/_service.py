@@ -149,7 +149,7 @@ async def adopt(
     # Import any existing squads-native .md files (sets counter from them).
     repair_result = await svc.repair()
     existing_roles = {
-        it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type is ItemType.ROLE
+        it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type == ItemType.ROLE
     }
 
     if not no_claude:

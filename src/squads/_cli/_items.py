@@ -37,9 +37,10 @@ from squads._cli._common import (
     resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
-from squads._models._enums import SEVERITY_EMOJI, WORK_TYPES, ItemType
+from squads._models._enums import SEVERITY_EMOJI, ItemType
 from squads._models._item import DEFAULT_KIND, split_ref
 from squads._models._subentity import SubEntity
+from squads._workflow import work_types as _work_types
 
 # Parent type → (sub-entity kind, plural label for the list verb + `list_<plural>` service method).
 _SUBENTITY: dict[ItemType, tuple[str, str]] = {
@@ -82,7 +83,7 @@ def build_item_app(item_type: ItemType) -> typer.Typer:
     _cmd_refs(item)
     if item_type in _SUBENTITY:
         _register_subentity(item, *_SUBENTITY[item_type])
-    if item_type in WORK_TYPES:
+    if item_type in _work_types():
         _cmd_retype(item)
         _cmd_remove(item)
     return item
@@ -180,7 +181,7 @@ def _cmd_status(item: typer.Typer) -> None:
     ):
         """Transition the item's status (shortcut for `update --status`)."""
         it = await get_service().set_status(_id(ctx), parse_status(new_status), force=force)
-        console.print(f"{it.id} → [bold]{it.status.value}[/bold]")
+        console.print(f"{it.id} → [bold]{it.status}[/bold]")
 
 
 def _cmd_body(item: typer.Typer) -> None:
@@ -234,8 +235,9 @@ def _cmd_retype(item: typer.Typer) -> None:
         children's parent links, and prose mentions are rewritten to the new ID.
         """
         target = parse_type(new_type)
-        if target not in WORK_TYPES:
-            work = ", ".join(t.value for t in WORK_TYPES)
+        wt = _work_types()
+        if target not in wt:
+            work = ", ".join(sorted(wt))
             raise SquadsError(f"cannot retype to {new_type!r}; valid targets: {work}")
         svc = get_service()
         res = await svc.retype(_id(ctx), target)
@@ -244,11 +246,11 @@ def _cmd_retype(item: typer.Typer) -> None:
         )
         if res.status_reset:
             console.print(
-                f"  status reset: {e(res.old_status)} → [yellow]{e(res.item.status.value)}[/yellow]"
+                f"  status reset: {e(res.old_status)} → [yellow]{e(res.item.status)}[/yellow]"
                 f" (workflows differ)"
             )
         else:
-            console.print(f"  status carried: [bold]{e(res.item.status.value)}[/bold]")
+            console.print(f"  status carried: [bold]{e(res.item.status)}[/bold]")
         if res.rewritten:
             console.print(f"  rewritten refs in {len(res.rewritten)} file(s)")
 
@@ -393,11 +395,11 @@ def _sub_table(kind: str, blocks: list[SubEntity]) -> None:
     for b in blocks:
         if kind == "finding":
             sev = f"{SEVERITY_EMOJI[b.severity]} {b.severity.value}" if b.severity else ""
-            table.add_row(b.local_id, sev, b.status.value, b.assignee or "", e(b.title))
+            table.add_row(b.local_id, sev, b.status, b.assignee or "", e(b.title))
         elif kind == "subtask":
-            table.add_row(b.local_id, b.status.value, b.assignee or "", e(b.title), b.story or "")
+            table.add_row(b.local_id, b.status, b.assignee or "", e(b.title), b.story or "")
         else:
-            table.add_row(b.local_id, b.status.value, b.assignee or "", e(b.title))
+            table.add_row(b.local_id, b.status, b.assignee or "", e(b.title))
     console.print(table)
 
 
@@ -414,7 +416,7 @@ def _register_subentity(item: typer.Typer, kind: str, plural: str) -> None:
                         {
                             "local_id": b.local_id,
                             "title": b.title,
-                            "status": b.status.value,
+                            "status": b.status,
                             "assignee": b.assignee,
                             "severity": b.severity.value if b.severity else None,
                             "story": b.story,

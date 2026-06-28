@@ -7,7 +7,6 @@ from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
-from squads._models._enums import ItemType
 from squads._models._item import Item
 from squads._services._base import ServiceCore, reject_markers
 from squads._workflow import is_open
@@ -87,7 +86,7 @@ class CollabMixin(ServiceCore):
         return out
 
     async def search(
-        self, text: str, *, item_type: ItemType | None = None
+        self, text: str, *, item_type: str | None = None
     ) -> list[tuple[Item, list[str]]]:
         """Items whose title, summary, or body/discussion contains ``text`` (case-insensitive)."""
         needle = text.strip().lower()

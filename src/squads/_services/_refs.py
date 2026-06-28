@@ -173,8 +173,8 @@ def _build_graph_node(
     priority_val = item.priority.value if item.priority else None
     node = GraphNode(
         id=item.id,
-        type=item.type.value,
-        status=item.status.value,
+        type=item.type,
+        status=item.status,
         priority=priority_val,
         assignee=item.assignee,
         edge_kind=edge_kind,
@@ -422,8 +422,8 @@ class RefsMixin(ServiceCore):
             # Root is closed and --all not set: return root-only (seen=False, no children)
             return GraphNode(
                 id=root_item.id,
-                type=root_item.type.value,
-                status=root_item.status.value,
+                type=root_item.type,
+                status=root_item.status,
                 priority=root_item.priority.value if root_item.priority else None,
                 assignee=root_item.assignee,
                 edge_kind=None,

@@ -3,10 +3,15 @@
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 from squads import _clock as clock
-from squads._models._enums import ItemType, Priority, Status
+from squads._models._enums import PREFIX_BY_TYPE as _PREFIX_BY_TYPE
+from squads._models._enums import (  # noqa: F401 — re-exported for callers
+    ItemType,  # pyright: ignore[reportUnusedImport]
+    Priority,
+    Status,  # pyright: ignore[reportUnusedImport]
+)
 from squads._models._subentity import SubEntity
 from squads._util import NonEmpty
 
@@ -79,10 +84,16 @@ def fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
 class Item(BaseModel):
     #: The global counter number — the item's real identity. ``id`` is derived from it + ``type``.
     sequence_id: int
-    type: ItemType
+    #: Item type as a plain string (widened from ``ItemType`` in TASK-000235).
+    #: Reserved vocabulary is validated at the service load boundary via ``WorkflowSpec``.
+    #: ``ItemType`` members compare equal to their plain string values (StrEnum), so callers
+    #: may compare ``item.type == ItemType.TASK`` or ``item.type == "task"`` interchangeably.
+    type: str
     title: NonEmpty
     slug: NonEmpty
-    status: Status
+    #: Status as a plain string (widened from ``Status`` in TASK-000235).
+    #: Same reserved-vocab guarantee and StrEnum equality as ``type``.
+    status: str
     description: str = ""
     parent: str | None = None
     #: The registered agent (role slug) who authored the item.
@@ -119,6 +130,24 @@ class Item(BaseModel):
 
     model_config = {"use_enum_values": False}
 
+    @field_validator("type", "status", mode="before")
+    @classmethod
+    def _coerce_str_fields(cls, v: object) -> str:
+        """Coerce StrEnum members to plain str so pydantic stores a clean string.
+
+        ``use_enum_values=False`` prevents auto-coercion; callers may pass ``ItemType``
+        or ``Status`` members (both StrEnum, which IS a str subclass) which are
+        assignment-compatible but must be stored as plain ``str`` to keep YAML
+        serialisation and identity checks clean.
+
+        Only ``str`` (and subclasses such as ``StrEnum``) are accepted.  Anything else
+        — ``int``, ``None``, etc. — raises ``ValueError`` so Pydantic surfaces a
+        ``ValidationError`` rather than silently stringifying the bad value.
+        """
+        if not isinstance(v, str):
+            raise ValueError(f"expected str, got {type(v).__name__!r}: {v!r}")  # noqa: TRY004
+        return str(v)
+
     @computed_field
     @property
     def id(self) -> str:
@@ -128,16 +157,19 @@ class Item(BaseModel):
         ``SquadsDB.padding`` so the ID always matches the squad's current zero-pad width.
         Written to frontmatter as the durable human id; reconstructed via ``from_frontmatter``.
         """
-        return format_item_id(self.type.prefix, self.sequence_id, self.id_padding)
+        # self.type is now a plain str; prefix is looked up from the reserved-vocab map.
+        # _PREFIX_BY_TYPE is dict[str, str]; fallback upper() for custom-spec types.
+        prefix: str = _PREFIX_BY_TYPE.get(self.type, self.type.upper())
+        return format_item_id(prefix, self.sequence_id, self.id_padding)
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The mapping written into the markdown file's YAML frontmatter (durable truth)."""
         data: dict[str, Any] = {
             "id": self.id,
             "sequence_id": self.sequence_id,
-            "type": self.type.value,
+            "type": self.type,
             "title": self.title,
-            "status": self.status.value,
+            "status": self.status,
         }
         if self.parent:
             data["parent"] = self.parent
@@ -168,13 +200,17 @@ class Item(BaseModel):
 
     @classmethod
     def from_frontmatter(cls, data: dict[str, Any], *, path: str) -> Item:
-        """Reconstruct an Item from parsed frontmatter — used by ``sq repair``."""
+        """Reconstruct an Item from parsed frontmatter — used by ``sq repair``.
+
+        ``type`` and ``status`` are stored as plain strings (TASK-000235); the reserved-vocab
+        validation (against WorkflowSpec) runs at the service load boundary, not here.
+        """
         return cls(
             sequence_id=data["sequence_id"],
-            type=ItemType(data["type"]),
+            type=data["type"],
             title=data.get("title", ""),
             slug=data.get("slug") or _slug_from_path(path),
-            status=Status(data["status"]),
+            status=data["status"],
             description=data.get("description", ""),
             parent=data.get("parent"),
             author=data.get("author"),

@@ -24,8 +24,8 @@ def test_operator_slug_is_op_prefixed_first_name():
 
 async def test_add_operator_writes_operator_item(svc):
     op = await svc.add_operator("Pierre Chat")
-    assert op.type is ItemType.OPERATOR
-    assert op.status is Status.ACTIVE
+    assert op.type == ItemType.OPERATOR
+    assert op.status == Status.ACTIVE
     assert op.id.startswith("OP-")
     assert op.extra.get("slug") == "op-pierre"
     fm = read_frontmatter(svc.paths.abspath(op.path))
@@ -45,7 +45,7 @@ async def test_operator_survives_repair(svc):
     op = await svc.add_operator("Pierre Chat")
     await svc.repair()  # rebuild the index purely from frontmatter
     again = await svc.get(op.id)
-    assert again.type is ItemType.OPERATOR and again.extra.get("slug") == "op-pierre"
+    assert again.type == ItemType.OPERATOR and again.extra.get("slug") == "op-pierre"
 
 
 # --------------------------------------------------------------------------- gates

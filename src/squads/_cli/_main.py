@@ -94,8 +94,8 @@ def _item_table(items: list[Item]) -> Table:
     for it in items:
         table.add_row(
             it.id,
-            it.type.value,
-            it.status.value,
+            it.type,
+            it.status,
             e(priority_badge(it.priority)) if it.priority else "",
             e(it.title),
             it.parent or "",
@@ -370,8 +370,8 @@ async def tree(
             it = tn.item
             return {
                 "id": it.id,
-                "type": it.type.value,
-                "status": it.status.value,
+                "type": it.type,
+                "status": it.status,
                 "priority": it.priority.value if it.priority else None,
                 "assignee": it.assignee,
                 "blocked": it.id in blocked_ids,
@@ -383,7 +383,7 @@ async def tree(
 
     def _label(it: Item, path_only: bool) -> str:
         prio = f"{e(priority_badge(it.priority))} · " if it.priority else ""
-        base = f"[bold]{it.id}[/bold] {prio}{e(it.title)} [dim]({it.status.value})[/dim]"
+        base = f"[bold]{it.id}[/bold] {prio}{e(it.title)} [dim]({it.status})[/dim]"
         if path_only:
             return f"[dim]{base}[/dim]"
         return base
@@ -431,7 +431,7 @@ async def inbox(
         console.print(f"[dim]nothing for @{slug}[/dim]")
         return
     for it, lines in hits:
-        console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status.value})[/dim]")
+        console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status})[/dim]")
         for ln in lines:
             console.print(f"    {e(ln)}")
 
@@ -455,7 +455,7 @@ async def search(
         console.print(f"[dim]no matches for {e(text)}[/dim]")
         return
     for it, lines in hits:
-        console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status.value})[/dim]")
+        console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status})[/dim]")
         for ln in lines[:3]:
             console.print(f"    {e(ln)}")
 
@@ -474,7 +474,7 @@ async def blocked(json_out: bool = typer.Option(False, "--json")):
                         "id": t.id,
                         "title": t.title,
                         "blockers": [
-                            {"id": b.id, "title": b.title, "status": b.status.value} for b in bs
+                            {"id": b.id, "title": b.title, "status": b.status} for b in bs
                         ],
                     }
                     for t, bs in rows
@@ -486,13 +486,9 @@ async def blocked(json_out: bool = typer.Option(False, "--json")):
         console.print("[dim]nothing blocked[/dim]")
         return
     for target, blockers in rows:
-        console.print(
-            f"[bold]{target.id}[/bold] {e(target.title)} [dim]({target.status.value})[/dim]"
-        )
+        console.print(f"[bold]{target.id}[/bold] {e(target.title)} [dim]({target.status})[/dim]")
         for b in blockers:
-            console.print(
-                f"    [red]blocked by[/red] {b.id} {e(b.title)} [dim]({b.status.value})[/dim]"
-            )
+            console.print(f"    [red]blocked by[/red] {b.id} {e(b.title)} [dim]({b.status})[/dim]")
 
 
 def _graph_edge_label(edge_kind: str, direction: str) -> str:

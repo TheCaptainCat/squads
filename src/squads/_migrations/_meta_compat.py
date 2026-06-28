@@ -93,7 +93,7 @@ def _parse_block(block: str, kind: str, local_id: str) -> BlockInfo:
     return BlockInfo(
         local_id=local_id,
         title=title,
-        status=meta.get("status") or subentity_initial(kind).value,
+        status=meta.get("status") or subentity_initial(kind),
         severity=meta.get("severity"),
         story=meta.get("story"),
         assignee=meta.get("assignee"),

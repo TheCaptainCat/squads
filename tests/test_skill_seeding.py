@@ -43,8 +43,8 @@ async def test_init_seeds_bundled_skills_as_skill_items(project_with_skills):
     assert len(skills) > 0, "sq list -t skill must be non-empty after init with seeding"
     # All skills must have type=skill and status=Active
     for sk in skills:
-        assert sk.type is ItemType.SKILL
-        assert sk.status is Status.ACTIVE
+        assert sk.type == ItemType.SKILL
+        assert sk.status == Status.ACTIVE
     # Must include the core bundled skill slugs
     slugs = {sk.slug for sk in skills}
     assert "squads" in slugs
@@ -77,7 +77,7 @@ async def test_repair_after_seeding_rebuilds_cleanly(project_with_skills):
     # Nuke the index and rebuild
     svc.paths.index_path.unlink()
     result = await svc.repair()
-    after = {it.id for it in result.db.items.values() if it.type is ItemType.SKILL}
+    after = {it.id for it in result.db.items.values() if it.type == ItemType.SKILL}
     assert len(after) == len(before), "repair must recover all skill items"
     before_ids = {sk.id for sk in before}
     assert before_ids == after, "repair must recover the exact same skill ids"

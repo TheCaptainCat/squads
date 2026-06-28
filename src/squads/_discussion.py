@@ -263,10 +263,10 @@ _SUMMARY_COLS: dict[str, tuple[str, ...]] = {
 def _summary_cells(kind: str, s: SubEntity) -> list[str]:
     if kind == "finding":
         sev = f"{SEVERITY_EMOJI[s.severity]} {s.severity.value}" if s.severity else ""
-        return [s.local_id, sev, s.status.value, s.assignee or "", s.title]
+        return [s.local_id, sev, s.status, s.assignee or "", s.title]
     if kind == "subtask":
-        return [s.local_id, s.status.value, s.assignee or "", s.title, s.story or ""]
-    return [s.local_id, s.status.value, s.assignee or "", s.title]
+        return [s.local_id, s.status, s.assignee or "", s.title, s.story or ""]
+    return [s.local_id, s.status, s.assignee or "", s.title]
 
 
 def render_summary(kind: str, subentities: list[SubEntity]) -> str:

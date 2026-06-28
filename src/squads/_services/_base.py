@@ -28,7 +28,7 @@ from squads._interactions import (
 )
 from squads._itemfile import update_frontmatter, write_new
 from squads._models import _markers as markers
-from squads._models._enums import ItemType, Priority, Status
+from squads._models._enums import ItemType, Priority
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import VALID_REF_KINDS, Item, split_ref
@@ -37,21 +37,27 @@ from squads._rendering._engine import render, set_active_squad_dir
 from squads._roles._resolver import resolve_role
 from squads._services._results import CreateResult, TreeNode
 from squads._util import slugify
-from squads._workflow import initial_status, is_open, parent_allowed, parent_hint
+from squads._workflow import (
+    initial_status,
+    is_open,
+    item_is_meta,
+    parent_allowed,
+    parent_hint,
+)
 
 # Body-local sub-entities: kind → parent item type and its container marker. Package-internal
 # (non-underscore so sibling mixins can import them without tripping reportPrivateUsage).
-SUBENTITY_PARENT: dict[str, ItemType] = {
-    "story": ItemType.FEATURE,
-    "subtask": ItemType.TASK,
-    "finding": ItemType.REVIEW,
+SUBENTITY_PARENT: dict[str, str] = {
+    "story": "feature",
+    "subtask": "task",
+    "finding": "review",
 }
 SUBENTITY_CONTAINER: dict[str, str] = {
     "story": markers.STORIES,
     "subtask": markers.SUBTASKS,
     "finding": markers.FINDINGS,
 }
-SUBENTITY_KIND: dict[ItemType, str] = {p: k for k, p in SUBENTITY_PARENT.items()}
+SUBENTITY_KIND: dict[str, str] = {p: k for k, p in SUBENTITY_PARENT.items()}
 
 
 @dataclass(frozen=True)
@@ -64,8 +70,8 @@ class ItemFilter:
     field is set — an empty filter matches every item.
     """
 
-    item_type: ItemType | None = None
-    status: Status | None = None
+    item_type: str | None = None
+    status: str | None = None
     parent: str | None = None
     label: str | None = None
     assignee: str | None = None
@@ -74,8 +80,8 @@ class ItemFilter:
     def matches(self, it: Item) -> bool:
         """Return True iff *it* satisfies every non-None dimension of this filter."""
         return (
-            (not self.item_type or it.type is self.item_type)
-            and (not self.status or it.status is self.status)
+            (not self.item_type or it.type == self.item_type)
+            and (not self.status or it.status == self.status)
             and (not self.parent or it.parent == self.parent)
             and (not self.label or self.label in it.labels)
             and (not self.assignee or it.assignee == self.assignee)
@@ -196,14 +202,10 @@ def reject_markers(text: str, what: str = "body") -> None:
     )
 
 
-def _template_for(item_type: ItemType) -> str:
-    if item_type is ItemType.ROLE:
-        return "agents/role.md.j2"
-    if item_type is ItemType.SKILL:
-        return "agents/skill.md.j2"
-    if item_type is ItemType.OPERATOR:
-        return "agents/operator.md.j2"
-    return f"items/{item_type.value}.md.j2"
+def _template_for(item_type: str) -> str:
+    if item_is_meta(item_type):
+        return f"agents/{item_type}.md.j2"
+    return f"items/{item_type}.md.j2"
 
 
 class ServiceCore:
@@ -235,7 +237,7 @@ class ServiceCore:
     # ------------------------------------------------------------------ create / read
     async def create(  # noqa: PLR0913 — a creation entrypoint with clear keyword-only fields
         self,
-        item_type: ItemType,
+        item_type: str,
         title: str,
         *,
         description: str = "",
@@ -246,10 +248,11 @@ class ServiceCore:
         assignee: str | None = None,
         priority: Priority | None = None,
         extra: dict[str, Any] | None = None,
-        status: Status | None = None,
+        status: str | None = None,
         slug: str | None = None,
         body: str | None = None,
     ) -> CreateResult:
+        item_type = str(item_type)  # coerce StrEnum members to plain str
         slug = slug or slugify(title)
         author = author or self.paths.config.default_role
         if refs:
@@ -270,10 +273,10 @@ class ServiceCore:
             sid, _psid = actor.current_session()
             item = Item(
                 sequence_id=db.counter,
-                type=item_type,
+                type=str(item_type),
                 title=title,
                 slug=slug,
-                status=status or initial_status(item_type),
+                status=str(status) if status is not None else initial_status(item_type),
                 description=description,
                 parent=parent,
                 author=author,
@@ -313,21 +316,21 @@ class ServiceCore:
                     ", ".join(f"'{s}'" for s in sorted(owners)) if owners else "no defined owner"
                 )
                 lane_warning = (
-                    f"advisory: '{author}' is not the in-lane author for '{item_type.value}' items"
+                    f"advisory: '{author}' is not the in-lane author for '{item_type}' items"
                     f" (expected: {owner_str})."
                     " Lane checks are best-effort and advisory — proceeding."
                 )
             log_delta: dict[str, object] = {
                 "title": item.title,
-                "type": item_type.value,
-                "status": item.status.value,
+                "type": item_type,
+                "status": item.status,
             }
             if lane_warning is not None:
                 log_delta["lane_warning"] = {
                     "advisory": True,
                     "actor": author,
                     "expected": sorted(in_lane_owner(item_type)),
-                    "type": item_type.value,
+                    "type": item_type,
                 }
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "create",
@@ -344,16 +347,16 @@ class ServiceCore:
     async def list_items(
         self,
         *,
-        item_type: ItemType | None = None,
-        status: Status | None = None,
+        item_type: str | None = None,
+        status: str | None = None,
         parent: str | None = None,
         label: str | None = None,
         assignee: str | None = None,
         priority: Priority | None = None,
     ) -> list[Item]:
         f = ItemFilter(
-            item_type=item_type,
-            status=status,
+            item_type=str(item_type) if item_type is not None else None,
+            status=str(status) if status is not None else None,
             parent=parent,
             label=label,
             assignee=assignee,
@@ -440,24 +443,28 @@ class ServiceCore:
                 result.append(node)
         return result
 
-    def _check_parent(self, db: SquadsDB, child_type: ItemType, parent_id: str) -> None:
+    def _check_parent(self, db: SquadsDB, child_type: str, parent_id: str) -> None:
         parent = db.get(parent_id)
         if parent is None:
             raise ItemNotFoundError(f"parent {parent_id!r} does not exist")
         if not parent_allowed(child_type, parent.type):
-            raise SquadsError(f"{parent_hint(child_type)} (got {parent.type.value})")
+            raise SquadsError(f"{parent_hint(child_type)} (got {parent.type})")
 
     @staticmethod
     def _is_participant(db: SquadsDB, slug: str) -> bool:
-        """A slug that can author/be-assigned work: a registered role agent or a human operator."""
+        """A slug that can author/be-assigned work: a registered role agent or a human operator.
+
+        Skills are meta-types but NOT participants — only role and operator are.
+        ``item_is_meta(t) and not ItemType.SKILL`` expresses the same set.
+        """
         return any(
-            it.type in (ItemType.ROLE, ItemType.OPERATOR) and it.extra.get(X.SLUG) == slug
+            item_is_meta(it.type) and it.type != ItemType.SKILL and it.extra.get(X.SLUG) == slug
             for it in db.items.values()
         )
 
-    def _check_author(self, db: SquadsDB, item_type: ItemType, author: str, slug: str) -> None:
-        # an agent/operator definition may self-author (bootstrap); else it names a participant
-        if item_type in (ItemType.ROLE, ItemType.SKILL, ItemType.OPERATOR) and author == slug:
+    def _check_author(self, db: SquadsDB, item_type: str, author: str, slug: str) -> None:
+        # a meta-type (role/skill/operator) definition may self-author (bootstrap)
+        if item_is_meta(item_type) and author == slug:
             return
         if not self._is_participant(db, author):
             raise SquadsError(
@@ -505,7 +512,7 @@ class ServiceCore:
     # ------------------------------------------------------------------ role / skill lookups
     async def _role_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type is ItemType.ROLE and it.extra.get(X.SLUG) == slug:
+            if it.type == ItemType.ROLE and it.extra.get(X.SLUG) == slug:
                 return it
         return None
 
@@ -526,13 +533,13 @@ class ServiceCore:
 
     async def _skill_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type is ItemType.SKILL and it.extra.get(X.SLUG, it.slug) == slug:
+            if it.type == ItemType.SKILL and it.extra.get(X.SLUG, it.slug) == slug:
                 return it
         return None
 
     async def _operator_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type is ItemType.OPERATOR and it.extra.get(X.SLUG) == slug:
+            if it.type == ItemType.OPERATOR and it.extra.get(X.SLUG) == slug:
                 return it
         return None
 

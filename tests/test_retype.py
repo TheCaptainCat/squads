@@ -94,7 +94,7 @@ async def test_retype_index_updated(svc):
     db = await svc.store.load()
     indexed = db.items.get(task.sequence_id)
     assert indexed is not None
-    assert indexed.type is ItemType.BUG
+    assert indexed.type == ItemType.BUG
     assert indexed.id == res.item.id
 
 
@@ -109,7 +109,7 @@ async def test_retype_task_to_bug_resets_status(svc):
     res = await svc.retype(task.id, ItemType.BUG)
     assert res.status_reset
     assert res.old_status == Status.IN_PROGRESS.value
-    assert res.item.status is Status.OPEN
+    assert res.item.status == Status.OPEN
 
 
 async def test_retype_feature_to_epic_carries_status(svc):
@@ -119,7 +119,7 @@ async def test_retype_feature_to_epic_carries_status(svc):
 
     res = await svc.retype(feat.id, ItemType.EPIC)
     assert not res.status_reset
-    assert res.item.status is Status.READY
+    assert res.item.status == Status.READY
 
 
 async def test_retype_task_to_decision_resets_status(svc):
@@ -130,7 +130,7 @@ async def test_retype_task_to_decision_resets_status(svc):
     res = await svc.retype(task.id, ItemType.DECISION)
     assert res.status_reset
     assert res.old_status == Status.IN_PROGRESS.value
-    assert res.item.status is Status.PROPOSED
+    assert res.item.status == Status.PROPOSED
 
 
 async def test_retype_task_to_guide_resets_status(svc):
@@ -139,7 +139,7 @@ async def test_retype_task_to_guide_resets_status(svc):
     await svc.set_status(task.id, Status.IN_PROGRESS)
     res = await svc.retype(task.id, ItemType.GUIDE)
     assert res.status_reset
-    assert res.item.status is Status.DRAFT
+    assert res.item.status == Status.DRAFT
 
 
 async def test_retype_decision_to_review_resets_status(svc):
@@ -147,7 +147,7 @@ async def test_retype_decision_to_review_resets_status(svc):
     dec = (await svc.create(ItemType.DECISION, "ADR")).item
     res = await svc.retype(dec.id, ItemType.REVIEW)
     assert res.status_reset
-    assert res.item.status is Status.REQUESTED
+    assert res.item.status == Status.REQUESTED
 
 
 # --------------------------------------------------------------------------- refusals

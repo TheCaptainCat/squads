@@ -84,11 +84,11 @@ async def test_guide_full_cycle_published_draft_published(svc):
     """A guide can go Draft→Published→Draft→Published: terminal does not block re-opening."""
     guide = (await svc.create(ItemType.GUIDE, "Cycle guide")).item
     await svc.set_status(guide.id, Status.PUBLISHED)
-    assert (await svc.get(guide.id)).status is Status.PUBLISHED
+    assert (await svc.get(guide.id)).status == Status.PUBLISHED
     await svc.set_status(guide.id, Status.DRAFT)
-    assert (await svc.get(guide.id)).status is Status.DRAFT
+    assert (await svc.get(guide.id)).status == Status.DRAFT
     await svc.set_status(guide.id, Status.PUBLISHED)
-    assert (await svc.get(guide.id)).status is Status.PUBLISHED
+    assert (await svc.get(guide.id)).status == Status.PUBLISHED
 
 
 async def test_decision_accepted_to_superseded(svc):
@@ -96,7 +96,7 @@ async def test_decision_accepted_to_superseded(svc):
     old_adr = (await svc.create(ItemType.DECISION, "Old pattern")).item
     await svc.set_status(old_adr.id, Status.ACCEPTED)
     await svc.set_status(old_adr.id, Status.SUPERSEDED)
-    assert (await svc.get(old_adr.id)).status is Status.SUPERSEDED
+    assert (await svc.get(old_adr.id)).status == Status.SUPERSEDED
 
 
 # --------------------------------------------------------------------------- blocked semantics

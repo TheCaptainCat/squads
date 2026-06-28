@@ -1,12 +1,18 @@
-"""WorkflowSpec pydantic v2 value objects (ADR-000214 §1).
+"""WorkflowSpec pydantic v2 value objects (ADR-000214 §1 / ADR-000232 §2/§5).
 
-Enum-typed fields stay enum-typed: TOML string values are coerced into
+Enum-typed fields stay enum-typed in F1: TOML string values are coerced into
 ``ItemType``/``Status`` at parse/load time — an unknown name raises immediately.
+
+F2 (TASK-000234) will widen the field types to ``str``; for now the capability
+flags introduced here (``is_meta``, ``subentity_kind``, ``severity_field``,
+``parent_required``, ``ref_rules``, and ``StatusSpec.role``) are additive and
+NOT YET consumed by the engine.  They are encoded in ``default_workflow.toml``
+to reproduce today's semantics exactly.
 """
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from squads._models._enums import ItemType, Status
+from squads._models._enums import ItemType
 
 
 class Lifecycle(BaseModel):
@@ -14,44 +20,105 @@ class Lifecycle(BaseModel):
 
     ``.states`` is derived (initial union all sources union all targets),
     mirroring ``Workflow.states`` today.
+
+    Status fields are ``str`` (TASK-000235) — ``Status`` enum members are retained as the
+    reserved-vocabulary source but are not used as the stored field type.  Since
+    ``Status`` is a ``StrEnum`` its members compare equal to their string values, so
+    existing callers passing ``Status.DONE`` or passing ``"Done"`` both work.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
-    initial: Status
-    transitions: dict[Status, list[Status]]
+    initial: str
+    transitions: dict[str, list[str]]
 
     @property
-    def states(self) -> frozenset[Status]:
-        seen: set[Status] = {self.initial}
+    def states(self) -> frozenset[str]:
+        seen: set[str] = {self.initial}
         for src, dsts in self.transitions.items():
             seen.add(src)
             seen.update(dsts)
         return frozenset(seen)
 
-    def can_transition(self, src: Status, dst: Status) -> bool:
+    def can_transition(self, src: str, dst: str) -> bool:
         return dst in self.transitions.get(src, [])
 
 
-class ItemSpec(BaseModel):
-    """Vocabulary for one ``ItemType``: prefix, folder, lifecycle, parents, aliases."""
+class RefRule(BaseModel):
+    """A declared ref-kind rule for a type (ADR-000232 §2).
 
-    model_config = ConfigDict(frozen=True)
+    Examples:
+    - task → fixes / addresses (drives the parent_hint suffix and sq check)
+    - decision → supersedes (drives the sq check ADR warning)
+
+    Not yet consumed by the engine in F1/TASK-233; F2/TASK-234 will wire it.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: str
+    """The ref kind this rule applies to (e.g. ``"fixes"``, ``"supersedes"``)."""
+    hint: str = ""
+    """Human-readable hint injected into ``parent_hint`` / error messages (optional)."""
+
+
+class ItemSpec(BaseModel):
+    """Vocabulary for one ``ItemType``: prefix, folder, lifecycle, parents, aliases.
+
+    Capability flags (ADR-000232 §2) are additive and default to the ``False``/``None``
+    values that represent the common case (non-meta work item with no special spine).
+    They are NOT yet consumed by the engine; TASK-000234 will wire them.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     prefix: str
     folder: str
     lifecycle: str
-    parents: list[ItemType] = []
+    parents: list[str] = []
     aliases: list[str] = []
+
+    # ------------------------------------------------------------------
+    # ADR-000232 §2 capability flags (additive; not yet consumed by engine)
+    # ------------------------------------------------------------------
+
+    is_meta: bool = False
+    """True for the meta-types (role/skill/operator): outside WORK_TYPES, no work lifecycle,
+    slug-keyed identity, retype-ineligible, self-author bypass for bootstrap."""
+
+    subentity_kind: str | None = None
+    """The kind of sub-entity this type hosts: ``"story"`` | ``"subtask"`` | ``"finding"``
+    or ``None`` for types that have no sub-entities (epic/bug/decision/guide/meta-types)."""
+
+    severity_field: bool = False
+    """True when this type surfaces a severity badge (today: bug only)."""
+
+    parent_required: str | None = None
+    """The required parent type expressed as a string (e.g. ``"feature"`` for task).
+    ``None`` means the type is unconstrained (any parent or none is valid)."""
+
+    ref_rules: list[RefRule] = []
+    """Declared ref-kind rules that drive parent_hint text and sq check enforcement
+    (e.g. task → fixes/addresses; decision → supersedes)."""
 
 
 class StatusSpec(BaseModel):
     """Terminal flag + optional sub-entity badge for one ``Status``."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     terminal: bool
     badge: str | None = None
+
+    # ------------------------------------------------------------------
+    # ADR-000232 §2 semantic-status role marker (additive; not yet consumed)
+    # ------------------------------------------------------------------
+
+    role: str | None = None
+    """Semantic-status role marker for engine rules that key on a specific status.
+    Currently used to identify ``Superseded`` (``role="superseded"``).
+    Future rules add a new role name here rather than a new flag column.
+    Not yet consumed by the engine; TASK-000234 will wire it."""
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +130,7 @@ _SUBENTITY_KINDS: frozenset[str] = frozenset({"subtask", "story", "finding"})
 
 def _check_lifecycle_statuses(
     lifecycles: dict[str, Lifecycle],
-    all_statuses: set[Status],
+    all_statuses: set[str],
     errors: list[str],
 ) -> None:
     """§5-1 + §5-2: check initial and transition src/dst are declared statuses."""
@@ -87,8 +154,8 @@ def _check_reachability(
 ) -> None:
     """§5-4: every state in a lifecycle must be reachable from initial."""
     for name, m in lifecycles.items():
-        reachable: set[Status] = {m.initial}
-        queue = [m.initial]
+        reachable: set[str] = {m.initial}
+        queue: list[str] = [m.initial]
         while queue:
             cur = queue.pop()
             for nxt in m.transitions.get(cur, []):
@@ -103,15 +170,15 @@ def _check_reachability(
 
 
 def _check_item_refs(
-    items: dict[ItemType, ItemSpec],
+    items: dict[str, ItemSpec],
     all_lifecycle_names: set[str],
-    all_types: set[ItemType],
+    all_types: set[str],
     errors: list[str],
 ) -> None:
     """§5-5: ItemSpec lifecycle/parent references + prefix/folder/alias uniqueness."""
-    seen_prefixes: dict[str, ItemType] = {}
-    seen_folders: dict[str, ItemType] = {}
-    seen_aliases: dict[str, ItemType] = {}
+    seen_prefixes: dict[str, str] = {}
+    seen_folders: dict[str, str] = {}
+    seen_aliases: dict[str, str] = {}
 
     for t, ts in items.items():
         if ts.lifecycle not in all_lifecycle_names:
@@ -140,53 +207,87 @@ def _check_item_refs(
 
 
 class WorkflowSpec(BaseModel):
-    """The full loaded workflow specification (ADR-000214 §1).
+    """The full loaded workflow specification (ADR-000214 §1 / ADR-000232 §5).
 
     Built by ``load_workflow_spec()``; in F1 a module-level singleton is used
     everywhere via the free-function shims.  Equivalent methods are provided
     for surfaces that will later receive the spec explicitly (F3+).
+
+    ``extra="forbid"`` (ADR-000232 §5): unknown TOML keys are rejected at
+    construction time, matching the roles/playbook loaders.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
-    items: dict[ItemType, ItemSpec]
-    statuses: dict[Status, StatusSpec]
+    items: dict[str, ItemSpec]
+    statuses: dict[str, StatusSpec]
     lifecycles: dict[str, Lifecycle]
     # Derived reverse indexes — built by the loader, not stored in TOML.
-    prefix_to_type: dict[str, ItemType]
-    alias_to_type: dict[str, ItemType]
+    prefix_to_type: dict[str, str]
+    alias_to_type: dict[str, str]
 
     # ------------------------------------------------------------------ convenience accessors
 
     @property
-    def managed_types(self) -> frozenset[ItemType]:
+    def managed_types(self) -> frozenset[str]:
         return frozenset(self.items)
 
-    def machine_for(self, item_type: ItemType) -> Lifecycle:
+    def machine_for(self, item_type: str) -> Lifecycle:
         return self.lifecycles[self.items[item_type].lifecycle]
 
-    def initial_status(self, item_type: ItemType) -> Status:
+    def initial_status(self, item_type: str) -> str:
         return self.machine_for(item_type).initial
 
-    def can_transition(self, item_type: ItemType, src: Status, dst: Status) -> bool:
+    def can_transition(self, item_type: str, src: str, dst: str) -> bool:
         return self.machine_for(item_type).can_transition(src, dst)
 
-    def is_open(self, status: Status) -> bool:
+    def is_open(self, status: str) -> bool:
         return not self.statuses[status].terminal
 
-    def parent_allowed(self, child: ItemType, parent: ItemType) -> bool:
+    def parent_allowed(self, child: str, parent: str) -> bool:
         parents = self.items[child].parents
         return len(parents) == 0 or parent in parents
 
-    def terminal_set(self) -> frozenset[Status]:
+    def terminal_set(self) -> frozenset[str]:
         return frozenset(s for s, spec in self.statuses.items() if spec.terminal)
 
     def subentity_machine(self, kind: str) -> Lifecycle:
         return self.lifecycles[kind]
 
-    def status_badge(self, status: Status) -> str | None:
+    def status_badge(self, status: str) -> str | None:
         spec = self.statuses.get(status)
         return spec.badge if spec else None
+
+    # ------------------------------------------------------------------ capability-flag accessors
+
+    def work_types(self) -> frozenset[str]:
+        """Types that are units of work (not meta-types: role/skill/operator)."""
+        return frozenset(t for t, ts in self.items.items() if not ts.is_meta)
+
+    def item_is_meta(self, item_type: str) -> bool:
+        """True for the meta-types: role, skill, operator."""
+        return self.items[item_type].is_meta
+
+    def item_has_severity(self, item_type: str) -> bool:
+        """True for types that surface a severity field (today: bug only)."""
+        return self.items[item_type].severity_field
+
+    def item_subentity_kind(self, item_type: str) -> str | None:
+        """The sub-entity kind this type hosts, or None."""
+        return self.items[item_type].subentity_kind
+
+    def item_parent_required(self, item_type: str) -> str | None:
+        """The required parent type slug, or None (no constraint)."""
+        return self.items[item_type].parent_required
+
+    def item_ref_rules(self, item_type: str) -> list[RefRule]:
+        """Declared ref-kind rules for the type (e.g. fixes/addresses/supersedes)."""
+        return list(self.items[item_type].ref_rules)
+
+    def status_role(self, status: str) -> str | None:
+        """Semantic role marker for this status (e.g. ``'superseded'``), or None."""
+        spec = self.statuses.get(status)
+        return spec.role if spec else None
 
     # ------------------------------------------------------------------ validation
 
@@ -215,31 +316,51 @@ class WorkflowSpec(BaseModel):
         # §5-5: ItemSpec cross-refs + uniqueness.
         _check_item_refs(self.items, all_lifecycle_names, all_types, errors)
 
-        # §5-6a: enums-intact — spec item set must equal set(ItemType).
+        # §5-6a: reserved-vocab subset — spec must include ALL reserved ItemType members.
+        # A custom spec may ADD new types but must never OMIT a reserved one.
         spec_types = set(self.items)
-        enum_types = set(ItemType)
-        if spec_types != enum_types:
-            missing = enum_types - spec_types
-            extra = spec_types - enum_types
-            if missing:
-                errors.append(f"spec missing ItemType members: {sorted(str(m) for m in missing)}")
-            if extra:
-                errors.append(
-                    f"spec introduces unknown ItemType members: {sorted(str(e) for e in extra)}"
-                )
+        reserved_types: set[str] = {t.value for t in ItemType}
+        missing_types = reserved_types - spec_types
+        if missing_types:
+            errors.append(f"spec missing reserved ItemType members: {sorted(missing_types)}")
 
-        # §5-6b: enums-intact — spec status set must equal set(Status).
+        # §5-6b: reserved-vocab subset — spec must include the *structural floor* statuses.
+        #
+        # The floor is the subset of Status members that the engine references by name
+        # (not just by lifecycle transitions), so a custom spec MUST always declare them:
+        #
+        #   • agent lifecycle (role/skill/operator): Draft, Active, Archived
+        #   • sub-entity lifecycles (subtask/story): Todo, InProgress, Blocked, Done, Cancelled
+        #   • finding lifecycle: Open, Fixed, Verified, WontFix
+        #
+        # Work-item-only statuses (Ready, InReview, Proposed, Accepted, Requested,
+        # ChangesRequested, Approved, Rejected, Superseded, Deprecated, Published) are NOT in
+        # the floor — a custom spec that omits them (e.g. no ADR/review/guide lifecycle) must
+        # not be rejected.  The work-item vocabularies are enforced implicitly by §5-1/§5-2
+        # (lifecycle initial/transition statuses must be declared).
         spec_statuses = set(self.statuses)
-        enum_statuses = set(Status)
-        if spec_statuses != enum_statuses:
-            missing_s = enum_statuses - spec_statuses
-            extra_s = spec_statuses - enum_statuses
-            if missing_s:
-                errors.append(f"spec missing Status members: {sorted(str(s) for s in missing_s)}")
-            if extra_s:
-                errors.append(
-                    f"spec introduces unknown Status members: {sorted(str(s) for s in extra_s)}"
-                )
+        _RESERVED_FLOOR: frozenset[str] = frozenset(
+            {
+                # agent lifecycle
+                "Draft",
+                "Active",
+                "Archived",
+                # sub-entity (subtask/story)
+                "Todo",
+                "InProgress",
+                "Blocked",
+                "Done",
+                "Cancelled",
+                # finding lifecycle
+                "Open",
+                "Fixed",
+                "Verified",
+                "WontFix",
+            }
+        )
+        missing_statuses = _RESERVED_FLOOR - spec_statuses
+        if missing_statuses:
+            errors.append(f"spec missing reserved Status members: {sorted(missing_statuses)}")
 
         if errors:
             from squads._errors import SquadsError

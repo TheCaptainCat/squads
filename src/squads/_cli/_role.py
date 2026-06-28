@@ -226,7 +226,7 @@ async def show_role(
             rows = [
                 f"[bold]{e(it2.extra.get(X.FULL_NAME, it2.title))}[/bold] (`{e(slug)}`)",
                 f"[bold]id:[/bold] {it2.id}",
-                f"[bold]status:[/bold] {it2.status.value}",
+                f"[bold]status:[/bold] {it2.status}",
             ]
         else:
             raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None

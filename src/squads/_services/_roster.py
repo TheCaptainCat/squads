@@ -9,11 +9,7 @@ from squads._roles._resolver import resolve_dev_role, resolve_role
 from squads._services._base import ServiceCore
 from squads._services._results import WorkloadRow
 from squads._util import operator_slug, slugify
-from squads._workflow import is_open
-
-_AGENT_TYPES = {ItemType.ROLE, ItemType.SKILL}
-# Participant/definition items, not units of work — excluded from workload counts.
-_NON_WORK_TYPES = _AGENT_TYPES | {ItemType.OPERATOR}
+from squads._workflow import is_open, item_is_meta
 
 
 class RosterMixin(ServiceCore):
@@ -138,7 +134,7 @@ class RosterMixin(ServiceCore):
         """Open/closed/total work-item counts per assignee (busiest first; unassigned last)."""
         counts: dict[str | None, list[int]] = {}
         for it in await self.list_items():
-            if it.type in _NON_WORK_TYPES:
+            if item_is_meta(it.type):
                 continue
             bucket = counts.setdefault(it.assignee, [0, 0])
             bucket[0 if is_open(it.status) else 1] += 1

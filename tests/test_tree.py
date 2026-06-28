@@ -82,7 +82,7 @@ async def test_item_filter_matches_type(svc):
 async def test_item_filter_matches_status(svc):
     item = (await svc.create(ItemType.TASK, "T")).item
     # Draft is initial status for tasks
-    assert item.status is Status.DRAFT
+    assert item.status == Status.DRAFT
     f_draft = ItemFilter(status=Status.DRAFT)
     assert f_draft.matches(item) is True
     f_ready = ItemFilter(status=Status.READY)

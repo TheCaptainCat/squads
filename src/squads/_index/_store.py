@@ -35,6 +35,47 @@ from squads._errors import SquadsError
 from squads._models._index import SquadsDB
 
 
+def _validate_item_vocab(db: SquadsDB) -> None:
+    """Validate every item's ``type``, ``status``, and sub-entity statuses against the
+    loaded WorkflowSpec singleton.
+
+    Called from :meth:`IndexStore.load` (ADR-000232 §1 / TASK-000235 F1/F5).  A corrupt or
+    hand-edited index entry with an unknown type, status, or sub-entity status raises a
+    clean :class:`SquadsError` rather than silently indexing and crashing downstream with a
+    raw ``KeyError`` or ``ValueError``.
+
+    Import is deferred (inside the function body) to avoid creating an import cycle:
+    ``_index._store`` → ``_workflow`` → (no dependency on ``_index``).
+    """
+    # Lazy import: _workflow loads its singleton on first import; that is fine because
+    # the CLI root callback always runs before any load().  Tests that construct an
+    # IndexStore directly also import _workflow transitively before reaching this point.
+    from squads._workflow import _DEFAULT_SPEC  # pyright: ignore[reportPrivateUsage]
+
+    known_types: frozenset[str] = frozenset(_DEFAULT_SPEC.items)
+    known_statuses: frozenset[str] = frozenset(_DEFAULT_SPEC.statuses)
+
+    for item in db.items.values():
+        if item.type not in known_types:
+            raise SquadsError(
+                f"item {item.id} has unknown type {item.type!r}; "
+                f"run `sq repair` if the index is stale, or check the frontmatter"
+            )
+        if item.status not in known_statuses:
+            raise SquadsError(
+                f"item {item.id} has unknown status {item.status!r}; "
+                f"run `sq repair` if the index is stale, or check the frontmatter"
+            )
+        # F5: sub-entity statuses share the same vocabulary — validate each one too.
+        for sub in item.subentities:
+            if sub.status not in known_statuses:
+                raise SquadsError(
+                    f"item {item.id} sub-entity {sub.local_id} has unknown status "
+                    f"{sub.status!r}; run `sq repair` if the index is stale, or "
+                    f"check the frontmatter"
+                )
+
+
 @dataclass
 class _ReflogOp:
     """A reflog entry buffered during a transaction, flushed after the commit."""
@@ -122,6 +163,7 @@ class IndexStore:
         max_seq = max((item.sequence_id for item in db.items.values()), default=0)
         if db.counter < max_seq:
             db.counter = max_seq
+        _validate_item_vocab(db)
         return db
 
     # ------------------------------------------------------------------ transaction

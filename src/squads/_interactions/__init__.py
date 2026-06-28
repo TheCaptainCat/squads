@@ -218,7 +218,7 @@ def allowed_create_types(slug: str) -> set[ItemType]:
     return set(CREATE_LANES.get(slug, set()))
 
 
-def in_lane_owner(item_type: ItemType) -> set[str]:
+def in_lane_owner(item_type: str) -> set[str]:
     """Return the set of role slugs that are in-lane to create *item_type*.
 
     This is the inverse of :func:`allowed_create_types`: which role slug(s)

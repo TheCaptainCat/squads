@@ -373,3 +373,156 @@ async def test_sq_workflow_cli_unchanged(invoke) -> None:  # type: ignore[no-unt
     # Spot-check key vocabulary that must appear in the cheatsheet.
     assert "workflow" in result.output.lower()
     assert "sq " in result.output or "sq\n" in result.output
+
+
+# ---------------------------------------------------------------------------
+# TASK-000235: reserved-vocab subset — negative tests (ADR-000232 §5-6a/b)
+# A custom spec that OMITS any reserved ItemType or Status member must fail
+# closed with a SquadsError at construction time.
+# ---------------------------------------------------------------------------
+
+
+def test_reserved_vocab_omit_item_type_fails_closed(spec: WorkflowSpec) -> None:
+    """A spec missing one reserved ItemType raises SquadsError (§5-6a fail-closed).
+
+    Drops 'epic' from the items dict — WorkflowSpec._validate must detect it.
+    """
+    from squads._errors import SquadsError
+
+    items_without_epic = {k: v for k, v in spec.items.items() if k != "epic"}
+    assert "epic" not in items_without_epic  # sanity
+
+    with pytest.raises(SquadsError, match="spec missing reserved ItemType members"):
+        WorkflowSpec.model_validate(
+            {
+                "items": items_without_epic,
+                "statuses": spec.statuses,
+                "lifecycles": spec.lifecycles,
+                "prefix_to_type": {p: t for p, t in spec.prefix_to_type.items() if t != "epic"},
+                "alias_to_type": spec.alias_to_type,
+            }
+        )
+
+
+def test_reserved_vocab_omit_status_fails_closed(spec: WorkflowSpec) -> None:
+    """A spec missing one floor-reserved Status raises SquadsError (§5-6b fail-closed).
+
+    Drops 'Done' (sub-entity lifecycle floor member) from the statuses dict — a spec
+    that omits a structural-floor status must be rejected even if the floor is narrowed
+    from the full Status enum set (TASK-000235 F2).
+    """
+    from squads._errors import SquadsError
+
+    statuses_without_done = {k: v for k, v in spec.statuses.items() if k != "Done"}
+    assert "Done" not in statuses_without_done  # sanity
+
+    # We also need to drop lifecycles that reference 'Done' so the §5-1/§5-2 check
+    # doesn't obscure the §5-6b failure.  The missing-floor error appears regardless
+    # because §5-6b runs even when §5-1/§5-2 already found errors.
+    with pytest.raises(SquadsError, match="spec missing reserved Status members"):
+        WorkflowSpec.model_validate(
+            {
+                "items": spec.items,
+                "statuses": statuses_without_done,
+                "lifecycles": spec.lifecycles,
+                "prefix_to_type": spec.prefix_to_type,
+                "alias_to_type": spec.alias_to_type,
+            }
+        )
+
+
+def test_non_reserved_status_omission_is_allowed(spec: WorkflowSpec) -> None:
+    """Dropping a work-item-only status that is NOT in the structural floor is ALLOWED (§5-6b).
+
+    'Ready' is used only in the work lifecycle (transitions from Draft → Ready, etc.) and
+    is NOT a structural-floor status.  A custom spec that omits it should be accepted by
+    §5-6b — the §5-1/§5-2 checks enforce it indirectly if a lifecycle references it.
+
+    We build a minimal spec that uses none of the work-lifecycle statuses so there is no
+    §5-1/§5-2 conflict, and verify no SquadsError is raised for the missing 'Ready'.
+    """
+    from squads._workflow._models import ItemSpec, Lifecycle, StatusSpec, WorkflowSpec
+
+    # Minimal spec: one item type ('task') on a trivial lifecycle that uses only floor
+    # statuses (Draft → Done), plus all floor statuses declared.  'Ready' is absent.
+    floor_statuses: dict[str, StatusSpec] = {
+        "Draft": StatusSpec(terminal=False),
+        "Active": StatusSpec(terminal=False),
+        "Archived": StatusSpec(terminal=True),
+        "Todo": StatusSpec(terminal=False),
+        "InProgress": StatusSpec(terminal=False),
+        "Blocked": StatusSpec(terminal=False),
+        "Done": StatusSpec(terminal=True),
+        "Cancelled": StatusSpec(terminal=True),
+        "Open": StatusSpec(terminal=False),
+        "Fixed": StatusSpec(terminal=True),
+        "Verified": StatusSpec(terminal=True),
+        "WontFix": StatusSpec(terminal=True),
+    }
+
+    # Add all the other Status members needed by the ItemType enum members' reserved check
+    # (§5-6a requires all ItemType members, but §5-1/§5-2 requires all referenced statuses).
+    # Use a lifecycle that only touches floor statuses so 'Ready' is never referenced.
+    minimal_lifecycle = Lifecycle(
+        initial="Draft",
+        transitions={"Draft": ["Done"], "Done": []},
+    )
+    agent_lifecycle = Lifecycle(
+        initial="Draft",
+        transitions={"Draft": ["Active"], "Active": ["Archived"], "Archived": ["Active"]},
+    )
+    subentity_lifecycle = Lifecycle(
+        initial="Todo",
+        transitions={
+            "Todo": ["InProgress", "Blocked", "Cancelled"],
+            "InProgress": ["Done", "Blocked", "Cancelled"],
+            "Blocked": ["InProgress", "Cancelled"],
+            "Done": ["InProgress"],
+            "Cancelled": ["Todo"],
+        },
+    )
+    finding_lifecycle = Lifecycle(
+        initial="Open",
+        transitions={
+            "Open": ["Fixed", "WontFix"],
+            "Fixed": ["Verified", "Open"],
+            "Verified": [],
+            "WontFix": ["Open"],
+        },
+    )
+
+    # Only the floor statuses — 'Ready' is intentionally absent to prove §5-6b does not
+    # reject it.  No 'Ready' in the lifecycles used below either (minimal_lifecycle only
+    # references Draft and Done; agent/subentity/finding lifecycles use their own floor
+    # statuses), so §5-1/§5-2 won't flag the omission.
+    all_statuses = {**floor_statuses}  # no 'Ready'
+
+    # Every ItemType member must be in items (§5-6a); assign minimal or agent lifecycle.
+    _META_TYPES = {"role", "skill", "operator"}
+    items_map = {
+        t.value: ItemSpec(
+            prefix=t.prefix,
+            folder=t.folder,
+            lifecycle="agent" if t.value in _META_TYPES else "minimal",
+            is_meta=(t.value in _META_TYPES),
+        )
+        for t in ItemType
+    }
+
+    # No SquadsError should be raised — 'Ready' is absent but is not a floor status.
+    result = WorkflowSpec.model_validate(
+        {
+            "items": items_map,
+            "statuses": all_statuses,
+            "lifecycles": {
+                "minimal": minimal_lifecycle,
+                "agent": agent_lifecycle,
+                "subtask": subentity_lifecycle,
+                "story": subentity_lifecycle,
+                "finding": finding_lifecycle,
+            },
+            "prefix_to_type": {t.prefix: t.value for t in ItemType},
+            "alias_to_type": {},
+        }
+    )
+    assert "Ready" not in result.statuses

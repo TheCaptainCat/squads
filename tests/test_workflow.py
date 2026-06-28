@@ -5,7 +5,7 @@ from squads._models._enums import ItemType, Status
 
 
 def test_work_item_happy_path():
-    assert workflow.initial_status(ItemType.TASK) is Status.DRAFT
+    assert workflow.initial_status(ItemType.TASK) == Status.DRAFT
     assert workflow.can_transition(ItemType.TASK, Status.DRAFT, Status.READY)
     assert workflow.can_transition(ItemType.TASK, Status.IN_PROGRESS, Status.DONE)
 
@@ -15,14 +15,14 @@ def test_work_item_illegal_skip():
 
 
 def test_adr_workflow():
-    assert workflow.initial_status(ItemType.DECISION) is Status.PROPOSED
+    assert workflow.initial_status(ItemType.DECISION) == Status.PROPOSED
     assert workflow.can_transition(ItemType.DECISION, Status.PROPOSED, Status.ACCEPTED)
     assert not workflow.can_transition(ItemType.DECISION, Status.PROPOSED, Status.SUPERSEDED)
 
 
 def test_review_and_guide_initials():
-    assert workflow.initial_status(ItemType.REVIEW) is Status.REQUESTED
-    assert workflow.initial_status(ItemType.GUIDE) is Status.DRAFT
+    assert workflow.initial_status(ItemType.REVIEW) == Status.REQUESTED
+    assert workflow.initial_status(ItemType.GUIDE) == Status.DRAFT
     assert workflow.can_transition(ItemType.GUIDE, Status.DRAFT, Status.PUBLISHED)
 
 
