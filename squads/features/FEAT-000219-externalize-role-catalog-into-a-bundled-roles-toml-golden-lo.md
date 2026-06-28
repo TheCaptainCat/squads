@@ -3,7 +3,7 @@ id: FEAT-000219
 sequence_id: 219
 type: feature
 title: Externalize role catalog into a bundled roles.toml (golden-locked)
-status: Draft
+status: Done
 parent: EPIC-000206
 author: product-owner
 refs:
@@ -18,7 +18,7 @@ subentities:
     hardcoded roles so regressions are caught
   status: Todo
 created_at: '2026-06-26T07:17:14Z'
-updated_at: '2026-06-26T07:19:02Z'
+updated_at: '2026-06-26T07:58:45Z'
 ---
 <!-- sq:body -->
 ## What this delivers

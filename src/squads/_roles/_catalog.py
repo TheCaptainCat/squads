@@ -3,6 +3,10 @@
 Each role has a real name ("Robert Architect") and a slug ("architect"); agents are referred to
 by full name in files and conversation. Stack-specific developers are created on demand via
 ``sq dev add`` using :data:`DEV_NAME_POOL`.
+
+The role data is loaded from the bundled ``roles.toml`` via ``load_role_catalog()`` (ADR-000221).
+``RoleDef`` and all public constants/functions are thin shims over the loaded
+``RoleCatalogSpec`` singleton — behavior is byte-identical to the previous hardcoded literals.
 """
 
 from dataclasses import dataclass
@@ -10,6 +14,8 @@ from typing import Any
 
 from squads._errors import RoleNotFoundError
 from squads._models._extras import ExtraKey as X
+from squads._roles._loader import load_role_catalog
+from squads._roles._models import RoleCatalogSpec, RoleSpec
 from squads._util import slugify
 
 
@@ -59,174 +65,45 @@ class RoleDef:
         )
 
 
-PREDEFINED: tuple[RoleDef, ...] = (
-    RoleDef(
-        slug="manager",
-        full_name="Catherine Manager",
-        title="manager",
-        description=(
-            "Default agent: triages the operator's request and routes it to the right specialist."
-        ),
-        mission=(
-            "Be the operator's first point of contact and run the work loop: understand the "
-            "intent, delegate to the right specialists, integrate what they return, and drive "
-            "each feature to done — keeping everything tracked in squads."
-        ),
-        responsibilities=(
-            "Triage incoming requests and clarify intent",
-            "Delegate work to the right specialist agents and integrate their results",
-            "Drive features through the loop (implement → review → fix) until done",
-            "Keep the backlog and statuses honest",
-            "Summarise progress for the operator",
-        ),
-        model="opus",
-        color="cyan",
-        is_default=True,
-        can_spawn=True,
-    ),
-    RoleDef(
-        slug="architect",
-        full_name="Robert Architect",
-        title="architect",
-        description="System design and architecture decisions (ADRs).",
-        mission=(
-            "Own the system's shape: design coherent solutions, record decisions as ADRs, "
-            "and guide implementation."
-        ),
-        responsibilities=(
-            "Design components and their interactions",
-            "Write and maintain ADRs",
-            "Author cross-cutting guides",
-            "Review designs before implementation",
-        ),
-        model="opus",
-        color="blue",
-    ),
-    RoleDef(
-        slug="tech-lead",
-        full_name="Olivia Lead",
-        title="tech lead",
-        description="Coordination and breaking features into tasks.",
-        mission="Turn features into well-scoped tasks, sequence the work, and unblock the team.",
-        responsibilities=(
-            "Author tasks (`sq create task`); set each task's parent to the feature it implements",
-            'Map each subtask to a single user story (`sq task <n> add-subtask "…" --story USn`)',
-            "For a bug fix or review follow-up, link via refs "
-            "(`sq task <n> ref add <id> --kind fixes|addresses`)",
-            "Leave purely-technical tasks unlinked",
-            "Sequence and assign work; unblock developers",
-            "Co-author guides with the architect",
-        ),
-        model="opus",
-        color="purple",
-        can_spawn=True,
-    ),
-    RoleDef(
-        slug="reviewer",
-        full_name="Paul Reviewer",
-        title="code reviewer",
-        description="Reviews code changes for correctness, clarity, and consistency.",
-        mission=(
-            "Guard quality: review changes critically, request changes when needed, "
-            "approve when sound."
-        ),
-        responsibilities=(
-            "Review diffs for correctness and clarity",
-            "Drive code-review items to a verdict",
-            "Flag risks and missing tests",
-        ),
-        agreements=(
-            "File review findings as tracked sub-entities — `sq review <n> add-finding` with "
-            "severity, statuses updated as they close — never as body prose; finding-scoped "
-            "comments, statuses, and dossier panes all depend on the structure.",
-        ),
-        model="opus",
-        color="red",
-    ),
-    RoleDef(
-        slug="qa",
-        full_name="Mara Tester",
-        title="QA engineer",
-        description="Designs and runs tests; verifies behaviour against acceptance criteria.",
-        mission="Prove the software works: design test cases from user stories and verify fixes.",
-        responsibilities=(
-            "Derive test cases from user stories",
-            "Verify bug fixes and features",
-            "Report defects as bug items",
-        ),
-        model="sonnet",
-        color="green",
-    ),
-    RoleDef(
-        slug="devops",
-        full_name="Hugo Ops",
-        title="DevOps engineer",
-        description="CI/CD, infrastructure, and releases.",
-        mission="Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
-        responsibilities=(
-            "Maintain CI/CD pipelines",
-            "Manage infrastructure and environments",
-            "Run releases",
-        ),
-        model="sonnet",
-        color="orange",
-    ),
-    RoleDef(
-        slug="product-owner",
-        full_name="Nina Product",
-        title="product owner",
-        description="Requirements, user stories, and backlog priorities.",
-        mission=(
-            "Represent the user: capture requirements as features and user stories, "
-            "prioritise the backlog."
-        ),
-        responsibilities=(
-            "Author features (`sq create feature`)",
-            "Write each feature's user stories (`sq story add`)",
-            "Prioritise the backlog and define acceptance criteria",
-        ),
-        model="sonnet",
-        color="yellow",
-    ),
-    RoleDef(
-        slug="tech-writer",
-        full_name="Theo Writer",
-        title="technical writer",
-        description="Documentation and guides.",
-        mission="Make the work understandable: write and maintain clear documentation and guides.",
-        responsibilities=(
-            "Write user- and developer-facing docs",
-            "Keep guides current",
-        ),
-        model="haiku",
-        color="pink",
-    ),
-)
+def _role_spec_to_def(rs: RoleSpec) -> RoleDef:
+    """Convert a ``RoleSpec`` from the loaded catalog to a ``RoleDef``."""
+    return RoleDef(
+        slug=rs.slug,
+        full_name=rs.full_name,
+        title=rs.title,
+        description=rs.description,
+        mission=rs.mission,
+        responsibilities=tuple(rs.responsibilities),
+        agreements=tuple(rs.agreements),
+        model=rs.model,
+        color=rs.color,
+        is_default=rs.is_default,
+        can_spawn=rs.can_spawn,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton — loaded once on first import.
+# ---------------------------------------------------------------------------
+
+_CATALOG: RoleCatalogSpec = load_role_catalog()
+
+# ---------------------------------------------------------------------------
+# Public constants — backed by the singleton (behavior-identical shims).
+# ---------------------------------------------------------------------------
+
+#: The 8 bundled agent roles (declaration order preserved from roles.toml).
+PREDEFINED: tuple[RoleDef, ...] = tuple(_role_spec_to_def(rs) for rs in _CATALOG.roles)
 
 _BY_SLUG: dict[str, RoleDef] = {r.slug: r for r in PREDEFINED}
 
 #: Named bundles selectable at ``sq init --roles``.
 BUNDLES: dict[str, tuple[str, ...]] = {
-    "all": tuple(r.slug for r in PREDEFINED),
-    "core": ("manager", "architect", "tech-lead", "reviewer"),
-    "minimal": ("manager",),
+    name: tuple(slugs) for name, slugs in _CATALOG.bundles.items()
 }
 
 #: First-name pool for auto-named developers (surname = the tech).
-DEV_NAME_POOL: tuple[str, ...] = (
-    "Elias",
-    "Ada",
-    "Linus",
-    "Grace",
-    "Dennis",
-    "Margaret",
-    "Alan",
-    "Barbara",
-    "Ken",
-    "Edsger",
-    "Radia",
-    "Donald",
-)
+DEV_NAME_POOL: tuple[str, ...] = tuple(_CATALOG.dev.name_pool)
 
 
 def role_by_slug(slug: str) -> RoleDef:
@@ -254,13 +131,17 @@ def dev_role(
 
     If ``name`` is omitted, a first name is taken from :data:`DEV_NAME_POOL` (by ``seq``) and the
     surname is the tech (→ "Elias Dotnet"); the slug is ``<tech>-dev``.
+
+    The name pool, default model, and default color are sourced from the loaded catalog's
+    ``dev`` spec (ADR-000221 §3).  The logic is unchanged.
     """
     tech_label = tech.strip()
     surname = tech_label[:1].upper() + tech_label[1:]
     if name:
         full_name = name
     else:
-        first = DEV_NAME_POOL[seq % len(DEV_NAME_POOL)]
+        pool = DEV_NAME_POOL
+        first = pool[seq % len(pool)]
         full_name = f"{first} {surname}"
     slug = f"{slugify(tech_label)}-dev"
     return RoleDef(
@@ -276,6 +157,6 @@ def dev_role(
             "Write tests for changes",
             "Follow the relevant guides; ask the architect when unsure",
         ),
-        model=model or "sonnet",
-        color="green",
+        model=model or _CATALOG.dev.model,
+        color=_CATALOG.dev.color,
     )
