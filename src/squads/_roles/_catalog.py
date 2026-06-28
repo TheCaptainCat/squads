@@ -88,6 +88,12 @@ def _role_spec_to_def(rs: RoleSpec) -> RoleDef:
 
 _CATALOG: RoleCatalogSpec = load_role_catalog()
 
+
+def get_catalog() -> RoleCatalogSpec:
+    """Return the loaded role catalog singleton (the slug authority for cross-spec validation)."""
+    return _CATALOG
+
+
 # ---------------------------------------------------------------------------
 # Public constants — backed by the singleton (behavior-identical shims).
 # ---------------------------------------------------------------------------

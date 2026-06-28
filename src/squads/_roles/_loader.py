@@ -48,11 +48,11 @@ def _build_catalog(raw: dict[str, Any]) -> RoleCatalogSpec:
 
     # --- dev pool ---
     dev_raw: dict[str, Any] = raw.get("dev", {})
-    dev = DevPoolSpec(
-        name_pool=list(dev_raw.get("name_pool", [])),
-        model=str(dev_raw.get("model", "sonnet")),
-        color=str(dev_raw.get("color", "green")),
-    )
+    try:
+        # model_validate so extra="forbid" fires on unknown keys.
+        dev = DevPoolSpec.model_validate(dev_raw)
+    except Exception as exc:
+        raise SquadsError(f"Invalid bundled role catalog [dev]: {exc}") from exc
 
     # --- validation ---
     _validate(roles, bundles, dev)
@@ -68,20 +68,9 @@ def _build_catalog(raw: dict[str, Any]) -> RoleCatalogSpec:
 def _parse_role(data: dict[str, Any], idx: int) -> RoleSpec:
     ctx = f"roles[{idx}]"
     try:
-        return RoleSpec(
-            slug=str(data["slug"]),
-            full_name=str(data["full_name"]),
-            title=str(data["title"]),
-            description=str(data["description"]),
-            mission=str(data["mission"]),
-            responsibilities=[str(s) for s in data.get("responsibilities", [])],
-            agreements=[str(s) for s in data.get("agreements", [])],
-            model=str(data["model"]) if "model" in data else None,
-            color=str(data["color"]) if "color" in data else None,
-            is_default=bool(data.get("is_default", False)),
-            can_spawn=bool(data.get("can_spawn", False)),
-        )
-    except (KeyError, TypeError, ValueError) as exc:
+        # model_validate so extra="forbid" fires on unknown keys.
+        return RoleSpec.model_validate(data)
+    except Exception as exc:
         raise SquadsError(f"Invalid role entry {ctx}: {exc}") from exc
 
 
