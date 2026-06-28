@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 205,
+  "counter": 213,
   "padding": 6,
   "items": {
     "12": {
@@ -7739,6 +7739,314 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-000010"
+    },
+    "206": {
+      "sequence_id": 206,
+      "type": "epic",
+      "title": "Config-driven workflow engine: custom types, statuses, state machines",
+      "slug": "config-driven-workflow-engine-custom-types-statuses-state-ma",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "EPIC-000031"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000206-config-driven-workflow-engine-custom-types-statuses-state-ma.md",
+      "created_at": "2026-06-25T13:04:19Z",
+      "updated_at": "2026-06-25T13:10:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "EPIC-000206"
+    },
+    "207": {
+      "sequence_id": 207,
+      "type": "feature",
+      "title": "Externalize hardcoded workflow into a bundled spec (enums intact)",
+      "slug": "externalize-hardcoded-workflow-into-a-bundled-spec-enums-int",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a maintainer, I want workflow spec loaded from TOML so behavior is in data not code",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a maintainer, I want a golden test asserting default spec == today's behavior so regressions are caught immediately",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000207-externalize-hardcoded-workflow-into-a-bundled-spec-enums-int.md",
+      "created_at": "2026-06-25T13:17:00Z",
+      "updated_at": "2026-06-25T13:17:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000207"
+    },
+    "208": {
+      "sequence_id": 208,
+      "type": "feature",
+      "title": "De-type Item model from enums to str + reify TypeSpec capability flags",
+      "slug": "de-type-item-model-from-enums-to-str-reify-typespec-capabili",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000207:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a maintainer, I want Item type/status to be str-typed so unknown values don't raise at load time",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a maintainer, I want engine spine checks replaced by TypeSpec flags so custom types can declare their own semantics",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000208-de-type-item-model-from-enums-to-str-reify-typespec-capabili.md",
+      "created_at": "2026-06-25T13:17:57Z",
+      "updated_at": "2026-06-25T13:22:19Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000208"
+    },
+    "209": {
+      "sequence_id": 209,
+      "type": "feature",
+      "title": "Project override of workflow spec (additive-only) + sq workflow lint",
+      "slug": "project-override-of-workflow-spec-additive-only-sq-workflow",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000208:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Project admin can add custom types and statuses via .squads.toml",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a project admin, I want sq workflow lint to validate my spec config and report every error clearly before I commit it",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Broken workflow spec hard-stops sq with a clear actionable error",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000209-project-override-of-workflow-spec-additive-only-sq-workflow.md",
+      "created_at": "2026-06-25T13:18:46Z",
+      "updated_at": "2026-06-25T13:22:36Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000209"
+    },
+    "210": {
+      "sequence_id": 210,
+      "type": "feature",
+      "title": "Custom types end-to-end: CLI, folder, skill, spec-derived workflow renderer",
+      "slug": "custom-types-end-to-end-cli-folder-skill-spec-derived-workfl",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000209:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a project admin, I want sq <my-type> create/list/show/update to work for a type I defined in TOML",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a project admin, I want sq workflow to show my custom type and its lifecycle in the team cheatsheet",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "AI agents learn custom vocab from CLAUDE.md after sq sync",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000210-custom-types-end-to-end-cli-folder-skill-spec-derived-workfl.md",
+      "created_at": "2026-06-25T13:19:37Z",
+      "updated_at": "2026-06-25T13:22:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000210"
+    },
+    "211": {
+      "sequence_id": 211,
+      "type": "feature",
+      "title": "Custom statuses and badges end-to-end + lifecycle auto-linearization",
+      "slug": "custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000208:depends-on",
+        "FEAT-000210:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a team member, I want custom status badges to render in sq show and sq list output",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000211-custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari.md",
+      "created_at": "2026-06-25T13:20:36Z",
+      "updated_at": "2026-06-25T13:22:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000211"
+    },
+    "212": {
+      "sequence_id": 212,
+      "type": "feature",
+      "title": "Custom sub-entity kinds + vocabulary rename migrations (stretch / split candidate)",
+      "slug": "custom-sub-entity-kinds-vocabulary-rename-migrations-stretch",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000210:depends-on",
+        "FEAT-000211:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a project admin, I want to define custom sub-entity kinds for my custom types in TOML",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000212-custom-sub-entity-kinds-vocabulary-rename-migrations-stretch.md",
+      "created_at": "2026-06-25T13:21:20Z",
+      "updated_at": "2026-06-25T13:22:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000212"
+    },
+    "213": {
+      "sequence_id": 213,
+      "type": "bug",
+      "title": "Package version duplicated in pyproject and __init__ (bumps half-apply)",
+      "slug": "package-version-duplicated-in-pyproject-and-init-bumps-half",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000213-package-version-duplicated-in-pyproject-and-init-bumps-half.md",
+      "created_at": "2026-06-25T13:34:04Z",
+      "updated_at": "2026-06-25T13:34:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-000213"
     }
   }
 }
