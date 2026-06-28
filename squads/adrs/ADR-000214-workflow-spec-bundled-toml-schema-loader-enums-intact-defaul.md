@@ -9,7 +9,7 @@ refs:
 - FEAT-000207:addresses
 - ADR-000179
 created_at: '2026-06-25T14:18:42Z'
-updated_at: '2026-06-25T14:20:48Z'
+updated_at: '2026-06-26T09:27:27Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -249,4 +249,6 @@ the storage seam; it only relocates the source of truth for prefix/folder into t
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-26T09:27:27Z] Catherine Manager:
+  - Follow-up (non-blocking, from REV-000230): the WorkflowSpec models lack extra='forbid', so unknown TOML keys are silently ignored rather than failing closed. Acceptable for the bundled default (golden-locked, enums-intact), but must be added before the workflow TOML becomes user-editable (FEAT-209/210). Tracked on FEAT-000209.
 <!-- sq:discussion:end -->
