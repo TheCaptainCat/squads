@@ -6,17 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.4.1] - 2026-06-22
+## [0.5.0] - 2026-06-28
 
 ### Added
 
-- **Per-role spawn attenuation — leaf roles can no longer spawn sub-agents (ADR-000155).**
+- **Skills are first-class, ID'd entities.**  A skill is now a full `Item`
+  on the role/operator meta-type profile (`Active` / `Archived`, no sub-entities), stored as
+  `SKILL-NNNNNN-slug.md` with frontmatter as the source of truth and a thin `.claude` pointer
+  resolved from it.  A single skill-description registry feeds the backend, seeding, and migration.
+  New surface: `sq list -t skill`, `sq skill show`, and `SKILL-…` as a ref target.
+
+- **Per-role spawn attenuation — leaf roles can no longer spawn sub-agents.**
   Roles now carry a `can_spawn` capability, held only by `manager` and `tech-lead`.  Every other
   role (developers, reviewer, QA, architect, …) is rendered with `disallowedTools: Agent` in its
   Claude Code agent definition, so a spawned specialist structurally cannot re-delegate.  The
   capability is visible via `sq role <slug> show`.
 
-- **Optional session lineage on every recorded operation (ADR-000158, schema 0.4).**
+- **Optional session lineage on every recorded operation.**
   squads now reads two optional environment variables — `SQUADS_SESSION_ID` and
   `SQUADS_PARENT_SESSION_ID` — once at the CLI root callback and carries them through the
   invocation.  When present, both the reflog line (as additive sibling fields `session_id` /
@@ -29,31 +35,49 @@ All notable changes to this project are documented here. The format follows
   copied, or absent session id is indistinguishable from a real one — these fields must never be
   used as an authorisation input.
 
-- **`sq reflog --tree` and session surfacing in `show --full` (ADR-000158).**  `sq reflog --tree`
+- **`sq reflog --tree` and session surfacing in `show --full`.**  `sq reflog --tree`
   renders the recorded spawn lineage as a nested, best-effort tree; operations with no or unknown
   parent session appear as forest roots, and forged cycles degrade gracefully without dropping any
   entry.  `sq <type> <n> show --full` surfaces the creating and last-modifying session when present.
 
-- **Advisory create-lane warnings (ADR-000163).**  `sq create` now emits a best-effort advisory
+- **Advisory create-lane warnings.**  `sq create` now emits a best-effort advisory
   warning when a role authors an item type outside its lane (for example a developer creating a
   feature), names the expected owner role, and proceeds anyway (exit 0; the warning is recorded in
   the reflog).  Lanes are derived from the team playbook; `manager` and operators are exempt, and
   each role's create-lane is shown in `sq role <slug> show`.  **Advisory only — keyed on the
   self-declared actor, never an authorisation boundary.**
 
+- **`sq graph` — ego-centric ref-graph view** of an item's neighbourhood, with `dot` and `mermaid`
+  export.
+
+- **`sq tree` filters.**  Filter the subtree by status, priority, assignee, and type, with
+  `--depth`; the same filters are shared with `sq list`.
+
+- **Advisory warnings for over-long sub-entity titles.**  A 120-char
+  warn-and-proceed advisory on `add-story` / `add-subtask` / `add-finding`, a matching `sq check`
+  audit rule, and skill guidance that a title is a one-line handle and prose belongs in the body.
+  Advisory only — never gating body presence.
+
+- **Async end-to-end.**  The service layer, index store, and file IO are now async,
+  with synchronous code confined to the CLI entry edge.
+
 ### Fixed
 
-- **Recursive self-spawn cascade (BUG-000152).**  A spawned developer subagent no longer
+- **`--json` output is now ANSI-free regardless of `FORCE_COLOR`.**  All 22 `--json`
+  emission sites route through a plain serializer instead of the colorizing rich console, so
+  machine-readable output parses cleanly even when a parent process forces color.  Regression-tested.
+
+- **Recursive self-spawn cascade.**  A spawned developer subagent no longer
   re-delegates to a same-role child many levels deep instead of doing the work — leaf roles now
   structurally lack the spawn tool (see the spawn-attenuation entry above).
 
 ### Migration
 
-**Schema 0.3 → 0.4 — additive session lineage fields (ADR-000158).**  Run `sq migrate up` to
-stamp the new schema version.  No file rewrites are required; all new fields are optional and
-additive.  Existing item files and reflog lines remain valid and load unchanged.  The session
-fields simply default to absent (treated as `None` / legacy) until your orchestrator skills
-propagate the env vars.
+**Schema 0.3 → 0.5 — run `sq migrate up`.**  The runner applies both steps in order: additive
+session-lineage fields (0.3 → 0.4, no file rewrites; all new fields optional) and the
+skills-as-entities conversion (0.4 → 0.5, which allocates IDs, renames skill files to
+`SKILL-NNNNNN-slug.md`, and backfills frontmatter — idempotently, preserving existing frontmatter).
+Existing item and reflog files remain valid throughout.
 
 ## [0.4.0] - 2026-06-17
 

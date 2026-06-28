@@ -108,9 +108,9 @@ def test_workflow_output_contains_add_only_evolution_rule(runner):
     assert "breaking" in output_lower, (
         "add-only rule (breaking change) missing from sq workflow output"
     )
-    # Must reference FEAT-000013 as the stability contract owner.
-    assert "FEAT-000013" in r.output, (
-        "FEAT-000013 contract reference missing from sq workflow alias section"
+    # Must frame the rule as part of the stability contract.
+    assert "stability contract" in output_lower, (
+        "stability-contract framing missing from sq workflow alias section"
     )
 
 

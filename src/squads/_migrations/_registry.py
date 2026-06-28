@@ -55,12 +55,12 @@ MIGRATIONS: list[Migration] = [
         manual=_v0_2_to_v0_3.MANUAL,
     ),
     Migration(
-        version="0.4.1",
+        version="0.5.0",
         from_schema="0.3",
         to_schema="0.4",
         summary=(
             "Additive session lineage fields: optional session_id/parent_session_id on reflog "
-            "lines and created_session/modified_session on item frontmatter (ADR-000158). "
+            "lines and created_session/modified_session on item frontmatter. "
             "Best-effort, untrusted, observability-only — no file rewrite required."
         ),
         run=_wrap_sync(_v0_3_to_v0_4.migrate),
@@ -72,7 +72,7 @@ MIGRATIONS: list[Migration] = [
         to_schema="0.5",
         summary=(
             "SKILL ids for bundled skills: stamp SKILL-… frontmatter onto every existing "
-            "agents/skills/*.md body file in lexical-by-slug order (FEAT-000178, ADR-000181)."
+            "agents/skills/*.md body file in lexical-by-slug order."
         ),
         run=_v0_4_to_v0_5.migrate,
         manual=_v0_4_to_v0_5.MANUAL,

@@ -56,7 +56,6 @@ _SKILL_FILE = "SKILL.md"
 
 MANUAL = """\
 ## Schema 0.4 → 0.5 — SKILL ids and filename convention for existing squads
-## (FEAT-000178, ADR-000181)
 
 No manual steps are required.  ``sq migrate up`` automatically:
 

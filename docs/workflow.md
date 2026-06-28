@@ -83,7 +83,7 @@ Short and single-letter aliases for the item-type commands provide input sugar f
 | `review` | `rev`, `r` | `sq r <n> show` |
 | `guide` | `g` | `sq g <n> show` |
 
-**Evolution rule (stability contract — see [FEAT-000013](../squads/features/FEAT-000013-stable-cli-grammar-after-1-0.md)):** adding an alias is additive and allowed; removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table is frozen grammar in the same stability tier as the canonical command names.
+**Evolution rule (see the [stability contract](stability.md)):** adding an alias is additive and allowed; removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table is frozen grammar in the same stability tier as the canonical command names.
 
 ---
 
@@ -152,7 +152,7 @@ sub-entity machines (`squads._workflow.SUBENTITY_WORKFLOWS`); `--force` override
 ## Operation reflog (`sq reflog`)
 
 Every mutating `sq` command appends one JSON line to `squads/.reflog.jsonl` — an append-only
-**operation log** (FEAT-000024 / ADR-000117). The reflog is **advisory**: the index
+**operation log**. The reflog is **advisory**: the index
 (`.squads.json`) and the markdown files remain the source of truth. `sq repair`, `sq check`, and
 `sq load` never read it.
 
@@ -211,4 +211,4 @@ Filters are AND-ed. `--json` emits a JSON array of `ReflogEntry` objects matchin
   squads is guaranteed: squads without a reflog simply show empty results.
 
 > The `delta` sub-field keys are additive and may grow across releases. A full stability contract
-> for `delta` shapes is deferred to the FEAT-000013 freeze.
+> for `delta` shapes is deferred to the 1.0 freeze.

@@ -78,5 +78,5 @@ The documented, stable contract:
 Code `3` is the useful one for CI gates — scripts can use `sq check || exit 1` or test the code
 directly. Codes `1` and `2` indicate a broken invocation or squad state, not a lint failure.
 
-The formal stability contract (tiers, versioning, post-1.0 semantics) will live in
-`docs/stability.md` once FEAT-000013 is complete.
+The formal stability contract (tiers, versioning, post-1.0 semantics) lives in
+`docs/stability.md`.
