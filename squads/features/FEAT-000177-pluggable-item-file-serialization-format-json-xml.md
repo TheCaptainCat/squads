@@ -13,15 +13,13 @@ description: Allow JSON or XML as the serialization format for item files in pla
   of markdown-with-comment-tags, configured via .squads.toml
 subentities:
 - local_id: US1
-  title: As a team using agent tooling, I want item files stored as JSON so that I
-    can use standard JSON tooling and skip the markdown parser
+  title: JSON item-file serialization
   status: Todo
 - local_id: US2
-  title: As a team integrating with XML-based systems, I want item files stored as
-    XML so that I can pipe squad data into existing XML toolchains without conversion
+  title: XML item-file serialization
   status: Todo
 created_at: '2026-06-23T12:33:42Z'
-updated_at: '2026-06-23T12:59:51Z'
+updated_at: '2026-06-26T09:38:55Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -78,30 +76,28 @@ _Add with `sq feature 177 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a team using agent tooling, I want item files stored as JSON so that I can use standard JSON tooling and skip the markdown parser |
-| US2 | Todo |  | As a team integrating with XML-based systems, I want item files stored as XML so that I can pipe squad data into existing XML toolchains without conversion |
+| US1 | Todo |  | JSON item-file serialization |
+| US2 | Todo |  | XML item-file serialization |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a team using agent tooling, I want item files stored as JSON so that I can use standard JSON tooling and skip the markdown parser
+### US1 — JSON item-file serialization
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
+As a team using agent tooling, I want item files stored as JSON so that I can use standard JSON tooling and skip the markdown parser.
+
 **Acceptance (all conditional on the architect ADR being approved):**
 
 - `format = json` in `.squads.toml` switches item files to JSON serialization.
-
 - All sq commands pass the full CLI test matrix against a JSON-format squad.
-
 - The JSON store passes the format-conformance suite.
-
 - `sq repair` rebuilds the index from JSON files alone.
-
 - The format-neutral body/prose contract is honored: body regions are named fields, editable only through sq commands, never overwritten wholesale.
 <!-- sq:story:US1:body:end -->
 
@@ -112,23 +108,21 @@ _Add with `sq feature 177 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a team integrating with XML-based systems, I want item files stored as XML so that I can pipe squad data into existing XML toolchains without conversion
+### US2 — XML item-file serialization
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
+As a team integrating with XML-based systems, I want item files stored as XML so that I can pipe squad data into existing XML toolchains without conversion.
+
 **Acceptance (all conditional on the architect ADR being approved):**
 
 - `format = xml` in `.squads.toml` switches item files to XML serialization.
-
 - All sq commands pass the full CLI test matrix against an XML-format squad.
-
 - The XML store passes the format-conformance suite.
-
 - `sq repair` rebuilds the index from XML files alone.
-
 - The format-neutral body/prose contract is honored: body regions are named elements, editable only through sq commands.
 <!-- sq:story:US2:body:end -->
 

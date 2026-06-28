@@ -13,15 +13,13 @@ description: Config knobs for ID prefix and file layout (flat vs per-type subfol
   behind the local item-file store
 subentities:
 - local_id: US1
-  title: As a team, I want one configurable ID/folder prefix for all item types so
-    that our squad reflects our project code instead of the built-in type taxonomy
+  title: Single configurable global ID/folder prefix
   status: Todo
 - local_id: US2
-  title: As a team, I want all item files in one flat directory so that our squad
-    doesn't fragment files across per-type subfolders
+  title: Flat single-directory file layout
   status: Todo
 created_at: '2026-06-23T12:32:58Z'
-updated_at: '2026-06-23T12:59:49Z'
+updated_at: '2026-06-26T09:38:53Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -66,28 +64,27 @@ _Add with `sq feature 176 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a team, I want one configurable ID/folder prefix for all item types so that our squad reflects our project code instead of the built-in type taxonomy |
-| US2 | Todo |  | As a team, I want all item files in one flat directory so that our squad doesn't fragment files across per-type subfolders |
+| US1 | Todo |  | Single configurable global ID/folder prefix |
+| US2 | Todo |  | Flat single-directory file layout |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — As a team, I want one configurable ID/folder prefix for all item types so that our squad reflects our project code instead of the built-in type taxonomy
+### US1 — Single configurable global ID/folder prefix
 
 <!-- sq:story:US1:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
+As a team, I want one configurable ID/folder prefix for all item types so that our squad reflects our project code instead of the built-in type taxonomy.
+
 **Acceptance:**
 
 - A `prefix` key in `.squads.toml` sets one string that replaces all per-type prefixes.
-
 - All sq commands that produce IDs — create, show, list, tree, ref, comment — use the configured prefix.
-
 - OPEN QUESTION: does the prefix apply to the formatted ID only, the folder name only, or both? The built-in behavior couples them (FEAT- → features/); a custom prefix may need them decoupled. This must be answered in a design decision before implementation.
-
 - The default behavior (per-type prefixes) is unchanged when the key is absent.
 <!-- sq:story:US1:body:end -->
 
@@ -98,21 +95,20 @@ _Add with `sq feature 176 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — As a team, I want all item files in one flat directory so that our squad doesn't fragment files across per-type subfolders
+### US2 — Flat single-directory file layout
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
+As a team, I want all item files in one flat directory so that our squad doesn't fragment files across per-type subfolders.
+
 **Acceptance:**
 
 - A `layout = flat` key in `.squads.toml` places all item files in the squad root directory (no subfolders).
-
 - `sq create`, file resolution in `_paths.py`, and all path-bearing output reflect the flat layout.
-
 - `sq repair` and `sq check` work correctly in flat mode.
-
 - The default per-type subfolder layout is unchanged when the key is absent.
 <!-- sq:story:US2:body:end -->
 

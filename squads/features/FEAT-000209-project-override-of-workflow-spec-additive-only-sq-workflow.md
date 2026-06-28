@@ -20,7 +20,7 @@ subentities:
   title: Broken workflow spec hard-stops sq with a clear actionable error
   status: Todo
 created_at: '2026-06-25T13:18:46Z'
-updated_at: '2026-06-25T13:22:36Z'
+updated_at: '2026-06-26T09:27:26Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -132,4 +132,6 @@ As a team member using a squad with a custom workflow, I want a broken spec to h
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-26T09:27:26Z] Catherine Manager:
+  - Prereq surfaced in REV-000230 (FEAT-220): the FEAT-207 workflow spec models (_workflow/_models.py: WorkflowSpec/ItemSpec/StatusSpec/Lifecycle) carry only ConfigDict(frozen=True) — NO extra='forbid' — so a typo'd key in the workflow TOML is SILENTLY IGNORED (verified: ItemSpec accepts a bogus key). Fine for the golden-locked bundled default, but THIS feature makes the workflow TOML project-editable, so add extra='forbid' to those models (+ route the loader through model_validate) for fail-closed parity with the now-hardened roles/playbook loaders. Do it as part of (or before) this feature.
 <!-- sq:discussion:end -->

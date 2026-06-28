@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 225,
+  "counter": 231,
   "padding": 6,
   "items": {
     "12": {
@@ -1687,7 +1687,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a team, I want one configurable ID/folder prefix for all item types so that our squad reflects our project code instead of the built-in type taxonomy",
+          "title": "Single configurable global ID/folder prefix",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1695,7 +1695,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a team, I want all item files in one flat directory so that our squad doesn't fragment files across per-type subfolders",
+          "title": "Flat single-directory file layout",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1704,7 +1704,7 @@
       ],
       "path": "features/FEAT-000176-parameterized-item-file-storage-layout-and-identity.md",
       "created_at": "2026-06-23T12:32:58Z",
-      "updated_at": "2026-06-23T12:59:49Z",
+      "updated_at": "2026-06-26T09:38:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1729,7 +1729,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As a team using agent tooling, I want item files stored as JSON so that I can use standard JSON tooling and skip the markdown parser",
+          "title": "JSON item-file serialization",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1737,7 +1737,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As a team integrating with XML-based systems, I want item files stored as XML so that I can pipe squad data into existing XML toolchains without conversion",
+          "title": "XML item-file serialization",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -1746,7 +1746,7 @@
       ],
       "path": "features/FEAT-000177-pluggable-item-file-serialization-format-json-xml.md",
       "created_at": "2026-06-23T12:33:42Z",
-      "updated_at": "2026-06-23T12:59:51Z",
+      "updated_at": "2026-06-26T09:38:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7887,7 +7887,7 @@
       ],
       "path": "features/FEAT-000209-project-override-of-workflow-spec-additive-only-sq-workflow.md",
       "created_at": "2026-06-25T13:18:46Z",
-      "updated_at": "2026-06-25T13:22:36Z",
+      "updated_at": "2026-06-26T09:27:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8068,7 +8068,7 @@
       "subentities": [],
       "path": "adrs/ADR-000214-workflow-spec-bundled-toml-schema-loader-enums-intact-defaul.md",
       "created_at": "2026-06-25T14:18:42Z",
-      "updated_at": "2026-06-25T14:20:48Z",
+      "updated_at": "2026-06-26T09:27:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8273,7 +8273,7 @@
       "type": "feature",
       "title": "Externalize playbook into a bundled playbook.toml; drives skill generation",
       "slug": "externalize-playbook-into-a-bundled-playbook-toml-drives-ski",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -8312,7 +8312,7 @@
       ],
       "path": "features/FEAT-000220-externalize-playbook-into-a-bundled-playbook-toml-drives-ski.md",
       "created_at": "2026-06-26T07:17:58Z",
-      "updated_at": "2026-06-26T07:31:06Z",
+      "updated_at": "2026-06-26T09:27:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8511,6 +8511,251 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-000225"
+    },
+    "226": {
+      "sequence_id": 226,
+      "type": "decision",
+      "title": "Playbook spec: bundled playbook.toml + loader, slug-validated, skill-output golden-locked",
+      "slug": "playbook-spec-bundled-playbook-toml-loader-slug-validated-sk",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000220:addresses",
+        "FEAT-000219",
+        "ADR-000221",
+        "ADR-000214"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000226-playbook-spec-bundled-playbook-toml-loader-slug-validated-sk.md",
+      "created_at": "2026-06-26T08:01:33Z",
+      "updated_at": "2026-06-26T08:03:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000226"
+    },
+    "227": {
+      "sequence_id": 227,
+      "type": "task",
+      "title": "Build PlaybookSpec/ItemPlaybookSpec/RoleGuideSpec models and author bundled playbook.toml",
+      "slug": "build-playbookspec-itemplaybookspec-roleguidespec-models-and",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000220",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "PlaybookSpec/ItemPlaybookSpec/RoleGuideSpec models, extra=forbid, ordered guides",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Author bundled playbook.toml transcribing today's 7 work-type entries",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000227-build-playbookspec-itemplaybookspec-roleguidespec-models-and.md",
+      "created_at": "2026-06-26T08:04:10Z",
+      "updated_at": "2026-06-26T09:27:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000227"
+    },
+    "228": {
+      "sequence_id": 228,
+      "type": "task",
+      "title": "Playbook loader with cross-spec slug validation; rewire _interactions onto loaded spec",
+      "slug": "playbook-loader-with-cross-spec-slug-validation-rewire-inter",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000220",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "load_playbook via importlib.resources/tomllib; rewire _interactions onto spec",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Cross-spec slug validation against RoleCatalogSpec (*dev exempt), non-meta-only",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000228-playbook-loader-with-cross-spec-slug-validation-rewire-inter.md",
+      "created_at": "2026-06-26T08:04:10Z",
+      "updated_at": "2026-06-26T09:27:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000228"
+    },
+    "229": {
+      "sequence_id": 229,
+      "type": "task",
+      "title": "Two-layer golden-lock: spec == today + generated skills byte-identical; verify packaging",
+      "slug": "two-layer-golden-lock-spec-today-generated-skills-byte-ident",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000220",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Layer-A golden: loaded PlaybookSpec == frozen snapshot of today's PLAYBOOK",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Layer-B golden: generated sq-<type> skills byte-identical; playbook.toml ships",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000229-two-layer-golden-lock-spec-today-generated-skills-byte-ident.md",
+      "created_at": "2026-06-26T08:04:11Z",
+      "updated_at": "2026-06-26T09:27:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000229"
+    },
+    "230": {
+      "sequence_id": 230,
+      "type": "review",
+      "title": "FEAT-220 review: playbook externalized to bundled spec",
+      "slug": "feat-220-review-playbook-externalized-to-bundled-spec",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000220",
+        "TASK-000227",
+        "TASK-000228",
+        "TASK-000229"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Loader bypasses extra='forbid' — typo'd TOML keys silently dropped",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Layer-B snapshot comment says 'verbatim from playbook.toml' — misleading provenance",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000230-feat-220-review-playbook-externalized-to-bundled-spec.md",
+      "created_at": "2026-06-26T09:19:18Z",
+      "updated_at": "2026-06-26T09:27:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000230"
+    },
+    "231": {
+      "sequence_id": 231,
+      "type": "feature",
+      "title": "Ground-up test battery: behavior-named, fast, redundancy-pruned",
+      "slug": "ground-up-test-battery-behavior-named-fast-redundancy-pruned",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000208"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Behavior-named tests, not development archaeology",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "Default test run under 30 seconds",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Each invariant asserted once, at the right layer",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "Coverage ledger preserves previously-caught bugs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000231-ground-up-test-battery-behavior-named-fast-redundancy-pruned.md",
+      "created_at": "2026-06-26T09:33:10Z",
+      "updated_at": "2026-06-26T09:37:36Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000231"
     }
   }
 }
