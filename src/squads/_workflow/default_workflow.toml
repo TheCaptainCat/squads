@@ -1,0 +1,273 @@
+# squads default workflow specification
+# Encodes today's exact vocabulary byte-for-byte (ADR-000214 §2).
+# Loaded and validated by load_workflow_spec() in _loader.py.
+# DO NOT edit without updating the golden-lock test in tests/test_workflow_spec.py.
+
+# ---------------------------------------------------------------------------
+# Named lifecycle state machines — item lifecycles and sub-entity lifecycles
+# all live in one merged namespace (names don't collide).
+#
+# Item lifecycles:    work, adr, review, bug, guide, agent
+# Sub-entity kinds:   subtask, story, finding  (referenced by kind name)
+# ---------------------------------------------------------------------------
+
+[lifecycles.work]
+# Work items: Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)
+initial = "Draft"
+
+[lifecycles.work.transitions]
+Draft      = ["Ready", "InProgress", "Cancelled"]
+Ready      = ["InProgress", "Blocked", "Cancelled"]
+InProgress = ["InReview", "Blocked", "Done", "Cancelled"]
+InReview   = ["InProgress", "Done", "Blocked", "Cancelled"]
+Blocked    = ["Ready", "InProgress", "Cancelled"]
+Done       = ["InProgress"]
+Cancelled  = ["Draft"]
+
+[lifecycles.adr]
+# ADR: Proposed → Accepted → Superseded (+ Rejected, Deprecated)
+initial = "Proposed"
+
+[lifecycles.adr.transitions]
+Proposed   = ["Accepted", "Rejected"]
+Accepted   = ["Superseded", "Deprecated"]
+Rejected   = ["Proposed"]
+Superseded = []
+Deprecated = []
+
+[lifecycles.review]
+# Code review: Requested → InReview → ChangesRequested → Approved (+ Rejected)
+initial = "Requested"
+
+[lifecycles.review.transitions]
+Requested        = ["InReview", "Rejected"]
+InReview         = ["ChangesRequested", "Approved", "Rejected"]
+ChangesRequested = ["InReview", "Rejected"]
+Approved         = []
+Rejected         = []
+
+[lifecycles.bug]
+# Bug: Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)
+initial = "Open"
+
+[lifecycles.bug.transitions]
+Open       = ["InProgress", "WontFix", "Cancelled"]
+InProgress = ["Fixed", "Blocked", "WontFix", "Cancelled"]
+Fixed      = ["Verified", "InProgress"]
+Verified   = ["InProgress"]
+Blocked    = ["InProgress", "WontFix", "Cancelled"]
+WontFix    = ["Open"]
+Cancelled  = ["Open"]
+
+[lifecycles.guide]
+# Guide: Draft → Published → Deprecated
+initial = "Draft"
+
+[lifecycles.guide.transitions]
+Draft     = ["Published"]
+Published = ["Deprecated", "Draft"]
+Deprecated = ["Published"]
+
+[lifecycles.agent]
+# Role / Skill / Operator: Draft → Active → Archived
+initial = "Draft"
+
+[lifecycles.agent.transitions]
+Draft    = ["Active"]
+Active   = ["Archived"]
+Archived = ["Active"]
+
+# Sub-entity lifecycles — keyed by kind name.
+# subtask and story share the same machine definition (duplicated intentionally
+# to keep the merged namespace flat with no extra indirection).
+
+[lifecycles.subtask]
+initial = "Todo"
+
+[lifecycles.subtask.transitions]
+Todo       = ["InProgress", "Blocked", "Cancelled"]
+InProgress = ["Done", "Blocked", "Cancelled"]
+Blocked    = ["InProgress", "Cancelled"]
+Done       = ["InProgress"]
+Cancelled  = ["Todo"]
+
+[lifecycles.story]
+# Story reuses the subtask lifecycle (same transitions).
+initial = "Todo"
+
+[lifecycles.story.transitions]
+Todo       = ["InProgress", "Blocked", "Cancelled"]
+InProgress = ["Done", "Blocked", "Cancelled"]
+Blocked    = ["InProgress", "Cancelled"]
+Done       = ["InProgress"]
+Cancelled  = ["Todo"]
+
+[lifecycles.finding]
+# Review findings: Open → Fixed → Verified (+ WontFix)
+initial = "Open"
+
+[lifecycles.finding.transitions]
+Open    = ["Fixed", "WontFix"]
+Fixed   = ["Verified", "Open"]
+Verified = []
+WontFix = ["Open"]
+
+# ---------------------------------------------------------------------------
+# Statuses (terminal flag + optional sub-entity badge)
+# terminal mirrors today's TERMINAL frozenset exactly.
+# badge mirrors today's STATUS_EMOJI (only the 9 sub-entity statuses carry one).
+# ---------------------------------------------------------------------------
+
+[statuses.Draft]
+terminal = false
+
+[statuses.Ready]
+terminal = false
+
+[statuses.InProgress]
+terminal = false
+badge = "🟡"
+
+[statuses.InReview]
+terminal = false
+
+[statuses.Done]
+terminal = true
+badge = "🟢"
+
+[statuses.Blocked]
+terminal = false
+badge = "🔴"
+
+[statuses.Cancelled]
+terminal = true
+badge = "⚫"
+
+[statuses.Proposed]
+terminal = false
+
+[statuses.Accepted]
+terminal = true
+
+[statuses.Superseded]
+terminal = true
+
+[statuses.Rejected]
+terminal = true
+
+[statuses.Deprecated]
+terminal = true
+
+[statuses.Requested]
+terminal = false
+
+[statuses.ChangesRequested]
+terminal = false
+
+[statuses.Approved]
+terminal = true
+
+[statuses.Published]
+terminal = true
+
+[statuses.Active]
+terminal = false
+
+[statuses.Archived]
+terminal = true
+
+[statuses.Todo]
+terminal = false
+badge = "⚪"
+
+[statuses.Open]
+terminal = false
+badge = "🔴"
+
+[statuses.Fixed]
+terminal = false
+badge = "🟡"
+
+[statuses.Verified]
+terminal = true
+badge = "🟢"
+
+[statuses.WontFix]
+terminal = true
+badge = "⚫"
+
+# ---------------------------------------------------------------------------
+# Items (prefix / folder / lifecycle / parents / aliases)
+# Mirrors PREFIX_BY_TYPE / FOLDER_BY_TYPE / ALLOWED_PARENTS / TYPE_ALIASES exactly.
+# parents = [] means unconstrained (any parent or none is valid).
+# ---------------------------------------------------------------------------
+
+[items.epic]
+prefix   = "EPIC"
+folder   = "epics"
+lifecycle = "work"
+parents  = []
+aliases  = ["e"]
+
+[items.feature]
+prefix   = "FEAT"
+folder   = "features"
+lifecycle = "work"
+parents  = ["epic"]
+aliases  = ["feat", "f"]
+
+[items.task]
+prefix   = "TASK"
+folder   = "tasks"
+lifecycle = "work"
+parents  = ["feature"]
+aliases  = ["t"]
+
+[items.bug]
+prefix   = "BUG"
+folder   = "bugs"
+lifecycle = "bug"
+parents  = []
+aliases  = ["b"]
+
+[items.decision]
+prefix   = "ADR"
+folder   = "adrs"
+lifecycle = "adr"
+parents  = []
+aliases  = ["dec", "d"]
+
+[items.review]
+prefix   = "REV"
+folder   = "reviews"
+lifecycle = "review"
+parents  = []
+aliases  = ["rev", "r"]
+
+[items.guide]
+prefix   = "GUIDE"
+folder   = "guides"
+lifecycle = "guide"
+parents  = []
+aliases  = ["g"]
+
+[items.role]
+prefix   = "ROLE"
+folder   = "agents/roles"
+lifecycle = "agent"
+parents  = []
+aliases  = []
+
+[items.skill]
+prefix   = "SKILL"
+folder   = "agents/skills"
+lifecycle = "agent"
+parents  = []
+aliases  = []
+
+[items.operator]
+prefix   = "OP"
+folder   = "operators"
+lifecycle = "agent"
+parents  = []
+aliases  = []

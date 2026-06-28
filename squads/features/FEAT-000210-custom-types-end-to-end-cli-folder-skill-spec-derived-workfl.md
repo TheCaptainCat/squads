@@ -8,6 +8,7 @@ parent: EPIC-000206
 author: product-owner
 refs:
 - FEAT-000209:depends-on
+- FEAT-000220
 subentities:
 - local_id: US1
   title: As a project admin, I want sq <my-type> create/list/show/update to work for
@@ -21,7 +22,7 @@ subentities:
   title: AI agents learn custom vocab from CLAUDE.md after sq sync
   status: Todo
 created_at: '2026-06-25T13:19:37Z'
-updated_at: '2026-06-25T13:22:37Z'
+updated_at: '2026-06-26T07:31:05Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -147,4 +148,6 @@ As an AI agent working in a squad with custom types, I want the managed CLAUDE.m
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-26T07:31:05Z] Catherine Manager:
+  - Design constraint (from op-pierre): custom types are ADDITIVE over the reserved core — a project may add types but may NOT drop the reserved meta-types (role/skill/operator) that the role backend / skill generation / operator machinery depend on. Enforce via the RESERVED_TYPES invariant introduced in FEAT-000208.
 <!-- sq:discussion:end -->
