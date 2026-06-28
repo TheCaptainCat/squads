@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 220,
+  "counter": 225,
   "padding": 6,
   "items": {
     "12": {
@@ -8232,7 +8232,7 @@
       "type": "feature",
       "title": "Externalize role catalog into a bundled roles.toml (golden-locked)",
       "slug": "externalize-role-catalog-into-a-bundled-roles-toml-golden-lo",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -8262,7 +8262,7 @@
       ],
       "path": "features/FEAT-000219-externalize-role-catalog-into-a-bundled-roles-toml-golden-lo.md",
       "created_at": "2026-06-26T07:17:14Z",
-      "updated_at": "2026-06-26T07:19:02Z",
+      "updated_at": "2026-06-26T07:58:45Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8317,6 +8317,200 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-000220"
+    },
+    "221": {
+      "sequence_id": 221,
+      "type": "decision",
+      "title": "Role catalog spec: bundled roles.toml + loader, golden-locked, enums-intact era",
+      "slug": "role-catalog-spec-bundled-roles-toml-loader-golden-locked-en",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000219:addresses",
+        "ADR-000214"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000221-role-catalog-spec-bundled-roles-toml-loader-golden-locked-en.md",
+      "created_at": "2026-06-26T07:33:23Z",
+      "updated_at": "2026-06-26T07:35:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000221"
+    },
+    "222": {
+      "sequence_id": 222,
+      "type": "task",
+      "title": "Build RoleCatalogSpec/RoleSpec/DevPoolSpec models and author bundled roles.toml",
+      "slug": "build-rolecatalogspec-rolespec-devpoolspec-models-and-author",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000219",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "RoleCatalogSpec/RoleSpec/DevPoolSpec models capturing full RoleDef field set",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Author bundled roles.toml encoding today's 8 roles + bundles + dev pool",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000222-build-rolecatalogspec-rolespec-devpoolspec-models-and-author.md",
+      "created_at": "2026-06-26T07:35:28Z",
+      "updated_at": "2026-06-26T07:58:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000222"
+    },
+    "223": {
+      "sequence_id": 223,
+      "type": "task",
+      "title": "Role catalog loader with fail-closed validation; rewire _catalog.py onto loaded spec",
+      "slug": "role-catalog-loader-with-fail-closed-validation-rewire-catal",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000219",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "load_role_catalog via importlib.resources/tomllib + fail-closed validation",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rewire _catalog.py to shims over the loaded spec; keep dev_role logic + extra bridge",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000223-role-catalog-loader-with-fail-closed-validation-rewire-catal.md",
+      "created_at": "2026-06-26T07:35:29Z",
+      "updated_at": "2026-06-26T07:58:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000223"
+    },
+    "224": {
+      "sequence_id": 224,
+      "type": "task",
+      "title": "Golden-lock test: loaded catalog == today's roles/bundles/dev pool; verify roles.toml ships",
+      "slug": "golden-lock-test-loaded-catalog-today-s-roles-bundles-dev-po",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000219",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Golden-lock test: loaded catalog == frozen snapshot of today's _catalog.py",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Build test: roles.toml ships in the wheel",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000224-golden-lock-test-loaded-catalog-today-s-roles-bundles-dev-po.md",
+      "created_at": "2026-06-26T07:35:29Z",
+      "updated_at": "2026-06-26T07:58:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000224"
+    },
+    "225": {
+      "sequence_id": 225,
+      "type": "review",
+      "title": "FEAT-219 review: role catalog externalized to bundled roles.toml",
+      "slug": "feat-219-review-role-catalog-externalized-to-bundled-roles-t",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000219",
+        "TASK-000222",
+        "TASK-000223",
+        "TASK-000224"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Golden test docstring overstates coverage: a newly-added RoleSpec field would NOT fail the lock",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Unknown TOML role keys silently ignored (pydantic extra=ignore + explicit key enum in _parse_role)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Stale comment: lazy import of RoleSpec in _role_spec_to_def claims a circular-import risk that does not exist",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000225-feat-219-review-role-catalog-externalized-to-bundled-roles-t.md",
+      "created_at": "2026-06-26T07:54:32Z",
+      "updated_at": "2026-06-26T07:58:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000225"
     }
   }
 }
