@@ -3,7 +3,7 @@ id: FEAT-000212
 sequence_id: 212
 type: feature
 title: Custom sub-entity kinds + vocabulary rename migrations (stretch / split candidate)
-status: Draft
+status: Ready
 parent: EPIC-000206
 author: product-owner
 refs:
@@ -19,7 +19,7 @@ subentities:
     type across my whole squad
   status: Todo
 created_at: '2026-06-25T13:21:20Z'
-updated_at: '2026-06-25T13:22:24Z'
+updated_at: '2026-06-30T07:47:15Z'
 ---
 <!-- sq:body -->
 ## Status: stretch goal / strong candidate to split into its own epic

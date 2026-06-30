@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 238,
+  "counter": 255,
   "padding": 6,
   "items": {
     "12": {
@@ -7849,7 +7849,7 @@
       "type": "feature",
       "title": "Project override of workflow spec (additive-only) + sq workflow lint",
       "slug": "project-override-of-workflow-spec-additive-only-sq-workflow",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -7862,7 +7862,7 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "Project admin can add custom types and statuses via .squads.toml",
+          "title": "Project admin can add custom types and statuses via .overrides/workflow.toml",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -7887,7 +7887,7 @@
       ],
       "path": "features/FEAT-000209-project-override-of-workflow-spec-additive-only-sq-workflow.md",
       "created_at": "2026-06-25T13:18:46Z",
-      "updated_at": "2026-06-26T09:27:26Z",
+      "updated_at": "2026-06-30T09:32:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7898,7 +7898,7 @@
       "type": "feature",
       "title": "Custom types end-to-end: CLI, folder, skill, spec-derived workflow renderer",
       "slug": "custom-types-end-to-end-cli-folder-skill-spec-derived-workfl",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -7907,7 +7907,8 @@
       "labels": [],
       "refs": [
         "FEAT-000209:depends-on",
-        "FEAT-000220"
+        "FEAT-000220",
+        "FEAT-000250:depends-on"
       ],
       "subentities": [
         {
@@ -7937,7 +7938,7 @@
       ],
       "path": "features/FEAT-000210-custom-types-end-to-end-cli-folder-skill-spec-derived-workfl.md",
       "created_at": "2026-06-25T13:19:37Z",
-      "updated_at": "2026-06-26T15:22:23Z",
+      "updated_at": "2026-06-30T09:52:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7948,7 +7949,7 @@
       "type": "feature",
       "title": "Custom statuses and badges end-to-end + lifecycle auto-linearization",
       "slug": "custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -7979,7 +7980,7 @@
       ],
       "path": "features/FEAT-000211-custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari.md",
       "created_at": "2026-06-25T13:20:36Z",
-      "updated_at": "2026-06-26T09:44:14Z",
+      "updated_at": "2026-06-30T07:47:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7990,7 +7991,7 @@
       "type": "feature",
       "title": "Custom sub-entity kinds + vocabulary rename migrations (stretch / split candidate)",
       "slug": "custom-sub-entity-kinds-vocabulary-rename-migrations-stretch",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -8021,7 +8022,7 @@
       ],
       "path": "features/FEAT-000212-custom-sub-entity-kinds-vocabulary-rename-migrations-stretch.md",
       "created_at": "2026-06-25T13:21:20Z",
-      "updated_at": "2026-06-25T13:22:24Z",
+      "updated_at": "2026-06-30T07:47:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9057,6 +9058,618 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-000238"
+    },
+    "239": {
+      "sequence_id": 239,
+      "type": "task",
+      "title": "Project-override merge loader for the workflow spec (additive-only)",
+      "slug": "project-override-merge-loader-for-the-workflow-spec-additive",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000209",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Additive-only merge of project override over bundled default",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "(duplicate — see ST1)",
+          "status": "Cancelled",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000239-project-override-merge-loader-for-the-workflow-spec-additive.md",
+      "created_at": "2026-06-30T07:49:45Z",
+      "updated_at": "2026-06-30T09:19:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000239"
+    },
+    "240": {
+      "sequence_id": 240,
+      "type": "task",
+      "title": "Thread the merged spec into open_service + load-boundary validate()",
+      "slug": "thread-the-merged-spec-into-open-service-load-boundary-valid",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000209",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "open_service loads merged spec and hard-stops on invalid",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000240-thread-the-merged-spec-into-open-service-load-boundary-valid.md",
+      "created_at": "2026-06-30T07:49:52Z",
+      "updated_at": "2026-06-30T08:26:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000240"
+    },
+    "241": {
+      "sequence_id": 241,
+      "type": "task",
+      "title": "Extend WorkflowSpec.validate() with index cross-check + parent-cycle checks",
+      "slug": "extend-workflowspec-validate-with-index-cross-check-parent-c",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000209",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Parent-cycle + live-index cross-check validation",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000241-extend-workflowspec-validate-with-index-cross-check-parent-c.md",
+      "created_at": "2026-06-30T07:49:52Z",
+      "updated_at": "2026-06-30T08:26:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000241"
+    },
+    "242": {
+      "sequence_id": 242,
+      "type": "task",
+      "title": "sq workflow lint — verbose author-facing spec validation surface",
+      "slug": "sq-workflow-lint-verbose-author-facing-spec-validation-surfa",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000209",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq workflow lint verbose validate, exit 0/1",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000242-sq-workflow-lint-verbose-author-facing-spec-validation-surfa.md",
+      "created_at": "2026-06-30T07:49:53Z",
+      "updated_at": "2026-06-30T09:29:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000242"
+    },
+    "243": {
+      "sequence_id": 243,
+      "type": "task",
+      "title": "sq check surfaces a one-line invalid-workflow-spec warning",
+      "slug": "sq-check-surfaces-a-one-line-invalid-workflow-spec-warning",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000209",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq check one-line invalid-workflow-spec warning",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000243-sq-check-surfaces-a-one-line-invalid-workflow-spec-warning.md",
+      "created_at": "2026-06-30T07:49:54Z",
+      "updated_at": "2026-06-30T09:29:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000243"
+    },
+    "244": {
+      "sequence_id": 244,
+      "type": "task",
+      "title": "Add workflow as the third sq override artifact (scaffold/diff/drift)",
+      "slug": "add-workflow-as-the-third-sq-override-artifact-scaffold-diff",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000209",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "workflow as third sq override artifact (scaffold/diff/drift)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000244-add-workflow-as-the-third-sq-override-artifact-scaffold-diff.md",
+      "created_at": "2026-06-30T07:49:54Z",
+      "updated_at": "2026-06-30T09:19:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000244"
+    },
+    "245": {
+      "sequence_id": 245,
+      "type": "task",
+      "title": "Document the workflow override format (sq docs workflow)",
+      "slug": "document-the-workflow-override-format-sq-docs-workflow",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000209",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sq docs workflow override-format doc + worked example",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000245-document-the-workflow-override-format-sq-docs-workflow.md",
+      "created_at": "2026-06-30T07:49:55Z",
+      "updated_at": "2026-06-30T09:26:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000245"
+    },
+    "246": {
+      "sequence_id": 246,
+      "type": "review",
+      "title": "Engine core review: workflow override merge + singleton rebind + validate (TASK-239/240/241)",
+      "slug": "engine-core-review-workflow-override-merge-singleton-rebind",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000209:addresses",
+        "TASK-000239:addresses",
+        "TASK-000240:addresses",
+        "TASK-000241:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "AC#5 not enforced at any runtime boundary in this core",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Override source is .overrides/workflow.toml only; FEAT AC#1 wording says .squads.toml",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "open_service re-reads + re-validates the bundled TOML on every call, even with no override",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and e2e sq list are not asserted",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "Two minor robustness/clarity nits in the loader",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000246-engine-core-review-workflow-override-merge-singleton-rebind.md",
+      "created_at": "2026-06-30T08:23:56Z",
+      "updated_at": "2026-06-30T08:25:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000246"
+    },
+    "247": {
+      "sequence_id": 247,
+      "type": "task",
+      "title": "Eliminate pre-existing reportPrivateUsage suppressions across service mixins",
+      "slug": "eliminate-pre-existing-reportprivateusage-suppressions-acros",
+      "status": "Draft",
+      "description": "Tech-debt: replace ~20 cross-module private reach-ins with public APIs/accessors",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "low",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000247-eliminate-pre-existing-reportprivateusage-suppressions-acros.md",
+      "created_at": "2026-06-30T08:51:11Z",
+      "updated_at": "2026-06-30T08:51:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000247"
+    },
+    "248": {
+      "sequence_id": 248,
+      "type": "review",
+      "title": "Wave 2-4 review: workflow lint + sq check + override artifact + docs (TASK-242/243/244/245)",
+      "slug": "wave-2-4-review-workflow-lint-sq-check-override-artifact-doc",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000209:addresses",
+        "TASK-000242:addresses",
+        "TASK-000243:addresses",
+        "TASK-000244:addresses",
+        "TASK-000245:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "AC#1 'sq create incident works' is NOT met end-to-end — custom-type create CLI is FEAT-210 scope",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "open_service: vestigial F5 comment block + redundant try/except SquadsError re-wrap around validate_against_index_fail_closed",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Two new reportPrivateUsage suppressions on _common._active_dir (_workflow_cmd.py:80, _main.py:998) — tracked by TASK-247 but new",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "docs/workflow.md: lint sample output shows a line number (.toml:15) the linter never emits; hard-stop sample message is the index-cross-check msg, not the syntax-error one",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "No e2e test asserting an override type round-trips through create→file→list (carries forward REV-246 F4); is_open() now returns True for unknown status instead of raising (info)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000248-wave-2-4-review-workflow-lint-sq-check-override-artifact-doc.md",
+      "created_at": "2026-06-30T09:11:44Z",
+      "updated_at": "2026-06-30T09:13:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000248"
+    },
+    "249": {
+      "sequence_id": 249,
+      "type": "decision",
+      "title": "Workflow spec as a threaded context object: kill the process-global singleton (executes ADR-214 §1)",
+      "slug": "workflow-spec-as-a-threaded-context-object-kill-the-process",
+      "status": "Accepted",
+      "description": "Assessment ADR (Draft): de-globalize the workflow-spec singleton into a Service-owned/threaded context per ADR-214 §1. Go/no-go for Pierre.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000214:addresses",
+        "FEAT-000210:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000249-workflow-spec-as-a-threaded-context-object-kill-the-process.md",
+      "created_at": "2026-06-30T09:47:54Z",
+      "updated_at": "2026-06-30T09:54:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000249"
+    },
+    "250": {
+      "sequence_id": 250,
+      "type": "feature",
+      "title": "De-globalize workflow spec: Service-owned threaded context, delete the singleton",
+      "slug": "de-globalize-workflow-spec-service-owned-threaded-context-de",
+      "status": "Done",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000249:addresses"
+      ],
+      "subentities": [],
+      "path": "features/FEAT-000250-de-globalize-workflow-spec-service-owned-threaded-context-de.md",
+      "created_at": "2026-06-30T09:52:27Z",
+      "updated_at": "2026-06-30T10:47:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000250"
+    },
+    "251": {
+      "sequence_id": 251,
+      "type": "task",
+      "title": "Workflow core: free functions to spec/context methods + IndexStore takes the spec",
+      "slug": "workflow-core-free-functions-to-spec-context-methods-indexst",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000250",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000251-workflow-core-free-functions-to-spec-context-methods-indexst.md",
+      "created_at": "2026-06-30T09:53:04Z",
+      "updated_at": "2026-06-30T10:03:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000251"
+    },
+    "252": {
+      "sequence_id": 252,
+      "type": "task",
+      "title": "Service-layer call-site sweep: Service.spec attribute, ~40 sites read self.spec",
+      "slug": "service-layer-call-site-sweep-service-spec-attribute-40-site",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000250",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000251:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000252-service-layer-call-site-sweep-service-spec-attribute-40-site.md",
+      "created_at": "2026-06-30T09:53:04Z",
+      "updated_at": "2026-06-30T10:14:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000252"
+    },
+    "253": {
+      "sequence_id": 253,
+      "type": "task",
+      "title": "CLI per-invocation spec context: root --dir callback binds it, parsers read it",
+      "slug": "cli-per-invocation-spec-context-root-dir-callback-binds-it-p",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000250",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000252:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000253-cli-per-invocation-spec-context-root-dir-callback-binds-it-p.md",
+      "created_at": "2026-06-30T09:53:05Z",
+      "updated_at": "2026-06-30T10:20:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000253"
+    },
+    "254": {
+      "sequence_id": 254,
+      "type": "task",
+      "title": "Test rewrite: thread spec in singleton-touching tests, delete autouse reset fixture",
+      "slug": "test-rewrite-thread-spec-in-singleton-touching-tests-delete",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000250",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000253:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000254-test-rewrite-thread-spec-in-singleton-touching-tests-delete.md",
+      "created_at": "2026-06-30T09:53:05Z",
+      "updated_at": "2026-06-30T10:30:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000254"
+    },
+    "255": {
+      "sequence_id": 255,
+      "type": "review",
+      "title": "FEAT-000250 de-globalize workflow spec: Service-owned threaded context, delete singleton",
+      "slug": "feat-000250-de-globalize-workflow-spec-service-owned-threade",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000250:addresses",
+        "TASK-000251:addresses",
+        "TASK-000252:addresses",
+        "TASK-000253:addresses",
+        "TASK-000254:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Parse-ordering test under-proves its docstring claim",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "test_rendering._template_for is a hand-copy of ServiceCore._template_for (drift risk)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "_meta_compat uses bundled_spec() inline rather than a threaded-in spec param",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "[duplicate — see F1/F2/F3] tool-retry artifact",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "[duplicate — see F1/F2/F3] tool-retry artifact",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F6",
+          "title": "[duplicate — see F1/F2/F3] tool-retry artifact",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F7",
+          "title": "[duplicate — see F1/F2/F3] tool-retry artifact",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000255-feat-000250-de-globalize-workflow-spec-service-owned-threade.md",
+      "created_at": "2026-06-30T10:43:46Z",
+      "updated_at": "2026-06-30T10:46:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000255"
     }
   }
 }

@@ -3,12 +3,13 @@ id: FEAT-000210
 sequence_id: 210
 type: feature
 title: 'Custom types end-to-end: CLI, folder, skill, spec-derived workflow renderer'
-status: Draft
+status: Ready
 parent: EPIC-000206
 author: product-owner
 refs:
 - FEAT-000209:depends-on
 - FEAT-000220
+- FEAT-000250:depends-on
 subentities:
 - local_id: US1
   title: As a project admin, I want sq <my-type> create/list/show/update to work for
@@ -22,7 +23,7 @@ subentities:
   title: AI agents learn custom vocab from CLAUDE.md after sq sync
   status: Todo
 created_at: '2026-06-25T13:19:37Z'
-updated_at: '2026-06-26T15:22:23Z'
+updated_at: '2026-06-30T09:52:57Z'
 ---
 <!-- sq:body -->
 ## What this delivers
