@@ -22,6 +22,7 @@ from squads._interactions._models import (
 )
 from squads._models._enums import ItemType
 from squads._roles._catalog import get_catalog
+from squads._workflow._models import WorkflowSpec
 
 #: Sentinel interacting "role" that expands to every developer role (slug ``<tech>-dev``).
 DEV = "*dev"
@@ -233,6 +234,39 @@ def item_skill_name(item_type: ItemType) -> str:
     return f"sq-{item_type.value}"
 
 
+def custom_item_skill_name(type_name: str) -> str:
+    """Return the skill slug for a custom (non-built-in) item type."""
+    return f"sq-{type_name}"
+
+
+def custom_item_skill_commands(type_name: str) -> list[str]:
+    """Return the standard command list for a custom item type.
+
+    Custom types have no PLAYBOOK entry, so we emit the generic verb set
+    (create, show, list, update, status, ref, comment, body, remove, retype).
+    """
+    return [
+        f'sq create {type_name} "…" --author <slug>',
+        f"sq {type_name} <n> show --full --comments",
+        f"sq list -t {type_name}",
+        f"sq {type_name} <n> update --status <status>",
+        f"sq {type_name} <n> status <status>",
+        f"sq {type_name} <n> ref add <id> [--kind <kind>]",
+        f'sq {type_name} <n> comment --as <slug> -m "…"',
+        f'sq {type_name} <n> body -m "…"',
+        f"sq {type_name} <n> remove",
+        f"sq {type_name} <n> retype <new-type>",
+    ]
+
+
+def custom_item_skill_description(type_name: str) -> str:
+    """Return the canonical description for a custom type's skill slug."""
+    return (
+        f"Working with {type_name} items in this squad: "
+        "lifecycle, commands, and role-specific guidance."
+    )
+
+
 def managed_item_types() -> list[ItemType]:
     return list(PLAYBOOK)
 
@@ -263,3 +297,24 @@ def bundled_skill_slugs() -> list[str]:
     """
     all_slugs = [SQUADS_SKILL, GREETING_SKILL, *(item_skill_name(t) for t in managed_item_types())]
     return sorted(set(all_slugs))
+
+
+def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
+    """All custom (non-built-in) type skill slugs for *spec*, in lexical order.
+
+    Extends the FEAT-178 allocation primitive to custom types: each custom type
+    declared in the spec (beyond the built-in ``ItemType`` members) gets a
+    ``sq-<type>`` skill slug allocated in the same lexical-by-slug order so
+    there is no churn of existing SKILL ids (AC#6).
+
+    The returned list contains only custom type slugs (not the bundled ones
+    returned by ``bundled_skill_slugs()``).  Callers that need the full merged
+    set should sort ``bundled_skill_slugs() + custom_skill_slugs(spec)``
+    lexically — the natural extension of ADR-000181 decision #5.
+    """
+    builtin_type_names: frozenset[str] = frozenset(t.value for t in ItemType)
+    return sorted(
+        custom_item_skill_name(ctype)
+        for ctype in spec.items
+        if ctype not in builtin_type_names and not spec.items[ctype].is_meta
+    )

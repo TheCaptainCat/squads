@@ -219,7 +219,7 @@ class ServiceCore:
     # ------------------------------------------------------------------ backend
     @property
     def _ctx(self) -> BackendContext:
-        return BackendContext(paths=self.paths, version=__version__)
+        return BackendContext(paths=self.paths, version=__version__, spec=self.spec)
 
     def _backends(self) -> list[AgentBackend]:
         """Return one backend instance for each active (deduped) backend name.
@@ -593,7 +593,9 @@ class ServiceCore:
 
     async def refresh_managed(self) -> None:
         skill_map = await self._skill_paths()
-        ctx = BackendContext(paths=self.paths, version=__version__, skill_paths=skill_map)
+        ctx = BackendContext(
+            paths=self.paths, version=__version__, skill_paths=skill_map, spec=self.spec
+        )
         roster = await self.roster()
         ops = await self.operators()
         for backend in self._backends():
