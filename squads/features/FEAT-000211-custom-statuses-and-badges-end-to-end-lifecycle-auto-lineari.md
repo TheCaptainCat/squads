@@ -3,7 +3,7 @@ id: FEAT-000211
 sequence_id: 211
 type: feature
 title: Custom statuses and badges end-to-end + lifecycle auto-linearization
-status: Draft
+status: Ready
 parent: EPIC-000206
 author: product-owner
 refs:
@@ -19,7 +19,7 @@ subentities:
     list output
   status: Todo
 created_at: '2026-06-25T13:20:36Z'
-updated_at: '2026-06-26T09:44:14Z'
+updated_at: '2026-06-30T07:47:14Z'
 ---
 <!-- sq:body -->
 ## What this delivers

@@ -300,7 +300,7 @@ workflow override may not redefine built-in status 'Done'
 (additive-only; you may add new statuses but not change built-ins)
 ```
 
-If you remove a custom status from the override that is still in use by live items in the squad, `sq` will hard-stop with an error listing the affected items. Fix the items (e.g. `sq incident 5 status Mitigating`) or restore the status to the override.
+If you remove a custom status from the override that is still in use by live items in the squad, `sq` will hard-stop with an error listing the affected items. Fix the items by updating their status or restore the status to the override.
 
 Unknown TOML keys (typos) are rejected at load time, so the spec is fail-closed.
 
@@ -328,12 +328,14 @@ If there are errors, `sq workflow lint` prints each one with context and a fix h
 
 ```
                           workflow spec errors                          
-┌────────────────────────────────────┬──────────────────────────────────┐
-│ location                           │ error                            │
-├────────────────────────────────────┼──────────────────────────────────┤
-│ .overrides/workflow.toml:15        │ lifecycle 'incident' not found   │
-│                                    │ (referenced in items.incident)   │
-└────────────────────────────────────┴──────────────────────────────────┘
+┌────────────────────────────────────┬──────────────────────────────────┬──────────────────────────┐
+│ location                           │ error                            │ fix hint                 │
+├────────────────────────────────────┼──────────────────────────────────┼──────────────────────────┤
+│ .overrides/workflow.toml           │ Invalid workflow spec: lifecy-   │ Fix the TOML at          │
+│                                    │ cle 'incident' not found         │ .overrides/workflow.toml │
+│                                    │ (referenced in items.incident)   │ and re-run `sq workflow  │
+│                                    │                                  │ lint`.                   │
+└────────────────────────────────────┴──────────────────────────────────┴──────────────────────────┘
 ```
 
 ### Worked example: incident type
@@ -367,25 +369,14 @@ folder = "incidents"
 lifecycle = "incident"
 ```
 
-With this override in place, you can now:
+Once the override is defined and validated with `sq workflow lint`, the custom type is registered in the workflow spec and can be queried:
 
 ```bash
-# Create an incident
-sq create incident "Database connection timeout"
-
-# List all incidents
+# List all incidents (returns empty until items are created)
 sq list -t incident
-
-# Transition through the lifecycle
-sq incident 1 status Mitigating
-sq incident 1 status Resolved
-
-# Use the full ID in commands
-sq incident 1 show
-sq incident 1 comment -m "@qa please verify the fix"
 ```
 
-The incident's ID will be `INC-000001`, stored in the `squads/incidents/` folder, and fully integrated with the team workflow — you can assign it, comment on it, and check its status just like any built-in item type.
+**Note:** Creating and managing items of custom types is supported in a future release. For now, you can define the spec, validate it with `sq workflow lint`, inspect it with `sq override diff workflow`, and list items with `sq list -t <customtype>`.
 
 ### Checking the override state
 
@@ -405,10 +396,4 @@ to update the version stamp in the override file.
 
 ### Hard stops and error recovery
 
-If a workflow spec becomes invalid (e.g. because you edited `.overrides/workflow.toml` directly and introduced a syntax error), any `sq` command will hard-stop with a pointer to `sq workflow lint`:
-
-```
-workflow spec is incompatible with the live index — run `sq workflow lint` to see details
-```
-
-Always run `sq workflow lint` to diagnose and fix the issue before proceeding.
+If a workflow spec becomes invalid (e.g. because you edited `.overrides/workflow.toml` directly and introduced a syntax error), any `sq` command will hard-stop with a pointer to `sq workflow lint`. Always run `sq workflow lint` to diagnose and fix the issue before proceeding.
