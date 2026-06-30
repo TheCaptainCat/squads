@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - EPIC-000031
 created_at: '2026-06-25T13:04:19Z'
-updated_at: '2026-06-26T07:31:03Z'
+updated_at: '2026-06-30T12:17:03Z'
 ---
 <!-- sq:body -->
 ## Vision
@@ -105,7 +105,7 @@ Both `claude_code` and `agents_md` source their type list and workflow section f
 
 The epic is complete when:
 
-1. A team can add a new item type (`incident`, `change-request`, or any project-specific name) with its own prefix, folder, state machine, and optional parent rules entirely in `.squads.toml` — with no code changes and no fork.
+1. A team can add a new item type (`incident`, `change-request`, or any project-specific name) with its own prefix, folder, state machine, and optional parent rules entirely in `.overrides/workflow.toml` — with no code changes and no fork.
 2. `sq workflow` renders the live config (not a static template), and `sq sync` regenerates agent skills to reflect custom types.
 3. Existing squads that add no override are completely unaffected — `sq check`, `sq repair`, and all golden tests pass on the default spec.
 4. `sq workflow lint` validates a project override and reports conflicts or invalid transitions clearly.

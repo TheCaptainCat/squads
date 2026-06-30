@@ -269,7 +269,7 @@ class ServiceCore:
             self._check_assignee(db, assignee)
             item_id = db.allocate_id(item_type)  # bumps the counter; item_id == its formatted form
             filename = f"{item_id}-{slug}.md"
-            squad_rel = self.paths.squad_relative(item_type, filename)
+            squad_rel = self.paths.squad_relative(item_type, filename, spec=self.spec)
             sid, _psid = actor.current_session()
             item = Item(
                 sequence_id=db.counter,

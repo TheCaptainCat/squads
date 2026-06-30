@@ -285,6 +285,67 @@ def _check_item_refs(
             seen_aliases[alias] = t
 
 
+def linearize_lifecycle(machine: Lifecycle) -> str:
+    """Derive a readable lifecycle string from an arbitrary transition graph.
+
+    Algorithm:
+    1. Build the **spine** by following the first unvisited transition from each state
+       (greedy forward walk from ``machine.initial``), stopping when no new state is
+       reachable.  This gives the "happy-path" chain ``A → B → C``.
+    2. Collect **side states** — all states reachable from ``machine.initial`` that
+       are not on the spine — in BFS discovery order (deterministic, tied to the
+       order of transitions as declared in the machine).
+    3. Return ``"A → B → C"`` when there are no side states, or
+       ``"A → B → C (+ D, E)"`` otherwise.
+
+    Deterministic: given the same machine the output is always identical.
+
+    Examples::
+
+        linearize_lifecycle(guide_machine)   # "Draft → Published → Deprecated"
+        linearize_lifecycle(adr_machine)     # "Proposed → Accepted → Superseded (+ ...)"
+    """
+    initial = machine.initial
+    transitions = machine.transitions
+
+    # Step 1: greedy spine — follow first unvisited outgoing transition.
+    spine: list[str] = [initial]
+    visited: set[str] = {initial}
+    current = initial
+    while True:
+        next_state: str | None = None
+        for candidate in transitions.get(current, []):
+            if candidate not in visited:
+                next_state = candidate
+                break
+        if next_state is None:
+            break
+        spine.append(next_state)
+        visited.add(next_state)
+        current = next_state
+
+    # Step 2: BFS from initial to collect all reachable states in discovery order.
+    bfs_order: list[str] = [initial]
+    bfs_visited: set[str] = {initial}
+    queue: list[str] = [initial]
+    while queue:
+        node = queue.pop(0)
+        for nxt in transitions.get(node, []):
+            if nxt not in bfs_visited:
+                bfs_visited.add(nxt)
+                bfs_order.append(nxt)
+                queue.append(nxt)
+
+    # Side states = reachable but not on the spine, in BFS discovery order.
+    spine_set: set[str] = set(spine)
+    side: list[str] = [s for s in bfs_order if s not in spine_set]
+
+    chain = " → ".join(spine)
+    if side:
+        return f"{chain} (+ {', '.join(side)})"
+    return chain
+
+
 class WorkflowSpec(BaseModel):
     """The full loaded workflow specification (ADR-000214 §1 / ADR-000232 §5).
 

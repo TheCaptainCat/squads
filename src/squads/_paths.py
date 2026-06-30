@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from squads._errors import InvalidIdError, NotInitializedError, SquadsError
 from squads._models._config import CONFIG_FILENAME, INDEX_FILENAME, LOCK_FILENAME, SquadsConfig
 from squads._models._enums import FOLDER_BY_TYPE, TYPE_BY_PREFIX
+from squads._workflow._models import WorkflowSpec
 
 
 def find_config(start: Path | None = None) -> Path | None:
@@ -63,8 +64,21 @@ class SquadPaths:
         return self.squad_dir / ".reflog.jsonl"
 
     # --- type folders / item files ---
-    def folder_for(self, item_type: str) -> Path:
-        return self.squad_dir / FOLDER_BY_TYPE[item_type]
+    def folder_for(self, item_type: str, spec: WorkflowSpec | None = None) -> Path:
+        """Return the absolute path of the folder for ``item_type``.
+
+        For built-in types, always uses ``FOLDER_BY_TYPE``.  For custom types not in
+        ``FOLDER_BY_TYPE``, consults ``spec`` when supplied.  Raises ``SquadsError``
+        when ``item_type`` is unknown and no spec is provided (or the spec does not
+        declare it).
+        """
+        if item_type in FOLDER_BY_TYPE:
+            return self.squad_dir / FOLDER_BY_TYPE[item_type]
+        if spec is not None and item_type in spec.items:
+            return self.squad_dir / spec.items[item_type].folder
+        raise SquadsError(
+            f"unknown item type {item_type!r} — is this a custom type without a spec?"
+        )
 
     def abspath(self, squad_relative: str) -> Path:
         """Absolute path from a squad-folder-relative item path.
@@ -78,8 +92,23 @@ class SquadPaths:
             raise InvalidIdError(f"path {squad_relative!r} escapes the squad folder")
         return self.squad_dir / squad_relative
 
-    def squad_relative(self, item_type: str, filename: str) -> str:
-        return f"{FOLDER_BY_TYPE[item_type]}/{filename}"
+    def squad_relative(
+        self, item_type: str, filename: str, spec: WorkflowSpec | None = None
+    ) -> str:
+        """Return a squad-folder-relative path string for an item file.
+
+        For built-in types, always uses ``FOLDER_BY_TYPE``.  For custom types not in
+        ``FOLDER_BY_TYPE``, consults ``spec`` when supplied.  Raises ``SquadsError``
+        when ``item_type`` is unknown and no spec is provided (or the spec does not
+        declare it).
+        """
+        if item_type in FOLDER_BY_TYPE:
+            return f"{FOLDER_BY_TYPE[item_type]}/{filename}"
+        if spec is not None and item_type in spec.items:
+            return f"{spec.items[item_type].folder}/{filename}"
+        raise SquadsError(
+            f"unknown item type {item_type!r} — is this a custom type without a spec?"
+        )
 
 
 def resolve(dir_override: str | None = None, *, require_init: bool = True) -> SquadPaths:
@@ -110,13 +139,21 @@ def resolve(dir_override: str | None = None, *, require_init: bool = True) -> Sq
     return SquadPaths(root=root, squad_dir=root / config.squad_dir, config=config)
 
 
-def type_for_id(item_id: str) -> str:
-    """Map an ID (e.g. ``TASK-000003``) back to its item type string via the prefix."""
+def type_for_id(item_id: str, spec: WorkflowSpec | None = None) -> str:
+    """Map an ID (e.g. ``TASK-000003`` or ``INC-000001``) back to its item type string.
+
+    Resolution order:
+    1. ``TYPE_BY_PREFIX`` — covers all built-in types with no spec needed.
+    2. ``spec.prefix_to_type`` — covers custom types declared in the spec.
+
+    Raises ``InvalidIdError`` when the prefix is not recognised by either source.
+    """
     prefix = item_id.split("-", 1)[0]
-    try:
+    if prefix in TYPE_BY_PREFIX:
         return TYPE_BY_PREFIX[prefix]
-    except KeyError:
-        raise InvalidIdError(f"unknown ID prefix in {item_id!r}") from None
+    if spec is not None and prefix in spec.prefix_to_type:
+        return spec.prefix_to_type[prefix]
+    raise InvalidIdError(f"unknown ID prefix in {item_id!r}")
 
 
 def number_for_id(item_id: str) -> int:
