@@ -8985,7 +8985,7 @@
       ],
       "path": "features/FEAT-000237-codebase-docstring-comment-hygiene-terse-pure-history-free.md",
       "created_at": "2026-06-26T14:19:55Z",
-      "updated_at": "2026-06-26T14:20:42Z",
+      "updated_at": "2026-06-30T11:50:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9306,7 +9306,7 @@
         {
           "local_id": "F1",
           "title": "AC#5 not enforced at any runtime boundary in this core",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null
@@ -9314,7 +9314,7 @@
         {
           "local_id": "F2",
           "title": "Override source is .overrides/workflow.toml only; FEAT AC#1 wording says .squads.toml",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9322,7 +9322,7 @@
         {
           "local_id": "F3",
           "title": "open_service re-reads + re-validates the bundled TOML on every call, even with no override",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9330,7 +9330,7 @@
         {
           "local_id": "F4",
           "title": "Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and e2e sq list are not asserted",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9338,7 +9338,7 @@
         {
           "local_id": "F5",
           "title": "Two minor robustness/clarity nits in the loader",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "info",
           "story": null
@@ -9346,7 +9346,7 @@
       ],
       "path": "reviews/REV-000246-engine-core-review-workflow-override-merge-singleton-rebind.md",
       "created_at": "2026-06-30T08:23:56Z",
-      "updated_at": "2026-06-30T08:25:42Z",
+      "updated_at": "2026-06-30T11:44:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9391,13 +9391,15 @@
         "TASK-000242:addresses",
         "TASK-000243:addresses",
         "TASK-000244:addresses",
-        "TASK-000245:addresses"
+        "TASK-000245:addresses",
+        "FEAT-000210",
+        "TASK-000247"
       ],
       "subentities": [
         {
           "local_id": "F1",
           "title": "AC#1 'sq create incident works' is NOT met end-to-end — custom-type create CLI is FEAT-210 scope",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null
@@ -9405,7 +9407,7 @@
         {
           "local_id": "F2",
           "title": "open_service: vestigial F5 comment block + redundant try/except SquadsError re-wrap around validate_against_index_fail_closed",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9413,7 +9415,7 @@
         {
           "local_id": "F3",
           "title": "Two new reportPrivateUsage suppressions on _common._active_dir (_workflow_cmd.py:80, _main.py:998) — tracked by TASK-247 but new",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9421,7 +9423,7 @@
         {
           "local_id": "F4",
           "title": "docs/workflow.md: lint sample output shows a line number (.toml:15) the linter never emits; hard-stop sample message is the index-cross-check msg, not the syntax-error one",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9429,7 +9431,7 @@
         {
           "local_id": "F5",
           "title": "No e2e test asserting an override type round-trips through create→file→list (carries forward REV-246 F4); is_open() now returns True for unknown status instead of raising (info)",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9437,7 +9439,7 @@
       ],
       "path": "reviews/REV-000248-wave-2-4-review-workflow-lint-sq-check-override-artifact-doc.md",
       "created_at": "2026-06-30T09:11:44Z",
-      "updated_at": "2026-06-30T09:13:25Z",
+      "updated_at": "2026-06-30T11:44:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9609,7 +9611,7 @@
         {
           "local_id": "F1",
           "title": "Parse-ordering test under-proves its docstring claim",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9617,7 +9619,7 @@
         {
           "local_id": "F2",
           "title": "test_rendering._template_for is a hand-copy of ServiceCore._template_for (drift risk)",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9625,7 +9627,7 @@
         {
           "local_id": "F3",
           "title": "_meta_compat uses bundled_spec() inline rather than a threaded-in spec param",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9633,7 +9635,7 @@
         {
           "local_id": "F4",
           "title": "[duplicate — see F1/F2/F3] tool-retry artifact",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9641,7 +9643,7 @@
         {
           "local_id": "F5",
           "title": "[duplicate — see F1/F2/F3] tool-retry artifact",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9649,7 +9651,7 @@
         {
           "local_id": "F6",
           "title": "[duplicate — see F1/F2/F3] tool-retry artifact",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9657,7 +9659,7 @@
         {
           "local_id": "F7",
           "title": "[duplicate — see F1/F2/F3] tool-retry artifact",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9665,7 +9667,7 @@
       ],
       "path": "reviews/REV-000255-feat-000250-de-globalize-workflow-spec-service-owned-threade.md",
       "created_at": "2026-06-30T10:43:46Z",
-      "updated_at": "2026-06-30T10:46:15Z",
+      "updated_at": "2026-06-30T11:51:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},

@@ -8,14 +8,6 @@ from squads._rendering._engine import render
 from squads._workflow import bundled_spec
 
 
-def _template_for(item_type: str) -> str:
-    """Probe helper: mirror ServiceCore._template_for using the bundled spec."""
-    spec = bundled_spec()
-    if spec.item_is_meta(str(item_type)):
-        return f"agents/{item_type}.md.j2"
-    return f"items/{item_type}.md.j2"
-
-
 @pytest.mark.parametrize("item_type", list(ItemType))
 def test_every_type_template_renders_with_markers(item_type):
     now = datetime(2026, 1, 1, tzinfo=UTC)
@@ -30,7 +22,12 @@ def test_every_type_template_renders_with_markers(item_type):
         updated_at=now,
         extra={"full_name": "Test Agent", "slug": "tester"},
     )
-    out = render(_template_for(item_type), item=it, description="", extra=it.extra)
+    # Delegate to the real WorkflowSpec.item_is_meta — same call ServiceCore._template_for
+    # makes — so any new template branch in the production method will break this test.
+    type_str = str(item_type)
+    is_meta = bundled_spec().item_is_meta(type_str)
+    template_path = f"agents/{type_str}.md.j2" if is_meta else f"items/{type_str}.md.j2"
+    out = render(template_path, item=it, description="", extra=it.extra)
     assert "<!-- sq:body -->" in out and "<!-- sq:body:end -->" in out
     assert "<!-- sq:discussion -->" in out and "<!-- sq:discussion:end -->" in out
     # a top-level (h2) Discussion heading leads the discussion region

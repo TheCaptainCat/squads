@@ -18,7 +18,7 @@ subentities:
   title: A CI gate blocks new ticket refs in comments
   status: Todo
 created_at: '2026-06-26T14:19:55Z'
-updated_at: '2026-06-26T14:20:42Z'
+updated_at: '2026-06-30T11:50:01Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -164,4 +164,8 @@ As a maintainer, I want an enforced lint/CI gate that fails when a squad-item re
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-30T11:50:01Z] Catherine Manager:
+  - Scope refinement (Pierre, 2026-06-30) — still DEFERRED until EPIC-206 (210/211/212) settles; the guard-first-now option was considered and declined to avoid churning against in-flight work. When scheduled, broaden scope beyond src/squads/ to ALSO cover tests/ and docs/ (and all docstrings): strip sq-item refs (FEAT-/TASK-/ADR-/REV-/BUG-/EPIC-/§N) and history/archaeology there too. Current magnitude: ~303 refs in src/squads (46 files), ~958 in tests/ (89 files), ~70 in docs/ (8 files).
+  - Distinguish ILLEGITIMATE refs (citing the ticket that introduced code; 'previously X now Y' history; ADR section refs) — STRIP — from LEGITIMATE uses that stay: illustrative example payloads (e.g. a reflog JSON sample with a TASK id), and doc CLI-syntax templates like '--parent FEAT-…'. The guard must allow the latter or it'll false-positive.
+  - Test-side overlaps FEAT-000231 (behaviour-named test rewrite): test NAMES/docstrings citing AC#/ticket numbers (test_ac5_…) are FEAT-231's domain — coordinate so the two don't double-touch the same files.
 <!-- sq:discussion:end -->

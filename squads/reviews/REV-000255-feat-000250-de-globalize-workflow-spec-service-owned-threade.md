@@ -15,35 +15,35 @@ refs:
 subentities:
 - local_id: F1
   title: Parse-ordering test under-proves its docstring claim
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F2
   title: test_rendering._template_for is a hand-copy of ServiceCore._template_for
     (drift risk)
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F3
   title: _meta_compat uses bundled_spec() inline rather than a threaded-in spec param
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F4
   title: '[duplicate — see F1/F2/F3] tool-retry artifact'
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F5
   title: '[duplicate — see F1/F2/F3] tool-retry artifact'
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F6
   title: '[duplicate — see F1/F2/F3] tool-retry artifact'
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F7
   title: '[duplicate — see F1/F2/F3] tool-retry artifact'
-  status: Open
+  status: WontFix
   severity: low
 created_at: '2026-06-30T10:43:46Z'
-updated_at: '2026-06-30T10:46:15Z'
+updated_at: '2026-06-30T11:51:39Z'
 ---
 <!-- sq:body -->
 ## Verdict: APPROVE
@@ -91,13 +91,13 @@ _Add with `sq review 255 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Parse-ordering test under-proves its docstring claim |
-| F2 | 🟢 low | Open |  | test_rendering._template_for is a hand-copy of ServiceCore._template_for (drift risk) |
-| F3 | 🟢 low | Open |  | _meta_compat uses bundled_spec() inline rather than a threaded-in spec param |
-| F4 | 🟢 low | Open |  | [duplicate — see F1/F2/F3] tool-retry artifact |
-| F5 | 🟢 low | Open |  | [duplicate — see F1/F2/F3] tool-retry artifact |
-| F6 | 🟢 low | Open |  | [duplicate — see F1/F2/F3] tool-retry artifact |
-| F7 | 🟢 low | Open |  | [duplicate — see F1/F2/F3] tool-retry artifact |
+| F1 | 🟢 low | Fixed |  | Parse-ordering test under-proves its docstring claim |
+| F2 | 🟢 low | Fixed |  | test_rendering._template_for is a hand-copy of ServiceCore._template_for (drift risk) |
+| F3 | 🟢 low | WontFix |  | _meta_compat uses bundled_spec() inline rather than a threaded-in spec param |
+| F4 | 🟢 low | WontFix |  | [duplicate — see F1/F2/F3] tool-retry artifact |
+| F5 | 🟢 low | WontFix |  | [duplicate — see F1/F2/F3] tool-retry artifact |
+| F6 | 🟢 low | WontFix |  | [duplicate — see F1/F2/F3] tool-retry artifact |
+| F7 | 🟢 low | WontFix |  | [duplicate — see F1/F2/F3] tool-retry artifact |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -106,7 +106,7 @@ _Add with `sq review 255 add-finding "…" --severity high`; track with `sq revi
 ### F1 — Parse-ordering test under-proves its docstring claim
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F1:head:end -->
 
@@ -117,6 +117,8 @@ tests/test_cli.py:1764 `test_spec_bound_before_parse_type_runs` documents that p
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-06-30T11:51:37Z] Catherine Manager:
+  - Fixed: test now invokes 'list --type task --status InProgress' so parse_type/parse_status actually fire — exit 0 proves the spec was bound in the root callback before parse. Docstring corrected to match.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -124,7 +126,7 @@ tests/test_cli.py:1764 `test_spec_bound_before_parse_type_runs` documents that p
 ### F2 — test_rendering._template_for is a hand-copy of ServiceCore._template_for (drift risk)
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
@@ -135,6 +137,8 @@ tests/test_rendering.py defines a module-local `_template_for` that hand-copies 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-06-30T11:51:38Z] Catherine Manager:
+  - Fixed: hand-copied _template_for removed; test now calls the real bundled_spec().item_is_meta(), single source of truth, no suppression.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -142,7 +146,7 @@ tests/test_rendering.py defines a module-local `_template_for` that hand-copies 
 ### F3 — _meta_compat uses bundled_spec() inline rather than a threaded-in spec param
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F3:head:end -->
 
@@ -157,6 +161,8 @@ It is a minor shape deviation from the task's "pass it in" wording — `bundled_
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-06-30T11:43:44Z] Catherine Manager:
+  - Accepted by design: migrations intentionally use the bundled vocabulary (not the project override), so _meta_compat reading bundled_spec() directly is correct and byte-identical. No change.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -164,7 +170,7 @@ It is a minor shape deviation from the task's "pass it in" wording — `bundled_
 ### F4 — [duplicate — see F1/F2/F3] tool-retry artifact
 
 <!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F4:head:end -->
 
@@ -175,6 +181,8 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-06-30T11:43:38Z] Paul Reviewer:
+  - Closing as duplicate tool-retry artifact; canonical findings are F1/F2/F3.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -182,7 +190,7 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 ### F5 — [duplicate — see F1/F2/F3] tool-retry artifact
 
 <!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F5:head:end -->
 
@@ -193,6 +201,8 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-06-30T11:43:39Z] Paul Reviewer:
+  - Closing as duplicate tool-retry artifact; canonical findings are F1/F2/F3.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -200,7 +210,7 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 ### F6 — [duplicate — see F1/F2/F3] tool-retry artifact
 
 <!-- sq:finding:F6:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F6:head:end -->
 
@@ -211,6 +221,8 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-06-30T11:43:41Z] Paul Reviewer:
+  - Closing as duplicate tool-retry artifact; canonical findings are F1/F2/F3.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -218,7 +230,7 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 ### F7 — [duplicate — see F1/F2/F3] tool-retry artifact
 
 <!-- sq:finding:F7:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F7:head:end -->
 
@@ -229,6 +241,8 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-06-30T11:43:42Z] Paul Reviewer:
+  - Closing as duplicate tool-retry artifact; canonical findings are F1/F2/F3.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 <!-- sq:findings:end -->
@@ -236,4 +250,9 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-06-30T11:51:10Z] Elias Python:
+  - Fixed F1 and F2 (test-hygiene only; no production behaviour changed).
+  - F1 (test_cli.py:1764 test_spec_bound_before_parse_type_runs): changed the invocation from ['list', '--all'] to ['list', '--type', 'task', '--status', 'InProgress']. Both --type and --status now trigger parse_type/parse_status as Typer parser callbacks; exit 0 is only possible if the bundled spec was already bound by the root callback. Docstring updated to match. The test_workflow_override.py coverage (override-spec parse-ordering via 'incident' type) is complementary and untouched.
+  - F2 (test_rendering.py): removed the hand-copied _template_for helper function entirely. The parametrized test now calls bundled_spec().item_is_meta(type_str) directly — the exact same public method ServiceCore._template_for calls — and builds the template path inline. No separate copy exists; any new branch added to the production method will break the test immediately. No reportPrivateUsage suppression added; no production code touched.
+  - Gates: pyright 0 errors, ruff clean, 173 passed 1 skipped across test_cli.py / test_rendering.py / test_workflow_override.py.
 <!-- sq:discussion:end -->

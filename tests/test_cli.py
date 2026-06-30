@@ -1762,15 +1762,14 @@ def test_hoist_global_options_does_not_break_completion_args():
 
 
 def test_spec_bound_before_parse_type_runs(tmp_path, monkeypatch):
-    """Root callback binds the WorkflowSpec before any subcommand argument is parsed.
+    """Root callback binds the WorkflowSpec before parse_type / parse_status fire.
 
-    The --status / --type filter options call parse_type / parse_status as Typer parser
-    callbacks; these fire after the group callback body executes (Click calls the group
-    callback first, then parses the subcommand's own options).  This test proves that:
-    (a) parse_type and parse_status work correctly inside a full CLI invocation (the
-        bundled-spec vocabulary is accepted), and
-    (b) the spec bound by the root callback is the bundled spec when no override is present,
-        confirming the safe-fallback path is exercised.
+    Click calls the group callback first, then parses the subcommand's own options.
+    parse_type (--type) and parse_status (--status) are Typer parser callbacks that call
+    get_active_spec(); they must find the spec already bound or they fall back to the
+    bundled spec incorrectly.  This test exercises both parser callbacks inside a real CLI
+    invocation (sq list --type task --status InProgress) and asserts exit 0 — which is only
+    possible if the bundled spec was bound before parse_type / parse_status ran.
     """
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
@@ -1782,7 +1781,10 @@ def test_spec_bound_before_parse_type_runs(tmp_path, monkeypatch):
     from squads._cli._common import get_active_spec  # pyright: ignore[reportPrivateUsage]
     from squads._workflow import bundled_spec
 
-    result = runner.invoke(app, ["list", "--all"])
+    # --type and --status trigger parse_type / parse_status; exit 0 proves the spec was
+    # bound before those callbacks ran (otherwise "task" / "InProgress" would be rejected
+    # as unknown values against an uninitialised spec).
+    result = runner.invoke(app, ["list", "--type", "task", "--status", "InProgress"])
     assert result.exit_code == 0, result.output
 
     # The handle is set to the bundled spec (no override present).

@@ -14,29 +14,29 @@ refs:
 subentities:
 - local_id: F1
   title: AC#5 not enforced at any runtime boundary in this core
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: Override source is .overrides/workflow.toml only; FEAT AC#1 wording says
     .squads.toml
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F3
   title: open_service re-reads + re-validates the bundled TOML on every call, even
     with no override
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F4
   title: 'Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and
     e2e sq list are not asserted'
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: Two minor robustness/clarity nits in the loader
-  status: Open
+  status: Fixed
   severity: info
 created_at: '2026-06-30T08:23:56Z'
-updated_at: '2026-06-30T08:25:42Z'
+updated_at: '2026-06-30T11:44:25Z'
 ---
 <!-- sq:body -->
 Independent engine-core review of FEAT-000209 (TASK-239 merge loader, TASK-240 singleton rebind + open_service threading, TASK-241 validate() parent-cycle + index cross-check). Reviewer: Paul Reviewer; I did not write this code.
@@ -57,11 +57,11 @@ _Add with `sq review 246 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Open |  | AC#5 not enforced at any runtime boundary in this core |
-| F2 | 🟢 low | Open |  | Override source is .overrides/workflow.toml only; FEAT AC#1 wording says .squads.toml |
-| F3 | 🟢 low | Open |  | open_service re-reads + re-validates the bundled TOML on every call, even with no override |
-| F4 | 🟢 low | Open |  | Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and e2e sq list are not asserted |
-| F5 | 🔵 info | Open |  | Two minor robustness/clarity nits in the loader |
+| F1 | 🟡 medium | Fixed |  | AC#5 not enforced at any runtime boundary in this core |
+| F2 | 🟢 low | Fixed |  | Override source is .overrides/workflow.toml only; FEAT AC#1 wording says .squads.toml |
+| F3 | 🟢 low | Fixed |  | open_service re-reads + re-validates the bundled TOML on every call, even with no override |
+| F4 | 🟢 low | Fixed |  | Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and e2e sq list are not asserted |
+| F5 | 🔵 info | Fixed |  | Two minor robustness/clarity nits in the loader |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -70,7 +70,7 @@ _Add with `sq review 246 add-finding "…" --severity high`; track with `sq revi
 ### F1 — AC#5 not enforced at any runtime boundary in this core
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F1:head:end -->
 
@@ -87,6 +87,8 @@ Suggested fix: in TASK-243 (or a follow-up on 240), after use_spec(merged_spec) 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-06-30T11:43:58Z] Catherine Manager:
+  - Fixed: validate_against_index_fail_closed is now wired into open_service (TASK-000243) — AC#5 fails closed at runtime listing offender IDs; verified live by QA on FEAT-000209 and again on FEAT-000250.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -94,7 +96,7 @@ Suggested fix: in TASK-243 (or a follow-up on 240), after use_spec(merged_spec) 
 ### F2 — Override source is .overrides/workflow.toml only; FEAT AC#1 wording says .squads.toml
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
@@ -109,6 +111,8 @@ Suggested fix: reconcile the wording. Either (a) @product-owner edits AC#1/US1 t
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-06-30T11:44:21Z] Catherine Manager:
+  - Fixed: override location reconciled to .overrides/workflow.toml across AC#1/US1/scope (product-owner) and docs (TASK-000245).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -116,7 +120,7 @@ Suggested fix: reconcile the wording. Either (a) @product-owner edits AC#1/US1 t
 ### F3 — open_service re-reads + re-validates the bundled TOML on every call, even with no override
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F3:head:end -->
 
@@ -131,6 +135,8 @@ Suggested fix (optional): when no override file exists, return the cached single
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-06-30T11:44:22Z] Catherine Manager:
+  - Fixed: open_service uses the bundled_spec() fast-path when no override is present — no TOML re-parse (TASK-000243).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -138,7 +144,7 @@ Suggested fix (optional): when no override file exists, return the cached single
 ### F4 — Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and e2e sq list are not asserted
 
 <!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F4:head:end -->
 
@@ -155,6 +161,8 @@ Suggested fix: add (a) a two-test leak guard or an explicit assert that after a 
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-06-30T11:44:23Z] Catherine Manager:
+  - Fixed: QA added the isolation, sub-entity cross-check, and override-merge assertions (FEAT-000209 + FEAT-000250 QA passes).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -162,7 +170,7 @@ Suggested fix: add (a) a two-test leak guard or an explicit assert that after a 
 ### F5 — Two minor robustness/clarity nits in the loader
 
 <!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🔵 Info
 <!-- sq:finding:F5:head:end -->
 
@@ -177,6 +185,8 @@ Neither affects correctness or the gates; recording for the dev's awareness.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-06-30T11:44:24Z] Catherine Manager:
+  - Fixed: OSError on the override read surfaces as SquadsError with the lint pointer; loader nits addressed.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->
