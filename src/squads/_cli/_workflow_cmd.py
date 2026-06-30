@@ -51,10 +51,10 @@ def workflow_show() -> None:
 
 
 def _print_cheatsheet() -> None:
-    from squads._models._enums import TYPE_ALIASES
+    from squads._cli._common import get_active_spec
     from squads._rendering._engine import render
 
-    console.print(Markdown(render("workflow.md.j2", type_aliases=TYPE_ALIASES)))
+    console.print(Markdown(render("workflow.md.j2", spec=get_active_spec())))
 
 
 # ─── lint ─────────────────────────────────────────────────────────────────────
