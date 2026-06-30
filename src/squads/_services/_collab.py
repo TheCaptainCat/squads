@@ -9,7 +9,6 @@ from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._services._base import ServiceCore, reject_markers
-from squads._workflow import is_open
 
 
 def _strip_frontmatter(text: str) -> str:
@@ -73,7 +72,7 @@ class CollabMixin(ServiceCore):
         slug = slug.lstrip("@").lower()
         out: list[tuple[Item, list[str]]] = []
         for item in await self.list_items():
-            if not is_open(item.status):
+            if not self.spec.is_open(item.status):
                 continue
             path = item_file(self.paths, item)
             if not await _aio.path_exists(path):

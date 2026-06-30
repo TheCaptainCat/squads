@@ -35,18 +35,6 @@ from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
 from squads._services._base import SUBENTITY_KIND, ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RepairResult
-from squads._workflow import (
-    _DEFAULT_SPEC,  # pyright: ignore[reportPrivateUsage]
-    item_is_meta,
-    item_parent_required,
-    item_ref_rules,
-    item_subentity_kind,
-    parent_allowed,
-    parent_hint,
-    status_role,
-    subentity_workflow,
-    workflow_for,
-)
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 type _FileRec = tuple[str, Path, ItemType, str, int]
@@ -341,22 +329,23 @@ class MaintenanceMixin(ServiceCore):
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name)
             item = Item.from_frontmatter(data, path=squad_rel)
-            # Load-boundary vocab validation (ADR-000232 §1 / TASK-000235 F1/F5):
+            # Load-boundary vocab validation (ADR-000232 §1 / TASK-000235 F1/F5 / TASK-000252):
             # reject items with an unknown type, status, or sub-entity status before
-            # they enter the rebuilt index.
-            if item.type not in _DEFAULT_SPEC.items:
+            # they enter the rebuilt index.  Use self.spec — the Service-owned spec
+            # (possibly an override) — so repair respects the active workflow spec.
+            if item.type not in self.spec.items:
                 raise SquadsError(
                     f"item {item.id} has unknown type {item.type!r} in {md.name}; "
                     f"fix the frontmatter before running `sq repair`"
                 )
-            if item.status not in _DEFAULT_SPEC.statuses:
+            if item.status not in self.spec.statuses:
                 raise SquadsError(
                     f"item {item.id} has unknown status {item.status!r} in {md.name}; "
                     f"fix the frontmatter before running `sq repair`"
                 )
             # F5: sub-entity statuses share the same vocabulary.
             for sub in item.subentities:
-                if sub.status not in _DEFAULT_SPEC.statuses:
+                if sub.status not in self.spec.statuses:
                     raise SquadsError(
                         f"item {item.id} sub-entity {sub.local_id} has unknown status "
                         f"{sub.status!r} in {md.name}; fix the frontmatter before "
@@ -673,23 +662,26 @@ class MaintenanceMixin(ServiceCore):
         ]
         return issues
 
-    @staticmethod
     def _check_items(
-        index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
+        self,
+        index: SquadsDB,
+        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
     ) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
-        registered = {r.extra.get(X.SLUG) for r in index.items.values() if item_is_meta(r.type)}
+        registered = {
+            r.extra.get(X.SLUG) for r in index.items.values() if self.spec.item_is_meta(r.type)
+        }
         for item in index.items.values():
             iid = item.id
-            if item.status not in workflow_for(item.type).states:
+            if item.status not in self.spec.workflow_for(item.type).states:
                 issues.append(
                     CheckIssue("error", iid, f"status {item.status!r} invalid for {item.type}")
                 )
             parent = index.get(item.parent) if item.parent else None
             if item.parent and parent is None:
                 issues.append(CheckIssue("error", iid, f"dangling parent {item.parent}"))
-            elif parent is not None and not parent_allowed(item.type, parent.type):
-                msg = f"{parent_hint(item.type)} (got {parent.type})"
+            elif parent is not None and not self.spec.parent_allowed(item.type, parent.type):
+                msg = f"{self.spec.parent_hint(item.type)} (got {parent.type})"
                 issues.append(CheckIssue("error", iid, msg))
             for r in item.refs:
                 rid, kind = split_ref(r)
@@ -713,17 +705,16 @@ class MaintenanceMixin(ServiceCore):
                 issues += _drift_issues(iid, item, disk_entry[2])
         return issues
 
-    @staticmethod
-    def _check_subtask_stories(index: SquadsDB) -> list[CheckIssue]:
+    def _check_subtask_stories(self, index: SquadsDB) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
         for item in index.items.values():
-            if item_subentity_kind(item.type) != "subtask":
+            if self.spec.item_subentity_kind(item.type) != "subtask":
                 continue
             refs = [(s.local_id, s.story) for s in item.subentities if s.story]
             if not refs:
                 continue
             parent = index.get(item.parent) if item.parent else None
-            required_parent = item_parent_required(item.type)
+            required_parent = self.spec.item_parent_required(item.type)
             if parent is None or (required_parent is not None and parent.type != required_parent):
                 issues.append(
                     CheckIssue(
@@ -741,14 +732,13 @@ class MaintenanceMixin(ServiceCore):
             ]
         return issues
 
-    @staticmethod
-    def _check_subentity_status(index: SquadsDB) -> list[CheckIssue]:
+    def _check_subentity_status(self, index: SquadsDB) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
         for item in index.items.values():
             kind = SUBENTITY_KIND.get(item.type)
             if kind is None:
                 continue
-            valid = subentity_workflow(kind).states
+            valid = self.spec.subentity_workflow(kind).states
             issues += [
                 CheckIssue("error", item.id, f"{kind} {s.local_id} has invalid status {s.status!r}")
                 for s in item.subentities
@@ -756,8 +746,7 @@ class MaintenanceMixin(ServiceCore):
             ]
         return issues
 
-    @staticmethod
-    def _check_decisions(index: SquadsDB) -> list[CheckIssue]:
+    def _check_decisions(self, index: SquadsDB) -> list[CheckIssue]:
         """Warn on Superseded decisions with no incoming ``supersedes`` edge.
 
         The ``supersedes`` target is stored as a ref string with whatever width it had when it
@@ -773,10 +762,10 @@ class MaintenanceMixin(ServiceCore):
                     has_incoming_supersedes.add(number_for_id(rid))
         for item in index.items.values():
             # Only types that declare a "supersedes" ref rule need the check.
-            if not any(rr.kind == "supersedes" for rr in item_ref_rules(item.type)):
+            if not any(rr.kind == "supersedes" for rr in self.spec.item_ref_rules(item.type)):
                 continue
             if (
-                status_role(item.status) == "superseded"
+                self.spec.status_role(item.status) == "superseded"
                 and item.sequence_id not in has_incoming_supersedes
             ):
                 issues.append(

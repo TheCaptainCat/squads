@@ -33,27 +33,22 @@ from pydantic import ValidationError
 from squads import _aio
 from squads._errors import SquadsError
 from squads._models._index import SquadsDB
+from squads._workflow._models import WorkflowSpec
 
 
-def _validate_item_vocab(db: SquadsDB) -> None:
+def _validate_item_vocab(db: SquadsDB, spec: WorkflowSpec) -> None:
     """Validate every item's ``type``, ``status``, and sub-entity statuses against the
-    loaded WorkflowSpec singleton.
+    supplied ``WorkflowSpec``.
 
-    Called from :meth:`IndexStore.load` (ADR-000232 §1 / TASK-000235 F1/F5).  A corrupt or
-    hand-edited index entry with an unknown type, status, or sub-entity status raises a
-    clean :class:`SquadsError` rather than silently indexing and crashing downstream with a
-    raw ``KeyError`` or ``ValueError``.
-
-    Import is deferred (inside the function body) to avoid creating an import cycle:
-    ``_index._store`` → ``_workflow`` → (no dependency on ``_index``).
+    Called from :meth:`IndexStore.load` (ADR-000232 §1 / TASK-000235 F1/F5 /
+    TASK-000251).  The spec is now supplied explicitly by the ``IndexStore``
+    constructor — there is no longer a lazy import of the process-global singleton.
+    A corrupt or hand-edited index entry with an unknown type, status, or sub-entity
+    status raises a clean :class:`SquadsError` rather than silently indexing and
+    crashing downstream with a raw ``KeyError`` or ``ValueError``.
     """
-    # Lazy import: _workflow loads its singleton on first import; that is fine because
-    # the CLI root callback always runs before any load().  Tests that construct an
-    # IndexStore directly also import _workflow transitively before reaching this point.
-    from squads._workflow import _DEFAULT_SPEC  # pyright: ignore[reportPrivateUsage]
-
-    known_types: frozenset[str] = frozenset(_DEFAULT_SPEC.items)
-    known_statuses: frozenset[str] = frozenset(_DEFAULT_SPEC.statuses)
+    known_types: frozenset[str] = frozenset(spec.items)
+    known_statuses: frozenset[str] = frozenset(spec.statuses)
 
     for item in db.items.values():
         if item.type not in known_types:
@@ -99,10 +94,32 @@ class _TransactionCtx:
 
 
 class IndexStore:
-    def __init__(self, index_path: Path, lock_path: Path, *, lock_timeout: float = 10.0):
+    def __init__(
+        self,
+        index_path: Path,
+        lock_path: Path,
+        *,
+        spec: WorkflowSpec | None = None,
+        lock_timeout: float = 10.0,
+    ):
+        """Construct an ``IndexStore``.
+
+        ``spec`` is the :class:`WorkflowSpec` used to validate item vocabulary at
+        load time (TASK-000251).  When ``None``, the immutable bundled default is
+        used — this maintains backward compatibility for code that constructs an
+        ``IndexStore`` without an explicit spec (e.g. ``sq init``, ``sq adopt``,
+        tests).  Pass ``Service.spec`` (or another resolved spec) to validate
+        against a squad-specific override.
+        """
         self.index_path = index_path
         self.lock_path = lock_path
         self._lock_timeout = lock_timeout
+        if spec is None:
+            from squads._workflow import bundled_spec as _bundled_spec_fn
+
+            self._spec: WorkflowSpec = _bundled_spec_fn()
+        else:
+            self._spec = spec
         # Layer 3 — cross-process file lock. thread_local=False is safe because Layer 2
         # guarantees single-threaded entry, so its shared-state race is unreachable.
         self._lock = FileLock(str(lock_path), timeout=lock_timeout, thread_local=False)
@@ -163,7 +180,7 @@ class IndexStore:
         max_seq = max((item.sequence_id for item in db.items.values()), default=0)
         if db.counter < max_seq:
             db.counter = max_seq
-        _validate_item_vocab(db)
+        _validate_item_vocab(db, self._spec)
         return db
 
     # ------------------------------------------------------------------ transaction

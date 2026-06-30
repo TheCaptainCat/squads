@@ -33,7 +33,8 @@ from squads._models._subentity import SubEntity
 from squads._paths import resolve
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
-from squads._workflow import item_has_severity, item_subentity_kind
+from squads._workflow import bundled_spec as _bundled_spec
+from squads._workflow._models import WorkflowSpec
 
 console = Console()
 err_console = Console(stderr=True)
@@ -56,6 +57,22 @@ _active_dir: str | None = None
 def set_active_dir(value: str | None) -> None:
     global _active_dir
     _active_dir = value
+
+
+# The per-invocation WorkflowSpec, resolved once by the root callback after the squad is
+# located.  Falls back to the bundled spec when no squad can be resolved (e.g. outside a
+# squad, or before the callback fires for parse-time validators).
+_active_spec: WorkflowSpec | None = None
+
+
+def set_active_spec(spec: WorkflowSpec | None) -> None:
+    global _active_spec
+    _active_spec = spec
+
+
+def get_active_spec() -> WorkflowSpec:
+    """Return the per-invocation spec, or the bundled spec if none has been bound yet."""
+    return _active_spec if _active_spec is not None else _bundled_spec()
 
 
 def apply_timestamp(at: str | None) -> None:
@@ -139,7 +156,7 @@ def _build_item_panel_rows(it: Item) -> list[str]:
     ]
     if it.priority:
         rows.append(f"[bold]priority:[/bold] {e(priority_badge(it.priority))}")
-    sev = it.extra.get(X.SEVERITY) if item_has_severity(it.type) else None
+    sev = it.extra.get(X.SEVERITY) if get_active_spec().item_has_severity(it.type) else None
     if sev:
         rows.append(f"[bold]severity:[/bold] {e(f'{SEVERITY_EMOJI[Severity(sev)]} {sev}')}")
     if it.description:
@@ -201,7 +218,7 @@ async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: b
     the main discussion is NOT printed here — the caller (_print_item_content)
     prints it last, after all sub panes.
     """
-    kind = item_subentity_kind(it.type)
+    kind = get_active_spec().item_subentity_kind(it.type)
     if not kind or not it.subentities:
         return
 
@@ -335,7 +352,7 @@ def _print_subentity_summary(it: Item) -> None:
     """Print the sub-entity summary table from the item's frontmatter sub-entities."""
     from rich.table import Table as RichTable
 
-    kind = item_subentity_kind(it.type)
+    kind = get_active_spec().item_subentity_kind(it.type)
     if kind is None:
         return
 
@@ -684,14 +701,13 @@ async def resolve_slug_or_raise(slug: str, svc: Service) -> str:
 def parse_type(value: str) -> str:
     """Validate *value* is a known item type and return it as a plain string.
 
-    Checks against the loaded WorkflowSpec's known item types (the spec singleton
-    is the authoritative vocabulary — not the ItemType enum directly).
+    Reads the per-invocation WorkflowSpec (bound by the root callback); falls back to the
+    bundled spec when called before the callback fires or outside a squad.
     """
-    from squads._workflow import _DEFAULT_SPEC  # pyright: ignore[reportPrivateUsage]
-
-    if value in _DEFAULT_SPEC.items:
+    _spec = get_active_spec()
+    if value in _spec.items:
         return value
-    choices = ", ".join(sorted(_DEFAULT_SPEC.items))
+    choices = ", ".join(sorted(_spec.items))
     raise SquadsError(f"unknown type {value!r} (one of: {choices})") from None
 
 
@@ -699,20 +715,19 @@ def parse_status(value: str) -> str:
     """Validate *value* is a known status and return it as a plain string.
 
     Accepts either the canonical value ("InProgress") or a loose form ("in_progress",
-    "inprogress").  Checks against the loaded WorkflowSpec's known statuses (the spec
-    singleton is the authoritative vocabulary — not the Status enum directly).
+    "inprogress").  Reads the per-invocation WorkflowSpec (bound by the root callback);
+    falls back to the bundled spec when called before the callback fires or outside a squad.
     """
-    from squads._workflow import _DEFAULT_SPEC  # pyright: ignore[reportPrivateUsage]
-
+    _spec = get_active_spec()
     # Exact match first (fast path).
-    if value in _DEFAULT_SPEC.statuses:
+    if value in _spec.statuses:
         return value
     # Loose match: strip separators, lower-case compare.
     norm = value.replace("_", "").replace("-", "").lower()
-    for s in _DEFAULT_SPEC.statuses:
+    for s in _spec.statuses:
         if s.lower() == norm:
             return s
-    choices = ", ".join(sorted(_DEFAULT_SPEC.statuses))
+    choices = ", ".join(sorted(_spec.statuses))
     raise SquadsError(f"unknown status {value!r} (one of: {choices})") from None
 
 

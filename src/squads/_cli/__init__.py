@@ -41,6 +41,38 @@ def _version_cb(value: bool):
         raise typer.Exit()
 
 
+def _bind_active_spec(dir_override: str | None) -> None:
+    """Resolve the WorkflowSpec for this invocation and store it in common._active_spec.
+
+    Called once per invocation from the root callback, before subcommand arg parsing.
+    Resolves and merges the squad-level workflow override (if present) exactly as
+    ``open_service`` does, so parse_type/parse_status and display helpers all see the
+    same spec.  Errors are suppressed and the bundled spec is the fallback — this lets
+    ``sq`` outside a squad still work.
+    """
+    try:
+        from squads._paths import resolve as _resolve
+        from squads._workflow import bundled_spec as _bundled_spec
+        from squads._workflow._loader import (
+            WORKFLOW_OVERRIDE_FILENAME,
+            load_workflow_spec,
+            validate_against_index_fail_closed,
+        )
+
+        sp = _resolve(dir_override)
+        override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
+        if not override_path.is_file():
+            common.set_active_spec(_bundled_spec())
+            return
+
+        merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
+        validate_against_index_fail_closed(merged_spec, sp.squad_dir)
+        common.set_active_spec(merged_spec)
+    except Exception:  # pylint: disable=broad-except
+        # Outside a squad, invalid override, etc. — fall back to bundled spec.
+        common.set_active_spec(None)
+
+
 @app.callback()
 def main_callback(
     ctx: typer.Context,
@@ -62,6 +94,10 @@ def main_callback(
 ):
     common.set_active_dir(dir)
     common.apply_timestamp(at)
+    # Resolve and bind the WorkflowSpec for this invocation so that parse_type / parse_status
+    # and display helpers use the same spec as the Service.  Mirrors the _active_dir mechanism.
+    # Safe to call even outside a squad — errors are suppressed; bundled spec is the fallback.
+    _bind_active_spec(dir)
     # Set the ambient actor to "system" for this invocation; commands that know the
     # acting identity (e.g. `comment --as`, `create --author`) may override this via
     # actor.set_actor() before the mutation.  This unconditional re-set at callback start
@@ -87,6 +123,7 @@ from squads._cli import (  # noqa: E402
     _override,
     _role,
     _skill,
+    _workflow_cmd,
 )
 from squads._cli import _main as _main  # noqa: E402
 from squads._models._enums import TYPE_ALIASES, ItemType  # noqa: E402
@@ -107,6 +144,11 @@ app.add_typer(
     _override.override_app,
     name="override",
     help="Manage project-level template and role overrides.",
+)
+app.add_typer(
+    _workflow_cmd.workflow_app,
+    name="workflow",
+    help="Workflow cheatsheet and spec validation (`sq workflow lint`).",
 )
 
 # Resource-oriented item groups: `sq <type> <num> <verb> …`.

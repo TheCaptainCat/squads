@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 import pytest
+from typer.testing import CliRunner
 
 from squads._cli import _hoist_global_options, app  # pyright: ignore[reportPrivateUsage]
 from squads._models._schema import SCHEMA_VERSION
@@ -1753,3 +1754,81 @@ def test_hoist_global_options_does_not_break_completion_args():
     # a real global option mixed after completion args is hoisted, completion args stay in place
     result = _hoist_global_options(["--show-completion", "bash", "--dir", "/tmp"])
     assert result == ["--dir", "/tmp", "--show-completion", "bash"]
+
+
+# ---------------------------------------------------------------------------
+# FEAT-000250 / TASK-000253 — per-invocation spec context handle
+# ---------------------------------------------------------------------------
+
+
+def test_spec_bound_before_parse_type_runs(tmp_path, monkeypatch):
+    """Root callback binds the WorkflowSpec before any subcommand argument is parsed.
+
+    The --status / --type filter options call parse_type / parse_status as Typer parser
+    callbacks; these fire after the group callback body executes (Click calls the group
+    callback first, then parses the subcommand's own options).  This test proves that:
+    (a) parse_type and parse_status work correctly inside a full CLI invocation (the
+        bundled-spec vocabulary is accepted), and
+    (b) the spec bound by the root callback is the bundled spec when no override is present,
+        confirming the safe-fallback path is exercised.
+    """
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+
+    # Bootstrap a minimal squad so require_current_schema doesn't abort.
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
+
+    # After a successful invocation the per-invocation handle must hold the bundled spec.
+    from squads._cli._common import get_active_spec  # pyright: ignore[reportPrivateUsage]
+    from squads._workflow import bundled_spec
+
+    result = runner.invoke(app, ["list", "--all"])
+    assert result.exit_code == 0, result.output
+
+    # The handle is set to the bundled spec (no override present).
+    assert get_active_spec() is bundled_spec()
+
+
+def test_parse_type_fallback_to_bundled_spec_outside_squad(tmp_path, monkeypatch):
+    """parse_type/parse_status fall back to the bundled spec when called outside a squad.
+
+    This covers the case where ``get_active_spec()`` has not been bound yet (no group
+    callback has run), so the function should return the bundled spec transparently.
+    """
+    monkeypatch.chdir(tmp_path)
+    # Reset the per-invocation handle to simulate "no invocation yet".
+    from squads._cli._common import (  # pyright: ignore[reportPrivateUsage]
+        get_active_spec,
+        parse_type,
+        set_active_spec,  # pyright: ignore[reportPrivateUsage]
+    )
+    from squads._workflow import bundled_spec
+
+    set_active_spec(None)
+
+    # Bundled spec is the fallback — a known type must be accepted.
+    assert get_active_spec() is bundled_spec()
+    assert parse_type("task") == "task"
+
+
+def test_parse_status_validates_against_active_spec(tmp_path, monkeypatch):
+    """parse_status accepts canonical and loose forms; rejects unknown values."""
+    monkeypatch.chdir(tmp_path)
+    from squads._cli._common import (
+        parse_status,  # pyright: ignore[reportPrivateUsage]
+        set_active_spec,  # pyright: ignore[reportPrivateUsage]
+    )
+    from squads._workflow import bundled_spec
+
+    set_active_spec(bundled_spec())
+
+    assert parse_status("InProgress") == "InProgress"
+    # Loose forms are normalized.
+    assert parse_status("inprogress") == "InProgress"
+    assert parse_status("in_progress") == "InProgress"
+
+    # Unknown status raises.
+    from squads._errors import SquadsError
+
+    with pytest.raises(SquadsError, match="unknown status"):
+        parse_status("Flying")

@@ -5,9 +5,15 @@ import pytest
 from squads._models._enums import ItemType, Status
 from squads._models._item import Item
 from squads._rendering._engine import render
-from squads._services._base import (
-    _template_for,  # pyright: ignore[reportPrivateUsage]  # tests probe internals
-)
+from squads._workflow import bundled_spec
+
+
+def _template_for(item_type: str) -> str:
+    """Probe helper: mirror ServiceCore._template_for using the bundled spec."""
+    spec = bundled_spec()
+    if spec.item_is_meta(str(item_type)):
+        return f"agents/{item_type}.md.j2"
+    return f"items/{item_type}.md.j2"
 
 
 @pytest.mark.parametrize("item_type", list(ItemType))

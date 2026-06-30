@@ -10,9 +10,47 @@ NOT YET consumed by the engine.  They are encoded in ``default_workflow.toml``
 to reproduce today's semantics exactly.
 """
 
+from dataclasses import dataclass
+
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from squads._models._enums import ItemType
+
+# ---------------------------------------------------------------------------
+# Workflow dataclass — the thin shim over Lifecycle (formerly in __init__.py)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Workflow:
+    """Thin shim: exposes the old ``Workflow`` interface backed by ``Lifecycle``.
+
+    Status fields are ``str`` (TASK-000235).  Callers passing ``Status`` enum members
+    continue to work because ``Status`` is a ``StrEnum`` — its members compare equal
+    to their plain string values.
+    """
+
+    initial: str
+    transitions: dict[str, tuple[str, ...]]
+
+    @property
+    def states(self) -> set[str]:
+        seen: set[str] = {self.initial}
+        for src, dsts in self.transitions.items():
+            seen.add(src)
+            seen.update(dsts)
+        return seen
+
+    def can_transition(self, src: str, dst: str) -> bool:
+        return dst in self.transitions.get(src, ())
+
+    @staticmethod
+    def from_machine(m: Lifecycle) -> Workflow:
+        """Build a ``Workflow`` shim from a ``Lifecycle`` (public factory)."""
+        return Workflow(
+            initial=m.initial,
+            transitions={s: tuple(dsts) for s, dsts in m.transitions.items()},
+        )
 
 
 class Lifecycle(BaseModel):
@@ -125,8 +163,6 @@ class StatusSpec(BaseModel):
 # Validation helpers (extracted to keep _validate under complexity limits)
 # ---------------------------------------------------------------------------
 
-_SUBENTITY_KINDS: frozenset[str] = frozenset({"subtask", "story", "finding"})
-
 
 def _check_lifecycle_statuses(
     lifecycles: dict[str, Lifecycle],
@@ -167,6 +203,49 @@ def _check_reachability(
             f"lifecycle {name!r}: state {s!r} unreachable from initial {m.initial!r}"
             for s in unreachable
         )
+
+
+def _check_parent_cycles(
+    items: dict[str, ItemSpec],
+    errors: list[str],
+) -> None:
+    """§5-7: detect cycles in the type-parent graph.
+
+    Walks ``items[t].parents`` using DFS with a colour-marking scheme:
+    - WHITE (unvisited), GREY (on the current path), BLACK (fully explored).
+    A back-edge (GREY → GREY) indicates a cycle.
+
+    Reports each cycle once in a deterministic order (sorted entry points).
+    """
+    WHITE, GREY, BLACK = 0, 1, 2
+    colour: dict[str, int] = {t: WHITE for t in items}
+    path: list[str] = []
+    reported: set[frozenset[str]] = set()
+
+    def dfs(node: str) -> None:
+        colour[node] = GREY
+        path.append(node)
+        for parent in items[node].parents:
+            if parent not in colour:
+                # Parent declared but not a known type — caught by _check_item_refs.
+                continue
+            if colour[parent] == GREY:
+                # Back-edge: reconstruct cycle from path.
+                cycle_start = path.index(parent)
+                cycle_nodes = path[cycle_start:]
+                key = frozenset(cycle_nodes)
+                if key not in reported:
+                    reported.add(key)
+                    cycle_str = " → ".join([*cycle_nodes, parent])
+                    errors.append(f"type-parent graph has a cycle: {cycle_str}")
+            elif colour[parent] == WHITE:
+                dfs(parent)
+        path.pop()
+        colour[node] = BLACK
+
+    for t in sorted(items):
+        if colour[t] == WHITE:
+            dfs(t)
 
 
 def _check_item_refs(
@@ -289,6 +368,32 @@ class WorkflowSpec(BaseModel):
         spec = self.statuses.get(status)
         return spec.role if spec else None
 
+    def workflow_for(self, item_type: str) -> Workflow:
+        """Return the ``Workflow`` shim for the given item type."""
+        return Workflow.from_machine(self.machine_for(item_type))
+
+    def subentity_workflow(self, kind: str) -> Workflow:
+        """Return the ``Workflow`` shim for the given sub-entity kind."""
+        return Workflow.from_machine(self.lifecycles[kind])
+
+    def subentity_initial(self, kind: str) -> str:
+        """Return the initial status for the given sub-entity kind."""
+        return self.lifecycles[kind].initial
+
+    def subentity_can_transition(self, kind: str, src: str, dst: str) -> bool:
+        """Return True if the given transition is valid for the given sub-entity kind."""
+        return self.lifecycles[kind].can_transition(src, dst)
+
+    def parent_hint(self, child: str) -> str:
+        """Human guidance for an invalid parent (used in error messages)."""
+        parents = self.items[child].parents
+        names = " or ".join(sorted(parents)) or "none"
+        msg = f"a {child}'s parent must be of type {names}"
+        ref_rule_kinds = {r.kind for r in self.item_ref_rules(child)}
+        if "fixes" in ref_rule_kinds or "addresses" in ref_rule_kinds:
+            msg += "; link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`"
+        return msg
+
     # ------------------------------------------------------------------ validation
 
     @model_validator(mode="after")
@@ -315,6 +420,9 @@ class WorkflowSpec(BaseModel):
 
         # §5-5: ItemSpec cross-refs + uniqueness.
         _check_item_refs(self.items, all_lifecycle_names, all_types, errors)
+
+        # §5-7: parent-cycle detection in the type-parent graph.
+        _check_parent_cycles(self.items, errors)
 
         # §5-6a: reserved-vocab subset — spec must include ALL reserved ItemType members.
         # A custom spec may ADD new types but must never OMIT a reserved one.
@@ -365,8 +473,6 @@ class WorkflowSpec(BaseModel):
         if errors:
             from squads._errors import SquadsError
 
-            raise SquadsError(
-                "Invalid bundled workflow spec:\n" + "\n".join(f"  - {e}" for e in errors)
-            )
+            raise SquadsError("Invalid workflow spec:\n" + "\n".join(f"  - {e}" for e in errors))
 
         return self

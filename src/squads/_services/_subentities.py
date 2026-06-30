@@ -28,7 +28,6 @@ from squads._services._base import (
     reject_markers,
 )
 from squads._services._results import BlockResult, SubentityDetail
-from squads._workflow import item_parent_required, subentity_can_transition, subentity_initial
 
 
 class SubentitiesMixin(ServiceCore):
@@ -96,7 +95,7 @@ class SubentitiesMixin(ServiceCore):
             sub = SubEntity(
                 local_id=local_id,
                 title=title,
-                status=subentity_initial(kind),
+                status=self.spec.subentity_initial(kind),
                 assignee=assignee,
                 severity=severity,
                 story=story,
@@ -306,13 +305,18 @@ class SubentitiesMixin(ServiceCore):
                 },
             )
 
-    @staticmethod
-    def _apply_subentity_status(kind: str, sub: SubEntity, status: str, *, force: bool) -> None:
+    def _apply_subentity_status(
+        self, kind: str, sub: SubEntity, status: str, *, force: bool
+    ) -> None:
         # Coerce to plain str — callers may pass a Status StrEnum member
         # (use_enum_values=False prevents auto-coercion).
         status = str(status)
         current = sub.status
-        if not force and current != status and not subentity_can_transition(kind, current, status):
+        if (
+            not force
+            and current != status
+            and not self.spec.subentity_can_transition(kind, current, status)
+        ):
             raise InvalidTransitionError(
                 f"{kind} {sub.local_id} cannot move {current} → {status} (use --force to override)"
             )
@@ -454,7 +458,7 @@ class SubentitiesMixin(ServiceCore):
                 f"{task.id} has no feature parent; set one before mapping a subtask to {story}"
             )
         parent = db.get(task.parent)
-        required = item_parent_required(task.type)
+        required = self.spec.item_parent_required(task.type)
         if parent is None or (required is not None and parent.type != required):
             kind = parent.type if parent else "missing parent"
             raise SquadsError(f"{task.id}'s parent is a {kind}, not a feature")
