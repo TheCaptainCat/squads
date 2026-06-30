@@ -19,7 +19,7 @@ subentities:
     type across my whole squad
   status: Todo
 created_at: '2026-06-25T13:21:20Z'
-updated_at: '2026-06-30T07:47:15Z'
+updated_at: '2026-06-30T12:17:00Z'
 ---
 <!-- sq:body -->
 ## Status: stretch goal / strong candidate to split into its own epic
@@ -90,7 +90,7 @@ _Add with `sq feature 212 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on an `incident` type) in `.squads.toml` with its own machine and summary columns, so that my custom types can have structured nested work items beyond reusing the built-in story/subtask/finding kinds.
+As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on an `incident` type) in `.overrides/workflow.toml` with its own machine and summary columns, so that my custom types can have structured nested work items beyond reusing the built-in story/subtask/finding kinds.
 
 **Acceptance:** `sq incident <n> add-action "…"` works for a type that declares `subentity_kind = 'action'`; the summary table renders with declared columns; `add-action` CLI verb is built dynamically from the spec.
 <!-- sq:story:US1:body:end -->

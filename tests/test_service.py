@@ -826,8 +826,8 @@ async def test_renumber_plan_uses_supplied_padding(svc):
     fid_b = "FEAT-000003"
     fake_path = Path("/fake/path.md")
     records = [
-        (fid_a, fake_path, ItemType.TASK, "task", 3),
-        (fid_b, fake_path, ItemType.FEATURE, "feat", 3),
+        (fid_a, fake_path, str(ItemType.TASK), "task", 3),
+        (fid_b, fake_path, str(ItemType.FEATURE), "feat", 3),
     ]
     _, renames = MaintenanceMixin._renumber_plan(records, padding=7)  # pyright: ignore[reportPrivateUsage]
     # The reassigned ID must use 7-digit formatting.

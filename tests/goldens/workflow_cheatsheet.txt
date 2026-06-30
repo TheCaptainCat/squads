@@ -1,0 +1,116 @@
+## Team workflow
+
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
+  `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
+- **Product owner** → features + their user stories:
+  `sq create feature "…" --author product-owner`, then `sq feature <n> add-story "…"`.
+- **Tech lead** → tasks under a feature, with subtasks mapped to a user story:
+
+  ```bash
+  sq create task "…" --author tech-lead --parent FEAT-…   # --author (a registered agent) is required
+  sq task <n> add-subtask "…" --story US1       # US1 must exist in the parent feature
+  sq task <n> ref add BUG-… --kind fixes        # bug fix  (or REV-… --kind addresses)
+  ```
+
+  A purely-technical task has no feature parent and no fix/addresses ref.
+- **Sub-entities are tracked too.** Subtasks & user stories run `Todo → InProgress → Done`
+  (`sq task <n> subtask <k> update --status …`, `sq feature <n> story <k> update --status …`); review
+  findings carry a severity + `Open → Fixed → Verified` (`sq review <n> add-finding "…" --severity
+  high`, `sq review <n> finding <k> update --status …`). `update` is the one metadata entry point for
+  a sub-entity (`--title`/`--status`/`--assignee`, a subtask's `--story`, a finding's `--severity`).
+  Each parent shows an sq-managed summary table.
+- Hierarchy: epic → feature → task; subtasks → user stories. `sq check` enforces the parent rules.
+- Each role has skills for the item types it manages (`sq-feature`, `sq-task`, `sq-bug`, …) —
+  open those for role-specific guidance. The default agent (Catherine Manager) triages and routes.
+- The `.md` files are sq-managed — never hand-edit them. Set an item's body with
+  `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
+  "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
+  (repeat `-m` for separate bullets; use `@role`).
+
+## Type-command aliases
+
+Short and single-letter aliases for the item-type commands — input sugar only. They are hidden from
+root `--help` but fully equivalent: every alias accepts everything the canonical name does, including
+sub-entity chains (`sq f 26 story 4 show`). Output (IDs, errors, `--json`) always uses the canonical
+type name. Run `sq workflow` to see this table in the terminal.
+
+| Canonical | Aliases | Example |
+|---|---|---|
+| `epic` | `e` | `sq e <n> show` |
+| `feature` | `feat`, `f` | `sq f <n> show` |
+| `task` | `t` | `sq t <n> show` |
+| `bug` | `b` | `sq b <n> show` |
+| `decision` | `dec`, `d` | `sq d <n> show` |
+| `review` | `rev`, `r` | `sq r <n> show` |
+| `guide` | `g` | `sq g <n> show` |
+
+**Evolution rule (stability contract):** adding an alias is additive and allowed;
+removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table
+is frozen grammar in the same stability tier as the canonical command names.
+
+## Retype
+
+Reclassify a work item to a different type — the sequence number (and durable identity) is
+preserved; only the ID prefix changes. All incoming refs, children's parent links, and prose
+mentions are rewritten to the new ID atomically.
+
+```bash
+sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
+```
+
+Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
+
+**Status behaviour:** when the old and new types share the same workflow (task↔bug,
+feature↔epic) the status is carried as-is; otherwise the status resets to the new type's
+initial value and the command says so.
+
+**Refusals with actionable hints:**
+- item has sub-entities (clear them first)
+- existing parent would be invalid for the new type (re-parent or remove the parent first)
+- any child would become invalid under the new type (re-parent or remove those children first)
+
+After retype, `sq check` is clean and `sq repair` is a stable no-op.
+
+## Remove vs. Cancel
+
+Two distinct exit paths for work items — use the right one:
+
+| | Cancel | Remove |
+|---|---|---|
+| **Intent** | Work genuinely considered, then dropped | Item should never have existed (mis-creation, test artifact, rolled-back decision) |
+| **Effect** | Status → `Cancelled`; item stays on the books, greppable, linkable, visible in `tree`/`list` | File deleted, index entry gone; only a sequence-number gap remains |
+| **Command** | `sq <type> <n> status Cancelled` | `sq <type> <n> remove` |
+
+```bash
+sq <type> <n> status Cancelled   # drop work that was genuinely considered
+sq <type> <n> remove             # erase a mis-creation (interactive confirm)
+sq <type> <n> remove --yes       # skip the confirm
+sq <type> <n> remove --force     # also sever incoming refs from referrers' frontmatter
+```
+
+**Ref and child safety:**
+- `remove` refuses when the item has incoming refs or children, listing every offender.
+- `--force` severs refs but still refuses while children exist; re-parent or remove children first.
+- After any removal `sq check` is clean — no dangling refs, no dangling parent links.
+
+**Sequence gaps are sanctioned, not corruption.** Removal deletes the index entry but never
+touches the counter high-water mark — the freed number is never reissued.  A gap means "an item
+with that sequence number existed and was removed."  `sq check` and `sq repair` treat gaps as
+normal; the reflog records a reconstructable removal line that explains each gap.
+
+## Ref kinds
+
+The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
+
+| Kind | Meaning | Direction convention | Consumer |
+|---|---|---|---|
+| `related` | Generic cross-reference (default) | `A related B` lives on A | Navigation |
+| `blocks` | A is blocking B; B cannot proceed while A is open | `A blocks B` lives on **A** (the blocker) | `sq blocked` |
+| `depends-on` | A depends on B; A cannot proceed while B is open. Equivalent to `B blocks A` — `A depends-on B` ≡ `B blocks A` | `A depends-on B` lives on **A** (the dependent) | `sq blocked` |
+| `implements` | A implements the requirement or spec described by B | `A implements B` lives on A | Navigation |
+| `fixes` | A (a task or PR) fixes bug B | `A fixes B` lives on A | `sq check` task rules |
+| `addresses` | A (a task) addresses or follows up review B | `A addresses B` lives on A | `sq check` task rules |
+| `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be Superseded | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
+| `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as Cancelled | `A duplicates B` lives on **A** (the later filing) | Navigation |
+
+`blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context. Bare `ref add <id>` (no `--kind`) defaults to `related`.

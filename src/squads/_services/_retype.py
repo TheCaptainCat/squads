@@ -135,7 +135,9 @@ class RetypeMixin(ServiceCore):
             old_path = item_file(self.paths, item)
             item.type = new_type
             new_id = item.id  # @computed_field reflects the new type
-            new_rel = self.paths.squad_relative(new_type, f"{new_id}-{item.slug}.md")
+            new_rel = self.paths.squad_relative(
+                new_type, f"{new_id}-{item.slug}.md", spec=self.spec
+            )
             new_path = self.paths.abspath(new_rel)
             await _aio.path_rename(old_path, new_path)
             item.path = new_rel

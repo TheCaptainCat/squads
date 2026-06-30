@@ -134,7 +134,7 @@ class ItemsMixin(ServiceCore):
     def _rename(self, item: Item, new_title: str) -> None:
         new_slug = slugify(new_title)
         old_path = item_file(self.paths, item)
-        new_rel = self.paths.squad_relative(item.type, f"{item.id}-{new_slug}.md")
+        new_rel = self.paths.squad_relative(item.type, f"{item.id}-{new_slug}.md", spec=self.spec)
         new_path = self.paths.abspath(new_rel)
         if old_path.exists() and old_path != new_path:
             old_path.rename(new_path)

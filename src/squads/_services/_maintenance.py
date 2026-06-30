@@ -37,7 +37,8 @@ from squads._services._base import SUBENTITY_KIND, ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RepairResult
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
-type _FileRec = tuple[str, Path, ItemType, str, int]
+# ``type`` is a plain ``str`` so that custom types (not in ItemType) are supported.
+type _FileRec = tuple[str, Path, str, str, int]
 
 
 def _marker_issues(text: str) -> list[str]:
@@ -79,6 +80,13 @@ class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ sync
     async def sync(self) -> None:
         """Regenerate all tool-owned managed files to the current version; stamp the config."""
+        # Ensure that every type folder declared in the active spec exists on disk.
+        # Built-in type folders are created by init/adopt; custom type folders may not
+        # yet exist if the type was added to the spec after the squad was initialised.
+        for ts in self.spec.items.values():
+            folder = self.paths.squad_dir / ts.folder
+            await _aio.mkdir(folder, parents=True, exist_ok=True)
+
         backends = self._backends()
         ctx = self._ctx
         for backend in backends:
@@ -267,7 +275,7 @@ class MaintenanceMixin(ServiceCore):
         return seeded
 
     # ------------------------------------------------------------------ scan helpers
-    def _iter_item_files(self) -> Iterator[tuple[ItemType, Path]]:
+    def _iter_item_files(self) -> Iterator[tuple[str, Path]]:
         """Yield (item_type, markdown path) for every item file across the type folders.
 
         Skill files follow the ``SKILL-<NNNNNN>-<slug>.md`` convention (ADR-000181 decision
@@ -275,24 +283,36 @@ class MaintenanceMixin(ServiceCore):
         type.  Legacy slug-named files (pre-migration) are also yielded so callers can detect
         them; files without an ``id`` in their frontmatter are silently skipped by the
         repair/check callers.
+
+        Custom types (declared in ``self.spec`` but not in the built-in ``ItemType`` enum) are
+        also scanned: their folder is determined from the spec and their files are matched with
+        the ``<PREFIX>-*.md`` glob derived from their declared prefix.
         """
+        # Built-in types first (preserves existing scan order for repair/check).
         for item_type in ItemType:
             folder = self.paths.folder_for(item_type)
             if not folder.is_dir():
                 continue
+            prefix = item_type.prefix
             if item_type == ItemType.SKILL:
                 # Convention files follow SKILL-*.md (post-migration / fresh init).
                 # Also include legacy <slug>.md files so pre-migration squads can still be
                 # repaired/checked (they will be silently skipped by callers that require an id).
-                convention = sorted(folder.glob(f"{item_type.prefix}-*.md"))
-                legacy = sorted(
-                    md for md in folder.glob("*.md") if not md.name.startswith(item_type.prefix)
-                )
-                yield from ((item_type, md) for md in convention + legacy)
+                convention = sorted(folder.glob(f"{prefix}-*.md"))
+                legacy = sorted(md for md in folder.glob("*.md") if not md.name.startswith(prefix))
+                yield from ((str(item_type), md) for md in convention + legacy)
             else:
-                yield from (
-                    (item_type, md) for md in sorted(folder.glob(f"{item_type.prefix}-*.md"))
-                )
+                yield from ((str(item_type), md) for md in sorted(folder.glob(f"{prefix}-*.md")))
+
+        # Custom types — declared in the active spec but not in the built-in ItemType enum.
+        builtin_types: frozenset[str] = frozenset(t.value for t in ItemType)
+        for ctype, ts in sorted(self.spec.items.items()):
+            if ctype in builtin_types:
+                continue  # already scanned above
+            folder = self.paths.squad_dir / ts.folder
+            if not folder.is_dir():
+                continue
+            yield from ((ctype, md) for md in sorted(folder.glob(f"{ts.prefix}-*.md")))
 
     # ------------------------------------------------------------------ repair / renumber
     async def repair(self, *, renumber: bool = False) -> RepairResult:
@@ -327,7 +347,7 @@ class MaintenanceMixin(ServiceCore):
             data = read_frontmatter(text=await _aio.read_text(md))
             if not data.get("id"):
                 continue
-            squad_rel = self.paths.squad_relative(item_type, md.name)
+            squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
             item = Item.from_frontmatter(data, path=squad_rel)
             # Load-boundary vocab validation (ADR-000232 §1 / TASK-000235 F1/F5 / TASK-000252):
             # reject items with an unknown type, status, or sub-entity status before
@@ -416,16 +436,17 @@ class MaintenanceMixin(ServiceCore):
             )
 
         renamed = 0
-        for item_type, md in self._iter_item_files():
+        for _item_type, md in self._iter_item_files():
             stem = md.stem  # e.g. "TASK-000007-fix-login"
-            # Parse digit-run from the stem: PREFIX-<digits>-<slug>
-            _, _, digits_slug = stem.partition("-")  # "000007-fix-login"
+            # Parse PREFIX and digit-run from the stem: PREFIX-<digits>-<slug>
+            file_prefix, _, digits_slug = stem.partition("-")  # "TASK", "000007-fix-login"
             digit_run, _, slug_part = digits_slug.partition("-")  # "000007", "fix-login"
             if not digit_run.isdigit():
                 continue  # malformed filename — skip
             seq = int(digit_run)
             # Build the new filename via the canonical formatter — no hand-rolled :0Nd here.
-            base = format_item_id(item_type.prefix, seq, new_padding)
+            # Use the prefix extracted from the filename (works for both built-in and custom types).
+            base = format_item_id(file_prefix, seq, new_padding)
             new_name = f"{base}-{slug_part}.md" if slug_part else f"{base}.md"
             new_path = md.parent / new_name
             if new_path != md:
@@ -467,7 +488,7 @@ class MaintenanceMixin(ServiceCore):
     def _renumber_plan(
         records: list[_FileRec],
         padding: int = DEFAULT_ID_PADDING,
-    ) -> tuple[dict[str, str], list[tuple[Path, ItemType, str, str]]]:
+    ) -> tuple[dict[str, str], list[tuple[Path, str, str, str]]]:
         """Assign fresh numbers to ID-number collisions. Returns (id remap, files to rename).
 
         ``padding`` is the squad's current padding (from ``db.padding``); all minted IDs use it
@@ -478,13 +499,15 @@ class MaintenanceMixin(ServiceCore):
             by_number.setdefault(rec[4], []).append(rec)
         next_free = max(by_number, default=0) + 1
         remap: dict[str, str] = {}
-        renames: list[tuple[Path, ItemType, str, str]] = []
+        renames: list[tuple[Path, str, str, str]] = []
         for number in sorted(by_number):
-            for fid, md, item_type, slug, _ in sorted(by_number[number], key=lambda r: r[0])[1:]:
-                new_id = format_item_id(item_type.prefix, next_free, padding)
+            for fid, md, _item_type, slug, _ in sorted(by_number[number], key=lambda r: r[0])[1:]:
+                # Extract prefix from the existing ID (works for both built-in and custom types).
+                fid_prefix = fid.split("-", 1)[0]
+                new_id = format_item_id(fid_prefix, next_free, padding)
                 next_free += 1
                 remap[fid] = new_id
-                renames.append((md, item_type, slug, new_id))
+                renames.append((md, _item_type, slug, new_id))
         return remap, renames
 
     async def _renumber(self) -> dict[str, str]:
@@ -497,9 +520,11 @@ class MaintenanceMixin(ServiceCore):
         # rewrite every reference to a remapped id across all files (frontmatter + body + inline)
         await rewrite_ids([md for _, md, *_ in records], remap)
         # rename the files whose own id changed, and resync their stored sequence_id
-        for old_path, item_type, slug, new_id in renames:
+        for old_path, _item_type, slug, new_id in renames:
             new_name = f"{new_id}-{slug}.md" if slug else f"{new_id}.md"
-            new_path = self.paths.folder_for(item_type) / new_name
+            # Use the parent directory of the existing file — avoids resolving the type
+            # through folder_for and works for both built-in and custom types.
+            new_path = old_path.parent / new_name
             await _aio.path_rename(old_path, new_path)
             text = await _aio.read_text(new_path)
             fm, _ = sections.split_frontmatter(text)

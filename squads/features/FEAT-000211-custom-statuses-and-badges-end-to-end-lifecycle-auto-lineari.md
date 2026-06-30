@@ -19,7 +19,7 @@ subentities:
     list output
   status: Todo
 created_at: '2026-06-25T13:20:36Z'
-updated_at: '2026-06-30T07:47:14Z'
+updated_at: '2026-06-30T12:16:56Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -45,7 +45,7 @@ Requires F2 (FEAT-000208) for `str`-typed status fields and F4 (FEAT-000210) for
 
 ## Acceptance criteria
 
-1. `sq list --status Triage` works for a custom status `Triage` declared in `.squads.toml`; unknown status values produce an actionable error listing valid options.
+1. `sq list --status Triage` works for a custom status `Triage` declared in `.overrides/workflow.toml`; unknown status values produce an actionable error listing valid options.
 2. `sq blocked` correctly uses spec-derived open/terminal classification — an item in a custom non-terminal status is treated as open; an item in a custom terminal status is treated as closed.
 3. Custom status badges render in `sq <type> show` and `sq list` output; statuses with no declared badge show a graceful default (no crash).
 4. `sq workflow` renders custom lifecycles with correct linearization; the auto-derived string uses BFS from initial state and lists side-states in parentheses.

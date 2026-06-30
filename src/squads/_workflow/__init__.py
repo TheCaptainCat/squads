@@ -23,6 +23,7 @@ from squads._workflow._models import (
     StatusSpec,
     Workflow,
     WorkflowSpec,
+    linearize_lifecycle,
 )
 
 # Backward-compat aliases — existing callers that imported the old names continue to work.
@@ -212,6 +213,7 @@ __all__ = [
     "item_parent_required",
     "item_ref_rules",
     "item_subentity_kind",
+    "linearize_lifecycle",
     "load_workflow_spec",
     "parent_allowed",
     "parent_hint",
