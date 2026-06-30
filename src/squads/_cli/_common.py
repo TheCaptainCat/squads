@@ -533,17 +533,28 @@ def _parse_item_token(token: str) -> tuple[int, str | None]:
     )
 
 
-async def resolve_item_id_typed(token: str, item_type: ItemType, svc: Service) -> str:
+async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str:
     """Resolve a CLI token and verify the item's **actual type** in the live DB.
 
     Accepts ``35`` / ``000035`` / ``TASK-000035``.  Raises a friendly
     :class:`SquadsError` on type mismatch (naming the real item and type) or on an
     unknown item (mentioning both accepted forms — full ID and bare number).
 
+    ``item_type`` is a plain string (``ItemType`` members are ``StrEnum`` so they satisfy
+    this; custom types declared only in the spec also work).  The prefix is resolved from
+    the per-invocation spec (``get_active_spec()``) so custom types that declare their own
+    prefix in ``.overrides/workflow.toml`` get the correct validation.
+
     Mirrors :func:`resolve_slug_or_raise` in shape — takes ``svc`` as a second argument.
     One DB read per call.
     """
-    prefix = PREFIX_BY_TYPE[item_type]
+    # Resolve the prefix: spec-declared first (covers both built-ins and custom types),
+    # fall back to PREFIX_BY_TYPE for the rare pre-callback call path.
+    spec = get_active_spec()
+    if item_type in spec.items:
+        prefix = spec.items[item_type].prefix
+    else:
+        prefix = PREFIX_BY_TYPE.get(item_type, item_type.upper())
     t = token.strip()
     seq, given_prefix = _parse_item_token(token)
     if given_prefix is not None and given_prefix != prefix:

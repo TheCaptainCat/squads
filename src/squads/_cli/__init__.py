@@ -2,8 +2,12 @@
 
 import io
 import sys
+from typing import Any, ClassVar
 
 import typer
+import typer._click as _click
+import typer.core
+import typer.main
 
 from squads import __version__
 from squads import _actor as actor
@@ -15,6 +19,158 @@ if sys.platform == "win32":  # pragma: no cover
     for _stream in (sys.stdout, sys.stderr):
         if isinstance(_stream, io.TextIOWrapper):
             _stream.reconfigure(encoding="utf-8", errors="replace")
+
+
+class _CustomTypeGroup(typer.core.TyperGroup):
+    """Root TyperGroup with lazy-dispatch for custom work types (ADR-000263, Option 3).
+
+    Built-in commands are registered statically at import time (unchanged, byte-identical
+    to today for non-custom squads).  When Click calls ``get_command(ctx, name)`` for an
+    *unknown* name, this group resolves the active spec (bound by ``_bind_active_spec`` in
+    the root callback, or the bundled spec as fallback) and, if ``name`` is a custom work
+    type declared in that spec, builds and returns a ``build_item_app(name)`` sub-app on
+    the fly.
+
+    ``list_commands(ctx)`` is also overridden so ``sq --help`` enumerates custom types from
+    the resolved spec — while remaining byte-identical for non-custom squads because the
+    resolved spec IS the bundled spec there.
+
+    Fail-soft contract: any error during spec resolution falls back to the built-in set —
+    the built-in --help and get_command path always work and never raise from this class.
+    """
+
+    # Cache lazily-built custom-type Click commands within a single process invocation so
+    # repeated ``get_command`` calls (e.g. during completion introspection) return the same
+    # Click command object.
+    _custom_cmd_cache: ClassVar[dict[str, _click.Command]] = {}
+
+    @staticmethod
+    def _resolve_spec_for_ctx(ctx: Any) -> Any:
+        """Resolve the WorkflowSpec for the current Click context.
+
+        Tries three sources in order:
+        1. The already-bound per-invocation spec (``common.get_active_spec()``).  This is
+           set by ``_bind_active_spec`` in the root callback and is the fast path for
+           subcommand dispatch (callback fires before subcommand resolution).
+        2. ``ctx.params["dir"]`` — the hoisted ``--dir`` value parsed on the root group's
+           params before the callback fires (covers the ``sq --help`` path).
+        3. Fall back to ``common.get_active_spec()`` (which returns the bundled spec when
+           no per-invocation spec is bound), so ``--help`` on a non-custom squad is
+           byte-identical to today.
+
+        Always returns a ``WorkflowSpec`` (never raises).
+        """
+        try:
+            from squads._workflow import bundled_spec as _bundled_spec
+            from squads._workflow._loader import (
+                WORKFLOW_OVERRIDE_FILENAME,
+                load_workflow_spec,
+                validate_against_index_fail_closed,
+            )
+
+            # If the per-invocation spec is already bound (i.e. callback has run), use it.
+            active = common._active_spec  # pyright: ignore[reportPrivateUsage]
+            if active is not None:
+                return active
+
+            # Try to read --dir from the context params (set by Click's arg parsing before
+            # the callback fires — available on the root ctx during list_commands/get_command).
+            dir_override: str | None = None
+            if ctx is not None and hasattr(ctx, "params"):
+                dir_override = ctx.params.get("dir")
+
+            # Resolve the spec for the given dir (same logic as _bind_active_spec).
+            from squads._paths import resolve as _resolve
+
+            sp = _resolve(dir_override)
+            override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
+            if not override_path.is_file():
+                return _bundled_spec()
+            merged = load_workflow_spec(squad_dir=sp.squad_dir)
+            validate_against_index_fail_closed(merged, sp.squad_dir)
+        except Exception:  # pylint: disable=broad-except
+            return common.get_active_spec()
+        else:
+            return merged
+
+    def _custom_work_types_for_ctx(self, ctx: Any) -> frozenset[str]:
+        """Return the set of custom (non-built-in) work type names from the resolved spec.
+
+        Safe to call at any time; returns the empty set on any error.
+        """
+        try:
+            from squads._models._enums import ItemType
+
+            spec = self._resolve_spec_for_ctx(ctx)
+            built_in_names: frozenset[str] = frozenset(t.value for t in ItemType)
+            return frozenset(t for t in spec.work_types() if t not in built_in_names)
+        except Exception:  # pylint: disable=broad-except
+            return frozenset()
+
+    def list_commands(self, ctx: Any) -> list[str]:
+        """Built-in commands first, then custom work types from the resolved spec.
+
+        For a non-custom squad the resolved spec IS the bundled spec, so the output is
+        byte-identical to today (AC#7).  Custom types appear after the built-in set,
+        sorted alphabetically for determinism.
+        """
+        base: list[str] = super().list_commands(ctx)
+        custom = sorted(self._custom_work_types_for_ctx(ctx))
+        # Custom types are never in the built-in set, so no dedup is needed.
+        return base + custom
+
+    def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
+        # Fast path: try the statically-built command table first.
+        cmd = super().get_command(ctx, cmd_name)
+        if cmd is not None:
+            return cmd
+
+        # Unknown to the built-in table — check if the resolved spec knows this cmd_name as a
+        # custom work type or alias.
+        try:
+            from squads._cli._items import build_item_app
+            from squads._models._enums import ItemType
+
+            built_in_names: frozenset[str] = frozenset(t.value for t in ItemType)
+            if cmd_name in built_in_names:
+                # Built-ins are always in the static table; if we're here, it's genuinely
+                # unknown (shouldn't happen, but guard so we never shadow built-ins).
+                return None
+
+            spec = self._resolve_spec_for_ctx(ctx)
+
+            # Resolve the canonical type name: check direct type name first, then
+            # spec's alias_to_type map (covers custom aliases like "inc" → "incident").
+            canonical = cmd_name
+            if cmd_name not in spec.work_types():
+                # Check if it's an alias for a custom type.
+                resolved = spec.alias_to_type.get(cmd_name)
+                if resolved is not None and resolved in spec.work_types():
+                    canonical = resolved
+                else:
+                    # Not a custom type or alias — fall through to Click's "No such command" error.
+                    return None
+
+            # Build the sub-app and convert it to a Click command (cached per process).
+            if canonical not in self._custom_cmd_cache:
+                type_app = build_item_app(canonical)
+                # Give the app a name so help output uses it.
+                type_app.info.name = canonical
+                # Convert the Typer app to a Click command group.
+                click_cmd = typer.main.get_command(type_app)
+                # Register spec-declared aliases into the cache so subsequent look-ups find
+                # them without entering this branch again.
+                type_aliases: list[str] = (
+                    spec.items[canonical].aliases if canonical in spec.items else []
+                )
+                self._custom_cmd_cache[canonical] = click_cmd
+                for type_alias in type_aliases:
+                    self._custom_cmd_cache[type_alias] = click_cmd
+
+            return self._custom_cmd_cache.get(cmd_name)
+        except Exception:  # pylint: disable=broad-except
+            return None
+
 
 app = typer.Typer(
     name="sq",
@@ -32,6 +188,7 @@ app = typer.Typer(
     ),
     no_args_is_help=True,
     add_completion=True,
+    cls=_CustomTypeGroup,
 )
 
 
@@ -126,11 +283,8 @@ from squads._cli import (  # noqa: E402
     _workflow_cmd,
 )
 from squads._cli import _main as _main  # noqa: E402
-from squads._models._enums import TYPE_ALIASES, ItemType  # noqa: E402
-from squads._workflow import work_types as _work_types  # noqa: E402
-
-# Work types in declaration order (stable for CLI registration and help output).
-_ORDERED_WORK_TYPES = [t for t in ItemType if t in _work_types()]
+from squads._models._enums import ItemType  # noqa: E402
+from squads._workflow import bundled_spec as _bundled_spec  # noqa: E402
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
@@ -152,16 +306,33 @@ app.add_typer(
 )
 
 # Resource-oriented item groups: `sq <type> <num> <verb> …`.
-# Build each type's sub-app once, then register it under its canonical name and
-# any hidden aliases so every alias routes to the identical command tree.
-for _type in _ORDERED_WORK_TYPES:
-    _type_app = _items.build_item_app(_type)
+# Build each type's sub-app once from the BUNDLED spec, then register it under its canonical
+# name and any hidden aliases so every alias routes to the identical command tree.
+#
+# The bundled spec is the source of truth for the STATIC (import-time) registration loop —
+# this gives byte-identical --help output for non-custom squads (AC#7).  Custom types declared
+# in a project's .overrides/workflow.toml are handled lazily by _CustomTypeGroup.get_command
+# (ADR-000263, Option 3), which fires AFTER --dir is resolved and the active spec is bound.
+_spec = _bundled_spec()
+# Work types in declaration order (stable for CLI registration and help output).
+# Only non-meta (work) types that belong to the built-in ItemType enum get static registration;
+# custom spec types are deferred to the lazy-dispatch group.
+_builtin_work_type_names: frozenset[str] = frozenset(
+    t for t in _spec.work_types() if t in frozenset(e.value for e in ItemType)
+)
+# Preserve declaration order from ItemType (the spec's managed_types is a frozenset, unordered).
+_ORDERED_WORK_TYPES: list[str] = [t.value for t in ItemType if t.value in _builtin_work_type_names]
+
+for _type_str in _ORDERED_WORK_TYPES:
+    _type_app = _items.build_item_app(_type_str)
     app.add_typer(
         _type_app,
-        name=_type.value,
-        help=f"Operate on a {_type.value} by number.",
+        name=_type_str,
+        help=f"Operate on a {_type_str} by number.",
     )
-    for _alias in TYPE_ALIASES.get(_type, ()):
+    # Aliases come from the spec's ItemSpec.aliases — the single source of truth.
+    # (TYPE_ALIASES in _enums.py is now a non-authoritative shim kept for TASK-261 consumers.)
+    for _alias in _spec.items[_type_str].aliases:
         app.add_typer(_type_app, name=_alias, hidden=True)
 
 # Global value-options live on the group callback, so Click only parses them *before* the

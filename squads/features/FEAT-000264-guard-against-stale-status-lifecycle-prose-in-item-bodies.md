@@ -12,7 +12,7 @@ subentities:
   title: The tracker's status is never contradicted by body prose
   status: Todo
 created_at: '2026-06-30T12:20:12Z'
-updated_at: '2026-06-30T12:21:21Z'
+updated_at: '2026-06-30T13:20:56Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -171,4 +171,6 @@ As a maintainer, I want every item's lifecycle position to come solely from its 
   - Verdict: STANDALONE, not a fold into FEAT-000237. Different axis — 237 strips squad-item refs + history from src/ code comments and explicitly declares CLAUDE.md / item bodies OUT of scope; this guards lifecycle-state PROSE in sq-managed markdown bodies + CLAUDE.md. Linked related; guard scopes are disjoint (237 owns src/ comments, 264 owns tracker bodies) so they don't cross-fire.
   - Enforcement heuristic: flag high-signal self-declarations — a leading 'STATUS:' banner, a hand-written '## Status' section, and lifecycle words (proposed/accepted/draft/pending/blocked/superseded, 'go/no-go', 'if/until accepted') asserting THIS item's state — anchored to banner/heading position + description:, linting only sq:body/description and never sq:discussion (comments are the sanctioned channel). Home: a sq check rule and/or CI lint, warn-then-error like the 237 guard.
   - Open design call for whoever picks this up: this repo's own CLAUDE.md '## Status' section is the same shape — decide keep / reword / explicitly-exempt. @manager
+- [2026-06-30T13:20:56Z] Catherine Manager:
+  - Live corpus offender found 2026-06-30 (stronger than the ADR-264 example already in the body): TASK-000257's body carried a standing '### The startup-ordering problem — THIS TASK IS BLOCKED ON THE ADR' banner plus 'Dependencies: BLOCKED ON: the startup-ordering ADR'. ADR-000263 was accepted afterward and nobody cleared the banner — so the body asserted a blocker that no longer existed. This actively misled a manager triage into reporting the ADR didn't exist and the critical path was blocked. Exactly this feature's thesis: a stale 'status:' field is caught by the tracker, but stale lifecycle PROSE in a body has nothing watching it. Detection-wise it's the high-signal case the heuristic targets — a leading 'BLOCKED ON …' self-declaration in a body/heading, distinct from citing another item's status as context. (Banner since cleared on TASK-257 and moved to a dated comment.)
 <!-- sq:discussion:end -->

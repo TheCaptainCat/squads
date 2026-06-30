@@ -71,7 +71,16 @@ WORK_TYPES: tuple[ItemType, ...] = (
 #: Short/single-letter input aliases for work-item type commands.
 #: Aliases are hidden from root --help and are pure input sugar —
 #: output always uses the canonical type name and full IDs.
-#: This is the single source of truth; TASK-000108 (docs) consumes it too.
+#:
+#: NON-AUTHORITATIVE SHIM (TASK-000257): the canonical alias values now live in
+#: ``default_workflow.toml`` as ``ItemSpec.aliases`` (FEAT-000208 encoded them).
+#: CLI registration reads ``WorkflowSpec.items[t].aliases`` instead of this dict.
+#: This constant is kept for:
+#:   - ``_cli/_workflow_cmd.py::_print_cheatsheet`` (TASK-261 will migrate it)
+#:   - ``_backends/_agents_md`` / ``_backends/_claude_code`` (TASK-261 will migrate them)
+#:   - ``tests/test_golden_rendered_output.py`` (TASK-256 goldens; must stay green)
+#:   - ``tests/test_aliases.py`` / ``tests/test_workflow_spec.py`` (golden-lock tests)
+#: Once TASK-261 migrates all consumers, this dict can be removed.
 TYPE_ALIASES: dict[ItemType, tuple[str, ...]] = {
     ItemType.EPIC: ("e",),
     ItemType.FEATURE: ("feat", "f"),

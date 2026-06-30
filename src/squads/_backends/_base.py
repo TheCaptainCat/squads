@@ -8,6 +8,7 @@ from pathlib import Path
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
+from squads._workflow._models import WorkflowSpec
 
 
 @dataclass(frozen=True)
@@ -47,13 +48,22 @@ class BackendContext:
     # Empty dict on first-write paths (pre-seeding); skill_paths.get(slug) returns
     # None in that case and the backend falls back to the slug-named temporary path.
     skill_paths: dict[str, Path]
+    # Active workflow spec — supplied by the Service so backends can enumerate custom types.
+    # ``None`` means use only built-in types (backward-compatible default for callers that
+    # don't supply a spec, e.g. backend conformance tests).
+    spec: WorkflowSpec | None
 
     def __init__(
-        self, paths: SquadPaths, version: str, skill_paths: dict[str, Path] | None = None
+        self,
+        paths: SquadPaths,
+        version: str,
+        skill_paths: dict[str, Path] | None = None,
+        spec: WorkflowSpec | None = None,
     ) -> None:
         self.paths = paths
         self.version = version
         self.skill_paths = skill_paths if skill_paths is not None else {}
+        self.spec = spec
 
     @property
     def root(self) -> Path:

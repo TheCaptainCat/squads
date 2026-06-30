@@ -20,6 +20,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
+from squads._workflow import linearize_lifecycle
 
 _AGENTS = "agents"
 _SKILLS = "skills"
@@ -187,10 +188,16 @@ class ClaudeCodeBackend(AgentBackend):
         The shared ``developers`` section renders only when the roster has at least one developer
         (a ``<tech>-dev`` role), so a squad with no devs yet doesn't carry guidance for an actor
         that can't act.
+
+        Custom types (declared in the spec but not in the built-in ``ItemType`` enum) also get a
+        thin auto-generated skill: lifecycle string (from ``linearize_lifecycle``), the standard
+        command list, and no role sections (graceful degradation — no PLAYBOOK entry).
         """
         by_slug = {r.slug: r for r in roster}
         has_dev = any(interactions.is_dev_slug(r.slug) for r in roster)
         out: list[Artifact] = []
+
+        # Built-in types — rich skill with full PLAYBOOK guidance.
         for item_type in interactions.managed_item_types():
             pb = interactions.PLAYBOOK[item_type]
             sections: list[dict[str, Any]] = []
@@ -230,6 +237,32 @@ class ClaudeCodeBackend(AgentBackend):
                 description=interactions.skill_description(name),
                 body=body,
             )
+
+        # Custom types — thin skill with auto-derived lifecycle + standard command list.
+        if ctx.spec is not None:
+            builtin_type_names: frozenset[str] = frozenset(t.value for t in ItemType)
+            for ctype, ctype_spec in ctx.spec.items.items():
+                if ctype in builtin_type_names or ctype_spec.is_meta:
+                    continue
+                machine = ctx.spec.machine_for(ctype)
+                lifecycle_str = linearize_lifecycle(machine)
+                name = interactions.custom_item_skill_name(ctype)
+                body = render(
+                    "agents/item_skill.md.j2",
+                    title=ctype.capitalize(),
+                    type=ctype,
+                    version=ctx.version,
+                    overview="",
+                    lifecycle=lifecycle_str,
+                    commands=interactions.custom_item_skill_commands(ctype),
+                    sections=[],
+                )
+                out += await self._write_managed_skill(
+                    ctx,
+                    name=name,
+                    description=interactions.custom_item_skill_description(ctype),
+                    body=body,
+                )
         return out
 
     # ------------------------------------------------------------------ entries

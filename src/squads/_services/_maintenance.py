@@ -13,7 +13,13 @@ from squads._backends._base import BackendContext
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
-from squads._interactions import TITLE_ADVISORY_MAX, bundled_skill_slugs, skill_description
+from squads._interactions import (
+    TITLE_ADVISORY_MAX,
+    bundled_skill_slugs,
+    custom_item_skill_description,
+    custom_skill_slugs,
+    skill_description,
+)
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
@@ -101,12 +107,14 @@ class MaintenanceMixin(ServiceCore):
                 await backend.generate_skill_entry(ctx, it)
         skill_map = await self._skill_paths()
         ctx_with_skills = BackendContext(
-            paths=self.paths, version=__version__, skill_paths=skill_map
+            paths=self.paths, version=__version__, skill_paths=skill_map, spec=self.spec
         )
         roster = await self.roster()
         ops = await self.operators()
         for backend in backends:
             await backend.write_managed(ctx_with_skills, roster, ops)
+        # Seed SKILL ids for any custom types declared in the spec (idempotent).
+        await self.seed_custom_skills()
         await self._stamp_version(__version__)
 
     async def _refresh_catalog_extra(self, item: Item) -> None:
@@ -268,6 +276,77 @@ class MaintenanceMixin(ServiceCore):
             # Rewrite each backend's .claude pointer to reference the convention-named body.
             # write_managed ran before seeding and wrote the pointer to the old slug path;
             # generate_skill_entry rewrites it to item.path (= SKILL-NNNNNN-slug.md).
+            ctx = self._ctx
+            for backend in self._backends():
+                await backend.generate_skill_entry(ctx, item)
+            seeded.append(item)
+        return seeded
+
+    # ------------------------------------------------------------------ custom skill seeding
+    async def seed_custom_skills(self) -> list[Item]:
+        """Stamp SKILL-… ids onto custom-type managed skill body files (idempotent).
+
+        Mirrors :meth:`seed_bundled_skills` but operates on custom types declared in the
+        active spec (beyond the built-in ``ItemType`` members).  SKILL ids are allocated in
+        the same lexical-by-slug order as :func:`bundled_skill_slugs`, satisfying AC#6 (no
+        SKILL-id churn for existing bundled skills — custom slugs sort independently into the
+        full sorted slug space).
+
+        Called from :meth:`sync` so custom skills are seeded whenever the squad is synced
+        (not at init, which only knows about bundled types).
+        """
+        now = clock.now()
+        seeded: list[Item] = []
+        skills_folder = self.paths.squad_dir / ItemType.SKILL.folder
+        for slug in custom_skill_slugs(self.spec):
+            desc = custom_item_skill_description(slug.removeprefix("sq-"))
+
+            # Check if a convention-named file already exists — idempotent skip.
+            existing_convention = list(skills_folder.glob(f"{ItemType.SKILL.prefix}-*-{slug}.md"))
+            if existing_convention:
+                continue  # already at convention name — leave id/sequence_id untouched
+
+            # Look for the legacy slug-named body file written by write_managed.
+            legacy_path = skills_folder / f"{slug}.md"
+            if not legacy_path.is_file():
+                continue  # body file not written yet (write_managed must run first)
+            existing_text = await _aio.read_text(legacy_path)
+
+            # Allocate a new SKILL id through the single global counter.
+            sid, _psid = actor.current_session()
+            async with self.store.transaction() as db:
+                item_id = db.allocate_id(ItemType.SKILL)
+                seq = number_for_id(item_id)
+                new_name = f"{ItemType.SKILL.prefix}-{seq:0{db.padding}d}-{slug}.md"
+                squad_rel = self.paths.squad_relative(ItemType.SKILL, new_name)
+                item = Item(
+                    sequence_id=db.counter,
+                    type=ItemType.SKILL,
+                    title=slug,
+                    slug=slug,
+                    status=Status.ACTIVE,
+                    description=desc,
+                    author=slug,
+                    path=squad_rel,
+                    created_at=now,
+                    updated_at=now,
+                    created_session=sid,
+                    modified_session=sid,
+                    extra={X.SLUG: slug},
+                    id_padding=db.padding,
+                )
+                stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
+                convention_path = skills_folder / new_name
+                await _aio.write_text(convention_path, stamped)
+                db.add(item)
+                self.store._log(  # pyright: ignore[reportPrivateUsage]
+                    "create",
+                    item_id,
+                    {"title": slug, "type": ItemType.SKILL.value, "status": Status.ACTIVE.value},
+                )
+            # Remove the legacy slug-named file now that convention file is written.
+            await _aio.path_unlink(legacy_path)
+            # Rewrite each backend's .claude pointer to the convention-named body.
             ctx = self._ctx
             for backend in self._backends():
                 await backend.generate_skill_entry(ctx, item)

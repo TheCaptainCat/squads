@@ -37,16 +37,17 @@ from squads._cli._common import (
     resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
-from squads._models._enums import SEVERITY_EMOJI, ItemType
+from squads._models._enums import SEVERITY_EMOJI
 from squads._models._item import DEFAULT_KIND, split_ref
 from squads._models._subentity import SubEntity
-from squads._workflow import work_types as _work_types
 
-# Parent type → (sub-entity kind, plural label for the list verb + `list_<plural>` service method).
-_SUBENTITY: dict[ItemType, tuple[str, str]] = {
-    ItemType.FEATURE: ("story", "stories"),
-    ItemType.TASK: ("subtask", "subtasks"),
-    ItemType.REVIEW: ("finding", "findings"),
+# Built-in sub-entity map (keyed by string so custom-type strings compare cleanly).
+# Custom types that declare a subentity_kind in the spec are handled via
+# ``get_active_spec().item_subentity_kind(item_type)`` at build time.
+_SUBENTITY_PLURAL: dict[str, tuple[str, str]] = {
+    "feature": ("story", "stories"),
+    "task": ("subtask", "subtasks"),
+    "review": ("finding", "findings"),
 }
 
 
@@ -62,15 +63,23 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
         raise SquadsError("nothing to update (pass at least one field, e.g. --title/--status)")
 
 
-def build_item_app(item_type: ItemType) -> typer.Typer:
-    """A `sq <type> <num> …` group for one work-item type."""
-    item = typer.Typer(no_args_is_help=True, help=f"Operate on a {item_type.value} by number/id.")
+def build_item_app(item_type: str) -> typer.Typer:
+    """A ``sq <type> <num> …`` group for one work-item type.
+
+    Accepts a plain string type name (``"task"``, ``"incident"`` …).  ``ItemType`` enum members
+    are ``StrEnum``s and satisfy this; custom types declared only in the spec also work.
+
+    Capability flags (subentity kind, retype/remove eligibility) are resolved from
+    ``get_active_spec()`` at call time so a custom type's spec-declared capabilities are
+    honoured without any enum membership requirement.
+    """
+    item = typer.Typer(no_args_is_help=True, help=f"Operate on a {item_type} by number/id.")
 
     @item.callback()
     @common.command
     async def _resolve(
         ctx: typer.Context,
-        num: str = typer.Argument(..., metavar="N", help=f"{item_type.value} number or id."),
+        num: str = typer.Argument(..., metavar="N", help=f"{item_type} number or id."),
     ):
         svc = get_service()
         ctx.obj = {"id": await resolve_item_id_typed(num, item_type, svc)}
@@ -81,9 +90,25 @@ def build_item_app(item_type: ItemType) -> typer.Typer:
     _cmd_body(item)
     _cmd_comment(item)
     _cmd_refs(item)
-    if item_type in _SUBENTITY:
-        _register_subentity(item, *_SUBENTITY[item_type])
-    if item_type in _work_types():
+    # Sub-entity kind: check spec first (covers custom types), then fall back to built-in map.
+    spec = common.get_active_spec()
+    subentity_kind = spec.item_subentity_kind(item_type) if item_type in spec.items else None
+    if subentity_kind is None:
+        # Fallback for pre-callback build (bundled spec may not have loaded yet for the app
+        # tree; the built-in map is always accurate for built-in types).
+        sub_info = _SUBENTITY_PLURAL.get(item_type)
+    else:
+        # Spec-declared subentity kind → look up the plural from the built-in map (custom
+        # types would need to declare their own plural, but none do yet).
+        sub_info = _SUBENTITY_PLURAL.get(subentity_kind) or _SUBENTITY_PLURAL.get(item_type)
+    if sub_info is not None:
+        _register_subentity(item, *sub_info)
+    # retype/remove: available for all non-meta work types (spec-derived).
+    # For types unknown to the spec (pre-callback edge case), fall back to checking
+    # against the known meta type names.
+    _META_NAMES = frozenset({"role", "skill", "operator"})
+    is_meta = spec.item_is_meta(item_type) if item_type in spec.items else item_type in _META_NAMES
+    if not is_meta:
         _cmd_retype(item)
         _cmd_remove(item)
     return item
@@ -235,7 +260,7 @@ def _cmd_retype(item: typer.Typer) -> None:
         children's parent links, and prose mentions are rewritten to the new ID.
         """
         target = parse_type(new_type)
-        wt = _work_types()
+        wt = common.get_active_spec().work_types()
         if target not in wt:
             work = ", ".join(sorted(wt))
             raise SquadsError(f"cannot retype to {new_type!r}; valid targets: {work}")
