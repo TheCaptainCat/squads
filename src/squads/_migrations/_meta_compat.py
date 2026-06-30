@@ -14,7 +14,7 @@ from squads._models import _markers as markers
 from squads._models._enums import Severity, Status
 from squads._models._subentity import SubEntity
 from squads._sections import get_section, replace_section
-from squads._workflow import subentity_initial
+from squads._workflow import bundled_spec
 
 _LOCAL_ID_PREFIX = {"story": "US", "subtask": "ST", "finding": "F"}
 # the meta keys, in render order; assignee/severity/story are optional per kind
@@ -93,7 +93,7 @@ def _parse_block(block: str, kind: str, local_id: str) -> BlockInfo:
     return BlockInfo(
         local_id=local_id,
         title=title,
-        status=meta.get("status") or subentity_initial(kind),
+        status=meta.get("status") or bundled_spec().subentity_initial(kind),
         severity=meta.get("severity"),
         story=meta.get("story"),
         assignee=meta.get("assignee"),

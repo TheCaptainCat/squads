@@ -19,7 +19,7 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._services._base import SUBENTITY_CONTAINER, SUBENTITY_KIND, ServiceCore
 from squads._services._results import RetypeResult
-from squads._workflow import initial_status, parent_allowed, parent_hint, work_types, workflow_for
+from squads._workflow._models import WorkflowSpec
 
 # Sub-entity container headings for each kind that has one.
 _CONTAINER_HEADINGS: dict[str, str] = {
@@ -29,9 +29,9 @@ _CONTAINER_HEADINGS: dict[str, str] = {
 }
 
 
-def _validate_work_types(old_type: str, new_type: str, old_id: str) -> None:
+def _validate_work_types(spec: WorkflowSpec, old_type: str, new_type: str, old_id: str) -> None:
     """Raise if either type is not a work type, or they are the same."""
-    wt = work_types()
+    wt = spec.work_types()
     if old_type not in wt:
         raise SquadsError(
             f"{old_id} is a {old_type}; only work items can be retyped ({', '.join(sorted(wt))})"
@@ -45,6 +45,7 @@ def _validate_work_types(old_type: str, new_type: str, old_id: str) -> None:
 
 
 def _validate_refusals(
+    spec: WorkflowSpec,
     db: SquadsDB,
     old_id: str,
     new_type: str,
@@ -59,15 +60,17 @@ def _validate_refusals(
         )
     if item_parent:
         parent_item = db.get(item_parent)
-        if parent_item is not None and not parent_allowed(new_type, parent_item.type):
+        if parent_item is not None and not spec.parent_allowed(new_type, parent_item.type):
             raise SquadsError(
                 f"cannot retype {old_id} to {new_type}: "
-                f"{parent_hint(new_type)} "
+                f"{spec.parent_hint(new_type)} "
                 f"(current parent {item_parent} is a {parent_item.type}). "
                 "Remove or update the parent first."
             )
     invalid_children = [
-        c for c in db.items.values() if c.parent == old_id and not parent_allowed(c.type, new_type)
+        c
+        for c in db.items.values()
+        if c.parent == old_id and not spec.parent_allowed(c.type, new_type)
     ]
     if invalid_children:
         ids = ", ".join(c.id for c in invalid_children)
@@ -79,6 +82,7 @@ def _validate_refusals(
 
 
 def _carry_or_reset_status(
+    spec: WorkflowSpec,
     old_type: str,
     new_type: str,
     current_status: str,
@@ -88,11 +92,11 @@ def _carry_or_reset_status(
     Carries the status when old and new share the same :class:`~squads._workflow.Workflow`
     (same transitions/initial) **and** the current status is valid in the new workflow.
     """
-    old_wf = workflow_for(old_type)
-    new_wf = workflow_for(new_type)
+    old_wf = spec.workflow_for(old_type)
+    new_wf = spec.workflow_for(new_type)
     if old_wf == new_wf and current_status in new_wf.states:
         return False, current_status
-    return True, initial_status(new_type)
+    return True, spec.initial_status(new_type)
 
 
 class RetypeMixin(ServiceCore):
@@ -118,10 +122,12 @@ class RetypeMixin(ServiceCore):
             old_id = item.id
             old_status = item.status
 
-            _validate_work_types(old_type, new_type, old_id)
-            _validate_refusals(db, old_id, new_type, item.parent, bool(item.subentities))
+            _validate_work_types(self.spec, old_type, new_type, old_id)
+            _validate_refusals(self.spec, db, old_id, new_type, item.parent, bool(item.subentities))
 
-            status_reset, new_status = _carry_or_reset_status(old_type, new_type, old_status)
+            status_reset, new_status = _carry_or_reset_status(
+                self.spec, old_type, new_type, old_status
+            )
             if status_reset:
                 item.status = new_status
 

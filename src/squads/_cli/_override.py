@@ -25,6 +25,7 @@ from squads._overrides._service import (
     diff_override,
     scaffold_role,
     scaffold_template,
+    scaffold_workflow,
     scan_overrides,
     update_stamp,
 )
@@ -47,20 +48,27 @@ override_app = typer.Typer(
 @handle_errors
 def scaffold(
     name: str | None = typer.Argument(
-        None, help="Bundled template name (e.g. 'items/task.md.j2', 'agents/role.md.j2')."
+        None, help="Bundled template name (e.g. 'items/task.md.j2') or 'workflow'."
     ),
     role: str | None = typer.Option(
         None, "--role", help="Role slug to scaffold a TOML override for (e.g. architect)."
     ),
+    workflow: bool = typer.Option(
+        False, "--workflow", help="Scaffold the workflow spec override (.overrides/workflow.toml)."
+    ),
     force: bool = typer.Option(False, "--force", help="Overwrite an existing override."),
 ):
-    """Copy a bundled template (or role) into .overrides/ as a starting point.
+    """Copy a bundled template (or role/workflow) into .overrides/ as a starting point.
 
     The scaffolded file carries the ``squads:override-base:<version>`` stamp so sq check
     knows which bundled version the override was branched from.
 
     This is the only command that writes override bodies.  After scaffolding, edit the
     file directly to customise it, then verify with ``sq override diff``.
+
+    Workflow override (additive-only): ``sq override scaffold workflow`` or
+    ``sq override scaffold --workflow`` creates ``.overrides/workflow.toml`` with a
+    stamp and a commented worked example (e.g. an ``incident`` type with its lifecycle).
     """
     svc = get_service()
     squad_dir = svc.paths.squad_dir
@@ -75,10 +83,21 @@ def scaffold(
         )
         return
 
+    # Accept 'workflow' as a positional name OR --workflow flag.
+    if workflow or name == "workflow":
+        dest = scaffold_workflow(squad_dir, force=force)
+        console.print(
+            f"[green]scaffolded[/green] workflow override: [bold]{e(str(dest))}[/bold]\n"
+            f"Edit [cyan]{e(str(dest))}[/cyan] to add custom types, statuses, and lifecycles,\n"
+            f"then validate with [cyan]sq workflow lint[/cyan] and "
+            f"inspect with [cyan]sq override diff workflow[/cyan]."
+        )
+        return
+
     if name is None:
         raise typer.BadParameter(
-            "provide a template name (e.g. 'items/task.md.j2') "
-            "or --role <slug> to scaffold a role override"
+            "provide a template name (e.g. 'items/task.md.j2'), 'workflow', "
+            "or --role <slug> / --workflow to scaffold a role or workflow override"
         )
 
     dest = scaffold_template(squad_dir, template_name=name, force=force)
@@ -162,9 +181,12 @@ def _state_color(state: str) -> str:
 @handle_errors
 def diff(
     name: str | None = typer.Argument(
-        None, help="Template name or role slug. Omit to diff all drifted overrides."
+        None, help="Template name, role slug, or 'workflow'. Omit to diff all drifted overrides."
     ),
     role: str | None = typer.Option(None, "--role", help="Diff a role TOML override by slug."),
+    workflow: bool = typer.Option(
+        False, "--workflow", help="Diff the workflow spec override (.overrides/workflow.toml)."
+    ),
     json_out: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
 ):
     """Show two diffs for an override: your edits AND what the upgrade changed.
@@ -176,7 +198,10 @@ def diff(
     you last reconciled.  Merge them into your override by hand, then run
     ``sq override update <name>`` to re-stamp and clear the drift warning.
 
-    With no name/--role, diffs every drifted override.
+    For workflow: ``sq override diff workflow`` or ``sq override diff --workflow`` shows
+    the additive content (Δ-mine) and version stamp delta (Δ-upgrade).
+
+    With no name/--role/--workflow, diffs every drifted override.
     ``--json`` emits an array of {name, kind, base_version, base_available, delta_mine,
     delta_upgrade}.
     """
@@ -187,6 +212,8 @@ def diff(
 
     if role is not None:
         results.append(diff_override(squad_dir, name=role, kind="role"))
+    elif workflow or name == "workflow":
+        results.append(diff_override(squad_dir, name="workflow", kind="workflow"))
     elif name is not None:
         results.append(diff_override(squad_dir, name=name, kind="template"))
     else:
@@ -223,7 +250,12 @@ def diff(
 
 
 def _print_diff_result(result: DiffResult) -> None:
-    label = result.name if result.kind == "template" else f"--role {result.name}"
+    if result.kind == "template":
+        label = result.name
+    elif result.kind == "role":
+        label = f"--role {result.name}"
+    else:
+        label = "workflow"
     console.print(f"\n[bold]Override: {e(label)}[/bold]  [dim](kind: {result.kind})[/dim]")
     if result.base_version:
         console.print(f"[dim]base version: v{result.base_version}[/dim]")
@@ -252,9 +284,15 @@ def _print_diff_result(result: DiffResult) -> None:
 def update(
     name: str | None = typer.Argument(
         None,
-        help="Template name or role slug to re-stamp. Omit to re-stamp all valid overrides.",
+        help=(
+            "Template name, role slug, or 'workflow' to re-stamp. "
+            "Omit to re-stamp all valid overrides."
+        ),
     ),
     role: str | None = typer.Option(None, "--role", help="Re-stamp a role TOML override by slug."),
+    workflow: bool = typer.Option(
+        False, "--workflow", help="Re-stamp the workflow spec override (.overrides/workflow.toml)."
+    ),
 ):
     """Re-stamp an override's base version after a hand-merge, clearing the drift warning.
 
@@ -263,7 +301,7 @@ def update(
 
     The next ``sq check`` recomputes drift against the new base and the warning clears.
 
-    With no name/--role, re-stamps every structurally-valid override (bulk acknowledge).
+    With no name/--role/--workflow, re-stamps every structurally-valid override (bulk acknowledge).
     Broken overrides (missing required markers) are skipped — fix them first.
     """
     svc = get_service()
@@ -271,6 +309,8 @@ def update(
 
     if role is not None:
         stamped = update_stamp(squad_dir, name=role, kind="role")
+    elif workflow or name == "workflow":
+        stamped = update_stamp(squad_dir, name="workflow", kind="workflow")
     elif name is not None:
         stamped = update_stamp(squad_dir, name=name, kind="template")
     else:

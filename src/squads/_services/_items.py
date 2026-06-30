@@ -14,7 +14,6 @@ from squads._roles._catalog import RoleDef
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import RemoveResult
 from squads._util import slugify
-from squads._workflow import can_transition, item_is_meta, workflow_for
 
 
 class ItemsMixin(ServiceCore):
@@ -92,7 +91,7 @@ class ItemsMixin(ServiceCore):
             item.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, item), item)
             self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
-        if item_is_meta(item.type) and item.type != ItemType.OPERATOR:
+        if self.spec.item_is_meta(item.type) and item.type != ItemType.OPERATOR:
             await self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
         return item
 
@@ -116,7 +115,7 @@ class ItemsMixin(ServiceCore):
         # and compares equal to its value, but pydantic won't auto-coerce when
         # use_enum_values=False).
         status = str(status)
-        states = workflow_for(item.type).states
+        states = self.spec.workflow_for(item.type).states
         if status not in states:
             allowed = ", ".join(sorted(states))
             raise StatusNotInWorkflowError(
@@ -125,7 +124,7 @@ class ItemsMixin(ServiceCore):
         if (
             not force
             and item.status != status
-            and not can_transition(item.type, item.status, status)
+            and not self.spec.can_transition(item.type, item.status, status)
         ):
             raise InvalidTransitionError(
                 f"{item.type} cannot move {item.status} → {status} (use --force to override)"
@@ -197,7 +196,7 @@ class ItemsMixin(ServiceCore):
         reject_markers(body)
 
         def mutate(text: str, item: Item) -> str:
-            if item_is_meta(item.type) and item.type != ItemType.OPERATOR:
+            if self.spec.item_is_meta(item.type) and item.type != ItemType.OPERATOR:
                 raise SquadsError(
                     f"{item_id} is a {item.type}; its body is generated from its fields"
                     " (edit via `sq update --set …` / `sq sync`)"
@@ -238,7 +237,7 @@ class ItemsMixin(ServiceCore):
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
             del db.items[item.sequence_id]
-        if item_is_meta(item.type) and item.type != ItemType.OPERATOR:
+        if self.spec.item_is_meta(item.type) and item.type != ItemType.OPERATOR:
             ctx = self._ctx
             for backend in self._backends():
                 await backend.remove_artifacts(ctx, item)

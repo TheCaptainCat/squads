@@ -1,7 +1,10 @@
-"""Top-level commands: init, adopt, list, tree, repair, inbox, sync, workflow, docs, check.
+"""Top-level commands: init, adopt, list, tree, repair, inbox, sync, docs, check.
 
 Per-item operations (show/update/status/body/comment/refs + sub-entities) live in the
 resource-oriented `sq <type> <num> <verb> …` groups built by `_items.build_item_app`.
+
+The ``workflow`` command group (cheatsheet + lint) lives in ``_workflow_cmd.py`` and is
+registered as a Typer sub-app in ``_cli/__init__.py``.
 """
 
 import json
@@ -30,6 +33,7 @@ from squads._cli._common import (
     resolve_item_id_any,
     resolve_slug_or_raise,
 )
+from squads._cli._common import get_active_spec as _get_active_spec
 from squads._errors import SquadsError
 from squads._models._config import CONFIG_FILENAME
 from squads._models._enums import Priority
@@ -42,7 +46,6 @@ from squads._services._refs import graph_to_dot, graph_to_mermaid
 from squads._services._results import GraphNode, ReflogEntry, TreeNode
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
-from squads._workflow import is_open
 
 # ---------------------------------------------------------------------------
 # TTY detection — injectable for testing.
@@ -306,7 +309,7 @@ async def list_items(
         priority=parse_priority(priority) if priority else None,
     )
     if not (all_ or status):
-        items = [i for i in items if is_open(i.status)]
+        items = [i for i in items if _get_active_spec().is_open(i.status)]
     if json_out:
         print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
         return
@@ -647,7 +650,7 @@ async def mine(
     slug = await resolve_slug_or_raise(role, svc)
     items = await svc.list_items(assignee=slug)
     if not all_:
-        items = [i for i in items if is_open(i.status)]
+        items = [i for i in items if _get_active_spec().is_open(i.status)]
     if json_out:
         print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
         return
@@ -664,17 +667,6 @@ async def sync():
     svc = get_service()
     await svc.sync()
     console.print("[green]synced[/green] managed files to this squads version")
-
-
-@app.command()
-def workflow():
-    """Print the team workflow cheatsheet (who writes what, how items link)."""
-    from rich.markdown import Markdown
-
-    from squads._models._enums import TYPE_ALIASES
-    from squads._rendering._engine import render
-
-    console.print(Markdown(render("workflow.md.j2", type_aliases=TYPE_ALIASES)))
 
 
 @app.command()
@@ -988,9 +980,44 @@ async def check(json_out: bool = typer.Option(False, "--json")):
 
     Exit codes: 0 = clean (or warnings only), 3 = one or more error-level issues found.
     See `sq docs faq` for the full exit-code table.
+
+    FEAT-000209 AC#4: when the workflow override spec is invalid (pure-spec error or
+    index cross-check failure), ``sq check`` degrades gracefully.  It captures the
+    workflow error as a single ``CheckIssue`` ("workflow config invalid — run `sq
+    workflow lint`") and continues running all other checks (marker scan, dangling
+    links, etc.) using the bundled default spec so they are not suppressed.
     """
-    svc = get_service()
-    issues = await svc.check()
+    from squads._errors import SquadsError as _SquadsError
+    from squads._paths import resolve as _resolve
+    from squads._services._results import CheckIssue as _CheckIssue
+    from squads._workflow import bundled_spec as _bundled_spec
+    from squads._workflow._loader import lint_workflow_spec
+
+    # --- Step 1: probe the workflow spec without going through the normal open_service
+    # hard-stop.  This lets sq check degrade gracefully when the spec is invalid (AC #4).
+    sp = _resolve(common._active_dir)  # pyright: ignore[reportPrivateUsage]
+    workflow_issues: list[_CheckIssue] = []
+    lint_findings = lint_workflow_spec(sp.squad_dir)
+    if any(f[0] == "error" for f in lint_findings):
+        workflow_issues.append(
+            _CheckIssue("error", "workflow", "workflow config invalid — run `sq workflow lint`")
+        )
+
+    # --- Step 2: try to open the service normally (uses open_service which passes the
+    # override spec to Service explicitly).  If the spec is invalid *and* the index
+    # cross-check fails (AC#5), open_service raises.  In that case fall back to the
+    # bundled spec so the remaining checks can still run.
+    try:
+        svc = get_service()
+    except _SquadsError:
+        # The workflow spec was already captured above — build the service with the
+        # bundled spec directly so the other checks (markers, dangling links, etc.) still run.
+        from squads._services._service import Service as _Service
+
+        svc = _Service(sp, spec=_bundled_spec())
+
+    issues: list[_CheckIssue] = list(workflow_issues) + list(await svc.check())
+
     if json_out:
         print_json_clean(
             json.dumps([{"level": i.level, "item": i.item, "message": i.message} for i in issues])
@@ -1006,6 +1033,6 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     for i in issues:
         color = "red" if i.level == "error" else "yellow"
         loc = f" [dim]{i.item}[/dim]" if i.item else ""
-        console.print(f"[{color}]{i.level}[/{color}]{loc}: {i.message}")
+        console.print(f"[{color}]{i.level}[/{color}]{loc}: {e(i.message)}")
     if errors:
         raise typer.Exit(3)

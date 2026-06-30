@@ -163,4 +163,46 @@ async def adopt(
 
 
 def open_service(dir_override: str | None = None) -> Service:
-    return Service(resolve(dir_override))
+    """Resolve the active squad, load (and activate) its workflow spec, return a Service.
+
+    FEAT-000209 (TASK-000240): if the squad has a workflow override under
+    ``<squad_dir>/.overrides/workflow.toml`` it is merged additively over the bundled
+    default and passed explicitly to ``Service``.  A squad with no override uses the
+    cached ``_BUNDLED_SPEC`` fast-path (F3 / REV-000246) — no re-parse on every call.
+
+    A spec that fails validation raises ``SquadsError`` pointing to ``sq workflow lint``.
+    No command proceeds with an invalid spec.
+
+    AC#5 (TASK-000243): after loading the spec, the live index is cross-checked for
+    items whose type or status is no longer declared in the spec.  A mismatch raises
+    ``SquadsError`` listing every offending item ID.
+
+    ``sq workflow lint`` bypasses this by calling ``lint_workflow_spec`` directly —
+    it reports the same errors in collect mode without going through ``open_service``.
+    """
+    from squads._errors import SquadsError
+    from squads._workflow import bundled_spec
+    from squads._workflow._loader import (
+        WORKFLOW_OVERRIDE_FILENAME,
+        load_workflow_spec,
+        validate_against_index_fail_closed,
+    )
+
+    sp = resolve(dir_override)
+
+    override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
+    if not override_path.is_file():
+        # F3 fast-path: no override → use the already-validated bundled singleton.
+        return Service(sp, spec=bundled_spec())
+
+    # Override present: load, merge, validate, then AC#5 cross-check.
+    try:
+        merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
+    except SquadsError as exc:
+        raise SquadsError(f"{exc} — run `sq workflow lint` to see details") from exc
+
+    # AC#5: cross-check the merged spec against the live index — raises if any item's
+    # type or status is not declared by the new spec.
+    validate_against_index_fail_closed(merged_spec, sp.squad_dir)
+
+    return Service(sp, spec=merged_spec)

@@ -1,5 +1,6 @@
 """Forward reference edges (typed cross-links); backrefs are computed by inversion."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from squads import _actor as actor
@@ -19,7 +20,6 @@ from squads._models._item import (
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._services._results import GraphNode
-from squads._workflow import is_open
 
 # ---------------------------------------------------------------------------
 # Graph traversal helpers
@@ -39,6 +39,7 @@ class _TraversalCtx:
     kinds: frozenset[str]  # effective filter; frozenset of VALID_REF_KINDS
     direction: str  # "out" | "in" | "both"
     include_closed: bool
+    is_open: Callable[[str], bool]  # spec.is_open bound at construction
     seen: set[str] = field(default_factory=lambda: set[str]())
 
 
@@ -191,7 +192,7 @@ def _build_graph_node(
         nb_item = _item_by_id(ctx, nb_id)
         if nb_item is None:
             continue  # dangling ref — skip silently
-        if not ctx.include_closed and not is_open(nb_item.status):
+        if not ctx.include_closed and not ctx.is_open(nb_item.status):
             continue  # closed item filtered out
         child = _build_graph_node(nb_id, nb_kind, nb_dir, ctx, current_depth + 1)
         children.append(child)
@@ -418,7 +419,7 @@ class RefsMixin(ServiceCore):
         db = await self.store.load()
         root_item = require_item(db, root_id)
 
-        if not include_closed and not is_open(root_item.status):
+        if not include_closed and not self.spec.is_open(root_item.status):
             # Root is closed and --all not set: return root-only (seen=False, no children)
             return GraphNode(
                 id=root_item.id,
@@ -438,6 +439,7 @@ class RefsMixin(ServiceCore):
             kinds=effective_kinds,
             direction=direction,
             include_closed=include_closed,
+            is_open=self.spec.is_open,
         )
         # The root node is NOT pre-added to ctx.seen here; _build_graph_node adds it
         # when it first emits the root, before recursing into children.  This ensures
@@ -473,12 +475,12 @@ class RefsMixin(ServiceCore):
         out: list[tuple[Item, list[Item]]] = []
         for tid, blocker_ids in blockers_by_target.items():
             target = db.get(tid)
-            if target is None or not is_open(target.status):
+            if target is None or not self.spec.is_open(target.status):
                 continue
             open_blockers: list[Item] = []
             for bid in blocker_ids:
                 b = db.get(bid)
-                if b is not None and is_open(b.status):
+                if b is not None and self.spec.is_open(b.status):
                     open_blockers.append(b)
             open_blockers.sort(key=lambda b: number_for_id(b.id))
             if open_blockers:

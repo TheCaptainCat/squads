@@ -4,6 +4,7 @@ Provides:
 - :func:`scan_overrides` — enumerate every present override with kind, stamp, and state.
 - :func:`scaffold_template` — copy a bundled template into ``.overrides/templates/`` with stamp.
 - :func:`scaffold_role` — copy a bundled role (empty TOML) into ``.overrides/roles/`` with stamp.
+- :func:`scaffold_workflow` — create ``.overrides/workflow.toml`` with stamp + commented example.
 - :func:`diff_override` — produce the two-delta comparison (Δ-mine + Δ-upgrade) for one override.
 - :func:`update_stamp` — re-stamp one or all structurally-valid overrides to the current version.
 
@@ -41,6 +42,7 @@ from squads._overrides._stamp import (
 )
 from squads._rendering._engine import invalidate_squad_dir
 from squads._sections import find_markers
+from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
 # ─── Override state ────────────────────────────────────────────────────────────
 
@@ -129,6 +131,10 @@ def _role_overrides_dir(squad_dir: Path) -> Path:
     return squad_dir / ".overrides" / "roles"
 
 
+def _workflow_override_path(squad_dir: Path) -> Path:
+    return squad_dir / WORKFLOW_OVERRIDE_FILENAME
+
+
 # ─── Determine override state ──────────────────────────────────────────────────
 
 
@@ -170,6 +176,23 @@ def _role_state(slug: str, path: Path, text: str) -> str:
     return STATE_CURRENT
 
 
+def _workflow_state(text: str) -> str:
+    """Classify the workflow TOML override as current / drifted.
+
+    The workflow override is additive-only (no bundled counterpart to diff against),
+    so drift is detected by version stamp alone: stamp < running version → drifted.
+    TOML has no sq markers, so a workflow override is never 'broken' in the marker sense.
+    """
+    stamp = read_toml_stamp(text)
+    if stamp is None:
+        return STATE_DRIFTED
+    if stamp == __version__:
+        return STATE_CURRENT
+    # For v1 simplicity: any stamp older than the running version is drifted.
+    # (No per-release content-hash for the workflow TOML in the manifest yet.)
+    return STATE_DRIFTED
+
+
 # ─── scan_overrides ────────────────────────────────────────────────────────────
 
 
@@ -198,6 +221,16 @@ def scan_overrides(squad_dir: Path) -> list[OverrideEntry]:
             stamp = read_toml_stamp(text)
             state = _role_state(slug, path, text)
             entries.append(OverrideEntry(name=slug, kind="role", base_version=stamp, state=state))
+
+    # Workflow TOML override (single file, not a directory)
+    wf_path = _workflow_override_path(squad_dir)
+    if wf_path.is_file():
+        text = wf_path.read_text(encoding="utf-8")
+        stamp = read_toml_stamp(text)
+        state = _workflow_state(text)
+        entries.append(
+            OverrideEntry(name="workflow", kind="workflow", base_version=stamp, state=state)
+        )
 
     return entries
 
@@ -255,6 +288,68 @@ def scaffold_role(squad_dir: Path, slug: str, *, force: bool = False) -> Path:
     return dest
 
 
+# ─── scaffold_workflow ─────────────────────────────────────────────────────────
+
+#: Starter content for a scaffolded workflow override — stamp + commented example.
+_WORKFLOW_SCAFFOLD_BODY = """\
+# Workflow spec override — additive-only extensions to the squads built-in vocabulary.
+#
+# Rules:
+#   - You may ADD new item types, statuses, and lifecycle state machines.
+#   - You may NOT redefine (shadow) a built-in type, status, or lifecycle.
+#   - A new type may reference a built-in lifecycle (e.g. lifecycle = "work").
+#   - Unknown TOML keys are rejected at load time (fail-closed).
+#
+# Validate with: sq workflow lint
+# See state after editing: sq override diff workflow
+# Re-stamp after merging: sq override update workflow
+#
+# --- Worked example (uncomment and edit to activate) -------------------------
+#
+# [lifecycles.incident]
+# # Custom lifecycle: Triage → Mitigating → Resolved (+ Cancelled)
+# initial = "Triage"
+#
+# [lifecycles.incident.transitions]
+# Triage = ["Mitigating", "Cancelled"]
+# Mitigating = ["Resolved", "Triage", "Cancelled"]
+# Resolved = ["Triage"]
+# Cancelled = ["Triage"]
+#
+# [statuses.Triage]
+# terminal = false
+#
+# [statuses.Mitigating]
+# terminal = false
+#
+# [statuses.Resolved]
+# terminal = true
+#
+# [items.incident]
+# prefix = "INC"
+# folder = "incidents"
+# lifecycle = "incident"
+# -----------------------------------------------------------------------------
+"""
+
+
+def scaffold_workflow(squad_dir: Path, *, force: bool = False) -> Path:
+    """Create ``.overrides/workflow.toml`` with the stamp comment + a worked example.
+
+    The file is additive-only: it starts from scratch (not a copy of the bundled default)
+    and contains only a commented example that the admin can uncomment and extend.
+    Raises :class:`SquadsError` if the file already exists and ``--force`` is not set.
+    """
+    dest = _workflow_override_path(squad_dir)
+    if dest.exists() and not force:
+        raise SquadsError(f"{WORKFLOW_OVERRIDE_FILENAME} already exists; use --force to overwrite")
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    stamp_line = f"# squads:override-base:{__version__}\n"
+    dest.write_text(stamp_line + _WORKFLOW_SCAFFOLD_BODY, encoding="utf-8")
+    return dest
+
+
 # ─── diff_override ─────────────────────────────────────────────────────────────
 
 
@@ -269,14 +364,16 @@ def _unified_diff(a: str, b: str, fromfile: str, tofile: str) -> str:
 def diff_override(squad_dir: Path, name: str, kind: str) -> DiffResult:
     """Compute both diffs for one override.
 
-    *kind* is ``"template"`` or ``"role"``.
+    *kind* is ``"template"``, ``"role"``, or ``"workflow"``.
     Raises :class:`SquadsError` when the override file is not found.
     """
     if kind == "template":
         return _diff_template(squad_dir, name)
     if kind == "role":
         return _diff_role(squad_dir, name)
-    raise SquadsError(f"unknown override kind {kind!r}; expected 'template' or 'role'")
+    if kind == "workflow":
+        return _diff_workflow(squad_dir)
+    raise SquadsError(f"unknown override kind {kind!r}; expected 'template', 'role', or 'workflow'")
 
 
 def _diff_template(squad_dir: Path, template_name: str) -> DiffResult:
@@ -384,6 +481,51 @@ def _diff_role(squad_dir: Path, slug: str) -> DiffResult:
     )
 
 
+def _diff_workflow(squad_dir: Path) -> DiffResult:
+    path = _workflow_override_path(squad_dir)
+    if not path.exists():
+        raise SquadsError("no workflow override found (run `sq override scaffold workflow` first)")
+
+    override_text = path.read_text(encoding="utf-8")
+    base_version = read_toml_stamp(override_text)
+
+    # Δ-mine: override vs empty reference (workflow overrides are additive-only, starting
+    # from scratch, so the meaningful diff is "what the team added").
+    delta_mine = _unified_diff(
+        "",
+        override_text,
+        fromfile="(empty — workflow overrides are additive-only, starting from scratch)",
+        tofile=WORKFLOW_OVERRIDE_FILENAME,
+    )
+
+    # Δ-upgrade: for v1 simplicity, compare stamp version to running version.
+    # (No per-release content-hash for the workflow TOML in the manifest yet.)
+    delta_upgrade = ""
+    base_available = True
+    if base_version is None:
+        delta_upgrade = (
+            "(no stamp — run `sq override update workflow` to stamp the current version)"
+        )
+        base_available = False
+    elif base_version != __version__:
+        delta_upgrade = (
+            f"(stamp v{base_version} → running v{__version__}; "
+            "review the squads changelog for workflow spec changes, "
+            "then run `sq override update workflow` to re-stamp)"
+        )
+    else:
+        delta_upgrade = "(stamp matches running version — no upgrade delta)"
+
+    return DiffResult(
+        name="workflow",
+        kind="workflow",
+        delta_mine=delta_mine,
+        delta_upgrade=delta_upgrade,
+        base_version=base_version,
+        base_available=base_available,
+    )
+
+
 # ─── update_stamp ─────────────────────────────────────────────────────────────
 
 
@@ -403,6 +545,12 @@ def update_stamp(squad_dir: Path, name: str | None, kind: str | None) -> list[st
 
 def _update_one(squad_dir: Path, name: str, kind: str | None) -> list[str]:
     """Re-stamp a single named override; raise SquadsError if it's broken or absent."""
+    if kind == "workflow":
+        path = _workflow_override_path(squad_dir)
+        if path.exists():
+            stamp_toml_file(path, __version__)
+            return ["workflow"]
+        raise SquadsError("no workflow override found. Run `sq override scaffold workflow` first.")
     if kind == "template" or kind is None:
         path = _template_overrides_dir(squad_dir) / name
         if path.exists():
@@ -444,6 +592,12 @@ def _update_all(squad_dir: Path) -> list[str]:
         for path in sorted(role_dir.glob("*.toml")):
             stamp_toml_file(path, __version__)
             stamped.append(path.stem)
+
+    # Workflow TOML override (single file)
+    wf_path = _workflow_override_path(squad_dir)
+    if wf_path.is_file():
+        stamp_toml_file(wf_path, __version__)
+        stamped.append("workflow")
 
     return stamped
 
@@ -533,4 +687,35 @@ def check_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
                     )
                 )
 
+    issues.extend(_check_workflow_override_issues(squad_dir))
+    return issues
+
+
+def _check_workflow_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
+    """Return check issues for the workflow TOML override (if present)."""
+    wf_path = _workflow_override_path(squad_dir)
+    if not wf_path.is_file():
+        return []
+
+    issues: list[tuple[str, str, str]] = []
+    display = WORKFLOW_OVERRIDE_FILENAME
+    text = wf_path.read_text(encoding="utf-8")
+    stamp = read_toml_stamp(text)
+    if stamp is None:
+        issues.append(
+            (
+                "warn",
+                display,
+                "workflow override has no squads:override-base stamp; "
+                "run `sq override update workflow` to re-stamp",
+            )
+        )
+    elif stamp != __version__:
+        msg = (
+            f"workflow override may be stale: stamp v{stamp} "
+            f"predates running v{__version__}; "
+            "run `sq override diff workflow` to review, then "
+            "`sq override update workflow` to re-stamp"
+        )
+        issues.append(("warn", display, msg))
     return issues

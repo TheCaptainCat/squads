@@ -1,11 +1,15 @@
 """Per-type status workflows and transition validation.
 
-Public API is identical to the old ``_workflow.py`` module — all import sites
-work unchanged.  Internals are now backed by the loaded ``WorkflowSpec``
-singleton (ADR-000214 F1).
-"""
+All workflow capabilities are now methods on ``WorkflowSpec`` (FEAT-000250 /
+TASK-000251).  This module keeps a stable bundled-spec constant for the module-level
+shims and the backward-compat public API (``WORKFLOWS``, ``TERMINAL``, etc.) that
+the golden-lock test asserts.
 
-from dataclasses import dataclass
+The process-global mutable singleton (``_active_spec`` list, ``_terminal_ref`` cell,
+in-place dict mutation) has been deleted (FEAT-000250).  All per-invocation spec
+context is now owned by ``Service`` (TASK-000252) and threaded explicitly through
+call sites.
+"""
 
 from squads._models._enums import (  # noqa: F401 — re-exported for callers
     ItemType,  # pyright: ignore[reportUnusedImport]
@@ -17,6 +21,7 @@ from squads._workflow._models import (
     Lifecycle,
     RefRule,
     StatusSpec,
+    Workflow,
     WorkflowSpec,
 )
 
@@ -25,160 +30,159 @@ StateMachine = Lifecycle
 TypeSpec = ItemSpec
 
 # ---------------------------------------------------------------------------
-# Module-level singleton (loaded once on first import of this package).
+# Immutable bundled spec — loaded once at import; never rebindable.
 # ---------------------------------------------------------------------------
 
-_DEFAULT_SPEC: WorkflowSpec = load_workflow_spec()
+_BUNDLED_SPEC: WorkflowSpec = load_workflow_spec()
 
 # ---------------------------------------------------------------------------
-# Backward-compat ``Workflow`` dataclass — existing code uses Workflow objects
-# returned by ``workflow_for()`` and ``WORKFLOWS[t]``.  We keep the dataclass
-# interface; instances now delegate to the loaded Lifecycle.
+# Module-level constants backed by the immutable bundled spec.
+#
+# These are read-only views over the bundled spec.  To use a different spec,
+# construct a WorkflowSpec and pass it explicitly (e.g. self.spec in Service).
+#
+# WORKFLOWS / SUBENTITY_WORKFLOWS / ALLOWED_PARENTS / TERMINAL are kept for the
+# golden-lock tests (test_workflow_spec.py) and any callers that imported them
+# directly; they always reflect the bundled spec.
 # ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class Workflow:
-    """Thin shim: exposes the old ``Workflow`` interface backed by ``Lifecycle``.
-
-    Status fields are ``str`` (TASK-000235).  Callers passing ``Status`` enum members
-    continue to work because ``Status`` is a ``StrEnum`` — its members compare equal
-    to their plain string values.
-    """
-
-    initial: str
-    transitions: dict[str, tuple[str, ...]]
-
-    @property
-    def states(self) -> set[str]:
-        seen: set[str] = {self.initial}
-        for src, dsts in self.transitions.items():
-            seen.add(src)
-            seen.update(dsts)
-        return seen
-
-    def can_transition(self, src: str, dst: str) -> bool:
-        return dst in self.transitions.get(src, ())
-
-    @staticmethod
-    def _from_machine(m: Lifecycle) -> Workflow:
-        return Workflow(
-            initial=m.initial,
-            transitions={s: tuple(dsts) for s, dsts in m.transitions.items()},
-        )
-
-
-# ---------------------------------------------------------------------------
-# Public constants — backed by the singleton
-# ---------------------------------------------------------------------------
-
-WORKFLOWS: dict[str, Workflow] = {
-    t: Workflow._from_machine(_DEFAULT_SPEC.machine_for(t))  # pyright: ignore[reportPrivateUsage]
-    for t in _DEFAULT_SPEC.items
-}
 
 _SUBENTITY_KINDS: frozenset[str] = frozenset({"subtask", "story", "finding"})
 
-SUBENTITY_WORKFLOWS: dict[str, Workflow] = {
-    kind: Workflow._from_machine(_DEFAULT_SPEC.lifecycles[kind])  # pyright: ignore[reportPrivateUsage]
-    for kind in _SUBENTITY_KINDS
-}
 
-TERMINAL: frozenset[str] = _DEFAULT_SPEC.terminal_set()
+def _make_workflows(spec: WorkflowSpec) -> dict[str, Workflow]:
+    return {t: Workflow.from_machine(spec.machine_for(t)) for t in spec.items}
 
-ALLOWED_PARENTS: dict[str, set[str]] = {
-    t: set(ts.parents)
-    for t, ts in _DEFAULT_SPEC.items.items()
-    if ts.parents  # empty list = unconstrained — omit from the map (matches old behavior)
-}
+
+def _make_subentity_workflows(spec: WorkflowSpec) -> dict[str, Workflow]:
+    return {
+        kind: Workflow.from_machine(spec.lifecycles[kind])
+        for kind in _SUBENTITY_KINDS
+        if kind in spec.lifecycles
+    }
+
+
+def _make_allowed_parents(spec: WorkflowSpec) -> dict[str, set[str]]:
+    return {
+        t: set(ts.parents)
+        for t, ts in spec.items.items()
+        if ts.parents  # empty list = unconstrained — omit (matches old behavior)
+    }
+
+
+WORKFLOWS: dict[str, Workflow] = _make_workflows(_BUNDLED_SPEC)
+SUBENTITY_WORKFLOWS: dict[str, Workflow] = _make_subentity_workflows(_BUNDLED_SPEC)
+ALLOWED_PARENTS: dict[str, set[str]] = _make_allowed_parents(_BUNDLED_SPEC)
+TERMINAL: frozenset[str] = _BUNDLED_SPEC.terminal_set()
+
 
 # ---------------------------------------------------------------------------
-# Free functions — thin shims over the singleton
+# Bundled-spec accessor
+# ---------------------------------------------------------------------------
+
+
+def bundled_spec() -> WorkflowSpec:
+    """Return the bundled default ``WorkflowSpec``.
+
+    The bundled spec is loaded once at import and is immutable.  Use this to
+    obtain the default spec without side effects (e.g. for constructing an
+    ``IndexStore`` or ``Service`` with no override).
+    """
+    return _BUNDLED_SPEC
+
+
+def active_spec() -> WorkflowSpec:
+    """Return the bundled default ``WorkflowSpec``.
+
+    The per-invocation spec context lives on ``Service.spec`` (TASK-000252);
+    the CLI per-invocation handle lives in ``_common.get_active_spec()`` (TASK-000253).
+    This function always returns the immutable bundled spec.
+    """
+    return _BUNDLED_SPEC
+
+
+# ---------------------------------------------------------------------------
+# Free functions — thin shims over the bundled spec.
+#
+# These delegate to the bundled spec.  Service call sites use self.spec.<method>
+# (TASK-000252); CLI call sites use _common.get_active_spec() (TASK-000253).
 # ---------------------------------------------------------------------------
 
 
 def is_open(status: str) -> bool:
-    return _DEFAULT_SPEC.is_open(status)
+    return _BUNDLED_SPEC.is_open(status)
 
 
 def parent_allowed(child: str, parent: str) -> bool:
-    return _DEFAULT_SPEC.parent_allowed(child, parent)
+    return _BUNDLED_SPEC.parent_allowed(child, parent)
 
 
 def parent_hint(child: str) -> str:
     """Human guidance for an invalid parent (used in error messages)."""
-    allowed = ALLOWED_PARENTS.get(child, set())
-    names = " or ".join(sorted(allowed)) or "none"
-    msg = f"a {child}'s parent must be of type {names}"
-    # Append a hint about linking bugs/reviews for types that declare fixes/addresses ref rules.
-    ref_rule_kinds = {r.kind for r in _DEFAULT_SPEC.item_ref_rules(child)}
-    if "fixes" in ref_rule_kinds or "addresses" in ref_rule_kinds:
-        msg += "; link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`"
-    return msg
+    return _BUNDLED_SPEC.parent_hint(child)
 
 
 def workflow_for(item_type: str) -> Workflow:
-    return WORKFLOWS[item_type]
+    return _BUNDLED_SPEC.workflow_for(item_type)
 
 
 def initial_status(item_type: str) -> str:
-    return WORKFLOWS[item_type].initial
+    return _BUNDLED_SPEC.initial_status(item_type)
 
 
 def can_transition(item_type: str, src: str, dst: str) -> bool:
-    return WORKFLOWS[item_type].can_transition(src, dst)
+    return _BUNDLED_SPEC.can_transition(item_type, src, dst)
 
 
 def subentity_workflow(kind: str) -> Workflow:
-    return SUBENTITY_WORKFLOWS[kind]
+    return _BUNDLED_SPEC.subentity_workflow(kind)
 
 
 def subentity_initial(kind: str) -> str:
-    return SUBENTITY_WORKFLOWS[kind].initial
+    return _BUNDLED_SPEC.subentity_initial(kind)
 
 
 def subentity_can_transition(kind: str, src: str, dst: str) -> bool:
-    return SUBENTITY_WORKFLOWS[kind].can_transition(src, dst)
+    return _BUNDLED_SPEC.subentity_can_transition(kind, src, dst)
 
 
 # ---------------------------------------------------------------------------
-# Capability-flag free functions (ADR-000232 §2 / TASK-000234)
+# Capability-flag free functions
 # ---------------------------------------------------------------------------
 
 
 def work_types() -> frozenset[str]:
     """Non-meta types: the units of work."""
-    return _DEFAULT_SPEC.work_types()
+    return _BUNDLED_SPEC.work_types()
 
 
 def item_is_meta(item_type: str) -> bool:
     """True for role/skill/operator — the meta (non-work) types."""
-    return _DEFAULT_SPEC.item_is_meta(item_type)
+    return _BUNDLED_SPEC.item_is_meta(item_type)
 
 
 def item_has_severity(item_type: str) -> bool:
     """True for types that surface a severity field (today: bug only)."""
-    return _DEFAULT_SPEC.item_has_severity(item_type)
+    return _BUNDLED_SPEC.item_has_severity(item_type)
 
 
 def item_subentity_kind(item_type: str) -> str | None:
     """The sub-entity kind this type hosts, or None."""
-    return _DEFAULT_SPEC.item_subentity_kind(item_type)
+    return _BUNDLED_SPEC.item_subentity_kind(item_type)
 
 
 def item_parent_required(item_type: str) -> str | None:
     """Required parent type slug for this item type, or None."""
-    return _DEFAULT_SPEC.item_parent_required(item_type)
+    return _BUNDLED_SPEC.item_parent_required(item_type)
 
 
 def item_ref_rules(item_type: str) -> list[RefRule]:
     """Declared ref-kind rules for the type."""
-    return _DEFAULT_SPEC.item_ref_rules(item_type)
+    return _BUNDLED_SPEC.item_ref_rules(item_type)
 
 
 def status_role(status: str) -> str | None:
     """Semantic role marker for this status (e.g. ``'superseded'``), or None."""
-    return _DEFAULT_SPEC.status_role(status)
+    return _BUNDLED_SPEC.status_role(status)
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +202,8 @@ __all__ = [
     "TypeSpec",
     "Workflow",
     "WorkflowSpec",
+    "active_spec",
+    "bundled_spec",
     "can_transition",
     "initial_status",
     "is_open",

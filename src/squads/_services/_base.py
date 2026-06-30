@@ -37,13 +37,8 @@ from squads._rendering._engine import render, set_active_squad_dir
 from squads._roles._resolver import resolve_role
 from squads._services._results import CreateResult, TreeNode
 from squads._util import slugify
-from squads._workflow import (
-    initial_status,
-    is_open,
-    item_is_meta,
-    parent_allowed,
-    parent_hint,
-)
+from squads._workflow import bundled_spec
+from squads._workflow._models import WorkflowSpec
 
 # Body-local sub-entities: kind → parent item type and its container marker. Package-internal
 # (non-underscore so sibling mixins can import them without tripping reportPrivateUsage).
@@ -202,19 +197,24 @@ def reject_markers(text: str, what: str = "body") -> None:
     )
 
 
-def _template_for(item_type: str) -> str:
-    if item_is_meta(item_type):
-        return f"agents/{item_type}.md.j2"
-    return f"items/{item_type}.md.j2"
-
-
 class ServiceCore:
-    def __init__(self, paths: SquadPaths):
+    def __init__(self, paths: SquadPaths, spec: WorkflowSpec | None = None):
         self.paths = paths
-        self.store = IndexStore(paths.index_path, paths.lock_path)
+        # Use the supplied spec, or fall back to the immutable bundled default.
+        # open_service() always supplies the resolved (possibly overridden) spec;
+        # sq init / sq adopt construct Service(sp) without an override spec, which
+        # is fine because they operate on a fresh squad with no override file yet.
+        self.spec: WorkflowSpec = spec if spec is not None else bundled_spec()
+        self.store = IndexStore(paths.index_path, paths.lock_path, spec=self.spec)
         # Activate the squad-aware template search path so render() picks up any project
         # overrides under <squad_dir>/.overrides/templates/ for this service's squad.
         set_active_squad_dir(paths.squad_dir)
+
+    def _template_for(self, item_type: str) -> str:
+        """Return the Jinja2 template path for ``item_type``."""
+        if self.spec.item_is_meta(item_type):
+            return f"agents/{item_type}.md.j2"
+        return f"items/{item_type}.md.j2"
 
     # ------------------------------------------------------------------ backend
     @property
@@ -276,7 +276,7 @@ class ServiceCore:
                 type=str(item_type),
                 title=title,
                 slug=slug,
-                status=str(status) if status is not None else initial_status(item_type),
+                status=str(status) if status is not None else self.spec.initial_status(item_type),
                 description=description,
                 parent=parent,
                 author=author,
@@ -293,7 +293,7 @@ class ServiceCore:
                 id_padding=db.padding,
             )
             rendered = render(
-                _template_for(item_type), item=item, description=description, extra=item.extra
+                self._template_for(item_type), item=item, description=description, extra=item.extra
             )
             if body is not None:
                 reject_markers(body)
@@ -399,7 +399,9 @@ class ServiceCore:
 
         # Step 1: candidate set
         candidates: list[Item] = (
-            all_items_list if include_closed else [i for i in all_items_list if is_open(i.status)]
+            all_items_list
+            if include_closed
+            else [i for i in all_items_list if self.spec.is_open(i.status)]
         )
 
         # Step 2: build maps
@@ -447,24 +449,25 @@ class ServiceCore:
         parent = db.get(parent_id)
         if parent is None:
             raise ItemNotFoundError(f"parent {parent_id!r} does not exist")
-        if not parent_allowed(child_type, parent.type):
-            raise SquadsError(f"{parent_hint(child_type)} (got {parent.type})")
+        if not self.spec.parent_allowed(child_type, parent.type):
+            raise SquadsError(f"{self.spec.parent_hint(child_type)} (got {parent.type})")
 
-    @staticmethod
-    def _is_participant(db: SquadsDB, slug: str) -> bool:
+    def _is_participant(self, db: SquadsDB, slug: str) -> bool:
         """A slug that can author/be-assigned work: a registered role agent or a human operator.
 
         Skills are meta-types but NOT participants — only role and operator are.
         ``item_is_meta(t) and not ItemType.SKILL`` expresses the same set.
         """
         return any(
-            item_is_meta(it.type) and it.type != ItemType.SKILL and it.extra.get(X.SLUG) == slug
+            self.spec.item_is_meta(it.type)
+            and it.type != ItemType.SKILL
+            and it.extra.get(X.SLUG) == slug
             for it in db.items.values()
         )
 
     def _check_author(self, db: SquadsDB, item_type: str, author: str, slug: str) -> None:
         # a meta-type (role/skill/operator) definition may self-author (bootstrap)
-        if item_is_meta(item_type) and author == slug:
+        if self.spec.item_is_meta(item_type) and author == slug:
             return
         if not self._is_participant(db, author):
             raise SquadsError(
