@@ -38,3 +38,11 @@ def test_pyproject_force_includes_docs():
     data = tomllib.loads((_repo_root() / "pyproject.toml").read_text(encoding="utf-8"))
     force_include = data["tool"]["hatch"]["build"]["targets"]["wheel"]["force-include"]
     assert force_include["docs"] == "squads/_docs"
+
+
+def test_workflow_doc_renders_without_error():
+    # Verify the workflow doc (including override section) renders successfully.
+    content = _docfiles.read("workflow")
+    assert "squads workflow" in content
+    assert "Project workflow overrides" in content
+    assert ".overrides/workflow.toml" in content
