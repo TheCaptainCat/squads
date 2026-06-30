@@ -212,3 +212,203 @@ Filters are AND-ed. `--json` emits a JSON array of `ReflogEntry` objects matchin
 
 > The `delta` sub-field keys are additive and may grow across releases. A full stability contract
 > for `delta` shapes is deferred to the 1.0 freeze.
+
+---
+
+## Project workflow overrides
+
+By default, squads uses a built-in set of item types, statuses, and state machines. If your project needs custom vocabulary — for example, an `incident` type for on-call workflows — you can extend the built-in spec by writing a project-level **workflow override** in TOML. The override is **additive-only**: you can add new types and statuses, but cannot modify or remove built-in ones.
+
+### Creating an override
+
+To scaffold a starter override file:
+
+```bash
+sq override scaffold workflow
+```
+
+This creates `.overrides/workflow.toml` in your squad directory (next to `.squads.json`) with a commented-out worked example. Edit this file to add your custom types, statuses, and state machines.
+
+### Override format
+
+The override file is standard TOML with three sections: `[lifecycles.*]`, `[statuses.*]`, and `[items.*]`.
+
+#### Lifecycles
+
+A lifecycle defines the allowed state transitions for an item type or sub-entity kind. Each lifecycle must specify:
+- `initial` — the starting status when a new item is created
+- `transitions` — a map of allowed transitions (source status → list of target statuses)
+
+```toml
+[lifecycles.incident]
+initial = "Triage"
+
+[lifecycles.incident.transitions]
+Triage = ["Mitigating", "Resolved"]
+Mitigating = ["Resolved", "Triage"]
+Resolved = ["Triage"]
+```
+
+Lifecycles are identified by name. You may reference a built-in lifecycle (e.g. `lifecycle = "work"`) in your custom item types, or define entirely new ones.
+
+#### Statuses
+
+A status is a valid state in a lifecycle. Each status definition must specify:
+- `terminal` — boolean indicating whether items at this status are considered "done" (terminal statuses do not appear in `sq inbox`)
+
+Optional:
+- `badge` — emoji displayed in sub-entity roll-up tables (used only for sub-entities)
+- `role` — special marker for specific statuses (used only for ADRs; e.g. `role = "superseded"`)
+
+```toml
+[statuses.Triage]
+terminal = false
+
+[statuses.Mitigating]
+terminal = false
+
+[statuses.Resolved]
+terminal = true
+```
+
+All statuses you define in a custom lifecycle must be declared in the `[statuses.*]` section.
+
+#### Item types
+
+An item type declaration specifies how a custom type appears in `sq` and which lifecycle it uses. Each type definition must specify:
+- `prefix` — the uppercase letter prefix for the type's ID (e.g. `INC` for incidents)
+- `folder` — the subdirectory under `squads/` where items of this type are stored
+- `lifecycle` — the lifecycle name (built-in or custom) governing transitions
+
+Optional:
+- `parents` — list of allowed parent item types (e.g. `["epic"]`); empty list means unconstrained
+- `aliases` — list of short command aliases (e.g. `["inc"]` allows `sq inc <n>` as shorthand for `sq incident <n>`)
+
+```toml
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "incident"
+```
+
+### Additive-only rules
+
+The override can **only add** new item types, statuses, and lifecycles. It **cannot redefine or remove** built-in ones. Attempting to shadow a built-in will raise an error at load time:
+
+```
+workflow override may not redefine built-in status 'Done'
+(additive-only; you may add new statuses but not change built-ins)
+```
+
+If you remove a custom status from the override that is still in use by live items in the squad, `sq` will hard-stop with an error listing the affected items. Fix the items (e.g. `sq incident 5 status Mitigating`) or restore the status to the override.
+
+Unknown TOML keys (typos) are rejected at load time, so the spec is fail-closed.
+
+### Authoring and validation
+
+After editing `.overrides/workflow.toml`, validate your changes with:
+
+```bash
+sq workflow lint
+```
+
+This command checks:
+- **Syntax**: the TOML file is well-formed
+- **Structure**: all lifecycles, statuses, and item types are correctly defined
+- **References**: all status names used in transitions are declared; all lifecycle names are defined
+- **Liveness**: any types or statuses still referenced by items in the squad are not removed
+
+If valid, the output is:
+
+```
+workflow spec OK — no errors or warnings.
+```
+
+If there are errors, `sq workflow lint` prints each one with context and a fix hint:
+
+```
+                          workflow spec errors                          
+┌────────────────────────────────────┬──────────────────────────────────┐
+│ location                           │ error                            │
+├────────────────────────────────────┼──────────────────────────────────┤
+│ .overrides/workflow.toml:15        │ lifecycle 'incident' not found   │
+│                                    │ (referenced in items.incident)   │
+└────────────────────────────────────┴──────────────────────────────────┘
+```
+
+### Worked example: incident type
+
+Here's a complete, runnable example of adding an `incident` item type with a three-state lifecycle:
+
+```toml
+# Define the incident lifecycle
+[lifecycles.incident]
+initial = "Triage"
+
+[lifecycles.incident.transitions]
+Triage = ["Mitigating", "Resolved"]
+Mitigating = ["Resolved", "Triage"]
+Resolved = ["Triage"]
+
+# Define custom statuses for the lifecycle
+[statuses.Triage]
+terminal = false
+
+[statuses.Mitigating]
+terminal = false
+
+[statuses.Resolved]
+terminal = true
+
+# Declare the incident type
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "incident"
+```
+
+With this override in place, you can now:
+
+```bash
+# Create an incident
+sq create incident "Database connection timeout"
+
+# List all incidents
+sq list -t incident
+
+# Transition through the lifecycle
+sq incident 1 status Mitigating
+sq incident 1 status Resolved
+
+# Use the full ID in commands
+sq incident 1 show
+sq incident 1 comment -m "@qa please verify the fix"
+```
+
+The incident's ID will be `INC-000001`, stored in the `squads/incidents/` folder, and fully integrated with the team workflow — you can assign it, comment on it, and check its status just like any built-in item type.
+
+### Checking the override state
+
+To see how your override differs from the bundled default:
+
+```bash
+sq override diff workflow
+```
+
+This shows what you've added (delta-mine) compared to an empty starting point. If you upgrade squads, use:
+
+```bash
+sq override update workflow
+```
+
+to update the version stamp in the override file.
+
+### Hard stops and error recovery
+
+If a workflow spec becomes invalid (e.g. because you edited `.overrides/workflow.toml` directly and introduced a syntax error), any `sq` command will hard-stop with a pointer to `sq workflow lint`:
+
+```
+workflow spec is incompatible with the live index — run `sq workflow lint` to see details
+```
+
+Always run `sq workflow lint` to diagnose and fix the issue before proceeding.
