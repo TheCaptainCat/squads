@@ -15,7 +15,7 @@ from squads._backends._base import AgentBackend, Artifact, BackendContext, Opera
 from squads._backends._claude_code import _claude_md as claude_md
 from squads._backends._claude_code._frontmatter import normalize_model, oneline
 from squads._models import _markers as markers
-from squads._models._enums import TYPE_ALIASES, ItemType
+from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
@@ -67,6 +67,9 @@ class ClaudeCodeBackend(AgentBackend):
         squad_dir = ctx.paths.config.squad_dir
         artifacts: list[Artifact] = []
         # squads skill (real body under squads/agents/skills/, thin pointer in .claude/)
+        from squads._workflow import bundled_spec
+
+        spec = ctx.spec if ctx.spec is not None else bundled_spec()
         artifacts += await self._write_managed_skill(
             ctx,
             name="squads",
@@ -75,7 +78,7 @@ class ClaudeCodeBackend(AgentBackend):
                 "agents/squads_skill.md.j2",
                 version=ctx.version,
                 squad_dir=squad_dir,
-                type_aliases=TYPE_ALIASES,
+                spec=spec,
             ),
         )
         # greeting skill — the start-of-conversation ritual (detect the human, register, greet)

@@ -124,28 +124,30 @@ def test_bug_lifecycle() -> None:
 
 
 def test_review_lifecycle() -> None:
-    """Review lifecycle: algorithm spine ends at Rejected (first unvisited from ChangesRequested).
+    """Review lifecycle: spine picks Approved after ChangesRequested (TASK-261 re-baseline).
 
-    NOTE: hand-written PLAYBOOK has '...→ ChangesRequested → Approved (+ Rejected)'.
-    This auto-derived form differs (option-b divergence, TASK-000262): greedy spine follows
-    the first unvisited transition from ChangesRequested = Rejected, placing Approved in side.
-    Both are deterministic; the algorithm prefers first-listed transitions.
+    TOML fix (option-b from carry-forward note):
+    ChangesRequested now declares [InReview, Approved, Rejected].  InReview is already
+    visited so the greedy spine picks Approved next, matching the hand-written PLAYBOOK
+    string.  The previous machine had [InReview, Rejected]; adding Approved to
+    ChangesRequested is semantically valid (reviewer approves after revision) and aligns
+    linearize_lifecycle output with the stable lifecycle prose in playbook.toml and goldens.
     """
     m = _m(
         "Requested",
         {
             "Requested": ["InReview", "Rejected"],
             "InReview": ["ChangesRequested", "Approved", "Rejected"],
-            "ChangesRequested": ["InReview", "Rejected"],
+            "ChangesRequested": ["InReview", "Approved", "Rejected"],
             "Approved": [],
             "Rejected": [],
         },
     )
     result = linearize_lifecycle(m)
-    # Spine: Requested → InReview → ChangesRequested → Rejected (Rejected is first
-    # unvisited from ChangesRequested; InReview is already in spine).
-    # Side: Approved (reachable from InReview but not on spine).
-    assert result == "Requested → InReview → ChangesRequested → Rejected (+ Approved)"
+    # Spine: Requested → InReview → ChangesRequested → Approved (Approved is first unvisited
+    # from ChangesRequested; InReview is already in spine).
+    # Side: Rejected (reachable from multiple states but not on spine).
+    assert result == "Requested → InReview → ChangesRequested → Approved (+ Rejected)"
 
 
 # ---------------------------------------------------------------------------

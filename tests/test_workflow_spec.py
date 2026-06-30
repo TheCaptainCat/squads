@@ -70,7 +70,7 @@ _LIFECYCLE_SNAPSHOT: dict[str, dict[str, object]] = {
         "transitions": {
             Status.REQUESTED: [Status.IN_REVIEW, Status.REJECTED],
             Status.IN_REVIEW: [Status.CHANGES_REQUESTED, Status.APPROVED, Status.REJECTED],
-            Status.CHANGES_REQUESTED: [Status.IN_REVIEW, Status.REJECTED],
+            Status.CHANGES_REQUESTED: [Status.IN_REVIEW, Status.APPROVED, Status.REJECTED],
             Status.APPROVED: [],
             Status.REJECTED: [],
         },

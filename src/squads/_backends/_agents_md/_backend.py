@@ -15,7 +15,7 @@ from pathlib import Path
 from squads import _aio
 from squads._backends._agents_md import _managed as managed
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
-from squads._models._enums import TYPE_ALIASES, ItemType
+from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
@@ -84,12 +84,15 @@ class AgentsMdBackend(AgentBackend):
             }
             for r in roster
         ]
+        from squads._workflow import bundled_spec
+
+        spec = ctx.spec if ctx.spec is not None else bundled_spec()
         section = render(
             "agents_md/agents_section.md.j2",
             squad_dir=squad_dir,
             roles=roles_data,
             operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
-            type_aliases=TYPE_ALIASES,
+            spec=spec,
         )
         agents_md = ctx.root / _AGENTS_MD
         await managed.inject(agents_md, section)

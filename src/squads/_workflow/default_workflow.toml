@@ -44,7 +44,7 @@ initial = "Requested"
 [lifecycles.review.transitions]
 Requested = ["InReview", "Rejected"]
 InReview = ["ChangesRequested", "Approved", "Rejected"]
-ChangesRequested = ["InReview", "Rejected"]
+ChangesRequested = ["InReview", "Approved", "Rejected"]
 Approved = []
 Rejected = []
 

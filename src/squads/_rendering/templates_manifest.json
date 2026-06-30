@@ -47,6 +47,7 @@
     "subentities/block.md.j2": "80610456c63488244be6fa68c29b8af655dda7cf3966b5ac0eb84167647925d1",
     "subentities/head.md.j2": "d7e763183703eddad674c25f9fe64ec49a071221dc26f9518faa630d38307bab",
     "subentities/summary.md.j2": "8a025754bdfdda21747270a9f7fbee0420c17e6070b2a3bc5e38c2d8dd60f0e7",
-    "workflow.md.j2": "324a30beea1280212d454bcd5086359d27df49b0fbf6a806701a427f44e217be"
+    "workflow.md.j2": "141443facf2e21d951576cf3738db924e3648c6068d97d1b140e416fd749f3c0",
+    "workflow_static.md.j2": "d3af69ece783b80c2daffdd694b2056cffcfa9fa68d5de3872c4e1bd6d49b138"
   }
 }

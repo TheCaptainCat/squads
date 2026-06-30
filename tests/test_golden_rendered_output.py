@@ -32,7 +32,7 @@ Coverage
 This module pins:
 
   1. ``sq workflow`` raw rendered markdown (the template output before Rich processes it) — the
-     full text from ``render("workflow.md.j2", type_aliases=TYPE_ALIASES)``.
+     full text from ``render("workflow.md.j2", spec=bundled_spec())`` (TASK-261: spec-derived).
   2. The managed CLAUDE.md workflow section body — the text rendered by
      ``render("claude/claude_section.md.j2", ...)`` with the pinned roster.
   3. The managed AGENTS.md workflow section body — the text rendered by
@@ -60,8 +60,8 @@ from typing import Any
 
 from squads._backends._base import OperatorView, RoleView
 from squads._interactions import DEV, PLAYBOOK, is_dev_slug, item_skill_name, managed_item_types
-from squads._models._enums import TYPE_ALIASES
 from squads._rendering._engine import render
+from squads._workflow import bundled_spec as _bundled_spec
 
 # Golden files live in the shared goldens directory alongside the JSON goldens.
 GOLDENS_DIR = Path(__file__).parent / "goldens"
@@ -174,10 +174,10 @@ def _check_golden(name: str, actual: str) -> None:
 def _render_workflow_cheatsheet() -> str:
     """Render the workflow cheatsheet template — the raw markdown before Rich processes it.
 
-    This is the exact text ``_print_cheatsheet()`` in ``_workflow_cmd.py`` passes to
-    ``Markdown()``; it is what TASK-261 will regenerate from the live spec.
+    TASK-261: now rendered from the live bundled spec instead of the static TYPE_ALIASES dict.
+    The bundled spec produces byte-identical output for a non-custom squad (AC#7/#8).
     """
-    return render("workflow.md.j2", type_aliases=TYPE_ALIASES)
+    return render("workflow.md.j2", spec=_bundled_spec())
 
 
 def _render_claude_section() -> str:
@@ -206,6 +206,8 @@ def _render_agents_section() -> str:
     the staging files are generated dynamically from the index and are not part of the template
     rendering surface we are pinning here.  The template falls back to mission-absent rendering,
     which is the same path taken in unit-level backend tests.
+
+    TASK-261: passes the bundled spec instead of the deprecated TYPE_ALIASES dict.
     """
     return render(
         "agents_md/agents_section.md.j2",
@@ -221,7 +223,7 @@ def _render_agents_section() -> str:
             for r in PINNED_ROSTER
         ],
         operators=[{"full_name": o.full_name, "slug": o.slug} for o in PINNED_OPERATORS],
-        type_aliases=TYPE_ALIASES,
+        spec=_bundled_spec(),
     )
 
 
