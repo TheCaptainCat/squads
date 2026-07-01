@@ -3,7 +3,7 @@ id: FEAT-000210
 sequence_id: 210
 type: feature
 title: 'Custom types end-to-end: CLI, folder, skill, spec-derived workflow renderer'
-status: InProgress
+status: Done
 parent: EPIC-000206
 author: product-owner
 refs:
@@ -14,17 +14,17 @@ subentities:
 - local_id: US1
   title: As a project admin, I want sq <my-type> create/list/show/update to work for
     a type I defined in TOML
-  status: Todo
+  status: Done
 - local_id: US2
   title: As a project admin, I want sq workflow to show my custom type and its lifecycle
     in the team cheatsheet
-  status: Todo
+  status: Done
 - local_id: US3
   title: AI agents learn custom vocab from the squads skill and AGENTS.md after sq
     sync
-  status: Todo
+  status: Done
 created_at: '2026-06-25T13:19:37Z'
-updated_at: '2026-07-01T08:56:52Z'
+updated_at: '2026-07-01T21:41:02Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -82,9 +82,9 @@ _Add with `sq feature 210 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a project admin, I want sq <my-type> create/list/show/update to work for a type I defined in TOML |
-| US2 | Todo |  | As a project admin, I want sq workflow to show my custom type and its lifecycle in the team cheatsheet |
-| US3 | Todo |  | AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync |
+| US1 | Done |  | As a project admin, I want sq <my-type> create/list/show/update to work for a type I defined in TOML |
+| US2 | Done |  | As a project admin, I want sq workflow to show my custom type and its lifecycle in the team cheatsheet |
+| US3 | Done |  | AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -93,7 +93,7 @@ _Add with `sq feature 210 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — As a project admin, I want sq <my-type> create/list/show/update to work for a type I defined in TOML
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -112,7 +112,7 @@ As a project admin, I want `sq <my-type> create`, `sq <my-type> show`, `sq <my-t
 ### US2 — As a project admin, I want sq workflow to show my custom type and its lifecycle in the team cheatsheet
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -131,7 +131,7 @@ As a project admin, I want `sq workflow` to render a live cheatsheet that includ
 ### US3 — AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->

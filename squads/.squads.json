@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 272,
+  "counter": 273,
   "padding": 6,
   "items": {
     "12": {
@@ -7898,7 +7898,7 @@
       "type": "feature",
       "title": "Custom types end-to-end: CLI, folder, skill, spec-derived workflow renderer",
       "slug": "custom-types-end-to-end-cli-folder-skill-spec-derived-workfl",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -7914,7 +7914,7 @@
         {
           "local_id": "US1",
           "title": "As a project admin, I want sq <my-type> create/list/show/update to work for a type I defined in TOML",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -7922,7 +7922,7 @@
         {
           "local_id": "US2",
           "title": "As a project admin, I want sq workflow to show my custom type and its lifecycle in the team cheatsheet",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -7930,7 +7930,7 @@
         {
           "local_id": "US3",
           "title": "AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -7938,7 +7938,7 @@
       ],
       "path": "features/FEAT-000210-custom-types-end-to-end-cli-folder-skill-spec-derived-workfl.md",
       "created_at": "2026-06-25T13:19:37Z",
-      "updated_at": "2026-07-01T08:56:52Z",
+      "updated_at": "2026-07-01T21:41:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9902,7 +9902,7 @@
       "type": "review",
       "title": "FEAT-210 slice: custom types end-to-end (TASK-257/260/261)",
       "slug": "feat-210-slice-custom-types-end-to-end-task-257-260-261",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -9916,7 +9916,7 @@
         {
           "local_id": "F1",
           "title": "Custom-type item id ignores the spec prefix — stored id is TYPE.upper(), not the declared prefix",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "high",
           "story": null
@@ -9924,7 +9924,7 @@
         {
           "local_id": "F2",
           "title": "No create path for custom types: sq create <type> static + svc.create raises TemplateNotFound",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "high",
           "story": null
@@ -9932,7 +9932,7 @@
         {
           "local_id": "F3",
           "title": "sq workflow does not render any type's lifecycle string (AC#2/#3 partially unmet)",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null
@@ -9940,7 +9940,7 @@
         {
           "local_id": "F4",
           "title": "Auto-generated thin skill advertises non-functional commands (sq create <type>, sub-entity verbs)",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null
@@ -9948,7 +9948,7 @@
         {
           "local_id": "F5",
           "title": "get_command broad except masks genuine custom-type build errors as 'No such command'",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9956,7 +9956,7 @@
         {
           "local_id": "F6",
           "title": "Alias-table guard silently drops a future built-in work type that declares no aliases",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9964,7 +9964,7 @@
       ],
       "path": "reviews/REV-000265-feat-210-slice-custom-types-end-to-end-task-257-260-261.md",
       "created_at": "2026-06-30T22:10:40Z",
-      "updated_at": "2026-07-01T15:40:03Z",
+      "updated_at": "2026-07-01T19:44:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10145,7 +10145,7 @@
       "type": "bug",
       "title": "sq-bug skill + playbook advertise the wrong bug lifecycle string",
       "slug": "sq-bug-skill-playbook-advertise-the-wrong-bug-lifecycle-stri",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "python-dev",
@@ -10156,11 +10156,35 @@
       "subentities": [],
       "path": "bugs/BUG-000272-sq-bug-skill-playbook-advertise-the-wrong-bug-lifecycle-stri.md",
       "created_at": "2026-07-01T14:10:44Z",
-      "updated_at": "2026-07-01T14:37:52Z",
+      "updated_at": "2026-07-01T19:44:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "BUG-000272"
+    },
+    "273": {
+      "sequence_id": 273,
+      "type": "task",
+      "title": "FEAT-210 polish: sq create accepts type aliases; parenthesize except",
+      "slug": "feat-210-polish-sq-create-accepts-type-aliases-parenthesize",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000210",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "REV-000265:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000273-feat-210-polish-sq-create-accepts-type-aliases-parenthesize.md",
+      "created_at": "2026-07-01T19:48:30Z",
+      "updated_at": "2026-07-01T20:08:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000273"
     }
   }
 }

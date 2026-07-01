@@ -3,10 +3,10 @@ id: BUG-000272
 sequence_id: 272
 type: bug
 title: sq-bug skill + playbook advertise the wrong bug lifecycle string
-status: Fixed
+status: Verified
 author: python-dev
 created_at: '2026-07-01T14:10:44Z'
-updated_at: '2026-07-01T14:37:52Z'
+updated_at: '2026-07-01T19:44:27Z'
 ---
 <!-- sq:body -->
 ## Symptom
