@@ -4,15 +4,16 @@ sequence_id: 268
 type: task
 title: 'Working create path for custom types: generic item template + custom-aware
   sq create'
-status: Draft
+status: Done
 parent: FEAT-000210
 author: tech-lead
+assignee: python-dev
 refs:
 - ADR-000266:implements
 - REV-000265:addresses
 - TASK-000267:depends-on
 created_at: '2026-07-01T08:28:54Z'
-updated_at: '2026-07-01T08:30:39Z'
+updated_at: '2026-07-01T10:20:02Z'
 ---
 <!-- sq:body -->
 **Closes REV-000265 F2 (High). Owns AC#1/US1 end-to-end.** This is the create path that fell *between* the original tasks — no prior task owned `sq <type> create` end-to-end. This task owns it.
@@ -53,4 +54,12 @@ _Add with `sq task 268 add-subtask "<title>"`; track with `sq task 268 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-01T10:20:02Z] Elias Python:
+  - @manager TASK-268 is done. All gates green: pyright 0 errors, ruff clean, 1493 passed / 1 skipped / 0 failed.
+  - Files changed: (1) src/squads/_rendering/templates/items/_default.md.j2 — new generic item template with body+discussion markers; (2) src/squads/_rendering/_engine.py — added has_template() that checks the Jinja2 loader without raising TemplateNotFound; (3) src/squads/_services/_base.py — _template_for() now falls back to items/_default.md.j2 for custom types, with has_template() checking whether a per-type template exists; (4) src/squads/_cli/_create.py — create_app is now a _CustomCreateGroup (same lazy-dispatch pattern as _CustomTypeGroup in __init__.py), adding sq create <custom-type> as a registered command; (5) src/squads/_rendering/templates_manifest.json — regenerated via gen_template_manifest.py to include _default.md.j2; (6) tests/test_custom_type_create.py — 8 new tests.
+  - How the generic template + custom-aware create hook together: _build_create_cmd(item_type_str) builds a TyperCommand for any custom type string by registering _make_fn in a single-command Typer (which yields a leaf TyperCommand, not a group). _CustomCreateGroup.get_command() lazily calls _build_create_cmd when Click dispatches a name that is not a built-in but is in the active spec's work_types(). _template_for() in ServiceCore now calls has_template(per_type_path) and falls back to items/_default.md.j2 when the per-type template is absent — built-ins all have dedicated templates so they are byte-identical.
+  - Reconciliation with _CustomTypeGroup (TASK-257): _CustomCreateGroup follows the same pattern but is scoped to the create sub-app. Both call common.get_active_spec() (bound once per invocation by _bind_active_spec in the root callback), so they always see the same spec. Each has its own ClassVar _custom_cmd_cache so they are fully independent. No changes to __init__.py were needed — create_app just gets a new cls=_CustomCreateGroup.
+  - End-to-end create test (test_create_incident_end_to_end): declares [workflow.types.incident] in .overrides/workflow.toml, runs sq create incident 'DB timeout' --author manager (the actual CLI verb, NOT write_new/retype), asserts INC- prefix (not INCIDENT-), folder auto-created, sq list -t incident finds it, sq incident N show round-trips, sq check green.
+  - Byte-identical proof: all 7 built-in types keep their dedicated templates (unchanged). test_builtin_create_surface_unchanged confirms sq create --help still lists only built-ins for a non-custom squad. The TASK-256 goldens pass (1493 passed, 0 failed).
+  - Notable: _build_create_cmd uses a single-command Typer so typer.main.get_command returns a TyperCommand (leaf) not a TyperGroup — this was the critical design decision. A TyperGroup would have broken sq create incident TITLE dispatch because Click would have tried to dispatch TITLE as a subcommand. Also: the manifest.json needed regeneration after adding _default.md.j2 (gen_template_manifest.py script).
 <!-- sq:discussion:end -->
