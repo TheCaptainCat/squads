@@ -163,8 +163,11 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         if cmd is not None:
             return cmd
 
-        # Unknown to the built-in table — check if the resolved spec knows this as a
-        # custom work type (guard against built-ins and meta types).
+        # Spec-resolution region: decide whether cmd_name is a known custom work type.
+        # Errors here (invalid spec, missing active spec, etc.) are swallowed so that
+        # `sq create --help` always degrades gracefully.  The only valid outcome is either
+        # (a) cmd_name confirmed as a declared custom work type, or (b) return None so
+        # Click emits "No such command".
         try:
             built_in_names: frozenset[str] = frozenset(t.value for t in ItemType)
             if cmd_name in built_in_names:
@@ -175,14 +178,17 @@ class _CustomCreateGroup(typer.core.TyperGroup):
                 return None
             if spec.item_is_meta(cmd_name):
                 return None
-
-            # Build and cache the Click command for this custom type.
-            if cmd_name not in self._custom_cmd_cache:
-                self._custom_cmd_cache[cmd_name] = _build_create_cmd(cmd_name)
-
-            return self._custom_cmd_cache.get(cmd_name)
         except Exception:  # pylint: disable=broad-except
+            # Spec resolution failed — degrade gracefully.
             return None
+
+        # Past this point cmd_name IS a declared custom work type.  Build errors here are
+        # genuine failures for a type the user declared (and that --help lists), so they
+        # must propagate rather than silently become "No such command".
+        if cmd_name not in self._custom_cmd_cache:
+            self._custom_cmd_cache[cmd_name] = _build_create_cmd(cmd_name)
+
+        return self._custom_cmd_cache.get(cmd_name)
 
 
 create_app = typer.Typer(

@@ -285,6 +285,22 @@ def _check_item_refs(
             seen_aliases[alias] = t
 
 
+# Canonical priority order for well-known exception/side states.
+# States that appear together in the side-state list are sorted by this priority
+# (lower = earlier in the output), ensuring the output matches the established
+# convention regardless of the order they happen to be discovered in BFS
+# (e.g. Blocked before Cancelled in work-item lifecycles, WontFix first in bug).
+# States not in this table retain their relative BFS-discovery order by sorting
+# after all explicitly-ranked states via the fallback rank (len(_SIDE_PRIORITY)).
+_SIDE_PRIORITY: dict[str, int] = {
+    "WontFix": 0,
+    "Blocked": 1,
+    "Cancelled": 2,
+    "Rejected": 3,
+    "Deprecated": 4,
+}
+
+
 def linearize_lifecycle(machine: Lifecycle) -> str:
     """Derive a readable lifecycle string from an arbitrary transition graph.
 
@@ -293,9 +309,11 @@ def linearize_lifecycle(machine: Lifecycle) -> str:
        (greedy forward walk from ``machine.initial``), stopping when no new state is
        reachable.  This gives the "happy-path" chain ``A → B → C``.
     2. Collect **side states** — all states reachable from ``machine.initial`` that
-       are not on the spine — in BFS discovery order (deterministic, tied to the
-       order of transitions as declared in the machine).
-    3. Return ``"A → B → C"`` when there are no side states, or
+       are not on the spine — in BFS discovery order.
+    3. Sort side states into canonical order using :data:`_SIDE_PRIORITY`, so the
+       output is independent of TOML transition-list ordering.  States not in the
+       priority table retain their relative BFS order (sorted after the known states).
+    4. Return ``"A → B → C"`` when there are no side states, or
        ``"A → B → C (+ D, E)"`` otherwise.
 
     Deterministic: given the same machine the output is always identical.
@@ -336,9 +354,15 @@ def linearize_lifecycle(machine: Lifecycle) -> str:
                 bfs_order.append(nxt)
                 queue.append(nxt)
 
-    # Side states = reachable but not on the spine, in BFS discovery order.
+    # Side states = reachable but not on the spine, sorted into canonical order.
+    # Known states sort by their explicit priority; unknown states sort after them
+    # in BFS-discovery order (secondary key = bfs position).
     spine_set: set[str] = set(spine)
-    side: list[str] = [s for s in bfs_order if s not in spine_set]
+    _unknown_rank = len(_SIDE_PRIORITY)
+    side: list[str] = sorted(
+        (s for s in bfs_order if s not in spine_set),
+        key=lambda s: (_SIDE_PRIORITY.get(s, _unknown_rank), bfs_order.index(s)),
+    )
 
     chain = " → ".join(spine)
     if side:

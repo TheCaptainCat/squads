@@ -19,7 +19,7 @@ subentities:
     list output
   status: Todo
 created_at: '2026-06-25T13:20:36Z'
-updated_at: '2026-07-01T09:09:28Z'
+updated_at: '2026-07-01T11:18:18Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -113,4 +113,7 @@ As a team member, I want custom statuses to render with their declared badge emo
 - [2026-07-01T09:09:28Z] Catherine Manager:
   - Scope addition (op-pierre, reviewing workflow.md.j2 post-TASK-261): two static-prose artifacts remain in the sq workflow cheatsheet that FEAT-211 should spec-derive, since 211 already owns the cheatsheet/lifecycle renderer. (1) workflow_static.md.j2:11 'Valid targets: epic, feature, task, bug, decision, review, guide' — hardcoded retype-target type list; custom types ARE retypeable (build_item_app._cmd_retype) so this should render from the spec. (2) workflow.md.j2:5-22 — the role→type authoring flow (product-owner→feature, tech-lead→task), the epic→feature→task hierarchy, and the FEAT-/BUG- prefix examples are hardcoded prose; the playbook is already a spec (playbook.toml, ADR-226) but the cheatsheet doesn't render from it, so custom setups don't see themselves.
   - PRODUCT JUDGMENT for whoever scopes 211: decide whether the authoring prose SHOULD render from the playbook spec (custom types/roles appear) or legitimately stays as 'how the bundled team works' prose — the retype-target list is the clearer, less debatable fix. KEEP STATIC (do NOT spec-derive): FEAT-013's stability-contract prose in workflow_static.md.j2 (ref-kinds table, retype mechanics, remove-vs-cancel, alias evolution rule) — that's the whole point of the TASK-261 split. @product-owner can rehome to a thin standalone feature if 211 turns out to be the wrong fit.
+- [2026-07-01T11:18:18Z] Catherine Manager:
+  - Decision from op-pierre (resolving the product-judgment I flagged above): the role→type authoring prose in workflow.md.j2 (the 'Product owner → features / user stories', 'Tech lead → tasks under a feature', manager-triage bullets, the epic→feature→task hierarchy line, and the FEAT-/BUG- prefix examples) SHOULD render generically from the playbook spec (playbook.toml / roles), NOT stay as hardcoded bundled-team prose — so a project with custom roles/types sees itself in sq workflow.
+  - Design note for whoever scopes this: the role→type ASSOCIATIONS are already in playbook.toml, but the current text is a crafted authoring NARRATIVE with example commands, not a table — going generic means deciding how much to auto-generate from playbook interaction data vs. template with roster/type substitution. Keep the FEAT-013 static contract (workflow_static.md.j2) literal regardless. Still deliberately NOT part of the FEAT-210 corrective (TASK-269 only adds the lifecycle rows).
 <!-- sq:discussion:end -->

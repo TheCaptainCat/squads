@@ -223,7 +223,7 @@ _SNAPSHOT: dict[str, dict[str, object]] = {
     },
     "bug": {
         "overview": "A defect: what's wrong, how to reproduce, expected vs actual.",
-        "lifecycle": "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
+        "lifecycle": "Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)",
         "commands": [
             'sq create bug "…" --author <slug>',
             "sq task <n> ref add BUG-… --kind fixes",

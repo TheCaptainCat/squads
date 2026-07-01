@@ -102,7 +102,8 @@ def test_work_lifecycle() -> None:
         },
     )
     result = linearize_lifecycle(m)
-    assert result == "Draft → Ready → InProgress → InReview → Done (+ Cancelled, Blocked)"
+    # Canonical ordering: Blocked before Cancelled (priority sort; see _SIDE_PRIORITY).
+    assert result == "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)"
 
 
 def test_bug_lifecycle() -> None:
@@ -120,7 +121,8 @@ def test_bug_lifecycle() -> None:
         },
     )
     result = linearize_lifecycle(m)
-    assert result == "Open → InProgress → Fixed → Verified (+ WontFix, Cancelled, Blocked)"
+    # Canonical ordering: WontFix(0) before Blocked(1) before Cancelled(2) (priority sort).
+    assert result == "Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)"
 
 
 def test_review_lifecycle() -> None:

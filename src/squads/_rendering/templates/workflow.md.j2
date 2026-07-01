@@ -46,4 +46,17 @@ type name. Run `sq workflow` to see this table in the terminal.
 removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table
 is frozen grammar in the same stability tier as the canonical command names.
 
+## Type lifecycles
+
+Lifecycle strings auto-derived from each type's state machine — the source of truth for valid
+statuses and transitions.
+
+| Prefix | Type | Lifecycle |
+|---|---|---|
+{% for item_type, item_spec in spec.items.items() %}
+{% if not item_spec.is_meta %}
+| `{{ item_spec.prefix }}` | `{{ item_type }}` | `{{ linearize_lifecycle(spec.machine_for(item_type)) }}` |
+{% endif %}
+{% endfor %}
+
 {% include "workflow_static.md.j2" %}
