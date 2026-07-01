@@ -32,6 +32,7 @@ from squads._models._enums import ItemType, Priority
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import VALID_REF_KINDS, Item, split_ref
+from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, set_active_squad_dir
 from squads._roles._resolver import resolve_role
@@ -267,13 +268,17 @@ class ServiceCore:
                 self._check_parent(db, item_type, parent)
             self._check_author(db, item_type, author, slug)
             self._check_assignee(db, assignee)
-            item_id = db.allocate_id(item_type)  # bumps the counter; item_id == its formatted form
+            # Resolve the prefix from the spec before allocation so both the filename and
+            # Item.id agree on the correct prefix (ADR-000266).
+            resolved_prefix = prefix_for(item_type, self.spec)
+            item_id = db.allocate_id(item_type, prefix=resolved_prefix)
             filename = f"{item_id}-{slug}.md"
             squad_rel = self.paths.squad_relative(item_type, filename, spec=self.spec)
             sid, _psid = actor.current_session()
             item = Item(
                 sequence_id=db.counter,
                 type=str(item_type),
+                prefix=resolved_prefix,
                 title=title,
                 slug=slug,
                 status=str(status) if status is not None else self.spec.initial_status(item_type),

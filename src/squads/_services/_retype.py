@@ -17,6 +17,7 @@ from squads._itemfile import rewrite_ids, update_frontmatter
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
+from squads._models._vocab import prefix_for
 from squads._services._base import SUBENTITY_CONTAINER, SUBENTITY_KIND, ServiceCore
 from squads._services._results import RetypeResult
 from squads._workflow._models import WorkflowSpec
@@ -131,14 +132,18 @@ class RetypeMixin(ServiceCore):
             if status_reset:
                 item.status = new_status
 
-            # Flip type + move file (body bytes verbatim)
+            # Flip type + move file (body bytes verbatim).
+            # Stamp the new prefix from the spec before reading item.id so the computed
+            # field formats from the correct prefix (ADR-000266).
             old_path = item_file(self.paths, item)
             item.type = new_type
-            new_id = item.id  # @computed_field reflects the new type
+            item.prefix = prefix_for(new_type, self.spec)
+            new_id = item.id  # @computed_field formats from item.prefix (now correct)
             new_rel = self.paths.squad_relative(
                 new_type, f"{new_id}-{item.slug}.md", spec=self.spec
             )
             new_path = self.paths.abspath(new_rel)
+            await _aio.mkdir(new_path.parent, parents=True, exist_ok=True)
             await _aio.path_rename(old_path, new_path)
             item.path = new_rel
             item.updated_at = clock.now()

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 264,
+  "counter": 271,
   "padding": 6,
   "items": {
     "12": {
@@ -7929,7 +7929,7 @@
         },
         {
           "local_id": "US3",
-          "title": "AI agents learn custom vocab from CLAUDE.md after sq sync",
+          "title": "AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -7938,7 +7938,7 @@
       ],
       "path": "features/FEAT-000210-custom-types-end-to-end-cli-folder-skill-spec-derived-workfl.md",
       "created_at": "2026-06-25T13:19:37Z",
-      "updated_at": "2026-06-30T12:35:16Z",
+      "updated_at": "2026-07-01T08:56:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7980,7 +7980,7 @@
       ],
       "path": "features/FEAT-000211-custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari.md",
       "created_at": "2026-06-25T13:20:36Z",
-      "updated_at": "2026-06-30T12:16:56Z",
+      "updated_at": "2026-07-01T09:09:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8022,7 +8022,7 @@
       ],
       "path": "features/FEAT-000212-custom-sub-entity-kinds-vocabulary-rename-migrations-stretch.md",
       "created_at": "2026-06-25T13:21:20Z",
-      "updated_at": "2026-06-30T12:17:00Z",
+      "updated_at": "2026-07-01T08:27:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9896,6 +9896,248 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-000264"
+    },
+    "265": {
+      "sequence_id": 265,
+      "type": "review",
+      "title": "FEAT-210 slice: custom types end-to-end (TASK-257/260/261)",
+      "slug": "feat-210-slice-custom-types-end-to-end-task-257-260-261",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000210:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Custom-type item id ignores the spec prefix — stored id is TYPE.upper(), not the declared prefix",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "No create path for custom types: sq create <type> static + svc.create raises TemplateNotFound",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "sq workflow does not render any type's lifecycle string (AC#2/#3 partially unmet)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Auto-generated thin skill advertises non-functional commands (sq create <type>, sub-entity verbs)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "get_command broad except masks genuine custom-type build errors as 'No such command'",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F6",
+          "title": "Alias-table guard silently drops a future built-in work type that declares no aliases",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000265-feat-210-slice-custom-types-end-to-end-task-257-260-261.md",
+      "created_at": "2026-06-30T22:10:40Z",
+      "updated_at": "2026-07-01T09:36:10Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000265"
+    },
+    "266": {
+      "sequence_id": 266,
+      "type": "decision",
+      "title": "Spec-derived per-type vocabulary: retire the static PREFIX/FOLDER/alias tables; stamp the prefix onto Item",
+      "slug": "spec-derived-per-type-vocabulary-retire-the-static-prefix-fo",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000210:addresses",
+        "REV-000265:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000266-spec-derived-per-type-vocabulary-retire-the-static-prefix-fo.md",
+      "created_at": "2026-07-01T07:40:18Z",
+      "updated_at": "2026-07-01T08:27:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-000266"
+    },
+    "267": {
+      "sequence_id": 267,
+      "type": "task",
+      "title": "Spec-derive per-type prefix: stamp Item.prefix, retire static PREFIX/FOLDER/alias tables",
+      "slug": "spec-derive-per-type-prefix-stamp-item-prefix-retire-static",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-000210",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000266:implements",
+        "REV-000265:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000267-spec-derive-per-type-prefix-stamp-item-prefix-retire-static.md",
+      "created_at": "2026-07-01T08:28:50Z",
+      "updated_at": "2026-07-01T09:36:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000267"
+    },
+    "268": {
+      "sequence_id": 268,
+      "type": "task",
+      "title": "Working create path for custom types: generic item template + custom-aware sq create",
+      "slug": "working-create-path-for-custom-types-generic-item-template-c",
+      "status": "Draft",
+      "description": "",
+      "parent": "FEAT-000210",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-000266:implements",
+        "REV-000265:addresses",
+        "TASK-000267:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000268-working-create-path-for-custom-types-generic-item-template-c.md",
+      "created_at": "2026-07-01T08:28:54Z",
+      "updated_at": "2026-07-01T08:30:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000268"
+    },
+    "269": {
+      "sequence_id": 269,
+      "type": "task",
+      "title": "Wire custom lifecycle into sq workflow cheatsheet + fix thin sq-<type> skill commands",
+      "slug": "wire-custom-lifecycle-into-sq-workflow-cheatsheet-fix-thin-s",
+      "status": "Draft",
+      "description": "",
+      "parent": "FEAT-000210",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "REV-000265:addresses",
+        "TASK-000268:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000269-wire-custom-lifecycle-into-sq-workflow-cheatsheet-fix-thin-s.md",
+      "created_at": "2026-07-01T08:28:55Z",
+      "updated_at": "2026-07-01T08:30:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000269"
+    },
+    "270": {
+      "sequence_id": 270,
+      "type": "task",
+      "title": "Custom-type CLI clean-ups: scope get_command except, alias-guard defence test",
+      "slug": "custom-type-cli-clean-ups-scope-get-command-except-alias-gua",
+      "status": "Draft",
+      "description": "",
+      "parent": "FEAT-000210",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "REV-000265:addresses",
+        "TASK-000269:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000270-custom-type-cli-clean-ups-scope-get-command-except-alias-gua.md",
+      "created_at": "2026-07-01T08:28:56Z",
+      "updated_at": "2026-07-01T08:30:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-000270"
+    },
+    "271": {
+      "sequence_id": 271,
+      "type": "feature",
+      "title": "CLI grammar: verb-first addressing (sq show ID, sq update ID)",
+      "slug": "cli-grammar-verb-first-addressing-sq-show-id-sq-update-id",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-000206",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "EPIC-000206",
+        "FEAT-000013",
+        "REV-000265"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a user, I address any item by ID alone without specifying its type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a user, custom types work with the same verb-first commands as built-in types",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000271-cli-grammar-verb-first-addressing-sq-show-id-sq-update-id.md",
+      "created_at": "2026-07-01T09:41:35Z",
+      "updated_at": "2026-07-01T09:42:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000271"
     }
   }
 }

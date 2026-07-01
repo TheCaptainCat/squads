@@ -7,7 +7,7 @@ from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkf
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _markers as markers
-from squads._models._enums import PREFIX_BY_TYPE, ItemType, Priority
+from squads._models._enums import ItemType, Priority
 from squads._models._item import Item, ref_id_matches, split_ref
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
@@ -300,7 +300,7 @@ class ItemsMixin(ServiceCore):
             # ------------------------------------------------------------------
             severed: list[str] = []
             if force and referrer_ids:
-                target_prefix = PREFIX_BY_TYPE[item.type]
+                target_prefix = item.prefix or item.type.upper()
                 target_seq = item.sequence_id
                 for ref_id in referrer_ids:
                     referrer = db.get(ref_id)

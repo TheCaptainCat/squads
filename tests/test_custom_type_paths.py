@@ -19,7 +19,8 @@ from pathlib import Path
 import pytest
 
 from squads._errors import InvalidIdError, SquadsError
-from squads._models._enums import FOLDER_BY_TYPE, TYPE_BY_PREFIX, ItemType
+from squads._models._enums import ItemType
+from squads._models._vocab import RESERVED_FOLDER, RESERVED_TYPE_BY_PREFIX
 from squads._paths import SquadPaths, number_for_id, type_for_id
 from squads._services import _service as service
 from squads._workflow._loader import load_workflow_spec
@@ -78,14 +79,14 @@ def _spec_with_incident() -> WorkflowSpec:
 
 
 def test_folder_for_builtin_types_unchanged(tmp_path: Path) -> None:
-    """Built-in types produce the same folder as FOLDER_BY_TYPE (byte-identical)."""
+    """Built-in types produce the same folder as the reserved vocab (byte-identical)."""
     sp = SquadPaths(
         root=tmp_path,
         squad_dir=tmp_path / "squads",
         config=None,  # type: ignore[arg-type]
     )
     for item_type in ItemType:
-        expected = tmp_path / "squads" / FOLDER_BY_TYPE[item_type]
+        expected = tmp_path / "squads" / RESERVED_FOLDER[item_type]
         assert sp.folder_for(str(item_type)) == expected, f"{item_type}: folder_for mismatch"
 
 
@@ -134,8 +135,8 @@ def test_squad_relative_builtin_unchanged(tmp_path: Path) -> None:
     sp = SquadPaths(root=tmp_path, squad_dir=tmp_path / "squads", config=None)  # type: ignore[arg-type]
     for item_type in ItemType:
         result = sp.squad_relative(str(item_type), "TASK-000001-title.md")
-        # Each type has its own folder; compare the folder part from FOLDER_BY_TYPE.
-        assert result == f"{FOLDER_BY_TYPE[item_type]}/TASK-000001-title.md"
+        # Each type has its own folder; compare the folder part from the reserved vocab.
+        assert result == f"{RESERVED_FOLDER[item_type]}/TASK-000001-title.md"
 
 
 def test_squad_relative_custom_type(tmp_path: Path) -> None:
@@ -160,7 +161,7 @@ def test_squad_relative_unknown_type_raises(tmp_path: Path) -> None:
 
 def test_type_for_id_builtins_unchanged() -> None:
     """Built-in IDs still resolve to the same type as before (byte-identical)."""
-    for prefix, expected_type in TYPE_BY_PREFIX.items():
+    for prefix, expected_type in RESERVED_TYPE_BY_PREFIX.items():
         item_id = f"{prefix}-000001"
         assert type_for_id(item_id) == expected_type, (
             f"type_for_id({item_id!r}) != {expected_type!r}"

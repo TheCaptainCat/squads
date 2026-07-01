@@ -18,7 +18,7 @@ import pytest
 from typer.testing import CliRunner
 
 from squads._cli import _CustomTypeGroup, app  # pyright: ignore[reportPrivateUsage]
-from squads._models._enums import TYPE_ALIASES, ItemType
+from squads._models._enums import ItemType
 from squads._services import _service as service
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ItemSpec, Lifecycle, WorkflowSpec
@@ -167,10 +167,12 @@ class TestBuiltInSurfaceUnchanged:
             assert result.exit_code == 0, f"alias '{alias}' failed: {result.output}"
 
     def test_aliases_registered_from_spec(self) -> None:
-        """Alias registration now reads ItemSpec.aliases, not just TYPE_ALIASES.
+        """Alias registration reads ItemSpec.aliases from the bundled spec.
 
-        The static app-build loop at import time uses the bundled spec's ItemSpec.aliases.
-        These must match TYPE_ALIASES (the non-authoritative shim) exactly.
+        The authoritative alias values live in default_workflow.toml (ItemSpec.aliases).
+        TYPE_ALIASES has been retired (TASK-267); this test verifies that the spec's
+        aliases are non-empty for every work type (the actual values are locked by
+        test_golden_aliases in test_workflow_spec.py).
         """
         from squads._workflow import bundled_spec
 
@@ -178,10 +180,9 @@ class TestBuiltInSurfaceUnchanged:
         for item_type in ItemType:
             if item_type.value not in spec.work_types():
                 continue  # meta types have no aliases
-            spec_aliases = sorted(spec.items[item_type.value].aliases)
-            enum_aliases = sorted(TYPE_ALIASES.get(item_type, ()))
-            assert spec_aliases == enum_aliases, (
-                f"{item_type.value}: spec aliases {spec_aliases!r} != TYPE_ALIASES {enum_aliases!r}"
+            spec_aliases = spec.items[item_type.value].aliases
+            assert spec_aliases, (
+                f"{item_type.value}: spec declares no aliases — did default_workflow.toml change?"
             )
 
 

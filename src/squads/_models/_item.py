@@ -6,13 +6,13 @@ from typing import Any, cast
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 from squads import _clock as clock
-from squads._models._enums import PREFIX_BY_TYPE as _PREFIX_BY_TYPE
 from squads._models._enums import (  # noqa: F401 — re-exported for callers
     ItemType,  # pyright: ignore[reportUnusedImport]
     Priority,
     Status,  # pyright: ignore[reportUnusedImport]
 )
 from squads._models._subentity import SubEntity
+from squads._models._vocab import RESERVED_PREFIX as _RESERVED_PREFIX
 from squads._util import NonEmpty
 
 REF_SEP = ":"
@@ -127,6 +127,13 @@ class Item(BaseModel):
     #: construction time; excluded from JSON/frontmatter serialisation so it is never persisted.
     #: Defaults to :data:`DEFAULT_ID_PADDING` (6) for items loaded from disk (``from_frontmatter``).
     id_padding: int = Field(default=DEFAULT_ID_PADDING, exclude=True, repr=False)
+    #: The resolved ID prefix for this item (e.g. ``"TASK"``, ``"INC"``).
+    #: Stamped at create/retype time from the active spec (or the reserved map for built-ins).
+    #: Excluded from the JSON index (never persisted there) but written to frontmatter for
+    #: custom (non-reserved) types so it survives round-trips without a spec in hand.
+    #: For reserved built-in types, ``prefix`` is always re-derived from ``RESERVED_PREFIX``
+    #: on load — their frontmatter stays byte-identical with no new ``prefix:`` line.
+    prefix: str = Field(default="", exclude=True, repr=False)
 
     model_config = {"use_enum_values": False}
 
@@ -151,52 +158,47 @@ class Item(BaseModel):
     @computed_field
     @property
     def id(self) -> str:
-        """The formatted id (``TASK-000007``) — derived from ``type`` + ``sequence_id``.
+        """The formatted id (``TASK-000007``) — derived from ``prefix`` + ``sequence_id``.
 
         Width is governed by :attr:`id_padding` (default :data:`DEFAULT_ID_PADDING`); set from
         ``SquadsDB.padding`` so the ID always matches the squad's current zero-pad width.
         Written to frontmatter as the durable human id; reconstructed via ``from_frontmatter``.
+
+        ``prefix`` is stamped at create/retype time by the service (which holds the spec)
+        and propagated by the index store after load.  The model itself never derives vocab:
+        it formats from whatever prefix string it was given.
+
+        If ``prefix`` is empty (e.g. a bare ``Item(...)`` constructed in a test without one),
+        fall back to the reserved map so built-in items always render correctly even when the
+        prefix was not explicitly supplied.
         """
-        # self.type is now a plain str; prefix is looked up from the reserved-vocab map.
-        # _PREFIX_BY_TYPE is dict[str, str]; fallback upper() for custom-spec types.
-        prefix: str = _PREFIX_BY_TYPE.get(self.type, self.type.upper())
-        return format_item_id(prefix, self.sequence_id, self.id_padding)
+        effective_prefix = self.prefix or _RESERVED_PREFIX.get(self.type, self.type.upper())
+        return format_item_id(effective_prefix, self.sequence_id, self.id_padding)
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
-        """The mapping written into the markdown file's YAML frontmatter (durable truth)."""
-        data: dict[str, Any] = {
+        """The mapping written into the markdown file's YAML frontmatter (durable truth).
+
+        For custom (non-reserved) types, ``prefix`` is written as a frontmatter line so the
+        correct prefix survives a round-trip without a spec (e.g. ``sq repair``).  Reserved
+        built-in types always re-derive their prefix from the reserved map on load, so no
+        ``prefix:`` line is written — their files stay byte-identical.
+        """
+        data: dict[str, Any] = self._core_frontmatter_fields()
+        # Write prefix frontmatter ONLY for custom (non-reserved) types.
+        # Built-ins re-derive from RESERVED_PREFIX on load; no frontmatter change needed.
+        if self.prefix and self.type not in _RESERVED_PREFIX:
+            data["prefix"] = self.prefix
+        _add_optional_frontmatter_fields(data, self)
+        return data
+
+    def _core_frontmatter_fields(self) -> dict[str, Any]:
+        return {
             "id": self.id,
             "sequence_id": self.sequence_id,
             "type": self.type,
             "title": self.title,
             "status": self.status,
         }
-        if self.parent:
-            data["parent"] = self.parent
-        if self.author:
-            data["author"] = self.author
-        if self.assignee:
-            data["assignee"] = self.assignee
-        if self.priority:
-            data["priority"] = self.priority.value
-        if self.refs:
-            data["refs"] = list(self.refs)
-        if self.labels:
-            data["labels"] = list(self.labels)
-        if self.description:
-            data["description"] = self.description
-        if self.subentities:
-            data["subentities"] = [s.to_frontmatter_dict() for s in self.subentities]
-        data["created_at"] = clock.iso(self.created_at)
-        data["updated_at"] = clock.iso(self.updated_at)
-        # Session fields are omitted when unset to keep legacy files unchanged (ADR-000158 §3).
-        if self.created_session is not None:
-            data["created_session"] = self.created_session
-        if self.modified_session is not None:
-            data["modified_session"] = self.modified_session
-        if self.extra:
-            data["extra"] = self.extra
-        return data
 
     @classmethod
     def from_frontmatter(cls, data: dict[str, Any], *, path: str) -> Item:
@@ -204,10 +206,23 @@ class Item(BaseModel):
 
         ``type`` and ``status`` are stored as plain strings (TASK-000235); the reserved-vocab
         validation (against WorkflowSpec) runs at the service load boundary, not here.
+
+        ``prefix`` is read back when present in frontmatter (custom types write it so the
+        correct prefix survives a round-trip without a spec).  When absent (legacy files and
+        all built-in types), ``prefix`` is left as ``""`` and the store's post-load pass fills
+        it via ``prefix_for`` before returning the DB (parallel to ``_propagate_padding``).
         """
+        item_type: str = data["type"]
+        # Read stored prefix when present; for built-ins it is always absent (re-derived later).
+        stored_prefix: str = data.get("prefix") or ""
+        # For reserved types, always use the authoritative RESERVED_PREFIX — never trust a
+        # stored value (protects against a corrupt/hand-edited frontmatter).
+        if item_type in _RESERVED_PREFIX:
+            stored_prefix = _RESERVED_PREFIX[item_type]
         return cls(
             sequence_id=data["sequence_id"],
-            type=data["type"],
+            type=item_type,
+            prefix=stored_prefix,
             title=data.get("title", ""),
             slug=data.get("slug") or _slug_from_path(path),
             status=data["status"],
@@ -246,6 +261,38 @@ def _read_extra(data: dict[str, Any]) -> dict[str, Any]:
     extra: dict[str, Any] = dict(data.get("extra", {}) or {})
     extra.pop("ref_kinds", None)
     return extra
+
+
+def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
+    """Populate *data* with the optional / conditional frontmatter fields of *item*.
+
+    Extracted to keep :meth:`Item.to_frontmatter_dict` below the C901 complexity ceiling.
+    """
+    if item.parent:
+        data["parent"] = item.parent
+    if item.author:
+        data["author"] = item.author
+    if item.assignee:
+        data["assignee"] = item.assignee
+    if item.priority:
+        data["priority"] = item.priority.value
+    if item.refs:
+        data["refs"] = list(item.refs)
+    if item.labels:
+        data["labels"] = list(item.labels)
+    if item.description:
+        data["description"] = item.description
+    if item.subentities:
+        data["subentities"] = [s.to_frontmatter_dict() for s in item.subentities]
+    data["created_at"] = clock.iso(item.created_at)
+    data["updated_at"] = clock.iso(item.updated_at)
+    # Session fields are omitted when unset to keep legacy files unchanged (ADR-000158 §3).
+    if item.created_session is not None:
+        data["created_session"] = item.created_session
+    if item.modified_session is not None:
+        data["modified_session"] = item.modified_session
+    if item.extra:
+        data["extra"] = item.extra
 
 
 def _slug_from_path(path: str) -> str:

@@ -15,13 +15,11 @@ from pathlib import Path
 import pytest
 
 from squads._models._enums import (
-    FOLDER_BY_TYPE,
-    PREFIX_BY_TYPE,
     STATUS_EMOJI,
-    TYPE_ALIASES,
     ItemType,
     Status,
 )
+from squads._models._vocab import RESERVED_FOLDER, RESERVED_PREFIX
 from squads._workflow import (
     ALLOWED_PARENTS,
     SUBENTITY_WORKFLOWS,
@@ -185,22 +183,36 @@ def test_golden_status_set(spec: WorkflowSpec) -> None:
 
 
 def test_golden_prefixes_and_folders(spec: WorkflowSpec) -> None:
-    """Each item type's prefix and folder match today's PREFIX_BY_TYPE/FOLDER_BY_TYPE exactly."""
+    """Each item type's prefix and folder match the reserved built-in vocab exactly."""
     for t in ItemType:
         ts = spec.items[t]
-        assert ts.prefix == PREFIX_BY_TYPE[t], (
-            f"{t!r}: spec prefix {ts.prefix!r} != {PREFIX_BY_TYPE[t]!r}"
+        assert ts.prefix == RESERVED_PREFIX[t], (
+            f"{t!r}: spec prefix {ts.prefix!r} != {RESERVED_PREFIX[t]!r}"
         )
-        assert ts.folder == FOLDER_BY_TYPE[t], (
-            f"{t!r}: spec folder {ts.folder!r} != {FOLDER_BY_TYPE[t]!r}"
+        assert ts.folder == RESERVED_FOLDER[t], (
+            f"{t!r}: spec folder {ts.folder!r} != {RESERVED_FOLDER[t]!r}"
         )
 
 
 def test_golden_aliases(spec: WorkflowSpec) -> None:
-    """Each item type's aliases match today's TYPE_ALIASES exactly (sorted for comparison)."""
+    """Each work item type's aliases list is non-empty in the spec.
+
+    The authoritative alias values live in default_workflow.toml (ItemSpec.aliases).
+    This test guards against accidentally clearing the aliases for any work type.
+    """
+    # The 7 known-aliased work types and their expected sorted aliases (from default_workflow.toml).
+    _EXPECTED_ALIASES: dict[str, list[str]] = {
+        "epic": ["e"],
+        "feature": ["f", "feat"],
+        "task": ["t"],
+        "bug": ["b"],
+        "decision": ["d", "dec"],
+        "review": ["r", "rev"],
+        "guide": ["g"],
+    }
     for t in ItemType:
         ts = spec.items[t]
-        expected = sorted(TYPE_ALIASES.get(t, ()))
+        expected = _EXPECTED_ALIASES.get(str(t), [])
         actual = sorted(ts.aliases)
         assert actual == expected, f"{t!r}: spec aliases {actual!r} != {expected!r}"
 
