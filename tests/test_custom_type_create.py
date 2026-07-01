@@ -319,3 +319,73 @@ async def test_generic_template_produces_valid_markers(
     assert sections.get_section(text, DISCUSSION) is not None, (
         "discussion section missing from generic template output"
     )
+
+
+# ---------------------------------------------------------------------------
+# TASK-000273: sq create <alias> works for built-in AND custom types
+# ---------------------------------------------------------------------------
+
+
+def test_create_builtin_alias_feat(runner: CliRunner, tmp_path: Path, monkeypatch) -> None:
+    """sq create feat TITLE dispatches to the feature create command (built-in alias).
+
+    The result ID must start with FEAT- (canonical type, not the alias).
+    The alias must not appear in sq create --help (hidden=True).
+    """
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
+
+    result = runner.invoke(app, ["create", "feat", "My Feature via alias", "--author", "manager"])
+    assert result.exit_code == 0, f"sq create feat failed:\n{result.output}"
+    assert "FEAT-" in result.output, f"Expected FEAT-NNNNNN in output, got:\n{result.output}"
+
+    # Aliases must remain hidden from help (byte-identical AC#7/#8).
+    # Verify no help line lists the alias as a standalone command name.
+    help_result = runner.invoke(app, ["create", "--help"])
+    lines = help_result.output.splitlines()
+    alias_cmd_lines = [
+        ln
+        for ln in lines
+        if ln.lstrip("│ ").startswith("feat ") or ln.lstrip("│ ").startswith("feat\t")
+    ]
+    assert not alias_cmd_lines, (
+        f"built-in alias 'feat' must not appear in sq create --help: {alias_cmd_lines}"
+    )
+
+
+async def test_create_builtin_alias_end_to_end(
+    invoke, tmp_path: Path, monkeypatch, frozen_time
+) -> None:
+    """sq create feat / sq create t / sq create b produce canonical IDs end-to-end."""
+    monkeypatch.chdir(tmp_path)
+    from squads._services import _service as service
+
+    await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+
+    for alias, expected_prefix in [("feat", "FEAT-"), ("t", "TASK-"), ("b", "BUG-")]:
+        result = await invoke(["create", alias, f"Item via {alias!r} alias", "--author", "manager"])
+        assert result.exit_code == 0, (
+            f"sq create {alias!r} failed (exit {result.exit_code}):\n{result.output}"
+        )
+        assert expected_prefix in result.output, (
+            f"sq create {alias!r}: expected {expected_prefix!r} in output, got:\n{result.output}"
+        )
+
+
+async def test_create_custom_type_alias(invoke, tmp_path: Path, monkeypatch, frozen_time) -> None:
+    """sq create inc TITLE dispatches to the incident create command (custom alias).
+
+    The result ID must start with INC- (canonical prefix from the spec, not alias.upper()).
+    """
+    monkeypatch.chdir(tmp_path)
+    from squads._services import _service as service
+
+    init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+    _write_override(init_result.paths.squad_dir)
+
+    result = await invoke(["create", "inc", "Incident via inc alias", "--author", "manager"])
+    assert result.exit_code == 0, (
+        f"sq create inc failed (exit {result.exit_code}):\n{result.output}"
+    )
+    assert "INC-" in result.output, f"Expected INC-NNNNNN, got:\n{result.output}"
+    assert "INCIDENT-" not in result.output

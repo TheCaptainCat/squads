@@ -31,6 +31,7 @@ from squads._cli._common import (
 from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import make_ref, split_ref
+from squads._workflow import bundled_spec as _bundled_spec
 
 
 def _build_create_cmd(item_type_str: str) -> _click.Command:
@@ -158,37 +159,48 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         return base + custom
 
     def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
-        # Fast path: try the statically-built built-in commands first.
+        # Fast path: try the statically-built built-in commands first (canonical + hidden aliases).
         cmd = super().get_command(ctx, cmd_name)
         if cmd is not None:
             return cmd
 
-        # Spec-resolution region: decide whether cmd_name is a known custom work type.
+        # Spec-resolution region: decide whether cmd_name is a known custom work type or alias.
         # Errors here (invalid spec, missing active spec, etc.) are swallowed so that
         # `sq create --help` always degrades gracefully.  The only valid outcome is either
-        # (a) cmd_name confirmed as a declared custom work type, or (b) return None so
-        # Click emits "No such command".
+        # (a) cmd_name confirmed (or resolved via alias) as a declared custom work type, or
+        # (b) return None so Click emits "No such command".
         try:
             built_in_names: frozenset[str] = frozenset(t.value for t in ItemType)
             if cmd_name in built_in_names:
                 return None
 
             spec = common.get_active_spec()
+
+            # Resolve alias → canonical for custom types (mirrors _CustomTypeGroup.get_command).
+            canonical = cmd_name
             if cmd_name not in spec.work_types():
-                return None
-            if spec.item_is_meta(cmd_name):
+                resolved = spec.alias_to_type.get(cmd_name)
+                if (
+                    resolved is not None
+                    and resolved in spec.work_types()
+                    and resolved not in built_in_names
+                ):
+                    canonical = resolved
+                else:
+                    return None
+            if spec.item_is_meta(canonical):
                 return None
         except Exception:  # pylint: disable=broad-except
             # Spec resolution failed — degrade gracefully.
             return None
 
-        # Past this point cmd_name IS a declared custom work type.  Build errors here are
+        # Past this point canonical IS a declared custom work type.  Build errors here are
         # genuine failures for a type the user declared (and that --help lists), so they
         # must propagate rather than silently become "No such command".
-        if cmd_name not in self._custom_cmd_cache:
-            self._custom_cmd_cache[cmd_name] = _build_create_cmd(cmd_name)
+        if canonical not in self._custom_cmd_cache:
+            self._custom_cmd_cache[canonical] = _build_create_cmd(canonical)
 
-        return self._custom_cmd_cache.get(cmd_name)
+        return self._custom_cmd_cache.get(canonical)
 
 
 create_app = typer.Typer(
@@ -274,6 +286,15 @@ def _make(item_type: ItemType):
 for _t in _CREATABLE:
     create_app.command(_t.value, help=f"Create a {_t.value}.")(_make(_t))
 
+# Register hidden aliases for the _CREATABLE built-in types so `sq create feat TITLE`
+# dispatches identically to `sq create feature TITLE`.  Aliases come from the bundled
+# spec (the single source of truth, same as the resource-group loop in _cli/__init__.py).
+# Hidden = not shown in --help, preserving byte-identical output (AC#7/#8).
+_create_spec = _bundled_spec()
+for _t in _CREATABLE:
+    for _alias in _create_spec.items[_t.value].aliases:
+        create_app.command(_alias, hidden=True)(_make(_t))
+
 
 @create_app.command("guide", help="Create a guide.")
 @common.command
@@ -320,3 +341,8 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
         console.print(f"created [bold]{res.item.id}[/bold] → {res.path}")
         if res.lane_warning is not None:
             console.print(e(res.lane_warning))
+
+
+# Hidden guide aliases (same pattern as _CREATABLE loop above).
+for _guide_alias in _create_spec.items[ItemType.GUIDE.value].aliases:
+    create_app.command(_guide_alias, hidden=True)(create_guide)
