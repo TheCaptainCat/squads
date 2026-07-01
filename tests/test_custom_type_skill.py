@@ -451,3 +451,75 @@ async def test_no_custom_skills_for_bundled_only_squad(tmp_path, monkeypatch, fr
     )
     pointer_path = paths.root / ".claude" / "skills" / "sq-incident" / "SKILL.md"
     assert not pointer_path.exists(), "sq-incident skill pointer written for a bundled-only squad"
+
+
+# ---------------------------------------------------------------------------
+# F4 — sub-entity footer guard: custom types must NOT advertise <kind> <k> verbs
+# ---------------------------------------------------------------------------
+
+
+async def test_custom_skill_no_subentity_footer_lines(tmp_path, monkeypatch, frozen_time) -> None:
+    """F4: the thin sq-incident skill does not advertise dead sub-entity <kind> <k> verbs.
+
+    Custom types declare no sub-entity kind, so the footer references
+    `sq <type> <n> <kind> <k> body` and `sq <type> <n> <kind> <k> show` must be absent.
+    The replacement line (`Read anything back with sq incident <n> show --full --comments`)
+    must be present.
+    """
+    monkeypatch.chdir(tmp_path)
+    init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+    paths = init_result.paths
+    spec = _spec_with_incident()
+    svc = service.Service(paths, spec=spec)
+    await svc.sync()
+
+    skills_folder = paths.squad_dir / "agents" / "skills"
+    convention_files = list(skills_folder.glob("SKILL-*-sq-incident.md"))
+    legacy_file = skills_folder / "sq-incident.md"
+    skill_file = convention_files[0] if convention_files else legacy_file
+    skill_text = skill_file.read_text(encoding="utf-8")
+
+    # Dead sub-entity verbs must NOT appear in the footer.
+    assert "<kind> <k> body" not in skill_text, (
+        "custom-type skill footer must not reference <kind> <k> body — no sub-entity kind declared"
+    )
+    assert "<kind> <k> show" not in skill_text, (
+        "custom-type skill footer must not reference <kind> <k> show — no sub-entity kind declared"
+    )
+    # The replacement footer must be present.
+    assert "show --full --comments" in skill_text, (
+        "custom-type skill footer must contain sq incident <n> show --full --comments"
+    )
+
+
+async def test_custom_skill_create_command_runs_end_to_end(
+    invoke, tmp_path, monkeypatch, frozen_time
+) -> None:
+    """F4: the sq create <type> command advertised in the thin skill runs end-to-end.
+
+    Generates the sq-incident skill, extracts the create command line, and
+    verifies that running it against the CLI creates a correctly-prefixed item.
+    """
+    monkeypatch.chdir(tmp_path)
+    init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+    paths = init_result.paths
+    _write_override(paths.squad_dir)
+
+    from squads._workflow._loader import load_workflow_spec as _load_spec
+
+    spec = _load_spec(squad_dir=paths.squad_dir)
+    svc = service.Service(paths, spec=spec)
+    await svc.sync()
+
+    # The create command from the generated skill:
+    # `sq create incident "…" --author <slug>`
+    # Verify it runs successfully with a real author (manager is seeded by minimal init).
+    result = await invoke(["create", "incident", "Disk full alert", "--author", "manager"])
+    assert result.exit_code == 0, (
+        f"sq create incident failed (exit {result.exit_code}):\n{result.output}"
+    )
+    # The item ID must use the correct prefix from the spec (INC-), not the type name uppercased.
+    assert "INC-" in result.output, f"Expected INC-NNNNNN prefix in output, got:\n{result.output}"
+    assert "INCIDENT-" not in result.output, (
+        f"Unexpected INCIDENT- prefix — should be INC-:\n{result.output}"
+    )

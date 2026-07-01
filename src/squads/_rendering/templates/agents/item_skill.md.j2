@@ -53,7 +53,9 @@
 ---
 The `.md` files are sq-managed — never edit them by hand. Items are addressed as
 `sq {{ type }} <n> <verb>`. Set this item's body with `sq {{ type }} <n> body
--m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
+-m "…"` (or `--file`); `--desc` sets only the short summary. {% if subentity_kind is not defined or subentity_kind %}Its user stories / subtasks / findings
 get their bodies from `sq {{ type }} <n> <kind> <k> body -m "…"`. Read anything back with
 `sq {{ type }} <n> show --full --comments` (full dossier, including discussion) /
 `sq {{ type }} <n> <kind> <k> show`.
+{% else %}Read anything back with `sq {{ type }} <n> show --full --comments` (full dossier, including discussion).
+{% endif %}

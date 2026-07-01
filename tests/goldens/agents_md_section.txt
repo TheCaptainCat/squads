@@ -73,6 +73,21 @@ type name. Run `sq workflow` to see this table in the terminal.
 removing or repurposing an alias is a breaking change and is not permitted after 1.0. The alias table
 is frozen grammar in the same stability tier as the canonical command names.
 
+## Type lifecycles
+
+Lifecycle strings auto-derived from each type's state machine — the source of truth for valid
+statuses and transitions.
+
+| Prefix | Type | Lifecycle |
+|---|---|---|
+| `EPIC` | `epic` | `Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)` |
+| `FEAT` | `feature` | `Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)` |
+| `TASK` | `task` | `Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)` |
+| `BUG` | `bug` | `Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)` |
+| `ADR` | `decision` | `Proposed → Accepted → Superseded (+ Rejected, Deprecated)` |
+| `REV` | `review` | `Requested → InReview → ChangesRequested → Approved (+ Rejected)` |
+| `GUIDE` | `guide` | `Draft → Published → Deprecated` |
+
 ## Retype
 
 Reclassify a work item to a different type — the sequence number (and durable identity) is

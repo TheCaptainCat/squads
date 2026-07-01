@@ -16,30 +16,30 @@ subentities:
 - local_id: F2
   title: 'No create path for custom types: sq create <type> static + svc.create raises
     TemplateNotFound'
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F3
   title: sq workflow does not render any type's lifecycle string (AC#2/#3 partially
     unmet)
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Auto-generated thin skill advertises non-functional commands (sq create <type>,
     sub-entity verbs)
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F5
   title: get_command broad except masks genuine custom-type build errors as 'No such
     command'
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: Alias-table guard silently drops a future built-in work type that declares
     no aliases
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-06-30T22:10:40Z'
-updated_at: '2026-07-01T09:36:10Z'
+updated_at: '2026-07-01T15:40:03Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -57,11 +57,11 @@ _Add with `sq review 265 add-finding "…" --severity high`; track with `sq revi
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
 | F1 | 🟠 high | Fixed |  | Custom-type item id ignores the spec prefix — stored id is TYPE.upper(), not the declared prefix |
-| F2 | 🟠 high | Open |  | No create path for custom types: sq create <type> static + svc.create raises TemplateNotFound |
-| F3 | 🟡 medium | Open |  | sq workflow does not render any type's lifecycle string (AC#2/#3 partially unmet) |
-| F4 | 🟡 medium | Open |  | Auto-generated thin skill advertises non-functional commands (sq create <type>, sub-entity verbs) |
-| F5 | 🟢 low | Open |  | get_command broad except masks genuine custom-type build errors as 'No such command' |
-| F6 | 🟢 low | Open |  | Alias-table guard silently drops a future built-in work type that declares no aliases |
+| F2 | 🟠 high | Fixed |  | No create path for custom types: sq create <type> static + svc.create raises TemplateNotFound |
+| F3 | 🟡 medium | Fixed |  | sq workflow does not render any type's lifecycle string (AC#2/#3 partially unmet) |
+| F4 | 🟡 medium | Fixed |  | Auto-generated thin skill advertises non-functional commands (sq create <type>, sub-entity verbs) |
+| F5 | 🟢 low | Fixed |  | get_command broad except masks genuine custom-type build errors as 'No such command' |
+| F6 | 🟢 low | Fixed |  | Alias-table guard silently drops a future built-in work type that declares no aliases |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -103,7 +103,7 @@ prefix: str = _PREFIX_BY_TYPE.get(self.type, self.type.upper())
 ### F2 — No create path for custom types: sq create <type> static + svc.create raises TemplateNotFound
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟠 High
 <!-- sq:finding:F2:head:end -->
 
@@ -137,7 +137,7 @@ jinja2.exceptions.TemplateNotFound: items/incident.md.j2
 ### F3 — sq workflow does not render any type's lifecycle string (AC#2/#3 partially unmet)
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F3:head:end -->
 
@@ -158,6 +158,8 @@ jinja2.exceptions.TemplateNotFound: items/incident.md.j2
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-07-01T14:38:08Z] Elias Python:
+  - Fixed in TASK-000269. Added ## Type lifecycles section to workflow.md.j2, spec-driven via linearize_lifecycle(spec.machine_for(type)) — covers both built-in and custom types (prefix + type + lifecycle per row). linearize_lifecycle now uses _SIDE_PRIORITY for canonical side-state ordering so all built-in strings match PLAYBOOK exactly (zero divergence). Golden workflow_cheatsheet.txt updated (additive: +15 lines).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -165,7 +167,7 @@ jinja2.exceptions.TemplateNotFound: items/incident.md.j2
 ### F4 — Auto-generated thin skill advertises non-functional commands (sq create <type>, sub-entity verbs)
 
 <!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F4:head:end -->
 
@@ -184,6 +186,8 @@ Secondary: the shared item-skill template footer references `sq incident <n> <ki
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-07-01T11:29:45Z] Elias Python:
+  - F4 fixed in TASK-269: (1) custom-type skill no longer advertises dead <kind> <k> sub-entity verbs — guarded by subentity_kind=None in the template render; (2) sq create <type> command verified to run end-to-end (TASK-268 landed sq create <type> path); new tests in test_custom_type_skill.py.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -191,7 +195,7 @@ Secondary: the shared item-skill template footer references `sq incident <n> <ki
 ### F5 — get_command broad except masks genuine custom-type build errors as 'No such command'
 
 <!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F5:head:end -->
 
@@ -217,7 +221,7 @@ Severity low because no current code path is known to throw past line 152; this 
 ### F6 — Alias-table guard silently drops a future built-in work type that declares no aliases
 
 <!-- sq:finding:F6:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F6:head:end -->
 
@@ -251,4 +255,6 @@ Severity low because no current code path is known to throw past line 152; this 
   - **Low / no change required:** F5 — `get_command`'s bottom `except Exception: return None` masks genuine build errors for a declared custom type as 'No such command' (scope the except to the resolution region). F6 — the alias-table `{% if aliases %}` guard would silently drop a future alias-less built-in (latent only; goldens green today).
   - **Verified clean (no findings):** the review state-machine reconciliation (`ChangesRequested → Approved`) is correct, nothing depended on the old forbidden edge, and the advertised lifecycle string now matches the machine; the static/dynamic split is sound — `workflow_static.md.j2` is genuinely literal (no spec context, FEAT-013 contract cannot become config-editable); AC#6 no-churn HOLDS and the docstrings do NOT oversell (bundled SKILL 9-17 unchanged, sq-incident=SKILL-18 allocated strictly after, idempotent across repeat syncs); `BackendContext.spec` is backward-compatible (Optional, both backends fall back to bundled_spec); imports stay acyclic; the FEAT-211 seam was respected (linearizer consumed, no status-surface scope absorbed); the per-process `_custom_cmd_cache` is fine for single-shot CLI (tests reset it via autouse fixture).
   - Recommend routing F1+F2 (and their gated F3/F4) back to @tech-lead / Elias Python as a follow-up task on FEAT-210 before this feature is called done. F5/F6 are reviewer's discretion.
+- [2026-07-01T14:41:13Z] Catherine Manager:
+  - F2 marked Fixed: TASK-000268 (Done, committed 5a827dd) delivered the create path — generic items/_default.md.j2 fallback + lazy-dispatch _CustomCreateGroup so 'sq create <type>' registers from the spec. Verified live: 'sq create incident' yields INC-000001 in an auto-created incidents/ folder, 'sq list -t incident' + 'sq inc <id> show' round-trip, 'sq check' green. F1/F3/F4 also Fixed (267/269). Remaining: F5/F6 (low) → TASK-000270. Independent re-review will Verify once 270 lands.
 <!-- sq:discussion:end -->

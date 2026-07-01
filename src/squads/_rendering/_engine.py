@@ -23,6 +23,7 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, S
 from squads._models import _markers as markers
 from squads._paths import number_for_id
 from squads._util import slugify
+from squads._workflow._models import linearize_lifecycle
 
 # The active squad directory for this logical call stack. None means bundled-only.
 _active_squad_dir: ContextVar[Path | None] = ContextVar("_active_squad_dir", default=None)
@@ -58,6 +59,8 @@ def _make_env(squad_dir: Path | None) -> Environment:
     env.filters["open_marker"] = markers.open_marker
     env.filters["close_marker"] = markers.close_marker
     env.filters["idnum"] = _idnum  # "TASK-000007" | idnum → "7", for `sq task 7 …` hints
+    # workflow helper — callable as {{ linearize_lifecycle(spec.machine_for(type)) }} in templates
+    env.globals["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
     return env
 
 

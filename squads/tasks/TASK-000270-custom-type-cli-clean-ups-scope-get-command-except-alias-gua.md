@@ -3,14 +3,15 @@ id: TASK-000270
 sequence_id: 270
 type: task
 title: 'Custom-type CLI clean-ups: scope get_command except, alias-guard defence test'
-status: Draft
+status: Done
 parent: FEAT-000210
 author: tech-lead
+assignee: python-dev
 refs:
 - REV-000265:addresses
 - TASK-000269:depends-on
 created_at: '2026-07-01T08:28:56Z'
-updated_at: '2026-07-01T08:30:42Z'
+updated_at: '2026-07-01T15:40:17Z'
 ---
 <!-- sq:body -->
 **Closes REV-000265 F5 (Low) + F6 (Low) — reviewer's discretion, non-blocking clean-ups.** Independent of the F1/F2 fixes; can run in parallel. Do only if cheap.
@@ -47,4 +48,10 @@ _Add with `sq task 270 add-subtask "<title>"`; track with `sq task 270 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-01T15:40:17Z] Elias Python:
+  - TASK-270 done. Both Low findings from REV-265 closed.
+  - **F5 — except narrowing (both group classes):** Scoped the broad `except Exception: return None` to the spec-resolution region only in both `_CustomTypeGroup.get_command` (_cli/__init__.py) and `_CustomCreateGroup.get_command` (_cli/_create.py). Once `canonical`/`cmd_name` is confirmed as a declared custom work type, build errors propagate rather than becoming a silent 'No such command'. Spec-resolution failures (before the type is confirmed) still degrade gracefully. Three tests added: resource-group build error propagates, create-group build error propagates, corrupt-spec still degrades.
+  - **F6 — alias-guard defence test:** Added `test_f6_all_builtin_work_types_have_aliases` to tests/test_custom_type_cli.py. It iterates all non-meta `spec.work_types()` in the bundled spec and asserts each declares at least one alias, so a future alias-less built-in type fails loudly rather than silently vanishing from the workflow cheatsheet. No change to workflow.md.j2 or rendered output — goldens stay green.
+  - **Gates:** pyright 0 errors · ruff check all passed · ruff format all formatted · pytest full suite exit 0 (1 skip, 0 failures, all dots).
+  - @manager ready for re-review.
 <!-- sq:discussion:end -->

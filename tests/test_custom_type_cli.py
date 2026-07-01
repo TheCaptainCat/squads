@@ -9,10 +9,15 @@ Covers:
 - Unknown commands still produce Click's "No such command" error (AC#8 / byte-identical).
 - The built-in TASK-256 golden surface is unperturbed when no custom types exist.
 - The alias registration loop now reads from ItemSpec.aliases (not TYPE_ALIASES).
+- F5 (REV-265): a real build error on a resolved custom type propagates rather than
+  silently becoming "No such command".
+- F6 (REV-265): every non-meta built-in work type declares at least one alias so it
+  appears in the alias cheatsheet.
 """
 
 from collections.abc import Generator
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -376,3 +381,132 @@ def test_builtin_type_aliases_from_spec_not_enum(
     assert result.exit_code == 0
     # The help text should describe the feature command.
     assert "feature" in result.output or "Operate on a feature" in result.output
+
+
+# ---------------------------------------------------------------------------
+# F5 (REV-000265) — broad except must NOT swallow real build errors for a
+# resolved custom type (only spec-resolution failures are fail-soft).
+# ---------------------------------------------------------------------------
+
+
+class TestF5ExceptNarrowing:
+    """REV-000265 F5: a genuine build error for a declared custom type must propagate.
+
+    Once ``_CustomTypeGroup.get_command`` confirms ``canonical`` is a declared custom
+    type, errors in ``build_item_app`` or ``typer.main.get_command`` are real failures
+    for a visible, user-declared type.  They must not be silently swallowed into Click's
+    "No such command" response.
+
+    Same contract for ``_CustomCreateGroup.get_command``.
+    """
+
+    def test_resource_group_build_error_propagates(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch
+    ) -> None:
+        """A RuntimeError from build_item_app propagates instead of becoming 'No such command'.
+
+        We monkey-patch ``build_item_app`` to raise after ``canonical`` is confirmed as
+        a declared custom type.  The old broad-except swallowed this into ``None``
+        (→ "No such command").  After F5 the exception must escape the handler so the
+        CliRunner catches it (exit_code != 0 and NOT the "No such command" message).
+        """
+        monkeypatch.chdir(tmp_path)
+        runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
+        _write_override(tmp_path / "squads")
+
+        # Inject a build failure: after canonical is resolved, raise before caching.
+        with patch(
+            "squads._cli._items.build_item_app",
+            side_effect=RuntimeError("injected build failure"),
+        ):
+            result = runner.invoke(app, ["incident", "--help"])
+
+        # The error must NOT have been swallowed into "No such command".
+        assert "No such command" not in result.output, (
+            "Build error was silently swallowed into 'No such command' — F5 not fixed"
+        )
+        # The injected RuntimeError must have surfaced (non-zero exit or exception).
+        assert result.exit_code != 0 or result.exception is not None, (
+            "Expected a non-zero exit or exception when build_item_app raises"
+        )
+
+    def test_create_group_build_error_propagates(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Same contract for _CustomCreateGroup: build error propagates, not 'No such command'.
+
+        Monkey-patch ``_build_create_cmd`` to raise after the spec confirms the type.
+        """
+        monkeypatch.chdir(tmp_path)
+        runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
+        _write_override(tmp_path / "squads")
+
+        with patch(
+            "squads._cli._create._build_create_cmd",
+            side_effect=RuntimeError("injected create-build failure"),
+        ):
+            result = runner.invoke(app, ["create", "incident", "--help"])
+
+        assert "No such command" not in result.output, (
+            "Create-group build error was silently swallowed into 'No such command' — F5 not fixed"
+        )
+        assert result.exit_code != 0 or result.exception is not None, (
+            "Expected a non-zero exit or exception when _build_create_cmd raises"
+        )
+
+    def test_spec_resolution_error_still_degrades_gracefully(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Errors during spec resolution (before canonical is confirmed) still degrade gracefully.
+
+        An invalid/unresolvable spec must never crash ``sq --help``.  This is the
+        fail-soft guarantee preserved by the narrow except in the resolution region.
+        """
+        monkeypatch.chdir(tmp_path)
+        runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
+
+        # Corrupt the override so spec resolution raises.
+        override_dir = tmp_path / "squads" / ".overrides"
+        override_dir.mkdir(parents=True, exist_ok=True)
+        (override_dir / "workflow.toml").write_text("[[invalid toml", encoding="utf-8")
+
+        # sq --help must still succeed (fail-soft on spec resolution errors).
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0, (
+            f"sq --help crashed with an invalid override:\n{result.output}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# F6 (REV-000265) — defence: every non-meta built-in work type must declare
+# at least one alias so it appears in the workflow alias cheatsheet.
+# ---------------------------------------------------------------------------
+
+
+def test_f6_all_builtin_work_types_have_aliases() -> None:
+    """REV-000265 F6: every non-meta work type in the bundled spec declares an alias.
+
+    The alias cheatsheet in workflow.md.j2 only renders a row when
+    ``item_spec.aliases`` is truthy.  This test catches a future built-in work
+    type added with no alias — it would silently vanish from the cheatsheet with
+    no other signal.
+
+    Constraint: this is a *defence* test.  It must not change when new aliases are
+    added to existing types (it only asserts non-empty, not specific values).
+    """
+    from squads._workflow import bundled_spec
+
+    spec = bundled_spec()
+    alias_less: list[str] = []
+    for type_name in spec.work_types():
+        item_spec = spec.items[type_name]
+        if item_spec.is_meta:
+            continue  # meta types are excluded from the alias table by the template guard
+        if not item_spec.aliases:
+            alias_less.append(type_name)
+
+    assert not alias_less, (
+        f"Non-meta work type(s) declared no aliases and would be silently dropped from "
+        f"the alias cheatsheet: {alias_less!r}.  Add at least one alias to the spec "
+        f"(default_workflow.toml) or the workflow.md.j2 guard needs updating."
+    )

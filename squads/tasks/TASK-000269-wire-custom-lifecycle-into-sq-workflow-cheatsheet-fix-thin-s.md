@@ -4,14 +4,16 @@ sequence_id: 269
 type: task
 title: Wire custom lifecycle into sq workflow cheatsheet + fix thin sq-<type> skill
   commands
-status: Draft
+status: Done
 parent: FEAT-000210
 author: tech-lead
+assignee: python-dev
 refs:
 - REV-000265:addresses
 - TASK-000268:depends-on
+- BUG-000272:fixes
 created_at: '2026-07-01T08:28:55Z'
-updated_at: '2026-07-01T08:30:41Z'
+updated_at: '2026-07-01T14:38:30Z'
 ---
 <!-- sq:body -->
 **Closes REV-000265 F3 (Medium) + F4 (Medium). Both gated on the create path (TASK-000268).**
@@ -53,4 +55,23 @@ _Add with `sq task 269 add-subtask "<title>"`; track with `sq task 269 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-01T11:29:39Z] Elias Python:
+  - @manager F4 complete; F3 BLOCKED by GUARDRAIL — read below.
+  - **F4 — DONE.** The thin sq-<type> skill is now correct:
+  - 1. Sub-entity footer guard: item_skill.md.j2 now conditionally omits '<kind> <k> body/show' lines when subentity_kind=None is passed. Built-in skill goldens are byte-identical (guard uses 'is not defined' Jinja2 path for all existing built-in render calls, which pass no subentity_kind). Custom type render in _backend.py now passes subentity_kind=None. Verified: sq-incident skill shows 'Read anything back with sq incident <n> show --full --comments' with no dead <kind> <k> lines.
+  - 2. Create command: sq create incident '...' --author <slug> runs end-to-end. Verified: created INC-000002 (correct prefix, not INCIDENT-000002). TASK-268 shipped sq create <type> via _CustomCreateGroup so the advertised command in the thin skill is already correct.
+  - 3. Two new tests added to tests/test_custom_type_skill.py: test_custom_skill_no_subentity_footer_lines and test_custom_skill_create_command_runs_end_to_end. Both pass.
+  - **F3 — BLOCKED by GUARDRAIL.** Ran linearize_lifecycle against all 7 built-in work types and compared to PLAYBOOK strings. Mismatches found — DO NOT MERGE F3 without operator sign-off:
+  - MISMATCHES:\n- epic: PLAYBOOK='Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)' vs linearized='Draft → Ready → InProgress → InReview → Done (+ Cancelled, Blocked)'. Same states, different side-state order (BFS discovers Cancelled before Blocked from Draft's transition list).\n- feature, task: same mismatch as epic (same machine).\n- bug: PLAYBOOK='Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)' vs linearized='Open → InProgress → Fixed → Verified (+ WontFix, Cancelled, Blocked)'. Bug's PLAYBOOK string is a copy-paste from task/epic/feature — the actual bug machine starts from Open, not Draft. This appears to be a data entry error in playbook.toml.\n- MATCHES: decision, review, guide all match exactly.
+  - Per the GUARDRAIL I did not touch the machine or PLAYBOOK. The F3 cheatsheet lifecycle section is not implemented. @manager: this needs a decision — either (a) fix playbook.toml bug string (copy-paste error) and accept ordering differences as-is for the others, or (b) fix the linearize_lifecycle ordering to match PLAYBOOK ordering, or (c) other path. This is a workflow-contract question requiring sign-off.
+  - **Gates:** pyright 0 errors. ruff clean. ruff format clean. Full pytest suite: all green (1 skip for scale test). templates_manifest.json regenerated (item_skill.md.j2 hash updated).
+  - **Files changed:** src/squads/_rendering/templates/agents/item_skill.md.j2 (conditional sub-entity footer), src/squads/_backends/_claude_code/_backend.py (pass subentity_kind=None for custom type render), src/squads/_rendering/templates_manifest.json (regenerated hash), tests/test_custom_type_skill.py (2 new F4 tests).
+- [2026-07-01T14:38:30Z] Elias Python:
+  - @manager TASK-000269 done. Both F3 and F4 from REV-000265 are implemented and all gates are green.
+  - F4 (custom type skill footer guard): item_skill.md.j2 conditionally omits dead 'sq <type> <n> <kind> <k> body' and '... <kind> <k> show' lines when subentity_kind=None (custom types). Built-in type goldens are byte-identical (uses 'is not defined' guard). Backend passes subentity_kind=None for custom types. Two new tests: test_custom_skill_no_subentity_footer_lines and test_custom_skill_create_command_runs_end_to_end — both green.
+  - F3 (spec-driven lifecycle section): Added '## Type lifecycles' to workflow.md.j2 — a | Prefix | Type | Lifecycle | table driven by linearize_lifecycle(spec.machine_for(type)) for every non-meta type, built-in and custom. linearize_lifecycle now uses _SIDE_PRIORITY for canonical side-state ordering (WontFix=0, Blocked=1, Cancelled=2, Rejected=3, Deprecated=4), eliminating the BFS-order non-determinism that caused the F3 GUARDRAIL.
+  - BUG-000272 fixed: playbook.toml bug lifecycle string corrected from copy-pasted generic task string to Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled). test_playbook.py snapshot updated. BUG-000272 → Fixed.
+  - Reconciliation: all 7 built-in types (epic, feature, task, bug, decision, review, guide) linearize to PLAYBOOK strings exactly — zero divergence.
+  - Cheatsheet golden diff: workflow_cheatsheet.txt gained 15 lines (purely additive — the new Type lifecycles section). sq-bug skill golden corrected lifecycle line only. agents_md_section.txt updated (it includes workflow.md.j2). All other goldens unchanged.
+  - Gates: pyright 0 errors, ruff clean, full suite 1 skip 0 failures.
 <!-- sq:discussion:end -->

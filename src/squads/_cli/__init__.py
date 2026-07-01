@@ -125,8 +125,11 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         if cmd is not None:
             return cmd
 
-        # Unknown to the built-in table — check if the resolved spec knows this cmd_name as a
-        # custom work type or alias.
+        # Spec-resolution region: decide whether cmd_name is a known custom type or alias.
+        # Errors here (invalid spec, path resolution failures, etc.) are swallowed so that
+        # `sq --help` always degrades gracefully.  The only valid outcome of this block is
+        # either (a) `canonical` resolved to a declared custom work type, or (b) return None
+        # to let Click emit "No such command".
         try:
             from squads._cli._items import build_item_app
             from squads._models._enums import ItemType
@@ -150,26 +153,29 @@ class _CustomTypeGroup(typer.core.TyperGroup):
                 else:
                     # Not a custom type or alias — fall through to Click's "No such command" error.
                     return None
-
-            # Build the sub-app and convert it to a Click command (cached per process).
-            if canonical not in self._custom_cmd_cache:
-                type_app = build_item_app(canonical)
-                # Give the app a name so help output uses it.
-                type_app.info.name = canonical
-                # Convert the Typer app to a Click command group.
-                click_cmd = typer.main.get_command(type_app)
-                # Register spec-declared aliases into the cache so subsequent look-ups find
-                # them without entering this branch again.
-                type_aliases: list[str] = (
-                    spec.items[canonical].aliases if canonical in spec.items else []
-                )
-                self._custom_cmd_cache[canonical] = click_cmd
-                for type_alias in type_aliases:
-                    self._custom_cmd_cache[type_alias] = click_cmd
-
-            return self._custom_cmd_cache.get(cmd_name)
         except Exception:  # pylint: disable=broad-except
+            # Spec resolution failed (e.g. corrupt override, path error) — degrade gracefully.
             return None
+
+        # Past this point `canonical` IS a declared custom work type.  Build errors here
+        # are genuine failures for a type the user declared (and that --help lists), so they
+        # must propagate rather than silently become "No such command".
+        if canonical not in self._custom_cmd_cache:
+            type_app = build_item_app(canonical)
+            # Give the app a name so help output uses it.
+            type_app.info.name = canonical
+            # Convert the Typer app to a Click command group.
+            click_cmd = typer.main.get_command(type_app)
+            # Register spec-declared aliases into the cache so subsequent look-ups find
+            # them without entering this branch again.
+            type_aliases: list[str] = (
+                spec.items[canonical].aliases if canonical in spec.items else []
+            )
+            self._custom_cmd_cache[canonical] = click_cmd
+            for type_alias in type_aliases:
+                self._custom_cmd_cache[type_alias] = click_cmd
+
+        return self._custom_cmd_cache.get(cmd_name)
 
 
 app = typer.Typer(

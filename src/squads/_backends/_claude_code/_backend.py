@@ -259,6 +259,7 @@ class ClaudeCodeBackend(AgentBackend):
                     lifecycle=lifecycle_str,
                     commands=interactions.custom_item_skill_commands(ctype),
                     sections=[],
+                    subentity_kind=None,
                 )
                 out += await self._write_managed_skill(
                     ctx,

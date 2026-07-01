@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 271,
+  "counter": 272,
   "padding": 6,
   "items": {
     "12": {
@@ -7980,7 +7980,7 @@
       ],
       "path": "features/FEAT-000211-custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari.md",
       "created_at": "2026-06-25T13:20:36Z",
-      "updated_at": "2026-07-01T09:09:28Z",
+      "updated_at": "2026-07-01T11:18:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9924,7 +9924,7 @@
         {
           "local_id": "F2",
           "title": "No create path for custom types: sq create <type> static + svc.create raises TemplateNotFound",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "high",
           "story": null
@@ -9932,7 +9932,7 @@
         {
           "local_id": "F3",
           "title": "sq workflow does not render any type's lifecycle string (AC#2/#3 partially unmet)",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null
@@ -9940,7 +9940,7 @@
         {
           "local_id": "F4",
           "title": "Auto-generated thin skill advertises non-functional commands (sq create <type>, sub-entity verbs)",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null
@@ -9948,7 +9948,7 @@
         {
           "local_id": "F5",
           "title": "get_command broad except masks genuine custom-type build errors as 'No such command'",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9956,7 +9956,7 @@
         {
           "local_id": "F6",
           "title": "Alias-table guard silently drops a future built-in work type that declares no aliases",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -9964,7 +9964,7 @@
       ],
       "path": "reviews/REV-000265-feat-210-slice-custom-types-end-to-end-task-257-260-261.md",
       "created_at": "2026-06-30T22:10:40Z",
-      "updated_at": "2026-07-01T09:36:10Z",
+      "updated_at": "2026-07-01T15:40:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10051,21 +10051,22 @@
       "type": "task",
       "title": "Wire custom lifecycle into sq workflow cheatsheet + fix thin sq-<type> skill commands",
       "slug": "wire-custom-lifecycle-into-sq-workflow-cheatsheet-fix-thin-s",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000210",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": null,
       "labels": [],
       "refs": [
         "REV-000265:addresses",
-        "TASK-000268:depends-on"
+        "TASK-000268:depends-on",
+        "BUG-000272:fixes"
       ],
       "subentities": [],
       "path": "tasks/TASK-000269-wire-custom-lifecycle-into-sq-workflow-cheatsheet-fix-thin-s.md",
       "created_at": "2026-07-01T08:28:55Z",
-      "updated_at": "2026-07-01T08:30:41Z",
+      "updated_at": "2026-07-01T14:38:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10076,11 +10077,11 @@
       "type": "task",
       "title": "Custom-type CLI clean-ups: scope get_command except, alias-guard defence test",
       "slug": "custom-type-cli-clean-ups-scope-get-command-except-alias-gua",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000210",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": null,
       "labels": [],
       "refs": [
@@ -10090,7 +10091,7 @@
       "subentities": [],
       "path": "tasks/TASK-000270-custom-type-cli-clean-ups-scope-get-command-except-alias-gua.md",
       "created_at": "2026-07-01T08:28:56Z",
-      "updated_at": "2026-07-01T08:30:42Z",
+      "updated_at": "2026-07-01T15:40:17Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10138,6 +10139,28 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-000271"
+    },
+    "272": {
+      "sequence_id": 272,
+      "type": "bug",
+      "title": "sq-bug skill + playbook advertise the wrong bug lifecycle string",
+      "slug": "sq-bug-skill-playbook-advertise-the-wrong-bug-lifecycle-stri",
+      "status": "Fixed",
+      "description": "",
+      "parent": null,
+      "author": "python-dev",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000272-sq-bug-skill-playbook-advertise-the-wrong-bug-lifecycle-stri.md",
+      "created_at": "2026-07-01T14:10:44Z",
+      "updated_at": "2026-07-01T14:37:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-000272"
     }
   }
 }
