@@ -8,7 +8,6 @@ from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
-from squads._models._enums import PREFIX_BY_TYPE
 from squads._models._item import (
     DEFAULT_KIND,
     VALID_REF_KINDS,
@@ -90,7 +89,7 @@ def _in_neighbours(ctx: _TraversalCtx, item: Item) -> list[tuple[str, str, str]]
         edge_kind="depends-on", direction="out" (item would have a depends-on to neighbour).
     Other kinds: edge_kind=kind, direction="in".
     """
-    target_prefix = PREFIX_BY_TYPE[item.type]
+    target_prefix = item.prefix or item.type.upper()
     target_seq = item.sequence_id
     result: list[tuple[str, str, str]] = []
     for other in ctx.db_items.values():
@@ -295,7 +294,7 @@ class RefsMixin(ServiceCore):
             # Dedup by (prefix, seq) so old-width stored refs ("TASK-000007") are replaced
             # when re-adding across a repad boundary where to_id is "TASK-0000007"
             # (FEAT-000027: file contents are never rewritten, widths diverge).
-            tgt_prefix = PREFIX_BY_TYPE[tgt.type]
+            tgt_prefix = tgt.prefix or tgt.type.upper()
             tgt_seq = tgt.sequence_id
             src.refs = [
                 r for r in src.refs if not ref_id_matches(split_ref(r)[0], tgt_prefix, tgt_seq)
@@ -348,7 +347,7 @@ class RefsMixin(ServiceCore):
         """
         db = await self.store.load()
         target = require_item(db, item_id)
-        target_prefix = PREFIX_BY_TYPE[target.type]
+        target_prefix = target.prefix or target.type.upper()
         target_seq = target.sequence_id
         out: list[tuple[str, str]] = []
         for it in db.items.values():

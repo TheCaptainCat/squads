@@ -19,7 +19,7 @@ subentities:
     type across my whole squad
   status: Todo
 created_at: '2026-06-25T13:21:20Z'
-updated_at: '2026-06-30T12:17:00Z'
+updated_at: '2026-07-01T08:27:49Z'
 ---
 <!-- sq:body -->
 ## Status: stretch goal / strong candidate to split into its own epic
@@ -124,4 +124,6 @@ As a project admin, I want `sq migrate rename-type <old> <new>` to safely rename
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-01T08:27:49Z] Catherine Manager:
+  - Ownership note (from the FEAT-210/REV-265/ADR-266 work): FEAT-212 owns retiring _SUBENTITY_PLURAL (_cli/_items.py) — the last static per-type vocabulary artifact. ADR-000266 established the Item.prefix + reserved-vocab resolver pattern and retired the prefix/folder/alias/meta statics in the FEAT-210 corrective; _SUBENTITY_PLURAL was deliberately deferred here because it needs FEAT-212's subentity_kinds schema addition (sub-entity plural vocab). When scoped, add a subentity_plural accessor to the resolver and delete _SUBENTITY_PLURAL. op-pierre confirmed this boundary.
 <!-- sq:discussion:end -->

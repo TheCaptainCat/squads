@@ -19,7 +19,6 @@ from squads import __version__, _clock
 from squads import _discussion as discussion
 from squads._errors import SquadsError
 from squads._models._enums import (
-    PREFIX_BY_TYPE,
     PRIORITY_EMOJI,
     SEVERITY_EMOJI,
     ItemType,
@@ -549,12 +548,11 @@ async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str
     One DB read per call.
     """
     # Resolve the prefix: spec-declared first (covers both built-ins and custom types),
-    # fall back to PREFIX_BY_TYPE for the rare pre-callback call path.
+    # fall back to the reserved map for the rare pre-callback call path.
+    from squads._models._vocab import prefix_for
+
     spec = get_active_spec()
-    if item_type in spec.items:
-        prefix = spec.items[item_type].prefix
-    else:
-        prefix = PREFIX_BY_TYPE.get(item_type, item_type.upper())
+    prefix = prefix_for(item_type, spec)
     t = token.strip()
     seq, given_prefix = _parse_item_token(token)
     if given_prefix is not None and given_prefix != prefix:
@@ -596,7 +594,7 @@ async def resolve_item_id_any(token: str, svc: Service) -> str:
         raise SquadsError(f"no item with number {seq} (use a full ID like {hint} or bare {seq})")
 
     if given_prefix is not None:
-        expected_prefix = PREFIX_BY_TYPE[item.type]
+        expected_prefix = item.prefix or item.type.upper()
         if given_prefix != expected_prefix:
             raise SquadsError(f"{token} is {item.id} ({item.type})")
 

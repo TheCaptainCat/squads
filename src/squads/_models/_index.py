@@ -16,9 +16,9 @@ from typing import Any, cast
 from pydantic import BaseModel, NonNegativeInt, model_validator
 
 from squads._errors import SquadsError
-from squads._models._enums import PREFIX_BY_TYPE
 from squads._models._item import DEFAULT_ID_PADDING, Item, format_item_id, split_ref
 from squads._models._schema import SCHEMA_VERSION
+from squads._models._vocab import RESERVED_PREFIX
 from squads._util import NonEmpty
 
 
@@ -69,13 +69,26 @@ class SquadsDB(BaseModel):
             item.id_padding = self.padding
         return self
 
-    def format_id(self, item_type: str, sequence_id: int) -> str:
-        """Format an item ID at this squad's current padding width."""
-        prefix = PREFIX_BY_TYPE.get(item_type, item_type.upper())
-        return format_item_id(prefix, sequence_id, self.padding)
+    def format_id(self, item_type: str, sequence_id: int, *, prefix: str = "") -> str:
+        """Format an item ID at this squad's current padding width.
 
-    def allocate_id(self, item_type: str) -> str:
+        ``prefix`` is the resolved ID prefix (e.g. ``"TASK"``, ``"INC"``).  When supplied
+        it is used directly; when absent (empty string) the reserved built-in map is consulted
+        and falls back to ``item_type.upper()`` for backward compatibility with any call site
+        that has not yet been migrated to pass a prefix.
+
+        Callers that hold a spec should resolve the prefix via
+        :func:`~squads._models._vocab.prefix_for` and pass it explicitly.
+        """
+        effective_prefix = prefix or RESERVED_PREFIX.get(item_type, item_type.upper())
+        return format_item_id(effective_prefix, sequence_id, self.padding)
+
+    def allocate_id(self, item_type: str, *, prefix: str = "") -> str:
         """Bump the global counter and return the next ID for ``item_type``.
+
+        ``prefix`` is the resolved ID prefix for this type (from the spec via
+        :func:`~squads._models._vocab.prefix_for`).  When omitted, falls back to the reserved
+        built-in map (backward-compatible for built-in callers).
 
         Raises :class:`~squads._errors.SquadsError` when the counter would exceed the capacity for
         the current padding (e.g. 999 999 at width 6).  Run ``sq migrate repad <width>`` to raise
@@ -88,7 +101,7 @@ class SquadsDB(BaseModel):
                 "Raise the padding with `sq migrate repad <new-width>`."
             )
         self.counter += 1
-        return self.format_id(item_type, self.counter)
+        return self.format_id(item_type, self.counter, prefix=prefix)
 
     def add(self, item: Item) -> None:
         self.items[item.sequence_id] = item

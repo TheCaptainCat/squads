@@ -20,17 +20,18 @@ subentities:
     in the team cheatsheet
   status: Todo
 - local_id: US3
-  title: AI agents learn custom vocab from CLAUDE.md after sq sync
+  title: AI agents learn custom vocab from the squads skill and AGENTS.md after sq
+    sync
   status: Todo
 created_at: '2026-06-25T13:19:37Z'
-updated_at: '2026-06-30T12:35:16Z'
+updated_at: '2026-07-01T08:56:52Z'
 ---
 <!-- sq:body -->
 ## What this delivers
 
-**F4 is the first user-visible value in this epic.** After F1–F3, the workflow is spec-driven and a project can write a custom type in `.overrides/workflow.toml`. F4 makes that custom type fully usable end-to-end: a `sq <custom-type>` CLI command is available, the folder is auto-created, items can be created and tracked, refs work, and the agents know about the new type because `sq workflow` and the managed CLAUDE.md section now render from the live spec.
+**F4 is the first user-visible value in this epic.** After F1–F3, the workflow is spec-driven and a project can write a custom type in `.overrides/workflow.toml`. F4 makes that custom type fully usable end-to-end: a `sq <custom-type>` CLI command is available, the folder is auto-created, items can be created and tracked, refs work, and the agents know about the new type because `sq workflow` and the managed AGENTS.md workflow section and `squads` skill now render from the live spec.
 
-A team that adds an `incident` type will see `sq incident create "DB timeout"` work, `sq list -t incident` return results, `sq workflow` list the incident lifecycle, and their AI agent context (CLAUDE.md) reflect the custom type after `sq sync`.
+A team that adds an `incident` type will see `sq incident create "DB timeout"` work, `sq list -t incident` return results, `sq workflow` list the incident lifecycle, and the `squads` skill and AGENTS.md workflow section reflect the custom type after `sq sync`.
 
 **Minimum-viable custom type scope:** prefix + folder + state machine + optional parent rules/aliases/badges + auto-generated thin `sq-<type>` skill. Brand-new sub-entity kinds are explicitly out of scope for this feature (see F6).
 
@@ -48,10 +49,10 @@ Custom types allocate IDs through `IndexStore.transaction()` like every built-in
 ### Auto-generated `sq-<type>` skill
 Each managed custom type gets a thin auto-generated `sq-<type>` skill (via `_write_item_skills`) containing: the lifecycle string (auto-derived from the spec's state machine), the basic command list, and any declared role interactions. Rich per-role playbook sections are not auto-generated (graceful degradation — the custom type skill is thinner than built-in skills but functional). This mints new SKILL items using the lexical-by-slug allocation shared with FEAT-000178.
 
-### Spec-derived `sq workflow` renderer and CLAUDE.md section
+### Spec-derived `sq workflow` renderer and AGENTS.md section
 `sq workflow` renders the live loaded spec instead of the static `workflow.md.j2` template. This means custom types and their lifecycles appear in the team cheatsheet. The renderer must **split**: spec-rendered machine/type/alias sections versus the static FEAT-000013 stability-contract prose (ref-kinds table, retype, remove-vs-cancel), which must never become config-editable.
 
-`sq sync` regenerates the managed CLAUDE.md/AGENTS.md workflow section from the live spec, so agents always see current custom vocabulary.
+`sq sync` regenerates the managed AGENTS.md workflow section and the `squads` skill from the live spec, so agents always see current custom vocabulary.
 
 ### Lifecycle auto-linearization
 Auto-derive a readable `A → B → C (+ D, E)` lifecycle string from an arbitrary transition graph for rendering. The heuristic: BFS from initial state for the "happy path" spine; remaining states as "(+ side states)".
@@ -67,7 +68,7 @@ Also interacts with FEAT-000178 (skill ID allocation for new managed types).
 1. A team that adds `[workflow.types.incident]` to `.overrides/workflow.toml` (with prefix, folder, machine) can run `sq incident create "…"` and `sq list -t incident` without any code change.
 2. The custom type's folder is auto-created; IDs (`INC-000001`) parse correctly.
 3. `sq workflow` renders a spec-derived cheatsheet that includes the custom type's lifecycle; the FEAT-000013 stability-contract prose sections remain static.
-4. `sq sync` regenerates CLAUDE.md and the `squads` skill to reflect the custom type.
+4. `sq sync` regenerates the `squads` skill and the AGENTS.md workflow section to reflect the custom type.
 5. A thin `sq-incident` skill is auto-generated with the correct lifecycle string and command list.
 6. No SKILL-id churn: the new managed-type skill is allocated in lexical-by-slug order consistent with FEAT-000178.
 7. Existing (non-custom) squads see no change in behavior or rendered output.
@@ -83,7 +84,7 @@ _Add with `sq feature 210 add-story "As a <role>, I want … so that …"`; trac
 | --- | --- | --- | --- |
 | US1 | Todo |  | As a project admin, I want sq <my-type> create/list/show/update to work for a type I defined in TOML |
 | US2 | Todo |  | As a project admin, I want sq workflow to show my custom type and its lifecycle in the team cheatsheet |
-| US3 | Todo |  | AI agents learn custom vocab from CLAUDE.md after sq sync |
+| US3 | Todo |  | AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -127,16 +128,16 @@ As a project admin, I want `sq workflow` to render a live cheatsheet that includ
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — AI agents learn custom vocab from CLAUDE.md after sq sync
+### US3 — AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync
 
 <!-- sq:story:US3:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-As an AI agent working in a squad with custom types, I want the managed CLAUDE.md workflow section and my `squads` skill to reflect the custom vocabulary after `sq sync`, so I know what types and lifecycles are available without reading the TOML directly.
+As an AI agent working in a squad with custom types, I want the AGENTS.md workflow section and my `squads` skill to reflect the custom vocabulary after `sq sync`, so I know what types and lifecycles are available without reading the TOML directly.
 
-**Acceptance:** running `sq sync` on a squad with a custom `incident` type regenerates the CLAUDE.md workflow section to include `incident`; a thin `sq-incident` skill is generated with the correct lifecycle and command list.
+**Acceptance:** running `sq sync` on a squad with a custom `incident` type regenerates the AGENTS.md workflow section and the `squads` skill to include `incident`; a thin `sq-incident` skill is generated with the correct lifecycle and command list.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -185,4 +186,26 @@ As an AI agent working in a squad with custom types, I want the managed CLAUDE.m
   - TASK-259 (RESERVED_TYPES): the invariant was already fail-closed; tests prove it parametrically for all ItemType members and 12 floor statuses. Graceful degradation confirmed (no KeyError for custom work types absent from PLAYBOOK).
   - TASK-262 (linearize_lifecycle): signature is linearize_lifecycle(machine: Lifecycle) -> str, exported from squads._workflow. Algorithm is greedy spine + BFS side states. One option-b divergence on the review lifecycle is documented in both the test and the function docstring.
   - Risky/notable: the _iter_item_files() type change touches repair/renumber — existing tests for those paths still pass. Custom type write/repair round-trips bypass create() (no template yet, that's TASK-260); tests use write_new() + manual index transaction directly.
+- [2026-07-01T08:31:22Z] Olivia Lead:
+  - @manager FEAT-210 corrective breakdown (from REV-000265 ChangesRequested + ADR-000266). 4 tasks, all left Draft for your greenlight. Refs recorded (implements ADR-266 / addresses REV-265 / depends-on edges).
+  - TASK-000267 — Spec-derive per-type prefix (F1 High). The foundation. Adds a stored-but-derived Item.prefix, one _models-local prefix_for(type, spec) resolver, stamps prefix at create/retype/load, retires the buggy type.upper()/bracket lookups at all 5 sites (_item.py, _index.py, _common.py, _refs.py x3, _items.py). Static sweep: PREFIX_BY_TYPE/TYPE_BY_PREFIX/FOLDER_BY_TYPE/TYPE_ALIASES shim/_META_NAMES retired to the reserved resolver. Per ADR-266. NO task deps.
+  - TASK-000268 — Working create path (F2 High). OWNS AC#1/US1 END-TO-END — the gap that fell between the original tasks. Generic items/_default.md.j2 + _template_for fallback, and a custom-aware create surface reconciled with TASK-257's _CustomTypeGroup. Depends 267.
+  - TASK-000269 — sq workflow lifecycle + thin-skill command fix (F3+F4 Medium, gated on create). Wires linearize_lifecycle/machine_for + prefix into workflow.md.j2 (dynamic region only; FEAT-013 static prose untouched), and fixes the sq-<type> skill's advertised create command to match the real surface. Depends 268.
+  - TASK-000270 — CLI clean-ups (F5+F6 Low, reviewer discretion). Scope the get_command broad except to the resolution region; add an alias-guard defence test. Depends 269 (only to avoid a workflow.md.j2 edit conflict on the F6 guard; the F5 fix in _cli/__init__.py is otherwise independent).
+  - SEQUENCE: 267 first (unblocks everything) → 268 → 269 → 270. 267 is the only one with no task deps; the rest are a chain because each layer sits on the prefix foundation and the create path. Little genuine parallelism this round — the review's core finding is that the layers were built out of order (create/skill/renderer landed before a correct id existed). 270 could start in parallel once 269's workflow.md.j2 shape is known, but keeping it last is safest.
+  - AC#1 OWNER: TASK-000268 owns the create path end-to-end (explicit in its body) — the prior gap where no task owned AC#1 is closed.
+  - Every task carries the two hard constraints: (1) AC#7/#8 byte-identical built-ins — TASK-256 goldens stay green; (2) tests must exercise the ACTUAL headline command end-to-end (declare custom type in .overrides/workflow.toml, then real sq <type> create/list/show with a correctly-prefixed id round-tripping) — closing the test gap where prior tests used write_new/retype and sidestepped create.
+  - OPEN QUESTIONS for you / op-pierre: (Q1) Legacy-file backfill — 267 re-derives prefix on load when absent from frontmatter (keeps existing files valid, no schema bump). I've asked the dev to flag whether a sq repair/backfill or migration note is needed to actually write the prefix line into existing files, or whether re-derivation-on-load suffices. Decision to confirm at implementation. (Q2) AC#4/F3 wording — the review notes CLAUDE.md never carried the cheatsheet; custom vocab lands in the squads skill + AGENTS.md, not CLAUDE.md. Likely an AC-wording artifact; needs @product-owner reconciliation, not a code change. I flagged it in 269 rather than silently expanding CLAUDE.md scope. (Q3) create verb form — 268 must pick sq create <type> vs a create verb on the resource group; 269's skill text must match whichever ships. Left to the dev to decide + document; no blocker.
+  - SCOPE BOUNDARY held per operator confirmation: _SUBENTITY_PLURAL deferred to FEAT-212 (kept as built-in fallback, NOT removed here); migration _KIND_BY_TYPE exempt/frozen.
+- [2026-07-01T08:56:52Z] Nina Product:
+  - AC wording correction (Nina Product) — REV-000265 F3 confirmed: the workflow cheatsheet that carries per-type vocabulary and lifecycles lives in the `squads` skill and the AGENTS.md managed section, NOT in the managed CLAUDE.md section. CLAUDE.md's managed section never contained the cheatsheet; the AC as written chased a phantom artifact.
+  - Changes made (wording accuracy only — scope and intent unchanged):
+  - • Feature body intro: 'managed CLAUDE.md section' → 'managed AGENTS.md workflow section and `squads` skill' (two occurrences).
+  - • Scope section heading: 'Spec-derived `sq workflow` renderer and CLAUDE.md section' → '... and AGENTS.md section'.
+  - • Scope prose: 'regenerates the managed CLAUDE.md/AGENTS.md workflow section' → 'regenerates the managed AGENTS.md workflow section and the `squads` skill'.
+  - • AC4: 'regenerates CLAUDE.md and the `squads` skill' → 'regenerates the `squads` skill and the AGENTS.md workflow section'.
+  - • US3 title: 'AI agents learn custom vocab from CLAUDE.md after sq sync' → '... from the squads skill and AGENTS.md after sq sync'.
+  - • US3 body prose: 'managed CLAUDE.md workflow section and my `squads` skill' → 'AGENTS.md workflow section and my `squads` skill'.
+  - • US3 acceptance: 'regenerates the CLAUDE.md workflow section to include `incident`' → 'regenerates the AGENTS.md workflow section and the `squads` skill to include `incident`'.
+  - The intent is unchanged throughout: AI agents learn custom vocabulary after `sq sync` — only the artifact names are corrected to match reality. @manager
 <!-- sq:discussion:end -->

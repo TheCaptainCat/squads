@@ -11,8 +11,9 @@ from squads import __version__, _aio
 from squads._errors import AlreadyInitializedError
 from squads._index._store import IndexStore
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
-from squads._models._enums import FOLDER_BY_TYPE, ItemType
+from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
+from squads._models._vocab import RESERVED_FOLDER
 from squads._paths import SquadPaths, load_config, resolve
 from squads._roles._catalog import RoleDef, resolve_roles
 from squads._services._collab import CollabMixin
@@ -79,7 +80,7 @@ async def init(
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
-    for folder in FOLDER_BY_TYPE.values():
+    for folder in RESERVED_FOLDER.values():
         await _aio.mkdir(sp.squad_dir / folder, parents=True, exist_ok=True)
     await _aio.write_text(sp.squad_dir / ".gitignore", ".squads.json.lock\n*.tmp\n")
 
@@ -135,7 +136,7 @@ async def adopt(
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
-    for folder in FOLDER_BY_TYPE.values():
+    for folder in RESERVED_FOLDER.values():
         await _aio.mkdir(sp.squad_dir / folder, parents=True, exist_ok=True)
     gitignore = sp.squad_dir / ".gitignore"
     if not await _aio.path_exists(gitignore):
