@@ -212,10 +212,23 @@ class ServiceCore:
         set_active_squad_dir(paths.squad_dir)
 
     def _template_for(self, item_type: str) -> str:
-        """Return the Jinja2 template path for ``item_type``."""
+        """Return the Jinja2 template path for ``item_type``.
+
+        Built-in types have a dedicated ``items/<type>.md.j2`` and are returned
+        directly.  Custom types (no per-type template) fall back to the generic
+        ``items/_default.md.j2`` so ``svc.create('incident', …)`` does not raise
+        ``TemplateNotFound``.  The fallback is resolved via the Jinja2 environment's
+        ``has_template`` check so user-supplied overrides in
+        ``.overrides/templates/items/<type>.md.j2`` are still honoured.
+        """
         if self.spec.item_is_meta(item_type):
             return f"agents/{item_type}.md.j2"
-        return f"items/{item_type}.md.j2"
+        per_type = f"items/{item_type}.md.j2"
+        from squads._rendering._engine import has_template
+
+        if has_template(per_type):
+            return per_type
+        return "items/_default.md.j2"
 
     # ------------------------------------------------------------------ backend
     @property

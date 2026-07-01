@@ -37,6 +37,7 @@
     "claude/claude_section.md.j2": "57731432e500cc10fa2266b00fa22fcae90f70e35a8fa8eb06d24d3d151e5f66",
     "claude/pointer_agent.md.j2": "861107f40429c6e708536b293c1aa6fdefb3b12113f92d095bada60dbee2d4bc",
     "claude/pointer_skill.md.j2": "fe90d18620a923a11b4c5957eeef66206145546a7f3dec23d62481f0cd1a64c6",
+    "items/_default.md.j2": "d4b39440e7da5e65fb913a33788545a9d9238786ae8a929e9513134e6ede98a3",
     "items/bug.md.j2": "8a095bcbf5c792a8c4b543c17089d8e7f35235d77b1b76bf787aae077fc42f42",
     "items/decision.md.j2": "0300f0b2f9df7fbb7182e4c93d50305744830d4ee5711ee3692e4bf1bef18464",
     "items/epic.md.j2": "c511dc1bdb4420648b020de82606f6e121b2017e6f9d78cae5688fe62435f7b6",

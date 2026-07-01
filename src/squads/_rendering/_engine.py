@@ -91,5 +91,24 @@ def _idnum(item_id: str) -> str:
     return str(number_for_id(item_id))
 
 
+def has_template(template_name: str) -> bool:
+    """Return True when *template_name* exists in the active environment's loader.
+
+    Used by ``_template_for`` to detect whether a per-type item template exists so
+    custom types can fall back to ``items/_default.md.j2`` without raising
+    ``TemplateNotFound``.
+    """
+    from jinja2 import TemplateNotFound as _TemplateNotFound
+
+    env = _env()
+    if env.loader is None:
+        return False
+    try:
+        env.loader.get_source(env, template_name)
+    except _TemplateNotFound:
+        return False
+    return True
+
+
 def render(template_name: str, /, **context: object) -> str:
     return _env().get_template(template_name).render(**context)
