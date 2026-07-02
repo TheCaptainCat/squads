@@ -3,12 +3,12 @@ id: EPIC-000206
 sequence_id: 206
 type: epic
 title: 'Config-driven workflow engine: custom types, statuses, state machines'
-status: Draft
+status: InProgress
 author: product-owner
 refs:
 - EPIC-000031
 created_at: '2026-06-25T13:04:19Z'
-updated_at: '2026-06-30T12:17:03Z'
+updated_at: '2026-07-02T09:16:14Z'
 ---
 <!-- sq:body -->
 ## Vision
