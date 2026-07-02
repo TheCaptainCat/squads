@@ -17,10 +17,14 @@ import re
 from dataclasses import dataclass
 
 from squads._models import _markers as markers
-from squads._models._enums import SEVERITY_EMOJI, STATUS_EMOJI, Severity, Status
+from squads._models._enums import SEVERITY_EMOJI, Severity
 from squads._models._subentity import SubEntity
 from squads._rendering._engine import render
 from squads._sections import get_section, replace_section
+from squads._workflow import WorkflowSpec, bundled_spec
+
+#: Neutral fallback badge for a status that declares none (built-in or custom) — never crash.
+_DEFAULT_BADGE = "⚪"
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
 _LOCAL_ID_PREFIX = {"story": "US", "subtask": "ST", "finding": "F"}
@@ -203,10 +207,18 @@ def set_heading(text: str, kind: str, local_id: str, title: str) -> str:
 # --------------------------------------------------------------------------- head region
 
 
-def _status_badge(status_value: str) -> str:
-    """``"InProgress"`` → ``"🟡 In Progress"`` (emoji + spaced label) for the header."""
+def _status_badge(status_value: str, spec: WorkflowSpec | None = None) -> str:
+    """``"InProgress"`` → ``"🟡 In Progress"`` (emoji + spaced label) for the header.
+
+    The badge is resolved from the spec's declared ``StatusSpec.badge`` (built-in or custom); a
+    status that declares none — including any custom status the bundled/default spec doesn't know
+    about — falls back to the neutral :data:`_DEFAULT_BADGE` rather than crashing. ``spec``
+    defaults to the bundled spec for call sites that don't thread one (e.g. the frozen migration
+    runner, which only ever ran against the bundled vocabulary of its era).
+    """
     label = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", status_value)
-    emoji = STATUS_EMOJI.get(Status(status_value), "")
+    active_spec = spec if spec is not None else bundled_spec()
+    emoji = active_spec.status_badge(status_value) or _DEFAULT_BADGE
     return f"{emoji} {label}".strip()
 
 
@@ -224,6 +236,7 @@ def set_head(
     severity: str | None = None,
     story: str | None = None,
     assignee_name: str | None = None,
+    spec: WorkflowSpec | None = None,
 ) -> str:
     """(Re)render the human-readable ``:head`` region under a block's heading.
 
@@ -232,11 +245,14 @@ def set_head(
     ``templates/subentities/head.md.j2`` — add an attribute by passing a value here + a line there.
     New blocks ship the region empty (from ``block.md.j2``); on a legacy block that lacks it (the
     migration path) it's created lazily, just before the block's ``:body`` marker.
+
+    ``spec`` is the active workflow spec, used to resolve the status badge (falls back to the
+    bundled spec when not passed — see :func:`_status_badge`).
     """
     head_tag = _head_tag(kind, local_id)
     inner = render(
         "subentities/head.md.j2",
-        status=_status_badge(status) if status else None,
+        status=_status_badge(status, spec) if status else None,
         severity=_severity_badge(severity) if severity else None,
         story=story,
         assignee=assignee_name,

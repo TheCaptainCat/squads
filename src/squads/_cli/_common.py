@@ -197,7 +197,9 @@ def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
     into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
     (plain path) use this value directly so no backslashes leak.
     """
-    status_badge = discussion._status_badge(sub.status)  # pyright: ignore[reportPrivateUsage]
+    status_badge = discussion._status_badge(  # pyright: ignore[reportPrivateUsage]
+        sub.status, get_active_spec()
+    )
     parts = [f"{sub.local_id} — {sub.title}  {status_badge}"]
     if kind == "finding" and sub.severity:
         sev_badge = f"{SEVERITY_EMOJI[sub.severity]} {sub.severity.value.title()}"

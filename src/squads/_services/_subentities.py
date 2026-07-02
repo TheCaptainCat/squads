@@ -440,6 +440,7 @@ class SubentitiesMixin(ServiceCore):
             severity=sub.severity.value if sub.severity else None,
             story=self._story_label(db, item, sub.story),
             assignee_name=await self.author(sub.assignee) if sub.assignee else None,
+            spec=self.spec,
         )
 
     def _story_label(self, db: SquadsDB, task: Item, us_id: str | None) -> str | None:

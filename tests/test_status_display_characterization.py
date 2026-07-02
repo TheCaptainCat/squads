@@ -23,9 +23,10 @@ What is pinned here (see class docstrings for detail):
    (``TestByteIdenticalForBundledSpec.test_workflow_cheatsheet_matches_golden``, backed by
    ``tests/goldens/workflow_cheatsheet.txt``). Not duplicated here; this module only adds a
    cross-check that the golden file is exercised as expected, and documents the dependency.
-2. Status badges — every one of the 9 sub-entity statuses (``STATUS_EMOJI``'s domain today:
-   Todo/InProgress/Blocked/Done/Cancelled for subtask+story, Open/Fixed/WontFix/Verified for
-   finding) resolves to its exact ``_discussion._status_badge`` text, and that exact text
+2. Status badges — every one of the 9 sub-entity statuses (``EXPECTED_BUILTIN_STATUS_BADGES``'s
+   domain, in ``tests/_helpers.py``: Todo/InProgress/Blocked/Done/Cancelled for subtask+story,
+   Open/Fixed/WontFix/Verified for finding) resolves to its exact ``_discussion._status_badge``
+   text, and that exact text
    appears verbatim in a sub-entity's rendered ``:head`` region on disk. Also pins that
    top-level item statuses (``sq <type> show`` panel line, ``sq list`` Status column) render
    with NO badge — plain status string — today.
@@ -58,9 +59,9 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
+from _helpers import EXPECTED_BUILTIN_STATUS_BADGES
 from squads import _discussion as discussion
 from squads._cli import app
-from squads._models._enums import STATUS_EMOJI, Status
 
 pytestmark = pytest.mark.anyio
 
@@ -135,9 +136,9 @@ class TestWorkflowCheatsheetGoldenIsGating:
 # ---------------------------------------------------------------------------
 
 # The exact badge text _status_badge produces today for all 9 sub-entity statuses
-# (STATUS_EMOJI's full domain). This is the exact function that crashes on a status value
-# outside the built-in enum — built-in values must keep producing exactly this text once
-# that crash is fixed for non-built-in values.
+# (EXPECTED_BUILTIN_STATUS_BADGES's full domain, see tests/_helpers.py). This is the exact
+# function that crashes on a status value outside the built-in enum — built-in values must
+# keep producing exactly this text once that crash is fixed for non-built-in values.
 _EXPECTED_BADGES: dict[str, str] = {
     "Todo": "⚪ Todo",
     "InProgress": "🟡 In Progress",
@@ -157,15 +158,15 @@ _FINDING_STATUSES = ("Fixed", "Verified", "WontFix")
 class TestStatusBadgeFunction:
     """Pin `_discussion._status_badge` for every one of the 9 sub-entity statuses.
 
-    STATUS_EMOJI covers exactly these 9 values today (see squads._models._enums). A change
-    that alters any of these mappings, or the "InProgress" -> "In Progress" spacing rule,
+    EXPECTED_BUILTIN_STATUS_BADGES (tests/_helpers.py) covers exactly these 9 values today. A
+    change that alters any of these mappings, or the "InProgress" -> "In Progress" spacing rule,
     would regress built-in badge display.
     """
 
     def test_status_emoji_domain_is_exactly_the_nine_subentity_statuses(self) -> None:
-        assert set(STATUS_EMOJI) == {Status(s) for s in _EXPECTED_BADGES}, (
-            "STATUS_EMOJI's domain changed from the 9 sub-entity statuses known today; "
-            "extend _EXPECTED_BADGES deliberately if this is correct."
+        assert set(EXPECTED_BUILTIN_STATUS_BADGES) == set(_EXPECTED_BADGES), (
+            "EXPECTED_BUILTIN_STATUS_BADGES's domain changed from the 9 sub-entity statuses "
+            "known today; extend _EXPECTED_BADGES deliberately if this is correct."
         )
 
     @pytest.mark.parametrize("status_value", sorted(_EXPECTED_BADGES))
@@ -247,7 +248,7 @@ class TestTopLevelStatusHasNoBadgeToday:
         r = pinned_squad.invoke(app, ["task", "2", "show"])
         assert r.exit_code == 0, r.output
         assert "status: Draft" in r.output
-        for emoji in STATUS_EMOJI.values():
+        for emoji in EXPECTED_BUILTIN_STATUS_BADGES.values():
             assert emoji not in r.output, (
                 f"Badge emoji {emoji!r} found in top-level `sq show` output — this is a new "
                 "display surface that must not appear (top-level status has no badge today)."
@@ -258,7 +259,7 @@ class TestTopLevelStatusHasNoBadgeToday:
         r = pinned_squad.invoke(app, ["list"])
         assert r.exit_code == 0, r.output
         assert "Draft" in r.output
-        for emoji in STATUS_EMOJI.values():
+        for emoji in EXPECTED_BUILTIN_STATUS_BADGES.values():
             assert emoji not in r.output, (
                 f"Badge emoji {emoji!r} found in `sq list` output — this is a new display "
                 "surface that must not appear (top-level status has no badge today)."
