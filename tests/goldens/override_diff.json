@@ -2,9 +2,9 @@
   {
     "name": "items/task.md.j2",
     "kind": "template",
-    "base_version": "0.5.0",
+    "base_version": "0.6.0",
     "base_available": true,
-    "delta_mine": "--- bundled/items/task.md.j2\n+++ .overrides/templates/items/task.md.j2\n@@ -1,3 +1,4 @@\n+<!-- squads:override-base:0.5.0 -->\n <!-- sq:body -->\n ## Description\n \n",
+    "delta_mine": "--- bundled/items/task.md.j2\n+++ .overrides/templates/items/task.md.j2\n@@ -1,3 +1,4 @@\n+<!-- squads:override-base:0.6.0 -->\n <!-- sq:body -->\n ## Description\n \n",
     "delta_upgrade": ""
   }
 ]

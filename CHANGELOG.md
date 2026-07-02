@@ -6,6 +6,61 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-02
+
+### Added
+
+- **Custom item types defined in TOML.**  A squad can now define brand-new item types
+  (e.g. `incident`, `change-request`, `finding`) in a bundled or project-override `workflow.toml`.
+  Each custom type carries its own prefix (`INC`, `CHG`, `FND`), folder, lifecycle, parent rules,
+  and aliases; they are usable end-to-end with `sq create incident`, `sq list -t incident`,
+  `sq incident <n> show`, `sq incident <n> retype`, and refs. An auto-generated per-type skill
+  appears immediately via `sq sync`. Built-in types remain unchanged and byte-identical in output.
+
+- **Custom statuses and auto-linearized lifecycles.**  Define brand-new statuses in the workflow spec
+  (e.g. `Triage`, `Mitigating`, `Resolved` for an incident type), each with its own open/terminal
+  and role classification. Lifecycles are automatically linearized into a directed acyclic graph
+  with reachability validation; all status-driven filters (`sq list --status`, default closed-item
+  hiding, `sq blocked`, `sq inbox` role views) respect custom open/terminal classification without
+  code changes. Status badges render dynamically from the live spec with a neutral fallback.
+
+- **Externalized and overridable workflow, role catalog, and playbook.**  The previously hardcoded
+  type list, statuses, lifecycle state machines, role definitions (name, mission, responsibilities),
+  and per-type/per-role guidance (enter/do/handoff/watch) now live in bundled TOML files
+  (`default_workflow.toml`, `roles.toml`, `playbook.toml`). A squad can override them via
+  `.overrides/workflow.toml` using an additive merge — define new types/statuses without redefining
+  built-ins. **Stability guarantee:** the bundled defaults and all built-in type output remain
+  byte-identical to v0.5.x; existing squads see no change unless they author overrides.
+
+- **`sq workflow lint`** — validates that every status in a custom lifecycle is reachable from its
+  initial state, and reports name conflicts between builtin and override definitions. Catches
+  unreachable-terminal problems that would otherwise trap items in a dead state.
+
+- **Spec-driven `sq workflow` cheatsheet, CLAUDE.md, and AGENTS.md.**  The `sq workflow` command
+  renders the live loaded workflow spec, so a custom setup immediately sees its custom types,
+  statuses, and lifecycles. The managed CLAUDE.md workflow section, the AGENTS.md backend output,
+  and the generated `squads` skill likewise render from the live spec, keeping them always in sync
+  with what `sq` actually enforces. The static prose (ref kinds, retype, remove-vs-cancel semantics)
+  remains literal and never becomes editable — that stability is explicit in the codebase.
+
+### Changed
+
+- **Review state machine permitting `ChangesRequested → Approved` transition.**  The workflow spec
+  now matches what was already advertised in the cheatsheet, skills, and playbook: a reviewer
+  can go directly from requested changes to approved without re-drafting as `Draft` first. This
+  closes a workflow deadlock in some review patterns.
+
+### Fixed
+
+- **Custom-status badge rendering no longer crashes on unknown status values.**  Badges now
+  resolve with a neutral default (`⚪`) instead of failing when a status is not in the built-in
+  set. Allows safe fallback for novel statuses.
+
+### Migration
+
+**No migration required — `schema_version` stays `0.5`** (this release introduces no on-disk format change).
+Custom types persist their prefix in frontmatter only; built-in items derive it on load.
+
 ## [0.5.0] - 2026-06-28
 
 ### Added
