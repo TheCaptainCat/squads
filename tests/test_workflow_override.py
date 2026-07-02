@@ -227,11 +227,15 @@ async def test_open_service_picks_up_override(project: SquadPaths) -> None:
 [statuses.CustomStatus]
 terminal = false
 
+[statuses.CustomDone]
+terminal = true
+
 [lifecycles.custom_lc]
 initial = "CustomStatus"
 
 [lifecycles.custom_lc.transitions]
-CustomStatus = []
+CustomStatus = ["CustomDone"]
+CustomDone = []
 
 [items.incident]
 prefix = "INC"
@@ -524,11 +528,15 @@ def test_isolation_cross_squad_specs_are_independent(tmp_path: Path) -> None:
 [statuses.SquadAStatus]
 terminal = false
 
+[statuses.SquadADone]
+terminal = true
+
 [lifecycles.squad_a_lc]
 initial = "SquadAStatus"
 
 [lifecycles.squad_a_lc.transitions]
-SquadAStatus = []
+SquadAStatus = ["SquadADone"]
+SquadADone = []
 
 [items.squad_a_type]
 prefix = "SQA"
@@ -611,11 +619,15 @@ async def test_ac5_open_service_fails_closed_when_override_drops_live_status(
 [statuses.LiveStatus]
 terminal = false
 
+[statuses.LiveDone]
+terminal = true
+
 [lifecycles.live_lc]
 initial = "LiveStatus"
 
 [lifecycles.live_lc.transitions]
-LiveStatus = []
+LiveStatus = ["LiveDone"]
+LiveDone = []
 
 [items.live_type]
 prefix = "LVT"
@@ -636,11 +648,15 @@ lifecycle = "live_lc"
 [statuses.LiveStatus_v2]
 terminal = false
 
+[statuses.LiveDone_v2]
+terminal = true
+
 [lifecycles.live_lc]
 initial = "LiveStatus_v2"
 
 [lifecycles.live_lc.transitions]
-LiveStatus_v2 = []
+LiveStatus_v2 = ["LiveDone_v2"]
+LiveDone_v2 = []
 
 [items.live_type]
 prefix = "LVT"
@@ -763,11 +779,15 @@ def test_lint_valid_override_reports_ok(tmp_path: Path) -> None:
 [statuses.Triage]
 terminal = false
 
+[statuses.Resolved]
+terminal = true
+
 [lifecycles.incident_lc]
 initial = "Triage"
 
 [lifecycles.incident_lc.transitions]
-Triage = []
+Triage = ["Resolved"]
+Resolved = []
 
 [items.incident]
 prefix = "INC"
@@ -819,11 +839,15 @@ async def test_lint_collects_index_cross_check_errors(project: SquadPaths, svc) 
 [statuses.CustomSt]
 terminal = false
 
+[statuses.CustomDone]
+terminal = true
+
 [lifecycles.custom_lc]
 initial = "CustomSt"
 
 [lifecycles.custom_lc.transitions]
-CustomSt = []
+CustomSt = ["CustomDone"]
+CustomDone = []
 
 [items.custom_type]
 prefix = "CST"
