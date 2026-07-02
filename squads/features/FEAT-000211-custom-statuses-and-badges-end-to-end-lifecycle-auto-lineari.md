@@ -3,7 +3,7 @@ id: FEAT-000211
 sequence_id: 211
 type: feature
 title: Custom statuses and badges end-to-end + lifecycle auto-linearization
-status: InProgress
+status: Done
 parent: EPIC-000206
 author: product-owner
 refs:
@@ -13,13 +13,13 @@ subentities:
 - local_id: US1
   title: As a team member, I want sq list --status and sq blocked to work correctly
     with my custom statuses
-  status: Todo
+  status: Done
 - local_id: US2
   title: As a team member, I want custom status badges to render without crashing,
     with a graceful default
-  status: Todo
+  status: Done
 created_at: '2026-06-25T13:20:36Z'
-updated_at: '2026-07-02T09:27:07Z'
+updated_at: '2026-07-02T12:57:27Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -64,8 +64,8 @@ _Add with `sq feature 211 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses |
-| US2 | Todo |  | As a team member, I want custom status badges to render without crashing, with a graceful default |
+| US1 | Done |  | As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses |
+| US2 | Done |  | As a team member, I want custom status badges to render without crashing, with a graceful default |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -74,7 +74,7 @@ _Add with `sq feature 211 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -93,7 +93,7 @@ As a team member using a custom workflow, I want `sq list --status Triage`, `sq 
 ### US2 — As a team member, I want custom status badges to render without crashing, with a graceful default
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->

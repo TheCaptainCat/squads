@@ -97,6 +97,7 @@ class ClaudeCodeBackend(AgentBackend):
             operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
             default_role_full_name=default.full_name if default else "the manager",
             default_role_slug=default.slug if default else "manager",
+            spec=spec,
         )
         await claude_md.inject(ctx.root / _CLAUDE_MD, section)
         artifacts.append(Artifact(ctx.rel(ctx.root / _CLAUDE_MD), "claude_md", self.name))

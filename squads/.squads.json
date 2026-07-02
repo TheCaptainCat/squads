@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 285,
+  "counter": 286,
   "padding": 6,
   "items": {
     "12": {
@@ -7745,7 +7745,7 @@
       "type": "epic",
       "title": "Config-driven workflow engine: custom types, statuses, state machines",
       "slug": "config-driven-workflow-engine-custom-types-statuses-state-ma",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -7758,7 +7758,7 @@
       "subentities": [],
       "path": "epics/EPIC-000206-config-driven-workflow-engine-custom-types-statuses-state-ma.md",
       "created_at": "2026-06-25T13:04:19Z",
-      "updated_at": "2026-07-02T09:16:14Z",
+      "updated_at": "2026-07-02T13:07:22Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7949,7 +7949,7 @@
       "type": "feature",
       "title": "Custom statuses and badges end-to-end + lifecycle auto-linearization",
       "slug": "custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-000206",
       "author": "product-owner",
@@ -7964,7 +7964,7 @@
         {
           "local_id": "US1",
           "title": "As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -7972,7 +7972,7 @@
         {
           "local_id": "US2",
           "title": "As a team member, I want custom status badges to render without crashing, with a graceful default",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null
@@ -7980,7 +7980,7 @@
       ],
       "path": "features/FEAT-000211-custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari.md",
       "created_at": "2026-06-25T13:20:36Z",
-      "updated_at": "2026-07-02T09:27:07Z",
+      "updated_at": "2026-07-02T12:57:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10104,13 +10104,12 @@
       "slug": "cli-grammar-verb-first-addressing-sq-show-id-sq-update-id",
       "status": "Draft",
       "description": "",
-      "parent": "EPIC-000206",
+      "parent": "EPIC-000038",
       "author": "product-owner",
       "assignee": null,
       "priority": null,
       "labels": [],
       "refs": [
-        "EPIC-000206",
         "FEAT-000013",
         "REV-000265"
       ],
@@ -10134,7 +10133,7 @@
       ],
       "path": "features/FEAT-000271-cli-grammar-verb-first-addressing-sq-show-id-sq-update-id.md",
       "created_at": "2026-07-01T09:41:35Z",
-      "updated_at": "2026-07-01T09:42:41Z",
+      "updated_at": "2026-07-02T13:07:21Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10333,18 +10332,18 @@
       "type": "task",
       "title": "Spec-derive retype-target list + role/type authoring prose in sq workflow",
       "slug": "spec-derive-retype-target-list-role-type-authoring-prose-in",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000211",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": "medium",
       "labels": [],
       "refs": [],
       "subentities": [],
       "path": "tasks/TASK-000279-spec-derive-retype-target-list-role-type-authoring-prose-in.md",
       "created_at": "2026-07-02T09:20:18Z",
-      "updated_at": "2026-07-02T09:21:56Z",
+      "updated_at": "2026-07-02T12:57:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10606,6 +10605,47 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-000285"
+    },
+    "286": {
+      "sequence_id": 286,
+      "type": "review",
+      "title": "Review TASK-000279 — spec-derive retype-target list + authoring prose",
+      "slug": "review-task-000279-spec-derive-retype-target-list-authoring",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000279"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Jinja capitalize lowercases acronym role titles (cosmetic)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Jinja capitalize lowercases acronym role titles (cosmetic)",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000286-review-task-000279-spec-derive-retype-target-list-authoring.md",
+      "created_at": "2026-07-02T12:54:27Z",
+      "updated_at": "2026-07-02T12:55:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000286"
     }
   }
 }

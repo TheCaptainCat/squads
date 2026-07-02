@@ -4,10 +4,9 @@ sequence_id: 271
 type: feature
 title: 'CLI grammar: verb-first addressing (sq show ID, sq update ID)'
 status: Draft
-parent: EPIC-000206
+parent: EPIC-000038
 author: product-owner
 refs:
-- EPIC-000206
 - FEAT-000013
 - REV-000265
 subentities:
@@ -19,7 +18,7 @@ subentities:
     types
   status: Todo
 created_at: '2026-07-01T09:41:35Z'
-updated_at: '2026-07-01T09:42:41Z'
+updated_at: '2026-07-02T13:07:21Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -124,4 +123,6 @@ Once a custom type is registered in the workflow spec, 'sq show INC-3', 'sq upda
   - Intent: retire type-first CLI grammar in favor of global verb-first dispatch keyed on the ID prefix. Captures the rationale, blast radius, and the open back-compat question so the context travels with the work.
   - ADRs not authored here — Robert Architect will draft them (grammar target, supersession of FEAT-013 stability freeze, back-compat/deprecation strategy) when op-pierre greenlights scheduling.
   - @manager: this item is in Draft, unscheduled. No tasks, no ADRs, no devs yet — per op-pierre.
+- [2026-07-02T13:07:21Z] Catherine Manager:
+  - Re-parented from EPIC-000206 to EPIC-000038 (CLI frontend) per op-pierre: verb-first addressing is a CLI-grammar refactor, a different axis from EPIC-206's config-driven-workflow mission (which is now fully delivered). Same scope-line reasoning as the FEAT-212→EPIC-280 split (ADR-000274). Still refs FEAT-013 (grammar stability contract) + REV-265 (custom-type dispatch).
 <!-- sq:discussion:end -->
