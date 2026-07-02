@@ -205,6 +205,36 @@ def _check_reachability(
         )
 
 
+def _check_reachable_terminal(
+    lifecycles: dict[str, Lifecycle],
+    statuses: dict[str, StatusSpec],
+    errors: list[str],
+) -> None:
+    """§5-4b: every lifecycle must be able to reach at least one terminal state.
+
+    BFS from ``initial`` over the transition graph; if none of the reachable
+    states is marked ``terminal`` in the status spec, the machine can never
+    close (breaking ``sq blocked``, the default closed-item filter, and inbox
+    suppression for any item stuck on it).  Fails closed with the offending
+    lifecycle name so ``sq workflow lint`` can point the author at the fix.
+    """
+    for name, m in lifecycles.items():
+        reachable: set[str] = {m.initial}
+        queue: list[str] = [m.initial]
+        while queue:
+            cur = queue.pop()
+            for nxt in m.transitions.get(cur, []):
+                if nxt not in reachable:
+                    reachable.add(nxt)
+                    queue.append(nxt)
+        if not any(statuses.get(s, StatusSpec(terminal=False)).terminal for s in reachable):
+            errors.append(
+                f"lifecycle {name!r}: no terminal status reachable from initial "
+                f"{m.initial!r} (reachable: {sorted(reachable)}) — items on this "
+                f"lifecycle could never close; add a transition to a terminal status"
+            )
+
+
 def _check_parent_cycles(
     items: dict[str, ItemSpec],
     errors: list[str],
@@ -502,6 +532,9 @@ class WorkflowSpec(BaseModel):
 
         # §5-4: reachability.
         _check_reachability(self.lifecycles, errors)
+
+        # §5-4b: every lifecycle must be able to reach a terminal status.
+        _check_reachable_terminal(self.lifecycles, self.statuses, errors)
 
         # §5-5: ItemSpec cross-refs + uniqueness.
         _check_item_refs(self.items, all_lifecycle_names, all_types, errors)

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 284,
+  "counter": 285,
   "padding": 6,
   "items": {
     "12": {
@@ -10271,7 +10271,7 @@
       "type": "task",
       "title": "sq workflow lint: add reachable-terminal + transition-target vocab check",
       "slug": "sq-workflow-lint-add-reachable-terminal-transition-target-vo",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000211",
       "author": "tech-lead",
@@ -10291,7 +10291,7 @@
       ],
       "path": "tasks/TASK-000277-sq-workflow-lint-add-reachable-terminal-transition-target-vo.md",
       "created_at": "2026-07-02T09:20:17Z",
-      "updated_at": "2026-07-02T09:22:05Z",
+      "updated_at": "2026-07-02T12:12:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10302,11 +10302,11 @@
       "type": "task",
       "title": "Custom-status regression: parse_status, sq list --status, blocked, default filter",
       "slug": "custom-status-regression-parse-status-sq-list-status-blocked",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000211",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": "medium",
       "labels": [],
       "refs": [],
@@ -10322,7 +10322,7 @@
       ],
       "path": "tasks/TASK-000278-custom-status-regression-parse-status-sq-list-status-blocked.md",
       "created_at": "2026-07-02T09:20:18Z",
-      "updated_at": "2026-07-02T09:22:05Z",
+      "updated_at": "2026-07-02T12:12:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10564,6 +10564,48 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-000284"
+    },
+    "285": {
+      "sequence_id": 285,
+      "type": "review",
+      "title": "FEAT-211 F5: TASK-277 lint reachable-terminal + TASK-278 custom-status regression",
+      "slug": "feat-211-f5-task-277-lint-reachable-terminal-task-278-custom",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000277",
+        "TASK-000278"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "TASK-277 done-report says '23 tests'; test_workflow_lint.py has 15",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "TASK-277: test_ac5_...drops_live_status name overstates its body (asserts success); pre-existing, not introduced",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000285-feat-211-f5-task-277-lint-reachable-terminal-task-278-custom.md",
+      "created_at": "2026-07-02T11:46:26Z",
+      "updated_at": "2026-07-02T11:47:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000285"
     }
   }
 }

@@ -48,6 +48,34 @@ def _reset_actor():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest 
 
 
 @pytest.fixture(autouse=True)
+def _reset_active_spec():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
+    """Ensure a test's per-invocation CLI globals never leak (same leak-guard class as the actor/
+    clock resets above): `_active_spec`/`_active_dir` in `_cli/_common` are the CLI's per-invocation
+    spec/dir handles, a known process-global compromise (TASK-000253), set by the root callback
+    and never restored — a test that invokes the CLI against a custom-override squad must not leave
+    that spec bound for the next test's invocation.
+
+    Also clears the two lazy-dispatch custom-command caches (`_CustomTypeGroup._custom_cmd_cache`
+    in `_cli/__init__.py`, `_CustomCreateGroup._custom_cmd_cache` in `_cli/_create.py`) — both are
+    process-global `ClassVar` dicts keyed by canonical type name that a real `sq <custom-type>` /
+    `sq create <custom-type>` invocation populates permanently for the process. A prior test's
+    custom type (e.g. "incident") otherwise stays cached and short-circuits a later test that
+    monkey-patches the build function to assert on error propagation — the same class of leak as
+    `_active_spec`, just one layer deeper. `test_custom_type_cli.py`/`test_custom_type_create.py`
+    already had a local, partial version of this reset; this makes it a global backstop.
+    """
+    yield
+    from squads._cli import _CustomTypeGroup  # pyright: ignore[reportPrivateUsage]
+    from squads._cli._common import set_active_dir, set_active_spec
+    from squads._cli._create import _CustomCreateGroup  # pyright: ignore[reportPrivateUsage]
+
+    set_active_spec(None)
+    set_active_dir(None)
+    _CustomTypeGroup._custom_cmd_cache.clear()  # pyright: ignore[reportPrivateUsage]
+    _CustomCreateGroup._custom_cmd_cache.clear()  # pyright: ignore[reportPrivateUsage]
+
+
+@pytest.fixture(autouse=True)
 def _reset_engine_state():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
     """Reset rendering engine module-state between tests (REV-000093 F1).
 
