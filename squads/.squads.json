@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 286,
+  "counter": 287,
   "padding": 6,
   "items": {
     "12": {
@@ -10646,6 +10646,63 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-000286"
+    },
+    "287": {
+      "sequence_id": 287,
+      "type": "feature",
+      "title": "Relocate the do-not-edit warning to agent-facing files",
+      "slug": "relocate-the-do-not-edit-warning-to-agent-facing-files",
+      "status": "Draft",
+      "description": "Move the do-not-edit warning off redundant squad-skill bodies onto the agent-facing files sq sync actually regenerates (CLAUDE.md, AGENTS.md, .claude/ pointers), as a cross-backend convention",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "labels": [],
+      "refs": [
+        "FEAT-000013"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Redundant squad-skill do-not-edit marker removed",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "CLAUDE.md and AGENTS.md managed regions carry the warning",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Per-backend pointer files state they are regenerated",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "Warning convention documented as cross-backend contract",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000287-relocate-the-do-not-edit-warning-to-agent-facing-files.md",
+      "created_at": "2026-07-02T15:10:39Z",
+      "updated_at": "2026-07-02T15:12:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000287"
     }
   }
 }
