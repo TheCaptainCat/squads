@@ -3,12 +3,12 @@ id: EPIC-000206
 sequence_id: 206
 type: epic
 title: 'Config-driven workflow engine: custom types, statuses, state machines'
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - EPIC-000031
 created_at: '2026-06-25T13:04:19Z'
-updated_at: '2026-07-02T09:16:14Z'
+updated_at: '2026-07-02T13:07:22Z'
 ---
 <!-- sq:body -->
 ## Vision
@@ -137,4 +137,6 @@ Today the workflow loader enforces `set(spec.items) == set(ItemType)` and `set(s
   - Added a product note on F1-F2 sequencing in the roadmap: first user-visible value is at F4, not F1. F1/F2 are pure foundation. That's the right call technically, but it needs to be stated explicitly so stakeholders don't expect visible change early. Also annotated F4 in-line as 'First user-visible value.'
   - Added 'Epic-level success criteria' (6 testable conditions for what done looks like from a product perspective) and 'Non-goals' (custom sub-entity kinds, UI editing, built-in mutation, rich role playbooks, silent renames) — both were missing entirely from the original body. The F6 split-into-own-epic recommendation is sensible and is preserved.
   - No concerns with scope or ambition. The compatibility contract is strong. The spike-first gate is appropriate. The one open product risk: F1-F2 are high-blast-radius internals with no user-visible result — the team should be prepared for a long foundation phase before any custom-vocabulary value ships. That's a sequencing reality to communicate, not a reason to change the plan.
+- [2026-07-02T13:07:22Z] Catherine Manager:
+  - Closing EPIC-206 Done: the config-driven-workflow mission is complete — FEAT-207/208/209/210/211 (externalize workflow, de-type, override, custom types, custom statuses) + FEAT-219/220 (roles + playbook specs) + FEAT-250 (de-globalize) all Done, default output byte-identical throughout (golden-locked). FEAT-212 (sub-entity kinds + rename migrations) was split to EPIC-280 (ADR-274); FEAT-271 (verb-first CLI grammar) re-parented to EPIC-38 as a separate axis. Matches ADR-274's 'clean shippable unit at F1–F5 + roles + playbook'.
 <!-- sq:discussion:end -->

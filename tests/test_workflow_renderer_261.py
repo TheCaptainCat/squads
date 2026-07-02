@@ -134,25 +134,41 @@ class TestStaticDynamicSplit:
         """Static-section prose is byte-identical whether or not a custom type exists.
 
         This is the core proof of AC#3: the stability-contract sections are untouched
-        by spec customisation.
+        by spec customisation — EXCEPT the single "Valid targets" retype-list line, which
+        TASK-000279 deliberately lifted out of the static partial into a spec-derived loop
+        (custom types ARE retypeable). Comparison starts right after that line, at the
+        "Status behaviour" paragraph, which — like the rest of Retype/Remove-vs-Cancel/Ref
+        kinds — must NEVER be spec-driven.
         """
         bundled_rendered = render("workflow.md.j2", spec=bundled_spec())
         custom_rendered = render("workflow.md.j2", spec=_spec_with_incident())
 
-        # Extract from "## Retype" to end for both renders and compare.
-        # The static part starts at "## Retype" and both should be identical.
-        retype_start_bundled = bundled_rendered.find("## Retype")
-        retype_start_custom = custom_rendered.find("## Retype")
-        assert retype_start_bundled != -1, "## Retype not found in bundled render"
-        assert retype_start_custom != -1, "## Retype not found in custom render"
+        # Extract from "**Status behaviour:**" (just after the spec-derived target-list line)
+        # to end for both renders and compare.
+        marker = "**Status behaviour:**"
+        status_start_bundled = bundled_rendered.find(marker)
+        status_start_custom = custom_rendered.find(marker)
+        assert status_start_bundled != -1, f"{marker!r} not found in bundled render"
+        assert status_start_custom != -1, f"{marker!r} not found in custom render"
 
-        static_bundled = bundled_rendered[retype_start_bundled:]
-        static_custom = custom_rendered[retype_start_custom:]
+        static_bundled = bundled_rendered[status_start_bundled:]
+        static_custom = custom_rendered[status_start_custom:]
         assert static_bundled == static_custom, (
             "Static prose sections differ between bundled and custom spec renders.\n"
-            "The stability-contract sections (Retype/Remove vs. Cancel/Ref kinds) must "
-            "NEVER be spec-driven."
+            "The stability-contract sections (Retype mechanics/Remove vs. Cancel/Ref kinds) "
+            "must NEVER be spec-driven."
         )
+
+    def test_retype_target_list_includes_custom_type(self) -> None:
+        """TASK-000279: the 'Valid targets' retype line IS spec-derived — a custom type appears."""
+        rendered = render("workflow.md.j2", spec=_spec_with_incident())
+        assert "Valid targets:" in rendered
+        line = next(ln for ln in rendered.splitlines() if ln.startswith("Valid targets:"))
+        assert f"`{_INCIDENT_TYPE}`" in line, (
+            f"Custom type {_INCIDENT_TYPE!r} missing from spec-derived retype target list"
+        )
+        for builtin in ("epic", "feature", "task", "bug", "decision", "review", "guide"):
+            assert f"`{builtin}`" in line, f"Built-in type {builtin!r} missing from target list"
 
     def test_retype_section_exact_intro(self) -> None:
         """Retype section opens with the exact stability-contract intro line."""
@@ -405,7 +421,9 @@ async def test_sync_agents_md_static_sections_intact_after_custom_type(
     """Static sections (Retype/Remove vs. Cancel/Ref kinds) survive custom type sync.
 
     AC#3: the stability-contract prose must be byte-identical static text and must
-    not be affected by adding a custom type to the spec.  Uses the agents_md backend.
+    not be affected by adding a custom type to the spec — EXCEPT the spec-derived
+    "Valid targets" retype-list line (TASK-000279), which is expected to gain the
+    custom type. Uses the agents_md backend.
     """
     from squads._services import _service as service
 
@@ -435,15 +453,26 @@ async def test_sync_agents_md_static_sections_intact_after_custom_type(
         assert header in agents_md_before, f"{desc} missing before custom type sync"
         assert header in agents_md_after, f"{desc} missing after custom type sync"
 
-    # Extract static blocks from both versions and compare.
+    # Extract static blocks from both versions and compare.  Start right after the
+    # spec-derived "Valid targets" line (TASK-000279): its content is *expected* to
+    # differ once the custom type is added; everything else in Retype/Remove-vs-Cancel/
+    # Ref-kinds must stay byte-identical.
     def _extract_static(text: str) -> str:
-        """Extract from '## Retype' to end of managed section."""
-        idx = text.find("## Retype")
+        """Extract from '**Status behaviour:**' to end of managed section."""
+        idx = text.find("**Status behaviour:**")
         if idx == -1:
             return ""
         end_marker = "<!-- squads:end -->"
         end_idx = text.find(end_marker, idx)
         return text[idx:end_idx] if end_idx != -1 else text[idx:]
+
+    # The spec-derived "Valid targets" line, by contrast, IS expected to pick up the
+    # custom type (TASK-000279).
+    assert "`incident`" not in agents_md_before, "custom type leaked before it was added"
+    assert (
+        "Valid targets:" in agents_md_after
+        and "`incident`" in agents_md_after.split("Valid targets:")[1].splitlines()[0]
+    ), "custom type missing from spec-derived retype target list after sync"
 
     static_before = _extract_static(agents_md_before)
     static_after = _extract_static(agents_md_after)

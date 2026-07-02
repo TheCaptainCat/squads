@@ -195,6 +195,7 @@ def _render_claude_section() -> str:
         operators=[{"full_name": o.full_name, "slug": o.slug} for o in PINNED_OPERATORS],
         default_role_full_name=_DEFAULT_ROLE.full_name,
         default_role_slug=_DEFAULT_ROLE.slug,
+        spec=_bundled_spec(),
     )
 
 

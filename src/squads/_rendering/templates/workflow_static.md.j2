@@ -8,7 +8,13 @@ mentions are rewritten to the new ID atomically.
 sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
 ```
 
-Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
+{% set retype_targets = [] %}
+{% for item_type, item_spec in spec.items.items() %}
+{% if not item_spec.is_meta %}
+{% set _ = retype_targets.append(item_type) %}
+{% endif %}
+{% endfor %}
+Valid targets: {% for item_type in retype_targets %}`{{ item_type }}`{% if not loop.last %}, {% endif %}{% endfor %}.
 
 **Status behaviour:** when the old and new types share the same workflow (task↔bug,
 feature↔epic) the status is carried as-is; otherwise the status resets to the new type's

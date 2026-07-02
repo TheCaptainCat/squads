@@ -20,6 +20,7 @@ from pathlib import Path
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, StrictUndefined
 
+from squads._interactions import authoring_owner, parent_chain
 from squads._models import _markers as markers
 from squads._paths import number_for_id
 from squads._util import slugify
@@ -61,6 +62,10 @@ def _make_env(squad_dir: Path | None) -> Environment:
     env.filters["idnum"] = _idnum  # "TASK-000007" | idnum → "7", for `sq task 7 …` hints
     # workflow helper — callable as {{ linearize_lifecycle(spec.machine_for(type)) }} in templates
     env.globals["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
+    # playbook helpers (TASK-000279) — the role->type authoring narrative in workflow.md.j2
+    # renders from CREATE_LANES + the role catalog + the spec's parent chain, not hardcoded prose.
+    env.globals["authoring_owner"] = authoring_owner  # pyright: ignore[reportArgumentType]
+    env.globals["parent_chain"] = parent_chain  # pyright: ignore[reportArgumentType]
     return env
 
 

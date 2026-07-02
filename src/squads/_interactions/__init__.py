@@ -14,6 +14,7 @@ previous hardcoded literals.
 
 from dataclasses import dataclass
 
+from squads._errors import RoleNotFoundError
 from squads._interactions._loader import load_playbook
 from squads._interactions._models import (
     ItemPlaybookSpec,
@@ -21,7 +22,7 @@ from squads._interactions._models import (
     RoleGuideSpec,
 )
 from squads._models._enums import ItemType
-from squads._roles._catalog import get_catalog
+from squads._roles._catalog import get_catalog, role_by_slug
 from squads._workflow._models import WorkflowSpec
 
 #: Sentinel interacting "role" that expands to every developer role (slug ``<tech>-dev``).
@@ -318,3 +319,63 @@ def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
         for ctype in spec.items
         if ctype not in builtin_type_names and not spec.items[ctype].is_meta
     )
+
+
+# ---------------------------------------------------------------------------
+# Role -> type authoring prose (TASK-000279 / FEAT-000211)
+#
+# The "who authors what" cheatsheet narrative (workflow.md.j2) renders from
+# CREATE_LANES (the single declarative source, table-pinned to the playbook) +
+# the bundled role catalog (title lookup) + the WorkflowSpec (type prefix,
+# parent chain, sub-entity kind).  This keeps the bundled-team prose
+# byte-identical (same lane table that has always driven it) while a project
+# that adds a custom type sees its own type surfaced generically wherever the
+# spec drives the text (prefixes, parent chain, sub-entity verbs).
+#
+# NOTE: CREATE_LANES itself is a fixed bundled-role map — there is no override
+# mechanism yet for *custom roles* authoring *custom types* (only custom types
+# via .overrides/workflow.toml exist today; custom roles are not a spec
+# concept). A custom type with no lane owner simply gets no authoring bullet
+# here (see custom_item_skill_commands for its generic command surface).
+# ---------------------------------------------------------------------------
+
+
+def authoring_owner(item_type: str) -> tuple[str, str] | None:
+    """The (slug, display title) of the single in-lane role that authors *item_type*.
+
+    *item_type* is the plain type-name string (e.g. ``"feature"``, ``"task"`` — the
+    same string keys ``spec.items`` and the template loop over them use).
+
+    Returns ``None`` when the type has no lane owner, more than one (ambiguous), or
+    the owner has no bundled catalog entry (e.g. a ``<tech>-dev`` slug) — the generic
+    cheatsheet line is skipped rather than guessing.
+    """
+    owners = in_lane_owner(item_type)
+    if len(owners) != 1:
+        return None
+    (slug,) = owners
+    try:
+        return slug, role_by_slug(slug).title
+    except RoleNotFoundError:
+        # e.g. the *dev sentinel or an as-yet-uncataloged slug: no bundled title to show.
+        return None
+
+
+def parent_chain(spec: WorkflowSpec, item_type: str) -> list[str]:
+    """Walk *item_type*'s single-parent chain up to its root, e.g. ``task`` ->
+
+    ``["epic", "feature", "task"]``. Stops (without erroring) on multi-parent or
+    cyclical configurations — returns just ``[item_type]`` in that case, since the
+    cheatsheet only renders a hierarchy line for a clean linear chain.
+    """
+    chain = [item_type]
+    seen = {item_type}
+    current = item_type
+    while True:
+        parents = spec.items[current].parents
+        if len(parents) != 1 or parents[0] in seen:
+            break
+        current = parents[0]
+        chain.insert(0, current)
+        seen.add(current)
+    return chain
