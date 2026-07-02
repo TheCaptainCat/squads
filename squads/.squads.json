@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 283,
+  "counter": 284,
   "padding": 6,
   "items": {
     "12": {
@@ -10216,18 +10216,20 @@
       "type": "task",
       "title": "F1 characterization golden: pin sq workflow + badges + blocked/list at HEAD",
       "slug": "f1-characterization-golden-pin-sq-workflow-badges-blocked-li",
-      "status": "InReview",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000211",
       "author": "tech-lead",
       "assignee": null,
       "priority": "high",
       "labels": [],
-      "refs": [],
+      "refs": [
+        "REV-000284:addresses"
+      ],
       "subentities": [],
       "path": "tasks/TASK-000275-f1-characterization-golden-pin-sq-workflow-badges-blocked-li.md",
       "created_at": "2026-07-02T09:20:17Z",
-      "updated_at": "2026-07-02T09:40:27Z",
+      "updated_at": "2026-07-02T10:22:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10238,7 +10240,7 @@
       "type": "task",
       "title": "Spec-derived status badges in show/list + sub-entity heads, graceful default",
       "slug": "spec-derived-status-badges-in-show-list-sub-entity-heads-gra",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-000211",
       "author": "tech-lead",
@@ -10258,7 +10260,7 @@
       ],
       "path": "tasks/TASK-000276-spec-derived-status-badges-in-show-list-sub-entity-heads-gra.md",
       "created_at": "2026-07-02T09:20:17Z",
-      "updated_at": "2026-07-02T09:22:06Z",
+      "updated_at": "2026-07-02T10:22:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10504,6 +10506,64 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-000283"
+    },
+    "284": {
+      "sequence_id": 284,
+      "type": "review",
+      "title": "F1 gating golden validity — status-display characterization",
+      "slug": "f1-gating-golden-validity-status-display-characterization",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-000275",
+        "FEAT-000211"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Working tree violates 'green against HEAD, no product code changed' — rewire + post-rewire test assertions are uncommitted together",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Golden extended in-tree with post-rewire custom-status tests that FAIL against HEAD — no longer a pure HEAD characterization baseline",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "sq inbox terminal-suppression not pinned — an open/terminal consumer the rewire touches, though transitively guarded via shared spec.is_open",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "After the rewire STATUS_EMOJI is no longer the badge source (default_workflow.toml is) — glyph-drift protection shifts; ensure a golden pins the toml badges",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000284-f1-gating-golden-validity-status-display-characterization.md",
+      "created_at": "2026-07-02T09:52:33Z",
+      "updated_at": "2026-07-02T10:22:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-000284"
     }
   }
 }

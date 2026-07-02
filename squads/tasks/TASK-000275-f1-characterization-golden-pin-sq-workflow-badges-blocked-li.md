@@ -3,12 +3,14 @@ id: TASK-000275
 sequence_id: 275
 type: task
 title: 'F1 characterization golden: pin sq workflow + badges + blocked/list at HEAD'
-status: InReview
+status: Done
 parent: FEAT-000211
 author: tech-lead
 priority: high
+refs:
+- REV-000284:addresses
 created_at: '2026-07-02T09:20:17Z'
-updated_at: '2026-07-02T09:40:27Z'
+updated_at: '2026-07-02T10:22:07Z'
 ---
 <!-- sq:body -->
 ## Goal (GATING — must land FIRST, against HEAD)
@@ -79,4 +81,8 @@ _Add with `sq task 275 add-subtask "<title>"`; track with `sq task 275 subtask <
   - Also fixed the unused frozen_time fixture arg: the pinned_squad fixture now asserts ROLE-000001's created_at against the frozen timestamp right after init, so the clock freeze is exercised (load-bearing) rather than merely declared.
   - Re-verified after the rename: uv run pytest tests/test_status_display_characterization.py -q -> 39 passed; re-ran together with test_workflow_renderer_261.py + test_workflow_spec.py -> all green. uv run pyright tests/test_status_display_characterization.py -> 0 errors. uv run ruff check + ruff format --check -> clean.
   - @reviewer ready for review — file is tests/test_status_display_characterization.py.
+- [2026-07-02T09:53:58Z] Paul Reviewer:
+  - Reviewed the F1 gating golden — see REV-000284 (ChangesRequested, 4 findings).
+  - The COMMITTED golden (this task's deliverable at HEAD) is a VALID GATE and I recommend accepting it as the guard for the FEAT-211 rewire: 37 tests, green against HEAD, pyright/ruff clean, inputs pinned (minimal roster + frozen clock), and confirmed by mutation to catch a built-in badge-glyph change and an open/terminal misclassification. AC#3 reading-(b) no-top-level-badge invariant is pinned across sq show / sq list / --json.
+  - The ChangesRequested is NOT about the golden's design — it's the WORKING-TREE state: the TASK-276 rewire (src/squads/_discussion.py, _cli/_common.py, _services/_subentities.py) is applied UNCOMMITTED, and this test file has 5 post-rewire custom-status tests added in-tree that FAIL against HEAD. That entangles the proof with the change (the FEAT-220/REV-230 anti-pattern the process rule forbids). Manager to sequence: keep the gate committed green-against-HEAD by itself; land the rewire + its 5 acceptance tests as a separate TASK-276 commit.
 <!-- sq:discussion:end -->

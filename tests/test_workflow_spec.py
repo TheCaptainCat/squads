@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import EXPECTED_BUILTIN_STATUS_BADGES
 from squads._models._enums import (
-    STATUS_EMOJI,
     ItemType,
     Status,
 )
@@ -284,12 +284,13 @@ def test_golden_terminal_set(spec: WorkflowSpec) -> None:
 
 
 def test_golden_status_badges(spec: WorkflowSpec) -> None:
-    """Status badges from STATUS_EMOJI match spec StatusSpec.badge, status-by-status."""
+    """Status badges from EXPECTED_BUILTIN_STATUS_BADGES match spec StatusSpec.badge."""
     for s in Status:
-        expected_badge = STATUS_EMOJI.get(s)
+        expected_badge = EXPECTED_BUILTIN_STATUS_BADGES.get(s.value)
         actual_badge = spec.statuses[s].badge
         assert actual_badge == expected_badge, (
-            f"status {s!r}: spec.badge={actual_badge!r} != STATUS_EMOJI={expected_badge!r}"
+            f"status {s!r}: spec.badge={actual_badge!r} != "
+            f"EXPECTED_BUILTIN_STATUS_BADGES={expected_badge!r}"
         )
 
 
