@@ -1,7 +1,7 @@
 {
   "schema_version": "0.5",
   "squads_version": "0.5.0",
-  "counter": 287,
+  "counter": 288,
   "padding": 6,
   "items": {
     "12": {
@@ -10703,6 +10703,72 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-000287"
+    },
+    "288": {
+      "sequence_id": 288,
+      "type": "feature",
+      "title": "Pre-merge ID block-shift renumber (sq renumber)",
+      "slug": "pre-merge-id-block-shift-renumber-sq-renumber",
+      "status": "Draft",
+      "description": "Block-shift a branch's new IDs into a reserved range before merge, preserving referential intent",
+      "parent": "EPIC-000012",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-000283:depends-on",
+        "ADR-000282"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Pre-merge shift preserves referential intent",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "Shifted block is disjoint from the other branch's range",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Reflog and inline ID mentions are rewritten, not just frontmatter",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "Filenames keep their padded width after a shift",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "Pre-merge shift and post-merge --renumber coexist",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000288-pre-merge-id-block-shift-renumber-sq-renumber.md",
+      "created_at": "2026-07-03T08:18:39Z",
+      "updated_at": "2026-07-03T08:19:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-000288"
     }
   }
 }
