@@ -8945,8 +8945,8 @@
     "237": {
       "sequence_id": 237,
       "type": "feature",
-      "title": "Codebase docstring/comment hygiene: terse, pure, history-free",
-      "slug": "codebase-docstring-comment-hygiene-terse-pure-history-free",
+      "title": "Strip squad-item refs from all non-item content + code-hygiene guard",
+      "slug": "strip-squad-item-refs-from-all-non-item-content-code-hygiene",
       "status": "Draft",
       "description": "",
       "parent": null,
@@ -8968,7 +8968,7 @@
         },
         {
           "local_id": "US2",
-          "title": "Comments describe current behavior, not history",
+          "title": "Src comments describe current behavior, not history",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -8976,16 +8976,32 @@
         },
         {
           "local_id": "US3",
-          "title": "A CI gate blocks new ticket refs in comments",
+          "title": "CI guard blocks squad-item refs outside item files",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "User-facing content carries no squad-item references",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "Bundled prose stripped of refs without churning wording",
           "status": "Todo",
           "assignee": null,
           "severity": null,
           "story": null
         }
       ],
-      "path": "features/FEAT-000237-codebase-docstring-comment-hygiene-terse-pure-history-free.md",
+      "path": "features/FEAT-000237-strip-squad-item-refs-from-all-non-item-content-code-hygiene.md",
       "created_at": "2026-06-26T14:19:55Z",
-      "updated_at": "2026-06-30T11:50:01Z",
+      "updated_at": "2026-07-03T09:26:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10511,7 +10527,7 @@
       "type": "review",
       "title": "F1 gating golden validity — status-display characterization",
       "slug": "f1-gating-golden-validity-status-display-characterization",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -10550,7 +10566,7 @@
         {
           "local_id": "F4",
           "title": "After the rewire STATUS_EMOJI is no longer the badge source (default_workflow.toml is) — glyph-drift protection shifts; ensure a golden pins the toml badges",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null
@@ -10558,7 +10574,7 @@
       ],
       "path": "reviews/REV-000284-f1-gating-golden-validity-status-display-characterization.md",
       "created_at": "2026-07-02T09:52:33Z",
-      "updated_at": "2026-07-02T10:22:08Z",
+      "updated_at": "2026-07-03T09:18:40Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
