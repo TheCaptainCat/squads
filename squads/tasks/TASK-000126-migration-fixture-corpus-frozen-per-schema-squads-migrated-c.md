@@ -1,10 +1,10 @@
 ---
-id: TASK-000126
+id: TASK-126
 sequence_id: 126
 type: task
 title: 'Migration fixture corpus: frozen per-schema squads migrated + checked in CI'
 status: Done
-parent: FEAT-000017
+parent: FEAT-17
 author: tech-lead
 created_at: '2026-06-15T12:10:12Z'
 updated_at: '2026-06-15T12:31:51Z'
@@ -43,11 +43,11 @@ _Add with `sq task 126 add-subtask "<title>"`; track with `sq task 126 subtask <
 
 <!-- sq:discussion -->
 - [2026-06-15T12:22:21Z] Mara Tester:
-  - Implemented migration fixture corpus for FEAT-000017 hardening.
+  - Implemented migration fixture corpus for FEAT-17 hardening.
   - Created 3 frozen squads under tests/fixtures/corpus/: v0_1 (schema 0.1 — legacy heading-encoded sub-entities, bare refs + extra.ref_kinds), v0_2 (schema 0.2 — :meta body regions, inline ref kinds, findings skeleton), v0_3 (schema 0.3 — current: sequence_id in frontmatter, subentities list, :head regions). Each corpus dir has .squads.toml, .squads.json, and item md files authored at that schema's on-disk shape.
   - tests/test_migration_corpus.py has 6 tests parametrized over all three versions: a service-level test (copies corpus → run_pending_migrations → asserts schema reaches 0.3 + sq check has zero errors) and a CLI smoke test (monkeypatch.chdir → sq migrate up → sq check, both exit 0).
   - Gate: 713 passed, 1 skipped (all pre-existing); pyright 0 errors; ruff clean. No out-of-scope failures.
   - @reviewer please review tests/test_migration_corpus.py and tests/fixtures/corpus/ before merging.
 - [2026-06-15T12:30:15Z] Paul Reviewer:
-  - REV-000130: APPROVED. Migration fixture corpus is non-vacuous — verified independently. v0_1 genuinely starts at schema 0.1 (extra.ref_kinds, legacy '[ ] … (→ US1)' checkbox headings, no sequence_id/:meta) and a real 'sq migrate up' fires BOTH the 0.1->0.2 and 0.2->0.3 runners to reach 0.3; v0_2 genuinely starts at 0.2 (inline ID:kind refs, :meta regions, no subentities/sequence_id) and exercises the 0.2->0.3 lift; v0_3 is a legitimate current no-op. Test asserts reaching SCHEMA_VERSION + a clean check (service + CLI smoke). One LOW finding (F1): the corpus does not exercise the 0.1->0.2 review findings-skeleton branch (v0_1/reviews/ is empty; v0_2's review already has a :findings container). Non-blocking — that branch has unit coverage in test_migrations.py and the acceptance bar is met. Optional follow-up to close the gap. @tech-lead
+  - REV-130: APPROVED. Migration fixture corpus is non-vacuous — verified independently. v0_1 genuinely starts at schema 0.1 (extra.ref_kinds, legacy '[ ] … (→ US1)' checkbox headings, no sequence_id/:meta) and a real 'sq migrate up' fires BOTH the 0.1->0.2 and 0.2->0.3 runners to reach 0.3; v0_2 genuinely starts at 0.2 (inline ID:kind refs, :meta regions, no subentities/sequence_id) and exercises the 0.2->0.3 lift; v0_3 is a legitimate current no-op. Test asserts reaching SCHEMA_VERSION + a clean check (service + CLI smoke). One LOW finding (F1): the corpus does not exercise the 0.1->0.2 review findings-skeleton branch (v0_1/reviews/ is empty; v0_2's review already has a :findings container). Non-blocking — that branch has unit coverage in test_migrations.py and the acceptance bar is met. Optional follow-up to close the gap. @tech-lead
 <!-- sq:discussion:end -->

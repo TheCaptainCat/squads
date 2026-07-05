@@ -130,7 +130,7 @@ async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_head(svc):
 
 
 async def test_v0_2_to_v0_3_backfills_sequence_id(svc):
-    task = (await svc.create(ItemType.TASK, "t")).item  # TASK-000002 (sequence 2)
+    task = (await svc.create(ItemType.TASK, "t")).item  # TASK-2 (sequence 2)
     p = svc.paths.abspath(task.path)
     # simulate a file written before sequence_id was persisted: drop the line
     stripped = re.sub(r"\nsequence_id: \d+", "", p.read_text(encoding="utf-8"))
@@ -140,6 +140,6 @@ async def test_v0_2_to_v0_3_backfills_sequence_id(svc):
     _v0_2_to_v0_3.migrate(svc.paths)
 
     fm = read_frontmatter(p)
-    assert fm["sequence_id"] == 2 and fm["id"] == "TASK-000002"
+    assert fm["sequence_id"] == 2 and fm["id"] == "TASK-2"
 
     assert _v0_2_to_v0_3.migrate(svc.paths) == 0  # idempotent

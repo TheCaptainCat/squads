@@ -1,19 +1,19 @@
 ---
-id: TASK-000253
+id: TASK-253
 sequence_id: 253
 type: task
 title: 'CLI per-invocation spec context: root --dir callback binds it, parsers read
   it'
 status: Done
-parent: FEAT-000250
+parent: FEAT-250
 author: tech-lead
 refs:
-- TASK-000252:depends-on
+- TASK-252:depends-on
 created_at: '2026-06-30T09:53:05Z'
 updated_at: '2026-06-30T10:20:03Z'
 ---
 <!-- sq:body -->
-**Part (c) of FEAT-000250 / ADR-000249 Option A. Sequence: after TASK-000252 (Service owns
+**Part (c) of FEAT-250 / ADR-249 Option A. Sequence: after TASK-252 (Service owns
 the spec); before the test rewrite.**
 
 Add a per-invocation CLI context handle for the active `WorkflowSpec`, set once in the root
@@ -38,7 +38,7 @@ mechanism.
 ## The one genuine design detail — Click parse ordering
 
 `parse_type`/`parse_status` are Typer **parser callbacks**: they fire during Click argument
-parsing, which runs **before the group callback body** resolves the spec. ADR-000249 Finding 2
+parsing, which runs **before the group callback body** resolves the spec. ADR-249 Finding 2
 flags this. Two acceptable fixes — pick and document:
 1. Bind the contextvar in the root callback **early enough** that it is set before any
    subcommand parser runs (verify the Click invocation order — the root callback's body must

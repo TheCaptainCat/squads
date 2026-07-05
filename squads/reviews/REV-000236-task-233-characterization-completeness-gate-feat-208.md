@@ -1,13 +1,13 @@
 ---
-id: REV-000236
+id: REV-236
 sequence_id: 236
 type: review
 title: TASK-233 characterization completeness gate (FEAT-208)
 status: Approved
 author: qa
 refs:
-- FEAT-000208
-- TASK-000233
+- FEAT-208
+- TASK-233
 subentities:
 - local_id: F1
   title: operator self-author bypass not characterized in spine tests
@@ -23,11 +23,11 @@ updated_at: '2026-06-26T10:26:17Z'
 <!-- sq:body -->
 ## Scope
 
-Completeness gate for TASK-000233's 39 characterization tests in `tests/test_spine_characterization.py`. These tests are the entire safety net for TASK-234 (reify checks to capability flags) and TASK-235 (widen Item.type/status to str). Any uncharacterized identity check that silently changes behavior under de-typing will not be caught.
+Completeness gate for TASK-233's 39 characterization tests in `tests/test_spine_characterization.py`. These tests are the entire safety net for TASK-234 (reify checks to capability flags) and TASK-235 (widen Item.type/status to str). Any uncharacterized identity check that silently changes behavior under de-typing will not be caught.
 
 ## Method
 
-1. Grepped all `is`/`is not`/`==`/`!=` comparisons against `ItemType.*` and `Status.*` across `src/squads` (excluding `_migrations/_v*.py` per ADR-000232). Found **21 direct identity checks**.
+1. Grepped all `is`/`is not`/`==`/`!=` comparisons against `ItemType.*` and `Status.*` across `src/squads` (excluding `_migrations/_v*.py` per ADR-232). Found **21 direct identity checks**.
 2. Audited implicit enum-dependencies: membership (`in tuple/set`), set construction, iteration (`for t in ItemType`, `for s in Status`), and WORK_TYPES/SUBENTITY_* map construction.
 3. Mapped every check to either a characterization test or existing pre-TASK-233 coverage.
 4. Spot-checked backend `is ItemType.SKILL` branches for characterization or golden-lock coverage.

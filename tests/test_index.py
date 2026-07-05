@@ -28,16 +28,17 @@ def test_index_keys_items_by_sequence_number():
         created_at=now,
         updated_at=now,
     )
-    assert it.id == "TASK-000007"  # derived from type + sequence_id
+    assert it.id == "TASK-7"  # derived from type + sequence_id, rendered unpadded
     db = SquadsDB(counter=7)
     db.add(it)
     assert set(db.items) == {7}  # keyed by the int sequence, not the formatted id
-    assert db.get("TASK-000007") is it  # lookup by formatted id …
+    assert db.get("TASK-7") is it  # lookup by formatted (unpadded) id …
+    assert db.get("TASK-000007") is it  # … or a padded variant (width-tolerant) …
     assert db.get("7") is it  # … or by bare number
     # JSON keys the items by the (stringified) int, and carries sequence_id + the formatted id
     data = json.loads(db.to_json())
     assert set(data["items"]) == {"7"}
-    assert data["items"]["7"]["id"] == "TASK-000007"
+    assert data["items"]["7"]["id"] == "TASK-7"
     assert data["items"]["7"]["sequence_id"] == 7
     # round-trips, and a legacy full-id-keyed index still loads (tolerant validator)
     assert SquadsDB.model_validate_json(db.to_json()).get("TASK-000007") is not None
@@ -132,7 +133,7 @@ def test_backrefs_computed_not_stored(tmp_path):
         updated_at=now,
     )
     db.add(a)
-    assert db.backrefs("GUIDE-000002") == ["TASK-000001"]
+    assert db.backrefs("GUIDE-000002") == ["TASK-1"]
     # nothing backref-shaped persisted
     assert "backrefs" not in db.to_json()
 
@@ -193,8 +194,8 @@ async def test_allocate_id_raises_index_full_at_capacity(tmp_path):
     assert (await store.load()).counter == 10**6 - 1
 
 
-def test_item_id_field_not_persisted_in_json():
-    """id_padding is excluded from Item JSON/frontmatter serialisation."""
+def test_item_id_renders_unpadded():
+    """Item.id always renders unpadded — display padding is a fixed constant (ADR-000282)."""
     now = datetime(2026, 1, 1, tzinfo=UTC)
     item = Item(
         sequence_id=1,
@@ -205,14 +206,13 @@ def test_item_id_field_not_persisted_in_json():
         path="tasks/x.md",
         created_at=now,
         updated_at=now,
-        id_padding=7,
     )
-    assert item.id == "TASK-0000001"  # uses the threaded padding
+    assert item.id == "TASK-1"
     dumped = json.loads(item.model_dump_json())
-    assert "id_padding" not in dumped  # never persisted
+    assert "id_padding" not in dumped  # not a field — never serialised
     fm = item.to_frontmatter_dict()
     assert "id_padding" not in fm  # never in frontmatter
-    assert fm["id"] == "TASK-0000001"
+    assert fm["id"] == "TASK-1"
 
 
 # --------------------------------------------------------------------------- width-tolerant IDs
@@ -233,26 +233,28 @@ def _make_item(seq: int, item_type: ItemType, refs: list[str] | None = None) -> 
     )
 
 
-def test_propagate_padding_sets_id_padding_on_all_items():
-    """SquadsDB._propagate_padding runs after load and sets id_padding on all items."""
-    # Build a db at width-7 with an item that would default to id_padding=6.
+def test_display_padding_independent_of_squad_filename_padding():
+    """Item.id renders unpadded no matter the squad's stored (filename) padding width.
+
+    Display padding is a fixed constant (ADR-000282) — SquadsDB.padding only governs
+    filenames, never Item.id.
+    """
     db = SquadsDB(padding=7)
     item = _make_item(1, ItemType.TASK)
-    assert item.id_padding == 6  # Item default
+    assert item.id == "TASK-1"
     db.add(item)
-    # After round-tripping through JSON (which excludes id_padding), _propagate_padding fires.
+    # Round-trip through JSON (simulates store.load()) — display stays unpadded.
     reloaded = SquadsDB.model_validate_json(db.to_json())
     assert reloaded.padding == 7
-    assert reloaded.items[1].id_padding == 7
-    assert reloaded.items[1].id == "TASK-0000001"  # display uses current width
+    assert reloaded.items[1].id == "TASK-1"
 
 
 def test_backrefs_width_tolerant():
-    """backrefs() matches old-width ref strings against current-width item IDs.
+    """backrefs() matches a stored ref against a query of any width, display id or not.
 
-    Simulates a squad repadded to width-7: the stored ref "FEAT-000002" (old width) must
-    match backrefs("FEAT-0000002") (new width).  The DB is round-tripped through JSON to
-    trigger _propagate_padding — the same path used by store.load().
+    A ref written at the old filename width ("FEAT-000002") must still be found whether the
+    caller queries by that same width, a different (repadded) width, or the unpadded display
+    id — resolution is by (prefix, sequence_id), never the literal string (ADR-000282).
     """
     # item 1 (TASK) refs item 2 (FEAT) using the old width-6 string.
     task = _make_item(1, ItemType.TASK, refs=["FEAT-000002"])
@@ -260,13 +262,13 @@ def test_backrefs_width_tolerant():
     db = SquadsDB(padding=7, counter=2)  # squad repadded to width-7
     db.add(task)
     db.add(feat)
-    # Round-trip through JSON to simulate store.load(); _propagate_padding fires and sets
-    # id_padding=7 on all items.
+    # Round-trip through JSON to simulate store.load().
     db = SquadsDB.model_validate_json(db.to_json())
-    assert db.items[2].id == "FEAT-0000002"
-    # backrefs("FEAT-0000002") must find the TASK whose ref holds "FEAT-000002" (old width).
-    result = db.backrefs("FEAT-0000002")
-    assert result == ["TASK-0000001"]
+    assert db.items[2].id == "FEAT-2"  # display is always unpadded, regardless of db.padding
+    # Querying by the new filename width, the old filename width, and the unpadded display id
+    # must all find the TASK whose ref holds "FEAT-000002".
+    for query in ("FEAT-0000002", "FEAT-000002", "FEAT-2"):
+        assert db.backrefs(query) == ["TASK-1"], query
 
 
 def test_backrefs_no_cross_type_false_positive():
@@ -281,7 +283,7 @@ def test_backrefs_no_cross_type_false_positive():
     # backrefs on the FEAT at seq=3 must NOT match the "BUG-000003" ref in task.
     assert db.backrefs("FEAT-000003") == []
     # backrefs on the BUG at seq=3 DOES match.
-    assert db.backrefs("BUG-000003") == ["TASK-000001"]
+    assert db.backrefs("BUG-000003") == ["TASK-1"]
 
 
 def test_db_get_width_tolerant():

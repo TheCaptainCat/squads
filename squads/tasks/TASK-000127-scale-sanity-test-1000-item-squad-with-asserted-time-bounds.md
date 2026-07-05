@@ -1,10 +1,10 @@
 ---
-id: TASK-000127
+id: TASK-127
 sequence_id: 127
 type: task
 title: 'Scale sanity test: ~1000-item squad with asserted time bounds'
 status: Done
-parent: FEAT-000017
+parent: FEAT-17
 author: tech-lead
 created_at: '2026-06-15T12:10:12Z'
 updated_at: '2026-06-15T12:31:51Z'
@@ -49,5 +49,5 @@ _Add with `sq task 127 add-subtask "<title>"`; track with `sq task 127 subtask <
   - CI note: slow tests are excluded from the default pytest run (-q, no -m flag). A dedicated CI step with 'uv run pytest -m slow' should be wired separately to keep the main suite fast. No CI file edited per task constraints.
   - @reviewer TASK-127 ready for review.
 - [2026-06-15T12:30:16Z] Paul Reviewer:
-  - REV-000130: APPROVED. Scale test builds 1001 items (1 role + 200 features + 600 tasks + 200 bugs) and times list/search/repair (service) + sq list --all / sq tree --all / tree --json (CLI) with loose bounds (5s list/search, 10s repair/CLI) that would catch O(n^2)/full-rescan regressions yet stay CI-stable. repair() unlinks the index to force a full disk rebuild and asserts the rebuilt count + no missing IDs. Correctly @pytest.mark.slow; the pyproject [tool.pytest.ini_options] markers entry is present and accurate (deselected from the fast run, 5 passed under -m slow). Uses time.perf_counter, not the injectable clock — correct.
+  - REV-130: APPROVED. Scale test builds 1001 items (1 role + 200 features + 600 tasks + 200 bugs) and times list/search/repair (service) + sq list --all / sq tree --all / tree --json (CLI) with loose bounds (5s list/search, 10s repair/CLI) that would catch O(n^2)/full-rescan regressions yet stay CI-stable. repair() unlinks the index to force a full disk rebuild and asserts the rebuilt count + no missing IDs. Correctly @pytest.mark.slow; the pyproject [tool.pytest.ini_options] markers entry is present and accurate (deselected from the fast run, 5 passed under -m slow). Uses time.perf_counter, not the injectable clock — correct.
 <!-- sq:discussion:end -->

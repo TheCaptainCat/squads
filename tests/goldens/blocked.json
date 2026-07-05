@@ -1,10 +1,10 @@
 [
   {
-    "id": "TASK-000003",
+    "id": "TASK-3",
     "title": "Implement login",
     "blockers": [
       {
-        "id": "BUG-000004",
+        "id": "BUG-4",
         "title": "Login crashes on empty password",
         "status": "Open"
       }

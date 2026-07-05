@@ -1,5 +1,5 @@
 ---
-id: ROLE-000006
+id: ROLE-6
 sequence_id: 6
 type: role
 title: Hugo Ops

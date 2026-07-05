@@ -284,6 +284,8 @@ class ServiceCore:
             # Resolve the prefix from the spec before allocation so both the filename and
             # Item.id agree on the correct prefix (ADR-000266).
             resolved_prefix = prefix_for(item_type, self.spec)
+            # item_id is the padded filename stem (SquadsDB.allocate_id formats at db.padding);
+            # deliberately NOT the same width as the displayed Item.id (ADR-000282).
             item_id = db.allocate_id(item_type, prefix=resolved_prefix)
             filename = f"{item_id}-{slug}.md"
             squad_rel = self.paths.squad_relative(item_type, filename, spec=self.spec)
@@ -308,7 +310,6 @@ class ServiceCore:
                 created_session=sid,
                 modified_session=sid,
                 extra=extra or {},
-                id_padding=db.padding,
             )
             rendered = render(
                 self._template_for(item_type), item=item, description=description, extra=item.extra

@@ -1,10 +1,10 @@
 ---
-id: TASK-000245
+id: TASK-245
 sequence_id: 245
 type: task
 title: Document the workflow override format (sq docs workflow)
 status: Done
-parent: FEAT-000209
+parent: FEAT-209
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -32,7 +32,7 @@ the doc topic. Keep the prose admin-facing, not internals-facing.
 
 ## What to write
 - What the workflow override is and where it lives (`.overrides/workflow.toml` — pin to whatever
-  TASK-000239/244 finalise as the canonical path).
+  TASK-239/244 finalise as the canonical path).
 - The TOML shape: `[items.<type>]` (prefix/folder/lifecycle/parents/aliases + capability flags),
   `[statuses.<Name>]`, `[lifecycles.<name>]` with `initial` + `[lifecycles.<name>.transitions]`.
 - **Additive-only rules, stated plainly**: you may ADD new types/statuses/lifecycles and new types
@@ -49,8 +49,8 @@ the doc topic. Keep the prose admin-facing, not internals-facing.
 - No internal sq-item refs or external URLs in the shipped doc.
 
 ## Ordering
-LAST. Depends on the final override path/format (TASK-000239/244), the lint UX (TASK-000242), and
-the additive-only error messages (TASK-000239) being settled so the doc matches shipped behaviour.
+LAST. Depends on the final override path/format (TASK-239/244), the lint UX (TASK-242), and
+the additive-only error messages (TASK-239) being settled so the doc matches shipped behaviour.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -93,7 +93,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Doc review: sq docs workflow is rich and well-structured. DEFECT: the 'Worked example: incident type' section (lines promising 'sq create incident', 'sq incident 1 status Mitigating', 'sq incident 1 show') documents commands that do not exist. Custom types are not registered as CLI commands, so the worked example is broken code. The sq list -t incident part works. All other parts of the doc are accurate (override format, TOML structure, additive-only rules, lint/check workflow, scaffold/diff/update commands). Doc should be corrected to either remove the CLI invocation examples for unimplemented commands, or wait until AC#1 is fixed.
 - [2026-06-30T09:26:38Z] Theo Writer:
   - Correction applied to docs/workflow.md per final QA findings. Removed overpromising commands and corrected sample outputs.
-  - What was removed: 1) sq create incident example (lines 373-375) — CLI command registration for custom types is FEAT-000210 scope 2) sq incident 1 status/show/comment examples (lines 376-385) — same registration blocker 3) Vague hard-stop message and accurate error table (3 columns + real output format)
+  - What was removed: 1) sq create incident example (lines 373-375) — CLI command registration for custom types is FEAT-210 scope 2) sq incident 1 status/show/comment examples (lines 376-385) — same registration blocker 3) Vague hard-stop message and accurate error table (3 columns + real output format)
   - What was kept: 1) Full TOML format and scaffold/lint/check workflow — all working 2) sq override diff workflow and sq override update workflow — both verified 3) sq list -t incident command — confirmed working 4) Additive-only rules and fail-closed validation
   - Verified in test squad: sq override scaffold workflow, sq workflow lint (OK output), sq list -t incident (empty list), sq override diff workflow all confirmed working. Added forward note: 'Creating and managing items of custom types is supported in a future release. For now, you can define the spec, validate it with sq workflow lint, inspect it with sq override diff workflow, and list items with sq list -t <customtype>.'
   - Gates: pyright 0 errors, ruff clean, test_docfiles.py 100% pass, no internal refs/external URLs in override section per project doc guidelines.

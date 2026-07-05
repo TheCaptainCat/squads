@@ -1,14 +1,14 @@
 ---
-id: FEAT-000212
+id: FEAT-212
 sequence_id: 212
 type: feature
 title: Custom sub-entity kinds for custom types
 status: Ready
-parent: EPIC-000280
+parent: EPIC-280
 author: product-owner
 refs:
-- FEAT-000210:depends-on
-- FEAT-000211:depends-on
+- FEAT-210:depends-on
+- FEAT-211:depends-on
 subentities:
 - local_id: US1
   title: As a project admin, I want to define custom sub-entity kinds for my custom
@@ -47,7 +47,7 @@ declared columns — without any code change.
 - All sub-entity mutations (`update`, `body`, `comment`) route through the
   spec for kind resolution.
 - **Owns retiring `_SUBENTITY_PLURAL`** (`_cli/_items.py`) — the last static
-  per-type vocabulary artifact. ADR-000266 established the `Item.prefix` +
+  per-type vocabulary artifact. ADR-266 established the `Item.prefix` +
   reserved-vocab resolver pattern and retired the prefix/folder/alias/meta
   statics in the FEAT-210 corrective; `_SUBENTITY_PLURAL` was deliberately
   deferred to this feature because it needs this feature's `subentity_kinds`
@@ -57,7 +57,7 @@ declared columns — without any code change.
 
 ## Dependencies
 
-Requires F4 (FEAT-000210, Done) for custom types and F5 (FEAT-000211,
+Requires F4 (FEAT-210, Done) for custom types and F5 (FEAT-211,
 InProgress) for custom statuses — a custom sub-entity kind's machine needs
 the same custom-status plumbing as a top-level type's machine. Do not start
 until F5 lands.
@@ -84,10 +84,10 @@ until F5 lands.
 
 ## Provenance
 
-Split from the former FEAT-000212 ("Custom sub-entity kinds + vocabulary
-rename migrations") per ADR-000274 (Accepted) — this feature keeps the
+Split from the former FEAT-212 ("Custom sub-entity kinds + vocabulary
+rename migrations") per ADR-274 (Accepted) — this feature keeps the
 custom-sub-entity-kinds half; the rename-migrations half moved to a new
-sibling feature under EPIC-000280.
+sibling feature under EPIC-280.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -130,7 +130,7 @@ As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Moved.** This story's scope (safe rename migrations for built-in types/statuses) moved to a new sibling feature under EPIC-000280, per ADR-000274's F6 split. See that feature's US1 for the current spec of this work. Cancelled here, not deleted, to preserve history.
+**Moved.** This story's scope (safe rename migrations for built-in types/statuses) moved to a new sibling feature under EPIC-280, per ADR-274's F6 split. See that feature's US1 for the current spec of this work. Cancelled here, not deleted, to preserve history.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -144,5 +144,5 @@ As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on
 
 <!-- sq:discussion -->
 - [2026-07-01T08:27:49Z] Catherine Manager:
-  - Ownership note (from the FEAT-210/REV-265/ADR-266 work): FEAT-212 owns retiring _SUBENTITY_PLURAL (_cli/_items.py) — the last static per-type vocabulary artifact. ADR-000266 established the Item.prefix + reserved-vocab resolver pattern and retired the prefix/folder/alias/meta statics in the FEAT-210 corrective; _SUBENTITY_PLURAL was deliberately deferred here because it needs FEAT-212's subentity_kinds schema addition (sub-entity plural vocab). When scoped, add a subentity_plural accessor to the resolver and delete _SUBENTITY_PLURAL. op-pierre confirmed this boundary.
+  - Ownership note (from the FEAT-210/REV-265/ADR-266 work): FEAT-212 owns retiring _SUBENTITY_PLURAL (_cli/_items.py) — the last static per-type vocabulary artifact. ADR-266 established the Item.prefix + reserved-vocab resolver pattern and retired the prefix/folder/alias/meta statics in the FEAT-210 corrective; _SUBENTITY_PLURAL was deliberately deferred here because it needs FEAT-212's subentity_kinds schema addition (sub-entity plural vocab). When scoped, add a subentity_plural accessor to the resolver and delete _SUBENTITY_PLURAL. op-pierre confirmed this boundary.
 <!-- sq:discussion:end -->

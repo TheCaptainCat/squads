@@ -1,5 +1,5 @@
 ---
-id: REV-000092
+id: REV-92
 sequence_id: 92
 type: review
 title: Review TASK-000083 — CLI exit-code table doc + tests
@@ -11,12 +11,12 @@ updated_at: '2026-06-12T21:03:26Z'
 <!-- sq:body -->
 ## Scope
 
-Review of the working-tree change for TASK-000083 (FEAT-000015, US2): the documented CLI exit-code contract and its test coverage.
+Review of the working-tree change for TASK-83 (FEAT-15, US2): the documented CLI exit-code contract and its test coverage.
 
 Files reviewed:
 - `src/squads/_cli/_main.py` — `check` docstring documents exit 0 / exit 3 and points at `sq docs faq`.
 - `docs/faq.md` — new "What exit codes does `sq` use?" entry with the four-row table (0/1/2/3).
-- `tests/test_cli.py` — 8 new tests (section TASK-000083) asserting each code across table and --json paths.
+- `tests/test_cli.py` — 8 new tests (section TASK-83) asserting each code across table and --json paths.
 
 ## Verdict: Approved
 
@@ -33,7 +33,7 @@ Files reviewed:
 - The exit-3-not-on-warnings requirement is directly proven by `test_exit_code_0_check_warnings_only`.
 
 ### Documentation accuracy
-- FAQ table matches the contract exactly, including the explicit "warn-level-only results still exit 0" note and the FEAT-000013 forward-link for the formal stability doc.
+- FAQ table matches the contract exactly, including the explicit "warn-level-only results still exit 0" note and the FEAT-13 forward-link for the formal stability doc.
 - Docstring cross-reference `sq docs faq` resolves and renders the exit-code section (verified live).
 
 ### CLAUDE.md conventions

@@ -11,12 +11,13 @@ pytestmark = pytest.mark.anyio
 
 async def test_create_allocates_id_and_writes_file(svc):
     res = await svc.create(ItemType.FEATURE, "User authentication", description="Login")
-    assert res.item.id == "FEAT-000002"  # ROLE-000001 took the first number
+    assert res.item.id == "FEAT-2"  # ROLE-1 took the first number; display is unpadded
     assert res.path.exists()
+    # Filename stays padded (ADR-000282) even though the displayed id is unpadded.
     assert res.path.name == "FEAT-000002-user-authentication.md"
     fm = read_frontmatter(res.path)
     assert fm["status"] == "Draft"
-    assert fm["id"] == "FEAT-000002"
+    assert fm["id"] == "FEAT-2"
 
 
 async def test_create_rejects_missing_parent(svc):
@@ -41,8 +42,33 @@ async def test_update_title_renames_file(svc):
     updated = await svc.update(res.item.id, title="Fix login loop")
     assert updated.slug == "fix-login-loop"
     assert not old.exists()
-    assert svc.paths.abspath(updated.path).exists()
+    new_path = svc.paths.abspath(updated.path)
+    assert new_path.exists()
+    # Filename stem stays padded (ADR-000282) even though the displayed id is unpadded.
     assert updated.path.endswith("TASK-000002-fix-login-loop.md")
+    assert read_frontmatter(new_path)["id"] == "TASK-2"
+
+
+async def test_rename_and_retype_keep_filename_padded_while_id_unpadded(svc):
+    """Invariant (ADR-000282): the on-disk stem stays padded while frontmatter id: is unpadded.
+
+    Covers the two seams that concatenate a formatted id into a filename — rename (via
+    update --title) and retype — in addition to create (test_create_allocates_id_and_writes_file).
+    """
+    from squads._models._enums import ItemType as _IT
+
+    # Rename seam.
+    task = (await svc.create(_IT.TASK, "Original title")).item
+    renamed = await svc.update(task.id, title="Renamed title")
+    renamed_path = svc.paths.abspath(renamed.path)
+    assert renamed_path.name == "TASK-000002-renamed-title.md"
+    assert read_frontmatter(renamed_path)["id"] == "TASK-2"
+
+    # Retype seam.
+    retyped = (await svc.retype(task.id, _IT.BUG)).item
+    retyped_path = svc.paths.abspath(retyped.path)
+    assert retyped_path.name == "BUG-000002-renamed-title.md"
+    assert read_frontmatter(retyped_path)["id"] == "BUG-2"
 
 
 async def test_link_unlink(svc):
@@ -87,7 +113,7 @@ async def test_repair_rebuilds_index_from_frontmatter(svc):
     db = result.db
     # the index now keys items by their int sequence number; ids live on the items
     assert set(db.items) == {1, 2, 3}
-    assert {it.id for it in db.items.values()} == {"ROLE-000001", "FEAT-000002", "TASK-000003"}
+    assert {it.id for it in db.items.values()} == {"ROLE-1", "FEAT-2", "TASK-3"}
     assert db.counter == 3
 
 
@@ -426,7 +452,7 @@ async def test_allocate_after_repair_never_reuses(svc):
     # The next allocation must be 4, never 3.
     new_item = (await svc.create(ItemType.BUG, "new bug")).item
     assert new_item.sequence_id == 4, f"expected sequence 4, got {new_item.sequence_id}"
-    assert new_item.id == "BUG-000004"
+    assert new_item.id == "BUG-4"
 
 
 async def test_load_corrects_regressed_counter(svc):
@@ -484,7 +510,7 @@ async def test_check_flags_index_item_with_no_file(svc):
 
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
     raw["items"]["99"] = {
-        "id": "TASK-000099",
+        "id": "TASK-99",
         "sequence_id": 99,
         "type": "task",
         "title": "ghost",
@@ -498,7 +524,7 @@ async def test_check_flags_index_item_with_no_file(svc):
     svc.store.index_path.write_text(json.dumps(raw), encoding="utf-8")
 
     issues = await svc.check()
-    assert any(i.item == "TASK-000099" and "no markdown" in i.message for i in issues)
+    assert any(i.item == "TASK-99" and "no markdown" in i.message for i in issues)
     # The real task has no issue.
     assert not any(i.item == task.id and "no markdown" in i.message for i in issues)
 
@@ -839,48 +865,48 @@ async def test_renumber_plan_uses_supplied_padding(svc):
 # --------------------------------------------------------------------------- width-tolerant IDs
 
 
-async def test_display_uses_current_padding_after_repad(svc):
-    """After repad, item.id uses the new padding width (display always uses current padding).
+async def test_display_stays_unpadded_after_repad(svc):
+    """repad() only changes filename width — the displayed id stays unpadded (ADR-000282).
 
-    The _propagate_padding model validator sets id_padding on all loaded items from
-    db.padding so item.id returns the current-width ID everywhere (FEAT-000027 / TASK-000103).
+    Display padding is a fixed constant (DISPLAY_ID_PADDING=0); SquadsDB.padding governs
+    filenames only and never affects item.id, before or after a repad.
     """
     task = (await svc.create(ItemType.TASK, "t")).item
-    assert task.id == "TASK-000002"  # width-6 before repad
+    assert task.id == "TASK-2"
 
     await svc.repad(7)
 
-    # After repad the stored padding is 7 and items loaded from the index must reflect it.
+    # After repad the stored (filename) padding is 7, but the displayed id is unchanged.
     db = await svc.store.load()
     assert db.padding == 7
     loaded_task = db.items[task.sequence_id]
-    assert loaded_task.id_padding == 7, "_propagate_padding must set id_padding from db.padding"
-    assert loaded_task.id == "TASK-0000002", "display must use the current (new) padding width"
+    assert loaded_task.id == "TASK-2", "display stays unpadded regardless of filename width"
 
 
 async def test_refs_in_width_tolerant_after_repad(svc):
-    """refs_in() returns backrefs correctly when the stored ref uses the old padding.
+    """refs_in() is width-tolerant on its query, and its returned id is always unpadded.
 
-    Scenario: item A is created at width-6 and refs item B. Squad is then repadded to
-    width-7. refs_in(B's new-width ID) must still find A.
+    repad() only widens filenames — the stored ref, the displayed id, and refs_in's query
+    are all matched/rendered by (prefix, sequence_id), never literal string width
+    (ADR-000282). A query at the (now-irrelevant) old or new filename width still resolves.
     """
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-000002
-    task = (await svc.create(ItemType.TASK, "task")).item  # TASK-000003
-    await svc.add_ref(task.id, feat.id)  # TASK-000003 → FEAT-000002 (width-6 stored ref)
+    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-2
+    task = (await svc.create(ItemType.TASK, "task")).item  # TASK-3
+    await svc.add_ref(task.id, feat.id)  # stores the unpadded ref "FEAT-2"
 
     await svc.repad(7)
 
-    # After repad, feat's canonical ID becomes FEAT-0000002.
+    # feat's displayed id is unchanged by repad; refs_in also tolerates a padded query.
     db = await svc.store.load()
-    feat_new_id = db.items[feat.sequence_id].id
-    assert feat_new_id == "FEAT-0000002"
+    feat_id = db.items[feat.sequence_id].id
+    assert feat_id == "FEAT-2"
 
-    # refs_in must still find TASK-0000003 using the new-width ID.
-    backrefs = await svc.refs_in(feat_new_id)
-    assert len(backrefs) == 1
-    task_new_id, kind = backrefs[0]
-    assert task_new_id == "TASK-0000003"
-    assert kind == "related"
+    for query in (feat_id, "FEAT-000002", "FEAT-0000002"):
+        backrefs = await svc.refs_in(query)
+        assert len(backrefs) == 1
+        task_id, kind = backrefs[0]
+        assert task_id == "TASK-3"
+        assert kind == "related"
 
 
 async def test_backrefs_width_tolerant_after_repad(svc):
@@ -900,26 +926,28 @@ async def test_backrefs_width_tolerant_after_repad(svc):
 
 
 async def test_parent_lookup_width_tolerant_after_repad(svc):
-    """Parent stored with old-width ID still resolves correctly after repad.
+    """Parent stored unpadded still resolves correctly after a filename-only repad.
 
     index.get(item.parent) is width-tolerant via _seq; _check_items must not report a
-    dangling-parent error when parent holds an old-width string.
+    dangling-parent error regardless of the squad's current filename padding.
     """
     feat = (await svc.create(ItemType.FEATURE, "feat")).item
     task = (await svc.create(ItemType.TASK, "task", parent=feat.id)).item
-    assert task.parent == "FEAT-000002"  # stored at width-6
+    assert task.parent == "FEAT-2"  # stored unpadded — display is always unpadded
 
     await svc.repad(7)
 
-    # The parent field in frontmatter still reads "FEAT-000002" (contents never rewritten).
+    # The parent field in frontmatter is untouched by repad (content is never rewritten).
     db = await svc.store.load()
     loaded_task = db.items[task.sequence_id]
-    assert loaded_task.parent == "FEAT-000002"  # old width in frontmatter
+    assert loaded_task.parent == "FEAT-2"
 
-    # index.get resolves it correctly (width-tolerant via _seq).
+    # index.get resolves it correctly (width-tolerant via _seq) — including a padded query.
     parent_item = db.get(loaded_task.parent)
     assert parent_item is not None
     assert parent_item.sequence_id == feat.sequence_id
+    assert db.get("FEAT-000002") is parent_item
+    assert db.get("FEAT-0000002") is parent_item
 
     # sq check must be clean — no dangling-parent errors.
     issues = await svc.check()
@@ -987,60 +1015,63 @@ async def test_check_decisions_width_tolerant_after_repad(svc):
 
 
 async def test_end_to_end_repad_resolution(svc):
-    """Full acceptance test: repad to width-7, every old-width ref/parent/mention still resolves.
+    """Full acceptance test: repad to width-7, every ref/parent/mention still resolves.
 
-    This is the joint acceptance seam with TASK-000102: after sq migrate repad(7),
-    all old-width stored refs/parent/CLI addressing must work and sq check must be clean.
+    This is the joint acceptance seam with FEAT-000027: after sq migrate repad(7), the
+    displayed id stays unpadded (ADR-000282), all stored refs/parent/CLI addressing keep
+    working at any queried width, and sq check must be clean.
     """
-    # Build a squad with cross-references and parent links (all width-6).
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-000002
-    # TASK-000003, parent FEAT-000002
-    task = (await svc.create(ItemType.TASK, "task", parent=feat.id)).item
-    bug = (await svc.create(ItemType.BUG, "bug")).item  # BUG-000004
-    await svc.add_ref(task.id, bug.id, kind="fixes")  # TASK-000003 fixes BUG-000004
-    await svc.add_ref(feat.id, task.id, kind="related")  # FEAT-000002 refs TASK-000003
+    # Build a squad with cross-references and parent links (all stored unpadded).
+    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-2
+    task = (await svc.create(ItemType.TASK, "task", parent=feat.id)).item  # TASK-3, parent FEAT-2
+    bug = (await svc.create(ItemType.BUG, "bug")).item  # BUG-4
+    await svc.add_ref(task.id, bug.id, kind="fixes")  # TASK-3 fixes BUG-4
+    await svc.add_ref(feat.id, task.id, kind="related")  # FEAT-2 refs TASK-3
 
-    # Confirm width-6 state.
-    assert task.parent == "FEAT-000002"
+    # Confirm unpadded state.
+    assert task.parent == "FEAT-2"
     assert await svc.refs_in(bug.id) == [(task.id, "fixes")]
 
-    # --- Repad to width 7 ---
+    # --- Repad to width 7 (filenames only) ---
     renamed = await svc.repad(7)
     assert renamed > 0
 
-    # After repad, the squad is at width-7.
+    # After repad, the squad's filename width is 7.
     db = await svc.store.load()
     assert db.padding == 7
 
-    # All items display at the new width.
+    # Display is unaffected by repad — still unpadded.
     feat7 = db.items[feat.sequence_id]
     task7 = db.items[task.sequence_id]
     bug7 = db.items[bug.sequence_id]
-    assert feat7.id == "FEAT-0000002"
-    assert task7.id == "TASK-0000003"
-    assert bug7.id == "BUG-0000004"
+    assert feat7.id == "FEAT-2"
+    assert task7.id == "TASK-3"
+    assert bug7.id == "BUG-4"
 
-    # Old-width parent ("FEAT-000002") resolves to the correct item.
-    parent_item = db.get(task7.parent)  # task7.parent is still "FEAT-000002"
+    # Parent ("FEAT-2") resolves to the correct item.
+    parent_item = db.get(task7.parent)  # task7.parent is still "FEAT-2"
     assert parent_item is not None
     assert parent_item.sequence_id == feat.sequence_id
 
-    # refs_in with new-width ID finds the old-width stored ref.
+    # refs_in finds the stored ref.
     bug_backrefs = await svc.refs_in(bug7.id)
     assert any(seq_id == task7.id for seq_id, _ in bug_backrefs), (
-        f"TASK-0000003 must appear in BUG-0000004 backrefs; got {bug_backrefs}"
+        f"TASK-3 must appear in BUG-4 backrefs; got {bug_backrefs}"
     )
 
     # backrefs on the DB level.
     assert task7.id in db.backrefs(bug7.id)
 
-    # CLI addressing with the old-width ID resolves to the item (db.get is width-tolerant).
-    assert db.get("FEAT-000002") is feat7
-    assert db.get("TASK-000003") is task7
-    assert db.get("BUG-000004") is bug7
+    # CLI addressing with the unpadded id resolves to the item.
+    assert db.get("FEAT-2") is feat7
+    assert db.get("TASK-3") is task7
+    assert db.get("BUG-4") is bug7
 
-    # CLI addressing with the new-width ID also resolves.
+    # CLI addressing with a padded variant (old or new filename width) also resolves
+    # (db.get is width-tolerant regardless of what's actually stored/displayed).
+    assert db.get("FEAT-000002") is feat7
     assert db.get("FEAT-0000002") is feat7
+    assert db.get("TASK-000003") is task7
     assert db.get("TASK-0000003") is task7
 
     # sq check is clean (no dangling refs, no dangling parents, no reconciliation errors).

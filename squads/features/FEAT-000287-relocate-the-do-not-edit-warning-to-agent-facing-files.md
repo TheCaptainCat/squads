@@ -1,14 +1,14 @@
 ---
-id: FEAT-000287
+id: FEAT-287
 sequence_id: 287
 type: feature
 title: Relocate the do-not-edit warning to agent-facing files
 status: Draft
-parent: EPIC-000012
+parent: EPIC-12
 author: product-owner
 priority: medium
 refs:
-- FEAT-000013
+- FEAT-13
 description: Move the do-not-edit warning off redundant squad-skill bodies onto the
   agent-facing files sq sync actually regenerates (CLAUDE.md, AGENTS.md, .claude/
   pointers), as a cross-backend convention
@@ -137,7 +137,7 @@ frontmatter contract, or anything `sq migrate` needs to know about. It's closer 
 contract on the `AgentBackend` ABC (point 5 above) than an ADR-worthy architectural decision.
 **My call: no standalone ADR needed** — capture the convention in the ABC docstring/CLAUDE.md
 architecture notes as scoped above. If the tech lead disagrees (e.g. because they see it as
-extending the FEAT-000013 stability contract's tier for "generated `.claude/` files"), an ADR is a
+extending the FEAT-13 stability contract's tier for "generated `.claude/` files"), an ADR is a
 cheap add and they should feel free to open one — but I don't think the decision is contentious or
 consequential enough on its own to need one.
 
@@ -152,11 +152,11 @@ consequential enough on its own to need one.
     `.claude`/CLAUDE.md/AGENTS.md output with the **roster held constant** — a dev-less fresh-init
     compared against a dev-bearing repo produces false-positive "regressions" that are just roster
     differences, not this change.
-- This interacts with **FEAT-000013** (the stability contract): tier 5 of that contract already
+- This interacts with **FEAT-13** (the stability contract): tier 5 of that contract already
   states generated `.claude/` files are "regenerable, never migrated; deleting them loses nothing."
   This feature doesn't change that tier's promise, but it changes *what the generated files say
   about themselves*, so the two must stay coherent — link `related` and have whoever implements
-  this re-read FEAT-000013's body before touching the wording.
+  this re-read FEAT-13's body before touching the wording.
 - No schema/index changes; no migration needed — this is template/rendering-only. Confirm `sq
   check` and the full golden-diff suite stay green (mechanically different content, same
   structural rules).
@@ -264,5 +264,5 @@ As a backend implementer (Copilot/Cursor/future AGENTS.md-only backend), I want 
 
 <!-- sq:discussion -->
 - [2026-07-02T15:12:01Z] Nina Product:
-  - Drafted per op-pierre's session with Catherine Manager. Two open calls made in the body for the tech lead to confirm or override during task breakdown: (1) drop the per-file squads:version stamp in favor of .squads.toml's single value, unless a real drift-detection consumer is found; (2) no standalone ADR needed — this is a rendering/backend-contract convention, not a schema decision; capture it in the AgentBackend docstring + CLAUDE.md architecture notes instead. Linked related to FEAT-000013 (stability contract) since tier 5 of that doc covers generated .claude/ files and must stay coherent with this change.
+  - Drafted per op-pierre's session with Catherine Manager. Two open calls made in the body for the tech lead to confirm or override during task breakdown: (1) drop the per-file squads:version stamp in favor of .squads.toml's single value, unless a real drift-detection consumer is found; (2) no standalone ADR needed — this is a rendering/backend-contract convention, not a schema decision; capture it in the AgentBackend docstring + CLAUDE.md architecture notes instead. Linked related to FEAT-13 (stability contract) since tier 5 of that doc covers generated .claude/ files and must stay coherent with this change.
 <!-- sq:discussion:end -->

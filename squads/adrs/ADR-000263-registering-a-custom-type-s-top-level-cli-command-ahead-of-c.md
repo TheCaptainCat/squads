@@ -1,5 +1,5 @@
 ---
-id: ADR-000263
+id: ADR-263
 sequence_id: 263
 type: decision
 title: Registering a custom type's top-level CLI command ahead of Click's parse-time
@@ -7,8 +7,8 @@ title: Registering a custom type's top-level CLI command ahead of Click's parse-
 status: Accepted
 author: architect
 refs:
-- FEAT-000210:addresses
-- ADR-000249
+- FEAT-210:addresses
+- ADR-249
 description: How to register sq <custom-type> as a top-level CLI command when the
   type name comes from a squad-dir-dependent override; chose the lazy-dispatch TyperGroup
   (Option 3) so the built-in command surface stays byte-identical.
@@ -18,12 +18,12 @@ updated_at: '2026-06-30T12:14:54Z'
 <!-- sq:body -->
 ## Context
 
-FEAT-000210 makes a project-declared custom type (e.g. `[workflow.types.incident]` in
+FEAT-210 makes a project-declared custom type (e.g. `[workflow.types.incident]` in
 `.overrides/workflow.toml`) fully usable: `sq incident create "…"`, `sq list -t incident`, a custom folder, an
 auto-generated `sq-incident` skill. AC#1 is the headline: *"a team that adds `incident` can run
 `sq incident create …` with no code change."*
 
-ADR-000249 / FEAT-000250 (Option A, done) already de-globalized the workflow spec into a
+ADR-249 / FEAT-250 (Option A, done) already de-globalized the workflow spec into a
 per-`Service`/per-invocation context: the root `--dir` callback resolves and binds the active spec
 via `common.set_active_spec()` (`_cli/__init__.py:_bind_active_spec`, called at
 `main_callback` line 100), and `parse_type`/`parse_status`/display helpers read it back via
@@ -61,7 +61,7 @@ Verified against HEAD: `sq incident create "x"` today prints `No such command 'i
 mean 'init'?`. The spec is known too late by construction. This is the FEAT-250 ordering wall in its
 *command-registration* form, one level earlier than the *value-parsing* form FEAT-250 solved.
 
-A second, related fact (TASK-000257 also owns it): the alias loop reads the hardcoded
+A second, related fact (TASK-257 also owns it): the alias loop reads the hardcoded
 `TYPE_ALIASES` dict in `_enums.py`, not `ItemSpec.aliases` from the spec. Whatever mechanism
 registers a custom type's command must also register its spec-declared aliases. This ADR's scope is
 the *name-registration ordering*; the alias source-swap rides along with whichever approach wins.
@@ -77,7 +77,7 @@ The built-in work-type commands **do** appear in top-level `sq --help` (measured
 │ bug … decision … review … guide …
 ```
 
-So AC#7 has a precise, testable meaning, and TASK-000256's golden pins it: **for a squad with no
+So AC#7 has a precise, testable meaning, and TASK-256's golden pins it: **for a squad with no
 custom types, `sq --help` must list exactly `epic/feature/task/bug/decision/review/guide` in
 declaration order, and `sq <unknown>` must keep printing Click's `No such command 'X'. Did you mean
 …?` + exit code.** Any approach that perturbs the no-custom-type `--help` text, the command order,
@@ -246,12 +246,12 @@ import.
   behaviour are byte-for-byte today's.
 - Custom types are additive: they appear in `--help`/completion and resolve as commands **only** when
   a project spec declares them. They never alter the built-in surface.
-- TASK-000256's characterization golden (pinned roster/clock/flags) gates every rewire; AC#8's F1
+- TASK-256's characterization golden (pinned roster/clock/flags) gates every rewire; AC#8's F1
   golden stays green. The `list_commands` override must fail-soft to the bundled set on any spec
   resolution error, exactly as `_bind_active_spec` already does, so a broken project override can
   never corrupt the built-in `--help`.
 
-### Effort / risk read for TASK-000257
+### Effort / risk read for TASK-257
 
 - **Effort: medium.** Three sub-steps: (a) refactor `build_item_app` to accept a **type string** and
   source capability flags from `get_active_spec()` rather than `ItemType` membership (shared by all
@@ -272,7 +272,7 @@ import.
 
 ## Consequences
 
-- TASK-000257 implements Option 3: `build_item_app(str)` + the lazy-dispatch root group become the
+- TASK-257 implements Option 3: `build_item_app(str)` + the lazy-dispatch root group become the
   mechanism custom types register through; `TYPE_ALIASES` retires in favour of `ItemSpec.aliases`.
 - **Custom-type shell completion is best-effort** (not byte-identical to a hand-tuned completion);
   documented as a known F4 limitation, candidate for FEAT-211 hardening.
@@ -290,7 +290,7 @@ import.
   - TASK-257 read: effort MEDIUM (3 sub-steps — (a) refactor build_item_app to take a type STRING + spec capability flags instead of the ItemType enum [shared by ALL options, do first]; (b) the root TyperGroup subclass; (c) alias loop TYPE_ALIASES→ItemSpec.aliases, retire TYPE_ALIASES, coordinate _print_cheatsheet + squads_skill.md.j2 consumers w/ TASK-261). Risk MEDIUM-LOW: two sharp edges — reach --dir from the Click ctx inside get_command (FEAT-250 precedent), and list_commands must fail-soft to bundled, never raise.
   - @manager Proposed, awaiting go/no-go. Drafting ≠ greenlight; TASK-257 stays blocked until accepted + approach confirmed. 256/258/259/262 proceed in parallel meanwhile.
 - [2026-06-30T12:09:56Z] Catherine Manager:
-  - Accepted Option 3 (lazy-dispatch root TyperGroup à la AddressDispatchGroup): keeps the built-in command path at pure import so non-custom squads are byte-identical by construction (AC#7/#8), with a fail-soft list_commands override enumerating custom types from the resolved spec. Rejected resolve-at-import (correctness hole, can't see --dir) and argv-pre-scan (degrades completion). Greenlit for TASK-000257.
+  - Accepted Option 3 (lazy-dispatch root TyperGroup à la AddressDispatchGroup): keeps the built-in command path at pure import so non-custom squads are byte-identical by construction (AC#7/#8), with a fail-soft list_commands override enumerating custom types from the resolved spec. Rejected resolve-at-import (correctness hole, can't see --dir) and argv-pre-scan (degrades completion). Greenlit for TASK-257.
 - [2026-06-30T12:13:23Z] Robert Architect:
   - Post-acceptance cleanup done (per @manager): (1) status banner rewritten — now reads Accepted, Option 3 selected, TASK-257 unblocked, no go/no-go/greenlight framing; (2) frontmatter description updated to past-tense 'Accepted: chose the lazy-dispatch TyperGroup …'; (3) every .squads.toml occurrence corrected to .overrides/workflow.toml (the FEAT-209 F2 canonical, verified at _loader.py:42); (4) the 'stays blocked on this ADR' dependency line + closing line updated to reflect acceptance. Options analysis / recommendation / --help+unknown-command resolution kept intact. Re-scanned the full body: no Proposed / go-no-go / .squads.toml leftovers. The earlier Proposed-era comment is left as-authored (append-only discussion record). Note: FEAT-210's body has the same stale .squads.toml wording I copied from — flagged to @manager for routing to the PO.
 - [2026-06-30T12:14:54Z] Robert Architect:

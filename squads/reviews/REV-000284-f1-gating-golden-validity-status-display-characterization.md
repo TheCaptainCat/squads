@@ -1,13 +1,13 @@
 ---
-id: REV-000284
+id: REV-284
 sequence_id: 284
 type: review
 title: F1 gating golden validity — status-display characterization
 status: Approved
 author: reviewer
 refs:
-- TASK-000275
-- FEAT-000211
+- TASK-275
+- FEAT-211
 subentities:
 - local_id: F1
   title: Working tree violates 'green against HEAD, no product code changed' — rewire
@@ -35,10 +35,10 @@ updated_at: '2026-07-03T09:18:40Z'
 <!-- sq:body -->
 ## Scope
 
-Independent review of the F1 gating characterization golden for FEAT-000211
+Independent review of the F1 gating characterization golden for FEAT-211
 (`tests/test_status_display_characterization.py`), plus the state of the working tree it currently
 sits in. Reviewed against the AC#3 ruling (reading (b): no new top-level status badge; built-in
-output byte-identical) and the FEAT-220/REV-000230 process rule (the characterization golden must be
+output byte-identical) and the FEAT-220/REV-230 process rule (the characterization golden must be
 authored FIRST, green against HEAD, no product code changed, as a passing guard for the rewire).
 
 ## Verdict summary
@@ -169,7 +169,7 @@ Elias's mid-loop resolution (relabel the docstring as a test-only golden, keep t
 
 
 
-(1) sq item IDs in source. The new docstring cites 'FEAT-000211 / TASK-000276' (line 118). sq item IDs must never appear in production source (standing project rule). Remove them.
+(1) sq item IDs in source. The new docstring cites 'FEAT-211 / TASK-276' (line 118). sq item IDs must never appear in production source (standing project rule). Remove them.
 
 
 
@@ -186,9 +186,9 @@ This keeps one source of truth for behaviour (the spec/toml) and moves the drift
 - [2026-07-02T10:07:57Z] Paul Reviewer:
   - Fixed. STATUS_EMOJI now has zero production consumers (grep src/ hits only its own definition in _enums.py + a comment in default_workflow.toml). Its docstring is relabeled as a test-only historical golden — the byte-identical reference that test_workflow_spec.py::test_golden_status_badges and the characterization golden check the spec's built-in badges against — with an instruction to delete it if it loses its last test consumer. Single source of truth for behavior (the spec/toml), single pinned reference for drift protection. Adequate.
 - [2026-07-02T10:09:14Z] Paul Reviewer:
-  - Reopened (Open, not Fixed). op-pierre reviewed the mid-loop STATUS_EMOJI resolution and it does not hold. Two required changes now in the finding body: (1) remove the 'FEAT-000211 / TASK-000276' sq IDs from the src/squads/_models/_enums.py docstring — sq IDs must not appear in source; (2) delete STATUS_EMOJI from _enums.py entirely and move the 9-glyph golden into the test layer (shared test constant), repointing test_workflow_spec.py and test_status_display_characterization.py to import it. A dead production dict kept only as a test oracle should not ship. @python-dev @tech-lead
+  - Reopened (Open, not Fixed). op-pierre reviewed the mid-loop STATUS_EMOJI resolution and it does not hold. Two required changes now in the finding body: (1) remove the 'FEAT-211 / TASK-276' sq IDs from the src/squads/_models/_enums.py docstring — sq IDs must not appear in source; (2) delete STATUS_EMOJI from _enums.py entirely and move the 9-glyph golden into the test layer (shared test constant), repointing test_workflow_spec.py and test_status_display_characterization.py to import it. A dead production dict kept only as a test oracle should not ship. @python-dev @tech-lead
 - [2026-07-03T09:18:32Z] Paul Reviewer:
-  - Fixed in commit 054af14. Independently verified in the current tree: (1) STATUS_EMOJI is deleted from src (the 054af14 diff removes the whole 9-glyph dict from _models/_enums.py; grep across src/ is clean) — the FEAT-000211/TASK-000276 IDs it carried are gone with it; (2) the 9-glyph golden is relocated to tests/_helpers.py::EXPECTED_BUILTIN_STATUS_BADGES (byte-identical glyphs) with both consumers repointed — test_workflow_spec.py::test_golden_status_badges asserts spec.badge against it, and test_status_display_characterization.py imports it for the domain guard + glyph checks. Behaviour source of truth stays the spec/TOML; the drift oracle now lives in the test layer.
+  - Fixed in commit 054af14. Independently verified in the current tree: (1) STATUS_EMOJI is deleted from src (the 054af14 diff removes the whole 9-glyph dict from _models/_enums.py; grep across src/ is clean) — the FEAT-211/TASK-276 IDs it carried are gone with it; (2) the 9-glyph golden is relocated to tests/_helpers.py::EXPECTED_BUILTIN_STATUS_BADGES (byte-identical glyphs) with both consumers repointed — test_workflow_spec.py::test_golden_status_badges asserts spec.badge against it, and test_status_display_characterization.py imports it for the domain guard + glyph checks. Behaviour source of truth stays the spec/TOML; the drift oracle now lives in the test layer.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 <!-- sq:findings:end -->
@@ -203,15 +203,15 @@ This keeps one source of truth for behaviour (the spec/toml) and moves the drift
 - [2026-07-02T10:08:06Z] Paul Reviewer:
   - Verdict: Approved. Re-reviewed the TASK-276 rewire (git diff 495fc95, read-only). _discussion._status_badge no longer calls Status(value); it resolves active_spec.status_badge(status_value) or the neutral _DEFAULT_BADGE ('⚪'), with spec=None falling back to bundled_spec() so the frozen migration runner is unaffected. The label-spacing regex is preserved. Spec is threaded, not globalized: self.spec at the service boundary (_refresh_head) and the pre-existing get_active_spec() at the CLI boundary (_subentity_pane_title_raw). No new reportPrivateUsage suppression (29 at HEAD, 29 now; the one in _subentity_pane_title_raw is pre-existing). AC#3 ruling (b) holds — _build_item_panel_rows still renders plain it.status, no top-level badge added. All four findings resolved (F1/F2/F4 Fixed, F3 waived). Targeted tests green: test_status_display_characterization.py + test_custom_status_badges.py + test_discussion.py = 51 passed; pyright + ruff clean on all touched files. TASK-276 is good to mark Done. @tech-lead @manager
 - [2026-07-02T10:09:27Z] Paul Reviewer:
-  - Verdict revised to ChangesRequested (correcting my earlier premature Approved). op-pierre reviewed F4's mid-loop resolution and it is not adequate — see F4 (reopened, Open) for the two required changes: (1) strip the 'FEAT-000211 / TASK-000276' sq IDs from the _enums.py docstring; (2) delete the dead STATUS_EMOJI dict from production and move its 9-glyph golden into the test layer, repointing test_workflow_spec.py and test_status_display_characterization.py.
+  - Verdict revised to ChangesRequested (correcting my earlier premature Approved). op-pierre reviewed F4's mid-loop resolution and it is not adequate — see F4 (reopened, Open) for the two required changes: (1) strip the 'FEAT-211 / TASK-276' sq IDs from the _enums.py docstring; (2) delete the dead STATUS_EMOJI dict from production and move its 9-glyph golden into the test layer, repointing test_workflow_spec.py and test_status_display_characterization.py.
   - 
   - Everything else in the review STANDS and re-verifies clean: the _status_badge crash fix is correct (spec-derived, '⚪' default, bundled fallback, no Status(value) parse); F1/F2 fixed (characterization golden byte-identical to 495fc95, custom-status tests in their own module); AC#3 (b) holds (no top-level badge; _build_item_panel_rows renders plain it.status); spec threaded, no new global; no new reportPrivateUsage suppression (29/29). Targeted tests green (51 passed).
   - 
-  - TASK-000276 is NOT Done until F4's follow-up fix lands and passes re-review. @tech-lead @python-dev @manager
+  - TASK-276 is NOT Done until F4's follow-up fix lands and passes re-review. @tech-lead @python-dev @manager
 - [2026-07-02T10:09:46Z] Catherine Manager:
-  - F4 reopened beyond Paul's approval, per op-pierre: the 'keep STATUS_EMOJI + document it' resolution is not accepted. Required: (a) remove the ticket IDs (FEAT-000211/TASK-000276) from the _enums.py docstring — sq IDs must not appear in source; (b) delete the dead STATUS_EMOJI dict from production and relocate the 9-glyph golden reference into the test layer. Fix routed to python-dev; TASK-000276 held InReview until verified.
+  - F4 reopened beyond Paul's approval, per op-pierre: the 'keep STATUS_EMOJI + document it' resolution is not accepted. Required: (a) remove the ticket IDs (FEAT-211/TASK-276) from the _enums.py docstring — sq IDs must not appear in source; (b) delete the dead STATUS_EMOJI dict from production and relocate the 9-glyph golden reference into the test layer. Fix routed to python-dev; TASK-276 held InReview until verified.
 - [2026-07-02T10:22:08Z] Catherine Manager:
-  - F4 verified fixed: STATUS_EMOJI deleted from src (grep-clean), ticket IDs removed, the 9-glyph golden reference relocated to tests/_helpers.py::EXPECTED_BUILTIN_STATUS_BADGES with both test consumers repointed. Rendered-output golden (tests/goldens/) untouched and _EXPECTED_BADGES literals unchanged — built-in behavior byte-identical; 70 targeted tests green. TASK-000276 → Done.
+  - F4 verified fixed: STATUS_EMOJI deleted from src (grep-clean), ticket IDs removed, the 9-glyph golden reference relocated to tests/_helpers.py::EXPECTED_BUILTIN_STATUS_BADGES with both test consumers repointed. Rendered-output golden (tests/goldens/) untouched and _EXPECTED_BADGES literals unchanged — built-in behavior byte-identical; 70 targeted tests green. TASK-276 → Done.
 - [2026-07-03T09:18:40Z] Paul Reviewer:
-  - Closing out: all findings resolved — F1 Fixed, F2 Fixed, F3 WontFix (deliberate, transitively guarded via shared spec.is_open), F4 Fixed (verified against commit 054af14). The review's substance landed with FEAT-000211/EPIC-000206 (both closed Done): the _status_badge crash is fixed spec-driven with a neutral default, the characterization gate is byte-identical to its HEAD baseline, custom-status acceptance tests are split into their own module, and the dead STATUS_EMOJI oracle is relocated to the test layer. Moving to Approved.
+  - Closing out: all findings resolved — F1 Fixed, F2 Fixed, F3 WontFix (deliberate, transitively guarded via shared spec.is_open), F4 Fixed (verified against commit 054af14). The review's substance landed with FEAT-211/EPIC-206 (both closed Done): the _status_badge crash is fixed spec-driven with a neutral default, the characterization gate is byte-identical to its HEAD baseline, custom-status acceptance tests are split into their own module, and the dead STATUS_EMOJI oracle is relocated to the test layer. Moving to Approved.
 <!-- sq:discussion:end -->

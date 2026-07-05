@@ -1,5 +1,5 @@
 ---
-id: EPIC-000031
+id: EPIC-31
 sequence_id: 31
 type: epic
 title: Squads backend
@@ -23,7 +23,7 @@ user-facing features.
 
 Technical features whose user is *the codebase and the team that works on it*, not an end user:
 
-- index & store robustness (locking, atomicity, counter integrity — e.g. the BUG-000022 class of
+- index & store robustness (locking, atomicity, counter integrity — e.g. the BUG-22 class of
   work), repair/check depth;
 - the shared resolver and other cross-cutting service infrastructure;
 - model/schema evolution mechanics, migration framework improvements;
@@ -34,8 +34,8 @@ Technical features whose user is *the codebase and the team that works on it*, n
 
 ## What doesn't
 
-Anything a user would notice as a capability: CLI grammar and output (Road to 1.0 — EPIC-000012),
-the TUI (EPIC-000028), the web view (EPIC-000029). Those epics own their features; this one owns
+Anything a user would notice as a capability: CLI grammar and output (Road to 1.0 — EPIC-12),
+the TUI (EPIC-28), the web view (EPIC-29). Those epics own their features; this one owns
 the ground they stand on. Disambiguation: "backend" here means the sq engine — not `sq web`'s
 server, and not only the `_backends/` agent-tool adapters.
 

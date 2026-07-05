@@ -1,12 +1,12 @@
 ---
-id: ADR-000077
+id: ADR-77
 sequence_id: 77
 type: decision
 title: Time is injectable through a single clock module
 status: Accepted
 author: architect
 refs:
-- GUIDE-000079
+- GUIDE-79
 description: All timestamps route through _clock.now()/iso(); freezable in tests and
   forgeable via --at for history-preserving adoption
 created_at: '2026-06-12T14:23:17Z'

@@ -1,10 +1,10 @@
 ---
-id: TASK-000188
+id: TASK-188
 sequence_id: 188
 type: task
 title: Lexical-by-slug SKILL id allocation, shared by init seeding and migration
 status: Done
-parent: FEAT-000178
+parent: FEAT-178
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -23,10 +23,10 @@ updated_at: '2026-06-24T20:00:54Z'
 
 Build the **deterministic lexical-by-slug** SKILL id allocation, and wire `sq init` to seed bundled
 skills using it so fresh squads carry SKILL ids from day one. This produces the single shared
-allocation order that the migration (TASK-000189) reuses, guaranteeing **ordering parity** between a
-migrated squad and a freshly-init'd one (ADR-000181 decision #5).
+allocation order that the migration (TASK-189) reuses, guaranteeing **ordering parity** between a
+migrated squad and a freshly-init'd one (ADR-181 decision #5).
 
-Depends on TASK-000187 (the regen path must be frontmatter-preserving before stamped frontmatter is
+Depends on TASK-187 (the regen path must be frontmatter-preserving before stamped frontmatter is
 safe to write). Sequence after 187, before 189.
 
 ## What to build
@@ -43,7 +43,7 @@ safe to write). Sequence after 187, before 189.
   no work lifecycle. Skills are excluded from `WORK_TYPES`/retype.
 - Identity allocated **exactly once** at seeding; never reallocated (ADR decision #4).
 
-## Design constraints (ADR-000181)
+## Design constraints (ADR-181)
 
 - Decision #1/#2: full Item of ItemType.SKILL, meta-type profile (Active/Archived, no sub-entities).
 - Decision #5: lexical-by-slug ordering, shared by init and migration; ordering parity, NOT identical
@@ -52,7 +52,7 @@ safe to write). Sequence after 187, before 189.
 ## Acceptance
 
 1. Fresh `sq init` produces a squad where `sq list -t skill` is non-empty and every skill file has
-   valid sq frontmatter with a unique `SKILL-…` id. (FEAT-000178 AC#1-adjacent, US3.)
+   valid sq frontmatter with a unique `SKILL-…` id. (FEAT-178 AC#1-adjacent, US3.)
 2. `sq repair` after a fresh init reconstructs the index to match file state exactly. (AC#2.)
 3. The allocation order is lexical-by-slug and exposed via one shared primitive consumed by both init
    and the migration. (Ordering-parity foundation for AC#5.)
@@ -113,9 +113,9 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-24T19:39:20Z] Elias Python:
-  - Implementation complete. bundled_skill_slugs() added to _interactions.py as the single shared lexical-by-slug ordering primitive (ADR-000181 decision #5). seed_bundled_skills() added to MaintenanceMixin in _maintenance.py: iterates slugs lexically, skips already-stamped files (idempotent, decision #4), allocates via IndexStore.transaction() (invariant 2), calls join_frontmatter to stamp id/sequence_id onto the existing body file. Called by service.init() after refresh_managed() so body files already exist at stamp time.
+  - Implementation complete. bundled_skill_slugs() added to _interactions.py as the single shared lexical-by-slug ordering primitive (ADR-181 decision #5). seed_bundled_skills() added to MaintenanceMixin in _maintenance.py: iterates slugs lexically, skips already-stamped files (idempotent, decision #4), allocates via IndexStore.transaction() (invariant 2), calls join_frontmatter to stamp id/sequence_id onto the existing body file. Called by service.init() after refresh_managed() so body files already exist at stamp time.
   - _iter_item_files extended to scan all *.md in agents/skills/ (not just SKILL-*.md) so sq repair works with slug-named files. _scan_for_check silently skips slug-named skill files without IDs (pre-migration). _check_items includes SKILL in registered set so no false warnings. _skip_skill_seed=True internal hook + --no-seed-skills hidden CLI flag added for backward-compatible testing.
   - 12 new tests in tests/test_skill_seeding.py: all pass. All 16 existing test files updated (--no-seed-skills). Golden json regenerated. Full suite green (exit 0). pyright 0 errors. ruff clean.
 - [2026-06-24T19:39:25Z] Elias Python:
-  - @manager TASK-000187 and TASK-000188 (FOUNDATION increment of FEAT-000178) are ready for review. Both tasks remain InProgress per instructions. Key files: src/squads/_backends/_claude_code/_backend.py (frontmatter-preserving regen), src/squads/_services/_maintenance.py (seed_bundled_skills + _iter_item_files + _scan_for_check), src/squads/_interactions.py (bundled_skill_slugs), src/squads/_services/_service.py (_skip_skill_seed hook), src/squads/_cli/_main.py (--no-seed-skills flag), tests/test_skill_seeding.py (12 new tests). Pyright clean, ruff clean, full suite green.
+  - @manager TASK-187 and TASK-188 (FOUNDATION increment of FEAT-178) are ready for review. Both tasks remain InProgress per instructions. Key files: src/squads/_backends/_claude_code/_backend.py (frontmatter-preserving regen), src/squads/_services/_maintenance.py (seed_bundled_skills + _iter_item_files + _scan_for_check), src/squads/_interactions.py (bundled_skill_slugs), src/squads/_services/_service.py (_skip_skill_seed hook), src/squads/_cli/_main.py (--no-seed-skills flag), tests/test_skill_seeding.py (12 new tests). Pyright clean, ruff clean, full suite green.
 <!-- sq:discussion:end -->

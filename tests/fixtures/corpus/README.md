@@ -12,6 +12,8 @@ corpus/
   v0_1/    — schema 0.1: bare refs + extra.ref_kinds, legacy heading-encoded sub-entity state
   v0_2/    — schema 0.2: inline ref kinds (ID:kind), :meta body regions for sub-entity state
   v0_3/    — schema 0.3: sequence_id in frontmatter, subentities list in frontmatter, :head regions
+  v0_5/    — schema 0.5: skills are first-class SKILL-prefixed items
+  v0_7/    — schema 0.7: unpadded display ids (frontmatter id/refs/parent; filenames stay padded)
 ```
 
 Each directory contains:

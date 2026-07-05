@@ -1,12 +1,12 @@
 ---
-id: ADR-000167
+id: ADR-167
 sequence_id: 167
 type: decision
 title: Advisory 120-char threshold for sub-entity titles
 status: Accepted
 author: architect
 refs:
-- FEAT-000166
+- FEAT-166
 description: Warn-and-proceed above 120 chars on finding/subtask/story titles; no
   body gating
 created_at: '2026-06-23T08:26:01Z'
@@ -19,7 +19,7 @@ Sub-entity authors (review findings, task subtasks, feature stories) routinely
 cram the full description into the **title** and leave the **body** as the
 rendered placeholder. A corpus sweep found 107 empty/placeholder sub-entity
 bodies (zero at the top-item level); 44 of those carry titles over 120 chars,
-the worst being a 781-char finding title. See FEAT-000166 for the full data.
+the worst being a 781-char finding title. See FEAT-166 for the full data.
 
 The title is meant to be a one-line **handle**, not the specification. We want
 to insist on that without **gating body presence** — a short-title sub-entity
@@ -32,7 +32,7 @@ Add a **single advisory threshold of 120 characters** on sub-entity titles.
 Titles at or below 120 are silent; titles above 120 trigger an
 **advisory, warn-and-proceed** message. This is not an error, not a gate, and
 never blocks: the command creates the sub-entity and exits 0, mirroring the
-`CreateResult.lane_warning` pattern from FEAT-000122 / ADR-000163.
+`CreateResult.lane_warning` pattern from FEAT-122 / ADR-163.
 
 - **Threshold value: 120 chars**, held as one module-level constant in
   `_interactions.py` (the home of the comparable `CREATE_LANES`). Not
@@ -72,8 +72,8 @@ Advisory register — names the fix with real IDs, does not scold:
 
 ## References
 
-- FEAT-000166 — the feature this decision governs.
-- FEAT-000122 / REV-000165 / ADR-000163 — the advisory lane-warning pattern
+- FEAT-166 — the feature this decision governs.
+- FEAT-122 / REV-165 / ADR-163 — the advisory lane-warning pattern
   this mirrors.
 <!-- sq:body:end -->
 

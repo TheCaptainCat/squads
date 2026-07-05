@@ -1,5 +1,5 @@
 ---
-id: ADR-000181
+id: ADR-181
 sequence_id: 181
 type: decision
 title: 'Skills as first-class entities: full Item of type SKILL on the role/operator
@@ -7,7 +7,7 @@ title: 'Skills as first-class entities: full Item of type SKILL on the role/oper
 status: Accepted
 author: architect
 refs:
-- FEAT-000178:addresses
+- FEAT-178:addresses
 description: A skill is a full Item of the existing ItemType.SKILL with the lightweight
   role/operator profile (Active/Archived, no sub-entities), not a separate lighter
   class; frontmatter stamped onto the existing body file via migration
@@ -137,7 +137,7 @@ the migration, so it bumps `SCHEMA_VERSION` (the feature anticipates `0.5`, deci
 project convention — `_models/_schema.py` is the single source of truth; compare with `schema_tuple`,
 never raw string `<`/`>`).
 
-## Relationship to FEAT-000176 / FEAT-000177
+## Relationship to FEAT-176 / FEAT-177
 
 Skills become ordinary `Item`s, so they ride the **same** `ItemStore` seam those two ADRs define:
 they get located (prefix/layout) by the `FEAT-000176` locator and serialized by the `FEAT-000177`

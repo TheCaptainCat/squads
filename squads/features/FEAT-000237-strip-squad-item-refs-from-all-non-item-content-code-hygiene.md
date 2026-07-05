@@ -1,12 +1,12 @@
 ---
-id: FEAT-000237
+id: FEAT-237
 sequence_id: 237
 type: feature
 title: Strip squad-item refs from all non-item content + code-hygiene guard
 status: Draft
 author: tech-lead
 refs:
-- FEAT-000231
+- FEAT-231
 subentities:
 - local_id: US1
   title: Code comments carry no squad-item references
@@ -95,7 +95,7 @@ The gate is what converts a cleanup into a durable invariant; the cleanup pass a
 
 ## Sequencing (two waves)
 
-- **`src/` code-commentary wave** — still gated behind **EPIC-000206** (the workflow/role/playbook externalization + de-typing) settling. That in-flight work is the largest current source of exactly the references this strips, so cleaning `src/` mid-flight would churn against it. Settle the epic, then sweep source.
+- **`src/` code-commentary wave** — still gated behind **EPIC-206** (the workflow/role/playbook externalization + de-typing) settling. That in-flight work is the largest current source of exactly the references this strips, so cleaning `src/` mid-flight would churn against it. Settle the epic, then sweep source.
 - **User-facing wave** — `docs/`, `README`, CLI output strings, bundled prose, and `CLAUDE.md`. This has **no such dependency** and can proceed independently and sooner; whoever schedules the work can split it from the `src/` wave. The guard can be scoped to land per wave (user-facing surfaces first, `src/` added when its sweep runs).
 <!-- sq:body:end -->
 
@@ -207,12 +207,12 @@ As a maintainer of the agent-facing guidance, I want the bundled role/skill/play
 - [2026-06-30T11:50:01Z] Catherine Manager:
   - Scope refinement (Pierre, 2026-06-30) — still DEFERRED until EPIC-206 (210/211/212) settles; the guard-first-now option was considered and declined to avoid churning against in-flight work. When scheduled, broaden scope beyond src/squads/ to ALSO cover tests/ and docs/ (and all docstrings): strip sq-item refs (FEAT-/TASK-/ADR-/REV-/BUG-/EPIC-/§N) and history/archaeology there too. Current magnitude: ~303 refs in src/squads (46 files), ~958 in tests/ (89 files), ~70 in docs/ (8 files).
   - Distinguish ILLEGITIMATE refs (citing the ticket that introduced code; 'previously X now Y' history; ADR section refs) — STRIP — from LEGITIMATE uses that stay: illustrative example payloads (e.g. a reflog JSON sample with a TASK id), and doc CLI-syntax templates like '--parent FEAT-…'. The guard must allow the latter or it'll false-positive.
-  - Test-side overlaps FEAT-000231 (behaviour-named test rewrite): test NAMES/docstrings citing AC#/ticket numbers (test_ac5_…) are FEAT-231's domain — coordinate so the two don't double-touch the same files.
+  - Test-side overlaps FEAT-231 (behaviour-named test rewrite): test NAMES/docstrings citing AC#/ticket numbers (test_ac5_…) are FEAT-231's domain — coordinate so the two don't double-touch the same files.
 - [2026-07-03T09:26:31Z] Olivia Lead:
   - Scope broadened (Pierre, 2026-07-03) from 'src/squads/ comments/docstrings only' to a single repo-wide invariant: only squad item files (the dogfood squad under squads/**) may reference squad item IDs — nowhere else in the repo, code or user-facing.
   - Lifted the previous carve-outs: docs/, README, shipped markdown, CLI output strings, the bundled role/skill/playbook prose, and CLAUDE.md are now IN scope for reference stripping. This also captures the previously-untracked 'shipped docs must not cite internal items' principle under the same guard.
   - Deliberate line kept: the terse/pure/history-free RESTYLE stays confined to src/ code commentary. User-facing prose (docs/README/bundled guidance/CLAUDE.md) is product content — we strip its squad-item refs but do NOT churn its wording.
   - Guard boundary: allowlist = squads/** item markdown (sole legitimate home for refs); forbidden = everything else (src/, docs/, README, CLI strings, bundled prose, CLAUDE.md). Must allow legitimate CLI-syntax templates (--parent FEAT-…) and example payloads (reflog sample with a TASK id).
-  - Scheduling split into two waves: the src/ code-commentary sweep stays gated behind EPIC-000206 settling (that de-typing work keeps adding these refs); the user-facing sweep has no such dependency and can proceed independently/sooner. Test-name/docstring refs (test_ac5_…) remain FEAT-000231's domain — coordinate to avoid double-touching test files.
+  - Scheduling split into two waves: the src/ code-commentary sweep stays gated behind EPIC-206 settling (that de-typing work keeps adding these refs); the user-facing sweep has no such dependency and can proceed independently/sooner. Test-name/docstring refs (test_ac5_…) remain FEAT-231's domain — coordinate to avoid double-touching test files.
   - Leaving Draft — backlog scope-expansion only; no tasks, no code touched.
 <!-- sq:discussion:end -->

@@ -1,13 +1,13 @@
 ---
-id: TASK-000170
+id: TASK-170
 sequence_id: 170
 type: task
 title: 'Skill reinforcement: sub-entity titles are handles, prose in body'
 status: Done
-parent: FEAT-000166
+parent: FEAT-166
 author: tech-lead
 refs:
-- ADR-000167
+- ADR-167
 subentities:
 - local_id: ST1
   title: Add handle-vs-body note to sq-review add-finding guidance
@@ -27,7 +27,7 @@ updated_at: '2026-06-23T09:30:07Z'
 <!-- sq:body -->
 Update the sq-review / sq-task / sq-feature skill generation templates to state that a sub-entity title is a short one-line handle and the spec/description belongs in the body. Implements US3.
 
-## Design (per ADR-000167)
+## Design (per ADR-167)
 - Content/template change only — no runtime code. Edit the skill generation templates so the guidance regenerates via sq sync with no manual edits.
 - Each note is concise (one or two sentences) and placed near the relevant add-* command in its skill.
 
@@ -120,5 +120,5 @@ In the sq-feature skill template, near the add-story guidance, add a concise (1�
 - [2026-06-23T08:59:33Z] Theo Writer:
   - Skill reinforcement complete: Updated PLAYBOOK in src/squads/_interactions.py to add handle-vs-body notes to the product-owner (add-story), tech-lead (add-subtask), and reviewer (add-finding) guidance sections. Generated skills (sq-feature, sq-task, sq-review) now carry the concise 1-2 sentence notes per spec. Verified with sq sync idempotency test (second run produced no changes). Added test_item_skills_teach_handle_vs_body_note to tests/test_skills.py to assert the notes appear in all three generated skills. All tests passing, code style clean (pyright/ruff).
 - [2026-06-23T09:30:07Z] Paul Reviewer:
-  - Reviewed in REV-000173 — APPROVED, no findings. Notes are in the PLAYBOOK source (not hand-edited), sq sync is idempotent (zero churn on re-run, per ST3), all three skills carry clear in-voice handle-vs-body notes, and the added test genuinely guards them. Markers intact, style clean.
+  - Reviewed in REV-173 — APPROVED, no findings. Notes are in the PLAYBOOK source (not hand-edited), sq sync is idempotent (zero churn on re-run, per ST3), all three skills carry clear in-voice handle-vs-body notes, and the added test genuinely guards them. Markers intact, style clean.
 <!-- sq:discussion:end -->

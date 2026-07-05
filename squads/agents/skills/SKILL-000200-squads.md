@@ -1,5 +1,5 @@
 ---
-id: SKILL-000200
+id: SKILL-200
 sequence_id: 200
 type: skill
 title: squads
@@ -23,7 +23,7 @@ description: 'How to track work on this project with the squads (`sq`) CLI: crea
 agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff protocol (comments,
 `@mentions`, an inbox). Here's your part of it. Work is tracked as identified markdown items under
 `squads/`, indexed in `squads/.squads.json`. Every item has a stable ID like
-`TASK-000003` (the prefix marks the type; the number is globally unique).
+`TASK-3` (the prefix marks the type; the number is globally unique).
 
 ## Golden rules
 
@@ -218,15 +218,15 @@ The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. U
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-000002] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
+sq create task "Title" --author <your-slug> [--parent FEAT-2] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
 #   --author is required and must be a registered agent (your own role slug)
 sq task 3 show --full --comments                                # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress                                     # transition (validated per type)
-sq task 3 update --assignee qa --priority high --parent FEAT-000002  # metadata (parent validated)
+sq task 3 update --assignee qa --priority high --parent FEAT-2  # metadata (parent validated)
 sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
 sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
 sq list --type task --status InProgress                         # closed items hidden; --all to include
-sq tree FEAT-000002 --json                                      # a feature's whole subtree (status/blocked) for coordinating
+sq tree FEAT-2 --json                                      # a feature's whole subtree (status/blocked) for coordinating
 sq search "lockout"                                             # match titles, summaries, bodies
 sq mine <your-slug>                                             # your open items  ·  sq workload
 sq blocked                                                      # open items waiting on an open blocker

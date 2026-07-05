@@ -1,17 +1,17 @@
 ---
-id: ADR-000158
+id: ADR-158
 sequence_id: 158
 type: decision
 title: 'Agent identity & spawn lineage: best-effort, untrusted lineage observability
   (squads records env, never spawns)'
 status: Accepted
-parent: EPIC-000121
+parent: EPIC-121
 author: architect
 priority: medium
 refs:
-- FEAT-000125:implements
-- ADR-000155
-- FEAT-000024
+- FEAT-125:implements
+- ADR-155
+- FEAT-24
 description: squads reads optional SQUADS_SESSION_ID/PARENT from its own invocation
   env if present and records them additively (reflog + frontmatter, back-compat);
   it never mints, spawns, or injects (it is never in the spawn path). Guarantee is
@@ -23,8 +23,8 @@ updated_at: '2026-06-22T09:10:06Z'
 <!-- sq:body -->
 ## Status
 
-Proposed — design-for FEAT-000125 (Real agent identity and spawn lineage). Parent context
-EPIC-000121. Identity dependency of ADR-000155 (capability attenuation); extends FEAT-000024
+Proposed — design-for FEAT-125 (Real agent identity and spawn lineage). Parent context
+EPIC-121. Identity dependency of ADR-155 (capability attenuation); extends FEAT-24
 (operation reflog).
 
 > **Revised 2026-06-22 (Pierre's correction).** An earlier draft of this ADR framed a squads role as
@@ -48,13 +48,13 @@ CLI flags.
 
 Two blind spots follow:
 
-1. **Authorship is unverified.** The 2026-06-15 incident (REV-000118 carried `author: reviewer`)
+1. **Authorship is unverified.** The 2026-06-15 incident (REV-118 carried `author: reviewer`)
    was recorded faithfully but was indistinguishable from an independent review at every surface.
 2. **Spawn lineage is invisible.** Agent spawning happens in the Claude Code Task/Agent-tool layer,
    **above and outside** sq's view. sq is invoked *by* an already-running agent; it never sees the
    spawn event, so it cannot on its own know that the architect spawned the reviewer.
 
-**Threat model (from FEAT-000125, binding on this design):** we defend against *accidental and
+**Threat model (from FEAT-125, binding on this design):** we defend against *accidental and
 uncontrolled autonomy, not malicious agents*. We are not trying to stop a deliberate forger; we are
 trying to make uncontrolled lineage (recursive self-spawn, self-review) **visible and attributable**
 after the fact, on a best-effort basis. That lower bar is what keeps a 1.x mechanism achievable.
@@ -100,7 +100,7 @@ squads does not generate or propagate identity. Its entire role is **read-and-re
   **skill or spawn prompt** would be responsible for ensuring a spawned specialist's `sq`
   invocations carry these vars. squads does not mint them, does not inject them into any child
   (it has no child), and does not depend on them existing. This is the same Task/Agent layer that
-  ADR-000155 already identified as the only place spawn policy can live; identity propagation, like
+  ADR-155 already identified as the only place spawn policy can live; identity propagation, like
   spawn policy, lives there and **not in squads**.
 - **The absent case is the common, fully-supported case.** When neither variable is set (today's
   reality, and the default whenever an orchestrator skill hasn't been written to propagate them),
@@ -130,7 +130,7 @@ field:
 - **Observability-only.** The value of this feature is **forensic visibility**, not enforcement:
   recording and rendering the lineage that *was declared*, so an after-the-fact reader can *see* a
   self-review or a recursive spawn pattern. It must **never** be trusted as an authorization input.
-- **1.0 contract wording.** The 1.0 stability contract (FEAT-000013) must state this in the field's
+- **1.0 contract wording.** The 1.0 stability contract (FEAT-13) must state this in the field's
   own definition: the recorded actor (slug + optional session/parent) is **untrusted, best-effort
   lineage for observability**, explicitly **not** verified identity and explicitly **not** a basis
   any `sq check` may trust for enforcement. Cryptographic / platform-verified identity is deferred
@@ -150,7 +150,7 @@ are present only when the environment carried them.
   reader already does `data.get("actor", "")` and tolerates unknown fields; old lines (no session
   fields) parse as `session_id=None, parent_session_id=None`. `ReflogLine`/`ReflogEntry` gain the
   two optional fields. Preferred over nesting `actor` into an object because (a) it does not break
-  the documented flat-string `actor` (FEAT-000013 stability), and (b) every existing golden-tested
+  the documented flat-string `actor` (FEAT-13 stability), and (b) every existing golden-tested
   `--json` shape stays valid.
 - **Item frontmatter.** Items today store only `author: str | None` (`_models/_item.py`). To surface
   the creating/last-modifying *session*, add two optional frontmatter fields (e.g. `created_session`
@@ -204,7 +204,7 @@ When the env carries them, each op records **its own `session_id` and its immedi
   harness layer (orchestrator skills and spawn prompts), and this ADR neither specifies nor
   guarantees it.
 
-### 7. Knock-on for FEAT-000122 Slice B (lane enforcement)
+### 7. Knock-on for FEAT-122 Slice B (lane enforcement)
 
 Because squads can **never obtain a verified actor**, any lane enforcement keyed on the recorded
 actor (slug or session) is **inherently advisory**:
@@ -214,7 +214,7 @@ actor (slug or session) is **inherently advisory**:
 - It is **trivially bypassable** by a wrong/forged `--as` slug or a fabricated/omitted session id.
   Nothing squads observes is trustworthy enough to *stop* a deliberate or careless override.
 - **Therefore Slice B must be framed and documented as advisory ("catch the accident"), never as a
-  security boundary ("stop the adversary").** Per ADR-000155, identity-aware capability *enforcement*
+  security boundary ("stop the adversary").** Per ADR-155, identity-aware capability *enforcement*
   that must trust *who* an actor really is stays gated on a future signed-identity capability that
   does not exist in 1.x. Slice B must not over-claim, and must not present a lane check as a
   guarantee.
@@ -233,14 +233,14 @@ actor (slug or session) is **inherently advisory**:
   the 1.0 contract field definition, and in any check built on it.
 - **Correction note.** This ADR previously (mis)attributed minting + env injection to a squads
   spawner role. That is retracted: squads is a passive tool, never in the spawn path, and does only
-  read-and-record. Identity propagation, like spawn policy (ADR-000155), lives in the agent layer.
+  read-and-record. Identity propagation, like spawn policy (ADR-155), lives in the agent layer.
 - **Follow-ups for the tech-lead.** US1 = the read-and-record path (optional env read at the
   callback into the `_actor.py` session pair, the two additive reflog fields, the optional item
   frontmatter fields, schema bump). US2 = `sq reflog --tree` + `show --full` session surfacing,
   **both labelled as untrusted observability**. Document the guarantee ("best-effort, untrusted
   lineage for observability — not verified identity, not forge-proof, not an enforcement input") in
-  the reflog schema docs and the 1.0 contract (FEAT-000013). Coordinate the additive schema bump with
-  the migration registry per CLAUDE.md. Frame any FEAT-000122 Slice B lane check as advisory.
+  the reflog schema docs and the 1.0 contract (FEAT-13). Coordinate the additive schema bump with
+  the migration registry per CLAUDE.md. Frame any FEAT-122 Slice B lane check as advisory.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -251,7 +251,7 @@ actor (slug or session) is **inherently advisory**:
   - Retracted the earlier framing that cast a squads role as the spawner that mints+injects. Recast the identity primitive as read-and-record only: squads reads optional SQUADS_SESSION_ID / SQUADS_PARENT_SESSION_ID from its own invocation env IF present, and records them. Setting/propagating those vars is the agent layer's job (orchestrator skills/prompts), explicitly out of scope for squads.
   - Guarantee downgraded and stated prominently: best-effort, explicitly-UNTRUSTED, observability-only — not verified identity, not tamper-evident. A self-declared slug stays a self-declaration; the session pair just widens it one hop. Wrote this into the 1.0 contract wording so no future sq check over-trusts the field.
   - Kept what survives the correction (pure recording/rendering): additive dual-form actor (flat slug + optional sibling session_id/parent_session_id), slug-only back-compat, sq reflog --tree, show --full surfacing, additive schema bump via the migration registry.
-  - Knock-on for FEAT-000122 Slice B: since squads can never obtain a verified actor, lane enforcement keyed on it is inherently ADVISORY — catches the honest accident, bypassable by a wrong/forged --as or session id. Must be framed as 'catch the accident,' never as a security boundary. Title updated to drop 'spawner-minted'.
+  - Knock-on for FEAT-122 Slice B: since squads can never obtain a verified actor, lane enforcement keyed on it is inherently ADVISORY — catches the honest accident, bypassable by a wrong/forged --as or session id. Must be framed as 'catch the accident,' never as a security boundary. Title updated to drop 'spawner-minted'.
 - [2026-06-22T09:10:06Z] Pierre Chat:
   - Accepted on the reframed basis: squads records best-effort, untrusted lineage (reads env if present, never spawns/injects). Build FEAT-125 as observability, then Slice B as an explicitly-advisory guardrail.
 <!-- sq:discussion:end -->

@@ -1,5 +1,5 @@
 ---
-id: REV-000094
+id: REV-94
 sequence_id: 94
 type: review
 title: 'Review TASK-000084: golden-file harness freezing every --json shape'
@@ -14,7 +14,7 @@ created_at: '2026-06-12T21:23:52Z'
 updated_at: '2026-06-23T09:59:40Z'
 ---
 <!-- sq:body -->
-Scope: golden-file test harness for TASK-000084 (US3 of FEAT-000015) — tests/test_golden_json.py + tests/goldens/ (24 snapshots, 25 tests). Read surface only; write-side print_block out of scope by design.
+Scope: golden-file test harness for TASK-84 (US3 of FEAT-15) — tests/test_golden_json.py + tests/goldens/ (24 snapshots, 25 tests). Read surface only; write-side print_block out of scope by design.
 
 Verdict: Approved. Coverage complete, determinism proven byte-stable, drift-catching verified (hand-edit + source-shape mutation both fail the build), UPDATE_GOLDENS gated on explicit env var (never auto-heals).
 <!-- sq:body:end -->
@@ -57,6 +57,6 @@ print_block (add-story/add-subtask/add-finding --json) emits the .md file locati
 <!-- sq:discussion -->
 - [2026-06-12T21:24:17Z] Paul Reviewer:
   - Approved. Coverage: all 16 read-side --json emitters pinned (9 in _main: list/tree/inbox/search/blocked/workload/mine/show/check; item show+refs+sub-entity list covering stories/subtasks/findings; role catalog+show; skill show; operator show). The only unpinned --json flags are write/mutation commands (create, create guide, add-story/subtask/finding via print_block) — correctly out of scope for a read-shape freeze.
-  - Determinism: byte-stable — two independent UPDATE_GOLDENS regenerations are identical and match the committed goldens exactly. Time frozen (2026-06-07T10:00:00Z), id counter pinned (ROLE-000001..OP-000009), no *-dev role activated so the random name pool is never exercised. Paths in goldens are squad-relative (tasks/TASK-...md), not absolute /tmp — no path flake.
+  - Determinism: byte-stable — two independent UPDATE_GOLDENS regenerations are identical and match the committed goldens exactly. Time frozen (2026-06-07T10:00:00Z), id counter pinned (ROLE-1..OP-000009), no *-dev role activated so the random name pool is never exercised. Paths in goldens are squad-relative (tasks/TASK-...md), not absolute /tmp — no path flake.
   - Drift-catching verified two ways: a hand-edited golden and a source-side shape mutation both fail with a clear UPDATE_GOLDENS regeneration message; default mode compares, never auto-heals. F1 (low, non-blocking): documented file/path key asymmetry on the write side. pyright/ruff errors in the tree are all in the unrelated override-loader files (_resolver.py/_base.py/_roster.py) — TASK-84 files are clean.
 <!-- sq:discussion:end -->

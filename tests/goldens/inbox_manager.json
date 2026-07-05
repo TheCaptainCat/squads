@@ -1,6 +1,6 @@
 [
   {
-    "id": "TASK-000003",
+    "id": "TASK-3",
     "title": "Implement login",
     "lines": [
       "- @manager please review the login handler"

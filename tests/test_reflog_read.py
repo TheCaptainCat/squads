@@ -17,6 +17,7 @@ from typer.testing import CliRunner
 
 from squads._cli import app
 from squads._index._reflog import reflog_path
+from squads._models._schema import SCHEMA_VERSION
 from squads._services._results import ReflogEntry
 
 # ---------------------------------------------------------------------------
@@ -173,7 +174,7 @@ def test_cli_reflog_json_shape(cli_squad):
         entry = data[0]
         for field in ("v", "ts", "actor", "op", "target", "delta"):
             assert field in entry, f"missing field {field!r} in --json output"
-        assert entry["v"] == "0.5"  # SCHEMA_VERSION
+        assert entry["v"] == SCHEMA_VERSION
 
 
 def test_cli_reflog_filter_item(cli_squad):

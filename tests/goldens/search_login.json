@@ -1,13 +1,13 @@
 [
   {
-    "id": "FEAT-000002",
+    "id": "FEAT-2",
     "title": "User authentication",
     "hits": [
       "Login and logout flows"
     ]
   },
   {
-    "id": "TASK-000003",
+    "id": "TASK-3",
     "title": "Implement login",
     "hits": [
       "Implement login",
@@ -17,14 +17,14 @@
     ]
   },
   {
-    "id": "BUG-000004",
+    "id": "BUG-4",
     "title": "Login crashes on empty password",
     "hits": [
       "Login crashes on empty password"
     ]
   },
   {
-    "id": "REV-000006",
+    "id": "REV-6",
     "title": "Code review for login",
     "hits": [
       "Code review for login"

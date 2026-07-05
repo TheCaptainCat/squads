@@ -1,14 +1,14 @@
 ---
-id: REV-000148
+id: REV-148
 sequence_id: 148
 type: review
 title: 'Review: emit canonical active_backends in 0.2->0.3 migration (TASK-000147)'
 status: Approved
 author: reviewer
 refs:
-- TASK-000147
-- FEAT-000138
-- ADR-000141
+- TASK-147
+- FEAT-138
+- ADR-141
 description: Independent review of the 0.2->0.3 TOML backend rewrite
 subentities:
 - local_id: F1
@@ -24,7 +24,7 @@ created_at: '2026-06-16T14:35:57Z'
 updated_at: '2026-06-16T14:58:51Z'
 ---
 <!-- sq:body -->
-Independent review of TASK-000147: making _v0_2_to_v0_3 emit canonical active_backends in .squads.toml. Verified the migrated on-disk shape, schema stamp, idempotency, back-compat reader, and the full gate. Behavior is correct; one test-coverage finding on non-vacuousness.
+Independent review of TASK-147: making _v0_2_to_v0_3 emit canonical active_backends in .squads.toml. Verified the migrated on-disk shape, schema stamp, idempotency, back-compat reader, and the full gate. Behavior is correct; one test-coverage finding on non-vacuousness.
 <!-- sq:body:end -->
 
 ## Findings
@@ -55,7 +55,7 @@ test_v0_2_migration_rewrites_backend_key (tests/test_migration_corpus.py) is int
 
 Root cause: run_pending_migrations() (src/squads/_services/_maintenance.py:160-162) calls _stamp_schema(SCHEMA_VERSION) AFTER the runner, which re-serializes the config via SquadsConfig.to_toml(). to_toml() only ever emits active_backends (never default_backend), and from_toml_dict() already translated the legacy key on load. So the stamp path alone normalizes the toml — _migrate_toml is redundant for the real migrate flow, and no test exercises it in isolation (grep: zero direct references in tests/).
 
-Impact: the rewrite behavior is correct and the acceptance end-state holds, but the test does not actually guard the helper. This is exactly the failure mode BUG-000134 was raised for (a suite that tests mechanics, not the thing it claims to). Before the 1.0 freeze the pin should be real.
+Impact: the rewrite behavior is correct and the acceptance end-state holds, but the test does not actually guard the helper. This is exactly the failure mode BUG-134 was raised for (a suite that tests mechanics, not the thing it claims to). Before the 1.0 freeze the pin should be real.
 
 Suggested fix (small): add a direct unit test that calls _v0_2_to_v0_3._migrate_toml(paths) on a fixture toml carrying default_backend and asserts the file is rewritten to active_backends with default_backend gone and all other keys preserved — OR assert the byte-for-byte idempotency short-circuit (active_backends-only toml left unchanged) and the neither-key->['claude_code'] branch, which the stamp path cannot mask. Alternatively, document _migrate_toml explicitly as defensive/intent-only given the stamp already normalizes.
 <!-- sq:finding:F1:body:end -->

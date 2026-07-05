@@ -1,15 +1,15 @@
 ---
-id: FEAT-000125
+id: FEAT-125
 sequence_id: 125
 type: feature
 title: Best-effort spawn-lineage recording (untrusted)
 status: Done
-parent: EPIC-000121
+parent: EPIC-121
 author: product-owner
 priority: low
 refs:
-- FEAT-000024
-- ADR-000158
+- FEAT-24
+- ADR-158
 subentities:
 - local_id: US1
   title: Structured actor record in the reflog (slug + session + parent)
@@ -27,7 +27,7 @@ This feature was originally scoped as "Real agent identity and spawn lineage" an
 
 ## Problem
 
-Every mutating operation in squads records an `actor` — but that actor is a **self-declared `--as` slug** (e.g. `--as reviewer`) or defaults to `actor=system`. The reflog (FEAT-000024) captures this field faithfully, but faithful recording of an untrusted input is not the same as trustworthy identity. The 2026-06-15 incident proved the cost: REV-000118 carried `author: reviewer` and the reflog recorded it as such, making the self-review indistinguishable from an independent one at every observable surface (see EPIC-000121).
+Every mutating operation in squads records an `actor` — but that actor is a **self-declared `--as` slug** (e.g. `--as reviewer`) or defaults to `actor=system`. The reflog (FEAT-24) captures this field faithfully, but faithful recording of an untrusted input is not the same as trustworthy identity. The 2026-06-15 incident proved the cost: REV-118 carried `author: reviewer` and the reflog recorded it as such, making the self-review indistinguishable from an independent one at every observable surface (see EPIC-121).
 
 Beyond authorship, squads is blind to **spawn lineage** — the tree of who spawned whom. Spawn events happen in the Claude Code / Task-tool layer, below sq's view. squads never sees the spawn event and cannot participate in it.
 
@@ -45,7 +45,7 @@ This is **observability for forensics, not verification.** The guarantee is expl
 - **`show --full` surfacing.** `sq <type> <n> show --full` surfaces the creating and last-modifying actor's session identity (slug + session_id + parent) where recorded.
 - **Honest guarantee in docs.** The guarantee is documented as "attributable, accident-evident — not forge-proof." No check built on this model may claim enforcement-grade or tamper-evident semantics.
 
-Relates to ADR-000158 (Agent identity & spawn lineage: spawner-minted session nonce, recorded-not-signed).
+Relates to ADR-158 (Agent identity & spawn lineage: spawner-minted session nonce, recorded-not-signed).
 
 ## Acceptance
 
@@ -127,12 +127,12 @@ As a squad manager, I want `sq reflog` to render a spawn-tree view, so that I ca
   - Q1 cont'd — strongest FEASIBLE mechanism today is the nonce-propagation path already sketched in scope: the spawner (manager/tech-lead) mints a spawn_id+parent_id and passes it to the child via the spawn prompt or an env var, and the child echoes it on every sq op (e.g. --session / SQUADS_SESSION). Its actual guarantee is MERELY RECORDED, not tamper-evident: the nonce is readable and copyable by the agent that holds it, so it just moves the self-declaration problem one hop up the chain (the open question answers itself — a plain env nonce is NOT sufficient for tamper-evidence). Cryptographic/signed identity would need a platform capability that does not exist in 1.x.
   - Q1 verdict — given the epic's stated threat model (accidental/uncontrolled autonomy, NOT malicious agents), a recorded-not-signed lineage is GOOD ENOUGH for forensics: it makes the 2026-06-15 self-review visibly non-independent in a spawn-tree view, which is the actual ask. Frame US1/US2 honestly as 'attributable, tamper-evident-against-accident' — do not over-promise cryptographic identity. Recommend keeping this feature scoped to the reflog/lineage observability win and explicitly deferring signed identity to a future platform-dependent feature.
 - [2026-06-22T07:45:02Z] Robert Architect:
-  - Design pinned: ADR-000158 (Agent identity & spawn lineage). Resolves the 'enforcement mechanism TBD' gap — buildable without re-deciding architecture.
+  - Design pinned: ADR-158 (Agent identity & spawn lineage). Resolves the 'enforcement mechanism TBD' gap — buildable without re-deciding architecture.
   - Mechanism: spawner mints {session_id, parent_session_id}, child receives via SQUADS_SESSION_ID/SQUADS_PARENT_SESSION_ID env vars, ingested once at the CLI root callback into _actor.py (the single actor chokepoint). Reflog gains two additive optional fields (actor stays a flat slug string — back-compat); items gain optional created/modified session fields. Immediate-parent-only; full chain reconstructed by walking edges. sq reflog --tree and show --full both feasible against this model.
-  - Honest guarantee: recorded-not-tamper-evident. Good enough for the accidental-autonomy threat (makes the 2026-06-15 self-review a visibly non-independent subtree); NOT forge-proof. Signed identity deferred to a future platform capability. Unlocks FEAT-000122 Slice B lane enforcement as 'catch the accident,' not 'stop the adversary' (consistent with ADR-000155's gate).
+  - Honest guarantee: recorded-not-tamper-evident. Good enough for the accidental-autonomy threat (makes the 2026-06-15 self-review a visibly non-independent subtree); NOT forge-proof. Signed identity deferred to a future platform capability. Unlocks FEAT-122 Slice B lane enforcement as 'catch the accident,' not 'stop the adversary' (consistent with ADR-155's gate).
 - [2026-06-22T09:04:56Z] Nina Product:
   - Scope reframe complete (per Catherine's delegation, incorporating Pierre's correction).
-  - Title changed to 'Best-effort spawn-lineage recording (untrusted)'. Body, acceptance, and both user story bodies rewritten to reflect that: (1) squads reads identity from the invocation environment if present — it does not generate or propagate it; (2) the guarantee is forensic observability, not verification; (3) no tamper-evidence or 'cannot be self-set' claim survives. ADR-000158 linked as related.
+  - Title changed to 'Best-effort spawn-lineage recording (untrusted)'. Body, acceptance, and both user story bodies rewritten to reflect that: (1) squads reads identity from the invocation environment if present — it does not generate or propagate it; (2) the guarantee is forensic observability, not verification; (3) no tamper-evidence or 'cannot be self-set' claim survives. ADR-158 linked as related.
   - US1 and US2 survive structurally but drop all verification/tamper-evidence language. US1: record slug + optional session/parent read from env, back-compatible. US2: render spawn tree from recorded edges, roots = no/unknown parent, best-effort label required.
-  - Slice B advisory note filed on FEAT-000122. @tech-lead: when you scope Slice B, treat it as accident-detection only, not enforcement-grade. @manager: reframe recorded and ready for triage.
+  - Slice B advisory note filed on FEAT-122. @tech-lead: when you scope Slice B, treat it as accident-detection only, not enforcement-grade. @manager: reframe recorded and ready for triage.
 <!-- sq:discussion:end -->

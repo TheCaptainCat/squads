@@ -1,11 +1,11 @@
 ---
-id: BUG-000134
+id: BUG-134
 sequence_id: 134
 type: bug
 title: AGENTS.md managed section missing workflow commands and skill content (agents_md
   backend)
 status: Verified
-parent: FEAT-000016
+parent: FEAT-16
 author: qa
 created_at: '2026-06-15T13:54:47Z'
 updated_at: '2026-06-16T09:42:35Z'
@@ -13,7 +13,7 @@ updated_at: '2026-06-16T09:42:35Z'
 <!-- sq:body -->
 ## Symptom
 
-After `sq init --backend agents_md` + `sq sync`, the generated AGENTS.md does not carry actual workflow or skill content as stated in FEAT-000016 US1 acceptance ('a valid AGENTS.md carrying roster, workflow and skill content').
+After `sq init --backend agents_md` + `sq sync`, the generated AGENTS.md does not carry actual workflow or skill content as stated in FEAT-16 US1 acceptance ('a valid AGENTS.md carrying roster, workflow and skill content').
 
 ## Actual AGENTS.md content
 

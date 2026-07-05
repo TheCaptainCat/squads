@@ -1,14 +1,14 @@
 ---
-id: ADR-000076
+id: ADR-76
 sequence_id: 76
 type: decision
 title: Dotted 0.x schema-version scheme with the sq migrate runner
 status: Accepted
 author: architect
 refs:
-- FEAT-000027
-- FEAT-000013
-- GUIDE-000079
+- FEAT-27
+- FEAT-13
+- GUIDE-79
 description: Schema version names the release that introduced it, compared as a tuple;
   upgrades run through ordered sq migrate steps
 created_at: '2026-06-12T14:23:11Z'
@@ -57,8 +57,8 @@ What this binds today:
   upgrade is recorded, testable, and replayable, and `up` always runs `repair` + stamps at the end.
 - **The version is meaningful while alpha**: it points at the release that introduced the format, so
   the changelog is the schema's documentation. Post-1.0, the scheme for the frozen contract is a
-  separate decision this ADR does not pre-empt (the stability work, FEAT-000013, and the padding
-  migration work, FEAT-000027, both build on this runner).
+  separate decision this ADR does not pre-empt (the stability work, FEAT-13, and the padding
+  migration work, FEAT-27, both build on this runner).
 - **The mismatch hard-stop is a guardrail, not an inconvenience** — it prevents a newer tool from
   silently writing an older squad into an inconsistent state.
 

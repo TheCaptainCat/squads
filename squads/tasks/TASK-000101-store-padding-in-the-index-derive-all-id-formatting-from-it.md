@@ -1,16 +1,16 @@
 ---
-id: TASK-000101
+id: TASK-101
 sequence_id: 101
 type: task
 title: Store padding in the index, derive all ID formatting from it, and guard create
   against exhaustion
 status: Done
-parent: FEAT-000027
+parent: FEAT-27
 author: tech-lead
 assignee: python-dev
 refs:
-- ADR-000104
-- REV-000105:addresses
+- ADR-104
+- REV-105:addresses
 subentities:
 - local_id: ST1
   title: Store padding in index; ID formatting derives from it
@@ -31,7 +31,7 @@ Make ID width an explicit, stored part of the on-disk format.
 - `repair` must PRESERVE the stored padding across a rebuild (like it preserves the counter high-water mark) — padding is carried forward, not recomputed from filenames. Backfill `padding=6` for any pre-existing index that lacks it (model default handles new reads; ensure repair writes it).
 
 ## Out of scope
-- The repad command itself (TASK-000102) and read-side tolerance (TASK-000103).
+- The repad command itself (TASK-102) and read-side tolerance (TASK-103).
 
 ## Invariants
 - Default width stays 6 — golden-file tests keyed to width-6 IDs MUST stay green.
@@ -77,13 +77,13 @@ Padding stored in index; all ID formatting derives from it; allocate_id raises i
 <!-- sq:discussion -->
 - [2026-06-14T21:13:15Z] Elias Python:
   - Implementation complete. All 554 tests pass; pyright and ruff are clean.
-  - **Formatter seam chosen**: Added `format_item_id(prefix, sequence_id, padding)` as a module-level helper in `_models/_item.py`. `SquadsDB.format_id(item_type, seq)` wraps it using `self.padding`. `Item.id` uses an `id_padding` field (pydantic `Field(exclude=True)`) defaulting to 6, threaded in from `db.padding` by the service layer at item-construction time. Items loaded from disk via `from_frontmatter` retain the default (6), which is correct for TASK-000101 scope; TASK-000103 handles width-tolerant equality.
+  - **Formatter seam chosen**: Added `format_item_id(prefix, sequence_id, padding)` as a module-level helper in `_models/_item.py`. `SquadsDB.format_id(item_type, seq)` wraps it using `self.padding`. `Item.id` uses an `id_padding` field (pydantic `Field(exclude=True)`) defaulting to 6, threaded in from `db.padding` by the service layer at item-construction time. Items loaded from disk via `from_frontmatter` retain the default (6), which is correct for TASK-101 scope; TASK-103 handles width-tolerant equality.
   - **Files changed**: `src/squads/_models/_item.py` (DEFAULT_ID_PADDING, format_item_id, id_padding field), `src/squads/_models/_index.py` (padding field, format_id, allocate_id exhaustion guard), `src/squads/_services/_base.py` (thread id_padding=db.padding at Item construction), `src/squads/_services/_maintenance.py` (repair carries padding with max(floor, max_filename_width), _renumber_plan uses format_item_id), `src/squads/_cli/_common.py` (3 error messages use format_item_id instead of :06d).
   - **Tests added**: 8 service/model tests (test_index.py, test_service.py) covering default=6, format_item_id widths, db.format_id, allocate_id at non-default padding, exhaustion guard at capacity, id_padding excluded from serialization, repair floor carry-forward, backfill write, create-at-capacity error. 2 CLI smoke tests (test_cli.py) covering repair holds padding floor after file deletion and create exits 1 naming sq migrate repad at capacity.
-  - **Note for TASK-000102 (repad command)**: the seam is clean. `SquadsDB.padding` is the single source of truth; updating it in a transaction and renaming all item files is all that's needed. `format_id` produces IDs at the new width once padding is bumped. Nothing in the current implementation needs to change for repad.
-  - **Note for TASK-000103 (width-tolerant equality)**: `from_frontmatter` items use default padding (6), so after a repad the `item.id` from a loaded item will be at width 6 even if the frontmatter id is width 7. TASK-000103 should focus on `split_ref`/resolver normalisation (strip leading zeros to compare sequence numbers) not on `Item.id` equality. The `number_for_id` helper in `_paths.py` already does `rsplit + int()` which is inherently width-tolerant.
+  - **Note for TASK-102 (repad command)**: the seam is clean. `SquadsDB.padding` is the single source of truth; updating it in a transaction and renaming all item files is all that's needed. `format_id` produces IDs at the new width once padding is bumped. Nothing in the current implementation needs to change for repad.
+  - **Note for TASK-103 (width-tolerant equality)**: `from_frontmatter` items use default padding (6), so after a repad the `item.id` from a loaded item will be at width 6 even if the frontmatter id is width 7. TASK-103 should focus on `split_ref`/resolver normalisation (strip leading zeros to compare sequence numbers) not on `Item.id` equality. The `number_for_id` helper in `_paths.py` already does `rsplit + int()` which is inherently width-tolerant.
   - @reviewer please review the formatter seam in _item.py and _index.py and the repair padding logic in _maintenance.py.
 - [2026-06-14T21:19:07Z] Paul Reviewer:
-  - Reviewed in REV-000105 → Approved (ready to merge). Gate re-run clean: 554 passed/1 skipped, pyright 0 errors, ruff check + format clean.
-  - Three LOW findings (non-blocking): F1 _renumber_plan formats at default width-6 ignoring db.padding (_maintenance.py:246); F2 the filename-recompute arm of repair's max(floor, filename-width) is untested; F3 dead guard in the padding computation (_maintenance.py:204-208). Recommend folding F1/F2 into TASK-000102/103 rather than reopening this foundation. @manager for the merge call.
+  - Reviewed in REV-105 → Approved (ready to merge). Gate re-run clean: 554 passed/1 skipped, pyright 0 errors, ruff check + format clean.
+  - Three LOW findings (non-blocking): F1 _renumber_plan formats at default width-6 ignoring db.padding (_maintenance.py:246); F2 the filename-recompute arm of repair's max(floor, filename-width) is untested; F3 dead guard in the padding computation (_maintenance.py:204-208). Recommend folding F1/F2 into TASK-102/103 rather than reopening this foundation. @manager for the merge call.
 <!-- sq:discussion:end -->

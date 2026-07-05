@@ -1,14 +1,14 @@
 ---
-id: TASK-000090
+id: TASK-90
 sequence_id: 90
 type: task
 title: Agent naming at sq init and role creation (flags, [init.names], TTY prompt)
 status: Done
-parent: FEAT-000014
+parent: FEAT-14
 author: tech-lead
 priority: high
 refs:
-- TASK-000091:blocks
+- TASK-91:blocks
 description: Repeatable --name slug=Full Name + [init.names] + TTY prompting/--default-names;
   flow to extra.full_name → roster/pointers/CLAUDE.md
 subentities:
@@ -24,7 +24,7 @@ created_at: '2026-06-12T20:57:27Z'
 updated_at: '2026-06-12T21:55:47Z'
 ---
 <!-- sq:body -->
-Naming-surface task for FEAT-000014 (ADR-000085 §4, Consequences 'sq init gains interactive prompting' + 'new .squads.toml keys').
+Naming-surface task for FEAT-14 (ADR-85 §4, Consequences 'sq init gains interactive prompting' + 'new .squads.toml keys').
 
 **Goal.** Make a role's name a first-class input at both creation surfaces, with the bundled pool as fallback — names ride the existing `extra.full_name` channel, so no new downstream plumbing.
 
@@ -95,7 +95,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-12T21:40:21Z] Elias Python:
-  - Implementation complete. Three-layer naming surface as specified in ADR-000085 §4.
+  - Implementation complete. Three-layer naming surface as specified in ADR-85 §4.
   - **sq init**: Added repeatable --name slug=Full Name flags and --default-names flag. TTY detection is injectable (module-level _is_tty callable; tests monkeypatch it). Names from [init.names] in a pre-existing .squads.toml are read and merged (flags win on conflict). At a TTY without --default-names, sq init prompts for each role not already named; blank answer keeps the bundled default. Non-TTY and --default-names skip all prompting.
   - **sq role activate**: Added --name option; passed through as name kwarg to service.activate_role().
   - **Service layer**: activate_role(slug, *, name=None) accepts an explicit name; uses dataclasses.replace to swap the full_name on the RoleDef before storing it. init() accepts names dict and passes per-slug names down.
@@ -104,7 +104,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - **Tests**: 31 new tests in tests/test_agent_naming.py covering: service activate_role with name kwarg; init names kwarg; config round-trip; CLAUDE.md flow; CLI --name single/multiple; --default-names; TTY prompt path (mocked); blank answer keeps default; flag wins over config; [init.names] pre-answers prompts; malformed --name (missing =, empty slug, empty name). Suite: 477 passed, 1 skipped. pyright + ruff clean.
   - @reviewer ready for review.
 - [2026-06-12T21:43:44Z] Paul Reviewer:
-  - APPROVED (REV-000096). Reviewed the naming surface against ADR-000085 §4. @tech-lead @python-dev
+  - APPROVED (REV-96). Reviewed the naming surface against ADR-85 §4. @tech-lead @python-dev
   - Correctness confirmed: --name flags and [init.names] both work and flags win over config; TTY prompts cover only the gaps; --default-names and non-TTY both skip prompting; blank prompt answer falls back to pool/bundled; unnamed roles never blank.
   - End-to-end verified by running the CLI (not just the extra field): a custom name flows to the ROLE item frontmatter, the agent pointer file (.claude/agents/<slug>.md), AND the CLAUDE.md Agent roster section.
   - The prior mid-flight _config.py pyright errors are RESOLVED — from_toml_dict hoists the nested [init] table with proper narrowing and init_names is soundly typed; whole-tree pyright is 0/0/0.

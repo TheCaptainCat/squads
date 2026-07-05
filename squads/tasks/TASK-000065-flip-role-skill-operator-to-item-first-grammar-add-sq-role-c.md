@@ -1,11 +1,11 @@
 ---
-id: TASK-000065
+id: TASK-65
 sequence_id: 65
 type: task
 title: Flip role/skill/operator to item-first grammar; add sq role catalog; remove
   the list subcommands
 status: Done
-parent: FEAT-000064
+parent: FEAT-64
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -41,7 +41,7 @@ created_at: '2026-06-12T12:05:15Z'
 updated_at: '2026-06-12T12:26:29Z'
 ---
 <!-- sq:body -->
-Bring `sq role`, `sq skill`, and `sq operator` into the uniform item CLI grammar (FEAT-000019 / the FEAT-000013 contract). This task covers everything EXCEPT styled body rendering, which is TASK-000066 — but both touch the same three CLI modules, so coordinate (one PR or stacked).
+Bring `sq role`, `sq skill`, and `sq operator` into the uniform item CLI grammar (FEAT-19 / the FEAT-13 contract). This task covers everything EXCEPT styled body rendering, which is TASK-66 — but both touch the same three CLI modules, so coordinate (one PR or stacked).
 
 ## What changes
 
@@ -54,7 +54,7 @@ Flip from verb-first to item-first. Target grammar:
 - `sq operator <slug|id|n> show | rm`  (NEW `show`; `rm` flips)
 
 Address forms accepted, EXACT match (no fuzzy):
-- role: slug (primary), full ID (ROLE-000001), bare number (1)
+- role: slug (primary), full ID (ROLE-1), bare number (1)
 - skill: slug, full ID, bare number
 - operator: slug (op-pierre), full ID, bare number
 
@@ -89,7 +89,7 @@ These templates emit the old grammar into generated CLAUDE.md / skill bodies —
 After editing templates, regenerate the managed artifacts the normal way (via the service refresh / `sq sync`); do NOT hand-edit the generated `.md` under `squads/`.
 
 ## Out of scope (this task)
-- Styled body rendering in `show` — that is TASK-000066.
+- Styled body rendering in `show` — that is TASK-66.
 - The `sq dev` group (developer roles) — separate creation surface, not named by the feature; leave it untouched. Call out in review if its `list` now looks inconsistent, but do not change it here.
 - `--full`/`--comments` panes for show — follow-on, not in this feature.
 
@@ -121,7 +121,7 @@ _Add with `sq task 65 add-subtask "<title>"`; track with `sq task 65 subtask <n>
 | ST3 | Done |  | Add sq role catalog; remove role/skill/operator list and --available (no shim) | US3 |
 | ST4 | Done |  | Update grammar in claude_section / greeting / squads templates; regen artifacts | US3 |
 | ST5 | Done |  | Rewrite CLI tests to item-first; add slug/id/n + catalog + removed-list coverage | US1 |
-| ST6 | Done |  | Top up the FEAT-000013 deferral comment if the shipped grammar deviated from the PO note | US3 |
+| ST6 | Done |  | Top up the FEAT-13 deferral comment if the shipped grammar deviated from the PO note | US3 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -223,7 +223,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST5:end -->
 
 <!-- sq:subtask:ST6 -->
-### ST6 — Top up the FEAT-000013 deferral comment if the shipped grammar deviated from the PO note
+### ST6 — Top up the FEAT-13 deferral comment if the shipped grammar deviated from the PO note
 
 <!-- sq:subtask:ST6:head -->
 **Status:** 🟢 Done
@@ -238,7 +238,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:subtask:ST6:discussion -->
 - [2026-06-12T12:26:22Z] Elias Python:
-  - Shipped grammar matches Nina's deferral note on FEAT-000013 (2026-06-12) verbatim. All five decisions (item-first, verb-first creation, sq role catalog, list removal without shim, slug resolution) are satisfied by this implementation. No top-up needed.
+  - Shipped grammar matches Nina's deferral note on FEAT-13 (2026-06-12) verbatim. All five decisions (item-first, verb-first creation, sq role catalog, list removal without shim, slug resolution) are satisfied by this implementation. No top-up needed.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 <!-- sq:subtasks:end -->

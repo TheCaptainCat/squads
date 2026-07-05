@@ -1,15 +1,15 @@
 ---
-id: FEAT-000137
+id: FEAT-137
 sequence_id: 137
 type: feature
 title: Manage backends on an existing squad
 status: Draft
-parent: EPIC-000136
+parent: EPIC-136
 author: product-owner
 refs:
-- FEAT-000016
-- ADR-000133
-- FEAT-000013
+- FEAT-16
+- ADR-133
+- FEAT-13
 description: sq backend command group to add, switch, list, and remove backends with
   clean artifact transitions
 subentities:
@@ -48,13 +48,13 @@ Teams change tooling. A developer joins who uses Cursor; a project migrates from
 
 - **Remove** a backend: call its cleanup, remove its entry from `.squads.toml`.
 
-- Any backend managed this way must pass the shared conformance suite (tests/test_backend_conformance.py, shipped as part of FEAT-000016 / ADR-000133). This is the safety net for new backends entering the registry.
+- Any backend managed this way must pass the shared conformance suite (tests/test_backend_conformance.py, shipped as part of FEAT-16 / ADR-133). This is the safety net for new backends entering the registry.
 
 ### Out of scope
 
 - Writing new backends (Cursor, Windsurf, etc.) — those are separate features under this epic.
 
-- The ABC or registry plumbing itself — that belongs in EPIC-000031.
+- The ABC or registry plumbing itself — that belongs in EPIC-31.
 
 ## Open questions (for triage)
 
@@ -66,7 +66,7 @@ Teams change tooling. A developer joins who uses Cursor; a project migrates from
 
   - Multiple-active unlocks real mixed-tooling scenarios (a team where half use Claude Code, half use Cursor) and avoids a second migration if the need arrives later. Cost: backends must not write conflicting paths; `sq sync` must fan out to all active ones; error surfaces multiply.
 
-  - **This drives a FEAT-000013 / capstone decision (see below).** Don't decide it here — flag it for Pierre to triage.
+  - **This drives a FEAT-13 / capstone decision (see below).** Don't decide it here — flag it for Pierre to triage.
 
 **OQ-3 — Artifact ownership on switch.** When switching from backend A to B, who is responsible for calling A's cleanup? The service layer (neutral coordinator), or the new backend B (it 'takes over')? Matters for the remove_artifacts contract — currently only defined for per-item removal.
 
@@ -84,9 +84,9 @@ Teams change tooling. A developer joins who uses Cursor; a project migrates from
 
 - `sq check` reports a clear error if `.squads.toml` references a backend that is not in the registry.
 
-## FEAT-000013 (stability contract) heads-up
+## FEAT-13 (stability contract) heads-up
 
-The `.squads.toml` `default_backend` field is about to freeze at 1.0 as part of the stability contract (FEAT-000013). If multiple-active backends are even plausibly in scope post-1.0, we should freeze the field in a forward-compatible shape right now — for example, accepting a string OR a list, so that adding multi-active later is not a breaking change. A string-or-list field reads as a single-element list at runtime; it is a backward-compatible extension. This is a design note for the capstone, not a change request on FEAT-000013. **Do NOT alter FEAT-000013 as part of this feature.**
+The `.squads.toml` `default_backend` field is about to freeze at 1.0 as part of the stability contract (FEAT-13). If multiple-active backends are even plausibly in scope post-1.0, we should freeze the field in a forward-compatible shape right now — for example, accepting a string OR a list, so that adding multi-active later is not a breaking change. A string-or-list field reads as a single-element list at runtime; it is a backward-compatible extension. This is a design note for the capstone, not a change request on FEAT-13. **Do NOT alter FEAT-13 as part of this feature.**
 <!-- sq:body:end -->
 
 ## User Stories

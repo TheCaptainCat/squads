@@ -1,5 +1,5 @@
 ---
-id: EPIC-000012
+id: EPIC-12
 sequence_id: 12
 type: epic
 title: Road to 1.0
@@ -7,8 +7,8 @@ status: Ready
 author: product-owner
 priority: high
 refs:
-- BUG-000022:depends-on
-- BUG-000021:depends-on
+- BUG-22:depends-on
+- BUG-21:depends-on
 description: Define and prove the 1.0 stability promise across our public surfaces
 created_at: '2026-06-10T12:40:41Z'
 updated_at: '2026-06-17T08:31:32Z'
@@ -39,12 +39,12 @@ done, tagging 1.0 is a formality.
 
 Two open bugs live outside this tree but gate the promise — 1.0 does not tag while they're open:
 
-- **BUG-000022** (counter regression / sequence-number reuse): the durability promise is hollow
+- **BUG-22** (counter regression / sequence-number reuse): the durability promise is hollow
   if a squad can quietly recycle identities.
-- **BUG-000021** (slug arguments unvalidated): the CLI grammar we freeze must not silently accept
+- **BUG-21** (slug arguments unvalidated): the CLI grammar we freeze must not silently accept
   garbage actors.
 
-Sequencing note: **FEAT-000013** (the contract doc) is late-binding — it records the decisions the
+Sequencing note: **FEAT-13** (the contract doc) is late-binding — it records the decisions the
 other features make; it starts early as a living draft and closes last.
 <!-- sq:body:end -->
 
@@ -53,13 +53,13 @@ other features make; it starts early as a living draft and closes last.
 <!-- sq:discussion -->
 - [2026-06-11T07:52:26Z] Nina Product:
   - PO readiness review (2026-06-11): definition is complete — 13 features, every one with problem/value/scope/acceptance, 32 stories with acceptance criteria where decomposition is natural (hardening deliberately story-less), priorities set, dependencies machine-readable (depends-on/blocks). Verdict: ready for Ready, with three pre-transition nits for op-pierre:
-  - 1) FEAT-000019 is priced medium but is the keystone — 20, 26, 27, 37 and both UI epics depend on it; suggest high.
-  - 2) FEAT-000013 (contract doc) is late-binding: it records decisions made by 19/27/35/23/24/16/32 — recommend starting it early as a living draft but defining done as 'reflects final decisions', i.e. it closes last.
-  - 3) The epic's real exit criteria include BUG-000021 and BUG-000022 (slug validation, counter regression) which live outside the tree — the durability promise is hollow while 22 is open. Suggest the epic body or a checklist note make the two bugs explicit gates.
+  - 1) FEAT-19 is priced medium but is the keystone — 20, 26, 27, 37 and both UI epics depend on it; suggest high.
+  - 2) FEAT-13 (contract doc) is late-binding: it records decisions made by 19/27/35/23/24/16/32 — recommend starting it early as a living draft but defining done as 'reflects final decisions', i.e. it closes last.
+  - 3) The epic's real exit criteria include BUG-21 and BUG-22 (slug validation, counter regression) which live outside the tree — the durability promise is hollow while 22 is open. Suggest the epic body or a checklist note make the two bugs explicit gates.
   - Also: epic itself carries no priority — fine for an umbrella, flagging for consistency. No transitions performed; operator reviews next.
 - [2026-06-11T07:54:51Z] Pierre Chat:
-  - Readiness review accepted — definition approved, transitioning the epic, its thirteen features and the two gating bugs (BUG-000021, BUG-000022) to Ready.
+  - Readiness review accepted — definition approved, transitioning the epic, its thirteen features and the two gating bugs (BUG-21, BUG-22) to Ready.
 - [2026-06-17T08:31:32Z] Catherine Manager:
-  - Capstone FEAT-000013 (stability contract) is Done and gated — it was the last open feature under this epic; all planned grammar/format-settling features have landed.
-  - Deliberately keeping this epic OPEN, not closing it. 'Road to 1.0' completes when 1.0 is declared, and op-pierre is shipping 0.3.0 first to exercise the contract before committing to 1.0. Remaining gate to 1.0: settle the two pre-freeze reflog questions (REV-000119 F3/F5) and complete real-world testing. Close this epic at the 1.0 cut.
+  - Capstone FEAT-13 (stability contract) is Done and gated — it was the last open feature under this epic; all planned grammar/format-settling features have landed.
+  - Deliberately keeping this epic OPEN, not closing it. 'Road to 1.0' completes when 1.0 is declared, and op-pierre is shipping 0.3.0 first to exercise the contract before committing to 1.0. Remaining gate to 1.0: settle the two pre-freeze reflog questions (REV-119 F3/F5) and complete real-world testing. Close this epic at the 1.0 cut.
 <!-- sq:discussion:end -->

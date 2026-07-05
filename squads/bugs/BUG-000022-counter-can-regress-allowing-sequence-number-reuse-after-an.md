@@ -1,5 +1,5 @@
 ---
-id: BUG-000022
+id: BUG-22
 sequence_id: 22
 type: bug
 title: Counter can regress, allowing sequence-number reuse after an item file disappears
@@ -7,8 +7,8 @@ status: Verified
 author: product-owner
 priority: high
 refs:
-- FEAT-000019
-- FEAT-000023
+- FEAT-19
+- FEAT-23
 description: Hand-edited or repair-rebuilt indexes accept a regressed counter, so
   deleted items' numbers get reused; repair sets counter to max-found, ignoring the
   previous high-water mark
@@ -27,7 +27,7 @@ updated_at: '2026-06-11T20:40:07Z'
 4. Nothing objected at any point: the regressed counter was accepted silently, the reuse happened
    without a warning, and `sq check` reports no issues afterwards.
 
-It then happened a second time, to **this very item**: the first BUG-000022 was deleted from disk
+It then happened a second time, to **this very item**: the first BUG-22 was deleted from disk
 and `sq repair` rolled the counter back to 21 (`rebuilt index: 21 items, counter=21`); this refiled
 copy reclaimed number 22. Harmless here — same content, same number — but it demonstrates the
 repair pathway end-to-end on a real squad.
@@ -35,9 +35,9 @@ repair pathway end-to-end on a real squad.
 ## Why this is high priority
 
 "One monotonic counter; an ID's number is globally unique" is a core invariant, and number-based
-addressing (`sq task 21`) plus the FEAT-000019 direction (bare numbers accepted everywhere) lean
+addressing (`sq task 21`) plus the FEAT-19 direction (bare numbers accepted everywhere) lean
 on it hard. Reuse silently rebinds history. This also touches the 1.0 durable-format promise
-(EPIC-000012): the on-disk format must not allow a squad to quietly recycle identities — and since
+(EPIC-12): the on-disk format must not allow a squad to quietly recycle identities — and since
 the `.md` files are the source of truth and the index is "just a rebuildable cache", operators
 *will* touch these files and rerun `repair`; the invariant has to survive exactly that.
 
@@ -57,7 +57,7 @@ the `.md` files are the source of truth and the index is "just a rebuildable cac
   trusted.
 - Ideally `repair`/`check` reports items that were in the previous index but are missing from
   disk — a deletion is an event worth surfacing, not silently absorbing.
-- Related: FEAT-000023 (sanctioned removal) would give operators a tool that preserves the
+- Related: FEAT-23 (sanctioned removal) would give operators a tool that preserves the
   high-water mark, removing the *reason* to hand-edit.
 
 ## Repro
@@ -72,13 +72,13 @@ observe N reused. (Both routes reproduced live in this squad.)
 - [2026-06-10T13:52:01Z] Nina Product:
   - Refiled after an authorized deletion test by op-pierre — the deletion itself exercised the repair pathway and this copy reclaimed number 22, which is the bug in action.
 - [2026-06-11T12:12:11Z] Catherine Manager:
-  - Triage 2026-06-11: confirmed high — first in the bug queue. Core invariant violation (counter monotonicity), already reproduced twice live in this squad. Scope: repair keeps max(previous counter, max found on disk); loading an index whose counter is below the max item sequence repairs upward (or flags); repair/check surfaces items present in the previous index but missing from disk. FEAT-000023 (sanctioned removal) linked as relates — it removes the reason to hand-edit the index.
+  - Triage 2026-06-11: confirmed high — first in the bug queue. Core invariant violation (counter monotonicity), already reproduced twice live in this squad. Scope: repair keeps max(previous counter, max found on disk); loading an index whose counter is below the max item sequence repairs upward (or flags); repair/check surfaces items present in the previous index but missing from disk. FEAT-23 (sanctioned removal) linked as relates — it removes the reason to hand-edit the index.
 - [2026-06-11T12:16:07Z] Olivia Lead:
-  - Fix task created: TASK-000042 (high, @python-dev). Scope split into 4 subtasks — repair high-water mark, load-time counter validation, missing-items reporting, regression tests. First in the queue.
+  - Fix task created: TASK-42 (high, @python-dev). Scope split into 4 subtasks — repair high-water mark, load-time counter validation, missing-items reporting, regression tests. First in the queue.
 - [2026-06-11T12:51:03Z] Olivia Lead:
-  - @qa Fix landed and reviewed (TASK-000042, Done). Counter is now monotonic: repair keeps max(previous counter, max-on-disk), and load() raises a regressed stored counter to the max sequence. Please verify: delete the highest-numbered item's .md, run `sq repair` (counter must hold + missing item warned), then create a new item (must be max+1, never the reused number); also hand-edit the index counter below the max and confirm load() repairs it upward. Changes are in the working tree, uncommitted. Bug stays open until you verify.
+  - @qa Fix landed and reviewed (TASK-42, Done). Counter is now monotonic: repair keeps max(previous counter, max-on-disk), and load() raises a regressed stored counter to the max sequence. Please verify: delete the highest-numbered item's .md, run `sq repair` (counter must hold + missing item warned), then create a new item (must be max+1, never the reused number); also hand-edit the index counter below the max and confirm load() repairs it upward. Changes are in the working tree, uncommitted. Bug stays open until you verify.
 - [2026-06-11T13:19:07Z] Mara Tester:
-  - Verified fix for BUG-000022 (TASK-000042) against working tree.
+  - Verified fix for BUG-22 (TASK-42) against working tree.
   - Scenario 1 (repair after file loss): created 3 tasks (seq 9-11), deleted TASK-000011 file, ran sq repair → counter held at 11 (not regressed to 10); new create allocated TASK-000012 (no reuse of 11); sq repair output: 'warn TASK-000011: indexed but no markdown file found (deleted?)'.
   - Scenario 2 (hand-regressed counter): manually set counter=8 in .squads.json (max seq=12); ran sq list → file NOT rewritten (counter still 8); ran sq create → allocated TASK-000013 (max+1=13) and persisted corrected counter=13.
   - Scenario 3 (sq check): deleted highest item file without repair → sq check exits 1 with 'error TASK-000011: in index but no markdown file found'. Missing items are surfaced.

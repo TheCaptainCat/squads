@@ -1,15 +1,15 @@
 ---
-id: REV-000238
+id: REV-238
 sequence_id: 238
 type: review
 title: 'FEAT-208 review: de-type to str + capability flags + reserved-vocab'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000208
-- TASK-000233
-- TASK-000234
-- TASK-000235
+- FEAT-208
+- TASK-233
+- TASK-234
+- TASK-235
 subentities:
 - local_id: F1
   title: 'Load-boundary vocab validation (ADR-232 §1) not implemented: unknown type/status
@@ -41,7 +41,7 @@ created_at: '2026-06-26T14:32:39Z'
 updated_at: '2026-06-26T15:12:51Z'
 ---
 <!-- sq:body -->
-Independent review of FEAT-000208 (de-typing Item.type/status + SubEntity.status to str; reify ~22 is-ItemType/is-Status checks onto TypeSpec/StatusSpec capability flags; reserved-vocab subset check; extra=forbid hardening). Implemented across TASK-233/234/235 (uncommitted). Reviewed the full HEAD diff, the TOML flag values vs git show HEAD, the characterization gate (REV-236), and ran a live corrupt-frontmatter repro against both HEAD and the change.
+Independent review of FEAT-208 (de-typing Item.type/status + SubEntity.status to str; reify ~22 is-ItemType/is-Status checks onto TypeSpec/StatusSpec capability flags; reserved-vocab subset check; extra=forbid hardening). Implemented across TASK-233/234/235 (uncommitted). Reviewed the full HEAD diff, the TOML flag values vs git show HEAD, the characterization gate (REV-236), and ran a live corrupt-frontmatter repro against both HEAD and the change.
 
 ## Reification equivalence (the core risk) — PASS. Every one of the ~22 identity checks reifies to behaviour IDENTICAL to the original for the default vocabulary, and each is pinned by a characterization test. Verified individually: _template_for (is_meta -> agents/<type>.md.j2, equiv since meta values == role/skill/operator); _is_participant (is_meta && !=SKILL == {role,operator}); _check_author (is_meta == the 3-tuple); _AGENT_TYPES regen/body/remove (is_meta && !=OPERATOR == {role,skill}); _validate_subtask_story + _check_subtask_stories (parent_required='feature' + subentity_kind=='subtask', uniqueness holds); _check_orphaned registered (is_meta); _check_decisions (supersedes ref_rule + status_role=='superseded', decision is the only type with the rule and Superseded the only status with the role); parent_hint (fixes/addresses ref_rules -> only task gets the suffix); roster _NON_WORK_TYPES (is_meta); work_types() == old WORK_TYPES; severity_field (bug only); backend SKILL removal + role/skill/operator lookups (legit is->== on the widened field, kept type-specific).
 
@@ -95,7 +95,7 @@ _Add with `sq review 238 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
-ADR-000232 §1 mandates that ItemStore.load / open_service validate each item's type/status against the loaded WorkflowSpec (spec.is_known_type / spec.is_valid_status), raising SquadsError with the offending item id on an unknown value. This was NOT implemented — _index/_store.py has zero diff, open_service does no validation, and there are no is_known_type/is_valid_status methods.
+ADR-232 §1 mandates that ItemStore.load / open_service validate each item's type/status against the loaded WorkflowSpec (spec.is_known_type / spec.is_valid_status), raising SquadsError with the offending item id on an unknown value. This was NOT implemented — _index/_store.py has zero diff, open_service does no validation, and there are no is_known_type/is_valid_status methods.
 
 Before de-typing, Item.from_frontmatter called ItemType(...)/Status(...) which raised at construction on a bad value, so sq repair REJECTED corrupt frontmatter. Now from_frontmatter stores the raw string with no check.
 
@@ -143,7 +143,7 @@ Impact: fail-closed and behaviour-neutral TODAY (F2 has no way to define a custo
 <!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
-_cli/_common.py parse_type/parse_status iterate ItemType / Status enum members. ADR-000232 scope says they should iterate spec.managed_types() / the spec status set. Behaviour-identical for the default vocab (reserved == default), so no regression; arguably safer (validates against reserved vocab). Informational — flagging only because it deviates from the ADR's stated approach. Fine to leave within the F2 scope boundary (no custom types end-to-end yet).
+_cli/_common.py parse_type/parse_status iterate ItemType / Status enum members. ADR-232 scope says they should iterate spec.managed_types() / the spec status set. Behaviour-identical for the default vocab (reserved == default), so no regression; arguably safer (validates against reserved vocab). Informational — flagging only because it deviates from the ADR's stated approach. Fine to leave within the F2 scope boundary (no custom types end-to-end yet).
 <!-- sq:finding:F3:body:end -->
 
 #### Discussion

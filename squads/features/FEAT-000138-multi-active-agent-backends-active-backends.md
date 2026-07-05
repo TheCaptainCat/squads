@@ -1,17 +1,17 @@
 ---
-id: FEAT-000138
+id: FEAT-138
 sequence_id: 138
 type: feature
 title: Multi-active agent backends (active_backends)
 status: Done
-parent: EPIC-000012
+parent: EPIC-12
 author: product-owner
 priority: high
 refs:
-- FEAT-000016
-- ADR-000133
-- FEAT-000137
-- FEAT-000013
+- FEAT-16
+- ADR-133
+- FEAT-137
+- FEAT-13
 subentities:
 - local_id: US1
   title: Maintain multiple active backends at once
@@ -40,22 +40,22 @@ Three semantics nail down the edges:
   but generates no agent files. `sq check` has nothing to verify when the list
   is empty (no managed-file rule fires).
 - **`sq check` verifies each *active* backend's managed files are present**
-  (present-only per ADR-000141; drift/currency detection is deferred — it can be
+  (present-only per ADR-141; drift/currency detection is deferred — it can be
   added later without a schema change, so it need not freeze at 1.0).
 - **Deactivation = ignore, not delete.** Removing a backend from the list leaves
   its files on disk untouched; `sync` stops refreshing them and `sq check` stops
   checking them — they go stale harmlessly. No artifact deletion on
   deactivation. (Active cleanup/removal is the post-1.0 `sq backend remove`
-  story in FEAT-000137, not here.)
+  story in FEAT-137, not here.)
 
 ## Why now (pre-1.0)
 
-This is the **schema shape FEAT-000013 (stability contract) will freeze**.
+This is the **schema shape FEAT-13 (stability contract) will freeze**.
 `active_backends` is part of the durable `.squads.toml` surface; we must pick
 the multi-active shape *before* 1.0 so the freeze doesn't lock us into the
 singular `default_backend` and force a breaking change later. This directly
-**resolves FEAT-000137's OQ-2 (single-active vs multiple-active)** in favour of
-multiple-active, so FEAT-000137's post-1.0 management commands
+**resolves FEAT-137's OQ-2 (single-active vs multiple-active)** in favour of
+multiple-active, so FEAT-137's post-1.0 management commands
 (`sq backend add/switch/remove`) build on a list that already exists.
 
 ## Scope
@@ -66,7 +66,7 @@ This feature is the **schema + multi-active runtime + check rule + back-compat r
 - the runtime fan-out (`_backend()` becomes "iterate active backends" across
   scaffold / sync / `write_managed` / role+skill entry generation);
 - `sq init` / `sq adopt` populating the list from `--backend` (repeatable;
-  `--backend none` → empty/sq-only) per ADR-000141;
+  `--backend none` → empty/sq-only) per ADR-141;
 - the new `sq check` rule (active backends' managed files present, empty ok,
   deactivated ignored) via the read-only `managed_paths` ABC probe;
 - **no schema bump** — `active_backends` is part of the in-development 0.3
@@ -74,23 +74,23 @@ This feature is the **schema + multi-active runtime + check rule + back-compat r
   was introduced. A legacy `.squads.toml` with `default_backend = "X"` is read
   transparently as `active_backends = ["X"]` at load time; the existing 0.2→0.3
   migration already yields a canonical `active_backends` list via the
-  schema-stamp `to_toml()` re-serialization — TASK-000147 made the v0_3 corpus
+  schema-stamp `to_toml()` re-serialization — TASK-147 made the v0_3 corpus
   fixture canonical and pinned this; no new corpus fixture was needed for this
   feature.
 
-**Out of scope** (deferred to FEAT-000137, post-1.0): the `sq backend`
+**Out of scope** (deferred to FEAT-137, post-1.0): the `sq backend`
 add/switch/remove/list command group and active artifact cleanup on removal.
 
 ## References
 
-- FEAT-000016 — the second backend (AGENTS.md) that makes multi-active real.
-- ADR-000133 — de-Claude-ified the ABC; backends are now symmetric enough to run
+- FEAT-16 — the second backend (AGENTS.md) that makes multi-active real.
+- ADR-133 — de-Claude-ified the ABC; backends are now symmetric enough to run
   side by side.
-- ADR-000141 — settles the multi-active design (migration mapping, order/dedup,
+- ADR-141 — settles the multi-active design (migration mapping, order/dedup,
   init grammar, present-only check via `managed_paths`).
-- FEAT-000137 — post-1.0 backend management; this resolves its OQ-2 (single vs
+- FEAT-137 — post-1.0 backend management; this resolves its OQ-2 (single vs
   multi) toward multi-active.
-- FEAT-000013 — the stability contract that will freeze `active_backends`.
+- FEAT-13 — the stability contract that will freeze `active_backends`.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -117,7 +117,7 @@ _Add with `sq feature 138 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:body -->
 As a team using mixed agent tooling, I want a squad to keep several backends active at once, so that both `CLAUDE.md` and `AGENTS.md` stay generated and refreshed from one squad.
 
-**Acceptance:** `active_backends` in `.squads.toml` is a list and accepts multiple entries; `sync`/scaffold/`write_managed` fan out over all active backends and produce each one's managed files; `sq check` verifies each active backend's managed files are present (present-only per ADR-000141; drift detection deferred).
+**Acceptance:** `active_backends` in `.squads.toml` is a list and accepts multiple entries; `sync`/scaffold/`write_managed` fan out over all active backends and produce each one's managed files; `sq check` verifies each active backend's managed files are present (present-only per ADR-141; drift detection deferred).
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -155,7 +155,7 @@ As a squad operator, I want an empty `active_backends = []` to be a valid config
 <!-- sq:story:US3:body -->
 As an operator with an existing squad, I want a legacy `default_backend` config to keep working, so that no migration or version bump is needed to adopt multi-active backends.
 
-**Acceptance:** a `.squads.toml` with `default_backend = "X"` (schema 0.3) loads transparently as `active_backends = ["X"]` at runtime — no `sq migrate up` required, no schema bump to 0.4; `sq check` passes cleanly on the as-is TOML. The 0.2→0.3 migration path produces canonical `active_backends` via the schema-stamp `to_toml()` re-serialization (pinned by TASK-000147's v0_3 corpus fixture), exercising this path non-vacuously in CI.
+**Acceptance:** a `.squads.toml` with `default_backend = "X"` (schema 0.3) loads transparently as `active_backends = ["X"]` at runtime — no `sq migrate up` required, no schema bump to 0.4; `sq check` passes cleanly on the as-is TOML. The 0.2→0.3 migration path produces canonical `active_backends` via the schema-stamp `to_toml()` re-serialization (pinned by TASK-147's v0_3 corpus fixture), exercising this path non-vacuously in CI.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -169,10 +169,10 @@ As an operator with an existing squad, I want a legacy `default_backend` config 
 
 <!-- sq:discussion -->
 - [2026-06-16T09:40:32Z] Olivia Lead:
-  - @manager FEAT-000013 deferral flag (flagged, not filed): when this lands, the stability contract must FREEZE the `active_backends: list[str]` config shape — including the empty-list (sq-only) and deactivation-ignore semantics — as part of the durable .squads.toml surface. This is the grammar-settling decision FEAT-000013 owes a deferral entry per the EPIC-12 capstone rule.
-  - Architect ADR needed FIRST (consistent with how we ADR'd removal/reflog/python-floor/the ABC): this changes an about-to-freeze schema, bumps SCHEMA_VERSION 0.3→0.4, and defines multi-active resolution semantics. The ADR must settle: (1) exact migration mapping default_backend→active_backends (and how a missing/empty source maps); (2) whether active_backends ORDER is significant (e.g. on overlapping file writes) and dedup policy; (3) how `sq init/adopt --backend X` maps onto the list (single element? repeatable flag? comma-list? how to express empty/sq-only); (4) what 'files present/current' means for the sq check rule and what ABC probe the backends expose for it; (5) confirm deactivation = ignore-not-delete (no artifact cleanup here; that's FEAT-000137). This resolves FEAT-000137 OQ-2 (single-vs-multi) toward multiple-active.
+  - @manager FEAT-13 deferral flag (flagged, not filed): when this lands, the stability contract must FREEZE the `active_backends: list[str]` config shape — including the empty-list (sq-only) and deactivation-ignore semantics — as part of the durable .squads.toml surface. This is the grammar-settling decision FEAT-13 owes a deferral entry per the EPIC-12 capstone rule.
+  - Architect ADR needed FIRST (consistent with how we ADR'd removal/reflog/python-floor/the ABC): this changes an about-to-freeze schema, bumps SCHEMA_VERSION 0.3→0.4, and defines multi-active resolution semantics. The ADR must settle: (1) exact migration mapping default_backend→active_backends (and how a missing/empty source maps); (2) whether active_backends ORDER is significant (e.g. on overlapping file writes) and dedup policy; (3) how `sq init/adopt --backend X` maps onto the list (single element? repeatable flag? comma-list? how to express empty/sq-only); (4) what 'files present/current' means for the sq check rule and what ABC probe the backends expose for it; (5) confirm deactivation = ignore-not-delete (no artifact cleanup here; that's FEAT-137). This resolves FEAT-137 OQ-2 (single-vs-multi) toward multiple-active.
 - [2026-06-16T09:45:59Z] Robert Architect:
-  - ADR-000141 (Accepted) settles the multi-active design — @python-dev implement to its rulings; make no further design calls. Summary of the five points:
+  - ADR-141 (Accepted) settles the multi-active design — @python-dev implement to its rulings; make no further design calls. Summary of the five points:
   - (1) Migration 0.3→0.4: default_backend="X" → active_backends=["X"]. CRITICAL: a missing/empty default_backend in an old squad migrates to ["claude_code"], NOT [] — pre-0.4 every squad had a backend; empty (sq-only) must be reachable ONLY by deliberate intent, never silently by migration (don't orphan a CLAUDE.md). Bump SCHEMA_VERSION to "0.4", add _v0_3_to_v0_4.py (rewrites .squads.toml only, MANUAL=""), register it. Corpus: keep v0_3 with the SINGULAR default_backend so the runner is non-vacuous (REV-130 lesson); add v0_4 (active_backends list, schema 0.4) and wire ("0.4","v0_4") into _CORPUS_CASES.
   - (2) Order NOT significant — the two backends write DISJOINT paths (claude_code: CLAUDE.md/.claude/+skills; agents_md: AGENTS.md/.agents_md), so order can't change bytes; don't rely on it. Dedup: collapse repeats on read, first-occurrence order, no error — every consumer iterates the deduped list.
   - (3) init/adopt: keep a single --backend Option made REPEATABLE (list[str]), default ["claude_code"]. --backend none (case-insensitive sentinel) → [] (sq-only); none may not combine with a real name (SquadsError). Full management is FEAT-137; init just seeds the list. Fix the _cli/_main.py:185 info line to print active_backends joined.
@@ -180,9 +180,9 @@ As an operator with an existing squad, I want a legacy `default_backend` config 
   - (5) Deactivation = ignore-not-delete, CONFIRMED. No artifact cleanup in this feature — that's FEAT-137 post-1.0.
   - FEAT-13 freeze obligation NOTED (not filed by me): at 1.0 the stability contract must freeze the active_backends: list[str] shape incl. empty-[] (sq-only) + deactivation-ignore semantics + the present-only check rule + the 'none' init sentinel — @manager owes it a deferral entry per the EPIC-12 capstone rule.
 - [2026-06-16T12:42:45Z] Elias Python:
-  - The 0.4 schema bump and migration introduced by TASK-000139 was reverted per op-pierre: active_backends is part of the in-development 0.3 schema — no version bump, no migration. The feature's config model, back-compat default_backend read, multi-active fan-out, managed_paths probe, sq check rule, and all related tests (TASK-000140 scope) are fully retained. TASK-000139 (the migration task) is now void and should be cancelled. @manager
+  - The 0.4 schema bump and migration introduced by TASK-139 was reverted per op-pierre: active_backends is part of the in-development 0.3 schema — no version bump, no migration. The feature's config model, back-compat default_backend read, multi-active fan-out, managed_paths probe, sq check rule, and all related tests (TASK-140 scope) are fully retained. TASK-139 (the migration task) is now void and should be cancelled. @manager
 - [2026-06-16T12:54:27Z] Mara Tester:
-  - QA verification completed for TASK-000140 (InReview) — all user story acceptance criteria pass.
+  - QA verification completed for TASK-140 (InReview) — all user story acceptance criteria pass.
     
     US1 (multi-active backends): PASS. Both CLAUDE.md and AGENTS.md coexist from a single squad init with two backends; both refresh on sync; sq check verifies both present.
     

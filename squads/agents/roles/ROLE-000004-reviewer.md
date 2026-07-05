@@ -1,5 +1,5 @@
 ---
-id: ROLE-000004
+id: ROLE-4
 sequence_id: 4
 type: role
 title: Paul Reviewer

@@ -114,7 +114,7 @@ def test_json_unaffected_by_render_flags(runner, tmp_path, monkeypatch, frozen_t
     assert r_base.exit_code == r_raw.exit_code == r_cmt.exit_code == 0
     assert r_base.output == r_raw.output == r_cmt.output
     data = json.loads(r_base.output)
-    assert data["id"] == "TASK-000002"
+    assert data["id"] == "TASK-2"
 
 
 # --------------------------------------------------------------------------- ST3/US3: root sq show
@@ -180,7 +180,7 @@ def test_root_show_wrong_type_prefix_errors_cleanly(runner, tmp_path, monkeypatc
     runner.invoke(app, ["create", "feature", "F", "--author", "manager"])
     r = runner.invoke(app, ["show", "TASK-000002"])
     assert r.exit_code != 0
-    assert "FEAT-000002" in r.output
+    assert "FEAT-2" in r.output
 
 
 def test_root_show_accepts_all_flags(runner, tmp_path, monkeypatch, frozen_time):

@@ -1,10 +1,10 @@
 ---
-id: TASK-000259
+id: TASK-259
 sequence_id: 259
 type: task
 title: RESERVED_TYPES enforcement + meta-machinery robustness for additive types
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 created_at: '2026-06-30T12:01:06Z'
 updated_at: '2026-06-30T12:34:54Z'
@@ -54,7 +54,7 @@ reachable custom types:
   (or sibling) for the fail-closed cases.
 
 ### Dependencies
-- Depends on F3 (FEAT-000209) and FEAT-208 (the invariant). Coordinates with
+- Depends on F3 (FEAT-209) and FEAT-208 (the invariant). Coordinates with
   task 257 (work_types gate) and task 260 (graceful PLAYBOOK degradation).
 <!-- sq:body:end -->
 

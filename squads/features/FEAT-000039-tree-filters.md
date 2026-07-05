@@ -1,10 +1,10 @@
 ---
-id: FEAT-000039
+id: FEAT-39
 sequence_id: 39
 type: feature
 title: Tree filters
 status: Done
-parent: EPIC-000038
+parent: EPIC-38
 author: product-owner
 priority: low
 description: sq tree gains the same filters as list (--status, --priority, --assignee,
@@ -43,7 +43,7 @@ so there is nothing new to learn — the same vocabulary, applied to the hierarc
   (or marked), not counted as matches.
 - `--json` carries the same filtering (the shape itself unchanged — pruned, not reshaped);
   piped/plain behaviour per the epic's standing constraint.
-- Out of scope: filtering by ref kinds or graph relations — that's FEAT-000037's territory.
+- Out of scope: filtering by ref kinds or graph relations — that's FEAT-37's territory.
 
 ## Acceptance
 

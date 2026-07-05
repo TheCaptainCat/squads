@@ -1,5 +1,5 @@
 ---
-id: EPIC-000029
+id: EPIC-29
 sequence_id: 29
 type: epic
 title: sq web — a local web view of the squad
@@ -7,8 +7,8 @@ status: Draft
 author: product-owner
 priority: low
 refs:
-- EPIC-000028
-- FEAT-000015:depends-on
+- EPIC-28
+- FEAT-15:depends-on
 description: An sq web command starting a local webserver to browse the squad in a
   browser; read-only first, with full CRUD as a possible long-term destination
 created_at: '2026-06-10T15:16:05Z'
@@ -32,9 +32,9 @@ CLI users can see.
   serves JSON we already shape), but the design phase decides; either way it ships as an optional
   extra (`squads[web]`) so the core stays lean.
 - The read API should be a thin skin over the same `--json` shapes the CLI freezes
-  (EPIC-000012's FEAT-000015) — one machine surface, two consumers; the shared resolver
-  (FEAT-000019) does the addressing.
-- Big sibling of EPIC-000028 (`sq ui`): same browse-first philosophy, same service layer,
+  (EPIC-12's FEAT-15) — one machine surface, two consumers; the shared resolver
+  (FEAT-19) does the addressing.
+- Big sibling of EPIC-28 (`sq ui`): same browse-first philosophy, same service layer,
   different audience — the TUI serves the operator at the keyboard, the web view serves everyone
   else.
 

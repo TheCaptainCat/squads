@@ -1,15 +1,15 @@
 ---
-id: TASK-000050
+id: TASK-50
 sequence_id: 50
 type: task
 title: Ref-kind vocabulary constant + validation at all authoring entry points
 status: Done
-parent: FEAT-000035
+parent: FEAT-35
 author: tech-lead
 assignee: python-dev
 priority: high
 refs:
-- TASK-000051:blocks
+- TASK-51:blocks
 subentities:
 - local_id: ST1
   title: Define VALID_REF_KINDS and validate --kind in add_ref
@@ -28,7 +28,7 @@ created_at: '2026-06-11T20:21:59Z'
 updated_at: '2026-06-23T09:57:43Z'
 ---
 <!-- sq:body -->
-Make the ref-kind vocabulary a finite, single-source-of-truth list and enforce it at every authoring entry point. Per **ADR-000049** (Proposed): the 1.0 vocabulary is **explicitly CLOSED** — eight kinds, no project-config lookup on the validation path, no custom-kind escape hatch.
+Make the ref-kind vocabulary a finite, single-source-of-truth list and enforce it at every authoring entry point. Per **ADR-49** (Proposed): the 1.0 vocabulary is **explicitly CLOSED** — eight kinds, no project-config lookup on the validation path, no custom-kind escape hatch.
 
 ## The eight kinds (the closed set)
 `related`, `blocks`, `depends-on`, `implements`, `fixes`, `addresses`, `supersedes`, `duplicates`.
@@ -46,7 +46,7 @@ Three are **new** this feature (decided with op-pierre 2026-06-11):
 - **Untyped refs stay first-class (US2).** A bare `ref add <id>` with no `--kind` defaults to `related` and must remain frictionless — no nudge to over-type, no warning. Default `related` validates trivially as a member.
 - **Format is unchanged** — kinds are additive; `schema_version` stays `0.3`, no migration. (Verified: `make_ref`/`split_ref` and the inline `"ID:kind"` format are untouched.)
 
-## Out of scope (→ TASK-000051)
+## Out of scope (→ TASK-51)
 Consumers (`depends-on` in `sq blocked`, `supersedes`/unknown-kind warnings in `sq check`) and the docs kinds table. This task is constant + entry-point validation only.
 
 ## Acceptance
@@ -134,8 +134,8 @@ Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create --
 <!-- sq:discussion -->
 - [2026-06-11T20:30:51Z] Elias Python:
   - Implementation complete. VALID_REF_KINDS (frozenset, eight kinds) colocated with split_ref/make_ref/DEFAULT_KIND in src/squads/_models/_item.py. Validation at both authoring entry points: add_ref in _services/_refs.py (covers sq <type> ref add --kind) and svc.create in _services/_base.py (covers sq create --ref id:kind). Unknown kind → SquadsError listing all valid kinds. Bare ref add stays frictionless (DEFAULT_KIND, no nudge). Three new kinds (supersedes, depends-on, duplicates) accepted and round-trip through frontmatter. Help text updated to list all eight. Schema version unchanged (additive).
-  - Scattered 'related' literals in CLI (_items.py, _common.py) and service (_refs.py add_ref default) routed through DEFAULT_KIND. Blocks comparison in blocked() left as-is (consumer, not authoring — scope of TASK-000051).
+  - Scattered 'related' literals in CLI (_items.py, _common.py) and service (_refs.py add_ref default) routed through DEFAULT_KIND. Blocks comparison in blocked() left as-is (consumer, not authoring — scope of TASK-51).
   - Gates green: 265 passed (1 skipped), pyright 0 errors, ruff clean, sq check no issues. @tech-lead ready for review.
 - [2026-06-11T20:43:22Z] Paul Reviewer:
-  - Done via REV-000052 (Approved). Constant + validation at add_ref and create verified live and by tests.
+  - Done via REV-52 (Approved). Constant + validation at add_ref and create verified live and by tests.
 <!-- sq:discussion:end -->

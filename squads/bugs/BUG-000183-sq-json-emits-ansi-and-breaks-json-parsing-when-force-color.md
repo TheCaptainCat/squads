@@ -1,12 +1,12 @@
 ---
-id: BUG-000183
+id: BUG-183
 sequence_id: 183
 type: bug
 title: sq --json emits ANSI and breaks JSON parsing when FORCE_COLOR is set
 status: Fixed
 author: manager
 refs:
-- FEAT-000015
+- FEAT-15
 created_at: '2026-06-24T09:46:27Z'
 updated_at: '2026-06-24T10:12:12Z'
 extra:
@@ -39,7 +39,7 @@ it is a machine surface, not human output.
 Breaks any programmatic consumer of `sq --json` whose environment forces color — common in CI,
 some interactive shells, and agent harnesses (the Claude Code background harness exports
 `FORCE_COLOR=3`, which is how this was found). This undermines the frozen `--json` shapes that the
-1.0 stability contract and the frontend epics (sq ui / sq web / VS Code, EPIC-000028/29/99) all
+1.0 stability contract and the frontend epics (sq ui / sq web / VS Code, EPIC-28/29/99) all
 depend on parsing.
 
 ## Proposed fix direction

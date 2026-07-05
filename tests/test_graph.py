@@ -559,23 +559,23 @@ def test_cli_graph_renders_tree(graph_squad):
     """sq graph FEAT-000002 renders without error and includes the item ID."""
     r = graph_squad.invoke(app, ["graph", "FEAT-000002"])
     assert r.exit_code == 0, r.output
-    assert "FEAT-000002" in r.output
+    assert "FEAT-2" in r.output
 
 
 def test_cli_graph_bare_number_resolves(graph_squad):
     """sq graph 2 resolves bare number to FEAT-000002."""
     r = graph_squad.invoke(app, ["graph", "2"])
     assert r.exit_code == 0, r.output
-    assert "FEAT-000002" in r.output
+    assert "FEAT-2" in r.output
 
 
 def test_cli_graph_depth_zero(graph_squad):
     """sq graph FEAT-000002 --depth 0 shows only the root."""
     r = graph_squad.invoke(app, ["graph", "FEAT-000002", "--depth", "0"])
     assert r.exit_code == 0, r.output
-    assert "FEAT-000002" in r.output
+    assert "FEAT-2" in r.output
     # At depth 0, TASK-000003 should NOT appear
-    assert "TASK-000003" not in r.output
+    assert "TASK-3" not in r.output
 
 
 def test_cli_graph_direction_out(graph_squad):
@@ -583,7 +583,7 @@ def test_cli_graph_direction_out(graph_squad):
     r = graph_squad.invoke(app, ["graph", "TASK-000003", "--direction", "out", "--depth", "1"])
     assert r.exit_code == 0, r.output
     # TASK-000003 depends-on FEAT-000002 (out-ref) → should appear
-    assert "FEAT-000002" in r.output
+    assert "FEAT-2" in r.output
 
 
 def test_cli_graph_kind_filter(graph_squad):
@@ -592,9 +592,9 @@ def test_cli_graph_kind_filter(graph_squad):
     assert r.exit_code == 0, r.output
     # BUG-000004 is related to TASK-000003 (backref); depends-on FEAT-000002 should not show
     # With --kind related and depth=1, only related edges are followed
-    assert "BUG-000004" in r.output
+    assert "BUG-4" in r.output
     # FEAT-000002 is reached via depends-on, which is filtered out
-    assert "FEAT-000002" not in r.output
+    assert "FEAT-2" not in r.output
 
 
 def test_cli_graph_dependency_labels_no_raw_kinds(graph_squad):
@@ -606,7 +606,7 @@ def test_cli_graph_dependency_labels_no_raw_kinds(graph_squad):
     lines = r.output.splitlines()
     for line in lines:
         # Skip the root line (no edge label on root)
-        if "FEAT-000002" in line or "TASK-000003" in line or "BUG-000004" in line:
+        if "FEAT-2" in line or "TASK-3" in line or "BUG-4" in line:
             # The label text is in parentheses like "(depends on)" or "(required by)"
             if "(depends-on)" in line:
                 pytest.fail(f"Raw 'depends-on' appeared as label in: {line!r}")
@@ -626,7 +626,7 @@ def test_cli_graph_json_shape(graph_squad):
     data = json.loads(r.output)
     assert isinstance(data, dict)
     # Root shape
-    assert data["id"] == "FEAT-000002"
+    assert data["id"] == "FEAT-2"
     assert data["type"] == "feature"
     assert "status" in data
     assert data["edge_kind"] is None
@@ -634,7 +634,7 @@ def test_cli_graph_json_shape(graph_squad):
     assert data["seen"] is False
     assert isinstance(data["children"], list)
     # TASK-000003 depends-on FEAT-000002, so from FEAT's in-direction: TASK is a child
-    task_child = next((c for c in data["children"] if c["id"] == "TASK-000003"), None)
+    task_child = next((c for c in data["children"] if c["id"] == "TASK-3"), None)
     assert task_child is not None
     assert task_child["edge_kind"] == "depends-on"
     assert task_child["direction"] == "in"  # TASK depends on FEAT → FEAT required by TASK
@@ -656,7 +656,7 @@ def test_cli_graph_format_dot(graph_squad):
     assert r.exit_code == 0, r.output
     output = r.output
     assert "digraph {" in output
-    assert '"FEAT-000002"' in output
+    assert '"FEAT-2"' in output
     assert "}" in output
     _check_golden("graph_feat_dot", output.strip())
 
@@ -667,7 +667,7 @@ def test_cli_graph_format_mermaid(graph_squad):
     r = graph_squad.invoke(app, args)
     assert r.exit_code == 0, r.output
     assert "flowchart LR" in r.output
-    assert "FEAT_000002" in r.output
+    assert "FEAT_2" in r.output
 
 
 def test_cli_graph_priority_badge_renders(tmp_path, monkeypatch, frozen_time):
@@ -696,8 +696,8 @@ def test_cli_graph_priority_badge_renders(tmp_path, monkeypatch, frozen_time):
     # the root rendering line.
     r = runner.invoke(app, ["graph", "FEAT-000002", "--depth", "1", "--direction", "in"])
     assert r.exit_code == 0, f"sq graph crashed with priority-bearing nodes:\n{r.output}"
-    assert "FEAT-000002" in r.output
-    assert "TASK-000003" in r.output
+    assert "FEAT-2" in r.output
+    assert "TASK-3" in r.output
     # Badge text for both priorities must appear in the rendered tree
     assert "high" in r.output
     assert "urgent" in r.output
@@ -722,9 +722,9 @@ def test_cli_graph_all_includes_closed(tmp_path, monkeypatch, frozen_time):
     # Without --all
     r_no_all = runner.invoke(app, ["graph", "FEAT-000002", "--depth", "1"])
     assert r_no_all.exit_code == 0
-    assert "TASK-000003" not in r_no_all.output
+    assert "TASK-3" not in r_no_all.output
 
     # With --all
     r_all = runner.invoke(app, ["graph", "FEAT-000002", "--depth", "1", "--all"])
     assert r_all.exit_code == 0
-    assert "TASK-000003" in r_all.output
+    assert "TASK-3" in r_all.output

@@ -461,7 +461,7 @@ def tree_squad(tmp_path, monkeypatch, frozen_time):
 
     inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "epic", "Epic A", "--author", "manager"])
-    inv(["create", "feature", "Feature B", "--author", "manager", "--parent", "EPIC-000002"])
+    inv(["create", "feature", "Feature B", "--author", "manager", "--parent", "EPIC-2"])
     inv(
         [
             "create",
@@ -470,7 +470,7 @@ def tree_squad(tmp_path, monkeypatch, frozen_time):
             "--author",
             "manager",
             "--parent",
-            "FEAT-000003",
+            "FEAT-3",
             "--priority",
             "high",
         ]
@@ -484,33 +484,33 @@ def test_cli_tree_no_filters_renders_all(tree_squad):
     """sq tree with no filters renders all open items."""
     r = tree_squad.invoke(app, ["tree"])
     assert r.exit_code == 0, r.output
-    assert "EPIC-000002" in r.output
-    assert "FEAT-000003" in r.output
-    assert "TASK-000004" in r.output
-    assert "BUG-000005" in r.output
+    assert "EPIC-2" in r.output
+    assert "FEAT-3" in r.output
+    assert "TASK-4" in r.output
+    assert "BUG-5" in r.output
 
 
 def test_cli_tree_filter_type(tree_squad):
     """sq tree --type task shows only tasks (ancestors dimmed)."""
     r = tree_squad.invoke(app, ["tree", "--type", "task"])
     assert r.exit_code == 0, r.output
-    assert "TASK-000004" in r.output
+    assert "TASK-4" in r.output
     # Ancestors must appear (path-only, dimmed)
-    assert "EPIC-000002" in r.output
-    assert "FEAT-000003" in r.output
+    assert "EPIC-2" in r.output
+    assert "FEAT-3" in r.output
     # Bug has no task descendants → not shown
-    assert "BUG-000005" not in r.output
+    assert "BUG-5" not in r.output
 
 
 def test_cli_tree_filter_priority(tree_squad):
     """sq tree --priority high shows only high-priority items + their ancestors."""
     r = tree_squad.invoke(app, ["tree", "--priority", "high"])
     assert r.exit_code == 0, r.output
-    assert "TASK-000004" in r.output
-    assert "EPIC-000002" in r.output
-    assert "FEAT-000003" in r.output
+    assert "TASK-4" in r.output
+    assert "EPIC-2" in r.output
+    assert "FEAT-3" in r.output
     # Bug D is low priority → not shown
-    assert "BUG-000005" not in r.output
+    assert "BUG-5" not in r.output
 
 
 def test_cli_tree_filter_assignee(tmp_path, monkeypatch, frozen_time):
@@ -524,15 +524,15 @@ def test_cli_tree_filter_assignee(tmp_path, monkeypatch, frozen_time):
 
     inv(["init", "--no-seed-skills", "--roles", "minimal"])
     inv(["create", "epic", "Epic", "--author", "manager"])
-    inv(["create", "feature", "Feat", "--author", "manager", "--parent", "EPIC-000002"])
-    inv(["create", "task", "Task", "--author", "manager", "--parent", "FEAT-000003"])
+    inv(["create", "feature", "Feat", "--author", "manager", "--parent", "EPIC-2"])
+    inv(["create", "task", "Task", "--author", "manager", "--parent", "FEAT-3"])
     inv(["task", "4", "update", "--assignee", "manager"])
 
     r = runner.invoke(app, ["tree", "--assignee", "manager"])
     assert r.exit_code == 0, r.output
-    assert "TASK-000004" in r.output
-    assert "FEAT-000003" in r.output
-    assert "EPIC-000002" in r.output
+    assert "TASK-4" in r.output
+    assert "FEAT-3" in r.output
+    assert "EPIC-2" in r.output
 
 
 def test_cli_tree_filter_status(tree_squad):
@@ -540,54 +540,54 @@ def test_cli_tree_filter_status(tree_squad):
     r = tree_squad.invoke(app, ["tree", "--status", "Draft"])
     assert r.exit_code == 0, r.output
     # All items are Draft by default — all should appear
-    assert "TASK-000004" in r.output
+    assert "TASK-4" in r.output
 
 
 def test_cli_tree_filter_combined(tree_squad):
     """sq tree --type task --priority high: both filters applied (AND)."""
     r = tree_squad.invoke(app, ["tree", "--type", "task", "--priority", "high"])
     assert r.exit_code == 0, r.output
-    assert "TASK-000004" in r.output
-    assert "BUG-000005" not in r.output
+    assert "TASK-4" in r.output
+    assert "BUG-5" not in r.output
 
 
 def test_cli_tree_depth(tree_squad):
     """sq tree --depth 1 shows only the top two levels (root and direct children)."""
     r = tree_squad.invoke(app, ["tree", "--depth", "1"])
     assert r.exit_code == 0, r.output
-    assert "EPIC-000002" in r.output
-    assert "FEAT-000003" in r.output  # level 1 from epic
+    assert "EPIC-2" in r.output
+    assert "FEAT-3" in r.output  # level 1 from epic
     # Task is at level 2 from epic → not shown
-    assert "TASK-000004" not in r.output
+    assert "TASK-4" not in r.output
 
 
 def test_cli_tree_depth_zero(tree_squad):
     """sq tree --depth 0 shows only top-level items (roots, no children)."""
     r = tree_squad.invoke(app, ["tree", "--depth", "0"])
     assert r.exit_code == 0, r.output
-    assert "EPIC-000002" in r.output
-    assert "BUG-000005" in r.output
-    assert "FEAT-000003" not in r.output
-    assert "TASK-000004" not in r.output
+    assert "EPIC-2" in r.output
+    assert "BUG-5" in r.output
+    assert "FEAT-3" not in r.output
+    assert "TASK-4" not in r.output
 
 
 def test_cli_tree_explicit_root(tree_squad):
     """sq tree FEAT-000003 shows only the subtree rooted at that feature."""
-    r = tree_squad.invoke(app, ["tree", "FEAT-000003"])
+    r = tree_squad.invoke(app, ["tree", "FEAT-3"])
     assert r.exit_code == 0, r.output
-    assert "FEAT-000003" in r.output
-    assert "TASK-000004" in r.output
-    assert "EPIC-000002" not in r.output
-    assert "BUG-000005" not in r.output
+    assert "FEAT-3" in r.output
+    assert "TASK-4" in r.output
+    assert "EPIC-2" not in r.output
+    assert "BUG-5" not in r.output
 
 
 def test_cli_tree_explicit_root_with_filter(tree_squad):
     """sq tree FEAT-000003 --type task works within the subtree."""
-    r = tree_squad.invoke(app, ["tree", "FEAT-000003", "--type", "task"])
+    r = tree_squad.invoke(app, ["tree", "FEAT-3", "--type", "task"])
     assert r.exit_code == 0, r.output
-    assert "TASK-000004" in r.output
-    assert "FEAT-000003" in r.output
-    assert "EPIC-000002" not in r.output
+    assert "TASK-4" in r.output
+    assert "FEAT-3" in r.output
+    assert "EPIC-2" not in r.output
 
 
 async def test_path_only_ancestors_flagged_and_match_not(svc):
@@ -629,7 +629,7 @@ def test_cli_tree_status_reveals_closed_with_status_flag(tmp_path, monkeypatch, 
 
     r_with_status = runner.invoke(app, ["tree", "--status", "Done"])
     assert r_with_status.exit_code == 0, r_with_status.output
-    assert "FEAT-000002" in r_with_status.output
+    assert "FEAT-2" in r_with_status.output
 
 
 def test_cli_tree_non_status_filter_does_not_widen_to_closed(tmp_path, monkeypatch, frozen_time):
@@ -649,7 +649,7 @@ def test_cli_tree_non_status_filter_does_not_widen_to_closed(tmp_path, monkeypat
     r = runner.invoke(app, ["tree", "--priority", "high"])
     assert r.exit_code == 0, r.output
     # Feature is Done (closed) and not widened to closed by --priority alone
-    assert "FEAT-000002" not in r.output
+    assert "FEAT-2" not in r.output
 
 
 def test_cli_tree_all_includes_closed(tmp_path, monkeypatch, frozen_time):
@@ -670,8 +670,8 @@ def test_cli_tree_all_includes_closed(tmp_path, monkeypatch, frozen_time):
     r_all = runner.invoke(app, ["tree", "--all"])
     assert r_no_all.exit_code == 0
     assert r_all.exit_code == 0
-    assert "FEAT-000002" not in r_no_all.output
-    assert "FEAT-000002" in r_all.output
+    assert "FEAT-2" not in r_no_all.output
+    assert "FEAT-2" in r_all.output
 
 
 # ---------------------------------------------------------------------------
@@ -734,10 +734,10 @@ def test_cli_tree_json_pruned_consistently(tree_squad):
         return ids
 
     ids = collect_json_ids(data)
-    assert "TASK-000004" in ids
-    assert "FEAT-000003" in ids
-    assert "EPIC-000002" in ids
-    assert "BUG-000005" not in ids  # no task descendants
+    assert "TASK-4" in ids
+    assert "FEAT-3" in ids
+    assert "EPIC-2" in ids
+    assert "BUG-5" not in ids  # no task descendants
 
 
 def test_cli_tree_json_golden(tree_squad):
@@ -762,9 +762,9 @@ def test_cli_tree_json_depth(tree_squad):
         return ids
 
     ids = collect_json_ids(data)
-    assert "EPIC-000002" in ids
-    assert "FEAT-000003" in ids
-    assert "TASK-000004" not in ids  # depth=1 cuts before level 2
+    assert "EPIC-2" in ids
+    assert "FEAT-3" in ids
+    assert "TASK-4" not in ids  # depth=1 cuts before level 2
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 ---
-id: ADR-000078
+id: ADR-78
 sequence_id: 78
 type: decision
 title: 'Module-privacy convention: underscore-prefixed internals, no re-exporting
@@ -7,7 +7,7 @@ title: 'Module-privacy convention: underscore-prefixed internals, no re-exportin
 status: Accepted
 author: architect
 refs:
-- GUIDE-000079
+- GUIDE-79
 description: Every implementation module is private with leading underscores and non-re-exporting
   inits, so 1.0 freezes no accidental public API
 created_at: '2026-06-12T14:23:20Z'

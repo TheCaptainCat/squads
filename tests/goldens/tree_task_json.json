@@ -1,6 +1,6 @@
 [
   {
-    "id": "EPIC-000002",
+    "id": "EPIC-2",
     "type": "epic",
     "status": "Draft",
     "priority": null,
@@ -8,7 +8,7 @@
     "blocked": false,
     "children": [
       {
-        "id": "FEAT-000003",
+        "id": "FEAT-3",
         "type": "feature",
         "status": "Draft",
         "priority": null,
@@ -16,7 +16,7 @@
         "blocked": false,
         "children": [
           {
-            "id": "TASK-000004",
+            "id": "TASK-4",
             "type": "task",
             "status": "Draft",
             "priority": "high",

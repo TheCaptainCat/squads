@@ -1,5 +1,5 @@
 ---
-id: REV-000106
+id: REV-106
 sequence_id: 106
 type: review
 title: Review of TASK-000102 + TASK-000103 — repad command and width-tolerant ID reading
@@ -85,7 +85,7 @@ SUGGESTED FIX: compute missing_ids by sequence number, not full-ID string — mi
 <!-- sq:finding:F2:body -->
 PROBLEM: repad() formats the new digit-run by hand rather than through the canonical formatter. FILE: src/squads/_services/_maintenance.py:255 — new_id_part = f'{seq:0{new_padding}d}'.
 
-WHY IT MATTERS: Both the TASK-102 scope ('renames every item file to the new width via format_item_id, no hand-rolled width') and Elias's own handoff comment claim it uses format_item_id's canonical formatter — but the code does not. CLAUDE.md requires all :0Nd formatting to route through format_item_id, and REV-000105 specifically eliminated stragglers like this. Functionally correct here, so consistency/convention only, not a correctness bug.
+WHY IT MATTERS: Both the TASK-102 scope ('renames every item file to the new width via format_item_id, no hand-rolled width') and Elias's own handoff comment claim it uses format_item_id's canonical formatter — but the code does not. CLAUDE.md requires all :0Nd formatting to route through format_item_id, and REV-105 specifically eliminated stragglers like this. Functionally correct here, so consistency/convention only, not a correctness bug.
 
 SUGGESTED FIX: base = format_item_id(item_type.prefix, seq, new_padding); new_name = f'{base}-{slug_part}.md' if slug_part else f'{base}.md'.
 <!-- sq:finding:F2:body:end -->
@@ -109,7 +109,7 @@ SUGGESTED FIX: base = format_item_id(item_type.prefix, seq, new_padding); new_na
 <!-- sq:finding:F3:body -->
 PROBLEM: test_end_to_end_repad_resolution (tests/test_service.py:980) is otherwise strong — it covers parent resolution, refs_in, backrefs, both old- and new-width CLI addressing, and svc.check() clean — but it never runs svc.repair() / 'sq repair' after the repad and asserts missing_ids == []. That is precisely the gap that let F1 through: check() is seq-keyed and stays clean, while repair()'s missing_ids is the broken path.
 
-WHY IT MATTERS: The joint acceptance for FEAT-000027 includes 'rebuilds the index ... sq check is clean and every old-width ref still resolves'. repair() is the index rebuild; its spurious-missing output is a user-visible regression that the acceptance suite does not guard against.
+WHY IT MATTERS: The joint acceptance for FEAT-27 includes 'rebuilds the index ... sq check is clean and every old-width ref still resolves'. repair() is the index rebuild; its spurious-missing output is a user-visible regression that the acceptance suite does not guard against.
 
 SUGGESTED FIX: extend the e2e test (or add one) that calls svc.repair() after repad(7) and asserts rr.missing_ids == [] (and/or that 'sq repair' CLI output contains no 'no markdown file found' warning). Pairs with the F1 fix.
 <!-- sq:finding:F3:body:end -->
@@ -127,9 +127,9 @@ SUGGESTED FIX: extend the e2e test (or add one) that calls svc.repair() after re
 
 <!-- sq:discussion -->
 - [2026-06-14T21:57:33Z] Paul Reviewer:
-  - VERDICT: ChangesRequested. One medium regression (F1) blocks; two low findings (F2 convention, F3 test gap) ride along. The width-tolerant reading design is correct and well-centralised — seq_for_id, _id_matches((prefix,seq)), _propagate_padding, and the seq-keyed check reconciliation all hold up, cross-type false positives are guarded and tested (test_index.py:257), and Invariant 4 is intact (no inverted edges persisted; id_padding never serialises — confirmed in goldens + committed index). The F1/F3 fold-ins from REV-000105 landed correctly (renumber threads db.padding; the repair padding guard collapsed to a single max()). The repad command, byte-untouched contents, and refuse-to-lower are all correct and tested.
+  - VERDICT: ChangesRequested. One medium regression (F1) blocks; two low findings (F2 convention, F3 test gap) ride along. The width-tolerant reading design is correct and well-centralised — seq_for_id, _id_matches((prefix,seq)), _propagate_padding, and the seq-keyed check reconciliation all hold up, cross-type false positives are guarded and tested (test_index.py:257), and Invariant 4 is intact (no inverted edges persisted; id_padding never serialises — confirmed in goldens + committed index). The F1/F3 fold-ins from REV-105 landed correctly (renumber threads db.padding; the repair padding guard collapsed to a single max()). The repad command, byte-untouched contents, and refuse-to-lower are all correct and tested.
   - WHAT BLOCKS: F1 — after repad, 'sq repair' reports EVERY item as a spurious missing-file warning, because repair()'s previous_ids (built from store.load() items, now carrying id_padding=new-width via _propagate_padding) are compared as full-ID strings against found_ids built from from_frontmatter (old-width). This is the one id-string-equality-across-widths site TASK-103 missed; fix is to compare by sequence_id like _check_reconciliation already does. sq check stays clean (seq-keyed), which is why the e2e test (F3) didn't catch it.
   - @python-dev — please fix F1 (medium, lands in TASK-103's _propagate_padding/repair seam), F2 (low, TASK-102: route repad's width through format_item_id), and F3 (low, TASK-103: extend the e2e test to assert repair().missing_ids == [] post-repad). All three are small. Gate is currently green (578 passed/1 skipped, pyright+ruff clean) but the F1 regression is latent behind output the e2e test doesn't assert on.
 - [2026-06-14T22:06:18Z] Paul Reviewer:
-  - APPROVED. Focused verification pass complete: all three findings (F1 medium/blocking, F2 low, F3 test) verified and closed. Full gate green on the uncommitted working tree: 579 passed, 1 skipped; pyright 0 errors; ruff check + format clean. F1's original symptom empirically confirmed gone (regression test fails against a reverted fix, passes with it). No regressions introduced. TASK-000102 and TASK-000103 ready to merge.
+  - APPROVED. Focused verification pass complete: all three findings (F1 medium/blocking, F2 low, F3 test) verified and closed. Full gate green on the uncommitted working tree: 579 passed, 1 skipped; pyright 0 errors; ruff check + format clean. F1's original symptom empirically confirmed gone (regression test fails against a reverted fix, passes with it). No regressions introduced. TASK-102 and TASK-103 ready to merge.
 <!-- sq:discussion:end -->

@@ -70,7 +70,7 @@ async def test_mine_valid_agent_slug_works(invoke, project):
     await invoke(["create", "task", "T", "--author", "manager", "--assignee", "manager"])
     r = await invoke(["mine", "manager"])
     assert r.exit_code == 0
-    assert "TASK-000002" in r.output
+    assert "TASK-2" in r.output
 
 
 async def test_mine_valid_operator_slug_works(invoke, project):
@@ -78,7 +78,7 @@ async def test_mine_valid_operator_slug_works(invoke, project):
     await invoke(["create", "task", "T", "--author", "manager", "--assignee", "op-pierre"])
     r = await invoke(["mine", "op-pierre"])
     assert r.exit_code == 0
-    assert "TASK-000003" in r.output
+    assert "TASK-3" in r.output
 
 
 # ----------------------------------------------------------------- sq inbox
@@ -95,7 +95,7 @@ async def test_inbox_valid_slug_works(invoke, project):
     await invoke(["task", "2", "comment", "--as", "manager", "-m", "@manager please review"])
     r = await invoke(["inbox", "manager"])
     assert r.exit_code == 0
-    assert "TASK-000002" in r.output
+    assert "TASK-2" in r.output
 
 
 # ----------------------------------------------------------------- comment --as
@@ -164,7 +164,7 @@ async def test_list_valid_assignee_works(invoke, project):
     await invoke(["create", "task", "T", "--author", "manager", "--assignee", "manager"])
     r = await invoke(["list", "--assignee", "manager"])
     assert r.exit_code == 0
-    assert "TASK-000002" in r.output
+    assert "TASK-2" in r.output
 
 
 async def test_list_operator_assignee_works(invoke, project):
@@ -172,7 +172,7 @@ async def test_list_operator_assignee_works(invoke, project):
     await invoke(["create", "task", "T", "--author", "manager", "--assignee", "op-pierre"])
     r = await invoke(["list", "--assignee", "op-pierre"])
     assert r.exit_code == 0
-    assert "TASK-000003" in r.output
+    assert "TASK-3" in r.output
 
 
 # ----------------------------------------------------------------- subtask --assignee

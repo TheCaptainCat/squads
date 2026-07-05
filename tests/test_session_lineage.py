@@ -450,9 +450,9 @@ async def test_v0_3_to_v0_4_migration_is_noop_runner():
     assert count == 0
 
 
-async def test_schema_version_is_0_5():
-    """SCHEMA_VERSION is now 0.5 after the bump (FEAT-000178 skill-id migration)."""
-    assert SCHEMA_VERSION == "0.5"
+async def test_schema_version_is_0_7():
+    """SCHEMA_VERSION is now 0.7 after the bump (unpadded display ids, ADR-000282)."""
+    assert SCHEMA_VERSION == "0.7"
 
 
 async def test_v0_3_migration_stamps_current_schema(project, frozen_time):
@@ -480,10 +480,12 @@ async def test_v0_3_migration_stamps_current_schema(project, frozen_time):
     svc_03 = Service(paths_03)
 
     applied = await svc_03.run_pending_migrations()
-    # Two migrations are applied: 0.3→0.4 (session lineage) and 0.4→0.5 (skill ids).
-    assert len(applied) == 2, f"Expected 2 migrations, got {len(applied)}: {applied}"
+    # Three migrations are applied: 0.3→0.4 (session lineage), 0.4→0.5 (skill ids), and
+    # 0.5→0.7 (unpadded display ids).
+    assert len(applied) == 3, f"Expected 3 migrations, got {len(applied)}: {applied}"
     assert applied[0].from_schema == "0.3" and applied[0].to_schema == "0.4"
     assert applied[1].from_schema == "0.4" and applied[1].to_schema == "0.5"
+    assert applied[2].from_schema == "0.5" and applied[2].to_schema == "0.7"
 
     # Verify on-disk stamp.
     with cfg_path.open("rb") as fh:

@@ -1,12 +1,12 @@
 ---
-id: ADR-000075
+id: ADR-75
 sequence_id: 75
 type: decision
 title: Pluggable backends behind the AgentBackend ABC; .claude/ is pointers
 status: Accepted
 author: architect
 refs:
-- GUIDE-000079
+- GUIDE-79
 description: Harnesses sit behind an ABC + registry; real content lives under the
   squad folder, .claude/ holds only pointers
 created_at: '2026-06-12T14:23:08Z'

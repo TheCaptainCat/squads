@@ -1,5 +1,5 @@
 ---
-id: ADR-000141
+id: ADR-141
 sequence_id: 141
 type: decision
 title: 'Multi-active agent backends: active_backends list, fan-out, and the check-present
@@ -7,12 +7,12 @@ title: 'Multi-active agent backends: active_backends list, fan-out, and the chec
 status: Accepted
 author: architect
 refs:
-- FEAT-000138
-- TASK-000139
-- TASK-000140
-- FEAT-000016
-- ADR-000133
-- FEAT-000137
+- FEAT-138
+- TASK-139
+- TASK-140
+- FEAT-16
+- ADR-133
+- FEAT-137
 description: 'Replace singular default_backend with active_backends: list[str]; fan-out
   over all active backends; stays on schema 0.3 with NO bump — a legacy default_backend
   is read transparently as a one-element list (no migration runner); present-only
@@ -25,14 +25,14 @@ updated_at: '2026-06-17T08:39:11Z'
 
 The operator has decided to replace the singular `.squads.toml` `default_backend: str`
 with **`active_backends: list[str]`**, so a squad can maintain several agent backends at
-once (e.g. both `CLAUDE.md` and `AGENTS.md`). This is the schema shape FEAT-000013 will
-**freeze at 1.0**, so it must be settled now. ADR-000133 already de-Claude-ified the
+once (e.g. both `CLAUDE.md` and `AGENTS.md`). This is the schema shape FEAT-13 will
+**freeze at 1.0**, so it must be settled now. ADR-133 already de-Claude-ified the
 `AgentBackend` ABC, so the two backends are symmetric enough to run side by side. This ADR
-resolves FEAT-000137's OQ-2 (single-vs-multiple active) in favour of **multiple-active** and
-fixes the exact mechanics so the config-model + runtime-fan-out + check work (TASK-000140)
+resolves FEAT-137's OQ-2 (single-vs-multiple active) in favour of **multiple-active** and
+fixes the exact mechanics so the config-model + runtime-fan-out + check work (TASK-140)
 need make no further design calls. `active_backends` is part of the **still-in-development
 0.3 schema**, so there is no version bump and no migration runner — a legacy `default_backend`
-is read transparently as a one-element list (see §1); TASK-000139, which would have carried a
+is read transparently as a one-element list (see §1); TASK-139, which would have carried a
 0.3→0.4 migration, is **cancelled as void**.
 
 The decision (replace the singular field; multi-active; empty `[]` valid; check verifies
@@ -75,7 +75,7 @@ Back-compat is handled instead by a **tolerant read** in `from_toml_dict`
   squad had a backend, and the model default was `"claude_code"`. An absent key meant "fell
   back to the default", i.e. claude_code was active — so the faithful read preserves that
   behaviour. `[]` (sq-only) is a **new, deliberate** choice an operator makes explicitly
-  (`sq init --backend none`, or FEAT-000137's management commands), so we never silently turn
+  (`sq init --backend none`, or FEAT-137's management commands), so we never silently turn
   an existing agent-file-bearing squad into a sq-only one (that would orphan a `CLAUDE.md` the
   user relies on). **Empty is reachable only by intent, never implicitly.**
 - If `active_backends` is already present, it is used as-is (a present `default_backend` is
@@ -84,7 +84,7 @@ Back-compat is handled instead by a **tolerant read** in `from_toml_dict`
 This means there is **nothing to run**: an existing 0.3 `.squads.toml` with a singular
 `default_backend` loads transparently and `sq check` passes against it unchanged — no
 `sq migrate up` required. (The existing 0.2→0.3 migration already yields a canonical
-`active_backends` list via the schema-stamp `to_toml()` re-serialization; TASK-000147 pinned
+`active_backends` list via the schema-stamp `to_toml()` re-serialization; TASK-147 pinned
 that path with a canonical v0_3 corpus fixture, so no new fixture was owed here.)
 
 ### 2. Order & dedup
@@ -99,7 +99,7 @@ that path with a canonical v0_3 corpus fixture, so no new fixture was owed here.
   not an error — running a backend's fan-out twice would just rewrite the same files, so silently
   collapsing duplicates is the least-surprising, safe choice. Implement as a small normalizer
   (a pydantic field validator or an `active_backends()` accessor that returns the deduped list);
-  TASK-000140 picks the mechanism, but **every consumer iterates the deduped list**.
+  TASK-140 picks the mechanism, but **every consumer iterates the deduped list**.
 - **Unknown backend names** in the list: `get_backend()` already raises `SquadsError` for an
   unknown name. Fan-out resolving an unknown active backend surfaces that error — acceptable for
   1.0 (a hand-corrupted config). No new validation is mandated here.
@@ -147,7 +147,7 @@ that path with a canonical v0_3 corpus fixture, so no new fixture was owed here.
 - **Present-only for 1.0, not currency/drift.** The operator said "present", and present-only is
   the right scope: currency would require each backend to re-render its managed content and diff
   it (expensive, and `write_managed` is not idempotent-by-diff today). `sq sync` is the tool that
-  refreshes content; `sq check` only proves scaffolding exists. (FEAT-000138's US1 prose mentions
+  refreshes content; `sq check` only proves scaffolding exists. (FEAT-138's US1 prose mentions
   "and current" — this ADR **narrows that to present-only**; a drift check can be added later
   without a schema change, so it does not need to be frozen at 1.0.)
 
@@ -163,7 +163,7 @@ that path with a canonical v0_3 corpus fixture, so no new fixture was owed here.
 
 **Confirmed.** Removing a backend from `active_backends` leaves its on-disk files **untouched**;
 `sync` stops refreshing them and `check` stops probing them (per §4). **No artifact cleanup belongs
-in this feature.** Active removal/cleanup (`sq backend remove`) is the post-1.0 FEAT-000137 story.
+in this feature.** Active removal/cleanup (`sq backend remove`) is the post-1.0 FEAT-137 story.
 
 ## Consequences
 
@@ -175,7 +175,7 @@ in this feature.** Active removal/cleanup (`sq backend remove`) is the post-1.0 
 - **`_backend()` (singular) → `active_backends()` (plural iterator)** in `_services/_base.py`;
   `scaffold_backend`, `refresh_managed`, and `sync`'s loop iterate the deduped active list.
   Empty list = a clean no-op everywhere (sq-only squad).
-- **FEAT-000013 freeze obligation (noted, not filed here):** at 1.0 the stability contract must
+- **FEAT-13 freeze obligation (noted, not filed here):** at 1.0 the stability contract must
   FREEZE the `active_backends: list[str]` shape — including empty-`[]` (sq-only) and
   deactivation-ignore semantics — as part of the durable `.squads.toml` surface. The
   present-only check rule and the `none` init sentinel are part of that surface.
@@ -185,8 +185,8 @@ in this feature.** Active removal/cleanup (`sq backend remove`) is the post-1.0 
 ## Decision status
 
 Accepted (op-pierre's call; this ADR fixes the mechanics). `@python-dev` implements via
-TASK-000140 (config model + back-compat read + fan-out + init/adopt + the `managed_paths` probe +
-check rule). TASK-000139 (the 0.3→0.4 migration half) is **cancelled as void** — see the
+TASK-140 (config model + back-compat read + fan-out + init/adopt + the `managed_paths` probe +
+check rule). TASK-139 (the 0.3→0.4 migration half) is **cancelled as void** — see the
 correction note.
 
 ## Correction note
@@ -197,7 +197,7 @@ title/summary described a `SCHEMA 0.3 → 0.4` migration (a `SCHEMA_VERSION` bum
 with op-pierre's no-0.4 decision (recorded in this ADR's discussion): 0.3 was still in development,
 so `active_backends` became part of 0.3 with **no version bump and no migration**, and back-compat
 is handled by the transparent read in §1 instead. The **decision** this ADR records was
-implemented; only the migration *mechanics* it originally described were dropped. TASK-000139, the
+implemented; only the migration *mechanics* it originally described were dropped. TASK-139, the
 migration task, was **cancelled as void**. This edit keeps the record honest about what shipped;
 all other rulings (config-model shape, order/dedup, repeatable `--backend` + `none` sentinel, the
 `managed_paths` probe + present-only check rule, deactivation-ignore, consequences) stand
@@ -210,5 +210,5 @@ unchanged. Status remains **Accepted**.
 - [2026-06-16T12:43:45Z] Catherine Manager:
   - Override (op-pierre, 2026-06-16): ADR-141's 0.3→0.4 schema bump + _v0_3_to_v0_4 migration are NOT applied — 0.3 is still in development, so active_backends is part of 0.3 with no version bump and no migration; the config reads legacy default_backend transparently. All other ADR-141 rulings stand and are implemented (list shape, dedup, order-insignificance, repeatable --backend + none sentinel, present-only check via the managed_paths probe).
 - [2026-06-17T08:39:11Z] Robert Architect:
-  - Corrected the stale 0.3→0.4 migration framing in this ADR's body to the shipped no-bump reality (mirrors the FEAT-000138 correction in commit 6538396). Title and summary no longer claim a migration; §1 was rewritten from 'Migration mapping (SCHEMA 0.3 → 0.4)' to 'No schema bump — back-compat by transparent read (no migration)'; the Context sentence about TASK-000139 making 'no further design calls' was reframed; added a Correction note. Verified against code: SCHEMA_VERSION stays 0.3, no _v0_3_to_v0_4 runner, no to_schema=0.4 in the registry, and _config.py reads legacy default_backend transparently as a one-element active_backends list. The decision itself was implemented and stands; only the abandoned migration mechanics were corrected. Status kept Accepted. TASK-000139 confirmed Cancelled. sq check clean.
+  - Corrected the stale 0.3→0.4 migration framing in this ADR's body to the shipped no-bump reality (mirrors the FEAT-138 correction in commit 6538396). Title and summary no longer claim a migration; §1 was rewritten from 'Migration mapping (SCHEMA 0.3 → 0.4)' to 'No schema bump — back-compat by transparent read (no migration)'; the Context sentence about TASK-139 making 'no further design calls' was reframed; added a Correction note. Verified against code: SCHEMA_VERSION stays 0.3, no _v0_3_to_v0_4 runner, no to_schema=0.4 in the registry, and _config.py reads legacy default_backend transparently as a one-element active_backends list. The decision itself was implemented and stands; only the abandoned migration mechanics were corrected. Status kept Accepted. TASK-139 confirmed Cancelled. sq check clean.
 <!-- sq:discussion:end -->

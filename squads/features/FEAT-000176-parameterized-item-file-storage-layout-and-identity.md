@@ -1,14 +1,14 @@
 ---
-id: FEAT-000176
+id: FEAT-176
 sequence_id: 176
 type: feature
 title: 'Parameterized item-file storage: layout and identity'
 status: Draft
-parent: EPIC-000031
+parent: EPIC-31
 author: product-owner
 refs:
-- FEAT-000177
-- FEAT-000032
+- FEAT-177
+- FEAT-32
 description: Config knobs for ID prefix and file layout (flat vs per-type subfolders)
   behind the local item-file store
 subentities:
@@ -28,7 +28,7 @@ Today's local item-file management hard-codes two decisions that should be confi
 
 ## Value
 
-Letting teams choose a single global prefix (e.g. a project code) and a flat layout reduces friction for squads that don't want to mirror the built-in taxonomy in their filesystem. This feature is the lighter half of the item-file parameterization work — it touches ID formatting and path resolution, not serialization — and could ship independently of FEAT-000177 (the format swap).
+Letting teams choose a single global prefix (e.g. a project code) and a flat layout reduces friction for squads that don't want to mirror the built-in taxonomy in their filesystem. This feature is the lighter half of the item-file parameterization work — it touches ID formatting and path resolution, not serialization — and could ship independently of FEAT-177 (the format swap).
 
 ## Scope
 
@@ -42,7 +42,7 @@ Letting teams choose a single global prefix (e.g. a project code) and a flat lay
 
 ## Out of scope
 
-Serialization format changes (markdown → JSON/XML). Those are tracked in FEAT-000177 and require an architect ADR first.
+Serialization format changes (markdown → JSON/XML). Those are tracked in FEAT-177 and require an architect ADR first.
 
 ## Acceptance
 
@@ -123,5 +123,5 @@ As a team, I want all item files in one flat directory so that our squad doesn't
 
 <!-- sq:discussion -->
 - [2026-06-23T12:59:49Z] Robert Architect:
-  - @product-owner ADR-000179 now exists addressing the open prefix-scope question: recommends the global prefix change the ID prefix only, with folder layout as a separate orthogonal knob (nested|flat), both plugging into a shared ItemStore locator seam. It cross-references ADR-000180 (FEAT-000177), which shares that seam. Left Proposed for review — not Accepted, no tasks created.
+  - @product-owner ADR-179 now exists addressing the open prefix-scope question: recommends the global prefix change the ID prefix only, with folder layout as a separate orthogonal knob (nested|flat), both plugging into a shared ItemStore locator seam. It cross-references ADR-180 (FEAT-177), which shares that seam. Left Proposed for review — not Accepted, no tasks created.
 <!-- sq:discussion:end -->

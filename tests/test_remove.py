@@ -213,7 +213,7 @@ def test_cli_remove_basic(runner, tmp_path, monkeypatch, frozen_time):
     r = runner.invoke(app, ["task", "2", "remove", "--yes"])
 
     assert r.exit_code == 0, r.output
-    assert "TASK-000002" in r.output
+    assert "TASK-2" in r.output
     assert "removed" in r.output
 
 
@@ -239,7 +239,7 @@ def test_cli_remove_json_output(runner, tmp_path, monkeypatch, frozen_time):
 
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
-    assert data["removed_id"] == "TASK-000002"
+    assert data["removed_id"] == "TASK-2"
     assert data["severed_refs"] == []
 
 
@@ -254,7 +254,7 @@ def test_cli_remove_refuses_on_incoming_refs(runner, tmp_path, monkeypatch, froz
     r = runner.invoke(app, ["task", "2", "remove", "--yes"])
 
     assert r.exit_code == 1
-    assert "TASK-000003" in r.output
+    assert "TASK-3" in r.output
 
 
 def test_cli_remove_force_severs_refs(runner, tmp_path, monkeypatch, frozen_time):
@@ -268,8 +268,8 @@ def test_cli_remove_force_severs_refs(runner, tmp_path, monkeypatch, frozen_time
     r = runner.invoke(app, ["task", "2", "remove", "--yes", "--force"])
 
     assert r.exit_code == 0, r.output
-    assert "TASK-000002" in r.output
-    assert "TASK-000003" in r.output
+    assert "TASK-2" in r.output
+    assert "TASK-3" in r.output
 
 
 def test_cli_remove_refuses_children_even_with_force(runner, tmp_path, monkeypatch, frozen_time):
@@ -284,7 +284,7 @@ def test_cli_remove_refuses_children_even_with_force(runner, tmp_path, monkeypat
     r = runner.invoke(app, ["feature", "2", "remove", "--yes", "--force"])
 
     assert r.exit_code == 1
-    assert "TASK-000003" in r.output
+    assert "TASK-3" in r.output
 
 
 async def test_remove_unlink_happens_before_index_commit_no_resurrection(svc, monkeypatch):

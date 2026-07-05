@@ -1,13 +1,13 @@
 ---
-id: REV-000205
+id: REV-205
 sequence_id: 205
 type: review
 title: 'Skill descriptions registry review: FEAT-178 TASK-204'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000178
-- TASK-000204
+- FEAT-178
+- TASK-204
 subentities:
 - local_id: F1
   title: Migration reimplements pointer rendering instead of delegating to backend

@@ -1,5 +1,5 @@
 ---
-id: TASK-000042
+id: TASK-42
 sequence_id: 42
 type: task
 title: Fix counter regression and sequence-number reuse (BUG-000022)
@@ -8,7 +8,7 @@ author: tech-lead
 assignee: python-dev
 priority: high
 refs:
-- BUG-000022:fixes
+- BUG-22:fixes
 subentities:
 - local_id: ST1
   title: 'Repair keeps high-water mark: counter = max(previous counter, max found
@@ -42,7 +42,7 @@ Make the global counter monotonic so an item's sequence number is never reused, 
 
 - Frontmatter stays the source of truth; the counter is the one piece of index state that is NOT reconstructable from a single file, which is exactly why it must not regress (invariant 1 + 2).
 - Use `SquadsError` for any user-facing error; raise through `@handle_errors`.
-- Related: FEAT-000023 (sanctioned removal) would give operators a removal tool that preserves the high-water mark — out of scope here, but keep the reporting shape compatible.
+- Related: FEAT-23 (sanctioned removal) would give operators a removal tool that preserves the high-water mark — out of scope here, but keep the reporting shape compatible.
 
 ## Acceptance
 
@@ -138,7 +138,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-11T12:30:54Z] Elias Python:
-  - Implemented fix for BUG-000022 — three changes across four files.
+  - Implemented fix for BUG-22 — three changes across four files.
   - **_index/_store.py** — load() now checks db.counter < max(sequence_ids) and silently raises it under the lock before returning. Prevents a hand-edited regressed counter from surviving to the next allocation.
   - **_services/_maintenance.py** — repair() snapshots the previous counter before rebuilding, then sets counter = max(previous_counter, max_found_on_disk). Also collects IDs that were in the old index but whose files are gone (missing_ids). Returns RepairResult instead of SquadsDB.
   - **_services/_results.py** — added RepairResult dataclass (db, missing_ids) used by the repair pathway.

@@ -1,24 +1,24 @@
 ---
-id: TASK-000267
+id: TASK-267
 sequence_id: 267
 type: task
 title: 'Spec-derive per-type prefix: stamp Item.prefix, retire static PREFIX/FOLDER/alias
   tables'
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 assignee: python-dev
 refs:
-- ADR-000266:implements
-- REV-000265:addresses
+- ADR-266:implements
+- REV-265:addresses
 created_at: '2026-07-01T08:28:50Z'
 updated_at: '2026-07-01T09:36:23Z'
 ---
 <!-- sq:body -->
-**Closes REV-000265 F1 (High). Implements ADR-000266.** The prefix-derivation family, not one line.
+**Closes REV-265 F1 (High). Implements ADR-266.** The prefix-derivation family, not one line.
 
 ## Problem
-`Item.id` and every id/filename/ref site derive the prefix via `PREFIX_BY_TYPE.get(type, type.upper())` (or crashing bracket `PREFIX_BY_TYPE[type]`). For a custom type declared `prefix = "INC"` there is no map entry, so the fallback stamps `INCIDENT-000019` instead of `INC-000019` — a malformed, self-contradicting id (`sq incident INCIDENT-000019 show` errors "is INCIDENT-000019, not an incident"). Violates AC#2 and invariant #1 (frontmatter-as-truth). `Item` is spec-unaware by convention (ADR-000249 Finding 1) so it cannot read the spec prefix directly.
+`Item.id` and every id/filename/ref site derive the prefix via `PREFIX_BY_TYPE.get(type, type.upper())` (or crashing bracket `PREFIX_BY_TYPE[type]`). For a custom type declared `prefix = "INC"` there is no map entry, so the fallback stamps `INCIDENT-000019` instead of `INC-000019` — a malformed, self-contradicting id (`sq incident INCIDENT-000019 show` errors "is INCIDENT-000019, not an incident"). Violates AC#2 and invariant #1 (frontmatter-as-truth). `Item` is spec-unaware by convention (ADR-249 Finding 1) so it cannot read the spec prefix directly.
 
 ## The sites (all decided by ADR-266 — do NOT re-litigate the approach)
 - `_models/_item.py:161` — `Item.id` computed field (`.get(..., type.upper())`).
@@ -37,7 +37,7 @@ updated_at: '2026-07-01T09:36:23Z'
 
 ## Static-artifact sweep (operator-confirmed boundary — per ADR-266 Consequences)
 Retire as call-site lookups: `PREFIX_BY_TYPE`, `TYPE_BY_PREFIX`, `FOLDER_BY_TYPE`, the `TYPE_ALIASES` shim (migrate `_workflow_cmd._print_cheatsheet` + backend AGENTS/CLAUDE renderers to `spec.alias_to_type`/`ItemSpec.aliases`, then delete the dict), `_META_NAMES` (`_cli/_items.py:109` — resolve through the reserved resolver). The reserved built-in vocab map STAYS as the resolver's default source of truth.
-- **OUT OF SCOPE (do NOT touch):** `_SUBENTITY_PLURAL` — deferred to FEAT-000212 (kept as built-in fallback). `_KIND_BY_TYPE` in `_migrations/_v0_2_to_v0_3.py` — frozen migration code, exempt.
+- **OUT OF SCOPE (do NOT touch):** `_SUBENTITY_PLURAL` — deferred to FEAT-212 (kept as built-in fallback). `_KIND_BY_TYPE` in `_migrations/_v0_2_to_v0_3.py` — frozen migration code, exempt.
 - **Forward-compat:** design `prefix_for` so FEAT-212 can add a `subentity_plural` accessor later; do not pull that vocab forward now.
 
 ## Legacy files / migration
@@ -68,7 +68,7 @@ _Add with `sq task 267 add-subtask "<title>"`; track with `sq task 267 subtask <
 
 <!-- sq:discussion -->
 - [2026-07-01T09:36:23Z] Elias Python:
-  - @manager TASK-000267 is Done. All three gates are clean (pyright 0 errors, ruff check clean, ruff format clean). 27 new tests pass; focused run of 145 tests on affected files is clean. Full suite running in background.
+  - @manager TASK-267 is Done. All three gates are clean (pyright 0 errors, ruff check clean, ruff format clean). 27 new tests pass; focused run of 145 tests on affected files is clean. Full suite running in background.
   - Changes: new `_models/_vocab.py` (RESERVED_PREFIX/FOLDER/TYPE_BY_PREFIX + prefix_for/is_reserved); Item.prefix field (excluded from JSON, written to frontmatter for custom types only); id computed field now uses self.prefix; stamp at create (_base.py), retype (_retype.py, also added missing mkdir for custom-type folder), and load (_store.py _propagate_prefix); retired PREFIX_BY_TYPE/FOLDER_BY_TYPE/TYPE_BY_PREFIX/TYPE_ALIASES from _enums.py.
-  - REV-000265 F1 finding closed as Fixed. Two test bugs fixed: wrong CLI syntax (task create → create task) and wrong sequence number (1 → 2 after init seeds a role).
+  - REV-265 F1 finding closed as Fixed. Two test bugs fixed: wrong CLI syntax (task create → create task) and wrong sequence number (1 → 2 after init seeds a role).
 <!-- sq:discussion:end -->

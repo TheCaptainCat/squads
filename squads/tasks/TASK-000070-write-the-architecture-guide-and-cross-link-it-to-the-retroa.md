@@ -1,10 +1,10 @@
 ---
-id: TASK-000070
+id: TASK-70
 sequence_id: 70
 type: task
 title: Write the architecture guide and cross-link it to the retroactive ADRs
 status: Done
-parent: FEAT-000018
+parent: FEAT-18
 author: tech-lead
 assignee: architect
 priority: medium
@@ -37,7 +37,7 @@ Keep it lean and standalone-readable: enough for a new agent or contributor to g
 
 ## Cross-linking (US3)
 
-Once TASK-000069's ADRs exist, ref every one of them from this guide plus ADR-000049, all `--kind related`, and add the reverse refs so the links go both directions (guide cites ADRs, ADRs cite guide). This is the deliverable for US3.
+Once TASK-69's ADRs exist, ref every one of them from this guide plus ADR-49, all `--kind related`, and add the reverse refs so the links go both directions (guide cites ADRs, ADRs cite guide). This is the deliverable for US3.
 
 ## Source material
 
@@ -46,7 +46,7 @@ Once TASK-000069's ADRs exist, ref every one of them from this guide plus ADR-00
 
 ## Watch for
 
-This is documentation of what IS, not a redesign. No literal sq anchor tags in the guide text. Depends on TASK-000069 for the ADR IDs to link — draft the guide prose in parallel, do the cross-link pass after the ADRs land.
+This is documentation of what IS, not a redesign. No literal sq anchor tags in the guide text. Depends on TASK-69 for the ADR IDs to link — draft the guide prose in parallel, do the cross-link pass after the ADRs land.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -103,6 +103,6 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-12T14:19:09Z] Olivia Lead:
-  - @architect this is the guide + cross-link half of FEAT-000018 (US1 + US3). ONE guide item with 'architecture' in the title (so sq search architecture finds it): the layering, the data model, the marker mechanism — lean and standalone-readable, pointing at sq docs internals for depth rather than duplicating it. Tech-writer polishes after you draft.
-  - US3 is the cross-link pass: ref every TASK-000069 ADR plus ADR-000049 from the guide and back, all --kind related, both directions. That pass depends on TASK-000069 landing for the IDs — draft the prose in parallel, link after. No literal sq anchor tags in the guide text.
+  - @architect this is the guide + cross-link half of FEAT-18 (US1 + US3). ONE guide item with 'architecture' in the title (so sq search architecture finds it): the layering, the data model, the marker mechanism — lean and standalone-readable, pointing at sq docs internals for depth rather than duplicating it. Tech-writer polishes after you draft.
+  - US3 is the cross-link pass: ref every TASK-69 ADR plus ADR-49 from the guide and back, all --kind related, both directions. That pass depends on TASK-69 landing for the IDs — draft the prose in parallel, link after. No literal sq anchor tags in the guide text.
 <!-- sq:discussion:end -->

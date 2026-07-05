@@ -1,16 +1,16 @@
 ---
-id: FEAT-000032
+id: FEAT-32
 sequence_id: 32
 type: feature
 title: 'Pluggable index store: SQLite / SQL databases behind the index'
 status: Draft
-parent: EPIC-000031
+parent: EPIC-31
 author: product-owner
 priority: medium
 refs:
-- FEAT-000013
-- BUG-000022:depends-on
-- FEAT-000017:depends-on
+- FEAT-13
+- BUG-22:depends-on
+- FEAT-17:depends-on
 description: Abstract the index behind a store interface and offer SQLite (and real
   databases via SQLAlchemy) as alternatives to .squads.json — the .md files stay the
   only source of truth
@@ -43,7 +43,7 @@ cache** — the index's storage engine is exactly the kind of thing we're allowe
 Making that a real seam buys:
 
 - **Concurrency**: real transactions instead of one global file lock, for the many-agents case.
-- **Scale**: indexed queries for list/tree/search/backrefs at thousands of items (FEAT-000017's
+- **Scale**: indexed queries for list/tree/search/backrefs at thousands of items (FEAT-17's
   scale test gives us the benchmark).
 - **Optionality**: SQLite first (single file, zero server, fits the local-first spirit); SQLAlchemy
   as the dialect layer so a real database (Postgres, …) is configuration, not a rewrite, for
@@ -55,7 +55,7 @@ backend must be rebuildable from them with `sq repair`.
 ## Scope
 
 - Extract a **store interface** from today's `IndexStore` (transactions, get/add/delete, counter
-  allocation — including its high-water-mark rules, BUG-000022) with the JSON file store as the
+  allocation — including its high-water-mark rules, BUG-22) with the JSON file store as the
   default, behaviour-identical implementation.
 - A **SQLite store** as the first alternative; SQLAlchemy as the access layer so other databases
   are dialect configuration. Ships as an optional extra (`squads[db]`) if the dependency is heavy
@@ -63,7 +63,7 @@ backend must be rebuildable from them with `sq repair`.
 - **Backend selection in `.squads.toml`**, switching via `sq repair` rebuild into the chosen
   store — the move is reversible in both directions, by construction.
 - A **store conformance test suite** run against every implementation (same philosophy as
-  FEAT-000016's backend conformance suite): identical observable behaviour, including locking
+  FEAT-16's backend conformance suite): identical observable behaviour, including locking
   semantics, counter monotonicity, and crash-recovery via repair.
 - Design considerations for the ADR: what's git-friendly (a binary sqlite file in the repo is
   not — maybe the non-JSON stores imply gitignoring the index), file layout under the squad dir,
@@ -77,7 +77,7 @@ backend must be rebuildable from them with `sq repair`.
 - `sq repair` rebuilds any configured store from frontmatter alone; switching stores back and
   forth loses nothing.
 - Counter integrity rules (never regress) hold in every store.
-- The stability contract (FEAT-000013) states that the index storage is an implementation detail
+- The stability contract (FEAT-13) states that the index storage is an implementation detail
   outside the durable promise.
 <!-- sq:body:end -->
 
@@ -122,7 +122,7 @@ As a team running many agents in parallel, I want the index behind real transact
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-**Acceptance:** on the FEAT-000017 ~1000-item fixture, list/tree/search/backrefs on the SQLite store meet the scale test's time bounds.
+**Acceptance:** on the FEAT-17 ~1000-item fixture, list/tree/search/backrefs on the SQLite store meet the scale test's time bounds.
 
 As an owner of a large squad, I want an indexed store keeping list/tree/search fast at thousands of items, so that scale doesn't degrade the daily loop.
 <!-- sq:story:US2:body:end -->

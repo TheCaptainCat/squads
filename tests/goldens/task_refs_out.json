@@ -1,7 +1,7 @@
 {
   "out": [
     {
-      "id": "BUG-000004",
+      "id": "BUG-4",
       "kind": "depends-on"
     }
   ]

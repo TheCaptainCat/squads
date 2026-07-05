@@ -1,10 +1,10 @@
 ---
-id: TASK-000060
+id: TASK-60
 sequence_id: 60
 type: task
 title: Teach show --full --comments in generated skills and onboarding (US6)
 status: Done
-parent: FEAT-000026
+parent: FEAT-26
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -37,7 +37,7 @@ Close the guidance gap (US6): once `--full` and `--comments` exist, the generate
 
 ## Sequencing
 
-Gated behind TASK-000058 + TASK-000059 — the flags must exist before the docs teach them. Pure docs/templates; no overlap with the renderer files.
+Gated behind TASK-58 + TASK-59 — the flags must exist before the docs teach them. Pure docs/templates; no overlap with the renderer files.
 
 ## Tests
 
@@ -79,7 +79,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-12T09:27:12Z] Elias Python:
-  - TASK-000060 complete. All gates green (333 passed, pyright + ruff clean).
+  - TASK-60 complete. All gates green (333 passed, pyright + ruff clean).
   - Single-source for the briefing guidance: item_skill.md.j2 now injects a universal first Enter bullet — 'Read the full item dossier: `sq \<type\> \<n\> show --full --comments`' — into every role section of every per-type sq-\<type\> skill. No changes to _interactions.py were needed; the template is the right single point.
   - squads_skill.md.j2: updated three locations — Golden rules sub-entity read line, Anchor-to-an-item guidance (now explicitly names --full --comments), and the Common commands show example.
   - workflow.md.j2: updated the 'read back with show' bullet in the Team workflow section.

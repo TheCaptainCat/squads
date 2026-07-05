@@ -1,14 +1,14 @@
 ---
-id: REV-000191
+id: REV-191
 sequence_id: 191
 type: review
 title: 'Foundation review: FEAT-178 skills (TASK-187/188)'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000178
-- TASK-000187
-- TASK-000188
+- FEAT-178
+- TASK-187
+- TASK-188
 subentities:
 - local_id: F1
   title: Regen else-branch wipes frontmatter when body region is missing/partial
@@ -38,7 +38,7 @@ updated_at: '2026-06-24T20:00:55Z'
 <!-- sq:body -->
 ## Scope
 
-Independent review of the FEAT-000178 FOUNDATION increment: TASK-000187 (frontmatter-preserving, marker-safe skill-body regen) + TASK-000188 (lexical-by-slug SKILL id allocation shared by init seeding + the future migration, and sq init seeding). Reviewed against the Accepted ADR-000181 contract. Implementation is uncommitted in the working tree; reviewer did not author it.
+Independent review of the FEAT-178 FOUNDATION increment: TASK-187 (frontmatter-preserving, marker-safe skill-body regen) + TASK-188 (lexical-by-slug SKILL id allocation shared by init seeding + the future migration, and sq init seeding). Reviewed against the Accepted ADR-181 contract. Implementation is uncommitted in the working tree; reviewer did not author it.
 
 ## Verdict: APPROVE-WITH-NITS
 
@@ -84,7 +84,7 @@ File: src/squads/_backends/_claude_code/_backend.py:132-145 (_write_managed_skil
 
 The body-region regen guards on `if fm and sections.has_section(existing, markers.BODY)`. When that condition is FALSE the else-branch does `await _aio.write_text(body_path, body_with_markers)` — a full-file overwrite that discards any existing frontmatter.
 
-The dangerous case is a file that HAS stamped frontmatter (a real SKILL id) but whose body region is absent or has a partial/garbled marker pair (has_section needs BOTH the open and close marker present). In that state a single sq sync silently overwrites the file with a bare body and NO frontmatter, destroying the id/sequence_id — exactly the identity loss ADR-000181 decision #3 exists to prevent. The happy path is safe (init writes markers, then stamps fm, so both are present — the idempotence test passes), so this is a latent edge, not a routine failure.
+The dangerous case is a file that HAS stamped frontmatter (a real SKILL id) but whose body region is absent or has a partial/garbled marker pair (has_section needs BOTH the open and close marker present). In that state a single sq sync silently overwrites the file with a bare body and NO frontmatter, destroying the id/sequence_id — exactly the identity loss ADR-181 decision #3 exists to prevent. The happy path is safe (init writes markers, then stamps fm, so both are present — the idempotence test passes), so this is a latent edge, not a routine failure.
 
 Recommended fix: when frontmatter is present, never blunt-overwrite. Re-emit preserved frontmatter + the freshly-rendered body-with-markers via join_frontmatter(fm, body_with_markers) (the 'round-trip through preserved frontmatter' form the ADR describes). That repairs a missing body region instead of nuking identity. Reserve the bare body_with_markers write for the genuinely-unstamped case (no fm).
 <!-- sq:finding:F1:body:end -->
@@ -193,7 +193,7 @@ Minor: consider building+validating the Item and rendering the frontmatter strin
 <!-- sq:discussion -->
 - [2026-06-24T19:51:07Z] Paul Reviewer:
   - VERDICT: APPROVE-WITH-NITS.
-  - The 187/188 foundation meets ADR-000181. Happy-path regen is frontmatter-preserving and idempotent (double-sync test green), allocation is a single shared lexical-by-slug primitive, seeding is idempotent, invariants hold, full suite + pyright + ruff green.
+  - The 187/188 foundation meets ADR-181. Happy-path regen is frontmatter-preserving and idempotent (double-sync test green), allocation is a single shared lexical-by-slug primitive, seeding is idempotent, invariants hold, full suite + pyright + ruff green.
   - 1 MEDIUM (F1, recommend before ship): _write_managed_skill else-branch overwrites the whole file — wiping stamped frontmatter — when a stamped file's sq:body region is missing/partial. Fail safe via join_frontmatter(fm, body_with_markers) when fm is present. Unreachable on the normal flow, so non-blocking.
   - 4 LOW notes (F2 sq check author-set widening = out-of-scope but reasonable; F3 default seed path under-tested after the --no-seed-skills flip; F4 adopt does not seed, init/adopt asymmetry; F5 counter bump precedes file write). None block.
   - @python-dev @tech-lead — F1 is the one worth addressing in this increment; the rest are notes for the record / TASK-189 (migration) follow-up. Not changing task or feature status.

@@ -1,12 +1,12 @@
 ---
-id: REV-000061
+id: REV-61
 sequence_id: 61
 type: review
 title: 'Review: FEAT-000026 rendered show output'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000026:addresses
+- FEAT-26:addresses
 subentities:
 - local_id: F1
   title: 'Plain-output escaping leak: sub-entity pane titles double-escaped in piped/NO_COLOR/--raw
@@ -26,7 +26,7 @@ created_at: '2026-06-12T09:32:57Z'
 updated_at: '2026-06-12T09:43:19Z'
 ---
 <!-- sq:body -->
-Scope: FEAT-000026 implementation (TASK-000058 render core, 059 --full dossier, 060 US6 docs sweep). Reviewed the uncommitted working-tree diff.
+Scope: FEAT-26 implementation (TASK-58 render core, 059 --full dossier, 060 US6 docs sweep). Reviewed the uncommitted working-tree diff.
 
 Verdict: ChangesRequested — one plain-output fidelity bug; everything else (parser, four-cell semantics, JSON independence, --raw, root show, docs sweep, all gates green: 333 passed, pyright clean, ruff clean) is correct and the styled rendering quality is excellent.
 <!-- sq:body:end -->

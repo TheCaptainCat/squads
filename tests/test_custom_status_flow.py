@@ -87,7 +87,7 @@ class TestParseStatusAcceptsCustomAndRejectsUnknown:
         _inv(custom_squad, ["create", "incident", "First incident", "--author", "manager"])
         r = custom_squad.invoke(app, ["list", "--status", "Triage"])
         assert r.exit_code == 0, r.output
-        assert "INC-000002" in r.output
+        assert "INC-2" in r.output
 
     def test_list_status_unknown_value_gives_actionable_error(
         self, custom_squad: CliRunner
@@ -108,7 +108,7 @@ class TestParseStatusAcceptsCustomAndRejectsUnknown:
         _inv(custom_squad, ["create", "incident", "Loose match test", "--author", "manager"])
         r = custom_squad.invoke(app, ["list", "--status", "triage"])
         assert r.exit_code == 0, r.output
-        assert "INC-000002" in r.output
+        assert "INC-2" in r.output
 
 
 class TestListStatusFilterReturnsCustomStatusItems:
@@ -120,8 +120,8 @@ class TestListStatusFilterReturnsCustomStatusItems:
         _inv(custom_squad, ["incident", "3", "update", "--status", "Resolved"])
         r = custom_squad.invoke(app, ["list", "--status", "Triage"])
         assert r.exit_code == 0, r.output
-        assert "INC-000002" in r.output
-        assert "INC-000003" not in r.output
+        assert "INC-2" in r.output
+        assert "INC-3" not in r.output
 
 
 class TestListDefaultFilterHonorsCustomTerminality:
@@ -143,14 +143,14 @@ class TestListDefaultFilterHonorsCustomTerminality:
         _inv(custom_squad, ["incident", "2", "update", "--status", status_value])
         r = custom_squad.invoke(app, ["list"])
         assert r.exit_code == 0, r.output
-        is_hidden = "INC-000002" not in r.output
+        is_hidden = "INC-2" not in r.output
         assert is_hidden == expected_hidden, (
             f"status {status_value!r}: expected hidden={expected_hidden}, "
             f"actual hidden={is_hidden}.\n{r.output}"
         )
         # --all always shows it regardless of status.
         r_all = custom_squad.invoke(app, ["list", "--all"])
-        assert "INC-000002" in r_all.output
+        assert "INC-2" in r_all.output
 
 
 class TestBlockedHonorsCustomTerminality:
@@ -164,14 +164,14 @@ class TestBlockedHonorsCustomTerminality:
         _inv(custom_squad, ["create", "incident", "Dependent", "--author", "manager"])  # INC-3
         _inv(
             custom_squad,
-            ["incident", "3", "ref", "add", "INC-000002", "--kind", "depends-on"],
+            ["incident", "3", "ref", "add", "INC-2", "--kind", "depends-on"],
         )
         # Blocker stays at Triage (non-terminal) — still counts as blocking.
         r = custom_squad.invoke(app, ["blocked"])
         assert r.exit_code == 0, r.output
-        assert "INC-000003" in r.output
+        assert "INC-3" in r.output
         assert "blocked by" in r.output
-        assert "INC-000002" in r.output
+        assert "INC-2" in r.output
 
     def test_blocked_cleared_once_blocker_reaches_custom_terminal_status(
         self, custom_squad: CliRunner
@@ -180,7 +180,7 @@ class TestBlockedHonorsCustomTerminality:
         _inv(custom_squad, ["create", "incident", "Dependent", "--author", "manager"])  # INC-3
         _inv(
             custom_squad,
-            ["incident", "3", "ref", "add", "INC-000002", "--kind", "depends-on"],
+            ["incident", "3", "ref", "add", "INC-2", "--kind", "depends-on"],
         )
         _inv(custom_squad, ["incident", "2", "update", "--status", "Resolved"])
         r = custom_squad.invoke(app, ["blocked"])
@@ -192,16 +192,16 @@ class TestBlockedHonorsCustomTerminality:
         _inv(custom_squad, ["create", "incident", "Dependent", "--author", "manager"])  # INC-3
         _inv(
             custom_squad,
-            ["incident", "3", "ref", "add", "INC-000002", "--kind", "depends-on"],
+            ["incident", "3", "ref", "add", "INC-2", "--kind", "depends-on"],
         )
         r = custom_squad.invoke(app, ["blocked", "--json"])
         assert r.exit_code == 0, r.output
         data = json.loads(r.output)
         assert data == [
             {
-                "id": "INC-000003",
+                "id": "INC-3",
                 "title": "Dependent",
-                "blockers": [{"id": "INC-000002", "title": "Blocker", "status": "Triage"}],
+                "blockers": [{"id": "INC-2", "title": "Blocker", "status": "Triage"}],
             }
         ]
 
@@ -217,7 +217,7 @@ class TestInboxHonorsCustomTerminality:
         )
         r = custom_squad.invoke(app, ["inbox", "manager"])
         assert r.exit_code == 0, r.output
-        assert "INC-000002" in r.output
+        assert "INC-2" in r.output
 
     def test_inbox_suppresses_mention_in_custom_terminal_item(
         self, custom_squad: CliRunner
@@ -232,7 +232,7 @@ class TestInboxHonorsCustomTerminality:
         )
         r = custom_squad.invoke(app, ["inbox", "manager"])
         assert r.exit_code == 0, r.output
-        assert "INC-000002" not in r.output
+        assert "INC-2" not in r.output
 
     def test_inbox_mixed_open_and_closed_only_reports_open(self, custom_squad: CliRunner) -> None:
         _inv(custom_squad, ["create", "incident", "Open incident", "--author", "manager"])  # INC-2
@@ -250,5 +250,5 @@ class TestInboxHonorsCustomTerminality:
         )
         r = custom_squad.invoke(app, ["inbox", "manager"])
         assert r.exit_code == 0, r.output
-        assert "INC-000002" in r.output
-        assert "INC-000003" not in r.output
+        assert "INC-2" in r.output
+        assert "INC-3" not in r.output

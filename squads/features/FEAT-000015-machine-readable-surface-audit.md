@@ -1,10 +1,10 @@
 ---
-id: FEAT-000015
+id: FEAT-15
 sequence_id: 15
 type: feature
 title: Machine-readable surface audit
 status: Done
-parent: EPIC-000012
+parent: EPIC-12
 author: product-owner
 priority: high
 description: --json on every read command, documented exit codes, golden-file tests
@@ -128,19 +128,19 @@ As a script author, I want --json on every read command (blocked, mine, workload
 <!-- sq:discussion -->
 - [2026-06-12T15:25:17Z] Catherine Manager:
   - Kicking off per op-pierre's go (2026-06-12). @tech-lead please break this down: tasks parented here, subtasks mapped to US1–US3. Audit current --json coverage first so the gap list in the body is verified against the code.
-  - Reminder: shapes you settle here are contract material — leave a deferral comment on FEAT-000013 for anything you freeze.
+  - Reminder: shapes you settle here are contract material — leave a deferral comment on FEAT-13 for anything you freeze.
 - [2026-06-12T15:29:04Z] Olivia Lead:
-  - @manager broken down. Three tasks parented here, one per user story; FEAT-000015 → InProgress, all tasks → Ready.
-  - **TASK-000082 (US1) — close --json gaps.** Important correction: I audited `src/squads/_cli/` and the body's gap list is mostly stale. `blocked`, `mine`, `workload`, `inbox`, and `refs` **already have --json** today. Only **`check`** genuinely lacks it. The real remaining gaps are `check` and the sub-entity `list` commands (stories/subtasks/findings). Much smaller surface than the body implied.
-  - **TASK-000083 (US2) — exit-code table.** Documented current reality (0 success / 1 runtime error incl. schema mismatch + check failures / 2 usage error) and tests asserting each. One decision needed before implementation: do check failures deserve a distinct exit code (e.g. 3) vs generic 1? Flagged for @product-owner.
-  - **TASK-000084 (US3) — golden-file tests.** No snapshot harness exists yet; introduce one with determinism (frozen time + pinned id counter + pinned dev-name pool) and an UPDATE_GOLDENS path. Sequenced after 082 (needs new shapes) and 083 (settle check's exit code first).
-  - **Needs a decision before impl starts:** (a) the check-distinct-exit-code question above; (b) confirm whether repair/docs/workflow/catalog viewers stay table-only or also get --json (I recommend table-only — they aren't script-author state reads). Left the contract obligation as a deferral comment on FEAT-000013.
+  - @manager broken down. Three tasks parented here, one per user story; FEAT-15 → InProgress, all tasks → Ready.
+  - **TASK-82 (US1) — close --json gaps.** Important correction: I audited `src/squads/_cli/` and the body's gap list is mostly stale. `blocked`, `mine`, `workload`, `inbox`, and `refs` **already have --json** today. Only **`check`** genuinely lacks it. The real remaining gaps are `check` and the sub-entity `list` commands (stories/subtasks/findings). Much smaller surface than the body implied.
+  - **TASK-83 (US2) — exit-code table.** Documented current reality (0 success / 1 runtime error incl. schema mismatch + check failures / 2 usage error) and tests asserting each. One decision needed before implementation: do check failures deserve a distinct exit code (e.g. 3) vs generic 1? Flagged for @product-owner.
+  - **TASK-84 (US3) — golden-file tests.** No snapshot harness exists yet; introduce one with determinism (frozen time + pinned id counter + pinned dev-name pool) and an UPDATE_GOLDENS path. Sequenced after 082 (needs new shapes) and 083 (settle check's exit code first).
+  - **Needs a decision before impl starts:** (a) the check-distinct-exit-code question above; (b) confirm whether repair/docs/workflow/catalog viewers stay table-only or also get --json (I recommend table-only — they aren't script-author state reads). Left the contract obligation as a deferral comment on FEAT-13.
 - [2026-06-12T15:42:53Z] Pierre Chat:
   - Rulings on the two open questions (2026-06-12): check failures get a distinct exit code 3 (1 stays generic error). Scope boundary: repair, docs and workflow stay table-only; the role/skill/operator catalog viewers DO get --json.
-  - @tech-lead fold these into TASK-000082/000083; @manager proceeds with implementation.
+  - @tech-lead fold these into TASK-82/000083; @manager proceeds with implementation.
 - [2026-06-12T15:44:25Z] Olivia Lead:
   - @manager breakdown updated to reflect op-pierre's rulings (2026-06-12).
-  - TASK-000083 — exit code **3** for check failures is decided (1 stays generic); no open question remains, the task now implements/documents/tests it.
-  - TASK-000082 — scope now explicitly lists check --json, the sub-entity list commands (stories/subtasks/findings), AND the role/skill/operator catalog viewers (added by ruling); repair/docs/workflow ruled out-of-scope (table-only).
-  - TASK-000084 unchanged — its goldens will pin whatever 082/083 produce. FEAT-000013 deferral updated to reflect both settled points. Ready for implementation.
+  - TASK-83 — exit code **3** for check failures is decided (1 stays generic); no open question remains, the task now implements/documents/tests it.
+  - TASK-82 — scope now explicitly lists check --json, the sub-entity list commands (stories/subtasks/findings), AND the role/skill/operator catalog viewers (added by ruling); repair/docs/workflow ruled out-of-scope (table-only).
+  - TASK-84 unchanged — its goldens will pin whatever 082/083 produce. FEAT-13 deferral updated to reflect both settled points. Ready for implementation.
 <!-- sq:discussion:end -->

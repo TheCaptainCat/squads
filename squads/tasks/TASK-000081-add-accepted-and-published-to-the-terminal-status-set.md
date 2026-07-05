@@ -1,5 +1,5 @@
 ---
-id: TASK-000081
+id: TASK-81
 sequence_id: 81
 type: task
 title: Add ACCEPTED and PUBLISHED to the TERMINAL status set
@@ -8,7 +8,7 @@ author: manager
 assignee: python-dev
 priority: medium
 refs:
-- BUG-000080:fixes
+- BUG-80:fixes
 created_at: '2026-06-12T14:59:32Z'
 updated_at: '2026-06-12T15:04:22Z'
 ---

@@ -1,5 +1,5 @@
 ---
-id: BUG-000151
+id: BUG-151
 sequence_id: 151
 type: bug
 title: 'Windows CI: override path separators, template-hash CRLF, and init prompt
@@ -8,7 +8,7 @@ status: Verified
 author: manager
 priority: high
 refs:
-- FEAT-000015
+- FEAT-15
 created_at: '2026-06-17T12:37:46Z'
 updated_at: '2026-06-17T13:00:48Z'
 ---

@@ -1,17 +1,17 @@
 ---
-id: REV-000096
+id: REV-96
 sequence_id: 96
 type: review
 title: Review TASK-000090 agent naming at sq init and role creation
 status: Approved
 author: reviewer
 refs:
-- TASK-000090
+- TASK-90
 created_at: '2026-06-12T21:42:47Z'
 updated_at: '2026-06-12T21:43:35Z'
 ---
 <!-- sq:body -->
-Review of TASK-000090 — agent naming at `sq init` and role creation (FEAT-000014, ADR-000085 §4).
+Review of TASK-90 — agent naming at `sq init` and role creation (FEAT-14, ADR-85 §4).
 
 ## Verdict: APPROVED
 

@@ -1,10 +1,10 @@
 ---
-id: TASK-000058
+id: TASK-58
 sequence_id: 58
 type: task
 title: 'Rendered show: markdown body, comments facet, scope flag, root sq show'
 status: Done
-parent: FEAT-000026
+parent: FEAT-26
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -31,9 +31,9 @@ updated_at: '2026-06-12T09:15:16Z'
 <!-- sq:body -->
 ## Goal
 
-Build the rendering core for `show`: styled markdown on a TTY, the **two composable axes**, and the root `sq show`. Implements US1, US2, US3, US4. Default scope only here (no sub-entity panes — that is TASK-000059).
+Build the rendering core for `show`: styled markdown on a TTY, the **two composable axes**, and the root `sq show`. Implements US1, US2, US3, US4. Default scope only here (no sub-entity panes — that is TASK-59).
 
-## Decided flag semantics (from FEAT-000026 discussion, 2026-06-11)
+## Decided flag semantics (from FEAT-26 discussion, 2026-06-11)
 
 Orthogonal axes — `--full` widens SCOPE, `--comments` adds the DISCUSSION facet to whatever is in scope. Comments follow scope.
 
@@ -42,7 +42,7 @@ Orthogonal axes — `--full` widens SCOPE, `--comments` adds the DISCUSSION face
 | none | panel + rendered body + compact sub-entity summary table |
 | --comments | + the item's main discussion only (subs not in scope) |
 
-The `--full` cells are TASK-000059's job; design the render path so it slots the sub-entity panes in cleanly.
+The `--full` cells are TASK-59's job; design the render path so it slots the sub-entity panes in cleanly.
 
 ## In scope
 
@@ -51,8 +51,8 @@ The `--full` cells are TASK-000059's job; design the render path so it slots the
 - `--comments` facet: render the main discussion as one rich Panel per comment, titled author + timestamp, rendered-markdown inside. Add a helper that splits the main discussion region into individual comments (the region is a flat list of `- [ts] author:` bullets — see _discussion.format_comment for the exact shape; parse the inverse). Put the parser in _discussion.py next to format_comment.
 - `--raw` opts out: exact file text, today's behaviour (panel + plain body). 
 - Degradation: auto-plain when piped (stdout not a TTY) and when NO_COLOR is set — panes become plain delimited text, byte-stable. rich Console already detects TTY; make the panel/markdown path collapse to plain delimited text in that case so output is parseable and stable.
-- `--json` is unchanged by any flag — it already dumps the full model; keep it presentation-independent (the machine surface is FEAT-000015's domain).
-- Root `sq show <id|number>`: a top-level command in _cli/_main.py that resolves any work-item type via resolve_item_id_any (FEAT-000019's shared resolver) and renders with the same output + flags as the per-type show. Unknown id/number errors cleanly. Bare numbers are unambiguous via the global counter.
+- `--json` is unchanged by any flag — it already dumps the full model; keep it presentation-independent (the machine surface is FEAT-15's domain).
+- Root `sq show <id|number>`: a top-level command in _cli/_main.py that resolves any work-item type via resolve_item_id_any (FEAT-19's shared resolver) and renders with the same output + flags as the per-type show. Unknown id/number errors cleanly. Bare numbers are unambiguous via the global counter.
 - Wire the same flags (--full, --comments, --raw, --json) onto the per-type `sq <type> <n> show` in _cli/_items.py _cmd_show.
 
 ## Anchors
@@ -67,9 +67,9 @@ The `--full` cells are TASK-000059's job; design the render path so it slots the
 
 ## Out of scope
 
-- Sub-entity panes and the dossier (--full cells): TASK-000059.
-- Skills/onboarding guidance: TASK-000060.
-- BUG-000025 (redundant Body label) is already Done — no action.
+- Sub-entity panes and the dossier (--full cells): TASK-59.
+- Skills/onboarding guidance: TASK-60.
+- BUG-25 (redundant Body label) is already Done — no action.
 
 ## Tests
 

@@ -1,10 +1,10 @@
 ---
-id: TASK-000063
+id: TASK-63
 sequence_id: 63
 type: task
 title: Teach sub-entity comment scoping in the generated skills + role templates
 status: Done
-parent: FEAT-000062
+parent: FEAT-62
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -27,12 +27,12 @@ updated_at: '2026-06-23T09:58:09Z'
 <!-- sq:body -->
 **Goal.** Teach agents the comment-scoping convention — sub-entity discussions for scoped material, the main item discussion for cross-cutting material — across the generated skills and role templates. Content/template only — NO CLI behaviour changes, no parsing or inbox changes (the inbox already surfaces sub-entity @mentions; the PO verified this empirically 2026-06-12). The convention is preference-based guidance, not a hard rule.
 
-**The convention to ship (from FEAT-000062 body — read it for the full wording).**
+**The convention to ship (from FEAT-62 body — read it for the full wording).**
 - _Sub-entity discussion_ (`sq <type> <n> <kind> <k> comment`) for anything scoped to one story/subtask/finding: finding fix rationale, reproduction and verification notes, "agreed, closing this one"; story acceptance clarifications, story-local blockers/questions; subtask implementation notes and sub-assignee check-ins.
 - _Main item discussion_ (`sq <type> <n> comment`) for cross-cutting material: handoff @mentions that announce a transition or request action from the next agent, decisions affecting more than one sub-entity or the whole item, item-level status summaries.
 - @mentions are picked up by the inbox wherever they live, so they may go in the scope that fits — prefer the main discussion for handoff/transition mentions, the sub-entity for a scoped question (e.g. "F2 — @reviewer does this fix satisfy the requirement?").
 
-**Single source of the convention text.** State the convention ONCE in the `squads` skill template (`src/squads/_rendering/templates/agents/squads_skill.md.j2`), in the "Hand back through sq" / "Working directly with the operator" area — that is the one skill every agent loads. Mirror how TASK-000053 handled the regime principle: one formulation, everything else references it. The per-type skill role lines and the role template add a short pointer ("scope your comment per the squads skill's comment-scoping convention") plus at most one role-specific example — they do NOT restate the full convention. No drift.
+**Single source of the convention text.** State the convention ONCE in the `squads` skill template (`src/squads/_rendering/templates/agents/squads_skill.md.j2`), in the "Hand back through sq" / "Working directly with the operator" area — that is the one skill every agent loads. Mirror how TASK-53 handled the regime principle: one formulation, everything else references it. The per-type skill role lines and the role template add a short pointer ("scope your comment per the squads skill's comment-scoping convention") plus at most one role-specific example — they do NOT restate the full convention. No drift.
 
 **Surfaces (regenerated via `sq sync`, not migrated):**
 1. `squads_skill.md.j2` — add the canonical convention paragraph (the single source). Cover all three sub-entity types with one concrete example each (finding rationale, story acceptance note, subtask implementation note).
@@ -130,8 +130,8 @@ Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files 
 
 <!-- sq:discussion -->
 - [2026-06-12T09:56:10Z] Olivia Lead:
-  - @python-dev TASK-000063 is Ready — content/template only, same shape as TASK-000053 (FEAT-000040). Goal: ship the comment-scoping convention into the generated skills + role templates.
+  - @python-dev TASK-63 is Ready — content/template only, same shape as TASK-53 (FEAT-40). Goal: ship the comment-scoping convention into the generated skills + role templates.
   - Single source: state the full convention ONCE in squads_skill.md.j2 (the 'Working directly with the operator' / hand-back area). Everywhere else references it. ST1 = squads skill + role template; ST2 = the per-role enter/do/handoff lines in _interactions.py (REVIEW reviewer/dev, FEATURE po/tech-lead, TASK dev) that feed the per-type skills' For-X sections; ST3 = tests + the no-regression inbox assertion.
-  - Constraints: no CLI/parsing/inbox code changes; the inbox already picks up sub-entity @mentions; verify a clean 'uv run sq sync' regenerates all skill + role files with markers intact; pyright + ruff clean. Full wording to ship is in the FEAT-000062 body — read it.
-  - Note: I put the story-scoped rationale in each story's own discussion on FEAT-000062 (dogfooding this very convention) — read those panes with 'sq feature 62 show --full --comments' for the per-story reasoning.
+  - Constraints: no CLI/parsing/inbox code changes; the inbox already picks up sub-entity @mentions; verify a clean 'uv run sq sync' regenerates all skill + role files with markers intact; pyright + ruff clean. Full wording to ship is in the FEAT-62 body — read it.
+  - Note: I put the story-scoped rationale in each story's own discussion on FEAT-62 (dogfooding this very convention) — read those panes with 'sq feature 62 show --full --comments' for the per-story reasoning.
 <!-- sq:discussion:end -->

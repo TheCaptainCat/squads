@@ -6,8 +6,11 @@ from it + ``type``).  The ``.md`` frontmatter is the durable truth (it persists 
 ``sequence_id``); this file is an authoritative-at-runtime index rebuildable from those files
 (``sq repair``).
 
-``padding`` is a squad-wide format/allocation parameter (see ADR-000104): reconstructed by
-``sq repair`` as ``max(stored_padding, max_filename_width)`` — like the counter is carried forward.
+``padding`` is a squad-wide **filename**-width parameter (see ADR-000104, reinterpreted by
+ADR-000282): reconstructed by ``sq repair`` as ``max(stored_padding, max_filename_width)`` — like
+the counter is carried forward. It is consumed only at the filename-building seam
+(:meth:`SquadsDB.format_id`); display always renders unpadded (``Item.id`` formats at
+:data:`~squads._models._item.DISPLAY_ID_PADDING`, a constant 0 — never this stored value).
 Default is :data:`~squads._models._item.DEFAULT_ID_PADDING` (6) for pre-existing squads.
 """
 
@@ -35,7 +38,8 @@ class SquadsDB(BaseModel):
     squads_version: NonEmpty = "0.0.0"
     #: One global monotonic counter; numbers are unique across all types.
     counter: NonNegativeInt = 0
-    #: Zero-pad width for all item IDs in this squad (e.g. 6 → ``TASK-000007``).
+    #: Zero-pad width for item **filenames** in this squad (e.g. 6 → ``TASK-000007-slug.md``).
+    #: Never used for display (ADR-000282 — ``Item.id`` is always unpadded).
     #: Authoritative index state; see ADR-000104.  Never shrinks.
     padding: NonNegativeInt = DEFAULT_ID_PADDING
     #: Items keyed by their global sequence number (the int behind the id).
@@ -55,22 +59,13 @@ class SquadsDB(BaseModel):
             d = {**d, "items": {_seq(k): v for k, v in cast("dict[Any, Any]", items).items()}}
         return d
 
-    @model_validator(mode="after")
-    def _propagate_padding(self) -> SquadsDB:
-        """Propagate the squad's stored padding to every item's ``id_padding``.
-
-        ``id_padding`` is excluded from JSON serialisation (never persisted), so items loaded
-        from the index always come back with the default (6).  This post-load step sets the
-        correct value so ``item.id`` always reflects the current squad width everywhere —
-        display, CLI addressing, and equality comparisons are all consistent (FEAT-000027 /
-        ADR-000104).
-        """
-        for item in self.items.values():
-            item.id_padding = self.padding
-        return self
-
     def format_id(self, item_type: str, sequence_id: int, *, prefix: str = "") -> str:
-        """Format an item ID at this squad's current padding width.
+        """Format a **filename stem** at this squad's current padding width (ADR-000282).
+
+        Display never calls this — ``Item.id`` always formats unpadded via
+        :data:`~squads._models._item.DISPLAY_ID_PADDING`. This is the filename-building seam:
+        used by :meth:`allocate_id` (create path) and by any other call site that needs the
+        padded on-disk stem.
 
         ``prefix`` is the resolved ID prefix (e.g. ``"TASK"``, ``"INC"``).  When supplied
         it is used directly; when absent (empty string) the reserved built-in map is consulted

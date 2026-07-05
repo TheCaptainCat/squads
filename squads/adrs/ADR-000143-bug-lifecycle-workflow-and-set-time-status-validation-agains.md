@@ -1,21 +1,21 @@
 ---
-id: ADR-000143
+id: ADR-143
 sequence_id: 143
 type: decision
 title: Bug lifecycle workflow and set-time status validation against the type workflow
 status: Accepted
 author: architect
 refs:
-- BUG-000142:addresses
-- FEAT-000013
-- FEAT-000138
+- BUG-142:addresses
+- FEAT-13
+- FEAT-138
 created_at: '2026-06-16T11:58:36Z'
 updated_at: '2026-06-16T11:59:52Z'
 ---
 <!-- sq:body -->
 ## Context
 
-Two coupled defects in the status vocabulary / workflow validation (BUG-000142):
+Two coupled defects in the status vocabulary / workflow validation (BUG-142):
 
 1. **Orphan bug vocabulary.** The `Status` enum carries `Open`/`Fixed`/`Verified`/`WontFix`,
    but no item workflow uses them — they are wired only into the review-*finding* sub-entity
@@ -31,11 +31,11 @@ Two coupled defects in the status vocabulary / workflow validation (BUG-000142):
    holes follow: (a) `--force` bypasses `_apply_status` entirely, accepting any enum value; and
    (b) when an out-of-vocabulary value happens to *not* be a legal edge, the user sees an
    `InvalidTransitionError` ("cannot move X → Y") that misdescribes the real problem (Y is not a
-   state of this workflow at all). Concretely: BUG-000134 was set to `Fixed`, committed, and only
+   state of this workflow at all). Concretely: BUG-134 was set to `Fixed`, committed, and only
    failed later at `sq check`.
 
 The status vocabulary and the per-type workflows are **stability-contract surface that freezes at
-1.0** (FEAT-000013). This is therefore a pre-1.0 decision and must be recorded there.
+1.0** (FEAT-13). This is therefore a pre-1.0 decision and must be recorded there.
 
 Operator direction (op-pierre, 2026-06-16): give bugs a real lifecycle using the existing enum
 values, and tighten set-status to reject out-of-workflow values at set-time.
@@ -122,7 +122,7 @@ Composition with the existing check:
 ### 3. Back-compat — the load-bearing part
 
 Inventory of existing bugs on disk (2026-06-16): **all nine closed bugs are `Done`**
-(BUG-000011/21/22/25/30/56/80/120/134); BUG-000142 is `Draft`. No bug is in
+(BUG-11/21/22/25/30/56/80/120/134); BUG-142 is `Draft`. No bug is in
 `Ready`/`InReview`/`Blocked`/`Cancelled`. So once `_BUG` no longer accepts `Done`/`Draft`, every
 existing bug breaks `sq check`. We MUST remap stored statuses.
 
@@ -150,10 +150,10 @@ status already valid for `_BUG` is left untouched.
 This rewrites **frontmatter** (source of truth) — the index is rebuilt from it by the runner's
 trailing `repair`. Invariant 1 (frontmatter-as-truth) holds.
 
-### 4. Schema bump and sequencing vs FEAT-000138
+### 4. Schema bump and sequencing vs FEAT-138
 
 A stored-status remap is a frontmatter shape change, so it needs a `SCHEMA_VERSION` bump and a
-runner. FEAT-000138 is **concurrently** bumping `0.3 → 0.4` (`default_backend → active_backends`);
+runner. FEAT-138 is **concurrently** bumping `0.3 → 0.4` (`default_backend → active_backends`);
 its runner `_v0_3_to_v0_4.py` already exists and is registered.
 
 Therefore this decision's migration is **`0.4 → 0.5`** and MUST sequence **after** FEAT-138 lands:
@@ -163,7 +163,7 @@ Therefore this decision's migration is **`0.4 → 0.5`** and MUST sequence **aft
 - New runner `_migrations/_v0_4_to_v0_5.py::migrate(paths) -> int` doing the §3 remap (fully
   automatic; `MANUAL = ""`), appended to `_registry.MIGRATIONS` as a `Migration(version="0.5.0",
   from_schema="0.4", to_schema="0.5", …)` **after** the `0.4.0` entry.
-- Per the FEAT-000017 standing rule, add a **`v0_5` corpus fixture** under
+- Per the FEAT-17 standing rule, add a **`v0_5` corpus fixture** under
   `tests/fixtures/corpus/v0_5/` (a frozen squad with at least one `Done` bug) and register it in
   `tests/test_migration_corpus.py::_CORPUS_CASES` so the remap is exercised and proven to reach
   `sq check`-clean.
@@ -182,7 +182,7 @@ remap is preferred and is minimal.
 - Out-of-workflow statuses are rejected at the point of edit for **every** type, with a clear
   error, and `--force` can no longer smuggle a wrong-vocabulary status past validation.
 - One-way data migration; existing bugs are re-stated per the table. IDs/bodies untouched.
-- **FEAT-000013 must record the final bug lifecycle** in the stability-contract doc (the
+- **FEAT-13 must record the final bug lifecycle** in the stability-contract doc (the
   `Open → InProgress → Fixed → Verified` map + terminals above) before the 1.0 freeze. Flagged
   here; @manager files the deferral comment during the loop (not filed by this ADR).
 - Follow-on (minor): add the same set-time membership guard to sub-entity status setting in

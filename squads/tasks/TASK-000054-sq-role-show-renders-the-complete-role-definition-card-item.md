@@ -1,10 +1,10 @@
 ---
-id: TASK-000054
+id: TASK-54
 sequence_id: 54
 type: task
 title: sq role show renders the complete role definition (card + item body)
 status: Done
-parent: FEAT-000041
+parent: FEAT-41
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -18,7 +18,7 @@ updated_at: '2026-06-23T09:58:02Z'
 ---
 <!-- sq:body -->
 ## Goal
-`sq role show <slug>` must show the **complete** role definition — the catalog card it prints today *plus* the active role item's body (mission, responsibilities, skills list, working agreements). Today it resolves only via `role_by_slug(slug)` (bundled catalog) and never touches the tracked item, so the working agreements (the part an agent needs to behave correctly) are invisible from the CLI. FEAT-000040 just landed and `sq sync` re-renders the role item body via `_services/_maintenance.py::_regen_role_body` from `agents/role.md.j2` — this task must surface that *new, complete* body.
+`sq role show <slug>` must show the **complete** role definition — the catalog card it prints today *plus* the active role item's body (mission, responsibilities, skills list, working agreements). Today it resolves only via `role_by_slug(slug)` (bundled catalog) and never touches the tracked item, so the working agreements (the part an agent needs to behave correctly) are invisible from the CLI. FEAT-40 just landed and `sq sync` re-renders the role item body via `_services/_maintenance.py::_regen_role_body` from `agents/role.md.j2` — this task must surface that *new, complete* body.
 
 ## Where
 - `src/squads/_cli/_role.py::show_role` — currently builds a Panel from `RoleDef` fields only. Needs to also fetch and render the active role item's body.
@@ -28,7 +28,7 @@ updated_at: '2026-06-23T09:58:02Z'
 ## Behaviour
 - If the role is **active** (tracked item exists): show card + item body.
 - If only **bundled** (no active item): degrade gracefully to today's card and hint to activate. Decide+document the exact fallback.
-- Honor FEAT-000026 conventions (panes, --raw, piped) only if it has landed; otherwise keep current Panel rendering and leave a note. Do not block on FEAT-000026.
+- Honor FEAT-26 conventions (panes, --raw, piped) only if it has landed; otherwise keep current Panel rendering and leave a note. Do not block on FEAT-26.
 
 ## Acceptance (US1)
 - Output contains the working agreements and skills, matching the item body (`sq role show tech-lead` shows the Working agreements section).

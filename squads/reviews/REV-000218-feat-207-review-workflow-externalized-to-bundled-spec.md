@@ -1,15 +1,15 @@
 ---
-id: REV-000218
+id: REV-218
 sequence_id: 218
 type: review
 title: 'FEAT-207 review: workflow externalized to bundled spec'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000207
-- TASK-000215
-- TASK-000216
-- TASK-000217
+- FEAT-207
+- TASK-215
+- TASK-216
+- TASK-217
 subentities:
 - local_id: F1
   title: Loader does not enforce Status-enum completeness (ADR 5-6 partial)
@@ -21,7 +21,7 @@ updated_at: '2026-06-25T15:17:07Z'
 <!-- sq:body -->
 ## Scope
 
-Independent review of FEAT-000207 / ADR-000214 F1: externalizing the hardcoded workflow into a bundled TOML WorkflowSpec, enums kept INTACT (no de-typing). New package src/squads/_workflow/ (_models.py, _loader.py, default_workflow.toml, __init__.py) replaces _workflow.py; one is->== fix in _services/_retype.py; new tests/test_workflow_spec.py. Reviewer did not write the code.
+Independent review of FEAT-207 / ADR-214 F1: externalizing the hardcoded workflow into a bundled TOML WorkflowSpec, enums kept INTACT (no de-typing). New package src/squads/_workflow/ (_models.py, _loader.py, default_workflow.toml, __init__.py) replaces _workflow.py; one is->== fix in _services/_retype.py; new tests/test_workflow_spec.py. Reviewer did not write the code.
 
 ## Verdict: APPROVE-WITH-NITS
 
@@ -89,7 +89,7 @@ _Add with `sq review 218 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F1:body -->
 src/squads/_workflow/_models.py:222-233 (WorkflowSpec._validate, §5-6 enums-intact check).
 
-The check enforces that the spec TYPE set equals set(ItemType), but does NOT enforce that every Status enum member is present in spec.statuses. ADR-000214 §5-6 states the spec 'may not omit or invent a name relative to the enums' — for statuses, only the 'invent' half is covered (coercion via Status(...) rejects unknown names); the 'omit' half is not. A spec can pass validation while declaring a strict subset of the Status enum.
+The check enforces that the spec TYPE set equals set(ItemType), but does NOT enforce that every Status enum member is present in spec.statuses. ADR-214 §5-6 states the spec 'may not omit or invent a name relative to the enums' — for statuses, only the 'invent' half is covered (coercion via Status(...) rejects unknown names); the 'omit' half is not. A spec can pass validation while declaring a strict subset of the Status enum.
 
 Coupled risk: is_open() at _models.py:177 does 'self.statuses[status].terminal' — a bare subscript. A status enum member absent from spec.statuses would raise KeyError at runtime rather than fail-closed at load.
 
@@ -109,11 +109,11 @@ Why it still matters: F3 introduces project overrides that will run THIS validat
 
 <!-- sq:discussion -->
 - [2026-06-25T14:54:13Z] Paul Reviewer:
-  - VERDICT: APPROVE-WITH-NITS. F1 is the de-risking foundation of EPIC-000206 and it is solid: behavior is byte-identical to the pre-change literals (independently reconstructed from git HEAD and diffed exhaustively, transition ordering included — not merely trusting the golden test), existing tests pass unchanged, the is->== retype fix is correct/necessary and the only such identity comparison in the tree, loader is fail-closed with SquadsError, the golden-lock test is a genuine non-circular regression gate, imports are acyclic, and scope did not leak into F2/F3.
+  - VERDICT: APPROVE-WITH-NITS. F1 is the de-risking foundation of EPIC-206 and it is solid: behavior is byte-identical to the pre-change literals (independently reconstructed from git HEAD and diffed exhaustively, transition ordering included — not merely trusting the golden test), existing tests pass unchanged, the is->== retype fix is correct/necessary and the only such identity comparison in the tree, loader is fail-closed with SquadsError, the golden-lock test is a genuine non-circular regression gate, imports are acyclic, and scope did not leak into F2/F3.
   - One LOW finding (F1): the §5-6 enums-intact check enforces type-set completeness but NOT Status-set completeness — a spec can omit Status enum members and pass load, then KeyError in is_open() (bare subscript). Zero impact in F1 (bundled default is complete, golden test iterates 'for s in Status'), but this validation runs against author specs in F3 — recommend closing now with a one-line symmetric check or tracking as an explicit F3 follow-up. Not a merge blocker.
   - Naming rename ('machines'->lifecycle, tracked on TASK-215) is mechanically contained to the _workflow package + its test; no external consumer reads the key directly. @tech-lead / @python-dev for the F1 nit disposition.
 - [2026-06-25T15:15:50Z] Elias Python:
-  - @manager REV-000218 nits implemented — vocabulary rename + symmetric status validator.
+  - @manager REV-218 nits implemented — vocabulary rename + symmetric status validator.
   - Changes:
   -   default_workflow.toml: [machines.*]+[subentity_machines.*] merged into [lifecycles.*]; [types.*] renamed to [items.*]; type field 'machine' renamed to 'lifecycle'.
   -   _models.py: StateMachine → Lifecycle; TypeSpec → ItemSpec; ItemSpec.machine → .lifecycle; WorkflowSpec.types → .items; WorkflowSpec.machines+.subentity_machines → .lifecycles: dict[str, Lifecycle]; added §5-6b symmetric status check (spec status set must equal set(Status)); _check_machine_statuses/_check_reachability/_check_type_refs renamed accordingly.

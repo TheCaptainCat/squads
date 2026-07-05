@@ -1,13 +1,13 @@
 ---
-id: ADR-000180
+id: ADR-180
 sequence_id: 180
 type: decision
 title: 'Format-neutral item-file storage contract: codec seam + named body/prose regions'
 status: Proposed
 author: architect
 refs:
-- FEAT-000177:addresses
-- ADR-000179
+- FEAT-177:addresses
+- ADR-179
 description: Split the store into a format-agnostic locator and a pluggable codec;
   define body regions as named fields, not text spans, so the two invariants hold
   across markdown/JSON/XML
@@ -97,7 +97,7 @@ so a team can convert markdown→JSON deterministically and reversibly. We do **
 with mixed-format files in steady state — that multiplies the discovery + uniqueness surface for no
 stated value.
 
-## Relationship to FEAT-000176 (shared seam)
+## Relationship to FEAT-176 (shared seam)
 
 The two ADRs share the `ItemStore` abstraction and must stay consistent:
 

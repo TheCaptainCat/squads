@@ -1,10 +1,10 @@
 ---
-id: TASK-000240
+id: TASK-240
 sequence_id: 240
 type: task
 title: Thread the merged spec into open_service + load-boundary validate()
 status: Done
-parent: FEAT-000209
+parent: FEAT-209
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -26,14 +26,14 @@ Make the merged project workflow spec actually take effect at runtime by feeding
 (`WORKFLOWS`, `TERMINAL`, `ALLOWED_PARENTS`, and ~14 free functions) is bound to that singleton.
 There are ~16 import sites across `_cli/`, `_index/_store.py`, and `_services/`.
 
-ADR-000214 §1 (accepted) pins the eventual direction: "F3+ threads a per-`Service` instance; in F1
+ADR-214 §1 (accepted) pins the eventual direction: "F3+ threads a per-`Service` instance; in F1
 the singleton keeps the [behavior]." **However**, fully threading a `WorkflowSpec` instance through
-all 16 call sites is a large, risky refactor. For FEAT-000209's acceptance bar, the pragmatic seam
+all 16 call sites is a large, risky refactor. For FEAT-209's acceptance bar, the pragmatic seam
 is to keep the singleton but make it **squad-dir-aware**: when `open_service(dir)` resolves a squad
-that has a workflow override, (re)load the spec with `load_workflow_spec(squad_dir=...)` (TASK-000239)
+that has a workflow override, (re)load the spec with `load_workflow_spec(squad_dir=...)` (TASK-239)
 and rebind the singleton + derived constants for the process.
 
->> OPEN DESIGN QUESTION flagged to @manager / @architect on FEAT-000209: whether F3 does the narrow
+>> OPEN DESIGN QUESTION flagged to @manager / @architect on FEAT-209: whether F3 does the narrow
 >> squad-dir-aware singleton rebind (recommended, low-risk, satisfies all 7 ACs) OR the full
 >> per-Service threading the ADR names as the destination. Do NOT start coding the threading variant
 >> until Catherine confirms scope. The body below assumes the rebind approach; adjust if redirected.
@@ -59,8 +59,8 @@ and rebind the singleton + derived constants for the process.
   does not leak between processes/tests.
 
 ## Ordering
-After TASK-000239 (needs the squad-dir-aware loader). Before/alongside TASK-000243 (sq check) and
-TASK-000242 (lint), which call the same `validate()`. Coordinate test-isolation with QA.
+After TASK-239 (needs the squad-dir-aware loader). Before/alongside TASK-243 (sq check) and
+TASK-242 (lint), which call the same `validate()`. Coordinate test-isolation with QA.
 <!-- sq:body:end -->
 
 ## Subtasks

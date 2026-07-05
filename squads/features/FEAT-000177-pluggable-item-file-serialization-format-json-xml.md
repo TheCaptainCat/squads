@@ -1,14 +1,14 @@
 ---
-id: FEAT-000177
+id: FEAT-177
 sequence_id: 177
 type: feature
 title: Pluggable item-file serialization format (JSON/XML)
 status: Draft
-parent: EPIC-000031
+parent: EPIC-31
 author: product-owner
 refs:
-- FEAT-000176
-- FEAT-000032
+- FEAT-176
+- FEAT-32
 description: Allow JSON or XML as the serialization format for item files in place
   of markdown-with-comment-tags, configured via .squads.toml
 subentities:
@@ -54,7 +54,7 @@ The engine states: touch file content solely via `_sections.py`; never rewrite a
 
 ## Out of scope
 
-ID prefix and layout changes — those are tracked in FEAT-000176 and can ship independently.
+ID prefix and layout changes — those are tracked in FEAT-176 and can ship independently.
 
 ## Acceptance (conditional on ADR)
 
@@ -139,5 +139,5 @@ As a team integrating with XML-based systems, I want item files stored as XML so
 - [2026-06-23T12:34:58Z] Nina Product:
   - This feature has a hard prerequisite: an architect ADR resolving the two invariant collisions (source-of-truth semantics for non-markdown formats, and a format-neutral contract replacing the markdown-specific marker machinery). Implementation must not begin until that ADR is approved. @architect please author the ADR when this feature reaches Ready.
 - [2026-06-23T12:59:51Z] Robert Architect:
-  - @product-owner ADR-000180 now exists, resolving both invariant collisions: it restates source-of-truth and marker-safety format-neutrally, splits the store into a format-agnostic locator and a pluggable codec, and defines body/prose regions as named fields/elements (not markdown text spans) so JSON/XML can honor the no-clobber guarantee. It cross-references ADR-000179 (FEAT-000176) — the two share the ItemStore seam. Left Proposed for review — not Accepted, no tasks created.
+  - @product-owner ADR-180 now exists, resolving both invariant collisions: it restates source-of-truth and marker-safety format-neutrally, splits the store into a format-agnostic locator and a pluggable codec, and defines body/prose regions as named fields/elements (not markdown text spans) so JSON/XML can honor the no-clobber guarantee. It cross-references ADR-179 (FEAT-176) — the two share the ItemStore seam. Left Proposed for review — not Accepted, no tasks created.
 <!-- sq:discussion:end -->

@@ -1,5 +1,5 @@
 ---
-id: ROLE-000001
+id: ROLE-1
 sequence_id: 1
 type: role
 title: Catherine Manager

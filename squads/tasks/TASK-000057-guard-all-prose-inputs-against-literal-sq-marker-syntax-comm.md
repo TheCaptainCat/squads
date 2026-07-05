@@ -1,5 +1,5 @@
 ---
-id: TASK-000057
+id: TASK-57
 sequence_id: 57
 type: task
 title: Guard all prose inputs against literal sq marker syntax (comments, sub-entity
@@ -9,7 +9,7 @@ author: tech-lead
 assignee: python-dev
 priority: high
 refs:
-- BUG-000056:fixes
+- BUG-56:fixes
 subentities:
 - local_id: ST1
   title: Add one shared marker-syntax guard; apply to comment messages and sub-entity
@@ -32,7 +32,7 @@ prose inputs that land inside marker-delimited regions have no such guard, so an
 inject a well-formed marker tag (an HTML-comment-wrapped `sq:` tag) that breaks the file's
 marker integrity. `sq check` then reports duplicate / unclosed markers, and a later
 marker-based section edit can match the injected tag and corrupt the file. Observed live on
-FEAT-000040 (see BUG-000056); repaired by hand as a one-off.
+FEAT-40 (see BUG-56); repaired by hand as a one-off.
 
 Backtick-wrapping is NOT a neutralizer: `_sections.find_markers` matches a well-formed tag
 anywhere in the text, code spans included. Rejection is the only safe option.
@@ -41,7 +41,7 @@ anywhere in the text, code spans included. Rejection is the only safe option.
 
 1. **Comment messages** — `_services/_collab.py::comment`. Messages flow through
    `_discussion.format_comment` and are appended verbatim into the `:discussion` region
-   (`append_to_section`). No guard. This is the path that bit us on FEAT-000040.
+   (`append_to_section`). No guard. This is the path that bit us on FEAT-40.
    Reachable from EVERY item type's `comment` command and from `--story/--subtask/--finding`
    targeted discussion comments.
 

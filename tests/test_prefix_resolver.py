@@ -165,7 +165,7 @@ class TestItemPrefixField:
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
         )
-        assert item.id == "INC-000019"
+        assert item.id == "INC-19"
         assert item.prefix == "INC"
 
     def test_item_id_fallback_for_builtin_without_explicit_prefix(self) -> None:
@@ -183,7 +183,7 @@ class TestItemPrefixField:
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
         )
-        assert item.id == "TASK-000007"
+        assert item.id == "TASK-7"
 
     def test_to_frontmatter_dict_writes_prefix_only_for_custom(self) -> None:
         """prefix: is written to frontmatter for custom types, NOT for reserved types."""
@@ -239,7 +239,7 @@ class TestItemPrefixField:
         }
         item = Item.from_frontmatter(data, path="incidents/INC-000019-an-incident.md")
         assert item.prefix == "INC"
-        assert item.id == "INC-000019"
+        assert item.id == "INC-19"
 
     def test_from_frontmatter_derives_prefix_for_builtins(self) -> None:
         """from_frontmatter re-derives prefix for reserved types (always from RESERVED_PREFIX)."""
@@ -259,7 +259,7 @@ class TestItemPrefixField:
         }
         item = Item.from_frontmatter(data, path="tasks/TASK-000007-a-task.md")
         assert item.prefix == "TASK"
-        assert item.id == "TASK-000007"
+        assert item.id == "TASK-7"
 
     def test_from_frontmatter_ignores_stored_prefix_for_reserved_type(self) -> None:
         """Even if a corrupt frontmatter has a wrong prefix: line for a reserved type,
@@ -280,7 +280,7 @@ class TestItemPrefixField:
         }
         item = Item.from_frontmatter(data, path="tasks/TASK-000007-a-task.md")
         assert item.prefix == "TASK"  # override by RESERVED_PREFIX
-        assert item.id == "TASK-000007"
+        assert item.id == "TASK-7"
 
 
 # ---------------------------------------------------------------------------
@@ -306,7 +306,7 @@ class TestRetypePrefixStamping:
         retype_result = await svc.retype(task_id, "incident")
         item = retype_result.item
 
-        # Prefix must be "INC", id must be "INC-000001".
+        # Prefix must be "INC", id must be "INC-1".
         assert item.prefix == "INC", f"expected prefix 'INC', got {item.prefix!r}"
         assert item.id.startswith("INC-"), f"id {item.id!r} does not start with 'INC-'"
         assert not item.id.startswith("INCIDENT-"), (
@@ -534,7 +534,7 @@ class TestBuiltinByteIdentical:
     async def test_builtin_ids_unchanged(
         self, project: SquadPaths, svc: service.Service, frozen_time
     ) -> None:
-        """Built-in items still render TASK-000001, FEAT-000002, etc. — no regression."""
+        """Built-in items still render TASK-1, FEAT-2, etc. — no regression."""
         task = await svc.create("task", "A task", author="manager")
         feat = await svc.create("feature", "A feature", author="manager")
         bug = await svc.create("bug", "A bug", author="manager")
@@ -542,7 +542,7 @@ class TestBuiltinByteIdentical:
         assert task.item.id.startswith("TASK-")
         assert feat.item.id.startswith("FEAT-")
         assert bug.item.id.startswith("BUG-")
-        assert not task.item.id.startswith("TASK-000000")
+        assert not task.item.id.startswith("TASK-0")  # unpadded — never a leading zero
 
 
 # ---------------------------------------------------------------------------

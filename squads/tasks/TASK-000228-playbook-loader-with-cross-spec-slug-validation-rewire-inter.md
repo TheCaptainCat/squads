@@ -1,11 +1,11 @@
 ---
-id: TASK-000228
+id: TASK-228
 sequence_id: 228
 type: task
 title: Playbook loader with cross-spec slug validation; rewire _interactions onto
   loaded spec
 status: Done
-parent: FEAT-000220
+parent: FEAT-220
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -27,10 +27,10 @@ Implement `load_playbook(catalog)` (reads bundled `playbook.toml`, validates fai
 already-loaded role catalog, caches a singleton) and rewire `_interactions.py` consumers onto the
 loaded spec — behavior BYTE-IDENTICAL, zero call-site churn. This task also establishes the
 **cross-spec slug-validation contract** that a future custom-type playbook entry (US2 motivation /
-FEAT-000210) must satisfy.
+FEAT-210) must satisfy.
 
-Sequence: **second** — depends on TASK-000227 (models + TOML) and on FEAT-000219's `RoleCatalogSpec`
-being the slug authority. TASK-000229 (golden-lock) gates on this being behavior-preserving.
+Sequence: **second** — depends on TASK-227 (models + TOML) and on FEAT-219's `RoleCatalogSpec`
+being the slug authority. TASK-229 (golden-lock) gates on this being behavior-preserving.
 
 ## What to build
 
@@ -65,22 +65,22 @@ being the slug authority. TASK-000229 (golden-lock) gates on this being behavior
 - Retire the `PLAYBOOK` dict (no remaining literal outside the TOML). Keep the import graph acyclic;
   no `from __future__ import annotations`.
 
-## Design constraints (ADR-000226)
+## Design constraints (ADR-226)
 
 - §3 loader/validation/rewiring; data moves out, rendering logic stays. No backend/renderer change —
   `agents/item_skill.md.j2` and skill-writing logic untouched; only the source of playbook data moves.
-- The cross-spec slug check (rule 2) is the contract a custom-type entry (FEAT-000210) will satisfy;
+- The cross-spec slug check (rule 2) is the contract a custom-type entry (FEAT-210) will satisfy;
   FP ships only the bundled playbook + this validation, not project-supplied entries.
 
 ## Acceptance
 
 1. `load_playbook(catalog)` loads + validates the bundled playbook; an unknown role slug (non-`*dev`)
    raises `SquadsError`; an entry for a meta/non-work type is rejected; a missing meta entry is fine.
-   (FEAT-000220 AC#6; US2's validation contract.)
+   (FEAT-220 AC#6; US2's validation contract.)
 2. `_interactions.py`'s `PLAYBOOK` dict is retired; `managed_item_types()`, `skills_for_role()`,
    `SKILL_DESCRIPTIONS`, and `_write_item_skills` route through the loaded spec. (AC#3, US1.)
 3. All existing tests pass unchanged; `sq sync` output unchanged (byte-identity proven in
-   TASK-000229). (AC#4/#7.)
+   TASK-229). (AC#4/#7.)
 4. `uv run pyright && uv run ruff check . && uv run pytest` green.
 <!-- sq:body:end -->
 
@@ -139,6 +139,6 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:discussion -->
 - [2026-06-26T09:04:58Z] Elias Python:
   - Implementation in working tree: src/squads/_interactions/ package with _models.py (PlaybookSpec/ItemPlaybookSpec/RoleGuideSpec), _loader.py (load_playbook with cross-spec slug validation), and playbook.toml. The _interactions/__init__.py rewires all public shims (PLAYBOOK, managed_item_types, item_types_for_role, skills_for_role, SKILL_DESCRIPTIONS) onto the loaded singleton.
-  - Layer-B golden-lock (TASK-000229) passed on first run — byte-identical output confirmed for all 7 work types with the fixed pinned roster. The rewiring is behavior-preserving.
-  - @manager ready for review alongside TASK-000229.
+  - Layer-B golden-lock (TASK-229) passed on first run — byte-identical output confirmed for all 7 work types with the fixed pinned roster. The rewiring is behavior-preserving.
+  - @manager ready for review alongside TASK-229.
 <!-- sq:discussion:end -->

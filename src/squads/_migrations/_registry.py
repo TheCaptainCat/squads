@@ -14,7 +14,13 @@ no IO can be wrapped with :func:`_wrap_sync`.
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from squads._migrations import _v0_1_to_v0_2, _v0_2_to_v0_3, _v0_3_to_v0_4, _v0_4_to_v0_5
+from squads._migrations import (
+    _v0_1_to_v0_2,
+    _v0_2_to_v0_3,
+    _v0_3_to_v0_4,
+    _v0_4_to_v0_5,
+    _v0_5_to_v0_7,
+)
 from squads._paths import SquadPaths
 
 
@@ -76,5 +82,16 @@ MIGRATIONS: list[Migration] = [
         ),
         run=_v0_4_to_v0_5.migrate,
         manual=_v0_4_to_v0_5.MANUAL,
+    ),
+    Migration(
+        version="0.7.0",
+        from_schema="0.5",
+        to_schema="0.7",
+        summary=(
+            "Unpadded display IDs (ADR-000282): rewrite every frontmatter id/ref/parent and "
+            "body-prose ID mention to the unpadded form; filenames stay padded, untouched."
+        ),
+        run=_wrap_sync(_v0_5_to_v0_7.migrate),
+        manual=_v0_5_to_v0_7.MANUAL,
     ),
 ]

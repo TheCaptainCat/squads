@@ -1,5 +1,5 @@
 ---
-id: ADR-000226
+id: ADR-226
 sequence_id: 226
 type: decision
 title: 'Playbook spec: bundled playbook.toml + loader, slug-validated, skill-output
@@ -7,10 +7,10 @@ title: 'Playbook spec: bundled playbook.toml + loader, slug-validated, skill-out
 status: Accepted
 author: architect
 refs:
-- FEAT-000220:addresses
-- FEAT-000219
-- ADR-000221
-- ADR-000214
+- FEAT-220:addresses
+- FEAT-219
+- ADR-221
+- ADR-214
 created_at: '2026-06-26T08:01:33Z'
 updated_at: '2026-06-26T08:03:22Z'
 ---

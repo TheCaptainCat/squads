@@ -1,11 +1,11 @@
 ---
-id: TASK-000235
+id: TASK-235
 sequence_id: 235
 type: task
 title: Widen Item type/status to str; validate at service boundary; reserved-vocab
   subset check
 status: Done
-parent: FEAT-000208
+parent: FEAT-208
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -24,14 +24,14 @@ updated_at: '2026-06-26T15:17:16Z'
 <!-- sq:body -->
 ## Goal
 
-The de-typing itself (ADR-000232 §1/§3/§4): widen `Item.type`/`Item.status` and `SubEntity.status`
+The de-typing itself (ADR-232 §1/§3/§4): widen `Item.type`/`Item.status` and `SubEntity.status`
 from enums to `str`, move vocabulary validation from Pydantic construction to the service/load
 boundary, and replace FEAT-207's `== enums` equality with the fail-closed reserved-vocab
 subset/coverage check. This is the irreversible typing inversion — done last, once the engine no
-longer branches on enum identity (TASK-000234) so widening the field type is safe.
+longer branches on enum identity (TASK-234) so widening the field type is safe.
 
-Sequence: **third / last** — depends on TASK-000233 (hardened loader + reserved-vocab plumbing) and
-TASK-000234 (no enum-identity branches remain). Highest-risk task; the standing gate is the proof.
+Sequence: **third / last** — depends on TASK-233 (hardened loader + reserved-vocab plumbing) and
+TASK-234 (no enum-identity branches remain). Highest-risk task; the standing gate is the proof.
 
 ## What to build
 
@@ -62,7 +62,7 @@ TASK-000234 (no enum-identity branches remain). Highest-risk task; the standing 
   an item with an unknown type/status surfaces a clear spec-validation error at service init with the
   item id.
 
-## Design constraints (ADR-000232)
+## Design constraints (ADR-232)
 
 - §1/§3/§4 exactly. Enums demoted to reserved-vocab source + TOML generator, not the runtime field
   type; may remain as readable string constants during transition. §7 trade-off (compile-time
@@ -163,7 +163,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - - test_reserved_vocab_omit_status_fails_closed: drops 'Done' → SquadsError §5-6b
   - pyright: 0 errors | ruff: clean | 1247 tests: exit 0 @manager
 - [2026-06-26T14:54:55Z] Elias Python:
-  - All four REV-000238 findings addressed and verified.
+  - All four REV-238 findings addressed and verified.
   - F1 (HIGH): Load-boundary vocabulary validation implemented at both materialization paths — IndexStore.load() (via _validate_item_vocab()) and repair() (inline guard before db.add()). type=gizmo and status=Frobnicated now raise a clean SquadsError with the item ID; four characterization tests in tests/test_load_boundary_vocab.py confirm the repro.
   - F2 (MEDIUM): Reserved-status floor in WorkflowSpec._validate §5-6b narrowed from all 22 Status members to the 11 structural-floor statuses (Draft/Active/Archived, Todo/InProgress/Blocked/Done/Cancelled, Open/Fixed/Verified/WontFix). Work-item-only statuses are no longer reserved. Tests updated: test_reserved_vocab_omit_status_fails_closed still uses 'Done' (floor member); new test_non_reserved_status_omission_is_allowed verifies dropping 'Ready' is ALLOWED.
   - F3 (LOW): parse_type/parse_status now consult _DEFAULT_SPEC.items and _DEFAULT_SPEC.statuses instead of iterating ItemType/Status enums directly.

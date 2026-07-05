@@ -1,11 +1,11 @@
 ---
-id: TASK-000278
+id: TASK-278
 sequence_id: 278
 type: task
 title: 'Custom-status regression: parse_status, sq list --status, blocked, default
   filter'
 status: Done
-parent: FEAT-000211
+parent: FEAT-211
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -50,7 +50,7 @@ Prove (and fix if needed) that `parse_status`, `sq list --status`, `sq list` def
 ## Acceptance
 
 Matches FEAT-211 AC#1 and AC#2 exactly. All new tests pin roster/clock/flags and run green
-under the TASK-000275 guard.
+under the TASK-275 guard.
 
 ## Files
 `src/squads/_cli/_common.py` (parse_status — likely no change), `src/squads/_cli/_main.py`
@@ -99,7 +99,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Green: uv run pytest tests/test_custom_status_flow.py tests/test_status_display_characterization.py -q -> 50 passed; broader collab/inbox/blocked/list + workflow_override + custom_status_badges modules also green. uv run pyright tests/test_custom_status_flow.py -> 0 errors. uv run ruff check + ruff format --check tests/test_custom_status_flow.py -> clean.
   - @reviewer ready for review on TASK-278.
 - [2026-07-02T11:47:19Z] Paul Reviewer:
-  - Reviewed (REV-000285) — APPROVED, good to mark Done. 13 tests genuinely prove AC#1 + AC#2 end-to-end via the CLI with a real custom override. Independently confirmed 'no residual hardcodes': the remaining Status.* hits in _cli/_services are all legitimate non-classification sites (reserved subtask machine, agent bootstrap, comment strings), none in the open/terminal path. 'No production change needed' verified. No findings. @tech-lead
+  - Reviewed (REV-285) — APPROVED, good to mark Done. 13 tests genuinely prove AC#1 + AC#2 end-to-end via the CLI with a real custom override. Independently confirmed 'no residual hardcodes': the remaining Status.* hits in _cli/_services are all legitimate non-classification sites (reserved subtask machine, agent bootstrap, comment strings), none in the open/terminal path. 'No production change needed' verified. No findings. @tech-lead
 - [2026-07-02T12:04:13Z] Elias Python:
   - Fixed a real, pre-existing test-isolation gap surfaced by test_custom_status_flow.py: added an autouse fixture in tests/conftest.py (_reset_active_spec) that resets _cli/_common's per-invocation _active_spec/_active_dir globals after every test (same leak-guard class as the existing clock/actor resets).
   - Went one layer deeper than the initial diagnosis: resetting _active_spec/_active_dir alone did NOT fix the repro. Root-caused it further -- there are two additional process-global caches, _CustomTypeGroup._custom_cmd_cache (_cli/__init__.py) and _CustomCreateGroup._custom_cmd_cache (_cli/_create.py), ClassVar dicts keyed by canonical type name that a real 'sq <custom-type>' / 'sq create <custom-type>' call populates permanently. My test's many 'sq create incident ...' calls left _CustomCreateGroup._custom_cmd_cache = {'incident': <TyperCommand>} behind (confirmed by direct inspection), which is what actually short-circuited test_custom_type_cli.py::TestF5ExceptNarrowing::test_create_group_build_error_propagates's patch of _build_create_cmd -- the cached command was returned without ever calling the patched builder. test_custom_type_cli.py/test_custom_type_create.py already carried a local, partial version of this reset (clearing _CustomTypeGroup's cache only, not _CustomCreateGroup's, and only self-protecting within their own module), which is why the leak had stayed contained until a new module (mine) started exercising the create-side cache before those modules ran. Extended the new conftest.py fixture to clear both caches globally, so this is now a real backstop rather than a per-module patch.

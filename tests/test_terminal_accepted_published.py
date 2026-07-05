@@ -180,13 +180,13 @@ async def test_cli_accepted_decision_hidden_then_visible(project, invoke):
     await invoke(["decision", "2", "status", "Accepted"])
 
     default = await invoke(["list", "--type", "decision"])
-    assert "ADR-000002" not in default.output
+    assert "ADR-2" not in default.output
 
     with_all = await invoke(["list", "--type", "decision", "--all"])
-    assert "ADR-000002" in with_all.output
+    assert "ADR-2" in with_all.output
 
     found = await invoke(["search", "Redis"])
-    assert "ADR-000002" in found.output
+    assert "ADR-2" in found.output
 
 
 async def test_cli_published_guide_hidden_then_visible(project, invoke):
@@ -195,13 +195,13 @@ async def test_cli_published_guide_hidden_then_visible(project, invoke):
     await invoke(["guide", "2", "status", "Published"])
 
     default = await invoke(["list", "--type", "guide"])
-    assert "GUIDE-000002" not in default.output
+    assert "GUIDE-2" not in default.output
 
     with_all = await invoke(["list", "--type", "guide", "--all"])
-    assert "GUIDE-000002" in with_all.output
+    assert "GUIDE-2" in with_all.output
 
     found = await invoke(["search", "runbook"])
-    assert "GUIDE-000002" in found.output
+    assert "GUIDE-2" in found.output
 
 
 async def test_cli_accepted_adr_unblocks_task(project, invoke):
@@ -211,12 +211,12 @@ async def test_cli_accepted_adr_unblocks_task(project, invoke):
     await invoke(["task", "3", "ref", "add", "ADR-000002", "--kind", "depends-on"])
 
     blocked_before = await invoke(["blocked"])
-    assert "TASK-000003" in blocked_before.output
+    assert "TASK-3" in blocked_before.output
 
     await invoke(["decision", "2", "status", "Accepted"])
 
     blocked_after = await invoke(["blocked"])
-    assert "TASK-000003" not in blocked_after.output
+    assert "TASK-3" not in blocked_after.output
 
 
 @pytest.mark.parametrize("status_arg", ["Accepted", "Superseded"])
@@ -228,4 +228,4 @@ async def test_cli_decision_by_status_filter(project, invoke, status_arg):
         await invoke(["decision", "2", "status", "Superseded"])
     result = await invoke(["list", "--status", status_arg])
     assert result.exit_code == 0
-    assert "ADR-000002" in result.output
+    assert "ADR-2" in result.output

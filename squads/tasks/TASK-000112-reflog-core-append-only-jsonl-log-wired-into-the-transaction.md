@@ -1,14 +1,14 @@
 ---
-id: TASK-000112
+id: TASK-112
 sequence_id: 112
 type: task
 title: 'Reflog core: append-only JSONL log wired into the transaction seam'
 status: Done
-parent: FEAT-000024
+parent: FEAT-24
 author: tech-lead
 priority: medium
 refs:
-- FEAT-000015
+- FEAT-15
 description: Append-only operation log written atomically inside IndexStore.transaction();
   the writer, the line schema, and actor threading.
 subentities:
@@ -28,7 +28,7 @@ updated_at: '2026-06-23T09:58:54Z'
 
 Give every mutating `sq` operation an append-only history line, written **inside the same
 transaction** as the mutation so a committed change and its log line never diverge. This is the
-core seam; the read command and contract docs are TASK-000113.
+core seam; the read command and contract docs are TASK-113.
 
 ## The seam
 
@@ -73,7 +73,7 @@ lives at each call site since only it knows what changed.
 - `src/squads/_cli/_common.py` / root callback — set the ambient actor per invocation.
 - `src/squads/_clock.py` — reused as-is for timestamps (no change expected).
 
-## Out of scope (TASK-000113)
+## Out of scope (TASK-113)
 
 The `sq reflog` read command, filtering, `--json` shape, golden tests, and the documented/
 versioned schema with its contract tier.
@@ -82,7 +82,7 @@ versioned schema with its contract tier.
 
 - Every mutating command appends exactly one well-formed JSONL line, atomically with the mutation.
 - No code path logs without applying or applies without logging.
-- `remove`, retype (FEAT-000020), forced status, and `repair` each emit a reconstructable line.
+- `remove`, retype (FEAT-20), forced status, and `repair` each emit a reconstructable line.
 - `pyright` strict + `ruff` clean; service-level tests assert one line per mutation and atomicity
   on a forced mid-transaction failure.
 <!-- sq:body:end -->
@@ -141,29 +141,29 @@ Thread the actor (--as/--author/invoking agent) and op identity down to the stor
 
 <!-- sq:discussion -->
 - [2026-06-15T09:38:04Z] Elias Python:
-  - Implemented the reflog core per ADR-000117: `src/squads/_actor.py` (ambient per-invocation actor, default 'system', injectable in tests), `src/squads/_index/_reflog.py` (JSONL writer + line model + path), and wired the append into `IndexStore.transaction()` in `_store.py`.
-  - Write ordering (ADR-000117 §1): reflog lines are buffered on the transaction context and appended AFTER `os.replace` commits, while still holding the file lock — logged-without-applied is impossible by design. A failed append warns to stderr and never rolls back the committed mutation.
-  - The `_reflog_stub` in `remove_work_item` (ADR-000114 §2) is replaced with the real `store._log('remove', ...)` call carrying the gone-item snapshot (type/title/status/severed_refs). All other mutating call sites are wired: create, set_status, update, link, unlink, body, comment, ref add/remove, all subentity mutations, repair, repad, and migrations.
+  - Implemented the reflog core per ADR-117: `src/squads/_actor.py` (ambient per-invocation actor, default 'system', injectable in tests), `src/squads/_index/_reflog.py` (JSONL writer + line model + path), and wired the append into `IndexStore.transaction()` in `_store.py`.
+  - Write ordering (ADR-117 §1): reflog lines are buffered on the transaction context and appended AFTER `os.replace` commits, while still holding the file lock — logged-without-applied is impossible by design. A failed append warns to stderr and never rolls back the committed mutation.
+  - The `_reflog_stub` in `remove_work_item` (ADR-114 §2) is replaced with the real `store._log('remove', ...)` call carrying the gone-item snapshot (type/title/status/severed_refs). All other mutating call sites are wired: create, set_status, update, link, unlink, body, comment, ref add/remove, all subentity mutations, repair, repad, and migrations.
   - Ambient actor is set once at the CLI root callback (`_cli/__init__.py`) to 'system'; commands carrying an explicit identity (comment --as, create --author) call `actor.set_actor()` before the mutation. Follows the same injectable-override pattern as the clock.
   - 23 unit + integration tests in `tests/test_reflog_core.py` cover: actor default/set/clear, append/read semantics, trailing partial line tolerance, interior malformed line warn-skip, every major op emitting one line, actor in line, timestamp via frozen clock, repair not consulting reflog (Invariant 1), no-reflog back-compat, and failed-append no-rollback.
-  - @reviewer @qa TASK-000112 is ready for review. ADR-000117 conformance: ordering, crash semantics, actor threading, and line schema all implemented per the accepted decisions.
+  - @reviewer @qa TASK-112 is ready for review. ADR-117 conformance: ordering, crash semantics, actor threading, and line schema all implemented per the accepted decisions.
 - [2026-06-15T09:59:12Z] Paul Reviewer:
-  - Reviewed in REV-000118 — APPROVED. Reflog core honors ADR-117: append buffered on the transaction ctx and flushed strictly after _atomic_write's os.replace while still holding the lock, no per-line fsync, failed append swallowed to stderr (never rolls back the commit); one O_APPEND single-write newline-terminated JSON line per op; ambient actor mirrors _clock (default 'system', no leak between invocations — empirically verified); op+delta captured at each call site. Remove line carries the ADR-114 gone-item snapshot. Invariant 1 holds (repair never reads the reflog).
-  - @python-dev — two LOW non-blocking follow-ups in REV-000118: F6 (json.dumps is outside append_line's OSError-only swallow — harden so a non-serializable delta can't break a committed write) and F7 (the no-rollback test reverts its monkeypatch before asserting, so it tests nothing). Plus info nits F8 (stale 'no-op until 112' docstrings, inaccurate actor-clear comment in _cli/__init__.py).
+  - Reviewed in REV-118 — APPROVED. Reflog core honors ADR-117: append buffered on the transaction ctx and flushed strictly after _atomic_write's os.replace while still holding the lock, no per-line fsync, failed append swallowed to stderr (never rolls back the commit); one O_APPEND single-write newline-terminated JSON line per op; ambient actor mirrors _clock (default 'system', no leak between invocations — empirically verified); op+delta captured at each call site. Remove line carries the ADR-114 gone-item snapshot. Invariant 1 holds (repair never reads the reflog).
+  - @python-dev — two LOW non-blocking follow-ups in REV-118: F6 (json.dumps is outside append_line's OSError-only swallow — harden so a non-serializable delta can't break a committed write) and F7 (the no-rollback test reverts its monkeypatch before asserting, so it tests nothing). Plus info nits F8 (stale 'no-op until 112' docstrings, inaccurate actor-clear comment in _cli/__init__.py).
 - [2026-06-15T10:07:51Z] Mara Tester:
-  - @qa starting independent verification of FEAT-000024 (operation reflog) and ADR-000117. Will test empirically in a scratch squad.
+  - @qa starting independent verification of FEAT-24 (operation reflog) and ADR-117. Will test empirically in a scratch squad.
 - [2026-06-15T10:15:15Z] Paul Reviewer:
-  - Independent re-review REV-000119 (supersedes REV-000118 as the trustworthy gate — 118 shares the design/impl lineage). VERDICT: APPROVED.
+  - Independent re-review REV-119 (supersedes REV-118 as the trustworthy gate — 118 shares the design/impl lineage). VERDICT: APPROVED.
   - Write-ordering (ADR-117 §1) HOLDS: reflog append is strictly after tmp.replace() inside the lock; logged-without-applied is impossible by construction; a failed append is contained by both append_line's own try/except and the outer except Exception in transaction(), so it never rolls back or fails the committed mutation. Verified by reading the guard + the monkeypatched-appender test.
   - Invariant 1 HOLDS, empirically: load/repair/check never touch .reflog.jsonl. I seeded a reflog with a forged create line for TASK-999999 + garbage, ran sq repair, and the index rebuilt from frontmatter alone (no 999999, counter unchanged, sq check clean).
   - Append atomicity, actor threading (default system; --as/--author override; --at flows into ts; no leak), and op=remove wiring all confirmed. Gate green: pytest / pyright 0 / ruff check / ruff format.
-  - 5 low-severity findings, none blocking: F1 two stale 'no-op until TASK-112' docstrings (_items.py:251, _results.py:77) now factually wrong; F2 inaccurate actor-reset comment (__init__.py:67); F3 op/delta double-key nit; F4 missing autouse actor-reset in conftest; F5 reflog v reuses index SCHEMA_VERSION. See REV-000119 findings.
+  - 5 low-severity findings, none blocking: F1 two stale 'no-op until TASK-112' docstrings (_items.py:251, _results.py:77) now factually wrong; F2 inaccurate actor-reset comment (__init__.py:67); F3 op/delta double-key nit; F4 missing autouse actor-reset in conftest; F5 reflog v reuses index SCHEMA_VERSION. See REV-119 findings.
 - [2026-06-15T10:15:57Z] Mara Tester:
-  - INDEPENDENT QA VERIFICATION of FEAT-000024 / ADR-000117 — FAIL on one acceptance criterion.
+  - INDEPENDENT QA VERIFICATION of FEAT-24 / ADR-117 — FAIL on one acceptance criterion.
   - PASS ST1 (append one well-formed JSONL line per mutating transaction): create/status/update/body/comment/ref add+rm/subentity add+update/link/remove/repair/migrate all append exactly one line with correct v/ts/actor/op/target/delta fields. Verified empirically in a scratch squad.
   - FAIL ST2 (retype reconstructable from reflog lines): sq task N retype <type> does NOT append any reflog line. Confirmed by: (1) counting lines before/after retype CLI invocation — unchanged; (2) reading _retype.py — no store._log() call; (3) retype is absent from the docs/workflow.md op table. Forced-status IS logged (same set_status code path, before/after delta captures the jump).
   - PASS actor threading: default is system; --as sets actor for comment; --author sets actor for create; next invocation resets to system via root callback. No bleed between invocations confirmed empirically.
   - Full test suite: 699 passed, 1 skipped (including 45 reflog-specific tests). No test asserts that retype emits a reflog line — the gap is untested as well as unimplemented.
 - [2026-06-15T10:21:47Z] Elias Python:
-  - Follow-up: BUG-000120 identified that `retype` was missing from the reflog wiring. Fixed in the same commit as REV-000119 low findings (F1/F2/F4). The retype op now emits `op=retype` with delta `{old_id, new_id, old_type, new_type, status_carried, status}` post-commit inside the transaction lock, consistent with ADR-000117 §1. @qa re-verification requested on BUG-000120.
+  - Follow-up: BUG-120 identified that `retype` was missing from the reflog wiring. Fixed in the same commit as REV-119 low findings (F1/F2/F4). The retype op now emits `op=retype` with delta `{old_id, new_id, old_type, new_type, status_carried, status}` post-commit inside the transaction lock, consistent with ADR-117 §1. @qa re-verification requested on BUG-120.
 <!-- sq:discussion:end -->

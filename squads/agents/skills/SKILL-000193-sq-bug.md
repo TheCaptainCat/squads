@@ -1,5 +1,5 @@
 ---
-id: SKILL-000193
+id: SKILL-193
 sequence_id: 193
 type: skill
 title: sq-bug

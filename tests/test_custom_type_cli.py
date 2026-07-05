@@ -293,7 +293,6 @@ async def test_list_custom_type_cli(
         path=squad_rel,
         created_at=now,
         updated_at=now,
-        id_padding=6,
     )
     rendered = "# DB timeout\n"
     await write_new(abs_path, item, rendered)
@@ -344,7 +343,6 @@ async def test_custom_type_show_via_cli(
         path=squad_rel,
         created_at=now,
         updated_at=now,
-        id_padding=6,
     )
     rendered = "# DB timeout\n"
     await write_new(abs_path, item, rendered)

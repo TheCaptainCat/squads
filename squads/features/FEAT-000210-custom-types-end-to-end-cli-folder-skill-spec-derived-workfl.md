@@ -1,15 +1,15 @@
 ---
-id: FEAT-000210
+id: FEAT-210
 sequence_id: 210
 type: feature
 title: 'Custom types end-to-end: CLI, folder, skill, spec-derived workflow renderer'
 status: Done
-parent: EPIC-000206
+parent: EPIC-206
 author: product-owner
 refs:
-- FEAT-000209:depends-on
-- FEAT-000220
-- FEAT-000250:depends-on
+- FEAT-209:depends-on
+- FEAT-220
+- FEAT-250:depends-on
 subentities:
 - local_id: US1
   title: As a project admin, I want sq <my-type> create/list/show/update to work for
@@ -47,10 +47,10 @@ Auto-create the type's folder (`agents/skills/` analog but for custom types) if 
 Custom types allocate IDs through `IndexStore.transaction()` like every built-in type. No special path.
 
 ### Auto-generated `sq-<type>` skill
-Each managed custom type gets a thin auto-generated `sq-<type>` skill (via `_write_item_skills`) containing: the lifecycle string (auto-derived from the spec's state machine), the basic command list, and any declared role interactions. Rich per-role playbook sections are not auto-generated (graceful degradation — the custom type skill is thinner than built-in skills but functional). This mints new SKILL items using the lexical-by-slug allocation shared with FEAT-000178.
+Each managed custom type gets a thin auto-generated `sq-<type>` skill (via `_write_item_skills`) containing: the lifecycle string (auto-derived from the spec's state machine), the basic command list, and any declared role interactions. Rich per-role playbook sections are not auto-generated (graceful degradation — the custom type skill is thinner than built-in skills but functional). This mints new SKILL items using the lexical-by-slug allocation shared with FEAT-178.
 
 ### Spec-derived `sq workflow` renderer and AGENTS.md section
-`sq workflow` renders the live loaded spec instead of the static `workflow.md.j2` template. This means custom types and their lifecycles appear in the team cheatsheet. The renderer must **split**: spec-rendered machine/type/alias sections versus the static FEAT-000013 stability-contract prose (ref-kinds table, retype, remove-vs-cancel), which must never become config-editable.
+`sq workflow` renders the live loaded spec instead of the static `workflow.md.j2` template. This means custom types and their lifecycles appear in the team cheatsheet. The renderer must **split**: spec-rendered machine/type/alias sections versus the static FEAT-13 stability-contract prose (ref-kinds table, retype, remove-vs-cancel), which must never become config-editable.
 
 `sq sync` regenerates the managed AGENTS.md workflow section and the `squads` skill from the live spec, so agents always see current custom vocabulary.
 
@@ -59,18 +59,18 @@ Auto-derive a readable `A → B → C (+ D, E)` lifecycle string from an arbitra
 
 ## Dependencies
 
-Requires F3 (FEAT-000209). The additive-only override must be in place so a custom type can be declared in config before the CLI tries to build an app for it.
+Requires F3 (FEAT-209). The additive-only override must be in place so a custom type can be declared in config before the CLI tries to build an app for it.
 
-Also interacts with FEAT-000178 (skill ID allocation for new managed types).
+Also interacts with FEAT-178 (skill ID allocation for new managed types).
 
 ## Acceptance criteria
 
 1. A team that adds `[workflow.types.incident]` to `.overrides/workflow.toml` (with prefix, folder, machine) can run `sq incident create "…"` and `sq list -t incident` without any code change.
 2. The custom type's folder is auto-created; IDs (`INC-000001`) parse correctly.
-3. `sq workflow` renders a spec-derived cheatsheet that includes the custom type's lifecycle; the FEAT-000013 stability-contract prose sections remain static.
+3. `sq workflow` renders a spec-derived cheatsheet that includes the custom type's lifecycle; the FEAT-13 stability-contract prose sections remain static.
 4. `sq sync` regenerates the `squads` skill and the AGENTS.md workflow section to reflect the custom type.
 5. A thin `sq-incident` skill is auto-generated with the correct lifecycle string and command list.
-6. No SKILL-id churn: the new managed-type skill is allocated in lexical-by-slug order consistent with FEAT-000178.
+6. No SKILL-id churn: the new managed-type skill is allocated in lexical-by-slug order consistent with FEAT-178.
 7. Existing (non-custom) squads see no change in behavior or rendered output.
 8. The F1 golden test remains green.
 <!-- sq:body:end -->
@@ -118,7 +118,7 @@ As a project admin, I want `sq <my-type> create`, `sq <my-type> show`, `sq <my-t
 <!-- sq:story:US2:body -->
 As a project admin, I want `sq workflow` to render a live cheatsheet that includes my custom types and their state machine lifecycles, so the team always sees the current vocabulary.
 
-**Acceptance:** `sq workflow` output includes the custom type's prefix, lifecycle string (auto-linearized from the machine), and aliases. The FEAT-000013 stability-contract sections (ref-kinds, retype, remove-vs-cancel) remain static and unchanged.
+**Acceptance:** `sq workflow` output includes the custom type's prefix, lifecycle string (auto-linearized from the machine), and aliases. The FEAT-13 stability-contract sections (ref-kinds, retype, remove-vs-cancel) remain static and unchanged.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -151,54 +151,54 @@ As an AI agent working in a squad with custom types, I want the AGENTS.md workfl
 
 <!-- sq:discussion -->
 - [2026-06-26T07:31:05Z] Catherine Manager:
-  - Design constraint (from op-pierre): custom types are ADDITIVE over the reserved core — a project may add types but may NOT drop the reserved meta-types (role/skill/operator) that the role backend / skill generation / operator machinery depend on. Enforce via the RESERVED_TYPES invariant introduced in FEAT-000208.
+  - Design constraint (from op-pierre): custom types are ADDITIVE over the reserved core — a project may add types but may NOT drop the reserved meta-types (role/skill/operator) that the role backend / skill generation / operator machinery depend on. Enforce via the RESERVED_TYPES invariant introduced in FEAT-208.
 - [2026-06-26T09:44:13Z] Catherine Manager:
-  - Process rule (from the FEAT-220 incident, REV-000230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]].
+  - Process rule (from the FEAT-220 incident, REV-230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]].
 - [2026-06-26T15:22:23Z] Catherine Manager:
   - Implementation note (carry-forward from FEAT-208): the dynamic CLI build must source per-type ALIASES from the spec too, not just the type set. FEAT-208 added the aliases flag to TypeSpec (and encoded the built-in aliases as values in default_workflow.toml), but nothing consumes it yet — the alias registration in _cli/__init__.py still reads the hardcoded TYPE_ALIASES dict in _enums.py. So the dynamic build has two enum->spec swaps, not one: (1) the app-build loop iterates the loaded spec types instead of `for t in ItemType`, and (2) alias sub-app registration reads each TypeSpec.aliases instead of TYPE_ALIASES. After this, TYPE_ALIASES can be retired (its values now live in the spec). Same startup-ordering caveat applies (spec loaded before the app tree is built).
 - [2026-06-30T12:04:14Z] Olivia Lead:
   - **Breakdown into tasks (Olivia Lead).** FEAT-210 → 7 tasks, all left Draft. Sequence (depends-on edges recorded in frontmatter):
-  - TASK-000256 — Characterization goldens FIRST (GATING): pin current `sq workflow`, CLAUDE.md + AGENTS.md workflow sections, and every bundled `sq-<type>` skill body, with roster/clock/flags frozen. No upstream deps; gates 257/260/261. (AC#7/#8 enforcement.)
-  - TASK-000258 — Spec-aware folder/prefix mapping in `_paths` (+ spec-driven folder scaffold in `_service`). ID allocation already custom-tolerant (verified — confirm round-trip). (AC#2.)
-  - TASK-000257 — Dynamic CLI build from spec: app-build loop iterates `spec.managed_types`, alias registration reads `ItemSpec.aliases`, `TYPE_ALIASES` retires. The startup-ordering crux. **BLOCKED ON ADR** (below). Depends 256, 258. (US1/AC#1.)
-  - TASK-000259 — RESERVED_TYPES enforcement + meta-machinery robustness. The invariant is ALREADY enforced at spec-load (§5-6a/b); this confirms end-to-end + hardens PLAYBOOK/roster/lint against custom types. (Additive-only invariant.)
-  - TASK-000262 — Lifecycle auto-linearization helper (BFS spine + side states), pure utility. Blocks 260, 261. (See FEAT-211 boundary below.)
-  - TASK-000260 — Auto-generated thin `sq-<type>` skill, lexical-by-slug via the FEAT-178 primitive (Done). Depends 262, 258, 256. (US3/AC#5/#6.)
-  - TASK-000261 — Spec-derived `sq workflow` renderer + CLAUDE.md/AGENTS.md section with the **static/dynamic split** (FEAT-013 ref-kinds/retype/remove-vs-cancel prose stays literal, never config-editable). Depends 262, 257, 256. (US2/US3/AC#3/#4.)
+  - TASK-256 — Characterization goldens FIRST (GATING): pin current `sq workflow`, CLAUDE.md + AGENTS.md workflow sections, and every bundled `sq-<type>` skill body, with roster/clock/flags frozen. No upstream deps; gates 257/260/261. (AC#7/#8 enforcement.)
+  - TASK-258 — Spec-aware folder/prefix mapping in `_paths` (+ spec-driven folder scaffold in `_service`). ID allocation already custom-tolerant (verified — confirm round-trip). (AC#2.)
+  - TASK-257 — Dynamic CLI build from spec: app-build loop iterates `spec.managed_types`, alias registration reads `ItemSpec.aliases`, `TYPE_ALIASES` retires. The startup-ordering crux. **BLOCKED ON ADR** (below). Depends 256, 258. (US1/AC#1.)
+  - TASK-259 — RESERVED_TYPES enforcement + meta-machinery robustness. The invariant is ALREADY enforced at spec-load (§5-6a/b); this confirms end-to-end + hardens PLAYBOOK/roster/lint against custom types. (Additive-only invariant.)
+  - TASK-262 — Lifecycle auto-linearization helper (BFS spine + side states), pure utility. Blocks 260, 261. (See FEAT-211 boundary below.)
+  - TASK-260 — Auto-generated thin `sq-<type>` skill, lexical-by-slug via the FEAT-178 primitive (Done). Depends 262, 258, 256. (US3/AC#5/#6.)
+  - TASK-261 — Spec-derived `sq workflow` renderer + CLAUDE.md/AGENTS.md section with the **static/dynamic split** (FEAT-013 ref-kinds/retype/remove-vs-cancel prose stays literal, never config-editable). Depends 262, 257, 256. (US2/US3/AC#3/#4.)
   - **Hard constraint placed in 257/260/261:** non-custom squads see byte-identical behaviour/output; the TASK-256 characterization golden gates each rewire (AC#7/#8).
   - **ADR VERDICT — YES, the startup-ordering change needs an ADR.** @architect input requested. The Typer app tree is built at IMPORT time, but custom type command NAMES come from a squad-dir-dependent spec resolved only inside the root `--dir` callback — which Click runs AFTER parsing argv and resolving the subcommand. So `sq incident …` is rejected by Click before the spec exists. FEAT-250 solved per-invocation *value parsing* (parse_type/parse_status on already-routed commands); it does NOT solve registering a new top-level command NAME ahead of Click's command resolution.
-  - ADR scope: ≥3 viable approaches (resolve-spec-at-import; pre-scan argv for `--dir` in `main()` before building the tree; a lazy `TyperGroup.get_command` that registers an unknown-prefix sub-app on demand, à la the existing `AddressDispatchGroup`) + a behaviour question (how `sq <unknown>` behaves, how `--help` enumerates dynamic types before `--dir` resolves). Recommend the architect writes a short ADR before TASK-000257 starts; 256/258/259/262 proceed in parallel meanwhile.
-  - **FEAT-178 coordination:** Done — the lexical-by-slug SKILL allocator (`bundled_skill_slugs()` + `seed_bundled_skills`) already exists. TASK-000260 EXTENDS that slug set for custom types; it does NOT build a new allocator (AC#6 = no SKILL-id churn).
-  - **FEAT-211 seam (deconflict):** 'lifecycle auto-linearization' appears in BOTH FEAT-210 (slice 6) and FEAT-211's scope; FEAT-211 depends-on FEAT-210. Resolution: TASK-000262 builds the core BFS-spine helper (F4 needs it to render at all); FEAT-211 CONSUMES + HARDENS it across status surfaces (filters/inbox/blocked/badge fallback for custom statuses). Boundary recorded in 262 + 261 bodies.
+  - ADR scope: ≥3 viable approaches (resolve-spec-at-import; pre-scan argv for `--dir` in `main()` before building the tree; a lazy `TyperGroup.get_command` that registers an unknown-prefix sub-app on demand, à la the existing `AddressDispatchGroup`) + a behaviour question (how `sq <unknown>` behaves, how `--help` enumerates dynamic types before `--dir` resolves). Recommend the architect writes a short ADR before TASK-257 starts; 256/258/259/262 proceed in parallel meanwhile.
+  - **FEAT-178 coordination:** Done — the lexical-by-slug SKILL allocator (`bundled_skill_slugs()` + `seed_bundled_skills`) already exists. TASK-260 EXTENDS that slug set for custom types; it does NOT build a new allocator (AC#6 = no SKILL-id churn).
+  - **FEAT-211 seam (deconflict):** 'lifecycle auto-linearization' appears in BOTH FEAT-210 (slice 6) and FEAT-211's scope; FEAT-211 depends-on FEAT-210. Resolution: TASK-262 builds the core BFS-spine helper (F4 needs it to render at all); FEAT-211 CONSUMES + HARDENS it across status surfaces (filters/inbox/blocked/badge fallback for custom statuses). Boundary recorded in 262 + 261 bodies.
   - **Risks:** (1) import-time vs parse-time ordering (the ADR subject) — highest, all of 257 hinges on it. (2) golden drift in 262: built-in derived lifecycle strings must reconcile with the PLAYBOOK prose the golden captures — resolve explicitly. (3) two-backend coverage (CLAUDE.md AND AGENTS.md) in 261 — easy to miss agents_md. (4) `_paths` import-cycle risk in 258 — prefer threading the spec from the caller over a second filesystem load.
 - [2026-06-30T12:17:31Z] Nina Product:
-  - Workflow-override location reconciliation pass complete (Nina Product). This is the same fix applied to FEAT-000209 on 2026-06-30 — the factual error '.squads.toml' as the workflow override location was still present in FEAT-000210, FEAT-000211, FEAT-000212, and EPIC-000206.
+  - Workflow-override location reconciliation pass complete (Nina Product). This is the same fix applied to FEAT-209 on 2026-06-30 — the factual error '.squads.toml' as the workflow override location was still present in FEAT-210, FEAT-211, FEAT-212, and EPIC-206.
   - Changes made (surgical — only workflow-override-location references; all general .squads.toml config references left intact):
-  - FEAT-000210 body (2 hits): 'a project can write a custom type in .squads.toml' → '.overrides/workflow.toml'; AC#1 '[workflow.types.incident] to .squads.toml' → '.overrides/workflow.toml'.
-  - FEAT-000210 US1 body (2 hits): 'declared in .squads.toml' → '.overrides/workflow.toml'; acceptance '[workflow.types.incident] to .squads.toml' → '.overrides/workflow.toml'.
-  - FEAT-000211 body (1 hit): AC#1 'custom status Triage declared in .squads.toml' → '.overrides/workflow.toml'.
-  - FEAT-000212 US1 body (1 hit): 'declare a custom sub-entity kind in .squads.toml' → '.overrides/workflow.toml'.
-  - EPIC-000206 body (1 hit): success criterion #1 'entirely in .squads.toml' → '.overrides/workflow.toml'.
-  - Left unchanged — confirmed legitimate: ADR-000214 line re ADR-000179's .squads.toml knobs (global ID prefix / flat-layout — general project config, not the workflow override). FEAT-000209 hits are all in immutable discussion comments (reviewer/QA records); the 209 body/stories were already corrected in the earlier pass.
+  - FEAT-210 body (2 hits): 'a project can write a custom type in .squads.toml' → '.overrides/workflow.toml'; AC#1 '[workflow.types.incident] to .squads.toml' → '.overrides/workflow.toml'.
+  - FEAT-210 US1 body (2 hits): 'declared in .squads.toml' → '.overrides/workflow.toml'; acceptance '[workflow.types.incident] to .squads.toml' → '.overrides/workflow.toml'.
+  - FEAT-211 body (1 hit): AC#1 'custom status Triage declared in .squads.toml' → '.overrides/workflow.toml'.
+  - FEAT-212 US1 body (1 hit): 'declare a custom sub-entity kind in .squads.toml' → '.overrides/workflow.toml'.
+  - EPIC-206 body (1 hit): success criterion #1 'entirely in .squads.toml' → '.overrides/workflow.toml'.
+  - Left unchanged — confirmed legitimate: ADR-214 line re ADR-179's .squads.toml knobs (global ID prefix / flat-layout — general project config, not the workflow override). FEAT-209 hits are all in immutable discussion comments (reviewer/QA records); the 209 body/stories were already corrected in the earlier pass.
 - [2026-06-30T12:35:16Z] Elias Python:
-  - @manager: TASK-000258, TASK-000259, and TASK-000262 are Done. All gates clean (pyright 0 errors, ruff check clean, ruff format clean). 72 new tests, all passing in under 1 second.
+  - @manager: TASK-258, TASK-259, and TASK-262 are Done. All gates clean (pyright 0 errors, ruff check clean, ruff format clean). 72 new tests, all passing in under 1 second.
   - TASK-258 (_paths.py spec-aware): folder_for/squad_relative/type_for_id accept optional spec= arg; builtins are byte-identical (AC#7 confirmed); custom types dispatch through spec.items[type].folder / spec.prefix_to_type. Import of WorkflowSpec in _paths.py is safe — no cycle. _iter_item_files() widened to yield str (not ItemType) to support custom folder scans.
   - TASK-259 (RESERVED_TYPES): the invariant was already fail-closed; tests prove it parametrically for all ItemType members and 12 floor statuses. Graceful degradation confirmed (no KeyError for custom work types absent from PLAYBOOK).
   - TASK-262 (linearize_lifecycle): signature is linearize_lifecycle(machine: Lifecycle) -> str, exported from squads._workflow. Algorithm is greedy spine + BFS side states. One option-b divergence on the review lifecycle is documented in both the test and the function docstring.
   - Risky/notable: the _iter_item_files() type change touches repair/renumber — existing tests for those paths still pass. Custom type write/repair round-trips bypass create() (no template yet, that's TASK-260); tests use write_new() + manual index transaction directly.
 - [2026-07-01T08:31:22Z] Olivia Lead:
-  - @manager FEAT-210 corrective breakdown (from REV-000265 ChangesRequested + ADR-000266). 4 tasks, all left Draft for your greenlight. Refs recorded (implements ADR-266 / addresses REV-265 / depends-on edges).
-  - TASK-000267 — Spec-derive per-type prefix (F1 High). The foundation. Adds a stored-but-derived Item.prefix, one _models-local prefix_for(type, spec) resolver, stamps prefix at create/retype/load, retires the buggy type.upper()/bracket lookups at all 5 sites (_item.py, _index.py, _common.py, _refs.py x3, _items.py). Static sweep: PREFIX_BY_TYPE/TYPE_BY_PREFIX/FOLDER_BY_TYPE/TYPE_ALIASES shim/_META_NAMES retired to the reserved resolver. Per ADR-266. NO task deps.
-  - TASK-000268 — Working create path (F2 High). OWNS AC#1/US1 END-TO-END — the gap that fell between the original tasks. Generic items/_default.md.j2 + _template_for fallback, and a custom-aware create surface reconciled with TASK-257's _CustomTypeGroup. Depends 267.
-  - TASK-000269 — sq workflow lifecycle + thin-skill command fix (F3+F4 Medium, gated on create). Wires linearize_lifecycle/machine_for + prefix into workflow.md.j2 (dynamic region only; FEAT-013 static prose untouched), and fixes the sq-<type> skill's advertised create command to match the real surface. Depends 268.
-  - TASK-000270 — CLI clean-ups (F5+F6 Low, reviewer discretion). Scope the get_command broad except to the resolution region; add an alias-guard defence test. Depends 269 (only to avoid a workflow.md.j2 edit conflict on the F6 guard; the F5 fix in _cli/__init__.py is otherwise independent).
+  - @manager FEAT-210 corrective breakdown (from REV-265 ChangesRequested + ADR-266). 4 tasks, all left Draft for your greenlight. Refs recorded (implements ADR-266 / addresses REV-265 / depends-on edges).
+  - TASK-267 — Spec-derive per-type prefix (F1 High). The foundation. Adds a stored-but-derived Item.prefix, one _models-local prefix_for(type, spec) resolver, stamps prefix at create/retype/load, retires the buggy type.upper()/bracket lookups at all 5 sites (_item.py, _index.py, _common.py, _refs.py x3, _items.py). Static sweep: PREFIX_BY_TYPE/TYPE_BY_PREFIX/FOLDER_BY_TYPE/TYPE_ALIASES shim/_META_NAMES retired to the reserved resolver. Per ADR-266. NO task deps.
+  - TASK-268 — Working create path (F2 High). OWNS AC#1/US1 END-TO-END — the gap that fell between the original tasks. Generic items/_default.md.j2 + _template_for fallback, and a custom-aware create surface reconciled with TASK-257's _CustomTypeGroup. Depends 267.
+  - TASK-269 — sq workflow lifecycle + thin-skill command fix (F3+F4 Medium, gated on create). Wires linearize_lifecycle/machine_for + prefix into workflow.md.j2 (dynamic region only; FEAT-013 static prose untouched), and fixes the sq-<type> skill's advertised create command to match the real surface. Depends 268.
+  - TASK-270 — CLI clean-ups (F5+F6 Low, reviewer discretion). Scope the get_command broad except to the resolution region; add an alias-guard defence test. Depends 269 (only to avoid a workflow.md.j2 edit conflict on the F6 guard; the F5 fix in _cli/__init__.py is otherwise independent).
   - SEQUENCE: 267 first (unblocks everything) → 268 → 269 → 270. 267 is the only one with no task deps; the rest are a chain because each layer sits on the prefix foundation and the create path. Little genuine parallelism this round — the review's core finding is that the layers were built out of order (create/skill/renderer landed before a correct id existed). 270 could start in parallel once 269's workflow.md.j2 shape is known, but keeping it last is safest.
-  - AC#1 OWNER: TASK-000268 owns the create path end-to-end (explicit in its body) — the prior gap where no task owned AC#1 is closed.
+  - AC#1 OWNER: TASK-268 owns the create path end-to-end (explicit in its body) — the prior gap where no task owned AC#1 is closed.
   - Every task carries the two hard constraints: (1) AC#7/#8 byte-identical built-ins — TASK-256 goldens stay green; (2) tests must exercise the ACTUAL headline command end-to-end (declare custom type in .overrides/workflow.toml, then real sq <type> create/list/show with a correctly-prefixed id round-tripping) — closing the test gap where prior tests used write_new/retype and sidestepped create.
   - OPEN QUESTIONS for you / op-pierre: (Q1) Legacy-file backfill — 267 re-derives prefix on load when absent from frontmatter (keeps existing files valid, no schema bump). I've asked the dev to flag whether a sq repair/backfill or migration note is needed to actually write the prefix line into existing files, or whether re-derivation-on-load suffices. Decision to confirm at implementation. (Q2) AC#4/F3 wording — the review notes CLAUDE.md never carried the cheatsheet; custom vocab lands in the squads skill + AGENTS.md, not CLAUDE.md. Likely an AC-wording artifact; needs @product-owner reconciliation, not a code change. I flagged it in 269 rather than silently expanding CLAUDE.md scope. (Q3) create verb form — 268 must pick sq create <type> vs a create verb on the resource group; 269's skill text must match whichever ships. Left to the dev to decide + document; no blocker.
   - SCOPE BOUNDARY held per operator confirmation: _SUBENTITY_PLURAL deferred to FEAT-212 (kept as built-in fallback, NOT removed here); migration _KIND_BY_TYPE exempt/frozen.
 - [2026-07-01T08:56:52Z] Nina Product:
-  - AC wording correction (Nina Product) — REV-000265 F3 confirmed: the workflow cheatsheet that carries per-type vocabulary and lifecycles lives in the `squads` skill and the AGENTS.md managed section, NOT in the managed CLAUDE.md section. CLAUDE.md's managed section never contained the cheatsheet; the AC as written chased a phantom artifact.
+  - AC wording correction (Nina Product) — REV-265 F3 confirmed: the workflow cheatsheet that carries per-type vocabulary and lifecycles lives in the `squads` skill and the AGENTS.md managed section, NOT in the managed CLAUDE.md section. CLAUDE.md's managed section never contained the cheatsheet; the AC as written chased a phantom artifact.
   - Changes made (wording accuracy only — scope and intent unchanged):
   - • Feature body intro: 'managed CLAUDE.md section' → 'managed AGENTS.md workflow section and `squads` skill' (two occurrences).
   - • Scope section heading: 'Spec-derived `sq workflow` renderer and CLAUDE.md section' → '... and AGENTS.md section'.

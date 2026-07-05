@@ -1,17 +1,17 @@
 ---
-id: TASK-000261
+id: TASK-261
 sequence_id: 261
 type: task
 title: Spec-derived sq workflow renderer + CLAUDE.md/AGENTS.md section (static/dynamic
   split)
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 assignee: python-dev
 refs:
-- TASK-000262:depends-on
-- TASK-000257:depends-on
-- TASK-000256:depends-on
+- TASK-262:depends-on
+- TASK-257:depends-on
+- TASK-256:depends-on
 created_at: '2026-06-30T12:01:07Z'
 updated_at: '2026-06-30T22:01:55Z'
 ---
@@ -33,7 +33,7 @@ The renderer MUST separate two tiers:
 - **Spec-rendered (dynamic)**: the type list, per-type lifecycle string
   (auto-linearized, task 262), and the alias table — these now come from the
   spec, not hardcoded.
-- **Static stability-contract prose (NEVER config-editable)**: the FEAT-000013
+- **Static stability-contract prose (NEVER config-editable)**: the FEAT-13
   sections in workflow.md.j2 — **Ref kinds** table (closed 8-kind vocabulary),
   **Retype**, **Remove vs. Cancel**. These stay literal template prose and must
   NOT become spec-driven. Keep them in a static partial; the dynamic sections

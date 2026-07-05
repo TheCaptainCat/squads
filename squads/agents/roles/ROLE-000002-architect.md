@@ -1,5 +1,5 @@
 ---
-id: ROLE-000002
+id: ROLE-2
 sequence_id: 2
 type: role
 title: Robert Architect

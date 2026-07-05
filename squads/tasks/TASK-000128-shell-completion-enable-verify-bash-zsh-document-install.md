@@ -1,10 +1,10 @@
 ---
-id: TASK-000128
+id: TASK-128
 sequence_id: 128
 type: task
 title: 'Shell completion: enable, verify bash+zsh, document install'
 status: Done
-parent: FEAT-000017
+parent: FEAT-17
 author: tech-lead
 created_at: '2026-06-15T12:10:13Z'
 updated_at: '2026-06-15T12:31:51Z'
@@ -30,7 +30,7 @@ Step 3 — document: add a 'Shell completion' section to README.md (and/or docs/
 Completion install steps are documented and verified on bash and zsh.
 
 ## Note
-The completion docs are FEAT-000013 (stability contract) deferral material — flag to tech-lead; do NOT file the deferral here.
+The completion docs are FEAT-13 (stability contract) deferral material — flag to tech-lead; do NOT file the deferral here.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -47,12 +47,12 @@ _Add with `sq task 128 add-subtask "<title>"`; track with `sq task 128 subtask <
 
 <!-- sq:discussion -->
 - [2026-06-15T12:18:46Z] Elias Python:
-  - Implemented shell completion (FEAT-000017, TASK-000128). Three changes:
+  - Implemented shell completion (FEAT-17, TASK-128). Three changes:
   - 1. src/squads/_cli/__init__.py: flipped add_completion=False → True on the Typer app. The _hoist_global_options shim is transparent to completion args — it only hoists --at/--dir and their values, so --show-completion and --install-completion pass through untouched.
   - 2. README.md: added 'Shell completion' section between Install and Quickstart covering bash and zsh --install-completion steps, --show-completion for inspection, and a note that completion requires sq on PATH.
   - 3. tests/test_cli.py: added test_shell_completion_scripts_are_non_empty (verifies bash and zsh emit distinct, non-empty scripts via CliRunner with TYPER_COMPLETE_TEST_DISABLE_SHELL_DETECTION set) and test_hoist_global_options_does_not_break_completion_args (asserts the shim leaves completion args in place).
   - Gate: 707 passed, 1 skipped · pyright 0 errors · ruff clean · format clean.
   - @reviewer please review the CLI enable and shim verification. @qa please verify --show-completion bash/zsh via the real entry point and the README install steps.
 - [2026-06-15T12:30:16Z] Paul Reviewer:
-  - REV-000130: APPROVED. add_completion=True is set on the Typer app; --show-completion bash|zsh emit real, distinct, non-empty scripts (test asserts _sq_completion/complete_bash for bash and '#compdef sq'/complete_zsh for zsh). The _hoist_global_options shim only moves --at/--dir, so completion args pass through untouched — covered by a dedicated unit test asserting the shim is a no-op on --show-completion/--install-completion and still hoists a trailing --dir. README 'Shell completion' section is accurate (install steps + restart/source + show-completion). One INFO finding (F2): the README note on why 'uv run sq' completion doesn't work is slightly imprecise wording — informational only.
+  - REV-130: APPROVED. add_completion=True is set on the Typer app; --show-completion bash|zsh emit real, distinct, non-empty scripts (test asserts _sq_completion/complete_bash for bash and '#compdef sq'/complete_zsh for zsh). The _hoist_global_options shim only moves --at/--dir, so completion args pass through untouched — covered by a dedicated unit test asserting the shim is a no-op on --show-completion/--install-completion and still hoists a trailing --dir. README 'Shell completion' section is accurate (install steps + restart/source + show-completion). One INFO finding (F2): the README note on why 'uv run sq' completion doesn't work is slightly imprecise wording — informational only.
 <!-- sq:discussion:end -->

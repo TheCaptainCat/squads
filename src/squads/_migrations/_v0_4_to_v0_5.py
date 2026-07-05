@@ -213,6 +213,8 @@ async def migrate(paths: SquadPaths) -> int:
         else:
             # Unstamped: allocate id → stamp → rename → rewrite pointer.
             async with store.transaction() as db:
+                # item_id is the padded filename stem (allocate_id formats at db.padding);
+                # deliberately NOT the unpadded displayed Item.id (ADR-000282).
                 item_id = db.allocate_id(ItemType.SKILL)
                 new_name = _convention_name(slug, item_id, db.padding)
                 squad_rel = paths.squad_relative(ItemType.SKILL, new_name)
@@ -228,7 +230,6 @@ async def migrate(paths: SquadPaths) -> int:
                     created_at=now,
                     updated_at=now,
                     extra={X.SLUG: slug},
-                    id_padding=db.padding,
                 )
                 stamped_text = sections.join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 new_path = skills_folder / new_name

@@ -1,5 +1,5 @@
 ---
-id: ADR-000179
+id: ADR-179
 sequence_id: 179
 type: decision
 title: 'Parameterized item-file storage: prefix scope vs layout, and the ItemStore
@@ -7,8 +7,8 @@ title: 'Parameterized item-file storage: prefix scope vs layout, and the ItemSto
 status: Proposed
 author: architect
 refs:
-- FEAT-000176:addresses
-- ADR-000180
+- FEAT-176:addresses
+- ADR-180
 description: Global prefix changes the ID prefix only; folder layout is a separate
   knob; both plug into a shared ItemStore locator
 created_at: '2026-06-23T12:58:51Z'
@@ -82,7 +82,7 @@ edges (CLI/render/path), or the active prefix is injected into the model factory
 recommendation is to keep `(type, sequence_id)` canonical and resolve the display/id-string prefix
 through the locator, so the global counter and type identity stay untouched.
 
-## This is the shared storage seam with FEAT-000177
+## This is the shared storage seam with FEAT-177
 
 This locator is the **same pluggable local-file-management abstraction** that `FEAT-000177`
 (serialization format) plugs into — see that feature's ADR. The clean split is:

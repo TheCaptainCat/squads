@@ -1,10 +1,10 @@
 ---
-id: FEAT-000019
+id: FEAT-19
 sequence_id: 19
 type: feature
 title: 'Uniform item addressing: every command accepts both ID and number'
 status: Done
-parent: EPIC-000012
+parent: EPIC-12
 author: product-owner
 priority: high
 description: Every ID-accepting surface (verbs, tree, --parent, ref add, search args)
@@ -38,7 +38,7 @@ Users have to remember per-command which form to use, and copy-pasted IDs don't 
 One rule everywhere: **anywhere an item can be named, both forms work** — the full ID and the bare
 number (numbers are globally unique, so the bare form is never ambiguous). Muscle memory and
 copy-paste both succeed on every command. Settling this before 1.0 matters because the stability
-contract (FEAT-000013) will document the CLI grammar as SemVer-stable — the addressing rule should
+contract (FEAT-13) will document the CLI grammar as SemVer-stable — the addressing rule should
 be written down once, as a deliberate decision, not frozen as today's accidental patchwork.
 
 ## Scope
@@ -51,7 +51,7 @@ be written down once, as a deliberate decision, not frozen as today's accidental
   (e.g. `13 is FEAT-000013 (feature), not a task`) instead of silently obeying. Same rule for a
   full ID whose prefix contradicts the command (`sq task … ref add` stays kind-agnostic; this is
   about the `sq <type> <n>` addressing).
-- Document the addressing rule in the stability contract (link to FEAT-000013).
+- Document the addressing rule in the stability contract (link to FEAT-13).
 
 Accepting more forms is additive (no existing invocation breaks), which is why this is medium
 rather than high — but note the mismatch-error decision **tightens** current behaviour (commands
@@ -144,16 +144,16 @@ As a user who typos the type, I want sq to tell me 13 is a feature instead of si
 - [2026-06-10T13:00:06Z] Pierre Chat:
   - Decision: when the addressed type doesn't match the item (e.g. `sq task 13` but 13 is a feature), error and point to the right type — never silently act on it.
 - [2026-06-11T14:00:49Z] Olivia Lead:
-  - Broke FEAT-000019 into two sequenced tasks, both high, assigned @python-dev (Elias).
-  - TASK-000046 (foundation): shared item-address resolver in _cli/_common.py — typed resolve verifies the resolved item's ACTUAL type against the live DB (closes the sq task 13 → FEAT-000013 silent-obey hole, _index.py:57 _seq ignores type), plus a type-less resolve for the sweep. Maps US1 (both forms) + US3 (type-mismatch error).
-  - TASK-000047 (adoption sweep, blocked by 046): route every raw surface through the resolver — create --parent/--ref, update --parent, ref add/rm, tree root, list --parent, role/skill/operator targets, subtask --story; uniform both-forms error wording. ref add stays kind-agnostic; --parent resolves then defers to parent_allowed. Maps US2 (copy-paste everywhere) + US3 (wording).
-  - TASK-000046 blocks TASK-000047. Stability-contract documentation acceptance is deferred to FEAT-000013 (rule recorded here, ref kept). Seed test: test_resolve_item_id in tests/test_cli.py:232.
+  - Broke FEAT-19 into two sequenced tasks, both high, assigned @python-dev (Elias).
+  - TASK-46 (foundation): shared item-address resolver in _cli/_common.py — typed resolve verifies the resolved item's ACTUAL type against the live DB (closes the sq task 13 → FEAT-13 silent-obey hole, _index.py:57 _seq ignores type), plus a type-less resolve for the sweep. Maps US1 (both forms) + US3 (type-mismatch error).
+  - TASK-47 (adoption sweep, blocked by 046): route every raw surface through the resolver — create --parent/--ref, update --parent, ref add/rm, tree root, list --parent, role/skill/operator targets, subtask --story; uniform both-forms error wording. ref add stays kind-agnostic; --parent resolves then defers to parent_allowed. Maps US2 (copy-paste everywhere) + US3 (wording).
+  - TASK-46 blocks TASK-47. Stability-contract documentation acceptance is deferred to FEAT-13 (rule recorded here, ref kept). Seed test: test_resolve_item_id in tests/test_cli.py:232.
 - [2026-06-11T14:41:09Z] Mara Tester:
-  - QA sign-off: FEAT-000019 verified hands-on in a scratch squad (tmp dir, sq init, items of type epic/feature/task/bug/decision/operator/role/skill).
+  - QA sign-off: FEAT-19 verified hands-on in a scratch squad (tmp dir, sq init, items of type epic/feature/task/bug/decision/operator/role/skill).
   - US1 (both forms everywhere) — PASS. Verified: sq <type> N show (bare+full), sq tree (bare+full), create --parent (bare+full), update --parent (bare+full), create --ref (bare+full+bare:kind+full:kind), ref add (bare+full+bare:kind+full:kind), ref rm (bare+full), sq list --parent (bare+full), sq role regen (bare+full), sq skill show (bare+full), sq operator rm (bare+full), subtask --story US1 and --story 1 — all accepted both forms.
   - US2 (copy-paste) — PASS. IDs as rendered in sq tree (FEAT-000010, TASK-000011, EPIC-000009) fed directly into show, tree, --parent, ref add — all accepted unchanged.
   - US3 (type mismatch) — PASS. Wrong-type bare number and wrong-prefix full ID both produce 'X is ID (type), not a/an type'. Consistent wording across both input forms for the same item (F1 fix verified). Vowel-initial article correct: 'not an epic' (sq epic 11 show on a task), 'not an operator' (sq operator rm 11 on a task) — both bare and full-ID forms (F4 fix verified).
   - Unknown-item wording (F2 fix) — PASS. Typed surfaces: 'no item with number 99 (use TASK-000099 or bare 99)' — both bare and full-ID forms give identical message. Type-less surfaces (sq tree): 'no item with number 99 (use a full ID like TYPE-000099 or bare 99)' — both bare and full-ID forms give identical message.
   - pytest: 258 passed, 1 skipped — green. sq check: no issues.
-  - Note: the fourth acceptance criterion — documenting the addressing rule in the stability contract — is deferred to FEAT-000013 by design. The ref FEAT-000013 already links from this feature. No gap in this delivery.
+  - Note: the fourth acceptance criterion — documenting the addressing rule in the stability contract — is deferred to FEAT-13 by design. The ref FEAT-13 already links from this feature. No gap in this delivery.
 <!-- sq:discussion:end -->

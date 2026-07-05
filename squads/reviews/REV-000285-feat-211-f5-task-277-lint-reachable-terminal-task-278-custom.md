@@ -1,13 +1,13 @@
 ---
-id: REV-000285
+id: REV-285
 sequence_id: 285
 type: review
 title: 'FEAT-211 F5: TASK-277 lint reachable-terminal + TASK-278 custom-status regression'
 status: Approved
 author: reviewer
 refs:
-- TASK-000277
-- TASK-000278
+- TASK-277
+- TASK-278
 subentities:
 - local_id: F1
   title: TASK-277 done-report says '23 tests'; test_workflow_lint.py has 15

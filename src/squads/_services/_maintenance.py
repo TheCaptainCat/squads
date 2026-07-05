@@ -28,6 +28,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
     DEFAULT_ID_PADDING,
+    DISPLAY_ID_PADDING,
     VALID_REF_KINDS,
     Item,
     format_item_id,
@@ -243,6 +244,7 @@ class MaintenanceMixin(ServiceCore):
                 item_id = db.allocate_id(ItemType.SKILL)
                 # Convention-correct filename from the allocated id.
                 seq = number_for_id(item_id)
+                # Padded filename stem — deliberately NOT the displayed item.id (ADR-000282).
                 new_name = f"{ItemType.SKILL.prefix}-{seq:0{db.padding}d}-{slug}.md"
                 squad_rel = self.paths.squad_relative(ItemType.SKILL, new_name)
                 item = Item(
@@ -259,7 +261,6 @@ class MaintenanceMixin(ServiceCore):
                     created_session=sid,
                     modified_session=sid,
                     extra={X.SLUG: slug},
-                    id_padding=db.padding,
                 )
                 # Stamp frontmatter and write to the convention-named file.
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
@@ -317,6 +318,7 @@ class MaintenanceMixin(ServiceCore):
             async with self.store.transaction() as db:
                 item_id = db.allocate_id(ItemType.SKILL)
                 seq = number_for_id(item_id)
+                # Padded filename stem — deliberately NOT the displayed item.id (ADR-000282).
                 new_name = f"{ItemType.SKILL.prefix}-{seq:0{db.padding}d}-{slug}.md"
                 squad_rel = self.paths.squad_relative(ItemType.SKILL, new_name)
                 item = Item(
@@ -333,7 +335,6 @@ class MaintenanceMixin(ServiceCore):
                     created_session=sid,
                     modified_session=sid,
                     extra={X.SLUG: slug},
-                    id_padding=db.padding,
                 )
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 convention_path = skills_folder / new_name
@@ -524,7 +525,9 @@ class MaintenanceMixin(ServiceCore):
                 continue  # malformed filename — skip
             seq = int(digit_run)
             # Build the new filename via the canonical formatter — no hand-rolled :0Nd here.
-            # Use the prefix extracted from the filename (works for both built-in and custom types).
+            # Use the prefix extracted from the filename (works for both built-in and custom
+            # types). Padded filename stem — deliberately NOT item.id, which is unpadded
+            # (ADR-000282); formatted from the sequence number at new_padding instead.
             base = format_item_id(file_prefix, seq, new_padding)
             new_name = f"{base}-{slug_part}.md" if slug_part else f"{base}.md"
             new_path = md.parent / new_name
@@ -570,8 +573,13 @@ class MaintenanceMixin(ServiceCore):
     ) -> tuple[dict[str, str], list[tuple[Path, str, str, str]]]:
         """Assign fresh numbers to ID-number collisions. Returns (id remap, files to rename).
 
-        ``padding`` is the squad's current padding (from ``db.padding``); all minted IDs use it
-        so renumber on a width-7 squad does not produce width-6 filenames (F1, REV-000105).
+        ``padding`` is the squad's current (filename) padding (from ``db.padding``); the
+        **rename** target is minted at this width so renumber on a width-7 squad does not
+        produce width-6 filenames (F1, REV-000105). The **remap** target — fed to
+        ``rewrite_ids`` to rewrite frontmatter ``id:``/refs/prose everywhere — is minted
+        unpadded instead (``DISPLAY_ID_PADDING``, ADR-000282): those two must diverge exactly
+        like the create/rename/retype seams, or the textual substitution would stamp a padded
+        string into content that is supposed to read unpadded.
         """
         by_number: dict[int, list[_FileRec]] = {}
         for rec in records:
@@ -583,10 +591,11 @@ class MaintenanceMixin(ServiceCore):
             for fid, md, _item_type, slug, _ in sorted(by_number[number], key=lambda r: r[0])[1:]:
                 # Extract prefix from the existing ID (works for both built-in and custom types).
                 fid_prefix = fid.split("-", 1)[0]
-                new_id = format_item_id(fid_prefix, next_free, padding)
+                new_padded = format_item_id(fid_prefix, next_free, padding)
+                new_display = format_item_id(fid_prefix, next_free, DISPLAY_ID_PADDING)
                 next_free += 1
-                remap[fid] = new_id
-                renames.append((md, _item_type, slug, new_id))
+                remap[fid] = new_display
+                renames.append((md, _item_type, slug, new_padded))
         return remap, renames
 
     async def _renumber(self) -> dict[str, str]:
@@ -596,9 +605,12 @@ class MaintenanceMixin(ServiceCore):
         remap, renames = self._renumber_plan(records, padding)
         if not remap:
             return {}
-        # rewrite every reference to a remapped id across all files (frontmatter + body + inline)
+        # rewrite every reference to a remapped id across all files (frontmatter + body + inline).
+        # remap targets are unpadded display ids (ADR-000282) — this is content, not filenames.
         await rewrite_ids([md for _, md, *_ in records], remap)
-        # rename the files whose own id changed, and resync their stored sequence_id
+        # rename the files whose own id changed, and resync their stored sequence_id.
+        # `renames` carries the padded filename stem — deliberately NOT the unpadded display id
+        # written into content above (ADR-000282).
         for old_path, _item_type, slug, new_id in renames:
             new_name = f"{new_id}-{slug}.md" if slug else f"{new_id}.md"
             # Use the parent directory of the existing file — avoids resolving the type

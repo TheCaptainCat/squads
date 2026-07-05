@@ -1,11 +1,11 @@
 ---
-id: TASK-000227
+id: TASK-227
 sequence_id: 227
 type: task
 title: Build PlaybookSpec/ItemPlaybookSpec/RoleGuideSpec models and author bundled
   playbook.toml
 status: Done
-parent: FEAT-000220
+parent: FEAT-220
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -24,13 +24,13 @@ updated_at: '2026-06-26T09:27:30Z'
 ## Goal
 
 Build the pyright-strict `PlaybookSpec` / `ItemPlaybookSpec` / `RoleGuideSpec` pydantic v2 value
-objects per ADR-000226 §1, and author the bundled `playbook.toml` encoding today's EXACT `PLAYBOOK`.
-Data + shape foundation for FEAT-000220 (FP). Playbook-content externalization only, enums-intact era.
+objects per ADR-226 §1, and author the bundled `playbook.toml` encoding today's EXACT `PLAYBOOK`.
+Data + shape foundation for FEAT-220 (FP). Playbook-content externalization only, enums-intact era.
 
 **Apply `extra="forbid"` on every model from the start** — this is the FEAT-219 nit lesson; a typo'd
 TOML key must error, not be silently dropped.
 
-Sequence: **first** task. The loader/rewire (TASK-000228) and two-layer golden-lock (TASK-000229) both
+Sequence: **first** task. The loader/rewire (TASK-228) and two-layer golden-lock (TASK-229) both
 consume these models and this TOML.
 
 ## What to build
@@ -47,7 +47,7 @@ consume these models and this TOML.
 - **Bundled TOML** at `src/squads/_interactions/playbook.toml` — promote `_interactions.py` into an
   `_interactions/` package (`__init__.py` re-exporting current public names so import sites are
   unchanged), TOML beside the loader. Shipped as package data (swept into the wheel by
-  `packages = ["src/squads"]`; packaging *verification* is TASK-000229). Encode, **transcribed not
+  `packages = ["src/squads"]`; packaging *verification* is TASK-229). Encode, **transcribed not
   paraphrased**, every current `ItemPlaybook` entry for the **7 work types** (task, bug, feature,
   epic, decision, review, guide), each with overview / lifecycle / commands and its ORDERED per-role
   guides including the `*dev` sentinel. Use **array-of-tables** (`[[types.<t>.roles]]`) to preserve
@@ -56,9 +56,9 @@ consume these models and this TOML.
     string content (backticks, `@mentions`, `sq …` snippets). The meta types role/skill/operator are
     deliberately ABSENT today — do not invent entries for them.
 - The `DEV = "*dev"` sentinel is carried through as a literal slug value (resolved to "developers" at
-  render time) — exempt from the role-catalog slug check (that's TASK-000228's validation).
+  render time) — exempt from the role-catalog slug check (that's TASK-228's validation).
 
-## Design constraints (ADR-000226)
+## Design constraints (ADR-226)
 
 - §1 shape exactly; `extra="forbid"`; work types only (meta types absent). Enums-intact: no custom
   types, no de-typing, no overrides. `CREATE_LANES`/`LANED_TYPES` stay in Python (out of scope).
@@ -71,7 +71,7 @@ consume these models and this TOML.
    per-role guides incl. `*dev`; `_interactions.py` promoted to `_interactions/` package with
    re-exported names (import sites unchanged).
 3. `tomllib`-parseable; round-trips into the models without error.
-4. pyright/ruff clean. (Equality-with-today + byte-identical skill output asserted by TASK-000229.)
+4. pyright/ruff clean. (Equality-with-today + byte-identical skill output asserted by TASK-229.)
 <!-- sq:body:end -->
 
 ## Subtasks

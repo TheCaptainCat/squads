@@ -1,14 +1,14 @@
 ---
-id: FEAT-000283
+id: FEAT-283
 sequence_id: 283
 type: feature
 title: Unpadded display IDs, decoupled from filename padding
-status: Draft
-parent: EPIC-000012
+status: Done
+parent: EPIC-12
 author: product-owner
 refs:
-- ADR-000282:implements
-- FEAT-000027
+- ADR-282:implements
+- FEAT-27
 subentities:
 - local_id: US1
   title: IDs read unpadded on every human-facing surface (frontmatter, refs, prose,
@@ -29,7 +29,7 @@ subentities:
     verified clean
   status: Todo
 created_at: '2026-07-02T09:36:33Z'
-updated_at: '2026-07-02T09:37:25Z'
+updated_at: '2026-07-04T23:23:53Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -39,7 +39,7 @@ width exists for **one** reason that matters: on-disk filenames sort lexicograph
 human reads an ID — frontmatter `id:`, refs, ID mentions in body prose, CLI output, tables — the
 padding is pure noise. `FEAT-283` is the JIRA-style form people say and type; `FEAT-000283` is the
 form the tool insists on echoing back. This decouples the two: display goes unpadded, the filename
-width stays. Authoritative design: **ADR-000282** (Proposed). Sibling of **FEAT-000027**, which owns
+width stays. Authoritative design: **ADR-282** (Proposed). Sibling of **FEAT-27**, which owns
 the stored padding + `repad` migration this feature reinterprets.
 
 ## Scope — exactly two changes (no config knob)
@@ -151,7 +151,7 @@ _Add with `sq feature 283 add-story "As a <role>, I want … so that …"`; trac
 | US1 | Todo |  | IDs read unpadded on every human-facing surface (frontmatter, refs, prose, CLI, tables) |
 | US2 | Todo |  | Files stay padded and lexicographically sorted on disk while the id is unpadded |
 | US3 | Todo |  | An existing squad migrates cleanly: structural id/refs + bounded prose rewrite, code fences untouched |
-| US4 | Todo |  | CLI lookup stays width-tolerant: FEAT-283 and FEAT-000283 both resolve |
+| US4 | Todo |  | CLI lookup stays width-tolerant: FEAT-283 and FEAT-283 both resolve |
 | US5 | Todo |  | Managed artifacts and goldens regenerate to unpadded; managed-section diff verified clean |
 <!-- sq:summary:end -->
 
@@ -165,7 +165,15 @@ _Add with `sq feature 283 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a developer reading squads output, I want every human-facing surface to show IDs unpadded (e.g. `FEAT-283`) so that I see the short form people actually type and say, instead of the padded on-disk artifact.
+
+**Acceptance criteria**
+
+- Frontmatter `id:` renders unpadded for every item type.
+- Every ref (`refs:` entries and computed backrefs) renders unpadded wherever displayed.
+- ID mentions in body prose render unpadded.
+- CLI output renders unpadded: `show`, `list`, `tree`, tables, and JSON output.
+- `Item.id_padding` is a fixed constant `0` — not a stored field and not configurable via `.squads.toml` or any flag.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -182,7 +190,16 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As a maintainer of the on-disk squad folder, I want files to keep their padded, lexicographically-sortable filenames while the id itself displays unpadded, so that directory listings stay sorted and nothing forces a mass rename.
+
+**Acceptance criteria**
+
+- On disk, item files keep the padded name (e.g. `FEAT-000283-slug.md`) and continue to sort lexicographically by sequence number.
+- The index-stored padding value is reinterpreted as filename width only — never consumed for display.
+- Every path-builder that locates or creates a file by combining prefix, sequence number, and slug (create, rename, retype, renumber) formats the padded name explicitly via the sequence-number formatter with the stored width, rather than concatenating the (now-unpadded) displayed id.
+- Each such call site carries a comment flagging that the filename stem is not the same as the displayed id.
+- An invariant test asserts, for both the create path and the rename/retype path, that the file exists at the padded name while its frontmatter `id:` is unpadded.
+- No new `.squads.toml` field is introduced; `sq repair` still re-derives the filename width from disk and `sq migrate repad` still widens it on counter overflow.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -199,7 +216,18 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As an operator upgrading an existing squad, I want a single migration run to flip stored ids, refs, and body-prose mentions to the unpadded form without touching filenames or mangling unrelated text, so that my squad works correctly the moment the schema bumps.
+
+**Acceptance criteria**
+
+- The schema version is bumped past its current value; a new migration record and runner are registered in the migration registry; the root CLI hard-stops on the mismatch until the migration runs.
+- The runner rewrites every item's frontmatter `id:` and every ref to unpadded, driven by each item's stored sequence number.
+- The runner rewrites padded ID mentions in body prose to unpadded, but only for the exact old-form strings the migration already knows from its own padded-to-unpadded map — never a blind zero-collapsing pattern that could touch unrelated text.
+- Fenced code blocks and inline code are skipped by the prose rewrite, matching how the existing retype/renumber mention rewrites scope themselves.
+- Filenames are left untouched — no renames, no git-rename churn.
+- The migration's trailing repair step rebuilds the index, re-deriving both the display constant and the filename width from disk.
+- A migration test covers a mixed fixture (padded frontmatter, padded refs, padded prose mentions, and a code fence containing a padded id) and asserts the result is fully unpadded outside the fence, and that a second run is a no-op (idempotent).
+- The manual runbook entry flags the prose rewrite as best-effort and worth an eyeball on mention-heavy bodies.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -209,14 +237,21 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US3:end -->
 
 <!-- sq:story:US4 -->
-### US4 — CLI lookup stays width-tolerant: FEAT-283 and FEAT-000283 both resolve
+### US4 — CLI lookup stays width-tolerant: FEAT-283 and FEAT-283 both resolve
 
 <!-- sq:story:US4:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As someone typing an id at the CLI, I want lookup to accept either the padded or the unpadded form so that I never have to remember which width the tool expects.
+
+**Acceptance criteria**
+
+- Lookup resolves an id typed in either the short unpadded form (e.g. `FEAT-283`) or the fully padded form (e.g. `FEAT-000283`), for every item type and command that accepts an id.
+- Resolution continues to key off prefix and sequence number via the existing matcher and the sequence-keyed index — no change to input parsing.
+- Only output narrows to unpadded; input tolerance for either width is unchanged.
+- A test pins that both widths resolve to the same item.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -233,7 +268,15 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 <!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
-_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._
+As the team maintaining squads' own bundled content, I want every managed skill, managed CLAUDE.md/AGENTS.md section, and golden fixture that embeds an id to regenerate in unpadded form, so that shipped artifacts and this project's own working tree don't lag the new display rule.
+
+**Acceptance criteria**
+
+- All per-type managed skills, the core workflow skills, and the workflow cheatsheet output regenerate with unpadded example ids.
+- Managed CLAUDE.md/AGENTS.md sections regenerate unpadded, and the managed-section diff check comes back clean.
+- Roster and roadmap prose citing real ids is updated to the unpadded form.
+- All golden fixtures affected by the id format are regenerated and reviewed as one mechanical diff.
+- `sq check` is green and the strict typing/lint/format gates are clean.
 <!-- sq:story:US5:body:end -->
 
 #### Discussion
@@ -246,4 +289,14 @@ _Write the user story (e.g. “As an <role>, I want … so that …”) and its 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-04T23:00:41Z] Mara Tester:
+  - QA sign-off — acceptance verified end-to-end by behavior in throwaway squads (never touched this live repo).
+  - US1 (unpadded everywhere) — PASS. In a fresh squad: 'sq create feature' printed 'created FEAT-9 -> .../FEAT-000009-....md' (unpadded in the message, padded on disk in the same breath). Frontmatter id: FEAT-9; parent: FEAT-9 on a child task; refs: - BUG-11:fixes after 'sq task 10 ref add BUG-11'. 'sq task 10 show --full', 'sq bug 11 show --full', 'sq list', 'sq tree FEAT-9', and 'sq task 10 show --json' all render every id/parent/ref unpadded (confirmed the JSON payload's id/parent/refs fields too).
+  - US2 (padded filenames, unpadded id) — PASS. 'sq task 10 update --title ...' renamed the file to a new padded stem (TASK-000010-implement-paginated-widget-list-endpoint.md) while frontmatter stayed id: TASK-10. 'sq task 10 retype bug' relocated it to bugs/BUG-000010-....md (padded, 6-digit) with frontmatter id: BUG-10, parent: FEAT-9, refs: - BUG-11:fixes all unpadded. Directory listing (BUG-000010 before BUG-000011) confirms lexicographic sort intact.
+  - US3 (migration) — PASS, most load-bearing check. Copied tests/fixtures/corpus/v0_5 into a throwaway squad, hand-added a prose mention ('See TASK-000003 ... BUG-000004'), a fenced code block ('sq task show TASK-000003'), and an inline code span ('TASK-000003') to a body. Pre-migration: any normal command ('sq list') hard-stopped with 'this squad is at schema v0.5; squads 0.6.0 expects v0.7. Run sq migrate up...'. Ran 'sq migrate up': frontmatter id/parent/refs (FEAT-2, TASK-3, BUG-4, ADR-5, REV-6) all unpadded; the prose sentence became 'See TASK-3 ... BUG-4 ...'; the fenced code block and the inline code span both stayed byte-identical as TASK-000003; all 8 filenames unchanged (still 6-digit padded). 'sq check' came back clean, 'sq show TASK-3' and 'sq show TASK-000003' both resolved post-migration. Ran 'sq migrate up' a second time: 'already at schema v0.7; nothing to migrate' and md5sums of every item file were unchanged (idempotent). 'sq migrate chlog v0.5.0..v0.7.0' surfaces the expected manual note flagging the prose rewrite as best-effort.
+  - US4 (lookup tolerance) — PASS. Both 'sq show BUG-000011' and 'sq show BUG-11' return the identical item; '--parent FEAT-000009' on create resolved and stored unpadded (parent: FEAT-9); 'sq bug 13 ref add BUG-000011' resolved and stored 'refs: - BUG-11:duplicates'.
+  - US5 (managed artifacts unpadded) — PASS. Read-only checks on this dogfood repo: no 6-digit padded FEAT-0.../TASK-0.../ADR-0.../BUG-0.../EPIC-0.../REV-0... pattern remains under squads/agents/skills/ or CLAUDE.md; SKILL-000200-squads.md and 'sq workflow' output use unpadded examples (FEAT-2, TASK-3-style). A freshly 'sq init --backend claude_code' throwaway squad's generated SKILL-000017-squads.md likewise has zero padded examples and only unpadded ones.
+  - Everything above was exercised in /tmp scratch squads via 'uv run --project /home/pchat/projects/squads sq ...'; the dogfood repo itself was only read (show/grep), never written. Recommending FEAT-283 move toward Done once TASK-291's review lands (task is currently InReview).
+- [2026-07-04T23:23:53Z] Catherine Manager:
+  - Deferral note for the FEAT-13 stability contract: this feature changes a documented public surface — item IDs now DISPLAY unpadded (FEAT-283, TASK-30) everywhere (frontmatter id:, refs, prose, CLI, --json) while on-disk filenames stay zero-padded. The FEAT-13 contract doc, which froze the ID-format surface, now lags reality and must be refreshed before 1.0 to state: display/canonical form is unpadded (JIRA-style), filename width is a separate index-derived value, and input remains width-tolerant (FEAT-283 and FEAT-000283 both resolve). Authoritative design: ADR-282 (Accepted).
 <!-- sq:discussion:end -->

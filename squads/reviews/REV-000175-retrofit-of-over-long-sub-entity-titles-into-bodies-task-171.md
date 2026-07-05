@@ -1,17 +1,17 @@
 ---
-id: REV-000175
+id: REV-175
 sequence_id: 175
 type: review
 title: Retrofit of over-long sub-entity titles into bodies (TASK-171)
 status: Approved
 author: reviewer
 refs:
-- TASK-000171:addresses
+- TASK-171:addresses
 created_at: '2026-06-23T10:05:27Z'
 updated_at: '2026-06-23T10:06:05Z'
 ---
 <!-- sq:body -->
-Independent sampling review of TASK-000171 (corpus retrofit: over-long sub-entity titles moved into bodies, titles shortened to handles).
+Independent sampling review of TASK-171 (corpus retrofit: over-long sub-entity titles moved into bodies, titles shortened to handles).
 
 ## Verdict: Approved
 

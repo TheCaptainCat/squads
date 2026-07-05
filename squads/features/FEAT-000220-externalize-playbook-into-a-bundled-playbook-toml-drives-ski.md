@@ -1,14 +1,14 @@
 ---
-id: FEAT-000220
+id: FEAT-220
 sequence_id: 220
 type: feature
 title: Externalize playbook into a bundled playbook.toml; drives skill generation
 status: Done
-parent: EPIC-000206
+parent: EPIC-206
 author: product-owner
 refs:
-- FEAT-000219:depends-on
-- FEAT-000207:depends-on
+- FEAT-219:depends-on
+- FEAT-207:depends-on
 subentities:
 - local_id: US1
   title: As a maintainer, I want the PLAYBOOK loaded from playbook.toml so skill content
@@ -32,7 +32,7 @@ Today the `PLAYBOOK` dict in `src/squads/_interactions.py` hardcodes, for each i
 
 This feature moves the playbook to a bundled `playbook.toml`, loaded and validated as a `PlaybookSpec` pydantic value object. Default behavior is **byte-identical to today** (golden-locked against a frozen snapshot of `_interactions.py`). The Python `PLAYBOOK` dict is retired.
 
-**Why this matters for custom types (FEAT-000210):** today a custom type gets only a thin auto-generated skill because there is no playbook entry for it. Once the playbook is config-driven, a project can add a `[playbook.types.incident]` block with an overview and per-role guides, and the generated `sq-incident` skill will carry rich, actionable role guidance — the same quality as built-in types. This is what bridges "minimum-viable custom type" (F4) to "fully-integrated custom type with role playbook" (the complete vision).
+**Why this matters for custom types (FEAT-210):** today a custom type gets only a thin auto-generated skill because there is no playbook entry for it. Once the playbook is config-driven, a project can add a `[playbook.types.incident]` block with an overview and per-role guides, and the generated `sq-incident` skill will carry rich, actionable role guidance — the same quality as built-in types. This is what bridges "minimum-viable custom type" (F4) to "fully-integrated custom type with role playbook" (the complete vision).
 
 ## Scope
 
@@ -43,15 +43,15 @@ This feature moves the playbook to a bundled `playbook.toml`, loaded and validat
 - **Golden test:** assert the loaded `PlaybookSpec` equals a frozen snapshot of today's `PLAYBOOK` dict (all types, all role guides, all lifecycle/command text). This is the regression gate for skill content.
 - All existing generated skill files remain identical after the change (`sq sync` produces the same output). All existing tests pass.
 
-## Connection to custom types (FEAT-000210)
+## Connection to custom types (FEAT-210)
 
-Once FP lands, a project adding a custom type in `.squads.toml` can also add `[playbook.types.incident]` entries in their playbook override. The `sq-incident` skill will then carry per-role enter/do/handoff/watch guidance instead of the thin auto-generated default. FEAT-000210 should note this as the upgrade path from thin-skill to full playbook.
+Once FP lands, a project adding a custom type in `.squads.toml` can also add `[playbook.types.incident]` entries in their playbook override. The `sq-incident` skill will then carry per-role enter/do/handoff/watch guidance instead of the thin auto-generated default. FEAT-210 should note this as the upgrade path from thin-skill to full playbook.
 
 ## Dependencies and sequencing
 
-FP depends on FEAT-000219 (FR — role catalog must be externalized first, since playbook entries reference role slugs that must be validated). FP also depends on FEAT-000207 (the spec loader/validation pattern).
+FP depends on FEAT-219 (FR — role catalog must be externalized first, since playbook entries reference role slugs that must be validated). FP also depends on FEAT-207 (the spec loader/validation pattern).
 
-FP relates to FEAT-000210 (custom types): FP is not a blocker for F4, but F4's thin-skill limitation is resolved by FP. The two can land independently; FP is the upgrade path.
+FP relates to FEAT-210 (custom types): FP is not a blocker for F4, but F4's thin-skill limitation is resolved by FP. The two can land independently; FP is the upgrade path.
 
 FP can proceed in parallel with F2–F5 once FR and the F1 loader pattern exist.
 

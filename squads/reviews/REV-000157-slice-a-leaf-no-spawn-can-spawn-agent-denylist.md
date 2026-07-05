@@ -1,17 +1,17 @@
 ---
-id: REV-000157
+id: REV-157
 sequence_id: 157
 type: review
 title: 'Slice A leaf-no-spawn: can_spawn + Agent denylist'
 status: Approved
 author: reviewer
 refs:
-- TASK-000156:addresses
+- TASK-156:addresses
 created_at: '2026-06-21T22:20:11Z'
 updated_at: '2026-06-21T22:20:53Z'
 ---
 <!-- sq:body -->
-Independent review of **TASK-000156** (Slice A / US2 of **FEAT-000122**, fixes **BUG-000152**), under **ADR-000155**. Reviewer did not author the code.
+Independent review of **TASK-156** (Slice A / US2 of **FEAT-122**, fixes **BUG-152**), under **ADR-155**. Reviewer did not author the code.
 
 ## Scope reviewed
 - `_roles/_catalog.py` — `RoleDef.can_spawn` field + `to_extra`/`from_extra` round-trip + the 8 bundled entries + `dev_role()`.
@@ -36,7 +36,7 @@ Independent review of **TASK-000156** (Slice A / US2 of **FEAT-000122**, fixes *
 - `uv run pytest`: 862 passed, 1 skipped
 
 ## Verdict
-**Approved.** Meets ADR-000155 and the Slice A acceptance criteria. Ready for QA.
+**Approved.** Meets ADR-155 and the Slice A acceptance criteria. Ready for QA.
 <!-- sq:body:end -->
 
 ## Findings
@@ -55,6 +55,6 @@ _Add with `sq review 157 add-finding "…" --severity high`; track with `sq revi
 
 <!-- sq:discussion -->
 - [2026-06-21T22:20:37Z] Paul Reviewer:
-  - Reviews FEAT-000122 Slice A (leaf-no-spawn / US2). Confirmed the change is scoped to type-launched subagents per ADR-000155; the human-driven --as <role> main-thread path is correctly out of scope.
+  - Reviews FEAT-122 Slice A (leaf-no-spawn / US2). Confirmed the change is scoped to type-launched subagents per ADR-155; the human-driven --as <role> main-thread path is correctly out of scope.
   - NOTE (info, non-blocking): the --json surfacing is unit-tested only on the catalog path (un-activated roles). The activated-item/index path (_cli/_role.py ~line 191) is verified manually here and works, but has no automated assertion. Logic is trivial (extra.get(X.CAN_SPAWN, False)); fine to leave, optional follow-up to add a test for an activated role's --json.
 <!-- sq:discussion:end -->

@@ -1,11 +1,11 @@
 ---
-id: TASK-000229
+id: TASK-229
 sequence_id: 229
 type: task
 title: 'Two-layer golden-lock: spec == today + generated skills byte-identical; verify
   packaging'
 status: Done
-parent: FEAT-000220
+parent: FEAT-220
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -26,10 +26,10 @@ updated_at: '2026-06-26T09:27:32Z'
 Add the **two-layer golden-lock** — the key difference from FEAT-207/219 — asserting (A) the loaded
 `PlaybookSpec` equals today's `PLAYBOOK` structurally and (B) the GENERATED `sq-<type>` skill text is
 byte-identical before/after the externalization. Plus verify `playbook.toml` ships in the wheel. This
-is the regression gate that proves the externalization (TASK-000227/228) is behavior-preserving — and
+is the regression gate that proves the externalization (TASK-227/228) is behavior-preserving — and
 Layer B is the decisive one US3 demands.
 
-Sequence: **third** — depends on TASK-000227 (TOML/models) and TASK-000228 (loader/rewire). Must stay
+Sequence: **third** — depends on TASK-227 (TOML/models) and TASK-228 (loader/rewire). Must stay
 green going forward.
 
 ## What to build
@@ -42,13 +42,13 @@ green going forward.
   representative roster** so active-role filtering and the `developers` section are deterministic,
   and assert **byte-equality** against the output produced from today's Python `PLAYBOOK`. This is
   what US3 demands and the gate that actually protects users — a faithful spec that rendered
-  differently would still be a regression. (FEAT-000220 AC#2/#4, US3.)
+  differently would still be a regression. (FEAT-220 AC#2/#4, US3.)
 - **Packaging verification:** assert `playbook.toml` is included in the built wheel (consistent with
   `_workflow/default_workflow.toml` and `_roles/roles.toml`). Mirror the existing
   templates/spec-toml-in-wheel build test; rely on `packages = ["src/squads"]` sweeping non-`.py`
   files — confirm, don't add a per-file include.
 
-## Design constraints (ADR-000226)
+## Design constraints (ADR-226)
 
 - §4 two-layer contract: Layer A built from today's literals (independent source of truth); Layer B
   is byte-identical rendered skill output with a fixed roster for determinism.
@@ -125,7 +125,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - pyright: 0 errors. ruff check + format --check: all passed. Broader test suite (tests/ --ignore=test_playbook.py): still running, intermediate output clean.
   - Both ST1 and ST2 marked Done. @manager ready for review.
 - [2026-06-26T09:25:03Z] Elias Python:
-  - Applied REV-000230 findings F1 and F2. No commit per standing instruction.
+  - Applied REV-230 findings F1 and F2. No commit per standing instruction.
   - F1 — fail-closed unknown-key fix across both affected loaders:
   -   _interactions/_loader.py: _parse_role_guide now calls RoleGuideSpec.model_validate(data) instead of cherry-picking fields; _build_spec now calls ItemPlaybookSpec.model_validate({**data, 'roles': roles}) instead of cherry-picking. Both trigger extra='forbid' on any unknown key.
   -   _roles/_loader.py: _parse_role now calls RoleSpec.model_validate(data); dev pool construction now calls DevPoolSpec.model_validate(dev_raw). Same pattern.

@@ -1,14 +1,14 @@
 ---
-id: FEAT-000288
+id: FEAT-288
 sequence_id: 288
 type: feature
 title: Pre-merge ID block-shift renumber (sq renumber)
 status: Draft
-parent: EPIC-000012
+parent: EPIC-12
 author: product-owner
 refs:
-- FEAT-000283:depends-on
-- ADR-000282
+- FEAT-283:depends-on
+- ADR-282
 description: Block-shift a branch's new IDs into a reserved range before merge, preserving
   referential intent
 subentities:
@@ -43,9 +43,9 @@ Disjoint-block guarantee. Choose the offset so the shifted block lands strictly 
 
 Reuse the existing machinery: file rename + rewrite_ids whole-word swap across frontmatter id:/refs, body prose, inline ID mentions, AND the append-only reflog (its target fields reference IDs -- must be included or history stops resolving), plus sequence_id resync and counter bump to the new max.
 
-Filenames stay padded to the filename width (see FEAT-000283/ADR-000282) so on-disk lexical sort survives -- the rename seam reformats through the canonical format_item_id(prefix, seq, filename_padding).
+Filenames stay padded to the filename width (see FEAT-283/ADR-282) so on-disk lexical sort survives -- the rename seam reformats through the canonical format_item_id(prefix, seq, filename_padding).
 
-Dependency. Sequenced after FEAT-000283 (Unpadded display IDs, decoupled from filename padding; ADR-000282). Once display/refs/prose are unpadded, the prose rewrite becomes a plain \bFEAT-210\b -> FEAT-220 integer swap -- the leading-zero capture group and the 'reformat to width' trap disappear for everything a human/ref touches, and uniform unpadding removes FEAT-210 vs FEAT-000210 matcher-miss variance. Padding then only remains at the filename-rename seam.
+Dependency. Sequenced after FEAT-283 (Unpadded display IDs, decoupled from filename padding; ADR-282). Once display/refs/prose are unpadded, the prose rewrite becomes a plain \bFEAT-210\b -> FEAT-220 integer swap -- the leading-zero capture group and the 'reformat to width' trap disappear for everything a human/ref touches, and uniform unpadding removes FEAT-210 vs FEAT-210 matcher-miss variance. Padding then only remains at the filename-rename seam.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -123,7 +123,7 @@ As an operator running the shift, every occurrence of a shifted ID is updated: f
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
-As an operator, after a block-shift the renamed files are still padded to the squad's filename width (format_item_id(prefix, seq, filename_padding)) so on-disk lexical sort is unaffected, even though display/prose forms may be unpadded per FEAT-000283.
+As an operator, after a block-shift the renamed files are still padded to the squad's filename width (format_item_id(prefix, seq, filename_padding)) so on-disk lexical sort is unaffected, even though display/prose forms may be unpadded per FEAT-283.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -154,5 +154,5 @@ As an operator, pre-merge block-shift is the preferred path when I control the y
 
 <!-- sq:discussion -->
 - [2026-07-03T08:19:08Z] Nina Product:
-  - Grammar-settling work under EPIC-000012 (ID-space renumbering). Owes @manager a deferral note to FEAT-000013 (stability-contract capstone) when that runs.
+  - Grammar-settling work under EPIC-12 (ID-space renumbering). Owes @manager a deferral note to FEAT-13 (stability-contract capstone) when that runs.
 <!-- sq:discussion:end -->

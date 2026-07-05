@@ -1,15 +1,15 @@
 ---
-id: TASK-000103
+id: TASK-103
 sequence_id: 103
 type: task
 title: Width-tolerant ID reading everywhere; display always uses current padding
 status: Done
-parent: FEAT-000027
+parent: FEAT-27
 author: tech-lead
 assignee: python-dev
 refs:
-- TASK-000101:depends-on
-- REV-000106:addresses
+- TASK-101:depends-on
+- REV-106:addresses
 subentities:
 - local_id: ST1
   title: Width-tolerant ID equality across resolver/backrefs/check
@@ -19,7 +19,7 @@ created_at: '2026-06-14T20:56:35Z'
 updated_at: '2026-06-23T09:58:32Z'
 ---
 <!-- sq:body -->
-Make ID READING tolerant of any width, since repad never rewrites file contents (TASK-000102): `TASK-000007` and `TASK-0000007` must resolve to the same item everywhere an ID is read. The number is the identity; the width is presentation.
+Make ID READING tolerant of any width, since repad never rewrites file contents (TASK-102): `TASK-000007` and `TASK-0000007` must resolve to the same item everywhere an ID is read. The number is the identity; the width is presentation.
 
 ## Current state (audit)
 Good news — the lexical parsers ALREADY split on the trailing digit run, so they are width-agnostic by construction; the work is to confirm, centralise, and test:
@@ -35,7 +35,7 @@ Good news — the lexical parsers ALREADY split on the trailing digit run, so th
 3. **Prose mentions / `sq check`**: dangling-ref and parent checks must treat mixed-width as resolved.
 
 ## Where it lands
-Per FEAT-000019, centralise comparison/normalisation in the shared resolver layer (`_index/_resolver.py`) — add a normalise-to-sequence helper and route ID-equality through it. Display ALWAYS uses current padding (handled by the formatter from TASK-000101).
+Per FEAT-19, centralise comparison/normalisation in the shared resolver layer (`_index/_resolver.py`) — add a normalise-to-sequence helper and route ID-equality through it. Display ALWAYS uses current padding (handled by the formatter from TASK-101).
 
 ## Tests (mixed-width fixture)
 A fixture squad where item files were renamed to a wider padding but bodies/refs/parent keep the old width: refs resolve, backrefs invert, `sq tree`/`show` address correctly, `sq check` is clean, and display shows the current (new) width throughout.
@@ -76,10 +76,10 @@ Width-tolerant ID equality in resolver/backrefs/check; mixed-width refs+mentions
 
 <!-- sq:discussion -->
 - [2026-06-14T21:49:41Z] Elias Python:
-  - Implemented width-tolerant ID reading (FEAT-000027 / TASK-000103). Implementation is complete, 578 tests pass (15 new), pyright + ruff clean.
+  - Implemented width-tolerant ID reading (FEAT-27 / TASK-103). Implementation is complete, 578 tests pass (15 new), pyright + ruff clean.
   - **Normalisation approach — centralised in two places:**
   - 1. _models/_index.py: Added SquadsDB._propagate_padding() (model_validator mode=after) — when a SquadsDB is deserialized from JSON (i.e. store.load()), it immediately sets id_padding=db.padding on every item. This ensures item.id always returns the current-padding-width ID everywhere, fixing the 'display uses current padding' requirement without any caller changes.
-  - 2. _index/_resolver.py: Added seq_for_id() as the canonical normalisation helper, wrapping number_for_id(). This is the declared FEAT-000019 shared resolver location.
+  - 2. _index/_resolver.py: Added seq_for_id() as the canonical normalisation helper, wrapping number_for_id(). This is the declared FEAT-19 shared resolver location.
   - **Surfaces fixed:**
   - - SquadsDB.backrefs() (_models/_index.py): switched from split_ref(r)[0] == item_id string comparison to (prefix, seq) comparison — prevents cross-type false positives during renumber and tolerates width variance.
   - - RefsMixin.add_ref() / rm_ref() (_services/_refs.py): added _id_matches() helper that compares by (prefix, seq); dedup filter and removal use it instead of literal string comparison. add_ref stores the caller's to_id string (not tgt.id) to preserve the original width in frontmatter.
@@ -94,14 +94,14 @@ Width-tolerant ID equality in resolver/backrefs/check; mixed-width refs+mentions
   - **End-to-end acceptance (FEAT-27 US3):** test_end_to_end_repad_resolution builds a squad with cross-refs and parent links at width-6, runs repad(7), then asserts: all items display at width-7; old-width parent resolves; refs_in and backrefs find cross-refs; sq check is clean with no errors. The joint TASK-102/103 seam is covered.
   - @reviewer — ready for review. The key design decisions to validate: (1) _propagate_padding model validator is the right place to propagate padding to items; (2) (prefix, seq) rather than seq-only for backrefs/refs_in to prevent cross-type false positives; (3) on_disk keyed by int seq in _scan_for_check/check_reconciliation.
 - [2026-06-14T21:57:41Z] Paul Reviewer:
-  - REV-000106 ChangesRequested. TASK-103 owns F1 (medium, blocking) + F3 (low, test gap). F1: repair()'s missing_ids comparison breaks across a repad boundary because _propagate_padding widens prev item ids while from_frontmatter does not — 'sq repair' then warns that every file is missing. Compare by sequence_id (mirror _check_reconciliation). F3: extend test_end_to_end_repad_resolution to call repair() post-repad and assert missing_ids == []. The rest of the width-tolerant work (resolver, refs, backrefs, check, tree, cross-type guard) is correct. @python-dev
+  - REV-106 ChangesRequested. TASK-103 owns F1 (medium, blocking) + F3 (low, test gap). F1: repair()'s missing_ids comparison breaks across a repad boundary because _propagate_padding widens prev item ids while from_frontmatter does not — 'sq repair' then warns that every file is missing. Compare by sequence_id (mirror _check_reconciliation). F3: extend test_end_to_end_repad_resolution to call repair() post-repad and assert missing_ids == []. The rest of the width-tolerant work (resolver, refs, backrefs, check, tree, cross-type guard) is correct. @python-dev
 - [2026-06-14T22:00:49Z] Elias Python:
-  - F1 (REV-000106, medium, blocking): Fixed spurious repair() missing_ids after repad.
+  - F1 (REV-106, medium, blocking): Fixed spurious repair() missing_ids after repad.
   - Root cause: repair() built previous_ids as a set of full-ID strings; _propagate_padding had widened those to the new padding (e.g. 'TASK-0000003') while from_frontmatter below rebuilt items at the default width ('TASK-000003'), so the set difference was the entire corpus.
   - Fix (_maintenance.py:174-181): changed previous_ids:set[str] to previous_seq_to_id:dict[int,str] (keyed by sequence_id int). found_ids:set[str] becomes found_seqs:set[int]. missing_ids is computed as [previous_seq_to_id[s] for s in sorted(previous_seq_to_id.keys() - found_seqs)] — width-tolerant by construction, mirrors the seq-keyed approach already used in _check_reconciliation.
-  - F3 (REV-000106, low, test gap): Added test_repair_after_repad_no_spurious_missing (tests/test_service.py). Confirmed it FAILED against the F1 bug (reported ['BUG-0000004', 'FEAT-0000002', 'ROLE-0000001', 'TASK-0000003']) and passes after the fix.
+  - F3 (REV-106, low, test gap): Added test_repair_after_repad_no_spurious_missing (tests/test_service.py). Confirmed it FAILED against the F1 bug (reported ['BUG-0000004', 'FEAT-0000002', 'ROLE-0000001', 'TASK-0000003']) and passes after the fix.
   - Full gate: 579 passed, 1 skipped; pyright 0 errors; ruff clean.
   - @reviewer — F1 and F3 fixed. Ready for re-review.
 - [2026-06-14T22:06:25Z] Paul Reviewer:
-  - REV-000106 Approved. F1 (spurious repair missing_ids across a repad boundary, medium/blocking) and F3 (missing repair-after-repad test) verified fixed — repair() compares by sequence_id; new test guards the path and provably fails against the bug. Done / ready to merge. @manager FEAT-000027 acceptance fully met.
+  - REV-106 Approved. F1 (spurious repair missing_ids across a repad boundary, medium/blocking) and F3 (missing repair-after-repad test) verified fixed — repair() compares by sequence_id; new test guards the path and provably fails against the bug. Done / ready to merge. @manager FEAT-27 acceptance fully met.
 <!-- sq:discussion:end -->
