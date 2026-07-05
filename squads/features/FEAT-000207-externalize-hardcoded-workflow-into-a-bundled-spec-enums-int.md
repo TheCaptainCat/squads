@@ -1,10 +1,10 @@
 ---
-id: FEAT-000207
+id: FEAT-207
 sequence_id: 207
 type: feature
 title: Externalize hardcoded workflow into a bundled spec (enums intact)
 status: Done
-parent: EPIC-000206
+parent: EPIC-206
 author: product-owner
 subentities:
 - local_id: US1
@@ -40,7 +40,7 @@ F1 creates that artifact: a single loaded, validated **`WorkflowSpec`** value ob
 
 F1 is the first feature. It unblocks F2 (de-typing). No prior feature is required.
 
-The spike gate (see EPIC-000206) covers F1+F2 together: do not commit either to implementation until the throwaway spike proves the de-typing path is clean under pyright-strict.
+The spike gate (see EPIC-206) covers F1+F2 together: do not commit either to implementation until the throwaway spike proves the de-typing path is clean under pyright-strict.
 
 ## Acceptance criteria
 
@@ -107,5 +107,5 @@ As a squads maintainer, I want a golden test that asserts the loaded default `Wo
 
 <!-- sq:discussion -->
 - [2026-06-25T14:20:50Z] Catherine Manager:
-  - ADR-000214 accepted; FEAT-000207 → Ready. Building F1 full loop (Pierre greenlit). Scope reminder for the breakdown: externalize the workflow into a bundled WorkflowSpec loaded from default_workflow.toml, ItemType/Status enums STAY (spec coerced/validated against them, must equal not extend), golden-lock test that the loaded default == today's exact behavior. NO de-typing/overrides/custom-vocab (F2/F3/F4).
+  - ADR-214 accepted; FEAT-207 → Ready. Building F1 full loop (Pierre greenlit). Scope reminder for the breakdown: externalize the workflow into a bundled WorkflowSpec loaded from default_workflow.toml, ItemType/Status enums STAY (spec coerced/validated against them, must equal not extend), golden-lock test that the loaded default == today's exact behavior. NO de-typing/overrides/custom-vocab (F2/F3/F4).
 <!-- sq:discussion:end -->

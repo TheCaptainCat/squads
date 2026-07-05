@@ -1,13 +1,13 @@
 ---
-id: FEAT-000219
+id: FEAT-219
 sequence_id: 219
 type: feature
 title: Externalize role catalog into a bundled roles.toml (golden-locked)
 status: Done
-parent: EPIC-000206
+parent: EPIC-206
 author: product-owner
 refs:
-- FEAT-000207:depends-on
+- FEAT-207:depends-on
 subentities:
 - local_id: US1
   title: As a maintainer, I want role definitions loaded from roles.toml so adding
@@ -27,7 +27,7 @@ Today the 8 bundled roles — their slugs, full names, titles, missions, and res
 
 This feature moves the role catalog to a bundled `roles.toml` file (under `src/squads/_roles/`), loaded and validated at runtime as a `RoleCatalogSpec` pydantic value object. The default behavior is **byte-identical to today** (golden-locked against a frozen snapshot of `_catalog.py`). The Python catalog is retired once the TOML is the source of truth.
 
-This is the **same load-and-validate pattern** established by FEAT-000207 for the workflow spec: a bundled default TOML, a validated pydantic model, and a golden test asserting the loaded spec equals the frozen snapshot.
+This is the **same load-and-validate pattern** established by FEAT-207 for the workflow spec: a bundled default TOML, a validated pydantic model, and a golden test asserting the loaded spec equals the frozen snapshot.
 
 **This feature delivers no user-visible change** — existing roles, their names, and their behavior are unchanged. It is the prerequisite for FP (playbook externalization), which references role slugs, and for eventually letting projects define custom role vocabulary.
 
@@ -41,9 +41,9 @@ This is the **same load-and-validate pattern** established by FEAT-000207 for th
 
 ## Dependencies and sequencing
 
-FR depends on FEAT-000207 (the spec loader/validation pattern is established there; FR reuses it). FR does not depend on F2 (no model de-typing needed — roles are not item fields). FR is a prerequisite for FP (playbook externalization), which references role slugs from the catalog.
+FR depends on FEAT-207 (the spec loader/validation pattern is established there; FR reuses it). FR does not depend on F2 (no model de-typing needed — roles are not item fields). FR is a prerequisite for FP (playbook externalization), which references role slugs from the catalog.
 
-FR can proceed in parallel with F2–F5 once the loader pattern from F1/FEAT-000207 exists.
+FR can proceed in parallel with F2–F5 once the loader pattern from F1/FEAT-207 exists.
 
 ## Acceptance criteria
 

@@ -1,14 +1,14 @@
 ---
-id: FEAT-000122
+id: FEAT-122
 sequence_id: 122
 type: feature
 title: Per-role capability attenuation
 status: Done
-parent: EPIC-000121
+parent: EPIC-121
 author: product-owner
 priority: low
 refs:
-- FEAT-000125
+- FEAT-125
 subentities:
 - local_id: US1
   title: Full structured capability profile per role (Slice B — gated on FEAT-000125)
@@ -28,7 +28,7 @@ build.
 
 ### Background: advisory posture
 
-Slice B lane enforcement is **advisory** (per ADR-000158 and the FEAT-000125
+Slice B lane enforcement is **advisory** (per ADR-158 and the FEAT-125
 reframe).  The actor identity available at sq-invocation time is a
 self-declared `--as` slug plus an optional environment-sourced session nonce
 that is readable and copyable.  Enforcement can catch the honest mistake — an
@@ -184,14 +184,14 @@ _Add with `sq feature 122 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Done |  | Full structured capability profile per role (Slice B — gated on FEAT-000125) |
-| US2 | Done |  | Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-000152) |
+| US1 | Done |  | Full structured capability profile per role (Slice B — gated on FEAT-125) |
+| US2 | Done |  | Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-152) |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
-### US1 — Full structured capability profile per role (Slice B — gated on FEAT-000125)
+### US1 — Full structured capability profile per role (Slice B — gated on FEAT-125)
 
 <!-- sq:story:US1:head -->
 **Status:** 🟢 Done
@@ -218,7 +218,7 @@ As a squad manager, I want each worker role to declare its create lane and have 
 
 - AC-B7: sq role <slug> show surfaces the role's in-lane create types, consistent with the can_spawn surfacing in Slice A.
 
-**Gate:** FEAT-000125 is Done. Slice B may proceed once the architect's enforcement-model ADR is approved.
+**Gate:** FEAT-125 is Done. Slice B may proceed once the architect's enforcement-model ADR is approved.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -228,7 +228,7 @@ As a squad manager, I want each worker role to declare its create lane and have 
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-000152)
+### US2 — Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-152)
 
 <!-- sq:story:US2:head -->
 **Status:** 🟢 Done
@@ -249,7 +249,7 @@ As any leaf-role agent (dev, qa, reviewer, architect), I want the system to prev
 
 - Attempting to spawn from a leaf role produces a clear error, not a silent no-op.
 
-**Fixes:** BUG-000152 (python-dev self-spawn cascade). No dependency on FEAT-000125 — tool binding is type-bound at spawn time.
+**Fixes:** BUG-152 (python-dev self-spawn cascade). No dependency on FEAT-125 — tool binding is type-bound at spawn time.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -263,23 +263,23 @@ As any leaf-role agent (dev, qa, reviewer, architect), I want the system to prev
 
 <!-- sq:discussion -->
 - [2026-06-17T20:12:08Z] Pierre Chat:
-  - Prioritised: real-world incident BUG-000152 (a python-dev subagent self-spawned ~6 levels deep) is the motivating case for this feature — leaf specialists must not carry the Agent/Task spawn tool. Picking this up very soon.
+  - Prioritised: real-world incident BUG-152 (a python-dev subagent self-spawned ~6 levels deep) is the motivating case for this feature — leaf specialists must not carry the Agent/Task spawn tool. Picking this up very soon.
 - [2026-06-21T21:34:54Z] Robert Architect:
   - Q2 enforcement boundary — CONFIRMED feasible at the Claude Code backend, and it's a small change. Claude Code subagent definitions support a 'tools:' allowlist and a 'disallowedTools:' denylist in YAML frontmatter; omitting tools inherits all tools. Denying the spawn tool is literally one line: disallowedTools: Agent (the Task tool was renamed Agent in 2.1.63; Task still works as an alias). The harness enforces the subagent definition's own tool restrictions when that subagent runs — so a leaf role whose definition denies Agent structurally cannot spawn. This is real enforcement, not advice.
   - Q2 where it lives — exactly where the open question/scope guessed: src/squads/_backends/_claude_code/_backend.py::generate_role_entry, which renders the agent pointer via templates/claude/pointer_agent.md.j2. That template already emits the agent frontmatter (name/description/model/color/skills). The change is (a) add a capability field to RoleDef in src/squads/_roles/_catalog.py (e.g. can_spawn: bool, default False; True for manager/tech-lead), and (b) add a {% if not can_spawn %}disallowedTools: Agent{% endif %} line to pointer_agent.md.j2. No sq-runtime check needed; sq stays the CLI, the backend owns the session contract. (A coarser belt-and-suspenders option: settings.json deny rules, but per-role lives correctly in the agent definition, not global settings.)
-  - Q2 boundary caveat — enforcement sits at the SUBAGENT DEFINITION the harness loads from .claude/agents/<slug>.md. It binds when an agent is launched by type (claude --agent / Agent(slug)). It does NOT bind an arbitrary main-thread session a human starts and then says '--as architect' in prose; that path is governed by the operator's own session settings, not our pointer. For the BUG-000152 cascade (manager spawns python-dev BY TYPE) this is exactly the right and sufficient boundary.
+  - Q2 boundary caveat — enforcement sits at the SUBAGENT DEFINITION the harness loads from .claude/agents/<slug>.md. It binds when an agent is launched by type (claude --agent / Agent(slug)). It does NOT bind an arbitrary main-thread session a human starts and then says '--as architect' in prose; that path is governed by the operator's own session settings, not our pointer. For the BUG-152 cascade (manager spawns python-dev BY TYPE) this is exactly the right and sufficient boundary.
 - [2026-06-21T21:35:15Z] Robert Architect:
-  - Q3 THE DEPENDENCY VERDICT — Catherine's hypothesis is CORRECT. FEAT-000122's leaf-no-spawn slice does NOT require FEAT-000125. The agent TYPE determines the toolset at spawn time: when the manager spawns subagent_type=python-dev, the harness loads .claude/agents/python-dev.md and applies its disallowedTools BEFORE the child runs a single turn. Withholding the spawn tool needs no verified identity, because the constraint is bound to the type at launch, not checked against a self-declared slug at sq-time. The child can't spawn even if it lies about who it is — it simply doesn't hold the tool.
-  - Q3 cont'd — identity (125) only matters for the BROADER threat: 'an agent CLAIMS a privileged role it wasn't spawned as' (the --as reviewer self-review of 2026-06-15) and 'verify a review lineage was independent.' That is real and worth doing, but it is a DIFFERENT failure mode from BUG-000152. BUG-000152 is a capability problem (leaf carries Agent tool); the self-review incident is an identity/attribution problem. Capability attenuation defends the first WITHOUT identity; only the cross-role-claim and separation-of-duties cases (122's later acceptance bullet 'developer cannot do squad ops outside its lane', plus FEAT-124) genuinely lean on 125.
-  - Q3 ref recommendation — the FEAT-000125 depends-on ref is TOO STRONG for the whole of 122 and should be relaxed, NOT removed (I am not touching it per scope — flagging for Catherine). Accurate shape: 122's US2 (reviewer/leaf structurally blocked from spawning) depends on NOTHING — ships on type-bound tool lists alone. 122's 'lane enforcement' acceptance (dev can't mutate items outside its assignment) is where verified identity helps and where a depends-on 125 is legitimate. Suggest re-pointing the dependency at that narrower slice or downgrading to a plain 'relates-to' ref.
-  - Q4 RECOMMENDATION — carve a thin slice out of 122: 'Leaf specialists do not carry the spawn (Agent/Task) tool.' Implement it now to close BUG-000152: add can_spawn to RoleDef (manager+tech-lead True, all others incl. devs/reviewer/qa/architect False), emit disallowedTools: Agent in pointer_agent.md.j2 for non-spawners, surface it in 'sq role <slug> show', add a backend test asserting the rendered agent file denies Agent for a dev. This is independent of 125 and unblocks the bug immediately. Keep 122's richer capability-profile model (US1 structured profile, lane enforcement) tied to 125 as designed.
-  - Q4 ADR — YES, this warrants a formal decision item, because it sets a durable boundary the rest of the epic builds on. The ADR should DECIDE: (1) enforcement lives at the Claude Code backend via per-role tool lists in the agent definition, not as an sq-runtime check; (2) the first attenuation cut is 'all tools minus Agent/Task' for non-orchestrator roles, with spawn authority reserved to manager + tech-lead; (3) capability profiles requiring identity-aware checks (lane enforcement, separation of duties) are explicitly gated on FEAT-000125 and out of the standalone slice. I can author this ADR on Catherine's go.
+  - Q3 THE DEPENDENCY VERDICT — Catherine's hypothesis is CORRECT. FEAT-122's leaf-no-spawn slice does NOT require FEAT-125. The agent TYPE determines the toolset at spawn time: when the manager spawns subagent_type=python-dev, the harness loads .claude/agents/python-dev.md and applies its disallowedTools BEFORE the child runs a single turn. Withholding the spawn tool needs no verified identity, because the constraint is bound to the type at launch, not checked against a self-declared slug at sq-time. The child can't spawn even if it lies about who it is — it simply doesn't hold the tool.
+  - Q3 cont'd — identity (125) only matters for the BROADER threat: 'an agent CLAIMS a privileged role it wasn't spawned as' (the --as reviewer self-review of 2026-06-15) and 'verify a review lineage was independent.' That is real and worth doing, but it is a DIFFERENT failure mode from BUG-152. BUG-152 is a capability problem (leaf carries Agent tool); the self-review incident is an identity/attribution problem. Capability attenuation defends the first WITHOUT identity; only the cross-role-claim and separation-of-duties cases (122's later acceptance bullet 'developer cannot do squad ops outside its lane', plus FEAT-124) genuinely lean on 125.
+  - Q3 ref recommendation — the FEAT-125 depends-on ref is TOO STRONG for the whole of 122 and should be relaxed, NOT removed (I am not touching it per scope — flagging for Catherine). Accurate shape: 122's US2 (reviewer/leaf structurally blocked from spawning) depends on NOTHING — ships on type-bound tool lists alone. 122's 'lane enforcement' acceptance (dev can't mutate items outside its assignment) is where verified identity helps and where a depends-on 125 is legitimate. Suggest re-pointing the dependency at that narrower slice or downgrading to a plain 'relates-to' ref.
+  - Q4 RECOMMENDATION — carve a thin slice out of 122: 'Leaf specialists do not carry the spawn (Agent/Task) tool.' Implement it now to close BUG-152: add can_spawn to RoleDef (manager+tech-lead True, all others incl. devs/reviewer/qa/architect False), emit disallowedTools: Agent in pointer_agent.md.j2 for non-spawners, surface it in 'sq role <slug> show', add a backend test asserting the rendered agent file denies Agent for a dev. This is independent of 125 and unblocks the bug immediately. Keep 122's richer capability-profile model (US1 structured profile, lane enforcement) tied to 125 as designed.
+  - Q4 ADR — YES, this warrants a formal decision item, because it sets a durable boundary the rest of the epic builds on. The ADR should DECIDE: (1) enforcement lives at the Claude Code backend via per-role tool lists in the agent definition, not as an sq-runtime check; (2) the first attenuation cut is 'all tools minus Agent/Task' for non-orchestrator roles, with spawn authority reserved to manager + tech-lead; (3) capability profiles requiring identity-aware checks (lane enforcement, separation of duties) are explicitly gated on FEAT-125 and out of the standalone slice. I can author this ADR on Catherine's go.
 - [2026-06-21T21:40:11Z] Nina Product:
-  - Relaxed the FEAT-000125 ref from depends-on to related. The leaf-no-spawn slice (Slice A, US2) binds a tool denylist to the agent type at spawn time — it requires no verified identity, only a can_spawn flag in RoleDef and a disallowedTools line in the agent template. FEAT-000125 identity/lineage is only relevant for the richer lane-enforcement slice (Slice B), which is explicitly gated on it. The depends-on ref was blocking the whole feature; a plain related ref is accurate for that narrower coupling.
+  - Relaxed the FEAT-125 ref from depends-on to related. The leaf-no-spawn slice (Slice A, US2) binds a tool denylist to the agent type at spawn time — it requires no verified identity, only a can_spawn flag in RoleDef and a disallowedTools line in the agent template. FEAT-125 identity/lineage is only relevant for the richer lane-enforcement slice (Slice B), which is explicitly gated on it. The depends-on ref was blocking the whole feature; a plain related ref is accurate for that narrower coupling.
 - [2026-06-22T09:04:45Z] Nina Product:
-  - Per the June 2026 reframe of FEAT-000125: squads is a passive CLI tool invoked by agents — it has no spawn moment and cannot mint, inject, or propagate identity. The strongest guarantee available is a spawner-minted nonce, recorded-not-signed (see ADR-000158).
-  - Consequence for Slice B (lane enforcement via actor identity): lane enforcement built on the FEAT-000125 actor record can only ever be **advisory** — catching the accidental case (an agent that misbehaves without actively forging its lineage), not stopping a deliberate forger. Whoever scopes Slice B should frame its checks as 'catch the accident, not stop the adversary,' consistent with ADR-000155's gate on signed identity. Do not ship Slice B as enforcement-grade until a platform-level signed identity capability exists.
-  - Related: FEAT-000125 (reframed to best-effort lineage observability), ADR-000158 (design), ADR-000155 (capability-attenuation gate).
+  - Per the June 2026 reframe of FEAT-125: squads is a passive CLI tool invoked by agents — it has no spawn moment and cannot mint, inject, or propagate identity. The strongest guarantee available is a spawner-minted nonce, recorded-not-signed (see ADR-158).
+  - Consequence for Slice B (lane enforcement via actor identity): lane enforcement built on the FEAT-125 actor record can only ever be **advisory** — catching the accidental case (an agent that misbehaves without actively forging its lineage), not stopping a deliberate forger. Whoever scopes Slice B should frame its checks as 'catch the accident, not stop the adversary,' consistent with ADR-155's gate on signed identity. Do not ship Slice B as enforcement-grade until a platform-level signed identity capability exists.
+  - Related: FEAT-125 (reframed to best-effort lineage observability), ADR-158 (design), ADR-155 (capability-attenuation gate).
 - [2026-06-22T12:13:10Z] Nina Product:
   - Lane-rules spec filed — Slice B input for the architect's enforcement-model ADR.
   - **Create lanes (derived from _interactions.py + CLAUDE.md):** product-owner → feature/epic; tech-lead → task (+ co-author guide); architect → decision/guide; reviewer → review; qa → bug; *-dev → none (author bug via --author qa); tech-writer → guide; devops → none defined; manager → exempt (all types). Manager and op-* slugs bypass all checks.
@@ -288,7 +288,7 @@ As any leaf-role agent (dev, qa, reviewer, architect), I want the system to prev
   - **Dev bug-author gap:** the playbook has no in-lane create for devs. Recommend allowing dev-authored bugs with a warning (same advisory posture) rather than requiring the qa slug — @architect please decide and record in the ADR.
   - See body for the full lane table, Option A/B/C trade-off analysis, and AC-B1 through AC-B7 testable acceptance criteria. @architect: this is the input for the lane enforcement ADR.
 - [2026-06-22T12:16:51Z] Robert Architect:
-  - Slice B enforcement-model ADR filed: **ADR-000163** — Advisory create-lane enforcement. Adopts Nina's lane-rules spec (§1–§5, AC-B1..AC-B7) verbatim; does not redefine it.
+  - Slice B enforcement-model ADR filed: **ADR-163** — Advisory create-lane enforcement. Adopts Nina's lane-rules spec (§1–§5, AC-B1..AC-B7) verbatim; does not redefine it.
   - Six decisions: (1) **creates only** (Option A) — mutations unlaned this cut, Option B recorded as a future upgrade; (2) lane **derived from _interactions.py PLAYBOOK**, one source, test-locked to the §1 table — no duplicate; (3) **warn-and-proceed** in the service layer, warning rides back on CreateResult.lane_warning → CLI prints it escaped via e(), exit 0, also into the create op's reflog delta, JSON-aware (no service-layer printing); (4) keyed on the **untrusted self-declared author/--as slug**; session (FEAT-125) is forensic context only, never the decision basis; advisory/best-effort everywhere, no security claim; (5) **manager + op-* exempt** (checked before lookup); tech-lead needs no carve-out — 'task' is already in its derived lane; (6) surface the create lane in **sq role show** alongside can_spawn (AC-B7).
   - **Open question resolved (dev-authored bugs):** ALLOWED with the standard advisory warning (expected owner: qa); we do NOT require --author qa. It's just one instance of the general out-of-lane-but-allowed rule — no special-case code path, keeps the dev create-lane empty.
   - Status **Proposed** — goes to @op-pierre for approval before any build. Once approved, @tech-lead can break it down against US1 (AC-B1..AC-B7); see the 'For the tech-lead' section in the ADR body for the three additive seams and the derivation-brittleness mitigation.

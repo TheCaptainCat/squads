@@ -1,5 +1,5 @@
 ---
-id: ADR-000232
+id: ADR-232
 sequence_id: 232
 type: decision
 title: 'De-type Item to str: spec-validated vocabulary, TypeSpec capability flags,
@@ -7,8 +7,8 @@ title: 'De-type Item to str: spec-validated vocabulary, TypeSpec capability flag
 status: Accepted
 author: architect
 refs:
-- FEAT-000208:addresses
-- ADR-000214
+- FEAT-208:addresses
+- ADR-214
 created_at: '2026-06-26T09:45:13Z'
 updated_at: '2026-06-26T09:48:06Z'
 ---

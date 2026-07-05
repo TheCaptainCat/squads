@@ -241,41 +241,42 @@ async def test_resolve_item_id_typed(svc):
     from squads._errors import SquadsError
     from squads._models._enums import ItemType
 
-    # create a feature (seq 2 — ROLE-000001 is seq 1 from init --roles minimal)
-    await svc.create(ItemType.FEATURE, "Feat A", author="manager")  # FEAT-000002
+    # create a feature (seq 2 — ROLE-1 is seq 1 from init --roles minimal)
+    await svc.create(ItemType.FEATURE, "Feat A", author="manager")  # FEAT-2
 
     # bare number resolves to the feature
-    assert await resolve_item_id_typed("2", ItemType.FEATURE, svc) == "FEAT-000002"
+    assert await resolve_item_id_typed("2", ItemType.FEATURE, svc) == "FEAT-2"
 
     # zero-padded bare number resolves to the feature
-    assert await resolve_item_id_typed("000002", ItemType.FEATURE, svc) == "FEAT-000002"
+    assert await resolve_item_id_typed("000002", ItemType.FEATURE, svc) == "FEAT-2"
 
-    # full ID resolves to the feature
-    assert await resolve_item_id_typed("FEAT-000002", ItemType.FEATURE, svc) == "FEAT-000002"
+    # full ID (padded or not) resolves to the feature
+    assert await resolve_item_id_typed("FEAT-000002", ItemType.FEATURE, svc) == "FEAT-2"
 
     # case-insensitive prefix
-    assert await resolve_item_id_typed("feat-2", ItemType.FEATURE, svc) == "FEAT-000002"
+    assert await resolve_item_id_typed("feat-2", ItemType.FEATURE, svc) == "FEAT-2"
 
     # bare number that belongs to a feature, asked as a task → type-mismatch error
-    # (F1) both forms produce the same shape: "<token> is FEAT-000002 (feature), not a task"
-    with pytest.raises(SquadsError, match=r"2 is FEAT-000002 \(feature\), not a task"):
+    # (F1) both forms produce the same shape: "<token> is FEAT-2 (feature), not a task"
+    with pytest.raises(SquadsError, match=r"2 is FEAT-2 \(feature\), not a task"):
         await resolve_item_id_typed("2", ItemType.TASK, svc)
 
-    # full ID with wrong prefix → same shape as bare-number mismatch (F1 fix)
-    with pytest.raises(SquadsError, match=r"FEAT-000002 is FEAT-000002 \(feature\), not a task"):
+    # full ID with wrong prefix → same shape as bare-number mismatch (F1 fix).
+    # The echoed label is the raw (possibly padded) token; the resolved id is unpadded.
+    with pytest.raises(SquadsError, match=r"FEAT-000002 is FEAT-2 \(feature\), not a task"):
         await resolve_item_id_typed("FEAT-000002", ItemType.TASK, svc)
 
-    # unknown bare number → error mentioning both forms (F2)
+    # unknown bare number → error mentioning both forms (F2); the hint is unpadded (ADR-000282)
     with pytest.raises(
         SquadsError,
-        match=r"no item with number 99 \(use TASK-000099 or bare 99\)",
+        match=r"no item with number 99 \(use TASK-99 or bare 99\)",
     ):
         await resolve_item_id_typed("99", ItemType.TASK, svc)
 
     # unknown full ID → same wording mentioning both forms (F2)
     with pytest.raises(
         SquadsError,
-        match=r"no item with number 99 \(use TASK-000099 or bare 99\)",
+        match=r"no item with number 99 \(use TASK-99 or bare 99\)",
     ):
         await resolve_item_id_typed("TASK-000099", ItemType.TASK, svc)
 
@@ -284,40 +285,68 @@ async def test_resolve_item_id_typed(svc):
         await resolve_item_id_typed("abc", ItemType.TASK, svc)
 
 
+async def test_unpadded_and_padded_ids_resolve_to_same_item(svc):
+    """Display went unpadded (ADR-000282), but lookup stays tolerant of either width.
+
+    A freshly created item's canonical display id (e.g. "FEAT-2") and its old zero-padded
+    form (e.g. "FEAT-000002") must resolve to the same item everywhere: the typed resolver,
+    the type-less resolver, and the raw index — no input-parsing change was made.
+    """
+    from squads._cli._common import (
+        resolve_item_id_any,  # pyright: ignore[reportPrivateUsage]
+        resolve_item_id_typed,  # pyright: ignore[reportPrivateUsage]
+    )
+    from squads._models._enums import ItemType
+
+    created = (await svc.create(ItemType.FEATURE, "Widely addressed", author="manager")).item
+    assert created.id == "FEAT-2"  # display is unpadded
+
+    unpadded, padded = "FEAT-2", "FEAT-000002"
+    assert await resolve_item_id_typed(unpadded, ItemType.FEATURE, svc) == created.id
+    assert await resolve_item_id_typed(padded, ItemType.FEATURE, svc) == created.id
+    assert await resolve_item_id_any(unpadded, svc) == created.id
+    assert await resolve_item_id_any(padded, svc) == created.id
+
+    db = await svc.store.load()
+    assert db.get(unpadded) is db.get(padded) is not None
+
+
 async def test_resolve_item_id_any(svc):
     """Service-level: type-less resolver resolves bare number or full ID regardless of type."""
     from squads._cli._common import resolve_item_id_any  # pyright: ignore[reportPrivateUsage]
     from squads._errors import SquadsError
     from squads._models._enums import ItemType
 
-    await svc.create(ItemType.FEATURE, "Feat B", author="manager")  # FEAT-000002
-    await svc.create(ItemType.TASK, "Task C", author="manager")  # TASK-000003
+    await svc.create(ItemType.FEATURE, "Feat B", author="manager")  # FEAT-2
+    await svc.create(ItemType.TASK, "Task C", author="manager")  # TASK-3
 
     # bare number resolves to feature
-    assert await resolve_item_id_any("2", svc) == "FEAT-000002"
+    assert await resolve_item_id_any("2", svc) == "FEAT-2"
 
     # bare number resolves to task
-    assert await resolve_item_id_any("3", svc) == "TASK-000003"
+    assert await resolve_item_id_any("3", svc) == "TASK-3"
 
-    # full IDs work too
-    assert await resolve_item_id_any("FEAT-000002", svc) == "FEAT-000002"
-    assert await resolve_item_id_any("TASK-000003", svc) == "TASK-000003"
+    # full IDs (padded or not) work too
+    assert await resolve_item_id_any("FEAT-000002", svc) == "FEAT-2"
+    assert await resolve_item_id_any("TASK-000003", svc) == "TASK-3"
 
-    # mismatched prefix on a full ID → names actual item+type (F1/F2 consistent)
-    with pytest.raises(SquadsError, match=r"TASK-000002 is FEAT-000002 \(feature\)"):
+    # mismatched prefix on a full ID → names actual item+type (F1/F2 consistent).
+    # The echoed label is the raw (padded) token; the resolved id is unpadded.
+    with pytest.raises(SquadsError, match=r"TASK-000002 is FEAT-2 \(feature\)"):
         await resolve_item_id_any("TASK-000002", svc)
 
     # unknown number → mentions both forms (F2): "use a full ID like TYPE-... or bare N"
+    # (the hint is unpadded, ADR-000282)
     with pytest.raises(
         SquadsError,
-        match=r"no item with number 99 \(use a full ID like TYPE-000099 or bare 99\)",
+        match=r"no item with number 99 \(use a full ID like TYPE-99 or bare 99\)",
     ):
         await resolve_item_id_any("99", svc)
 
     # unknown full ID → same wording (F2)
     with pytest.raises(
         SquadsError,
-        match=r"no item with number 99 \(use a full ID like TYPE-000099 or bare 99\)",
+        match=r"no item with number 99 \(use a full ID like TYPE-99 or bare 99\)",
     ):
         await resolve_item_id_any("TASK-000099", svc)
 
@@ -330,12 +359,12 @@ def test_item_verb_type_enforcement(runner, tmp_path, monkeypatch, frozen_time):
     """CLI smoke: sq task <feat-num> show errors with actual item+type; valid both-forms work."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
-    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-000002
+    runner.invoke(app, ["create", "feature", "F", "--author", "manager"])  # FEAT-2
 
     # bare number against wrong type → mismatch error naming actual item+type (F1)
     bad = runner.invoke(app, ["task", "2", "show"])
     assert bad.exit_code == 1
-    assert "FEAT-000002" in bad.output and "feature" in bad.output and "not a task" in bad.output
+    assert "FEAT-2" in bad.output and "feature" in bad.output and "not a task" in bad.output
 
     # full ID with wrong prefix → same shape as bare-number mismatch (F1 fix)
     bad_full = runner.invoke(app, ["task", "FEAT-000002", "show"])
@@ -380,7 +409,7 @@ def test_item_grammar_refs_and_finding(runner, tmp_path, monkeypatch, frozen_tim
         == 0
     )
     out = runner.invoke(app, ["feature", "2", "refs", "--all"]).output
-    assert "REV-000003" in out and "blocks" in out
+    assert "REV-3" in out and "blocks" in out
     # a type-mismatched full id is a clean error, not a traceback
     bad = runner.invoke(app, ["task", "ROLE-000001", "show"])
     assert bad.exit_code == 1 and "not a task" in bad.output
@@ -408,11 +437,11 @@ def test_tree_json_subtree_with_blocked_and_all(runner, tmp_path, monkeypatch, f
         return None
 
     roots = _json.loads(runner.invoke(app, ["tree", "EPIC-000002", "--json"]).output)
-    assert roots[0]["id"] == "EPIC-000002"  # nested subtree rooted at the epic
-    feat = find(roots, "FEAT-000003")
+    assert roots[0]["id"] == "EPIC-2"  # nested subtree rooted at the epic; display is unpadded
+    feat = find(roots, "FEAT-3")
     assert feat is not None and feat["type"] == "feature"
-    blocked_task = find(roots, "TASK-000004")
-    open_task = find(roots, "TASK-000005")
+    blocked_task = find(roots, "TASK-4")
+    open_task = find(roots, "TASK-5")
     assert blocked_task is not None and blocked_task["blocked"] is True
     assert open_task is not None and open_task["blocked"] is False
 
@@ -420,9 +449,9 @@ def test_tree_json_subtree_with_blocked_and_all(runner, tmp_path, monkeypatch, f
     runner.invoke(app, ["task", "5", "status", "InProgress"])
     runner.invoke(app, ["task", "5", "status", "Done"])
     default = _json.loads(runner.invoke(app, ["tree", "EPIC-000002", "--json"]).output)
-    assert find(default, "TASK-000005") is None
+    assert find(default, "TASK-5") is None
     with_all = _json.loads(runner.invoke(app, ["tree", "EPIC-000002", "--json", "--all"]).output)
-    assert find(with_all, "TASK-000005") is not None
+    assert find(with_all, "TASK-5") is not None
 
     # an unknown root is a clean error, not a KeyError traceback
     bad = runner.invoke(app, ["tree", "EPIC-999999", "--json"])
@@ -533,7 +562,8 @@ def test_schema_gate_blocks_until_migrate(runner, tmp_path, monkeypatch, frozen_
     # config bumped, file folded inline, gate now passes
     assert f'schema_version = "{SCHEMA_VERSION}"' in cfg.read_text(encoding="utf-8")
     text = task_md.read_text(encoding="utf-8")
-    assert "GUIDE-000003:implements" in text and "ref_kinds" not in text
+    # the kind-fold (0.1→0.2) and the unpad (0.5→0.7) both ran in this one `migrate up`.
+    assert "GUIDE-3:implements" in text and "ref_kinds" not in text
     assert runner.invoke(app, ["list"]).exit_code == 0
 
 
@@ -549,7 +579,8 @@ def test_init_and_create_flow(runner, tmp_path, monkeypatch, frozen_time):
         app, ["create", "task", "Fix login", "--author", "manager", "--desc", "loops"]
     )
     assert r.exit_code == 0, r.output
-    assert "TASK-000002" in r.output
+    assert "TASK-2" in r.output  # display is unpadded
+    # Filename stays padded (ADR-000282) even though the displayed id is unpadded.
     assert (tmp_path / "squads" / "tasks" / "TASK-000002-fix-login.md").exists()
 
 
@@ -586,7 +617,7 @@ def test_list_json(runner, tmp_path, monkeypatch, frozen_time):
     r = runner.invoke(app, ["list", "--type", "feature", "--json"])
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
-    assert data[0]["id"] == "FEAT-000002"
+    assert data[0]["id"] == "FEAT-2"
 
 
 def test_collab_commands_via_cli(runner, tmp_path, monkeypatch, frozen_time):
@@ -601,7 +632,7 @@ def test_collab_commands_via_cli(runner, tmp_path, monkeypatch, frozen_time):
     c = runner.invoke(app, ["task", "6", "comment", "--as", "architect", "-m", "@reviewer verify"])
     assert c.exit_code == 0, c.output
     box = runner.invoke(app, ["inbox", "reviewer"])
-    assert "TASK-000006" in box.output
+    assert "TASK-6" in box.output
     chk = runner.invoke(app, ["check"])
     assert chk.exit_code == 0, chk.output
     assert "no issues" in chk.output
@@ -616,7 +647,7 @@ def test_dir_override(runner, tmp_path, monkeypatch, frozen_time):
     monkeypatch.chdir(other)
     r = runner.invoke(app, ["--dir", str(tmp_path / "alt"), "list"])
     assert r.exit_code == 0, r.output
-    assert "ROLE-000001" in r.output
+    assert "ROLE-1" in r.output
 
 
 # --------------------------------------------------------------------------- counter monotonicity
@@ -656,7 +687,7 @@ async def test_check_cli_flags_index_item_with_no_file(project, invoke, frozen_t
     # Inject a ghost item into the index (no file on disk).
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
     raw["items"]["99"] = {
-        "id": "TASK-000099",
+        "id": "TASK-99",
         "sequence_id": 99,
         "type": "task",
         "title": "ghost",
@@ -671,7 +702,7 @@ async def test_check_cli_flags_index_item_with_no_file(project, invoke, frozen_t
 
     r = await invoke(["check"])
     assert r.exit_code == 3, r.output
-    assert "TASK-000099" in r.output
+    assert "TASK-99" in r.output
     assert "no markdown" in r.output
 
 
@@ -738,7 +769,7 @@ def test_ref_add_rm_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     r = runner.invoke(app, ["task", "3", "ref", "add", "2"])
     assert r.exit_code == 0, r.output
     out = runner.invoke(app, ["task", "3", "refs"]).output
-    assert "FEAT-000002" in out
+    assert "FEAT-2" in out
 
     # ref rm with bare number
     r = runner.invoke(app, ["task", "3", "ref", "rm", "2"])
@@ -760,7 +791,7 @@ def test_tree_bare_number(runner, tmp_path, monkeypatch, frozen_time):
     # bare number for root
     r = runner.invoke(app, ["tree", "2"])
     assert r.exit_code == 0, r.output
-    assert "EPIC-000002" in r.output
+    assert "EPIC-2" in r.output
 
     # full ID also works
     r = runner.invoke(app, ["tree", "EPIC-000002"])
@@ -1036,7 +1067,7 @@ def test_ref_kind_vocabulary_validation(runner, tmp_path, monkeypatch, frozen_ti
     r = runner.invoke(app, ["task", "3", "ref", "add", "FEAT-000002"])
     assert r.exit_code == 0, r.output
     out = runner.invoke(app, ["task", "3", "refs"]).output
-    assert "FEAT-000002" in out
+    assert "FEAT-2" in out
 
 
 def test_create_ref_kind_validation(runner, tmp_path, monkeypatch, frozen_time):
@@ -1077,10 +1108,10 @@ def test_blocked_depends_on_cli(runner, tmp_path, monkeypatch, frozen_time):
 
     r = runner.invoke(app, ["blocked"])
     assert r.exit_code == 0, r.output
-    # TASK-000003 (the dependent) should appear as blocked
-    assert "TASK-000003" in r.output
-    # TASK-000002 (the blocker) should appear as the reason
-    assert "TASK-000002" in r.output
+    # TASK-3 (the dependent) should appear as blocked
+    assert "TASK-3" in r.output
+    # TASK-2 (the blocker) should appear as the reason
+    assert "TASK-2" in r.output
 
 
 def test_check_warns_unknown_kind_and_superseded_cli(runner, tmp_path, monkeypatch, frozen_time):
@@ -1119,7 +1150,7 @@ def test_check_warns_unknown_kind_and_superseded_cli(runner, tmp_path, monkeypat
     # Unknown-kind warning
     assert "junktype" in r.output
     # Superseded-without-edge warning
-    assert "ADR-000004" in r.output
+    assert "ADR-4" in r.output
     assert "supersedes" in r.output
 
 
@@ -1237,7 +1268,7 @@ async def test_check_json_with_issues(project, invoke, frozen_time):
     # Inject a ghost item into the index (no file on disk) to produce an error.
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
     raw["items"]["99"] = {
-        "id": "TASK-000099",
+        "id": "TASK-99",
         "sequence_id": 99,
         "type": "task",
         "title": "ghost",
@@ -1254,7 +1285,7 @@ async def test_check_json_with_issues(project, invoke, frozen_time):
     assert r.exit_code == 3, r.output
     data = json.loads(r.output)
     assert len(data) >= 1
-    issue = next(d for d in data if d["item"] == "TASK-000099")
+    issue = next(d for d in data if d["item"] == "TASK-99")
     assert issue["level"] == "error"
     assert "level" in issue and "item" in issue and "message" in issue
 
@@ -1369,7 +1400,7 @@ def test_role_show_json_activated(runner, tmp_path, monkeypatch, frozen_time):
     assert data["slug"] == "manager"
     assert data["full_name"] == "Catherine Manager"
     assert data["activated"] is True
-    assert data["id"] == "ROLE-000001"
+    assert data["id"] == "ROLE-1"
     assert isinstance(data["responsibilities"], list)
 
 
@@ -1396,7 +1427,7 @@ def test_skill_show_json(runner, tmp_path, monkeypatch, frozen_time):
     r = runner.invoke(app, ["skill", "2", "show", "--json"])
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
-    assert data["id"] == "SKILL-000002"
+    assert data["id"] == "SKILL-2"
     assert data["slug"] == "my-skill"
     assert data["description"] == "A handy skill"
     assert data["when_to_use"] == "When needed"
@@ -1501,7 +1532,7 @@ async def test_exit_code_3_check_error_level_issue(project, invoke, frozen_time)
     # Inject a ghost item into the index (no file on disk) to produce an error-level check issue.
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
     raw["items"]["99"] = {
-        "id": "TASK-000099",
+        "id": "TASK-99",
         "sequence_id": 99,
         "type": "task",
         "title": "ghost",
@@ -1516,7 +1547,7 @@ async def test_exit_code_3_check_error_level_issue(project, invoke, frozen_time)
 
     r = await invoke(["check"])
     assert r.exit_code == 3, r.output
-    assert "TASK-000099" in r.output
+    assert "TASK-99" in r.output
 
 
 async def test_exit_code_3_check_json_error_level_issue(project, invoke, frozen_time):
@@ -1625,11 +1656,12 @@ async def test_migrate_repad_cli_refuses_to_lower(project, invoke, frozen_time):
 
 
 async def test_cli_old_width_address_resolves_after_repad(project, invoke, frozen_time):
-    """CLI commands accept old-width IDs after a repad (width-tolerant addressing).
+    """CLI commands accept any-width IDs after a repad (width-tolerant addressing).
 
     After sq migrate repad 7, 'sq task 2 show' must work whether the user passes
-    "TASK-000002" (old width), "TASK-0000002" (new width), or a bare number.
-    The item must display with the current (new) padding width.
+    "TASK-000002" (old filename width), "TASK-0000002" (new filename width), or a bare
+    number. Repad only changes filenames — the displayed id always stays unpadded
+    (ADR-000282).
     """
     import json as _json
 
@@ -1637,7 +1669,7 @@ async def test_cli_old_width_address_resolves_after_repad(project, invoke, froze
     from squads._services._service import Service
 
     svc = Service(project)
-    await svc.create(ItemType.TASK, "my task")  # TASK-000002
+    await svc.create(ItemType.TASK, "my task")  # TASK-2
 
     await invoke(["migrate", "repad", "7"])
 
@@ -1645,19 +1677,19 @@ async def test_cli_old_width_address_resolves_after_repad(project, invoke, froze
     r = await invoke(["task", "2", "show", "--json"])
     assert r.exit_code == 0, r.output
     data = _json.loads(r.output)
-    assert data["id"] == "TASK-0000002", "display must use the current (new) padding width"
+    assert data["id"] == "TASK-2", "display stays unpadded regardless of filename width"
 
     # Old-width full ID — must resolve.
     r_old = await invoke(["task", "TASK-000002", "show", "--json"])
     assert r_old.exit_code == 0, r_old.output
     data_old = _json.loads(r_old.output)
-    assert data_old["id"] == "TASK-0000002"
+    assert data_old["id"] == "TASK-2"
 
     # New-width full ID — must also resolve.
     r_new = await invoke(["task", "TASK-0000002", "show", "--json"])
     assert r_new.exit_code == 0, r_new.output
     data_new = _json.loads(r_new.output)
-    assert data_new["id"] == "TASK-0000002"
+    assert data_new["id"] == "TASK-2"
 
 
 async def test_cli_tree_with_mixed_width_after_repad(project, invoke, frozen_time):
@@ -1673,22 +1705,22 @@ async def test_cli_tree_with_mixed_width_after_repad(project, invoke, frozen_tim
 
     await invoke(["migrate", "repad", "7"])
 
-    # sq tree with old-width ID must resolve and display current-width IDs.
+    # sq tree with old-width ID must resolve; display always stays unpadded (ADR-000282).
     r_old = await invoke(["tree", "FEAT-000002", "--json"])
     assert r_old.exit_code == 0, r_old.output
     nodes = _json.loads(r_old.output)
     assert len(nodes) == 1
-    assert nodes[0]["id"] == "FEAT-0000002"  # display uses current padding
+    assert nodes[0]["id"] == "FEAT-2"
 
     # sq tree with new-width ID must also work.
     r_new = await invoke(["tree", "FEAT-0000002", "--json"])
     assert r_new.exit_code == 0, r_new.output
     nodes_new = _json.loads(r_new.output)
-    assert nodes_new[0]["id"] == "FEAT-0000002"
+    assert nodes_new[0]["id"] == "FEAT-2"
 
     # The task appears as a child.
     children = nodes[0]["children"]
-    assert any(c["id"] == "TASK-0000003" for c in children)
+    assert any(c["id"] == "TASK-3" for c in children)
 
 
 async def test_cli_check_clean_with_old_width_refs_after_repad(project, invoke, frozen_time):

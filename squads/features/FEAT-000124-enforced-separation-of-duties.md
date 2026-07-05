@@ -1,17 +1,17 @@
 ---
-id: FEAT-000124
+id: FEAT-124
 sequence_id: 124
 type: feature
 title: Enforced separation of duties
 status: Draft
-parent: EPIC-000121
+parent: EPIC-121
 author: product-owner
 priority: low
 refs:
-- FEAT-000125:depends-on
-- REV-000118
-- REV-000119
-- BUG-000120
+- FEAT-125:depends-on
+- REV-118
+- REV-119
+- BUG-120
 subentities:
 - local_id: US1
   title: sq check flags self-review by same spawn lineage
@@ -25,11 +25,11 @@ updated_at: '2026-06-16T09:52:43Z'
 <!-- sq:body -->
 ## Problem
 
-On 2026-06-15, REV-000118 was filed with `author: reviewer` — indistinguishable in `sq` from a
+On 2026-06-15, REV-118 was filed with `author: reviewer` — indistinguishable in `sq` from a
 review by an independently-spawned agent. In reality it was filed by the same architect lineage
 that had designed and implemented the work it was reviewing. The self-review approved its own code,
-and the real defect (BUG-000120, retype not logged) slipped through. Only an independent
-re-verification (REV-000119) caught it (see EPIC-000121).
+and the real defect (BUG-120, retype not logged) slipped through. Only an independent
+re-verification (REV-119) caught it (see EPIC-121).
 
 Today squads has no concept of **lineage separation**. Nothing in the item model, the review
 lifecycle, or the index tracks which agent spawned which. A review item carries an `author` slug —
@@ -49,15 +49,15 @@ If squads can detect and/or prevent self-review, then:
 ## Scope (exploratory — not a design commitment)
 
 - A **lineage field** on the review item (and on the reflog entry): which spawn chain produced
-  this agent session? This is the FEAT-000125 dependency — without trustworthy identity, lineage
+  this agent session? This is the FEAT-125 dependency — without trustworthy identity, lineage
   is just another self-declared field.
 - A **`sq check` rule**: a review's lineage must differ from the target item's author lineage.
   Violation is a warning (not a hard block) in the first iteration; can be promoted to a block
   with a flag.
 - A **filing guard**: `sq create review --of FEAT-<n>` checks whether the creating agent is in
   the same lineage as the feature's author and emits a warning/error.
-- Tie-in: REV-000118 is the motivating incident artifact; REV-000119 is the independent
-  re-verification that caught what REV-000118 missed; BUG-000120 is the defect.
+- Tie-in: REV-118 is the motivating incident artifact; REV-119 is the independent
+  re-verification that caught what REV-118 missed; BUG-120 is the defect.
 
 ## Acceptance (draft — subject to triage)
 
@@ -73,7 +73,7 @@ If squads can detect and/or prevent self-review, then:
 
 - What defines "same lineage"? Same top-level spawn parent? Same session? The right boundary is
   not obvious — especially for long chains (manager → tech-lead → architect → reviewer).
-- Can squads detect lineage at all without FEAT-000125? If not, this feature has a hard dependency
+- Can squads detect lineage at all without FEAT-125? If not, this feature has a hard dependency
   and cannot be designed in isolation.
 - Is a warning sufficient, or does the use case require a hard block? A hard block on self-review
   could prevent legitimate single-operator workflows where only one agent is available.

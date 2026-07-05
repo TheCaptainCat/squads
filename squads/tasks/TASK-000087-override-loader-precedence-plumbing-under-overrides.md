@@ -1,16 +1,16 @@
 ---
-id: TASK-000087
+id: TASK-87
 sequence_id: 87
 type: task
 title: Override loader + precedence plumbing under .overrides/
 status: Done
-parent: FEAT-000014
+parent: FEAT-14
 author: tech-lead
 priority: high
 refs:
-- TASK-000088:blocks
-- TASK-000089:blocks
-- REV-000093:addresses
+- TASK-88:blocks
+- TASK-89:blocks
+- REV-93:addresses
 description: Engine ChoiceLoader (project override → bundled), squad-aware cache key,
   .overrides path resolution
 subentities:
@@ -26,7 +26,7 @@ created_at: '2026-06-12T20:56:38Z'
 updated_at: '2026-06-12T21:20:31Z'
 ---
 <!-- sq:body -->
-Foundation task for FEAT-000014 (ADR-000085 §1, §2). Lay the override lookup path that both template and role overrides build on.
+Foundation task for FEAT-14 (ADR-85 §1, §2). Lay the override lookup path that both template and role overrides build on.
 
 **Goal.** Make project templates under `<squad-dir>/.overrides/templates/` shadow bundled templates per-file, with the bundled template as fallback — `render(name, ...)` and all ~13 call sites byte-for-byte unchanged.
 
@@ -99,10 +99,10 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - `_services/_base.py`: `ServiceCore.__init__` now calls `set_active_squad_dir(paths.squad_dir)` so every render in a service automatically resolves against that squad's overrides.
   - `tests/test_override_loader.py`: Six new tests — bundled render unchanged with no override, partial override (task shadows; bug still bundled), service-level create with override, service-level create bundled unchanged, cache isolation across two squad dirs, and a CLI smoke test.
   - All linters clean: `pyright` 0 errors, `ruff check` and `ruff format --check` both pass.
-  - Ready for @reviewer. TASK-000088 (role overrides) and TASK-000089 (override command group) can now build on this loader.
+  - Ready for @reviewer. TASK-88 (role overrides) and TASK-89 (override command group) can now build on this loader.
 - [2026-06-12T21:11:39Z] Paul Reviewer:
-  - Reviewed under REV-000093 — verdict: APPROVED. @tech-lead @python-dev
-  - Per-file precedence matches ADR-000085 §2 (project override → bundled, presence-is-the-override, no merge); render() and all call sites byte-for-byte unchanged; cross-squad isolation holds (Environment cache keyed by squad_dir, proven by test_env_cache_does_not_cross_contaminate). Verified green myself: 401 passed / 1 skipped, pyright 0 errors, ruff check + format clean.
-  - One LOW, non-blocking finding (REV-000093 F1): conftest has no autouse reset of engine module-state (_active_squad_dir ContextVar + _env_cache) the way it resets the clock — latent test-ordering coupling that will grow as T88/T89 add override tests. Suggest a teardown that calls set_active_squad_dir(None). Doesn't block this task.
-  - Foundation is SAFE to build TASK-000088 (role resolver) and TASK-000089 (sq override group) on. One note for T89: the per-squad-dir env is cached at build time, so if sq override scaffold creates .overrides/ inside a live process the override won't be seen until invalidate_squad_dir() is called — the escape hatch exists and is documented; just wire it in if scaffold renders in the same process.
+  - Reviewed under REV-93 — verdict: APPROVED. @tech-lead @python-dev
+  - Per-file precedence matches ADR-85 §2 (project override → bundled, presence-is-the-override, no merge); render() and all call sites byte-for-byte unchanged; cross-squad isolation holds (Environment cache keyed by squad_dir, proven by test_env_cache_does_not_cross_contaminate). Verified green myself: 401 passed / 1 skipped, pyright 0 errors, ruff check + format clean.
+  - One LOW, non-blocking finding (REV-93 F1): conftest has no autouse reset of engine module-state (_active_squad_dir ContextVar + _env_cache) the way it resets the clock — latent test-ordering coupling that will grow as T88/T89 add override tests. Suggest a teardown that calls set_active_squad_dir(None). Doesn't block this task.
+  - Foundation is SAFE to build TASK-88 (role resolver) and TASK-89 (sq override group) on. One note for T89: the per-squad-dir env is cached at build time, so if sq override scaffold creates .overrides/ inside a live process the override won't be seen until invalidate_squad_dir() is called — the escape hatch exists and is documented; just wire it in if scaffold renders in the same process.
 <!-- sq:discussion:end -->

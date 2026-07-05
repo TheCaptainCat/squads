@@ -1,19 +1,19 @@
 ---
-id: REV-000109
+id: REV-109
 sequence_id: 109
 type: review
 title: Review FEAT-000036 type aliases (TASK-107/108)
 status: Approved
 author: reviewer
 refs:
-- FEAT-000036
-- TASK-000107
-- TASK-000108
+- FEAT-36
+- TASK-107
+- TASK-108
 created_at: '2026-06-15T08:04:08Z'
 updated_at: '2026-06-15T08:05:15Z'
 ---
 <!-- sq:body -->
-Review of FEAT-000036 (Type aliases in the CLI grammar), delivered via TASK-000107 (alias routing/equivalence, US1) and TASK-000108 (help clean + docs/contract, US2).
+Review of FEAT-36 (Type aliases in the CLI grammar), delivered via TASK-107 (alias routing/equivalence, US1) and TASK-108 (help clean + docs/contract, US2).
 
 **Verdict: Approved.** All feature Scope/Acceptance points met; the full gate is green (602 passed, 1 skipped; pyright 0 errors; ruff check + format clean).
 
@@ -25,7 +25,7 @@ Help cleanliness: aliases registered hidden=True; root --help lists only the 7 c
 
 Single source of truth: TYPE_ALIASES in _models/_enums.py drives CLI registration, the workflow.md.j2 table (rendered via Jinja context, not hardcoded), the root epilog, and — via the {% include 'workflow.md.j2' %} in squads_skill.md.j2 with type_aliases propagated through the backend — the generated managed skill body. Confirmed the table renders in sq workflow and in the generated squads/agents/skills/squads.md. templates_manifest.json hash for workflow.md.j2 regenerated and matches (sha256 verified).
 
-Add-only contract rule recorded next to the table with a ref/note to FEAT-000013; docs/stability.md correctly left to FEAT-000013 per the task scope.
+Add-only contract rule recorded next to the table with a ref/note to FEAT-13; docs/stability.md correctly left to FEAT-13 per the task scope.
 
 CLAUDE.md conventions: module privacy respected (imports from underscore modules), no future import, strict typing clean, marker-safe (no hand edits to bodies), Rich escaping not newly required. Test coverage adequate: tests/test_aliases.py (19 tests) covers map structure, collision, hidden-from-help, canonical identity per type, deep chains, JSON, and error canonicality.
 <!-- sq:body:end -->

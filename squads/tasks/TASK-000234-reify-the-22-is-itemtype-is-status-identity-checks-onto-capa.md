@@ -1,10 +1,10 @@
 ---
-id: TASK-000234
+id: TASK-234
 sequence_id: 234
 type: task
 title: Reify the ~22 is-ItemType/is-Status identity checks onto capability flags (byte-identical)
 status: Done
-parent: FEAT-000208
+parent: FEAT-208
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -22,13 +22,13 @@ updated_at: '2026-06-26T15:17:15Z'
 ## Goal
 
 Reify the ~22 hardcoded `is ItemType.X` / `is Status.X` identity checks to consult the capability
-flags introduced in TASK-000233 — behavior BYTE-IDENTICAL. After this task no behavioral type/status
+flags introduced in TASK-233 — behavior BYTE-IDENTICAL. After this task no behavioral type/status
 identity `is` check remains hardcoded in the engine; the engine asks `spec.type_spec(t).<flag>`
-instead of comparing to an enum member. The characterization tests from TASK-000233 are the proof of
+instead of comparing to an enum member. The characterization tests from TASK-233 are the proof of
 equivalence.
 
-Sequence: **second** — depends on TASK-000233 (flags exist + values encoded + characterization tests
-pinning today's behavior). The fields are still enum-typed at this point (de-typing is TASK-000235);
+Sequence: **second** — depends on TASK-233 (flags exist + values encoded + characterization tests
+pinning today's behavior). The fields are still enum-typed at this point (de-typing is TASK-235);
 this task only changes HOW the engine branches, not the field types.
 
 ## What to build — reify each check per the ADR §2 inventory
@@ -56,12 +56,12 @@ Mapping (ADR §2 table):
 - retype `_carry_or_reset_status` stays structural (compares whole machines via
   `workflow_for(...).states`) — no change.
 
-## Design constraints (ADR-000232)
+## Design constraints (ADR-232)
 
 - §2: no behavioral type/status-identity `is` check left hardcoded in the engine; each becomes a typed
   spec-method/flag query. Migrations excluded (§6). Field types unchanged in this task (str widening is
-  TASK-000235).
-- Behavior byte-identical — the characterization tests from TASK-000233 must stay green WITHOUT being
+  TASK-235).
+- Behavior byte-identical — the characterization tests from TASK-233 must stay green WITHOUT being
   edited; that is the equivalence proof.
 
 ## THE STANDING GATE (every task in F2)
@@ -78,7 +78,7 @@ missed identity check not in the grep (implicit reliance on enum ordering/member
    `_migrations/_vN_*.py`; each semantic is a `TypeSpec`/`StatusSpec` flag query.
 2. `WORK_TYPES` tuple replaced by `spec.work_types()`; `_SUBENTITY` maps replaced by `subentity_kind`;
    `parent_hint` text spec-derived from `ref_rules`.
-3. The TASK-000233 characterization tests pass UNCHANGED (equivalence proof).
+3. The TASK-233 characterization tests pass UNCHANGED (equivalence proof).
 4. Standing gate holds: full suite + all three goldens green, unchanged. `uv run pyright` strict zero
    errors; ruff clean.
 <!-- sq:body:end -->

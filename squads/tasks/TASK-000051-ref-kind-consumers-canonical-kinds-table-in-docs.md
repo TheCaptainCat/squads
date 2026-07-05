@@ -1,10 +1,10 @@
 ---
-id: TASK-000051
+id: TASK-51
 sequence_id: 51
 type: task
 title: Ref-kind consumers + canonical kinds table in docs
 status: Done
-parent: FEAT-000035
+parent: FEAT-35
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -23,7 +23,7 @@ created_at: '2026-06-11T20:22:02Z'
 updated_at: '2026-06-11T20:43:22Z'
 ---
 <!-- sq:body -->
-Wire the three new kinds into their consumers and ship the one canonical kinds table. Builds on TASK-000050 (the `VALID_REF_KINDS` constant must exist first). Per **ADR-000049**: closed vocabulary, no project-config lookup; `sq check`'s unknown-kind warning is a flat set-membership test; the docs table is the **contract wording**.
+Wire the three new kinds into their consumers and ship the one canonical kinds table. Builds on TASK-50 (the `VALID_REF_KINDS` constant must exist first). Per **ADR-49**: closed vocabulary, no project-config lookup; `sq check`'s unknown-kind warning is a flat set-membership test; the docs table is the **contract wording**.
 
 ## Consumers
 1. **`depends-on` ≡ `blocks` in `sq blocked`** — `src/squads/_services/_refs.py::blocked()` currently only matches `kind == "blocks"` ("A blocks B": B blocked while A open). Add the inverse: `A depends-on B` means **A is blocked by B** (edge stored on the dependent A, blocker is B). Mixed usage in one squad must work — an item blocked via either spelling shows once with its blocker(s). Mind the direction: `blocks` puts the blocker on the edge source; `depends-on` puts the dependent on the edge source.
@@ -37,7 +37,7 @@ Wire the three new kinds into their consumers and ship the one canonical kinds t
 - **CLI help points at the table.** Update the `--kind` help on `ref add` (`_cli/_items.py`) — it currently lists only `related | blocks | implements | fixes | addresses` (stale, missing three). Make it enumerate the eight or point at `sq workflow`. Likewise the `create --ref` help if it implies a vocabulary.
 
 ## Boundary (do NOT do here)
-The **stability-contract doc wording** ("vocabulary is closed in 1.0; unknown kinds rejected; extension reserved, additive & non-breaking") is **FEAT-000013's** to write — recorded on FEAT-000035. This task ships the *docs kinds table* and *help text* only, not the contract/stability doc.
+The **stability-contract doc wording** ("vocabulary is closed in 1.0; unknown kinds rejected; extension reserved, additive & non-breaking") is **FEAT-13's** to write — recorded on FEAT-35. This task ships the *docs kinds table* and *help text* only, not the contract/stability doc.
 
 ## Acceptance
 - `sq blocked` treats `A depends-on B` exactly as `B blocks A`; mixed usage in one squad works.
@@ -107,8 +107,8 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Implementation complete. All gates green (275 passed, 1 skipped; pyright 0 errors; ruff clean).
   - Changes: (1) `blocked()` in `_services/_refs.py` now consumes both `blocks` and `depends-on` — collects a set of blocker IDs per target, deduplicating items blocked via both edges. (2) `_maintenance.py _check_items` warns on unknown ref kinds (naming item + edge). (3) New `_check_decisions` static method warns when a Superseded decision has no incoming `supersedes` edge. (4) `workflow.md.j2` gains an eight-row kinds table (kind/meaning/direction/consumer). (5) `ref add --kind` help text points at `sq workflow`.
   - `sq sync` regenerated the squads skill — the table is now in `squads/agents/skills/squads.md`. The `sq workflow` command serves it directly from the template.
-  - Actual squad: `sq check` reports two pre-existing `relates` (typo for `related`) edges on BUG-000022 and BUG-000025 — warnings, exit 0. These are data issues in existing items, not a regression from this task.
+  - Actual squad: `sq check` reports two pre-existing `relates` (typo for `related`) edges on BUG-22 and BUG-25 — warnings, exit 0. These are data issues in existing items, not a regression from this task.
   - Ready for review. @reviewer
 - [2026-06-11T20:43:22Z] Paul Reviewer:
-  - Done via REV-000052 (Approved). depends-on/blocks equivalence, check warnings, and the eight-row kinds table verified live and by tests.
+  - Done via REV-52 (Approved). depends-on/blocks equivalence, check warnings, and the eight-row kinds table verified live and by tests.
 <!-- sq:discussion:end -->

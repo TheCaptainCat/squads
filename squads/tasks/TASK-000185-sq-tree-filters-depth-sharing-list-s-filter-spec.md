@@ -1,10 +1,10 @@
 ---
-id: TASK-000185
+id: TASK-185
 sequence_id: 185
 type: task
 title: sq tree filters + --depth, sharing list's filter spec
 status: Done
-parent: FEAT-000039
+parent: FEAT-39
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -19,7 +19,7 @@ created_at: '2026-06-24T13:13:35Z'
 updated_at: '2026-06-24T14:14:32Z'
 ---
 <!-- sq:body -->
-Give `sq tree` the same filters as `sq list` (`--type/-t`, `--status/-s`, `--assignee`, `--priority`) plus a new `--depth N`, while keeping the tree a tree: a filter matches **nodes**, but every match keeps its **ancestor chain** so it always shows in context. Acceptance criteria are on FEAT-000039.
+Give `sq tree` the same filters as `sq list` (`--type/-t`, `--status/-s`, `--assignee`, `--priority`) plus a new `--depth N`, while keeping the tree a tree: a filter matches **nodes**, but every match keeps its **ancestor chain** so it always shows in context. Acceptance criteria are on FEAT-39.
 
 The whole point of the feature: **one filter implementation shared by `list` and `tree`, so they can never drift.** Get that shared piece right first; the rest is pruning + rendering on top.
 
@@ -60,7 +60,7 @@ Then **`list_items` is reimplemented in terms of it** — keep its existing keyw
 
 ## Where the prune/depth logic lives — service layer, not the CLI
 
-Follow the FEAT-000037 precedent exactly: TASK-000182 put the graph **traversal** in the service (`_refs.py::graph`) returning a `GraphNode` dataclass, and left the CLI as a thin Rich/JSON renderer. Do the same here so the match+prune+depth logic is reusable by a future TUI/web and is unit-testable without the CLI.
+Follow the FEAT-37 precedent exactly: TASK-182 put the graph **traversal** in the service (`_refs.py::graph`) returning a `GraphNode` dataclass, and left the CLI as a thin Rich/JSON renderer. Do the same here so the match+prune+depth logic is reusable by a future TUI/web and is unit-testable without the CLI.
 
 Add to the service (the tree/hierarchy concern — put it where `list_items` lives, `_services/_base.py`, or a small focused method; keep it on the `Service` façade):
 
@@ -113,7 +113,7 @@ This guarantees the acceptance "never show an orphaned match: ancestor paths alw
 
 This is load-bearing and must be confirmed: the acceptance says "`--json` output is the **same shape**, pruned consistently with the rendered tree." Read that as: **do not add new fields to the JSON node.** The existing `node()` builder (`_main.py:373-382`) emits exactly `id/type/status/priority/assignee/blocked/children`. Keep those keys and nothing else. The filtering/depth simply means **fewer nodes appear** (the tree is pruned), but each surviving node has the identical key set it has today. In particular **do not** add a `path_only` (or `match`) key to JSON — `path_only` is a render-only concern; a JSON consumer sees a path-only ancestor as an ordinary node that happens to have a matching descendant, which is exactly the pruned-not-reshaped contract.
 
-Implementation: the CLI's `node()` walks the `list[TreeNode]` returned by `tree_view` (instead of the old `children`/`kids` closures), reads `.item` for the fields, recurses over `.children`, and **ignores** `.path_only`. `blocked` is still computed from `svc.blocked()` as today. Golden-test the pruned JSON for a fixed fixture (per FEAT-000015 / the graph precedent), asserting the key set is unchanged.
+Implementation: the CLI's `node()` walks the `list[TreeNode]` returned by `tree_view` (instead of the old `children`/`kids` closures), reads `.item` for the fields, recurses over `.children`, and **ignores** `.path_only`. `blocked` is still computed from `svc.blocked()` as today. Golden-test the pruned JSON for a fixed fixture (per FEAT-15 / the graph precedent), asserting the key set is unchanged.
 
 ## Module-by-module summary
 
@@ -124,7 +124,7 @@ Implementation: the CLI's `node()` walks the `list[TreeNode]` returned by `tree_
 - `_cli/_main.py::tree`: add filter options + `--depth`, build `ItemFilter`, call `tree_view`, render path-only nodes dimmed, walk `TreeNode` for both Rich and `--json` (same JSON keys).
 - Tests: service-level (match-set, ancestor preservation, depth truncation, depth-vs-match interaction, empty-filter = today's tree) + CLI smoke (each flag alone and combined, with/without explicit root, with/without `--all`) + a `--json` golden proving same-shape pruning + a regression asserting `list` output is unchanged by the refactor.
 
-## Acceptance mapping (from FEAT-000039)
+## Acceptance mapping (from FEAT-39)
 
 - "Each filter works alone and combined, with/without explicit root; `--depth` truncates" → US1 (filters) + US2 (depth).
 - "Never an orphaned match; ancestor paths intact; path-only nodes visually distinct" → US2 (keep set + `path_only` rendering).
@@ -133,7 +133,7 @@ Implementation: the CLI's `node()` walks the `list[TreeNode]` returned by `tree_
 
 ## Out of scope (per feature)
 
-Filtering by ref kinds / graph relations — that is FEAT-000037 (`sq graph`).
+Filtering by ref kinds / graph relations — that is FEAT-37 (`sq graph`).
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -186,7 +186,7 @@ Done = each filter flag exists on tree with list-identical names/parsing, backed
 <!-- sq:subtask:ST2:body -->
 US2 — --depth + context-preserving pruning keep filtered trees readable.
 
-Service: add tree_view(root_id=None, *, filter: ItemFilter|None, depth: int|None, include_closed=False) -> list[TreeNode] in _base.py (on the Service facade), mirroring how FEAT-000037 put graph traversal in _refs.py. Add TreeNode(item, path_only: bool, children) to _results.py — path_only is render-only derived state, never persisted.
+Service: add tree_view(root_id=None, *, filter: ItemFilter|None, depth: int|None, include_closed=False) -> list[TreeNode] in _base.py (on the Service facade), mirroring how FEAT-37 put graph traversal in _refs.py. Add TreeNode(item, path_only: bool, children) to _results.py — path_only is render-only derived state, never persisted.
 
 Algorithm: load candidate set (drop closed unless include_closed); build parent->children via the existing _build_children (width-tolerant — reuse, don't reinvent); determine roots like tree does today; match set = {filter.matches(it)}; keep set = matches UNION all-ancestors-of-matches (walk parents to a root); ancestors not themselves matches => path_only=True; then a single downward walk prunes to the keep set and cuts below --depth (depth measured from each root, root=level 0); drop empty/orphan roots.
 
@@ -212,11 +212,11 @@ Done = a filtered tree always shows full ancestor paths, path-only nodes are dis
 
 <!-- sq:discussion -->
 - [2026-06-24T13:15:47Z] Olivia Lead:
-  - @python-dev TASK-000185 is Ready — sq tree gains list's filters (--type/-t, --status/-s, --assignee, --priority) + a new --depth N, with ancestor-preserving pruning. Full plan + module-by-module in the body; read it with: sq task 185 show --full.
-  - Build order: ST1 first (US1) — extract a frozen ItemFilter predicate from list_items (_base.py:222) and reimplement list_items on top of it (pure refactor, prove behaviour unchanged), then copy the four filter flags onto tree VERBATIM from list_items (_main.py:278-298), reusing the same CLI parsers. Then ST2 (US2) — add tree_view(...) -> list[TreeNode] in the SERVICE (mirror FEAT-000037's service-layer traversal), computing match set UNION ancestors and a --depth cut; CLI dims path_only ancestors.
+  - @python-dev TASK-185 is Ready — sq tree gains list's filters (--type/-t, --status/-s, --assignee, --priority) + a new --depth N, with ancestor-preserving pruning. Full plan + module-by-module in the body; read it with: sq task 185 show --full.
+  - Build order: ST1 first (US1) — extract a frozen ItemFilter predicate from list_items (_base.py:222) and reimplement list_items on top of it (pure refactor, prove behaviour unchanged), then copy the four filter flags onto tree VERBATIM from list_items (_main.py:278-298), reusing the same CLI parsers. Then ST2 (US2) — add tree_view(...) -> list[TreeNode] in the SERVICE (mirror FEAT-37's service-layer traversal), computing match set UNION ancestors and a --depth cut; CLI dims path_only ancestors.
   - Two hard constraints: (1) ONE filter implementation shared by list+tree — the ItemFilter predicate is the single source of truth, parsing stays at the CLI edge. (2) --json is pruned, NOT reshaped — keep EXACTLY id/type/status/priority/assignee/blocked/children; do not add a path_only/match key. Golden-test the pruned JSON. Reuse _build_children (width-tolerant), don't reinvent parent resolution.
   - Two reads I want PO to confirm before they bite you (see my note to @manager): tree's closed-item gate vs --status, and depth-wins-over-deep-match. I flagged both to the manager; proceed on my documented reading unless you hear otherwise.
-  - @manager Broke FEAT-000039 into TASK-000185 (Ready, not started): ST1->US1 (shared ItemFilter + tree filter flags), ST2->US2 (ancestor-preserving prune + --depth + path-only render + pruned-not-reshaped JSON). Shared-filter decision: a frozen ItemFilter in _services/_base.py is the single match predicate; list_items refactored onto it, tree's CLI flags copied verbatim from list with the same parsers. Two open questions for you/PO in my report.
+  - @manager Broke FEAT-39 into TASK-185 (Ready, not started): ST1->US1 (shared ItemFilter + tree filter flags), ST2->US2 (ancestor-preserving prune + --depth + path-only render + pruned-not-reshaped JSON). Shared-filter decision: a frozen ItemFilter in _services/_base.py is the single match predicate; list_items refactored onto it, tree's CLI flags copied verbatim from list with the same parsers. Two open questions for you/PO in my report.
 - [2026-06-24T13:17:01Z] Catherine Manager:
   - Decisions on Olivia's two open questions (proceed on these): (1) tree MIRRORS list's closed-item gate exactly — a --status filter (or --all) reveals matching closed items; priority/assignee/type filters alone do NOT widen to closed. This is the 'one implementation, never drift' requirement applied to behaviour, not just flags. (2) --depth wins over a deeper match: --depth N shows the first N levels; a match below the cut is simply out of scope (not an 'orphaned match' — that rule is about ancestors of SHOWN matches). Both confirmed with @op-pierre in-session.
   - @python-dev proceed with implementation on Olivia's documented plan + these two confirmations. Keep the match/prune/depth logic in the service (tree_view -> TreeNode) and rendering at the CLI edge; --json stays the exact same shape, pruned not reshaped (no path_only field in JSON). @manager
@@ -231,6 +231,6 @@ Done = a filtered tree always shows full ancestor paths, path-only nodes are dis
   - F2 fix: rewrote _build_tree_children docstring to remove the stale reference to _build_children (which was deleted in this change). New text: 'Used by tree_view and shared by any future caller that needs the same parent-resolution logic; keeps parent resolution in one place.'
   - Gate: 45 passed in tests/test_tree.py, pyright 0 errors, ruff clean, ruff format clean. @reviewer @manager
 - [2026-06-24T14:14:31Z] Catherine Manager:
-  - Loop closed. Independent review (REV-000186) → Approved; all 4 acceptance criteria + both behaviour decisions (mirror list's closed gate; --depth wins over a deeper match) verified — by the reviewer live end-to-end and by me via live CLI checks (ancestor-preserving prune with dimmed path-only ancestors, depth truncation, --status revealing closed matches, non-status filters not widening). Shared ItemFilter predicate keeps list + tree from drifting.
+  - Loop closed. Independent review (REV-186) → Approved; all 4 acceptance criteria + both behaviour decisions (mirror list's closed gate; --depth wins over a deeper match) verified — by the reviewer live end-to-end and by me via live CLI checks (ancestor-preserving prune with dimmed path-only ancestors, depth truncation, --status revealing closed matches, non-status filters not widening). Shared ItemFilter predicate keeps list + tree from drifting.
   - F1 (hollow path-only dim test) rewritten to assert path_only at the service layer; F2 (stale _build_children docstring) reworded — both Verified. Tree suite 45 green, pyright/ruff clean; full suite was green at 1104 before the test-only cleanup. ST1/ST2 Done. @reviewer @python-dev thanks.
 <!-- sq:discussion:end -->

@@ -1,11 +1,11 @@
 ---
-id: TASK-000233
+id: TASK-233
 sequence_id: 233
 type: task
 title: Add TypeSpec/StatusSpec capability flags, encode in default_workflow.toml,
   harden loader (extra=forbid)
 status: Done
-parent: FEAT-000208
+parent: FEAT-208
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -22,17 +22,17 @@ updated_at: '2026-06-26T10:26:02Z'
 <!-- sq:body -->
 ## Goal
 
-Add the capability-flag surface to the workflow spec models (ADR-000232 §2/§5) and encode their
+Add the capability-flag surface to the workflow spec models (ADR-232 §2/§5) and encode their
 values in `default_workflow.toml` for all 10 types, plus fold in the fail-closed hardening gap. This
-is the additive, behavior-neutral foundation for FEAT-000208 (F2): it introduces the flags and their
+is the additive, behavior-neutral foundation for FEAT-208 (F2): it introduces the flags and their
 default-vocab values WITHOUT yet consuming them — the engine still uses today's `is ItemType.X`
 checks after this task, so behavior is byte-identical and all three golden-locks stay green.
 
 Also lands the **characterization tests** that pin the current behavior of each identity check, so
-TASK-000234's reification can be proven equivalent rather than assumed (ADR §6, characterization-first
+TASK-234's reification can be proven equivalent rather than assumed (ADR §6, characterization-first
 — the FEAT-220 lesson: the regression guard comes BEFORE the rewire).
 
-Sequence: **first** task. TASK-000234 (reify) consumes these flags; TASK-000235 (de-type) depends on
+Sequence: **first** task. TASK-234 (reify) consumes these flags; TASK-235 (de-type) depends on
 the hardened loader + reserved-vocab plumbing introduced here.
 
 ## What to build
@@ -60,15 +60,15 @@ the hardened loader + reserved-vocab plumbing introduced here.
 - **Characterization tests (ADR §6):** pin current behavior of each of the 22 identity checks before
   reification — e.g. "a decision with no incoming `supersedes` and status Superseded warns in
   `sq check`"; "a skill file not prefixed `SKILL-` is flagged"; task→feature parent enforcement;
-  feature/task/review→sub-entity-kind; bug severity row. These lock today's behavior so TASK-000234
+  feature/task/review→sub-entity-kind; bug severity row. These lock today's behavior so TASK-234
   is proven equivalent.
 - **New-surface unit tests:** each new flag has a direct test; the `extra="forbid"` rejection of an
   unknown TOML key is tested.
 
-## Design constraints (ADR-000232)
+## Design constraints (ADR-232)
 
 - §2 flag set exactly; §5 extra=forbid + model_validate; flags are ADDITIVE — not yet consumed by the
-  engine in this task (consumption is TASK-000234). Severity (`Severity`) is not widened/affected here.
+  engine in this task (consumption is TASK-234). Severity (`Severity`) is not widened/affected here.
 - The F1 golden (default == today) still holds because the default spec sets flags to reproduce today;
   encoding the flags must not change any existing transition/terminal/prefix/folder value.
 
@@ -144,7 +144,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-26T10:14:32Z] Elias Python:
-  - TASK-000233 implementation complete. Three parts delivered:
+  - TASK-233 implementation complete. Three parts delivered:
   - **Part A — Characterization tests (39 tests in tests/test_spine_characterization.py)**. All 22+ identity-check behaviors pinned against today's unreified engine. Each test named for the behavior it pins, not the layer. Covers: meta-type exclusion from WORK_TYPES / retype; self-author bypass for role/skill/operator; SKILL- prefix scan convention; role/skill body-generation guard; regen gating on role/skill; sq <type> app only for WORK_TYPES; task→feature parent spine + parent_hint ref-add hint; feature/task/review→sub-entity kind resolution; bug severity panel row; decision supersedes warn/clean/non-decision-skip; sq check subtask→story spine; retype status-carry vs. reset; repair from frontmatter; roster blocks skill slugs; SUBENTITY_KIND map exactness.
   - **Part B — Capability flags (17 tests in tests/test_workflow_capability_flags.py + TOML/models)**. New fields added to ItemSpec (is_meta, subentity_kind, severity_field, parent_required, ref_rules) and StatusSpec (role). New RefRule model. All with extra='forbid'. Encoded in default_workflow.toml for all 10 types reproducing today's semantics exactly. NOT yet consumed by the engine — behavior byte-identical.
   - **Part C — Fail-closed hardening**. extra='forbid' added to ALL workflow spec models (Lifecycle, ItemSpec, StatusSpec, RefRule, WorkflowSpec). Loader routes through model_validate, passing raw dicts so unknown TOML keys trigger the forbid. Unknown-key rejection tested both at model construction level and via _build_spec.

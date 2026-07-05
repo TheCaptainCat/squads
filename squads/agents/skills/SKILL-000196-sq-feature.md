@@ -1,5 +1,5 @@
 ---
-id: SKILL-000196
+id: SKILL-196
 sequence_id: 196
 type: skill
 title: sq-feature

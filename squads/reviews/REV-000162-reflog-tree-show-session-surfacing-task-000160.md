@@ -1,12 +1,12 @@
 ---
-id: REV-000162
+id: REV-162
 sequence_id: 162
 type: review
 title: reflog --tree + show session surfacing (TASK-000160)
 status: Approved
 author: reviewer
 refs:
-- TASK-000160:addresses
+- TASK-160:addresses
 subentities:
 - local_id: F1
   title: Session cycle silently drops entries from the tree
@@ -20,13 +20,13 @@ created_at: '2026-06-22T11:07:55Z'
 updated_at: '2026-06-22T11:50:39Z'
 ---
 <!-- sq:body -->
-Independent review of **TASK-000160** (FEAT-000125 US2, under ADR-000158): `sq reflog --tree` spawn-lineage renderer + `show --full` session surfacing.
+Independent review of **TASK-160** (FEAT-125 US2, under ADR-158): `sq reflog --tree` spawn-lineage renderer + `show --full` session surfacing.
 
 ## Scope reviewed
 - `src/squads/_cli/_main.py` — `--tree` flag, `_reflog_entry_line`, `_build_session_maps`, `_attach_session_node`, `_render_reflog_tree`.
 - `src/squads/_cli/_common.py` — `_build_item_panel_rows` session surfacing.
 - `tests/test_reflog_tree.py` (27 tests).
-- Consumed data model (TASK-000159) confirmed sound for this layer.
+- Consumed data model (TASK-159) confirmed sound for this layer.
 
 ## Gates (re-run)
 - pyright: 0 errors. ruff check: clean. ruff format: clean. pytest: full suite exit 0; new file 27/27.
@@ -115,5 +115,5 @@ Minor (no change required, FYI): the render-level self-review test (`test_render
 
 <!-- sq:discussion -->
 - [2026-06-22T11:50:39Z] Paul Reviewer:
-  - Re-review passed — both findings Verified, REV-000162 Approved. F1 (silent cycle drop): reachability pass surfaces every session_id; visited-set guard in _attach_session_node makes the never-loop contract structural. F2: three cycle/self-loop renderer tests added asserting no-raise AND surfacing. No regression: --json still the flat dataclasses.asdict list (evaluated before --tree), best-effort/untrusted header still printed, e() escaping complete on the new cycle-root label. Gates: pyright 0 errors, ruff check + format clean, full pytest 920 passed / 1 skipped, complexity within limits.
+  - Re-review passed — both findings Verified, REV-162 Approved. F1 (silent cycle drop): reachability pass surfaces every session_id; visited-set guard in _attach_session_node makes the never-loop contract structural. F2: three cycle/self-loop renderer tests added asserting no-raise AND surfacing. No regression: --json still the flat dataclasses.asdict list (evaluated before --tree), best-effort/untrusted header still printed, e() escaping complete on the new cycle-root label. Gates: pyright 0 errors, ruff check + format clean, full pytest 920 passed / 1 skipped, complexity within limits.
 <!-- sq:discussion:end -->

@@ -1,12 +1,12 @@
 ---
-id: FEAT-000231
+id: FEAT-231
 sequence_id: 231
 type: feature
 title: 'Ground-up test battery: behavior-named, fast, redundancy-pruned'
 status: Draft
 author: qa
 refs:
-- FEAT-000208
+- FEAT-208
 subentities:
 - local_id: US1
   title: Behavior-named tests, not development archaeology
@@ -48,16 +48,16 @@ make a clean rebuild worthwhile as a "someday" initiative:
 
 ---
 
-## Motivation: relationship to FEAT-000208
+## Motivation: relationship to FEAT-208
 
-The natural trigger for this rebuild is the FEAT-000208 de-typing work (collapsing `ItemType` and
+The natural trigger for this rebuild is the FEAT-208 de-typing work (collapsing `ItemType` and
 `Status` enums to plain strings). That change will invalidate a significant fraction of the
 enum-coupled assertions in the current suite. Rather than patching those tests piecemeal — once
 during de-typing, and again during any future vocabulary change — the principled moment to rebuild
-is immediately after FEAT-000208 lands. The new battery is authored against the post-de-typing
+is immediately after FEAT-208 lands. The new battery is authored against the post-de-typing
 contracts from the start, avoiding a double rewrite.
 
-This feature is a deferred "someday" initiative. It is not scheduled and does not block EPIC-000206
+This feature is a deferred "someday" initiative. It is not scheduled and does not block EPIC-206
 or any current work. The existing suite remains the safety net until a full replacement is complete
 and verified to have coverage parity.
 
@@ -178,7 +178,7 @@ Every test must be fully deterministic:
 - **Not a partial patch.** The existing suite should not be selectively renamed or annotated to
   satisfy these principles — that produces the worst of both worlds (confusion without gain). The
   goal is a clean rebuild, not incremental improvement of the current structure.
-- **Does not block EPIC-000206.** Current work (workflow spec externalization, FEAT-000207 / 208)
+- **Does not block EPIC-206.** Current work (workflow spec externalization, FEAT-207 / 208)
   proceeds on the current test suite. This feature is a follow-on, not a blocker.
 - **Does not require migrating every current test by hand.** The rebuild starts from a behavior
   inventory, not from porting existing test files one-to-one.
@@ -187,7 +187,7 @@ Every test must be fully deterministic:
 
 ## Sequencing
 
-This feature should be scheduled to begin immediately after FEAT-000208 lands. The de-typing change
+This feature should be scheduled to begin immediately after FEAT-208 lands. The de-typing change
 will invalidate a significant portion of enum-coupled test assertions anyway, so that moment is the
 principled starting point: rebuild against the de-typed contracts rather than patching twice.
 

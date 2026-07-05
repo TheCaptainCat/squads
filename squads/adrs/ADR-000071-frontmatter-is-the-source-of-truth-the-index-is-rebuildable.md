@@ -1,12 +1,12 @@
 ---
-id: ADR-000071
+id: ADR-71
 sequence_id: 71
 type: decision
 title: Frontmatter is the source of truth; the index is rebuildable
 status: Accepted
 author: architect
 refs:
-- GUIDE-000079
+- GUIDE-79
 description: Item state lives in .md frontmatter; .squads.json is a derived index
   that sq repair reconstructs
 created_at: '2026-06-12T14:22:53Z'

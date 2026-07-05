@@ -1,11 +1,11 @@
 ---
-id: TASK-000223
+id: TASK-223
 sequence_id: 223
 type: task
 title: Role catalog loader with fail-closed validation; rewire _catalog.py onto loaded
   spec
 status: Done
-parent: FEAT-000219
+parent: FEAT-219
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -28,7 +28,7 @@ singleton) and rewire `_catalog.py` consumers to source from the loaded spec —
 BYTE-IDENTICAL, zero call-site churn. `dev_role()` logic and the `to_extra`/`from_extra` ExtraKey
 bridge stay in Python; only data moves out.
 
-Sequence: **second** — depends on TASK-000222 (models + TOML). TASK-000224 (golden-lock) gates on this
+Sequence: **second** — depends on TASK-222 (models + TOML). TASK-224 (golden-lock) gates on this
 being behavior-preserving.
 
 ## What to build
@@ -57,7 +57,7 @@ being behavior-preserving.
 - Retire the hardcoded `RoleDef` instances (no remaining literals outside the TOML; `_catalog.py`
   reduced to shim + logic). Keep the import graph acyclic; no `from __future__ import annotations`.
 
-## Design constraints (ADR-000221)
+## Design constraints (ADR-221)
 
 - §3 loader/validation/rewiring; data moves out, logic + extra-key bridge stay in Python. No backend/
   renderer change — how roles are written to `.claude`/AGENTS.md is unchanged; only the source of role
@@ -67,11 +67,11 @@ being behavior-preserving.
 
 1. `load_role_catalog()` loads + validates the bundled catalog; invalid catalog raises `SquadsError`.
 2. `_catalog.py` is retired to a thin shim over the loaded spec; no hardcoded `RoleDef` instances
-   remain outside the TOML; `dev_role()` and the dev-name pool are spec-derived. (FEAT-000219 AC#3/#4,
+   remain outside the TOML; `dev_role()` and the dev-name pool are spec-derived. (FEAT-219 AC#3/#4,
    US1.)
 3. All existing tests pass unchanged — no behavioral difference for role resolution, roster, or skill
    generation. (AC#5.)
-4. `uv run pyright && uv run ruff check . && uv run pytest` green. (Golden lock added in TASK-000224.)
+4. `uv run pyright && uv run ruff check . && uv run pytest` green. (Golden lock added in TASK-224.)
 <!-- sq:body:end -->
 
 ## Subtasks

@@ -1,15 +1,15 @@
 ---
-id: FEAT-000033
+id: FEAT-33
 sequence_id: 33
 type: feature
 title: 'Remote mode: the sq CLI as a client to a squads server'
 status: Draft
-parent: EPIC-000029
+parent: EPIC-29
 author: product-owner
 priority: medium
 refs:
-- FEAT-000015
-- FEAT-000013
+- FEAT-15
+- FEAT-13
 description: 'A mode switch in .squads.toml (offline default / remote): in remote
   mode every command calls remote endpoints with full feature-and-flag parity, through
   a Protocol-typed service interface the CLI depends on'
@@ -63,7 +63,7 @@ the CLI itself should be able to be its client, not just a browser.
   Unreachable/unauthenticated server → a clean `SquadsError`, never a stack trace.
 - Design questions for the ADR: actor identity over the wire (who is `--as` when remote — ties
   into this epic's auth caveat); client/server version-skew policy (the wire shapes join the
-  FEAT-000013/FEAT-000015 contract conversation); what offline-only concepts (e.g. `--dir`,
+  FEAT-13/FEAT-15 contract conversation); what offline-only concepts (e.g. `--dir`,
   `repair`) mean in remote mode — full parity may mean "remote-executed", not "impossible".
 
 ## Acceptance
@@ -147,5 +147,5 @@ As a squad owner, I want the mode set in .squads.toml with offline as the defaul
 <!-- sq:discussion -->
 - [2026-06-14T20:32:56Z] Catherine Manager:
   - Remote-mode gap (flagged by Pierre, 2026-06-14): the Claude Code backend writes thin pointer files in .claude/ that use Claude Code's @-include to load the real role/skill body from local disk — .claude/agents/<role>.md → @squads/agents/roles/ROLE-…md (pointer_agent.md.j2:22) and .claude/skills/<name>/SKILL.md → @squads/agents/skills/<name>.md (pointer_skill.md.j2:8). In remote mode squads/agents/… won't be on the operator's disk, but subagents still boot locally, so those includes dangle.
-  - Resolution lives here, not in 1.0: this is purely a backend concern behind the AgentBackend ABC, and .claude/ is non-contract (ADR-000075). When remote mode lands, sq sync should materialize SELF-CONTAINED pointers — inline the role/skill body fetched from the server — instead of @-referencing local paths. No frozen surface is affected. @architect to own the approach (likely a follow-on ADR) when FEAT-000033 starts.
+  - Resolution lives here, not in 1.0: this is purely a backend concern behind the AgentBackend ABC, and .claude/ is non-contract (ADR-75). When remote mode lands, sq sync should materialize SELF-CONTAINED pointers — inline the role/skill body fetched from the server — instead of @-referencing local paths. No frozen surface is affected. @architect to own the approach (likely a follow-on ADR) when FEAT-33 starts.
 <!-- sq:discussion:end -->

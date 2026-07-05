@@ -1,10 +1,10 @@
 ---
-id: TASK-000202
+id: TASK-202
 sequence_id: 202
 type: task
 title: Rename skill files to SKILL-NNNNNN-slug.md convention + update .claude pointer
 status: Done
-parent: FEAT-000178
+parent: FEAT-178
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -25,9 +25,9 @@ updated_at: '2026-06-25T09:22:45Z'
 <!-- sq:body -->
 ## Goal
 
-Corrective fix on FEAT-000178: skill body files were left **slug-named** (`agents/skills/greeting.md`)
+Corrective fix on FEAT-178: skill body files were left **slug-named** (`agents/skills/greeting.md`)
 instead of following the `<PREFIX>-<NUM>-<slug>.md` convention every other type uses — including the
-meta-types skills were modeled on (`ROLE-000001-manager.md`, `OP-000010-op-pierre.md`). ADR-000181 #3
+meta-types skills were modeled on (`ROLE-000001-manager.md`, `OP-000010-op-pierre.md`). ADR-181 #3
 is being amended (by the architect) to require `agents/skills/SKILL-<NNNNNN>-<slug>.md`. This task
 makes the file naming conform across the backend, fresh init, and the migration.
 
@@ -42,7 +42,7 @@ status profile, and idempotence are unchanged from the original tasks.
   `agents/skills/SKILL-<NNNNNN>-<slug>.md`. Update the `.claude/skills/<slug>/SKILL.md` pointer so the
   body path it references points to the renamed file; the **pointer directory stays keyed by slug**
   (only the referenced body path changes). Stays marker-safe / frontmatter-preserving (invariant 3,
-  ADR #3) and within the FEAT-000177 codec contract.
+  ADR #3) and within the FEAT-177 codec contract.
 - **`seed_bundled_skills` (fresh `sq init`):** name files with the `SKILL-<NNNNNN>-<slug>.md`
   convention from the start, reusing the shared lexical-by-slug allocation.
 - **The 0.4→0.5 migration (`_v0_4_to_v0_5`):** RENAME each legacy `agents/skills/<slug>.md` →
@@ -50,7 +50,7 @@ status profile, and idempotence are unchanged from the original tasks.
   rewrite the `.claude` pointer's body path. Reuse the existing lexical-by-slug allocation already in
   the migration; do not reallocate ids (ADR #4).
 
-## Design constraints (ADR-000181, amended #3)
+## Design constraints (ADR-181, amended #3)
 
 - #3 (amended): skill body file path is `agents/skills/SKILL-<NNNNNN>-<slug>.md`, derived from the
   skill's id resolved through the index (role pattern), not the bare slug. Regen stays body-region-only
@@ -159,7 +159,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Fix (preferred approach): after path_unlink(legacy_path) in seed_bundled_skills, call backend.generate_skill_entry(ctx, item) on each active backend. generate_skill_entry uses ctx.root_relative(item) which reads item.path (= SKILL-NNNNNN-slug.md) and writes the correct pointer. One-liner addition in _services/_maintenance.py; no reordering of init steps.
   - Test: updated test_init_skill_files_use_convention_name to also assert the .claude pointer's @-line references SKILL- and that the referenced file actually exists on disk. Full suite: 1134 passed, 1 skipped. pyright clean, ruff clean. @manager ready for review.
 - [2026-06-25T09:21:16Z] Elias Python:
-  - REV-000203 nits F1+F3 applied — all clean.
+  - REV-203 nits F1+F3 applied — all clean.
   - **F3 (layering)**: Removed the IndexStore.load() call from _write_managed_skill entirely. Added skill_paths: dict[str, Path] to BackendContext (with __init__ defaulting to {} on first-write paths). refresh_managed() now calls _skill_paths() to build the slug->abspath map from index SKILL items and injects it into the context before calling write_managed. sync() does the same (previously it used the bare _ctx property, which exposed the same gap — caught by the test_skill_body_region_updated_on_sync test). The backend reads ctx.skill_paths.get(name); empty map -> slug-named fallback as before.
   - **F1 (bare except)**: Moot after F3 — the try/except block was removed wholesale along with the IndexStore import.
   - Full suite: 1134 passed, 1 skipped. pyright 0 errors, ruff clean. TASK-202 stays InProgress. @manager

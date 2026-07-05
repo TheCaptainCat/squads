@@ -1,12 +1,12 @@
 ---
-id: FEAT-000264
+id: FEAT-264
 sequence_id: 264
 type: feature
 title: Guard against stale status/lifecycle prose in item bodies
 status: Draft
 author: tech-lead
 refs:
-- FEAT-000237
+- FEAT-237
 subentities:
 - local_id: US1
   title: The tracker's status is never contradicted by body prose
@@ -56,7 +56,7 @@ targets a body declaring *its own* current state.
    - a **`sq check` rule** (preferred primary home — `sq check` already lints markers, dangling
      links, invalid status, index drift; a body-prose rule sits naturally beside the others and runs
      against the live tracker); and/or
-   - a **CI lint** for the repo's own `squads/` tree, mirroring the FEAT-000237 guard's mechanism.
+   - a **CI lint** for the repo's own `squads/` tree, mirroring the FEAT-237 guard's mechanism.
 
    **Detection heuristic (precise, false-positive-averse):**
    - Flag a **leading banner**: a body or section that *opens* with `STATUS:` / `**STATUS …**`, or a
@@ -71,7 +71,7 @@ targets a body declaring *its own* current state.
      examples; the discussion section (comments are exempt by design). Anchor the match to
      banner/heading position and `description:` rather than a bare keyword grep over the whole body,
      and lint only the `sq:body` / `description` regions, never `sq:discussion`.
-   - **Rollout: warn-then-error**, like the FEAT-000237 guard — ship as a warning first so the
+   - **Rollout: warn-then-error**, like the FEAT-237 guard — ship as a warning first so the
      existing corpus can be cleaned without a hard build break, then promote to error once the tree
      is clean and a negative test proves the gate fires on a newly-introduced banner.
 
@@ -83,18 +83,18 @@ targets a body declaring *its own* current state.
    exempt it explicitly so the guard does not false-positive on it. Likewise confirm no
    managed/generated section (rendered partials) emits lifecycle prose into a body.
 
-## Relationship to FEAT-000237 (verdict: STANDALONE)
+## Relationship to FEAT-237 (verdict: STANDALONE)
 
-FEAT-000237 is a close sibling but a **different axis**, so this is a standalone feature, not a fold:
+FEAT-237 is a close sibling but a **different axis**, so this is a standalone feature, not a fold:
 
-| | FEAT-000237 | FEAT-000264 (this) |
+| | FEAT-237 | FEAT-264 (this) |
 |---|---|---|
 | Target surface | source **code** comments/docstrings under `src/squads/` (someday tests/docs) | sq-managed **markdown bodies** (items/ADRs/reviews/docs) + CLAUDE.md prose |
 | What it strips | squad-item references + history/archaeology narration | lifecycle/status **state-as-prose** (banners, self-declarations) |
 | Detection | `(FEAT|TASK|ADR|REV|BUG|EPIC)-\d`, `§N`, "previously/now" | leading `STATUS:` banners, `## Status` sections, lifecycle-word state declarations |
 | Guard home | grep/ruff gate over `src/` | `sq check` rule and/or CI lint over `squads/` |
 
-FEAT-000237 **explicitly declares CLAUDE.md and item/ADR bodies out of scope** ("Does NOT rewrite
+FEAT-237 **explicitly declares CLAUDE.md and item/ADR bodies out of scope** ("Does NOT rewrite
 CLAUDE.md, nor the bundled role / skill / playbook PROSE"). The two guards do not overlap and must
 not double-touch the same surface: 237 owns `src/` comments, 264 owns tracker bodies + CLAUDE.md. The
 design must keep the two detection patterns separated by surface so neither false-positives on the
@@ -116,20 +116,20 @@ other's domain. Linked `related`.
 5. The existing corpus is cleaned to pass (at minimum the known offenders, e.g. an ADR opening with a
    `STATUS:` banner that contradicts its frontmatter), and the project's own CLAUDE.md `## Status`
    section is resolved (kept / reworded / explicitly exempted) with the choice recorded.
-6. Guard scope is disjoint from FEAT-000237's: no shared file is double-touched; the two detection
+6. Guard scope is disjoint from FEAT-237's: no shared file is double-touched; the two detection
    patterns do not cross-fire.
 
 ## Non-goals
 
 - Not a change to how `status:` itself works, nor to the workflow state machines.
-- Does not touch source-code comments/docstrings — that is FEAT-000237's domain.
+- Does not touch source-code comments/docstrings — that is FEAT-237's domain.
 - Does not forbid discussing lifecycle as a *subject* in a body, nor recording state in dated
   discussion comments (those are the sanctioned channel).
 
 ## Sequencing
 
-Drafted for the record (Draft) — not scheduled. Like its sibling FEAT-000237, it is cleanest to
-schedule after the EPIC-000206 churn settles, since the de-typing work is still producing new bodies.
+Drafted for the record (Draft) — not scheduled. Like its sibling FEAT-237, it is cleanest to
+schedule after the EPIC-206 churn settles, since the de-typing work is still producing new bodies.
 Pierre decides if/when to schedule.
 <!-- sq:body:end -->
 
@@ -168,9 +168,9 @@ As a maintainer, I want every item's lifecycle position to come solely from its 
 <!-- sq:discussion -->
 - [2026-06-30T12:21:21Z] Olivia Lead:
   - Drafted at @manager's request — hardens 'status lives in frontmatter, never in prose' (the ADR-264 STATUS-banner-vs-Accepted drift class Pierre flagged). Left Draft, no tasks, no implementation — Pierre decides scheduling.
-  - Verdict: STANDALONE, not a fold into FEAT-000237. Different axis — 237 strips squad-item refs + history from src/ code comments and explicitly declares CLAUDE.md / item bodies OUT of scope; this guards lifecycle-state PROSE in sq-managed markdown bodies + CLAUDE.md. Linked related; guard scopes are disjoint (237 owns src/ comments, 264 owns tracker bodies) so they don't cross-fire.
+  - Verdict: STANDALONE, not a fold into FEAT-237. Different axis — 237 strips squad-item refs + history from src/ code comments and explicitly declares CLAUDE.md / item bodies OUT of scope; this guards lifecycle-state PROSE in sq-managed markdown bodies + CLAUDE.md. Linked related; guard scopes are disjoint (237 owns src/ comments, 264 owns tracker bodies) so they don't cross-fire.
   - Enforcement heuristic: flag high-signal self-declarations — a leading 'STATUS:' banner, a hand-written '## Status' section, and lifecycle words (proposed/accepted/draft/pending/blocked/superseded, 'go/no-go', 'if/until accepted') asserting THIS item's state — anchored to banner/heading position + description:, linting only sq:body/description and never sq:discussion (comments are the sanctioned channel). Home: a sq check rule and/or CI lint, warn-then-error like the 237 guard.
   - Open design call for whoever picks this up: this repo's own CLAUDE.md '## Status' section is the same shape — decide keep / reword / explicitly-exempt. @manager
 - [2026-06-30T13:20:56Z] Catherine Manager:
-  - Live corpus offender found 2026-06-30 (stronger than the ADR-264 example already in the body): TASK-000257's body carried a standing '### The startup-ordering problem — THIS TASK IS BLOCKED ON THE ADR' banner plus 'Dependencies: BLOCKED ON: the startup-ordering ADR'. ADR-000263 was accepted afterward and nobody cleared the banner — so the body asserted a blocker that no longer existed. This actively misled a manager triage into reporting the ADR didn't exist and the critical path was blocked. Exactly this feature's thesis: a stale 'status:' field is caught by the tracker, but stale lifecycle PROSE in a body has nothing watching it. Detection-wise it's the high-signal case the heuristic targets — a leading 'BLOCKED ON …' self-declaration in a body/heading, distinct from citing another item's status as context. (Banner since cleared on TASK-257 and moved to a dated comment.)
+  - Live corpus offender found 2026-06-30 (stronger than the ADR-264 example already in the body): TASK-257's body carried a standing '### The startup-ordering problem — THIS TASK IS BLOCKED ON THE ADR' banner plus 'Dependencies: BLOCKED ON: the startup-ordering ADR'. ADR-263 was accepted afterward and nobody cleared the banner — so the body asserted a blocker that no longer existed. This actively misled a manager triage into reporting the ADR didn't exist and the critical path was blocked. Exactly this feature's thesis: a stale 'status:' field is caught by the tracker, but stale lifecycle PROSE in a body has nothing watching it. Detection-wise it's the high-signal case the heuristic targets — a leading 'BLOCKED ON …' self-declaration in a body/heading, distinct from citing another item's status as context. (Banner since cleared on TASK-257 and moved to a dated comment.)
 <!-- sq:discussion:end -->

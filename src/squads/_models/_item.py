@@ -18,9 +18,18 @@ from squads._util import NonEmpty
 REF_SEP = ":"
 DEFAULT_KIND = "related"
 
-#: The default (and minimum) number of zero-padded digits in a formatted ID (e.g. ``TASK-000007``).
-#: Changing this requires a ``sq migrate repad`` run; see FEAT-000027.
+#: The default (and minimum) number of zero-padded digits in a *filename* (e.g.
+#: ``TASK-000007-slug.md``). Changing this requires a ``sq migrate repad`` run; see
+#: FEAT-000027. Never used for display — see :data:`DISPLAY_ID_PADDING`.
 DEFAULT_ID_PADDING: int = 6
+
+#: Display padding is fixed at 0 (JIRA-style, e.g. ``TASK-7``) — it is a constant, never a
+#: stored or configurable field (ADR-000282). Every human-facing surface (frontmatter ``id:``,
+#: refs, prose, CLI output) formats at this width. Filenames stay padded at
+#: :data:`DEFAULT_ID_PADDING` / the squad's stored ``SquadsDB.padding`` — that divergence is
+#: deliberate and is the load-bearing part of ADR-000282; format filenames explicitly via
+#: ``format_item_id(prefix, sequence_id, db.padding)``, never from ``item.id``.
+DISPLAY_ID_PADDING: int = 0
 
 
 def format_item_id(prefix: str, sequence_id: int, padding: int = DEFAULT_ID_PADDING) -> str:
@@ -123,10 +132,6 @@ class Item(BaseModel):
     modified_session: str | None = None
     #: Type-specific fields (e.g. agent role config, dev tech, adr context).
     extra: dict[str, Any] = {}
-    #: Zero-pad width for this item's formatted ID.  Threaded in from ``SquadsDB.padding`` at
-    #: construction time; excluded from JSON/frontmatter serialisation so it is never persisted.
-    #: Defaults to :data:`DEFAULT_ID_PADDING` (6) for items loaded from disk (``from_frontmatter``).
-    id_padding: int = Field(default=DEFAULT_ID_PADDING, exclude=True, repr=False)
     #: The resolved ID prefix for this item (e.g. ``"TASK"``, ``"INC"``).
     #: Stamped at create/retype time from the active spec (or the reserved map for built-ins).
     #: Excluded from the JSON index (never persisted there) but written to frontmatter for
@@ -158,11 +163,12 @@ class Item(BaseModel):
     @computed_field
     @property
     def id(self) -> str:
-        """The formatted id (``TASK-000007``) — derived from ``prefix`` + ``sequence_id``.
+        """The formatted id (``TASK-7``) — derived from ``prefix`` + ``sequence_id``.
 
-        Width is governed by :attr:`id_padding` (default :data:`DEFAULT_ID_PADDING`); set from
-        ``SquadsDB.padding`` so the ID always matches the squad's current zero-pad width.
-        Written to frontmatter as the durable human id; reconstructed via ``from_frontmatter``.
+        Display width is always :data:`DISPLAY_ID_PADDING` (0, ADR-000282) — every human-facing
+        surface (frontmatter ``id:``, refs, prose, CLI output) reads unpadded, regardless of the
+        squad's stored filename width (``SquadsDB.padding``). Written to frontmatter as the
+        durable human id; reconstructed via ``from_frontmatter``.
 
         ``prefix`` is stamped at create/retype time by the service (which holds the spec)
         and propagated by the index store after load.  The model itself never derives vocab:
@@ -173,7 +179,7 @@ class Item(BaseModel):
         prefix was not explicitly supplied.
         """
         effective_prefix = self.prefix or _RESERVED_PREFIX.get(self.type, self.type.upper())
-        return format_item_id(effective_prefix, self.sequence_id, self.id_padding)
+        return format_item_id(effective_prefix, self.sequence_id, DISPLAY_ID_PADDING)
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The mapping written into the markdown file's YAML frontmatter (durable truth).

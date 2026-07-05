@@ -16,7 +16,7 @@ from squads._index._resolver import item_file, require_item
 from squads._itemfile import rewrite_ids, update_frontmatter
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
-from squads._models._item import Item
+from squads._models._item import Item, format_item_id
 from squads._models._vocab import prefix_for
 from squads._services._base import SUBENTITY_CONTAINER, SUBENTITY_KIND, ServiceCore
 from squads._services._results import RetypeResult
@@ -138,9 +138,13 @@ class RetypeMixin(ServiceCore):
             old_path = item_file(self.paths, item)
             item.type = new_type
             item.prefix = prefix_for(new_type, self.spec)
-            new_id = item.id  # @computed_field formats from item.prefix (now correct)
+            new_id = item.id  # @computed_field formats from item.prefix (now correct); unpadded
+            # Filename stem must stay padded even though new_id (item.id) is unpadded
+            # (ADR-000282) — format it explicitly from the sequence number, never by
+            # concatenating item.id.
+            new_stem = format_item_id(item.prefix, item.sequence_id, db.padding)
             new_rel = self.paths.squad_relative(
-                new_type, f"{new_id}-{item.slug}.md", spec=self.spec
+                new_type, f"{new_stem}-{item.slug}.md", spec=self.spec
             )
             new_path = self.paths.abspath(new_rel)
             await _aio.mkdir(new_path.parent, parents=True, exist_ok=True)

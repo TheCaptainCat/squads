@@ -1,11 +1,11 @@
 ---
-id: TASK-000217
+id: TASK-217
 sequence_id: 217
 type: task
 title: 'Golden-lock test: loaded default spec == today''s behavior; verify TOML ships
   in wheel'
 status: Done
-parent: FEAT-000207
+parent: FEAT-207
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -22,12 +22,12 @@ updated_at: '2026-06-25T15:17:09Z'
 <!-- sq:body -->
 ## Goal
 
-Add the **golden-lock test** — the regression gate for the entire EPIC-000206 — asserting the loaded
+Add the **golden-lock test** — the regression gate for the entire EPIC-206 — asserting the loaded
 default `WorkflowSpec` reproduces today's exact workflow behavior, and verify the bundled TOML ships
-in the wheel. This is what proves the externalization (TASK-000215/216) is behavior-preserving and
+in the wheel. This is what proves the externalization (TASK-215/216) is behavior-preserving and
 lets F2+ proceed with confidence.
 
-Sequence: **third** — depends on TASK-000215 (TOML/models) and TASK-000216 (loader). Must remain
+Sequence: **third** — depends on TASK-215 (TOML/models) and TASK-216 (loader). Must remain
 green throughout F2–F6.
 
 ## What to build
@@ -50,7 +50,7 @@ green throughout F2–F6.
 - Confirm `sq workflow` output is unchanged (renders the same cheatsheet) as part of the regression
   surface.
 
-## Design constraints (ADR-000214)
+## Design constraints (ADR-214)
 
 - §4 golden-lock contract is the single regression gate for the epic; build the snapshot from today's
   literals (not from the spec) so the spec is checked against an independent source of truth.
@@ -60,7 +60,7 @@ green throughout F2–F6.
 
 1. Golden test exists, is CI-enforced, and fails on any drift between the loaded default spec and the
    frozen snapshot of today's `WORKFLOWS`/`TERMINAL`/`ALLOWED_PARENTS`/`PREFIX_BY_TYPE`/
-   `FOLDER_BY_TYPE`/`TYPE_ALIASES`/`STATUS_EMOJI`. (FEAT-000207 AC#2, US2.)
+   `FOLDER_BY_TYPE`/`TYPE_ALIASES`/`STATUS_EMOJI`. (FEAT-207 AC#2, US2.)
 2. A build/packaging test confirms `default_workflow.toml` is present in the wheel.
 3. `sq workflow` output unchanged (AC#4).
 4. `uv run pyright && uv run ruff check . && uv run pytest` all green (AC#5).
@@ -120,7 +120,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-25T14:47:16Z] Elias Python:
-  - @manager TASK-215/216/217 complete — FEAT-000207 F1 implemented and all gates green.
+  - @manager TASK-215/216/217 complete — FEAT-207 F1 implemented and all gates green.
   - Files added/changed:
   -   src/squads/_workflow/_models.py  — WorkflowSpec pydantic v2 frozen models (StateMachine, TypeSpec, StatusSpec, WorkflowSpec) with model_validator fail-closed validation
   -   src/squads/_workflow/_loader.py  — load_workflow_spec() via importlib.resources + tomllib; coerces string keys to ItemType/Status enums; raises SquadsError on any violation

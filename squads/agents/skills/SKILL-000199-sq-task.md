@@ -1,5 +1,5 @@
 ---
-id: SKILL-000199
+id: SKILL-199
 sequence_id: 199
 type: skill
 title: sq-task

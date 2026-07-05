@@ -1,15 +1,15 @@
 ---
-id: REV-000067
+id: REV-67
 sequence_id: 67
 type: review
 title: 'FEAT-000064: negative-path error UX leaks the internal _addr subgroup and
   fails ''error comprehensibly'''
 status: Approved
-parent: FEAT-000064
+parent: FEAT-64
 author: reviewer
 priority: high
 refs:
-- TASK-000065
+- TASK-65
 description: AddressDispatchGroup routes every unknown token to the hidden _addr subgroup;
   removed/typo'd/old-grammar invocations produce baffling errors that leak _addr and
   omit the documented migration hint.
@@ -65,7 +65,7 @@ updated_at: '2026-06-12T13:18:41Z'
 <!-- sq:body -->
 ## Scope
 
-Negative-path error UX of FEAT-000064 / TASK-000065. The positive surface (grammar flip + styled rendering) was reviewed on the feature and is correct. AddressDispatchGroup._click_resolve_command (src/squads/_cli/_common.py) routes every token that is not a named group command to the hidden address subgroup with the full args -- that is what makes the positive grammar work, but it also swallowed every wrong input into a confusing error. This review covers the resulting blocking UX defects (F1-F3) and the non-blocking observations (F4-F10, originally N1-N7).
+Negative-path error UX of FEAT-64 / TASK-65. The positive surface (grammar flip + styled rendering) was reviewed on the feature and is correct. AddressDispatchGroup._click_resolve_command (src/squads/_cli/_common.py) routes every token that is not a named group command to the hidden address subgroup with the full args -- that is what makes the positive grammar work, but it also swallowed every wrong input into a confusing error. This review covers the resulting blocking UX defects (F1-F3) and the non-blocking observations (F4-F10, originally N1-N7).
 
 ## Verdict history
 
@@ -108,7 +108,7 @@ _Add with `sq review 67 add-finding "…" --severity high`; track with `sq revie
 | F6 | 🟢 low | Verified |  | N3 empty-body hint inaccurate: suggests a 'body' verb the groups do not have |
 | F7 | 🟢 low | Verified |  | N4 inline shape check: _resolve_addr reimplements full-ID detection instead of _is_full_id_shape |
 | F8 | 🟢 low | Verified |  | N5 stale comment: SKIL-000002 should be SKILL-000002 in test_skill_item_first_grammar |
-| F9 | 🟢 low | Verified |  | N6 test coverage: no direct test for REV-000061 bracket/no-backslash fidelity on the new body path |
+| F9 | 🟢 low | Verified |  | N6 test coverage: no direct test for REV-61 bracket/no-backslash fidelity on the new body path |
 | F10 | 🟢 low | WontFix |  | N7 sq dev consistency: still uses the old listing shape, reads inconsistently against the flipped groups |
 <!-- sq:summary:end -->
 
@@ -180,7 +180,7 @@ Resolution (verified): two-part fix in _common.py (see finding comment). (1) Mis
 <!-- sq:finding:F3:body -->
 US1 spirit (discoverability): `sq role` and `sq role --help` listed only `catalog` and `activate` because the `_addr` subgroup is `hidden=True`. The primary item verbs (show/regen/rm) appeared nowhere in the group help. A user had no documented way to learn the grammar from --help; they only saw the verbs by guessing a valid address first (and then the usage line was wrong per F2).
 
-Resolution (verified): added `epilog=` to role_app, skill_app, and operator_app. `sq role --help` now shows `Address a role: sq role <slug|id|n> show|regen|rm` with slug/number/ID examples (sq role manager show / sq role 1 regen / sq role ROLE-000001 rm). Same pattern for skill (show|regen|rm) and operator (show|rm). The N1 slug-shadowing note is folded into each epilog. A fresh user can discover show/regen/rm from --help alone.
+Resolution (verified): added `epilog=` to role_app, skill_app, and operator_app. `sq role --help` now shows `Address a role: sq role <slug|id|n> show|regen|rm` with slug/number/ID examples (sq role manager show / sq role 1 regen / sq role ROLE-1 rm). Same pattern for skill (show|regen|rm) and operator (show|rm). The N1 slug-shadowing note is folded into each epilog. A fresh user can discover show/regen/rm from --help alone.
 <!-- sq:finding:F3:body:end -->
 
 #### Discussion
@@ -292,7 +292,7 @@ Resolution (verified): SKIL-000002 -> SKILL-000002.
 <!-- sq:finding:F8:end -->
 
 <!-- sq:finding:F9 -->
-### F9 — N6 test coverage: no direct test for REV-000061 bracket/no-backslash fidelity on the new body path
+### F9 — N6 test coverage: no direct test for REV-61 bracket/no-backslash fidelity on the new body path
 
 <!-- sq:finding:F9:head -->
 **Status:** 🟢 Verified
@@ -300,7 +300,7 @@ Resolution (verified): SKIL-000002 -> SKILL-000002.
 <!-- sq:finding:F9:head:end -->
 
 <!-- sq:finding:F9:body -->
-N6 (non-blocking). No test asserted REV-000061 bracket / no-backslash fidelity on the new role/skill/operator body path (structurally inherited from the shared _render_body markup=False, so low risk, but the regression net did not cover it directly).
+N6 (non-blocking). No test asserted REV-61 bracket / no-backslash fidelity on the new role/skill/operator body path (structurally inherited from the shared _render_body markup=False, so low risk, but the regression net did not cover it directly).
 
 Resolution (verified): test_role_skill_body_bracket_fidelity added -- asserts --raw output contains no backslash-escaped brackets on the role and skill body paths.
 <!-- sq:finding:F9:body:end -->
@@ -320,7 +320,7 @@ Resolution (verified): test_role_skill_body_bracket_fidelity added -- asserts --
 <!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
-N7 (non-blocking). sq dev still uses the old listing shape and now reads inconsistently against the three flipped groups. Flagged per the lead request; out of scope for TASK-000065.
+N7 (non-blocking). sq dev still uses the old listing shape and now reads inconsistently against the three flipped groups. Flagged per the lead request; out of scope for TASK-65.
 
 Resolution: WontFix for this review -- explicitly out of scope as specified. Left for a follow-up if the inconsistency is worth closing.
 <!-- sq:finding:F10:body:end -->
@@ -336,13 +336,13 @@ Resolution: WontFix for this review -- explicitly out of scope as specified. Lef
 
 <!-- sq:discussion -->
 - [2026-06-12T12:47:21Z] Paul Reviewer:
-  - @python-dev — opened against FEAT-000064 / TASK-000065. The grammar flip and styled rendering are solid; this is purely the negative-path UX. Three blocking items (F1-F3): removed-list commands must point at 'sq list -t <type>' instead of leaking '_addr / Missing command'; the internal '_addr' name must not appear in any user-facing usage/error line; and 'sq role --help' must teach show/regen/rm (currently only catalog/activate show). N1-N7 are non-blocking — judgment calls and small cleanups, your call. Re-request review once F1-F3 are addressed and the three test_*_list_removed tests assert message content.
+  - @python-dev — opened against FEAT-64 / TASK-65. The grammar flip and styled rendering are solid; this is purely the negative-path UX. Three blocking items (F1-F3): removed-list commands must point at 'sq list -t <type>' instead of leaking '_addr / Missing command'; the internal '_addr' name must not appear in any user-facing usage/error line; and 'sq role --help' must teach show/regen/rm (currently only catalog/activate show). N1-N7 are non-blocking — judgment calls and small cleanups, your call. Re-request review once F1-F3 are addressed and the three test_*_list_removed tests assert message content.
 - [2026-06-12T12:59:30Z] Elias Python:
   - F1 fixed. AddressDispatchGroup now has a _REMOVED_VERBS ClassVar that each app subclass populates. _click_resolve_command checks the token against _REMOVED_VERBS before attempting named-command lookup or _addr routing. Role: 'sq role list' exits 1 with 'has been removed. Use sq list -t role to list tracked roles, or sq role catalog for the bundled catalog.' Skill: points at sq list -t skill. Operator: points at sq list -t operator. sq role list --available also hits the tombstone cleanly (the token 'list' is intercepted before args are parsed). The three test_list_removed tests now assert exit_code==1, 'has been removed' in output, and the correct replacement hint.
 - [2026-06-12T12:59:38Z] Elias Python:
   - F2 fixed. Two-part fix. (1) Missing-verb interception: when _click_resolve_command routes to _addr and no non-option arg follows the address token (and --help is not present), it now exits 1 immediately with 'missing verb after address <token>. Usage: sq role <slug|id|n> show|regen|rm' — no _addr leakage, no Click 'Missing command.' (2) Display name: the return tuple from _click_resolve_command now uses '<slug|id|n>' as the command name instead of '_addr'. This means sq role manager --help shows 'Usage: sq role <slug|id|n> [OPTIONS] ADDR COMMAND' and sq role shw manager shows 'No such command manager' under 'sq role <slug|id|n>' usage — _addr never appears in user-facing text. Probed: sq role lst (exit 1 clean error), sq role manager (exit 1 clean error), sq role manager --help (no _addr in output), sq role shw manager (no _addr in output).
 - [2026-06-12T12:59:46Z] Elias Python:
-  - F3 fixed. Added epilog= to role_app, skill_app, and operator_app. sq role --help now shows: 'Address a role: sq role <slug|id|n> show|regen|rm. Examples: sq role manager show  sq role 1 regen  sq role ROLE-000001 rm. Note: a slug matching a group verb (catalog, activate) is unaddressable by slug; use the full ID or bare number instead.' Same pattern for skill (show|regen|rm, examples with slug/number/ID) and operator (show|rm). The N1 slug-shadowing note is also embedded in each epilog, folding N1 in naturally.
+  - F3 fixed. Added epilog= to role_app, skill_app, and operator_app. sq role --help now shows: 'Address a role: sq role <slug|id|n> show|regen|rm. Examples: sq role manager show  sq role 1 regen  sq role ROLE-1 rm. Note: a slug matching a group verb (catalog, activate) is unaddressable by slug; use the full ID or bare number instead.' Same pattern for skill (show|regen|rm, examples with slug/number/ID) and operator (show|rm). The N1 slug-shadowing note is also embedded in each epilog, folding N1 in naturally.
 - [2026-06-12T12:59:55Z] Elias Python:
   - Non-blocking fixes taken: N1 (slug-shadowing note) folded into the F3 epilog on all three groups — one line each. N2 (resolver duplication) fixed: resolve_agent_addr now delegates slug lookup to svc._role_item / svc._skill_item / svc._operator_item via a per-type dispatch table, eliminating the inline db.items.values() loop. N3 (empty-body hint) fixed: render_body_text gained an empty_hint param; role/skill/operator show pass 'empty — run sq sync to regenerate the definition' instead of the inaccurate 'set it with body'. N4 (inline shape check) fixed: _role.py _resolve_addr now calls _is_full_id_shape(t) instead of reimplementing the rpartition check inline. N5 (stale comment) fixed: SKIL-000002 -> SKILL-000002 in test_skill_item_first_grammar. N6 (bracket fidelity) added: test_role_skill_body_bracket_fidelity checks that --raw output contains no backslash-escaped brackets on the role and skill body paths. N7 (sq dev consistency) skipped — out of scope as specified. All 355 tests pass, pyright strict clean, ruff check + format clean.
 - [2026-06-12T13:00:00Z] Elias Python:

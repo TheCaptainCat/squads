@@ -1,14 +1,14 @@
 ---
-id: FEAT-000271
+id: FEAT-271
 sequence_id: 271
 type: feature
 title: 'CLI grammar: verb-first addressing (sq show ID, sq update ID)'
 status: Draft
-parent: EPIC-000038
+parent: EPIC-38
 author: product-owner
 refs:
-- FEAT-000013
-- REV-000265
+- FEAT-13
+- REV-265
 subentities:
 - local_id: US1
   title: As a user, I address any item by ID alone without specifying its type
@@ -23,7 +23,7 @@ updated_at: '2026-07-02T13:07:21Z'
 <!-- sq:body -->
 ## Problem
 
-Today's CLI grammar is type-first: every command begins with the item type as a sub-app selector — `sq task 35 show`, `sq feature 12 story 1 update`, `sq bug 7 comment`. Built-in types are wired as Typer sub-apps by `build_item_app`; custom types land through a lazy-dispatch `_CustomTypeGroup` that registers `sq <custom-type>` at parse-time and wraps get_command in a bare `except Exception` to swallow registration errors (flagged as REV-000265 F5).
+Today's CLI grammar is type-first: every command begins with the item type as a sub-app selector — `sq task 35 show`, `sq feature 12 story 1 update`, `sq bug 7 comment`. Built-in types are wired as Typer sub-apps by `build_item_app`; custom types land through a lazy-dispatch `_CustomTypeGroup` that registers `sq <custom-type>` at parse-time and wraps get_command in a bare `except Exception` to swallow registration errors (flagged as REV-265 F5).
 
 At small scale, type-first is intuitive: `sq task 35 show` reads naturally. At larger scale — especially once custom types are in play — it creates structural friction:
 
@@ -50,13 +50,13 @@ Sub-entity addressing needs a verb-first spelling too (e.g. `sq show FEAT-12 sto
 
 ## Why now, on the generic base
 
-EPIC-000206 makes `Item` fully generic (type is `str`, prefix and folder come from the spec). Once that lands, the type is mechanically recoverable from any ID prefix — dispatch does not need a per-type sub-app. The entire `_CustomTypeGroup` lazy-dispatch machinery (and the `except Exception` masking in REV-000265 F5) can be retired rather than carried forward. Without this change, the custom-type surface builds on a grammar that is already showing structural debt.
+EPIC-206 makes `Item` fully generic (type is `str`, prefix and folder come from the spec). Once that lands, the type is mechanically recoverable from any ID prefix — dispatch does not need a per-type sub-app. The entire `_CustomTypeGroup` lazy-dispatch machinery (and the `except Exception` masking in REV-265 F5) can be retired rather than carried forward. Without this change, the custom-type surface builds on a grammar that is already showing structural debt.
 
 ## Blast radius (scope, not solution)
 
 This feature records the intent. The following are open decisions, not specifications:
 
-- **Grammar supersession:** verb-first supersedes the FEAT-000013 command-grammar stability freeze. That freeze must be formally lifted (a new ADR) before implementation begins.
+- **Grammar supersession:** verb-first supersedes the FEAT-13 command-grammar stability freeze. That freeze must be formally lifted (a new ADR) before implementation begins.
 - **Back-compat strategy:** hard flip on the next major version, or a deprecation window keeping type-first as hidden aliases? The answer determines migration burden for existing users and scripts.
 - **Sub-entity addressing:** `sq feature 12 story 1 update` needs a verb-first form. The exact spelling (positional args, a sub-ID scheme, or a `--sub` flag) is unresolved.
 - **Docs and skills:** every managed skill (`sq-task`, `sq-feature`, …), the playbook, the `sq workflow` cheatsheet, and the shipped docs pages all encode type-first examples. The update sweep is large.
@@ -64,7 +64,7 @@ This feature records the intent. The following are open decisions, not specifica
 
 ## Non-goals / Deferred
 
-The ADRs that decide the target grammar, formally supersede FEAT-000013, and resolve the back-compat/deprecation strategy are **not part of this feature**. They will be authored by the architect when this feature is scheduled. This item is the backlog placeholder that captures intent and rationale so the decision context travels with the work.
+The ADRs that decide the target grammar, formally supersede FEAT-13, and resolve the back-compat/deprecation strategy are **not part of this feature**. They will be authored by the architect when this feature is scheduled. This item is the backlog placeholder that captures intent and rationale so the decision context travels with the work.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -119,10 +119,10 @@ Once a custom type is registered in the workflow spec, 'sq show INC-3', 'sq upda
 
 <!-- sq:discussion -->
 - [2026-07-01T09:42:41Z] Nina Product:
-  - Drafted for the record at the tail of EPIC-000206 (after FEAT-210/211/212), unscheduled.
+  - Drafted for the record at the tail of EPIC-206 (after FEAT-210/211/212), unscheduled.
   - Intent: retire type-first CLI grammar in favor of global verb-first dispatch keyed on the ID prefix. Captures the rationale, blast radius, and the open back-compat question so the context travels with the work.
   - ADRs not authored here — Robert Architect will draft them (grammar target, supersession of FEAT-013 stability freeze, back-compat/deprecation strategy) when op-pierre greenlights scheduling.
   - @manager: this item is in Draft, unscheduled. No tasks, no ADRs, no devs yet — per op-pierre.
 - [2026-07-02T13:07:21Z] Catherine Manager:
-  - Re-parented from EPIC-000206 to EPIC-000038 (CLI frontend) per op-pierre: verb-first addressing is a CLI-grammar refactor, a different axis from EPIC-206's config-driven-workflow mission (which is now fully delivered). Same scope-line reasoning as the FEAT-212→EPIC-280 split (ADR-000274). Still refs FEAT-013 (grammar stability contract) + REV-265 (custom-type dispatch).
+  - Re-parented from EPIC-206 to EPIC-38 (CLI frontend) per op-pierre: verb-first addressing is a CLI-grammar refactor, a different axis from EPIC-206's config-driven-workflow mission (which is now fully delivered). Same scope-line reasoning as the FEAT-212→EPIC-280 split (ADR-274). Still refs FEAT-013 (grammar stability contract) + REV-265 (custom-type dispatch).
 <!-- sq:discussion:end -->

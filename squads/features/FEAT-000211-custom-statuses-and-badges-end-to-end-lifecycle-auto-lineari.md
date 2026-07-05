@@ -1,14 +1,14 @@
 ---
-id: FEAT-000211
+id: FEAT-211
 sequence_id: 211
 type: feature
 title: Custom statuses and badges end-to-end + lifecycle auto-linearization
 status: Done
-parent: EPIC-000206
+parent: EPIC-206
 author: product-owner
 refs:
-- FEAT-000208:depends-on
-- FEAT-000210:depends-on
+- FEAT-208:depends-on
+- FEAT-210:depends-on
 subentities:
 - local_id: US1
   title: As a team member, I want sq list --status and sq blocked to work correctly
@@ -41,7 +41,7 @@ This feature is mostly mechanical once F2 (models are `str`) lands — the statu
 
 ## Dependencies
 
-Requires F2 (FEAT-000208) for `str`-typed status fields and F4 (FEAT-000210) for the spec-derived renderer. F3 (FEAT-000209) provides the override mechanism that introduces custom statuses.
+Requires F2 (FEAT-208) for `str`-typed status fields and F4 (FEAT-210) for the spec-derived renderer. F3 (FEAT-209) provides the override mechanism that introduces custom statuses.
 
 ## Acceptance criteria
 
@@ -113,7 +113,7 @@ As a team member, I want custom statuses to resolve to their declared badge emoj
 
 <!-- sq:discussion -->
 - [2026-06-26T09:44:14Z] Catherine Manager:
-  - Process rule (from the FEAT-220 incident, REV-000230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]].
+  - Process rule (from the FEAT-220 incident, REV-230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]].
 - [2026-07-01T09:09:28Z] Catherine Manager:
   - Scope addition (op-pierre, reviewing workflow.md.j2 post-TASK-261): two static-prose artifacts remain in the sq workflow cheatsheet that FEAT-211 should spec-derive, since 211 already owns the cheatsheet/lifecycle renderer. (1) workflow_static.md.j2:11 'Valid targets: epic, feature, task, bug, decision, review, guide' — hardcoded retype-target type list; custom types ARE retypeable (build_item_app._cmd_retype) so this should render from the spec. (2) workflow.md.j2:5-22 — the role→type authoring flow (product-owner→feature, tech-lead→task), the epic→feature→task hierarchy, and the FEAT-/BUG- prefix examples are hardcoded prose; the playbook is already a spec (playbook.toml, ADR-226) but the cheatsheet doesn't render from it, so custom setups don't see themselves.
   - PRODUCT JUDGMENT for whoever scopes 211: decide whether the authoring prose SHOULD render from the playbook spec (custom types/roles appear) or legitimately stays as 'how the bundled team works' prose — the retype-target list is the clearer, less debatable fix. KEEP STATIC (do NOT spec-derive): FEAT-013's stability-contract prose in workflow_static.md.j2 (ref-kinds table, retype mechanics, remove-vs-cancel, alias evolution rule) — that's the whole point of the TASK-261 split. @product-owner can rehome to a thin standalone feature if 211 turns out to be the wrong fit.

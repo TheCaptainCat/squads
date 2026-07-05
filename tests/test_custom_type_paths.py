@@ -264,7 +264,6 @@ async def test_custom_type_folder_auto_created_on_write(tmp_path, monkeypatch) -
         path=squad_rel,
         created_at=now,
         updated_at=now,
-        id_padding=6,
     )
 
     abs_path = paths.abspath(squad_rel)
@@ -311,7 +310,6 @@ async def test_repair_stable_noop_with_custom_type(tmp_path, monkeypatch) -> Non
         path=squad_rel,
         created_at=now,
         updated_at=now,
-        id_padding=6,
     )
     rendered = "# DB timeout\n"
     await write_new(abs_path, item, rendered)

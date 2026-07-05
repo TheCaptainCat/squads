@@ -1,10 +1,10 @@
 ---
-id: TASK-000053
+id: TASK-53
 sequence_id: 53
 type: task
 title: Split bundled role working agreements into spawned vs live regimes
 status: Done
-parent: FEAT-000040
+parent: FEAT-40
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -25,7 +25,7 @@ created_at: '2026-06-12T07:38:11Z'
 updated_at: '2026-06-23T09:57:47Z'
 ---
 <!-- sq:body -->
-**Goal.** Rewrite the bundled roles' 'Working agreements' so they read correctly in BOTH regimes an agent operates in, fixing the rigidity that forces a choice between honesty and compliance (see FEAT-000040 Problem: the 2026-06-11 false-inbox incident). Content/template only — NO CLI behaviour changes.
+**Goal.** Rewrite the bundled roles' 'Working agreements' so they read correctly in BOTH regimes an agent operates in, fixing the rigidity that forces a choice between honesty and compliance (see FEAT-40 Problem: the 2026-06-11 false-inbox incident). Content/template only — NO CLI behaviour changes.
 
 **Single source of the regime text.** The two-regime block lives in the role template `src/squads/_rendering/templates/agents/role.md.j2` (the '## Working agreements' section, currently lines ~28-40). Restructure it into two explicit regimes:
 

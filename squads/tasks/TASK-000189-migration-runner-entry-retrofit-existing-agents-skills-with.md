@@ -1,10 +1,10 @@
 ---
-id: TASK-000189
+id: TASK-189
 sequence_id: 189
 type: task
 title: 'Migration runner entry: retrofit existing agents/skills with SKILL ids'
 status: Done
-parent: FEAT-000178
+parent: FEAT-178
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -25,7 +25,7 @@ Add an ordered `_migrations` runner entry that retrofits every existing skill un
 into an id'd SKILL item on `sq migrate up`, so existing squads pick up skill ids automatically and
 non-breakingly. Bumps `SCHEMA_VERSION` (unpinned — set at release cut).
 
-Depends on TASK-000187 (frontmatter-preserving regen) and TASK-000188 (shared lexical-by-slug
+Depends on TASK-187 (frontmatter-preserving regen) and TASK-188 (shared lexical-by-slug
 allocation primitive). Sequence last among the core three.
 
 ## What to build
@@ -34,7 +34,7 @@ allocation primitive). Sequence last among the core three.
   `Migration` record with a private `_vN_M_to_vP_Q.py` `migrate(paths) -> int` and a `manual` runbook
   string). Never run via `python -m` — only through `sq migrate up`.
 - The `migrate(paths)` walks `agents/skills/` in the **shared lexical-by-slug order** from
-  TASK-000188, allocates a `SKILL-…` id per skill through `IndexStore.transaction()` (global counter,
+  TASK-188, allocates a `SKILL-…` id per skill through `IndexStore.transaction()` (global counter,
   invariant 2), and stamps sq frontmatter (`id`, `sequence_id`, `type: skill`, `title`, `status:
   Active`, `author`, `schema_version`) onto each existing skill body file — bodies and `.claude/`
   pointers left intact (invariant 5).
@@ -44,7 +44,7 @@ allocation primitive). Sequence last among the core three.
 - Skip/no-op skills already carrying a SKILL id (idempotent migration; do not reallocate — ADR #4).
 - Provide the `manual` runbook string and ensure it surfaces in `sq migrate chlog`.
 
-## Design constraints (ADR-000181)
+## Design constraints (ADR-181)
 
 - Decision #5: same lexical-by-slug ordering as init → ordering parity, not identical numbers.
 - Decision #6: schema bump unpinned, set at release cut.
@@ -53,7 +53,7 @@ allocation primitive). Sequence last among the core three.
 ## Acceptance
 
 1. `sq migrate up` on a pre-bump squad dir results in every skill file carrying valid sq frontmatter
-   with a unique `SKILL-…` id. (FEAT-000178 AC#1, US2.)
+   with a unique `SKILL-…` id. (FEAT-178 AC#1, US2.)
 2. `sq repair` after migration rebuilds the index cleanly; `sq check` green; no dangling refs / index
    drift. (AC#2, AC#3.)
 3. **Ordering-parity test**: a squad upgraded via `sq migrate up` and a fresh `sq init` squad place
@@ -121,7 +121,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Runner walks agents/skills/ in bundled_skill_slugs() lexical order, reads .squads.json sync, allocates ids (counter+padding from index), stamps frontmatter via sections.join_frontmatter(), writes back atomically. Idempotent: skips files with existing id field. repair() called by run_pending_migrations afterwards rebuilds the index. Corpus fixture v0_5 added (2 unstamped skill files). _CORPUS_CASES updated.
   - Tests: 6 tests in tests/test_skill_migration.py covering: stamps all bundled skills, idempotent, repair rebuilds cleanly, lexical ordering parity with init, CLI smoke (sq migrate up), CLI idempotent (second run = noop). Also updated test_session_lineage.py (test_schema_version_is_0_5, test_v0_3_migration_stamps_current_schema) and reflog tests for 0.5 schema version string.
 - [2026-06-24T21:04:09Z] Elias Python:
-  - REV-000201 nits F1-F4 fixed.
+  - REV-201 nits F1-F4 fixed.
   - F2+F3 (_v0_4_to_v0_5.py): rewrote migrate() as async; removed _read_index_sync/_write_index_sync entirely. Each skill id is now allocated through IndexStore.transaction() + db.allocate_id() — same pattern as seed_bundled_skills(). Migration.run type changed to Callable[[SquadPaths], Awaitable[int]] in _registry.py; sync runners wrapped via _wrap_sync(). run_pending_migrations now awaits m.run(paths). repair() recovers the counter high-water mark from max(seq) as designed — no manual index surgery needed.
   - F1 (__init__.py): __version__ bumped 0.4.1 → 0.5.0. sq migrate chlog v0.4.1..v0.5.0 now prints the 0.5 MANUAL cleanly (verified).
   - F4 (corpus/v0_5): corpus is now schema_version=0.5 with SKILL-000007/SKILL-000008 stamped frontmatter on greeting.md and squads.md — a genuine post-migration snapshot. migrate up on v0_5 is a no-op (all corpus tests pass).

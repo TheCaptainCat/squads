@@ -1,5 +1,5 @@
 ---
-id: TASK-000043
+id: TASK-43
 sequence_id: 43
 type: task
 title: Validate slug arguments across mine/inbox and slug-accepting surfaces (BUG-000021)
@@ -8,7 +8,7 @@ author: tech-lead
 assignee: python-dev
 priority: medium
 refs:
-- BUG-000021:fixes
+- BUG-21:fixes
 subentities:
 - local_id: ST1
   title: Add resolve_slug_or_raise helper to _cli/_common.py
@@ -32,7 +32,7 @@ Validate slug arguments so an unknown or typo'd slug is a clean error, not a sil
 
 ## What to change
 
-1. **Shared "resolve slug or raise" helper** — one place that validates a slug against the roster (registered agents **and** operators, `op-…`) and raises a `SquadsError` (exit 1) naming the valid slugs / pointing at `sq operator list`. Coordinate with FEAT-000019's item-ID resolver pattern (same shape, same home — see the coordination comment on this task). Likely lives near `_cli/_common.py` parsers or a service-level roster lookup (`_services/_roster.py` / `_base.ServiceCore` already has roster access).
+1. **Shared "resolve slug or raise" helper** — one place that validates a slug against the roster (registered agents **and** operators, `op-…`) and raises a `SquadsError` (exit 1) naming the valid slugs / pointing at `sq operator list`. Coordinate with FEAT-19's item-ID resolver pattern (same shape, same home — see the coordination comment on this task). Likely lives near `_cli/_common.py` parsers or a service-level roster lookup (`_services/_roster.py` / `_base.ServiceCore` already has roster access).
 2. **Require the slug on `sq mine`** — bare `sq mine` must not silently default to `manager`; the invoking shell implies no agent identity. Make the slug required.
 3. **Audit every slug-accepting surface** and route them all through the helper — at least: `sq mine`, `sq inbox`, `sq workload` filters, `comment --as`, `update --assignee`, and `--author` outside create. Validation already exists for `--author` on create and `sq check` warns on unregistered authors/assignees, so this closes an inconsistency, not a design choice.
 
@@ -136,15 +136,15 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-11T12:15:55Z] Olivia Lead:
-  - @python-dev coordination point: the 'resolve slug or raise' helper should mirror the item-ID resolver pattern decided in FEAT-000019 — same shape, ideally same home in _cli/_common.py. Check FEAT-000019's resolver before designing this one so we land one consistent validation idiom (item IDs + slugs), not two divergent ones.
-  - Sequencing: this task is independent of TASK-000042 (different code paths — slug validation in _cli vs the index store) but second in the queue behind it by priority.
+  - @python-dev coordination point: the 'resolve slug or raise' helper should mirror the item-ID resolver pattern decided in FEAT-19 — same shape, ideally same home in _cli/_common.py. Check FEAT-19's resolver before designing this one so we land one consistent validation idiom (item IDs + slugs), not two divergent ones.
+  - Sequencing: this task is independent of TASK-42 (different code paths — slug validation in _cli vs the index store) but second in the queue behind it by priority.
 - [2026-06-11T12:39:51Z] Elias Python:
   - Implemented resolve_slug_or_raise helper in src/squads/_cli/_common.py, mirroring the resolve_item_id pattern (same module, same shape). Validates against roster() + operators(); raises SquadsError naming valid slugs. 'operator' sentinel passes through for compat.
   - Applied the helper to: sq mine (slug now required, bare call errors), sq inbox, sq list --assignee, comment --as on items and sub-entities, update --assignee on items and all three sub-entity kinds (subtask/story/finding), update --author on items, add-subtask/add-story/add-finding --assignee.
   - Updated 3 existing tests that had stale expectations (test_subtask_assignee_cli error message, test_collab_commands_via_cli using unregistered qa slug, test_mine_cli using bare sq mine). Added tests/test_slug_validation.py with 26 new tests covering the helper and all audited CLI surfaces.
-  - uv run pytest: 245 passed, 1 skipped. pyright on changed files: 0 errors. ruff check/format on changed files: clean. Pre-existing repo-wide F401 in _services/_items.py (11) and _cli/__init__.py (1) + _discussion.py format issue — all pre-date these changes (from TASK-000042 working tree). @tech-lead ready for review.
+  - uv run pytest: 245 passed, 1 skipped. pyright on changed files: 0 errors. ruff check/format on changed files: clean. Pre-existing repo-wide F401 in _services/_items.py (11) and _cli/__init__.py (1) + _discussion.py format issue — all pre-date these changes (from TASK-42 working tree). @tech-lead ready for review.
 - [2026-06-11T12:50:23Z] Olivia Lead:
-  - Review PASS — Done. resolve_slug_or_raise in _cli/_common.py mirrors the FEAT-000019 resolver shape; validates against roster() + operators(), preserves the legacy 'operator' anonymous sentinel, raises SquadsError naming valid slugs. Routed through every audited surface: mine, inbox, list --assignee, comment --as (item + sub-entity), update --assignee/--author, add-story/add-subtask/add-finding --assignee, update-story/subtask/finding --assignee.
+  - Review PASS — Done. resolve_slug_or_raise in _cli/_common.py mirrors the FEAT-19 resolver shape; validates against roster() + operators(), preserves the legacy 'operator' anonymous sentinel, raises SquadsError naming valid slugs. Routed through every audited surface: mine, inbox, list --assignee, comment --as (item + sub-entity), update --assignee/--author, add-story/add-subtask/add-finding --assignee, update-story/subtask/finding --assignee.
   - Verified live: 'sq mine ghost' / 'sq inbox ghost' exit 1 with "unknown slug 'ghost'; valid slugs: manager"; valid 'sq mine manager' exits 0. Bare 'sq mine' now errors via required Typer Argument (exit 2, not 1 — standard Typer missing-required behavior, consistent with the rest of the CLI; brief intent 'must error' is met). 26 new tests in test_slug_validation.py + updated existing assertions. Clean gates.
 - [2026-06-11T12:56:40Z] Pierre Chat:
   - Decision: bare 'sq mine' exiting 2 (Typer missing-required-argument) stays — consistency with the rest of the CLI wins over the exit-1 wording in the bug. No follow-up.

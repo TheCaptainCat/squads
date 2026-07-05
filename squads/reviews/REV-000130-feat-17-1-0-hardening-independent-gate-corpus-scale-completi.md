@@ -1,17 +1,17 @@
 ---
-id: REV-000130
+id: REV-130
 sequence_id: 130
 type: review
 title: 'FEAT-17 1.0 hardening: independent gate (corpus, scale, completion, Py3.14
   ADR)'
 status: Approved
-parent: FEAT-000017
+parent: FEAT-17
 author: reviewer
 refs:
-- TASK-000126
-- TASK-000127
-- TASK-000128
-- ADR-000129
+- TASK-126
+- TASK-127
+- TASK-128
+- ADR-129
 description: Independent review of the four FEAT-17 deliverables; gate run clean.
 subentities:
 - local_id: F1
@@ -26,7 +26,7 @@ created_at: '2026-06-15T12:29:05Z'
 updated_at: '2026-06-15T12:29:56Z'
 ---
 <!-- sq:body -->
-Independent review of FEAT-000017 (1.0 hardening) across TASK-000126 (migration fixture corpus), TASK-000127 (scale test), TASK-000128 (shell completion), and ADR-000129 (Python >=3.14 floor). Built in parallel by separate agents; this is the independent gate.
+Independent review of FEAT-17 (1.0 hardening) across TASK-126 (migration fixture corpus), TASK-127 (scale test), TASK-128 (shell completion), and ADR-129 (Python >=3.14 floor). Built in parallel by separate agents; this is the independent gate.
 
 Gate: uv run pytest -m 'not slow' (708 passed, 1 skipped) + uv run pytest -m slow (5 passed) + uv run pyright (0 errors) + uv run ruff check (clean) + uv run ruff format --check (clean). All green.
 

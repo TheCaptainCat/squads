@@ -1,10 +1,10 @@
 ---
-id: TASK-000055
+id: TASK-55
 sequence_id: 55
 type: task
 title: Onboarding texts direct to sq commands, not squads/ file paths
 status: Done
-parent: FEAT-000041
+parent: FEAT-41
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -18,7 +18,7 @@ updated_at: '2026-06-23T09:58:03Z'
 ---
 <!-- sq:body -->
 ## Goal
-Every agent-facing onboarding *instruction* in generated content must teach an `sq` command, not a path under `squads/`. The rule: **machinery may use paths; instructions teach commands.** This matters for remote mode (FEAT-000033), where there is no filesystem to detour to.
+Every agent-facing onboarding *instruction* in generated content must teach an `sq` command, not a path under `squads/`. The rule: **machinery may use paths; instructions teach commands.** This matters for remote mode (FEAT-33), where there is no filesystem to detour to.
 
 ## Confirmed sweep (done during breakdown)
 The **only** offender is the generated CLAUDE.md section template:
@@ -37,7 +37,7 @@ The **only** offender is the generated CLAUDE.md section template:
 ## Acceptance (US2)
 - The generated CLAUDE.md section contains no agent-facing instruction to read files under `squads/` for content an sq command provides; pointer files unchanged.
 - A grep for 'squads/agents/roles' in agent-facing *generated text* (excluding pointer files) comes back empty.
-- An agent following only the onboarding texts can brief on their role with zero file reads (replay the live scenario through `sq role show` — depends on TASK-000054).
+- An agent following only the onboarding texts can brief on their role with zero file reads (replay the live scenario through `sq role show` — depends on TASK-54).
 
 ## Tests
 - Assert the rendered CLAUDE.md section mentions `sq role show` and does not contain `agents/roles`.

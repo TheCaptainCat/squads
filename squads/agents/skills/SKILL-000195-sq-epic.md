@@ -1,5 +1,5 @@
 ---
-id: SKILL-000195
+id: SKILL-195
 sequence_id: 195
 type: skill
 title: sq-epic

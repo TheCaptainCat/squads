@@ -1,5 +1,5 @@
 ---
-id: ROLE-000003
+id: ROLE-3
 sequence_id: 3
 type: role
 title: Olivia Lead

@@ -1,5 +1,5 @@
 ---
-id: ADR-000221
+id: ADR-221
 sequence_id: 221
 type: decision
 title: 'Role catalog spec: bundled roles.toml + loader, golden-locked, enums-intact
@@ -7,8 +7,8 @@ title: 'Role catalog spec: bundled roles.toml + loader, golden-locked, enums-int
 status: Accepted
 author: architect
 refs:
-- FEAT-000219:addresses
-- ADR-000214
+- FEAT-219:addresses
+- ADR-214
 created_at: '2026-06-26T07:33:23Z'
 updated_at: '2026-06-26T07:35:02Z'
 ---
@@ -165,16 +165,16 @@ membership, and the dev pool (the 12 names + dev defaults). Build the snapshot d
 a spot-check that `dev_role("dotnet", seq=0)` yields the identical `RoleDef` before and after. This
 test is the regression gate that proves the externalization is behavior-preserving.
 
-### 5. Relationship to FEAT-000220 (playbook externalization)
+### 5. Relationship to FEAT-220 (playbook externalization)
 
 Clean separation of ownership:
 - **`roles.toml` (this feature) owns role DEFINITIONS** — who each role is and what it's for.
-- **`playbook.toml` (FEAT-000220) owns role INTERACTIONS** — which roles touch each item type, the
+- **`playbook.toml` (FEAT-220) owns role INTERACTIONS** — which roles touch each item type, the
   per-type guidance, create-lanes — and it **references role slugs**.
 
-The boundary implies a **referential-integrity contract**: FEAT-000220's playbook validation must
+The boundary implies a **referential-integrity contract**: FEAT-220's playbook validation must
 cross-check every slug it references against this `RoleCatalogSpec` (and the `*dev` sentinel), and
-fail closed on an unknown slug. **FEAT-000220 depends on FEAT-000219** for that reason — the catalog
+fail closed on an unknown slug. **FEAT-220 depends on FEAT-219** for that reason — the catalog
 must load first so the playbook has a slug authority to validate against. This ADR establishes the
 catalog as that authority; it does not define the playbook schema (that is FEAT-220's ADR).
 

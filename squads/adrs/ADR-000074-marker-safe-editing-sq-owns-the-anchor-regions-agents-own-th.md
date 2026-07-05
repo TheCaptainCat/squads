@@ -1,14 +1,14 @@
 ---
-id: ADR-000074
+id: ADR-74
 sequence_id: 74
 type: decision
 title: 'Marker-safe editing: sq owns the anchor regions, agents own the prose'
 status: Accepted
 author: architect
 refs:
-- BUG-000056
-- ADR-000071
-- GUIDE-000079
+- BUG-56
+- ADR-71
+- GUIDE-79
 description: File content is mutated only through the sections layer; anchor tags
   delimit managed regions; agent prose is never rewritten
 created_at: '2026-06-12T14:23:04Z'
@@ -59,7 +59,7 @@ What this binds today:
   agent's body prose stays put.
 - **Comment text is sanitized against literal marker syntax**, because a stored comment that
   reproduced a well-formed anchor would otherwise corrupt the region machinery (the failure mode
-  fixed in BUG-000056).
+  fixed in BUG-56).
 
 ## Status note
 

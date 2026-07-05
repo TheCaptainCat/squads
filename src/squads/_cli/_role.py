@@ -8,7 +8,7 @@ Grammar:
   sq role <slug|id|n> rm [--purge]   — remove the role item
 
 Address resolution order (exact match, no fuzzy):
-  full-ID shape (ROLE-000001) → bare number → exact slug
+  full-ID shape (ROLE-1) → bare number → exact slug
 """
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
@@ -43,7 +43,7 @@ role_app = typer.Typer(
     help="Manage agent roles.",
     epilog=(
         "Address a role:  sq role <slug|id|n> show|regen|rm\n"
-        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-000001 rm\n"
+        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm\n"
         "Note: a slug matching a group verb (catalog, activate) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),

@@ -1,13 +1,13 @@
 ---
-id: ADR-000072
+id: ADR-72
 sequence_id: 72
 type: decision
 title: One global monotonic ID counter across all item types
 status: Accepted
 author: architect
 refs:
-- ADR-000071
-- GUIDE-000079
+- ADR-71
+- GUIDE-79
 description: A single counter makes every ID number globally unique; allocation only
   inside the index transaction
 created_at: '2026-06-12T14:22:56Z'

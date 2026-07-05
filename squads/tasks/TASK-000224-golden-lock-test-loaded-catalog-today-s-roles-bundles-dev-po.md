@@ -1,11 +1,11 @@
 ---
-id: TASK-000224
+id: TASK-224
 sequence_id: 224
 type: task
 title: 'Golden-lock test: loaded catalog == today''s roles/bundles/dev pool; verify
   roles.toml ships'
 status: Done
-parent: FEAT-000219
+parent: FEAT-219
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -24,10 +24,10 @@ updated_at: '2026-06-26T07:58:43Z'
 
 Add the **golden-lock test** asserting the loaded `RoleCatalogSpec` reproduces today's `_catalog.py`
 byte-for-byte, and verify `roles.toml` ships in the wheel. This is the regression gate that proves the
-externalization (TASK-000222/223) is behavior-preserving.
+externalization (TASK-222/223) is behavior-preserving.
 
-Sequence: **third** — depends on TASK-000222 (TOML/models) and TASK-000223 (loader/rewire). Must stay
-green going forward (and is the slug authority FEAT-000220 will validate against).
+Sequence: **third** — depends on TASK-222 (TOML/models) and TASK-223 (loader/rewire). Must stay
+green going forward (and is the slug authority FEAT-220 will validate against).
 
 ## What to build
 
@@ -40,11 +40,11 @@ green going forward (and is the slug authority FEAT-000220 will validate against
   Plus a spot-check that `dev_role("dotnet", seq=0)` yields the identical `RoleDef`/role before and
   after the externalization. The test must FAIL if any field drifts. CI-enforced. (US2 acceptance.)
 - **Packaging verification:** assert `roles.toml` is included in the built wheel (consistent with the
-  templates-are-package-data invariant and FEAT-000207's TOML). Mirror the existing
+  templates-are-package-data invariant and FEAT-207's TOML). Mirror the existing
   templates/workflow-toml-in-wheel build test; rely on `packages = ["src/squads"]` sweeping non-`.py`
   files — confirm, don't add a per-file include.
 
-## Design constraints (ADR-000221)
+## Design constraints (ADR-221)
 
 - §4 golden-lock contract: build the snapshot from today's literals (independent source of truth), not
   from the spec. Behavior-preserving — this task adds tests + a packaging check only.
@@ -53,7 +53,7 @@ green going forward (and is the slug authority FEAT-000220 will validate against
 
 1. Golden test exists, is CI-enforced, and fails on any drift between the loaded catalog and the
    frozen snapshot of today's `PREDEFINED`/`BUNDLES`/`DEV_NAME_POOL` (every role field, bundles, dev
-   pool) — including the `dev_role(...)` spot-check. (FEAT-000219 AC#2, US2.)
+   pool) — including the `dev_role(...)` spot-check. (FEAT-219 AC#2, US2.)
 2. A build/packaging test confirms `roles.toml` is present in the wheel.
 3. `uv run pyright && uv run ruff check . && uv run pytest` all green. (AC#6.)
 <!-- sq:body:end -->
@@ -112,7 +112,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-26T07:49:50Z] Elias Python:
-  - @manager TASK-222/223/224 complete — FEAT-000219 implemented and all gates green.
+  - @manager TASK-222/223/224 complete — FEAT-219 implemented and all gates green.
   - Files added/changed:
   -   src/squads/_roles/_models.py (NEW) — RoleSpec/DevPoolSpec/RoleCatalogSpec pydantic v2 frozen models capturing full RoleDef field set
   -   src/squads/_roles/roles.toml (NEW) — bundled catalog: 8 roles + 3 bundles + dev pool, transcribed byte-for-byte from _catalog.py literals

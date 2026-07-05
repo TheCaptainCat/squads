@@ -1,11 +1,11 @@
 ---
-id: TASK-000047
+id: TASK-47
 sequence_id: 47
 type: task
 title: Adopt the shared resolver across all ID-accepting surfaces + uniform error
   wording
 status: Done
-parent: FEAT-000019
+parent: FEAT-19
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -23,7 +23,7 @@ updated_at: '2026-06-23T09:57:41Z'
 ---
 <!-- sq:body -->
 ## Goal
-Route **every remaining ID-accepting surface** through the shared resolver from TASK-000046 (typed surfaces → typed resolve with live-DB type check; type-less surfaces → type-less resolve), and make unknown-item error wording uniform (both accepted forms, everywhere). **Blocked by TASK-000046** (the resolver must land first).
+Route **every remaining ID-accepting surface** through the shared resolver from TASK-46 (typed surfaces → typed resolve with live-DB type check; type-less surfaces → type-less resolve), and make unknown-item error wording uniform (both accepted forms, everywhere). **Blocked by TASK-46** (the resolver must land first).
 
 ## Inventory to convert (verified by the manager)
 Raw / unvalidated surfaces today:
@@ -37,7 +37,7 @@ Raw / unvalidated surfaces today:
 Already fine (leave as-is): sub-entity `<k>` uses `resolve_local_id`.
 
 ## Design direction
-- **Typed surfaces** (`sq <type> <n>` shaped): verify the resolved item's ACTUAL type against the live DB (handled by TASK-000046's typed resolve).
+- **Typed surfaces** (`sq <type> <n>` shaped): verify the resolved item's ACTUAL type against the live DB (handled by TASK-46's typed resolve).
 - **Type-less surfaces** (tree root, ref targets, `--parent` *before* `parent_allowed` runs): resolve a bare number to whatever item owns it — no type word.
 - `ref add` **stays kind-agnostic** (feature body): resolve the target to a real item, but don't constrain its type.
 - **`--parent`**: resolve the bare number to a real item first (type-less), then let the existing `parent_allowed`/`parent_hint` workflow check do the parent-type validation — don't duplicate it.
@@ -48,7 +48,7 @@ Already fine (leave as-is): sub-entity `<k>` uses `resolve_local_id`.
 - Raise `SquadsError` only; strict `pyright` + `ruff` clean; acyclic imports.
 
 ## Deferred / linkage
-- The "document the addressing rule in the stability contract" acceptance is **deferred to FEAT-000013** — do NOT write contract docs here. The rule is recorded on the feature; keep the ref. Out of scope for this task.
+- The "document the addressing rule in the stability contract" acceptance is **deferred to FEAT-13** — do NOT write contract docs here. The rule is recorded on the feature; keep the ref. Out of scope for this task.
 
 ## Acceptance (US2 + US3 wording)
 - `sq tree 13`, `sq list --parent 13`, `--parent 13`, `--ref 13`, `ref add 13`/`ref rm 13`, `sq role/skill/operator` targets, subtask `--story` — **all accept both full ID and bare number** (US2: copy-paste works on every command).
@@ -126,5 +126,5 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Tests: 9 new CLI smoke tests covering every surface in the inventory; one existing assertion updated for improved tree error wording.
   - Gates: uv run pytest (259 passed), pyright clean, ruff clean. @tech-lead please review.
 - [2026-06-11T14:23:14Z] Paul Reviewer:
-  - Review REV-000048: ChangesRequested. F2 (medium) lands across the swept surfaces — unify the unknown-item 'both forms' wording across resolve_item_id_any branches. Adoption sweep itself is correct and well-tested. Staying InReview. @python-dev see REV-000048 findings.
+  - Review REV-48: ChangesRequested. F2 (medium) lands across the swept surfaces — unify the unknown-item 'both forms' wording across resolve_item_id_any branches. Adoption sweep itself is correct and well-tested. Staying InReview. @python-dev see REV-48 findings.
 <!-- sq:discussion:end -->

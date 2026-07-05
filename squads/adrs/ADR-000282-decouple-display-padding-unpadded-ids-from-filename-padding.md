@@ -1,18 +1,19 @@
 ---
-id: ADR-000282
+id: ADR-282
 sequence_id: 282
 type: decision
 title: Decouple display padding (unpadded IDs) from filename padding
-status: Proposed
+status: Accepted
 author: architect
 refs:
-- FEAT-000027
-- EPIC-000012
+- FEAT-27
+- EPIC-12
+- ADR-104
 description: Decouple display/canonical ID padding (unpadded, JIRA-style) from filename
   zero-padding (width 6, on-disk sort only); needs a schema bump + structural-and-prose
   migration.
 created_at: '2026-07-02T09:28:28Z'
-updated_at: '2026-07-02T09:33:38Z'
+updated_at: '2026-07-04T20:29:02Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -33,11 +34,16 @@ The padding is already a single, well-factored knob:
 - Identity is already width-independent. `ref_id_matches` (`_item.py:62`) compares on
   `(prefix, integer sequence_id)`, not the string, and the index is keyed by the int
   `sequence_id`. So `FEAT-210` and `FEAT-000210` already resolve to the same item — correctness
-  never depended on the string width. `sq migrate repad` (FEAT-000027) exists precisely because
+  never depended on the string width. `sq migrate repad` (FEAT-27) exists precisely because
   the width is meant to be changeable squad-wide.
 
 The single thing the current design conflates is that **filename width and display width are the
 same number** (`SquadsDB.padding`). Decoupling them is the whole decision.
+
+This refines ADR-104: the corpus-derived floor mechanism it established (the padding stored as a
+floor in the index, `repair` recomputing it from the observed filename width, `repad` widening it on
+counter overflow) is preserved exactly — only the stored `padding` parameter's consumer narrows,
+from "all ID formatting" to "filename formatting only."
 
 ## Decision
 
@@ -134,9 +140,9 @@ mention-heavy bodies.
 
 ## Recommendation
 
-Home the implementing feature under **EPIC-000012 (Road to 1.0)**. This is a durable-`.md`-format
+Home the implementing feature under **EPIC-12 (Road to 1.0)**. This is a durable-`.md`-format
 and CLI-grammar change — precisely the surfaces EPIC-12's stability promise governs — and it is a
-sibling of FEAT-000027 (padding + repad migration), which already lives there. Landing it
+sibling of FEAT-27 (padding + repad migration), which already lives there. Landing it
 pre-1.0, behind a schema bump, is the right window; doing it after we freeze the format would make
 it a breaking change instead of a settling one.
 <!-- sq:body:end -->
@@ -144,4 +150,13 @@ it a breaking change instead of a settling one.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-04T20:18:38Z] Robert Architect:
+  - Finalized for acceptance review (no body edit needed — verified complete, correct, and internally consistent; a rewrite would only churn updated_at).
+  - Verified all five cited call-sites against the current tree: format_item_id (_models/_item.py:26, DEFAULT_ID_PADDING=6 at :23), ref_id_matches (_item.py:62), the filename seam in _rename (_services/_items.py:137 — the quoted squad_relative line matches exactly), rewrite_ids (_itemfile.py:45), and _propagate_padding (_index.py:59). All accurate.
+  - Scrubbed for status/lifecycle prose: none present. status: Proposed lives only in frontmatter; the body carries no 'if/once accepted' banner. Decision is stated decisively; ADR shape is standard (Context / Decision / Consequences+trade-offs, with the config-knob alternative and the lost 'filename==id' convenience argued inline).
+  - Reconciled against FEAT-283 — they agree on every load-bearing point: padding reinterpreted as filename width only, id_padding a fixed constant 0 (not stored/configurable), schema bump + structural(id/refs)+bounded prose migration with code-fence skipping, no .squads.toml change and no second stored field, and input tolerance unchanged (FEAT-283/FEAT-283 both resolve via ref_id_matches). No divergence to flag.
+  - Refs correct: relates to FEAT-27 (sibling — stored padding + repad) and EPIC-12 (Road to 1.0); FEAT-283 links back with kind 'implements'. Forward-edges-only respected (no back-ref stored on the ADR).
+  - @manager @op-pierre Recommend acceptance. Status is unchanged at Proposed — leaving the Accepted transition to Pierre's own read, per the gate. Once accepted this unblocks promoting FEAT-283 to Ready.
+- [2026-07-04T20:29:02Z] Pierre Chat:
+  - Accepted. Read the full ADR myself — the decision is sound and internally consistent, it agrees with FEAT-283 on every load-bearing point (no config knob, id_padding constant 0, padding reinterpreted as filename width only, schema bump + bounded prose migration, input tolerance unchanged), and it correctly refines ADR-104 without weakening the corpus-derived-floor mechanism. Approved for implementation.
 <!-- sq:discussion:end -->

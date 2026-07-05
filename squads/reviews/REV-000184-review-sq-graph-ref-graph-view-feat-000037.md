@@ -1,13 +1,13 @@
 ---
-id: REV-000184
+id: REV-184
 sequence_id: 184
 type: review
 title: 'Review: sq graph ref-graph view (FEAT-000037)'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000037:addresses
-- TASK-000182:addresses
+- FEAT-37:addresses
+- TASK-182:addresses
 subentities:
 - local_id: F1
   title: Rich tree crashes on any node with a priority

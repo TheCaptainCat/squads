@@ -1,12 +1,12 @@
 ---
-id: ADR-000073
+id: ADR-73
 sequence_id: 73
 type: decision
 title: Forward-only refs with computed backrefs
 status: Accepted
 author: architect
 refs:
-- GUIDE-000079
+- GUIDE-79
 description: Items store outgoing refs with kind inline; backrefs are computed by
   inversion, never persisted
 created_at: '2026-06-12T14:23:00Z'

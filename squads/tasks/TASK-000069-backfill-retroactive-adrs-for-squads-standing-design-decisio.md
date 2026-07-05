@@ -1,10 +1,10 @@
 ---
-id: TASK-000069
+id: TASK-69
 sequence_id: 69
 type: task
 title: Backfill retroactive ADRs for squads' standing design decisions
 status: Done
-parent: FEAT-000018
+parent: FEAT-18
 author: tech-lead
 assignee: architect
 priority: medium
@@ -35,7 +35,7 @@ You may add up to ~2 more if they are clearly standing calls — candidates: inj
 
 ## Shape
 
-ADR-000049 is the model: Context / Decision / Consequences, plus a Status note framing it as a decision already in force. Create each **Proposed** (the manager accepts the set at the end). Write the context honestly — these were made off the record before squads tracked itself; the ADR puts them on the record, it does not pretend they were debated in-tool.
+ADR-49 is the model: Context / Decision / Consequences, plus a Status note framing it as a decision already in force. Create each **Proposed** (the manager accepts the set at the end). Write the context honestly — these were made off the record before squads tracked itself; the ADR puts them on the record, it does not pretend they were debated in-tool.
 
 ## Source material
 
@@ -84,12 +84,12 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-12T14:19:03Z] Olivia Lead:
-  - @architect this is the retroactive-ADR half of FEAT-000018 (US2). One ADR per standing call — the six in the body are required; the two candidates (injectable clock, module privacy) are your call. Model on ADR-000049: Context / Decision / Consequences + a Status note that frames each as a decision already in force. Create them Proposed; the manager accepts the set at the end. Source: CLAUDE.md invariants + conventions, docs/internals.md, docs/README.md.
+  - @architect this is the retroactive-ADR half of FEAT-18 (US2). One ADR per standing call — the six in the body are required; the two candidates (injectable clock, module privacy) are your call. Model on ADR-49: Context / Decision / Consequences + a Status note that frames each as a decision already in force. Create them Proposed; the manager accepts the set at the end. Source: CLAUDE.md invariants + conventions, docs/internals.md, docs/README.md.
   - If drafting one surfaces a decision genuinely worth REVISITING (not just recording), that's a new item — drop a comment here flagging it, don't grow this task. And no literal sq anchor tags anywhere in the ADR prose.
 - [2026-06-12T14:24:01Z] Robert Architect:
-  - Done. Authored eight retroactive ADRs (US2), all Proposed for the manager to accept with the set: ADR-000071 Frontmatter is the source of truth / index is rebuildable; ADR-000072 One global monotonic ID counter; ADR-000073 Forward-only refs with computed backrefs; ADR-000074 Marker-safe editing (sq owns anchors, agents own prose); ADR-000075 Pluggable backends behind the AgentBackend ABC, .claude/ as pointers; ADR-000076 Dotted 0.x schema-version scheme + sq migrate runner; ADR-000077 Time is injectable via _clock; ADR-000078 Module-privacy convention. The last two are the optional candidates — both are clearly standing calls of the same rank, so I included them; the set is eight.
-  - Each follows ADR-000049's shape: Context (why it was decided then, honestly — these were made off the record before squads tracked itself) / Decision (the call as it stands) / Consequences (what it binds today, including the costs) / Status note (retroactive, recorded in force, left Proposed). No literal sq anchor tags in any ADR prose — verified each file carries only the template's own 4 markers; sq check is clean.
-  - Refs added: ADR-000076 → FEAT-000027 and FEAT-000013 (related, both build on the migrate runner); ADR-000074 → BUG-000056 (related, the literal-marker-in-comment bug) and → ADR-000071 (related, the frontmatter/body state split); ADR-000072 → ADR-000071 (related, repair reconstructs the counter from frontmatter).
-  - For TASK-000070 (the architecture guide + cross-linking, US1/US3): the eight ADR IDs to cite and cross-link both directions are ADR-000071 through ADR-000078. US3's ST2 cross-link step depends on exactly these.
+  - Done. Authored eight retroactive ADRs (US2), all Proposed for the manager to accept with the set: ADR-71 Frontmatter is the source of truth / index is rebuildable; ADR-72 One global monotonic ID counter; ADR-73 Forward-only refs with computed backrefs; ADR-74 Marker-safe editing (sq owns anchors, agents own prose); ADR-75 Pluggable backends behind the AgentBackend ABC, .claude/ as pointers; ADR-76 Dotted 0.x schema-version scheme + sq migrate runner; ADR-77 Time is injectable via _clock; ADR-78 Module-privacy convention. The last two are the optional candidates — both are clearly standing calls of the same rank, so I included them; the set is eight.
+  - Each follows ADR-49's shape: Context (why it was decided then, honestly — these were made off the record before squads tracked itself) / Decision (the call as it stands) / Consequences (what it binds today, including the costs) / Status note (retroactive, recorded in force, left Proposed). No literal sq anchor tags in any ADR prose — verified each file carries only the template's own 4 markers; sq check is clean.
+  - Refs added: ADR-76 → FEAT-27 and FEAT-13 (related, both build on the migrate runner); ADR-74 → BUG-56 (related, the literal-marker-in-comment bug) and → ADR-71 (related, the frontmatter/body state split); ADR-72 → ADR-71 (related, repair reconstructs the counter from frontmatter).
+  - For TASK-70 (the architecture guide + cross-linking, US1/US3): the eight ADR IDs to cite and cross-link both directions are ADR-71 through ADR-78. US3's ST2 cross-link step depends on exactly these.
   - No revisit-worthy decisions surfaced — every ADR documents what IS and holds up as written; nothing exposed a call worth reopening, so no new items flagged.
 <!-- sq:discussion:end -->

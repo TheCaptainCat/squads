@@ -50,13 +50,13 @@
     "workflow.md.j2": "324a30beea1280212d454bcd5086359d27df49b0fbf6a806701a427f44e217be"
   },
   "0.6.0": {
-    "agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",
+    "agents/greeting_skill.md.j2": "80129f6a8a0f4133df1cfd0436036f32927a2725d87042097ddc3d3290fd30dd",
     "agents/item_skill.md.j2": "81d25ed819b03552fbd7ac36d4e7161cd4cd00dd82baa321e020af65280280c5",
     "agents/operator.md.j2": "5f2b6962dc47cd36983a9140e8fa310f58d4ec6746a6597c4a473edf5c22fc11",
     "agents/role.md.j2": "1d9e2e29b1f2dd6cdda7ee5608131e40839fe84489207eeb291db9803261c0b8",
     "agents/skill.md.j2": "3d9780f63e59e1b3ce07256e236c63015e78fb43be1e094e01501b27802c5358",
-    "agents/squads_skill.md.j2": "9b27c9f5c56e38c8dd3173a142126deec985a0d4d131cccd6badc914d0b0cff8",
-    "agents_md/agents_section.md.j2": "89b5216cd1721588390e0c44465bb644bfa8ca17e2c9f2d33793f64077583419",
+    "agents/squads_skill.md.j2": "596dcf2cdfb7efed246091043f6b05e0d69b70f8fbc8e9974b610f7cfe7669ce",
+    "agents_md/agents_section.md.j2": "f0e95f316ea2e53873f89c22da6d58d6e65e64a3789c9799ad89970db4424b3f",
     "agents_md/role_entry.md.j2": "1f05b89116be3fc46f7aa83ed8c89013c6d6089dd179fb412c07328e8de6a61e",
     "agents_md/skill_entry.md.j2": "a4c6b30998a20a2267415bc01cb98270fc7266b6ea2cea249f67ebd2b12bac5c",
     "claude/claude_section.md.j2": "3c6cc9775fd08021ad3654771c11459b751e4871867c65b9de7f3caa56130e42",

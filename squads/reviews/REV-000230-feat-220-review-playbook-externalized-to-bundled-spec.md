@@ -1,15 +1,15 @@
 ---
-id: REV-000230
+id: REV-230
 sequence_id: 230
 type: review
 title: 'FEAT-220 review: playbook externalized to bundled spec'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000220
-- TASK-000227
-- TASK-000228
-- TASK-000229
+- FEAT-220
+- TASK-227
+- TASK-228
+- TASK-229
 subentities:
 - local_id: F1
   title: Loader bypasses extra='forbid' — typo'd TOML keys silently dropped
@@ -25,7 +25,7 @@ updated_at: '2026-06-26T09:27:29Z'
 ---
 <!-- sq:body -->
 ## Scope
-Independent review of FEAT-000220 — externalizing the team playbook into a bundled `src/squads/_interactions/playbook.toml` loaded as a validated `PlaybookSpec` (ADR-000226), enums-intact era. Third of the externalization trio (after FEAT-207 workflow / FEAT-219 role-catalog). Review-only; no code modified.
+Independent review of FEAT-220 — externalizing the team playbook into a bundled `src/squads/_interactions/playbook.toml` loaded as a validated `PlaybookSpec` (ADR-226), enums-intact era. Third of the externalization trio (after FEAT-207 workflow / FEAT-219 role-catalog). Review-only; no code modified.
 
 ## What I verified independently (against pre-FEAT-220 HEAD)
 HEAD still carries the original `src/squads/_interactions.py` (the deletion is unstaged), so I anchored everything to it rather than to the new artifacts.
@@ -73,7 +73,7 @@ _Add with `sq review 230 add-finding "…" --severity high`; track with `sq revi
 - A role-guide table with `doo = [...]` (typo of `do`) and `entr = [...]` (typo of `enter`) loads with no error; the typo'd entries are lost (`do`/`enter` come back without them).
 - A type entry with `commandz = [...]` (typo of `commands`) loads with no error; the value is dropped.
 
-**Why it matters.** TASK-000227 explicitly asked for this: 'Apply extra=forbid on every model from the start — this is the FEAT-219 nit lesson; a typo'd TOML key must error, not be silently dropped.' The models satisfy the letter of that, but the loader defeats it in practice for hand-edited TOML.
+**Why it matters.** TASK-227 explicitly asked for this: 'Apply extra=forbid on every model from the start — this is the FEAT-219 nit lesson; a typo'd TOML key must error, not be silently dropped.' The models satisfy the letter of that, but the loader defeats it in practice for hand-edited TOML.
 
 **Severity rationale — low.** Not a current bug: the *bundled* TOML is correct (Layer-A/B golden + my HEAD comparison prove byte-fidelity), and the golden lock catches any drift in the shipped file. It only bites future hand-edits — which is exactly the FEAT-210 custom-type scenario this work is meant to unblock, so it is worth closing eventually. Also note this **matches the existing FEAT-219 `_roles/_loader.py` pattern** (same hand-mapped style, same gap) — so it is a pattern-wide limitation, not a FEAT-220 regression. Consistency with the siblings is a fair reason to defer.
 
@@ -118,7 +118,7 @@ _Add with `sq review 230 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:discussion -->
 - [2026-06-26T09:20:34Z] Paul Reviewer:
   - **Verdict: APPROVE-WITH-NITS.**
-  - FEAT-000220 is behavior-preserving and well-locked. I anchored the review to pre-FEAT-220 HEAD (which still carries the original _interactions.py): the bundled playbook.toml is byte-identical to HEAD's PLAYBOOK both structurally (0 mismatches, all 7 work types, ordered role guides) and at rendered sq-<type> skill output (0 byte mismatches with a dev-bearing roster). Loader fail-closed validation fires on all five rules; *dev exempt; extra='forbid'/frozen on models; rewire faithful; backend byte-identical; no cycle / no future-import / no identity landmines; pyright + ruff + full suite green.
+  - FEAT-220 is behavior-preserving and well-locked. I anchored the review to pre-FEAT-220 HEAD (which still carries the original _interactions.py): the bundled playbook.toml is byte-identical to HEAD's PLAYBOOK both structurally (0 mismatches, all 7 work types, ordered role guides) and at rendered sq-<type> skill output (0 byte mismatches with a dev-bearing roster). Loader fail-closed validation fires on all five rules; *dev exempt; extra='forbid'/frozen on models; rewire faithful; backend byte-identical; no cycle / no future-import / no identity landmines; pyright + ruff + full suite green.
   - On the flagged Layer-B non-circularity concern: the _SNAPSHOT is a frozen Python literal embedded in the test (it does NOT read the TOML at runtime), and I confirmed it is byte-identical to HEAD's original PLAYBOOK. So it IS independently anchored to pre-FEAT-220 HEAD and is a valid regression gate — **it does NOT need re-freezing from HEAD.** The only issue is the misleading 'verbatim from playbook.toml' comment (F2, doc nit).
   - Two LOW findings, neither blocking: F1 — the loader cherry-picks named keys so a typo'd TOML key bypasses extra='forbid' and is silently dropped (defense-in-depth; matches the existing FEAT-219 loader pattern, so a pattern-wide follow-up, not a FEAT-220 regression). F2 — reword the snapshot-provenance comment. Both are safe to land as-is or fix in a quick follow-up.
   - @tech-lead — no changes required; the two nits are your call to fold in now or defer. Not setting task/feature status per review scope.

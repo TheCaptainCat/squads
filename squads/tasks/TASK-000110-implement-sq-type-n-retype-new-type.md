@@ -1,10 +1,10 @@
 ---
-id: TASK-000110
+id: TASK-110
 sequence_id: 110
 type: task
 title: Implement sq <type> <n> retype <new-type>
 status: Done
-parent: FEAT-000020
+parent: FEAT-20
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -27,7 +27,7 @@ updated_at: '2026-06-15T08:46:33Z'
 <!-- sq:body -->
 ## Goal
 
-Add `sq <type> <n> retype <new-type>` — reclassify a work item in place, keeping its globally-unique number, body, discussion, and all incoming references. Work-item types only (epic, feature, task, bug, decision, review, guide). Joins the CLI grammar before the 1.0 freeze (EPIC-000012).
+Add `sq <type> <n> retype <new-type>` — reclassify a work item in place, keeping its globally-unique number, body, discussion, and all incoming references. Work-item types only (epic, feature, task, bug, decision, review, guide). Joins the CLI grammar before the 1.0 freeze (EPIC-12).
 
 ## Why this is one task
 
@@ -155,7 +155,7 @@ Register the retype verb in build_item_app (thin wrapper over svc.retype, type-a
     
     @reviewer please review the implementation. @qa please smoke test retype across all work-item pairs.
 - [2026-06-15T08:43:30Z] Mara Tester:
-  - QA verification of FEAT-000020 (Retype an item in place) — empirical checks in a scratch squad + full test suite.
+  - QA verification of FEAT-20 (Retype an item in place) — empirical checks in a scratch squad + full test suite.
   - **Core retype (US1/AC1):** PASS — sq task N retype bug: sequence number preserved, ID reprefixes (TASK-000002 → BUG-000002), file moves to bugs/, body byte-for-byte verbatim (Unicode: ← → ✓ intact), frontmatter updated, output states old/new ID.
   - **Incoming edges (US2/AC1):** PASS — refs in other items rewritten to new ID; ref kind preserved (blocks); prose @-mentions and inline IDs rewritten; children's parent field rewritten; sq check clean after retype.
   - **Status carry:** PASS — feature→epic (shared _WORK workflow) carries Ready status; task→bug carries InProgress; output: 'status carried: <Status>'.
@@ -168,9 +168,9 @@ Register the retype verb in build_item_app (thin wrapper over svc.retype, type-a
   - **Full test suite:** PASS — 635 passed, 1 skipped (all 33 retype tests green).
   - **Minor gap noted:** when no refs are rewritten, the CLI omits the '0 file(s)' line from output. Spec says output 'states … rewritten refs' but omitting a zero count is reasonable — not blocking.
 - [2026-06-15T08:45:29Z] Paul Reviewer:
-  - Reviewed in REV-000115: APPROVED. Retype is correct end-to-end — sequence number preserved, ID reprefixes via the computed field, file moved to the new folder with body bytes verbatim and markers intact; incoming edges (refs with kinds, children's parent, prose mentions) rewritten atomically in one transaction with no dangling refs; status carry-vs-reset correct per workflow; all three refusals fire with actionable hints.
+  - Reviewed in REV-115: APPROVED. Retype is correct end-to-end — sequence number preserved, ID reprefixes via the computed field, file moved to the new folder with body bytes verbatim and markers intact; incoming edges (refs with kinds, children's parent, prose mentions) rewritten atomically in one transaction with no dangling refs; status carry-vs-reset correct per workflow; all three refusals fire with actionable hints.
   - Invariant 1 verified hands-on: after a retype with a ref + prose rewrite, sq check is clean and sq repair rebuilds the index byte-identically from frontmatter. Forward-edges-only, marker-safe edits, injectable clock, and e() escaping all respected.
   - Architect-flagged forward reference (_cmd_retype call-before-def in _cli/_items.py): genuinely resolved — build_item_app only runs from _cli/__init__.py after the module loads, so the name binds at call time. Not masked.
   - Gate green: 635 passed / 1 skipped, pyright 0 errors, ruff check + format clean.
-  - Two LOW-severity, non-blocking quality findings (F1, F2 in REV-000115) — optional cleanup, not required to ship: F1 an avoidable '# type: ignore[assignment]' from typing current_status as object in _carry_or_reset_status; F2 a duplicated subentity-kind reverse map that already exists as _base.SUBENTITY_KIND. @python-dev your call whether to fold these in now or leave them.
+  - Two LOW-severity, non-blocking quality findings (F1, F2 in REV-115) — optional cleanup, not required to ship: F1 an avoidable '# type: ignore[assignment]' from typing current_status as object in _carry_or_reset_status; F2 a duplicated subentity-kind reverse map that already exists as _base.SUBENTITY_KIND. @python-dev your call whether to fold these in now or leave them.
 <!-- sq:discussion:end -->

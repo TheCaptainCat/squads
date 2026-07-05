@@ -31,16 +31,16 @@ version (see [migration.md](migration.md)).
 
 ### ID numbering, padding, and exhaustion
 
-The global sequence number is the durable identity of an item — `TASK-000007` and `TASK-7` address
-the same item forever, whether the squad's ID width is set to 6, 8, or 4. The *number* never
-changes across a retype or repair; the *prefix* and *display width* may.
+The global sequence number is the durable identity of an item — `TASK-7` and `TASK-000007` (in refs or filenames)
+resolve to the same item forever. The *number* never changes across a retype or repair; the *prefix* stays fixed.
 
-- **Padding:** stored in the index with a default of 6, reconstructed by `sq repair`. Raised
-  one-way via `sq migrate repad <width>` (never lowered). Mixed-width IDs in the same squad
-  resolve correctly forever — content written before a repad keeps using old width, new items use
-  the new width, and readers understand both.
+- **Display:** every human-facing surface (frontmatter `id:`, CLI output, `--json`) renders IDs unpadded (e.g. `TASK-7`).
+  This is fixed and not user-configurable.
+- **Filenames:** on disk, items use zero-padded names (`TASK-000007-slug.md`) for lexicographic sorting. The padding
+  width is stored in the index with a default of 6, reconstructed by `sq repair`. Raised one-way via `sq migrate repad
+  <width>` (never lowered). References written before a repad retain their original width — readers understand both.
 - **Exhaustion:** `sq create` errors with an index-full message at capacity, never silently
-  widening. If a squad fills its current width, raise the width explicitly and the counter
+  widening. If a squad fills its current filename width, raise the width explicitly and the counter
   continues.
 
 
@@ -133,9 +133,10 @@ Every item is addressed by **full ID** or **bare number**, accepted everywhere. 
 existing item through the wrong type is an error.
 
 ```bash
-sq show TASK-000007      # full ID
+sq show TASK-7           # full ID (unpadded)
+sq show TASK-000007      # also works (padded form for backward compatibility)
 sq show 7                # bare number (resolves the item at sequence 7, whatever its type)
-sq show BUG-000007       # ERROR: item 7 is a task, not a bug
+sq show BUG-7            # ERROR: item 7 is a task, not a bug
 ```
 
 
@@ -203,7 +204,7 @@ The `sq migrate` sub-app's frozen surface:
 - `sq migrate up` — run every pending automatic migration, rebuild the index, stamp the new schema
 - `sq migrate help` — the changelog index
 - `sq migrate chlog vA..vB` — manual steps for migrations shipped in `(vA, vB]`
-- `sq migrate repad <width>` — raise ID padding (see Tier 1)
+- `sq migrate repad <width>` — raise the filename-padding width (see Tier 1)
 
 Runner modules are private; never use `python -m`; `sq migrate` is the only entry point.
 

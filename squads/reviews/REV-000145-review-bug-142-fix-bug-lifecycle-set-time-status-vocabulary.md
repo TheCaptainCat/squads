@@ -1,13 +1,13 @@
 ---
-id: REV-000145
+id: REV-145
 sequence_id: 145
 type: review
 title: 'Review BUG-142 fix: bug lifecycle + set-time status vocabulary validation'
 status: Approved
 author: reviewer
 refs:
-- BUG-000142
-- ADR-000143:addresses
+- BUG-142
+- ADR-143:addresses
 subentities:
 - local_id: F1
   title: All ADR-143 acceptance points verified; no defects
@@ -17,8 +17,8 @@ created_at: '2026-06-16T13:48:41Z'
 updated_at: '2026-06-16T13:49:26Z'
 ---
 <!-- sq:body -->
-Independent review of the BUG-000142 fix (bug lifecycle + set-time status
-vocabulary validation), implemented per ADR-000143 with the op-pierre override
+Independent review of the BUG-142 fix (bug lifecycle + set-time status
+vocabulary validation), implemented per ADR-143 with the op-pierre override
 (schema stays 0.3, no migration runner; existing bugs remapped in place).
 
 ## Scope verified
@@ -32,7 +32,7 @@ vocabulary validation), implemented per ADR-000143 with the op-pierre override
 
 ## Verdict: APPROVED
 
-The fix is correct, complete, and conforms to ADR-000143. The key vocabulary
+The fix is correct, complete, and conforms to ADR-143. The key vocabulary
 hole that let BUG-134 become `Fixed` is closed and proven closed empirically.
 Gate is fully green. No findings above informational.
 <!-- sq:body:end -->

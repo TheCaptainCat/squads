@@ -97,7 +97,7 @@ async def test_priority_cli(project, invoke):
     shown = await invoke(["task", "2", "show"])
     assert shown.exit_code == 0 and "high" in shown.output
     listed = await invoke(["list", "--priority", "high"])
-    assert "TASK-000002" in listed.output
+    assert "TASK-2" in listed.output
     none = await invoke(["list", "--priority", "low"])
     assert "no items" in none.output
 
@@ -113,25 +113,25 @@ async def test_hide_closed_in_list_and_tree(project, invoke):
     await invoke(["task", "3", "status", "InProgress"])
     await invoke(["task", "3", "status", "Done"])
     default = await invoke(["list", "--type", "task"])
-    assert "TASK-000002" in default.output and "TASK-000003" not in default.output
+    assert "TASK-2" in default.output and "TASK-3" not in default.output
     with_all = await invoke(["list", "--type", "task", "--all"])
-    assert "TASK-000003" in with_all.output
+    assert "TASK-3" in with_all.output
     by_status = await invoke(["list", "--status", "Done"])
-    assert "TASK-000003" in by_status.output
+    assert "TASK-3" in by_status.output
     tree_default = await invoke(["tree"])
-    assert "TASK-000003" not in tree_default.output
+    assert "TASK-3" not in tree_default.output
     tree_all = await invoke(["tree", "--all"])
-    assert "TASK-000003" in tree_all.output
+    assert "TASK-3" in tree_all.output
 
 
 async def test_search_cli(project, invoke):
     await invoke(["create", "task", "Token validation", "--author", "manager"])
     r = await invoke(["search", "token"])
-    assert r.exit_code == 0 and "TASK-000002" in r.output
+    assert r.exit_code == 0 and "TASK-2" in r.output
     j = await invoke(["search", "token", "--json"])
     import json
 
-    assert json.loads(j.output)[0]["id"] == "TASK-000002"
+    assert json.loads(j.output)[0]["id"] == "TASK-2"
 
 
 async def test_blocked_and_workload_cli(project, invoke):
@@ -139,7 +139,7 @@ async def test_blocked_and_workload_cli(project, invoke):
     await invoke(["create", "task", "B", "--author", "manager"])
     await invoke(["task", "3", "ref", "add", "TASK-000002", "--kind", "blocks"])
     blocked = await invoke(["blocked"])
-    assert "TASK-000002" in blocked.output and "blocked by" in blocked.output
+    assert "TASK-2" in blocked.output and "blocked by" in blocked.output
     work = await invoke(["workload", "--json"])
     import json
 
@@ -151,7 +151,7 @@ async def test_mine_cli(project, invoke):
     await invoke(["create", "task", "Mine", "--author", "manager", "--assignee", "manager"])
     # slug is now required; pass manager explicitly
     r = await invoke(["mine", "manager"])
-    assert "TASK-000002" in r.output
+    assert "TASK-2" in r.output
     # unknown slug is an error (exit 1) — bare sq mine is also an error
     bare = await invoke(["mine"])
     assert bare.exit_code != 0
@@ -182,7 +182,7 @@ async def test_tree_priority_dot_separator(project, invoke):
                 return hit
         return None
 
-    task_node = find_node(all_nodes, "TASK-000002")
+    task_node = find_node(all_nodes, "TASK-2")
     assert task_node is not None
     assert task_node["priority"] == "high"
     assert "·" not in str(task_node["priority"])

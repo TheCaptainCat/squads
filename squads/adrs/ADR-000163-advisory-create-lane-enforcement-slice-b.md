@@ -1,5 +1,5 @@
 ---
-id: ADR-000163
+id: ADR-163
 sequence_id: 163
 type: decision
 title: Advisory create-lane enforcement (Slice B)
@@ -7,21 +7,21 @@ status: Accepted
 author: architect
 priority: medium
 refs:
-- FEAT-000122:implements
-- ADR-000155
-- ADR-000158
-- FEAT-000125
+- FEAT-122:implements
+- ADR-155
+- ADR-158
+- FEAT-125
 created_at: '2026-06-22T12:14:44Z'
 updated_at: '2026-06-22T12:35:54Z'
 ---
 <!-- sq:body -->
 ## Status
 
-Proposed — design for FEAT-000122 Slice B (US1). Goes to the operator (Pierre) for approval
-before any build. Parent context EPIC-000121. Builds directly on Nina's lane-rules spec
-(FEAT-000122 body §1–§5, AC-B1..AC-B7) and adopts it; consistent with ADR-000155
-(capability attenuation) and ADR-000158 (best-effort, untrusted lineage). Identity primitive
-(FEAT-000125) is Done — `current_actor()` and `current_session()` are available.
+Proposed — design for FEAT-122 Slice B (US1). Goes to the operator (Pierre) for approval
+before any build. Parent context EPIC-121. Builds directly on Nina's lane-rules spec
+(FEAT-122 body §1–§5, AC-B1..AC-B7) and adopts it; consistent with ADR-155
+(capability attenuation) and ADR-158 (best-effort, untrusted lineage). Identity primitive
+(FEAT-125) is Done — `current_actor()` and `current_session()` are available.
 
 ## Context
 
@@ -32,10 +32,10 @@ without re-litigating the open questions.
 
 Two prior decisions bound this design and must not be contradicted:
 
-- **ADR-000155** established that real *capability* enforcement (e.g. withholding the spawn
+- **ADR-155** established that real *capability* enforcement (e.g. withholding the spawn
   tool) lives at the Claude Code backend, bound to the agent **type** at launch — not as an
   sq-runtime check. That slice (Slice A) is structural and trustworthy.
-- **ADR-000158** established that the recorded actor (slug + optional session/parent) is
+- **ADR-158** established that the recorded actor (slug + optional session/parent) is
   **best-effort, untrusted, observability-only** — squads is a passive CLI, never in the spawn
   path; it cannot mint, inject, or verify identity. Its §7 is explicit: *any* lane enforcement
   keyed on the recorded actor is **inherently advisory** — it catches the honest accident, never
@@ -181,9 +181,9 @@ the item type, in advisory language. Example wording:
 ### 4. Identity basis + honesty
 
 The check keys off the **self-declared `--as`/`--author` slug** surfaced by
-`actor.current_actor()` / the `author` argument. The session pair from FEAT-000125
+`actor.current_actor()` / the `author` argument. The session pair from FEAT-125
 (`actor.current_session()`) is **context only** — it may be carried into the reflog delta for
-forensics but is **never** the basis of the lane decision, because (ADR-000158) it is equally
+forensics but is **never** the basis of the lane decision, because (ADR-158) it is equally
 untrusted.
 
 State plainly, everywhere the feature surfaces (CLI text, `sq role show`, docs): the lane check is
@@ -230,7 +230,7 @@ persisted field, consistent with "one source of truth."
   reflog delta and `CreateResult` field are additive; no schema bump. The honest accident (a dev
   creating a feature, a dev filing a bug) is now *visible* in real time and in the reflog.
 - **Negative / limits (must be documented, not hidden).** **Advisory only.** Keyed on the
-  self-declared slug, which is untrusted (ADR-000158): a forged `--as` slug bypasses the check
+  self-declared slug, which is untrusted (ADR-158): a forged `--as` slug bypasses the check
   silently, and the dev-bug case proceeds by design. Mutations are entirely unlaned in this cut
   (Option A) — a role can transition/edit any item with no warning. These are accepted trade-offs
   of an advisory posture, not gaps to be "fixed" by over-claiming.
@@ -253,7 +253,7 @@ persisted field, consistent with "one source of truth."
   (escaped, exit 0, JSON-aware) and the `creates:` row in `_cli/_role.py`.
 - Lane on the **declared `author`**, exempt **before** lookup, key off `current_actor()` /
   `author` only — `current_session()` is forensic context, never the decision basis.
-- Map subtasks to US1 of FEAT-000122; AC-B1..AC-B7 are the acceptance gates.
+- Map subtasks to US1 of FEAT-122; AC-B1..AC-B7 are the acceptance gates.
 <!-- sq:body:end -->
 
 ## Discussion

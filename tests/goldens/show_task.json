@@ -5,13 +5,13 @@
   "slug": "implement-login",
   "status": "InProgress",
   "description": "",
-  "parent": "FEAT-000002",
+  "parent": "FEAT-2",
   "author": "manager",
   "assignee": null,
   "priority": null,
   "labels": [],
   "refs": [
-    "BUG-000004:depends-on"
+    "BUG-4:depends-on"
   ],
   "subentities": [
     {
@@ -29,5 +29,5 @@
   "created_session": null,
   "modified_session": null,
   "extra": {},
-  "id": "TASK-000003"
+  "id": "TASK-3"
 }

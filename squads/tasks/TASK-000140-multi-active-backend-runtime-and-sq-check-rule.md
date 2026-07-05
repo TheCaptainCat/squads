@@ -1,10 +1,10 @@
 ---
-id: TASK-000140
+id: TASK-140
 sequence_id: 140
 type: task
 title: Multi-active backend runtime and sq check rule
 status: Done
-parent: FEAT-000138
+parent: FEAT-138
 author: tech-lead
 priority: high
 subentities:
@@ -22,10 +22,10 @@ updated_at: '2026-06-23T09:59:00Z'
 <!-- sq:body -->
 ## Goal
 
-The runtime half of FEAT-000138: change the config model to carry
+The runtime half of FEAT-138: change the config model to carry
 `active_backends: list[str]`, fan every backend-writing path out over the active
 list, populate the list at init/adopt, and add the `sq check` rule. Builds on the
-schema bump + migration in TASK-000139.
+schema bump + migration in TASK-139.
 
 ## Work
 
@@ -50,7 +50,7 @@ schema bump + migration in TASK-000139.
   (error or warn per ADR); empty list verifies nothing; backends absent from the
   list are ignored even if their files linger on disk (deactivation = ignore).
   This needs a backend-level "what files do you own / are they current?" probe —
-  coordinate with the ABC (ADR-000133 shape).
+  coordinate with the ABC (ADR-133 shape).
 - **Tests**: service-level + CLI smoke for (a) multi-active sync writing both
   backends' files; (b) empty list = no agent files, check clean; (c) deactivation
   leaves files but check ignores them. Update existing tests that assert
@@ -59,10 +59,10 @@ schema bump + migration in TASK-000139.
 
 ## Coordination
 
-Shares the `SquadsConfig` seam with TASK-000139 (which bumps schema + writes the
+Shares the `SquadsConfig` seam with TASK-139 (which bumps schema + writes the
 new TOML key). The ABC probe for "files present/current" may touch
 `src/squads/_backends/_base.py` and both backend impls — overlaps lightly with
-ADR-000133's just-landed ABC surface. Sequence after 139's schema/runner.
+ADR-133's just-landed ABC surface. Sequence after 139's schema/runner.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -119,7 +119,7 @@ sq check rule: each active backend's files present & current, empty active_backe
 
 <!-- sq:discussion -->
 - [2026-06-16T12:27:52Z] Elias Python:
-  - Implemented TASK-000140 (config model + multi-active runtime + check) per ADR-000141.
+  - Implemented TASK-140 (config model + multi-active runtime + check) per ADR-141.
   - Config model (_models/_config.py): replaced default_backend: NonEmpty with active_backends: list[str] = ['claude_code']. Dedup-on-read via @field_validator (first-occurrence order, ADR-141 §2). from_toml_dict translates legacy default_backend→active_backends for back-compat with pre-migration TOML.
   - Runtime fan-out (_services/_base.py): _backend() replaced by _backends() returning list[AgentBackend]. scaffold_backend(), refresh_managed(), activate_role/add_dev/add_skill (roster), regen/remove_item (items), and sync() (maintenance) all fan out over all active backends. Empty list = no-op (sq-only squad).
   - init/adopt CLI (_cli/_main.py, _services/_service.py): --backend is now repeatable (list[str]); _parse_backend_option() implements the 'none' sentinel (case-insensitive → [] i.e. sq-only; 'none' + real backend raises SquadsError per ADR-141 §3). Info line changed from default_backend to joined active_backends.
@@ -153,7 +153,7 @@ sq check rule: each active backend's files present & current, empty active_backe
     
     **Full suite:** 819 passed, 1 skipped.
 - [2026-06-16T12:59:25Z] Paul Reviewer:
-  - REV-000144: APPROVED. Independent review of FEAT-000138 multi-active backends complete.
+  - REV-144: APPROVED. Independent review of FEAT-138 multi-active backends complete.
   - Gate green: 819 passed / 1 skipped, pyright clean, ruff check + format clean. Repo squad at 0.3, sq check green; imports acyclic; Invariants 1 (nothing new in .squads.json) & 6 (no .claude/ reach-around) hold.
   - (a) Confirmed NO 0.4/migration residue in code — SCHEMA_VERSION=0.3, no _v0_3_to_v0_4 runner, registry stops at 0.3, no v0_4 corpus, _CORPUS_CASES ends at 0.3. (b) Confirmed managed_paths lists only guaranteed-written files: claude_code=[CLAUDE.md, .claude/settings.json], agents_md=[AGENTS.md]; read-only, conformance-covered for both.
   - Back-compat read of legacy default_backend verified (non-vacuously, via the v0_3 corpus). Fan-out verified across scaffold/sync/activate_role/add_dev/add_skill/regen/remove_item over the deduped list; --backend repeatable + none sentinel + none-with-real → SquadsError all verified by tests.

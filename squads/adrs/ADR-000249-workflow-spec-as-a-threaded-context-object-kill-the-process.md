@@ -1,5 +1,5 @@
 ---
-id: ADR-000249
+id: ADR-249
 sequence_id: 249
 type: decision
 title: 'Workflow spec as a threaded context object: kill the process-global singleton
@@ -7,8 +7,8 @@ title: 'Workflow spec as a threaded context object: kill the process-global sing
 status: Accepted
 author: architect
 refs:
-- ADR-000214:addresses
-- FEAT-000210:addresses
+- ADR-214:addresses
+- FEAT-210:addresses
 description: 'Assessment ADR (Draft): de-globalize the workflow-spec singleton into
   a Service-owned/threaded context per ADR-214 §1. Go/no-go for Pierre.'
 created_at: '2026-06-30T09:47:54Z'
@@ -18,12 +18,12 @@ updated_at: '2026-06-30T09:54:38Z'
 > **STATUS: Draft / assessment.** This ADR is an architectural assessment for Pierre's go/no-go.
 > Drafting is not a greenlight to implement (project norm: drafting ≠ implementation). No production
 > code is to change on the strength of this draft. It executes the destination already pinned by
-> **ADR-000214 §1** ("F3+ threads a per-`Service` spec instance"); on acceptance it would supersede
+> **ADR-214 §1** ("F3+ threads a per-`Service` spec instance"); on acceptance it would supersede
 > ADR-214 §1's threading clause.
 
 ## Context
 
-FEAT-000209 (F3, shipped) introduced a **process-global workflow-spec singleton** in
+FEAT-209 (F3, shipped) introduced a **process-global workflow-spec singleton** in
 `src/squads/_workflow/__init__.py` as a *deliberate narrow rebind*, explicitly because ADR-214 §1
 pinned the real destination ("F3+ threads a per-`Service` spec instance") but F3 didn't need to pay
 for it yet. The global mechanism today:
@@ -274,9 +274,9 @@ subcommand parse, or relocating type/status validation from the Typer parser int
   - FEAT-210 entanglement verdict: PREREQUISITE, done FIRST and separately — not folded in. 210 already must make the CLI app tree spec-driven (spec.managed_types()); this ADR gives it a clean per-invocation spec to build on, and keeps the mechanical de-global behavior-preserving + golden-locked + independently bisectable. Folding into 210 entangles a refactor with a user-facing feature.
   - Recommendation: Option A (full Service-owned + threaded spec; delete the singleton/_active_spec list/in-place dict mutation/_terminal_ref/use_spec/reset_spec/autouse fixture). Effort medium (~4 tasks: workflow core+IndexStore, service call-site sweep, CLI context handle, test rewrite), risk medium, behavior-preserving under the FEAT-208 characterization+golden safety net. Fallback Option C: contextvar-only de-global (low effort/risk) that keeps the free-function API and is also a clean first step of A. Open Qs for Pierre in the body: A vs C, sequencing confirm, and the autouse-fixture/7-test-file churn on the EPIC-206 net.
 - [2026-06-30T09:51:35Z] Catherine Manager:
-  - Pierre (op-pierre) selected Option A: full Service-owned threaded WorkflowSpec — delete the process-global singleton (use_spec/reset_spec, in-place dict mutation, _terminal_ref, autouse reset fixture). Sequenced as a standalone prerequisite feature BEFORE FEAT-000210, accepting the rewrite of the 7 singleton-touching test files. Greenlit for implementation.
+  - Pierre (op-pierre) selected Option A: full Service-owned threaded WorkflowSpec — delete the process-global singleton (use_spec/reset_spec, in-place dict mutation, _terminal_ref, autouse reset fixture). Sequenced as a standalone prerequisite feature BEFORE FEAT-210, accepting the rewrite of the 7 singleton-touching test files. Greenlit for implementation.
 - [2026-06-30T09:54:38Z] Olivia Lead:
-  - Broke Option A down under FEAT-000250 (grouping feature, parented to EPIC-206, addresses this ADR, blocks FEAT-210 — sq blocked now shows 210 waiting on it). Internal refactor, no user stories; acceptance = behaviour byte-identical (FEAT-208 characterization + golden-lock green) with the singleton deleted.
+  - Broke Option A down under FEAT-250 (grouping feature, parented to EPIC-206, addresses this ADR, blocks FEAT-210 — sq blocked now shows 210 waiting on it). Internal refactor, no user stories; acceptance = behaviour byte-identical (FEAT-208 characterization + golden-lock green) with the singleton deleted.
   - Four sequenced tasks (a→b→c→d, depends-on refs recorded): TASK-251 workflow core (free fns → spec methods + IndexStore takes the spec); TASK-252 service call-site sweep (Service.spec attr, ~40 sites incl. _maintenance/sq check + the _meta_compat migration); TASK-253 CLI per-invocation spec handle (root --dir callback binds it, parse_type/parse_status read it — Click parse-ordering nailed per Finding 2); TASK-254 test rewrite of the singleton-touching files + delete the _reset_workflow_spec autouse fixture.
   - Hard scope line carried in every task body: the import-time app-build loop (_cli/__init__.py for-loop) stays bundled-spec-driven and is FEAT-210's job — this feature owns 'spec is threaded/contextual', 210 owns 'app tree built from live spec'. Left all tasks Draft for Catherine to schedule.
 <!-- sq:discussion:end -->

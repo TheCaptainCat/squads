@@ -1,18 +1,18 @@
 ---
-id: TASK-000252
+id: TASK-252
 sequence_id: 252
 type: task
 title: 'Service-layer call-site sweep: Service.spec attribute, ~40 sites read self.spec'
 status: Done
-parent: FEAT-000250
+parent: FEAT-250
 author: tech-lead
 refs:
-- TASK-000251:depends-on
+- TASK-251:depends-on
 created_at: '2026-06-30T09:53:04Z'
 updated_at: '2026-06-30T10:14:17Z'
 ---
 <!-- sq:body -->
-**Part (b) of FEAT-000250 / ADR-000249 Option A. Sequence: after TASK-000251 (needs the
+**Part (b) of FEAT-250 / ADR-249 Option A. Sequence: after TASK-251 (needs the
 spec methods + IndexStore signature), before the CLI task.**
 
 Give `Service` an owned `spec: WorkflowSpec` attribute and sweep the ~40 service-layer
@@ -23,8 +23,8 @@ call sites to read `self.spec.<method>` instead of the module-level free functio
 - **`src/squads/_services/_service.py`** — `open_service` resolves + merges + validates the
   spec **once** and stores it on the `Service` (no global rebind; the `use_spec`/`bundled_spec`
   orchestration at `:185-210` goes away). `Service` constructs/holds its `IndexStore` with that
-  spec (per TASK-000251's signature). The spec is owned by `Service`.
-- **Call-site sweep** (per ADR-000249's grounded inventory — verify against current code):
+  spec (per TASK-251's signature). The spec is owned by `Service`.
+- **Call-site sweep** (per ADR-249's grounded inventory — verify against current code):
   - `_services/_base.py` (`ServiceCore`: `initial_status`, `is_open`, `item_is_meta`,
     `parent_allowed`, `parent_hint`)
   - `_services/_items.py` (`can_transition`, `item_is_meta`, `workflow_for`)

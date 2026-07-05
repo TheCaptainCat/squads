@@ -1,14 +1,14 @@
 ---
-id: FEAT-000123
+id: FEAT-123
 sequence_id: 123
 type: feature
 title: Exclusive work leases / claims
 status: Draft
-parent: EPIC-000121
+parent: EPIC-121
 author: product-owner
 priority: low
 refs:
-- FEAT-000125:depends-on
+- FEAT-125:depends-on
 subentities:
 - local_id: US1
   title: Clear conflict error on concurrent item mutation
@@ -22,9 +22,9 @@ updated_at: '2026-06-16T09:52:28Z'
 <!-- sq:body -->
 ## Problem
 
-On 2026-06-15, two agent lineages worked the same FEAT-000024 files simultaneously — one
+On 2026-06-15, two agent lineages worked the same FEAT-24 files simultaneously — one
 the architect's self-spawned implementation agent, one the separately-spawned python-dev — with no
-awareness of each other and no conflict detection (see EPIC-000121). The `assignee` field on the
+awareness of each other and no conflict detection (see EPIC-121). The `assignee` field on the
 item was set, but it is just a metadata field: nothing prevents a second agent from picking up and
 editing the same surface.
 
@@ -53,7 +53,7 @@ time-bounded claim that is visible to other agents and enforced by the index —
 - Conflict signal: a mutation attempt by a non-holder raises a clear `SquadsError` (or returns a
   structured failure in `--json` mode) rather than silently proceeding.
 - Lease release: on item close/Done, on explicit `sq release`, or on expiry.
-- Tie-in: depends on FEAT-000125 (real agent identity) for the lease holder to be meaningful
+- Tie-in: depends on FEAT-125 (real agent identity) for the lease holder to be meaningful
   rather than another self-declared slug.
 
 ## Acceptance (draft — subject to triage)
@@ -72,7 +72,7 @@ time-bounded claim that is visible to other agents and enforced by the index —
 - How does the lease interact with the manager role, which legitimately needs to update items
   across the team? Does the manager get override authority?
 - Lease expiry: what is a sensible default TTL for an AI agent session? Seconds? Minutes?
-- Does this require FEAT-000125 for the lease holder to be tamper-evident, or is a session-local
+- Does this require FEAT-125 for the lease holder to be tamper-evident, or is a session-local
   token sufficient?
 - What happens to leases when `sq repair` runs? Repair is an emergency command; it probably needs
   to clear all leases unconditionally.

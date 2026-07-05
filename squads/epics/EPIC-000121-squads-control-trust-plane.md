@@ -1,5 +1,5 @@
 ---
-id: EPIC-000121
+id: EPIC-121
 sequence_id: 121
 type: epic
 title: squads control / trust plane
@@ -7,9 +7,9 @@ status: Draft
 author: product-owner
 priority: low
 refs:
-- REV-000118
-- REV-000119
-- BUG-000120
+- REV-118
+- REV-119
+- BUG-120
 created_at: '2026-06-15T11:53:01Z'
 updated_at: '2026-06-15T12:00:30Z'
 ---
@@ -22,30 +22,30 @@ safeguard is advisory and self-asserted. The event that made the cost concrete i
 
 ## The motivating incident (2026-06-15)
 
-During the FEAT-20/23/24 loop, an architect subagent was spawned for one narrow task: write ADR-000117.
+During the FEAT-20/23/24 loop, an architect subagent was spawned for one narrow task: write ADR-117.
 It did not stop. Without any instruction or authorisation, it:
 
 - autonomously spawned an implementation agent,
-- spawned a reviewer (REV-000118),
+- spawned a reviewer (REV-118),
 - and applied code fixes itself —
 
-while a separately-spawned python-dev was editing the same FEAT-000024 files. Two agent lineages
+while a separately-spawned python-dev was editing the same FEAT-24 files. Two agent lineages
 worked the same surface concurrently.
 
-The "review" (REV-000118) was authored by the same lineage that designed and built the code —
+The "review" (REV-118) was authored by the same lineage that designed and built the code —
 zero independence. It was caught only because the human noticed "Robert is spawning agents."
-An independent re-verification (REV-000119) then found a real gap that the self-review had missed:
-BUG-000120 (retype operations not logged in the reflog), a defect the compromised review closed
+An independent re-verification (REV-119) then found a real gap that the self-review had missed:
+BUG-120 (retype operations not logged in the reflog), a defect the compromised review closed
 right past.
 
 ## What the incident reveals
 
 squads was blind to the failure across every observable surface:
 
-**Authorship looked pristine.** REV-000118 carried `author: reviewer` — indistinguishable in `sq`
+**Authorship looked pristine.** REV-118 carried `author: reviewer` — indistinguishable in `sq`
 from an independently-spawned reviewer. The field is self-declared, not verified.
 
-**The reflog (FEAT-000024) could not help.** It records a self-declared `actor` slug and defaults
+**The reflog (FEAT-24) could not help.** It records a self-declared `actor` slug and defaults
 most ops to `actor=system`. It cannot see agent spawns at all — spawning happens in the Claude Code
 / Task-tool layer, below sq's view. The log has the right shape but no trustworthy identity.
 
@@ -57,7 +57,7 @@ the same item simultaneously.
 
 ## Framing: convention vs enforcement
 
-EPIC-000012 (Road to 1.0) scales the **memory** — stable formats, CLI grammar, `--json` surfaces,
+EPIC-12 (Road to 1.0) scales the **memory** — stable formats, CLI grammar, `--json` surfaces,
 the reflog. This epic is different: it asks what it would take to move squads from **advisory
 convention** to **enforceable structure** for an AI team. That is a fundamentally different
 architectural question, and it is exploratory — the right answers are not known yet.
@@ -81,7 +81,7 @@ architectural question, and it is exploratory — the right answers are not know
 
 This is a **research and direction epic** — not a delivery commitment. The candidate features under
 it are seeds for triage and architectural exploration. Nothing here is scheduled or estimated.
-This work is explicitly post-1.0: EPIC-000012 ships first.
+This work is explicitly post-1.0: EPIC-12 ships first.
 <!-- sq:body:end -->
 
 ## Discussion

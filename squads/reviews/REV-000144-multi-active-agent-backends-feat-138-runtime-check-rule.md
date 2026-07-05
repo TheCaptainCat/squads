@@ -1,15 +1,15 @@
 ---
-id: REV-000144
+id: REV-144
 sequence_id: 144
 type: review
 title: Multi-active agent backends (FEAT-138) runtime + check rule
 status: Approved
-parent: TASK-000140
+parent: TASK-140
 author: reviewer
 refs:
-- TASK-000140
-- FEAT-000138
-- ADR-000141
+- TASK-140
+- FEAT-138
+- ADR-141
 subentities:
 - local_id: F1
   title: Stale schema_version="0.4" in test_agent_naming.py config-parsing tests
@@ -19,7 +19,7 @@ created_at: '2026-06-16T12:58:05Z'
 updated_at: '2026-06-16T12:59:17Z'
 ---
 <!-- sq:body -->
-Independent review of FEAT-000138 multi-active agent backends, delivered in TASK-000140 (InReview). Reviewed against ADR-000141 as amended by the op-pierre override (Elias's comment + manager directive): NO 0.4 schema bump and NO migration — active_backends is part of the in-development 0.3 schema, config reads legacy default_backend tolerantly. All other ADR-141 rulings stand and were verified.
+Independent review of FEAT-138 multi-active agent backends, delivered in TASK-140 (InReview). Reviewed against ADR-141 as amended by the op-pierre override (Elias's comment + manager directive): NO 0.4 schema bump and NO migration — active_backends is part of the in-development 0.3 schema, config reads legacy default_backend tolerantly. All other ADR-141 rulings stand and were verified.
 
 Gate: 819 passed / 1 skipped, pyright 0 errors, ruff check + format clean. Repo squad at schema 0.3 with active_backends=["claude_code"], sq check green. Imports acyclic. Invariant 1 (nothing new in .squads.json) and Invariant 6 (no .claude/ reach-around) both hold.
 <!-- sq:body:end -->
@@ -61,7 +61,7 @@ tests/test_agent_naming.py:186 and :198 pass schema_version="0.4" to SquadsConfi
 
 <!-- sq:discussion -->
 - [2026-06-16T12:59:17Z] Paul Reviewer:
-  - VERDICT: APPROVED. FEAT-000138 multi-active backends is correct and complete per ADR-141 as amended by the op-pierre override.
+  - VERDICT: APPROVED. FEAT-138 multi-active backends is correct and complete per ADR-141 as amended by the op-pierre override.
   - Confirmed (a) NO 0.4/migration residue in code: SCHEMA_VERSION="0.3"; no _v0_3_to_v0_4.py; registry stops at the 0.3 migration; no v0_4 corpus fixture; _CORPUS_CASES = [(0.1),(0.2),(0.3)] only; no test asserts a 0.4 schema except two stale config-parsing fixtures in test_agent_naming.py (F1, low, harmless). All other "0.4" strings are in tracked sq item docs/reflog — immutable history, not code.
   - Confirmed (b) managed_paths lists ONLY guaranteed-written files for both backends: claude_code → [CLAUDE.md (write_managed, unconditional), .claude/settings.json (ensure_scaffold)]; agents_md → [AGENTS.md (ensure_scaffold + write_managed)]. No per-role pointers listed (would false-fail when no roles). Both managed_paths are read-only (no mkdir/write); conformance asserts read-only + present-after-sync for both.
   - Back-compat read verified: legacy default_backend="claude_code" → active_backends=["claude_code"] (from_toml_dict), explicit active_backends=[] preserved, missing both → ["claude_code"] default (never silently sq-only). Exercised non-vacuously by the v0_3 corpus fixture (keeps singular default_backend) migrating up to 0.3 and passing sq check.

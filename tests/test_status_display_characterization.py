@@ -271,7 +271,7 @@ class TestTopLevelStatusHasNoBadgeToday:
         assert r.exit_code == 0, r.output
         data = json.loads(r.output)
         by_id = {row["id"]: row for row in data}
-        assert by_id["TASK-000002"]["status"] == "Draft"
+        assert by_id["TASK-2"]["status"] == "Draft"
 
 
 # ---------------------------------------------------------------------------
@@ -306,14 +306,14 @@ class TestListDefaultFilterAndBlocked:
         _inv(pinned_squad, ["task", "2", "update", "--status", status_value, "--force"])
         r = pinned_squad.invoke(app, ["list"])
         assert r.exit_code == 0, r.output
-        is_hidden = "TASK-000002" not in r.output
+        is_hidden = "TASK-2" not in r.output
         assert is_hidden == expected_hidden, (
             f"status {status_value!r}: expected hidden={expected_hidden}, "
             f"actual hidden={is_hidden}.\n{r.output}"
         )
         # --all always shows it regardless of status.
         r_all = pinned_squad.invoke(app, ["list", "--all"])
-        assert "TASK-000002" in r_all.output
+        assert "TASK-2" in r_all.output
 
     def test_blocked_open_dependent_on_open_blocker(self, pinned_squad: CliRunner) -> None:
         """An open item depends-on an open blocker: reported by `sq blocked`."""
@@ -322,9 +322,9 @@ class TestListDefaultFilterAndBlocked:
         _inv(pinned_squad, ["task", "3", "ref", "add", "TASK-000002", "--kind", "depends-on"])
         r = pinned_squad.invoke(app, ["blocked"])
         assert r.exit_code == 0, r.output
-        assert "TASK-000003" in r.output
+        assert "TASK-3" in r.output
         assert "blocked by" in r.output
-        assert "TASK-000002" in r.output
+        assert "TASK-2" in r.output
 
     def test_blocked_hides_dependent_once_blocker_closed(self, pinned_squad: CliRunner) -> None:
         """Once the blocker reaches a terminal status, `sq blocked` no longer reports it."""
@@ -355,8 +355,8 @@ class TestListDefaultFilterAndBlocked:
         data = json.loads(r.output)
         assert data == [
             {
-                "id": "TASK-000003",
+                "id": "TASK-3",
                 "title": "Dependent",
-                "blockers": [{"id": "TASK-000002", "title": "Blocker", "status": "Draft"}],
+                "blockers": [{"id": "TASK-2", "title": "Blocker", "status": "Draft"}],
             }
         ]

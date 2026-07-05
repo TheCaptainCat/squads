@@ -1,6 +1,6 @@
 [
   {
-    "id": "ROLE-000001",
+    "id": "ROLE-1",
     "type": "role",
     "status": "Active",
     "priority": null,
@@ -9,7 +9,7 @@
     "children": []
   },
   {
-    "id": "FEAT-000002",
+    "id": "FEAT-2",
     "type": "feature",
     "status": "Draft",
     "priority": null,
@@ -17,7 +17,7 @@
     "blocked": false,
     "children": [
       {
-        "id": "TASK-000003",
+        "id": "TASK-3",
         "type": "task",
         "status": "InProgress",
         "priority": null,
@@ -28,7 +28,7 @@
     ]
   },
   {
-    "id": "BUG-000004",
+    "id": "BUG-4",
     "type": "bug",
     "status": "Open",
     "priority": null,
@@ -37,7 +37,7 @@
     "children": []
   },
   {
-    "id": "ADR-000005",
+    "id": "ADR-5",
     "type": "decision",
     "status": "Proposed",
     "priority": null,
@@ -46,7 +46,7 @@
     "children": []
   },
   {
-    "id": "REV-000006",
+    "id": "REV-6",
     "type": "review",
     "status": "Requested",
     "priority": null,
@@ -55,7 +55,7 @@
     "children": []
   },
   {
-    "id": "GUIDE-000007",
+    "id": "GUIDE-7",
     "type": "guide",
     "status": "Draft",
     "priority": null,
@@ -64,7 +64,7 @@
     "children": []
   },
   {
-    "id": "SKILL-000008",
+    "id": "SKILL-8",
     "type": "skill",
     "status": "Active",
     "priority": null,
@@ -73,7 +73,7 @@
     "children": []
   },
   {
-    "id": "OP-000009",
+    "id": "OP-9",
     "type": "operator",
     "status": "Active",
     "priority": null,

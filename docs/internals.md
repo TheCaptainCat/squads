@@ -67,13 +67,13 @@ index, the filesystem, the backend, and rendering together.
 
 `SquadsDB` is the JSON root: `{schema_version, squads_version, counter, items: {sequence# → Item}}`.
 Items are **keyed by their integer `sequence_id`** (the global counter number — the item's real
-identity); the formatted `id` (`TASK-000007`) is *derived* from `type` + `sequence_id`. Both are
-persisted in `.md` frontmatter. A legacy full-id-keyed index still loads (keys normalized on read).
+identity); the formatted `id` (`TASK-7`) is *derived* from `type` + `sequence_id`, and displayed unpadded.
+Both `id` and `sequence_id` are persisted in `.md` frontmatter. A legacy full-id-keyed index still loads (keys normalized on read).
 
-- **One global monotonic counter.** `SquadsDB.allocate_id(type)` does `counter += 1` and formats
-  `f"{type.prefix}-{counter:06d}"`. So an ID's *number* is unique across all types — there is never
-  both `TASK-000002` and `BUG-000002`; the prefix only labels the type. Numbers reflect creation
-  order, not hierarchy.
+- **One global monotonic counter.** `SquadsDB.allocate_id(type)` does `counter += 1` and formats it at the squad's
+  filename-padding width (e.g., `TASK-000002` on disk). An ID's *number* is unique across all types — there is never
+  both item 2 with `TASK` prefix and item 2 with `BUG` prefix; the prefix only labels the type. Numbers reflect
+  creation order, not hierarchy. Display always shows the unpadded form (`TASK-2`).
 - **`IndexStore` is the integrity core.** All mutations go through `transaction()`:
   1. acquire a cross-process `filelock` on `<squad>/.squads.json.lock`,
   2. load + validate (`SquadsDB.model_validate_json`),
@@ -91,8 +91,8 @@ Service.<mutation>()
   └─ IndexStore.transaction():
        ┌─ [lock]   filelock(.squads.json.lock)
        │   load + validate            ─▶ SquadsDB
-       │   mutate  (e.g. allocate_id  ─▶ TASK-000007 ; counter += 1)
-       │   render body, write the .md, db.add(item)
+       │   mutate  (e.g. allocate_id  ─▶ TASK-000007 for filename; counter += 1)
+       │   render body, write the .md with unpadded id (TASK-7), db.add(item)
        └─ [commit] tmp file → fsync → atomic replace .squads.json → [unlock]
        (body raises anywhere above? → nothing is written)
 ```
@@ -130,13 +130,13 @@ A typical task file:
 
 ```markdown
 ---
-id: TASK-000007
+id: TASK-7
 sequence_id: 7
 type: task
 title: Fix login
 status: Draft
-parent: FEAT-000002
-refs: [GUIDE-000003]
+parent: FEAT-2
+refs: [GUIDE-3]
 created_at: '2026-06-07T10:00:00Z'
 updated_at: '2026-06-07T10:00:00Z'
 ---
@@ -227,9 +227,11 @@ reference: **[workflow.md](workflow.md)**.
   `sq ref add TASK BUG --kind fixes`; the bug shows the backref on demand.
 
 ```
- stored   (forward) :  TASK-000007.refs = ["BUG-000009:fixes"]
- computed (inverse) :  refs_in(BUG-000009)  →  [(TASK-000007, fixes)]      # never persisted
+ stored   (forward) :  TASK-7.refs = ["BUG-9:fixes"]
+ computed (inverse) :  refs_in(BUG-9)  →  [(TASK-7, fixes)]      # never persisted
 ```
+
+(Refs are stored unpadded by default; old refs may retain padded width from before a migration, and both resolve correctly.)
 
 > Before `schema_version` 0.2 the kind lived in a separate `extra["ref_kinds"]` `{ID: kind}` map;
 > it's now folded inline. Old files are read transparently (`Item.from_frontmatter`) — see
@@ -332,14 +334,14 @@ the global `--dir` and `--at`, runs the version notice, and dispatches. Conventi
 
 ---
 
-## 12. Lifecycle of a command — `sq create task "Fix login" --parent FEAT-000002`
+## 12. Lifecycle of a command — `sq create task "Fix login" --parent FEAT-2`
 
 ```
- sq create task … --parent FEAT-000002
+ sq create task … --parent FEAT-2
    │
    ├─ root callback: set --dir / --at, version notice
    ├─ _cli/_create.py  ──▶  get_service()  ──▶  _paths.resolve()  ──▶  SquadPaths
-   └─ Service.create(TASK, "Fix login", parent=FEAT-000002)
+   └─ Service.create(TASK, "Fix login", parent=FEAT-2)
         └─ IndexStore.transaction()  [lock .squads.json]
              ├─ _check_parent: parent_allowed(TASK, FEATURE)        ✓  (epic → SquadsError)
              ├─ allocate_id(TASK) → TASK-000007                     (counter += 1)
@@ -351,10 +353,10 @@ the global `--dir` and `--at`, runs the version notice, and dispatches. Conventi
 
 1. **CLI** (`_cli/_create.py`) parses args; the root callback already set the active dir / `--at`.
 2. `get_service()` → `_paths.resolve()` builds `SquadPaths` (which squad folder, where the index is).
-3. `Service.create(TASK, "Fix login", parent="FEAT-000002")`:
+3. `Service.create(TASK, "Fix login", parent="FEAT-2")`:
    - opens `store.transaction()` (locks `.squads.json`);
    - `_check_parent` → `parent_allowed(TASK, FEATURE)` ✓ (an epic here would raise);
-   - `db.allocate_id(TASK)` → `TASK-000007` (global counter bumped);
+   - `db.allocate_id(TASK)` → `TASK-000007` (padded filename form; counter bumped);
    - builds the `Item` (status = `initial_status(TASK)` = `Draft`, `created_at`/`updated_at` =
      `clock.now()`), squad-relative path `tasks/TASK-000007-fix-login.md`;
    - renders `items/task.md.j2` (placeholder body + empty markers), `write_new` emits frontmatter + body;

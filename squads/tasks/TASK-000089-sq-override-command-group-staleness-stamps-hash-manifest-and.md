@@ -1,14 +1,14 @@
 ---
-id: TASK-000089
+id: TASK-89
 sequence_id: 89
 type: task
 title: sq override command group + staleness stamps, hash manifest, and sq check drift
 status: Done
-parent: FEAT-000014
+parent: FEAT-14
 author: tech-lead
 priority: high
 refs:
-- TASK-000091:blocks
+- TASK-91:blocks
 description: scaffold/diff/update/list; override-base stamp; per-release content-hash
   manifest; sq check version-drift warn + missing-marker error
 subentities:
@@ -28,7 +28,7 @@ created_at: '2026-06-12T20:57:11Z'
 updated_at: '2026-06-12T22:08:30Z'
 ---
 <!-- sq:body -->
-Staleness + authoring-UX task for FEAT-000014 (ADR-000085 §3, the `sq override` group, and Consequences 'sq check gains two override checks'). This is the durable-contract command surface.
+Staleness + authoring-UX task for FEAT-14 (ADR-85 §3, the `sq override` group, and Consequences 'sq check gains two override checks'). This is the durable-contract command surface.
 
 **Goal.** Ship the entire user-owned override upgrade path: a provenance stamp, the per-release hash manifest, drift detection in `sq check`, and the `sq override` command group — so an upgrade never silently breaks overrides and the team merges by hand then re-stamps.
 
@@ -116,7 +116,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-12T21:54:56Z] Elias Python:
-  - Shipped TASK-000089: sq override command group, staleness stamps, and hash manifest.
+  - Shipped TASK-89: sq override command group, staleness stamps, and hash manifest.
   - **What was built:**
     - `src/squads/_overrides/_manifest.py` — manifest loader using `importlib.resources`; reads `squads._rendering/templates_manifest.json` (package data); provides `template_changed_since()`, `current_template_hash()`, `bundled_template_content()`, `base_version_template_content()`.
     - `src/squads/_overrides/_stamp.py` — read/write the `<!-- squads:override-base:<version> -->` stamp for template files and the `# squads:override-base:<version>` comment for role TOML files.
@@ -124,18 +124,18 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
     - `src/squads/_cli/_override.py` — the `sq override` Typer sub-typer: `scaffold`, `list`, `diff`, `update`; `list` and `diff` support `--json`.
     - `src/squads/_rendering/templates_manifest.json` — initial manifest for v0.3.0 (20 templates).
     - `scripts/gen_template_manifest.py` — generator script; run before `uv build` on each release.
-  - **sq check integration:** two new checks wired into `_services/_maintenance.py::check()` — version-drift WARN + missing-marker ERROR. FEAT-000015 exit-code contract preserved: errors exit 3, warnings exit 0.
-  - **FEAT-000013 deferral:** left a comment on FEAT-000013 with the verbatim list of contract surfaces frozen here (layout, precedence, stamp format, diff semantics, manifest, exit codes).
+  - **sq check integration:** two new checks wired into `_services/_maintenance.py::check()` — version-drift WARN + missing-marker ERROR. FEAT-15 exit-code contract preserved: errors exit 3, warnings exit 0.
+  - **FEAT-13 deferral:** left a comment on FEAT-13 with the verbatim list of contract surfaces frozen here (layout, precedence, stamp format, diff semantics, manifest, exit codes).
   - **@devops NOTE — BUILD ACTION REQUIRED:** Wire `python scripts/gen_template_manifest.py` into the release pipeline before `uv build` on every release. The manifest (`src/squads/_rendering/templates_manifest.json`) ships automatically as package data (confirmed in wheel). Without running the generator before each release, newly-changed templates will not be recorded and drift detection will be silent. Verify with: `python -m zipfile -e dist/squads-*.whl /tmp/whl/ && cat /tmp/whl/squads/_rendering/templates_manifest.json | head -5`.
   - **Tests:** 63 new tests in `tests/test_override_commands.py` covering: manifest hash functions; stamp read/write (templates + TOML); scaffold (creates, refuses clobber, --force, unknown raises, all item types); scan_overrides (empty, current, broken, role, multiple); diff (Δ-mine, Δ-upgrade, same-version, role, unknown kind); update_stamp (re-stamps, body untouched, skips broken, bulk, role, missing raises); sq check (clean, warn on missing stamp, error on missing markers, exit3/exit0 contract); full staleness loop; migrate does not touch .overrides/; CLI smoke for all four subcommands including --json shapes.
   - **Suite green:** 540 passed, 1 skipped. pyright clean, ruff clean. `uv build` confirms manifest ships.
   - @reviewer Ready for review.
 - [2026-06-12T22:01:59Z] Paul Reviewer:
-  - Review REV-000097: APPROVED. The sq override group, override-base stamps, hash manifest, and sq check drift integration faithfully implement ADR-000085 §3.
-  - Verified (behaviour, not just presence): scaffold stamps current version + refuses clobber + invalidates engine cache; diff renders BOTH Δ-mine and Δ-upgrade; update re-stamps only (body untouched); list reports current/drifted/broken. FEAT-000015 exit-code contract INTACT — warn-level override issues keep exit 0, only missing-marker errors contribute to exit 3, tested both human and --json paths. Marker safety confirmed (stamp not seen by find_markers). sq migrate proven not to touch .overrides/. Suite 540 passed / 1 skipped, pyright+ruff clean, uv build ships manifest + 20 templates, manifest regenerates byte-stable.
-  - 5 non-blocking findings (2 medium, 3 low), none high. Recommend closing before 1.0: F1 — add a guard test that the shipped manifest's current-version entry matches the bundle for all 20 templates (today the silent-drift-miss the @devops note warns about is unguarded — feature fails open if the generator isn't re-run); F2 — golden-pin override list/diff --json in tests/goldens per the FEAT-000015/TASK-000084 convention (currently only key-set-asserted). F3-F5 are polish/recorded deferrals. @devops note re: the manual generate-before-build step is real — F1 is the fix that makes it self-enforcing.
+  - Review REV-97: APPROVED. The sq override group, override-base stamps, hash manifest, and sq check drift integration faithfully implement ADR-85 §3.
+  - Verified (behaviour, not just presence): scaffold stamps current version + refuses clobber + invalidates engine cache; diff renders BOTH Δ-mine and Δ-upgrade; update re-stamps only (body untouched); list reports current/drifted/broken. FEAT-15 exit-code contract INTACT — warn-level override issues keep exit 0, only missing-marker errors contribute to exit 3, tested both human and --json paths. Marker safety confirmed (stamp not seen by find_markers). sq migrate proven not to touch .overrides/. Suite 540 passed / 1 skipped, pyright+ruff clean, uv build ships manifest + 20 templates, manifest regenerates byte-stable.
+  - 5 non-blocking findings (2 medium, 3 low), none high. Recommend closing before 1.0: F1 — add a guard test that the shipped manifest's current-version entry matches the bundle for all 20 templates (today the silent-drift-miss the @devops note warns about is unguarded — feature fails open if the generator isn't re-run); F2 — golden-pin override list/diff --json in tests/goldens per the FEAT-15/TASK-84 convention (currently only key-set-asserted). F3-F5 are polish/recorded deferrals. @devops note re: the manual generate-before-build step is real — F1 is the fix that makes it self-enforcing.
 - [2026-06-12T22:07:12Z] Elias Python:
-  - Closed REV-000097 F1, F2, F3 (F4/F5 deferred as instructed).
+  - Closed REV-97 F1, F2, F3 (F4/F5 deferred as instructed).
   - **F3 (low) — docstring fix**: corrected the exit-code claim in scripts/gen_template_manifest.py — the no-op path exits 0 (not 1); docstring now matches the code.
   - **F1 (medium) — manifest-freshness guard**: added test_manifest_freshness_all_bundled_templates in tests/test_override_commands.py. It walks the installed package-data tree, compares every template's sha256 against the manifest entry for the current version, and asserts no missing / no extra templates. A stale-manifest release (templates changed but script not re-run) now fails the build.
   - **F2 (medium) — golden-pin override list/diff --json**: added inv(['override', 'scaffold', 'items/task.md.j2']) to the golden_squad fixture (no ID counter impact — scaffold writes files, not sq items), then added test_golden_override_list and test_golden_override_diff in tests/test_golden_json.py. Generated tests/goldens/override_list.json (state=current, no timestamps/abs-paths) and tests/goldens/override_diff.json (delta_mine shows stamp prepended, delta_upgrade empty, base_available=true — all deterministic). The override diff golden shape is non-trivial: it pins name/kind/base_version/base_available/delta_mine/delta_upgrade.

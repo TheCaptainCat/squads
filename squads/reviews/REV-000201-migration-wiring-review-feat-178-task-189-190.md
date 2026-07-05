@@ -1,14 +1,14 @@
 ---
-id: REV-000201
+id: REV-201
 sequence_id: 201
 type: review
 title: 'Migration+wiring review: FEAT-178 (TASK-189/190)'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000178
-- TASK-000189
-- TASK-000190
+- FEAT-178
+- TASK-189
+- TASK-190
 subentities:
 - local_id: F1
   title: migrate chlog hint points at the wrong release range — 0.5 manual steps are
@@ -41,7 +41,7 @@ updated_at: '2026-06-24T21:09:52Z'
 <!-- sq:body -->
 ## Scope
 
-Independent review of the SECOND increment of FEAT-000178: TASK-189 (0.4->0.5 migration retrofitting SKILL ids onto existing agents/skills/*.md) and TASK-190 (user-facing wiring: sq skill show/refs/ref add/ref rm, SKILL ref support). Reviewed against the Accepted ADR-000181 contract. I previously reviewed the foundation (TASK-187/188) as REV-000191; this is a separate review of migration + wiring. Did not write the code.
+Independent review of the SECOND increment of FEAT-178: TASK-189 (0.4->0.5 migration retrofitting SKILL ids onto existing agents/skills/*.md) and TASK-190 (user-facing wiring: sq skill show/refs/ref add/ref rm, SKILL ref support). Reviewed against the Accepted ADR-181 contract. I previously reviewed the foundation (TASK-187/188) as REV-191; this is a separate review of migration + wiring. Did not write the code.
 
 ## Verdict: APPROVE-WITH-NITS
 

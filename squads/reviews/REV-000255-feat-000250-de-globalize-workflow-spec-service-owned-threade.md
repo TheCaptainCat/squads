@@ -1,5 +1,5 @@
 ---
-id: REV-000255
+id: REV-255
 sequence_id: 255
 type: review
 title: 'FEAT-000250 de-globalize workflow spec: Service-owned threaded context, delete
@@ -7,11 +7,11 @@ title: 'FEAT-000250 de-globalize workflow spec: Service-owned threaded context, 
 status: Approved
 author: reviewer
 refs:
-- FEAT-000250:addresses
-- TASK-000251:addresses
-- TASK-000252:addresses
-- TASK-000253:addresses
-- TASK-000254:addresses
+- FEAT-250:addresses
+- TASK-251:addresses
+- TASK-252:addresses
+- TASK-253:addresses
+- TASK-254:addresses
 subentities:
 - local_id: F1
   title: Parse-ordering test under-proves its docstring claim
@@ -48,7 +48,7 @@ updated_at: '2026-06-30T11:51:39Z'
 <!-- sq:body -->
 ## Verdict: APPROVE
 
-Independent review of FEAT-000250 (ADR-000249 Option A): replace the process-global workflow-spec singleton with a `Service`-owned, threaded `WorkflowSpec` context. I did not author this code.
+Independent review of FEAT-250 (ADR-249 Option A): replace the process-global workflow-spec singleton with a `Service`-owned, threaded `WorkflowSpec` context. I did not author this code.
 
 **Singleton fully eliminated: YES. Behaviour byte-identical: YES.**
 
@@ -151,7 +151,7 @@ tests/test_rendering.py defines a module-local `_template_for` that hand-copies 
 <!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
-src/squads/_migrations/_meta_compat.py:96 calls `bundled_spec().subentity_initial(kind)` inline. TASK-000252 prescribed "thread a spec explicitly (pass the bundled/loaded spec into the migration helper)" rather than reaching a module-level accessor. The impl reaches `bundled_spec()` directly inside `_parse_block`.
+src/squads/_migrations/_meta_compat.py:96 calls `bundled_spec().subentity_initial(kind)` inline. TASK-252 prescribed "thread a spec explicitly (pass the bundled/loaded spec into the migration helper)" rather than reaching a module-level accessor. The impl reaches `bundled_spec()` directly inside `_parse_block`.
 
 Why this is NOT a behaviour or correctness problem: migrations parse legacy body-stored `:meta` regions that predate any override mechanism, so the BUNDLED vocabulary is the only correct source here — an override spec must not influence how historical meta blocks are re-parsed. The old code (`subentity_initial(kind)`) delegated to the singleton which, during a migration, was always the bundled spec. So behaviour is byte-identical and the bundled choice is semantically right.
 

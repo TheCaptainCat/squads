@@ -1,5 +1,5 @@
 ---
-id: ADR-000085
+id: ADR-85
 sequence_id: 85
 type: decision
 title: Project-level overrides live under .overrides with per-file precedence, stamped
@@ -7,16 +7,16 @@ title: Project-level overrides live under .overrides with per-file precedence, s
 status: Accepted
 author: architect
 refs:
-- FEAT-000014
+- FEAT-14
 created_at: '2026-06-12T15:29:52Z'
 updated_at: '2026-06-12T20:52:25Z'
 ---
 <!-- sq:body -->
 ## Context
 
-FEAT-000014 is the last explicitly-deferred item from the original plan, and it is a 1.0 blocker
+FEAT-14 is the last explicitly-deferred item from the original plan, and it is a 1.0 blocker
 for a structural reason: the moment we ship project-level overrides, the **override lookup path and
-precedence rules become part of the durable on-disk contract** (FEAT-000013). Shipping them in 0.x
+precedence rules become part of the durable on-disk contract** (FEAT-13). Shipping them in 0.x
 lets us get the layout right while we still can; bolting them on after 1.0 would mean either
 breaking the contract or living with a mistake forever. This ADR settles the design so
 implementation can proceed against a fixed shape.
@@ -235,7 +235,7 @@ terminal) an interactive prompt — and they compose:
 
 ### 5. What joins the durable 1.0 contract
 
-These surfaces are frozen by FEAT-000013 the moment this ships, and must be listed verbatim in the
+These surfaces are frozen by FEAT-13 the moment this ships, and must be listed verbatim in the
 contract doc:
 
 - **The override root and tree:** `<squad-dir>/.overrides/{templates,roles}/`, with the
@@ -301,7 +301,7 @@ Recorded as **Proposed**. Acceptance is the operator's call (Pierre / @manager).
 per the operator's two requested revisions (stale-override update workflow spelled out end-to-end
 with the named `sq override` command set; init naming UX with TTY prompting + `--default-names`);
 the `.overrides/` location and frozen slugs were confirmed in the same review. If the post-1.0
-custom ref-kind facility (ADR-000049) is ever designed, `.overrides/` is its reserved home —
+custom ref-kind facility (ADR-49) is ever designed, `.overrides/` is its reserved home —
 consistent with this umbrella.
 <!-- sq:body:end -->
 

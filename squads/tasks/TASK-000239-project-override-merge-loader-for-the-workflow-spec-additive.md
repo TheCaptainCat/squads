@@ -1,10 +1,10 @@
 ---
-id: TASK-000239
+id: TASK-239
 sequence_id: 239
 type: task
 title: Project-override merge loader for the workflow spec (additive-only)
 status: Done
-parent: FEAT-000209
+parent: FEAT-209
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -21,12 +21,12 @@ updated_at: '2026-06-30T09:19:51Z'
 <!-- sq:body -->
 ## Goal
 Make `load_workflow_spec()` capable of layering a **project override** on top of the bundled
-default, with **additive-only** semantics. This is the loader core of FEAT-000209 — the first task,
+default, with **additive-only** semantics. This is the loader core of FEAT-209 — the first task,
 everything else depends on it. (AC #1, AC #2; US1.)
 
 ## Prereq already satisfied
-The `extra="forbid"` hardening Catherine flagged in her comment is **already done** (FEAT-000208 /
-ADR-000232 §5): `WorkflowSpec`, `ItemSpec`, `StatusSpec`, `Lifecycle`, `RefRule` all carry
+The `extra="forbid"` hardening Catherine flagged in her comment is **already done** (FEAT-208 /
+ADR-232 §5): `WorkflowSpec`, `ItemSpec`, `StatusSpec`, `Lifecycle`, `RefRule` all carry
 `ConfigDict(frozen=True, extra="forbid")`, and `_loader.py` routes every sub-model through
 `model_validate(...)`. Verify this still holds at the start (a 2-line read) but do NOT redo it.
 
@@ -34,11 +34,11 @@ ADR-000232 §5): `WorkflowSpec`, `ItemSpec`, `StatusSpec`, `Lifecycle`, `RefRule
 In `src/squads/_workflow/_loader.py`:
 - Add a new entry point, e.g. `load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec`
   (keep the existing no-arg behaviour — bundled-only — when `squad_dir is None`, so the import-time
-  singleton in `__init__.py` is unchanged for now; TASK-000240 wires the squad_dir call site).
+  singleton in `__init__.py` is unchanged for now; TASK-240 wires the squad_dir call site).
 - When a squad_dir is given, read the project override TOML:
-  - from `<squad_dir>/.overrides/workflow.toml` (the override-machinery location — see TASK-000244),
+  - from `<squad_dir>/.overrides/workflow.toml` (the override-machinery location — see TASK-244),
     AND/OR the `[workflow.*]` block in the project `.squads.toml`. **Decide one canonical source and
-    document it in the body of TASK-000244**; the feature body mentions both `.squads.toml` and a
+    document it in the body of TASK-244**; the feature body mentions both `.squads.toml` and a
     sibling `.squads.workflow.toml`. Recommend: the `.overrides/workflow.toml` file (consistent with
     templates/roles overrides) is primary; if you also support a `[workflow]` block in `.squads.toml`,
     treat them as mutually exclusive and error if both are present.
@@ -78,7 +78,7 @@ Service/loader-level: build a tmp squad_dir with an override file, assert the me
 redefine-collision and typo-key cases raise `SquadsError`. Keep the bundled golden-lock test green.
 
 ## Ordering
-FIRST. TASK-000240 (threading) and TASK-000241 (index cross-check) build on this loader.
+FIRST. TASK-240 (threading) and TASK-241 (index cross-check) build on this loader.
 <!-- sq:body:end -->
 
 ## Subtasks

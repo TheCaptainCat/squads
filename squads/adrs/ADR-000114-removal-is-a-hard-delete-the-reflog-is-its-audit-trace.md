@@ -1,15 +1,15 @@
 ---
-id: ADR-000114
+id: ADR-114
 sequence_id: 114
 type: decision
 title: Removal is a hard delete; the reflog is its audit trace
 status: Accepted
 author: architect
 refs:
-- FEAT-000023
-- TASK-000111
-- FEAT-000024
-- ADR-000104
+- FEAT-23
+- TASK-111
+- FEAT-24
+- ADR-104
 description: sq remove hard-deletes (file + index entry) in one transaction, preserving
   the counter high-water mark so the freed number is never reissued; forced removal
   severs incoming refs so sq check stays clean; the removal's audit trace is a single
@@ -20,22 +20,22 @@ updated_at: '2026-06-15T08:25:54Z'
 <!-- sq:body -->
 ## Context
 
-FEAT-000023 introduces a first-class `sq <type> <n> remove`. Today the only way to take an item off
+FEAT-23 introduces a first-class `sq <type> <n> remove`. Today the only way to take an item off
 the books is manual file surgery plus hand-editing `.squads.json` — we watched that go wrong live
-(2026-06-10: two manual surgeries, one **reused** sequence number, no guard rails — BUG-000022).
-Four design questions block implementation (TASK-000111) and must be settled here before any code.
+(2026-06-10: two manual surgeries, one **reused** sequence number, no guard rails — BUG-22).
+Four design questions block implementation (TASK-111) and must be settled here before any code.
 
 The decision is constrained by **Invariant 1**: `.squads.json` is a *rebuildable index* — `sq repair`
 must reconstruct it from the `.md` corpus alone, so nothing durable may live in the index without an
-on-disk source of truth. ADR-000104 already carved the only permitted exception: squad-wide
+on-disk source of truth. ADR-104 already carved the only permitted exception: squad-wide
 format/allocation parameters (counter, padding) carried as a corpus-derived **floor**. A removal
 trace stored *only* in the index would be neither per-item frontmatter nor a format floor — it would
 break the invariant outright (repair would erase it).
 
-Concurrently, FEAT-000024 (TASK-000112) adds an **append-only reflog** at `<squad>/.reflog.jsonl`,
+Concurrently, FEAT-24 (TASK-112) adds an **append-only reflog** at `<squad>/.reflog.jsonl`,
 written *inside* `IndexStore.transaction()`, one JSONL line per mutating operation (actor, op,
 target, before→after delta). Its US2 explicitly names "removals ... explainable from the squad
-directory alone" and states the reflog "is the trace mechanism FEAT-000023's audit question asks for,
+directory alone" and states the reflog "is the trace mechanism FEAT-23's audit question asks for,
 generalized." The two features must not invent competing audit mechanisms. This ADR reconciles them.
 
 ## Decision
@@ -63,7 +63,7 @@ removal the item is simply gone, and the only residue is a number gap (point 4) 
 
 ### 2. Audit trace — **the reflog line is the trace; no index tombstone, no separate log**
 
-The removal's audit trace is **one `remove` line in the FEAT-000024 reflog** (`<squad>/.reflog.jsonl`),
+The removal's audit trace is **one `remove` line in the FEAT-24 reflog** (`<squad>/.reflog.jsonl`),
 recording timestamp, actor, op=`remove`, the removed ID, and a compact snapshot of the gone item
 (at least: type, title, status, and the count/list of severed refs). It is **not**:
 
@@ -75,26 +75,26 @@ recording timestamp, actor, op=`remove`, the removed ID, and a compact snapshot 
 
 The reflog is the **right home by construction**: it already lives on disk in the squad directory, is
 already append-only, is already written inside the same transaction as the mutation, and is
-**explicitly declared NOT a source of truth** (FEAT-000024 scope) — a missing/truncated reflog is
+**explicitly declared NOT a source of truth** (FEAT-24 scope) — a missing/truncated reflog is
 never an error and the index never consults it for state. That is exactly the property a removal
 trace needs: it explains a number gap *without* the index depending on it. Invariant 1 is untouched —
 `sq repair` rebuilds the index from `.md` files and neither reads nor needs the reflog.
 
-**Composition contract with FEAT-000024 (binding on both tasks):**
+**Composition contract with FEAT-24 (binding on both tasks):**
 
 - `remove` is one of the mutating ops the reflog records; it gets **no bespoke audit code of its
-  own**. TASK-000111 must *not* add a tombstone field to `SquadsDB`, a tombstone file, or a removal
+  own**. TASK-111 must *not* add a tombstone field to `SquadsDB`, a tombstone file, or a removal
   log. Its sole audit obligation is to ensure the removal runs through the transaction seam carrying
   the op identity (`op=remove`) and the gone-item snapshot in its delta, so the reflog writer
-  (TASK-000112) emits a reconstructable line.
-- **Sequencing.** If TASK-000111 lands before the reflog seam (TASK-000112) exists, removal ships
+  (TASK-112) emits a reconstructable line.
+- **Sequencing.** If TASK-111 lands before the reflog seam (TASK-112) exists, removal ships
   with its terminal-output trace (the confirm + printed summary) and the in-transaction op/delta
   capture **stubbed at the call site** (the data is assembled; the writer is a no-op until 112 wires
   it). Removal must **not** grow a stopgap tombstone to bridge the gap — a stopgap would become a
   second mechanism we then have to remove. The acceptance bar "removal is traceable after the fact"
   is satisfied by the reflog; until the reflog seam lands, US3's *durable* trace is provisionally met
   by git history of the deleted file (the squad is version-controlled), and the queryable-trace
-  acceptance is **carried by FEAT-000024**, not re-implemented here.
+  acceptance is **carried by FEAT-24**, not re-implemented here.
 
 ### 3. Ref behaviour — **forced removal severs incoming refs; default refuses**
 
@@ -118,7 +118,7 @@ referrer side is the *only* place ref state changes — there is no backref inde
 
 ### 4. ID reuse — **the counter high-water mark is preserved; a gap is sanctioned**
 
-Confirmed. Removal deletes `db.items[seq]` but **never touches `db.counter`**. BUG-000022 already
+Confirmed. Removal deletes `db.items[seq]` but **never touches `db.counter`**. BUG-22 already
 made the counter monotonic, and the machinery composes for free:
 
 - `allocate_id` only ever *bumps* `counter`; it never recomputes from the live items, so a deletion
@@ -126,7 +126,7 @@ made the counter monotonic, and the machinery composes for free:
 - `IndexStore.load` raises the counter to `max(item sequence_ids)` in memory but **never lowers it** —
   a removed (lower) seq simply isn't a max, so load leaves the high-water mark alone.
 - `repair` sets `db.counter = max(previous_counter, max_n)` — the previously-stored counter is the
-  floor (ADR-000104), so even repairing a squad whose highest-numbered item was just removed keeps
+  floor (ADR-104), so even repairing a squad whose highest-numbered item was just removed keeps
   the counter at its old value. The freed number is **never reissued**.
 
 Therefore a **number gap is a first-class, sanctioned state**, not corruption: it means "an item with
@@ -136,17 +136,17 @@ when someone audits later (point 2); the gap itself is self-consistent without i
 
 ## Consequences
 
-- TASK-000111 (`sq remove` for work items) is **unblocked** with a settled contract: hard delete in
+- TASK-111 (`sq remove` for work items) is **unblocked** with a settled contract: hard delete in
   one transaction, refuse-then-`--force`-sever for refs, refuse on children, counter untouched,
   trace = reflog line (no tombstone). Confirmation UX (interactive confirm unless `--yes`) is a UX
   detail, not a design gate, and proceeds as scoped.
-- FEAT-000024 owns the durable, queryable removal trace; `remove` only feeds it op identity + delta
+- FEAT-24 owns the durable, queryable removal trace; `remove` only feeds it op identity + delta
   through the transaction seam. The two features **compose**; neither duplicates the other.
-- **Deferred onto FEAT-000013 (the 1.0 contract).** The reflog `remove` line — the fields a removal
+- **Deferred onto FEAT-13 (the 1.0 contract).** The reflog `remove` line — the fields a removal
   records (type, title, status, severed-ref list) and that a sequence-number **gap is a sanctioned,
   documented state a reader may rely on** — is a public, machine-readable surface. Its schema and
-  stability tier must be stated in the 1.0 contract doc *as part of FEAT-000013's reflog-schema
-  promise* (FEAT-000024 US3 already routes the reflog schema there). The contract must state: gaps
+  stability tier must be stated in the 1.0 contract doc *as part of FEAT-13's reflog-schema
+  promise* (FEAT-24 US3 already routes the reflog schema there). The contract must state: gaps
   are normal; numbers are never reissued; a removal is explained by the reflog, not by the index.
 - Invariant 1 is preserved and re-affirmed: nothing about removal stores un-rebuildable state in
   `.squads.json`. The deletion *removes* index state; the trace lives in the (non-authoritative)

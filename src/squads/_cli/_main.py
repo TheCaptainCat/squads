@@ -558,12 +558,12 @@ async def graph(
     direction/seen/children``) — the read surface for agents and orchestrators. Shape::
 
         {
-          "id": "BUG-000022", "type": "bug", "status": "Open", "priority": "high",
+          "id": "BUG-22", "type": "bug", "status": "Open", "priority": "high",
           "assignee": null, "edge_kind": null, "direction": null, "seen": false,
           "children": [
-            { "id": "FEAT-000035", ..., "edge_kind": "depends-on", "direction": "out",
+            { "id": "FEAT-35", ..., "edge_kind": "depends-on", "direction": "out",
               "seen": false, "children": [...] },
-            { "id": "TASK-000100", ..., "edge_kind": "related", "direction": "in",
+            { "id": "TASK-100", ..., "edge_kind": "related", "direction": "in",
               "seen": true, "children": [] }
           ]
         }
@@ -702,7 +702,7 @@ async def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
-        help="Filter by target item ID (e.g. TASK-000042).",
+        help="Filter by target item ID (e.g. TASK-42).",
         metavar="ID",
     ),
     actor: str | None = typer.Option(
@@ -743,7 +743,7 @@ async def reflog(
     """Show the operation reflog — a chronological log of every mutating sq command.
 
     Tails the most recent entries by default (``--tail 50``); use ``--tail 0`` for
-    all.  Filters are AND-ed: ``--item TASK-000042 --op status`` shows only status
+    all.  Filters are AND-ed: ``--item TASK-42 --op status`` shows only status
     changes on that item.
 
     A squad with no reflog (pre-FEAT-000024 or first run) prints empty results —
@@ -948,7 +948,7 @@ def _render_reflog_tree(entries: list[ReflogEntry]) -> None:
 @common.command
 async def show_any(
     item_id: str = typer.Argument(
-        ..., metavar="ID", help="Item ID (e.g. FEAT-000013) or bare number (e.g. 13)."
+        ..., metavar="ID", help="Item ID (e.g. FEAT-13) or bare number (e.g. 13)."
     ),
     json_out: bool = typer.Option(False, "--json"),
     raw: bool = typer.Option(
@@ -961,7 +961,7 @@ async def show_any(
 ):
     """Show any work item by ID or bare number, regardless of type.
 
-    Accepts both the full ID (e.g. ``FEAT-000013``) and a bare sequence number (e.g. ``13``).
+    Accepts both the full ID (e.g. ``FEAT-13``) and a bare sequence number (e.g. ``13``).
     Unknown IDs error cleanly.
     """
     svc = get_service()

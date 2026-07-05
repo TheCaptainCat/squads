@@ -1,5 +1,5 @@
 ---
-id: BUG-000011
+id: BUG-11
 sequence_id: 11
 type: bug
 title: sq check flags operator authors/assignees as unregistered

@@ -1,10 +1,10 @@
 ---
-id: TASK-000262
+id: TASK-262
 sequence_id: 262
 type: task
 title: Lifecycle auto-linearization helper (BFS spine + side states) for F4 renderer
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 created_at: '2026-06-30T12:01:08Z'
 updated_at: '2026-06-30T12:35:04Z'

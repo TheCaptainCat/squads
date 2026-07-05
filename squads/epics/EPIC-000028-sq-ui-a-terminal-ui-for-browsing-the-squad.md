@@ -1,5 +1,5 @@
 ---
-id: EPIC-000028
+id: EPIC-28
 sequence_id: 28
 type: epic
 title: sq ui — a terminal UI for browsing the squad
@@ -7,8 +7,8 @@ status: Draft
 author: product-owner
 priority: low
 refs:
-- FEAT-000015:depends-on
-- FEAT-000019:depends-on
+- FEAT-15:depends-on
+- FEAT-19:depends-on
 description: 'An sq ui command opening a TUI: navigate the tree, read items with tabs
   for stories/body/discussion; browse-first, mutations a later increment'
 created_at: '2026-06-10T15:15:37Z'
@@ -32,7 +32,7 @@ stays the tool for *doing*; the TUI becomes the tool for *seeing*.
   TabbedContent and Markdown widgets map one-to-one onto the need. An optional extra
   (`squads[tui]`) keeps the core lean for agents who'll never open it.
 - Sequencing: a pure consumer of the machine surface — best built on the frozen `--json` shapes
-  and shared resolver (EPIC-000012's FEAT-000015 / FEAT-000019), and a great way to stress them.
+  and shared resolver (EPIC-12's FEAT-15 / FEAT-19), and a great way to stress them.
 
 Features (the product owner will author them when this epic activates): the `sq ui` shell +
 navigation, the item reader with tabs, then the first mutation increment.

@@ -1,5 +1,5 @@
 ---
-id: ROLE-000007
+id: ROLE-7
 sequence_id: 7
 type: role
 title: Nina Product

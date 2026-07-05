@@ -1,10 +1,10 @@
 ---
-id: TASK-000059
+id: TASK-59
 sequence_id: 59
 type: task
 title: 'Rendered show dossier: --full sub-entity panes with embedded comments'
 status: Done
-parent: FEAT-000026
+parent: FEAT-26
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -19,9 +19,9 @@ updated_at: '2026-06-12T09:22:18Z'
 <!-- sq:body -->
 ## Goal
 
-The dossier layer: `--full` widens scope to the sub-entities, rendered as tidy panes, and composes with `--comments` per the "comments follow scope" rule. Implements US5. Builds on TASK-000058's pane/markdown/degradation primitives.
+The dossier layer: `--full` widens scope to the sub-entities, rendered as tidy panes, and composes with `--comments` per the "comments follow scope" rule. Implements US5. Builds on TASK-58's pane/markdown/degradation primitives.
 
-## Decided semantics (FEAT-000026 discussion, 2026-06-11; US5 acceptance)
+## Decided semantics (FEAT-26 discussion, 2026-06-11; US5 acceptance)
 
 | flags | output |
 |---|---|
@@ -33,20 +33,20 @@ Rule: comments follow scope. --full alone = sub prose panes only; with --comment
 ## In scope
 
 - For each sub-entity (stories/subtasks/findings): a rich Panel titled with local id + title + badges (status, and severity/assignee/story where present — mirror the head badge vocabulary), rendered-markdown body inside. No comments unless --comments.
-- --full --comments: embed each sub-entity's own comments (per-comment panes, reuse TASK-000058's comment-pane + splitter) inside that sub-entity's pane, then render the main discussion last.
-- Order: panel + body + summary table, then sub-entity panes, then (with --comments) the main discussion last. Keep the default and --comments-only paths from TASK-000058 untouched.
-- Degrade to plain delimited text when piped / NO_COLOR (same mechanism as TASK-000058); --json unaffected by flags.
+- --full --comments: embed each sub-entity's own comments (per-comment panes, reuse TASK-58's comment-pane + splitter) inside that sub-entity's pane, then render the main discussion last.
+- Order: panel + body + summary table, then sub-entity panes, then (with --comments) the main discussion last. Keep the default and --comments-only paths from TASK-58 untouched.
+- Degrade to plain delimited text when piped / NO_COLOR (same mechanism as TASK-58); --json unaffected by flags.
 
 ## Anchors
 
-- TASK-000058's render entry point in src/squads/_cli/_common.py — extend, do not fork it; --full adds the sub-entity section.
+- TASK-58's render entry point in src/squads/_cli/_common.py — extend, do not fork it; --full adds the sub-entity section.
 - Sub-entity prose + per-sub discussion: src/squads/_services/_subentities.py :: _get_block / get_story / get_subtask / get_finding return SubentityDetail(info, body, discussion) — body and discussion already extracted per sub. SubentityDetail in src/squads/_services/_results.py.
 - Badge vocabulary: src/squads/_discussion.py :: _status_badge / _severity_badge and squads._models._enums STATUS_EMOJI / SEVERITY_EMOJI. Item.subentities (typed SubEntity) for the per-sub state.
-- Comment splitter from TASK-000058 (in _discussion.py) — reuse for per-sub discussion panes.
+- Comment splitter from TASK-58 (in _discussion.py) — reuse for per-sub discussion panes.
 
 ## Sequencing
 
-Depends on TASK-000058 (shared render path, comment splitter, degradation). Same file (_common.py) — sequence after 58 to avoid churn conflict.
+Depends on TASK-58 (shared render path, comment splitter, degradation). Same file (_common.py) — sequence after 58 to avoid churn conflict.
 
 ## Tests
 

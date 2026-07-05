@@ -19,6 +19,7 @@ from squads import _actor as actor
 from squads import _clock as clock
 from squads._index._reflog import ReflogLine, append_line, read_lines, reflog_path
 from squads._models._enums import ItemType, Status
+from squads._models._schema import SCHEMA_VERSION
 
 pytestmark = pytest.mark.anyio
 
@@ -59,7 +60,7 @@ async def test_append_line_writes_valid_jsonl(tmp_path):
     lines = content.strip().splitlines()
     assert len(lines) == 1
     record = json.loads(lines[0])
-    assert record["v"] == "0.5"
+    assert record["v"] == SCHEMA_VERSION
     assert record["ts"] == "2026-06-15T10:00:00Z"
     assert record["actor"] == "system"
     assert record["op"] == "create"

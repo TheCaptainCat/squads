@@ -1,13 +1,13 @@
 ---
-id: REV-000105
+id: REV-105
 sequence_id: 105
 type: review
 title: Review of TASK-000101 — explicit ID padding foundation
 status: Approved
-parent: TASK-000101
+parent: TASK-101
 author: reviewer
 refs:
-- ADR-000104
+- ADR-104
 description: Padding stored in index, single formatter, exhaustion guard, repair floor
 subentities:
 - local_id: F1
@@ -26,11 +26,11 @@ created_at: '2026-06-14T21:18:09Z'
 updated_at: '2026-06-15T08:03:07Z'
 ---
 <!-- sq:body -->
-Review of TASK-000101 (foundation of FEAT-000027, explicit ID padding). Changes reviewed in the working tree (uncommitted).
+Review of TASK-101 (foundation of FEAT-27, explicit ID padding). Changes reviewed in the working tree (uncommitted).
 
-VERDICT: Approved. The core implementation is correct and matches the spec, the architect's ruling, and ADR-000104. Three low-severity findings recorded — all non-blocking (one borderline-scope width issue, one coverage gap, one clarity nit).
+VERDICT: Approved. The core implementation is correct and matches the spec, the architect's ruling, and ADR-104. Three low-severity findings recorded — all non-blocking (one borderline-scope width issue, one coverage gap, one clarity nit).
 
-Checked: (1) single formatter — every :06d funnels through format_item_id; straggler grep clean. (2) id_padding seam — Field(exclude=True) strips it from every model_dump/model_dump_json path (--json in _items/_main/_create) and the index to_json; to_frontmatter_dict is an explicit allowlist that omits it; goldens unaffected; committed index has no id_padding. (3) exhaustion guard — fires at counter >= 10**padding-1, names sq migrate repad, never advances the counter; boundary correct (999999 is the last legal width-6 sequence, no off-by-one). (4) repair carry-forward — max(stored_floor, max_filename_width) per ADR-000104, derives from filename digit-run not frontmatter, backfills 6, idempotent, mirrors the counter high-water-mark handling. (5) conventions — no datetime, SquadsError used, no import cycle (_errors has no imports), pyright/ruff clean. (6) tests — default/stored padding, format widths, exhaustion at cap, JSON exclusion, repair floor, backfill-write, create-at-capacity all covered.
+Checked: (1) single formatter — every :06d funnels through format_item_id; straggler grep clean. (2) id_padding seam — Field(exclude=True) strips it from every model_dump/model_dump_json path (--json in _items/_main/_create) and the index to_json; to_frontmatter_dict is an explicit allowlist that omits it; goldens unaffected; committed index has no id_padding. (3) exhaustion guard — fires at counter >= 10**padding-1, names sq migrate repad, never advances the counter; boundary correct (999999 is the last legal width-6 sequence, no off-by-one). (4) repair carry-forward — max(stored_floor, max_filename_width) per ADR-104, derives from filename digit-run not frontmatter, backfills 6, idempotent, mirrors the counter high-water-mark handling. (5) conventions — no datetime, SquadsError used, no import cycle (_errors has no imports), pyright/ruff clean. (6) tests — default/stored padding, format widths, exhaustion at cap, JSON exclusion, repair floor, backfill-write, create-at-capacity all covered.
 
 Gate (re-run by reviewer): 554 passed / 1 skipped; pyright 0 errors; ruff check clean; ruff format clean.
 <!-- sq:body:end -->
@@ -80,7 +80,7 @@ _Add with `sq review 105 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
-No test exercises the filename-recompute arm of repair's `max(stored_floor, max_filename_width)`. Every padding test (`test_service.py:92-127`, `test_cli.py:1529`) only manipulates the STORED padding and keeps filenames at width 6; none creates item files whose digit-run is width 7 with a stored floor of 6 and asserts repair raises padding to 7. That recompute (`src/squads/_services/_maintenance.py:199-203`) is the heart of ADR-000104 and the architect's explicit guard (read the digit-run width, ignore non-item files). It is currently unverified.
+No test exercises the filename-recompute arm of repair's `max(stored_floor, max_filename_width)`. Every padding test (`test_service.py:92-127`, `test_cli.py:1529`) only manipulates the STORED padding and keeps filenames at width 6; none creates item files whose digit-run is width 7 with a stored floor of 6 and asserts repair raises padding to 7. That recompute (`src/squads/_services/_maintenance.py:199-203`) is the heart of ADR-104 and the architect's explicit guard (read the digit-run width, ignore non-item files). It is currently unverified.
 
 **Suggested fix:** add one test that renames a created item file to a width-7 name (`TASK-0000007-...md`), leaves the stored padding at 6, runs repair, and asserts `result.db.padding == 7` — the partial-corpus / post-repad-pre-repair scenario the floor+recompute pair is designed for.
 <!-- sq:finding:F2:body:end -->
@@ -116,7 +116,7 @@ Dead/redundant code in the repair padding computation. `src/squads/_services/_ma
 
 <!-- sq:discussion -->
 - [2026-06-14T21:19:00Z] Paul Reviewer:
-  - Approved. Core seam is correct and the gate is green (554 passed/1 skipped, pyright/ruff clean). Three LOW findings recorded, none blocking merge: F1 _renumber_plan emits width-6 IDs ignoring db.padding (borderline scope — renumber vs repad), F2 filename-recompute arm of repair is untested, F3 dead guard in the padding computation. @manager TASK-000101 is approved / ready-to-merge. Recommend the three low findings be folded into TASK-000102 (repad) and TASK-000103 (width-tolerant reads) rather than blocking this foundation — F1 in particular naturally belongs with the repad work that introduces non-6 widths.
+  - Approved. Core seam is correct and the gate is green (554 passed/1 skipped, pyright/ruff clean). Three LOW findings recorded, none blocking merge: F1 _renumber_plan emits width-6 IDs ignoring db.padding (borderline scope — renumber vs repad), F2 filename-recompute arm of repair is untested, F3 dead guard in the padding computation. @manager TASK-101 is approved / ready-to-merge. Recommend the three low findings be folded into TASK-102 (repad) and TASK-103 (width-tolerant reads) rather than blocking this foundation — F1 in particular naturally belongs with the repad work that introduces non-6 widths.
 - [2026-06-15T08:03:07Z] Paul Reviewer:
   - Formatting amendment (no content change): the three findings had their entire write-up stuffed into the title field, leaving the summary table and finding headers as walls of text and the bodies as placeholders. Moved each finding's full prose into its body and trimmed the titles to scannable one-liners. Verdict (Approved), severities (all low), and statuses (Open) unchanged; sq check clean.
 <!-- sq:discussion:end -->

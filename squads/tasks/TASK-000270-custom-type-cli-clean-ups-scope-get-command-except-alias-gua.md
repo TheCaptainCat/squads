@@ -1,20 +1,20 @@
 ---
-id: TASK-000270
+id: TASK-270
 sequence_id: 270
 type: task
 title: 'Custom-type CLI clean-ups: scope get_command except, alias-guard defence test'
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 assignee: python-dev
 refs:
-- REV-000265:addresses
-- TASK-000269:depends-on
+- REV-265:addresses
+- TASK-269:depends-on
 created_at: '2026-07-01T08:28:56Z'
 updated_at: '2026-07-01T15:40:17Z'
 ---
 <!-- sq:body -->
-**Closes REV-000265 F5 (Low) + F6 (Low) — reviewer's discretion, non-blocking clean-ups.** Independent of the F1/F2 fixes; can run in parallel. Do only if cheap.
+**Closes REV-265 F5 (Low) + F6 (Low) — reviewer's discretion, non-blocking clean-ups.** Independent of the F1/F2 fixes; can run in parallel. Do only if cheap.
 
 ## F5 — broad except masks genuine build errors
 **File:** `_cli/__init__.py:171` — the `except Exception: return None` at the bottom of `_CustomTypeGroup.get_command`. The fail-soft is defensible at the TOP of the method (an invalid/unresolvable spec should degrade to the built-in surface, never crash `sq --help`). But by line 171 the code has already passed the built-in guard and resolved `canonical` as a declared custom type/alias — a failure there is a genuine build error for a type the user just declared and `--help` lists, yet it surfaces the misleading "No such command 'incident'".
@@ -23,7 +23,7 @@ updated_at: '2026-07-01T15:40:17Z'
 
 ## F6 — alias-guard could silently drop an alias-less built-in
 **File:** `_rendering/templates/workflow.md.j2:40` — `{% if item_spec.aliases and not item_spec.is_meta %}`. Byte-identical today (every built-in work type declares an alias, golden proves it), but it silently couples "appears in the alias cheatsheet" to "has an alias". No code change required (a type with no alias arguably doesn't belong in an alias table). **Defence-in-depth:** add a test asserting every non-meta `spec.work_types()` type expected in the cheatsheet declares an alias, so a future alias-less type fails loudly rather than vanishing.
-- NB: if TASK-000269 restructures `workflow.md.j2` to add the lifecycle section, keep this guard in sync there. Coordinate line references with 269.
+- NB: if TASK-269 restructures `workflow.md.j2` to add the lifecycle section, keep this guard in sync there. Coordinate line references with 269.
 
 ## Acceptance
 - F5: a forced build error on a declared custom type surfaces a diagnosable error (not "No such command"); `sq --help` still degrades gracefully on an invalid spec.

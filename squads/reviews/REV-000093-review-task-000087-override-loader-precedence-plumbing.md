@@ -1,13 +1,13 @@
 ---
-id: REV-000093
+id: REV-93
 sequence_id: 93
 type: review
 title: Review TASK-000087 — override loader + precedence plumbing
 status: Approved
-parent: FEAT-000014
+parent: FEAT-14
 author: reviewer
 refs:
-- TASK-000087
+- TASK-87
 description: Engine ChoiceLoader + squad-aware cache + ContextVar; verdict for the
   FEAT-014 foundation task
 subentities:
@@ -19,7 +19,7 @@ created_at: '2026-06-12T21:10:56Z'
 updated_at: '2026-06-23T09:59:39Z'
 ---
 <!-- sq:body -->
-Scope: the override loader + precedence plumbing for TASK-000087 (FEAT-000014, ADR-000085 §1/§2) — _rendering/_engine.py (ChoiceLoader + per-squad-dir Environment cache + ContextVar), _services/_base.py (ServiceCore activates the squad dir), tests/test_override_loader.py (6 tests). Unrelated working-tree changes (golden-file / TASK-000083 / _cli/_main.py / docs) were out of scope and ignored.
+Scope: the override loader + precedence plumbing for TASK-87 (FEAT-14, ADR-85 §1/§2) — _rendering/_engine.py (ChoiceLoader + per-squad-dir Environment cache + ContextVar), _services/_base.py (ServiceCore activates the squad dir), tests/test_override_loader.py (6 tests). Unrelated working-tree changes (golden-file / TASK-83 / _cli/_main.py / docs) were out of scope and ignored.
 
 Verdict: APPROVED. Per-file precedence (project override → bundled, presence-is-the-override, no merge) matches ADR §2; render() and all call sites are byte-for-byte unchanged; cross-squad isolation holds (cache keyed by squad_dir, proven by the isolation test). Suite green (401 passed, 1 skipped), pyright/ruff clean. One LOW finding filed (test-isolation: no autouse reset of engine state) — non-blocking, safe to build T88/T89 on.
 <!-- sq:body:end -->

@@ -10,7 +10,7 @@ Grammar:
   sq skill <slug|id|n> rm [--purge]  — remove the skill item
 
 Address resolution order (exact match, no fuzzy):
-  full-ID shape (SKILL-000001) → bare number → exact slug
+  full-ID shape (SKILL-1) → bare number → exact slug
 """
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
@@ -40,7 +40,7 @@ skill_app = typer.Typer(
     help="Manage agent skills.",
     epilog=(
         "Address a skill:  sq skill <slug|id|n> show|regen|rm\n"
-        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-000002 rm\n"
+        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm\n"
         "Note: a slug matching a group verb (add) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),

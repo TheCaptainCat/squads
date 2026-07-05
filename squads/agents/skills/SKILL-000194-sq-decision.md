@@ -1,5 +1,5 @@
 ---
-id: SKILL-000194
+id: SKILL-194
 sequence_id: 194
 type: skill
 title: sq-decision

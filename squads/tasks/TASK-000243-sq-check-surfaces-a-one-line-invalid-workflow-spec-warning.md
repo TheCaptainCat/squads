@@ -1,10 +1,10 @@
 ---
-id: TASK-000243
+id: TASK-243
 sequence_id: 243
 type: task
 title: sq check surfaces a one-line invalid-workflow-spec warning
 status: Done
-parent: FEAT-000209
+parent: FEAT-209
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -26,11 +26,11 @@ It returns a `list[CheckIssue]` (level "warn"/"error", item, message). The CLI `
 them. Today there is no workflow-spec validity check in this aggregation.
 
 Note a subtlety: if the workflow override is invalid, `open_service` itself will hard-stop
-(TASK-000240) — so `sq check` may never get to run. Decide the behaviour: either (a) `sq check`
+(TASK-240) — so `sq check` may never get to run. Decide the behaviour: either (a) `sq check`
 catches the load error and reports it as a single `CheckIssue` so the rest of check still runs
 (preferred — `sq check` is the diagnostic command and should degrade gracefully), or (b) it relies
 on open_service's hard-stop and this AC is satisfied by the pointer message. **Recommend (a)**: have
-`check()` run the workflow validation in collect-mode (the same core as TASK-000242) guarded so a
+`check()` run the workflow validation in collect-mode (the same core as TASK-242) guarded so a
 broken spec yields ONE `CheckIssue("error"/"warn", "workflow", "workflow config invalid — run `sq
 workflow lint`")` rather than aborting check entirely. Confirm the open_service ordering allows this
 (check may need to tolerate being reached even with a borderline spec).
@@ -39,7 +39,7 @@ workflow lint`")` rather than aborting check entirely. Confirm the open_service 
 - In `Service.check()`, add a workflow-spec validity probe that appends a single concise
   `CheckIssue` with the message "workflow config invalid — run `sq workflow lint`" when the merged
   spec fails validation (pure-spec OR index cross-check). One line only — the detail lives in
-  `sq workflow lint` (TASK-000242), per AC #4 wording.
+  `sq workflow lint` (TASK-242), per AC #4 wording.
 - Keep it cheap: reuse the collect-mode validation core; don't re-implement rules.
 
 ## Acceptance
@@ -49,7 +49,7 @@ workflow lint`")` rather than aborting check entirely. Confirm the open_service 
   positive; AC #7 spirit).
 
 ## Ordering
-After TASK-000241/242 (shares the validation core). Independent of TASK-000244 (override artifact).
+After TASK-241/242 (shares the validation core). Independent of TASK-244 (override artifact).
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -87,7 +87,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-30T08:29:12Z] Catherine Manager:
-  - AC#5 wiring gate (from REV-000246 + QA on Wave 1): validate_against_index() is implemented in _workflow/_loader.py but has NO production call site — AC#5 ('removing a status still in use by live items fails closed, listing offending IDs') is not end-to-end. This task MUST wire it in. Design constraint: 'fails closed' means a normal command on such a squad hard-stops (open_service is the natural point) with the 'run sq workflow lint' pointer — BUT sq workflow lint (TASK-242) must still run and report the offenders without being self-blocked by the same check. FEAT-000209 cannot be signed off AC#5-complete until this is wired and proven by an end-to-end test.
+  - AC#5 wiring gate (from REV-246 + QA on Wave 1): validate_against_index() is implemented in _workflow/_loader.py but has NO production call site — AC#5 ('removing a status still in use by live items fails closed, listing offending IDs') is not end-to-end. This task MUST wire it in. Design constraint: 'fails closed' means a normal command on such a squad hard-stops (open_service is the natural point) with the 'run sq workflow lint' pointer — BUT sq workflow lint (TASK-242) must still run and report the offenders without being self-blocked by the same check. FEAT-209 cannot be signed off AC#5-complete until this is wired and proven by an end-to-end test.
 - [2026-06-30T08:45:56Z] Elias Python:
   - Implemented AC#5 wiring and sq check integration (TASK-243).
   - AC#5 wiring: validate_against_index_fail_closed(spec, squad_dir) in _loader.py reads the index synchronously (bypassing the async layer) after load_workflow_spec succeeds, raises SquadsError listing every offending item ID if the merged spec drops a type or status still used by live items. Called from open_service() (F3/REV-246 fast-path also wired: no-override squads use cached _BUNDLED_SPEC without re-parsing). sq workflow lint bypasses this by calling lint_workflow_spec() directly.
@@ -97,6 +97,6 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Gate results: pyright 0 errors/0 warnings, ruff check clean, ruff format clean. Targeted pytest (test_workflow_override.py + test_workflow_spec.py + test_service.py + test_load_boundary_vocab.py) 132/132 passed.
   - @manager: TASK-242 and TASK-243 Done. AC#5 is wired end-to-end. Wave 2 complete. Ready for review.
 - [2026-06-30T09:29:52Z] Elias Python:
-  - Fix 2 (F2 / REV-000248) applied — TASK-000243 follow-up.
+  - Fix 2 (F2 / REV-248) applied — TASK-243 follow-up.
   - In `_services/_service.py` open_service: deleted the vestigial F5 comment block (the OSError guard that was described but did not exist) and removed the no-op `try/except SquadsError: raise SquadsError(f'{exc}')` re-wrap around `validate_against_index_fail_closed`. Now calls it directly — the function's own SquadsError message already carries the lint pointer.
 <!-- sq:discussion:end -->

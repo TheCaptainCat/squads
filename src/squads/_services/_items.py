@@ -8,7 +8,8 @@ from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _markers as markers
 from squads._models._enums import ItemType, Priority
-from squads._models._item import Item, ref_id_matches, split_ref
+from squads._models._index import SquadsDB
+from squads._models._item import Item, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
 from squads._services._base import ServiceCore, reject_markers
@@ -56,7 +57,7 @@ class ItemsMixin(ServiceCore):
             delta: dict[str, object] = {}
             if title is not None and title != item.title:
                 delta["title"] = [item.title, title]
-                self._rename(item, title)
+                self._rename(db, item, title)
             if description is not None:
                 delta["description"] = description
                 item.description = description
@@ -131,10 +132,13 @@ class ItemsMixin(ServiceCore):
             )
         item.status = status
 
-    def _rename(self, item: Item, new_title: str) -> None:
+    def _rename(self, db: SquadsDB, item: Item, new_title: str) -> None:
         new_slug = slugify(new_title)
         old_path = item_file(self.paths, item)
-        new_rel = self.paths.squad_relative(item.type, f"{item.id}-{new_slug}.md", spec=self.spec)
+        # Filename stem must stay padded even though item.id is unpadded (ADR-000282) — format
+        # it explicitly from the sequence number, never by concatenating item.id.
+        new_stem = format_item_id(item.prefix, item.sequence_id, db.padding)
+        new_rel = self.paths.squad_relative(item.type, f"{new_stem}-{new_slug}.md", spec=self.spec)
         new_path = self.paths.abspath(new_rel)
         if old_path.exists() and old_path != new_path:
             old_path.rename(new_path)

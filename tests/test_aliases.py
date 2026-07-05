@@ -332,8 +332,8 @@ def test_bug_alias_deep_chain_comment(runner, tmp_path, monkeypatch, frozen_time
 def test_task_alias_deep_chain_ref_add(runner, tmp_path, monkeypatch, frozen_time):
     """sq t N ref add ID == sq task N ref add ID (ref subgroup via alias)."""
     _init_squad(runner, tmp_path, monkeypatch, frozen_time)
-    runner.invoke(app, ["create", "bug", "The bug", "--author", "manager"])  # BUG-000002
-    runner.invoke(app, ["create", "task", "Fix the bug", "--author", "manager"])  # TASK-000003
+    runner.invoke(app, ["create", "bug", "The bug", "--author", "manager"])  # BUG-2
+    runner.invoke(app, ["create", "task", "Fix the bug", "--author", "manager"])  # TASK-3
 
     r = runner.invoke(app, ["t", "3", "ref", "add", "BUG-000002", "--kind", "fixes"])
     assert r.exit_code == 0, r.output
@@ -342,7 +342,7 @@ def test_task_alias_deep_chain_ref_add(runner, tmp_path, monkeypatch, frozen_tim
     assert shown.exit_code == 0
     assert "TASK-" in shown.output
     assert "(task)" in shown.output
-    assert "BUG-000002" in shown.output
+    assert "BUG-2" in shown.output
 
 
 def test_decision_alias_deep_chain_status(runner, tmp_path, monkeypatch, frozen_time):

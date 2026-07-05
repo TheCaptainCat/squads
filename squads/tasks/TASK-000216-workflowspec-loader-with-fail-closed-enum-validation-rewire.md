@@ -1,11 +1,11 @@
 ---
-id: TASK-000216
+id: TASK-216
 sequence_id: 216
 type: task
 title: WorkflowSpec loader with fail-closed enum validation; rewire _workflow/_enums
   to source from spec
 status: Done
-parent: FEAT-000207
+parent: FEAT-207
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -27,7 +27,7 @@ validation) and rewire `_workflow.py` / `_enums.py` so `WORKFLOWS`/`TERMINAL`/`A
 prefix+folder/alias maps and the free functions are **sourced from the loaded spec** instead of
 Python literals — behavior byte-identical, zero call-site churn.
 
-Sequence: **second** — depends on TASK-000215 (models + TOML). TASK-000217 (golden-lock) gates on
+Sequence: **second** — depends on TASK-215 (models + TOML). TASK-217 (golden-lock) gates on
 this being behavior-preserving.
 
 ## What to build
@@ -61,7 +61,7 @@ this being behavior-preserving.
   case, not spec vocabulary; reifying it is F2. F1 must not change behavior (ADR §3).
 - Keep the import graph acyclic; no `from __future__ import annotations`.
 
-## Design constraints (ADR-000214)
+## Design constraints (ADR-214)
 
 - §3 loader/shim design; §5 validation; enums remain the source of names (spec organizes, never
   introduces). No model field widened to `str`; no overrides; no renderer change (`sq workflow` still
@@ -74,7 +74,7 @@ this being behavior-preserving.
    explicit-spec surfaces. Call sites unchanged.
 3. All existing tests pass unchanged — no behavioral difference for any squad/command; `sq workflow`
    output unchanged. (US1 acceptance.)
-4. `uv run pyright && uv run ruff check . && uv run pytest` green. (Golden lock added in TASK-000217.)
+4. `uv run pyright && uv run ruff check . && uv run pytest` green. (Golden lock added in TASK-217.)
 <!-- sq:body:end -->
 
 ## Subtasks

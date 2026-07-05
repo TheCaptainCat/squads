@@ -1,17 +1,17 @@
 ---
-id: TASK-000251
+id: TASK-251
 sequence_id: 251
 type: task
 title: 'Workflow core: free functions to spec/context methods + IndexStore takes the
   spec'
 status: Done
-parent: FEAT-000250
+parent: FEAT-250
 author: tech-lead
 created_at: '2026-06-30T09:53:04Z'
 updated_at: '2026-06-30T10:03:47Z'
 ---
 <!-- sq:body -->
-**Part (a) of FEAT-000250 / ADR-000249 Option A. First in sequence — a→b→c→d.**
+**Part (a) of FEAT-250 / ADR-249 Option A. First in sequence — a→b→c→d.**
 
 Turn the workflow module from a global-state holder into a thin re-export of explicit
 `WorkflowSpec` capabilities, and make `IndexStore` take the spec as an explicit argument.

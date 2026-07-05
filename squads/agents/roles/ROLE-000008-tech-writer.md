@@ -1,5 +1,5 @@
 ---
-id: ROLE-000008
+id: ROLE-8
 sequence_id: 8
 type: role
 title: Theo Writer

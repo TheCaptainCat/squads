@@ -1,15 +1,15 @@
 ---
-id: REV-000135
+id: REV-135
 sequence_id: 135
 type: review
 title: 'Review: FEAT-16 second backend (agents_md) + ABC de-Claude-ification'
 status: Approved
 author: reviewer
 refs:
-- ADR-000133:addresses
-- TASK-000131
-- TASK-000132
-- FEAT-000016
+- ADR-133:addresses
+- TASK-131
+- TASK-132
+- FEAT-16
 subentities:
 - local_id: F1
   title: AGENTS.md carries no workflow/skill content; role definitions are title-only

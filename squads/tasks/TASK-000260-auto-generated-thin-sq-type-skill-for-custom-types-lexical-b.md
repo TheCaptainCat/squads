@@ -1,16 +1,16 @@
 ---
-id: TASK-000260
+id: TASK-260
 sequence_id: 260
 type: task
 title: Auto-generated thin sq-<type> skill for custom types (lexical-by-slug)
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 assignee: python-dev
 refs:
-- TASK-000262:depends-on
-- TASK-000258:depends-on
-- TASK-000256:depends-on
+- TASK-262:depends-on
+- TASK-258:depends-on
+- TASK-256:depends-on
 created_at: '2026-06-30T12:01:06Z'
 updated_at: '2026-06-30T14:46:49Z'
 ---
@@ -79,7 +79,7 @@ _Add with `sq task 260 add-subtask "<title>"`; track with `sq task 260 subtask <
 
 <!-- sq:discussion -->
 - [2026-06-30T14:46:49Z] Elias Python:
-  - @manager TASK-000260 complete. All gates green: pyright 0 errors, ruff clean, full suite exit 0 (1 pre-existing skip).
+  - @manager TASK-260 complete. All gates green: pyright 0 errors, ruff clean, full suite exit 0 (1 pre-existing skip).
   - Files changed: src/squads/_interactions/__init__.py (new custom_item_skill_name, custom_item_skill_commands, custom_item_skill_description, custom_skill_slugs; added WorkflowSpec import), src/squads/_backends/_base.py (added optional spec: WorkflowSpec | None field to BackendContext), src/squads/_backends/_claude_code/_backend.py (extended _write_item_skills with custom-type thin path, added linearize_lifecycle import), src/squads/_services/_base.py (threads self.spec into BackendContext in _ctx and refresh_managed), src/squads/_services/_maintenance.py (new seed_custom_skills method; called from sync after write_managed; imports custom_item_skill_description, custom_skill_slugs), tests/test_custom_type_skill.py (15 new tests).
   - FEAT-178 allocator reused: custom_skill_slugs(spec) returns sorted sq-<type> slugs for non-built-in, non-meta spec types; seed_custom_skills iterates this list and allocates SKILL ids via db.allocate_id(ItemType.SKILL) in lexical-by-slug order — same transaction pattern as seed_bundled_skills. Bundled SKILL ids are never reassigned (AC#6: custom ids always come after bundled ones since bundled skills are seeded at init time).
   - Template approach: item_skill.md.j2 is reused with sections=[] — the for-loop degrades to no 'For <role>' sections, which is correct for custom types with no PLAYBOOK entry. overview='' also renders cleanly (the template emits an empty paragraph). lifecycle is auto-derived via linearize_lifecycle(spec.machine_for(ctype)).

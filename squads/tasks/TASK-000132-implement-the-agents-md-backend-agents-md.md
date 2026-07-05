@@ -1,15 +1,15 @@
 ---
-id: TASK-000132
+id: TASK-132
 sequence_id: 132
 type: task
 title: Implement the agents_md backend (AGENTS.md)
 status: Done
-parent: FEAT-000016
+parent: FEAT-16
 author: tech-lead
 priority: high
 refs:
-- TASK-000131:depends-on
-- BUG-000134:fixes
+- TASK-131:depends-on
+- BUG-134:fixes
 description: Second AgentBackend writing a single project AGENTS.md; passes the shared
   conformance suite; sq init/sync target it
 subentities:
@@ -130,7 +130,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - ADR-133 conformance: this task required zero changes to _base.py — exactly as the ADR required. The ABC was already clean after TASK-131.
   - @reviewer ready for review. @qa suite is green.
 - [2026-06-15T13:54:43Z] Mara Tester:
-  - QA verification: PARTIAL PASS — backend mechanics pass, but AGENTS.md content gap found against FEAT-000016 US1 acceptance.
+  - QA verification: PARTIAL PASS — backend mechanics pass, but AGENTS.md content gap found against FEAT-16 US1 acceptance.
   - PASS:
   -   - sq init --backend agents_md creates AGENTS.md (no .claude/ or CLAUDE.md)
   -   - default_backend = agents_md in .squads.toml selects it correctly
@@ -138,17 +138,17 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   -   - User prose before and after managed markers is preserved
   -   - Conformance suite: 70 tests pass (35 per backend); agents_md-specific 11 tests all pass
   -   - README documents agents_md backend
-  - FAIL (US1 acceptance gap): FEAT-000016 US1 requires AGENTS.md to carry 'roster, workflow and skill content'. The generated AGENTS.md carries roster correctly but:
+  - FAIL (US1 acceptance gap): FEAT-16 US1 requires AGENTS.md to carry 'roster, workflow and skill content'. The generated AGENTS.md carries roster correctly but:
   -   - Workflow: only a generic one-liner ('a status lifecycle, and a handoff protocol') — no actual workflow commands, status transitions, or workflow.md.j2 content. TASK-132 approach explicitly said to reuse workflow.md.j2.
   -   - Skill content: not present in AGENTS.md at all. Staging files exist under .agents_md/roles/ with mission text, but they are never compiled into AGENTS.md.
   -   - Role definitions section only shows 'Role: manager' (title) — no mission, responsibilities, or actionable guidance.
   - @python-dev please review: should workflow.md.j2 be included in write_managed, and should role missions from .agents_md/roles/ staging files be compiled into the AGENTS.md managed section?
 - [2026-06-15T13:58:21Z] Paul Reviewer:
-  - REV-000135: CHANGES REQUESTED. Blocking: F1 (high) — sq init --backend agents_md + sync produces an AGENTS.md with roster ONLY: no workflow content (workflow.md.j2 never rendered in), no skill content (squads/greeting/per-type bodies absent), and role definitions are title-only stubs. The richer per-role staging files generate_role_entry writes to .agents_md/roles/ are never folded into AGENTS.md — orphans. That misses FEAT-16/US1's 'valid, useful AGENTS.md carrying roster, workflow and skill content'. Not an ABC violation and the gate is green, but as shipped it's closer to a stub than the 'genuinely useful second backend' the feature is for.
+  - REV-135: CHANGES REQUESTED. Blocking: F1 (high) — sq init --backend agents_md + sync produces an AGENTS.md with roster ONLY: no workflow content (workflow.md.j2 never rendered in), no skill content (squads/greeting/per-type bodies absent), and role definitions are title-only stubs. The richer per-role staging files generate_role_entry writes to .agents_md/roles/ are never folded into AGENTS.md — orphans. That misses FEAT-16/US1's 'valid, useful AGENTS.md carrying roster, workflow and skill content'. Not an ABC violation and the gate is green, but as shipped it's closer to a stub than the 'genuinely useful second backend' the feature is for.
   - Non-blocking: F2 (low) _cli/_main.py:185 hardcodes '(pointers + squads skill + CLAUDE.md)' for ALL backends — false + Claude-leaky for agents_md, on the exact line ADR-133 CC-005 told you to keep backend-neutral. F3 (low) _backend.py module docstring claims write_managed compiles staging entries into AGENTS.md; it doesn't.
   - Fix F1 (render workflow + at least the squads-skill summary into agents_section.md.j2; emit role mission into Role definitions or fold the staging files), tidy F2/F3, and I'll re-review. @python-dev
 - [2026-06-15T14:13:49Z] Elias Python:
-  - Addressed all three findings from REV-000135. Gate is green: 798 passed, 1 skipped; pyright 0 errors; ruff check + format clean.
+  - Addressed all three findings from REV-135. Gate is green: 798 passed, 1 skipped; pyright 0 errors; ruff check + format clean.
   - **F1 (high) — AGENTS.md now carries roster, workflow, and role content:**
   - - agents_section.md.j2 now uses '{% include "workflow.md.j2" %}' (same partial the Claude backend's squads skill uses) plus a rich Role definitions section with mission and responsibilities.
   - - write_managed now passes type_aliases=TYPE_ALIASES so the workflow template renders the full alias table and command cheatsheet.
@@ -156,8 +156,8 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - **F2 (low):** Dropped the false '(pointers + squads skill + CLAUDE.md)' parenthetical from _main.py line ~185. Init summary now shows just the backend name, which is accurate for any backend.
   - **F3 (low):** Rewrote the module docstring in _agents_md/_backend.py to accurately describe the actual design: staging files are compile inputs to write_managed, not orphans.
   - **New usefulness test** in tests/test_backend_agents_md.py class TestAgentsMdUsefulnessPin (4 tests): asserts AGENTS.md after sq init+sync contains workflow commands ('sq create task', 'Todo', 'InProgress', 'Canonical' alias table), role mission text ('first point of contact'), and the '**Mission:**' heading — so a future regression to a roster-only stub fails immediately.
-  - templates_manifest.json updated for the changed agents_section.md.j2 hash. @reviewer please re-verify. @qa please verify BUG-000134 closed.
+  - templates_manifest.json updated for the changed agents_section.md.j2 hash. @reviewer please re-verify. @qa please verify BUG-134 closed.
 - [2026-06-15T14:22:06Z] Paul Reviewer:
-  - REV-000135 APPROVED on re-review. F1/F2/F3 all verified resolved; gate green (798 passed, 1 skipped; pyright 0; ruff clean). AGENTS.md now carries roster + full workflow cheatsheet (alias table via type_aliases) + role missions folded from .agents_md/roles/ staging files; idempotent (byte-identical second sync); marker-safe. Staging-file design judged sound — the generate_role_entry→write_managed ordering holds on all real paths (sync/init/adopt/add_role), the mission='' fallback is honest unit-test behaviour not a coupling bug, and the new TestAgentsMdUsefulnessPin is non-vacuous (asserts workflow + mission content that the old stub lacked). Clearing for Done. @qa BUG-000134 should now verify as Fixed.
+  - REV-135 APPROVED on re-review. F1/F2/F3 all verified resolved; gate green (798 passed, 1 skipped; pyright 0; ruff clean). AGENTS.md now carries roster + full workflow cheatsheet (alias table via type_aliases) + role missions folded from .agents_md/roles/ staging files; idempotent (byte-identical second sync); marker-safe. Staging-file design judged sound — the generate_role_entry→write_managed ordering holds on all real paths (sync/init/adopt/add_role), the mission='' fallback is honest unit-test behaviour not a coupling bug, and the new TestAgentsMdUsefulnessPin is non-vacuous (asserts workflow + mission content that the old stub lacked). Clearing for Done. @qa BUG-134 should now verify as Fixed.
   - @tech-lead TASK-132 review complete and approved — ready to move to Done.
 <!-- sq:discussion:end -->

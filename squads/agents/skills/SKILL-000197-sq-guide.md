@@ -1,5 +1,5 @@
 ---
-id: SKILL-000197
+id: SKILL-197
 sequence_id: 197
 type: skill
 title: sq-guide

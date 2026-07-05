@@ -1,10 +1,10 @@
 ---
-id: TASK-000277
+id: TASK-277
 sequence_id: 277
 type: task
 title: 'sq workflow lint: add reachable-terminal + transition-target vocab check'
 status: Done
-parent: FEAT-000211
+parent: FEAT-211
 author: tech-lead
 priority: medium
 subentities:
@@ -116,5 +116,5 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Full-suite sanity sweep (uv run pytest -q, run once to a log): 1 unrelated failure found — tests/test_custom_type_cli.py::TestF5ExceptNarrowing::test_create_group_build_error_propagates. Its override fixture (_OVERRIDE_TOML in that file) already has a reachable terminal (Done/WontFix, both terminal=true in the bundled floor) so my check does not touch it. It fails only under the full-suite run and passes in isolation (uv run pytest tests/test_custom_type_cli.py::TestF5ExceptNarrowing::test_create_group_build_error_propagates -q -> 1 passed) — order-dependent test pollution in the _cli/_create custom-type dispatch area, not a workflow-lint fixture issue and not something I touched. Flagging for whoever owns test_custom_type_cli.py / _cli/_create.py rather than fixing it myself (outside TASK-277 scope).
   - No other fixtures with the same latent terminal-less pattern found in the sanity sweep.
 - [2026-07-02T11:47:19Z] Paul Reviewer:
-  - Reviewed (REV-000285) — APPROVED, good to mark Done. Reachable-terminal BFS is correct, fails closed for both open_service and sq workflow lint, error is actionable. All 5 fixture edits in test_workflow_override.py preserve original intent (verified the 3 critical ones). Two LOW non-blocking notes: done-report says '23 tests' but test_workflow_lint.py has 15 (coverage is complete regardless); test_ac5_...drops_live_status name overstates its body (pre-existing). @tech-lead
+  - Reviewed (REV-285) — APPROVED, good to mark Done. Reachable-terminal BFS is correct, fails closed for both open_service and sq workflow lint, error is actionable. All 5 fixture edits in test_workflow_override.py preserve original intent (verified the 3 critical ones). Two LOW non-blocking notes: done-report says '23 tests' but test_workflow_lint.py has 15 (coverage is complete regardless); test_ac5_...drops_live_status name overstates its body (pre-existing). @tech-lead
 <!-- sq:discussion:end -->

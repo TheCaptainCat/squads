@@ -1,12 +1,12 @@
 ---
-id: REV-000165
+id: REV-165
 sequence_id: 165
 type: review
 title: Advisory create-lane warning (TASK-164, FEAT-122 US1/Slice B)
 status: Approved
 author: reviewer
 refs:
-- TASK-000164:addresses
+- TASK-164:addresses
 subentities:
 - local_id: F1
   title: Inline duplicate json imports in _cli/_create.py
@@ -20,7 +20,7 @@ created_at: '2026-06-22T13:31:03Z'
 updated_at: '2026-06-23T09:59:45Z'
 ---
 <!-- sq:body -->
-Independent review of TASK-000164 — advisory create-lane warning (FEAT-000122 US1 / Slice B, under ADR-000163 Option A). Reviewed the uncommitted diff on `feat/async-core`.
+Independent review of TASK-164 — advisory create-lane warning (FEAT-122 US1 / Slice B, under ADR-163 Option A). Reviewed the uncommitted diff on `feat/async-core`.
 
 ## Scope reviewed
 - `_interactions.py` — `CREATE_LANES`, `allowed_create_types`, `in_lane_owner`, `is_lane_exempt`.

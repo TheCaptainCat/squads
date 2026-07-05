@@ -1,5 +1,5 @@
 ---
-id: FEAT-000166
+id: FEAT-166
 sequence_id: 166
 type: feature
 title: Advisory warnings for over-long sub-entity titles
@@ -29,7 +29,7 @@ leave the **body** as the untouched rendered placeholder. A corpus sweep found:
   text; zero top-level item bodies are empty.
 - 44 of those 107 have titles exceeding 120 chars; the worst case is a
   781-character finding title with an empty body.
-- Review findings are the worst offenders: REV-000165 findings F1 and F2 each
+- Review findings are the worst offenders: REV-165 findings F1 and F2 each
   carry a multi-sentence description in the title while the body is the default
   placeholder.
 
@@ -39,7 +39,7 @@ short *handle*, not the complete specification.
 ## Desired behaviour
 
 All enforcement in this feature is **advisory / warn-and-proceed** — mirror the
-existing `CreateResult.lane_warning` pattern from FEAT-000122 (Slice B). A
+existing `CreateResult.lane_warning` pattern from FEAT-122 (Slice B). A
 warning is rendered by the CLI, the command exits 0, and the event is recorded
 in the reflog. Empty bodies must NOT be gated — a one-line subtask with no body
 is legitimately complete. The signal to act on is a **long title**, not an absent
@@ -85,7 +85,7 @@ architect / tech lead; this feature does not pre-decide them.
 
 ## References
 
-- FEAT-000122 / REV-000165 / ADR-000163 — the advisory lane-warning pattern
+- FEAT-122 / REV-165 / ADR-163 — the advisory lane-warning pattern
   this feature mirrors.
 - Corpus data: 107 empty sub-entity bodies, 44 with titles >120 chars.
 <!-- sq:body:end -->
@@ -229,13 +229,13 @@ land independently.
 
 <!-- sq:discussion -->
 - [2026-06-23T08:34:23Z] Robert Architect:
-  - Settled the two open questions in ADR-000167: title-length threshold = 120 chars (single constant in _interactions.py, not .squads.toml-configurable), advisory/warn-and-proceed, body presence never gated.
+  - Settled the two open questions in ADR-167: title-length threshold = 120 chars (single constant in _interactions.py, not .squads.toml-configurable), advisory/warn-and-proceed, body presence never gated.
   - 120 chosen over the ~80 hypothesis to sit above the ambiguous 70–120 band — fires only on the 44 unambiguous-prose titles, stays silent through the borderline middle, so the advisory keeps its credibility.
   - Warning copy + scope (three add-* entry points, a sq check advisory rule, skill reinforcement) are pinned in the ADR. Ready for tech-lead breakdown when greenlit.
 - [2026-06-23T08:39:27Z] Olivia Lead:
-  - Breakdown complete against ADR-000167 (threshold = 120, single constant in _interactions.py, advisory/warn-and-proceed mirroring CreateResult.lane_warning, body presence never gated). Three tasks, one per story — all parented to this feature and ref'd to ADR-000167 (related). Left in Draft; nothing greenlit.
-  - TASK-000168 — Authoring-time advisory at add-finding/add-subtask/add-story (US1). Subtasks: ST1 add TITLE_ADVISORY_MAX=120 constant; ST2 carry advisory on the three service results (lane_warning pattern); ST3 render + reflog at the CLI edge. All ST → US1.
-  - TASK-000169 — sq check advisory rule (US2). Subtasks: ST1 pass walking every sub-entity title against the shared constant; ST2 emit advisory findings (ID/kind+index/length/threshold), still exit 0 when otherwise clean. All ST → US2.
-  - TASK-000170 — Skill reinforcement (US3). Subtasks: ST1 sq-review add-finding note; ST2 sq-task add-subtask note; ST3 sq-feature add-story note + sq sync idempotency check. All ST → US3.
+  - Breakdown complete against ADR-167 (threshold = 120, single constant in _interactions.py, advisory/warn-and-proceed mirroring CreateResult.lane_warning, body presence never gated). Three tasks, one per story — all parented to this feature and ref'd to ADR-167 (related). Left in Draft; nothing greenlit.
+  - TASK-168 — Authoring-time advisory at add-finding/add-subtask/add-story (US1). Subtasks: ST1 add TITLE_ADVISORY_MAX=120 constant; ST2 carry advisory on the three service results (lane_warning pattern); ST3 render + reflog at the CLI edge. All ST → US1.
+  - TASK-169 — sq check advisory rule (US2). Subtasks: ST1 pass walking every sub-entity title against the shared constant; ST2 emit advisory findings (ID/kind+index/length/threshold), still exit 0 when otherwise clean. All ST → US2.
+  - TASK-170 — Skill reinforcement (US3). Subtasks: ST1 sq-review add-finding note; ST2 sq-task add-subtask note; ST3 sq-feature add-story note + sq sync idempotency check. All ST → US3.
   - Split rationale: US1 is the only runtime/CLI surface and owns the constant; US2 reuses that same constant for the audit; US3 is template-only and can land independently. sq check is clean.
 <!-- sq:discussion:end -->

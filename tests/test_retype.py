@@ -38,14 +38,17 @@ async def test_retype_task_to_bug_preserves_number(svc):
 
 async def test_retype_creates_file_in_new_folder(svc):
     """File moves to the new type's folder."""
+    from squads._models._item import format_item_id
+
     task = (await svc.create(ItemType.TASK, "My task")).item
+    old_padded_stem = format_item_id("TASK", task.sequence_id, (await svc.store.load()).padding)
     res = await svc.retype(task.id, ItemType.BUG)
 
     new_path = svc.paths.abspath(res.item.path)
     assert new_path.exists()
     assert "bugs" in str(new_path)
-    # old path is gone
-    old_path = svc.paths.squad_dir / "tasks" / f"{res.old_id}-my-task.md"
+    # old path (padded stem — ADR-000282, res.old_id is the unpadded display id) is gone
+    old_path = svc.paths.squad_dir / "tasks" / f"{old_padded_stem}-my-task.md"
     assert not old_path.exists()
 
 

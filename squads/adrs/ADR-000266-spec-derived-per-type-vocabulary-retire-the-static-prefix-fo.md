@@ -1,5 +1,5 @@
 ---
-id: ADR-000266
+id: ADR-266
 sequence_id: 266
 type: decision
 title: 'Spec-derived per-type vocabulary: retire the static PREFIX/FOLDER/alias tables;
@@ -7,15 +7,15 @@ title: 'Spec-derived per-type vocabulary: retire the static PREFIX/FOLDER/alias 
 status: Accepted
 author: architect
 refs:
-- FEAT-000210:addresses
-- REV-000265:addresses
+- FEAT-210:addresses
+- REV-265:addresses
 created_at: '2026-07-01T07:40:18Z'
 updated_at: '2026-07-01T08:27:48Z'
 ---
 <!-- sq:body -->
 ## Context
 
-REV-000265 F1 (High) found that a custom type declared with `prefix = "INC"` gets a malformed
+REV-265 F1 (High) found that a custom type declared with `prefix = "INC"` gets a malformed
 stored id — `INCIDENT-000019` instead of `INC-000019`. The root cause is `Item.id`
 (`_models/_item.py:162`):
 
@@ -45,7 +45,7 @@ And `_services/_refs.py:93,298,351` + `_services/_items.py:303` use **bracket** 
 Any fix that only touches `_item.py:162` leaves the filename wrong and the ref paths crashing. F1 is
 a family, not a line.
 
-### What the codebase already established (ADR-000249 / ADR-000263)
+### What the codebase already established (ADR-249 / ADR-263)
 
 - **Models are decoupled from the spec** (ADR-249 Finding 1, proven): `Item`/`SubEntity` do no
   vocabulary lookup at construction; vocab validation lives at the `IndexStore.load()` boundary
@@ -147,13 +147,13 @@ is named `INC-000019-*.md`, and `sq incident INC-000019 show` round-trips. No `t
 
 ### Sequencing / feature-boundary recommendation (for @tech-lead + @manager + op-pierre)
 
-- **Land within the FEAT-000210 corrective (this slice's follow-up task):** the `Item.prefix` field +
+- **Land within the FEAT-210 corrective (this slice's follow-up task):** the `Item.prefix` field +
   the resolver + the three format-site conversions + the ref-path fix + retiring `PREFIX_BY_TYPE`/
   `TYPE_BY_PREFIX`/`FOLDER_BY_TYPE` call-site reads + the `TYPE_ALIASES` shim. These are exactly the
   "prefix/folder/type-by-prefix/meta/alias-shim" retirements F1 blocks, and they are what makes a
   custom `INC-000019` round-trip. This is the direct fix REV F1 (and the create-path F2) need.
 - **Defer / do NOT pull into FEAT-210:** `_SUBENTITY_PLURAL` (`_cli/_items.py:47`). The spec has no
-  sub-entity plural/singular vocabulary yet — that schema addition is FEAT-000212's `subentity_kinds`,
+  sub-entity plural/singular vocabulary yet — that schema addition is FEAT-212's `subentity_kinds`,
   and FEAT-210 explicitly scopes brand-new sub-entity kinds *out* (F6). Recommendation: **design the
   resolver so FEAT-212 reuses it** (the resolver signature already returns per-type vocab; add a
   `subentity_plural` accessor when `subentity_kinds` lands) rather than pulling the FEAT-212 vocab
@@ -170,7 +170,7 @@ spec-derived. It is a recommendation, not a unilateral scope change.
 
 <!-- sq:discussion -->
 - [2026-07-01T07:41:47Z] Robert Architect:
-  - @manager @tech-lead ADR-000266 (Proposed) decides how spec-derived per-type vocabulary reaches the spec-unaware _models layer and resolves REV-000265 F1.
+  - @manager @tech-lead ADR-266 (Proposed) decides how spec-derived per-type vocabulary reaches the spec-unaware _models layer and resolves REV-265 F1.
   - Decision: stamp a resolved prefix onto the Item as a stored-but-derived field (Item.prefix), and format Item.id from that field — never from a type-keyed lookup. Built-in prefixes come from ONE reserved-vocab resolver (the default); custom types get their prefix from spec.items[t].prefix, stamped at create/retype/load where the spec is already in hand (create already carries self.spec). Item stays spec-decoupled (ADR-249 Finding 1 preserved): it stores a string handed to it, it does not derive vocab. Rejected injecting a spec into Item.id (re-couples the model; computed_field can't take args) and an ambient contextvar the model reads (breaks frontmatter-as-truth).
   - F1 is NOT a one-liner: the SAME buggy PREFIX_BY_TYPE.get(type, type.upper()) is at THREE sites — _item.py:162 (Item.id), _index.py:74 (format_id → the create-time FILENAME, so the file is ALSO misnamed), and _common.py:557; plus _refs.py/_items.py use bracket PREFIX_BY_TYPE[type] which KeyErrors on custom types. Fixing only line 162 leaves the filename wrong and the ref paths crashing. Fix converges all sites on item.prefix / the resolver.
   - Retires (call-site reads): PREFIX_BY_TYPE, TYPE_BY_PREFIX, FOLDER_BY_TYPE (all fold into the single resolver's built-in defaults), the TYPE_ALIASES shim (consumers move to ItemSpec.aliases/spec.alias_to_type), and _META_NAMES. STAYS: the reserved built-in vocab map (resolver default + EPIC-206 reserved-type invariant); _KIND_BY_TYPE in _migrations/_v0_2_to_v0_3.py (frozen migration, exempt).

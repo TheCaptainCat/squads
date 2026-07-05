@@ -1,5 +1,5 @@
 ---
-id: REV-000097
+id: REV-97
 sequence_id: 97
 type: review
 title: TASK-000089 — sq override group, staleness machinery, hash manifest (FEAT-000014,
@@ -7,7 +7,7 @@ title: TASK-000089 — sq override group, staleness machinery, hash manifest (FE
 status: Approved
 author: reviewer
 refs:
-- TASK-000089:addresses
+- TASK-89:addresses
 subentities:
 - local_id: F1
   title: Manifest-freshness unguarded — silent drift-miss at release
@@ -33,9 +33,9 @@ created_at: '2026-06-12T22:00:54Z'
 updated_at: '2026-06-23T09:59:44Z'
 ---
 <!-- sq:body -->
-Review of TASK-000089 — the `sq override` command group, staleness stamps, per-release content-hash manifest, and `sq check` drift integration under FEAT-000014, against accepted ADR-000085 §3.
+Review of TASK-89 — the `sq override` command group, staleness stamps, per-release content-hash manifest, and `sq check` drift integration under FEAT-14, against accepted ADR-85 §3.
 
-**Verdict: Approved.** The contract surface is faithfully implemented, the FEAT-000015 exit-code contract is intact and tested, marker safety holds, and `sq migrate` is proven not to touch `.overrides/`. Suite green (540 passed, 1 skipped), pyright/ruff clean, `uv build` ships the manifest + 20 templates, and the manifest regenerates byte-stable. Findings below are all low/medium robustness + consistency gaps — none block the merge, but FINDING-1 (manifest-freshness guard) and FINDING-2 (golden-pin the new --json shapes) are worth closing before 1.0 since this is durable-contract surface.
+**Verdict: Approved.** The contract surface is faithfully implemented, the FEAT-15 exit-code contract is intact and tested, marker safety holds, and `sq migrate` is proven not to touch `.overrides/`. Suite green (540 passed, 1 skipped), pyright/ruff clean, `uv build` ships the manifest + 20 templates, and the manifest regenerates byte-stable. Findings below are all low/medium robustness + consistency gaps — none block the merge, but FINDING-1 (manifest-freshness guard) and FINDING-2 (golden-pin the new --json shapes) are worth closing before 1.0 since this is durable-contract surface.
 
 ## Verified against ADR §3 (behaviours, not just presence)
 - `scaffold` stamps with the current `__version__` (0.3.0); refuses clobber without `--force`; only command that writes bodies; invalidates the engine cache so the new override is picked up.
@@ -46,7 +46,7 @@ Review of TASK-000089 — the `sq override` command group, staleness stamps, per
 - Marker safety: the `<!-- squads:override-base -->` stamp is NOT matched by `find_markers` (strict sq:-only) nor by the service's `_SQ_OPEN_RE`; TOML `#` stamp form is a standard comment. Confirmed empirically.
 - `sq migrate up` leaves `.overrides/` byte- and mtime-identical (test_migrate_does_not_touch_overrides).
 
-## FEAT-000015 exit-code contract — INTACT
+## FEAT-15 exit-code contract — INTACT
 `_cli/_main.py::check` derives exit purely from `sum(level == "error")`; override warns feed in as `CheckIssue("warn", …)` and never reach the error count. Both human and `--json` paths preserve exit 3 on error / exit 0 on warn-only. Directly tested both ways.
 <!-- sq:body:end -->
 
@@ -95,7 +95,7 @@ Manifest-freshness is unguarded — silent drift-miss at release. The whole feat
 <!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
-New --json read commands (override list/diff) are not golden-pinned. FEAT-000015/TASK-000084 established that EVERY --json read command gets a golden in tests/goldens/ pinned by test_golden_json.py, so any shape drift fails the build. override list --json and override diff --json are new read commands joining the 1.0 machine-readable surface but are only key-set-asserted in test_override_commands.py — not added to the golden suite. Consistency gap against a just-frozen convention; should be closed before 1.0.
+New --json read commands (override list/diff) are not golden-pinned. FEAT-15/TASK-84 established that EVERY --json read command gets a golden in tests/goldens/ pinned by test_golden_json.py, so any shape drift fails the build. override list --json and override diff --json are new read commands joining the 1.0 machine-readable surface but are only key-set-asserted in test_override_commands.py — not added to the golden suite. Consistency gap against a just-frozen convention; should be closed before 1.0.
 <!-- sq:finding:F2:body:end -->
 
 #### Discussion
@@ -163,6 +163,6 @@ base_version_template_content is hash-only, so Δ-upgrade is unavailable for any
 
 <!-- sq:discussion -->
 - [2026-06-12T22:01:48Z] Paul Reviewer:
-  - Verdict: APPROVED. Contract surface matches ADR-000085 §3, FEAT-000015 exit-code contract intact and tested both ways, marker safety holds, migrate proven not to touch .overrides/, suite green, build ships the manifest, manifest regenerates byte-stable and its hashes match the installed bundle.
+  - Verdict: APPROVED. Contract surface matches ADR-85 §3, FEAT-15 exit-code contract intact and tested both ways, marker safety holds, migrate proven not to touch .overrides/, suite green, build ships the manifest, manifest regenerates byte-stable and its hashes match the installed bundle.
   - Five non-blocking findings filed (2 medium, 3 low). No open high-severity findings — approval is clean. Recommend closing F1 (manifest-freshness guard test) and F2 (golden-pin override list/diff --json) before 1.0 since this is durable-contract surface; F3-F5 are polish/recorded-deferral. @python-dev these can be picked up as follow-ups, not a re-review gate.
 <!-- sq:discussion:end -->

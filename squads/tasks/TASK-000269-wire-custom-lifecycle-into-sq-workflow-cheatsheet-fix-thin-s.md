@@ -1,34 +1,34 @@
 ---
-id: TASK-000269
+id: TASK-269
 sequence_id: 269
 type: task
 title: Wire custom lifecycle into sq workflow cheatsheet + fix thin sq-<type> skill
   commands
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 assignee: python-dev
 refs:
-- REV-000265:addresses
-- TASK-000268:depends-on
-- BUG-000272:fixes
+- REV-265:addresses
+- TASK-268:depends-on
+- BUG-272:fixes
 created_at: '2026-07-01T08:28:55Z'
 updated_at: '2026-07-01T14:38:30Z'
 ---
 <!-- sq:body -->
-**Closes REV-000265 F3 (Medium) + F4 (Medium). Both gated on the create path (TASK-000268).**
+**Closes REV-265 F3 (Medium) + F4 (Medium). Both gated on the create path (TASK-268).**
 
 ## F3 — sq workflow renders no lifecycle string
 **File:** `_rendering/templates/workflow.md.j2`. The spec-rendered cheatsheet renders ONLY the alias table (`{% for item_type, item_spec in spec.items.items() %}` → Canonical/Aliases/Example). It renders **no lifecycle string and no prefix for any type** — `linearize_lifecycle`/`machine_for` are built (TASK-262) and used in the generated skill, but never wired into the cheatsheet. So a valid `incident` override shows `incident | inc | sq inc <n> show` but its lifecycle (`Open → Done (+ WontFix)`) never appears. AC#2/US2 ("output includes the custom type's prefix, lifecycle string, and aliases") is only partially met (aliases yes, prefix + lifecycle no); AC#3 unmet.
 
-**Fix:** add a spec-driven section to `workflow.md.j2` that, for each non-meta work type, renders `prefix` + `linearize_lifecycle(spec.machine_for(type))`. Keep it strictly in the **dynamic** region — the static FEAT-000013 contract partial (`workflow_static.md.j2`: ref-kinds table, retype, remove-vs-cancel) stays literal and untouched, never config-editable. Confirm built-in derived lifecycle strings reconcile with what the TASK-256 golden captures (a known golden-drift risk).
+**Fix:** add a spec-driven section to `workflow.md.j2` that, for each non-meta work type, renders `prefix` + `linearize_lifecycle(spec.machine_for(type))`. Keep it strictly in the **dynamic** region — the static FEAT-13 contract partial (`workflow_static.md.j2`: ref-kinds table, retype, remove-vs-cancel) stays literal and untouched, never config-editable. Confirm built-in derived lifecycle strings reconcile with what the TASK-256 golden captures (a known golden-drift risk).
 
 **Adjacent (reconcile with PO, not necessarily a code change):** AC#4 says `sq sync` regenerates *CLAUDE.md* to include the custom type, but `claude_section.md.j2` never included the cheatsheet — the vocabulary lands in the `squads` skill and AGENTS.md, not CLAUDE.md. Likely an AC-wording artifact. Flag to @product-owner; do not silently expand CLAUDE.md scope.
 
 ## F4 — thin sq-<type> skill advertises a broken command
-**File:** `_interactions/__init__.py::custom_item_skill_commands` (~244-261) + the generated skill body. The thin skill emits `sq create {type} "…" --author <slug>` as its first command — broken per F2. Once TASK-000268 lands a working create path, this command string must match the actual surface: if 268 ships `sq create <type>`, the current string is already right; if it ships a `create` verb on the resource group, update this line. **Do not close F4 until 268 lands AND the advertised command is verified to run.** Secondary (lower stakes): the shared footer references `sq <type> <n> <kind> <k> body`/`show` (sub-entity verbs) — custom types declare no sub-entity kind, so guard those out of the custom-type skill (brand-new sub-entity kinds are FEAT-212 scope, out of this feature).
+**File:** `_interactions/__init__.py::custom_item_skill_commands` (~244-261) + the generated skill body. The thin skill emits `sq create {type} "…" --author <slug>` as its first command — broken per F2. Once TASK-268 lands a working create path, this command string must match the actual surface: if 268 ships `sq create <type>`, the current string is already right; if it ships a `create` verb on the resource group, update this line. **Do not close F4 until 268 lands AND the advertised command is verified to run.** Secondary (lower stakes): the shared footer references `sq <type> <n> <kind> <k> body`/`show` (sub-entity verbs) — custom types declare no sub-entity kind, so guard those out of the custom-type skill (brand-new sub-entity kinds are FEAT-212 scope, out of this feature).
 
-## Depends on TASK-000268 (and thereby 267)
+## Depends on TASK-268 (and thereby 267)
 Both F3 and F4 are behaviourally gated on a working, correctly-prefixed create path.
 
 ## Acceptance
@@ -67,10 +67,10 @@ _Add with `sq task 269 add-subtask "<title>"`; track with `sq task 269 subtask <
   - **Gates:** pyright 0 errors. ruff clean. ruff format clean. Full pytest suite: all green (1 skip for scale test). templates_manifest.json regenerated (item_skill.md.j2 hash updated).
   - **Files changed:** src/squads/_rendering/templates/agents/item_skill.md.j2 (conditional sub-entity footer), src/squads/_backends/_claude_code/_backend.py (pass subentity_kind=None for custom type render), src/squads/_rendering/templates_manifest.json (regenerated hash), tests/test_custom_type_skill.py (2 new F4 tests).
 - [2026-07-01T14:38:30Z] Elias Python:
-  - @manager TASK-000269 done. Both F3 and F4 from REV-000265 are implemented and all gates are green.
+  - @manager TASK-269 done. Both F3 and F4 from REV-265 are implemented and all gates are green.
   - F4 (custom type skill footer guard): item_skill.md.j2 conditionally omits dead 'sq <type> <n> <kind> <k> body' and '... <kind> <k> show' lines when subentity_kind=None (custom types). Built-in type goldens are byte-identical (uses 'is not defined' guard). Backend passes subentity_kind=None for custom types. Two new tests: test_custom_skill_no_subentity_footer_lines and test_custom_skill_create_command_runs_end_to_end — both green.
   - F3 (spec-driven lifecycle section): Added '## Type lifecycles' to workflow.md.j2 — a | Prefix | Type | Lifecycle | table driven by linearize_lifecycle(spec.machine_for(type)) for every non-meta type, built-in and custom. linearize_lifecycle now uses _SIDE_PRIORITY for canonical side-state ordering (WontFix=0, Blocked=1, Cancelled=2, Rejected=3, Deprecated=4), eliminating the BFS-order non-determinism that caused the F3 GUARDRAIL.
-  - BUG-000272 fixed: playbook.toml bug lifecycle string corrected from copy-pasted generic task string to Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled). test_playbook.py snapshot updated. BUG-000272 → Fixed.
+  - BUG-272 fixed: playbook.toml bug lifecycle string corrected from copy-pasted generic task string to Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled). test_playbook.py snapshot updated. BUG-272 → Fixed.
   - Reconciliation: all 7 built-in types (epic, feature, task, bug, decision, review, guide) linearize to PLAYBOOK strings exactly — zero divergence.
   - Cheatsheet golden diff: workflow_cheatsheet.txt gained 15 lines (purely additive — the new Type lifecycles section). sq-bug skill golden corrected lifecycle line only. agents_md_section.txt updated (it includes workflow.md.j2). All other goldens unchanged.
   - Gates: pyright 0 errors, ruff clean, full suite 1 skip 0 failures.

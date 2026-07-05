@@ -1,5 +1,5 @@
 ---
-id: SKILL-000198
+id: SKILL-198
 sequence_id: 198
 type: skill
 title: sq-review

@@ -1,17 +1,17 @@
 ---
-id: REV-000172
+id: REV-172
 sequence_id: 172
 type: review
 title: Review of TASK-000168 title advisory
 status: Approved
 author: reviewer
 refs:
-- TASK-000168:addresses
+- TASK-168:addresses
 created_at: '2026-06-23T09:29:00Z'
 updated_at: '2026-06-23T09:29:18Z'
 ---
 <!-- sq:body -->
-Independent review of TASK-000168 (authoring-time advisory for over-long sub-entity titles) against ADR-000167. VERDICT: APPROVED — no findings.
+Independent review of TASK-168 (authoring-time advisory for over-long sub-entity titles) against ADR-167. VERDICT: APPROVED — no findings.
 
 Verified (all 8 checkpoints pass):
 1. Threshold = 120, single constant TITLE_ADVISORY_MAX in _interactions.py; the only 120 literal in src/ is the constant + its docstring. No duplication.

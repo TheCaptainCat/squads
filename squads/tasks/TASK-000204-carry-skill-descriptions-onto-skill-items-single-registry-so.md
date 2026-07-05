@@ -1,11 +1,11 @@
 ---
-id: TASK-000204
+id: TASK-204
 sequence_id: 204
 type: task
 title: Carry skill descriptions onto SKILL items (single registry) so pointers/list
   keep rich text
 status: Done
-parent: FEAT-000178
+parent: FEAT-178
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -27,7 +27,7 @@ updated_at: '2026-06-25T09:58:25Z'
 <!-- sq:body -->
 ## Goal
 
-Corrective fix on FEAT-000178: SKILL items were created with an **empty `description`**, so
+Corrective fix on FEAT-178: SKILL items were created with an **empty `description`**, so
 `generate_skill_entry` (`_backends/_claude_code/_backend.py`) computes
 `description = item.extra.get(DESCRIPTION) or item.description or item.title` and **falls through to
 `item.title`** (the slug). Result: the `.claude/skills/<slug>/SKILL.md` pointer descriptions degraded
@@ -156,7 +156,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - **Tests added**: test_init_seeds_skill_descriptions, test_init_skill_pointer_description_matches_registry, test_cli_list_t_skill_shows_non_empty_descriptions (seeding.py); test_migration_stamps_description_on_unstamped_file, test_migration_backfills_description_on_already_stamped_convention_file, test_migration_backfill_idempotent, test_migration_pointer_description_matches_registry (migration.py). 7 new tests.
   - TASK-204 stays InProgress. @manager
 - [2026-06-25T09:57:39Z] Elias Python:
-  - REV-000205 nits F2+F3 applied. Targeted tests: 46 passed. pyright 0 errors, ruff clean.
+  - REV-205 nits F2+F3 applied. Targeted tests: 46 passed. pyright 0 errors, ruff clean.
   - **F2**: The sq-<type> comprehension in SKILL_DESCRIPTIONS now iterates PLAYBOOK directly (same source as managed_item_types() / bundled_skill_slugs()) — no hand-written exclusion list. Both the registry and bundled_skill_slugs() are locked to the same derivation; confirmed registry == bundled_skill_slugs() in sorted order.
   - **F3**: _rename_stamped_legacy now fills description only when it's empty/missing (guards with 'if not fm.get("description")'). Consistent with _backfill_description; a future operator edit to a skill description is never clobbered by a re-run.
   - TASK-204 stays InProgress. @manager

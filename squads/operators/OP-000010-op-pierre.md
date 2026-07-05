@@ -1,5 +1,5 @@
 ---
-id: OP-000010
+id: OP-10
 sequence_id: 10
 type: operator
 title: Pierre Chat

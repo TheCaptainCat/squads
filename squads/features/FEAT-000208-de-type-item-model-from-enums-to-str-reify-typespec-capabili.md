@@ -1,13 +1,13 @@
 ---
-id: FEAT-000208
+id: FEAT-208
 sequence_id: 208
 type: feature
 title: De-type Item model from enums to str + reify TypeSpec capability flags
 status: Done
-parent: EPIC-000206
+parent: EPIC-206
 author: product-owner
 refs:
-- FEAT-000207:depends-on
+- FEAT-207:depends-on
 subentities:
 - local_id: US1
   title: As a maintainer, I want Item type/status to be str-typed so unknown values
@@ -29,7 +29,7 @@ F2 removes that obstacle. It widens `Item.type` and `Item.status` (and sub-entit
 
 **This is the highest-risk feature in the epic.** The pyright/typing inversion is irreversible and pervasive: we are deliberately trading compile-time enum exhaustiveness for load-time spec validation. That trade-off is recorded in the epic and is a conscious choice. Mitigations: strong `WorkflowSpec.validate()` (fail-closed on load) and `sq workflow lint` (F3).
 
-**This feature is gated by the spike.** The throwaway F1+F2 spike described in EPIC-000206 must prove that `uv run pyright && ruff && pytest` stay green with the de-typed models and the ~20 reified checks before this feature is committed to implementation.
+**This feature is gated by the spike.** The throwaway F1+F2 spike described in EPIC-206 must prove that `uv run pyright && ruff && pytest` stay green with the de-typed models and the ~20 reified checks before this feature is committed to implementation.
 
 ## Scope
 
@@ -42,7 +42,7 @@ F2 removes that obstacle. It widens `Item.type` and `Item.status` (and sub-entit
 
 ## Dependencies
 
-Requires F1 (FEAT-000207). The `WorkflowSpec` must exist and be loaded before validation can move to the service boundary.
+Requires F1 (FEAT-207). The `WorkflowSpec` must exist and be loaded before validation can move to the service boundary.
 
 ## Acceptance criteria
 
@@ -114,5 +114,5 @@ As a squads maintainer, I want every hardcoded `is ItemType.TASK` / `is ItemType
 - [2026-06-26T07:31:04Z] Catherine Manager:
   - Design constraint (from op-pierre): this feature relaxes the `spec == enums` equality that currently forces all meta-types/statuses to be present. When it does, introduce an explicit RESERVED_TYPES / RESERVED_STATUSES invariant (role/skill/operator + the structural statuses the agent + sub-entity lifecycles need) and make the loader FAIL CLOSED if a custom spec omits any reserved member — replacing the blunt `== enums` check that does this job by accident today.
 - [2026-06-26T09:44:13Z] Catherine Manager:
-  - Process rule (from the FEAT-220 incident, REV-000230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]]. For FEAT-208 the characterization gate is the EXISTING test suite + all golden-locks (workflow/roles/playbook) passing UNCHANGED — behavior must be byte-identical after the de-typing. Run that green as the standing guard while widening; any NEW surface (the TypeSpec capability flags, reserved-vocab validation) gets its own tests. Do NOT edit existing tests to accommodate; if one breaks, the de-typing diverged.
+  - Process rule (from the FEAT-220 incident, REV-230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]]. For FEAT-208 the characterization gate is the EXISTING test suite + all golden-locks (workflow/roles/playbook) passing UNCHANGED — behavior must be byte-identical after the de-typing. Run that green as the standing guard while widening; any NEW surface (the TypeSpec capability flags, reserved-vocab validation) gets its own tests. Do NOT edit existing tests to accommodate; if one breaks, the de-typing diverged.
 <!-- sq:discussion:end -->

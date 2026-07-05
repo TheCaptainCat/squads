@@ -1,13 +1,13 @@
 ---
-id: REV-000115
+id: REV-115
 sequence_id: 115
 type: review
 title: 'Review TASK-000110: sq retype in place'
 status: Approved
 author: reviewer
 refs:
-- TASK-000110:addresses
-- FEAT-000020
+- TASK-110:addresses
+- FEAT-20
 subentities:
 - local_id: F1
   title: Avoidable type suppression in _carry_or_reset_status
@@ -21,7 +21,7 @@ created_at: '2026-06-15T08:44:31Z'
 updated_at: '2026-06-15T08:45:19Z'
 ---
 <!-- sq:body -->
-Review of TASK-000110 (FEAT-000020): sq <type> <n> retype <new-type>.
+Review of TASK-110 (FEAT-20): sq <type> <n> retype <new-type>.
 
 Verdict: APPROVED. Correctness, invariants, and the full gate all hold; two low-severity quality findings only.
 

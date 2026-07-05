@@ -1,12 +1,12 @@
 ---
-id: EPIC-000206
+id: EPIC-206
 sequence_id: 206
 type: epic
 title: 'Config-driven workflow engine: custom types, statuses, state machines'
 status: Done
 author: product-owner
 refs:
-- EPIC-000031
+- EPIC-31
 created_at: '2026-06-25T13:04:19Z'
 updated_at: '2026-07-02T13:07:22Z'
 ---
@@ -74,12 +74,12 @@ Runtime-defined statuses mean **giving up pyright's compile-time exhaustiveness*
 Features are created Draft for sequencing; the spike gate must pass before F1/F2 are committed to implementation.
 
 **Workflow axis (F1–F6):**
-- **F1 (FEAT-000207) — Externalize workflow into a bundled spec; enums intact; default == today (golden-locked).** The de-risk foundation. Risk: Med.
-- **F2 (FEAT-000208) — De-type models to `str` + spec-validated; reify the ~20 `is ItemType.X` checks as `TypeSpec` flags.** Risk: High (pyright/typing inversion — riskiest code change).
-- **F3 (FEAT-000209) — Project override of the spec (additive-only) + `sq workflow lint` + load-time fail-closed validation.** Risk: Med.
-- **F4 (FEAT-000210) — Custom types end-to-end (minimum viable: prefix/folder/machine/parents/aliases/badges); dynamic CLI app build; spec-derived renderer + CLAUDE.md sections; thin auto-generated `sq-<type>` skill.** Risk: High. **First user-visible value.**
-- **F5 (FEAT-000211) — Custom statuses & badges end-to-end** (filters/inbox/blocked/`STATUS_EMOJI` defaults; lifecycle auto-linearization). Risk: Med.
-- **F6 (FEAT-000212) — Custom sub-entity kinds + vocabulary rename migrations.** Risk: High. **May split into its own epic.**
+- **F1 (FEAT-207) — Externalize workflow into a bundled spec; enums intact; default == today (golden-locked).** The de-risk foundation. Risk: Med.
+- **F2 (FEAT-208) — De-type models to `str` + spec-validated; reify the ~20 `is ItemType.X` checks as `TypeSpec` flags.** Risk: High (pyright/typing inversion — riskiest code change).
+- **F3 (FEAT-209) — Project override of the spec (additive-only) + `sq workflow lint` + load-time fail-closed validation.** Risk: Med.
+- **F4 (FEAT-210) — Custom types end-to-end (minimum viable: prefix/folder/machine/parents/aliases/badges); dynamic CLI app build; spec-derived renderer + CLAUDE.md sections; thin auto-generated `sq-<type>` skill.** Risk: High. **First user-visible value.**
+- **F5 (FEAT-211) — Custom statuses & badges end-to-end** (filters/inbox/blocked/`STATUS_EMOJI` defaults; lifecycle auto-linearization). Risk: Med.
+- **F6 (FEAT-212) — Custom sub-entity kinds + vocabulary rename migrations.** Risk: High. **May split into its own epic.**
 
 **Config axis (FR, FP):**
 - **FR — Externalize role catalog into a bundled `roles.toml`.** The 8 roles + dev-name pool moved from `_catalog.py` to a bundled TOML, loaded/validated, default == today (golden-locked). Risk: Low-Med (self-contained, no cross-cutting enum changes).
@@ -95,7 +95,7 @@ A **throwaway F1+F2 spike** must validate the one irreversible assumption: build
 
 ## `sq workflow` renderer note
 
-The cheatsheet becomes config-derived and regenerates on `sq sync` (so agents learn a project's custom vocab) — but the renderer must **split** spec-rendered machine/type/alias sections from the **static** FEAT-000013 stability-contract prose (ref-kinds table, retype, remove-vs-cancel) so a frozen-grammar contract is never accidentally made config-editable.
+The cheatsheet becomes config-derived and regenerates on `sq sync` (so agents learn a project's custom vocab) — but the renderer must **split** spec-rendered machine/type/alias sections from the **static** FEAT-13 stability-contract prose (ref-kinds table, retype, remove-vs-cancel) so a frozen-grammar contract is never accidentally made config-editable.
 
 ## Multi-backend note
 

@@ -1,5 +1,5 @@
 {
-  "id": "FEAT-000002",
+  "id": "FEAT-2",
   "type": "feature",
   "status": "Draft",
   "priority": null,
@@ -9,7 +9,7 @@
   "seen": false,
   "children": [
     {
-      "id": "TASK-000003",
+      "id": "TASK-3",
       "type": "task",
       "status": "Draft",
       "priority": null,

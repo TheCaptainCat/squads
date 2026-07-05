@@ -1,13 +1,13 @@
 ---
-id: ADR-000214
+id: ADR-214
 sequence_id: 214
 type: decision
 title: 'Workflow spec: bundled TOML schema + loader, enums intact, default golden-locked'
 status: Accepted
 author: architect
 refs:
-- FEAT-000207:addresses
-- ADR-000179
+- FEAT-207:addresses
+- ADR-179
 created_at: '2026-06-25T14:18:42Z'
 updated_at: '2026-06-26T09:27:27Z'
 ---
@@ -211,7 +211,7 @@ The friendlier author-facing `sq workflow lint` surface is **F3** — not built 
 
 - **No model de-typing / no `str` widening.** `Item.type: ItemType` and `Item.status: Status` are
   unchanged. Widening to `str` and reifying the ~20 `is ItemType.X` checks as `TypeSpec` capability
-  flags is **F2 / FEAT-000208**.
+  flags is **F2 / FEAT-208**.
 - **No project overrides.** The spec is bundled-only; layering a project override via the
   `_overrides/` machinery + `sq override` + `sq workflow lint` is **F3**.
 - **No custom types / statuses.** The spec must equal the enums (validation rule 6). Dynamic CLI app
@@ -220,13 +220,13 @@ The friendlier author-facing `sq workflow lint` surface is **F3** — not built 
 - **No renderer change.** `sq workflow` still renders the static `workflow.md.j2` in F1; making it
   spec-derived is F4.
 
-## Relationship to ADR-000179 (FEAT-000176 prefix/folder layout)
+## Relationship to ADR-179 (FEAT-176 prefix/folder layout)
 
-No conflict. ADR-000179 decides two `.squads.toml` knobs — a **global ID prefix** (replaces the
+No conflict. ADR-179 decides two `.squads.toml` knobs — a **global ID prefix** (replaces the
 per-type ID prefix for all types) and a separate **flat-layout** knob (drops per-type subfolders) —
 both plugging into a shared `ItemStore` locator seam. This ADR is the *upstream definition* of where
 the per-type prefix and folder **come from**: in F1 they move out of `PREFIX_BY_TYPE`/
-`FOLDER_BY_TYPE` literals and into `TypeSpec.prefix` / `TypeSpec.folder` in the spec. ADR-000179's
+`FOLDER_BY_TYPE` literals and into `TypeSpec.prefix` / `TypeSpec.folder` in the spec. ADR-179's
 global-prefix and flat-layout knobs **layer on top of this later** — they transform the
 spec-provided per-type prefix/folder at the storage seam (global prefix overrides the per-type
 prefix string; flat layout overrides the folder), rather than reading the enum maps directly. The
@@ -242,7 +242,7 @@ the storage seam; it only relocates the source of truth for prefix/folder into t
 - **Cost:** a TOML round-trip and a singleton load on first workflow query (negligible; cached).
   Promoting `_workflow.py` to a `_workflow/` package touches imports (mechanical, re-exported).
 - **Risk:** low for F1 by design — it is behavior-preserving and golden-locked. The real risk lives
-  in F2 (de-typing), which the EPIC-000206 spike gate validates *together with* F1 before either is
+  in F2 (de-typing), which the EPIC-206 spike gate validates *together with* F1 before either is
   committed to implementation.
 <!-- sq:body:end -->
 
@@ -250,5 +250,5 @@ the storage seam; it only relocates the source of truth for prefix/folder into t
 
 <!-- sq:discussion -->
 - [2026-06-26T09:27:27Z] Catherine Manager:
-  - Follow-up (non-blocking, from REV-000230): the WorkflowSpec models lack extra='forbid', so unknown TOML keys are silently ignored rather than failing closed. Acceptable for the bundled default (golden-locked, enums-intact), but must be added before the workflow TOML becomes user-editable (FEAT-209/210). Tracked on FEAT-000209.
+  - Follow-up (non-blocking, from REV-230): the WorkflowSpec models lack extra='forbid', so unknown TOML keys are silently ignored rather than failing closed. Acceptable for the bundled default (golden-locked, enums-intact), but must be added before the workflow TOML becomes user-editable (FEAT-209/210). Tracked on FEAT-209.
 <!-- sq:discussion:end -->

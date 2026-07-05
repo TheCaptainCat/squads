@@ -1,12 +1,12 @@
 ---
-id: REV-000286
+id: REV-286
 sequence_id: 286
 type: review
 title: Review TASK-000279 — spec-derive retype-target list + authoring prose
 status: Approved
 author: reviewer
 refs:
-- TASK-000279
+- TASK-279
 subentities:
 - local_id: F1
   title: Jinja capitalize lowercases acronym role titles (cosmetic)
@@ -20,7 +20,7 @@ created_at: '2026-07-02T12:54:27Z'
 updated_at: '2026-07-02T12:55:57Z'
 ---
 <!-- sq:body -->
-Independent review of TASK-000279 (final FEAT-000211 task), read-only against the working tree diff vs `a4b4aa8` plus new `tests/test_workflow_authoring_prose.py`.
+Independent review of TASK-279 (final FEAT-211 task), read-only against the working tree diff vs `a4b4aa8` plus new `tests/test_workflow_authoring_prose.py`.
 
 ## Scope verified
 - **Part A** — the `Valid targets:` line moved out of `workflow_static.md.j2` into a spec-driven loop (over `spec.items` where `not is_meta`); the rest of the static partial (retype mechanics, remove-vs-cancel, ref-kinds table) stayed literal. Confirmed only that one line was dynamized.

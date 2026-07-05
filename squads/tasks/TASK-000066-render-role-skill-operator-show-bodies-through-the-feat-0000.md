@@ -1,10 +1,10 @@
 ---
-id: TASK-000066
+id: TASK-66
 sequence_id: 66
 type: task
 title: Render role/skill/operator show bodies through the FEAT-000026 styled path
 status: Done
-parent: FEAT-000064
+parent: FEAT-64
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -26,13 +26,13 @@ created_at: '2026-06-12T12:05:15Z'
 updated_at: '2026-06-12T12:39:04Z'
 ---
 <!-- sq:body -->
-Make `sq role <n> show`, `sq skill <n> show`, and `sq operator <n> show` render their bodies through the FEAT-000026 styled markdown path — the same renderer `sq feature <n> show` uses for its body facet. Depends on TASK-000065 for the item-first `show` surface (especially the new `sq operator show`); both tasks touch the same three CLI modules, so coordinate / stack.
+Make `sq role <n> show`, `sq skill <n> show`, and `sq operator <n> show` render their bodies through the FEAT-26 styled markdown path — the same renderer `sq feature <n> show` uses for its body facet. Depends on TASK-65 for the item-first `show` surface (especially the new `sq operator show`); both tasks touch the same three CLI modules, so coordinate / stack.
 
 ## The gap
-`print_item` in `_cli/_common.py` (~line 277-280) renders the metadata Panel for every type, but then GUARDS the body: `if it.type not in (ItemType.ROLE, ItemType.SKILL): ... _print_item_content(...)`. So role/skill bodies are never styled. Today `_cli/_role.py::show_role` prints the body with `console.print(e(body))` (raw, line 76) and `_cli/_skill.py::skill_show` prints no body at all (panel only). Operator has no show today (added in TASK-000065).
+`print_item` in `_cli/_common.py` (~line 277-280) renders the metadata Panel for every type, but then GUARDS the body: `if it.type not in (ItemType.ROLE, ItemType.SKILL): ... _print_item_content(...)`. So role/skill bodies are never styled. Today `_cli/_role.py::show_role` prints the body with `console.print(e(body))` (raw, line 76) and `_cli/_skill.py::skill_show` prints no body at all (panel only). Operator has no show today (added in TASK-65).
 
 ## What to build
-Route the three groups' `show` body rendering through the FEAT-000026 helpers so behavior matches `sq feature <n> show`'s body facet:
+Route the three groups' `show` body rendering through the FEAT-26 helpers so behavior matches `sq feature <n> show`'s body facet:
 - On a TTY (and not `--raw`): styled Rich `Markdown` (headings, bullets, code, panes) — gate via `_is_styled()`, the same predicate the item path uses.
 - `--raw`: plain body text (current default behaviour) — byte-stable.
 - Piped / `NO_COLOR`: plain, byte-stable. `_is_styled()` already encodes this.
@@ -50,8 +50,8 @@ Operator `show` (new): same styled-body treatment over the operator item body, p
 Per the brief: operator bodies are likely a no-op in practice (operators rarely carry a markdown body), but the rendering path must be consistent with role/skill — wire it the same way. If the body is empty, degrade to a clean "(no body)"-style line rather than an empty render. Do not special-case operator out of the styled path.
 
 ## Tests (call out churn)
-- `sq role <n> show` and `sq skill <n> show` render styled markdown on a TTY (assert via a forced-styled console / the same fixture pattern FEAT-000026 tests use); `--raw` prints raw body; piped output is plain and byte-stable. Add an operator show smoke test.
-- Reuse the FEAT-000026 styled-vs-raw test idiom rather than inventing a new one — find how the item `show` tests assert styled vs plain and follow it.
+- `sq role <n> show` and `sq skill <n> show` render styled markdown on a TTY (assert via a forced-styled console / the same fixture pattern FEAT-26 tests use); `--raw` prints raw body; piped output is plain and byte-stable. Add an operator show smoke test.
+- Reuse the FEAT-26 styled-vs-raw test idiom rather than inventing a new one — find how the item `show` tests assert styled vs plain and follow it.
 - This task changes `_cli/_common.py::print_item` (shared by every item type) — run the FULL suite and watch feature/task/review `show` tests for regressions from relaxing the guard.
 
 ## Acceptance
@@ -69,7 +69,7 @@ _Add with `sq task 66 add-subtask "<title>"`; track with `sq task 66 subtask <n>
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Done |  | Route role/skill/operator show bodies through the FEAT-000026 styled path (TTY/raw/piped) | US2 |
+| ST1 | Done |  | Route role/skill/operator show bodies through the FEAT-26 styled path (TTY/raw/piped) | US2 |
 | ST2 | Done |  | Preserve role catalog card + activation-hint fallback; add operator show | US2 |
 | ST3 | Done |  | Styled-vs-raw rendering tests; full-suite regression check on print_item | US2 |
 <!-- sq:summary:end -->
@@ -77,7 +77,7 @@ _Add with `sq task 66 add-subtask "<title>"`; track with `sq task 66 subtask <n>
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Route role/skill/operator show bodies through the FEAT-000026 styled path (TTY/raw/piped)
+### ST1 — Route role/skill/operator show bodies through the FEAT-26 styled path (TTY/raw/piped)
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done

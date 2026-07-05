@@ -1,10 +1,10 @@
 ---
-id: TASK-000258
+id: TASK-258
 sequence_id: 258
 type: task
 title: Spec-aware folder/prefix mapping in _paths for custom types
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 created_at: '2026-06-30T12:01:05Z'
 updated_at: '2026-06-30T12:34:45Z'
@@ -56,7 +56,7 @@ filesystem load. Note for the reviewer: keep `_paths` free of import cycles
   tests for allocation/round-trip/folder-creation.
 
 ### Dependencies
-- Depends on F3 (FEAT-000209, Done) for the spec's `prefix_to_type` index.
+- Depends on F3 (FEAT-209, Done) for the spec's `prefix_to_type` index.
 - Prerequisite for task 257 (a created `sq incident` item must land on disk).
 <!-- sq:body:end -->
 

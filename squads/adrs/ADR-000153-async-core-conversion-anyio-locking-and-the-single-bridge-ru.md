@@ -1,12 +1,12 @@
 ---
-id: ADR-000153
+id: ADR-153
 sequence_id: 153
 type: decision
 title: 'Async-core conversion: anyio, locking, and the single-bridge rule'
 status: Accepted
 author: architect
 refs:
-- FEAT-000034:addresses
+- FEAT-34:addresses
 created_at: '2026-06-17T20:29:57Z'
 updated_at: '2026-06-19T14:05:33Z'
 ---
@@ -15,11 +15,11 @@ updated_at: '2026-06-19T14:05:33Z'
 
 Every layer of `squads` below the CLI is synchronous: the service mixins, the index store's
 locked transactions, and all file IO. Every consumer on the roadmap is async-native — Textual
-(`sq ui`, EPIC-000028), FastAPI (`sq web`, EPIC-000029), and an HTTP `RemoteService`
-(FEAT-000033). If the core stays sync, each consumer must wrap every call in executor threads
-forever. The timing is the driver: **FEAT-000033 is about to freeze the calling convention into
+(`sq ui`, EPIC-28), FastAPI (`sq web`, EPIC-29), and an HTTP `RemoteService`
+(FEAT-33). If the core stays sync, each consumer must wrap every call in executor threads
+forever. The timing is the driver: **FEAT-33 is about to freeze the calling convention into
 typed Protocols.** Whether those methods are `def` or `async def` is a now-or-painful decision —
-retrofitting async under a frozen sync protocol is the painful kind. FEAT-000034 gates that
+retrofitting async under a frozen sync protocol is the painful kind. FEAT-34 gates that
 freeze, and this ADR locks the load-bearing patterns so the Phase 0 spike can validate them before
 the atomic sweep.
 
@@ -137,7 +137,7 @@ between acquire and the guard leaked the lock). The three-layer model above is s
 consistent lock order, and is safe by construction. Rejected.
 
 > Also rejected: an **async-native file-lock library** — it would swap the single most
-> integrity-critical primitive (battle-tested across POSIX/Windows; BUG-000151 was exactly this
+> integrity-critical primitive (battle-tested across POSIX/Windows; BUG-151 was exactly this
 > surface) for a less-proven dependency, and its acquire still blocks on an OS syscall, so it either
 > threads it (no gain) or polls (worse).
 
@@ -158,7 +158,7 @@ exists to prevent.
   `finally` is a no-op (the file lock was never acquired) and the outer `finally` releases the
   proc-mutex; the `async with` releases the per-loop lock. No lock leaks on timeout.
 - **Reflog never-raise contract.** The reflog append happens strictly **after** the index
-  `os.replace` commits, while all locks are held (ADR-000117 §1). The `(OSError, TypeError,
+  `os.replace` commits, while all locks are held (ADR-117 §1). The `(OSError, TypeError,
   ValueError)` swallow must stay **inside** `append_line`'s threaded closure so an OSError never
   crosses the loop boundary; `transaction` additionally guards the append loop with
   `except Exception`. Degraded to a warning exactly as today, never failing an already-committed
@@ -180,7 +180,7 @@ Two tests pin the model and must both pass:
 Keep the `filelock.Timeout`-propagation test alongside them.
 
 > Footnote (2026-06-19): this Decision 2 supersedes the 2026-06-18 two-layer amendment and the
-> keeper-thread implementation; see REV-000154.
+> keeper-thread implementation; see REV-154.
 
 ---
 
@@ -264,9 +264,9 @@ the rendered bytes are identical to today (US2).
 
 ---
 
-## Decision 5 — FEAT-000033 alignment (the AgentBackend async surface)
+## Decision 5 — FEAT-33 alignment (the AgentBackend async surface)
 
-The `AgentBackend` ABC in `src/squads/_backends/_base.py` is the surface FEAT-000033 will freeze into
+The `AgentBackend` ABC in `src/squads/_backends/_base.py` is the surface FEAT-33 will freeze into
 typed Protocols. Its abstract methods that perform IO become **`async def`**:
 
 - `ensure_scaffold(ctx) -> list[Artifact]` → `async def`
@@ -285,7 +285,7 @@ typed Protocols. Its abstract methods that perform IO become **`async def`**:
 - `get_backend` / the backend registry stay sync (instantiation only, no IO).
 
 This async signature set — five `async def` IO methods + one sync `managed_paths` — is exactly what
-FEAT-000033 freezes into the `AgentBackend` Protocol. Naming it precisely here is the point of the
+FEAT-33 freezes into the `AgentBackend` Protocol. Naming it precisely here is the point of the
 ADR: the protocol freeze waits on these signatures.
 
 ---
@@ -297,7 +297,7 @@ ADR: the protocol freeze waits on these signatures.
   `path.read_text()` below the CLI edge), which is the *exact* defect class this conversion must not
   reintroduce. It directly enforces the "no blocking IO below the CLI edge" acceptance criterion and
   complements the review-time grep gate. Add `"ASYNC"` to `[tool.ruff.lint] select`. *(Note,
-  post-REV-000154: `ASYNC` does not flag `Path.exists`/`Path.mkdir`/sync helper methods — F3/F4/F5
+  post-REV-154: `ASYNC` does not flag `Path.exists`/`Path.mkdir`/sync helper methods — F3/F4/F5
   show the gate is necessary but not sufficient; the review-time read still matters.)*
 - **`RUF029` (async function without `await`)** — **enable it.** It catches functions colored
   `async` that don't actually await anything (dead async, an easy mistake during a mechanical
@@ -329,7 +329,7 @@ the full sweep commits.
 
 ## Consequences
 
-- FEAT-000033 can freeze the `AgentBackend` Protocol on the async signatures named in Decision 5.
+- FEAT-33 can freeze the `AgentBackend` Protocol on the async signatures named in Decision 5.
 - The cross-process integrity guarantee is preserved unchanged (same `filelock` primitive,
   now `thread_local=False`, safe behind the proc-mutex).
 - **Exclusion holds on all three axes** — concurrent coroutines on one loop (per-loop `anyio.Lock`),
@@ -345,8 +345,8 @@ the full sweep commits.
 
 <!-- sq:discussion -->
 - [2026-06-17T20:31:43Z] Robert Architect:
-  - ADR drafted (status Proposed) — covers all five decisions, verified against the live source under src/squads/. Crux is decision 2 (locking): chose option (a) — keep blocking filelock.FileLock, thread only acquire/release via anyio.to_thread, async IO inside the held lock; cross-process exclusion preserved (hard req for parallel subagents), loop stays responsive, transaction becomes @asynccontextmanager AsyncGenerator[SquadsDB]. Rejected (b) whole-tx-in-thread (can't yield an async mutation out of a sync worker closure) and (c) async-lock lib (swaps the most integrity-critical primitive for a 2-hop saving). Other picks: anyio over asyncio; single anyio.run bridge in a _cli/_common.py command decorator absorbing handle_errors (native async Typer commands rejected = 73 implicit bridges); thin _aio.py over anyio.Path (Any leaks + fsync/replace must stay one hop); AgentBackend IO methods (ensure_scaffold/write_managed/generate_role_entry/generate_skill_entry/remove_artifacts) → async def, managed_paths stays sync — that's the FEAT-000033 freeze surface. Recommend enabling ruff ASYNC + RUF029. One atomic PR, de-risked by the spike.
-  - @manager ADR-000153 ready for review/acceptance. Once Pierre/I accept it, hand the spike slice (show + comment, proving the three patterns) to @python-dev. Spike risk to flag below.
+  - ADR drafted (status Proposed) — covers all five decisions, verified against the live source under src/squads/. Crux is decision 2 (locking): chose option (a) — keep blocking filelock.FileLock, thread only acquire/release via anyio.to_thread, async IO inside the held lock; cross-process exclusion preserved (hard req for parallel subagents), loop stays responsive, transaction becomes @asynccontextmanager AsyncGenerator[SquadsDB]. Rejected (b) whole-tx-in-thread (can't yield an async mutation out of a sync worker closure) and (c) async-lock lib (swaps the most integrity-critical primitive for a 2-hop saving). Other picks: anyio over asyncio; single anyio.run bridge in a _cli/_common.py command decorator absorbing handle_errors (native async Typer commands rejected = 73 implicit bridges); thin _aio.py over anyio.Path (Any leaks + fsync/replace must stay one hop); AgentBackend IO methods (ensure_scaffold/write_managed/generate_role_entry/generate_skill_entry/remove_artifacts) → async def, managed_paths stays sync — that's the FEAT-33 freeze surface. Recommend enabling ruff ASYNC + RUF029. One atomic PR, de-risked by the spike.
+  - @manager ADR-153 ready for review/acceptance. Once Pierre/I accept it, hand the spike slice (show + comment, proving the three patterns) to @python-dev. Spike risk to flag below.
 - [2026-06-18T07:10:21Z] Pierre Chat:
   - Accepted. The spike validated every decision — anyio, locking option (a), the single bridge, _aio.py, and the async AgentBackend surface. Cleared for Phase 1.
 <!-- sq:discussion:end -->

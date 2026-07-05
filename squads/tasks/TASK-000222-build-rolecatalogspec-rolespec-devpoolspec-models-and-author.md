@@ -1,10 +1,10 @@
 ---
-id: TASK-000222
+id: TASK-222
 sequence_id: 222
 type: task
 title: Build RoleCatalogSpec/RoleSpec/DevPoolSpec models and author bundled roles.toml
 status: Done
-parent: FEAT-000219
+parent: FEAT-219
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -23,12 +23,12 @@ updated_at: '2026-06-26T07:58:42Z'
 ## Goal
 
 Build the pyright-strict `RoleCatalogSpec` / `RoleSpec` / `DevPoolSpec` pydantic v2 value objects
-capturing the FULL `RoleDef` field set per ADR-000221 §1, and author the bundled `roles.toml`
+capturing the FULL `RoleDef` field set per ADR-221 §1, and author the bundled `roles.toml`
 encoding today's exact 8 roles + BUNDLES + dev pool/defaults. This is the data + shape foundation for
-FEAT-000219 (FR). Behavior-preserving, golden-locked era — role-content externalization only (no
+FEAT-219 (FR). Behavior-preserving, golden-locked era — role-content externalization only (no
 de-typing, no overrides).
 
-Sequence: **first** task. The loader/rewire (TASK-000223) and golden-lock/packaging (TASK-000224) both
+Sequence: **first** task. The loader/rewire (TASK-223) and golden-lock/packaging (TASK-224) both
 consume these models and this TOML.
 
 ## What to build
@@ -46,7 +46,7 @@ consume these models and this TOML.
     `model: str = "sonnet"`, `color: str = "green"` (the dev_role default model/color).
 - **Bundled TOML** at `src/squads/_roles/roles.toml`, shipped as package data (swept into the wheel by
   the existing `packages = ["src/squads"]` rule — same mechanism as templates; packaging
-  *verification* is TASK-000224). Encode, byte-for-byte vs today's `_catalog.py`:
+  *verification* is TASK-224). Encode, byte-for-byte vs today's `_catalog.py`:
   - `[bundles]` all / core / minimal with exact membership (all == full role set);
   - `[dev]` model / color / name_pool (the 12 names);
   - `[[roles]]` for each of the 8 (manager, architect, tech-lead, reviewer, qa, devops,
@@ -56,11 +56,11 @@ consume these models and this TOML.
 - NOTE for the implementer: read field values directly from `src/squads/_roles/_catalog.py`
   (`PREDEFINED`, `BUNDLES`, `DEV_NAME_POOL`, `dev_role`) — do not paraphrase missions/responsibilities.
 
-## Design constraints (ADR-000221)
+## Design constraints (ADR-221)
 
 - §1 shape exactly; full field set captured. Enums-intact era: no custom types, no de-typing, no
   overrides. Roles are not item types — workflow/prefix-folder invariants do not apply.
-- `to_extra`/`from_extra` ExtraKey bridge and `dev_role()` LOGIC stay in Python (TASK-000223) — this
+- `to_extra`/`from_extra` ExtraKey bridge and `dev_role()` LOGIC stay in Python (TASK-223) — this
   task only defines the models + data.
 
 ## Acceptance
@@ -69,7 +69,7 @@ consume these models and this TOML.
    and correct defaults.
 2. `src/squads/_roles/roles.toml` exists encoding all 8 roles + 3 bundles + dev pool/defaults.
 3. `tomllib`-parseable; round-trips into the models without error.
-4. pyright/ruff clean. (Equality-with-today asserted by TASK-000224's golden test.)
+4. pyright/ruff clean. (Equality-with-today asserted by TASK-224's golden test.)
 <!-- sq:body:end -->
 
 ## Subtasks

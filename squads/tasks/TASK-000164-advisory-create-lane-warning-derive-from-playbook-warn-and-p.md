@@ -1,16 +1,16 @@
 ---
-id: TASK-000164
+id: TASK-164
 sequence_id: 164
 type: task
 title: 'Advisory create-lane warning: derive from playbook, warn-and-proceed, surface
   in role show'
 status: Done
-parent: FEAT-000122
+parent: FEAT-122
 author: tech-lead
 assignee: python-dev
 priority: medium
 refs:
-- ADR-000163
+- ADR-163
 subentities:
 - local_id: ST1
   title: 'Seam A: allowed_create_types/in_lane_owner/_is_lane_exempt in _interactions.py
@@ -31,8 +31,8 @@ created_at: '2026-06-22T12:37:03Z'
 updated_at: '2026-06-22T13:48:41Z'
 ---
 <!-- sq:body -->
-Implements **FEAT-000122 Slice B / US1** per **ADR-000163** (Accepted) — *advisory*
-create-lane enforcement. Read ADR-000163 §1–§6 + its "For the tech-lead" section first;
+Implements **FEAT-122 Slice B / US1** per **ADR-163** (Accepted) — *advisory*
+create-lane enforcement. Read ADR-163 §1–§6 + its "For the tech-lead" section first;
 this task does not re-decide anything. The whole slice is **advisory plumbing**: warn and
 proceed, exit 0, never block, no override flag, no enforcement/security claim anywhere.
 
@@ -51,7 +51,7 @@ Add, co-located with `PLAYBOOK`:
 - `_is_lane_exempt(slug) -> bool` — `slug == "manager" or slug.startswith("op-")`.
 
 **Mandatory table-pinning test** (ADR derivation-brittleness mitigation): a unit test pins
-each role's derived `allowed_create_types` to Nina's §1 table (FEAT-000122 body §1), so a
+each role's derived `allowed_create_types` to Nina's §1 table (FEAT-122 body §1), so a
 future playbook edit that silently shifts a lane fails CI. Expected lanes:
 - product-owner → {feature, epic}; tech-lead → {task}; architect → {decision, guide};
   reviewer → {review}; qa → {bug}; tech-writer → {guide};
@@ -141,7 +141,7 @@ _Add with `sq task 164 add-subtask "<title>"`; track with `sq task 164 subtask <
 
 <!-- sq:subtask:ST1:head -->
 **Status:** 🟢 Done
-**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-000125)
+**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-125)
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -159,7 +159,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:subtask:ST2:head -->
 **Status:** 🟢 Done
-**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-000125)
+**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-125)
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -177,7 +177,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:subtask:ST3:head -->
 **Status:** 🟢 Done
-**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-000125)
+**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-125)
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
@@ -195,30 +195,30 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 
 <!-- sq:discussion -->
 - [2026-06-22T12:38:23Z] Olivia Lead:
-  - @python-dev — Slice B advisory create-lane, governed by ADR-000163 (Accepted). Read the ADR + this body before coding; advisory plumbing only — warn-and-proceed, exit 0, never block, no override flag, NO enforcement/security claim anywhere.
+  - @python-dev — Slice B advisory create-lane, governed by ADR-163 (Accepted). Read the ADR + this body before coding; advisory plumbing only — warn-and-proceed, exit 0, never block, no override flag, NO enforcement/security claim anywhere.
   - Three additive seams: (A) allowed_create_types/in_lane_owner/_is_lane_exempt in _interactions.py with a mandatory table-pinning test; (B) lane_warning on CreateResult set inside ServiceCore.create + a reflog-delta tag (service does NOT print); (C) CLI render in _cli/_create.py (both _make and create_guide — escaped via e(), exit 0, --json field) + a creates: row in sq role show next to can_spawn (+ --json create_lane). Subtasks ST1/ST2/ST3 map to these seams, all under US1.
   - MAIN RISK — the playbook-coupling. The lane is DERIVED from _interactions.py::PLAYBOOK by scanning RoleGuide.do for the literal 'sq create <type>' author verb; do NOT hard-code a string list (AC-B5). The mandatory table-pinning unit test (each role's lane == Nina's §1 table) is what protects this against silent playbook drift. Watch the edges: tech-lead's guide bullet is 'co-author the guide' (no 'sq create guide') so guide is NOT in tech-lead's lane — tech-lead is {task} only; *dev/DEV guides carry no author verb so the dev lane is EMPTY. If prose-scanning proves brittle, ADR §2's declarative CREATE_LANES map (same module, asserted-equal-to-playbook in the test) is the permitted fallback — your call, but keep one source, test-locked.
   - Lane on the DECLARED author (ADR §3.1); exempt manager + op-* BEFORE lookup; current_session() is forensic context only, never the decision basis. Dev-authored bugs are ALLOWED + warn (expected owner qa), no --author qa requirement, no special code path. Acceptance gates AC-B1..AC-B7 are in the body; ship with the table test + a service test + a CLI smoke test, and pyright/ruff/format clean + full pytest green.
 - [2026-06-22T13:19:44Z] Elias Python:
-  - Implementation complete — FEAT-000122 Slice B advisory create-lane warning.
+  - Implementation complete — FEAT-122 Slice B advisory create-lane warning.
   - Seam A (_interactions.py): Added CREATE_LANES declarative map (ADR §2 fallback — prose-scan was brittle because 'sq create review' appears in the task playbook's reviewer guide, not in the review playbook's reviewer guide). Added allowed_create_types(), in_lane_owner(), is_lane_exempt() co-located with PLAYBOOK. The DEV sentinel maps to an empty lane. Playbook-anchor test (test_create_lanes_roles_are_all_in_playbook) ensures every CREATE_LANES entry is a known PLAYBOOK slug.
   - Seam B (_services/_base.py + _results.py): Added lane_warning: str | None = None to CreateResult. ServiceCore.create computes the advisory check after _check_author, keyed on the declared author slug; exempts before lookup; appends lane_warning dict to the create reflog delta (advisory: true, actor, expected, type). Service does not print.
   - Seam C (_cli/_create.py + _cli/_role.py): _make() and create_guide() both print the warning escaped via e() on non-JSON output and embed it in --json data when present, exit 0 always. Added 'creates:' row to show_role() panel (computed from allowed_create_types, empty lane shows '— (out-of-lane creates warn)') and create_lane array to --json output next to can_spawn. Updated golden files (role_manager_show.json, role_qa_show.json) to include create_lane.
   - Gates: uv run pyright — 0 errors. uv run ruff check . && ruff format --check . — all checks passed. uv run pytest — 965 passed, 1 skipped, 0 failures (45 new tests in test_lane_derivation.py).
   - Table-pinning surprise: the playbook prose-scan approach from the ADR's primary description worked for product-owner, tech-lead, architect, qa but failed for reviewer and tech-writer — their 'sq create <type>' verbs appear in OTHER item types' playbook sections (reviewer's 'sq create review' is in the task playbook). Switched to the ADR §2 declarative CREATE_LANES fallback with a dual-assertion test (map == Nina's table AND all slugs in PLAYBOOK). @reviewer
 - [2026-06-22T13:31:51Z] Paul Reviewer:
-  - Approved (REV-000165). Independent review of the advisory create-lane warning — gates re-run green (pyright 0, ruff check+format clean, full pytest green, 45 lane tests pass). Verified live: out-of-lane create warns + creates + exit 0 (text and --json), manager/op-* exempt, dev-bug warns with owner qa and no --author qa requirement, reflog delta tagged advisory, role show surfaces creates: row + create_lane JSON. AC-B1..AC-B7 all met; no enforcement/security wording (AC-B4 clean).
+  - Approved (REV-165). Independent review of the advisory create-lane warning — gates re-run green (pyright 0, ruff check+format clean, full pytest green, 45 lane tests pass). Verified live: out-of-lane create warns + creates + exit 0 (text and --json), manager/op-* exempt, dev-bug warns with owner qa and no --author qa requirement, reflog delta tagged advisory, role show surfaces creates: row + create_lane JSON. AC-B1..AC-B7 all met; no enforcement/security wording (AC-B4 clean).
   - Confirmed the dev's playbook-derivation call: the prose-scan misfire is REAL — reviewer's 'sq create review' verb is in the TASK playbook section, and tech-writer has no 'sq create guide' verb anywhere, so a per-section scan can't derive reviewer→review or tech-writer→guide. The ADR §2 declarative CREATE_LANES fallback (single source in _interactions.py, table-pinning test asserting == Nina §1) was justified. I proved the pin catches drift by mutation (adding FEATURE to tech-lead fails the test).
   - Two LOW findings (non-blocking, follow-up): (1) duplicate inline json imports in _create.py; (2) internal artifact commands (sq dev add / role activate) write an expected:[] advisory lane_warning into the reflog for non-CREATE_LANES item types — harmless, not user-surfaced, but reflog noise worth exempting later.
   - Ready for QA. @qa — please verify AC-B1..AC-B7 against the acceptance gates in the task body.
 - [2026-06-22T13:40:56Z] Elias Python:
-  - Addressed REV-000165 F1 and F2 (both LOW findings from Paul's review).
+  - Addressed REV-165 F1 and F2 (both LOW findings from Paul's review).
   - F1 (cosmetic): consolidated duplicate json imports in src/squads/_cli/_create.py — was `import json` inside `_make` and `import json as _json` inside `create_guide`. Now a single top-level `import json` used in both.
   - F2 (reflog noise): added `LANED_TYPES: frozenset[ItemType]` to src/squads/_interactions.py, derived as the union of all CREATE_LANES values — single source, co-located with CREATE_LANES. In ServiceCore.create (src/squads/_services/_base.py), the advisory lane check is now gated on `item_type in LANED_TYPES` as the outermost condition. Non-laned types (role, skill, operator) hit neither the exempt path nor the allowed-types path — the check is skipped entirely: no lane_warning field, no lane_warning key in the reflog delta.
   - New tests: TestLanedTypes (3 unit tests — LANED_TYPES equals union of CREATE_LANES values, does not contain ROLE/SKILL/OPERATOR, contains all PLAYBOOK types); two service-level tests — activate_role (ROLE create) and add_operator (OPERATOR create) both produce no lane_warning and no lane_warning key in the reflog.
   - All previously-approved behavior unchanged: warn-and-proceed, exit 0, e() escaping, role-show surfacing, table-pinning test. Gates: pyright 0 errors. ruff check + format clean. pytest 970 passed, 1 skipped. @reviewer @qa
 - [2026-06-22T13:48:41Z] Mara Tester:
-  - QA verification complete — TASK-000164 passes all AC-B1..AC-B7 gates. Full behavioral run on a clean temp squad.
+  - QA verification complete — TASK-164 passes all AC-B1..AC-B7 gates. Full behavioral run on a clean temp squad.
   - Suite: 970 passed, 1 skipped, 0 failures. tests/test_lane_derivation.py: 50 passed (45 table-pinning + 3 LANED_TYPES + 2 F2 service tests). pyright 0 errors, ruff clean.
   - AC-B1: out-of-lane create (reviewer→feature) emits advisory warning naming actor + expected owner + item type; item created; exit 0. Sample: 'advisory: "reviewer" is not the in-lane author for "feature" items (expected: "product-owner"). Lane checks are best-effort and advisory — proceeding.'
   - AC-B2: reflog delta for the out-of-lane create carries lane_warning:{advisory:true, actor:"reviewer", expected:["product-owner"], type:"feature"}. In-lane creates (reviewer→review, tech-lead→task) have no lane_warning key.
@@ -231,5 +231,5 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - AC-B7: sq role reviewer show → 'creates: review'. sq role python-dev show → 'creates: — (out-of-lane creates warn)'. sq role devops show → 'creates: — (out-of-lane creates warn)'. --json: create_lane:['review'] / create_lane:[] / ['decision','guide'] etc. All correct.
   - Lane table spot-check matches Nina §1: product-owner→{epic,feature}, tech-lead→{task}, architect→{decision,guide}, reviewer→{review}, qa→{bug}, tech-writer→{guide}, *dev→{}, devops→{}. CREATE_LANES map verified.
   - --json mode: out-of-lane create embeds lane_warning as a JSON field (no side-channel text). Confirmed.
-  - TASK-000164 Done. FEAT-000122 Slice B / US1 verified. Subtasks ST1/ST2/ST3 all Done. @manager
+  - TASK-164 Done. FEAT-122 Slice B / US1 verified. Subtasks ST1/ST2/ST3 all Done. @manager
 <!-- sq:discussion:end -->

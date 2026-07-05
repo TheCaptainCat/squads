@@ -1,12 +1,12 @@
 ---
-id: REV-000095
+id: REV-95
 sequence_id: 95
 type: review
 title: 'Review TASK-000088: role override resolver (field-wise merge + new slugs)'
 status: Approved
 author: reviewer
 refs:
-- TASK-000088
+- TASK-88
 subentities:
 - local_id: F1
   title: New-slug admission checks key presence only, not non-emptiness
@@ -20,11 +20,11 @@ created_at: '2026-06-12T21:32:57Z'
 updated_at: '2026-06-23T09:59:41Z'
 ---
 <!-- sq:body -->
-Review of TASK-000088 (role override resolver) under FEAT-000014, against ADR-000085 §2 (field-wise merge by slug, project→bundled) and §4 (slugs canonical, non-renamable).
+Review of TASK-88 (role override resolver) under FEAT-14, against ADR-85 §2 (field-wise merge by slug, project→bundled) and §4 (slugs canonical, non-renamable).
 
 
 
-VERDICT: Approved with two low-severity nits (non-blocking). Safe to build TASK-000089 on.
+VERDICT: Approved with two low-severity nits (non-blocking). Safe to build TASK-89 on.
 
 
 
@@ -87,9 +87,9 @@ RoleDef is a frozen dataclass, so scalar override values are not type-validated.
 
 <!-- sq:discussion -->
 - [2026-06-12T21:33:39Z] Paul Reviewer:
-  - VERDICT: Approved. The resolver implements ADR-000085 §2/§4 correctly: field-wise merge over PREDEFINED (only TOML-set fields change, rest inherited — verified for scalars and tuple fields), new-slug admission requires full_name/title/description/mission, the slug key is genuinely ignored (filename stem is canonical), and malformed TOML raises SquadsError (exit 1, clear message with path).
+  - VERDICT: Approved. The resolver implements ADR-85 §2/§4 correctly: field-wise merge over PREDEFINED (only TOML-set fields change, rest inherited — verified for scalars and tuple fields), new-slug admission requires full_name/title/description/mission, the slug key is genuinely ignored (filename stem is canonical), and malformed TOML raises SquadsError (exit 1, clear message with path).
   - All role-producing paths route through the resolver: activate_role→resolve_role, add_dev→resolve_dev_role (explicit name kwarg correctly wins over TOML full_name), _refresh_catalog_extra→resolve_role (RoleNotFoundError caught for dev/unknown slugs — correct, it subclasses SquadsError), author() fallback→resolve_role, and sq role show display+json→resolve_role with e()-escaping on every dynamic field. sq role catalog intentionally lists the bundled PREDEFINED menu (not project-resolved) — acceptable. init/adopt use resolve_roles for the bundled --roles menu but only consume .slug, and activate_role re-resolves through the override, so bundled-slug overrides apply at init; new slugs are added post-init via sq role activate (in scope, works).
   - REV-093 F1 conftest teardown is correct: _env_cache.clear() is pure-memoization (rebuild-on-access, can't change behaviour) and set_active_squad_dir(None) resets the ContextVar post-test; it cleans up rather than pre-seeds, so it cannot mask a bug within the test under run — it kills exactly the order-dependent coupling it targets.
-  - Conventions clean: private module, no from __future__, acyclic imports, RoleDef reused (not re-modeled), pyright/ruff clean on the whole review surface. Two LOW non-blocking findings filed on REV-000095 (F1: new-slug empty-string required fields admitted; F2: scalar override values not type-validated). Neither gates approval.
-  - NOTE: uv run pyright reports 2 errors in src/squads/_models/_config.py ([init.names] dict typing) — that is unrelated T90 init-naming work in the tree, outside this review surface, and does not gate TASK-000088. Flagging so it is addressed in T90's review.
+  - Conventions clean: private module, no from __future__, acyclic imports, RoleDef reused (not re-modeled), pyright/ruff clean on the whole review surface. Two LOW non-blocking findings filed on REV-95 (F1: new-slug empty-string required fields admitted; F2: scalar override values not type-validated). Neither gates approval.
+  - NOTE: uv run pyright reports 2 errors in src/squads/_models/_config.py ([init.names] dict typing) — that is unrelated T90 init-naming work in the tree, outside this review surface, and does not gate TASK-88. Flagging so it is addressed in T90's review.
 <!-- sq:discussion:end -->

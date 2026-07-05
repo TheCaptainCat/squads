@@ -1,5 +1,5 @@
 ---
-id: ADR-000133
+id: ADR-133
 sequence_id: 133
 type: decision
 title: De-Claude-ify the AgentBackend ABC before the 1.0 freeze
@@ -7,8 +7,8 @@ status: Accepted
 author: architect
 priority: high
 refs:
-- FEAT-000016
-- TASK-000131
+- FEAT-16
+- TASK-131
 description: Rename generate_*_pointer→generate_*_entry, move claude_dir/claude_md
   ownership into the Claude backend, and register built-in backends via an explicit
   import list. Apply CC-001/002/004 cosmetics alongside.
@@ -19,10 +19,10 @@ updated_at: '2026-06-15T13:18:11Z'
 ## Context
 
 The `AgentBackend` ABC (`src/squads/_backends/_base.py`) is 1.0 stability-contract
-material (flagged on FEAT-000013). The conformance suite written under TASK-000131
+material (flagged on FEAT-13). The conformance suite written under TASK-131
 (`tests/test_backend_conformance.py`) exercised the contract against the only existing
 backend (`claude_code`) and surfaced six Claude-isms, catalogued CC-001..CC-006 in the
-comment at the bottom of TASK-000131 and in the suite footer.
+comment at the bottom of TASK-131 and in the suite footer.
 
 Three are cosmetic (docstring/comment only); three are structural (method names, a
 path-ownership seam, and the registration story). Because the ABC freezes at 1.0, this
@@ -202,8 +202,8 @@ suite only asserts it is non-empty.
   for `claude_code` and the Claude-backend tests must still assert Claude layout via
   `ctx.root` composition.
 - Stability-contract note (do NOT file as a separate item): these ABC method renames and
-  the path-seam change are a FEAT-000013 stability-contract deferral — they are exactly the
-  kind of pre-1.0 contract settling FEAT-000013 was flagged to absorb. Reflect them there
+  the path-seam change are a FEAT-13 stability-contract deferral — they are exactly the
+  kind of pre-1.0 contract settling FEAT-13 was flagged to absorb. Reflect them there
   once the change is merged; no new sub-entity needed.
 <!-- sq:body:end -->
 

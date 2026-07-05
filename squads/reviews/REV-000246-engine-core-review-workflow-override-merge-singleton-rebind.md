@@ -1,5 +1,5 @@
 ---
-id: REV-000246
+id: REV-246
 sequence_id: 246
 type: review
 title: 'Engine core review: workflow override merge + singleton rebind + validate
@@ -7,10 +7,10 @@ title: 'Engine core review: workflow override merge + singleton rebind + validat
 status: Approved
 author: reviewer
 refs:
-- FEAT-000209:addresses
-- TASK-000239:addresses
-- TASK-000240:addresses
-- TASK-000241:addresses
+- FEAT-209:addresses
+- TASK-239:addresses
+- TASK-240:addresses
+- TASK-241:addresses
 subentities:
 - local_id: F1
   title: AC#5 not enforced at any runtime boundary in this core
@@ -39,7 +39,7 @@ created_at: '2026-06-30T08:23:56Z'
 updated_at: '2026-06-30T11:44:25Z'
 ---
 <!-- sq:body -->
-Independent engine-core review of FEAT-000209 (TASK-239 merge loader, TASK-240 singleton rebind + open_service threading, TASK-241 validate() parent-cycle + index cross-check). Reviewer: Paul Reviewer; I did not write this code.
+Independent engine-core review of FEAT-209 (TASK-239 merge loader, TASK-240 singleton rebind + open_service threading, TASK-241 validate() parent-cycle + index cross-check). Reviewer: Paul Reviewer; I did not write this code.
 
 Verdict: APPROVE WITH NITS. The core mechanism (squad-dir-aware additive-only merge + process-global singleton rebind) is correct, fail-closed, and well-guarded by tests. No blocking defects. All findings are low/info — most are scope/traceability notes about work that legitimately lands in the not-yet-reviewed TASK-242/243.
 
@@ -79,7 +79,7 @@ validate_against_index() (src/squads/_workflow/_loader.py:338) is the AC#5 guara
 
 Impact: as of TASK-239/240/241 alone, an override that OMITS a status/type still in use on disk does NOT fail closed at open_service. A user could install such an override and run commands. AC#5 is therefore unmet by this core.
 
-Why it is only medium, not high: TASK-241's own body says 'Wire it where the merged spec meets the index: open_service (TASK-240) and/or sq check (TASK-000243)'. Those wiring tasks (242 lint / 243 check) are still untracked/unimplemented, so the gap is by-design-deferred — but it must actually land in 243, and the function is currently dead code. Confirm 243 wires validate_against_index into open_service AND/OR sq check, and that the feature is not marked done until AC#5 has a live path.
+Why it is only medium, not high: TASK-241's own body says 'Wire it where the merged spec meets the index: open_service (TASK-240) and/or sq check (TASK-243)'. Those wiring tasks (242 lint / 243 check) are still untracked/unimplemented, so the gap is by-design-deferred — but it must actually land in 243, and the function is currently dead code. Confirm 243 wires validate_against_index into open_service AND/OR sq check, and that the feature is not marked done until AC#5 has a live path.
 
 Suggested fix: in TASK-243 (or a follow-up on 240), after use_spec(merged_spec) in open_service, open the index and call validate_against_index(merged_spec, db); if non-empty, raise SquadsError joining the offenders + the 'run sq workflow lint' pointer. Mind the import cycle (db typed Any in the loader is already set up for this).
 <!-- sq:finding:F1:body:end -->
@@ -88,7 +88,7 @@ Suggested fix: in TASK-243 (or a follow-up on 240), after use_spec(merged_spec) 
 
 <!-- sq:finding:F1:discussion -->
 - [2026-06-30T11:43:58Z] Catherine Manager:
-  - Fixed: validate_against_index_fail_closed is now wired into open_service (TASK-000243) — AC#5 fails closed at runtime listing offender IDs; verified live by QA on FEAT-000209 and again on FEAT-000250.
+  - Fixed: validate_against_index_fail_closed is now wired into open_service (TASK-243) — AC#5 fails closed at runtime listing offender IDs; verified live by QA on FEAT-209 and again on FEAT-250.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -103,7 +103,7 @@ Suggested fix: in TASK-243 (or a follow-up on 240), after use_spec(merged_spec) 
 <!-- sq:finding:F2:body -->
 load_workflow_spec() reads ONLY <squad_dir>/.overrides/workflow.toml (_loader.py:29 WORKFLOW_OVERRIDE_FILENAME; the [workflow.*] block in .squads.toml is not read — SquadsConfig in _models/_config.py has no workflow field and the loader never opens .squads.toml).
 
-FEAT-000209 AC#1 and US1 acceptance literally say a project admin adds a '[workflow.types.incident]' block 'in .squads.toml'. The implementation diverges to a single canonical file. This divergence is AUTHORIZED — TASK-239's body explicitly recommended '.overrides/workflow.toml is primary' and treating dual sources as error-prone — so this is a doc/PO-traceability mismatch, not a code defect.
+FEAT-209 AC#1 and US1 acceptance literally say a project admin adds a '[workflow.types.incident]' block 'in .squads.toml'. The implementation diverges to a single canonical file. This divergence is AUTHORIZED — TASK-239's body explicitly recommended '.overrides/workflow.toml is primary' and treating dual sources as error-prone — so this is a doc/PO-traceability mismatch, not a code defect.
 
 Suggested fix: reconcile the wording. Either (a) @product-owner edits AC#1/US1 to name .overrides/workflow.toml, or (b) TASK-245 (sq docs workflow) and the scaffold (TASK-244) clearly state the canonical path so admins are not misled by the original AC text. No code change needed; just don't let AC#1 read as a missed acceptance at sign-off.
 <!-- sq:finding:F2:body:end -->
@@ -112,7 +112,7 @@ Suggested fix: reconcile the wording. Either (a) @product-owner edits AC#1/US1 t
 
 <!-- sq:finding:F2:discussion -->
 - [2026-06-30T11:44:21Z] Catherine Manager:
-  - Fixed: override location reconciled to .overrides/workflow.toml across AC#1/US1/scope (product-owner) and docs (TASK-000245).
+  - Fixed: override location reconciled to .overrides/workflow.toml across AC#1/US1/scope (product-owner) and docs (TASK-245).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -136,7 +136,7 @@ Suggested fix (optional): when no override file exists, return the cached single
 
 <!-- sq:finding:F3:discussion -->
 - [2026-06-30T11:44:22Z] Catherine Manager:
-  - Fixed: open_service uses the bundled_spec() fast-path when no override is present — no TOML re-parse (TASK-000243).
+  - Fixed: open_service uses the bundled_spec() fast-path when no override is present — no TOML re-parse (TASK-243).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -162,7 +162,7 @@ Suggested fix: add (a) a two-test leak guard or an explicit assert that after a 
 
 <!-- sq:finding:F4:discussion -->
 - [2026-06-30T11:44:23Z] Catherine Manager:
-  - Fixed: QA added the isolation, sub-entity cross-check, and override-merge assertions (FEAT-000209 + FEAT-000250 QA passes).
+  - Fixed: QA added the isolation, sub-entity cross-check, and override-merge assertions (FEAT-209 + FEAT-250 QA passes).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 

@@ -41,7 +41,7 @@
         "greeting"
       ]
     },
-    "id": "ROLE-000001"
+    "id": "ROLE-1"
   },
   {
     "sequence_id": 2,
@@ -72,7 +72,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-000002"
+    "id": "FEAT-2"
   },
   {
     "sequence_id": 3,
@@ -81,13 +81,13 @@
     "slug": "implement-login",
     "status": "InProgress",
     "description": "",
-    "parent": "FEAT-000002",
+    "parent": "FEAT-2",
     "author": "manager",
     "assignee": null,
     "priority": null,
     "labels": [],
     "refs": [
-      "BUG-000004:depends-on"
+      "BUG-4:depends-on"
     ],
     "subentities": [
       {
@@ -105,7 +105,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-000003"
+    "id": "TASK-3"
   },
   {
     "sequence_id": 4,
@@ -127,7 +127,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-000004"
+    "id": "BUG-4"
   },
   {
     "sequence_id": 5,
@@ -149,7 +149,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-000005"
+    "id": "ADR-5"
   },
   {
     "sequence_id": 6,
@@ -180,7 +180,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "REV-000006"
+    "id": "REV-6"
   },
   {
     "sequence_id": 7,
@@ -202,7 +202,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "GUIDE-000007"
+    "id": "GUIDE-7"
   },
   {
     "sequence_id": 8,
@@ -229,7 +229,7 @@
       "when_to_use": "",
       "allowed_tools": ""
     },
-    "id": "SKILL-000008"
+    "id": "SKILL-8"
   },
   {
     "sequence_id": 9,
@@ -254,6 +254,6 @@
       "slug": "op-alice",
       "full_name": "Alice Tester"
     },
-    "id": "OP-000009"
+    "id": "OP-9"
   }
 ]

@@ -1,14 +1,14 @@
 ---
-id: ADR-000129
+id: ADR-129
 sequence_id: 129
 type: decision
 title: 'Python >= 3.14 floor: PEP 649 lazy annotations vs installable audience'
 status: Accepted
-parent: FEAT-000017
+parent: FEAT-17
 author: architect
 refs:
-- FEAT-000013
-- FEAT-000017
+- FEAT-13
+- FEAT-17
 created_at: '2026-06-15T12:10:13Z'
 updated_at: '2026-06-15T12:30:16Z'
 ---
@@ -102,9 +102,9 @@ one-time "install 3.14" cost on the consumer side is the better trade.
 
 ## Links
 
-This ADR is the recorded "Python floor" decision called for by **FEAT-000017** (1.0 hardening).
+This ADR is the recorded "Python floor" decision called for by **FEAT-17** (1.0 hardening).
 Its acceptance bar additionally requires it to be **linked from the stability contract
-(FEAT-000013)** — that linkage is a FEAT-13 deferral obligation tracked by the manager/tech lead,
+(FEAT-13)** — that linkage is a FEAT-13 deferral obligation tracked by the manager/tech lead,
 not filed from this ADR.
 <!-- sq:body:end -->
 
@@ -112,5 +112,5 @@ not filed from this ADR.
 
 <!-- sq:discussion -->
 - [2026-06-15T12:30:16Z] Paul Reviewer:
-  - REV-000130: APPROVED. ADR-000129 is doc-only — it edits no pyproject.toml and no code (confirmed: only the ADR .md is new). Sound decision: requires Python >=3.14, ratifying the already-present settings (requires-python, ruff target-version, pyright pythonVersion, the 3.14 classifier) and the CLAUDE.md 'no from __future__ import annotations' convention. The trade-off is recorded honestly — PEP 649 lazy annotations (unquoted forward refs, acyclic graph, no ceremony) vs. a smaller installable audience (3.14 is recent), resolved toward >=3.14 because squads is a developer-facing CLI not a library, and explicitly revisitable via supersession. FEAT-13 stability-contract linkage correctly flagged as a manager/tech-lead obligation rather than overstepped. @tech-lead
+  - REV-130: APPROVED. ADR-129 is doc-only — it edits no pyproject.toml and no code (confirmed: only the ADR .md is new). Sound decision: requires Python >=3.14, ratifying the already-present settings (requires-python, ruff target-version, pyright pythonVersion, the 3.14 classifier) and the CLAUDE.md 'no from __future__ import annotations' convention. The trade-off is recorded honestly — PEP 649 lazy annotations (unquoted forward refs, acyclic graph, no ceremony) vs. a smaller installable audience (3.14 is recent), resolved toward >=3.14 because squads is a developer-facing CLI not a library, and explicitly revisitable via supersession. FEAT-13 stability-contract linkage correctly flagged as a manager/tech-lead obligation rather than overstepped. @tech-lead
 <!-- sq:discussion:end -->

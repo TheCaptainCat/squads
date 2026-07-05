@@ -1,15 +1,15 @@
 ---
-id: REV-000118
+id: REV-118
 sequence_id: 118
 type: review
 title: Reflog durability/threading review (TASK-112/113 vs ADR-117)
 status: Approved
 author: reviewer
 refs:
-- TASK-000112
-- TASK-000113
-- FEAT-000024
-- ADR-000117
+- TASK-112
+- TASK-113
+- FEAT-24
+- ADR-117
 description: Narrow durability/threading correctness review of the reflog core + read
   command against ADR-000117 and ADR-000114.
 subentities:
@@ -50,7 +50,7 @@ created_at: '2026-06-15T09:57:14Z'
 updated_at: '2026-06-23T10:00:09Z'
 ---
 <!-- sq:body -->
-Narrow durability/threading correctness review of the reflog implementation for FEAT-000024 (TASK-000112 reflog core, TASK-000113 read command), reviewed against ADR-000117 (durability/append-atomicity/actor-threading) and ADR-000114 (removal trace / NOT-source-of-truth).
+Narrow durability/threading correctness review of the reflog implementation for FEAT-24 (TASK-112 reflog core, TASK-113 read command), reviewed against ADR-117 (durability/append-atomicity/actor-threading) and ADR-114 (removal trace / NOT-source-of-truth).
 
 Gate: `uv run pytest` (all pass, 1 skip) + `uv run pyright` (0 errors) + `uv run ruff check .` (clean) + `uv run ruff format --check .` (clean) — all green.
 
@@ -161,7 +161,7 @@ Nothing makes the index depend on the reflog. repair() (_maintenance.py:182-252)
 <!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
-Every line carries v=SCHEMA_VERSION ('0.3'), present from line one (_reflog.py:80). The documented shape (docs/workflow.md 'Operation reflog' section: fields v/ts/actor/op/target/delta + op vocabulary + delta-additive stability note deferring the freeze to FEAT-000013) matches the golden tests/goldens/reflog_shape.json (fields list, schema_version 0.3, example_ops). Golden + --json shape exercised by test_golden_reflog_json and test_cli_reflog_json_shape.
+Every line carries v=SCHEMA_VERSION ('0.3'), present from line one (_reflog.py:80). The documented shape (docs/workflow.md 'Operation reflog' section: fields v/ts/actor/op/target/delta + op vocabulary + delta-additive stability note deferring the freeze to FEAT-13) matches the golden tests/goldens/reflog_shape.json (fields list, schema_version 0.3, example_ops). Golden + --json shape exercised by test_golden_reflog_json and test_cli_reflog_json_shape.
 <!-- sq:finding:F5:body:end -->
 
 #### Discussion
@@ -219,7 +219,7 @@ tests/test_reflog_core.py:306 sets up a _boom monkeypatch that raises OSError (l
 <!-- sq:finding:F8:body -->
 (a) _cli/__init__.py:67-68 comment claims 'The try/finally in the hook clears it per-invocation' — inaccurate: the try/finally in _store.transaction clears _current_ctx, not the actor; the actor is reset at the start of the next callback (set_actor('system')), not cleared at end. Reword to match the actual (clock-like) mechanism.
 
-(b) _services/_items.py:249-251 (remove_work_item docstring) and _services/_results.py:77 still say the reflog writer 'is a no-op until TASK-000112 wires the FEAT-000024 writer' — stale now that 112 is done; the writer is live.
+(b) _services/_items.py:249-251 (remove_work_item docstring) and _services/_results.py:77 still say the reflog writer 'is a no-op until TASK-112 wires the FEAT-24 writer' — stale now that 112 is done; the writer is live.
 
 (c) repad logs op='migrate' with a nested delta={'op':'repad',...} (_maintenance.py:299-308) while docs/workflow.md maps 'migrate' to both 'migrate up' and 'migrate repad' — consistent with the doc and the closed vocab, but the double 'op' key (top-level op='migrate' + delta.op='repad') is slightly confusing for a reader. Optional: drop delta.op or promote repad to its own vocab entry in a future schema rev. None of these affect correctness. @python-dev
 <!-- sq:finding:F8:body:end -->
@@ -242,5 +242,5 @@ tests/test_reflog_core.py:306 sets up a _boom monkeypatch that raises OSError (l
   - Addressed the two findings touching the ADR-117 §1 guarantee (gate green: pytest pass, pyright 0, ruff clean):
   - F6 (Fixed): moved json.dumps INSIDE append_line's try and broadened the except to (OSError, TypeError, ValueError) — a non-serializable delta now degrades to a stderr warning instead of raising past a committed mutation. Belt-and-suspenders: also wrapped the store-level append loop in transaction() (src/squads/_index/_store.py) in a catch-all that warns, so nothing in the post-commit reflog path can ever surface from an operation the index already applied — the literal ADR-117 §1 promise.
   - F7 (Fixed): rewrote the dead test. Now three real tests in tests/test_reflog_core.py — test_append_line_swallows_oserror (reflog path is a dir → IsADirectoryError), test_append_line_swallows_serialization_error (set delta → former F6 regression guard), and test_failed_reflog_append_does_not_rollback_mutation (patches append_line to raise OSError and asserts the created item is still readable after commit).
-  - F8 left to @python-dev as cleanup: stale 'no-op until TASK-000112' docstrings (_items.py, _results.py), the inaccurate 'try/finally clears the actor' comment in _cli/__init__.py (reword to the clock-like reset-at-start mechanism), and the op='migrate'/delta.op='repad' double-key nit. None affect correctness; not gating.
+  - F8 left to @python-dev as cleanup: stale 'no-op until TASK-112' docstrings (_items.py, _results.py), the inaccurate 'try/finally clears the actor' comment in _cli/__init__.py (reword to the clock-like reset-at-start mechanism), and the op='migrate'/delta.op='repad' double-key nit. None affect correctness; not gating.
 <!-- sq:discussion:end -->

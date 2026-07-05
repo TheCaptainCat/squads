@@ -1,10 +1,10 @@
 ---
-id: TASK-000091
+id: TASK-91
 sequence_id: 91
 type: task
 title: Document the override mechanism + add override layout to the 1.0 contract doc
 status: Done
-parent: FEAT-000014
+parent: FEAT-14
 author: tech-lead
 priority: medium
 description: Docs/guide for overrides + naming; list the .overrides layout among the
@@ -22,17 +22,17 @@ created_at: '2026-06-12T20:57:40Z'
 updated_at: '2026-06-12T22:05:47Z'
 ---
 <!-- sq:body -->
-Docs + contract task for FEAT-000014 (feature Acceptance: 'sq check/docs explain the mechanism' and 'the contract doc lists the override layout among the durable surfaces'; ADR-000085 §5).
+Docs + contract task for FEAT-14 (feature Acceptance: 'sq check/docs explain the mechanism' and 'the contract doc lists the override layout among the durable surfaces'; ADR-85 §5).
 
-**Goal.** Explain the override + naming mechanism to teams, and freeze the contracted surfaces verbatim in the FEAT-000013 durable-contract doc.
+**Goal.** Explain the override + naming mechanism to teams, and freeze the contracted surfaces verbatim in the FEAT-13 durable-contract doc.
 
 **Scope — docs.** Document, in the appropriate guide/skill surface: the `.overrides/{templates,roles}/` layout and per-file precedence; the `sq override` workflow (scaffold → edit → `sq check` warns on drift → `sq override diff` two deltas → hand-merge → `sq override update` re-stamp); and the naming surface (`--name slug=…`, `[init.names]`, TTY prompt/`--default-names`, `extra.full_name`, canonical non-renamable slugs).
 
-**Scope — contract doc (ADR §5, verbatim).** Add to the FEAT-000013 contract doc: (1) the override root + tree `<squad-dir>/.overrides/{templates,roles}/` (templates mirror bundled names 1:1, roles as `<slug>.toml`); (2) the precedence rule (per-file, project → bundled; presence is the override; templates whole-file, roles merge field-wise by slug); (3) the staleness+update contract (`squads:override-base:<version>` stamp; `sq check` warns on version drift / errors on missing markers; valid overrides always render; `sq migrate` never rewrites; the `sq override` group — scaffold/diff/update/list — as the entire upgrade path, incl. diff's two deltas and update's re-stamp); (4) the naming contract (names in `extra.full_name`, canonical slugs, pool fallback, the init naming surface). Note what is **deliberately NOT** frozen: additional `.overrides/` categories, and the exact prompt wording/layout.
+**Scope — contract doc (ADR §5, verbatim).** Add to the FEAT-13 contract doc: (1) the override root + tree `<squad-dir>/.overrides/{templates,roles}/` (templates mirror bundled names 1:1, roles as `<slug>.toml`); (2) the precedence rule (per-file, project → bundled; presence is the override; templates whole-file, roles merge field-wise by slug); (3) the staleness+update contract (`squads:override-base:<version>` stamp; `sq check` warns on version drift / errors on missing markers; valid overrides always render; `sq migrate` never rewrites; the `sq override` group — scaffold/diff/update/list — as the entire upgrade path, incl. diff's two deltas and update's re-stamp); (4) the naming contract (names in `extra.full_name`, canonical slugs, pool fallback, the init naming surface). Note what is **deliberately NOT** frozen: additional `.overrides/` categories, and the exact prompt wording/layout.
 
 **Acceptance.** The mechanism is documented where users will find it; the contract doc lists the four frozen surfaces above. Co-author with @architect (the contract-doc owner).
 
-**Dependencies.** Should land LAST — after T1–T4 so the documented behaviour matches what shipped. Depends on the contract doc existing (FEAT-000013).
+**Dependencies.** Should land LAST — after T1–T4 so the documented behaviour matches what shipped. Depends on the contract doc existing (FEAT-13).
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -90,5 +90,5 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:discussion -->
 - [2026-06-12T22:05:47Z] Theo Writer:
   - Complete: wrote docs/overrides.md (ST1) covering .overrides/ layout, precedence, staleness detection, the sq override command workflow, and agent naming at init. Accessible via 'sq docs overrides' and linked from docs/README.md. All CLI surfaces verified against shipped code.
-  - Contract doc deferral complete (ST2): confirmed FEAT-000013 has the four override contract surfaces from TASK-089 (Elias, 2026-06-12T21:54:21Z), added tech-writer comment flagging that docs/overrides.md now documents these for users. Ready for FEAT-000013 author to synthesize into the stability.md tier when writing that feature.
+  - Contract doc deferral complete (ST2): confirmed FEAT-13 has the four override contract surfaces from TASK-089 (Elias, 2026-06-12T21:54:21Z), added tech-writer comment flagging that docs/overrides.md now documents these for users. Ready for FEAT-13 author to synthesize into the stability.md tier when writing that feature.
 <!-- sq:discussion:end -->

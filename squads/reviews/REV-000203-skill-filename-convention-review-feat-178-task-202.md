@@ -1,13 +1,13 @@
 ---
-id: REV-000203
+id: REV-203
 sequence_id: 203
 type: review
 title: 'Skill filename convention review: FEAT-178 TASK-202'
 status: Approved
 author: reviewer
 refs:
-- FEAT-000178
-- TASK-000202
+- FEAT-178
+- TASK-202
 subentities:
 - local_id: F1
   title: Backend swallows index-corruption errors with bare except
@@ -31,7 +31,7 @@ updated_at: '2026-06-25T09:23:00Z'
 <!-- sq:body -->
 ## Scope
 
-Independent review of TASK-000202 — renaming skill body files to the `agents/skills/SKILL-<NNNNNN>-<slug>.md`
+Independent review of TASK-202 — renaming skill body files to the `agents/skills/SKILL-<NNNNNN>-<slug>.md`
 convention (matching ROLE/OP) and keeping the `.claude` skill pointers in sync. Did not author the code
 (prior reviews on this feature: REV-191, REV-201). Reviewed the backend (`_write_managed_skill` +
 `generate_skill_entry` call), `seed_bundled_skills`, the `_v0_4_to_v0_5` migration, `_iter_item_files`,

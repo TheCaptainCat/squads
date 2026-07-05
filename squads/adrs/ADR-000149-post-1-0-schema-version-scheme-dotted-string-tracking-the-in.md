@@ -1,13 +1,13 @@
 ---
-id: ADR-000149
+id: ADR-149
 sequence_id: 149
 type: decision
 title: 'Post-1.0 schema_version scheme: dotted-string tracking the introducing release'
 status: Accepted
 author: architect
 refs:
-- FEAT-000013
-- ADR-000076
+- FEAT-13
+- ADR-76
 created_at: '2026-06-17T07:56:27Z'
 updated_at: '2026-06-17T08:30:12Z'
 ---
@@ -17,14 +17,14 @@ updated_at: '2026-06-17T08:30:12Z'
 `schema_version` is the durable stamp on a squad's on-disk format. Today it is a **dotted string
 naming the release that introduced the schema** (currently `"0.3"`), compared as a tuple via
 `schema_tuple()` — never as a raw string, because `"0.10"` is not lexically greater than `"0.2"`.
-This scheme and its upgrade path were established by **ADR-000076** (the in-force mechanism ADR):
+This scheme and its upgrade path were established by **ADR-76** (the in-force mechanism ADR):
 `_models/_schema.py::SCHEMA_VERSION` is the single source of truth, the root CLI callback hard-stops
 on a mismatch, and `sq migrate up` runs the ordered `_migrations` registry, then `repair`, then
 stamps the new version.
 
-ADR-000076 deliberately left the **post-1.0** meaning of the version open: while alpha, the dotted
+ADR-76 deliberately left the **post-1.0** meaning of the version open: while alpha, the dotted
 0.x string is self-describing against the changelog, but it did not pre-empt what versioning a
-*frozen* contract should look like. The road-to-1.0 freeze (FEAT-000013, the stability contract)
+*frozen* contract should look like. The road-to-1.0 freeze (FEAT-13, the stability contract)
 needs that post-1.0 meaning pinned so the contract can state it. **This ADR settles it.** The
 direction is the operator's call; this ADR records it precisely.
 
@@ -36,7 +36,7 @@ introduced the schema, compared via `schema_tuple()`.** Concretely:
 - **`SCHEMA_VERSION` in `_models/_schema.py` remains the single source of truth.** Models default to
   it; every consumer reads it from there. Its current value is `"0.3"`.
 - **Comparisons go through `schema_tuple()`, never raw-string `<`/`>`.** This is unchanged from
-  ADR-000076 and stays a standing rule.
+  ADR-76 and stays a standing rule.
 - **Post-1.0, a schema change ships only with a MAJOR release** and bumps the dotted string
   accordingly. The version continues to *name the release that introduced the schema* — the same
   semantics it has had since 0.1 — so the changelog stays the schema's documentation.
@@ -75,12 +75,12 @@ favour of the status quo.
   still reaches 1.0 (and beyond) intact via the same ordered runner; this ADR changes none of that
   machinery.
 - **The reflog `v` field stays coupled to `SCHEMA_VERSION`.** Whether to *decouple* the reflog line's
-  `v` field from the schema version is **REV-000119 F5**, an open pre-1.0-freeze question left
+  `v` field from the schema version is **REV-119 F5**, an open pre-1.0-freeze question left
   explicitly open and **out of scope here**. This ADR neither resolves nor pre-empts it.
 - **Revisitable by supersession.** If a real need for an opaque counter or a SemVer-coupled scheme
   appears later, this ADR can be superseded by a new one that pays the reintroduction cost. Per
   project convention, supersede rather than edit an accepted ADR.
-- **FEAT-000013 obligation:** the stability contract must publish this scheme — dotted-string-names-
+- **FEAT-13 obligation:** the stability contract must publish this scheme — dotted-string-names-
   introducing-release, `schema_tuple()` comparison, schema bumps ride MAJOR releases — as the
   versioning rule for the durable `.md`/config surface.
 <!-- sq:body:end -->

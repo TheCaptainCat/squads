@@ -1,10 +1,10 @@
 ---
-id: TASK-000241
+id: TASK-241
 sequence_id: 241
 type: task
 title: Extend WorkflowSpec.validate() with index cross-check + parent-cycle checks
 status: Done
-parent: FEAT-000209
+parent: FEAT-209
 author: tech-lead
 subentities:
 - local_id: ST1
@@ -39,8 +39,8 @@ task adds the **inverse-direction** guarantee for the override case.
    `_validate.py` under `_workflow/`), that returns human-readable errors when a type or status that
    appears on a live item is NOT present in the merged spec. This is the AC #5 case: an override that
    omits a status still in use by items fails closed with the list of offending item IDs.
-   - Wire it where the merged spec meets the index: `open_service` (TASK-000240) and/or `sq check`
-     (TASK-000243) call it. The `WorkflowSpec.validate()` the feature body references becomes the
+   - Wire it where the merged spec meets the index: `open_service` (TASK-240) and/or `sq check`
+     (TASK-243) call it. The `WorkflowSpec.validate()` the feature body references becomes the
      pure-spec part; the index cross-check is the index-aware sibling invoked at the same boundary.
 
 ## Acceptance
@@ -50,8 +50,8 @@ task adds the **inverse-direction** guarantee for the override case.
 - Existing validation behaviour unchanged for the bundled default (golden test green — AC #7).
 
 ## Ordering
-After TASK-000239 (merge) and best done alongside TASK-000240 (the cross-check needs the spec+index
-seam that 240 establishes). Its output feeds TASK-000242 (lint) and TASK-000243 (sq check).
+After TASK-239 (merge) and best done alongside TASK-240 (the cross-check needs the spec+index
+seam that 240 establishes). Its output feeds TASK-242 (lint) and TASK-243 (sq check).
 <!-- sq:body:end -->
 
 ## Subtasks

@@ -1,10 +1,10 @@
 ---
-id: TASK-000256
+id: TASK-256
 sequence_id: 256
 type: task
 title: 'Characterization goldens: pin sq workflow / CLAUDE.md / sq-<type> skill output'
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 created_at: '2026-06-30T12:00:58Z'
 updated_at: '2026-06-30T12:14:20Z'
@@ -14,7 +14,7 @@ updated_at: '2026-06-30T12:14:20Z'
 Maps to: AC#7, AC#8 (the proof that non-custom squads see byte-identical
 behaviour/output). This is the guard the rewire tasks (257, 260, 261) run under.
 
-Per the FEAT-220/REV-000230 process rule and [[pin-roster-when-diffing-generated-skills]]:
+Per the FEAT-220/REV-230 process rule and [[pin-roster-when-diffing-generated-skills]]:
 the characterization golden MUST be authored and merged FIRST, against HEAD,
 as a passing gating test — BEFORE any rewire. Do not leave the proof as a
 trailing task.

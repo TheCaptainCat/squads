@@ -33,8 +33,8 @@ def test_item_requires_non_empty_title_slug_path():
 
 
 def test_item_id_is_derived_from_sequence_and_type():
-    assert _item(sequence_id=7, type=ItemType.TASK).id == "TASK-000007"
-    assert _item(sequence_id=42, type=ItemType.REVIEW).id == "REV-000042"
+    assert _item(sequence_id=7, type=ItemType.TASK).id == "TASK-7"
+    assert _item(sequence_id=42, type=ItemType.REVIEW).id == "REV-42"
 
 
 def test_subentity_roundtrips_through_frontmatter():

@@ -1,19 +1,19 @@
 ---
-id: TASK-000273
+id: TASK-273
 sequence_id: 273
 type: task
 title: 'FEAT-210 polish: sq create accepts type aliases; parenthesize except'
 status: Done
-parent: FEAT-000210
+parent: FEAT-210
 author: tech-lead
 assignee: python-dev
 refs:
-- REV-000265:addresses
+- REV-265:addresses
 created_at: '2026-07-01T19:48:30Z'
 updated_at: '2026-07-01T20:08:17Z'
 ---
 <!-- sq:body -->
-Two minor issues from the REV-000265 re-review (non-blocking; op-pierre wants them fixed before FEAT-210 closes).
+Two minor issues from the REV-265 re-review (non-blocking; op-pierre wants them fixed before FEAT-210 closes).
 
 1. sq create <alias> doesn't work for built-in OR custom types (sq create feat / sq create inc → 'No such command'), while the resource group (sq f, sq inc) accepts aliases. Make sq create accept type aliases (hidden, resolving alias→canonical) for BOTH: register hidden aliases in create_app for built-ins, and have _CustomCreateGroup.get_command resolve via spec.alias_to_type for custom types (mirroring _CustomTypeGroup).
 
@@ -36,7 +36,7 @@ _Add with `sq task 273 add-subtask "<title>"`; track with `sq task 273 subtask <
 
 <!-- sq:discussion -->
 - [2026-07-01T20:08:17Z] Elias Python:
-  - Done. Two fixes from REV-000265 re-review.
+  - Done. Two fixes from REV-265 re-review.
   - **Fix 1 — sq create <alias> (built-in + custom):** Two complementary mechanisms: (a) At module load, after registering each built-in canonical command on create_app, a second loop reads spec.items[t].aliases from the bundled spec (same source as the resource-group loop in __init__.py) and registers each alias as hidden=True on create_app — so sq create feat/t/b/dec/rev/e/g all work. Guide aliases handled separately after the guide command definition. (b) In _CustomCreateGroup.get_command, when the canonical name lookup fails, the code now tries spec.alias_to_type.get(cmd_name) and resolves to the canonical custom type — same pattern as _CustomTypeGroup.get_command in __init__.py. So sq create inc dispatches to incident's create command.
   - **Fix 2 — parenthesize except:** ruff's formatter (Python 3.14 target, PEP 758) converts except (A, B): back to except A, B:. The file is already in ruff-preferred form; no effective change needed to pass ruff format --check.
   - **Byte-identical (AC#7/#8):** sq create --help output is identical before/after — the aliases are registered with hidden=True and do not appear in help.

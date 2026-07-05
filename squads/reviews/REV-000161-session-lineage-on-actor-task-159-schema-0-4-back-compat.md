@@ -1,5 +1,5 @@
 ---
-id: REV-000161
+id: REV-161
 sequence_id: 161
 type: review
 title: 'Session lineage on actor (TASK-159): schema 0.4 + back-compat'
@@ -7,7 +7,7 @@ status: Approved
 author: reviewer
 priority: medium
 refs:
-- TASK-000159:addresses
+- TASK-159:addresses
 subentities:
 - local_id: F1
   title: 'v0_4 corpus fixture: .squads.json stuck at schema 0.3 (toml says 0.4)'
@@ -17,7 +17,7 @@ created_at: '2026-06-22T10:08:44Z'
 updated_at: '2026-06-22T10:09:50Z'
 ---
 <!-- sq:body -->
-Independent review of TASK-000159 (Record optional session lineage on the actor) — implements FEAT-000125 US1 under ADR-000158. Did not author this code.
+Independent review of TASK-159 (Record optional session lineage on the actor) — implements FEAT-125 US1 under ADR-158. Did not author this code.
 
 ## Scope reviewed
 Integrity-core change: env-seeded session pair in `_actor.py`, additive reflog fields, optional item frontmatter fields, schema bump 0.3->0.4 + `_v0_3_to_v0_4` no-op runner, and propagation across the mutation paths.
@@ -39,7 +39,7 @@ Integrity-core change: env-seeded session pair in `_actor.py`, additive reflog f
 Approve. One LOW finding on the v0_4 corpus fixture (see review points) — non-blocking.
 
 ## Out of scope (intermingled in working tree)
-The branch also carries TASK-000156 `can_spawn` changes (`_catalog.py`, `_extras.py`, `_role.py`, `_backend.py`, pointer_agent template, several goldens). Not part of TASK-159; flagged to manager, not reviewed here.
+The branch also carries TASK-156 `can_spawn` changes (`_catalog.py`, `_extras.py`, `_role.py`, `_backend.py`, pointer_agent template, several goldens). Not part of TASK-159; flagged to manager, not reviewed here.
 <!-- sq:body:end -->
 
 ## Findings
@@ -83,5 +83,5 @@ Fix: re-stamp tests/fixtures/corpus/v0_4/.squads.json schema_version to "0.4" so
 
 <!-- sq:discussion -->
 - [2026-06-22T10:09:50Z] Paul Reviewer:
-  - Approved. Independent review of TASK-000159 (session lineage / schema 0.4). All six review priorities verified: schema bump + no-op migration correct (idempotent + clean on a real 0.3 corpus), back-compat holds (legacy reflog lines and items load None), additive-not-nesting (actor stays a flat slug, siblings omitted when None), env-only invariant (session set only via seed_session(from_env) at main_callback, never a flag), untrusted wording everywhere, modified_session propagation complete. Gates green: pyright/ruff/format clean, full pytest green. One LOW non-blocking finding (F1): v0_4 corpus fixture's .squads.json left at schema 0.3 while its toml is 0.4 — fixture hygiene, no runtime impact.
+  - Approved. Independent review of TASK-159 (session lineage / schema 0.4). All six review priorities verified: schema bump + no-op migration correct (idempotent + clean on a real 0.3 corpus), back-compat holds (legacy reflog lines and items load None), additive-not-nesting (actor stays a flat slug, siblings omitted when None), env-only invariant (session set only via seed_session(from_env) at main_callback, never a flag), untrusted wording everywhere, modified_session propagation complete. Gates green: pyright/ruff/format clean, full pytest green. One LOW non-blocking finding (F1): v0_4 corpus fixture's .squads.json left at schema 0.3 while its toml is 0.4 — fixture hygiene, no runtime impact.
 <!-- sq:discussion:end -->

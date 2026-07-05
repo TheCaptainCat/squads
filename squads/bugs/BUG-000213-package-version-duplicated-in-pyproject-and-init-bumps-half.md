@@ -1,5 +1,5 @@
 ---
-id: BUG-000213
+id: BUG-213
 sequence_id: 213
 type: bug
 title: Package version duplicated in pyproject and __init__ (bumps half-apply)

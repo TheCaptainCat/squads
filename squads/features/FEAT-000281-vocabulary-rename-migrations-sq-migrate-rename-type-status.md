@@ -1,14 +1,14 @@
 ---
-id: FEAT-000281
+id: FEAT-281
 sequence_id: 281
 type: feature
 title: Vocabulary rename migrations (sq migrate rename-type/status)
 status: Draft
-parent: EPIC-000280
+parent: EPIC-280
 author: product-owner
 refs:
-- FEAT-000210:depends-on
-- FEAT-000211:depends-on
+- FEAT-210:depends-on
+- FEAT-211:depends-on
 subentities:
 - local_id: US1
   title: As a project admin, I want sq migrate rename-type to safely rename a built-in
@@ -34,11 +34,11 @@ Today, renaming a built-in type or status (e.g. `task` → `ticket` project-wide
 
 ## Non-goals
 
-- Renaming squads' own meta-types (`skill`, `role`, `operator`) — these carry special reserved-vocabulary semantics (ADR-000266); rename support for meta-types is explicitly out of scope.
+- Renaming squads' own meta-types (`skill`, `role`, `operator`) — these carry special reserved-vocabulary semantics (ADR-266); rename support for meta-types is explicitly out of scope.
 
 ## Dependencies
 
-Requires F4 (FEAT-000210, Done) — rename-type operates on custom-type folders/prefixes established there. Requires F5 (FEAT-000211, InProgress) for `rename-status` — safe status rename needs the spec-derived open/terminal classification and status vocabulary validation F5 delivers. Do not start until F5 lands.
+Requires F4 (FEAT-210, Done) — rename-type operates on custom-type folders/prefixes established there. Requires F5 (FEAT-211, InProgress) for `rename-status` — safe status rename needs the spec-derived open/terminal classification and status vocabulary validation F5 delivers. Do not start until F5 lands.
 
 ## Acceptance criteria
 
@@ -51,7 +51,7 @@ Requires F4 (FEAT-000210, Done) — rename-type operates on custom-type folders/
 
 ## Provenance
 
-Split from the former FEAT-000212 ("Custom sub-entity kinds + vocabulary rename migrations") per ADR-000274 (Accepted) — this feature is the rename-migrations half; the custom-sub-entity-kinds half stayed on FEAT-000212, re-parented to this feature's sibling epic EPIC-000280.
+Split from the former FEAT-212 ("Custom sub-entity kinds + vocabulary rename migrations") per ADR-274 (Accepted) — this feature is the rename-migrations half; the custom-sub-entity-kinds half stayed on FEAT-212, re-parented to this feature's sibling epic EPIC-280.
 <!-- sq:body:end -->
 
 ## User Stories

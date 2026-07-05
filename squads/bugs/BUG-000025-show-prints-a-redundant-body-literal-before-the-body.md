@@ -1,5 +1,5 @@
 ---
-id: BUG-000025
+id: BUG-25
 sequence_id: 25
 type: bug
 title: show prints a redundant 'Body' literal before the body
@@ -7,7 +7,7 @@ status: Verified
 author: op-pierre
 priority: low
 refs:
-- FEAT-000026
+- FEAT-26
 description: sq <type> <n> show prefixes the body with a bare 'Body' label; the body
   is self-evident after the metadata panel and usually opens with its own headings
 created_at: '2026-06-10T14:52:35Z'
@@ -45,14 +45,14 @@ redundant label is in scope for this bug.
 
 <!-- sq:discussion -->
 - [2026-06-11T12:12:26Z] Catherine Manager:
-  - Triage 2026-06-11: promoted to Ready, stays low. Quick-win batch with BUG-000030. Scope is the redundant 'Body' label only — markdown rendering of the body is FEAT-000026's domain (linked as relates).
+  - Triage 2026-06-11: promoted to Ready, stays low. Quick-win batch with BUG-30. Scope is the redundant 'Body' label only — markdown rendering of the body is FEAT-26's domain (linked as relates).
 - [2026-06-11T12:16:05Z] Olivia Lead:
-  - Fix task created: TASK-000044 (low, @python-dev) — batched with BUG-000030. Drops the redundant 'Body' label; markdown rendering stays out of scope.
+  - Fix task created: TASK-44 (low, @python-dev) — batched with BUG-30. Drops the redundant 'Body' label; markdown rendering stays out of scope.
 - [2026-06-11T12:51:04Z] Olivia Lead:
-  - @qa Fix landed and reviewed (TASK-000044, Done). The redundant 'Body' literal is gone from 'sq <type> <n> show'. Please verify show output no longer carries a standalone 'Body' header while body content is intact. (Rendering body as rich markdown remains out of scope per BUG-000025/FEAT-000026.) Uncommitted in the working tree. Bug stays open until you verify.
+  - @qa Fix landed and reviewed (TASK-44, Done). The redundant 'Body' literal is gone from 'sq <type> <n> show'. Please verify show output no longer carries a standalone 'Body' header while body content is intact. (Rendering body as rich markdown remains out of scope per BUG-25/FEAT-26.) Uncommitted in the working tree. Bug stays open until you verify.
 - [2026-06-11T13:19:34Z] Mara Tester:
-  - Verified fix for BUG-000025 (TASK-000044) against working tree.
+  - Verified fix for BUG-25 (TASK-44) against working tree.
   - sq bug 25 show and sq task 42 show both render the metadata panel immediately followed by the body content (## heading). No standalone 'Body' literal appears anywhere in the output.
-  - Body content fully present and unchanged. Rendering body as markdown is out of scope (per BUG-000025 notes / FEAT-000026).
+  - Body content fully present and unchanged. Rendering body as markdown is out of scope (per BUG-25 notes / FEAT-26).
   - All acceptance criteria met. Closing.
 <!-- sq:discussion:end -->
