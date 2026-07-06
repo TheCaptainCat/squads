@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 302,
+  "counter": 304,
   "padding": 6,
   "items": {
     "12": {
@@ -9,7 +9,7 @@
       "type": "epic",
       "title": "Road to 1.0",
       "slug": "road-to-1-0",
-      "status": "Ready",
+      "status": "Done",
       "description": "Define and prove the 1.0 stability promise across our public surfaces",
       "parent": null,
       "author": "product-owner",
@@ -23,7 +23,7 @@
       "subentities": [],
       "path": "epics/EPIC-000012-road-to-1-0.md",
       "created_at": "2026-06-10T12:40:41Z",
-      "updated_at": "2026-06-17T08:31:32Z",
+      "updated_at": "2026-07-06T11:33:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2671,7 +2671,7 @@
       "type": "feature",
       "title": "sq check flags unwritten placeholder sub-entity bodies",
       "slug": "sq-check-flags-unwritten-placeholder-sub-entity-bodies",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -2707,7 +2707,7 @@
       ],
       "path": "features/FEAT-000289-sq-check-flags-unwritten-placeholder-sub-entity-bodies.md",
       "created_at": "2026-07-04T20:16:38Z",
-      "updated_at": "2026-07-04T20:17:36Z",
+      "updated_at": "2026-07-06T12:10:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -11354,6 +11354,92 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-302"
+    },
+    "303": {
+      "sequence_id": 303,
+      "type": "task",
+      "title": "Add sq check for unwritten placeholder sub-entity bodies",
+      "slug": "add-sq-check-for-unwritten-placeholder-sub-entity-bodies",
+      "status": "Done",
+      "description": "New warn-level _check_* helper flagging any sub-entity body still equal to its kind placeholder",
+      "parent": "FEAT-289",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add _check_unwritten_subentity_bodies helper + wire into check()",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Emit the check at warn severity per the recorded decision",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Tests: add-story stub is flagged, real body clears; CLI smoke",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000303-add-sq-check-for-unwritten-placeholder-sub-entity-bodies.md",
+      "created_at": "2026-07-06T11:37:22Z",
+      "updated_at": "2026-07-06T12:10:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-303"
+    },
+    "304": {
+      "sequence_id": 304,
+      "type": "task",
+      "title": "Sharpen sq-feature skill: story-body write as ordered DoD step",
+      "slug": "sharpen-sq-feature-skill-story-body-write-as-ordered-dod-ste",
+      "status": "Done",
+      "description": "Split body-writing into its own PO Do step + Watch-for DoD line in playbook.toml; regen via sq sync",
+      "parent": "FEAT-289",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Split story-body write into its own PO Do step in playbook.toml",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add the Watch-for DoD line + regen skill via sq sync",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000304-sharpen-sq-feature-skill-story-body-write-as-ordered-dod-ste.md",
+      "created_at": "2026-07-06T11:37:24Z",
+      "updated_at": "2026-07-06T12:10:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-304"
     }
   }
 }

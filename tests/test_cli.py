@@ -629,6 +629,18 @@ def test_collab_commands_via_cli(runner, tmp_path, monkeypatch, frozen_time):
     )
     assert runner.invoke(app, ["feature", "5", "add-story", "As an admin, I want X"]).exit_code == 0
     assert runner.invoke(app, ["task", "6", "add-subtask", "expiry"]).exit_code == 0
+    assert (
+        runner.invoke(
+            app, ["feature", "5", "story", "1", "body", "-m", "Acceptance criteria for X."]
+        ).exit_code
+        == 0
+    )
+    assert (
+        runner.invoke(
+            app, ["task", "6", "subtask", "1", "body", "-m", "Rotate the expiry token."]
+        ).exit_code
+        == 0
+    )
     c = runner.invoke(app, ["task", "6", "comment", "--as", "architect", "-m", "@reviewer verify"])
     assert c.exit_code == 0, c.output
     box = runner.invoke(app, ["inbox", "reviewer"])
