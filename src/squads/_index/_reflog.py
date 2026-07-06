@@ -29,7 +29,7 @@ Fields
 - ``op``                 — operation name from the closed vocabulary:
                            ``create`` / ``status`` / ``update`` / ``body`` / ``comment`` /
                            ``subentity`` / ``ref`` / ``link`` / ``remove`` / ``repair`` /
-                           ``migrate``.
+                           ``migrate`` / ``renumber``.
 - ``target``             — the affected item ID (formatted, e.g. ``"TASK-000112"``).
 - ``delta``              — compact before→after summary; shape depends on ``op``.
 

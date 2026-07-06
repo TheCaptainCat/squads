@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 296,
+  "counter": 302,
   "padding": 6,
   "items": {
     "12": {
@@ -291,7 +291,7 @@
       ],
       "path": "features/FEAT-000013-stability-contract-documentation.md",
       "created_at": "2026-06-10T12:40:59Z",
-      "updated_at": "2026-06-23T09:58:31Z",
+      "updated_at": "2026-07-06T10:06:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2604,7 +2604,7 @@
       "type": "feature",
       "title": "Pre-merge ID block-shift renumber (sq renumber)",
       "slug": "pre-merge-id-block-shift-renumber-sq-renumber",
-      "status": "Ready",
+      "status": "Done",
       "description": "Block-shift a branch's new IDs into a reserved range before merge, preserving referential intent",
       "parent": "EPIC-12",
       "author": "product-owner",
@@ -2660,7 +2660,7 @@
       ],
       "path": "features/FEAT-000288-pre-merge-id-block-shift-renumber-sq-renumber.md",
       "created_at": "2026-07-03T08:18:39Z",
-      "updated_at": "2026-07-05T21:01:48Z",
+      "updated_at": "2026-07-06T10:18:42Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -11133,6 +11133,227 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-296"
+    },
+    "297": {
+      "sequence_id": 297,
+      "type": "task",
+      "title": "Extract shared renumber executor from _renumber apply-path",
+      "slug": "extract-shared-renumber-executor-from-renumber-apply-path",
+      "status": "Done",
+      "description": "Lift rewrite_ids->rename->resync into one executor both verbs call",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Reused apply-path executor drives repair --renumber unchanged",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5"
+        }
+      ],
+      "path": "tasks/TASK-000297-extract-shared-renumber-executor-from-renumber-apply-path.md",
+      "created_at": "2026-07-06T08:47:56Z",
+      "updated_at": "2026-07-06T09:55:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-297"
+    },
+    "298": {
+      "sequence_id": 298,
+      "type": "task",
+      "title": "Disjoint block-shift offset planner (--from/--onto/--by)",
+      "slug": "disjoint-block-shift-offset-planner-from-onto-by",
+      "status": "Done",
+      "description": "Operator integers -> validated disjoint offset -> remap + padded renames",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-297:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Offset lands the shifted block disjoint from both ranges",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rename targets minted at filename padding, content unpadded",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000298-disjoint-block-shift-offset-planner-from-onto-by.md",
+      "created_at": "2026-07-06T08:47:57Z",
+      "updated_at": "2026-07-06T09:55:27Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-298"
+    },
+    "299": {
+      "sequence_id": 299,
+      "type": "task",
+      "title": "Add sq renumber CLI verb wiring planner to executor",
+      "slug": "add-sq-renumber-cli-verb-wiring-planner-to-executor",
+      "status": "Done",
+      "description": "New top-level 1.0 verb; intent-preserving pre-merge shift; counter bump",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-297:depends-on",
+        "TASK-298:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Pre-merge shift preserves referential intent",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000299-add-sq-renumber-cli-verb-wiring-planner-to-executor.md",
+      "created_at": "2026-07-06T08:47:57Z",
+      "updated_at": "2026-07-06T09:55:28Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-299"
+    },
+    "300": {
+      "sequence_id": 300,
+      "type": "task",
+      "title": "Append renumber reflog event; leave history literal",
+      "slug": "append-renumber-reflog-event-leave-history-literal",
+      "status": "Done",
+      "description": "One summary event; no in-place rewrite; verify inline-mention rewrite",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-299:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Reflog + inline mentions rewritten; history left literal",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000300-append-renumber-reflog-event-leave-history-literal.md",
+      "created_at": "2026-07-06T08:47:58Z",
+      "updated_at": "2026-07-06T10:15:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-300"
+    },
+    "301": {
+      "sequence_id": 301,
+      "type": "task",
+      "title": "Coexistence docs: sq renumber vs repair --renumber",
+      "slug": "coexistence-docs-sq-renumber-vs-repair-renumber",
+      "status": "Done",
+      "description": "Preferred pre-merge vs fallback post-merge; FEAT-13 deferral note",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-299:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Pre-merge shift and post-merge --renumber documented as complementary",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5"
+        }
+      ],
+      "path": "tasks/TASK-000301-coexistence-docs-sq-renumber-vs-repair-renumber.md",
+      "created_at": "2026-07-06T08:47:59Z",
+      "updated_at": "2026-07-06T10:06:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-301"
+    },
+    "302": {
+      "sequence_id": 302,
+      "type": "review",
+      "title": "sq renumber core (TASK-297/298/299) vs ADR-295",
+      "slug": "sq-renumber-core-task-297-298-299-vs-adr-295",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-288:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "sq-item IDs embedded in source (worst: CLI --help)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Padded-filename seam test would pass even if filenames regressed to unpadded",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "renumber not wrapped in a single IndexStore.transaction()",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000302-sq-renumber-core-task-297-298-299-vs-adr-295.md",
+      "created_at": "2026-07-06T09:31:27Z",
+      "updated_at": "2026-07-06T09:56:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-302"
     }
   }
 }

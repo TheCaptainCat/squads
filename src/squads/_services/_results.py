@@ -163,6 +163,22 @@ class RepairResult:
 
 
 @dataclass
+class RenumberResult:
+    """Outcome of ``Service.renumber()`` — the pre-merge block-shift verb.
+
+    ``remap`` maps each shifted item's old (unpadded) display id to its new one; empty when
+    no local item had ``sequence_id >= from_seq`` (nothing to shift). ``db`` is the rebuilt
+    index reflecting the shift, including the counter bumped to the new post-shift maximum.
+    ``warning`` is set on the ``--by`` (no ``--onto``) path: sq cannot certify the shift
+    clears the *other* branch's counter without it — that guarantee is the operator's.
+    """
+
+    remap: dict[str, str]
+    db: SquadsDB
+    warning: str | None = None
+
+
+@dataclass
 class WorkloadRow:
     """Per-assignee work counts for `sq workload` (None assignee = unassigned)."""
 

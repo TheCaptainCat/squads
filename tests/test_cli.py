@@ -674,6 +674,72 @@ async def test_repair_cli_holds_counter_after_file_loss(project, invoke, frozen_
     assert top.id in r.output
 
 
+# --------------------------------------------------------------------------- sq renumber
+
+
+async def test_renumber_cli_shifts_block_and_updates_refs(project, invoke, frozen_time):
+    """sq renumber --from/--onto shifts the block, rewrites refs, renames files, bumps counter."""
+    from squads._models._enums import ItemType
+    from squads._services._service import Service
+
+    svc = Service(project)
+    feat = (await svc.create(ItemType.FEATURE, "keep")).item  # FEAT-2
+    task = (await svc.create(ItemType.TASK, "shift-task", parent=feat.id)).item  # TASK-3
+    bug = (await svc.create(ItemType.BUG, "shift-bug")).item  # BUG-4
+    await svc.add_ref(task.id, bug.id)
+
+    r = await invoke(["renumber", "--from", "3", "--onto", "10"])
+    assert r.exit_code == 0, r.output
+    assert "renumbered 2 item(s)" in r.output
+    assert f"{feat.id} ->" not in r.output  # feature below --from is never listed in the remap
+
+    db = await svc.store.load()
+    # counter landed above both the other branch's counter (10) and our own prior max (4)
+    assert db.counter > 10
+    # the shifted bug file was renamed; the old one is gone
+    old_bug_path = svc.paths.abspath(bug.path)
+    assert not old_bug_path.exists()
+    new_bug = next(it for it in db.items.values() if it.title == "shift-bug")
+    assert svc.paths.abspath(new_bug.path).exists()
+    # referential intent preserved: the task's ref now points at the SAME (renumbered) bug
+    new_task = next(it for it in db.items.values() if it.title == "shift-task")
+    assert new_task.refs == [new_bug.id]
+    assert new_task.parent == feat.id  # untouched cross-boundary link still resolves
+
+
+async def test_renumber_cli_rejects_both_onto_and_by(project, invoke, frozen_time):
+    r = await invoke(["renumber", "--from", "2", "--onto", "5", "--by", "3"])
+    assert r.exit_code != 0
+    assert "exactly one" in r.output.lower()
+
+
+async def test_renumber_cli_unsafe_by_refuses_with_no_mutation(project, invoke, frozen_time):
+    from squads._services._service import Service
+
+    svc = Service(project)
+    squad_dir = svc.paths.squad_dir
+    before_index = (squad_dir / ".squads.json").read_text(encoding="utf-8")
+
+    r = await invoke(["renumber", "--from", "1", "--by", "0"])
+    assert r.exit_code == 1, r.output
+    assert "minimum safe offset" in r.output
+
+    after_index = (squad_dir / ".squads.json").read_text(encoding="utf-8")
+    assert before_index == after_index
+
+
+def test_renumber_listed_in_root_help_and_shows_onto_recipe(runner, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    root = runner.invoke(app, ["--help"])
+    assert root.exit_code == 0, root.output
+    assert "renumber" in root.output
+
+    sub = runner.invoke(app, ["renumber", "--help"])
+    assert sub.exit_code == 0, sub.output
+    assert "--onto" in sub.output and "--by" in sub.output
+    assert "squads.json" in sub.output and "jq .counter" in sub.output
+
+
 async def test_check_cli_flags_index_item_with_no_file(project, invoke, frozen_time):
     """sq check exits 3 and flags items in the index whose files are gone."""
     import json

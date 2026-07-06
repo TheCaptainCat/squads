@@ -3,7 +3,7 @@ id: FEAT-288
 sequence_id: 288
 type: feature
 title: Pre-merge ID block-shift renumber (sq renumber)
-status: Ready
+status: Done
 parent: EPIC-12
 author: product-owner
 refs:
@@ -29,7 +29,7 @@ subentities:
   title: Pre-merge shift and post-merge --renumber coexist
   status: Todo
 created_at: '2026-07-03T08:18:39Z'
-updated_at: '2026-07-05T21:01:48Z'
+updated_at: '2026-07-06T10:18:42Z'
 ---
 <!-- sq:body -->
 Problem. squads allocates IDs from a single global monotonic counter in .squads.json. When two collaborators work on separate git branches/clones, each runs sq create and both mint the same sequence number (both branch at counter 287 -> both create item 288). On merge you get duplicate global IDs.
@@ -163,4 +163,15 @@ As an operator, pre-merge block-shift is the preferred path when I control the y
   - Reuse note for the ADR/impl: the machinery already exists — rewrite_ids in _itemfile.py (whole-word \bOLD\b→NEW swap over frontmatter id:/refs + prose) is used by both _services/_maintenance.py::_renumber (post-merge) and _services/_retype.py. The pre-merge shift should reuse _renumber_plan/rewrite_ids, extended with the reflog target/delta fields per decision (4) and sequence_id resync + counter bump to the new max. Filenames stay padded at the filename width via format_item_id(prefix, seq, filename_padding) per ADR-282 — the depends-on FEAT-283 (Done) already unpadded display/prose, so the prose rewrite is now a plain integer swap with no leading-zero trap; padding survives only at the filename-rename seam.
   - Eventual task shape (sketch only — do NOT create until the ADR is Accepted; then map subtasks to US1-US5): T-a 'Boundary resolution + disjoint-offset planner' (US2 — compute/validate the offset, refuse on overlap) — depends on ADR decisions 2+3; T-b 'Block-shift executor reusing rewrite_ids' (US1 — files+frontmatter+refs+prose, intent-preserving because it runs pre-ambiguity) — decision 1; T-c 'Reflog + inline-mention rewrite' (US3) — decision 4, the ADR gates this most; T-d 'Filename padding at the rename seam' (US4) — decision from ADR-282, likely folds into T-b; T-e 'Coexistence docs + repair --renumber delineation' (US5) — decision 5. @manager: route the ADR to the architect (Robert) and gate 288's implementation on its acceptance.
   - Deferral note owed: this is grammar-settling work under EPIC-12; per Nina it owes FEAT-13 (stability-contract capstone) a deferral note when that runs — the sq renumber CLI spec the ADR pins becomes part of the 1.0 grammar FEAT-13 freezes.
+- [2026-07-06T08:48:33Z] Olivia Lead:
+  - BREAKDOWN (Draft, awaiting @manager promotion to Ready at dispatch). ADR-295 Accepted, so tasks now created. 5 tasks under FEAT-288, mapping the ADR's five rulings to US1-US5:
+  - TASK-297 Extract shared renumber executor from _renumber apply-path (US5) — pure refactor lifting rewrite_ids->rename->sequence_id resync into one executor both sq renumber and repair --renumber call (ADR §5). No behaviour change; repair stays green. No deps.
+  - TASK-298 Disjoint block-shift offset planner --from/--onto/--by (US2 + US4) — operator integers -> validated disjoint offset (delta = max(M,C)+1-N for --onto; refuse unsafe --by, exit 1, no files touched) -> remap (unpadded) + padded renames (US4 seam). sq stays git-agnostic (ADR §2/§3). depends-on TASK-297.
+  - TASK-299 Add sq renumber CLI verb (US1) — new top-level 1.0 verb wiring planner->executor, intent-preserving pre-merge shift, counter bump to new max, atomic transaction (ADR §1). NOT a mode of repair. depends-on TASK-297, TASK-298.
+  - TASK-300 Append renumber reflog event; leave history literal (US3) — one summary {from,onto,by,remap} event, NO in-place rewrite of historical target/delta (ADR §4, the sharp one); verify inline-mention rewrite via rewrite_ids. depends-on TASK-299.
+  - TASK-301 Coexistence docs (US5) — sq renumber preferred pre-merge vs repair --renumber fallback post-merge, complementary not replacement (ADR §5); --onto recipe via git show ...:squads/.squads.json | jq .counter, kept git-agnostic. depends-on TASK-299.
+  - DISPATCH ORDER: TASK-297 first (enabling refactor) -> TASK-298 (planner) -> TASK-299 (verb) -> then TASK-300 and TASK-301 in parallel. 297+298 could overlap on one dev but 298 depends-on 297 for a stable executor/remap contract.
+  - FEAT-13 DEFERRAL TOUCHPOINT (owed per Nina + ADR-295 Consequences): two new items enter the frozen 1.0 grammar — the sq renumber verb grammar (--from/--onto/--by) and the new renumber reflog op + its delta shape. TASK-301 carries the deferral note; @manager please ensure FEAT-13 records both when it runs.
+- [2026-07-06T10:18:42Z] Catherine Manager:
+  - FEAT-288 complete. Delivered as sq renumber (standalone verb) per ADR-295: TASK-297 shared apply-path executor (repair --renumber unchanged), TASK-298 disjoint offset planner (--onto auto delta=max(M,C)+1-N, --by refuses when N+n<=C with no files touched), TASK-299 the verb + counter bump, TASK-300 the single append-only renumber reflog event (history left literal), TASK-301 coexistence docs + FEAT-13 grammar deferral note. Verified: REV-302 Approved (F1 IDs-in-source / F2 test strength / F3 transaction-text all Fixed), focused reflog-delta review clean, QA passed US1/US2/US4 on a throwaway squad, full suite 1610 passed/1 skipped, pyright+ruff clean, git-agnostic gate clean. Owes FEAT-13 the verb + reflog-op grammar entries (recorded on FEAT-13). Changes are in the working tree, uncommitted.
 <!-- sq:discussion:end -->
