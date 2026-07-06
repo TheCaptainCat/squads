@@ -21,7 +21,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-06-12T20:57:27Z'
-updated_at: '2026-06-12T21:55:47Z'
+updated_at: '2026-07-06T15:18:01Z'
 ---
 <!-- sq:body -->
 Naming-surface task for FEAT-14 (ADR-85 §4, Consequences 'sq init gains interactive prompting' + 'new .squads.toml keys').
@@ -63,7 +63,7 @@ _Add with `sq task 90 add-subtask "<title>"`; track with `sq task 90 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the sq init naming surface: repeatable `--name <slug>=<Full Name>` flags, the optional `[init.names]` table in .squads.toml (round-tripping through to_toml()), and TTY-only interactive prompting for any role still unnamed after flags+config — suppressed by `--default-names`, and the non-TTY path behaving as if `--default-names` were passed. Flags and [init.names] pre-answer prompts.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -81,7 +81,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers naming at later role-creation surfaces: `sq role activate <slug> --name '…'` and `sq dev add --name '…'` accept a name, with the bundled-pool/RoleDef fallback when absent and a roles/<slug>.toml full_name seed. The chosen name flows to the ROLE item's extra.full_name (single source of truth) and downstream to roster() → RoleView.full_name → CLAUDE.md roster section, agent pointers, and the rendered role body; slugs stay canonical and non-renamable.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

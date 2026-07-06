@@ -12,33 +12,27 @@ refs:
 - TASK-235
 subentities:
 - local_id: F1
-  title: 'Load-boundary vocab validation (ADR-232 §1) not implemented: unknown type/status
-    in frontmatter is silently indexed, then crashes check/list with raw KeyError'
+  title: Load-boundary vocab validation (ADR-232 §1) not implemented
   status: Fixed
   severity: high
 - local_id: F2
-  title: Reserved-status set is ALL of Status, not the accepted structural floor —
-    over-restrictive vs ADR-accept pin; will block F5 custom statuses
+  title: Reserved-status set is all of Status, not the accepted structural floor
   status: Fixed
   severity: medium
 - local_id: F3
-  title: parse_type/parse_status still iterate ItemType/Status enums, not spec.managed_types()/spec
-    status set as ADR scope states (behaviour-identical for default vocab)
+  title: parse_type/parse_status iterate enums, not the spec vocab (ADR-232 scope)
   status: Fixed
   severity: low
 - local_id: F4
-  title: Item._coerce_str_fields/_coerce_status do str(v) with no type guard — a non-str
-    non-enum (e.g. int) silently stringifies instead of raising
+  title: _coerce_str_fields/_coerce_status do str(v) with no type guard
   status: Fixed
   severity: low
 - local_id: F5
-  title: 'Residual: sub-entity status is still an unguarded ingestion path — bad sub-entity
-    status survives load/repair and crashes sq show --full with a raw ValueError (check
-    reports it cleanly)'
+  title: Sub-entity status is an unguarded ingestion path (crashes show --full)
   status: Open
   severity: medium
 created_at: '2026-06-26T14:32:39Z'
-updated_at: '2026-06-26T15:12:51Z'
+updated_at: '2026-07-06T15:18:24Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-208 (de-typing Item.type/status + SubEntity.status to str; reify ~22 is-ItemType/is-Status checks onto TypeSpec/StatusSpec capability flags; reserved-vocab subset check; extra=forbid hardening). Implemented across TASK-233/234/235 (uncommitted). Reviewed the full HEAD diff, the TOML flag values vs git show HEAD, the characterization gate (REV-236), and ran a live corrupt-frontmatter repro against both HEAD and the change.
@@ -77,17 +71,17 @@ _Add with `sq review 238 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Load-boundary vocab validation (ADR-232 §1) not implemented: unknown type/status in frontmatter is silently indexed, then crashes check/list with raw KeyError |
-| F2 | 🟡 medium | Fixed |  | Reserved-status set is ALL of Status, not the accepted structural floor — over-restrictive vs ADR-accept pin; will block F5 custom statuses |
-| F3 | 🟢 low | Fixed |  | parse_type/parse_status still iterate ItemType/Status enums, not spec.managed_types()/spec status set as ADR scope states (behaviour-identical for default vocab) |
-| F4 | 🟢 low | Fixed |  | Item._coerce_str_fields/_coerce_status do str(v) with no type guard — a non-str non-enum (e.g. int) silently stringifies instead of raising |
-| F5 | 🟡 medium | Open |  | Residual: sub-entity status is still an unguarded ingestion path — bad sub-entity status survives load/repair and crashes sq show --full with a raw ValueError (check reports it cleanly) |
+| F1 | 🟠 high | Fixed |  | Load-boundary vocab validation (ADR-232 §1) not implemented |
+| F2 | 🟡 medium | Fixed |  | Reserved-status set is all of Status, not the accepted structural floor |
+| F3 | 🟢 low | Fixed |  | parse_type/parse_status iterate enums, not the spec vocab (ADR-232 scope) |
+| F4 | 🟢 low | Fixed |  | _coerce_str_fields/_coerce_status do str(v) with no type guard |
+| F5 | 🟡 medium | Open |  | Sub-entity status is an unguarded ingestion path (crashes show --full) |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
-### F1 — Load-boundary vocab validation (ADR-232 §1) not implemented: unknown type/status in frontmatter is silently indexed, then crashes check/list with raw KeyError
+### F1 — Load-boundary vocab validation (ADR-232 §1) not implemented
 
 <!-- sq:finding:F1:head -->
 **Status:** 🟡 Fixed
@@ -113,7 +107,7 @@ Also crash surfaces on the same gap: _paths.folder_for / squad_relative do FOLDE
 <!-- sq:finding:F1:end -->
 
 <!-- sq:finding:F2 -->
-### F2 — Reserved-status set is ALL of Status, not the accepted structural floor — over-restrictive vs ADR-accept pin; will block F5 custom statuses
+### F2 — Reserved-status set is all of Status, not the accepted structural floor
 
 <!-- sq:finding:F2:head -->
 **Status:** 🟡 Fixed
@@ -135,7 +129,7 @@ Impact: fail-closed and behaviour-neutral TODAY (F2 has no way to define a custo
 <!-- sq:finding:F2:end -->
 
 <!-- sq:finding:F3 -->
-### F3 — parse_type/parse_status still iterate ItemType/Status enums, not spec.managed_types()/spec status set as ADR scope states (behaviour-identical for default vocab)
+### F3 — parse_type/parse_status iterate enums, not the spec vocab (ADR-232 scope)
 
 <!-- sq:finding:F3:head -->
 **Status:** 🟡 Fixed
@@ -153,7 +147,7 @@ _cli/_common.py parse_type/parse_status iterate ItemType / Status enum members. 
 <!-- sq:finding:F3:end -->
 
 <!-- sq:finding:F4 -->
-### F4 — Item._coerce_str_fields/_coerce_status do str(v) with no type guard — a non-str non-enum (e.g. int) silently stringifies instead of raising
+### F4 — _coerce_str_fields/_coerce_status do str(v) with no type guard
 
 <!-- sq:finding:F4:head -->
 **Status:** 🟡 Fixed
@@ -171,7 +165,7 @@ Item._coerce_str_fields (type/status) and SubEntity._coerce_status (mode=before)
 <!-- sq:finding:F4:end -->
 
 <!-- sq:finding:F5 -->
-### F5 — Residual: sub-entity status is still an unguarded ingestion path — bad sub-entity status survives load/repair and crashes sq show --full with a raw ValueError (check reports it cleanly)
+### F5 — Sub-entity status is an unguarded ingestion path (crashes show --full)
 
 <!-- sq:finding:F5:head -->
 **Status:** 🔴 Open

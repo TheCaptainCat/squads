@@ -19,7 +19,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-26T09:48:48Z'
-updated_at: '2026-06-26T15:17:16Z'
+updated_at: '2026-07-06T15:21:04Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -111,7 +111,7 @@ _Add with `sq task 235 add-subtask "<title>"`; track with `sq task 235 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the de-typing itself (ADR-232 §1/§3): widen `Item.type`, `Item.status`, and `SubEntity.status` from enums to `str` (sub-entity `Severity` stays typed — not workflow vocabulary), stop `from_frontmatter` calling `ItemType(...)`/`Status(...)`, and move vocabulary validation to the service/load boundary — `ItemStore.load`/`open_service` check each item's type/status against the loaded `WorkflowSpec` (`is_known_type`/`is_valid_status`), raising `SquadsError` with the offending item id. This is a typing/validation change, not a data migration: existing item files load unchanged, on-disk bytes identical. (US1)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -129,7 +129,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the reserved-vocab invariant that replaces FEAT-207's `== enums` check (ADR-232 §4): `WorkflowSpec.validate()` raises `SquadsError` if the spec OMITS any reserved type (`RESERVED_TYPES = frozenset(ItemType)`, all 10 incl. the meta types) or reserved status (the structural floor — agent Draft/Active/Archived, sub-entity Todo/InProgress/Blocked/Done/Cancelled, finding Open/Fixed/Verified/WontFix). Updates `parse_type`/`parse_status` to derive valid sets from the loaded spec rather than enum iteration, and adds negative tests for an omitted reserved type/status and an unknown item value. Enums are retained as the reserved-vocab source + default-TOML generator, not deleted. (US1)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

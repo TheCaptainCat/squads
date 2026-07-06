@@ -20,7 +20,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-06-11T20:22:02Z'
-updated_at: '2026-06-11T20:43:22Z'
+updated_at: '2026-07-06T15:18:19Z'
 ---
 <!-- sq:body -->
 Wire the three new kinds into their consumers and ship the one canonical kinds table. Builds on TASK-50 (the `VALID_REF_KINDS` constant must exist first). Per **ADR-49**: closed vocabulary, no project-config lookup; `sq check`'s unknown-kind warning is a flat set-membership test; the docs table is the **contract wording**.
@@ -72,7 +72,7 @@ _Add with `sq task 51 add-subtask "<title>"`; track with `sq task 51 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Ship the single canonical eight-row kinds table in _rendering/templates/workflow.md.j2 (shared by the squads skill and sq workflow), each row giving kind / meaning / direction convention / consumer, with no 'add your own' footnote. Update the ref add --kind CLI help (and create --ref help) to enumerate the eight or point at sq workflow, replacing the stale five-kind list (US3).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -90,7 +90,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Teach sq blocked to treat depends-on as the inverse of blocks: 'A depends-on B' (edge on the dependent A) means A is blocked by B, equivalent to 'B blocks A'. Handles the direction difference correctly and supports a squad mixing both spellings, showing each blocked item once with its blocker(s) (US4).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

@@ -26,7 +26,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-06-12T08:58:26Z'
-updated_at: '2026-06-12T09:15:16Z'
+updated_at: '2026-07-06T15:18:22Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -100,7 +100,7 @@ _Add with `sq task 58 add-subtask "<title>"`; track with `sq task 58 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Render the item body as styled markdown on a TTY using rich's Markdown (headings, bold, bullets, fenced code) at a sensible width without hard-wrapping inside code blocks, replacing the plain-body render in the default show path (US1).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -118,7 +118,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Byte-stable degradation: auto-plain when stdout is not a TTY or NO_COLOR is set (panes collapse to plain delimited, parseable text), plus a --raw opt-out that emits exact file text (today's panel+plain-body behaviour). --json stays presentation-independent, byte-identical to pre-change regardless of flags (US2).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -136,7 +136,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add the root sq show <id|number> top-level command in _cli/_main.py that resolves any work-item type via the FEAT-19 shared resolver (resolve_item_id_any), renders with the same output + flags as the per-type show, and errors cleanly on an unknown id/number (bare numbers unambiguous via the global counter) (US3).
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion
@@ -154,7 +154,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Render the sub-entity summary table in default show output (driven from the item's subentities roll-up, not a markdown re-parse) and add the --comments facet: the main discussion rendered as one rich Panel per comment (author + timestamp title, markdown body), via an inverse-of-format_comment splitter placed next to format_comment in _discussion.py (US4).
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion

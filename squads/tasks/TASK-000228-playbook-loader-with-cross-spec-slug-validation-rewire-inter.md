@@ -18,7 +18,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-26T08:04:10Z'
-updated_at: '2026-06-26T09:27:31Z'
+updated_at: '2026-07-06T15:20:59Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -106,7 +106,7 @@ _Add with `sq task 228 add-subtask "<title>"`; track with `sq task 228 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers `load_playbook(catalog)`: read the bundled `playbook.toml` via `importlib.resources` + `tomllib`, parse into the models, and cache a singleton. Rewires `_interactions.py` consumers into thin shims over the loaded spec — `PLAYBOOK` → `spec.types`, `managed_item_types()` → `list(spec.types)`, `skills_for_role()`/`SKILL_DESCRIPTIONS` derived from `spec.types`, and the backend `_write_item_skills` reading `spec.types[item_type]` — retiring the `PLAYBOOK` dict with zero call-site churn and no renderer change. (US1)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -124,7 +124,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the fail-closed validation `load_playbook` runs against the already-loaded role catalog (raises `SquadsError`): every `types` key is a real `ItemType`; every `RoleGuideSpec.slug` exists in the `RoleCatalogSpec` (FEAT-219 slug authority) EXCEPT the `*dev` (`DEV`) sentinel, which is allowed and resolved at render time; entries required only for the 7 work types (meta types absent is fine, a non-work-type entry is rejected); and each entry has non-empty overview + lifecycle. This is the cross-spec slug-validation contract a future custom-type playbook entry must satisfy. (US2)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

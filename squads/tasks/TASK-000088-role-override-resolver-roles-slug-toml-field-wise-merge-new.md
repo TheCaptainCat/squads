@@ -22,7 +22,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-12T20:56:51Z'
-updated_at: '2026-06-12T21:40:54Z'
+updated_at: '2026-07-06T15:19:39Z'
 ---
 <!-- sq:body -->
 Role-override task for FEAT-14 (ADR-85 §2 'roles merge field-wise', §1 roles-as-TOML, Consequences 'roles gain a merge step').
@@ -60,7 +60,7 @@ _Add with `sq task 88 add-subtask "<title>"`; track with `sq task 88 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add a thin role-override resolver beside _roles/_catalog.py that layers .overrides/roles/<slug>.toml over PREDEFINED field-wise: for a bundled slug, override only the fields the TOML sets (rename, model change) inheriting the rest; for a new slug, define a wholly new RoleDef. Field-wise merge is the one sanctioned merge point (RoleDef is structured data, not prose) (US2).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -78,7 +78,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Make activate_role/add_dev read RoleDefs through the new resolver, and honour a full_name key in roles/<slug>.toml that seeds the name on activation (coordinated with T4's extra.full_name channel). Covered by a service-level test (field-wise override of a bundled role + a brand-new slug flowing to roster/pointers/CLAUDE.md) and a CLI smoke test, with sq check staying clean (US2).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

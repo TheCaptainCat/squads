@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-06-30T07:49:53Z'
-updated_at: '2026-06-30T09:29:55Z'
+updated_at: '2026-07-06T15:21:07Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -77,7 +77,7 @@ _Add with `sq task 242 add-subtask "<title>"`; track with `sq task 242 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers `sq workflow lint` — the verbose, author-facing validation surface (added as a sub-verb while preserving the bare `sq workflow` cheatsheet). It runs the SAME checks as `open_service` (TASK-240/241) but in collect-all-errors mode: parse + merge + pure-spec validation + index cross-check, accumulating (level, location, message, fix-hint) findings instead of raising on the first. Prints every error/warning with its config key + an actionable fix hint, exits 0 + "OK" on a clean spec and exit 1 when any error is present (warnings alone still exit 0). The validation core is factored to back both fail-closed and collect modes without duplicating rules. (US2)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

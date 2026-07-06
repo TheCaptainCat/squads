@@ -23,7 +23,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-12T20:56:38Z'
-updated_at: '2026-06-12T21:20:31Z'
+updated_at: '2026-07-06T15:19:38Z'
 ---
 <!-- sq:body -->
 Foundation task for FEAT-14 (ADR-85 §1, §2). Lay the override lookup path that both template and role overrides build on.
@@ -61,7 +61,7 @@ _Add with `sq task 87 add-subtask "<title>"`; track with `sq task 87 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Swap the _rendering/_engine.py single PackageLoader for a ChoiceLoader([FileSystemLoader(<squad-dir>/.overrides/templates), PackageLoader(...)]) so a project template shadows its bundled counterpart per-file with the bundle as fallback, and fix the lru_cache(maxsize=1) on the Environment to key on the squad dir (or build per-resolve) so two squads in one process don't cross-contaminate. render() signature and all ~13 call sites unchanged (US1).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -79,7 +79,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Resolve/create the .overrides/ umbrella under the squad folder via _paths.resolve() walk-up, guarded by the abspath() traversal check, with templates/ mirroring _rendering/templates/ 1:1 so the override key is the existing render() name. Covered by a partial-override service test (dropping items/task.md.j2 shadows only task bodies; every other template still resolves to the bundle) plus a CLI smoke test (US1).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

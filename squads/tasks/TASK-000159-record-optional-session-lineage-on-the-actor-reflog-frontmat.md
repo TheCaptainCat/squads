@@ -14,7 +14,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-22T09:11:18Z'
-updated_at: '2026-06-22T10:37:16Z'
+updated_at: '2026-07-06T15:18:54Z'
 ---
 <!-- sq:body -->
 Implements **US1** of FEAT-125 per **ADR-158** (Accepted). Read both before starting; this is the data-model + schema/migration foundation that US2 (TASK-160) builds on.
@@ -82,7 +82,7 @@ _Add with `sq task 159 add-subtask "<title>"`; track with `sq task 159 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the structured-actor data-model foundation (FEAT-125 US1, ADR-158): reading the optional SQUADS_SESSION_ID/SQUADS_PARENT_SESSION_ID env pair once at the CLI root callback (never settable by a later flag), additive nullable session_id/parent_session_id reflog line fields (actor stays a flat slug; legacy lines parse as None), optional created_session/modified_session item frontmatter (existing files load unchanged), and the additive 0.3→0.4 schema bump with a no-op _v0_3_to_v0_4 runner + MANUAL runbook. All wording is best-effort/untrusted/observability-only — squads never mints, injects, or verifies session ids.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

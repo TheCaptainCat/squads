@@ -16,7 +16,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-06-25T14:21:29Z'
-updated_at: '2026-06-25T15:17:08Z'
+updated_at: '2026-07-06T15:19:58Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -99,7 +99,7 @@ _Add with `sq task 215 add-subtask "<title>"`; track with `sq task 215 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers building the pyright-strict pydantic v2 WorkflowSpec tree per ADR-214 §1: WorkflowSpec (types/statuses/machines/subentity_machines + derived reverse indexes), TypeSpec (prefix/folder/machine/parents/aliases — no F2 capability flags), StatusSpec (terminal/optional badge), and StateMachine (initial/transitions with derived .states). Enum-typed fields stay enum-typed — parse from TOML strings and coerce/validate into ItemType/Status, raising on an unknown name (no str widening).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -117,7 +117,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers authoring the bundled src/squads/_workflow/default_workflow.toml (promoting _workflow.py into a _workflow/ package that re-exports the same public names so import sites are unchanged) encoding today's vocabulary byte-for-byte: the seven distinct machines plus two sub-entity machines with initial+transitions, all statuses with terminal flags mirroring TERMINAL, sub-entity status badges (STATUS_EMOJI), and every type's prefix/folder/machine/parents/aliases matching today's PREFIX_BY_TYPE/FOLDER_BY_TYPE/ALLOWED_PARENTS/TYPE_ALIASES. Priority/severity badges are out of scope.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

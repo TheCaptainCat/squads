@@ -18,7 +18,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-06-26T08:04:10Z'
-updated_at: '2026-06-26T09:27:30Z'
+updated_at: '2026-07-06T15:20:58Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -96,7 +96,7 @@ _Add with `sq task 227 add-subtask "<title>"`; track with `sq task 227 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the pyright-strict pydantic v2 playbook value objects per ADR-226 §1, all with `model_config = ConfigDict(extra="forbid")` (the FEAT-219 nit lesson): `PlaybookSpec` (`types: dict[ItemType, ItemPlaybookSpec]`, work types only), `ItemPlaybookSpec` (overview/lifecycle/commands + ORDERED `roles: list[RoleGuideSpec]`), and `RoleGuideSpec` (slug or the `*dev` sentinel + enter/do/handoff/watch lists). Guides are lists, not sets, so section order in the generated skill is preserved. (US1)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -114,7 +114,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers authoring the bundled `src/squads/_interactions/playbook.toml` — promoting `_interactions.py` into an `_interactions/` package (re-exporting current public names so import sites are unchanged) with the TOML beside the loader. Transcribes (not paraphrases) today's `PLAYBOOK` for all 7 work types (task/bug/feature/epic/decision/review/guide) with overview/lifecycle/commands and each type's ORDERED per-role guides (incl. the `*dev` sentinel) via array-of-tables. Meta types role/skill/operator stay deliberately absent. (US1)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

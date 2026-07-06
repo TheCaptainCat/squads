@@ -21,7 +21,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-15T13:02:37Z'
-updated_at: '2026-06-15T14:22:45Z'
+updated_at: '2026-07-06T15:18:07Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -81,7 +81,7 @@ _Add with `sq task 131 add-subtask "<title>"`; track with `sq task 131 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the shared, parametrized backend conformance suite (tests/test_backend_conformance.py) driven by a backend-factory fixture and asserting the AgentBackend contract — not Claude file layout: ensure_scaffold idempotence/non-clobber with root-relative existing Artifact paths, idempotent write_managed (region replaced not duplicated), per-item generate_role/skill_pointer, remove_artifacts exactness + missing_ok, Artifact.path root-relative forward-slash + backend name, and the scaffold→write→generate→remove round-trip leaving no orphans. Run green against claude_code.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -99,7 +99,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers merging the ABC corrections the conformance exercise surfaces to de-Claude-ify the contract: docstring/comment vocabulary in _backends/_base.py (Artifact.kind, write_managed/pointer naming), the claude_dir/claude_md seam in _paths.py so a second root-file backend has a clean path-ownership story, and the _registry.py registration story accommodating a non-Claude backend. Signature/seam changes gated behind an accepted architect ADR.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

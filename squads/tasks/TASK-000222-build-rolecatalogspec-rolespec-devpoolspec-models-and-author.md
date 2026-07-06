@@ -17,7 +17,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-06-26T07:35:28Z'
-updated_at: '2026-06-26T07:58:42Z'
+updated_at: '2026-07-06T15:20:54Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -94,7 +94,7 @@ _Add with `sq task 222 add-subtask "<title>"`; track with `sq task 222 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the pyright-strict pydantic v2 value objects for the role catalog per ADR-221 §1: `RoleSpec` (slug/full_name/title/description/mission/responsibilities/agreements/model/color/is_default/can_spawn, defaults matching today's `RoleDef` dataclass exactly), `RoleCatalogSpec` (ordered roles + bundles map + dev), and `DevPoolSpec` (name_pool + model/color defaults). Captures the FULL `RoleDef` field set so the TASK-224 golden lock can assert equality field-by-field. (US1)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -112,7 +112,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers authoring the bundled `src/squads/_roles/roles.toml`, transcribed byte-for-byte from `_catalog.py` (`PREDEFINED`/`BUNDLES`/`DEV_NAME_POOL`/`dev_role`): all 8 roles with every field (multi-line missions as TOML basic-multiline strings, reviewer's agreements prose faithful), the 3 bundles (all/core/minimal, all == full role set), and the dev pool (12 names + model/color). Shipped as package data via the existing `packages = ["src/squads"]` sweep. (US1)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

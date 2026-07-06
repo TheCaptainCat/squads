@@ -19,7 +19,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-12T20:57:40Z'
-updated_at: '2026-06-12T22:05:47Z'
+updated_at: '2026-07-06T15:18:02Z'
 ---
 <!-- sq:body -->
 Docs + contract task for FEAT-14 (feature Acceptance: 'sq check/docs explain the mechanism' and 'the contract doc lists the override layout among the durable surfaces'; ADR-85 §5).
@@ -57,7 +57,7 @@ _Add with `sq task 91 add-subtask "<title>"`; track with `sq task 91 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers documenting the override + naming mechanism in the user-facing guide/skill surface: the .overrides/{templates,roles}/ layout and per-file precedence, the sq override workflow (scaffold → edit → sq check drift warning → override diff → hand-merge → override update re-stamp), and the naming surface (--name slug=…, [init.names], TTY prompt/--default-names, extra.full_name, canonical non-renamable slugs).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -75,7 +75,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers adding the override layout to the FEAT-13 durable-contract doc (co-authored with the architect): the four frozen surfaces — the .overrides root/tree, the per-file precedence rule, the staleness+update contract (override-base version stamp, sq check drift behaviour, sq migrate never rewrites, the sq override group as the upgrade path), and the naming contract — plus the explicit note of what is deliberately NOT frozen (extra .overrides categories, exact prompt wording).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

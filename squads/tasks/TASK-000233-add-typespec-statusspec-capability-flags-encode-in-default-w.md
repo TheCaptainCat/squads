@@ -17,7 +17,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-26T09:48:47Z'
-updated_at: '2026-06-26T10:26:02Z'
+updated_at: '2026-07-06T15:21:02Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -112,7 +112,7 @@ _Add with `sq task 233 add-subtask "<title>"`; track with `sq task 233 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers adding the additive capability-flag surface to the workflow spec models (ADR-232 §2) and encoding their values in `default_workflow.toml` for all 10 types: `TypeSpec` gains `is_meta`, `subentity_kind`, `severity_field`, `parent_required`, and `ref_rules` (with a new `RefRule` model); `StatusSpec` gains `role` (the semantic-status marker, e.g. `"superseded"`). The bundled default sets every flag to reproduce today's behavior exactly (is_meta on role/skill/operator, subentity_kind on feature/task/review, severity_field on bug, parent_required on task, ref_rules for task+decision, StatusSpec.role on Superseded) — flags are NOT yet consumed by the engine. (US2)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -130,7 +130,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the fail-closed hardening + the characterization safety net (ADR-232 §5/§6): add `ConfigDict(extra="forbid")` to every workflow spec model and route the loader through `model_validate(...)` (folding in the FEAT-209/ADR-214 gap), with a test that a typo'd TOML key is rejected. Lands the characterization tests pinning the current behavior of all 22 `is ItemType.X`/`is Status.X` identity checks (meta-type handling, skill-prefix rule, task→feature parent, sub-entity-kind, bug severity row, the Superseded warning, etc.) so TASK-234's reification is proven equivalent, not assumed. (US2)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

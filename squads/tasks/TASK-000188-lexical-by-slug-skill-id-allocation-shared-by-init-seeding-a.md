@@ -16,7 +16,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-24T18:46:55Z'
-updated_at: '2026-06-24T20:00:54Z'
+updated_at: '2026-07-06T15:19:51Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -81,7 +81,7 @@ _Add with `sq task 188 add-subtask "<title>"`; track with `sq task 188 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the single shared lexical-by-slug ordering primitive that enumerates the bundled skill set / agents/skills/ in a deterministic order, consumed by BOTH sq init seeding and the migration (TASK-189) so the same skill lands in the same ordinal position in both paths (ADR-181 #5 ordering parity — not identical numeric ids).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -99,7 +99,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers wiring sq init to seed each bundled skill as a full Item of ItemType.SKILL via IndexStore.transaction() (single global counter, invariant 2), stamping sq frontmatter (id/sequence_id/type: skill/title/status/author/schema_version) onto the existing agents/skills/<slug>.md body file (pointers stay pointers, invariant 5) on the meta-type profile (Active/Archived, no sub-entities), with identity allocated exactly once and never reallocated (ADR #4).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

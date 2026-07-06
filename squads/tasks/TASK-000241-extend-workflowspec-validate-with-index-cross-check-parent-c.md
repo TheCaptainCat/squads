@@ -12,7 +12,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-30T07:49:52Z'
-updated_at: '2026-06-30T08:26:54Z'
+updated_at: '2026-07-06T15:21:06Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -75,7 +75,7 @@ _Add with `sq task 241 add-subtask "<title>"`; track with `sq task 241 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers extending the fail-closed validation with the two checks the feature names: (a) parent-cycle detection — a pure-spec `_check_*` helper in `WorkflowSpec._validate` that walks the `items[t].parents` graph and raises naming any cycle; and (b) a live-index cross-check — `validate_against_index(spec, db)` (outside the pure model validator, since it needs the index) returning human-readable errors listing offending item IDs when a type/status on a live item is absent from the merged spec. Wired at the `open_service`/`sq check` seam. Bundled-default behavior unchanged. (US3)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

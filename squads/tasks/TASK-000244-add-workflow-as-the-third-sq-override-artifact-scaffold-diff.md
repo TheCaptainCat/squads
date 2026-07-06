@@ -12,7 +12,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-30T07:49:54Z'
-updated_at: '2026-06-30T09:19:44Z'
+updated_at: '2026-07-06T15:21:08Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -89,7 +89,7 @@ _Add with `sq task 244 add-subtask "<title>"`; track with `sq task 244 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers making the workflow spec the third overridable artifact in the `_overrides/` + `sq override` machinery, alongside templates and roles (kind "workflow"). `sq override scaffold workflow` writes a stamped starter `.overrides/workflow.toml` (the canonical path TASK-239's loader reads) with a `# squads:override-base:<version>` stamp + a commented worked example — not a full copy, since additive-only means the override holds only the team's additions. `diff workflow` shows the team's additions (Δ-mine vs an empty reference), `list`/`scan_overrides` reports its kind/stamp/state, `update` re-stamps, and `check_override_issues` flags drift/unstamped consistent with roles. CLI accepts `workflow` as a scaffold/diff/update target. (US1)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

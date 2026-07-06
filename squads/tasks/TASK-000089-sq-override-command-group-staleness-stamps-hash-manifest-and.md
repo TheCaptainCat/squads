@@ -25,7 +25,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-12T20:57:11Z'
-updated_at: '2026-06-12T22:08:30Z'
+updated_at: '2026-07-06T15:19:40Z'
 ---
 <!-- sq:body -->
 Staleness + authoring-UX task for FEAT-14 (ADR-85 §3, the `sq override` group, and Consequences 'sq check gains two override checks'). This is the durable-contract command surface.
@@ -66,7 +66,7 @@ _Add with `sq task 89 add-subtask "<title>"`; track with `sq task 89 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Stamp scaffolded overrides with '<!-- squads:override-base:<squads_version> -->' (reusing the managed-file stamping convention, inert to rendering) and ship a generated per-release content-hash manifest of each bundled template as package data, wired into the build — used both for drift detection and to reconstruct the base-version bundled template for the diff Δ-upgrade view (US3).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -84,7 +84,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add the two override checks to _services/_maintenance.py::check: a version-drift WARN when an override's override-base is older than the running version AND the bundled counterpart actually changed between those versions per the hash manifest (an old stamp with an unchanged bundle stays silent), pointing at sq override diff/update; and a structural-breakage ERROR when an overridden item/role template is missing a required sq marker region (Invariant 3). A valid override is never downgraded to error for being old and always renders (US3).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -102,7 +102,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Ship the sq override command group: scaffold <name> (copy a bundled template or --role <slug> into .overrides/, stamped with current override-base, refusing to clobber without --force; the only command that writes override bodies); diff [<name>] (read-only two-delta view — Δ-mine override vs current bundled, Δ-upgrade base-version bundled reconstructed from the manifest vs current bundled; all drifted if no name); update [<name>] (re-stamp override-base to current version and nothing else, bulk when unnamed); list (every present override with kind, override-base, and current/drifted/broken state) (US3).
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

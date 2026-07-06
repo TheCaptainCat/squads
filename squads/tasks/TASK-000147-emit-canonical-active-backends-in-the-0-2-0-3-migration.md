@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-06-16T14:18:32Z'
-updated_at: '2026-06-16T14:59:43Z'
+updated_at: '2026-07-06T15:18:53Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -86,7 +86,7 @@ _Add with `sq task 147 add-subtask "<title>"`; track with `sq task 147 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers tightening the existing _v0_2_to_v0_3 migration runner to also rewrite .squads.toml's legacy default_backend = "X" into the canonical active_backends = ["X"] (idempotent — leaves a toml already on active_backends untouched), staying on schema 0.3 with no SCHEMA_VERSION bump and no new runner. Also flips the v0_3 corpus fixture to the canonical shape and pins the config reader's legacy default_backend translation with a dedicated back-compat unit test.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

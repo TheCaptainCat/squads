@@ -17,7 +17,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-06-26T07:35:29Z'
-updated_at: '2026-06-26T07:58:43Z'
+updated_at: '2026-07-06T15:20:57Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -80,7 +80,7 @@ _Add with `sq task 224 add-subtask "<title>"`; track with `sq task 224 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the role-catalog golden-lock test: build the snapshot directly from today's `PREDEFINED`/`BUNDLES`/`DEV_NAME_POOL` and assert structural equality with the loaded `RoleCatalogSpec` across all 8 roles' every field (slug/full_name/title/description/mission/responsibilities/agreements/model/color/is_default/can_spawn), the three bundles and their exact membership, and the dev pool (12 names + defaults), plus a `dev_role("dotnet", seq=0)` spot-check. Fails on any field drift; CI-enforced. (US2)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -98,7 +98,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the packaging verification: a build/packaging test asserting `roles.toml` is present in the built wheel, mirroring the existing templates/workflow-toml-in-wheel test and relying on the `packages = ["src/squads"]` sweep (confirm, don't add a per-file include). (US2)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

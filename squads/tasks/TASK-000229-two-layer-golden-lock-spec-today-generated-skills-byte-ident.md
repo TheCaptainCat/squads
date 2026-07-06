@@ -18,7 +18,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-26T08:04:11Z'
-updated_at: '2026-06-26T09:27:32Z'
+updated_at: '2026-07-06T15:21:01Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -86,7 +86,7 @@ _Add with `sq task 229 add-subtask "<title>"`; track with `sq task 229 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers Layer A of the two-layer golden-lock: build a frozen snapshot directly from today's `PLAYBOOK` dict and assert structural equality with the loaded `PlaybookSpec` — every type, every `RoleGuide` (slug + enter/do/handoff/watch), and every lifecycle and command string, IN ORDER. Fails on any drift; built from today's literals as an independent source of truth. (US3)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -104,7 +104,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers Layer B (the decisive layer US3 demands) plus packaging: render each `sq-<type>` skill from the loaded spec through the SAME `agents/item_skill.md.j2` path the backend uses, with a fixed representative roster for determinism, and assert BYTE-equality against the output produced from today's Python `PLAYBOOK`. Also a build/packaging test confirming `playbook.toml` ships in the wheel. This is the gate that actually protects users — a faithful spec that rendered differently would still be a regression. (US3)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

@@ -16,7 +16,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-24T18:46:55Z'
-updated_at: '2026-06-24T20:00:53Z'
+updated_at: '2026-07-06T15:19:50Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -83,7 +83,7 @@ _Add with `sq task 187 add-subtask "<title>"`; track with `sq task 187 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers converting _write_managed_skill in the claude_code backend from a blunt full-file overwrite to a body-region-only, marker-safe replacement that preserves stamped sq frontmatter (id/sequence_id/status/schema_version) — mirroring _regen_role_body's read-existing-then-replace-only-the-sq:body-region approach (invariant 3). Handles the not-yet-stamped skill file case without corrupting it (no id invention — that is TASK-188).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -101,7 +101,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the dedicated idempotence test (FEAT-178 AC#4, ADR-181 #4): stamp a skill (or use a stamped fixture), run sq sync twice, and assert the skill's id and sequence_id are unchanged after both runs — proving re-sync never churns skill identity. Plus service-level and CLI smoke tests per convention.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

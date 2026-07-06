@@ -14,7 +14,7 @@ subentities:
   status: Done
   story: US5
 created_at: '2026-06-12T08:58:27Z'
-updated_at: '2026-06-12T09:22:18Z'
+updated_at: '2026-07-06T15:18:22Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -74,7 +74,7 @@ _Add with `sq task 59 add-subtask "<title>"`; track with `sq task 59 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Extend TASK-58's render entry point (not fork it) with the --full dossier layer: one rich Panel per sub-entity titled with local id + title + status/severity/assignee/story badges and rendered-markdown body. With --full --comments each pane embeds its own comments (reusing the TASK-58 comment splitter/pane) and the main discussion renders last, honouring the comments-follow-scope rule and the same piped/NO_COLOR degradation (US5).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

@@ -23,7 +23,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-15T13:03:01Z'
-updated_at: '2026-06-23T09:58:57Z'
+updated_at: '2026-07-06T15:18:53Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -105,7 +105,7 @@ Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers parametrizing the shared TASK-131 conformance suite over the new agents_md backend (via the backend-factory fixture) and making both claude_code and agents_md pass it unchanged — the proof that the AgentBackend ABC is honest and free of Claude-specific assumptions. Includes the agents_md-specific test (valid AGENTS.md, managed markers intact, user prose preserved, roster/workflow content present) and a sq init --backend agents_md + sq sync smoke test.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

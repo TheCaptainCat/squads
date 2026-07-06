@@ -19,7 +19,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-11T13:59:33Z'
-updated_at: '2026-06-23T09:57:41Z'
+updated_at: '2026-07-06T15:17:49Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -101,7 +101,7 @@ Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator 
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Make unknown-item error wording uniform across every ID-accepting surface: each surface names both accepted forms (full ID and bare number) consistently, so the error is the same everywhere regardless of which command produced it (US3 wording).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

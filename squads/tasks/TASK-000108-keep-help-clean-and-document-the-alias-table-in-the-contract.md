@@ -19,7 +19,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-15T07:42:48Z'
-updated_at: '2026-06-15T08:10:56Z'
+updated_at: '2026-07-06T15:18:05Z'
 ---
 <!-- sq:body -->
 Keep the type-command aliases (from TASK-107) out of help clutter, document the full table in exactly one place, and record it as frozen grammar in the stability contract.
@@ -63,7 +63,7 @@ _Add with `sq task 108 add-subtask "<title>"`; track with `sq task 108 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers keeping root help clean: a help-output test asserting sq --help lists only the seven canonical type commands (hidden=True aliases stay off the list), plus surfacing the alias table exactly once — via the root app epilog or a per-type help line, not both.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -81,7 +81,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers documenting the alias table in the shared workflow cheatsheet partial (workflow.md.j2, rendered by both the squads skill and sq workflow), rendered from the single canonical ALIASES map so docs cannot drift from routing, with the add-only evolution rule recorded alongside it and a ref/note tying it into the FEAT-13 stability contract (which owns docs/stability.md, not authored here).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

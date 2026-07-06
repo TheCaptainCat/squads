@@ -15,7 +15,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-22T09:11:24Z'
-updated_at: '2026-06-22T11:59:26Z'
+updated_at: '2026-07-06T15:18:55Z'
 ---
 <!-- sq:body -->
 Implements **US2** of FEAT-125 per **ADR-158** (Accepted). **Depends on TASK-159** (the structured-actor data model + reflog session fields must land first — this task consumes the recorded `session_id`/`parent_session_id` edges). Read the ADR and TASK-159 before starting.
@@ -71,7 +71,7 @@ _Add with `sq task 160 add-subtask "<title>"`; track with `sq task 160 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the read/render layer on top of TASK-159's data (FEAT-125 US2, ADR-158): a sq reflog --tree flag rendering a parent→children spawn-lineage tree from recorded session_id/parent_session_id edges over the existing filter plumbing (no/unknown parent = root; missing intermediate degrades to a forest, never errors), plus show --full surfacing the creating/last-modifying session (slug @ session, parent) where recorded and degrading to slug-only when absent. The view and its help label the lineage best-effort/untrusted observability with no tamper-evidence claim; the 2026-06-15 self-review case must render a visibly non-independent subtree.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

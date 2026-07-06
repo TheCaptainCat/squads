@@ -15,7 +15,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-21T21:46:41Z'
-updated_at: '2026-06-21T22:27:47Z'
+updated_at: '2026-07-06T15:18:54Z'
 ---
 <!-- sq:body -->
 Implements **FEAT-122 Slice A (leaf-no-spawn)** / US2; fixes **BUG-152**. Grounded in
@@ -100,7 +100,7 @@ _Add with `sq task 156 add-subtask "<title>"`; track with `sq task 156 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the leaf-no-spawn boundary (FEAT-122 Slice A, fixes BUG-152) across three seams per ADR-155: a can_spawn bool on RoleDef (True only for manager + tech-lead; False default, dev_role() leaves False), the claude_code backend emitting disallowedTools: Agent into the rendered agent pointer frontmatter for leaf roles (covering the legacy Task alias), and surfacing can_spawn via sq role <slug> show. Backend test parses the rendered YAML asserting leaf denies Agent while manager/tech-lead retain spawn authority.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
