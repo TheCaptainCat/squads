@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 313,
+  "counter": 321,
   "padding": 6,
   "items": {
     "12": {
@@ -11825,6 +11825,395 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-313"
+    },
+    "314": {
+      "sequence_id": 314,
+      "type": "decision",
+      "title": "Storage & id model for agent memory and the team bulletin board",
+      "slug": "storage-id-model-for-agent-memory-and-the-team-bulletin-boar",
+      "status": "Proposed",
+      "description": "Slug-file-per-memory + own lighter board store, both off the global counter and outside .squads.json",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "adrs/ADR-000314-storage-id-model-for-agent-memory-and-the-team-bulletin-boar.md",
+      "created_at": "2026-07-06T16:03:50Z",
+      "updated_at": "2026-07-06T16:03:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-314"
+    },
+    "315": {
+      "sequence_id": 315,
+      "type": "feature",
+      "title": "Agent memory — committed per-role notebook surfaced at boot",
+      "slug": "agent-memory-committed-per-role-notebook-surfaced-at-boot",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-316",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-314:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an agent, I can jot a small learned fact to my role's memory so it persists for future runs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent, my role's memory index is surfaced at boot so relevant facts don't slip past me",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an agent, I can list, search, and show my role's memories to pull full content when relevant",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As a teammate, committed per-role memory arrives on checkout and merges cleanly across branches",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US6",
+          "title": "As an agent, the sq-memory skill teaches the memory workflow and curation discipline",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000315-agent-memory-committed-per-role-notebook-surfaced-at-boot.md",
+      "created_at": "2026-07-06T16:05:08Z",
+      "updated_at": "2026-07-06T16:08:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-315"
+    },
+    "316": {
+      "sequence_id": 316,
+      "type": "epic",
+      "title": "Shared team knowledge — agent memory and the bulletin board",
+      "slug": "shared-team-knowledge-agent-memory-and-the-bulletin-board",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "epics/EPIC-000316-shared-team-knowledge-agent-memory-and-the-bulletin-board.md",
+      "created_at": "2026-07-06T16:08:36Z",
+      "updated_at": "2026-07-06T16:08:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "EPIC-316"
+    },
+    "317": {
+      "sequence_id": 317,
+      "type": "feature",
+      "title": "Team bulletin board — broadcast notices with expiry",
+      "slug": "team-bulletin-board-broadcast-notices-with-expiry",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-316",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-314:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As any agent, current board notices are surfaced at the start of a run so I'm aware of standing notices",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As anyone, I can list current notices to see what's active",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As a lead or operator, I can clear a notice that no longer applies",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As an agent, a guiding skill teaches board posting discipline and the memory-vs-board boundary",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000317-team-bulletin-board-broadcast-notices-with-expiry.md",
+      "created_at": "2026-07-06T16:08:53Z",
+      "updated_at": "2026-07-06T16:09:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-317"
+    },
+    "318": {
+      "sequence_id": 318,
+      "type": "feature",
+      "title": "Full-text search across item prose, with structured filters",
+      "slug": "full-text-search-across-item-prose-with-structured-filters",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-38",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a steering user, I can search item prose by free text so I can find buried context",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a steering user, results show where each match is and its authority so I can judge relevance",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a steering user, I can narrow the search with structured filters so I can audit a slice",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As an agent, I can get search results as JSON so a session can act on them programmatically",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000318-full-text-search-across-item-prose-with-structured-filters.md",
+      "created_at": "2026-07-07T07:15:49Z",
+      "updated_at": "2026-07-07T07:16:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-318"
+    },
+    "319": {
+      "sequence_id": 319,
+      "type": "feature",
+      "title": "MCP connector — drive a hosted squad from the Claude apps",
+      "slug": "mcp-connector-drive-a-hosted-squad-from-the-claude-apps",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-29",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-33"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator, I can connect my hosted squad to a Claude app as a remote MCP connector via OAuth",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an app, I get a small curated set of MCP tools for core squads operations, not every CLI verb",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an operator, MCP access is authenticated and scoped to my squad",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As a maintainer, the MCP endpoint is a third frontend over the service layer, matching CLI behaviour",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000319-mcp-connector-drive-a-hosted-squad-from-the-claude-apps.md",
+      "created_at": "2026-07-07T08:01:07Z",
+      "updated_at": "2026-07-07T08:01:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-319"
+    },
+    "320": {
+      "sequence_id": 320,
+      "type": "decision",
+      "title": "Introduce the contract (PRD) item type — the living functional contract",
+      "slug": "introduce-the-contract-prd-item-type-the-living-functional-c",
+      "status": "Proposed",
+      "description": "Add a first-class contract/PRD type: the living functional twin of the ADR set",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "adrs/ADR-000320-introduce-the-contract-prd-item-type-the-living-functional-c.md",
+      "created_at": "2026-07-07T08:32:44Z",
+      "updated_at": "2026-07-07T08:32:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-320"
+    },
+    "321": {
+      "sequence_id": 321,
+      "type": "feature",
+      "title": "The contract (PRD) item type — a living functional source of truth",
+      "slug": "the-contract-prd-item-type-a-living-functional-source-of-tru",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-320:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a team, I can create and manage contract items (PRD prefix) like any other item type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a reader, a contract describes what the product does for a user right now, from the user's POV",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As an existing squad, sq migrate up adds the contracts folder and bumps the schema to 0.8",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000321-the-contract-prd-item-type-a-living-functional-source-of-tru.md",
+      "created_at": "2026-07-07T08:33:54Z",
+      "updated_at": "2026-07-07T08:34:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-321"
     }
   }
 }
