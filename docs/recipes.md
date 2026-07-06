@@ -108,3 +108,30 @@ sq --at 2024-02-15T17:00:00Z comment TASK-000020 --as reviewer -m "shipped"
 ```
 
 Full migration guide: [adoption.md](adoption.md).
+
+## Block-shift IDs before merging (prevent collisions)
+
+When your branch will merge into main and both have created new items, block-shift your branch's
+IDs into a reserved range **before the merge** — this preserves referential intent and is much safer
+than fixing collisions after they land.
+
+```bash
+# On your branch (before merging to main):
+
+# Step 1: get main's current counter
+git show main:squads/.squads.json | jq .counter     # → the value for --onto
+
+# Step 2: find your branch's lowest new ID
+# (items created after the branch point; usually base_counter + 1)
+sq list --all --json | jq 'map(select(.sequence_id > <base>)) | min_by(.sequence_id) | .sequence_id'
+# or just remember: if the merge-base counter was 280, use --from 281
+
+# Step 3: shift your branch's IDs above main's counter
+sq renumber --from 281 --onto 287
+# (every ID on this branch >= 281 moves into the reserved block; all refs update atomically)
+
+# Now safe to merge:
+git merge main
+```
+
+For details and the post-merge fallback, see [faq.md](faq.md) **Handling ID collisions**.

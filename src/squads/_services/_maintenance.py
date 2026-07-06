@@ -1,7 +1,7 @@
 """Whole-squad maintenance: sync managed files, repair/renumber the index, check, migrate."""
 
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +41,7 @@ from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
 from squads._services._base import SUBENTITY_KIND, ServiceCore
-from squads._services._results import CheckIssue, ReflogEntry, RepairResult
+from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` so that custom types (not in ItemType) are supported.
@@ -393,32 +393,20 @@ class MaintenanceMixin(ServiceCore):
             yield from ((ctype, md) for md in sorted(folder.glob(f"{ts.prefix}-*.md")))
 
     # ------------------------------------------------------------------ repair / renumber
-    async def repair(self, *, renumber: bool = False) -> RepairResult:
-        # Snapshot the previous index (if any) before rebuilding, so we can:
-        #  (a) preserve the high-water mark of the counter,
-        #  (b) preserve the padding floor (ADR-000104), and
-        #  (c) report items that were indexed but whose files have gone missing.
-        previous_counter = 0
-        previous_padding = DEFAULT_ID_PADDING
-        # Keyed by sequence_id (int) so the comparison is width-tolerant: _propagate_padding
-        # widens item.id strings when loading from an already-repadded index, while
-        # from_frontmatter below rebuilds at the default width.  Comparing by the integer
-        # sequence number avoids the cross-width mismatch (mirrors _check_reconciliation).
-        previous_seq_to_id: dict[int, str] = {}
-        if self.store.exists():
-            try:
-                prev = await self.store.load()
-                previous_counter = prev.counter
-                previous_padding = prev.padding
-                previous_seq_to_id = {it.sequence_id: it.id for it in prev.items.values()}
-            except Exception:  # corrupt index — treat as empty
-                pass
+    async def _rebuild_index_from_disk(
+        self, *, previous_counter: int, previous_padding: int
+    ) -> SquadsDB:
+        """Scan every item file fresh and commit a rebuilt index — the core of :meth:`repair`,
+        factored out so :meth:`renumber` can reuse it *without* repair's previous-snapshot /
+        missing-file / reflog bookkeeping, which is specific to the ``sq repair`` verb (a
+        renumber shift makes old sequence numbers vanish on purpose; repair's missing-file
+        detector has no way to tell that apart from a genuine deletion, so `renumber` must not
+        route through it — see :meth:`renumber`).
 
-        if renumber:
-            await self._renumber()
-
+        ``previous_counter``/``previous_padding`` are the floors the rebuilt counter/padding
+        must never regress below: the caller's most recent index read.
+        """
         db = SquadsDB(squads_version=__version__, counter=0)
-        found_seqs: set[int] = set()
         max_n = 0
         max_filename_width = 0
         for item_type, md in self._iter_item_files():
@@ -450,7 +438,6 @@ class MaintenanceMixin(ServiceCore):
                         f"running `sq repair`"
                     )
             db.add(item)
-            found_seqs.add(item.sequence_id)
             max_n = max(max_n, number_for_id(item.id))
             # Derive the filename digit-run width (PREFIX-<digits>-<slug>.md).
             # The filename, not the frontmatter id, is the in-corpus record of a repad.
@@ -471,8 +458,37 @@ class MaintenanceMixin(ServiceCore):
         # >0 conditional arm was a no-op because max(floor, 0) == floor already.
         db.padding = max(previous_padding, max_filename_width)
         await self.store.overwrite(db)
+        return db
 
-        missing_seqs = sorted(previous_seq_to_id.keys() - found_seqs)
+    async def repair(self, *, renumber: bool = False) -> RepairResult:
+        # Snapshot the previous index (if any) before rebuilding, so we can:
+        #  (a) preserve the high-water mark of the counter,
+        #  (b) preserve the padding floor, and
+        #  (c) report items that were indexed but whose files have gone missing.
+        previous_counter = 0
+        previous_padding = DEFAULT_ID_PADDING
+        # Keyed by sequence_id (int) so the comparison is width-tolerant: _propagate_padding
+        # widens item.id strings when loading from an already-repadded index, while
+        # from_frontmatter below rebuilds at the default width.  Comparing by the integer
+        # sequence number avoids the cross-width mismatch (mirrors _check_reconciliation).
+        previous_seq_to_id: dict[int, str] = {}
+        if self.store.exists():
+            try:
+                prev = await self.store.load()
+                previous_counter = prev.counter
+                previous_padding = prev.padding
+                previous_seq_to_id = {it.sequence_id: it.id for it in prev.items.values()}
+            except Exception:  # corrupt index — treat as empty
+                pass
+
+        if renumber:
+            await self._renumber()
+
+        db = await self._rebuild_index_from_disk(
+            previous_counter=previous_counter, previous_padding=previous_padding
+        )
+
+        missing_seqs = sorted(previous_seq_to_id.keys() - set(db.items))
         missing_ids = [previous_seq_to_id[s] for s in missing_seqs]
 
         # Reflog: append after overwrite (repair uses overwrite, not transaction).
@@ -596,19 +612,37 @@ class MaintenanceMixin(ServiceCore):
                 renames.append((md, _item_type, slug, new_padded))
         return remap, renames
 
-    async def _renumber(self) -> dict[str, str]:
-        """Resolve duplicate global ID numbers from a merge: reassign + rewrite references."""
-        records = await self._scan_records()
-        padding = (await self.store.load()).padding if self.store.exists() else DEFAULT_ID_PADDING
-        remap, renames = self._renumber_plan(records, padding)
+    async def _apply_remap(
+        self,
+        paths: Iterable[Path],
+        remap: dict[str, str],
+        renames: list[tuple[Path, str, str, str]],
+    ) -> None:
+        """Shared renumber apply-path: rewrite refs -> rename -> resync.
+
+        Both ``repair --renumber`` (post-merge collision fixer, via :meth:`_renumber`) and
+        ``sq renumber`` (pre-merge block-shift, via :meth:`renumber`) drive this identical
+        sequence so the machinery does not fork:
+
+        1. ``rewrite_ids`` over every file in ``paths`` — whole-word substitution of each old
+           id in ``remap`` to its new **unpadded** display id (content, not filenames)
+           across frontmatter ``id:``/refs, body prose, and inline mentions.
+        2. Rename the files whose own id changed to the **padded** filename stem in
+           ``renames`` (already minted by the caller's planner at the squad's filename
+           padding — deliberately not the unpadded id written into content above).
+        3. Resync the renamed file's stored ``sequence_id`` frontmatter field to match.
+
+        Counter-neutral by design: this executor never touches ``SquadsDB.counter``. The
+        accepted pre-merge block-shift design's shared-apply-path description lists "counter
+        bump" alongside this sequence but then assigns the bump to ``sq renumber``
+        specifically — the ratified reading (tech-lead) is that the executor stays
+        counter-neutral and each caller reconciles the counter its own way (``repair``'s
+        full-index rebuild vs. ``sq renumber``'s explicit bump-to-new-max). A no-op when
+        ``remap`` is empty (nothing to shift/reassign).
+        """
         if not remap:
-            return {}
-        # rewrite every reference to a remapped id across all files (frontmatter + body + inline).
-        # remap targets are unpadded display ids (ADR-000282) — this is content, not filenames.
-        await rewrite_ids([md for _, md, *_ in records], remap)
-        # rename the files whose own id changed, and resync their stored sequence_id.
-        # `renames` carries the padded filename stem — deliberately NOT the unpadded display id
-        # written into content above (ADR-000282).
+            return
+        await rewrite_ids(list(paths), remap)
         for old_path, _item_type, slug, new_id in renames:
             new_name = f"{new_id}-{slug}.md" if slug else f"{new_id}.md"
             # Use the parent directory of the existing file — avoids resolving the type
@@ -620,7 +654,157 @@ class MaintenanceMixin(ServiceCore):
             if fm:
                 fm["sequence_id"] = number_for_id(new_id)
                 await _aio.write_text(new_path, sections.replace_frontmatter(text, fm))
+
+    async def _renumber(self) -> dict[str, str]:
+        """Resolve duplicate global ID numbers from a merge: reassign + rewrite references."""
+        records = await self._scan_records()
+        padding = (await self.store.load()).padding if self.store.exists() else DEFAULT_ID_PADDING
+        remap, renames = self._renumber_plan(records, padding)
+        if not remap:
+            return {}
+        await self._apply_remap((md for _, md, *_ in records), remap, renames)
         return remap
+
+    # ------------------------------------------------------------------ renumber (pre-merge)
+    @staticmethod
+    def _offset_plan(
+        records: list[_FileRec],
+        *,
+        from_seq: int,
+        counter: int,
+        onto: int | None,
+        by: int | None,
+        padding: int,
+    ) -> tuple[dict[str, str], list[tuple[Path, str, str, str]], str | None]:
+        """Plan a disjoint block-shift of every local item numbered ``>= from_seq``:
+        operator-supplied integers in, a ``{old -> new}`` remap + padded renames out. sq stays
+        git-agnostic here — no subprocess, no git, no merge-base; ``counter``/``onto``/
+        ``by`` cross in as plain integers the caller already resolved.
+
+        Exactly one of ``onto``/``by`` must be supplied:
+
+        - ``onto=M`` (the other branch's counter): the minimal safe offset is auto-computed —
+          ``delta = max(M, counter) + 1 - from_seq`` — landing the shifted block strictly above
+          both this branch's own maximum (``counter``) and the other branch's counter. Always
+          computable, always safe; this path never emits an unsafe offset or a warning.
+        - ``by=n`` (explicit escape-hatch offset): validated as ``from_seq + n > counter``. An
+          unsafe value **refuses** with :class:`SquadsError` — no records/paths are touched,
+          the minimum safe offset is reported, and the message notes that without ``onto`` sq
+          cannot certify the shift also clears the *other* branch's counter (the operator's
+          guarantee to make on this path). Never silently auto-corrected. A *safe* ``by`` still
+          returns a non-``None`` warning string for the same reason — the missing-``onto``
+          certification gap applies whether or not the value happened to be safe.
+
+        Because the new range sits strictly above the old local range, no new id string in the
+        remap ever equals an old one, so the single-pass whole-word ``rewrite_ids`` substitution
+        is order-independent — no high-to-low ordering machinery is needed here, unlike an
+        in-place/overlapping shift would require.
+
+        Returns ``(remap, renames, warning)``. ``remap``/``renames`` are the same shape
+        :meth:`_renumber_plan` produces for the collision path — empty when no local item has
+        ``sequence_id >= from_seq``. ``remap`` targets are unpadded display ids (content);
+        ``renames`` targets are minted at filename ``padding`` (on-disk), preserving relative
+        order and gaps among the shifted items. ``warning`` is non-``None`` exactly on the
+        ``by`` path.
+        """
+        if (onto is None) == (by is None):
+            raise SquadsError("sq renumber: exactly one of --onto or --by is required")
+        no_onto_certification = (
+            "sq cannot certify this offset clears the OTHER branch's counter without "
+            "--onto — that guarantee is yours to make on this path."
+        )
+        warning: str | None = None
+        if onto is not None:
+            delta = max(onto, counter) + 1 - from_seq
+        else:
+            assert by is not None  # exclusivity enforced above
+            delta = by
+            if from_seq + delta <= counter:
+                min_safe = counter + 1 - from_seq
+                raise SquadsError(
+                    f"--by {by} is unsafe: {from_seq} + {by} = {from_seq + delta} does not "
+                    f"clear this branch's own counter ({counter}); minimum safe offset is "
+                    f"{min_safe}. {no_onto_certification}"
+                )
+            warning = no_onto_certification
+        selected = sorted((rec for rec in records if rec[4] >= from_seq), key=lambda r: r[4])
+        remap: dict[str, str] = {}
+        renames: list[tuple[Path, str, str, str]] = []
+        for fid, md, item_type, slug, seq in selected:
+            new_seq = seq + delta
+            fid_prefix = fid.split("-", 1)[0]
+            new_display = format_item_id(fid_prefix, new_seq, DISPLAY_ID_PADDING)
+            new_padded = format_item_id(fid_prefix, new_seq, padding)
+            remap[fid] = new_display
+            renames.append((md, item_type, slug, new_padded))
+        return remap, renames, warning
+
+    async def renumber(
+        self, *, from_seq: int, onto: int | None = None, by: int | None = None
+    ) -> RenumberResult:
+        """Pre-merge block-shift renumber: the new top-level ``sq renumber`` verb.
+
+        Shifts every local item with ``sequence_id >= from_seq`` into a disjoint range,
+        preserving referential intent — every reference is rewritten while it is still
+        unambiguous (contrast the post-merge ``repair(renumber=True)`` fallback, whose remap
+        is keyed by the collided id string and so cannot tell which reference meant which
+        item). This is a distinct verb from ``repair --renumber``: an intentional,
+        operator-parameterized identity transform with a required boundary, not an idempotent
+        argument-free reconstruction.
+
+        Validation happens strictly before any file is touched: :meth:`_offset_plan` raises
+        :class:`SquadsError` for an unsafe ``--by`` (or a bad ``onto``/``by`` combination)
+        before the executor or the index rebuild runs, so the tree is left completely
+        untouched on the refuse path.
+
+        The shift reuses the shared apply-path executor (:meth:`_apply_remap`) and then
+        commits via :meth:`_rebuild_index_from_disk` — the same disk-rescan :meth:`repair`
+        uses internally, so the counter bump to the true post-shift maximum falls out for
+        free — but **not** ``repair`` itself: `repair`'s missing-file detector would
+        otherwise see every shifted item's old sequence number vanish and misreport it as a
+        deletion, when it in fact just moved.
+
+        Exactly one reflog line is appended, strictly after the index commit above, carrying
+        a compact summary of the shift (the boundary, whichever of ``onto``/``by`` the
+        operator actually supplied, and the full remap) — never a replayable diff. Every
+        prior reflog line is left completely untouched: this is a pure append, no in-place
+        rewrite of any historical ``target``/``delta``. A forensic reader walking the log
+        forward from an old, now-superseded id finds this one line and can follow it to the
+        item's current id; the old lines stay a truthful record of what was true when they
+        were written. Nothing is appended on the no-op path (nothing shifted).
+        """
+        if self.store.exists():
+            idx = await self.store.load()
+            counter, padding = idx.counter, idx.padding
+        else:
+            counter, padding = 0, DEFAULT_ID_PADDING
+        records = await self._scan_records()
+        remap, renames, warning = self._offset_plan(
+            records, from_seq=from_seq, counter=counter, onto=onto, by=by, padding=padding
+        )
+        if remap:
+            await self._apply_remap((md for _, md, *_ in records), remap, renames)
+            db = await self._rebuild_index_from_disk(
+                previous_counter=counter, previous_padding=padding
+            )
+            # Reflog: appended after the index commit above (never in-place rewriting a
+            # historical line) — a single summary event, not a replayable diff.
+            sid, psid = actor.current_session()
+            await append_line(
+                reflog_path(self.paths.squad_dir),
+                ts=clock.iso(clock.now()),
+                actor=actor.current_actor(),
+                op="renumber",
+                target="",
+                delta={"from": from_seq, "onto": onto, "by": by, "remap": remap},
+                session_id=sid,
+                parent_session_id=psid,
+            )
+        elif self.store.exists():
+            db = await self.store.load()
+        else:
+            db = SquadsDB(squads_version=__version__, counter=counter, padding=padding)
+        return RenumberResult(remap=remap, db=db, warning=warning)
 
     # ------------------------------------------------------------------ reflog read
     async def read_reflog(

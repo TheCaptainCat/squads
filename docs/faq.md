@@ -11,7 +11,8 @@ one.
 
 ### "corrupt index … run `sq repair`"
 `.squads.json` failed to parse or validate (often a bad git merge). The frontmatter is the source of
-truth, so just rebuild: `sq repair`. If two branches reused an ID number, `sq repair --renumber`.
+truth, so just rebuild: `sq repair`. If two branches reused an ID number, use `sq repair --renumber`
+to fix it after the merge (see **Handling ID collisions** below).
 
 ### "a task's parent must be of type feature …"
 The hierarchy is enforced: a **task**'s parent must be a **feature**, a **feature**'s parent an
@@ -62,7 +63,45 @@ Implement a backend — see [backends.md](backends.md) — then `sq init --backe
 ### Git: what do I commit, and what about conflicts?
 Commit `.squads.toml`, the `squads/` folder, `CLAUDE.md`, and `.claude/`. `squads/.gitignore`
 already excludes the lock/temp files. On a `.squads.json` conflict, take either side and
-`sq repair`; for duplicate ID numbers, `sq repair --renumber`.
+`sq repair`.
+
+### Handling ID collisions
+When two branches diverge and both create new items, they bump the same counter and mint the same ID
+numbers. On merge, the tree holds duplicate files. Fix this in one of two ways:
+
+**Preferred: pre-merge block-shift (on the yielding branch, before merge)**
+
+If you control the branch that will yield to main (or the destination branch), run `sq renumber`
+**before merging** — while both sets of IDs are still unambiguous:
+
+```bash
+# On the yielding branch, after your final commit:
+# 1. Get the destination branch's current counter:
+git show main:squads/.squads.json | jq .counter    # → let's say it's 287
+
+# 2. Shift this branch's IDs into a reserved block above that counter:
+sq renumber --from <N> --onto 287
+#  N = your branch's counter at the merge-base (e.g., 280, or base_counter + 1)
+```
+
+This **preserves referential intent**: the rewrite happens before the second copy of each ID exists,
+so every reference in the tree still means exactly what it says. IDs created on this branch move
+into the reserved range; refs to them follow along atomically.
+
+**Fallback: post-merge collision repair (after merge, on the merged tree)**
+
+If collisions slip through to the merge, use `sq repair --renumber` on the merged result:
+
+```bash
+git merge <branch>
+# Resolve the .squads.json conflict by taking either side
+sq repair --renumber     # detects duplicates, assigns fresh numbers, rewrites refs
+```
+
+This **guarantees uniqueness and no dangling refs**, but **cannot preserve intent** — when two
+files claim the same ID, the tool rewrites **all** references to that ID to point to the winner,
+even if some were meant for the loser. Use this only when duplicates already exist; the pre-merge
+path is safer when you have the chance.
 
 ### What exit codes does `sq` use?
 

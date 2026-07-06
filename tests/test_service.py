@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from squads._errors import InvalidTransitionError, ItemNotFoundError, SquadsError
@@ -273,6 +275,267 @@ async def test_repair_renumber_resolves_collision(svc):
     assert db.items[bug.sequence_id].refs == [new_feat]
     # counter advanced past the reassigned number
     assert db.counter == max(numbers)
+
+
+# --------------------------------------------------------------------------- sq renumber
+
+
+def _fake_records(*seqs: int, prefix: str = "TASK") -> list[tuple[str, Path, str, str, int]]:
+    return [(f"{prefix}-{seq}", Path(f"/fake/{prefix}-{seq}.md"), "task", "x", seq) for seq in seqs]
+
+
+def _seqs_from(remap: dict[str, str]) -> dict[int, int]:
+    return {int(k.rsplit("-", 1)[-1]): int(v.rsplit("-", 1)[-1]) for k, v in remap.items()}
+
+
+def test_offset_plan_onto_lands_strictly_above_both_ranges():
+    """--onto auto-computes the minimal safe offset for M > C, M < C, and M == C."""
+    from squads._services._maintenance import MaintenanceMixin
+
+    records = _fake_records(3, 4, 5)
+    for onto, counter in [(10, 5), (2, 5), (5, 5)]:
+        remap, renames, warning = MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
+            records, from_seq=3, counter=counter, onto=onto, by=None, padding=6
+        )
+        assert warning is None  # --onto never warns — it fully certifies disjointness
+        delta = max(onto, counter) + 1 - 3
+        got = _seqs_from(remap)
+        assert got == {3: 3 + delta, 4: 4 + delta, 5: 5 + delta}, (onto, counter, got)
+        assert min(got.values()) > max(onto, counter)
+        assert len(renames) == 3
+
+
+def test_offset_plan_by_refuses_unsafe_offset_reports_minimum():
+    """An unsafe --by refuses with SquadsError and reports the minimum safe offset."""
+    from squads._services._maintenance import MaintenanceMixin
+
+    records = _fake_records(3, 4, 5)
+    with pytest.raises(SquadsError, match="minimum safe offset is 3"):
+        MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
+            records, from_seq=3, counter=5, onto=None, by=1, padding=6
+        )
+
+
+def test_offset_plan_by_safe_produces_remap_and_warns():
+    """A safe --by shifts correctly but still warns it cannot certify the other branch clears."""
+    from squads._services._maintenance import MaintenanceMixin
+
+    records = _fake_records(3, 4, 5)
+    remap, renames, warning = MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
+        records, from_seq=3, counter=5, onto=None, by=3, padding=6
+    )
+    assert warning is not None and "onto" in warning.lower()
+    assert _seqs_from(remap) == {3: 6, 4: 7, 5: 8}
+    assert len(renames) == 3
+
+
+def test_offset_plan_requires_exactly_one_of_onto_or_by():
+    from squads._services._maintenance import MaintenanceMixin
+
+    records = _fake_records(3)
+    with pytest.raises(SquadsError, match="exactly one"):
+        MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
+            records, from_seq=3, counter=5, onto=None, by=None, padding=6
+        )
+    with pytest.raises(SquadsError, match="exactly one"):
+        MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
+            records, from_seq=3, counter=5, onto=10, by=3, padding=6
+        )
+
+
+async def test_renumber_shifts_block_and_preserves_referential_intent(svc):
+    """The pre-merge shift rewrites a ref to a shifted item so it still points at that SAME
+    item afterward — the referential-intent guarantee the post-merge collision fixer cannot
+    make (contrast test_repair_renumber_resolves_collision, whose ref gets repointed to the
+    *other* collided item)."""
+    feat = (await svc.create(ItemType.FEATURE, "keep")).item  # FEAT-2, below --from
+    task = (await svc.create(ItemType.TASK, "shift-task", parent=feat.id)).item  # TASK-3
+    bug = (await svc.create(ItemType.BUG, "shift-bug")).item  # BUG-4
+    await svc.add_ref(task.id, bug.id)
+
+    result = await svc.renumber(from_seq=3, onto=10)
+
+    assert task.id in result.remap
+    assert bug.id in result.remap
+    assert feat.id not in result.remap  # below --from: untouched
+
+    db = result.db
+    new_task_id = result.remap[task.id]
+    new_bug_id = result.remap[bug.id]
+    new_task = db.get(new_task_id)
+    assert new_task is not None
+    assert new_task.refs == [new_bug_id]  # ref rewritten to the SAME (shifted) item
+    assert new_task.parent == feat.id  # untouched parent link still resolves
+
+    kept_feat = db.get(feat.id)
+    assert kept_feat is not None
+    assert kept_feat.title == "keep"
+
+    # counter bumped to the true post-shift maximum
+    assert db.counter == max(_seqs_from(result.remap).values())
+
+    # files actually renamed on disk at the squad's filename padding (not the unpadded
+    # content id) — a padding regression (e.g. a stray DISPLAY_ID_PADDING leak) would show
+    # up here as a digit run shorter than db.padding.
+    new_bug_item = db.get(new_bug_id)
+    assert new_bug_item is not None
+    new_bug_path = svc.paths.abspath(new_bug_item.path)
+    assert new_bug_path.exists()
+    assert not svc.paths.abspath(bug.path).exists()
+    digit_run = new_bug_path.name.split("-")[1]
+    assert digit_run.isdigit()
+    assert len(digit_run) == db.padding, f"expected {db.padding}-digit filename, got {digit_run!r}"
+
+
+async def test_renumber_rewrites_an_unshifted_items_ref_to_a_shifted_item(svc):
+    """A referrer that is itself BELOW --from (never shifted) still has its ref to a shifted
+    item rewritten to the new id — the reverse of the shifted-referrer case above, and the
+    other half of the referential-intent guarantee: resolvability holds from both directions.
+    """
+    referrer = (await svc.create(ItemType.TASK, "stay-put")).item  # TASK-2, will NOT be shifted
+    bug = (await svc.create(ItemType.BUG, "shift-me")).item  # BUG-3
+    await svc.add_ref(referrer.id, bug.id)
+
+    result = await svc.renumber(from_seq=bug.sequence_id, onto=10)
+
+    assert bug.id in result.remap
+    assert referrer.id not in result.remap  # the referrer itself is below --from
+
+    db = result.db
+    new_bug_id = result.remap[bug.id]
+    kept_referrer = db.get(referrer.id)
+    assert kept_referrer is not None
+    assert kept_referrer.refs == [new_bug_id]  # rewritten to point at the SAME (shifted) item
+    assert db.get(new_bug_id) is not None
+
+
+async def test_renumber_does_not_misreport_shifted_items_as_missing_in_reflog(svc):
+    """`renumber` must NOT route its index commit through `repair`: repair's missing-file
+    detector only sees an old sequence number vanish, not that it moved, and would otherwise
+    log a false "missing" entry for every item this operation deliberately renumbered."""
+    import json
+
+    bug = (await svc.create(ItemType.BUG, "shift-me")).item  # BUG-2
+
+    await svc.renumber(from_seq=bug.sequence_id, onto=10)
+
+    reflog_path = svc.paths.squad_dir / ".reflog.jsonl"
+    lines = [json.loads(ln) for ln in reflog_path.read_text(encoding="utf-8").splitlines() if ln]
+    repair_entries = [ln for ln in lines if ln["op"] == "repair"]
+    assert not repair_entries, f"renumber must not emit a repair op: {repair_entries}"
+    assert all(bug.id not in ln.get("delta", {}).get("missing", []) for ln in lines)
+    # sq check must see no dangling/missing state after the shift.
+    issues = await svc.check()
+    assert not any(i.level == "error" for i in issues), issues
+
+
+def _read_reflog_lines(squad_dir: Path) -> list[str]:
+    """Raw text lines (still JSON strings) of the reflog file, in file order."""
+    path = squad_dir / ".reflog.jsonl"
+    return [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln]
+
+
+async def test_renumber_appends_a_single_event_summarizing_the_shift(svc):
+    """A shift appends exactly one new event whose delta carries the boundary, whichever of
+    onto/by the operator actually supplied (the other stays null), and the full remap."""
+    import json
+
+    before = _read_reflog_lines(svc.paths.squad_dir)
+
+    task = (await svc.create(ItemType.TASK, "shift-me")).item
+    bug = (await svc.create(ItemType.BUG, "shift-me-too")).item
+    result = await svc.renumber(from_seq=task.sequence_id, onto=10)
+
+    after = _read_reflog_lines(svc.paths.squad_dir)
+    new_lines = after[len(before) :]
+    # exactly one new line was appended for the two "create" ops plus the shift itself
+    shift_lines = [json.loads(ln) for ln in new_lines if json.loads(ln)["op"] not in ("create",)]
+    assert len(shift_lines) == 1, f"expected exactly one shift event, got {shift_lines}"
+    entry = shift_lines[0]
+    assert entry["target"] == ""
+    delta = entry["delta"]
+    assert delta["from"] == task.sequence_id
+    assert delta["onto"] == 10
+    assert delta["by"] is None  # the operator used --onto, not --by
+    assert delta["remap"] == result.remap
+    assert set(delta["remap"]) == {task.id, bug.id}
+
+
+async def test_renumber_by_form_records_by_and_leaves_onto_null(svc):
+    """The mirror case: a --by shift records `by` and leaves `onto` null in the summary."""
+    import json
+
+    task = (await svc.create(ItemType.TASK, "shift-me")).item  # counter reaches 2
+
+    result = await svc.renumber(from_seq=task.sequence_id, by=5)
+
+    lines = [json.loads(ln) for ln in _read_reflog_lines(svc.paths.squad_dir)]
+    entry = next(ln for ln in lines if ln["op"] == "renumber")
+    assert entry["delta"]["onto"] is None
+    assert entry["delta"]["by"] == 5
+    assert entry["delta"]["remap"] == result.remap
+
+
+async def test_renumber_leaves_prior_reflog_lines_byte_for_byte_unchanged(svc):
+    """The append is a pure append: every line written before the shift is untouched — no
+    in-place rewrite of a historical target/delta to the item's new (post-shift) id."""
+    bug = (await svc.create(ItemType.BUG, "shift-me")).item
+
+    before = _read_reflog_lines(svc.paths.squad_dir)
+    assert before  # sanity: something was already logged (the create above)
+
+    await svc.renumber(from_seq=bug.sequence_id, onto=10)
+
+    after = _read_reflog_lines(svc.paths.squad_dir)
+    assert after[: len(before)] == before, "a historical reflog line was rewritten in place"
+    assert len(after) == len(before) + 1  # exactly the one appended renumber event
+    # the historical line still names the item by its PRE-shift id — a truthful record of
+    # what was true when it was written, not silently updated to the new id.
+    assert any(bug.id in ln for ln in before)
+
+
+async def test_renumber_rewrites_a_prose_mention_of_a_shifted_id_in_a_body(svc):
+    """A shifted item's id, mentioned in another item's body prose (not a structured ref/
+    parent field), is still rewritten — the content-side half of intent preservation."""
+    note = (await svc.create(ItemType.TASK, "keep-a-note")).item  # stays below --from
+    bug = (await svc.create(ItemType.BUG, "shift-me")).item
+    await svc.set_body(note.id, f"See {bug.id} for context.")
+
+    result = await svc.renumber(from_seq=bug.sequence_id, onto=10)
+
+    new_bug_id = result.remap[bug.id]
+    body = await svc.read_body(note.id)
+    assert new_bug_id in body
+    assert bug.id not in body
+
+
+async def test_renumber_nothing_to_shift_is_a_noop(svc):
+    result = await svc.renumber(from_seq=999, onto=5)
+    assert result.remap == {}
+
+
+async def test_renumber_unsafe_by_leaves_filesystem_untouched(svc):
+    """The refuse-path (unsafe --by) exits before touching a single file."""
+    task = (await svc.create(ItemType.TASK, "t")).item  # TASK-2, counter=2
+
+    squad_dir = svc.paths.squad_dir
+    before_files = sorted(p.name for p in squad_dir.rglob("*.md"))
+    before_index = (squad_dir / ".squads.json").read_text(encoding="utf-8")
+
+    with pytest.raises(SquadsError, match="unsafe"):
+        await svc.renumber(from_seq=task.sequence_id, by=0)
+
+    after_files = sorted(p.name for p in squad_dir.rglob("*.md"))
+    after_index = (squad_dir / ".squads.json").read_text(encoding="utf-8")
+    assert before_files == after_files
+    assert before_index == after_index
+
+
+async def test_renumber_requires_exactly_one_of_onto_or_by(svc):
+    with pytest.raises(SquadsError, match="exactly one"):
+        await svc.renumber(from_seq=1)
+    with pytest.raises(SquadsError, match="exactly one"):
+        await svc.renumber(from_seq=1, onto=5, by=3)
 
 
 # --------------------------------------------------------------------------- developers

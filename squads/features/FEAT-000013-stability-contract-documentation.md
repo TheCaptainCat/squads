@@ -20,7 +20,7 @@ subentities:
   title: Internals explicitly marked non-public
   status: Done
 created_at: '2026-06-10T12:40:59Z'
-updated_at: '2026-06-23T09:58:31Z'
+updated_at: '2026-07-06T10:06:26Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -228,4 +228,8 @@ As an integrator, I want internals (Python import paths, generated .claude/ file
   - Operator ruling folded in (op-pierre): the shipped user-facing docs must NOT cite internal squad items or carry external/github URLs — the contract stands on its own terms, cross-linking only other docs/*.md. The first draft violated this (fabricated github.com/anthropic-ai/squads links + a full internal-item References section); both removed. Recorded as REV-150 F7.
   - RESIDUAL pre-1.0-freeze items (NOT 0.3.0 blockers; carried forward, flagged open in the doc's reflog section): (1) REV-119 F3 — whether the op/delta double-key on subentity/migrate reflog lines is cleaned up; (2) REV-119 F5 — whether the reflog line 'v' decouples from the index SCHEMA_VERSION (today coupled at 0.3). Settle before declaring 1.0.
   - Tracking nit for cleanup (not blocking): ADR-141's body still describes the abandoned 0.3→0.4 bump framing for active_backends; the shipped reality is no-bump on 0.3 (commit 6538396). @architect to tidy when convenient.
+- [2026-07-06T10:06:26Z] Theo Writer:
+  - Deferral obligation from TASK-301 (coexistence docs): two surfaces enter the frozen 1.0 grammar and must be documented in the stability-contract tiers.
+  - 1. CLI grammar tier: `sq renumber` is a new verb with arguments `--from <N> --onto <M>` (recommended, auto-computes safe offset) and `--from <N> --by <n>` (escape hatch with explicit offset, validated but unverified for merge-disjointness). The boundary values are plain integers; sq stays git-agnostic — the operator derives `--from` as base_counter+1 and reads `--onto` from the destination branch outside sq via `git show <ref>:squads/.squads.json | jq .counter`.
+  - 2. Reflog on-disk format tier: a new `renumber` operation joins the reflog op vocabulary (create/status/update/comment/ref/subentity/retype/remove/migrate). The delta shape records the shift — e.g. `{"from": N, "onto": M, "by": delta, "remap": {...}}` — enabling forensic readers to map old references forward. Historical lines keep their pre-shift IDs (append-only contract, no rewrite); the new event is the bridge. When the capstone runs, document both surfaces per the tier definitions.
 <!-- sq:discussion:end -->

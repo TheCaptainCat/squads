@@ -417,6 +417,48 @@ async def repair(renumber: bool = typer.Option(False, "--renumber")):
 
 @app.command()
 @common.command
+async def renumber(
+    from_seq: int = typer.Option(
+        ..., "--from", help="Lowest local sequence number to shift (inclusive)."
+    ),
+    onto: int | None = typer.Option(
+        None,
+        "--onto",
+        help="The other branch's counter; sq computes the minimal safe offset.",
+    ),
+    by: int | None = typer.Option(
+        None,
+        "--by",
+        help="Explicit offset (seq -> seq + n); validated, refused if unsafe.",
+    ),
+):
+    """Pre-merge block-shift: reassign this branch's local IDs into a range disjoint from
+    another branch's, preserving referential intent.
+
+    A distinct verb from `sq repair --renumber` (the post-merge collision fixer): this one
+    is operator-parameterized and run deliberately, once, before a merge — on the branch
+    that will yield its IDs to the other's higher-numbered range.
+
+    Read the other branch's counter (for --onto) with:
+
+        git show <mainref>:squads/.squads.json | jq .counter
+    """
+    if (onto is None) == (by is None):
+        raise typer.BadParameter("provide exactly one of --onto or --by")
+    svc = get_service()
+    result = await svc.renumber(from_seq=from_seq, onto=onto, by=by)
+    if result.warning:
+        console.print(f"[yellow]warning:[/yellow] {e(result.warning)}")
+    if not result.remap:
+        console.print("[dim]nothing to renumber — no local item at or above --from[/dim]")
+        return
+    console.print(f"renumbered {len(result.remap)} item(s); counter={result.db.counter}")
+    for old, new in sorted(result.remap.items(), key=lambda kv: kv[1]):
+        console.print(f"  {e(old)} -> {e(new)}")
+
+
+@app.command()
+@common.command
 async def inbox(
     role: str = typer.Argument(..., help="Role slug (e.g. qa)."),
     json_out: bool = typer.Option(False, "--json"),
