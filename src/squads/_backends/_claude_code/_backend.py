@@ -76,7 +76,6 @@ class ClaudeCodeBackend(AgentBackend):
             description=interactions.skill_description("squads"),
             body=render(
                 "agents/squads_skill.md.j2",
-                version=ctx.version,
                 squad_dir=squad_dir,
                 spec=spec,
             ),
@@ -86,7 +85,7 @@ class ClaudeCodeBackend(AgentBackend):
             ctx,
             name="greeting",
             description=interactions.skill_description("greeting"),
-            body=render("agents/greeting_skill.md.j2", version=ctx.version, squad_dir=squad_dir),
+            body=render("agents/greeting_skill.md.j2", squad_dir=squad_dir),
         )
         # CLAUDE.md managed section
         default = next((r for r in roster if r.is_default), None)
@@ -229,7 +228,6 @@ class ClaudeCodeBackend(AgentBackend):
                 "agents/item_skill.md.j2",
                 title=item_type.value.capitalize(),
                 type=item_type.value,
-                version=ctx.version,
                 overview=pb.overview,
                 lifecycle=pb.lifecycle,
                 commands=list(pb.commands),
@@ -255,7 +253,6 @@ class ClaudeCodeBackend(AgentBackend):
                     "agents/item_skill.md.j2",
                     title=ctype.capitalize(),
                     type=ctype,
-                    version=ctx.version,
                     overview="",
                     lifecycle=lifecycle_str,
                     commands=interactions.custom_item_skill_commands(ctype),

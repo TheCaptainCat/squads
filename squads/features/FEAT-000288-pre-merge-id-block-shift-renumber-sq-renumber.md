@@ -3,12 +3,13 @@ id: FEAT-288
 sequence_id: 288
 type: feature
 title: Pre-merge ID block-shift renumber (sq renumber)
-status: Draft
+status: Ready
 parent: EPIC-12
 author: product-owner
 refs:
 - FEAT-283:depends-on
 - ADR-282
+- ADR-295:implements
 description: Block-shift a branch's new IDs into a reserved range before merge, preserving
   referential intent
 subentities:
@@ -28,7 +29,7 @@ subentities:
   title: Pre-merge shift and post-merge --renumber coexist
   status: Todo
 created_at: '2026-07-03T08:18:39Z'
-updated_at: '2026-07-03T08:19:08Z'
+updated_at: '2026-07-05T21:01:48Z'
 ---
 <!-- sq:body -->
 Problem. squads allocates IDs from a single global monotonic counter in .squads.json. When two collaborators work on separate git branches/clones, each runs sq create and both mint the same sequence number (both branch at counter 287 -> both create item 288). On merge you get duplicate global IDs.
@@ -155,4 +156,11 @@ As an operator, pre-merge block-shift is the preferred path when I control the y
 <!-- sq:discussion -->
 - [2026-07-03T08:19:08Z] Nina Product:
   - Grammar-settling work under EPIC-12 (ID-space renumbering). Owes @manager a deferral note to FEAT-13 (stability-contract capstone) when that runs.
+- [2026-07-05T20:55:10Z] Olivia Lead:
+  - ADR VERDICT: an ADR is REQUIRED and must be Accepted before any implementation task is dispatched — mirroring how FEAT-283 built on ADR-282. No dev-ready tasks created yet (see task-shape sketch below). Reasoning: sq renumber is a NEW public CLI command entering the frozen 1.0 grammar surface, operating directly on the identity system, with several load-bearing design choices that are not mechanical and that touch two already-Accepted ADRs (114/117 reflog, 72 global counter). Pinning the CLI spec and these semantics in a dev task now would bake in unratified choices; the feature body itself says 'capability + AC, NOT final CLI spec.'
+  - The ADR must decide: (1) FINAL CLI SPEC — the exact surface (--from/--onto/--by, which subset, their semantics, whether it's 'sq renumber' or a mode of 'sq repair'), so it enters the 1.0 grammar deliberately, not by dev improvisation. (2) BOUNDARY DERIVATION — how 'which IDs are branch-local' is determined: operator-named counter vs derived from git merge-base. CRITICAL: sq has ZERO git dependency today (verified — no subprocess/git invocation anywhere in src/). A merge-base derivation would introduce git-awareness into the tool for the first time — an architectural boundary decision, not an impl detail. The ADR must rule whether sq stays git-agnostic (operator supplies the boundary, e.g. via git show <ref>:squads/.squads.json read OUTSIDE sq) or takes on an optional git dependency.
+  - The ADR must also decide: (3) DISJOINT-BLOCK GUARANTEE — how the offset is chosen/validated so the shifted block lands strictly above the other branch's counter, and what the command does when it can't guarantee disjointness (refuse vs compute). This is what makes the single-pass whole-word substitution safe regardless of order. (4) REFLOG REWRITE — the sharp one. ADR-117 establishes the reflog as append-only, advisory, and 'explicitly NOT a source of truth' (repair never reads it). FEAT-288 proposes rewriting historical reflog 'target' fields (and any IDs inside 'delta' payloads for ref/link ops) in place. That is in direct tension with the append-only contract. The ADR must rule: is an in-place history rewrite legitimate for a renumber (git-filter-branch analogy), or does the reflog get an append-only 'renumber' entry and leave old lines as-is (stale but honest)? Since the reflog is explicitly not a source of truth, leaving it un-rewritten may be defensible — but that contradicts the feature's 'history stops resolving' claim, so it needs an explicit ruling, not a dev's guess. (5) COEXISTENCE — how the pre-merge shift and post-merge 'repair --renumber' are documented as complementary (preferred path vs 'too late, make it valid' fallback), and whether they share the _renumber_plan/rewrite_ids machinery.
+  - Reuse note for the ADR/impl: the machinery already exists — rewrite_ids in _itemfile.py (whole-word \bOLD\b→NEW swap over frontmatter id:/refs + prose) is used by both _services/_maintenance.py::_renumber (post-merge) and _services/_retype.py. The pre-merge shift should reuse _renumber_plan/rewrite_ids, extended with the reflog target/delta fields per decision (4) and sequence_id resync + counter bump to the new max. Filenames stay padded at the filename width via format_item_id(prefix, seq, filename_padding) per ADR-282 — the depends-on FEAT-283 (Done) already unpadded display/prose, so the prose rewrite is now a plain integer swap with no leading-zero trap; padding survives only at the filename-rename seam.
+  - Eventual task shape (sketch only — do NOT create until the ADR is Accepted; then map subtasks to US1-US5): T-a 'Boundary resolution + disjoint-offset planner' (US2 — compute/validate the offset, refuse on overlap) — depends on ADR decisions 2+3; T-b 'Block-shift executor reusing rewrite_ids' (US1 — files+frontmatter+refs+prose, intent-preserving because it runs pre-ambiguity) — decision 1; T-c 'Reflog + inline-mention rewrite' (US3) — decision 4, the ADR gates this most; T-d 'Filename padding at the rename seam' (US4) — decision from ADR-282, likely folds into T-b; T-e 'Coexistence docs + repair --renumber delineation' (US5) — decision 5. @manager: route the ADR to the architect (Robert) and gate 288's implementation on its acceptance.
+  - Deferral note owed: this is grammar-settling work under EPIC-12; per Nina it owes FEAT-13 (stability-contract capstone) a deferral note when that runs — the sq renumber CLI spec the ADR pins becomes part of the 1.0 grammar FEAT-13 freezes.
 <!-- sq:discussion:end -->

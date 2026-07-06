@@ -1,8 +1,9 @@
 """Override-base stamp: read and write the ``<!-- squads:override-base:<version> -->`` marker.
 
-The stamp follows the existing managed-file stamping convention (see ``squads:managed`` and
-``squads:version:…`` in managed skill files).  It is a plain HTML comment, inert to rendering.
-The stamp is the override file's provenance marker: "last reconciled against squads v<version>".
+The stamp follows the existing managed-file stamping convention (see the ``squads:start``/
+``squads:end`` managed-region markers in CLAUDE.md/AGENTS.md).  It is a plain HTML comment,
+inert to rendering.  The stamp is the override file's provenance marker: "last reconciled
+against squads v<version>".
 
 Stamp format::
 

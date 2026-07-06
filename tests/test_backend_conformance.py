@@ -17,7 +17,6 @@ from pathlib import Path
 
 import pytest
 
-from squads import __version__
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code._backend import ClaudeCodeBackend
@@ -75,7 +74,7 @@ def paths(squad_root: Path) -> SquadPaths:
 
 @pytest.fixture
 def ctx(paths: SquadPaths) -> BackendContext:
-    return BackendContext(paths=paths, version=__version__)
+    return BackendContext(paths=paths)
 
 
 @pytest.fixture

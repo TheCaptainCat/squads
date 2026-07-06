@@ -202,7 +202,6 @@ async def test_seed_custom_skills_generates_skill_file(tmp_path, monkeypatch, fr
     The skill body must contain:
     - the auto-linearized lifecycle string for the triage machine
     - the standard command list with 'incident' as the type name
-    - the squads:managed comment (template invariant)
     """
     monkeypatch.chdir(tmp_path)
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
@@ -231,7 +230,6 @@ async def test_seed_custom_skills_generates_skill_file(tmp_path, monkeypatch, fr
 
     skill_file = convention_files[0] if has_convention else legacy_file
     skill_text = skill_file.read_text(encoding="utf-8")
-    assert "<!-- squads:managed" in skill_text
     assert expected_lifecycle in skill_text, (
         f"lifecycle string {expected_lifecycle!r} not found in skill body"
     )

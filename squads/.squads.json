@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 293,
+  "counter": 296,
   "padding": 6,
   "items": {
     "12": {
@@ -2547,7 +2547,7 @@
       "type": "feature",
       "title": "Relocate the do-not-edit warning to agent-facing files",
       "slug": "relocate-the-do-not-edit-warning-to-agent-facing-files",
-      "status": "Draft",
+      "status": "Done",
       "description": "Move the do-not-edit warning off redundant squad-skill bodies onto the agent-facing files sq sync actually regenerates (CLAUDE.md, AGENTS.md, .claude/ pointers), as a cross-backend convention",
       "parent": "EPIC-12",
       "author": "product-owner",
@@ -2593,7 +2593,7 @@
       ],
       "path": "features/FEAT-000287-relocate-the-do-not-edit-warning-to-agent-facing-files.md",
       "created_at": "2026-07-02T15:10:39Z",
-      "updated_at": "2026-07-02T15:12:01Z",
+      "updated_at": "2026-07-05T21:31:13Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2604,7 +2604,7 @@
       "type": "feature",
       "title": "Pre-merge ID block-shift renumber (sq renumber)",
       "slug": "pre-merge-id-block-shift-renumber-sq-renumber",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Block-shift a branch's new IDs into a reserved range before merge, preserving referential intent",
       "parent": "EPIC-12",
       "author": "product-owner",
@@ -2613,7 +2613,8 @@
       "labels": [],
       "refs": [
         "FEAT-283:depends-on",
-        "ADR-282"
+        "ADR-282",
+        "ADR-295:implements"
       ],
       "subentities": [
         {
@@ -2659,7 +2660,7 @@
       ],
       "path": "features/FEAT-000288-pre-merge-id-block-shift-renumber-sq-renumber.md",
       "created_at": "2026-07-03T08:18:39Z",
-      "updated_at": "2026-07-03T08:19:08Z",
+      "updated_at": "2026-07-05T21:01:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -11014,6 +11015,124 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-293"
+    },
+    "294": {
+      "sequence_id": 294,
+      "type": "task",
+      "title": "Relocate do-not-edit warning to agent-facing generated files",
+      "slug": "relocate-do-not-edit-warning-to-agent-facing-generated-files",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-287",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-13",
+        "REV-296:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Remove redundant squad-skill do-not-edit marker and version stamp",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add the warning inside CLAUDE.md and AGENTS.md managed regions",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Make .claude/ pointer files state the pointer itself is regenerated",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST4",
+          "title": "Document the tool-generated-warning rule as an AgentBackend contract",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000294-relocate-do-not-edit-warning-to-agent-facing-generated-files.md",
+      "created_at": "2026-07-05T20:53:29Z",
+      "updated_at": "2026-07-05T21:31:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-294"
+    },
+    "295": {
+      "sequence_id": 295,
+      "type": "decision",
+      "title": "sq renumber pre-merge block-shift: CLI, boundary, disjointness, reflog",
+      "slug": "sq-renumber-pre-merge-block-shift-cli-boundary-disjointness",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-72",
+        "ADR-117",
+        "ADR-282",
+        "FEAT-288"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000295-sq-renumber-pre-merge-block-shift-cli-boundary-disjointness.md",
+      "created_at": "2026-07-05T21:01:35Z",
+      "updated_at": "2026-07-06T07:14:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-295"
+    },
+    "296": {
+      "sequence_id": 296,
+      "type": "review",
+      "title": "Review: relocate do-not-edit warning to agent-facing generated files (TASK-294)",
+      "slug": "review-relocate-do-not-edit-warning-to-agent-facing-generate",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-287"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "BackendContext.version now unread — vestigial after removing the skill-render kwargs",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000296-review-relocate-do-not-edit-warning-to-agent-facing-generate.md",
+      "created_at": "2026-07-05T21:24:58Z",
+      "updated_at": "2026-07-05T21:30:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-296"
     }
   }
 }
