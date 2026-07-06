@@ -72,8 +72,7 @@ class SquadsConfig(BaseModel):
             if isinstance(names, dict):
                 flat["init_names"] = names
         # Back-compat: translate legacy default_backend → active_backends on read.
-        # This handles old TOML files that pre-date the 0.3 schema (active_backends
-        # is part of the 0.3 shape; no migration is needed — the read is tolerant).
+        # No migration is needed — the read itself is tolerant of the old field.
         if "active_backends" not in flat:
             legacy: Any = flat.pop("default_backend", None)
             if isinstance(legacy, str) and legacy:

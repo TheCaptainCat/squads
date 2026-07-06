@@ -1,4 +1,4 @@
-"""Load and validate the bundled default workflow spec (ADR-000214 §3 / ADR-000232 §5).
+"""Load and validate the bundled default workflow spec.
 
 ``load_workflow_spec()`` is the single entry point.  It reads
 ``default_workflow.toml`` via ``importlib.resources`` (offline, no filesystem
@@ -7,26 +7,26 @@ assumption), parses with stdlib ``tomllib``, coerces all string keys/values into
 ``WorkflowSpec.validate()`` (the pydantic ``model_validator``).  A corrupt or
 invalid bundled spec raises ``SquadsError`` — fail closed.
 
-ADR-000232 §5: the loader now routes through ``model_validate(...)`` for each
-spec model so ``extra="forbid"`` fires at parse time, not just at pydantic
-construction, giving consistent fail-closed behaviour across all sub-models.
+The loader routes through ``model_validate(...)`` for each spec model so
+``extra="forbid"`` fires at parse time, not just at pydantic construction,
+giving consistent fail-closed behaviour across all sub-models.
 
-FEAT-000209 (TASK-000239): ``load_workflow_spec(squad_dir=...)`` merges a
-project override from ``<squad_dir>/.overrides/workflow.toml`` over the bundled
-default with **additive-only** semantics.  New types/statuses/lifecycles are
-accepted; shadowing a built-in type, status, or lifecycle raises ``SquadsError``.
+``load_workflow_spec(squad_dir=...)`` merges a project override from
+``<squad_dir>/.overrides/workflow.toml`` over the bundled default with
+**additive-only** semantics.  New types/statuses/lifecycles are accepted;
+shadowing a built-in type, status, or lifecycle raises ``SquadsError``.
 
-FEAT-000209 (TASK-000242/243): ``lint_workflow_spec(squad_dir, db)`` runs ALL
-checks in collect-all-errors mode for ``sq workflow lint`` — pure-spec validation
-plus the live-index cross-check.  Returns a list of ``(level, location, message)``
-triples; never raises.
+``lint_workflow_spec(squad_dir, db)`` runs ALL checks in collect-all-errors
+mode for ``sq workflow lint`` — pure-spec validation plus the live-index
+cross-check.  Returns a list of ``(level, location, message)`` triples; never
+raises.
 
-FEAT-000209 (TASK-000243): ``validate_against_index_fail_closed(spec, squad_dir)``
-is the AC#5 enforcement point called by ``open_service``.  It reads the index
-synchronously (bypassing the async layer) and raises ``SquadsError`` listing
-every offending item ID when the merged spec drops a type or status still used
-by live items.  ``sq workflow lint`` bypasses this by calling ``lint_workflow_spec``
-directly, which reports the same findings in collect mode without aborting.
+``validate_against_index_fail_closed(spec, squad_dir)`` is the enforcement
+point called by ``open_service``.  It reads the index synchronously (bypassing
+the async layer) and raises ``SquadsError`` listing every offending item ID
+when the merged spec drops a type or status still used by live items.
+``sq workflow lint`` bypasses this by calling ``lint_workflow_spec`` directly,
+which reports the same findings in collect mode without aborting.
 """
 
 import importlib.resources
@@ -54,7 +54,7 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
 
     - New types, statuses, and lifecycles are accepted.
     - Redefining a built-in type, status, or lifecycle raises ``SquadsError``.
-    - Unknown TOML keys raise via ``extra="forbid"`` (ADR-000232 §5).
+    - Unknown TOML keys raise via ``extra="forbid"``.
     - If no override file is present the bundled spec is returned unchanged.
 
     Raises ``SquadsError`` on any violation.
@@ -125,7 +125,7 @@ def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
             _coerce_status(d, f"lifecycle {name!r} transition target") for d in dst_strs
         ]
     # Build the dict with ONLY the known keys, then also pass through any extras so
-    # model_validate's extra="forbid" fires on unknown fields (ADR-000232 §5).
+    # model_validate's extra="forbid" fires on unknown fields.
     # The lifecycle TOML format has exactly "initial" + "transitions"; unknown top-level
     # keys should be rejected, but the transitions sub-table must not be passed as extra.
     known_keys = {"initial", "transitions"}
@@ -138,7 +138,7 @@ def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
 
 
 def _parse_ref_rules(raw_rules: list[dict[str, Any]], ctx: str) -> list[RefRule]:
-    """Parse a list of ref-rule dicts into ``RefRule`` objects (ADR-000232 §2).
+    """Parse a list of ref-rule dicts into ``RefRule`` objects.
 
     Passes the raw dict directly to ``model_validate`` so ``extra="forbid"`` rejects
     any unknown keys in a ref-rule table.
@@ -163,7 +163,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     for name, data in raw.get("statuses", {}).items():
         s = _coerce_status(name, "statuses")
         # Pass the full status data dict through model_validate so extra="forbid" fires
-        # on any unknown keys (ADR-000232 §5).
+        # on any unknown keys.
         try:
             statuses[s] = StatusSpec.model_validate(data)
         except Exception as exc:
@@ -196,7 +196,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
             alias_to_type[alias] = t
 
     # WorkflowSpec construction triggers the model_validator (pydantic v2).
-    # Route through model_validate so extra="forbid" fires at construction (ADR-000232 §5).
+    # Route through model_validate so extra="forbid" fires at construction.
     try:
         spec = WorkflowSpec.model_validate(
             {
@@ -314,7 +314,7 @@ def _merge_override(
 ) -> WorkflowSpec:
     """Merge the raw override dict additively over the bundled spec.
 
-    Rules (FEAT-000209 / TASK-000239):
+    Rules:
     - New lifecycles, statuses, and item types are accepted.
     - Redefining a built-in lifecycle, status, or item type raises ``SquadsError``
       (fail-fast on the first conflict; lint uses ``_collect_additive_conflicts``
@@ -382,7 +382,7 @@ def _merge_override(
 
 
 # ---------------------------------------------------------------------------
-# Index cross-check (TASK-000241)
+# Index cross-check
 # ---------------------------------------------------------------------------
 
 
@@ -396,8 +396,8 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
     - Any item whose ``status`` is not declared in ``spec.statuses`` → error listing the item ID.
     - Any sub-entity whose ``status`` is not declared in ``spec.statuses`` → error.
 
-    This is the AC #5 guarantee: removing a status/type from the override that is
-    still referenced by live items fails closed, listing the offending item IDs.
+    Removing a status/type from the override that is still referenced by live
+    items fails closed, listing the offending item IDs.
 
     ``db`` is a ``SquadsDB`` instance; typed ``Any`` here to avoid an import cycle
     (``_workflow`` must not import ``_models._index`` at module level).
@@ -428,7 +428,7 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Collect-all-errors mode for sq workflow lint (FEAT-000209 TASK-000242)
+# Collect-all-errors mode for sq workflow lint
 # ---------------------------------------------------------------------------
 
 #: A lint finding: (level, location, message, fix_hint)
@@ -460,7 +460,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:
        lifecycle reference), the error is captured as a single finding and the
        index cross-check is skipped (no valid merged spec to cross-check).
 
-    3. **Live-index cross-check** via ``validate_against_index`` (AC #5).
+    3. **Live-index cross-check** via ``validate_against_index``.
        Only runs when phases 1 and 2 both pass.  Index is read synchronously
        via ``_load_index_sync``; if the index is absent or unreadable the
        cross-check is skipped.
@@ -507,7 +507,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:
         )
         return findings  # can't cross-check without a valid spec
 
-    # Phase 3 — live-index cross-check (AC #5).
+    # Phase 3 — live-index cross-check.
     db_raw = _load_index_sync(squad_dir)
     if db_raw is not None:
         fix = (
@@ -579,13 +579,13 @@ def _load_index_sync(squad_dir: Path) -> Any:
 
 
 # ---------------------------------------------------------------------------
-# Fail-closed index cross-check for open_service (FEAT-000209 TASK-000243 AC#5)
+# Fail-closed index cross-check for open_service
 # ---------------------------------------------------------------------------
 
 
 def validate_against_index_fail_closed(spec: WorkflowSpec, squad_dir: Path) -> None:
-    """AC#5 enforcement: raise ``SquadsError`` if the merged spec drops types/statuses
-    still referenced by live index items.
+    """Raise ``SquadsError`` if the merged spec drops types/statuses still
+    referenced by live index items.
 
     Called by ``open_service`` after ``load_workflow_spec`` succeeds, before the spec
     is passed to ``Service``.  Reads the index synchronously so no async context

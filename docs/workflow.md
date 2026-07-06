@@ -16,7 +16,7 @@ time and by `sq check`.
    ┌──────────────────┐  parent   ┌───────────────────────────┐
    │ FEATURE          │◀──────────│ TASK                       │
    │  + user stories  │           │  parent = the feature      │
-   │    US1, US2, …   │◀╌╌╌╌╌╌╌╌╌╌│  subtask ST1 (→ US1) …     │
+   │    USn, USm, …   │◀╌╌╌╌╌╌╌╌╌╌│  subtask STn (→ USn) …     │
    └──────────────────┘  maps to  └───────────┬───────────────┘
             ▲ parent                          │ refs
    ┌────────┴────────┐              ┌─────────┴───────────┐
@@ -48,13 +48,13 @@ time and by `sq check`.
 
 ```bash
 # product owner
-sq create feature "User authentication" --parent EPIC-000001
+sq create feature "User authentication" --parent EPIC-<n>
 sq feature 2 add-story "As a user, I want to log in"
 
 # tech lead
-sq create task "Validate token" --parent FEAT-000002
-sq task 3 add-subtask "Check expiry" --story US1
-sq task 3 ref add BUG-000009 --kind fixes        # or REV-… --kind addresses
+sq create task "Validate token" --parent FEAT-<n>
+sq task 3 add-subtask "Check expiry" --story USn
+sq task 3 ref add BUG-<n> --kind fixes        # or REV-… --kind addresses
 
 # everyone
 sq task 3 status InProgress
@@ -137,7 +137,7 @@ no manual markdown editing.
 
 | Sub-entity | Lives on | Add / transition | Lifecycle |
 |------------|----------|------------------|-----------|
-| **subtask** | task | `sq task <n> add-subtask "…" [--story US1]` · `sq task <n> subtask <k> update --status <S>` | `Todo → InProgress → Done` (+ Blocked, Cancelled) |
+| **subtask** | task | `sq task <n> add-subtask "…" [--story USn]` · `sq task <n> subtask <k> update --status <S>` | `Todo → InProgress → Done` (+ Blocked, Cancelled) |
 | **user story** | feature | `sq feature <n> add-story "…"` · `sq feature <n> story <k> update --status <S>` | `Todo → InProgress → Done` (+ Blocked, Cancelled) |
 | **finding** | review | `sq review <n> add-finding "…" --severity high` · `sq review <n> finding <k> update --status <S>` | `Open → Fixed → Verified` (+ WontFix) |
 
@@ -191,7 +191,7 @@ Each line is a JSON object with these fields:
 ```bash
 sq reflog                          # last 50 entries (default)
 sq reflog --tail 0                 # all entries
-sq reflog --item TASK-000042       # filter to one item
+sq reflog --item TASK-<n>          # filter to one item
 sq reflog --actor python-dev       # filter by actor slug
 sq reflog --op status              # filter by operation
 sq reflog --since 2026-06-01       # since a date (ISO 8601)

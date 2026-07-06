@@ -3,7 +3,7 @@
 Each sub-entity's **machine state** (status / assignee / severity / mapped story) lives in the
 parent item's frontmatter — see :class:`squads._models._subentity.SubEntity`. This module owns its
 **prose and presentation**, scaffolded as marker-scoped regions in the parent's body:
-  - a heading line (``### US1 — title``), rendered from the stored title,
+  - a heading line (``### US<n> — title``), rendered from the stored title,
   - an sq-owned ``…:head`` region — a human-readable badge mirror of the state,
   - a ``…:body`` region the **agent** writes freely, and
   - a ``…:discussion`` region ``sq`` appends comments to.
@@ -137,7 +137,7 @@ def extract_mentions(text: str) -> set[str]:
 
 
 def local_id_for(kind: str, token: str) -> str:
-    """Normalize a CLI local-id token to its canonical form: ``2`` → ``ST2``/``US2``/``F2``."""
+    """Normalize a CLI local-id token to its canonical form: ``2`` → ``STn``/``USn``/``Fn``."""
     prefix = _LOCAL_ID_PREFIX[kind]
     t = token.strip()
     return f"{prefix}{int(t)}" if t.isdigit() else t.upper()

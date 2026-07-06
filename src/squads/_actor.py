@@ -6,8 +6,8 @@ cleared by a ``try/finally`` so it never leaks between invocations or tests.
 
 Default: ``"system"`` — the machine itself, when no human or agent set a slug.
 
-Session lineage (ADR-000158)
-----------------------------
+Session lineage
+---------------
 An optional session pair is read **once** at the CLI root callback from two
 environment variables, ``SQUADS_SESSION_ID`` and ``SQUADS_PARENT_SESSION_ID``,
 and carried alongside the slug for the duration of the invocation.
@@ -76,8 +76,7 @@ def current_session() -> tuple[str | None, str | None]:
     """Return the ambient ``(session_id, parent_session_id)`` pair.
 
     Both fields are ``None`` when no session env vars were present — the common
-    case when no orchestrator skill has been written to propagate them.  The
-    slug-only behaviour from before ADR-000158 is preserved exactly.
+    case when no orchestrator skill has been written to propagate them.
 
     **Untrusted / best-effort:** these values are self-declarations from the
     invocation environment; squads cannot verify them.

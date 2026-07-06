@@ -19,7 +19,7 @@ async def to_thread[T](fn: Callable[[], T]) -> T:
     """Run a zero-arg blocking callable on a worker thread; pin the return type.
 
     Pass a zero-arg lambda or ``functools.partial`` — positional forms widen ``T`` to ``Any``
-    under pyright strict (ADR-000153 §pyright notes).
+    under pyright strict.
     """
     return await anyio.to_thread.run_sync(fn)
 

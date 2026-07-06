@@ -1,7 +1,6 @@
-"""`sq override` — manage project-level template and role overrides (ADR-000085).
+"""`sq override` — manage project-level template and role overrides.
 
-The command group joins the 1.0 durable contract; the four subcommands are the complete
-override-management surface:
+The four subcommands are the complete override-management surface:
 
 - ``sq override scaffold <name>`` — copy a bundled template into ``.overrides/`` with stamp.
 - ``sq override list``            — show all overrides with kind, base, and state.

@@ -6,9 +6,9 @@ from it + ``type``).  The ``.md`` frontmatter is the durable truth (it persists 
 ``sequence_id``); this file is an authoritative-at-runtime index rebuildable from those files
 (``sq repair``).
 
-``padding`` is a squad-wide **filename**-width parameter (see ADR-000104, reinterpreted by
-ADR-000282): reconstructed by ``sq repair`` as ``max(stored_padding, max_filename_width)`` — like
-the counter is carried forward. It is consumed only at the filename-building seam
+``padding`` is a squad-wide **filename**-width parameter: reconstructed by ``sq repair`` as
+``max(stored_padding, max_filename_width)`` — like the counter, it is carried forward and never
+shrinks. It is consumed only at the filename-building seam
 (:meth:`SquadsDB.format_id`); display always renders unpadded (``Item.id`` formats at
 :data:`~squads._models._item.DISPLAY_ID_PADDING`, a constant 0 — never this stored value).
 Default is :data:`~squads._models._item.DEFAULT_ID_PADDING` (6) for pre-existing squads.
@@ -26,7 +26,7 @@ from squads._util import NonEmpty
 
 
 def _seq(key: object) -> int:
-    """A dict key → its int sequence: ``5`` / ``"5"`` as-is, legacy ``"TASK-000005"`` → ``5``."""
+    """A dict key → its int sequence: ``5`` / ``"5"`` as-is, legacy ``"PREFIX-000005"`` → ``5``."""
     if isinstance(key, int):
         return key
     s = str(key)
@@ -38,9 +38,9 @@ class SquadsDB(BaseModel):
     squads_version: NonEmpty = "0.0.0"
     #: One global monotonic counter; numbers are unique across all types.
     counter: NonNegativeInt = 0
-    #: Zero-pad width for item **filenames** in this squad (e.g. 6 → ``TASK-000007-slug.md``).
-    #: Never used for display (ADR-000282 — ``Item.id`` is always unpadded).
-    #: Authoritative index state; see ADR-000104.  Never shrinks.
+    #: Zero-pad width for item **filenames** in this squad (e.g. 6 → ``PREFIX-000007-slug.md``).
+    #: Never used for display — ``Item.id`` is always unpadded.
+    #: Authoritative index state.  Never shrinks.
     padding: NonNegativeInt = DEFAULT_ID_PADDING
     #: Items keyed by their global sequence number (the int behind the id).
     items: dict[int, Item] = {}
@@ -60,7 +60,7 @@ class SquadsDB(BaseModel):
         return d
 
     def format_id(self, item_type: str, sequence_id: int, *, prefix: str = "") -> str:
-        """Format a **filename stem** at this squad's current padding width (ADR-000282).
+        """Format a **filename stem** at this squad's current padding width.
 
         Display never calls this — ``Item.id`` always formats unpadded via
         :data:`~squads._models._item.DISPLAY_ID_PADDING`. This is the filename-building seam:
@@ -121,13 +121,13 @@ class SquadsDB(BaseModel):
         """Compute (never store) the items whose forward refs point at ``item_id``.
 
         Comparison is by (prefix, sequence-number) so old-width ref strings
-        (``"TASK-000007"``) and new-width item IDs (``"TASK-0000007"``) are treated as equal
+        (``"PREFIX-000007"``) and new-width item IDs (``"PREFIX-0000007"``) are treated as equal
         — file contents are never rewritten by ``sq migrate repad``, so refs keep their
         original width forever.  Type-prefix matching prevents false positives when two items
         share a sequence number (collision state during renumber).
         """
         target_seq = _seq(item_id)
-        # Extract the type prefix from item_id (e.g. "TASK" from "TASK-000007").
+        # Extract the type prefix from item_id (e.g. "PREFIX" from "PREFIX-000007").
         target_prefix, _, _ = item_id.rpartition("-")
         target_prefix = target_prefix.upper()
 

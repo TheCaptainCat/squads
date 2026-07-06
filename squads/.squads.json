@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 307,
+  "counter": 313,
   "padding": 6,
   "items": {
     "12": {
@@ -2275,7 +2275,7 @@
       "type": "feature",
       "title": "Strip squad-item refs from all non-item content + code-hygiene guard",
       "slug": "strip-squad-item-refs-from-all-non-item-content-code-hygiene",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "tech-lead",
@@ -2329,7 +2329,7 @@
       ],
       "path": "features/FEAT-000237-strip-squad-item-refs-from-all-non-item-content-code-hygiene.md",
       "created_at": "2026-06-26T14:19:55Z",
-      "updated_at": "2026-07-03T09:26:31Z",
+      "updated_at": "2026-07-06T14:39:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -11569,6 +11569,262 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-307"
+    },
+    "308": {
+      "sequence_id": 308,
+      "type": "task",
+      "title": "Sweep src/ commentary: workflow/models/roles/playbook cluster",
+      "slug": "sweep-src-commentary-workflow-models-roles-playbook-cluster",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip refs from comments/docstrings",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Restyle: terse + history-free",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Remove refs from any user-facing strings here",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000308-sweep-src-commentary-workflow-models-roles-playbook-cluster.md",
+      "created_at": "2026-07-06T12:55:24Z",
+      "updated_at": "2026-07-06T13:21:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-308"
+    },
+    "309": {
+      "sequence_id": 309,
+      "type": "task",
+      "title": "Sweep src/ commentary: services/CLI/index/store cluster",
+      "slug": "sweep-src-commentary-services-cli-index-store-cluster",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip refs from comments/docstrings",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Restyle: terse + history-free",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Remove refs from CLI help/output strings",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000309-sweep-src-commentary-services-cli-index-store-cluster.md",
+      "created_at": "2026-07-06T12:55:25Z",
+      "updated_at": "2026-07-06T13:51:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-309"
+    },
+    "310": {
+      "sequence_id": 310,
+      "type": "task",
+      "title": "Strip squad-item refs from bundled TOML comments",
+      "slug": "strip-squad-item-refs-from-bundled-toml-comments",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip refs from TOML structural comments",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000310-strip-squad-item-refs-from-bundled-toml-comments.md",
+      "created_at": "2026-07-06T12:55:26Z",
+      "updated_at": "2026-07-06T13:21:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-310"
+    },
+    "311": {
+      "sequence_id": 311,
+      "type": "task",
+      "title": "Strip squad-item refs from docs/ and README (removal only)",
+      "slug": "strip-squad-item-refs-from-docs-and-readme-removal-only",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Remove refs from docs/README (no rewording)",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Preserve legit CLI-syntax / example payloads",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000311-strip-squad-item-refs-from-docs-and-readme-removal-only.md",
+      "created_at": "2026-07-06T12:55:26Z",
+      "updated_at": "2026-07-06T14:06:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-311"
+    },
+    "312": {
+      "sequence_id": 312,
+      "type": "task",
+      "title": "Strip squad-item refs from bundled prose + CLAUDE.md",
+      "slug": "strip-squad-item-refs-from-bundled-prose-claude-md",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip refs from bundled prose templates",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Verify/clean CLAUDE.md (removal only)",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5"
+        }
+      ],
+      "path": "tasks/TASK-000312-strip-squad-item-refs-from-bundled-prose-claude-md.md",
+      "created_at": "2026-07-06T12:55:27Z",
+      "updated_at": "2026-07-06T14:06:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-312"
+    },
+    "313": {
+      "sequence_id": 313,
+      "type": "task",
+      "title": "CI guard: forbid squad-item refs outside squads/**",
+      "slug": "ci-guard-forbid-squad-item-refs-outside-squads",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-308:depends-on",
+        "TASK-309:depends-on",
+        "TASK-310:depends-on",
+        "TASK-311:depends-on",
+        "TASK-312:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Implement gate + wire into CI",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Tolerate legitimate id-shaped tokens",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Negative check: gate fails on a new ref",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000313-ci-guard-forbid-squad-item-refs-outside-squads.md",
+      "created_at": "2026-07-06T12:55:28Z",
+      "updated_at": "2026-07-06T14:32:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-313"
     }
   }
 }

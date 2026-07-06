@@ -142,8 +142,7 @@ class RemoveResult:
 
     ``removed_id`` is the formatted ID of the deleted item.
     ``severed_refs`` lists the IDs of referrer items whose forward refs were severed (``--force``).
-    The ``op=remove`` reflog entry with the gone-item snapshot is appended post-commit
-    (FEAT-000024 / TASK-000112).
+    The ``op=remove`` reflog entry with the gone-item snapshot is appended post-commit.
     """
 
     removed_id: str
@@ -190,19 +189,19 @@ class WorkloadRow:
 
 @dataclass
 class ReflogEntry:
-    """One parsed reflog line, surfaced by ``sq reflog`` (FEAT-000024 / TASK-000113).
+    """One parsed reflog line, surfaced by ``sq reflog``.
 
     The ``delta`` field is a free-form ``dict`` whose shape depends on ``op``; see
     the reflog schema documentation for the full field reference.  The ``v`` field
     carries the schema version so readers can handle future additions gracefully.
 
     ``session_id`` and ``parent_session_id`` are ``None`` for entries written before
-    schema 0.4 (ADR-000158).  They record **best-effort, untrusted** lineage only —
-    squads is a passive tool that reads optional env vars and records them; it does
-    not mint, spawn, or verify.  Never use these fields as an authorisation input.
+    schema 0.4.  They record **best-effort, untrusted** lineage only — squads is a
+    passive tool that reads optional env vars and records them; it does not mint,
+    spawn, or verify.  Never use these fields as an authorisation input.
 
     Stability note: the *command shape* and the fields listed here are documented;
-    the exact ``delta`` sub-fields are additive and evolve per FEAT-000013's freeze.
+    the exact ``delta`` sub-fields are additive and evolve independently.
     """
 
     v: str

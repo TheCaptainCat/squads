@@ -7,9 +7,8 @@ Drives two things:
 A role that does not interact with an item type does not get that item's skill.
 
 The playbook data is loaded from the bundled ``playbook.toml`` via
-``load_playbook()`` (ADR-000226).  All public constants/functions are thin shims
-over the loaded ``PlaybookSpec`` singleton — behavior is byte-identical to the
-previous hardcoded literals.
+``load_playbook()``.  All public constants/functions are thin shims over the
+loaded ``PlaybookSpec`` singleton.
 """
 
 from dataclasses import dataclass
@@ -104,7 +103,7 @@ SQUADS_SKILL = "squads"
 GREETING_SKILL = "greeting"
 
 # ---------------------------------------------------------------------------
-# Skill description registry — single source of truth (TASK-000204)
+# Skill description registry — single source of truth
 #
 # Every bundled skill's description lives here exactly once.  Both the backend
 # (write_managed / _write_item_skills) and the seeding/migration code read from
@@ -125,7 +124,7 @@ SKILL_DESCRIPTIONS: dict[str, str] = {
     ),
     # sq-<type> descriptions — iterate PLAYBOOK directly (same source as managed_item_types()
     # and bundled_skill_slugs()) so the set stays in sync if a new ItemType is added to the
-    # playbook (F2 — no duplicate hand-written exclusion list).
+    # playbook — no duplicate hand-written exclusion list.
     **{
         f"sq-{item_type.value}": (
             f"Working with {item_type.value} items in this squad: "
@@ -150,7 +149,7 @@ def is_dev_slug(slug: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Advisory sub-entity title threshold (ADR-000167 / FEAT-000166)
+# Advisory sub-entity title threshold
 #
 # Titles above this limit trigger an advisory warn-and-proceed message on all three
 # add-* entry points (add-finding, add-subtask, add-story).  Titles at or below this
@@ -163,11 +162,11 @@ def is_dev_slug(slug: str) -> bool:
 TITLE_ADVISORY_MAX: int = 120
 
 # ---------------------------------------------------------------------------
-# Advisory create-lane derivation (ADR-000163 / FEAT-000122 Slice B)
+# Advisory create-lane derivation
 #
 # The lane is derived from PLAYBOOK using a declarative CREATE_LANES map that is
 # co-located here and asserted-equal-to-the-playbook prose in the mandatory
-# table-pinning test (tests/test_lane_derivation.py).  This is the ADR §2
+# table-pinning test (tests/test_lane_derivation.py).  This is a deliberate
 # fallback: prose-scanning was considered but the "sq create <type>" author verb
 # is not always in the item type's own playbook section (e.g. reviewer's
 # "sq create review" appears in the task playbook's reviewer guide, not in the
@@ -292,9 +291,9 @@ def bundled_skill_slugs() -> list[str]:
     """All bundled skill slugs in deterministic lexical order.
 
     This is the **single shared ordering primitive** consumed by both ``sq init`` seeding and
-    the migration (TASK-000188 / ADR-000181 decision #5).  Any code that allocates SKILL ids
-    must iterate this list so migration and fresh-init assign the same relative ordinal to
-    each skill (identical absolute numbers are impossible because the global counter may differ).
+    the migration.  Any code that allocates SKILL ids must iterate this list so migration and
+    fresh-init assign the same relative ordinal to each skill (identical absolute numbers are
+    impossible because the global counter may differ).
     """
     all_slugs = [SQUADS_SKILL, GREETING_SKILL, *(item_skill_name(t) for t in managed_item_types())]
     return sorted(set(all_slugs))
@@ -303,15 +302,15 @@ def bundled_skill_slugs() -> list[str]:
 def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
     """All custom (non-built-in) type skill slugs for *spec*, in lexical order.
 
-    Extends the FEAT-178 allocation primitive to custom types: each custom type
+    Extends the same allocation primitive to custom types: each custom type
     declared in the spec (beyond the built-in ``ItemType`` members) gets a
     ``sq-<type>`` skill slug allocated in the same lexical-by-slug order so
-    there is no churn of existing SKILL ids (AC#6).
+    there is no churn of existing SKILL ids.
 
     The returned list contains only custom type slugs (not the bundled ones
     returned by ``bundled_skill_slugs()``).  Callers that need the full merged
     set should sort ``bundled_skill_slugs() + custom_skill_slugs(spec)``
-    lexically — the natural extension of ADR-000181 decision #5.
+    lexically.
     """
     builtin_type_names: frozenset[str] = frozenset(t.value for t in ItemType)
     return sorted(
@@ -322,15 +321,15 @@ def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Role -> type authoring prose (TASK-000279 / FEAT-000211)
+# Role -> type authoring prose
 #
 # The "who authors what" cheatsheet narrative (workflow.md.j2) renders from
 # CREATE_LANES (the single declarative source, table-pinned to the playbook) +
 # the bundled role catalog (title lookup) + the WorkflowSpec (type prefix,
 # parent chain, sub-entity kind).  This keeps the bundled-team prose
-# byte-identical (same lane table that has always driven it) while a project
-# that adds a custom type sees its own type surfaced generically wherever the
-# spec drives the text (prefixes, parent chain, sub-entity verbs).
+# byte-identical to the lane table while a project that adds a custom type
+# sees its own type surfaced generically wherever the spec drives the text
+# (prefixes, parent chain, sub-entity verbs).
 #
 # NOTE: CREATE_LANES itself is a fixed bundled-role map — there is no override
 # mechanism yet for *custom roles* authoring *custom types* (only custom types

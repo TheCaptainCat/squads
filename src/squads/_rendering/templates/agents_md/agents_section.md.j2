@@ -28,14 +28,14 @@ _None registered yet._
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-2] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
+sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
 sq task 3 show --full --comments     # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress          # transition (validated per type)
-sq task 3 update --assignee qa --priority high --parent FEAT-2
+sq task 3 update --assignee qa --priority high --parent FEAT-<n>
 sq task 3 body -m "## Description" -m "…"
 sq task 3 comment --as <your-slug> -m "…"   # hand off / @mentions
 sq list --type task --status InProgress      # closed items hidden; --all to include
-sq tree FEAT-2 --json           # a feature's whole subtree (status/blocked)
+sq tree FEAT-<n> --json           # a feature's whole subtree (status/blocked)
 sq search "lockout"                  # match titles, summaries, bodies
 sq mine <your-slug>                  # your open items  ·  sq workload
 sq blocked                           # open items waiting on an open blocker

@@ -108,7 +108,7 @@ def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
             data["title_advisory"] = res.title_advisory
         print_json_clean(json.dumps(data))
         return
-    kind = res.body_tag.split(":")[0]  # e.g. "subtask:ST1:body" → "subtask"
+    kind = res.body_tag.split(":")[0]  # e.g. "subtask:STn:body" → "subtask"
     console.print(f"added [bold]{res.local_id}[/bold] to {parent_id}")
     console.print(
         f'  set its body:  [cyan]sq {kind} body {parent_id} {res.local_id} -m "…"[/cyan]'
@@ -435,7 +435,7 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
 
 
 def command[**P](fn: Callable[P, Awaitable[None]]) -> Callable[P, None]:
-    """The single sync→async bridge for CLI commands (ADR-000153 Decision 3).
+    """The single sync→async bridge for CLI commands.
 
     Wraps an ``async def`` Typer command so Typer sees a sync callable, there is exactly one
     ``anyio.run`` per invocation, and ``SquadsError`` becomes a clean message + ``typer.Exit(1)``
@@ -516,7 +516,7 @@ def _mismatch_msg(label: str, actual_id: str, actual_type: str, expected_type: s
 def _parse_item_token(token: str) -> tuple[int, str | None]:
     """Parse a CLI item token into ``(sequence_number, prefix_or_None)``.
 
-    Accepts bare numbers (``"35"``, ``"000035"``) and full IDs (``"TASK-000035"``).
+    Accepts bare numbers (``"35"``, ``"000035"``) and full IDs (``"PREFIX-000035"``).
     Returns ``(seq, None)`` for bare numbers and ``(seq, head_upper)`` for full IDs.
     Raises :class:`SquadsError` on unparseable input.
 
@@ -537,7 +537,7 @@ def _parse_item_token(token: str) -> tuple[int, str | None]:
 async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str:
     """Resolve a CLI token and verify the item's **actual type** in the live DB.
 
-    Accepts ``35`` / ``000035`` / ``TASK-000035``.  Raises a friendly
+    Accepts ``35`` / ``000035`` / ``PREFIX-000035``.  Raises a friendly
     :class:`SquadsError` on type mismatch (naming the real item and type) or on an
     unknown item (mentioning both accepted forms — full ID and bare number).
 
@@ -562,14 +562,14 @@ async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str
         db = await svc.store.load()
         item = db.get(str(seq))
         if item is None:
-            hint = format_item_id(prefix, seq, DISPLAY_ID_PADDING)  # display width (ADR-000282)
+            hint = format_item_id(prefix, seq, DISPLAY_ID_PADDING)  # display width
             raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
         raise SquadsError(_mismatch_msg(token, item.id, item.type, item_type))
 
     db = await svc.store.load()
     item = db.get(str(seq))
     if item is None:
-        hint = format_item_id(prefix, seq, DISPLAY_ID_PADDING)  # display, not filename (ADR-000282)
+        hint = format_item_id(prefix, seq, DISPLAY_ID_PADDING)  # display, not filename
         raise SquadsError(f"no item with number {seq} (use {hint} or bare {seq})")
     if item.type != item_type:
         raise SquadsError(_mismatch_msg(t, item.id, item.type, item_type))
@@ -579,20 +579,20 @@ async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str
 async def resolve_item_id_any(token: str, svc: Service) -> str:
     """Resolve a CLI token to the full ID of **whatever item owns that sequence number**.
 
-    Accepts a bare number (``35`` / ``000035``) or a full ID (``FEAT-000013``).  The type word in a
-    full ID is validated against the item that actually owns the number; a mismatched prefix raises
-    a :class:`SquadsError`.  Unknown items mention both accepted forms in the error.
+    Accepts a bare number (``35`` / ``000035``) or a full ID (``PREFIX-000035``).  The type
+    word in a full ID is validated against the item that actually owns the number; a
+    mismatched prefix raises a :class:`SquadsError`.  Unknown items mention both accepted
+    forms in the error.
 
     Used by type-less surfaces (``sq tree``, ``--parent``, ``ref add`` targets, …) where the
-    command has no intrinsic item type — TASK-000047 wires this in across those surfaces.
-    One DB read per call.
+    command has no intrinsic item type.  One DB read per call.
     """
     seq, given_prefix = _parse_item_token(token)
     db = await svc.store.load()
     item = db.get(str(seq))
 
     if item is None:
-        hint = format_item_id("TYPE", seq, DISPLAY_ID_PADDING)  # display width (ADR-000282)
+        hint = format_item_id("TYPE", seq, DISPLAY_ID_PADDING)  # display width
         raise SquadsError(f"no item with number {seq} (use a full ID like {hint} or bare {seq})")
 
     if given_prefix is not None:
@@ -686,7 +686,7 @@ class AddressDispatchGroup(typer.core.TyperGroup):
 
 
 def resolve_local_id(token: str, kind: str) -> str:
-    """A CLI sub-entity token → canonical local id: ``2`` → ``ST2``/``US2``/``F2``."""
+    """A CLI sub-entity token → canonical local id: ``2`` → ``STn``/``USn``/``Fn``."""
     return discussion.local_id_for(kind, token)
 
 

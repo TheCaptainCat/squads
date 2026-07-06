@@ -24,7 +24,7 @@ A unit of implementation work. Its parent is the feature it implements; subtasks
 
 ```bash
 sq create task "…" --author tech-lead --parent FEAT-…
-sq task <n> add-subtask "…" --story US1
+sq task <n> add-subtask "…" --story USn
 sq task <n> subtask <k> update --status InProgress   # Todo → InProgress → Done
 sq task <n> ref add BUG-… --kind fixes   # or REV-… --kind addresses
 sq task <n> status InProgress

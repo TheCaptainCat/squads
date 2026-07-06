@@ -1,5 +1,5 @@
 # squads bundled role catalog
-# Encodes today's exact role definitions byte-for-byte (ADR-000221 §2).
+# Encodes the role definitions byte-for-byte.
 # Loaded and validated by load_role_catalog() in _loader.py.
 # DO NOT edit without updating the golden-lock test in tests/test_role_catalog.py.
 

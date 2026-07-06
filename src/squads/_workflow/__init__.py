@@ -1,14 +1,11 @@
 """Per-type status workflows and transition validation.
 
-All workflow capabilities are now methods on ``WorkflowSpec`` (FEAT-000250 /
-TASK-000251).  This module keeps a stable bundled-spec constant for the module-level
-shims and the backward-compat public API (``WORKFLOWS``, ``TERMINAL``, etc.) that
-the golden-lock test asserts.
+Workflow capabilities live as methods on ``WorkflowSpec``. This module keeps a
+stable bundled-spec constant for the module-level shims and the public API
+(``WORKFLOWS``, ``TERMINAL``, etc.) that the golden-lock test asserts.
 
-The process-global mutable singleton (``_active_spec`` list, ``_terminal_ref`` cell,
-in-place dict mutation) has been deleted (FEAT-000250).  All per-invocation spec
-context is now owned by ``Service`` (TASK-000252) and threaded explicitly through
-call sites.
+There is no process-global mutable state here: per-invocation spec context is
+owned by ``Service`` and threaded explicitly through call sites.
 """
 
 from squads._models._enums import (  # noqa: F401 — re-exported for callers
@@ -66,7 +63,7 @@ def _make_allowed_parents(spec: WorkflowSpec) -> dict[str, set[str]]:
     return {
         t: set(ts.parents)
         for t, ts in spec.items.items()
-        if ts.parents  # empty list = unconstrained — omit (matches old behavior)
+        if ts.parents  # empty list = unconstrained — omit it
     }
 
 
@@ -94,9 +91,9 @@ def bundled_spec() -> WorkflowSpec:
 def active_spec() -> WorkflowSpec:
     """Return the bundled default ``WorkflowSpec``.
 
-    The per-invocation spec context lives on ``Service.spec`` (TASK-000252);
-    the CLI per-invocation handle lives in ``_common.get_active_spec()`` (TASK-000253).
-    This function always returns the immutable bundled spec.
+    The per-invocation spec context lives on ``Service.spec``; the CLI
+    per-invocation handle lives in ``_common.get_active_spec()``. This
+    function always returns the immutable bundled spec.
     """
     return _BUNDLED_SPEC
 
@@ -104,8 +101,8 @@ def active_spec() -> WorkflowSpec:
 # ---------------------------------------------------------------------------
 # Free functions — thin shims over the bundled spec.
 #
-# These delegate to the bundled spec.  Service call sites use self.spec.<method>
-# (TASK-000252); CLI call sites use _common.get_active_spec() (TASK-000253).
+# These delegate to the bundled spec.  Service call sites use self.spec.<method>;
+# CLI call sites use _common.get_active_spec().
 # ---------------------------------------------------------------------------
 
 

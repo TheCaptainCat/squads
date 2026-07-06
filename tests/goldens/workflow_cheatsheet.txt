@@ -8,7 +8,7 @@
 
   ```bash
   sq create task "…" --author tech-lead --parent FEAT-…   # --author (a registered agent) is required
-  sq task <n> add-subtask "…" --story US1       # US1 must exist in the parent feature
+  sq task <n> add-subtask "…" --story USn       # USn must exist in the parent feature
   sq task <n> ref add BUG-… --kind fixes        # bug fix  (or REV-… --kind addresses)
   ```
 

@@ -105,7 +105,7 @@ class SubentitiesMixin(ServiceCore):
             block = discussion.build_block(kind, local_id, title, body=body)
             text = sections.append_to_section(text, container, block)
             await self._write_block_file(db, item, path, text=text, head_for=sub)
-            # Advisory title-length check (ADR-000167 / FEAT-000166).
+            # Advisory title-length check.
             # Fires when title length > TITLE_ADVISORY_MAX.  Service must NOT print;
             # the warning rides back on the result to be rendered at the CLI edge.
             title_advisory: str | None = None

@@ -1,5 +1,5 @@
 # squads bundled playbook
-# Encodes today's exact PLAYBOOK byte-for-byte (ADR-000226 §2).
+# Encodes the PLAYBOOK byte-for-byte.
 # Loaded and validated by load_playbook() in _loader.py.
 # DO NOT edit without updating the golden-lock test in tests/test_playbook.py.
 
@@ -111,7 +111,7 @@ overview = "A unit of implementation work. Its parent is the feature it implemen
 lifecycle = "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)"
 commands = [
   'sq create task "…" --author tech-lead --parent FEAT-…',
-  'sq task <n> add-subtask "…" --story US1',
+  'sq task <n> add-subtask "…" --story USn',
   "sq task <n> subtask <k> update --status InProgress   # Todo → InProgress → Done",
   "sq task <n> ref add BUG-… --kind fixes   # or REV-… --kind addresses",
   "sq task <n> status InProgress",

@@ -262,8 +262,8 @@ def _cmd_retype(item: typer.Typer) -> None:
         """Reclassify this item to a different type, keeping its number and body.
 
         The sequence number (and therefore the durable identity) is preserved — only the
-        ID prefix changes (e.g. TASK-000007 → BUG-000007). All incoming references,
-        children's parent links, and prose mentions are rewritten to the new ID.
+        ID prefix changes (e.g. TASK-nnn → BUG-nnn). All incoming references, children's
+        parent links, and prose mentions are rewritten to the new ID.
         """
         target = parse_type(new_type)
         wt = common.get_active_spec().work_types()

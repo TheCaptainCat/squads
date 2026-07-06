@@ -22,9 +22,9 @@ def item_file(sp: SquadPaths, item: Item) -> Path:
 def seq_for_id(item_id: str) -> int:
     """Extract the sequence number (the item's true identity) from any width-variant ID string.
 
-    ``"TASK-000007"`` and ``"TASK-0000007"`` both return ``7``.  All ID-equality checks must
+    ``"PREFIX-000007"`` and ``"PREFIX-0000007"`` both return ``7``.  All ID-equality checks must
     route through this rather than comparing full-ID strings directly — file contents are never
     rewritten by ``sq migrate repad``, so refs and parent fields keep their old width forever.
-    Centralised here (FEAT-000019 shared resolver) so there is one normalisation point.
+    Centralised here so there is one normalisation point.
     """
     return number_for_id(item_id)

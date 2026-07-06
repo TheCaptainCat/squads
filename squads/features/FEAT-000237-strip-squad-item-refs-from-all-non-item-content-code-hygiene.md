@@ -3,7 +3,7 @@ id: FEAT-237
 sequence_id: 237
 type: feature
 title: Strip squad-item refs from all non-item content + code-hygiene guard
-status: Draft
+status: Done
 author: tech-lead
 refs:
 - FEAT-231
@@ -24,7 +24,7 @@ subentities:
   title: Bundled prose stripped of refs without churning wording
   status: Todo
 created_at: '2026-06-26T14:19:55Z'
-updated_at: '2026-07-03T09:26:31Z'
+updated_at: '2026-07-06T14:39:57Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -215,4 +215,12 @@ As a maintainer of the agent-facing guidance, I want the bundled role/skill/play
   - Guard boundary: allowlist = squads/** item markdown (sole legitimate home for refs); forbidden = everything else (src/, docs/, README, CLI strings, bundled prose, CLAUDE.md). Must allow legitimate CLI-syntax templates (--parent FEAT-…) and example payloads (reflog sample with a TASK id).
   - Scheduling split into two waves: the src/ code-commentary sweep stays gated behind EPIC-206 settling (that de-typing work keeps adding these refs); the user-facing sweep has no such dependency and can proceed independently/sooner. Test-name/docstring refs (test_ac5_…) remain FEAT-231's domain — coordinate to avoid double-touching test files.
   - Leaving Draft — backlog scope-expansion only; no tasks, no code touched.
+- [2026-07-06T12:57:15Z] Olivia Lead:
+  - Broke this into 6 tasks (all Draft). EPIC-206 is Done, so BOTH waves are now unblocked. Blast radius measured: ~345 ref-hits in src/*.py (45 files), ~116 in docs/+README (9 files), 10 in bundled TOML (3 files), 4 bundled prose templates, and CLAUDE.md has ZERO digit-refs (template forms only → verify-clean).
+  - TASKS: TASK-308 Sweep src/ commentary — workflow/models/roles/playbook cluster (US1+US2+US4, ~161 hits). TASK-309 Sweep src/ commentary — services/CLI/index/store cluster (US1+US2+US4, ~180 hits, owns _cli). TASK-310 Strip bundled TOML comments (US1, ~10 hits). TASK-311 Strip docs/+README, removal-only (US4, ~116 hits). TASK-312 Strip bundled prose templates + CLAUDE.md, removal-only (US5). TASK-313 CI guard forbidding refs outside squads/** (US3), depends-on 308/309/310/311/312.
+  - KEY SHAPING DECISION — collision avoidance: CLI output strings live INSIDE src/*.py, the same files as the code comments. So CLI-string ref-removal (US4) is folded INTO the src-Python tasks (308/309) rather than split into its own task — one owner per file, no double-touch. The src wave is split 308/309 along disjoint subpackage boundaries so the two dispatches run in parallel without colliding.
+  - WAVE / PARALLELISM PLAN — every cleanup task owns a disjoint file set, so 308, 309, 310, 311, 312 are ALL parallel-safe with each other. Two logical tracks: SRC WAVE (308, 309, 310) and USER-FACING WAVE (311, 312). No hard ordering between the five cleanups. Note: tests/ is out of scope (FEAT-231's domain — coordinate so we don't double-touch test files).
+  - DISPATCH ORDER — (1) Fire all five cleanups (308/309/310/311/312) concurrently, or as the two tracks if you want to bound review load. (2) Land TASK-313 (the gate) LAST, with or immediately after the final cleanup merges, so CI is never red in the interim. Recommendation: the gate author can develop the script EARLY and use it as the cleanups' own completion checker, but the gate MUST merge last (its depends-on edges encode this). TASK-313 also carries the negative check (AC5) proving the gate bites.
+- [2026-07-06T14:39:57Z] Catherine Manager:
+  - FEAT-237 complete across both waves + the gate. Cleanup: TASK-308/309 stripped squad-item refs from all src/ comments/docstrings/CLI strings (+ terse/history-free restyle) across the whole package; TASK-310 the bundled TOML comments; TASK-311 docs/ + README (removal-only, refs->placeholder form); TASK-312 the .j2 bundled-prose templates (+ sq sync regen of skills + rendered goldens); CLAUDE.md verified already ref-clean. Enforcement: TASK-313 shipped tests/test_squad_ref_hygiene.py — a pytest gate (enforced by the existing CI test job) that flags any concrete-digit squad-item ref outside the allowlist (squads/** item files + .squads.json + the three illustrative walkthrough docs tutorial/recipes/adoption + CHANGELOG.md + tests/**), with a negative test proving it bites. Manager-fixed the template hash-manifest (regenerated the unreleased 0.6.0 entry; released 0.5.0/0.4.0 untouched) which TASK-312 had left stale. Verified: full suite green, gate 5/5, pyright+ruff clean. Two deliberate gate carve-outs flagged for follow-up: CHANGELOG.md and tests/** are allowlisted (tests/ ref-hygiene is FEAT-231's domain) — tightening those is future scope.
 <!-- sq:discussion:end -->

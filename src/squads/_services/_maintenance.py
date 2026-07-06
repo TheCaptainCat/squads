@@ -231,16 +231,15 @@ class MaintenanceMixin(ServiceCore):
         Called by ``sq init`` after ``refresh_managed()`` has written the skill body files.
         Each bundled skill receives a full ``Item`` of ``ItemType.SKILL`` with the meta-type
         profile (status ``Active``, no sub-entities), allocated through
-        ``IndexStore.transaction()`` in lexical-by-slug order (ADR-000181 decision #5).
+        ``IndexStore.transaction()`` in lexical-by-slug order.
 
         Files are written with the convention-correct name
-        ``agents/skills/SKILL-<NNNNNN>-<slug>.md`` (ADR-000181 decision #3, amended).
-        The legacy slug-named file written by ``write_managed`` (``<slug>.md``) is renamed to
-        the convention name at this step; the ``sq init`` flow always ends with
-        convention-named files on disk.
+        ``agents/skills/SKILL-<NNNNNN>-<slug>.md``. The legacy slug-named file written by
+        ``write_managed`` (``<slug>.md``) is renamed to the convention name at this step;
+        the ``sq init`` flow always ends with convention-named files on disk.
 
         Idempotent: if a convention-named file ``SKILL-*-<slug>.md`` already exists for a
-        slug, it is left completely untouched (ADR-000181 decision #4).
+        slug, it is left completely untouched.
 
         Returns the list of ``Item``s that were stamped (not including already-stamped ones).
         """
@@ -253,7 +252,7 @@ class MaintenanceMixin(ServiceCore):
             # Check if a convention-named file already exists — idempotent skip.
             existing_convention = list(skills_folder.glob(f"{ItemType.SKILL.prefix}-*-{slug}.md"))
             if existing_convention:
-                continue  # already at convention name — leave id/sequence_id untouched (#4)
+                continue  # already at convention name — leave id/sequence_id untouched
 
             # Look for the legacy slug-named body file written by write_managed.
             legacy_path = skills_folder / f"{slug}.md"
@@ -267,7 +266,7 @@ class MaintenanceMixin(ServiceCore):
                 item_id = db.allocate_id(ItemType.SKILL)
                 # Convention-correct filename from the allocated id.
                 seq = number_for_id(item_id)
-                # Padded filename stem — deliberately NOT the displayed item.id (ADR-000282).
+                # Padded filename stem — deliberately NOT the displayed item.id.
                 new_name = f"{ItemType.SKILL.prefix}-{seq:0{db.padding}d}-{slug}.md"
                 squad_rel = self.paths.squad_relative(ItemType.SKILL, new_name)
                 item = Item(
@@ -341,7 +340,7 @@ class MaintenanceMixin(ServiceCore):
             async with self.store.transaction() as db:
                 item_id = db.allocate_id(ItemType.SKILL)
                 seq = number_for_id(item_id)
-                # Padded filename stem — deliberately NOT the displayed item.id (ADR-000282).
+                # Padded filename stem — deliberately NOT the displayed item.id.
                 new_name = f"{ItemType.SKILL.prefix}-{seq:0{db.padding}d}-{slug}.md"
                 squad_rel = self.paths.squad_relative(ItemType.SKILL, new_name)
                 item = Item(
@@ -381,9 +380,9 @@ class MaintenanceMixin(ServiceCore):
     def _iter_item_files(self) -> Iterator[tuple[str, Path]]:
         """Yield (item_type, markdown path) for every item file across the type folders.
 
-        Skill files follow the ``SKILL-<NNNNNN>-<slug>.md`` convention (ADR-000181 decision
-        #3, amended) so they are scanned with the same ``PREFIX-*.md`` glob as every other
-        type.  Legacy slug-named files (pre-migration) are also yielded so callers can detect
+        Skill files follow the ``SKILL-<NNNNNN>-<slug>.md`` convention so they are scanned
+        with the same ``PREFIX-*.md`` glob as every other type.  Legacy slug-named files
+        (pre-migration) are also yielded so callers can detect
         them; files without an ``id`` in their frontmatter are silently skipped by the
         repair/check callers.
 
@@ -440,10 +439,10 @@ class MaintenanceMixin(ServiceCore):
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
             item = Item.from_frontmatter(data, path=squad_rel)
-            # Load-boundary vocab validation (ADR-000232 §1 / TASK-000235 F1/F5 / TASK-000252):
-            # reject items with an unknown type, status, or sub-entity status before
-            # they enter the rebuilt index.  Use self.spec — the Service-owned spec
-            # (possibly an override) — so repair respects the active workflow spec.
+            # Load-boundary vocab validation: reject items with an unknown type, status, or
+            # sub-entity status before they enter the rebuilt index.  Use self.spec — the
+            # Service-owned spec (possibly an override) — so repair respects the active
+            # workflow spec.
             if item.type not in self.spec.items:
                 raise SquadsError(
                     f"item {item.id} has unknown type {item.type!r} in {md.name}; "
@@ -454,7 +453,7 @@ class MaintenanceMixin(ServiceCore):
                     f"item {item.id} has unknown status {item.status!r} in {md.name}; "
                     f"fix the frontmatter before running `sq repair`"
                 )
-            # F5: sub-entity statuses share the same vocabulary.
+            # Sub-entity statuses share the same vocabulary.
             for sub in item.subentities:
                 if sub.status not in self.spec.statuses:
                     raise SquadsError(
@@ -466,8 +465,8 @@ class MaintenanceMixin(ServiceCore):
             max_n = max(max_n, number_for_id(item.id))
             # Derive the filename digit-run width (PREFIX-<digits>-<slug>.md).
             # The filename, not the frontmatter id, is the in-corpus record of a repad.
-            stem = md.stem  # e.g. "TASK-000007-fix-login"
-            _, _, digits_slug = stem.partition("-")  # e.g. "000007-fix-login"
+            stem = md.stem  # e.g. "TASK-XXXXXX-fix-login"
+            _, _, digits_slug = stem.partition("-")  # e.g. "000042-fix-login"
             digit_run = digits_slug.split("-", 1)[0]  # e.g. "000007"
             if digit_run.isdigit():
                 max_filename_width = max(max_filename_width, len(digit_run))
@@ -475,12 +474,10 @@ class MaintenanceMixin(ServiceCore):
         # Never let the counter regress: keep whichever is higher — the previous high-water mark
         # or the maximum sequence number found on disk.
         db.counter = max(previous_counter, max_n)
-        # Padding (ADR-000104): max(stored_floor, corpus_max_filename_width).
-        # The stored value is the floor; the filename scan is the recompute.
-        # Backfill: previous_padding defaults to DEFAULT_ID_PADDING (6) for pre-existing squads.
-        # F3 (REV-000105): collapsed to a single max() — the <6 guard can never fire when
-        # previous_padding >= DEFAULT_ID_PADDING (always true via the model default), and the
-        # >0 conditional arm was a no-op because max(floor, 0) == floor already.
+        # Padding: max(stored_floor, corpus_max_filename_width).
+        # The stored value is the floor; the filename scan is the recompute. previous_padding
+        # defaults to DEFAULT_ID_PADDING (6) for pre-existing squads, so a single max() with
+        # the corpus width always yields a correct, never-regressing result.
         db.padding = max(previous_padding, max_filename_width)
         await self.store.overwrite(db)
         return db
@@ -535,7 +532,7 @@ class MaintenanceMixin(ServiceCore):
     async def repad(self, new_padding: int) -> int:
         """Raise the squad's ID padding to ``new_padding`` and rename every item file.
 
-        One-way, irreversible format bump (FEAT-000027, ADR-000104):
+        One-way, irreversible format bump:
 
         - Refuses if ``new_padding`` <= the current stored padding (padding never shrinks).
         - Renames every item file across all type folders to
@@ -556,17 +553,17 @@ class MaintenanceMixin(ServiceCore):
 
         renamed = 0
         for _item_type, md in self._iter_item_files():
-            stem = md.stem  # e.g. "TASK-000007-fix-login"
+            stem = md.stem  # e.g. "TASK-XXXXXX-fix-login"
             # Parse PREFIX and digit-run from the stem: PREFIX-<digits>-<slug>
-            file_prefix, _, digits_slug = stem.partition("-")  # "TASK", "000007-fix-login"
-            digit_run, _, slug_part = digits_slug.partition("-")  # "000007", "fix-login"
+            file_prefix, _, digits_slug = stem.partition("-")  # "TASK", "000042-fix-login"
+            digit_run, _, slug_part = digits_slug.partition("-")  # "000042", "fix-login"
             if not digit_run.isdigit():
                 continue  # malformed filename — skip
             seq = int(digit_run)
             # Build the new filename via the canonical formatter — no hand-rolled :0Nd here.
             # Use the prefix extracted from the filename (works for both built-in and custom
-            # types). Padded filename stem — deliberately NOT item.id, which is unpadded
-            # (ADR-000282); formatted from the sequence number at new_padding instead.
+            # types). Padded filename stem — deliberately NOT item.id, which is unpadded;
+            # formatted from the sequence number at new_padding instead.
             base = format_item_id(file_prefix, seq, new_padding)
             new_name = f"{base}-{slug_part}.md" if slug_part else f"{base}.md"
             new_path = md.parent / new_name
@@ -614,11 +611,11 @@ class MaintenanceMixin(ServiceCore):
 
         ``padding`` is the squad's current (filename) padding (from ``db.padding``); the
         **rename** target is minted at this width so renumber on a width-7 squad does not
-        produce width-6 filenames (F1, REV-000105). The **remap** target — fed to
-        ``rewrite_ids`` to rewrite frontmatter ``id:``/refs/prose everywhere — is minted
-        unpadded instead (``DISPLAY_ID_PADDING``, ADR-000282): those two must diverge exactly
-        like the create/rename/retype seams, or the textual substitution would stamp a padded
-        string into content that is supposed to read unpadded.
+        produce width-6 filenames. The **remap** target — fed to ``rewrite_ids`` to rewrite
+        frontmatter ``id:``/refs/prose everywhere — is minted unpadded instead
+        (``DISPLAY_ID_PADDING``): those two must diverge exactly like the create/rename/retype
+        seams, or the textual substitution would stamp a padded string into content that is
+        supposed to read unpadded.
         """
         by_number: dict[int, list[_FileRec]] = {}
         for rec in records:
@@ -841,7 +838,7 @@ class MaintenanceMixin(ServiceCore):
         since: str | None = None,
         tail: int | None = None,
     ) -> list[ReflogEntry]:
-        """Read and filter the reflog (TASK-000113 / ADR-000117 reader contract).
+        """Read and filter the reflog.
 
         - A missing or empty reflog returns an empty list (back-compat).
         - A trailing partial line is skipped silently; interior malformed lines are warn-skipped.
@@ -898,14 +895,14 @@ class MaintenanceMixin(ServiceCore):
         issues += self._check_decisions(index)
         issues += await self._check_unwritten_subentity_bodies(index, on_disk)
         issues += await self._check_status_banners(index, on_disk)
-        # ADR-000085 §3: two override checks — version-drift warn + missing-marker error.
+        # Two override checks — version-drift warn + missing-marker error.
         issues += [
             CheckIssue(level, item, msg)
             for level, item, msg in check_override_issues(self.paths.squad_dir)
         ]
-        # ADR-000141 §4: verify each active backend's managed files are present.
+        # Verify each active backend's managed files are present.
         issues += self._check_backends()
-        # ADR-000167 / FEAT-000166: advisory title-length audit across all sub-entities.
+        # Advisory title-length audit across all sub-entities.
         issues += self._check_subentity_title_lengths(index)
         return issues
 
@@ -1193,8 +1190,6 @@ class MaintenanceMixin(ServiceCore):
         Read-only — does not mutate any item. Each over-long title emits a warn-level
         CheckIssue (advisory only; does not affect the exit code). Fires strictly above
         the threshold (> 120); titles at or below 120 are silent.
-
-        See ADR-000167 / FEAT-000166.
         """
         issues: list[CheckIssue] = []
         for item in index.items.values():

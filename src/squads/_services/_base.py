@@ -158,7 +158,7 @@ def _build_tree_children(
 
     ``item.parent`` may store an old zero-pad width after ``sq migrate repad`` while
     ``item.id`` uses the current width.  Resolving via sequence number makes the tree
-    correct across a repad boundary (FEAT-000027 / TASK-000103).
+    correct across a repad boundary.
 
     Used by ``tree_view`` and shared by any future caller that needs the same
     parent-resolution logic; keeps parent resolution in one place.
@@ -282,10 +282,10 @@ class ServiceCore:
             self._check_author(db, item_type, author, slug)
             self._check_assignee(db, assignee)
             # Resolve the prefix from the spec before allocation so both the filename and
-            # Item.id agree on the correct prefix (ADR-000266).
+            # Item.id agree on the correct prefix.
             resolved_prefix = prefix_for(item_type, self.spec)
             # item_id is the padded filename stem (SquadsDB.allocate_id formats at db.padding);
-            # deliberately NOT the same width as the displayed Item.id (ADR-000282).
+            # deliberately NOT the same width as the displayed Item.id.
             item_id = db.allocate_id(item_type, prefix=resolved_prefix)
             filename = f"{item_id}-{slug}.md"
             squad_rel = self.paths.squad_relative(item_type, filename, spec=self.spec)
@@ -319,8 +319,7 @@ class ServiceCore:
                 rendered = sections.replace_section(rendered, markers.BODY, body)
             await write_new(self.paths.abspath(squad_rel), item, rendered)
             db.add(item)
-            # Advisory lane check (ADR-000163 / FEAT-000122 Slice B).
-            # Keyed on the declared author slug (ADR §3.1).  Exempt before lookup.
+            # Advisory lane check, keyed on the declared author slug. Exempt before lookup.
             # Service must NOT print — warning rides back in the result.
             # Only laned item types (those in LANED_TYPES) participate in the lane domain;
             # internal artifact types (role, skill, operator) are never lane-checked.
@@ -398,7 +397,7 @@ class ServiceCore:
     ) -> list[TreeNode]:
         """Return the filtered, depth-bounded item hierarchy as a list of root ``TreeNode`` s.
 
-        Algorithm (per TASK-000185 spec):
+        Algorithm:
 
         1. Load candidate set — all items; drop closed ones unless ``include_closed``.
         2. Build parent→children map and id→item map via ``_build_tree_children``.

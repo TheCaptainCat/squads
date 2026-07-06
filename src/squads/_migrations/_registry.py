@@ -88,8 +88,8 @@ MIGRATIONS: list[Migration] = [
         from_schema="0.5",
         to_schema="0.7",
         summary=(
-            "Unpadded display IDs (ADR-000282): rewrite every frontmatter id/ref/parent and "
-            "body-prose ID mention to the unpadded form; filenames stay padded, untouched."
+            "Unpadded display IDs: rewrite every frontmatter id/ref/parent and body-prose "
+            "ID mention to the unpadded form; filenames stay padded, untouched."
         ),
         run=_wrap_sync(_v0_5_to_v0_7.migrate),
         manual=_v0_5_to_v0_7.MANUAL,

@@ -1,8 +1,8 @@
 """Schema 0.4 → 0.5 runner: stamp SKILL ids onto existing ``agents/skills/`` body files
-and rename them to the ``SKILL-<NNNNNN>-<slug>.md`` convention (ADR-000181, decision #3).
+and rename them to the ``SKILL-<NNNNNN>-<slug>.md`` convention.
 
-This migration retrofits squads that were created before FEAT-000178 landed.  For each
-bundled skill slug, in lexical order (ADR-000181 decision #5):
+This migration retrofits squads whose skill files predate that convention.  For each
+bundled skill slug, in lexical order:
 
 1. If a **convention-correct** file ``agents/skills/SKILL-<NNNNNN>-<slug>.md`` already
    exists, it is completely skipped (idempotent — re-running after a successful migration
@@ -10,21 +10,21 @@ bundled skill slug, in lexical order (ADR-000181 decision #5):
 
 2. If a **legacy slug-named** file ``agents/skills/<slug>.md`` exists:
 
-   - If it **has no frontmatter id** (unstamped pre-178 file): allocate a new ``SKILL-…``
-     id through ``IndexStore.transaction()`` (invariant #2), stamp sq frontmatter, rename
-     the file to the convention name, and rewrite the ``.claude/skills/<slug>/SKILL.md``
-     pointer to reference the renamed path.
+   - If it **has no frontmatter id** (unstamped legacy file): allocate a new ``SKILL-…``
+     id through ``IndexStore.transaction()``, stamp sq frontmatter, rename the file to the
+     convention name, and rewrite the ``.claude/skills/<slug>/SKILL.md`` pointer to
+     reference the renamed path.
 
-   - If it **already carries a frontmatter id** (stamped but still slug-named — i.e. our
-     own repo's state after a partial migration): extract the id from frontmatter, rename
-     to the convention name, and rewrite the pointer.  No new id is allocated.
+   - If it **already carries a frontmatter id** (stamped but still slug-named — a
+     partially-migrated repo): extract the id from frontmatter, rename to the convention
+     name, and rewrite the pointer.  No new id is allocated.
 
 3. If neither file exists, skip (skill body not written yet; run ``sq sync`` first).
 
-**Ordering parity** (ADR-000181 decision #5): skills are processed in the same
-lexical-by-slug order as ``seed_bundled_skills()`` (used by ``sq init``).
+**Ordering parity:** skills are processed in the same lexical-by-slug order as
+``seed_bundled_skills()`` (used by ``sq init``).
 
-**Idempotent** (ADR-000181 decision #4): ids are never reallocated; re-running is a no-op.
+**Idempotent:** ids are never reallocated; re-running is a no-op.
 
 **What happens after this runner returns:**
 ``run_pending_migrations`` (``_services/_maintenance.py``) calls ``repair()`` which
@@ -162,13 +162,13 @@ async def _rename_stamped_legacy(
 async def migrate(paths: SquadPaths) -> int:
     """Stamp SKILL ids and rename legacy slug-named files to the convention.
 
-    Walks ``agents/skills/`` in lexical-by-slug order (shared ordering primitive,
-    ADR-000181 decision #5), allocates a new ``SKILL-…`` id per unstamped file through
-    ``IndexStore.transaction()`` (invariant #2), stamps sq frontmatter, renames the file
-    to ``SKILL-<NNNNNN>-<slug>.md``, and rewrites the ``.claude`` pointer.
+    Walks ``agents/skills/`` in lexical-by-slug order (shared ordering primitive),
+    allocates a new ``SKILL-…`` id per unstamped file through ``IndexStore.transaction()``,
+    stamps sq frontmatter, renames the file to ``SKILL-<NNNNNN>-<slug>.md``, and rewrites
+    the ``.claude`` pointer.
 
-    If a convention file already exists but has an empty description (our own repo state
-    before TASK-204 landed), backfills the description from the registry.
+    If a convention file already exists but has an empty description, backfills the
+    description from the registry.
 
     Returns the count of files acted on (stampings + renames + backfills).
     """
@@ -214,7 +214,7 @@ async def migrate(paths: SquadPaths) -> int:
             # Unstamped: allocate id → stamp → rename → rewrite pointer.
             async with store.transaction() as db:
                 # item_id is the padded filename stem (allocate_id formats at db.padding);
-                # deliberately NOT the unpadded displayed Item.id (ADR-000282).
+                # deliberately NOT the unpadded displayed Item.id.
                 item_id = db.allocate_id(ItemType.SKILL)
                 new_name = _convention_name(slug, item_id, db.padding)
                 squad_rel = paths.squad_relative(ItemType.SKILL, new_name)

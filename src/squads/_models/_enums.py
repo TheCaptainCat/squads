@@ -1,8 +1,8 @@
 """Item types, status values, and the enum/badge helpers.
 
-Vocabulary tables (prefix, folder, alias, type-by-prefix) have been centralised in
-:mod:`squads._models._vocab` (ADR-000266 / TASK-000267).  Import from there for any
-call site that needs prefix or folder resolution; the enums here delegate to that module.
+Vocabulary tables (prefix, folder, alias, type-by-prefix) live in
+:mod:`squads._models._vocab`.  Import from there for any call site that needs
+prefix or folder resolution; the enums here delegate to that module.
 """
 
 from enum import StrEnum

@@ -70,6 +70,6 @@ project/
 └─ squads/                  ◀──┘  self-contained, relocatable (override with --dir)
    ├─ .squads.json               the index: counter + items + refs  (rebuildable)
    ├─ epics/  features/  tasks/  bugs/  adrs/  reviews/  guides/
-   │     └─ TASK-000003-fix-login.md      ← frontmatter is the truth
+   │     └─ TASK-<n>-fix-login.md          ← frontmatter is the truth
    └─ agents/{roles,skills}/
 ```

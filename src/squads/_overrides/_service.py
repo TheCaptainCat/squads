@@ -1,4 +1,4 @@
-"""Service-level logic for the ``sq override`` command group (ADR-000085 §3).
+"""Service-level logic for the ``sq override`` command group.
 
 Provides:
 - :func:`scan_overrides` — enumerate every present override with kind, stamp, and state.
@@ -46,7 +46,7 @@ from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
 # ─── Override state ────────────────────────────────────────────────────────────
 
-# Values for OverrideEntry.state (part of the durable contract per ADR §5).
+# Values for OverrideEntry.state (part of the durable contract).
 STATE_CURRENT = "current"  # stamp == running version OR bundled counterpart unchanged
 STATE_DRIFTED = "drifted"  # stamp < running version AND bundled counterpart changed
 STATE_BROKEN = "broken"  # missing a required sq:* marker region

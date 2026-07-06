@@ -135,8 +135,8 @@ class ItemsMixin(ServiceCore):
     def _rename(self, db: SquadsDB, item: Item, new_title: str) -> None:
         new_slug = slugify(new_title)
         old_path = item_file(self.paths, item)
-        # Filename stem must stay padded even though item.id is unpadded (ADR-000282) — format
-        # it explicitly from the sequence number, never by concatenating item.id.
+        # Filename stem must stay padded even though item.id is unpadded — format it
+        # explicitly from the sequence number, never by concatenating item.id.
         new_stem = format_item_id(item.prefix, item.sequence_id, db.padding)
         new_rel = self.paths.squad_relative(item.type, f"{new_stem}-{new_slug}.md", spec=self.spec)
         new_path = self.paths.abspath(new_rel)
@@ -266,13 +266,11 @@ class ItemsMixin(ServiceCore):
         - When ``force`` is True, severs every incoming ref by removing the matching forward-
           edge entry from each referrer's frontmatter, inside the **same transaction**.
 
-        **Counter invariant (ADR-000114 / BUG-000022):**
-        ``db.counter`` is **never modified** here.  A freed sequence number is a sanctioned
-        gap — it is never reissued.
+        **Counter invariant:** ``db.counter`` is **never modified** here.  A freed sequence
+        number is a sanctioned gap — it is never reissued.
 
-        **Reflog (FEAT-000024 / TASK-000112):**
-        The op identity (``op=remove``) and gone-item snapshot are assembled here and appended
-        post-commit via ``store._log()`` inside the transaction.
+        **Reflog:** the op identity (``op=remove``) and gone-item snapshot are assembled
+        here and appended post-commit via ``store._log()`` inside the transaction.
         """
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
@@ -326,12 +324,12 @@ class ItemsMixin(ServiceCore):
             # Unlink BEFORE the index commit so the safe failure direction is preserved:
             # a crash here leaves the file gone with the index still referencing it —
             # sq repair drops the orphan entry.  The reverse (index-gone / file-survives)
-            # would let sq repair resurrect the removed item (ADR-000114 §1).
+            # would let sq repair resurrect the removed item.
             path.unlink(missing_ok=True)
             del db.items[item.sequence_id]
-            # counter is intentionally NOT modified — the gap is sanctioned (ADR-000114 §4)
+            # counter is intentionally NOT modified — the gap is sanctioned.
 
-            # Reflog: op=remove + gone-item snapshot (ADR-000114 §2 / FEAT-000024 / TASK-000112).
+            # Reflog: op=remove + gone-item snapshot.
             # Appended AFTER os.replace by the store's transaction machinery.
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "remove",

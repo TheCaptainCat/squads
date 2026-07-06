@@ -1,7 +1,6 @@
 # squads default workflow specification
-# Encodes today's exact vocabulary byte-for-byte (ADR-000214 §2).
-# ADR-000232 §2/§5: capability flags added (is_meta, subentity_kind, severity_field,
-# parent_required, ref_rules) and StatusSpec.role; all reproduce today's semantics.
+# Encodes the vocabulary byte-for-byte, including capability flags (is_meta,
+# subentity_kind, severity_field, parent_required, ref_rules) and StatusSpec.role.
 # Loaded and validated by load_workflow_spec() in _loader.py.
 # DO NOT edit without updating the golden-lock test in tests/test_workflow_spec.py.
 

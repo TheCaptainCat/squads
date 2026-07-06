@@ -4,13 +4,13 @@ One line per mutating ``sq`` operation, written **after** the index ``os.replace
 commit while still holding the file lock.  Applied-without-logged is the tolerated
 failure mode; logged-without-applied is designed out by the strict ordering.
 
-Line shape (ADR-000117 §4, extended by ADR-000158 for session lineage):
+Line shape, including the optional session lineage fields:
 
 .. code-block:: json
 
     {"v": "0.4", "ts": "2026-06-15T10:00:00Z", "actor": "python-dev",
      "session_id": "sid-abc", "parent_session_id": "sid-xyz",
-     "op": "status", "target": "TASK-000112", "delta": {"status": ["Draft", "InProgress"]}}
+     "op": "status", "target": "TASK-XXXXXX", "delta": {"status": ["Draft", "InProgress"]}}
 
 Fields
 ------
@@ -18,7 +18,7 @@ Fields
 - ``ts``                 — ISO-8601 UTC timestamp, from ``clock.iso(clock.now())``.
 - ``actor``              — acting identity slug (flat string), from
                            :func:`squads._actor.current_actor`.  **Kept as a bare string for
-                           back-compat** (FEAT-000013 stability contract).
+                           back-compat.**
 - ``session_id``         — *optional*, omitted when ``None``.  Best-effort, untrusted opaque id
                            for the current session, read from ``SQUADS_SESSION_ID`` env var if
                            present.  squads does **not** mint, inject, or verify this value.
@@ -30,7 +30,7 @@ Fields
                            ``create`` / ``status`` / ``update`` / ``body`` / ``comment`` /
                            ``subentity`` / ``ref`` / ``link`` / ``remove`` / ``repair`` /
                            ``migrate`` / ``renumber``.
-- ``target``             — the affected item ID (formatted, e.g. ``"TASK-000112"``).
+- ``target``             — the affected item ID (formatted, e.g. ``"TASK-XXXXXX"``).
 - ``delta``              — compact before→after summary; shape depends on ``op``.
 
 **Session lineage guarantee: best-effort, untrusted, observability-only.**
@@ -42,10 +42,10 @@ Append semantics
 ----------------
 One ``O_APPEND`` ``write`` of a single newline-terminated JSON line.  A single
 ``write`` under ``O_APPEND`` is atomic on POSIX for our line sizes.  No fsync —
-the reflog is advisory; fsyncing the index is sufficient (ADR-000117 §1).
+the reflog is advisory; fsyncing the index is sufficient.
 
-Reader tolerance (TASK-000113)
--------------------------------
+Reader tolerance
+----------------
 A trailing partial/unparseable line is skipped silently; interior bad lines are
 warn-skipped.  A missing file is an empty log — never an error.
 **Legacy slug-only lines** (no ``session_id``/``parent_session_id`` fields) parse
@@ -66,8 +66,8 @@ class ReflogLine:
     """One parsed reflog entry.
 
     ``session_id`` and ``parent_session_id`` are ``None`` for legacy lines
-    written before ADR-000158 (schema < 0.4).  Both absence and ``None`` map to
-    the same in-memory value — no rewrite is needed.
+    (schema < 0.4) that carry no session fields.  Both absence and ``None`` map
+    to the same in-memory value — no rewrite is needed.
     """
 
     v: str
@@ -104,7 +104,7 @@ async def append_line(
 
     The swallow of ``(OSError, TypeError, ValueError)`` is kept **inside** the
     threaded closure so no exception ever crosses the loop boundary
-    (ADR-000153 Decision 2 — reflog never-raise contract).
+    (reflog never-raise contract).
     """
     from squads import _aio
 
@@ -113,7 +113,7 @@ async def append_line(
         "ts": ts,
         "actor": actor,
     }
-    # Additive optional siblings — omit when None to keep lines small (ADR-000158 §3).
+    # Additive optional siblings — omit when None to keep lines small.
     if session_id is not None:
         record["session_id"] = session_id
     if parent_session_id is not None:
@@ -164,7 +164,7 @@ async def read_lines(path: Path) -> list[ReflogLine]:
     if lines and lines[-1] == "":
         lines = lines[:-1]  # drop the trailing empty string from a well-formed file
     elif lines and lines[-1]:
-        # Trailing partial line (no terminating "\n") — skip silently (ADR-000117 §2).
+        # Trailing partial line (no terminating "\n") — skip silently.
         lines = lines[:-1]
 
     out: list[ReflogLine] = []
@@ -190,7 +190,7 @@ async def read_lines(path: Path) -> list[ReflogLine]:
                 )
             )
         except Exception:
-            # Interior malformed line — warn and skip (ADR-000117 §2).
+            # Interior malformed line — warn and skip.
             print(
                 f"[squads reflog] warning: skipping malformed line {i + 1} in {path}",
                 file=sys.stderr,
