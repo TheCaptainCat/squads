@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 304,
+  "counter": 307,
   "padding": 6,
   "items": {
     "12": {
@@ -2364,7 +2364,7 @@
       "type": "feature",
       "title": "Guard against stale status/lifecycle prose in item bodies",
       "slug": "guard-against-stale-status-lifecycle-prose-in-item-bodies",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "tech-lead",
@@ -2386,7 +2386,7 @@
       ],
       "path": "features/FEAT-000264-guard-against-stale-status-lifecycle-prose-in-item-bodies.md",
       "created_at": "2026-06-30T12:20:12Z",
-      "updated_at": "2026-06-30T13:20:56Z",
+      "updated_at": "2026-07-06T12:50:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7234,7 +7234,7 @@
       "subentities": [],
       "path": "adrs/ADR-000129-python-3-14-floor-pep-649-lazy-annotations-vs-installable-au.md",
       "created_at": "2026-06-15T12:10:13Z",
-      "updated_at": "2026-06-15T12:30:16Z",
+      "updated_at": "2026-07-06T12:36:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7388,9 +7388,9 @@
       "subentities": [],
       "path": "adrs/ADR-000155-capability-attenuation-leaf-roles-cannot-spawn-enforced-at-t.md",
       "created_at": "2026-06-21T21:40:15Z",
-      "updated_at": "2026-06-22T09:58:26Z",
+      "updated_at": "2026-07-06T12:37:00Z",
       "created_session": null,
-      "modified_session": "verify-sess-001",
+      "modified_session": null,
       "extra": {},
       "id": "ADR-155"
     },
@@ -7414,7 +7414,7 @@
       "subentities": [],
       "path": "adrs/ADR-000158-agent-identity-spawn-lineage-best-effort-untrusted-lineage-o.md",
       "created_at": "2026-06-22T07:44:10Z",
-      "updated_at": "2026-06-22T09:10:06Z",
+      "updated_at": "2026-07-06T12:37:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7441,7 +7441,7 @@
       "subentities": [],
       "path": "adrs/ADR-000163-advisory-create-lane-enforcement-slice-b.md",
       "created_at": "2026-06-22T12:14:44Z",
-      "updated_at": "2026-06-22T12:35:54Z",
+      "updated_at": "2026-07-06T12:37:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -11440,6 +11440,135 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-304"
+    },
+    "305": {
+      "sequence_id": 305,
+      "type": "task",
+      "title": "Document 'no status/lifecycle prose in bodies' convention in CLAUDE.md",
+      "slug": "document-no-status-lifecycle-prose-in-bodies-convention-in-c",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-264",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Write the convention paragraph in CLAUDE.md",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Resolve the repo CLAUDE.md ## Status section + record decision",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000305-document-no-status-lifecycle-prose-in-bodies-convention-in-c.md",
+      "created_at": "2026-07-06T12:13:32Z",
+      "updated_at": "2026-07-06T12:31:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-305"
+    },
+    "306": {
+      "sequence_id": 306,
+      "type": "task",
+      "title": "Add sq check rule flagging leading status/lifecycle banners in bodies",
+      "slug": "add-sq-check-rule-flagging-leading-status-lifecycle-banners",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-264",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-237"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Implement the leading-banner detector helper + wire into check",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add positive + negative detector tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Reconcile broken fixtures/goldens without weakening the detector",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000306-add-sq-check-rule-flagging-leading-status-lifecycle-banners.md",
+      "created_at": "2026-07-06T12:13:33Z",
+      "updated_at": "2026-07-06T12:31:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-306"
+    },
+    "307": {
+      "sequence_id": 307,
+      "type": "task",
+      "title": "Sweep dogfood tree of existing status/lifecycle body banners",
+      "slug": "sweep-dogfood-tree-of-existing-status-lifecycle-body-banners",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-264",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-306:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Enumerate + clean flagged item bodies via the guard",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Verify markers/frontmatter intact after the sweep",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000307-sweep-dogfood-tree-of-existing-status-lifecycle-body-banners.md",
+      "created_at": "2026-07-06T12:13:33Z",
+      "updated_at": "2026-07-06T12:50:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-307"
     }
   }
 }

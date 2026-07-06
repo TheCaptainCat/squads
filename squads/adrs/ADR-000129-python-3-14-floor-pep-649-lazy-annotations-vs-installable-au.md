@@ -10,17 +10,9 @@ refs:
 - FEAT-13
 - FEAT-17
 created_at: '2026-06-15T12:10:13Z'
-updated_at: '2026-06-15T12:30:16Z'
+updated_at: '2026-07-06T12:36:59Z'
 ---
 <!-- sq:body -->
-## Status
-
-Accepted.
-
-This ADR ratifies a decision that is already encoded in `pyproject.toml`; it does not change any
-configuration. Its purpose is to convert an implicit consequence of our coding style into an
-explicit, recorded decision on the record for 1.0.
-
 ## Context
 
 squads deliberately omits `from __future__ import annotations`. The codebase relies on

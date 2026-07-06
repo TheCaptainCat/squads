@@ -12,17 +12,9 @@ refs:
 - ADR-158
 - FEAT-125
 created_at: '2026-06-22T12:14:44Z'
-updated_at: '2026-06-22T12:35:54Z'
+updated_at: '2026-07-06T12:37:01Z'
 ---
 <!-- sq:body -->
-## Status
-
-Proposed — design for FEAT-122 Slice B (US1). Goes to the operator (Pierre) for approval
-before any build. Parent context EPIC-121. Builds directly on Nina's lane-rules spec
-(FEAT-122 body §1–§5, AC-B1..AC-B7) and adopts it; consistent with ADR-155
-(capability attenuation) and ADR-158 (best-effort, untrusted lineage). Identity primitive
-(FEAT-125) is Done — `current_actor()` and `current_session()` are available.
-
 ## Context
 
 Slice B asks: when an agent role authors an item type outside its lane (e.g. a `python-dev`

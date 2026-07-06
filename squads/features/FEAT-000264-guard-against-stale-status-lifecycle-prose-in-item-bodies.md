@@ -3,7 +3,7 @@ id: FEAT-264
 sequence_id: 264
 type: feature
 title: Guard against stale status/lifecycle prose in item bodies
-status: Draft
+status: Done
 author: tech-lead
 refs:
 - FEAT-237
@@ -12,7 +12,7 @@ subentities:
   title: The tracker's status is never contradicted by body prose
   status: Todo
 created_at: '2026-06-30T12:20:12Z'
-updated_at: '2026-06-30T13:20:56Z'
+updated_at: '2026-07-06T12:50:04Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -173,4 +173,13 @@ As a maintainer, I want every item's lifecycle position to come solely from its 
   - Open design call for whoever picks this up: this repo's own CLAUDE.md '## Status' section is the same shape — decide keep / reword / explicitly-exempt. @manager
 - [2026-06-30T13:20:56Z] Catherine Manager:
   - Live corpus offender found 2026-06-30 (stronger than the ADR-264 example already in the body): TASK-257's body carried a standing '### The startup-ordering problem — THIS TASK IS BLOCKED ON THE ADR' banner plus 'Dependencies: BLOCKED ON: the startup-ordering ADR'. ADR-263 was accepted afterward and nobody cleared the banner — so the body asserted a blocker that no longer existed. This actively misled a manager triage into reporting the ADR didn't exist and the critical path was blocked. Exactly this feature's thesis: a stale 'status:' field is caught by the tracker, but stale lifecycle PROSE in a body has nothing watching it. Detection-wise it's the high-signal case the heuristic targets — a leading 'BLOCKED ON …' self-declaration in a body/heading, distinct from citing another item's status as context. (Banner since cleared on TASK-257 and moved to a dated comment.)
+- [2026-07-06T12:15:31Z] Olivia Lead:
+  - Broke this down into 3 tasks (all Draft), subtasks mapped to US1.
+  - TASK-305 — Document the 'no status/lifecycle prose in bodies' convention in CLAUDE.md (Axis 1). ST1 write the convention paragraph (bans body + description: state-as-prose, explicitly permits dated discussion comments as the sanctioned append-only channel, distinguishes state-declaration from lifecycle-as-topic); ST2 resolve the repo's own CLAUDE.md ## Status section (editorial only — the sq check rule never scans CLAUDE.md; keep vs reword, recommend reword, record the choice). No source touched.
+  - TASK-306 — Add the sq check rule flagging leading status/lifecycle banners in bodies (Axis 2, the code). New _check_* helper in _services/_maintenance.py mirroring FEAT-289's _check_unwritten_subentity_bodies: reads the :body marker region + item.description, flags ONLY a leading STATUS:/**STATUS…** banner or a hand-written ##/### Status heading, warn severity, lints sq:body+description and never sq:discussion, false-positive-averse (no topical mentions, cross-refs, code-fences). ST1 helper+wiring, ST2 positive+negative tests, ST3 reconcile fixtures/goldens WITHOUT weakening the detector. related→FEAT-237 (disjoint surface, no cross-fire). warn-then-error promotion to a blocking error is a deferred fast-follow, out of scope.
+  - TASK-307 — Sweep the dogfood tree of existing status/lifecycle body banners (corpus cleanup). depends-on TASK-306 (the detector defines the worklist). ST1 enumerate + clean flagged bodies (move durable state to dated comments, edit only via sq), ST2 verify markers/frontmatter intact. Known offenders: the once-'STATUS: Proposed' ADR now Accepted, and any leading 'BLOCKED ON …'/## Status self-declarations.
+  - Build order: WAVE 1 (parallel) TASK-305 (docs) + TASK-306 (guard); WAVE 2 TASK-307 (sweep) after 306 is green. TASK-305 and TASK-306 are independent.
+  - Scope call on cleaning existing violations: IN-SCOPE (AC5 requires the corpus pass), delivered as the bounded TASK-307 sweep scheduled after the guard lands so the detector — not eyeballing — sets the worklist. TASK-306 owns test-fixture/golden reconciliation (may break like FEAT-289) and must NOT weaken the detector to pass; TASK-307 owns the live-tree data cleanup. Shipped source in TASK-306 carries no sq IDs; task/subtask bodies may.
+- [2026-07-06T12:50:04Z] Catherine Manager:
+  - FEAT-264 complete. TASK-305: CLAUDE.md convention added (no status/lifecycle self-declaration in bodies or description: summaries; timestamped discussion comments are the sanctioned place for state-at-a-point-in-time), and the repo's own '## Status' section reworded to '## Build scope'. TASK-306: new advisory sq check rule _check_status_banners — flags only a LEADING banner (body/section opening with STATUS:/**STATUS**/## Status heading) or a description opening with one, skips sq:discussion, warn severity; shipped with positive AND negative tests (topical lifecycle mentions, cross-refs, fenced-code examples, and discussion comments all correctly NOT flagged). TASK-307: swept the four ADRs the detector flagged (ADR-129/155/158/163) — deleted the leading status banners (not reworded). Manager note: the sweep also removed ADR-158's 'Revised (Pierre's correction)' meta-blockquote; its substance survives in the restructured body (the 'squads is never in the spawn path' section), but flagging for the operator's awareness. Verified: sq check banner-clean, full suite green, gates clean, no sq IDs in source.
 <!-- sq:discussion:end -->

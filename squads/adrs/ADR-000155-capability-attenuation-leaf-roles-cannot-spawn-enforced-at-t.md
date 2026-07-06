@@ -13,14 +13,9 @@ refs:
 description: Spawn authority reserved to manager+tech-lead via per-role tool lists;
   identity-aware profiles gated on FEAT-000125
 created_at: '2026-06-21T21:40:15Z'
-updated_at: '2026-06-22T09:58:26Z'
-modified_session: verify-sess-001
+updated_at: '2026-07-06T12:37:00Z'
 ---
 <!-- sq:body -->
-## Status
-
-Proposed — parent context EPIC-121; governs FEAT-122; resolves BUG-152.
-
 ## Context
 
 squads roles are **prose constraints**: a role's skill file describes what the role *should* do,
