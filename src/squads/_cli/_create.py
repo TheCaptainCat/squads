@@ -3,7 +3,7 @@
 Built-in types are registered statically at import time (unchanged from before).
 Custom types declared in ``.overrides/workflow.toml`` are dispatched lazily by
 ``_CustomCreateGroup``, which follows the same pattern as ``_CustomTypeGroup`` in
-``_cli/__init__.py`` (ADR-000263 Option 3).  Startup ordering: ``_CustomCreateGroup``
+``_cli/__init__.py``.  Startup ordering: ``_CustomCreateGroup``
 resolves the active spec via ``common.get_active_spec()`` at Click dispatch time
 (``get_command`` / ``list_commands``), after ``_bind_active_spec`` has already run in
 the root callback — so the same spec that the resource groups see is also visible here.

@@ -108,7 +108,7 @@ class ClaudeCodeBackend(AgentBackend):
     ) -> list[Artifact]:
         """Write a managed skill's real body under squads/ and a thin pointer in .claude/.
 
-        Body path derivation (ADR-000181 decision #3, amended):
+        Body path derivation:
         - If the skill is already in the index (i.e. it has been stamped as a SKILL item),
           the body path is resolved from ``item.path`` — which encodes the convention-correct
           name ``agents/skills/SKILL-<NNNNNN>-<slug>.md``.  This is the normal sync path.
@@ -119,7 +119,7 @@ class ClaudeCodeBackend(AgentBackend):
 
         Body-region-only regen: if the skill file already exists and carries sq frontmatter
         (i.e. it has been stamped as a SKILL item), only the ``sq:body`` region is replaced —
-        the frontmatter and every other region are left intact (ADR-000181 decision #3).
+        the frontmatter and every other region are left intact.
 
         If the file does not yet exist or has no frontmatter, the body is written wrapped in
         ``sq:body`` markers so the file is region-compatible for future frontmatter-preserving
@@ -156,13 +156,13 @@ class ClaudeCodeBackend(AgentBackend):
                 await _aio.write_text(body_path, updated)
             elif fm:
                 # Frontmatter present but sq:body region absent/partial — fail-safe: re-emit
-                # the existing frontmatter so the stamped id/sequence_id are never lost
-                # (ADR-000181 decision #3 guard).  Body region becomes freshly wrapped.
+                # the existing frontmatter so the stamped id/sequence_id are never lost.
+                # Body region becomes freshly wrapped.
                 await _aio.write_text(body_path, sections.join_frontmatter(fm, body_with_markers))
             else:
                 # Genuinely no frontmatter (first-write or pre-stamp file): write bare body
                 # with markers.  We do NOT invent frontmatter here — allocation is a separate
-                # step (TASK-000188).
+                # step.
                 await _aio.write_text(body_path, body_with_markers)
         else:
             await _aio.write_text(body_path, body_with_markers)

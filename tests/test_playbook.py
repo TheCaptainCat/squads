@@ -154,7 +154,7 @@ _SNAPSHOT: dict[str, dict[str, object]] = {
         "lifecycle": "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
         "commands": [
             'sq create task "…" --author tech-lead --parent FEAT-…',
-            'sq task <n> add-subtask "…" --story US1',
+            'sq task <n> add-subtask "…" --story USn',
             "sq task <n> subtask <k> update --status InProgress   # Todo → InProgress → Done",
             "sq task <n> ref add BUG-… --kind fixes   # or REV-… --kind addresses",
             "sq task <n> status InProgress",

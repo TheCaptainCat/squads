@@ -1,9 +1,9 @@
-"""PlaybookSpec pydantic v2 value objects (ADR-000226 §1).
+"""PlaybookSpec pydantic v2 value objects.
 
 Captures the full ``ItemPlaybook``/``RoleGuide`` field set so the golden-lock
-test can assert structural equality between the loaded TOML and today's
-hardcoded data.  ``extra="forbid"`` on all models so a TOML typo errors
-immediately rather than silently reverting to a default.
+test can assert structural equality between the loaded TOML and the hardcoded
+data.  ``extra="forbid"`` on all models so a TOML typo errors immediately
+rather than silently reverting to a default.
 """
 
 from pydantic import BaseModel, ConfigDict
@@ -35,10 +35,10 @@ class ItemPlaybookSpec(BaseModel):
 
 
 class PlaybookSpec(BaseModel):
-    """The full loaded playbook specification (ADR-000226 §1).
+    """The full loaded playbook specification.
 
-    Built by ``load_playbook()``; a module-level singleton is used everywhere
-    via the shims in ``_interactions/__init__.py``.
+    Built by ``load_playbook()``; a module-level singleton is used via the
+    shims in ``_interactions/__init__.py``.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

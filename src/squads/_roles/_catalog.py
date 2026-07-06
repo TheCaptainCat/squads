@@ -4,9 +4,9 @@ Each role has a real name ("Robert Architect") and a slug ("architect"); agents 
 by full name in files and conversation. Stack-specific developers are created on demand via
 ``sq dev add`` using :data:`DEV_NAME_POOL`.
 
-The role data is loaded from the bundled ``roles.toml`` via ``load_role_catalog()`` (ADR-000221).
+The role data is loaded from the bundled ``roles.toml`` via ``load_role_catalog()``.
 ``RoleDef`` and all public constants/functions are thin shims over the loaded
-``RoleCatalogSpec`` singleton — behavior is byte-identical to the previous hardcoded literals.
+``RoleCatalogSpec`` singleton.
 """
 
 from dataclasses import dataclass
@@ -138,8 +138,8 @@ def dev_role(
     If ``name`` is omitted, a first name is taken from :data:`DEV_NAME_POOL` (by ``seq``) and the
     surname is the tech (→ "Elias Dotnet"); the slug is ``<tech>-dev``.
 
-    The name pool, default model, and default color are sourced from the loaded catalog's
-    ``dev`` spec (ADR-000221 §3).  The logic is unchanged.
+    The name pool, default model, and default color are sourced from the loaded
+    catalog's ``dev`` spec.
     """
     tech_label = tech.strip()
     surname = tech_label[:1].upper() + tech_label[1:]

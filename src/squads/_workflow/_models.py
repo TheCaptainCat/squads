@@ -1,13 +1,12 @@
-"""WorkflowSpec pydantic v2 value objects (ADR-000214 §1 / ADR-000232 §2/§5).
+"""WorkflowSpec pydantic v2 value objects.
 
-Enum-typed fields stay enum-typed in F1: TOML string values are coerced into
-``ItemType``/``Status`` at parse/load time — an unknown name raises immediately.
+TOML string values are coerced into ``ItemType``/``Status`` at parse/load
+time — an unknown name raises immediately.
 
-F2 (TASK-000234) will widen the field types to ``str``; for now the capability
-flags introduced here (``is_meta``, ``subentity_kind``, ``severity_field``,
-``parent_required``, ``ref_rules``, and ``StatusSpec.role``) are additive and
-NOT YET consumed by the engine.  They are encoded in ``default_workflow.toml``
-to reproduce today's semantics exactly.
+The capability flags declared here (``is_meta``, ``subentity_kind``,
+``severity_field``, ``parent_required``, ``ref_rules``, and ``StatusSpec.role``)
+are additive and not yet consumed by the engine. They are encoded in
+``default_workflow.toml``.
 """
 
 from dataclasses import dataclass
@@ -17,15 +16,15 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from squads._models._enums import ItemType
 
 # ---------------------------------------------------------------------------
-# Workflow dataclass — the thin shim over Lifecycle (formerly in __init__.py)
+# Workflow dataclass — the thin shim over Lifecycle
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class Workflow:
-    """Thin shim: exposes the old ``Workflow`` interface backed by ``Lifecycle``.
+    """Thin shim: exposes the ``Workflow`` interface backed by ``Lifecycle``.
 
-    Status fields are ``str`` (TASK-000235).  Callers passing ``Status`` enum members
+    Status fields are ``str``. Callers passing ``Status`` enum members
     continue to work because ``Status`` is a ``StrEnum`` — its members compare equal
     to their plain string values.
     """
@@ -57,12 +56,12 @@ class Lifecycle(BaseModel):
     """A named lifecycle state machine: initial state + transition map.
 
     ``.states`` is derived (initial union all sources union all targets),
-    mirroring ``Workflow.states`` today.
+    mirroring ``Workflow.states``.
 
-    Status fields are ``str`` (TASK-000235) — ``Status`` enum members are retained as the
+    Status fields are ``str`` — ``Status`` enum members are retained as the
     reserved-vocabulary source but are not used as the stored field type.  Since
     ``Status`` is a ``StrEnum`` its members compare equal to their string values, so
-    existing callers passing ``Status.DONE`` or passing ``"Done"`` both work.
+    callers passing ``Status.DONE`` or passing ``"Done"`` both work.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -83,13 +82,13 @@ class Lifecycle(BaseModel):
 
 
 class RefRule(BaseModel):
-    """A declared ref-kind rule for a type (ADR-000232 §2).
+    """A declared ref-kind rule for a type.
 
     Examples:
     - task → fixes / addresses (drives the parent_hint suffix and sq check)
     - decision → supersedes (drives the sq check ADR warning)
 
-    Not yet consumed by the engine in F1/TASK-233; F2/TASK-234 will wire it.
+    Not yet consumed by the engine.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -103,9 +102,9 @@ class RefRule(BaseModel):
 class ItemSpec(BaseModel):
     """Vocabulary for one ``ItemType``: prefix, folder, lifecycle, parents, aliases.
 
-    Capability flags (ADR-000232 §2) are additive and default to the ``False``/``None``
-    values that represent the common case (non-meta work item with no special spine).
-    They are NOT yet consumed by the engine; TASK-000234 will wire them.
+    Capability flags are additive and default to the ``False``/``None`` values
+    that represent the common case (non-meta work item with no special spine).
+    They are not yet consumed by the engine.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -117,7 +116,7 @@ class ItemSpec(BaseModel):
     aliases: list[str] = []
 
     # ------------------------------------------------------------------
-    # ADR-000232 §2 capability flags (additive; not yet consumed by engine)
+    # Capability flags (additive; not yet consumed by engine)
     # ------------------------------------------------------------------
 
     is_meta: bool = False
@@ -149,14 +148,14 @@ class StatusSpec(BaseModel):
     badge: str | None = None
 
     # ------------------------------------------------------------------
-    # ADR-000232 §2 semantic-status role marker (additive; not yet consumed)
+    # Semantic-status role marker (additive; not yet consumed)
     # ------------------------------------------------------------------
 
     role: str | None = None
     """Semantic-status role marker for engine rules that key on a specific status.
     Currently used to identify ``Superseded`` (``role="superseded"``).
     Future rules add a new role name here rather than a new flag column.
-    Not yet consumed by the engine; TASK-000234 will wire it."""
+    Not yet consumed by the engine."""
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +168,7 @@ def _check_lifecycle_statuses(
     all_statuses: set[str],
     errors: list[str],
 ) -> None:
-    """§5-1 + §5-2: check initial and transition src/dst are declared statuses."""
+    """Check initial and transition src/dst are declared statuses."""
     for name, m in lifecycles.items():
         tag = f"lifecycle {name!r}"
         if m.initial not in all_statuses:
@@ -188,7 +187,7 @@ def _check_reachability(
     lifecycles: dict[str, Lifecycle],
     errors: list[str],
 ) -> None:
-    """§5-4: every state in a lifecycle must be reachable from initial."""
+    """Every state in a lifecycle must be reachable from initial."""
     for name, m in lifecycles.items():
         reachable: set[str] = {m.initial}
         queue: list[str] = [m.initial]
@@ -210,7 +209,7 @@ def _check_reachable_terminal(
     statuses: dict[str, StatusSpec],
     errors: list[str],
 ) -> None:
-    """§5-4b: every lifecycle must be able to reach at least one terminal state.
+    """Every lifecycle must be able to reach at least one terminal state.
 
     BFS from ``initial`` over the transition graph; if none of the reachable
     states is marked ``terminal`` in the status spec, the machine can never
@@ -239,7 +238,7 @@ def _check_parent_cycles(
     items: dict[str, ItemSpec],
     errors: list[str],
 ) -> None:
-    """§5-7: detect cycles in the type-parent graph.
+    """Detect cycles in the type-parent graph.
 
     Walks ``items[t].parents`` using DFS with a colour-marking scheme:
     - WHITE (unvisited), GREY (on the current path), BLACK (fully explored).
@@ -284,7 +283,7 @@ def _check_item_refs(
     all_types: set[str],
     errors: list[str],
 ) -> None:
-    """§5-5: ItemSpec lifecycle/parent references + prefix/folder/alias uniqueness."""
+    """ItemSpec lifecycle/parent references + prefix/folder/alias uniqueness."""
     seen_prefixes: dict[str, str] = {}
     seen_folders: dict[str, str] = {}
     seen_aliases: dict[str, str] = {}
@@ -401,14 +400,14 @@ def linearize_lifecycle(machine: Lifecycle) -> str:
 
 
 class WorkflowSpec(BaseModel):
-    """The full loaded workflow specification (ADR-000214 §1 / ADR-000232 §5).
+    """The full loaded workflow specification.
 
-    Built by ``load_workflow_spec()``; in F1 a module-level singleton is used
-    everywhere via the free-function shims.  Equivalent methods are provided
-    for surfaces that will later receive the spec explicitly (F3+).
+    Built by ``load_workflow_spec()``. A module-level singleton is used via
+    the free-function shims; equivalent methods are provided for callers that
+    hold an explicit spec.
 
-    ``extra="forbid"`` (ADR-000232 §5): unknown TOML keys are rejected at
-    construction time, matching the roles/playbook loaders.
+    ``extra="forbid"``: unknown TOML keys are rejected at construction time,
+    matching the roles/playbook loaders.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -513,16 +512,16 @@ class WorkflowSpec(BaseModel):
 
     @model_validator(mode="after")
     def _validate(self) -> WorkflowSpec:
-        """Fail-closed validation (ADR-000214 §5)."""
+        """Fail-closed validation."""
         all_statuses = set(self.statuses)
         all_lifecycle_names = set(self.lifecycles)
         all_types = set(self.items)
         errors: list[str] = []
 
-        # §5-1 + §5-2: lifecycle initial/transition statuses exist.
+        # Lifecycle initial/transition statuses exist.
         _check_lifecycle_statuses(self.lifecycles, all_statuses, errors)
 
-        # §5-3: terminal statuses in the status set (always true by construction;
+        # Terminal statuses in the status set (always true by construction;
         # belt-and-braces check in case models are constructed programmatically).
         errors.extend(
             f"terminal status {s!r} not in status set"
@@ -530,19 +529,19 @@ class WorkflowSpec(BaseModel):
             if spec.terminal and s not in all_statuses
         )
 
-        # §5-4: reachability.
+        # Reachability.
         _check_reachability(self.lifecycles, errors)
 
-        # §5-4b: every lifecycle must be able to reach a terminal status.
+        # Every lifecycle must be able to reach a terminal status.
         _check_reachable_terminal(self.lifecycles, self.statuses, errors)
 
-        # §5-5: ItemSpec cross-refs + uniqueness.
+        # ItemSpec cross-refs + uniqueness.
         _check_item_refs(self.items, all_lifecycle_names, all_types, errors)
 
-        # §5-7: parent-cycle detection in the type-parent graph.
+        # Parent-cycle detection in the type-parent graph.
         _check_parent_cycles(self.items, errors)
 
-        # §5-6a: reserved-vocab subset — spec must include ALL reserved ItemType members.
+        # Reserved-vocab subset — spec must include ALL reserved ItemType members.
         # A custom spec may ADD new types but must never OMIT a reserved one.
         spec_types = set(self.items)
         reserved_types: set[str] = {t.value for t in ItemType}
@@ -550,7 +549,7 @@ class WorkflowSpec(BaseModel):
         if missing_types:
             errors.append(f"spec missing reserved ItemType members: {sorted(missing_types)}")
 
-        # §5-6b: reserved-vocab subset — spec must include the *structural floor* statuses.
+        # Reserved-vocab subset — spec must include the *structural floor* statuses.
         #
         # The floor is the subset of Status members that the engine references by name
         # (not just by lifecycle transitions), so a custom spec MUST always declare them:
@@ -562,8 +561,8 @@ class WorkflowSpec(BaseModel):
         # Work-item-only statuses (Ready, InReview, Proposed, Accepted, Requested,
         # ChangesRequested, Approved, Rejected, Superseded, Deprecated, Published) are NOT in
         # the floor — a custom spec that omits them (e.g. no ADR/review/guide lifecycle) must
-        # not be rejected.  The work-item vocabularies are enforced implicitly by §5-1/§5-2
-        # (lifecycle initial/transition statuses must be declared).
+        # not be rejected.  The work-item vocabularies are enforced implicitly by the
+        # lifecycle initial/transition statuses check above (they must be declared).
         spec_statuses = set(self.statuses)
         _RESERVED_FLOOR: frozenset[str] = frozenset(
             {

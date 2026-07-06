@@ -1,9 +1,9 @@
-"""Schema 0.5 → 0.7 runner: unpad every human-facing ID (ADR-000282).
+"""Schema 0.5 → 0.7 runner: unpad every human-facing ID.
 
-Display padding is now fixed at 0 (:data:`squads._models._item.DISPLAY_ID_PADDING`) — every
-human-facing surface (frontmatter ``id:``, ``refs:``, ``parent:``, and ID mentions in body prose)
-should read ``FEAT-210`` rather than ``FEAT-000210``. Filenames are unaffected: they stay padded at
-the squad's stored (filename) width and are never renamed by this runner.
+Display padding is fixed at 0 (:data:`squads._models._item.DISPLAY_ID_PADDING`) — every
+human-facing surface (frontmatter ``id:``, ``refs:``, ``parent:``, and ID mentions in body
+prose) should read ``PREFIX-nnn`` rather than ``PREFIX-000nnn``. Filenames are unaffected:
+they stay padded at the squad's stored (filename) width and are never renamed by this runner.
 
 Two passes over the corpus:
 
@@ -24,8 +24,8 @@ Two passes over the corpus:
      literal example, not a real mention), matching how the renumber path scopes its own
      mention rewrites (:func:`squads._itemfile.rewrite_ids`). A padded id immediately followed
      by a filename tail (``-slug.md``) is also left alone — it is the stem of an on-disk
-     filename reference, which stays padded (ADR-000282); unpadding it would corrupt a valid
-     path into one that doesn't exist.
+     filename reference, which stays padded; unpadding it would corrupt a valid path into
+     one that doesn't exist.
 
 Filenames are untouched (already width-padded and stay so — no renames, no path-index churn
 beyond what the trailing ``sq repair`` already does after every migration batch runs).
@@ -60,16 +60,16 @@ from squads._sections import join_frontmatter, split_frontmatter
 _CODE_SPAN_RE = re.compile(r"(```.*?```|`[^`\n]*`)", re.DOTALL)
 
 MANUAL = """\
-## Schema 0.5 → 0.7 — unpadded display IDs (ADR-000282)
+## Schema 0.5 → 0.7 — unpadded display IDs
 
 No manual steps are required for the structural rewrite — `sq migrate up` automatically:
 
-1. Reformats every item's frontmatter `id:` to the unpadded form (`FEAT-210` rather than
-   `FEAT-000210`), driven by its stored `sequence_id`.
+1. Reformats every item's frontmatter `id:` to the unpadded form (`PREFIX-nnn` rather than
+   `PREFIX-000nnn`), driven by its stored `sequence_id`.
 2. Unpads every `refs:` entry and `parent:` field.
 3. Rewrites padded-ID mentions in body prose and sub-entity titles to their unpadded form,
    skipping fenced code blocks and inline code (a literal example ID there is left as written)
-   and skipping a padded id that is the stem of an on-disk filename reference (`FEAT-000283-
+   and skipping a padded id that is the stem of an on-disk filename reference (`PREFIX-000nnn-
    slug.md` stays exactly as written — filenames are never unpadded).
 4. Runs `sq repair` to rebuild the index.
 
@@ -94,7 +94,7 @@ any built-in item's prose that mentions one of their (now stale-padded) ids.
 ```
 sq check                  # should be clean
 sq list                   # ids render unpadded
-sq tree EPIC-1            # resolves and renders unpadded (any valid epic id works)
+sq tree PREFIX-n           # resolves and renders unpadded (any valid epic id works)
 ```
 """
 
@@ -114,9 +114,9 @@ def _unpad_ref(ref: str) -> str:
 
 
 #: A padded id immediately followed by a filename tail (``-slug.md``) is the stem of an
-#: on-disk filename reference, not a bare mention — filenames stay padded (ADR-000282), so
-#: unpadding here would rewrite a valid path into one that doesn't exist. Skip those: a missed
-#: bare mention is a harmless best-effort miss, but corrupting a valid filename reference is
+#: on-disk filename reference, not a bare mention — filenames stay padded, so unpadding
+#: here would rewrite a valid path into one that doesn't exist. Skip those: a missed bare
+#: mention is a harmless best-effort miss, but corrupting a valid filename reference is
 #: active, silent, one-way damage — skipping is the safe direction.
 _FILENAME_TAIL = r"(?!-[a-z0-9][a-z0-9-]*\.md)"
 
@@ -124,8 +124,8 @@ _FILENAME_TAIL = r"(?!-[a-z0-9][a-z0-9-]*\.md)"
 def _rewrite_mentions(body: str, id_map: dict[str, str]) -> str:
     """Whole-word substitute every ``old → new`` literal in *body*, skipping code spans.
 
-    A bare mention (``FEAT-283``) is rewritten; the same literal as the stem of a filename
-    reference (``FEAT-000283-slug.md``) is left alone (:data:`_FILENAME_TAIL`).
+    A bare mention (``PREFIX-nnn``) is rewritten; the same literal as the stem of a filename
+    reference (``PREFIX-000nnn-slug.md``) is left alone (:data:`_FILENAME_TAIL`).
     """
     if not id_map:
         return body
@@ -190,7 +190,7 @@ def migrate(paths: SquadPaths) -> int:
         if fm.get("refs"):
             fm["refs"] = [_unpad_ref(str(r)) for r in fm["refs"]]
         # Sub-entity titles live in frontmatter too — same bounded/guarded rewrite as body
-        # prose, so a mention like "tie into FEAT-13 contract" in a story/subtask/finding
+        # prose, so a mention like "tie into FEAT-n contract" in a story/subtask/finding
         # title unpads just like it does in the surrounding body.
         for sub in cast("list[dict[str, Any]]", fm.get("subentities") or []):
             if sub.get("title"):

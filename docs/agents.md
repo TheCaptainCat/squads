@@ -50,15 +50,15 @@ recording a human's own words (a comment, or a review point you reformulated) at
    ```
 2. **Create** with `sq` (it allocates the ID and prints the file path):
    ```bash
-   sq create task "Validate token" --parent FEAT-000002
-   # → created TASK-000003 → squads/tasks/TASK-000003-validate-token.md
+   sq create task "Validate token" --parent FEAT-<n>
+   # → created TASK-<n> → squads/tasks/TASK-<n>-validate-token.md
    ```
 3. **Set the body with a command** — never hand-edit the file. Items and sub-entities both take
    `-m "…"` (repeatable) or `--file`; read back with `sq show` / `sq <kind> show`:
    ```bash
    sq task 3 body -m "Validate the JWT exp + signature; reject clock skew > 60s."
    sq feature 2 add-story "As a user, I want to log in" -m "Acceptance: …"
-   sq task 3 add-subtask "Check expiry" --story US1
+   sq task 3 add-subtask "Check expiry" --story USn
    sq task 3 subtask 1 body -m "Reject tokens past exp; cover clock skew."
    ```
 4. **Track status** as work moves (validated per type):
@@ -73,8 +73,8 @@ recording a human's own words (a comment, or a review point you reformulated) at
    ```
 6. **Link context** so the next agent reads the right things:
    ```bash
-   sq task 3 ref add GUIDE-000004 --kind implements
-   sq task 3 ref add BUG-000009 --kind fixes
+   sq task 3 ref add GUIDE-<n> --kind implements
+   sq task 3 ref add BUG-<n> --kind fixes
    ```
 
 ## Golden rules
@@ -85,7 +85,7 @@ recording a human's own words (a comment, or a review point you reformulated) at
   `sq comment`, change state with `sq update`/`status`. `sq check` flags broken markers.
 - **The `.md` frontmatter is the source of truth** — don't hand-edit `id`/`status`/`parent`; use the
   commands so the index stays in sync.
-- **Reference items by ID** (`TASK-000003`, `GUIDE-000004`) in prose and comments so developers and
+- **Reference items by ID** (`TASK-<n>`, `GUIDE-<n>`) in prose and comments so developers and
   reviewers can follow the trail.
 - **Work chronologically** and comment as you go — the dated discussion entries are the history.
 

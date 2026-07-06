@@ -14,16 +14,17 @@ from squads._models._enums import Severity
 
 
 class SubEntity(BaseModel):
-    #: Local id within its parent, kind-prefixed: ``US1`` story / ``ST1`` subtask / ``F1`` finding.
+    #: Local id within its parent, kind-prefixed: ``US<n>`` story / ``ST<n>`` subtask /
+    #: ``F<n>`` finding.
     local_id: str
     title: str = ""
-    #: Status as a plain string (widened from ``Status`` in TASK-000235).
+    #: Status as a plain string.
     status: str
     #: Registered agent slug responsible for it (optional).
     assignee: str | None = None
     #: Findings only — the finding's severity.
     severity: Severity | None = None
-    #: Subtasks only — the mapped user story's local id (e.g. ``US1``).
+    #: Subtasks only — the mapped user story's local id (e.g. ``US<n>``).
     story: str | None = None
 
     model_config = {"use_enum_values": False}

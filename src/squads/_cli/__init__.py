@@ -22,7 +22,7 @@ if sys.platform == "win32":  # pragma: no cover
 
 
 class _CustomTypeGroup(typer.core.TyperGroup):
-    """Root TyperGroup with lazy-dispatch for custom work types (ADR-000263, Option 3).
+    """Root TyperGroup with lazy-dispatch for custom work types.
 
     Built-in commands are registered statically at import time (unchanged, byte-identical
     to today for non-custom squads).  When Click calls ``get_command(ctx, name)`` for an
@@ -267,7 +267,7 @@ def main_callback(
     # is what prevents actor state from leaking across invocations — the same mechanism
     # apply_timestamp uses for the clock (no try/finally needed).
     actor.set_actor("system")
-    # Seed the optional session pair from env vars (ADR-000158).  Read once here so every
+    # Seed the optional session pair from env vars.  Read once here so every
     # subsequent mutation in this invocation picks up the same pair via current_session().
     # Session fields are env-only — NOT settable by any later CLI flag.
     actor.seed_session(from_env=True)
@@ -318,7 +318,7 @@ app.add_typer(
 # The bundled spec is the source of truth for the STATIC (import-time) registration loop —
 # this gives byte-identical --help output for non-custom squads (AC#7).  Custom types declared
 # in a project's .overrides/workflow.toml are handled lazily by _CustomTypeGroup.get_command
-# (ADR-000263, Option 3), which fires AFTER --dir is resolved and the active spec is bound.
+# which fires AFTER --dir is resolved and the active spec is bound.
 _spec = _bundled_spec()
 # Work types in declaration order (stable for CLI registration and help output).
 # Only non-meta (work) types that belong to the built-in ItemType enum get static registration;
@@ -337,7 +337,7 @@ for _type_str in _ORDERED_WORK_TYPES:
         help=f"Operate on a {_type_str} by number.",
     )
     # Aliases come from the spec's ItemSpec.aliases — the single source of truth.
-    # (TYPE_ALIASES in _enums.py is now a non-authoritative shim kept for TASK-261 consumers.)
+    # (TYPE_ALIASES in _enums.py is a non-authoritative shim kept for legacy consumers.)
     for _alias in _spec.items[_type_str].aliases:
         app.add_typer(_type_app, name=_alias, hidden=True)
 

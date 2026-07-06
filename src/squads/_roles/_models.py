@@ -1,7 +1,7 @@
-"""RoleCatalogSpec pydantic v2 value objects (ADR-000221 §1).
+"""RoleCatalogSpec pydantic v2 value objects.
 
 Captures the full :class:`RoleDef` field set so the golden-lock test can
-assert structural equality between the loaded TOML and today's hardcoded data.
+assert structural equality between the loaded TOML and the hardcoded data.
 """
 
 from pydantic import BaseModel, ConfigDict
@@ -36,10 +36,10 @@ class DevPoolSpec(BaseModel):
 
 
 class RoleCatalogSpec(BaseModel):
-    """The full loaded role catalog (ADR-000221 §1).
+    """The full loaded role catalog.
 
     Built by ``load_role_catalog()``; a module-level singleton is used
-    everywhere via the shims in ``_catalog.py``.
+    via the shims in ``_catalog.py``.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

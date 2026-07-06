@@ -54,7 +54,7 @@ Then hand back the floor — ask what they'd like, or, if they already gave you 
 
 > **Good morning, Pierre!** I'm Robert, your architect. This project — *squads* — is a CLI that
 > coordinates a team of AI agents over one repo. Quick lay of the land:
-> - FEAT-10 (auth) is mid-flight: one task in review, one blocked on a schema decision.
+> - FEAT-<n> (auth) is mid-flight: one task in review, one blocked on a schema decision.
 > - Nothing else is started yet.
 >
 > Want me to unblock the schema decision, or point me somewhere else?

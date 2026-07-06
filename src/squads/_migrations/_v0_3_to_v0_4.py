@@ -1,4 +1,4 @@
-"""Schema 0.3 → 0.4 runner: additive session lineage fields (ADR-000158).
+"""Schema 0.3 → 0.4 runner: additive session lineage fields.
 
 This migration is a **no-op runner** — it returns 0 touched files.
 
@@ -11,8 +11,8 @@ What changed (additive, back-compatible):
 
 - Every reflog line now carries optional top-level sibling fields
   ``session_id`` and ``parent_session_id`` (omitted when ``None``).  The
-  ``actor`` field stays a flat slug string for back-compat (FEAT-000013
-  stability).  Legacy slug-only lines parse with both fields as ``None``.
+  ``actor`` field stays a flat slug string for back-compat.  Legacy
+  slug-only lines parse with both fields as ``None``.
 
 - Item frontmatter gains two optional fields, ``created_session`` and
   ``modified_session``, each holding the ``SQUADS_SESSION_ID`` string at
@@ -24,8 +24,7 @@ default to ``None`` / absent.  ``sq repair`` re-reads files and rebuilds the
 index; the new fields simply won't be present on older items, which is the
 correct "absent == legacy" state.
 
-Guarantee (from ADR-000158, mandatory in any surface that presents these
-fields):
+Guarantee (mandatory in any surface that presents these fields):
   squads is a passive tool, never in the spawn path.  It reads optional env
   vars from its own invocation and records them.  The recorded session pair is
   **best-effort, untrusted, observability-only** — not tamper-evident, not

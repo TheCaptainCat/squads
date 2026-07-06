@@ -1,7 +1,7 @@
 """Locked, atomic read-modify-write access to ``<squad-dir>/.squads.json``.
 
 The single global counter and all item metadata live here. Every mutation goes through a
-``transaction()`` guarded by a three-layer lock (ADR-000153 Decision 2):
+``transaction()`` guarded by a three-layer lock:
 
 - **Layer 1 — per-loop ``anyio.Lock``** (taken first): serialises coroutines on one event
   loop. ``anyio.Lock`` binds to the loop it is first used on, so locks are cached per
@@ -61,9 +61,8 @@ def _validate_item_vocab(db: SquadsDB, spec: WorkflowSpec) -> None:
     """Validate every item's ``type``, ``status``, and sub-entity statuses against the
     supplied ``WorkflowSpec``.
 
-    Called from :meth:`IndexStore.load` (ADR-000232 §1 / TASK-000235 F1/F5 /
-    TASK-000251).  The spec is now supplied explicitly by the ``IndexStore``
-    constructor — there is no longer a lazy import of the process-global singleton.
+    Called from :meth:`IndexStore.load`. The spec is supplied explicitly by the
+    ``IndexStore`` constructor; there is no lazy import of a process-global singleton.
     A corrupt or hand-edited index entry with an unknown type, status, or sub-entity
     status raises a clean :class:`SquadsError` rather than silently indexing and
     crashing downstream with a raw ``KeyError`` or ``ValueError``.
@@ -126,11 +125,10 @@ class IndexStore:
         """Construct an ``IndexStore``.
 
         ``spec`` is the :class:`WorkflowSpec` used to validate item vocabulary at
-        load time (TASK-000251).  When ``None``, the immutable bundled default is
-        used — this maintains backward compatibility for code that constructs an
-        ``IndexStore`` without an explicit spec (e.g. ``sq init``, ``sq adopt``,
-        tests).  Pass ``Service.spec`` (or another resolved spec) to validate
-        against a squad-specific override.
+        load time.  When ``None``, the immutable bundled default is used, for code
+        that constructs an ``IndexStore`` without an explicit spec (e.g. ``sq init``,
+        ``sq adopt``, tests).  Pass ``Service.spec`` (or another resolved spec) to
+        validate against a squad-specific override.
         """
         self.index_path = index_path
         self.lock_path = lock_path
@@ -210,13 +208,13 @@ class IndexStore:
     async def transaction(self) -> AsyncGenerator[SquadsDB]:
         """Load under the lock, yield the DB to mutate, then atomically write it back.
 
-        Three-layer lock taken Layer 1 → 2 → 3 (ADR-000153 Decision 2); Layers 2/3 via
-        ``_aio.to_thread``. ``filelock.Timeout`` from the Layer 3 acquire propagates unchanged
-        with no lock leak (inner ``finally`` no-ops, outer releases the proc-mutex, the
-        ``async with`` releases the per-loop lock).
+        Three-layer lock taken Layer 1 → 2 → 3; Layers 2/3 via ``_aio.to_thread``.
+        ``filelock.Timeout`` from the Layer 3 acquire propagates unchanged with no lock
+        leak (inner ``finally`` no-ops, outer releases the proc-mutex, the ``async with``
+        releases the per-loop lock).
 
-        After the ``os.replace`` commits, buffered reflog ops are appended while still holding
-        all locks (ADR-000117 §1 — strictly after commit). A failed append only warns; it never
+        After the ``os.replace`` commits, buffered reflog ops are appended while still
+        holding all locks, strictly after commit. A failed append only warns; it never
         rolls back the committed mutation. If the body raises, nothing is written.
         """
         from squads import _actor as actor
@@ -238,9 +236,9 @@ class IndexStore:
                     yield ctx.db
                     await self._atomic_write(ctx.db)
 
-                    # Reflog append: strictly after os.replace, inside all locks (ADR-000117
-                    # §1). Guarded so any error degrades to a warning — never surfaces from an
-                    # already-committed mutation (ADR-000153 Decision 2, never-raise contract).
+                    # Reflog append: strictly after os.replace, inside all locks. Guarded
+                    # so any error degrades to a warning — never surfaces from an
+                    # already-committed mutation (never-raise contract).
                     if ctx.reflog_ops:
                         try:
                             rpath = reflog_path(self.index_path.parent)
@@ -278,7 +276,7 @@ class IndexStore:
 
     async def overwrite(self, db: SquadsDB) -> None:
         """Replace the whole index under the three-layer lock (used by ``sq repair``), with the
-        same Layer-1-first ordering as :meth:`transaction` (ADR-000153 Decision 2)."""
+        same Layer-1-first ordering as :meth:`transaction`."""
         async with self._loop_lock():
             await _aio.to_thread(self._proc_mutex.acquire)
             try:
@@ -305,8 +303,7 @@ class IndexStore:
         """Async atomic write: tmp-open/write/fsync/replace runs as ONE thread hop.
 
         No ``await`` between ``os.fsync`` and ``tmp.replace`` — they share one sync closure so
-        no coroutine interleaves between the durability barrier and the rename (ADR-000153
-        Decision 4).
+        no coroutine interleaves between the durability barrier and the rename.
         """
         index_path = self.index_path
         json_text = db.to_json() + "\n"

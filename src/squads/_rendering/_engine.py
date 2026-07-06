@@ -59,11 +59,11 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # marker helpers so templates emit sq anchors: "tag" | open_marker → "<!-- sq:tag -->"
     env.filters["open_marker"] = markers.open_marker
     env.filters["close_marker"] = markers.close_marker
-    env.filters["idnum"] = _idnum  # "TASK-000007" | idnum → "7", for `sq task 7 …` hints
+    env.filters["idnum"] = _idnum  # "PREFIX-000007" | idnum → "7", for `sq task 7 …` hints
     # workflow helper — callable as {{ linearize_lifecycle(spec.machine_for(type)) }} in templates
     env.globals["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
-    # playbook helpers (TASK-000279) — the role->type authoring narrative in workflow.md.j2
-    # renders from CREATE_LANES + the role catalog + the spec's parent chain, not hardcoded prose.
+    # playbook helpers — the role->type authoring narrative in workflow.md.j2 renders from
+    # CREATE_LANES + the role catalog + the spec's parent chain, not hardcoded prose.
     env.globals["authoring_owner"] = authoring_owner  # pyright: ignore[reportArgumentType]
     env.globals["parent_chain"] = parent_chain  # pyright: ignore[reportArgumentType]
     return env

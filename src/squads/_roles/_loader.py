@@ -1,4 +1,4 @@
-"""Load and validate the bundled role catalog (ADR-000221 §3).
+"""Load and validate the bundled role catalog.
 
 ``load_role_catalog()`` is the single entry point.  It reads ``roles.toml`` via
 ``importlib.resources`` (offline, no filesystem assumption), parses with stdlib
@@ -75,7 +75,7 @@ def _parse_role(data: dict[str, Any], idx: int) -> RoleSpec:
 
 
 def _check_slugs(roles: list[RoleSpec], errors: list[str]) -> set[str]:
-    """§3-1 + §3-2: unique slugs + required fields non-empty."""
+    """Unique slugs + required fields non-empty."""
     seen: dict[str, int] = {}
     for i, r in enumerate(roles):
         if r.slug in seen:
@@ -89,14 +89,14 @@ def _check_slugs(roles: list[RoleSpec], errors: list[str]) -> set[str]:
 
 
 def _check_defaults(roles: list[RoleSpec], errors: list[str]) -> None:
-    """§3-3: at most one is_default."""
+    """At most one is_default."""
     defaults = [r.slug for r in roles if r.is_default]
     if len(defaults) > 1:
         errors.append(f"more than one role has is_default=true: {defaults}")
 
 
 def _check_bundles(bundles: dict[str, list[str]], all_slugs: set[str], errors: list[str]) -> None:
-    """§3-4: bundle referential integrity; 'all' bundle == full role set."""
+    """Bundle referential integrity; 'all' bundle == full role set."""
     errors.extend(
         f"bundle {bname!r} references unknown slug {s!r}"
         for bname, slugs in bundles.items()
@@ -114,7 +114,7 @@ def _check_bundles(bundles: dict[str, list[str]], all_slugs: set[str], errors: l
 
 
 def _check_dev(dev: DevPoolSpec, errors: list[str]) -> None:
-    """§3-5: dev pool well-formed."""
+    """Dev pool well-formed."""
     if not dev.name_pool:
         errors.append("dev.name_pool is empty")
     elif len(dev.name_pool) != len(set(dev.name_pool)):
@@ -129,7 +129,7 @@ def _check_dev(dev: DevPoolSpec, errors: list[str]) -> None:
 
 
 def _check_models(roles: list[RoleSpec], errors: list[str]) -> None:
-    """§3-6: model whitelist."""
+    """Model whitelist."""
     errors.extend(
         f"role {r.slug!r}: model {r.model!r} not in allowed set {sorted(_VALID_MODELS)}"
         for r in roles

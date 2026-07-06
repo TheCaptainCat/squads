@@ -24,7 +24,7 @@ from squads._services._results import GraphNode
 # Graph traversal helpers
 # ---------------------------------------------------------------------------
 
-# The two raw kind strings that form the dependency pair (FEAT-000035 equivalence).
+# The two raw kind strings that form the dependency pair (equivalent for traversal).
 # Both normalize to edge_kind="depends-on" in GraphNode; direction disambiguates the end.
 _DEP_KINDS: frozenset[str] = frozenset({"blocks", "depends-on"})
 
@@ -291,9 +291,9 @@ class RefsMixin(ServiceCore):
             src = require_item(db, from_id)
             tgt = require_item(db, to_id)
             # The kind rides with the edge; re-adding an existing edge updates its kind.
-            # Dedup by (prefix, seq) so old-width stored refs ("TASK-000007") are replaced
-            # when re-adding across a repad boundary where to_id is "TASK-0000007"
-            # (FEAT-000027: file contents are never rewritten, widths diverge).
+            # Dedup by (prefix, seq) so old-width stored refs ("PREFIX-000007") are replaced
+            # when re-adding across a repad boundary where to_id is "PREFIX-0000007" — file
+            # contents are never rewritten, so widths diverge.
             tgt_prefix = tgt.prefix or tgt.type.upper()
             tgt_seq = tgt.sequence_id
             src.refs = [
@@ -341,8 +341,8 @@ class RefsMixin(ServiceCore):
     async def refs_in(self, item_id: str) -> list[tuple[str, str]]:
         """Backrefs computed by inverting forward edges (never stored).
 
-        Comparison is by (prefix, seq) so old-width ref strings (``"TASK-000007"``) and
-        new-width item IDs (``"TASK-0000007"``) match correctly after a ``sq migrate repad``
+        Comparison is by (prefix, seq) so old-width ref strings (``"PREFIX-000007"``) and
+        new-width item IDs (``"PREFIX-0000007"``) match correctly after a ``sq migrate repad``
         (file contents are never rewritten, so refs keep their original width).
         """
         db = await self.store.load()
@@ -371,7 +371,7 @@ class RefsMixin(ServiceCore):
         Parameters
         ----------
         root_id:
-            The formatted item ID to root the graph at (e.g. ``"FEAT-000037"``).
+            The formatted item ID to root the graph at (e.g. ``"PREFIX-000037"``).
         depth:
             How many hops to follow from the root (default 2; depth 0 = root only).
         kinds:
@@ -392,10 +392,10 @@ class RefsMixin(ServiceCore):
 
         Dependency-edge normalization
         ------------------------------
-        ``depends-on`` and ``blocks`` are two spellings of the same dependency
-        (FEAT-000035 equivalence).  Both are stored in ``edge_kind="depends-on"`` on
-        the returned :class:`~squads._services._results.GraphNode`; ``direction``
-        disambiguates the end:
+        ``depends-on`` and ``blocks`` are two spellings of the same dependency.  Both
+        are stored in ``edge_kind="depends-on"`` on the returned
+        :class:`~squads._services._results.GraphNode`; ``direction`` disambiguates
+        the end:
 
         - ``direction="out"`` → the expanded node depends on the child → display "depends on"
         - ``direction="in"`` → the child depends on the expanded node → display "required by"

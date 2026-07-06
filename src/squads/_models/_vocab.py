@@ -4,19 +4,19 @@ Keeps ``_models`` spec-decoupled: callers hand the resolved values *to* the mode
 the model never derives vocabulary itself.  The resolver lives in ``_models`` so
 both model-layer code and service-layer code can import it without a cycle.
 
-Reserved built-in vocabulary is declared once here — this is the EPIC-206
-reserved-type invariant's single source of truth for prefix/folder.  The spec
-(``WorkflowSpec``) mirrors these values and is the authority for custom types;
-the built-in map is the authority for reserved types so that a bad override cannot
-accidentally redefine a built-in prefix.
+Reserved built-in vocabulary is declared once here — this is the single source
+of truth for prefix/folder of reserved types.  The spec (``WorkflowSpec``)
+mirrors these values and is the authority for custom types; the built-in map
+is the authority for reserved types so that a bad override cannot accidentally
+redefine a built-in prefix.
 
-Design note (ADR-000266):
+Design note:
 - ``prefix_for`` returns a prefix string.  It is intentionally *not* extended with
-  a ``folder_for`` overload in this task — folder resolution already routes through
+  a ``folder_for`` overload here — folder resolution already routes through
   ``SquadPaths.folder_for``/``squad_relative`` which consults the spec.  Do NOT
-  fold folder resolution in here until a dedicated task decides it.
-- FEAT-000212 may add a ``subentity_plural`` accessor to this module when the spec
-  gains that vocabulary; do not pull it forward now.
+  fold folder resolution in here without a dedicated design decision.
+- A future ``subentity_plural`` accessor could be added to this module when the
+  spec gains that vocabulary; do not pull it forward now.
 """
 
 from typing import TYPE_CHECKING, Any, cast
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     pass  # no runtime imports needed here; spec is typed as object below
 
 # ---------------------------------------------------------------------------
-# Reserved built-in vocabulary (EPIC-206 invariant)
+# Reserved built-in vocabulary
 # Mirrors ``default_workflow.toml`` exactly.  Must NOT be edited to add custom
 # types — custom types go in ``.overrides/workflow.toml``.
 # ---------------------------------------------------------------------------
@@ -85,8 +85,8 @@ def prefix_for(type_str: str, spec: object = None) -> str:
     correct type; duck-typed access is used with explicit ``cast`` to satisfy
     pyright strict mode.
 
-    Designed so FEAT-000212 can add a ``subentity_plural`` accessor beside this
-    one without restructuring: just add ``subentity_plural_for(type_str, spec)``
+    Designed so a ``subentity_plural`` accessor can be added beside this one
+    without restructuring: just add ``subentity_plural_for(type_str, spec)``
     following the same pattern.
     """
     if type_str in RESERVED_PREFIX:

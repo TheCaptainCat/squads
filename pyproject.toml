@@ -83,7 +83,7 @@ select = [
     "SIM", "PERF", "PTH", "RUF",             # smells / perf / pathlib / ruff
     "TRY",                                   # exception hygiene
     "PLR0911", "PLR0912", "PLR0913", "PLR0915",  # too many returns/branches/args/statements
-    "ASYNC",                                 # blocking calls inside async fns (ADR-000153)
+    "ASYNC",                                 # blocking calls inside async fns
 ]
 ignore = [
     "TRY003",  # long messages in raise() are intentional (user-facing SquadsError text)

@@ -19,15 +19,15 @@ REF_SEP = ":"
 DEFAULT_KIND = "related"
 
 #: The default (and minimum) number of zero-padded digits in a *filename* (e.g.
-#: ``TASK-000007-slug.md``). Changing this requires a ``sq migrate repad`` run; see
-#: FEAT-000027. Never used for display — see :data:`DISPLAY_ID_PADDING`.
+#: ``PREFIX-000007-slug.md``). Changing this requires a ``sq migrate repad`` run.
+#: Never used for display — see :data:`DISPLAY_ID_PADDING`.
 DEFAULT_ID_PADDING: int = 6
 
-#: Display padding is fixed at 0 (JIRA-style, e.g. ``TASK-7``) — it is a constant, never a
-#: stored or configurable field (ADR-000282). Every human-facing surface (frontmatter ``id:``,
+#: Display padding is fixed at 0 (JIRA-style, e.g. ``PREFIX-7``) — it is a constant, never a
+#: stored or configurable field. Every human-facing surface (frontmatter ``id:``,
 #: refs, prose, CLI output) formats at this width. Filenames stay padded at
 #: :data:`DEFAULT_ID_PADDING` / the squad's stored ``SquadsDB.padding`` — that divergence is
-#: deliberate and is the load-bearing part of ADR-000282; format filenames explicitly via
+#: deliberate; format filenames explicitly via
 #: ``format_item_id(prefix, sequence_id, db.padding)``, never from ``item.id``.
 DISPLAY_ID_PADDING: int = 0
 
@@ -40,8 +40,8 @@ def format_item_id(prefix: str, sequence_id: int, padding: int = DEFAULT_ID_PADD
     return f"{prefix}-{sequence_id:0{padding}d}"
 
 
-#: The closed vocabulary of ref kinds for 1.0 — exhaustive, no custom-kind escape hatch.
-#: See ADR-000049. Consumers: blocks/depends-on → sq blocked; fixes/addresses → sq check
+#: The closed vocabulary of ref kinds — exhaustive, no custom-kind escape hatch.
+#: Consumers: blocks/depends-on → sq blocked; fixes/addresses → sq check
 #: task rules; supersedes → decision checks; the rest → navigation.
 VALID_REF_KINDS: frozenset[str] = frozenset(
     {
@@ -93,14 +93,14 @@ def fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
 class Item(BaseModel):
     #: The global counter number — the item's real identity. ``id`` is derived from it + ``type``.
     sequence_id: int
-    #: Item type as a plain string (widened from ``ItemType`` in TASK-000235).
+    #: Item type as a plain string.
     #: Reserved vocabulary is validated at the service load boundary via ``WorkflowSpec``.
     #: ``ItemType`` members compare equal to their plain string values (StrEnum), so callers
     #: may compare ``item.type == ItemType.TASK`` or ``item.type == "task"`` interchangeably.
     type: str
     title: NonEmpty
     slug: NonEmpty
-    #: Status as a plain string (widened from ``Status`` in TASK-000235).
+    #: Status as a plain string.
     #: Same reserved-vocab guarantee and StrEnum equality as ``type``.
     status: str
     description: str = ""
@@ -120,13 +120,13 @@ class Item(BaseModel):
     path: NonEmpty
     created_at: datetime
     updated_at: datetime
-    #: Session id at creation time (ADR-000158).  **Best-effort, untrusted, observability-only.**
+    #: Session id at creation time.  **Best-effort, untrusted, observability-only.**
     #: squads reads ``SQUADS_SESSION_ID`` from its own invocation environment and records it here
     #: when present.  Absent == legacy item (no session env was set).  This is a self-declaration
     #: from the invocation environment — squads never mints, injects, spawns, or verifies it.
     #: Must NOT be used as an authorisation input.
     created_session: str | None = None
-    #: Session id at last mutation time (ADR-000158).  Same untrusted guarantee as
+    #: Session id at last mutation time.  Same untrusted guarantee as
     #: :attr:`created_session`.  Updated on every frontmatter-touching mutation (status, update,
     #: body, comment, subentity, ref).
     modified_session: str | None = None
@@ -163,9 +163,9 @@ class Item(BaseModel):
     @computed_field
     @property
     def id(self) -> str:
-        """The formatted id (``TASK-7``) — derived from ``prefix`` + ``sequence_id``.
+        """The formatted id (``PREFIX-7``) — derived from ``prefix`` + ``sequence_id``.
 
-        Display width is always :data:`DISPLAY_ID_PADDING` (0, ADR-000282) — every human-facing
+        Display width is always :data:`DISPLAY_ID_PADDING` (0) — every human-facing
         surface (frontmatter ``id:``, refs, prose, CLI output) reads unpadded, regardless of the
         squad's stored filename width (``SquadsDB.padding``). Written to frontmatter as the
         durable human id; reconstructed via ``from_frontmatter``.
@@ -210,7 +210,7 @@ class Item(BaseModel):
     def from_frontmatter(cls, data: dict[str, Any], *, path: str) -> Item:
         """Reconstruct an Item from parsed frontmatter — used by ``sq repair``.
 
-        ``type`` and ``status`` are stored as plain strings (TASK-000235); the reserved-vocab
+        ``type`` and ``status`` are stored as plain strings; the reserved-vocab
         validation (against WorkflowSpec) runs at the service load boundary, not here.
 
         ``prefix`` is read back when present in frontmatter (custom types write it so the
@@ -292,7 +292,7 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
         data["subentities"] = [s.to_frontmatter_dict() for s in item.subentities]
     data["created_at"] = clock.iso(item.created_at)
     data["updated_at"] = clock.iso(item.updated_at)
-    # Session fields are omitted when unset to keep legacy files unchanged (ADR-000158 §3).
+    # Session fields are omitted when unset to keep legacy files unchanged.
     if item.created_session is not None:
         data["created_session"] = item.created_session
     if item.modified_session is not None:

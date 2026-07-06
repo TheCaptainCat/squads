@@ -1,8 +1,8 @@
-"""`sq workflow` — workflow cheatsheet + spec validation surface (FEAT-000209 TASK-000242).
+"""`sq workflow` — workflow cheatsheet + spec validation surface.
 
 Sub-commands:
-- ``sq workflow`` / ``sq workflow show``  — print the team cheatsheet (unchanged behaviour).
-- ``sq workflow lint``                   — verbose collect-all-errors spec validation (AC #3 / US2).
+- ``sq workflow`` / ``sq workflow show``  — print the team cheatsheet.
+- ``sq workflow lint``                   — verbose collect-all-errors spec validation.
 
 ``lint`` is the author-facing diagnostic: it runs the same checks that ``open_service`` runs
 fail-closed (pure-spec validation + live-index cross-check), but prints EVERY error and
@@ -70,7 +70,7 @@ def workflow_lint() -> None:
     present.  Warnings alone (if any) still exit 0.
 
     This command intentionally does NOT go through ``open_service``, so it can
-    diagnose a spec that would cause normal commands to hard-stop (AC #5 / US2).
+    diagnose a spec that would cause normal commands to hard-stop.
     """
     import squads._cli._common as _common
     from squads._paths import resolve

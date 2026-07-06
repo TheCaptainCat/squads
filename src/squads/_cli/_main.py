@@ -600,12 +600,12 @@ async def graph(
     direction/seen/children``) — the read surface for agents and orchestrators. Shape::
 
         {
-          "id": "BUG-22", "type": "bug", "status": "Open", "priority": "high",
+          "id": "BUG-<n>", "type": "bug", "status": "Open", "priority": "high",
           "assignee": null, "edge_kind": null, "direction": null, "seen": false,
           "children": [
-            { "id": "FEAT-35", ..., "edge_kind": "depends-on", "direction": "out",
+            { "id": "FEAT-<n>", ..., "edge_kind": "depends-on", "direction": "out",
               "seen": false, "children": [...] },
-            { "id": "TASK-100", ..., "edge_kind": "related", "direction": "in",
+            { "id": "TASK-<n>", ..., "edge_kind": "related", "direction": "in",
               "seen": true, "children": [] }
           ]
         }
@@ -744,7 +744,7 @@ async def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
-        help="Filter by target item ID (e.g. TASK-42).",
+        help="Filter by target item ID (e.g. TASK-<n>).",
         metavar="ID",
     ),
     actor: str | None = typer.Option(
@@ -785,11 +785,12 @@ async def reflog(
     """Show the operation reflog — a chronological log of every mutating sq command.
 
     Tails the most recent entries by default (``--tail 50``); use ``--tail 0`` for
-    all.  Filters are AND-ed: ``--item TASK-42 --op status`` shows only status
+    all.  Filters are AND-ed: ``--item TASK-<n> --op status`` shows only status
     changes on that item.
 
-    A squad with no reflog (pre-FEAT-000024 or first run) prints empty results —
-    never an error.  A truncated or partially-written reflog is tolerated silently.
+    A squad with no reflog (upgraded from an old schema, or first run) prints empty
+    results — never an error.  A truncated or partially-written reflog is tolerated
+    silently.
 
     **Exit codes:** 0 = normal; 1 = error; see ``sq docs faq`` for the full table.
     """
@@ -990,7 +991,7 @@ def _render_reflog_tree(entries: list[ReflogEntry]) -> None:
 @common.command
 async def show_any(
     item_id: str = typer.Argument(
-        ..., metavar="ID", help="Item ID (e.g. FEAT-13) or bare number (e.g. 13)."
+        ..., metavar="ID", help="Item ID (e.g. FEAT-<n>) or bare number (e.g. 13)."
     ),
     json_out: bool = typer.Option(False, "--json"),
     raw: bool = typer.Option(
@@ -1003,7 +1004,7 @@ async def show_any(
 ):
     """Show any work item by ID or bare number, regardless of type.
 
-    Accepts both the full ID (e.g. ``FEAT-13``) and a bare sequence number (e.g. ``13``).
+    Accepts both the full ID (e.g. ``FEAT-<n>``) and a bare sequence number (e.g. ``13``).
     Unknown IDs error cleanly.
     """
     svc = get_service()
@@ -1023,8 +1024,8 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     Exit codes: 0 = clean (or warnings only), 3 = one or more error-level issues found.
     See `sq docs faq` for the full exit-code table.
 
-    FEAT-000209 AC#4: when the workflow override spec is invalid (pure-spec error or
-    index cross-check failure), ``sq check`` degrades gracefully.  It captures the
+    When the workflow override spec is invalid (pure-spec error or index cross-check
+    failure), ``sq check`` degrades gracefully.  It captures the
     workflow error as a single ``CheckIssue`` ("workflow config invalid — run `sq
     workflow lint`") and continues running all other checks (marker scan, dangling
     links, etc.) using the bundled default spec so they are not suppressed.

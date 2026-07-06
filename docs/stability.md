@@ -31,12 +31,12 @@ version (see [migration.md](migration.md)).
 
 ### ID numbering, padding, and exhaustion
 
-The global sequence number is the durable identity of an item — `TASK-7` and `TASK-000007` (in refs or filenames)
+The global sequence number is the durable identity of an item — `TASK-<n>` and `TASK-NNNNNN` (in refs or filenames)
 resolve to the same item forever. The *number* never changes across a retype or repair; the *prefix* stays fixed.
 
-- **Display:** every human-facing surface (frontmatter `id:`, CLI output, `--json`) renders IDs unpadded (e.g. `TASK-7`).
+- **Display:** every human-facing surface (frontmatter `id:`, CLI output, `--json`) renders IDs unpadded (e.g. `TASK-<n>`).
   This is fixed and not user-configurable.
-- **Filenames:** on disk, items use zero-padded names (`TASK-000007-slug.md`) for lexicographic sorting. The padding
+- **Filenames:** on disk, items use zero-padded names (`TASK-NNNNNN-slug.md`) for lexicographic sorting. The padding
   width is stored in the index with a default of 6, reconstructed by `sq repair`. Raised one-way via `sq migrate repad
   <width>` (never lowered). References written before a repad retain their original width — readers understand both.
 - **Exhaustion:** `sq create` errors with an index-full message at capacity, never silently
@@ -47,7 +47,7 @@ resolve to the same item forever. The *number* never changes across a retype or 
 ### IDs are never reused
 
 Removal preserves the counter high-water mark; a removed sequence number is permanently retired. A
-gap in the sequence (e.g., `…TASK-000006, TASK-000008…` after removing 000007) is normal, sanctioned,
+gap in the sequence (e.g., `…TASK-<n>, TASK-<n+2>…` after removing `<n+1>`) is normal, sanctioned,
 and reader-relyable — tools and humans must not treat a missing number as corruption. `sq check` and
 `sq repair` both accept gaps as normal state.
 
@@ -133,10 +133,10 @@ Every item is addressed by **full ID** or **bare number**, accepted everywhere. 
 existing item through the wrong type is an error.
 
 ```bash
-sq show TASK-7           # full ID (unpadded)
-sq show TASK-000007      # also works (padded form for backward compatibility)
+sq show TASK-<n>         # full ID (unpadded)
+sq show TASK-NNNNNN      # also works (padded form for backward compatibility)
 sq show 7                # bare number (resolves the item at sequence 7, whatever its type)
-sq show BUG-7            # ERROR: item 7 is a task, not a bug
+sq show BUG-<n>          # ERROR: item 7 is a task, not a bug
 ```
 
 
@@ -193,7 +193,7 @@ allowed post-1.0; removing or repurposing an existing alias is breaking and is n
 ### Retype an item in place
 
 The verb `sq <type> <n> retype <new-type>` changes an item's type while preserving its number. The
-number is the stable identity: a `TASK-000020` becomes `BUG-000020`, the `.md` file moves folders and
+number is the stable identity: a `TASK-<n>` becomes `BUG-<n>`, the `.md` file moves folders and
 reprefixes, body bytes are preserved verbatim, and incoming edges (refs, children parent, prose
 mentions) are rewritten in the same transaction. `sq check` stays clean.
 

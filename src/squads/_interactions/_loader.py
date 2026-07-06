@@ -1,4 +1,4 @@
-"""Load and validate the bundled playbook spec (ADR-000226 §3).
+"""Load and validate the bundled playbook spec.
 
 ``load_playbook(catalog)`` is the single entry point.  It reads
 ``playbook.toml`` via ``importlib.resources`` (offline, no filesystem
@@ -45,8 +45,8 @@ def load_playbook(catalog: RoleCatalogSpec) -> PlaybookSpec:
     """Read, parse, validate, and return the bundled ``playbook.toml``.
 
     Takes the already-loaded ``RoleCatalogSpec`` as the slug authority for
-    cross-spec referential integrity (ADR §3-b).  Called once at module level
-    in ``__init__.py`` to build the singleton.  Raises ``SquadsError`` on any
+    cross-spec referential integrity.  Called once at module level in
+    ``__init__.py`` to build the singleton.  Raises ``SquadsError`` on any
     violation.
     """
     try:
@@ -108,7 +108,7 @@ def _check_slugs(
     catalog_slugs: set[str],
     errors: list[str],
 ) -> None:
-    """§3-b: cross-spec slug referential integrity (*dev sentinel exempt)."""
+    """Cross-spec slug referential integrity (*dev sentinel exempt)."""
     errors.extend(
         f"types.{item_type.value}: role slug {guide.slug!r} not in role catalog"
         for item_type, entry in types.items()
@@ -118,7 +118,7 @@ def _check_slugs(
 
 
 def _check_coverage(types: dict[ItemType, ItemPlaybookSpec], errors: list[str]) -> None:
-    """§3-c: work types required; meta types must be absent."""
+    """Work types required; meta types must be absent."""
     errors.extend(
         f"missing required work-type entry: {wt.value!r}" for wt in _WORK_TYPES if wt not in types
     )
@@ -131,7 +131,7 @@ def _check_coverage(types: dict[ItemType, ItemPlaybookSpec], errors: list[str]) 
 
 
 def _check_text(types: dict[ItemType, ItemPlaybookSpec], errors: list[str]) -> None:
-    """§3-d: required text non-empty."""
+    """Required text non-empty."""
     for item_type, entry in types.items():
         if not entry.overview.strip():
             errors.append(f"types.{item_type.value}: overview is empty")

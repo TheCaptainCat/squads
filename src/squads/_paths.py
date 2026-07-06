@@ -60,7 +60,7 @@ class SquadPaths:
 
     @property
     def reflog_path(self) -> Path:
-        """Path to the append-only operation log (FEAT-000024)."""
+        """Path to the append-only operation log."""
         return self.squad_dir / ".reflog.jsonl"
 
     # --- type folders / item files ---
@@ -138,7 +138,7 @@ def resolve(dir_override: str | None = None, *, require_init: bool = True) -> Sq
 
 
 def type_for_id(item_id: str, spec: WorkflowSpec | None = None) -> str:
-    """Map an ID (e.g. ``TASK-000003`` or ``INC-000001``) back to its item type string.
+    """Map an ID (e.g. ``TASK-nnn`` or ``INC-nnn``) back to its item type string.
 
     Resolution order:
     1. Reserved built-in prefix map — covers all built-in types with no spec needed.

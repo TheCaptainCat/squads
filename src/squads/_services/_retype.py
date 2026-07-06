@@ -134,14 +134,13 @@ class RetypeMixin(ServiceCore):
 
             # Flip type + move file (body bytes verbatim).
             # Stamp the new prefix from the spec before reading item.id so the computed
-            # field formats from the correct prefix (ADR-000266).
+            # field formats from the correct prefix.
             old_path = item_file(self.paths, item)
             item.type = new_type
             item.prefix = prefix_for(new_type, self.spec)
             new_id = item.id  # @computed_field formats from item.prefix (now correct); unpadded
-            # Filename stem must stay padded even though new_id (item.id) is unpadded
-            # (ADR-000282) — format it explicitly from the sequence number, never by
-            # concatenating item.id.
+            # Filename stem must stay padded even though new_id (item.id) is unpadded —
+            # format it explicitly from the sequence number, never by concatenating item.id.
             new_stem = format_item_id(item.prefix, item.sequence_id, db.padding)
             new_rel = self.paths.squad_relative(
                 new_type, f"{new_stem}-{item.slug}.md", spec=self.spec
@@ -176,7 +175,7 @@ class RetypeMixin(ServiceCore):
 
             rewritten_names = [str(p.relative_to(self.paths.squad_dir)) for p in touched]
 
-            # Reflog: op=retype captures old→new id/type and status outcome (ADR-000117 §1).
+            # Reflog: op=retype captures old→new id/type and status outcome.
             # Appended AFTER os.replace by the store's transaction machinery.
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "retype",

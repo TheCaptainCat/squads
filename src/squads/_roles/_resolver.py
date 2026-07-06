@@ -4,7 +4,7 @@ Call :func:`resolve_role` instead of :func:`~squads._roles._catalog.role_by_slug
 squad directory is available (i.e. from service-level code).  Call :func:`resolve_dev_role`
 instead of :func:`~squads._roles._catalog.dev_role` for stack-specific developer roles.
 
-Merge semantics (ADR-000085 §2):
+Merge semantics:
 - **Bundled slug** — only the fields present in the TOML override the ``PREDEFINED`` defaults;
   absent fields are inherited as-is.  This lets a project rename ``architect`` or change its
   model without restating the full mission.
@@ -16,9 +16,9 @@ Merge semantics (ADR-000085 §2):
 The resolver is *stateless*: it reads from disk on every call.  The service layer is already the
 cached / transactional boundary; there is no need to cache here.
 
-``full_name`` in a role TOML seeds the name when the role is activated (ADR §4 / T90 naming
-seam).  The key is passed through to ``RoleDef.full_name``; downstream code (``extra.full_name``,
-roster, pointers, CLAUDE.md section) already reads from there.
+``full_name`` in a role TOML seeds the name when the role is activated.  The key is
+passed through to ``RoleDef.full_name``; downstream code (``extra.full_name``,
+roster, pointers, CLAUDE.md section) reads from there.
 """
 
 import tomllib
@@ -72,7 +72,7 @@ def _apply_override(base: RoleDef | None, data: dict[str, object], slug: str) ->
 
     for key, value in data.items():
         if key == "slug":
-            # slug is non-renamable (ADR §4) — silently ignore any attempt to override it.
+            # slug is non-renamable — silently ignore any attempt to override it.
             continue
         if key not in known:
             # Silently skip unknown TOML keys for forward compatibility.
@@ -98,7 +98,7 @@ def _apply_override(base: RoleDef | None, data: dict[str, object], slug: str) ->
 def resolve_role(slug: str, squad_dir: Path | None) -> RoleDef:
     """Return the ``RoleDef`` for *slug*, applying any project override.
 
-    Resolution order (ADR §2):
+    Resolution order:
     1. ``<squad_dir>/.overrides/roles/<slug>.toml`` — if present, merge field-wise.
     2. ``PREDEFINED`` catalog — the bundled default.
 

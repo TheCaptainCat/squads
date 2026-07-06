@@ -4,7 +4,7 @@ A CLI (`squads` / `sq`) that is the **coordination layer** for a team of AI agen
 codebase.
 
 squads gives the team a shared structure to work in: a stable JIRA-like ID for every piece of work
-(`TASK-000003`), defined **roles** and the **skills** that go with them, a status lifecycle, and a
+(`TASK-<n>`), defined **roles** and the **skills** that go with them, a status lifecycle, and a
 handoff protocol (comments, `@mentions`, an inbox) — so work moves cleanly from one agent to the
 next and everyone reads the same source of truth. Your agents — you, in Claude Code, adopting a
 role — do the building; squads keeps them coordinated. Claude Code is the first supported backend;
@@ -83,7 +83,7 @@ sq --show-completion zsh
 cd your-project
 sq init --roles all                 # scaffold squads/, .claude/, CLAUDE.md
 sq create feature "User authentication" --desc "Login & sessions"
-sq create task "Validate token expiry" --parent FEAT-000010
+sq create task "Validate token expiry" --parent FEAT-<n>
 sq task 11 status InProgress
 sq task 11 comment --as architect -m "Reuse the clock abstraction" -m "@qa verify edges"
 sq tree
@@ -96,7 +96,7 @@ sq tree
 - **Items** — every tracked thing is an item with a type and a stable ID. Types: `epic`,
   `feature`, `task`, `bug`, `decision` (ADR), `review`, `guide`, `role`, `skill`.
 - **Global IDs** — `PREFIX-NNNNNN` with a single global counter, so the number is unique across
-  all types (you never have both `TASK-000002` and `BUG-000002`). The prefix marks the type:
+  all types (you never have both `TASK-<n>` and `BUG-<n>`). The prefix marks the type:
   `EPIC FEAT TASK BUG ADR REV GUIDE ROLE SKILL`.
 - **Source of truth** — the markdown **frontmatter** is durable truth; `squads/.squads.json` is a
   fast index that is fully rebuildable from the files (`sq repair`).
@@ -162,7 +162,7 @@ Contributing: **[CONTRIBUTING.md](CONTRIBUTING.md)** · contributors: **[CONTRIB
 - `--dir PATH` (global) — operate on the squad folder at PATH instead of walking up to `.squads.toml`
 - `--at WHEN` (global) — forge timestamps (ISO 8601, UTC) for this command, to preserve history when migrating
 
-Items are addressed by `<type> <number>` (bare `35`, padded `000035`, or full `TASK-000035`; the
+Items are addressed by `<type> <number>` (bare `35`, padded `000035`, or full `TASK-<n>`; the
 type word validates). Create with `sq create`; operate with `sq <type> <n> <verb>`.
 
 **Items**
@@ -235,14 +235,14 @@ squads encodes a light division of labour (enforced by validation + `sq check`):
 - The **tech lead** writes **tasks**. A task's **parent is the feature** it implements, and each
   **subtask maps to one user story**:
   ```bash
-  sq create task "Token validation" --parent FEAT-000002
-  sq task 3 add-subtask "Validate expiry" --story US1   # US1 must exist in FEAT-000002
+  sq create task "Token validation" --parent FEAT-<n>
+  sq task 3 add-subtask "Validate expiry" --story USn   # USn must exist in FEAT-<n>
   ```
 - A task may instead/also link a **bug** or **review** via typed refs — or nothing if it's purely
   technical:
   ```bash
-  sq task 3 ref add BUG-000009 --kind fixes
-  sq task 3 ref add REV-000010 --kind addresses
+  sq task 3 ref add BUG-<n> --kind fixes
+  sq task 3 ref add REV-<n> --kind addresses
   ```
 
 A task's parent must be a feature (link a bug/review with a ref, not as parent); a feature's parent

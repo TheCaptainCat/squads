@@ -97,8 +97,7 @@ async def init(
     if not no_claude:
         await svc.refresh_managed()
         # After refresh_managed has written the skill body files (with sq:body markers),
-        # stamp each managed skill as a first-class SKILL item in lexical-by-slug order
-        # (ADR-000181 decisions #4 and #5).
+        # stamp each managed skill as a first-class SKILL item in lexical-by-slug order.
         if not _skip_skill_seed:
             await svc.seed_bundled_skills()
 
@@ -166,17 +165,17 @@ async def adopt(
 def open_service(dir_override: str | None = None) -> Service:
     """Resolve the active squad, load (and activate) its workflow spec, return a Service.
 
-    FEAT-000209 (TASK-000240): if the squad has a workflow override under
-    ``<squad_dir>/.overrides/workflow.toml`` it is merged additively over the bundled
-    default and passed explicitly to ``Service``.  A squad with no override uses the
-    cached ``_BUNDLED_SPEC`` fast-path (F3 / REV-000246) — no re-parse on every call.
+    If the squad has a workflow override under ``<squad_dir>/.overrides/workflow.toml``
+    it is merged additively over the bundled default and passed explicitly to
+    ``Service``.  A squad with no override uses the cached ``_BUNDLED_SPEC`` fast-path —
+    no re-parse on every call.
 
     A spec that fails validation raises ``SquadsError`` pointing to ``sq workflow lint``.
     No command proceeds with an invalid spec.
 
-    AC#5 (TASK-000243): after loading the spec, the live index is cross-checked for
-    items whose type or status is no longer declared in the spec.  A mismatch raises
-    ``SquadsError`` listing every offending item ID.
+    After loading the spec, the live index is cross-checked for items whose type or
+    status is no longer declared in the spec.  A mismatch raises ``SquadsError``
+    listing every offending item ID.
 
     ``sq workflow lint`` bypasses this by calling ``lint_workflow_spec`` directly —
     it reports the same errors in collect mode without going through ``open_service``.
