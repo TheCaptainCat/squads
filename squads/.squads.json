@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 323,
+  "counter": 324,
   "padding": 6,
   "items": {
     "12": {
@@ -6848,7 +6848,7 @@
       "type": "bug",
       "title": "Package version duplicated in pyproject and __init__ (bumps half-apply)",
       "slug": "package-version-duplicated-in-pyproject-and-init-bumps-half",
-      "status": "Open",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "op-pierre",
@@ -6859,7 +6859,7 @@
       "subentities": [],
       "path": "bugs/BUG-000213-package-version-duplicated-in-pyproject-and-init-bumps-half.md",
       "created_at": "2026-06-25T13:34:04Z",
-      "updated_at": "2026-06-25T13:34:22Z",
+      "updated_at": "2026-07-07T13:11:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12268,6 +12268,28 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-323"
+    },
+    "324": {
+      "sequence_id": 324,
+      "type": "bug",
+      "title": "gen_template_manifest.py breaks after BUG-213's importlib.metadata version fix",
+      "slug": "gen-template-manifest-py-breaks-after-bug-213-s-importlib-me",
+      "status": "Fixed",
+      "description": "The template-manifest generator parses squads/__init__.py as text to read __version__; it now returns the literal source line instead of a version string, breaking CI's manifest-freshness check and the release write-path.",
+      "parent": null,
+      "author": "devops",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000324-gen-template-manifest-py-breaks-after-bug-213-s-importlib-me.md",
+      "created_at": "2026-07-07T13:06:59Z",
+      "updated_at": "2026-07-07T13:11:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-324"
     }
   }
 }

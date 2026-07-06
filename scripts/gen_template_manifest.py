@@ -35,21 +35,21 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+import tomllib
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).parent.parent
 _TEMPLATES_DIR = _REPO_ROOT / "src" / "squads" / "_rendering" / "templates"
 _MANIFEST_PATH = _REPO_ROOT / "src" / "squads" / "_rendering" / "templates_manifest.json"
-_VERSION_PATH = _REPO_ROOT / "src" / "squads" / "__init__.py"
+_PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
 
 
 def _current_version() -> str:
-    text = _VERSION_PATH.read_text(encoding="utf-8")
-    for line in text.splitlines():
-        if line.startswith("__version__"):
-            _, _, rhs = line.partition("=")
-            return rhs.strip().strip('"').strip("'")
-    raise SystemExit("error: could not parse __version__ from squads/__init__.py")
+    data = tomllib.loads(_PYPROJECT_PATH.read_text(encoding="utf-8"))
+    try:
+        return data["project"]["version"]
+    except KeyError:
+        raise SystemExit("error: could not read [project].version from pyproject.toml") from None
 
 
 def _hash_file(path: Path) -> str:
