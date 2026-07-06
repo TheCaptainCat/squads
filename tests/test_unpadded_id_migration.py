@@ -49,6 +49,7 @@ async def test_migrate_unpads_frontmatter_refs_and_prose_but_skips_code_spans(sv
         await svc.create(ItemType.TASK, "Implement auth", parent=feature.id, refs=[bug.id])
     ).item
     await svc.add_subtask(task.id, "placeholder")  # ST1 — retitled (padded mention) below
+    await svc.set_subtask_body(task.id, "ST1", "Real subtask description, not the stub.")
 
     padded_feature_id = _pad(feature.id)
     padded_bug_id = _pad(bug.id)

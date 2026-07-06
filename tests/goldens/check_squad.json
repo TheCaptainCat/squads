@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "level": "warn",
+    "item": "FEAT-2",
+    "message": "US1 body is unwritten (still the placeholder stub)"
+  },
+  {
+    "level": "warn",
+    "item": "TASK-3",
+    "message": "ST1 body is unwritten (still the placeholder stub)"
+  },
+  {
+    "level": "warn",
+    "item": "REV-6",
+    "message": "F1 body is unwritten (still the placeholder stub)"
+  }
+]

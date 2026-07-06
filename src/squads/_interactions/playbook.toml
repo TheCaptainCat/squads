@@ -66,13 +66,17 @@ commands = [
   enter = ["confirm the user need and which epic (if any) it belongs under"]
   do = [
     'author the feature (`sq create feature "…" --author product-owner`)',
-    'add persona-worded user stories (`sq feature <n> add-story "As a … I want …"`) — the title is the user-story phrase; acceptance criteria and detail go in the story body (`sq feature <n> story <k> body -m …`)',
+    'add persona-worded user stories (`sq feature <n> add-story "As a … I want …"`) — the title is the user-story phrase',
+    "write each story's body (`sq feature <n> story <k> body -m …`) — the acceptance criteria live there, not in the title",
     "use `sq feature <n> story <k> comment` for story-scoped acceptance clarifications or questions — cross-cutting notes go on the feature (see the `squads` skill's comment-scoping convention)",
   ]
   handoff = [
     "when stories and acceptance criteria are complete and the feature is greenlit, `@tech-lead` to break it into tasks",
   ]
-  watch = ["stories describe user value + acceptance criteria — not implementation steps"]
+  watch = [
+    "stories describe user value + acceptance criteria — not implementation steps",
+    "a story is not done until its body carries acceptance criteria — an unwritten placeholder body is a defect even if the title reads fine",
+  ]
 
   [[types.feature.roles]]
   slug = "tech-lead"

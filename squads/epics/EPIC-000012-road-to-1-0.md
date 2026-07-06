@@ -3,7 +3,7 @@ id: EPIC-12
 sequence_id: 12
 type: epic
 title: Road to 1.0
-status: Ready
+status: Done
 author: product-owner
 priority: high
 refs:
@@ -11,7 +11,7 @@ refs:
 - BUG-21:depends-on
 description: Define and prove the 1.0 stability promise across our public surfaces
 created_at: '2026-06-10T12:40:41Z'
-updated_at: '2026-06-17T08:31:32Z'
+updated_at: '2026-07-06T11:33:35Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -62,4 +62,6 @@ other features make; it starts early as a living draft and closes last.
 - [2026-06-17T08:31:32Z] Catherine Manager:
   - Capstone FEAT-13 (stability contract) is Done and gated — it was the last open feature under this epic; all planned grammar/format-settling features have landed.
   - Deliberately keeping this epic OPEN, not closing it. 'Road to 1.0' completes when 1.0 is declared, and op-pierre is shipping 0.3.0 first to exercise the contract before committing to 1.0. Remaining gate to 1.0: settle the two pre-freeze reflog questions (REV-119 F3/F5) and complete real-world testing. Close this epic at the 1.0 cut.
+- [2026-07-06T11:33:18Z] Catherine Manager:
+  - All planned children Done (FEAT-13 capstone, FEAT-14/15/16/17/18/19/20/23/24/27/35/36/40/41/62/64/138/283/287/288). Road to 1.0 scope complete. Remaining hygiene-guard work (FEAT-237/264/289) tracked separately.
 <!-- sq:discussion:end -->

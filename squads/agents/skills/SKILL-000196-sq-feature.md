@@ -39,7 +39,8 @@ sq feature <n> stories
 
 **Do:**
 - author the feature (`sq create feature "…" --author product-owner`)
-- add persona-worded user stories (`sq feature <n> add-story "As a … I want …"`) — the title is the user-story phrase; acceptance criteria and detail go in the story body (`sq feature <n> story <k> body -m …`)
+- add persona-worded user stories (`sq feature <n> add-story "As a … I want …"`) — the title is the user-story phrase
+- write each story's body (`sq feature <n> story <k> body -m …`) — the acceptance criteria live there, not in the title
 - use `sq feature <n> story <k> comment` for story-scoped acceptance clarifications or questions — cross-cutting notes go on the feature (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
@@ -47,6 +48,7 @@ sq feature <n> stories
 
 **Watch for:**
 - stories describe user value + acceptance criteria — not implementation steps
+- a story is not done until its body carries acceptance criteria — an unwritten placeholder body is a defect even if the title reads fine
 
 ## For Olivia Lead (`tech-lead`)
 

@@ -3,7 +3,7 @@ id: FEAT-289
 sequence_id: 289
 type: feature
 title: sq check flags unwritten placeholder sub-entity bodies
-status: Draft
+status: Done
 author: product-owner
 subentities:
 - local_id: US1
@@ -16,7 +16,7 @@ subentities:
   title: As a PO, I want the skill to state the body-write step as a done-criterion
   status: Todo
 created_at: '2026-07-04T20:16:38Z'
-updated_at: '2026-07-04T20:17:36Z'
+updated_at: '2026-07-06T12:10:03Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -206,4 +206,12 @@ mistaking a titled-but-stub story for a finished one.
 <!-- sq:discussion -->
 - [2026-07-04T20:16:47Z] Nina Product:
   - Left parentless (no EPIC-12 parent): this is a board-honesty / authoring-quality fix — sq check catching unwritten sub-entity bodies and sharpening sq-feature guidance — not part of the 1.0 stability promise, which EPIC-12 scopes to the durable .md format, CLI grammar, and --json shapes. Sibling context: this fix's root cause is exactly what let FEAT-283's stories ship as stub bodies until caught by hand.
+- [2026-07-06T11:38:38Z] Olivia Lead:
+  - Broke FEAT-289 into two independent tasks (Draft, awaiting promotion to Ready at dispatch):
+  - TASK-303 — Add sq check for unwritten placeholder sub-entity bodies. Covers US1 (detector) + US2 (severity). Subtasks: ST1 the `_check_unwritten_subentity_bodies` helper + wiring [US1]; ST2 emit at warn [US2]; ST3 service + CLI tests [US1].
+  - TASK-304 — Sharpen sq-feature skill: story-body write as ordered DoD step. Covers US3. Subtasks: ST1 split body-write into its own PO Do bullet in playbook.toml [US3]; ST2 Watch-for DoD line + regen via sq sync [US3].
+  - US2 severity — RESOLVED here as tech lead (no architect ADR needed): warn, advisory, non-blocking; NOT a Draft->Ready-gating error. Precedent: the closest sibling `_check_subentity_title_lengths` (ADR-000167) is an advisory warn, and ADR-000085 §3 reserves 'error' for structural breakage. An unwritten body is an authoring-quality defect, so it surfaces on every `sq check` without hard-blocking legacy squads carrying existing stub debt (retroactive cleanup stays out of scope). The implementer records this rationale as a design comment on TASK-303 to satisfy US2's acceptance.
+  - No depends-on edges: the two tasks are fully independent (code vs managed-skill source). Recommended dispatch order: run both in parallel; if serializing, TASK-303 first (the feature's core detector), TASK-304 second. QA verifies the feature against US1/US3 acceptance once both land. Note flagged in both bodies: shipped source/tests carry no sq IDs; the sibling `types.task` subtask-body guidance gap is a fast-follow, out of scope for TASK-304.
+- [2026-07-06T12:10:03Z] Catherine Manager:
+  - FEAT-289 complete. TASK-303: new advisory sq check rule (_check_unwritten_subentity_bodies) that flags any sub-entity whose :body region still equals the kind's placeholder, emitted at warn (non-blocking, mirrors the title-length check). TASK-304: sq-feature skill now states writing each story/subtask body (with acceptance criteria) as an explicit ordered DoD step. Dev's initial pass broke 8 tests (goldens + check-cleanliness fixtures) and was reconciled by regenerating goldens and giving fixtures real bodies (not by weakening the check); manager-verified: suite green, pyright+ruff clean, no sq IDs in source, live check surfaces genuine stub debt. Note: the live dogfood squad now shows pre-existing unwritten-body warnings (TASK-42/43 et al.) — expected surfaced debt, retroactive cleanup out of scope.
 <!-- sq:discussion:end -->

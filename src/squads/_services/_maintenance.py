@@ -8,6 +8,7 @@ from typing import Any
 from squads import __version__, _aio
 from squads import _actor as actor
 from squads import _clock as clock
+from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._backends._base import BackendContext
 from squads._errors import RoleNotFoundError, SquadsError
@@ -871,6 +872,7 @@ class MaintenanceMixin(ServiceCore):
         issues += self._check_subtask_stories(index)
         issues += self._check_subentity_status(index)
         issues += self._check_decisions(index)
+        issues += await self._check_unwritten_subentity_bodies(index, on_disk)
         # ADR-000085 §3: two override checks — version-drift warn + missing-marker error.
         issues += [
             CheckIssue(level, item, msg)
@@ -1073,6 +1075,45 @@ class MaintenanceMixin(ServiceCore):
                         "status is Superseded but no incoming supersedes edge found",
                     )
                 )
+        return issues
+
+    async def _check_unwritten_subentity_bodies(
+        self,
+        index: SquadsDB,
+        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
+    ) -> list[CheckIssue]:
+        """Advisory: flag any sub-entity whose stored body is still the kind's placeholder.
+
+        Sub-entity body prose lives in the item file's ``:body`` marker region, not in the
+        index/frontmatter, so — unlike the sibling index-only ``_check_*`` helpers — this one
+        reads each sub-entity-bearing item's file text (reusing the path already resolved by
+        :meth:`_scan_for_check`'s ``on_disk`` scan, keyed by sequence number). Exact-equality
+        only: a body that has started to diverge from the placeholder, even by a single
+        character, is treated as written and never flagged.
+
+        Warn-level (advisory, non-blocking) — mirrors :meth:`_check_subentity_title_lengths`;
+        no Draft→Ready gate is added.
+        """
+        issues: list[CheckIssue] = []
+        for item in index.items.values():
+            kind = SUBENTITY_KIND.get(item.type)
+            if kind is None or not item.subentities:
+                continue
+            entry = on_disk.get(item.sequence_id)
+            if entry is None:
+                continue
+            text = await _aio.read_text(entry[1])
+            placeholder = discussion.body_placeholder(kind)
+            for sub in item.subentities:
+                body = sections.get_section(text, discussion.body_tag(kind, sub.local_id))
+                if body is not None and body.strip() == placeholder:
+                    issues.append(
+                        CheckIssue(
+                            "warn",
+                            item.id,
+                            f"{sub.local_id} body is unwritten (still the placeholder stub)",
+                        )
+                    )
         return issues
 
     @staticmethod

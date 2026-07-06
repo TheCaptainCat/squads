@@ -251,7 +251,7 @@ async def test_item_skills_teach_handle_vs_body_note(svc, project):
     feature = _item_skill_body(project, ItemType.FEATURE)
     # product-owner story guidance must note title is user-story phrase, criteria in body
     assert "user-story phrase" in feature
-    assert "acceptance criteria and detail go in the story body" in feature
+    assert "the acceptance criteria live there, not in the title" in feature
     assert "story <k> body" in feature
 
     task = _item_skill_body(project, ItemType.TASK)
