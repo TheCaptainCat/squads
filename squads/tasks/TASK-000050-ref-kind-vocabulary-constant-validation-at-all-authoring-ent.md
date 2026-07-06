@@ -25,7 +25,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-06-11T20:21:59Z'
-updated_at: '2026-06-23T09:57:43Z'
+updated_at: '2026-07-06T15:17:49Z'
 ---
 <!-- sq:body -->
 Make the ref-kind vocabulary a finite, single-source-of-truth list and enforce it at every authoring entry point. Per **ADR-49** (Proposed): the 1.0 vocabulary is **explicitly CLOSED** — eight kinds, no project-config lookup on the validation path, no custom-kind escape hatch.
@@ -101,7 +101,7 @@ Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind in ad
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Keep a bare ref add <id> (no --kind) first-class: it defaults to related, which validates trivially as a member of the closed vocabulary — no nudge to over-type and no warning. The frictionless untyped-ref path is preserved (US2).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

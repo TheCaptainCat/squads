@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-06-30T07:49:54Z'
-updated_at: '2026-06-30T09:29:56Z'
+updated_at: '2026-07-06T15:21:08Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -73,7 +73,7 @@ _Add with `sq task 243 add-subtask "<title>"`; track with `sq task 243 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers making `sq check` degrade gracefully on a bad workflow override: `Service.check()` runs the workflow validation in collect-mode (the same core as TASK-242) guarded so a broken spec yields exactly ONE concise `CheckIssue` — "workflow config invalid — run `sq workflow lint`" — rather than aborting check entirely, letting the rest of the checks still run. No workflow line appears for a squad with no override or a valid override (no false positive). Detail lives in `sq workflow lint`, per AC#4's one-line wording. (US2)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

@@ -20,7 +20,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-25T07:56:03Z'
-updated_at: '2026-06-25T09:22:45Z'
+updated_at: '2026-07-06T15:19:55Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -95,7 +95,7 @@ _Add with `sq task 202 add-subtask "<title>"`; track with `sq task 202 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the 0.4→0.5 migration renaming each legacy slug-named agents/skills/<slug>.md to the agents/skills/SKILL-<NNNNNN>-<slug>.md convention and rewriting the .claude pointer's body path — idempotently (skip files already at the convention), reusing the existing lexical-by-slug allocation and never reallocating ids (ADR #4).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -113,7 +113,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers fresh sq init (seed_bundled_skills) naming skill body files with the SKILL-<NNNNNN>-<slug>.md convention from the start, reusing the shared lexical-by-slug allocation so init and migration produce parity-ordered filenames.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -131,7 +131,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the backend _write_managed_skill (+ regen path) building the skill body path from the skill's ID resolved through the index (as roles do via _regen_role_body), not the bare slug, so the body file is SKILL-<NNNNNN>-<slug>.md and the .claude/skills/<slug>/SKILL.md pointer (dir stays slug-keyed) resolves to the renamed file — staying marker-safe / frontmatter-preserving (invariant 3).
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

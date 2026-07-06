@@ -15,7 +15,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-12T14:18:09Z'
-updated_at: '2026-06-12T14:24:04Z'
+updated_at: '2026-07-06T15:19:02Z'
 ---
 <!-- sq:body -->
 Content-only documentation work: zero code changes. Deliverables are sq decision items (retroactive ADRs) authored through the CLI, one per standing call.
@@ -70,7 +70,7 @@ _Add with `sq task 69 add-subtask "<title>"`; track with `sq task 69 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Author the retroactive ADRs as sq decision items (one per standing call), each created Proposed and framed honestly as a decision already in force: (1) frontmatter as source of truth / rebuildable index, (2) single global ID counter, (3) forward-only refs with computed backrefs, (4) marker-safe editing, (5) pluggable backends with .claude as pointers, (6) the dotted 0.x schema-version scheme + migrate runner — plus up to ~2 optional clear standing calls (injectable clock, module-privacy). ADR-49 shape (Context/Decision/Consequences), no literal sq anchor tags (US2).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

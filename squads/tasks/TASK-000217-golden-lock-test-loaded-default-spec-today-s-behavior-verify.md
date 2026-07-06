@@ -17,7 +17,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-06-25T14:21:31Z'
-updated_at: '2026-06-25T15:17:09Z'
+updated_at: '2026-07-06T15:20:53Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -88,7 +88,7 @@ _Add with `sq task 217 add-subtask "<title>"`; track with `sq task 217 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the golden-lock regression gate for EPIC-206: build a frozen snapshot directly from today's `WORKFLOWS`/`TERMINAL`/`ALLOWED_PARENTS`/`PREFIX_BY_TYPE`/`FOLDER_BY_TYPE`/`TYPE_ALIASES`/`STATUS_EMOJI` literals and assert structural equality with the loaded default `WorkflowSpec` — the set of `ItemType`s and each type's prefix/folder/aliases/parents, every machine's `initial` + full transitions map, the `TERMINAL` set status-by-status, the sub-entity machines per kind, and the status badges. Fails on any drift; CI-enforced and stays green through F2-F6. This is what proves TASK-215/216's externalization is behavior-preserving. (US2)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -106,7 +106,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the packaging verification: a build/packaging test asserting `default_workflow.toml` is present in the built wheel, mirroring the existing templates-in-wheel test and relying on the `packages = ["src/squads"]` sweep of non-`.py` files (confirm the path fires, don't add a per-file include). Also confirms `sq workflow` renders the same cheatsheet as part of the regression surface. (US2)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

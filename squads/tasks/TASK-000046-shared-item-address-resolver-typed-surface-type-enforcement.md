@@ -22,7 +22,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-11T13:59:31Z'
-updated_at: '2026-06-11T14:32:38Z'
+updated_at: '2026-07-06T15:17:48Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -76,7 +76,7 @@ _Add with `sq task 46 add-subtask "<title>"`; track with `sq task 46 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add the shared item-address resolver(s) to _cli/_common.py alongside resolve_item_id/resolve_slug_or_raise: a typed resolve (verifies the resolved item's actual type against the live DB, raising SquadsError like '13 is FEAT-000013 (feature), not a task' on mismatch) and a type-less resolve (bare number resolves to whatever item owns that sequence, no type word). Both thread the Service/SquadsDB through cleanly; unknown-item errors mention both accepted forms (full ID and bare number).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -94,7 +94,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Wire the item-verb argument (the surface already going through resolve_item_id) onto the new typed resolve so sq task 13 show errors naming the real item+type instead of silently displaying FEAT-13. Closes the silent type-mismatch obey hole (US3); broader adoption across other surfaces is TASK-47.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

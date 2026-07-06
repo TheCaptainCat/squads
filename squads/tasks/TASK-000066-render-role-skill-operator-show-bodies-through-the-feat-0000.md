@@ -23,7 +23,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-12T12:05:15Z'
-updated_at: '2026-06-12T12:39:04Z'
+updated_at: '2026-07-06T15:19:02Z'
 ---
 <!-- sq:body -->
 Make `sq role <n> show`, `sq skill <n> show`, and `sq operator <n> show` render their bodies through the FEAT-26 styled markdown path — the same renderer `sq feature <n> show` uses for its body facet. Depends on TASK-65 for the item-first `show` surface (especially the new `sq operator show`); both tasks touch the same three CLI modules, so coordinate / stack.
@@ -85,7 +85,7 @@ _Add with `sq task 66 add-subtask "<title>"`; track with `sq task 66 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Route the sq role/skill/operator show body rendering through the FEAT-000026 styled markdown path (the same helper feature show uses): styled Rich Markdown on a TTY gated by _is_styled(), --raw for plain byte-stable body, plain when piped/NO_COLOR — by relaxing the print_item ROLE/SKILL guard or factoring a shared render_body helper rather than duplicating the styled-vs-plain logic. Metadata panel unchanged (US2).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -103,7 +103,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Preserve role show's extra behaviour through the reroute: the catalog card (full name/title/model/mission/responsibilities) and the graceful 'no active item — run sq role activate' fallback when role_body is None (only the active-item body flows through the styled renderer). Wire the new operator show with the same styled-body treatment plus its id/slug/name card, degrading an empty body to a clean '(no body)' line (US2).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -121,7 +121,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add styled-vs-raw rendering tests (reusing the FEAT-000026 forced-styled-console idiom) for role/skill/operator show — styled markdown on a TTY, --raw plain, piped byte-stable — plus an operator show smoke test, and run the full suite since print_item is shared by every item type to catch feature/task/review show regressions from relaxing the guard (US2).
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

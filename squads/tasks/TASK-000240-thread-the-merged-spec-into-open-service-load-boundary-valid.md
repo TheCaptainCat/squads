@@ -12,7 +12,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-30T07:49:52Z'
-updated_at: '2026-06-30T08:26:42Z'
+updated_at: '2026-07-06T15:21:06Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -84,7 +84,7 @@ _Add with `sq task 240 add-subtask "<title>"`; track with `sq task 240 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers threading the merged spec into runtime via the squad-dir-aware singleton-rebind seam (the low-risk approach confirmed for FEAT-209 over full per-Service threading): `open_service`/`Service` calls `load_workflow_spec(squad_dir=...)` after resolving the squad dir and installs it with a `use_spec(spec)` that rebinds `_DEFAULT_SPEC`/`WORKFLOWS`/`TERMINAL`/`ALLOWED_PARENTS`/`SUBENTITY_WORKFLOWS`, resetting to bundled for no-override squads so the rebind does not leak across tmp squads in the suite. A broken override hard-stops BEFORE any command body runs, re-raising `SquadsError` with a "run `sq workflow lint`" pointer. (US3)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

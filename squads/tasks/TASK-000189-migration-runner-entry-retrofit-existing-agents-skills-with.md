@@ -16,7 +16,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-24T18:46:56Z'
-updated_at: '2026-06-24T21:09:52Z'
+updated_at: '2026-07-06T15:19:52Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -85,7 +85,7 @@ _Add with `sq task 189 add-subtask "<title>"`; track with `sq task 189 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the new ordered migration runner (private _vN_M_to_vP_Q.py registered in MIGRATIONS, run only via sq migrate up) that walks agents/skills/ in the shared lexical-by-slug order from TASK-188, allocates a SKILL-… id per skill through IndexStore.transaction() (invariant 2), and stamps sq frontmatter onto each existing skill body file leaving bodies and .claude/ pointers intact (invariant 5). Skips skills already carrying a SKILL id (idempotent, ADR #4).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -103,7 +103,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the migration's finalization: sq migrate up runs repair and stamps the new (release-cut-pinned) SCHEMA_VERSION after retrofitting, plus the ordering-parity test proving a migrated squad and a fresh sq init squad place the same skill in the same ordinal position (lexical-by-slug; identical numeric ids NOT asserted, per ADR #5). Includes the manual runbook surfacing in sq migrate chlog.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

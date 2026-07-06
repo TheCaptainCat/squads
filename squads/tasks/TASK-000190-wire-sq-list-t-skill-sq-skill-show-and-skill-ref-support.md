@@ -16,7 +16,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-24T18:46:56Z'
-updated_at: '2026-06-24T21:09:53Z'
+updated_at: '2026-07-06T15:19:53Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -79,7 +79,7 @@ _Add with `sq task 190 add-subtask "<title>"`; track with `sq task 190 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers wiring sq list -t skill to return indexed SKILL items and sq skill <n> show to render a skill's dossier (frontmatter + body region) following the role/operator command pattern — no work lifecycle, no sub-entity surface — on the meta-type profile. Also ensures sq check treats SKILL correctly (no parent-is-feature rule, no subtask→US rule).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -97,7 +97,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers basic SKILL ref support so sq <type> <n> ref add SKILL-… --kind related (and other kinds) succeeds, the ref appears in the source item's show, and the backref inverts correctly onto the skill (forward edges only, invariant 4) — skills ride the same Item/ItemStore seam with no SKILL-specific storage path.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

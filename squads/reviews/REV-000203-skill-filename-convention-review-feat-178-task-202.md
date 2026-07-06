@@ -26,7 +26,7 @@ subentities:
   status: Open
   severity: info
 created_at: '2026-06-25T08:43:18Z'
-updated_at: '2026-06-25T09:23:00Z'
+updated_at: '2026-07-06T15:18:02Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -92,7 +92,11 @@ _Add with `sq review 203 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+The backend's skill-writing path resolves IDs by reading the index, and wraps that read in a broad/bare `except` that swallows every error — including the `SquadsError` a corrupt index raises on load.
+
+Impact (low): an index-corruption condition is masked here rather than surfacing as the intended hard-stop; the write silently skips or proceeds on incomplete data instead of failing loudly. Not reachable on the happy path exercised by this task, hence non-blocking.
+
+Recommendation: narrow the catch to the expected lookup-miss case and let index-corruption / `SquadsError` propagate so the CLI's error handling reports it.
 <!-- sq:finding:F1:body:end -->
 
 #### Discussion
@@ -110,7 +114,11 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+The migration's "convention file already exists" branch skips cleanly (correct, idempotent), but it does not check for a leftover slug-named body file sitting beside the convention-named one. If both are present, the orphan `<slug>.md` is neither detected nor removed.
+
+Impact (low): a stale orphan skill file can linger next to the canonical `SKILL-<NNNNNN>-<slug>.md`. It is inert (pointers resolve to the convention file), so this is cleanliness, not correctness — non-blocking.
+
+Recommendation: in the skip branch, detect and `unlink` an orphan slug-named sibling so a partial/interrupted prior run self-heals on the next migrate.
 <!-- sq:finding:F2:body:end -->
 
 #### Discussion
@@ -128,7 +136,11 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+The skill backend reaches into `IndexStore` directly to resolve IDs rather than receiving a resolved value or going through the service layer. This crosses the intended `_cli → _services → (index store, backends)` layering, where backends are meant to be driven by the service, not to open the store themselves.
+
+Impact (low): a layering smell, not a bug — it works and stays transaction-clean (verified: allocation remains inside `store.transaction()`, REV-201 F2 did not regress). It just couples the backend to the store's shape, making future store changes leak into backends.
+
+Recommendation: have the service resolve the ID and hand the backend the value it needs, keeping the backend store-agnostic.
 <!-- sq:finding:F3:body:end -->
 
 #### Discussion
@@ -146,7 +158,11 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+In the unstamped-skill migration branch (allocate + stamp + write + unlink + pointer rewrite), the freshly written `.claude` pointer gets an empty description, whereas the init path populates it via `generate_skill_entry`. The two paths reach parity on file location but not on pointer description.
+
+Impact (info): purely cosmetic — the pointer resolves correctly; only its human-readable description line is blank until the next `sq sync` regenerates it. No functional effect.
+
+Recommendation: populate the description in the migration's unstamped branch from the same source the init path uses, so migrated pointers match init output without waiting for a resync.
 <!-- sq:finding:F4:body:end -->
 
 #### Discussion

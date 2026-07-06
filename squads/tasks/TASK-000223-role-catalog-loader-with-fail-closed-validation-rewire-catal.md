@@ -18,7 +18,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-06-26T07:35:29Z'
-updated_at: '2026-06-26T07:58:43Z'
+updated_at: '2026-07-06T15:20:55Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -96,7 +96,7 @@ _Add with `sq task 223 add-subtask "<title>"`; track with `sq task 223 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers `load_role_catalog()`: read the bundled `roles.toml` via `importlib.resources` + stdlib `tomllib`, parse into the models, and cache a module-level singleton (same lifecycle as `WorkflowSpec`). Includes the fail-closed validation (raises `SquadsError`): unique slugs, required non-empty fields per role, at most one `is_default`, bundle referential integrity (`all` == full role set), dev pool well-formed, and `model` in the sonnet/opus/haiku/inherit whitelist. (US1)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -114,7 +114,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers rewiring `_catalog.py` into thin shims over the loaded spec so no call site churns: `PREDEFINED` → `spec.roles`, `BUNDLES` → `spec.bundles`, `DEV_NAME_POOL` → `spec.dev.name_pool`, with `role_by_slug()`/`resolve_roles()` reading the spec. Retires the hardcoded `RoleDef` literals while keeping `dev_role()` LOGIC (slug/surname/name-by-seq) and the `to_extra`/`from_extra` ExtraKey bridge in Python — only the data moves out. Import graph stays acyclic. (US1)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

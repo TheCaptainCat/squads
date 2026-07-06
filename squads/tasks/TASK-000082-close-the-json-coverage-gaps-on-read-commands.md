@@ -16,7 +16,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-12T15:27:47Z'
-updated_at: '2026-06-12T20:42:47Z'
+updated_at: '2026-07-06T15:19:36Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -68,7 +68,7 @@ _Add with `sq task 82 add-subtask "<title>"`; track with `sq task 82 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add --json to the commands genuinely missing it: check (one object per issue: {level, item, message}, preserving the exit-3-on-error behaviour by emitting the array then still raising typer.Exit(3)), the three sub-entity list commands (stories/subtasks/findings — id/status/assignee/severity/story/title per kind), and the role/skill/operator catalog viewers (catalog rows in a documented shape), per op-pierre's 2026-06-12 scope ruling. Reuses console.print_json (US1).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

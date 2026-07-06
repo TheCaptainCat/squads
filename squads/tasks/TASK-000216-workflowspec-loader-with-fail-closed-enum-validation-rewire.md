@@ -17,7 +17,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-06-25T14:21:30Z'
-updated_at: '2026-06-25T15:17:08Z'
+updated_at: '2026-07-06T15:19:59Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -99,7 +99,7 @@ _Add with `sq task 216 add-subtask "<title>"`; track with `sq task 216 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers load_workflow_spec() reading default_workflow.toml via importlib.resources (offline package-data access), parsing with stdlib tomllib, coercing every type/status string into its enum, building derived reverse indexes, and running fail-closed WorkflowSpec.validate() per ADR-214 §5 (initial declared; transition sources/targets exist; terminal ⊆ statuses; reachability; machine/parents references declared; prefix/folder/alias unique; enums-intact — spec type set equals set(ItemType)). A corrupt/invalid bundled spec raises SquadsError.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -117,7 +117,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers rewiring _workflow.py/_enums.py so WORKFLOWS/TERMINAL/ALLOWED_PARENTS/prefix+folder/alias maps and the free functions (workflow_for, initial_status, can_transition, is_open, parent_allowed, parent_hint) are thin shims reading a module-level default-spec singleton built once via load_workflow_spec() — behavior byte-identical, zero call-site churn, equivalent WorkflowSpec methods exposed for explicit-spec surfaces. Leaves parent_hint's TASK message-text branch as-is (F2) and keeps the import graph acyclic.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

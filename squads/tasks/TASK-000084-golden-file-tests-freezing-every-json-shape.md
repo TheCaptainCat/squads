@@ -15,7 +15,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-12T15:27:48Z'
-updated_at: '2026-06-12T21:29:43Z'
+updated_at: '2026-07-06T15:19:37Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -61,7 +61,7 @@ _Add with `sq task 84 add-subtask "<title>"`; track with `sq task 84 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Introduce a golden-file/snapshot harness (fixtures dir of expected JSON per command + a CliRunner helper comparing parsed JSON against the golden, with an UPDATE_GOLDENS regenerate path) and pin every --json emitter: list/tree/inbox/search/blocked/workload/mine/root show, item show, item refs, create, plus TASK-82's new check and sub-entity list shapes. Determinism via frozen time, a fixed id-counter seed, and pinned dev-name pool so goldens are byte-stable; a shape change becomes a reviewed fixture diff (US3).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

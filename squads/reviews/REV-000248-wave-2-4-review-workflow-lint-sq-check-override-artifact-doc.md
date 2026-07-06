@@ -20,29 +20,25 @@ subentities:
   status: WontFix
   severity: medium
 - local_id: F2
-  title: 'open_service: vestigial F5 comment block + redundant try/except SquadsError
-    re-wrap around validate_against_index_fail_closed'
+  title: 'open_service: vestigial F5 comment block + redundant SquadsError re-wrap'
   status: Fixed
   severity: low
 - local_id: F3
-  title: Two new reportPrivateUsage suppressions on _common._active_dir (_workflow_cmd.py:80,
-    _main.py:998) — tracked by TASK-247 but new
+  title: Two new reportPrivateUsage suppressions on _common._active_dir
   status: WontFix
   severity: low
 - local_id: F4
-  title: 'docs/workflow.md: lint sample output shows a line number (.toml:15) the
-    linter never emits; hard-stop sample message is the index-cross-check msg, not
-    the syntax-error one'
+  title: 'docs/workflow.md: lint sample shows a line number never emitted + wrong
+    hard-stop message'
   status: Fixed
   severity: low
 - local_id: F5
-  title: No e2e test asserting an override type round-trips through create→file→list
-    (carries forward REV-246 F4); is_open() now returns True for unknown status instead
-    of raising (info)
+  title: No e2e test for override-type round-trip; is_open now returns True on unknown
+    status
   status: WontFix
   severity: low
 created_at: '2026-06-30T09:11:44Z'
-updated_at: '2026-06-30T11:44:43Z'
+updated_at: '2026-07-06T15:18:42Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-209 Wave 2-4 (I did not write this code). Scope: TASK-242 (sq workflow lint), TASK-243 (sq check integration + AC#5 fail-closed wiring), TASK-244 (workflow as the 3rd sq override artifact), TASK-245 (docs/workflow.md). Builds on REV-246 (Wave-1 engine core, Approved). Gates re-run: pyright 0/0, ruff check clean, ruff format clean, targeted pytest green (see verdict comment). Verdict: APPROVE — no blocking defects in the Wave 2-4 deliverables. The one cross-feature caveat (custom-type create CLI is FEAT-210 scope, AC#1 only half-met here) is a feature-signoff note for the manager, not a defect in this code.
@@ -58,10 +54,10 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
 | F1 | 🟡 medium | WontFix |  | AC#1 'sq create incident works' is NOT met end-to-end — custom-type create CLI is FEAT-210 scope |
-| F2 | 🟢 low | Fixed |  | open_service: vestigial F5 comment block + redundant try/except SquadsError re-wrap around validate_against_index_fail_closed |
-| F3 | 🟢 low | WontFix |  | Two new reportPrivateUsage suppressions on _common._active_dir (_workflow_cmd.py:80, _main.py:998) — tracked by TASK-247 but new |
-| F4 | 🟢 low | Fixed |  | docs/workflow.md: lint sample output shows a line number (.toml:15) the linter never emits; hard-stop sample message is the index-cross-check msg, not the syntax-error one |
-| F5 | 🟢 low | WontFix |  | No e2e test asserting an override type round-trips through create→file→list (carries forward REV-246 F4); is_open() now returns True for unknown status instead of raising (info) |
+| F2 | 🟢 low | Fixed |  | open_service: vestigial F5 comment block + redundant SquadsError re-wrap |
+| F3 | 🟢 low | WontFix |  | Two new reportPrivateUsage suppressions on _common._active_dir |
+| F4 | 🟢 low | Fixed |  | docs/workflow.md: lint sample shows a line number never emitted + wrong hard-stop message |
+| F5 | 🟢 low | WontFix |  | No e2e test for override-type round-trip; is_open now returns True on unknown status |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -95,7 +91,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F1:end -->
 
 <!-- sq:finding:F2 -->
-### F2 — open_service: vestigial F5 comment block + redundant try/except SquadsError re-wrap around validate_against_index_fail_closed
+### F2 — open_service: vestigial F5 comment block + redundant SquadsError re-wrap
 
 <!-- sq:finding:F2:head -->
 **Status:** 🟡 Fixed
@@ -125,7 +121,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F2:end -->
 
 <!-- sq:finding:F3 -->
-### F3 — Two new reportPrivateUsage suppressions on _common._active_dir (_workflow_cmd.py:80, _main.py:998) — tracked by TASK-247 but new
+### F3 — Two new reportPrivateUsage suppressions on _common._active_dir
 
 <!-- sq:finding:F3:head -->
 **Status:** ⚫ Wont Fix
@@ -153,7 +149,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F3:end -->
 
 <!-- sq:finding:F4 -->
-### F4 — docs/workflow.md: lint sample output shows a line number (.toml:15) the linter never emits; hard-stop sample message is the index-cross-check msg, not the syntax-error one
+### F4 — docs/workflow.md: lint sample shows a line number never emitted + wrong hard-stop message
 
 <!-- sq:finding:F4:head -->
 **Status:** 🟡 Fixed
@@ -183,7 +179,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F4:end -->
 
 <!-- sq:finding:F5 -->
-### F5 — No e2e test asserting an override type round-trips through create→file→list (carries forward REV-246 F4); is_open() now returns True for unknown status instead of raising (info)
+### F5 — No e2e test for override-type round-trip; is_open now returns True on unknown status
 
 <!-- sq:finding:F5:head -->
 **Status:** ⚫ Wont Fix

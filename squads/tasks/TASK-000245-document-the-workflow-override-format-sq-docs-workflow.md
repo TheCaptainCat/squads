@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-06-30T07:49:55Z'
-updated_at: '2026-06-30T09:26:38Z'
+updated_at: '2026-07-06T15:21:09Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -74,7 +74,7 @@ _Add with `sq task 245 add-subtask "<title>"`; track with `sq task 245 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers adding a `workflow` doc topic to `_docfiles.py` (served by `sq docs workflow`, listed in `sq docs`): admin-facing prose covering what the workflow override is and where it lives (`.overrides/workflow.toml`), the TOML shape (`[items.<type>]` with prefix/folder/lifecycle/parents/aliases + capability flags, `[statuses.<Name>]`, `[lifecycles.<name>]` with initial + transitions), the additive-only rules stated plainly (add/reuse allowed; redefine/remove a built-in rejected; a removed-but-still-in-use status fails closed), the author loop (scaffold → edit → lint → commit; `sq check` flags invalid), and a copy-pasteable `incident` (Triage → Mitigating → Resolved) worked example. No internal sq-item refs or external URLs per the shipped-docs convention. (US1)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

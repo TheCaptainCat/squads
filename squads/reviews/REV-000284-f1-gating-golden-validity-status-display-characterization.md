@@ -10,27 +10,25 @@ refs:
 - FEAT-211
 subentities:
 - local_id: F1
-  title: Working tree violates 'green against HEAD, no product code changed' — rewire
-    + post-rewire test assertions are uncommitted together
+  title: Working tree violates 'green against HEAD' — rewire + tests uncommitted together
   status: Fixed
   severity: high
 - local_id: F2
   title: Golden extended in-tree with post-rewire custom-status tests that FAIL against
-    HEAD — no longer a pure HEAD characterization baseline
+    HEAD
   status: Fixed
   severity: high
 - local_id: F3
-  title: sq inbox terminal-suppression not pinned — an open/terminal consumer the
-    rewire touches, though transitively guarded via shared spec.is_open
+  title: sq inbox terminal-suppression not pinned (transitively guarded via spec.is_open)
   status: WontFix
   severity: low
 - local_id: F4
-  title: After the rewire STATUS_EMOJI is no longer the badge source (default_workflow.toml
-    is) — glyph-drift protection shifts; ensure a golden pins the toml badges
+  title: After rewire STATUS_EMOJI is no longer the badge source; ensure a golden
+    pins the toml badges
   status: Fixed
   severity: medium
 created_at: '2026-07-02T09:52:33Z'
-updated_at: '2026-07-03T09:18:40Z'
+updated_at: '2026-07-06T15:18:56Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -74,16 +72,16 @@ _Add with `sq review 284 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Working tree violates 'green against HEAD, no product code changed' — rewire + post-rewire test assertions are uncommitted together |
-| F2 | 🟠 high | Fixed |  | Golden extended in-tree with post-rewire custom-status tests that FAIL against HEAD — no longer a pure HEAD characterization baseline |
-| F3 | 🟢 low | WontFix |  | sq inbox terminal-suppression not pinned — an open/terminal consumer the rewire touches, though transitively guarded via shared spec.is_open |
-| F4 | 🟡 medium | Fixed |  | After the rewire STATUS_EMOJI is no longer the badge source (default_workflow.toml is) — glyph-drift protection shifts; ensure a golden pins the toml badges |
+| F1 | 🟠 high | Fixed |  | Working tree violates 'green against HEAD' — rewire + tests uncommitted together |
+| F2 | 🟠 high | Fixed |  | Golden extended in-tree with post-rewire custom-status tests that FAIL against HEAD |
+| F3 | 🟢 low | WontFix |  | sq inbox terminal-suppression not pinned (transitively guarded via spec.is_open) |
+| F4 | 🟡 medium | Fixed |  | After rewire STATUS_EMOJI is no longer the badge source; ensure a golden pins the toml badges |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
-### F1 — Working tree violates 'green against HEAD, no product code changed' — rewire + post-rewire test assertions are uncommitted together
+### F1 — Working tree violates 'green against HEAD' — rewire + tests uncommitted together
 
 <!-- sq:finding:F1:head -->
 **Status:** 🟡 Fixed
@@ -107,7 +105,7 @@ Fix: commit the golden by itself (or confirm it already is — it is, at 495fc95
 <!-- sq:finding:F1:end -->
 
 <!-- sq:finding:F2 -->
-### F2 — Golden extended in-tree with post-rewire custom-status tests that FAIL against HEAD — no longer a pure HEAD characterization baseline
+### F2 — Golden extended in-tree with post-rewire custom-status tests that FAIL against HEAD
 
 <!-- sq:finding:F2:head -->
 **Status:** 🟡 Fixed
@@ -131,7 +129,7 @@ Fix: keep the 5 custom-status tests as part of TASK-276's deliverable, committed
 <!-- sq:finding:F2:end -->
 
 <!-- sq:finding:F3 -->
-### F3 — sq inbox terminal-suppression not pinned — an open/terminal consumer the rewire touches, though transitively guarded via shared spec.is_open
+### F3 — sq inbox terminal-suppression not pinned (transitively guarded via spec.is_open)
 
 <!-- sq:finding:F3:head -->
 **Status:** ⚫ Wont Fix
@@ -153,7 +151,7 @@ Severity low because the classification FUNCTION (spec.is_open) is transitively 
 <!-- sq:finding:F3:end -->
 
 <!-- sq:finding:F4 -->
-### F4 — After the rewire STATUS_EMOJI is no longer the badge source (default_workflow.toml is) — glyph-drift protection shifts; ensure a golden pins the toml badges
+### F4 — After rewire STATUS_EMOJI is no longer the badge source; ensure a golden pins the toml badges
 
 <!-- sq:finding:F4:head -->
 **Status:** 🟡 Fixed

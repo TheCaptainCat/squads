@@ -18,7 +18,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-06-15T07:42:47Z'
-updated_at: '2026-06-15T08:10:56Z'
+updated_at: '2026-07-06T15:18:04Z'
 ---
 <!-- sq:body -->
 Add short/single-letter aliases for the seven work-item type command groups so every alias routes to the exact same command tree as its canonical name (full verb-chain + sub-entity equivalence). Aliases are pure input sugar.
@@ -64,7 +64,7 @@ _Add with `sq task 107 add-subtask "<title>"`; track with `sq task 107 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the routing implementation: a single canonical ALIASES map keyed by ItemType (co-located with WORK_TYPES in _models/_enums.py) and registering each type's built sub-app Typer object under its hidden alias names (epic→e, feature→feat/f, task→t, bug→b, decision→dec/d, review→rev/r, guide→g) via the same hidden=True add_typer pattern used for the _addr subgroups, so an alias exposes the entire nested verb + ref + sub-entity tree.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -82,7 +82,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the CLI test matrix asserting alias/canonical equivalence: each alias sampled with at least one deep verb + sub-entity chain (e.g. sq f 26 story 4 show ≡ sq feature 26 story 4 show), plus assertions that output, confirmations, errors and --json print the canonical type name and full IDs regardless of which alias was typed.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

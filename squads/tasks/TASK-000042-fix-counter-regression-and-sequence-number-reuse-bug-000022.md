@@ -25,7 +25,7 @@ subentities:
   title: Regression tests (service + CLI) covering both regression routes
   status: Todo
 created_at: '2026-06-11T12:14:51Z'
-updated_at: '2026-06-11T13:00:51Z'
+updated_at: '2026-07-06T15:17:28Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -73,7 +73,7 @@ _Add with `sq task 42 add-subtask "<title>"`; track with `sq task 42 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Change repair's index rebuild in _services/_maintenance.py so the counter is set to max(previous counter, max sequence found on disk) instead of just the on-disk max. Deleting the highest-numbered item's file can then no longer regress the global counter.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -90,7 +90,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add load-time counter validation in _index/_store.py: on load, if the stored counter is below the max item sequence in the index, raise the counter to that max rather than trusting a regressed value. Prevents a hand-edited or regressed index from silently allocating a reused sequence number; allocation stays inside IndexStore.transaction().
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -107,7 +107,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Surface items present in the previous index but absent from disk through repair/check. Wires the missing-items report through the _services/_results.py result dataclasses and the _cli/ surface so a deletion is flagged rather than silently absorbed.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion
@@ -124,7 +124,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Regression tests covering both routes: service-level (repair after deleting the top item holds the counter, next allocate is max+1 never a reuse; load with a regressed stored counter repairs upward; missing items reported) and CLI smoke (sq repair / sq check over a squad with a deleted top item — counter held, missing item surfaced, exit codes correct).
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion

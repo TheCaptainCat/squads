@@ -27,7 +27,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-15T08:20:49Z'
-updated_at: '2026-06-23T09:58:55Z'
+updated_at: '2026-07-06T15:18:06Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -105,7 +105,7 @@ _Add with `sq task 113 add-subtask "<title>"`; track with `sq task 113 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the sq reflog read command alongside inbox/blocked/search: tail-by-default of the operation log with --item/--actor/--op/--since filters (ISO via _clock.parse_iso) and a --json passthrough emitting the line shape verbatim. Backed by a read-only service method that reads+filters the JSONL without store.transaction() (mirrors load()).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -141,7 +141,7 @@ Back-compat: a squad with no reflog file behaves identically; reflog never consu
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers versioning and documenting the reflog line schema (field names, types, op vocabulary, delta format) under docs/ next to the stability doc, golden-testing the --json shape, and stating the line's stability tier in the FEAT-13 contract doc (which fields are promised stable through 1.0 vs additive).
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

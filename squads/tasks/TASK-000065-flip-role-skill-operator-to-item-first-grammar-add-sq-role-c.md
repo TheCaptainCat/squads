@@ -38,7 +38,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-12T12:05:15Z'
-updated_at: '2026-06-12T12:26:29Z'
+updated_at: '2026-07-06T15:19:00Z'
 ---
 <!-- sq:body -->
 Bring `sq role`, `sq skill`, and `sq operator` into the uniform item CLI grammar (FEAT-19 / the FEAT-13 contract). This task covers everything EXCEPT styled body rendering, which is TASK-66 — but both touch the same three CLI modules, so coordinate (one PR or stacked).
@@ -135,7 +135,7 @@ _Add with `sq task 65 add-subtask "<title>"`; track with `sq task 65 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Flip sq role/skill/operator existing-item verbs (show/regen/rm, plus a new operator show) from verb-first to item-first grammar: sq role <slug|id|n> show|regen|rm etc., accepting slug / full ID / bare number with exact (non-fuzzy) match. Creation verbs (activate/add) stay verb-first at the group level (US1).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -155,7 +155,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Extend the shared resolver with an exact slug lookup: resolution order full-ID shape, then bare number, then slug, matching exactly against extra[X.SLUG] (fallback it.slug) via the _role_item/_skill_item/_operator_item service helpers in one DB read. Non-matching tokens raise a clear error naming the type (US1).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -173,7 +173,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add the group-level sq role catalog subcommand (the bundled PREDEFINED table: slug/full name/title/default indicator) replacing sq role list --available, and remove sq role/skill/operator list plus the --available flag with no deprecation shim (pre-1.0 removal allowed). Tracked-item listing stays via sq list -t role|skill|operator (US3).
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion
@@ -191,7 +191,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Update the templates that emit the old grammar into generated artifacts — claude_section.md.j2 (sq operator list -> sq list -t operator, sq role show <slug> -> sq role <slug> show), greeting_skill.md.j2 and squads_skill.md.j2 (sq operator list -> sq list -t operator) — then regenerate the managed .md via the service refresh / sq sync rather than hand-editing (US3).
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion
@@ -211,7 +211,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Rewrite the existing CLI tests that used the old verb-first grammar (test_cli.py role/skill/operator cases, test_operators.py operator list) to item-first, and add new coverage: slug/full-ID/bare-number resolution for role and skill show/rm, the new sq operator <addr> show, sq role catalog output, generated-doc assertions to the new grammar, and asserting the removed list subcommands error (US1).
 <!-- sq:subtask:ST5:body:end -->
 
 #### Discussion
@@ -231,7 +231,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Reconcile the FEAT-000013 deferral comment: if the shipped Typer construction / grammar deviated from the PO note, top up that deferral record so the contract reflects what actually shipped (US3).
 <!-- sq:subtask:ST6:body:end -->
 
 #### Discussion

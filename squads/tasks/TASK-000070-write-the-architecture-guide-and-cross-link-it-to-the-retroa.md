@@ -20,7 +20,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-06-12T14:18:09Z'
-updated_at: '2026-06-12T14:26:55Z'
+updated_at: '2026-07-06T15:19:04Z'
 ---
 <!-- sq:body -->
 Content-only documentation work: zero code changes. Deliverable is ONE sq guide item plus cross-link refs, authored through the CLI. Tech-writer polishes after the architect drafts.
@@ -71,7 +71,7 @@ _Add with `sq task 70 add-subtask "<title>"`; track with `sq task 70 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Draft the single architecture guide item (sq create guide, 'architecture' in the title for searchability) covering the layering (_cli -> _services -> index store/backends/rendering, models as the dependency-free base), the data model (items, sub-entities carried on the parent, index keyed by sequence number), and the marker mechanism for safe managed-region edits. Lean and standalone-readable, pointing at sq docs internals for depth, no literal sq anchor tags (US1).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -89,7 +89,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+After TASK-69's ADRs land, cross-link the architecture guide and every retroactive ADR plus ADR-49 in both directions with --kind related refs (guide cites ADRs, ADRs cite guide), delivering US3.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

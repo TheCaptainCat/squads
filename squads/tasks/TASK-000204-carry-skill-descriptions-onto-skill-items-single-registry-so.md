@@ -22,7 +22,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-06-25T09:28:03Z'
-updated_at: '2026-06-25T09:58:25Z'
+updated_at: '2026-07-06T15:19:56Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -98,7 +98,7 @@ _Add with `sq task 204 add-subtask "<title>"`; track with `sq task 204 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers establishing ONE slug→description registry for the 9 bundled skills alongside bundled_skill_slugs() in _interactions.py (bespoke text for squads/greeting, the templated 'Working with <type> items…' for each sq-<type>), removing the now-duplicated literal strings from the backend so it reads the registry, and stamping item.description from it so generate_skill_entry reads a populated description (correct pointer) instead of falling through to the slug title.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -116,7 +116,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the 0.4→0.5 migration setting item.description from the registry AND backfilling it onto already-stamped-but-description-less skill items (this repo's current state), not only freshly-stamped ones — idempotent once descriptions are present. Frontmatter-as-source-of-truth (invariant 1); sq repair reconstructs it.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -134,7 +134,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers fresh sq init (seeding) stamping each SKILL item's description from the single registry so the .claude pointer description and sq list -t skill / sq skill show all show the real rich text rather than the bare slug.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

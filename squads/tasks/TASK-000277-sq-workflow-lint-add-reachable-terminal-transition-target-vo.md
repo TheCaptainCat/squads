@@ -13,7 +13,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-02T09:20:17Z'
-updated_at: '2026-07-02T12:12:09Z'
+updated_at: '2026-07-06T15:21:10Z'
 ---
 <!-- sq:body -->
 ## Goal — `sq workflow lint`: reachable-terminal + transition-target vocab (AC#5, US1)
@@ -84,7 +84,7 @@ _Add with `sq task 277 add-subtask "<title>"`; track with `sq task 277 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers two `sq workflow lint` spec-defect checks. The real new validation is reachable-terminal: for each lifecycle, BFS from `initial` and error if none of the reachable states is terminal (an item that can never close would break `sq blocked`, the default filter, and inbox suppression) — added as a new `_check_*` helper in `WorkflowSpec._validate` so `open_service` also fails closed and it surfaces through lint with a config key + fix hint. The transition-target-not-in-vocab case is already covered by `_check_lifecycle_statuses`; this confirms (test-only) that it reports the offending lifecycle + status clearly. The bundled spec and a valid custom override both lint clean. (US1)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

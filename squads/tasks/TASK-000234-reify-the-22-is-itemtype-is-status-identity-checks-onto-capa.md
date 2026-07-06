@@ -16,7 +16,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-06-26T09:48:48Z'
-updated_at: '2026-06-26T15:17:15Z'
+updated_at: '2026-07-06T15:21:03Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -105,7 +105,7 @@ _Add with `sq task 234 add-subtask "<title>"`; track with `sq task 234 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers reifying the ~22 hardcoded `is ItemType.X`/`is Status.X` identity checks across `_services` (_base/_items/_maintenance/_subentities/_service), `_cli/_common.py`, `_workflow/__init__.py`, and both backends so the engine consults `TypeSpec`/`StatusSpec` capability flags (`is_meta`, `subentity_kind`, `severity_field`, `parent_required`, `ref_rules`, `StatusSpec.role == "superseded"`) instead of comparing to enum members. Migrations (`_vN_*.py`) are excluded as frozen historical code; field types are unchanged here; behavior stays byte-identical. (US2)
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -123,7 +123,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Covers the specific structural replacements: the `WORK_TYPES` tuple becomes `spec.work_types()` (types with `not is_meta`), the `_SUBENTITY` maps in `_items.py`/`_common.py` become `subentity_kind` lookups (feature→story, task→subtask, review→finding), and `parent_hint`'s task-specific branch becomes spec-derived from `ref_rules`. The TASK-233 characterization tests pass UNCHANGED as the equivalence proof. (US2)
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

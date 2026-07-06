@@ -23,7 +23,7 @@ subentities:
   title: Add service-level and CLI smoke tests
   status: Done
 created_at: '2026-06-11T12:14:52Z'
-updated_at: '2026-06-11T12:56:40Z'
+updated_at: '2026-07-06T15:17:38Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -71,7 +71,7 @@ _Add with `sq task 43 add-subtask "<title>"`; track with `sq task 43 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Add a shared resolve_slug_or_raise helper (near _cli/_common.py parsers, taking the service for roster access) that validates a slug against the roster — registered agents and operators (op-…) — and raises SquadsError (exit 1) naming the valid slugs / pointing at sq operator list. Mirrors FEAT-19's item-ID resolver shape.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -88,7 +88,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Make the slug argument required on sq mine so a bare invocation no longer silently defaults to manager — the invoking shell implies no agent identity, so an omitted slug is an error rather than a misleading default workload.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -105,7 +105,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Route every slug-accepting surface through resolve_slug_or_raise: sq inbox, sq workload filters, comment --as, update --assignee, and --author outside create. Closes the inconsistency where only create's --author was validated, so a typo'd slug is a clean error instead of a silent empty result.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion
@@ -122,7 +122,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Service-level tests (resolver raises on unknown slug, accepts a registered agent and an operator slug) plus CLI smoke tests (sq mine unknown / sq inbox unknown exit 1 with a helpful message; bare sq mine errors as slug-required; a valid agent/operator slug still works on every audited surface).
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion

@@ -21,7 +21,7 @@ subentities:
   status: Done
   assignee: python-dev
 created_at: '2026-06-12T08:18:43Z'
-updated_at: '2026-06-23T09:58:04Z'
+updated_at: '2026-07-06T15:18:19Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -132,7 +132,7 @@ _Add with `sq task 57 add-subtask "<title>"`; track with `sq task 57 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Lift the existing marker-syntax rejection into one shared helper (seeded from _subentities.py::_reject_markers, using _sections.find_markers) and apply it, before any mutation, to comment messages in _collab.py::comment and to sub-entity titles on create (_add_block) and update (_update_block). Raises SquadsError in the same 'must not contain sq marker comments' family, pointing the author at the unwrapped formulation and noting backticks do not neutralize. Existing body-guard paths converge on the same helper.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

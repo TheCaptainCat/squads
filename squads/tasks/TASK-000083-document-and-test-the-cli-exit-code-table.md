@@ -15,7 +15,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-06-12T15:27:48Z'
-updated_at: '2026-06-12T21:07:53Z'
+updated_at: '2026-07-06T15:19:36Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -70,7 +70,7 @@ _Add with `sq task 83 add-subtask "<title>"`; track with `sq task 83 subtask <n>
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Implement and document the frozen exit-code table and assert every code in tests: 0 success, 1 squads runtime error (SquadsError / schema mismatch), 2 usage error (bad --at, Typer/Click), 3 check found error-level issues. Flips check to raise typer.Exit(3) (was 1), documents the table inline on the CLI surface (linking the stability-doc home deferred to FEAT-000013), and adds CliRunner tests asserting each code including exit 3 on a seeded error-level check issue (US2).
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
