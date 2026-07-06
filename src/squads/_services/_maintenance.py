@@ -1,5 +1,6 @@
 """Whole-squad maintenance: sync managed files, repair/renumber the index, check, migrate."""
 
+import re
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from pathlib import Path
@@ -47,6 +48,29 @@ from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, R
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` so that custom types (not in ItemType) are supported.
 type _FileRec = tuple[str, Path, str, str, int]
+
+# A leading status/lifecycle banner: "STATUS:" / "**STATUS…**" opening a line, or a
+# hand-written "## Status" / "### Status" heading. Anchored so it only matches at the very
+# start of the text being checked — never a bare keyword found anywhere in the middle.
+_STATUS_BANNER_RE = re.compile(r"^\*{0,2}status\*{0,2}\s*:", re.IGNORECASE)
+_STATUS_HEADING_RE = re.compile(r"^#{2,3}\s*status\s*:?\s*$", re.IGNORECASE)
+
+
+def _opens_with_status_banner(text: str | None) -> bool:
+    """True when *text* opens with a self-declared status/lifecycle banner.
+
+    Only the leading line is examined — a whole-text keyword grep would also catch a body
+    discussing lifecycle as a *topic* ("the Draft→Ready transition"), a cross-reference to
+    another item's status ("blocks TASK-x until it lands"), or the word inside a fenced code
+    example. None of those open the text, so anchoring here keeps the detector silent on them.
+    """
+    if not text:
+        return False
+    stripped = text.strip()
+    if not stripped:
+        return False
+    first_line = stripped.splitlines()[0].strip()
+    return bool(_STATUS_BANNER_RE.match(first_line) or _STATUS_HEADING_RE.match(first_line))
 
 
 def _marker_issues(text: str) -> list[str]:
@@ -873,6 +897,7 @@ class MaintenanceMixin(ServiceCore):
         issues += self._check_subentity_status(index)
         issues += self._check_decisions(index)
         issues += await self._check_unwritten_subentity_bodies(index, on_disk)
+        issues += await self._check_status_banners(index, on_disk)
         # ADR-000085 §3: two override checks — version-drift warn + missing-marker error.
         issues += [
             CheckIssue(level, item, msg)
@@ -1114,6 +1139,51 @@ class MaintenanceMixin(ServiceCore):
                             f"{sub.local_id} body is unwritten (still the placeholder stub)",
                         )
                     )
+        return issues
+
+    async def _check_status_banners(
+        self,
+        index: SquadsDB,
+        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
+    ) -> list[CheckIssue]:
+        """Advisory: flag an item whose body or description opens with a status banner.
+
+        Mirrors :meth:`_check_unwritten_subentity_bodies`: body prose lives in the item file's
+        ``:body`` marker region, not the index, so this reads the on-disk text (already scanned
+        into ``on_disk``, keyed by sequence number) via ``sections.get_section`` — which returns
+        only that one region, so the discussion section is never in scope. ``description`` comes
+        straight from the index. Detection is anchored to the leading line only (see
+        :func:`_opens_with_status_banner`), so it stays false-positive-averse by design.
+
+        Warn-level (advisory, non-blocking) — mirrors :meth:`_check_subentity_title_lengths`: a
+        self-declared lifecycle state is a maintenance smell (it can drift from the real
+        frontmatter status), not a structural error worth blocking on.
+        """
+        issues: list[CheckIssue] = []
+        for item in index.items.values():
+            entry = on_disk.get(item.sequence_id)
+            body = None
+            if entry is not None:
+                text = await _aio.read_text(entry[1])
+                body = sections.get_section(text, markers.BODY)
+            if _opens_with_status_banner(body):
+                issues.append(
+                    CheckIssue(
+                        "warn",
+                        item.id,
+                        "body opens with a status/lifecycle banner"
+                        " — move state to frontmatter or a dated discussion comment",
+                    )
+                )
+            elif _opens_with_status_banner(item.description):
+                issues.append(
+                    CheckIssue(
+                        "warn",
+                        item.id,
+                        "description opens with a status/lifecycle banner"
+                        " — move state to frontmatter or a dated discussion comment",
+                    )
+                )
         return issues
 
     @staticmethod

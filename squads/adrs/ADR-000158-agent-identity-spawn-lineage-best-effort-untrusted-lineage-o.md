@@ -18,24 +18,9 @@ description: squads reads optional SQUADS_SESSION_ID/PARENT from its own invocat
   best-effort, untrusted, observability-only — not verified identity; lane enforcement
   on it is advisory.
 created_at: '2026-06-22T07:44:10Z'
-updated_at: '2026-06-22T09:10:06Z'
+updated_at: '2026-07-06T12:37:01Z'
 ---
 <!-- sq:body -->
-## Status
-
-Proposed — design-for FEAT-125 (Real agent identity and spawn lineage). Parent context
-EPIC-121. Identity dependency of ADR-155 (capability attenuation); extends FEAT-24
-(operation reflog).
-
-> **Revised 2026-06-22 (Pierre's correction).** An earlier draft of this ADR framed a squads role as
-> the *spawner* that **mints** a session nonce and **injects** it into the child's environment. That
-> attribution is wrong and is fully retracted below. **`sq` is a passive tool that agents invoke; it
-> is never in the spawn path.** Spawning happens entirely in the Claude Code / Task layer, driven by
-> the agents themselves — squads has no spawn moment to hook, and therefore cannot mint, spawn, or
-> inject anything. squads can only **read whatever its own invocation environment already exposes,
-> and record it.** The guarantee is accordingly downgraded from "recorded identity" to **best-effort,
-> explicitly-untrusted lineage observability.**
-
 ## Context
 
 squads records an `actor` on every mutating operation, but that actor is a **self-declared slug**:
