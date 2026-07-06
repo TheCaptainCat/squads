@@ -9,8 +9,6 @@ ALL inputs are frozen so comparisons are deterministic:
   Roster  — a pinned fixed list that includes one python-dev, so the ``has_dev`` gate in
              ``_write_item_skills`` is always True.
              See [[pin-roster-when-diffing-generated-skills]].
-  Version — pinned to ``PINNED_VERSION`` below; any version bump that changes rendered output
-             shows up as a golden failure and must update both PINNED_VERSION and the fixture.
   squad_dir — the literal string ``"squads"`` (not a tmp-path) so the rendered path references
               are stable across runs.
   FORCE_COLOR / ANSI — stripped by the ``_neutralize_forced_color`` autouse conftest fixture;
@@ -48,8 +46,6 @@ Any of the following causes a golden failure (which is the INTENT):
   - A rewire task (257/260/261) changes the workflow template, CLAUDE/AGENTS template, or
     item_skill template.
   - A playbook.toml or TYPE_ALIASES change alters rendered content.
-  - A version bump changes the squads:version comment in skill bodies (update PINNED_VERSION
-    and run UPDATE_GOLDENS=1).
   - A roster change in the PINNED_ROSTER constant (changing the developer name, adding a new
     bundled role) alters skill section headers — update the roster constant and golden together.
 """
@@ -72,11 +68,6 @@ _UPDATE = os.getenv("UPDATE_GOLDENS") == "1"
 # ---------------------------------------------------------------------------
 # Frozen inputs — ALL must be held constant or the golden comparison is flaky.
 # ---------------------------------------------------------------------------
-
-#: Pinned version string.  When the package version bumps, this constant must be updated
-#: TOGETHER WITH a golden update (UPDATE_GOLDENS=1).  Never read __version__ at test time:
-#: that would make the golden track the current version rather than asserting it is unchanged.
-PINNED_VERSION: str = "0.5.0"
 
 #: Fixed squad_dir string used in template context.  Using the literal "squads" (not a
 #: tmp-path) makes the rendered path references stable across machines and runs.
@@ -262,7 +253,6 @@ def _render_item_skill(item_type: Any) -> str:  # item_type: ItemType
         "agents/item_skill.md.j2",
         title=item_type.value.capitalize(),
         type=item_type.value,
-        version=PINNED_VERSION,
         overview=pb.overview,
         lifecycle=pb.lifecycle,
         commands=list(pb.commands),
@@ -350,10 +340,6 @@ class TestItemSkillGoldens:
         name = item_skill_name(item_type)
         actual = _render_item_skill(item_type)
         # Sanity checks.
-        assert "<!-- squads:managed" in actual, f"{name}: managed comment missing"
-        assert f"squads:version:{PINNED_VERSION}" in actual, (
-            f"{name}: version stamp missing or wrong (expected {PINNED_VERSION})"
-        )
         assert PLAYBOOK[item_type].lifecycle in actual, f"{name}: lifecycle string missing"
         if expect_dev_section:
             assert "## For developers" in actual, (

@@ -107,9 +107,7 @@ class MaintenanceMixin(ServiceCore):
             for backend in backends:
                 await backend.generate_skill_entry(ctx, it)
         skill_map = await self._skill_paths()
-        ctx_with_skills = BackendContext(
-            paths=self.paths, version=__version__, skill_paths=skill_map, spec=self.spec
-        )
+        ctx_with_skills = BackendContext(paths=self.paths, skill_paths=skill_map, spec=self.spec)
         roster = await self.roster()
         ops = await self.operators()
         for backend in backends:

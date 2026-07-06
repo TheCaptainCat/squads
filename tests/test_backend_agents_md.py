@@ -34,9 +34,7 @@ def ctx(squad_root):
     squad_dir = squad_root / "squads"
     squad_dir.mkdir()
     paths = SquadPaths(root=squad_root, squad_dir=squad_dir, config=config)
-    from squads import __version__
-
-    return BackendContext(paths=paths, version=__version__)
+    return BackendContext(paths=paths)
 
 
 @pytest.fixture
