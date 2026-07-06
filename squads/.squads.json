@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 321,
+  "counter": 323,
   "padding": 6,
   "items": {
     "12": {
@@ -12214,6 +12214,60 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-321"
+    },
+    "322": {
+      "sequence_id": 322,
+      "type": "decision",
+      "title": "Remove the ItemType and Status enums; the spec is the sole vocabulary authority",
+      "slug": "remove-the-itemtype-and-status-enums-the-spec-is-the-sole-vo",
+      "status": "Proposed",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-214",
+        "ADR-266",
+        "ADR-274",
+        "EPIC-280",
+        "ADR-232"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000322-remove-the-itemtype-and-status-enums-the-spec-is-the-sole-vo.md",
+      "created_at": "2026-07-07T09:37:31Z",
+      "updated_at": "2026-07-07T10:05:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-322"
+    },
+    "323": {
+      "sequence_id": 323,
+      "type": "decision",
+      "title": "Spec badges for priority/severity: reusable collections + relabeling fields",
+      "slug": "spec-badges-for-priority-severity-reusable-collections-relab",
+      "status": "Proposed",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-322:depends-on",
+        "ADR-214",
+        "ADR-232"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000323-spec-badges-for-priority-severity-reusable-collections-relab.md",
+      "created_at": "2026-07-07T10:00:07Z",
+      "updated_at": "2026-07-07T12:40:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-323"
     }
   }
 }
