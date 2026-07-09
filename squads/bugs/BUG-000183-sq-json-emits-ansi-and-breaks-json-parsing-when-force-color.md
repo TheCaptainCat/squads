@@ -9,8 +9,7 @@ refs:
 - FEAT-15
 created_at: '2026-06-24T09:46:27Z'
 updated_at: '2026-06-24T10:12:12Z'
-extra:
-  severity: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Symptom

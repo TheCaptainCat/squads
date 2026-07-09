@@ -11,8 +11,7 @@ description: check() validates author/assignee against roles only, while the wri
   gate accepts operators too
 created_at: '2026-06-10T12:30:52Z'
 updated_at: '2026-06-10T12:32:14Z'
-extra:
-  severity: medium
+severity: medium
 ---
 <!-- sq:body -->
 The write-path gate (`ServiceCore._is_participant`) accepts a registered role **or operator** as author/assignee, but `MaintenanceMixin.check` builds its `registered` set from `ItemType.ROLE` items only (`_services/_maintenance.py`). Any operator-authored item — including the operator's own registration item — gets a bogus `warn: author 'op-...' is not a registered agent`.

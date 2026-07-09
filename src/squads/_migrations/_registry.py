@@ -20,6 +20,7 @@ from squads._migrations import (
     _v0_3_to_v0_4,
     _v0_4_to_v0_5,
     _v0_5_to_v0_7,
+    _v0_7_to_v0_8,
 )
 from squads._paths import SquadPaths
 
@@ -93,5 +94,16 @@ MIGRATIONS: list[Migration] = [
         ),
         run=_wrap_sync(_v0_5_to_v0_7.migrate),
         manual=_v0_5_to_v0_7.MANUAL,
+    ),
+    Migration(
+        version="0.8.0",
+        from_schema="0.7",
+        to_schema="0.8",
+        summary=(
+            "Bug severity moves from extra[severity] to a top-level severity: key; "
+            "the extra copy is dropped."
+        ),
+        run=_wrap_sync(_v0_7_to_v0_8.migrate),
+        manual=_v0_7_to_v0_8.MANUAL,
     ),
 ]
