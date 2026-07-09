@@ -101,6 +101,10 @@ def _neutralize_forced_color(monkeypatch):  # pyright: ignore[reportUnusedFuncti
     """
     for var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
         monkeypatch.delenv(var, raising=False)
+    # Pin console width too, so Rich/Typer help text wraps identically regardless of the
+    # invoking terminal's/worker's inherited COLUMNS (the width analogue of the color pin above).
+    monkeypatch.setenv("COLUMNS", "80")
+    monkeypatch.delenv("LINES", raising=False)
 
 
 @pytest.fixture
