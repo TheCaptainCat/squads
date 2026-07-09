@@ -2,14 +2,18 @@
 
 One Typer group is built per work-item type by :func:`build_item_app`. The group callback resolves
 ``<num>`` to a full item id (validating the type) into the Click context; each verb reads it back.
-feature/task/review additionally get ``add-<kind>`` + a ``<plural>`` list verb + a nested
-``<kind> <n> <verb>`` subgroup. Every verb is a thin wrapper over an existing ``svc.*`` method.
+A type that declares a sub-entity kind (spec-resolved, built-in or custom) additionally gets
+``add-<kind>`` + a ``<plural>`` list verb + a nested ``<kind> <n> <verb>`` subgroup, all built
+generically from the resolved ``SubentityKindSpec`` (see :func:`_register_subentity`) — no
+per-kind closures. Every verb is a thin wrapper over an existing ``svc.*`` method.
 """
 # Commands are nested closures registered via Typer decorators (side effect), so they read as
 # "unused" to static analysis — disable that one check for this factory module.
 # pyright: reportUnusedFunction=false
 
+import inspect
 import json
+from typing import cast
 
 import typer
 from rich.table import Table
@@ -17,6 +21,7 @@ from rich.table import Table
 import squads._cli._common as common
 from squads import _actor as actor
 from squads import _badges as badges
+from squads import _discussion as discussion
 from squads._cli._common import (
     console,
     e,
@@ -39,30 +44,32 @@ from squads._cli._common import (
 from squads._errors import SquadsError
 from squads._models._item import DEFAULT_KIND, split_ref
 from squads._models._subentity import SubEntity
+from squads._services._service import Service
+from squads._workflow._models import Field, WorkflowSpec
 
-#: The bundled default's finding severity field's bound collection code — resolved fresh at
-#: each call site via ``get_active_spec()`` (this constant is only the *fallback* used by
-#: :func:`squads._badges.resolve_collection` when a live field can't be found).
-_SEVERITY_FIELD_CODE = "severity"
-
-
-def _severity_collection() -> str:
-    """The collection the ``finding`` kind's ``severity`` field is bound to (spec-derived)."""
-    return badges.resolve_collection("finding", _SEVERITY_FIELD_CODE, common.get_active_spec())
-
-
-# Built-in sub-entity map (keyed by string so custom-type strings compare cleanly).
-# Custom types that declare a subentity_kind in the spec are handled via
-# ``get_active_spec().item_subentity_kind(item_type)`` at build time.
-_SUBENTITY_PLURAL: dict[str, tuple[str, str]] = {
-    "feature": ("story", "stories"),
-    "task": ("subtask", "subtasks"),
-    "review": ("finding", "findings"),
-}
+#: SubEntity field codes with a dedicated storage slot today — only ``severity`` (the finding
+#: kind's bundled field). A generic field-code store for any other declared field is future
+#: scope; a custom field outside this set surfaces a clear error at the CLI rather than
+#: silently dropping the value or crashing the service call.
+_STORED_FIELD_CODES = frozenset({"severity"})
 
 
 def _id(ctx: typer.Context) -> str:
     return ctx.obj["id"]
+
+
+def _kw_str(kwargs: dict[str, object], key: str) -> str | None:
+    value = kwargs.get(key)
+    return value if isinstance(value, str) else None
+
+
+def _kw_bool(kwargs: dict[str, object], key: str) -> bool:
+    return bool(kwargs.get(key))
+
+
+def _kw_list(kwargs: dict[str, object], key: str) -> list[str] | None:
+    value = kwargs.get(key)
+    return cast(list[str], value) if isinstance(value, list) else None
 
 
 def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) -> None:
@@ -100,19 +107,15 @@ def build_item_app(item_type: str) -> typer.Typer:
     _cmd_body(item)
     _cmd_comment(item)
     _cmd_refs(item)
-    # Sub-entity kind: check spec first (covers custom types), then fall back to built-in map.
+
+    # Sub-entity surface: entirely spec-driven — a type hosts a kind (built-in or a
+    # project-declared custom one) or it doesn't; item_subentity_kind() already degrades to
+    # None for a type the spec doesn't declare, so no fallback vocabulary is needed here.
     spec = common.get_active_spec()
-    subentity_kind = spec.item_subentity_kind(item_type) if item_type in spec.items else None
-    if subentity_kind is None:
-        # Fallback for pre-callback build (bundled spec may not have loaded yet for the app
-        # tree; the built-in map is always accurate for built-in types).
-        sub_info = _SUBENTITY_PLURAL.get(item_type)
-    else:
-        # Spec-declared subentity kind → look up the plural from the built-in map (custom
-        # types would need to declare their own plural, but none do yet).
-        sub_info = _SUBENTITY_PLURAL.get(subentity_kind) or _SUBENTITY_PLURAL.get(item_type)
-    if sub_info is not None:
-        _register_subentity(item, *sub_info)
+    subentity_kind = spec.item_subentity_kind(item_type)
+    if subentity_kind is not None:
+        _register_subentity(item, subentity_kind, spec)
+
     # retype/remove: available for all non-meta work types (spec-derived).
     # For types unknown to the spec (pre-callback edge case), fall back to checking
     # against the three meta-type names directly (the irreducible,
@@ -412,38 +415,46 @@ def _cmd_refs(item: typer.Typer) -> None:
 
 
 # --------------------------------------------------------------------------- sub-entities
-
-_SUB_COLS: dict[str, tuple[str, ...]] = {
-    "story": ("ID", "Status", "Assignee", "Story"),
-    "subtask": ("ID", "Status", "Assignee", "Subtask", "Story"),
-    "finding": ("ID", "Severity", "Status", "Assignee", "Finding"),
-}
+#
+# Everything below is built from the resolved SubentityKindSpec (spec.subentity_kinds[kind]) —
+# no per-kind ("story"/"subtask"/"finding") branches. A project-declared custom kind gets the
+# identical add-<kind>/<plural>/<kind> <n> <verb> surface for free.
 
 
-def _sub_table(kind: str, blocks: list[SubEntity]) -> None:
+def _field_param(field: Field) -> inspect.Parameter:
+    """One dynamic ``--<field-code>`` CLI option for a declared field — used to build both
+    ``add-<kind>``'s and ``update``'s parameter list at spec-resolution time."""
+    return inspect.Parameter(
+        field.code,
+        inspect.Parameter.KEYWORD_ONLY,
+        default=typer.Option(None, f"--{field.code}", help=f"{field.label} badge code."),
+        annotation=str | None,
+    )
+
+
+def _sub_table(kind: str, blocks: list[SubEntity], spec: WorkflowSpec) -> None:
+    """Render the list-verb table from the same field-driven column derivation the body's
+    ``:summary`` region uses (:func:`discussion.summary_columns`/``summary_row``) — one
+    definition, so the CLI list table and the body summary table never drift apart."""
     if not blocks:
         console.print(f"[dim]no {kind}s[/dim]")
         return
     table = Table(box=None, pad_edge=False)
-    for col in _SUB_COLS[kind]:
+    for col in discussion.summary_columns(kind, spec):
         table.add_column(col)
     for b in blocks:
-        if kind == "finding":
-            sev = badges.badge_render(_severity_collection(), b.severity) if b.severity else ""
-            table.add_row(b.local_id, sev, b.status, b.assignee or "", e(b.title))
-        elif kind == "subtask":
-            table.add_row(b.local_id, b.status, b.assignee or "", e(b.title), b.story or "")
-        else:
-            table.add_row(b.local_id, b.status, b.assignee or "", e(b.title))
+        table.add_row(*(e(c) for c in discussion.summary_row(kind, b, spec)))
     console.print(table)
 
 
-def _register_subentity(item: typer.Typer, kind: str, plural: str) -> None:
+def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
+    plural = spec.subentity_plural(kind)
+
     @item.command(plural)
     @common.command
     async def list_sub(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")):
         """List this item's sub-entities."""
-        blocks = await getattr(get_service(), f"list_{plural}")(_id(ctx))
+        blocks = await get_service().list_blocks(_id(ctx), kind)
         if json_out:
             print_json_clean(
                 json.dumps(
@@ -461,9 +472,9 @@ def _register_subentity(item: typer.Typer, kind: str, plural: str) -> None:
                 )
             )
             return
-        _sub_table(kind, blocks)
+        _sub_table(kind, blocks, spec)
 
-    _register_add(item, kind)
+    _register_add(item, kind, spec)
 
     sub = typer.Typer(no_args_is_help=True, help=f"Operate on a {kind} by number/local id.")
 
@@ -476,207 +487,227 @@ def _register_subentity(item: typer.Typer, kind: str, plural: str) -> None:
         assert ctx.parent is not None  # the parent item group always runs first
         ctx.obj = {**ctx.parent.obj, "local": resolve_local_id(n, kind)}
 
-    _register_sub_verbs(sub, kind)
+    _register_sub_verbs(sub, kind, spec)
     item.add_typer(sub, name=kind)
 
 
-def _register_add(item: typer.Typer, kind: str) -> None:
-    if kind == "story":
+def _resolve_add_fields(
+    svc: Service, kind: str, spec: WorkflowSpec, fields: list[Field], kwargs: dict[str, object]
+) -> dict[str, str]:
+    """One resolved+validated badge value per declared field, applying the field's own default
+    when the flag is omitted (generalizes ``add_finding``'s old severity-default fallback to
+    any declared field with a real storage slot — see :data:`_STORED_FIELD_CODES`)."""
+    values: dict[str, str] = {}
+    for field in fields:
+        raw = _kw_str(kwargs, field.code)
+        if raw is not None and field.code not in _STORED_FIELD_CODES:
+            raise SquadsError(f"{kind}'s {field.code!r} field has no CLI storage yet")
+        if field.code not in _STORED_FIELD_CODES:
+            continue
+        resolved = raw or svc.field_default(kind, field.code)
+        if resolved:
+            coll = badges.resolve_collection(kind, field.code, spec)
+            values[field.code] = parse_badge_code(coll, resolved, spec)
+    return values
 
-        @item.command("add-story")
-        @common.command
-        async def add_story(
-            ctx: typer.Context,
-            title: str = typer.Argument("", help="Optional short label; set the story in body."),
-            assignee: str | None = typer.Option(None, "--assignee"),
-            message: list[str] = typer.Option(None, "-m", "--message"),
-            file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
-            json_out: bool = typer.Option(False, "--json"),
-        ):
-            """Scaffold a user story on this feature."""
-            svc = get_service()
-            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-            res = await svc.add_story(
-                _id(ctx),
-                title,
-                assignee=validated_assignee,
-                body=resolve_body_optional(message or None, file),
+
+def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
+    """Register ``add-<kind>``: base flags + one ``--<field-code>`` option per declared field
+    + ``--story`` iff the kind maps to a parent story — built dynamically from the resolved
+    ``SubentityKindSpec``. Replaces the three hand-written per-kind ``_register_add`` closures."""
+    ks = spec.subentity_kinds[kind]
+    fields = spec.fields_for(kind)
+
+    params: list[inspect.Parameter] = [
+        inspect.Parameter("ctx", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=typer.Context),
+        inspect.Parameter(
+            "title",
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            default=typer.Argument("", help="Optional short label; detail in body."),
+            annotation=str,
+        ),
+        *(_field_param(field) for field in fields),
+    ]
+    if ks.maps_parent_story:
+        params.append(
+            inspect.Parameter(
+                "story",
+                inspect.Parameter.KEYWORD_ONLY,
+                default=typer.Option(
+                    None, "--story", help="User story it implements (USn or bare 1)."
+                ),
+                annotation=str | None,
             )
-            print_block(_id(ctx), res, json_out)
+        )
+    params += [
+        inspect.Parameter(
+            "assignee",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(None, "--assignee"),
+            annotation=str | None,
+        ),
+        inspect.Parameter(
+            "message",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(None, "-m", "--message"),
+            annotation=list[str],
+        ),
+        inspect.Parameter(
+            "file",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
+            annotation=str | None,
+        ),
+        inspect.Parameter(
+            "json_out",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(False, "--json"),
+            annotation=bool,
+        ),
+    ]
 
-    elif kind == "subtask":
+    async def _add(**kwargs: object) -> None:
+        ctx = cast(typer.Context, kwargs["ctx"])
+        title = cast(str, kwargs["title"])
+        svc = get_service()
+        assignee = _kw_str(kwargs, "assignee")
+        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+        story = _kw_str(kwargs, "story")
+        # Story-mapping semantics stay wired to the built-in "story" kind regardless of which
+        # kind declares maps_parent_story — a bounded built-in, not per-kind.
+        normalized_story = resolve_local_id(story, "story") if story else None
+        field_values = _resolve_add_fields(svc, kind, spec, fields, kwargs)
+        message = _kw_list(kwargs, "message")
+        file = _kw_str(kwargs, "file")
+        res = await svc.add_block(
+            _id(ctx),
+            kind,
+            title,
+            story=normalized_story,
+            assignee=validated_assignee,
+            body=resolve_body_optional(message or None, file),
+            **field_values,
+        )
+        print_block(_id(ctx), res, _kw_bool(kwargs, "json_out"))
 
-        @item.command("add-subtask")
-        @common.command
-        async def add_subtask(
-            ctx: typer.Context,
-            title: str = typer.Argument("", help="Optional checklist label; detail in body."),
-            story: str | None = typer.Option(
-                None, "--story", help="User story it implements (USn or bare 1)."
-            ),
-            assignee: str | None = typer.Option(None, "--assignee"),
-            message: list[str] = typer.Option(None, "-m", "--message"),
-            file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
-            json_out: bool = typer.Option(False, "--json"),
-        ):
-            """Scaffold a subtask on this task."""
-            svc = get_service()
-            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-            normalized_story = resolve_local_id(story, "story") if story else None
-            res = await svc.add_subtask(
-                _id(ctx),
-                title,
-                story=normalized_story,
-                assignee=validated_assignee,
-                body=resolve_body_optional(message or None, file),
-            )
-            print_block(_id(ctx), res, json_out)
-
-    else:  # finding
-
-        @item.command("add-finding")
-        @common.command
-        async def add_finding(
-            ctx: typer.Context,
-            title: str = typer.Argument("", help="Optional short label; detail in body."),
-            severity: str | None = typer.Option(
-                None,
-                "--severity",
-                help="critical|high|medium|low|info (defaults to the spec's severity default).",
-            ),
-            assignee: str | None = typer.Option(None, "--assignee"),
-            message: list[str] = typer.Option(None, "-m", "--message"),
-            file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
-            json_out: bool = typer.Option(False, "--json"),
-        ):
-            """Scaffold a finding on this review."""
-            svc = get_service()
-            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-            res = await svc.add_finding(
-                _id(ctx),
-                title,
-                severity=parse_badge_code(_severity_collection(), severity) if severity else None,
-                assignee=validated_assignee,
-                body=resolve_body_optional(message or None, file),
-            )
-            print_block(_id(ctx), res, json_out)
+    _add.__doc__ = f"Scaffold a {kind} on this item."
+    _add.__signature__ = inspect.Signature(params)  # pyright: ignore[reportFunctionMemberAccess]
+    item.command(f"add-{kind}")(common.command(_add))
 
 
-def _register_update(sub: typer.Typer, kind: str) -> None:
-    """The sub-entity metadata entry point — kind-aware flags, like `_register_add`."""
+def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
+    """The sub-entity metadata entry point — one ``--<field-code>`` option per declared field
+    (identically to ``add-<kind>``) + ``--story``/``--no-story`` iff maps_parent_story."""
+    ks = spec.subentity_kinds[kind]
+    fields = spec.fields_for(kind)
 
     def ids(ctx: typer.Context) -> tuple[str, str]:
         return ctx.obj["id"], ctx.obj["local"]
 
-    if kind == "subtask":
-
-        @sub.command("update")
-        @common.command
-        async def u_subtask(
-            ctx: typer.Context,
-            title: str | None = typer.Option(None, "--title"),
-            story: str | None = typer.Option(None, "--story", help="Remap to a user story (USn)."),
-            no_story: bool = typer.Option(False, "--no-story", help="Clear the story mapping."),
-            assignee: str | None = typer.Option(None, "--assignee"),
-            clear_assignee: bool = typer.Option(False, "--clear-assignee"),
-            status: str | None = typer.Option(None, "--status"),
-            force: bool = typer.Option(False, "--force"),
-        ):
-            """Update the subtask's metadata (title / story / assignee / status)."""
-            pid, lid = ids(ctx)
-            if story and no_story:
-                raise SquadsError("use --story or --no-story, not both")
-            _guard_update(
-                has_any=any((title, story, no_story, assignee, clear_assignee, status)),
-                assignee=assignee,
-                clear_assignee=clear_assignee,
-            )
-            svc = get_service()
-            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-            normalized_story = resolve_local_id(story, "story") if story else None
-            await svc.update_subtask(
-                pid,
-                lid,
-                title=title,
-                story=normalized_story,
-                clear_story=no_story,
-                assignee=validated_assignee,
-                clear_assignee=clear_assignee,
-                status=parse_status(status) if status else None,
-                force=force,
-            )
-            console.print(f"updated {pid} {lid}")
-
-    elif kind == "finding":
-
-        @sub.command("update")
-        @common.command
-        async def u_finding(
-            ctx: typer.Context,
-            title: str | None = typer.Option(None, "--title"),
-            severity: str | None = typer.Option(
-                None, "--severity", help="critical|high|medium|low|info."
+    params: list[inspect.Parameter] = [
+        inspect.Parameter("ctx", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=typer.Context),
+        inspect.Parameter(
+            "title",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(None, "--title"),
+            annotation=str | None,
+        ),
+        *(_field_param(field) for field in fields),
+    ]
+    if ks.maps_parent_story:
+        params += [
+            inspect.Parameter(
+                "story",
+                inspect.Parameter.KEYWORD_ONLY,
+                default=typer.Option(None, "--story", help="Remap to a user story (USn)."),
+                annotation=str | None,
             ),
-            assignee: str | None = typer.Option(None, "--assignee"),
-            clear_assignee: bool = typer.Option(False, "--clear-assignee"),
-            status: str | None = typer.Option(None, "--status"),
-            force: bool = typer.Option(False, "--force"),
-        ):
-            """Update the finding's metadata (title / severity / assignee / status)."""
-            pid, lid = ids(ctx)
-            _guard_update(
-                has_any=any((title, severity, assignee, clear_assignee, status)),
-                assignee=assignee,
-                clear_assignee=clear_assignee,
-            )
-            svc = get_service()
-            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-            await svc.update_finding(
-                pid,
-                lid,
-                title=title,
-                severity=parse_badge_code(_severity_collection(), severity) if severity else None,
-                assignee=validated_assignee,
-                clear_assignee=clear_assignee,
-                status=parse_status(status) if status else None,
-                force=force,
-            )
-            console.print(f"updated {pid} {lid}")
+            inspect.Parameter(
+                "no_story",
+                inspect.Parameter.KEYWORD_ONLY,
+                default=typer.Option(False, "--no-story", help="Clear the story mapping."),
+                annotation=bool,
+            ),
+        ]
+    params += [
+        inspect.Parameter(
+            "assignee",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(None, "--assignee"),
+            annotation=str | None,
+        ),
+        inspect.Parameter(
+            "clear_assignee",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(False, "--clear-assignee"),
+            annotation=bool,
+        ),
+        inspect.Parameter(
+            "status",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(None, "--status"),
+            annotation=str | None,
+        ),
+        inspect.Parameter(
+            "force",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(False, "--force"),
+            annotation=bool,
+        ),
+    ]
 
-    else:  # story
+    async def _update(**kwargs: object) -> None:
+        ctx = cast(typer.Context, kwargs["ctx"])
+        pid, lid = ids(ctx)
+        title = _kw_str(kwargs, "title")
+        story = _kw_str(kwargs, "story")
+        no_story = _kw_bool(kwargs, "no_story")
+        assignee = _kw_str(kwargs, "assignee")
+        clear_assignee = _kw_bool(kwargs, "clear_assignee")
+        status = _kw_str(kwargs, "status")
+        force = _kw_bool(kwargs, "force")
 
-        @sub.command("update")
-        @common.command
-        async def u_story(
-            ctx: typer.Context,
-            title: str | None = typer.Option(None, "--title"),
-            assignee: str | None = typer.Option(None, "--assignee"),
-            clear_assignee: bool = typer.Option(False, "--clear-assignee"),
-            status: str | None = typer.Option(None, "--status"),
-            force: bool = typer.Option(False, "--force"),
-        ):
-            """Update the story's metadata (title / assignee / status)."""
-            pid, lid = ids(ctx)
-            _guard_update(
-                has_any=any((title, assignee, clear_assignee, status)),
-                assignee=assignee,
-                clear_assignee=clear_assignee,
-            )
-            svc = get_service()
-            validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-            await svc.update_story(
-                pid,
-                lid,
-                title=title,
-                assignee=validated_assignee,
-                clear_assignee=clear_assignee,
-                status=parse_status(status) if status else None,
-                force=force,
-            )
-            console.print(f"updated {pid} {lid}")
+        field_values: dict[str, str] = {}
+        for field in fields:
+            raw = _kw_str(kwargs, field.code)
+            if raw is None:
+                continue
+            if field.code not in _STORED_FIELD_CODES:
+                raise SquadsError(f"{kind}'s {field.code!r} field has no CLI storage yet")
+            coll = badges.resolve_collection(kind, field.code, spec)
+            field_values[field.code] = parse_badge_code(coll, raw, spec)
+
+        if story and no_story:
+            raise SquadsError("use --story or --no-story, not both")
+        _guard_update(
+            has_any=any((title, field_values, story, no_story, assignee, clear_assignee, status)),
+            assignee=assignee,
+            clear_assignee=clear_assignee,
+        )
+        svc = get_service()
+        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+        normalized_story = resolve_local_id(story, "story") if story else None
+        await svc.update_block(
+            pid,
+            kind,
+            lid,
+            title=title,
+            story=normalized_story,
+            clear_story=no_story,
+            assignee=validated_assignee,
+            clear_assignee=clear_assignee,
+            status=parse_status(status) if status else None,
+            force=force,
+            **field_values,
+        )
+        console.print(f"updated {pid} {lid}")
+
+    _update.__doc__ = f"Update the {kind}'s metadata (title / assignee / status / declared fields)."
+    _update.__signature__ = inspect.Signature(params)  # pyright: ignore[reportFunctionMemberAccess]
+    sub.command("update")(common.command(_update))
 
 
-def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
+def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     def ids(ctx: typer.Context) -> tuple[str, str]:
         return ctx.obj["id"], ctx.obj["local"]
 
@@ -685,9 +716,9 @@ def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
     async def s_show(ctx: typer.Context):
         """Show the sub-entity's status/assignee, body, and discussion."""
         pid, lid = ids(ctx)
-        print_subentity(await getattr(get_service(), f"get_{kind}")(pid, lid), kind)
+        print_subentity(await get_service().get_block(pid, kind, lid), kind)
 
-    _register_update(sub, kind)
+    _register_update(sub, kind, spec)
 
     @sub.command("body")
     @common.command
@@ -699,8 +730,8 @@ def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
     ):
         """Set (or --append to) the sub-entity's body."""
         pid, lid = ids(ctx)
-        await getattr(get_service(), f"set_{kind}_body")(
-            pid, lid, resolve_body(message or None, file), append=append
+        await get_service().set_block_body(
+            pid, kind, lid, resolve_body(message or None, file), append=append
         )
         console.print(f"{pid} {lid}: body {'appended' if append else 'set'}")
 
@@ -716,5 +747,5 @@ def _register_sub_verbs(sub: typer.Typer, kind: str) -> None:
         svc = get_service()
         slug = await resolve_slug_or_raise(as_, svc)
         actor.set_actor(slug)
-        await svc.comment(pid, message, as_slug=slug, **{kind: lid})
+        await svc.comment(pid, message, as_slug=slug, sub=(kind, lid))
         console.print(f"commented on {pid} {lid} as {slug}")

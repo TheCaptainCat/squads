@@ -826,6 +826,14 @@ class WorkflowSpec(BaseModel):
         """
         return self.subentity_kinds[kind].completion
 
+    def subentity_plural(self, kind: str) -> str:
+        """The kind's declared plural — the CLI list-verb name and container marker tag.
+
+        Retires the static ``_SUBENTITY_PLURAL`` CLI table (kind -> plural was the last
+        piece of hand-maintained sub-entity vocabulary).
+        """
+        return self.subentity_kinds[kind].plural
+
     def parent_hint(self, child: str) -> str:
         """Human guidance for an invalid parent (used in error messages)."""
         parents = self.items[child].parents
