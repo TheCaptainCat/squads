@@ -3,7 +3,6 @@ import pytest
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._itemfile import read_frontmatter
-from squads._models._enums import Severity
 
 pytestmark = pytest.mark.anyio
 
@@ -203,7 +202,7 @@ async def test_head_shows_status_severity_and_story(svc):
 
     # findings show a severity badge
     rev = (await svc.create("review", "r")).item
-    await svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
+    await svc.add_finding(rev.id, "Null deref", severity="high")
     assert "**Severity:** 🟠 High" in await _head(svc, rev.id, "finding:F1:head")
 
 
@@ -236,11 +235,11 @@ async def test_update_subtask_title_rerenders_heading_and_summary(svc):
 
 async def test_update_finding_severity(svc):
     rev = (await svc.create("review", "r")).item
-    await svc.add_finding(rev.id, "Null deref", severity=Severity.MEDIUM)
+    await svc.add_finding(rev.id, "Null deref", severity="medium")
 
-    await svc.update_finding(rev.id, "F1", severity=Severity.HIGH)
+    await svc.update_finding(rev.id, "F1", severity="high")
 
-    assert (await svc.list_findings(rev.id))[0].severity is Severity.HIGH
+    assert (await svc.list_findings(rev.id))[0].severity == "high"
     text = svc.paths.abspath((await svc.get(rev.id)).path).read_text(encoding="utf-8")
     assert "severity: high" in text  # frontmatter state
     assert "**Severity:** 🟠 High" in await _head(svc, rev.id, "finding:F1:head")  # head badge

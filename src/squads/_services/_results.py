@@ -54,7 +54,7 @@ class GraphNode:
     id: str
     type: str
     status: str  # spec-defined status name
-    priority: str | None  # Priority.value string, or None
+    priority: str | None  # the priority badge code, or None
     assignee: str | None
     edge_kind: str | None  # None for root; normalized kind for all other nodes
     direction: str | None  # "out" | "in" | None (None for root)

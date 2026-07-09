@@ -18,13 +18,6 @@ from rich.panel import Panel
 from squads import __version__, _clock
 from squads import _discussion as discussion
 from squads._errors import SquadsError
-from squads._models._enums import (
-    PRIORITY_EMOJI,
-    SEVERITY_EMOJI,
-    Priority,
-    Severity,
-)
-from squads._models._extras import ExtraKey as X
 from squads._models._item import (
     DEFAULT_KIND,
     DISPLAY_ID_PADDING,
@@ -161,9 +154,9 @@ def _build_item_panel_rows(it: Item) -> list[str]:
     ]
     if it.priority:
         rows.append(f"[bold]priority:[/bold] {e(priority_badge(it.priority))}")
-    sev = it.extra.get(X.SEVERITY) if get_active_spec().item_has_severity(it.type) else None
+    sev = it.severity if _has_field(it.type, "severity") else None
     if sev:
-        rows.append(f"[bold]severity:[/bold] {e(f'{SEVERITY_EMOJI[Severity(sev)]} {sev}')}")
+        rows.append(f"[bold]severity:[/bold] {e(severity_badge(sev))}")
     if it.description:
         rows.append(f"[bold]summary:[/bold] {e(it.description)}")
     if it.parent:
@@ -208,7 +201,9 @@ def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
     )
     parts = [f"{sub.local_id} — {sub.title}  {status_badge}"]
     if kind == "finding" and sub.severity:
-        sev_badge = f"{SEVERITY_EMOJI[sub.severity]} {sub.severity.value.title()}"
+        sev_badge = discussion._severity_badge(  # pyright: ignore[reportPrivateUsage]
+            sub.severity, get_active_spec()
+        )
         parts.append(sev_badge)
     if sub.assignee:
         parts.append(sub.assignee)
@@ -370,7 +365,7 @@ def _print_subentity_summary(it: Item) -> None:
 
     for sub in it.subentities:
         if kind == "finding":
-            sev_str = f"{SEVERITY_EMOJI[sub.severity]} {sub.severity.value}" if sub.severity else ""
+            sev_str = severity_badge(sub.severity) if sub.severity else ""
             table.add_row(sub.local_id, sev_str, sub.status, e(sub.assignee or ""), e(sub.title))
         elif kind == "subtask":
             table.add_row(
@@ -747,22 +742,51 @@ def parse_status(value: str) -> str:
     raise SquadsError(f"unknown status {value!r} (one of: {choices})") from None
 
 
-def parse_severity(value: str) -> Severity:
-    try:
-        return Severity(value.strip().lower())
-    except ValueError:
-        choices = ", ".join(s.value for s in Severity)
-        raise SquadsError(f"unknown severity {value!r} (one of: {choices})") from None
+def _has_field(item_type: str, field_code: str) -> bool:
+    """True when *item_type* declares a field with this code (spec-derived, any collection)."""
+    return any(f.code == field_code for f in get_active_spec().fields_for(item_type))
 
 
-def parse_priority(value: str) -> Priority:
-    try:
-        return Priority(value.strip().lower())
-    except ValueError:
-        choices = ", ".join(p.value for p in Priority)
-        raise SquadsError(f"unknown priority {value!r} (one of: {choices})") from None
+def _parse_axis_code(collection_code: str, value: str) -> str:
+    """Validate/normalize *value* against the named collection's badge codes.
+
+    Shared by :func:`parse_priority`/:func:`parse_severity` — two distinct per-axis functions
+    (not yet the one generic ``parse_badge_code`` the badge-spec design describes; that
+    collapse is a follow-up) that now read the spec instead of a closed enum.
+    """
+    spec = get_active_spec()
+    coll = spec.collections.get(collection_code)
+    code = value.strip().lower()
+    if coll is None or code not in coll.badge_codes:
+        choices = ", ".join(b.code for b in coll.badges) if coll else ""
+        raise SquadsError(f"unknown {collection_code} {value!r} (one of: {choices})")
+    return code
 
 
-def priority_badge(priority: Priority) -> str:
-    """A colored badge + label for a priority, e.g. ``🟠 high`` (already Rich-safe)."""
-    return f"{PRIORITY_EMOJI[priority]} {priority.value}"
+def parse_severity(value: str) -> str:
+    return _parse_axis_code("severity", value)
+
+
+def parse_priority(value: str) -> str:
+    return _parse_axis_code("priority", value)
+
+
+_DEFAULT_BADGE = discussion._DEFAULT_BADGE  # pyright: ignore[reportPrivateUsage]
+
+
+def _badge_emoji(collection_code: str, code: str, spec: WorkflowSpec | None = None) -> str:
+    """Emoji for *code* in the named collection, or the neutral fallback (never crash)."""
+    active_spec = spec if spec is not None else get_active_spec()
+    coll = active_spec.collections.get(collection_code)
+    badge = next((b for b in coll.badges if b.code == code), None) if coll else None
+    return (badge.emoji if badge and badge.emoji else None) or _DEFAULT_BADGE
+
+
+def priority_badge(priority: str, spec: WorkflowSpec | None = None) -> str:
+    """A colored badge + label for a priority code, e.g. ``🟠 high`` (already Rich-safe)."""
+    return f"{_badge_emoji('priority', priority, spec)} {priority}"
+
+
+def severity_badge(severity: str, spec: WorkflowSpec | None = None) -> str:
+    """A colored badge + label for a severity code, e.g. ``🟠 high`` (already Rich-safe)."""
+    return f"{_badge_emoji('severity', severity, spec)} {severity}"

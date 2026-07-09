@@ -4,7 +4,6 @@ import pytest
 from pydantic import ValidationError
 
 from squads._models._config import SquadsConfig
-from squads._models._enums import Severity
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -54,10 +53,10 @@ def test_subentity_roundtrips_through_frontmatter():
         title="Null deref",
         status="Open",
         assignee="qa",
-        severity=Severity.HIGH,
+        severity="high",
     )
     data = sub.to_frontmatter_dict()
-    # enums serialize to their string values; None fields (here: story) are omitted
+    # None fields (here: story) are omitted
     assert data == {
         "local_id": "F1",
         "title": "Null deref",
@@ -67,7 +66,7 @@ def test_subentity_roundtrips_through_frontmatter():
     }
     back = SubEntity.from_frontmatter(data)
     assert back == sub
-    assert back.status == "Open" and back.severity is Severity.HIGH
+    assert back.status == "Open" and back.severity == "high"
 
 
 def test_item_subentities_roundtrip_through_frontmatter():
@@ -119,6 +118,37 @@ def test_from_frontmatter_folds_legacy_ref_kinds():
     assert it.refs == ["GUIDE-000002", "BUG-000003:fixes"]  # folded inline (default stays bare)
     assert "ref_kinds" not in it.extra  # legacy key dropped
     assert it.extra == {"tech": "py"}  # other extras preserved
+
+
+def test_item_severity_roundtrips_top_level():
+    it = _item(type="bug", prefix="BUG", severity="high")
+    fm = it.to_frontmatter_dict()
+    assert fm["severity"] == "high"
+    assert "severity" not in fm.get("extra", {})
+    rebuilt = Item.from_frontmatter(fm, path=it.path)
+    assert rebuilt.severity == "high"
+
+
+def test_from_frontmatter_backfills_legacy_extra_severity():
+    """A pre-ADR-323 bug file stored severity in extra[X.SEVERITY]; from_frontmatter reads it
+    into the top-level field and drops the stale extra copy (so a re-save doesn't duplicate it)."""
+    data = {
+        "id": "BUG-000001",
+        "sequence_id": 1,
+        "type": "bug",
+        "title": "b",
+        "status": "Open",
+        "extra": {"severity": "critical"},
+        "created_at": _NOW,
+        "updated_at": _NOW,
+    }
+    it = Item.from_frontmatter(data, path="bugs/b.md")
+    assert it.severity == "critical"
+    assert "severity" not in it.extra
+    # a top-level key, when present, wins over the legacy extra one
+    data2 = {**data, "severity": "low"}
+    it2 = Item.from_frontmatter(data2, path="bugs/b.md")
+    assert it2.severity == "low"
 
 
 def test_schema_version_constant_is_single_source():

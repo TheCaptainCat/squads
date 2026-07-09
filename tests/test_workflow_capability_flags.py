@@ -85,28 +85,6 @@ def test_item_subentity_kind_returns_none_for_unknown_type(spec: WorkflowSpec) -
 
 
 # ---------------------------------------------------------------------------
-# severity_field flag
-# ---------------------------------------------------------------------------
-
-
-def test_severity_field_only_on_bug(spec: WorkflowSpec) -> None:
-    """severity_field=True only for bug; all other types have it False."""
-    assert spec.items["bug"].severity_field is True
-    for t in (
-        "epic",
-        "feature",
-        "task",
-        "decision",
-        "review",
-        "guide",
-        "role",
-        "skill",
-        "operator",
-    ):
-        assert spec.items[t].severity_field is False, f"{t} should have severity_field=False"
-
-
-# ---------------------------------------------------------------------------
 # parent_required flag
 # ---------------------------------------------------------------------------
 
@@ -437,7 +415,6 @@ def test_bundled_spec_loads_with_new_flags() -> None:
     assert spec is not None
     # Spot-check a few flags that must be set.
     assert spec.items["task"].parent_required == "feature"
-    assert spec.items["bug"].severity_field is True
     assert spec.items["role"].is_meta is True
 
 

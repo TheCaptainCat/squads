@@ -6,15 +6,15 @@ the three meta-types (``META_TYPES``) plus their agent-lifecycle statuses
 (``_RESERVED_FLOOR`` — ``Draft``/``Active``/``Archived``); every other type or status is
 ordinary spec vocabulary a project may drop, rename, or reorder.
 
-The capability flags declared here (``is_meta``, ``subentity_kind``, ``severity_field``,
-``parent_required``, ``ref_rules``, ``StatusSpec.role``) are additive; ``StatusSpec.completion``
-is consumed by the sub-entity/finding done-toggle (``_services/_subentities.py``). They are
-encoded in ``default_workflow.toml``.
+The capability flags declared here (``is_meta``, ``subentity_kind``, ``parent_required``,
+``ref_rules``, ``StatusSpec.role``) are additive; ``StatusSpec.completion`` is consumed by
+the sub-entity/finding done-toggle (``_services/_subentities.py``). They are encoded in
+``default_workflow.toml``.
 
-``Badge``/``Collection``/``Field`` are a parallel, additive badge-vocabulary schema
-(``ItemSpec.fields`` / ``SubentityKindSpec.fields`` bind a type or sub-entity kind to a
-reusable ``Collection`` of ``Badge``s). Not yet consumed by the engine — ``Priority``/
-``Severity`` still drive runtime; this is the vocabulary alongside it.
+``Badge``/``Collection``/``Field`` are the badge-vocabulary schema: ``ItemSpec.fields`` /
+``SubentityKindSpec.fields`` bind a type or sub-entity kind to a reusable ``Collection`` of
+``Badge``s — "does type/kind X carry field Y" is a ``fields_for(X)`` lookup, replacing the old
+closed-set ``Priority``/``Severity`` enums.
 """
 
 import math
@@ -220,9 +220,6 @@ class ItemSpec(BaseModel):
     """The kind of sub-entity this type hosts: ``"story"`` | ``"subtask"`` | ``"finding"``
     or ``None`` for types that have no sub-entities (epic/bug/decision/guide/meta-types)."""
 
-    severity_field: bool = False
-    """True when this type surfaces a severity badge (today: bug only)."""
-
     parent_required: str | None = None
     """The required parent type expressed as a string (e.g. ``"feature"`` for task).
     ``None`` means the type is unconstrained (any parent or none is valid)."""
@@ -232,8 +229,8 @@ class ItemSpec(BaseModel):
     (e.g. task → fixes/addresses; decision → supersedes)."""
 
     fields: list[Field] = []
-    """Badge-collection bindings this type carries (e.g. priority/severity). Additive;
-    not yet consumed by the engine — ``Priority``/``Severity`` still drive runtime."""
+    """Badge-collection bindings this type carries (e.g. priority/severity) — "does this type
+    carry field X" is ``X in {f.code for f in fields}``, exposed via ``fields_for()``."""
 
 
 class StatusSpec(BaseModel):
@@ -453,21 +450,28 @@ def _check_item_refs(
 
 #: Field codes exempt from the reserved-key check below because this exact schema models
 #: them by field code on purpose — the bundled ``priority``/``severity`` fields keep the
-#: literal key their axis has always used, so frontmatter keeps round-tripping unchanged.
-_FIELD_ELIGIBLE_ITEM_KEYS: frozenset[str] = frozenset({"priority"})
+#: literal key their axis has always used (``Item.priority``/``Item.severity``/
+#: ``SubEntity.severity`` are themselves the badge-code storage, not a shadow of it), so
+#: frontmatter keeps round-tripping unchanged.
+_FIELD_ELIGIBLE_ITEM_KEYS: frozenset[str] = frozenset({"priority", "severity"})
 _FIELD_ELIGIBLE_SUBENTITY_KEYS: frozenset[str] = frozenset({"severity"})
 
 
 def _reserved_item_keys() -> frozenset[str]:
     """Item frontmatter keys a field code may not shadow.
 
-    Derived from ``Item``'s own model/computed fields (never hand-copied) minus ``path``/
-    ``prefix`` (model-only, never written to frontmatter) and the field-eligible exemptions.
+    Derived from ``Item``'s own model/computed fields (never hand-copied) minus ``path``
+    (model-only, never written to frontmatter) and the field-eligible exemptions.
+
+    ``prefix`` stays reserved even though it, too, is model-only/never written: it is a
+    *tolerated* legacy frontmatter key on read (``Item.id`` always wins over it), so a live
+    field coded ``prefix`` would silently shadow — be read and discarded — exactly the hazard
+    this check exists to catch. Excluding it here, as ``path`` is, would defeat that.
     """
     from squads._models._item import Item
 
     keys = set(Item.model_fields) | set(Item.model_computed_fields)
-    return frozenset(keys - {"path", "prefix"} - _FIELD_ELIGIBLE_ITEM_KEYS)
+    return frozenset(keys - {"path"} - _FIELD_ELIGIBLE_ITEM_KEYS)
 
 
 def _reserved_subentity_keys() -> frozenset[str]:
@@ -651,8 +655,9 @@ class WorkflowSpec(BaseModel):
     # Derived reverse indexes — built by the loader, not stored in TOML.
     prefix_to_type: dict[str, str]
     alias_to_type: dict[str, str]
-    #: Reusable badge libraries, keyed by collection code. Additive; not yet consumed by the
-    #: engine — Priority/Severity still drive runtime.
+    #: Reusable badge libraries, keyed by collection code — the vocabulary
+    #: ``ItemSpec.fields``/``SubentityKindSpec.fields`` bind to (priority/severity are two
+    #: bundled defaults, no longer special-cased enums).
     collections: dict[str, Collection] = {}
     #: Per-sub-entity-kind declarations (currently just ``fields``), keyed by kind name.
     subentity_kinds: dict[str, SubentityKindSpec] = {}
@@ -711,10 +716,6 @@ class WorkflowSpec(BaseModel):
     def item_is_meta(self, item_type: str) -> bool:
         """True for the meta-types: role, skill, operator."""
         return self.items[item_type].is_meta
-
-    def item_has_severity(self, item_type: str) -> bool:
-        """True for types that surface a severity field (today: bug only)."""
-        return self.items[item_type].severity_field
 
     def item_subentity_kind(self, item_type: str) -> str | None:
         """The sub-entity kind this type hosts, or None.

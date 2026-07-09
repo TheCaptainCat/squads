@@ -91,7 +91,6 @@ def test_status_and_severity_badges():
 
 def test_subentity_summary_template_layout():
     from squads import _discussion as d
-    from squads._models._enums import Severity
     from squads._models._subentity import SubEntity
 
     subs = [
@@ -99,7 +98,7 @@ def test_subentity_summary_template_layout():
             local_id="F1",
             title="Null deref",
             status="Open",
-            severity=Severity.HIGH,
+            severity="high",
             assignee="qa",
         )
     ]

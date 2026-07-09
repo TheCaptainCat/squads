@@ -7,7 +7,6 @@ from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkf
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _markers as markers
-from squads._models._enums import Priority
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_extra
@@ -16,6 +15,13 @@ from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import RemoveResult
 from squads._util import slugify
 from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL
+from squads._workflow._models import Field
+
+#: Field codes settable via ``--set`` that resolve onto a top-level ``Item`` attribute of the
+#: same name rather than ``extra`` — today just bug's ``severity`` (``priority`` already has
+#: its own dedicated ``--priority`` flag). A frozen per-axis shim until a follow-up generalizes
+#: ``--set``/badge storage over every declared field.
+_ITEM_BADGE_ATTR_FIELDS: frozenset[str] = frozenset({"severity"})
 
 
 class ItemsMixin(ServiceCore):
@@ -41,7 +47,7 @@ class ItemsMixin(ServiceCore):
         title: str | None = None,
         description: str | None = None,
         assignee: str | None = None,
-        priority: Priority | None = None,
+        priority: str | None = None,
         clear_priority: bool = False,
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
@@ -70,7 +76,7 @@ class ItemsMixin(ServiceCore):
                 delta["priority"] = None
                 item.priority = None
             elif priority is not None:
-                delta["priority"] = priority.value
+                delta["priority"] = priority
                 item.priority = priority
             if author is not None:
                 self._check_author(db, item.type, author, item.slug)
@@ -105,12 +111,35 @@ class ItemsMixin(ServiceCore):
         if rm:
             item.labels = [lab for lab in item.labels if lab not in rm]
 
-    @staticmethod
-    def _apply_extra(item: Item, set_extra: dict[str, str] | None, unset: list[str] | None) -> None:
+    def _apply_extra(
+        self, item: Item, set_extra: dict[str, str] | None, unset: list[str] | None
+    ) -> None:
         for key, raw in (set_extra or {}).items():
-            item.extra[key] = coerce_extra(item.type, key, raw)
+            field = self._badge_attr_field(item.type, key)
+            if field is not None:
+                setattr(item, key, self._parse_badge_code(field, raw))
+            else:
+                item.extra[key] = coerce_extra(item.type, key, raw)
         for key in unset or []:
-            item.extra.pop(key, None)
+            if key in _ITEM_BADGE_ATTR_FIELDS:
+                setattr(item, key, None)
+            else:
+                item.extra.pop(key, None)
+
+    def _badge_attr_field(self, item_type: str, key: str) -> Field | None:
+        """The declared field for *key*, when it's one of :data:`_ITEM_BADGE_ATTR_FIELDS`."""
+        if key not in _ITEM_BADGE_ATTR_FIELDS:
+            return None
+        return next((f for f in self.spec.fields_for(item_type) if f.code == key), None)
+
+    def _parse_badge_code(self, field: Field, raw: str) -> str:
+        """Validate/normalize a ``--set <field>=<code>`` value against its bound collection."""
+        coll = self.spec.collection(field.collection)
+        code = raw.strip().lower()
+        if code not in coll.badge_codes:
+            choices = ", ".join(b.code for b in coll.badges)
+            raise SquadsError(f"invalid {field.code} {raw!r} (one of: {choices})")
+        return code
 
     def _apply_status(self, item: Item, status: str, *, force: bool) -> None:
         # Defensive str() — status is spec vocabulary (a plain string), no enum involved.

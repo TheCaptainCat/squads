@@ -22,7 +22,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-07-09T08:20:10Z'
-updated_at: '2026-07-09T08:21:07Z'
+updated_at: '2026-07-09T10:40:41Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -139,4 +139,6 @@ Add a test spec declaring a custom badge axis (e.g. impact off a custom 'level' 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-09T10:40:41Z] Catherine Manager:
+  - Carry-over from TASK-341 review (REV-344, LOW/F1): collapse the duplicate emoji-resolution logic between _cli/_common.py::_badge_emoji and _discussion.py::_severity_emoji/_severity_badge as part of this task's generic CLI derivation — the per-axis parse/badge pairs (parse_priority/parse_severity, the two emoji resolvers) should become one spec-field-driven path.
 <!-- sq:discussion:end -->

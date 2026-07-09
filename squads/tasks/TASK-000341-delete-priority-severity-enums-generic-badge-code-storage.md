@@ -3,9 +3,10 @@ id: TASK-341
 sequence_id: 341
 type: task
 title: Delete Priority/Severity enums; generic badge-code storage
-status: Draft
+status: Done
 parent: FEAT-327
 author: tech-lead
+assignee: python-dev
 refs:
 - ADR-323
 - TASK-340:depends-on
@@ -22,7 +23,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T08:20:10Z'
-updated_at: '2026-07-09T09:42:27Z'
+updated_at: '2026-07-09T11:40:37Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -162,4 +163,14 @@ Store only the badge code per field; add top-level Item.severity written to fron
 <!-- sq:discussion -->
 - [2026-07-09T09:42:27Z] Catherine Manager:
   - Carry-over from TASK-340 review (REV/APPROVE, LOW): when this task makes fields live, do NOT subtract 'prefix' from _reserved_item_keys() in _workflow/_models.py — keep it reserved (fail-closed). 'prefix' is a tolerated-and-ignored legacy frontmatter key (id always wins), so a live field coded 'prefix' would be silently discarded on round-trip — the exact shadow the reserved-key check prevents. 'path' can stay excluded (never a frontmatter key).
+- [2026-07-09T10:29:08Z] Elias Python:
+  - Landed: deleted Priority/Severity enums (_models/_enums.py removed entirely), PRIORITY_EMOJI/SEVERITY_EMOJI/DEFAULT_SEVERITY, and ItemSpec.severity_field/item_has_severity. 'Carries severity' is now a generic fields_for(t) lookup.
+  - Storage: Item/SubEntity store only the badge code per field (str, not enum). Item.severity is a new top-level frontmatter field (mirrors priority); the old extra[X.SEVERITY] location is read tolerantly at two seams — Item.from_frontmatter (drops the stale extra copy once backfilled) and IndexStore.load() (in-memory backfill for the live .squads.json path, mirroring the old _propagate_prefix pattern) — so both real pre-migration bugs (BUG-11, BUG-183) read correctly with no data moved on disk. Added load-boundary badge-code validation (_validate_badge_codes) alongside the existing type/status check.
+  - Reserved-key fix from the 340 review: _reserved_item_keys() no longer subtracts 'prefix' (kept path-only); added 'severity' to _FIELD_ELIGIBLE_ITEM_KEYS since Item now has a real severity attribute.
+  - CLI/services repointed onto fields_for()/spec-resolved collections: parse_priority/parse_severity and priority_badge/_severity_badge kept as distinct per-axis functions (not collapsed — that generic derivation is the next task) but now spec-derived with graceful raw-code fallback, matching _status_badge's pattern; item-level bug severity via --set severity= now routes onto the top-level attribute (ItemsMixin._apply_extra), validated against the spec's severity collection.
+  - Byte-identical on the default: badges/emoji/labels/filters/sort/columns unchanged (verified against the dogfood squad + full golden suite); only additive change is a new top-level severity: null key in --json output (goldens regenerated, diff is purely additive).
+  - Gates: pyright/ruff clean. Targeted tests green (workflow badges/capability flags, models round-trip incl. new severity tests, discussion incl. 2 new graceful-fallback tests, rendering, priority views, tree, collab, migrations, cli, graph, show_render, spine characterization, load-boundary vocab incl. 5 new badge-code/backfill tests, index, playbook, custom types, prefix resolver, ref hygiene, golden json, reserved-type invariants, workflow lint). Full suite NOT run (main loop's gate).
+- [2026-07-09T10:39:57Z] Paul Reviewer:
+  - APPROVE (REV-344). Independent review of the uncommitted diff: enum removal complete (_enums.py deleted, no live Priority/Severity uses — remaining greps are docstrings/labels/columns/help), storage move verified with no data loss (legacy extra severity renders + relocates on write, byte-identical file until then), byte-identical default (goldens purely additive, badge labels/emoji match old behavior, golden-lock green), graceful render fallback, reserved-key fix (prefix kept, severity eligible), fail-closed load validation clean.
+  - Gates green: pyright/ruff/format + all targeted suites. 3 LOW/info findings, all non-blocking (WontFix). No changes requested. @manager ready to land.
 <!-- sq:discussion:end -->

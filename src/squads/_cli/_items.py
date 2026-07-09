@@ -35,9 +35,9 @@ from squads._cli._common import (
     resolve_item_id_typed,
     resolve_local_id,
     resolve_slug_or_raise,
+    severity_badge,
 )
 from squads._errors import SquadsError
-from squads._models._enums import SEVERITY_EMOJI
 from squads._models._item import DEFAULT_KIND, split_ref
 from squads._models._subentity import SubEntity
 
@@ -421,7 +421,7 @@ def _sub_table(kind: str, blocks: list[SubEntity]) -> None:
         table.add_column(col)
     for b in blocks:
         if kind == "finding":
-            sev = f"{SEVERITY_EMOJI[b.severity]} {b.severity.value}" if b.severity else ""
+            sev = severity_badge(b.severity) if b.severity else ""
             table.add_row(b.local_id, sev, b.status, b.assignee or "", e(b.title))
         elif kind == "subtask":
             table.add_row(b.local_id, b.status, b.assignee or "", e(b.title), b.story or "")
@@ -445,7 +445,7 @@ def _register_subentity(item: typer.Typer, kind: str, plural: str) -> None:
                             "title": b.title,
                             "status": b.status,
                             "assignee": b.assignee,
-                            "severity": b.severity.value if b.severity else None,
+                            "severity": b.severity,
                             "story": b.story,
                         }
                         for b in blocks
