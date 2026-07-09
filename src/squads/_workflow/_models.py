@@ -213,7 +213,7 @@ class ItemSpec(BaseModel):
     # ------------------------------------------------------------------
 
     is_meta: bool = False
-    """True for the meta-types (role/skill/operator): outside WORK_TYPES, no work lifecycle,
+    """True for the meta-types (role/skill/operator): not a work type, no work lifecycle,
     slug-keyed identity, retype-ineligible, self-author bypass for bootstrap."""
 
     subentity_kind: str | None = None
@@ -347,11 +347,11 @@ def _check_completion_status(
 ) -> None:
     """Each sub-entity/finding machine must name exactly one ``completion`` status.
 
-    A sub-entity/finding machine is identified the same way ``subentity_machine()`` finds
-    it: by the kind name declared in some ``ItemSpec.subentity_kind`` (``subtask``/
-    ``story``/``finding`` in the bundled default), which shares its name with the
-    corresponding entry in ``lifecycles``. This is the machine-role binding the done-toggle
-    resolves against instead of a hardcoded ``Done``/``Fixed`` literal.
+    A sub-entity/finding machine is identified by the kind name declared in some
+    ``ItemSpec.subentity_kind`` (``subtask``/``story``/``finding`` in the bundled default),
+    which shares its name with the corresponding entry in ``lifecycles``. This is the
+    machine-role binding the done-toggle resolves against instead of a hardcoded
+    ``Done``/``Fixed`` literal.
     """
     kinds = sorted({ts.subentity_kind for ts in items.values() if ts.subentity_kind})
     for kind in kinds:
@@ -670,10 +670,6 @@ class WorkflowSpec(BaseModel):
 
     # ------------------------------------------------------------------ convenience accessors
 
-    @property
-    def managed_types(self) -> frozenset[str]:
-        return frozenset(self.items)
-
     def machine_for(self, item_type: str) -> Lifecycle:
         return self.lifecycles[self.items[item_type].lifecycle]
 
@@ -692,9 +688,6 @@ class WorkflowSpec(BaseModel):
 
     def terminal_set(self) -> frozenset[str]:
         return frozenset(s for s, spec in self.statuses.items() if spec.terminal)
-
-    def subentity_machine(self, kind: str) -> Lifecycle:
-        return self.lifecycles[kind]
 
     def status_badge(self, status: str) -> str | None:
         spec = self.statuses.get(status)

@@ -1,3 +1,4 @@
+from squads import _badges as badges
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._models._subentity import SubEntity
@@ -87,12 +88,12 @@ def test_render_summary():
 
 def test_severity_badge_and_summary_degrade_gracefully_without_collection():
     """A spec that dropped/renamed the severity collection never crashes — the raw code plus
-    the neutral fallback badge, mirroring _status_badge's graceful degradation."""
+    the neutral fallback badge, mirroring status_badge's graceful degradation."""
     from squads._workflow import bundled_spec
 
     spec = bundled_spec().model_copy(update={"collections": {}})
-    coll = discussion.resolve_collection("finding", "severity", spec)
-    assert discussion.badge_render(coll, "high", spec, as_label=True) == "⚪ High"
+    coll = badges.resolve_collection("finding", "severity", spec)
+    assert badges.badge_render(coll, "high", spec, as_label=True) == "⚪ High"
 
     subs = [SubEntity(local_id="F1", title="Null deref", status="Open", severity="high")]
     out = discussion.render_summary("finding", subs, spec)
@@ -102,7 +103,7 @@ def test_severity_badge_and_summary_degrade_gracefully_without_collection():
 def test_severity_badge_falls_back_for_an_undeclared_code():
     """A stored code that isn't (or is no longer) a badge in the collection also degrades
     gracefully rather than raising a KeyError (unlike the old SEVERITY_EMOJI[...] dict)."""
-    assert discussion.badge_render("severity", "nonexistent", as_label=True) == "⚪ Nonexistent"
+    assert badges.badge_render("severity", "nonexistent", as_label=True) == "⚪ Nonexistent"
 
 
 def test_set_head_renders_badges_into_empty_region():

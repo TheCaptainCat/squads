@@ -243,7 +243,7 @@ badges = [
 
 # ---------------------------------------------------------------------------
 # Items (prefix / folder / lifecycle / parents / aliases)
-# Mirrors PREFIX_BY_TYPE / FOLDER_BY_TYPE / ALLOWED_PARENTS / TYPE_ALIASES exactly.
+# This table is the sole vocabulary source for prefix/folder/allowed-parents/aliases.
 # parents = [] means unconstrained (any parent or none is valid).
 #
 # `order` is the explicit CLI registration/display order (ascending; type name breaks

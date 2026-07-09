@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.7.0",
-  "counter": 346,
+  "counter": 347,
   "padding": 6,
   "items": {
     "12": {
@@ -8278,11 +8278,11 @@
       "type": "task",
       "title": "Code hygiene sweep: unused code + gratuitous import re-aliases",
       "slug": "code-hygiene-sweep-unused-code-gratuitous-import-re-aliases",
-      "status": "Draft",
+      "status": "Done",
       "description": "Delete dead code (ERA commented-out blocks, unused effective_prefix param) and strip pointless public->private import re-aliases; one sweep on the stable post-enum-removal tree",
       "parent": null,
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": "low",
       "severity": null,
       "labels": [
@@ -8292,7 +8292,7 @@
       "subentities": [],
       "path": "tasks/TASK-000333-code-hygiene-sweep-unused-code-gratuitous-import-re-aliases.md",
       "created_at": "2026-07-08T12:25:09Z",
-      "updated_at": "2026-07-09T08:16:00Z",
+      "updated_at": "2026-07-09T19:10:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8326,11 +8326,11 @@
       "type": "task",
       "title": "Lead vocab-validation errors with the dropped-type cause, not sq repair",
       "slug": "lead-vocab-validation-errors-with-the-dropped-type-cause-not",
-      "status": "Draft",
+      "status": "InReview",
       "description": "",
       "parent": null,
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": null,
       "severity": null,
       "labels": [],
@@ -8341,7 +8341,7 @@
       "subentities": [],
       "path": "tasks/TASK-000339-lead-vocab-validation-errors-with-the-dropped-type-cause-not.md",
       "created_at": "2026-07-08T16:13:06Z",
-      "updated_at": "2026-07-08T16:13:51Z",
+      "updated_at": "2026-07-09T14:59:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -8526,12 +8526,13 @@
       "refs": [
         "ADR-323",
         "TASK-342:depends-on",
-        "TASK-343:depends-on"
+        "TASK-343:depends-on",
+        "REV-346:addresses"
       ],
       "subentities": [],
       "path": "tasks/TASK-000345-relocate-badge-rendering-out-of-discussion-into-a-badges-mod.md",
       "created_at": "2026-07-09T12:18:37Z",
-      "updated_at": "2026-07-09T12:31:31Z",
+      "updated_at": "2026-07-09T14:55:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12816,7 +12817,7 @@
         {
           "local_id": "F4",
           "title": "Badge-rendering helpers misplaced in _discussion.py; relocate to a _badges module (deferred)",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null
@@ -12832,7 +12833,7 @@
       ],
       "path": "reviews/REV-000346-review-task-342-generic-cli-badge-surface-over-declared-fiel.md",
       "created_at": "2026-07-09T12:38:59Z",
-      "updated_at": "2026-07-09T12:52:22Z",
+      "updated_at": "2026-07-09T15:06:51Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -13541,6 +13542,31 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-10"
+    },
+    "347": {
+      "sequence_id": 347,
+      "type": "task",
+      "title": "Relocate badge-rendering helpers out of _discussion into _badges",
+      "slug": "relocate-badge-rendering-helpers-out-of-discussion-into-badg",
+      "status": "InReview",
+      "description": "Byte-identical move of badge/status-badge rendering helpers into a focused _badges module",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-346:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000347-relocate-badge-rendering-helpers-out-of-discussion-into-badg.md",
+      "created_at": "2026-07-09T14:56:25Z",
+      "updated_at": "2026-07-09T15:10:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-347"
     }
   }
 }

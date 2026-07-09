@@ -46,16 +46,13 @@ def format_item_id(prefix: str, sequence_id: int, padding: int = DEFAULT_ID_PADD
 UNRESOLVED_PREFIX = "UNRESOLVED"
 
 
-def effective_prefix(prefix: str, item_type: str) -> str:
+def effective_prefix(prefix: str) -> str:
     """Return *prefix* if set, else the diagnosable :data:`UNRESOLVED_PREFIX` sentinel.
 
     The one shared "best prefix we have right now, without resolving real vocabulary" helper —
     every acyclic formatter/matcher that used to fall back to ``item_type.upper()`` (Item.id,
     ``SquadsDB.format_id``, the ref-matching helpers in ``_services``/``_cli``) routes through
-    this instead. ``item_type`` is accepted (rather than making this a bare ``prefix or
-    UNRESOLVED_PREFIX`` one-liner at every call site) so the signature stays self-documenting
-    about what it's a stand-in prefix *for*, and so a future refinement (e.g. logging the type
-    on a sentinel hit) has a natural home.
+    this instead.
 
     In production this branch should never actually run: ``prefix`` is spec-resolved at
     create/retype time and backfilled at every load boundary before ``.id``/matching is
@@ -245,9 +242,7 @@ class Item(BaseModel):
         vocabulary (that would require importing ``_workflow``, breaking the acyclic
         invariant).
         """
-        return format_item_id(
-            effective_prefix(self.prefix, self.type), self.sequence_id, DISPLAY_ID_PADDING
-        )
+        return format_item_id(effective_prefix(self.prefix), self.sequence_id, DISPLAY_ID_PADDING)
 
     def badge_value(self, code: str) -> str | None:
         """Generic badge-code getter for any spec-declared field on this item.

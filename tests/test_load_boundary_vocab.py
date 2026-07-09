@@ -140,8 +140,36 @@ async def test_load_rejects_unknown_type(svc, project) -> None:
     _patch_index_item_field(_index_path(project), "type", "gizmo")
 
     # Any operation that calls store.load() must now raise SquadsError.
-    with pytest.raises(SquadsError, match="unknown type"):
+    with pytest.raises(SquadsError, match="no longer declares"):
         await svc.list_items()
+
+
+async def test_load_error_leads_with_dropped_type_cause_not_sq_repair(svc, project) -> None:
+    """When the *real* cause is a spec that dropped a still-populated type, the message must
+    lead with that cause (migrate/re-type), not send the user in a `sq repair` loop —
+    `sq repair` rebuilds from the frontmatter, which still carries the vanished type, so it
+    would just re-fail.
+
+    Repro: create a task against the normal bundled spec, then load the (unmodified,
+    genuinely correct) index through a *spec* that no longer declares "task" — simulating a
+    dropped-type override, as opposed to index/frontmatter corruption.
+    """
+    from squads._index._store import IndexStore
+    from squads._workflow import bundled_spec
+
+    await svc.create("task", "Normal task")
+
+    base = bundled_spec()
+    dropped_items = {k: v for k, v in base.items.items() if k != "task"}
+    spec_without_task = base.model_copy(update={"items": dropped_items})
+
+    store = IndexStore(project.index_path, project.lock_path, spec=spec_without_task)
+    with pytest.raises(SquadsError) as exc_info:
+        await store.load()
+
+    message = str(exc_info.value)
+    assert "no longer declares" in message
+    assert message.index("no longer declares") < message.index("sq repair")
 
 
 async def test_load_rejects_unknown_status(svc, project) -> None:
@@ -154,7 +182,7 @@ async def test_load_rejects_unknown_status(svc, project) -> None:
 
     _patch_index_item_field(_index_path(project), "status", "Frobnicated")
 
-    with pytest.raises(SquadsError, match="unknown status"):
+    with pytest.raises(SquadsError, match="no longer declares"):
         await svc.list_items()
 
 
@@ -216,7 +244,7 @@ async def test_load_rejects_unknown_subentity_status(svc, project) -> None:
     # Corrupt the sub-entity status in the index.
     _patch_index_first_subentity_status(_index_path(project), "Frobnicated")
 
-    with pytest.raises(SquadsError, match="unknown status"):
+    with pytest.raises(SquadsError, match="no longer declares"):
         await svc.list_items()
 
 

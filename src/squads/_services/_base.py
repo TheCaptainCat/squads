@@ -26,7 +26,7 @@ from squads._interactions import (
     in_lane_owner,
     is_lane_exempt,
 )
-from squads._itemfile import update_frontmatter, write_new
+from squads._itemfile import write_new
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
@@ -547,16 +547,6 @@ class ServiceCore:
             )
 
     # ------------------------------------------------------------------ shared helpers
-    async def _read(self, item_id: str) -> str:
-        """Read an item's file text on a worker thread."""
-        return await _aio.read_text(item_file(self.paths, await self.get(item_id)))
-
-    async def _bump(self, item_id: str) -> None:
-        async with self.store.transaction() as db:
-            it = require_item(db, item_id)
-            it.updated_at = clock.now()
-            await update_frontmatter(item_file(self.paths, it), it)
-
     async def _locked_section_edit(self, item_id: str, mutate: Callable[[str, Item], str]) -> Item:
         """Edit an item's prose under the index lock, atomically with the ``updated_at`` bump.
 

@@ -82,11 +82,11 @@ def test_head_partial_renders_attributes():
 
 
 def test_status_and_severity_badges():
-    from squads import _discussion as d
+    from squads import _badges as b
 
-    assert d._status_badge("InProgress") == "🟡 In Progress"  # pyright: ignore[reportPrivateUsage]
-    assert d._status_badge("WontFix") == "⚫ Wont Fix"  # pyright: ignore[reportPrivateUsage]
-    assert d.badge_render("severity", "high", as_label=True) == "🟠 High"
+    assert b.status_badge("InProgress") == "🟡 In Progress"
+    assert b.status_badge("WontFix") == "⚫ Wont Fix"
+    assert b.badge_render("severity", "high", as_label=True) == "🟠 High"
 
 
 def test_subentity_summary_template_layout():

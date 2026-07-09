@@ -50,9 +50,9 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   **Sub-entity state (status/assignee/severity/story) lives in the parent's frontmatter**
   (`Item.subentities`, typed `SubEntity`), not the body — the block only holds prose (`:body`,
   `:discussion`) plus a derived `:head` badge line (human-readable status/severity/assignee-name/story)
-  rendered from `subentities/head.md.j2` via `_discussion.set_head` (badges from
-  `STATUS_EMOJI`/`SEVERITY_EMOJI`); the service's `_refresh_head` resolves names/titles from the model
-  and re-renders the head + summary on every mutation. Extend the head with more `{% if %}` lines. The
+  rendered from `subentities/head.md.j2` via `_discussion.set_head` (badges resolved from the
+  spec's collections via `_status_badge`/`badge_render`); the service's `_refresh_head` resolves
+  names/titles from the model and re-renders the head + summary on every mutation. Extend the head with more `{% if %}` lines. The
   legacy body-stored `:meta` regions survive only in `_migrations/_meta_compat.py`, used by the
   migrations.
 - `_backends/` — `AgentBackend` ABC + registry; `_claude_code/` writes pointer files, managed skills

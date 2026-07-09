@@ -25,7 +25,7 @@ What is pinned here (see class docstrings for detail):
    cross-check that the golden file is exercised as expected, and documents the dependency.
 2. Status badges — every one of the 9 sub-entity statuses (``EXPECTED_BUILTIN_STATUS_BADGES``'s
    domain, in ``tests/_helpers.py``: Todo/InProgress/Blocked/Done/Cancelled for subtask+story,
-   Open/Fixed/WontFix/Verified for finding) resolves to its exact ``_discussion._status_badge``
+   Open/Fixed/WontFix/Verified for finding) resolves to its exact ``_badges.status_badge``
    text, and that exact text
    appears verbatim in a sub-entity's rendered ``:head`` region on disk. Also pins that
    top-level item statuses (``sq <type> show`` panel line, ``sq list`` Status column) render
@@ -60,7 +60,7 @@ import pytest
 from typer.testing import CliRunner
 
 from _helpers import EXPECTED_BUILTIN_STATUS_BADGES
-from squads import _discussion as discussion
+from squads import _badges as badges
 from squads._cli import app
 
 pytestmark = pytest.mark.anyio
@@ -135,7 +135,7 @@ class TestWorkflowCheatsheetGoldenIsGating:
 # 2. Status badges — every built-in sub-entity status + top-level no-badge invariant
 # ---------------------------------------------------------------------------
 
-# The exact badge text _status_badge produces today for all 9 sub-entity statuses
+# The exact badge text status_badge produces today for all 9 sub-entity statuses
 # (EXPECTED_BUILTIN_STATUS_BADGES's full domain, see tests/_helpers.py). This is the exact
 # function that crashes on a status value outside the built-in enum — built-in values must
 # keep producing exactly this text once that crash is fixed for non-built-in values.
@@ -156,7 +156,7 @@ _FINDING_STATUSES = ("Fixed", "Verified", "WontFix")
 
 
 class TestStatusBadgeFunction:
-    """Pin `_discussion._status_badge` for every one of the 9 sub-entity statuses.
+    """Pin `_badges.status_badge` for every one of the 9 sub-entity statuses.
 
     EXPECTED_BUILTIN_STATUS_BADGES (tests/_helpers.py) covers exactly these 9 values today. A
     change that alters any of these mappings, or the "InProgress" -> "In Progress" spacing rule,
@@ -171,11 +171,11 @@ class TestStatusBadgeFunction:
 
     @pytest.mark.parametrize("status_value", sorted(_EXPECTED_BADGES))
     def test_status_badge_exact_text(self, status_value: str) -> None:
-        assert discussion._status_badge(status_value) == _EXPECTED_BADGES[status_value]  # pyright: ignore[reportPrivateUsage]
+        assert badges.status_badge(status_value) == _EXPECTED_BADGES[status_value]
 
 
 class TestSubEntityHeadBadgeOnDisk:
-    """The exact `_status_badge` text appears verbatim in a sub-entity's rendered :head region.
+    """The exact `status_badge` text appears verbatim in a sub-entity's rendered :head region.
 
     Drives every status via `update --force` (bypassing transition validation) so all 9
     values are reachable deterministically regardless of the machine's transition graph.

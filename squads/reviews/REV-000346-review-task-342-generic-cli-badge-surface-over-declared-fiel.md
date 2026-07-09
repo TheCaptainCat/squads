@@ -28,14 +28,14 @@ subentities:
 - local_id: F4
   title: Badge-rendering helpers misplaced in _discussion.py; relocate to a _badges
     module (deferred)
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: tests/test_custom_badge_axis.py docstring leads with a real ticket ID (no-ticket-IDs-in-code)
   status: Fixed
   severity: low
 created_at: '2026-07-09T12:38:59Z'
-updated_at: '2026-07-09T12:52:22Z'
+updated_at: '2026-07-09T15:06:51Z'
 ---
 <!-- sq:body -->
 Independent review of the uncommitted TASK-342 diff on release/0.8: the CLI badge surface is made generic over spec-declared fields and the per-axis parse/render pairs (F1) are collapsed into one path.
@@ -57,7 +57,7 @@ _Add with `sq review 346 add-finding "…" --severity high`; track with `sq revi
 | F1 | 🟡 medium | Fixed | tech-lead | ordered flag never enforced: --min-badge/--sort rank by declaration order on any collection |
 | F2 | 🟢 low | WontFix |  | Generic --badge/--min-badge CODE=VALUE do not validate code or value; typos silently return empty |
 | F3 | 🟢 low | WontFix | tech-lead | Per-field --<field> option generation delivered as a generic --badge escape hatch instead |
-| F4 | 🟢 low | Open |  | Badge-rendering helpers misplaced in _discussion.py; relocate to a _badges module (deferred) |
+| F4 | 🟢 low | Fixed |  | Badge-rendering helpers misplaced in _discussion.py; relocate to a _badges module (deferred) |
 | F5 | 🟢 low | Fixed |  | tests/test_custom_badge_axis.py docstring leads with a real ticket ID (no-ticket-IDs-in-code) |
 <!-- sq:summary:end -->
 
@@ -137,7 +137,7 @@ Assessment: defensible and arguably better. Typer options are fixed at import ti
 ### F4 — Badge-rendering helpers misplaced in _discussion.py; relocate to a _badges module (deferred)
 
 <!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F4:head:end -->
 
@@ -150,6 +150,8 @@ Disposition: LOW / deferred. A clean byte-identical relocation to a top-level _b
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-07-09T15:06:51Z] Elias Python:
+  - Fixed by TASK-347: _status_badge/resolve_collection/badge_render (+ _DEFAULT_BADGE) relocated verbatim from _discussion.py to a new src/squads/_badges.py; callers repointed (_discussion, _cli/_common, _cli/_main, _cli/_items). Byte-identical, no golden change.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 

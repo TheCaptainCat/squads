@@ -5,7 +5,7 @@ from pathlib import Path
 from squads._errors import ItemNotFoundError
 from squads._models._index import SquadsDB
 from squads._models._item import Item
-from squads._paths import SquadPaths, number_for_id
+from squads._paths import SquadPaths
 
 
 def require_item(db: SquadsDB, item_id: str) -> Item:
@@ -17,14 +17,3 @@ def require_item(db: SquadsDB, item_id: str) -> Item:
 
 def item_file(sp: SquadPaths, item: Item) -> Path:
     return sp.abspath(item.path)
-
-
-def seq_for_id(item_id: str) -> int:
-    """Extract the sequence number (the item's true identity) from any width-variant ID string.
-
-    ``"PREFIX-000007"`` and ``"PREFIX-0000007"`` both return ``7``.  All ID-equality checks must
-    route through this rather than comparing full-ID strings directly — file contents are never
-    rewritten by ``sq migrate repad``, so refs and parent fields keep their old width forever.
-    Centralised here so there is one normalisation point.
-    """
-    return number_for_id(item_id)

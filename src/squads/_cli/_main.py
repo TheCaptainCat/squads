@@ -9,7 +9,7 @@ registered as a Typer sub-app in ``_cli/__init__.py``.
 
 import json
 import math
-import sys as _sys
+import sys
 from collections.abc import Callable
 from typing import Any
 
@@ -19,11 +19,12 @@ from rich.table import Table
 from rich.tree import Tree
 
 import squads._cli._common as common
-from squads import _discussion as discussion
+from squads import _badges as badges
 from squads._cli import app
 from squads._cli._common import (
     console,
     e,
+    get_active_spec,
     get_service,
     handle_errors,
     parse_badge_code,
@@ -34,7 +35,6 @@ from squads._cli._common import (
     resolve_item_id_any,
     resolve_slug_or_raise,
 )
-from squads._cli._common import get_active_spec as _get_active_spec
 from squads._errors import SquadsError
 from squads._models._config import CONFIG_FILENAME
 from squads._models._extras import ExtraKey as X
@@ -60,9 +60,9 @@ def _field_badge(
     collection from its own declared field (list/tree/graph's "raw code" rendering
     convention). Takes the bare type string (not an ``Item``) so it also serves
     ``GraphNode`` — the ref-graph's own lightweight node shape."""
-    active_spec = spec or _get_active_spec()
-    coll = discussion.resolve_collection(item_type, field_code, active_spec)
-    return discussion.badge_render(coll, value, active_spec)
+    active_spec = spec or get_active_spec()
+    coll = badges.resolve_collection(item_type, field_code, active_spec)
+    return badges.badge_render(coll, value, active_spec)
 
 
 def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
@@ -116,7 +116,7 @@ def _build_badge_filters(
 
 
 def _default_is_tty() -> bool:
-    return _sys.stdin.isatty()
+    return sys.stdin.isatty()
 
 
 # Module-level slot; tests monkeypatch this to control TTY behaviour.
@@ -394,8 +394,8 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
         badge_min=badge_min or None,
     )
     if not (all_ or status):
-        items = [i for i in items if _get_active_spec().is_open(i.status)]
-    items = _sort_by_badge(items, sort, _get_active_spec())
+        items = [i for i in items if get_active_spec().is_open(i.status)]
+    items = _sort_by_badge(items, sort, get_active_spec())
     if json_out:
         print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
         return
@@ -442,7 +442,7 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     the read an orchestrating agent uses to see a feature's state and decide what to do next.
     """
     svc = get_service()
-    spec = _get_active_spec()
+    spec = get_active_spec()
     # Resolve root_id early so bare numbers work and unknown IDs get a clear error.
     resolved_root: str | None = None
     if root_id is not None:
@@ -810,7 +810,7 @@ async def mine(
     slug = await resolve_slug_or_raise(role, svc)
     items = await svc.list_items(assignee=slug)
     if not all_:
-        items = [i for i in items if _get_active_spec().is_open(i.status)]
+        items = [i for i in items if get_active_spec().is_open(i.status)]
     if json_out:
         print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
         return
@@ -1148,20 +1148,19 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     workflow lint`") and continues running all other checks (marker scan, dangling
     links, etc.) using the bundled default spec so they are not suppressed.
     """
-    from squads._errors import SquadsError as _SquadsError
-    from squads._paths import resolve as _resolve
-    from squads._services._results import CheckIssue as _CheckIssue
-    from squads._workflow import bundled_spec as _bundled_spec
+    from squads._paths import resolve
+    from squads._services._results import CheckIssue
+    from squads._workflow import bundled_spec
     from squads._workflow._loader import lint_workflow_spec
 
     # --- Step 1: probe the workflow spec without going through the normal open_service
     # hard-stop.  This lets sq check degrade gracefully when the spec is invalid (AC #4).
-    sp = _resolve(common._active_dir)  # pyright: ignore[reportPrivateUsage]
-    workflow_issues: list[_CheckIssue] = []
+    sp = resolve(common._active_dir)  # pyright: ignore[reportPrivateUsage]
+    workflow_issues: list[CheckIssue] = []
     lint_findings = lint_workflow_spec(sp.squad_dir)
     if any(f[0] == "error" for f in lint_findings):
         workflow_issues.append(
-            _CheckIssue("error", "workflow", "workflow config invalid — run `sq workflow lint`")
+            CheckIssue("error", "workflow", "workflow config invalid — run `sq workflow lint`")
         )
 
     # --- Step 2: try to open the service normally (uses open_service which passes the
@@ -1170,14 +1169,14 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     # bundled spec so the remaining checks can still run.
     try:
         svc = get_service()
-    except _SquadsError:
+    except SquadsError:
         # The workflow spec was already captured above — build the service with the
         # bundled spec directly so the other checks (markers, dangling links, etc.) still run.
-        from squads._services._service import Service as _Service
+        from squads._services._service import Service
 
-        svc = _Service(sp, spec=_bundled_spec())
+        svc = Service(sp, spec=bundled_spec())
 
-    issues: list[_CheckIssue] = list(workflow_issues) + list(await svc.check())
+    issues: list[CheckIssue] = list(workflow_issues) + list(await svc.check())
 
     if json_out:
         print_json_clean(

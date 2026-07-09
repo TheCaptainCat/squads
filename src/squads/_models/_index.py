@@ -80,7 +80,7 @@ class SquadsDB(BaseModel):
         Callers that hold a spec should resolve the prefix via
         :func:`~squads._models._vocab.prefix_for` and pass it explicitly.
         """
-        return format_item_id(effective_prefix(prefix, item_type), sequence_id, self.padding)
+        return format_item_id(effective_prefix(prefix), sequence_id, self.padding)
 
     def allocate_id(self, item_type: str, *, prefix: str = "") -> str:
         """Bump the global counter and return the next ID for ``item_type``.

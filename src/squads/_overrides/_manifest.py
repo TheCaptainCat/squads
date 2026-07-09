@@ -117,13 +117,3 @@ def invalidate_cache() -> None:
     """Evict the manifest cache (for tests that need to reload it)."""
     global _manifest_cache
     _manifest_cache = None
-
-
-def all_bundled_template_names() -> list[str]:
-    """Return the sorted list of template names in the current bundled set."""
-    manifest = _load_manifest()
-    # Collect from all known versions in the manifest to get a complete set.
-    all_names: set[str] = set()
-    for ver_hashes in manifest.values():
-        all_names.update(ver_hashes.keys())
-    return sorted(all_names)

@@ -325,7 +325,7 @@ class ItemsMixin(ServiceCore):
             # ------------------------------------------------------------------
             severed: list[str] = []
             if force and referrer_ids:
-                target_prefix = effective_prefix(item.prefix, item.type)
+                target_prefix = effective_prefix(item.prefix)
                 target_seq = item.sequence_id
                 for ref_id in referrer_ids:
                     referrer = db.get(ref_id)
