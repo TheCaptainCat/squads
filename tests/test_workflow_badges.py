@@ -167,8 +167,8 @@ def test_field_code_shadowing_reserved_key_fails_closed(spec: WorkflowSpec) -> N
 def test_field_code_shadowing_reserved_key_on_subentity_kind_fails_closed(
     spec: WorkflowSpec,
 ) -> None:
-    bad_kind = SubentityKindSpec(
-        fields=[Field(code="story", label="Story2", collection="priority")]
+    bad_kind = spec.subentity_kinds["finding"].model_copy(
+        update={"fields": [Field(code="story", label="Story2", collection="priority")]}
     )
     new_kinds = {**spec.subentity_kinds, "finding": bad_kind}
     with pytest.raises(SquadsError, match="field code 'story' shadows a reserved frontmatter key"):
@@ -329,7 +329,9 @@ def test_field_rejects_unknown_key() -> None:
 
 def test_subentity_kind_spec_rejects_unknown_key() -> None:
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        SubentityKindSpec.model_validate({"fields": [], "bogus": True})
+        SubentityKindSpec.model_validate(
+            {"lifecycle": "x", "plural": "xs", "local_prefix": "X", "bogus": True}
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -402,16 +404,29 @@ fields = [{ code = "impact", label = "Impact", collection = "level" }]
     assert [f.code for f in spec.fields_for("task")] == ["priority"]
 
 
-def test_override_can_add_a_new_subentity_kind_field(tmp_path: Path) -> None:
+def test_override_can_add_a_new_subentity_kind(tmp_path: Path) -> None:
+    """All three bundled kinds (story/subtask/finding) are now fully declared, so a project
+    override adds a genuinely new kind rather than extending a built-in one."""
     _write_override(
         tmp_path,
         """
-[subentity_kinds.subtask]
+[lifecycles.action]
+initial = "Open"
+[lifecycles.action.transitions]
+Open = ["Done"]
+Done = []
+
+[subentity_kinds.action]
+lifecycle = "action"
+plural = "actions"
+local_prefix = "AC"
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 """,
     )
     spec = load_workflow_spec(squad_dir=tmp_path)
-    assert [f.code for f in spec.fields_for("subtask")] == ["priority"]
+    assert [f.code for f in spec.fields_for("action")] == ["priority"]
+    assert spec.subentity_kinds["action"].plural == "actions"
+    assert spec.subentity_kinds["action"].local_prefix == "AC"
     # The finding kind (bundled) is untouched.
     assert [f.code for f in spec.fields_for("finding")] == ["severity"]
 

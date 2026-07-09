@@ -234,7 +234,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         code: _parse_collection(code, data) for code, data in raw.get("collections", {}).items()
     }
 
-    # --- subentity_kinds (per-kind declarations, currently just fields) ---
+    # --- subentity_kinds (per-kind machine binding, CLI vocab, and field declarations) ---
     subentity_kinds: dict[str, SubentityKindSpec] = {
         kind: _parse_subentity_kind(kind, data)
         for kind, data in raw.get("subentity_kinds", {}).items()

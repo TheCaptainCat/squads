@@ -172,13 +172,34 @@ class Field(BaseModel):
 
 
 class SubentityKindSpec(BaseModel):
-    """Per-sub-entity-kind declarations — currently just ``fields``.
+    """Per-sub-entity-kind declarations: machine binding + CLI/storage vocabulary + fields.
 
-    Kept as its own table (mirroring ``ItemSpec.fields``) so the field mechanism is
-    identical for item types and sub-entity kinds, never forked.
+    Mirrors ``ItemSpec`` on the sub-entity axis — ``lifecycle`` is the explicit machine
+    reference (retiring the former kind-name==lifecycle-name convention), ``plural``/
+    ``local_prefix``/``placeholder`` are the CLI-facing vocabulary a custom kind needs to
+    behave like a built-in one, and ``fields`` reuses the item-axis field mechanism, unforked.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    lifecycle: str
+    """Explicit lifecycle-machine reference (mirrors ``ItemSpec.lifecycle``); the machine
+    a sub-entity of this kind is driven by, looked up in ``WorkflowSpec.lifecycles``."""
+
+    plural: str
+    """CLI list verb and container-marker name (e.g. ``"stories"``, ``"subtasks"``)."""
+
+    local_prefix: str
+    """Local-id prefix for this kind (e.g. ``"US"``, ``"ST"``, ``"F"``)."""
+
+    placeholder: str | None = None
+    """Scaffold prose shown for a freshly-created block with no body yet. ``None`` falls
+    back to a generic kind-derived placeholder (derivation not yet wired — a later task)."""
+
+    maps_parent_story: bool = False
+    """Capability flag: a sub-entity of this kind maps to one of its parent's stories
+    (drives the ``--story`` option and the ``Story`` column). ``True`` only for the
+    built-in ``subtask`` kind."""
 
     fields: list[Field] = []
 
@@ -357,7 +378,10 @@ def _check_completion_status(
     for kind in kinds:
         machine = lifecycles.get(kind)
         if machine is None:
-            continue  # missing lifecycle is caught by _check_item_refs
+            # Positional lookup (kind name == lifecycle name), not subentity_kinds[kind]
+            # .lifecycle — a custom kind naming a different lifecycle silently skips this
+            # scan (the kind itself being undeclared is caught by _check_subentity_kinds).
+            continue
         completion_states = sorted(
             s for s in machine.states if statuses.get(s, StatusSpec(terminal=False)).completion
         )
@@ -366,6 +390,50 @@ def _check_completion_status(
                 f"sub-entity machine {kind!r} must name exactly one completion status "
                 f"(found {len(completion_states)}: {completion_states})"
             )
+
+
+def _check_subentity_kinds(
+    items: dict[str, ItemSpec],
+    subentity_kinds: dict[str, SubentityKindSpec],
+    all_lifecycle_names: set[str],
+    errors: list[str],
+) -> None:
+    """ItemSpec.subentity_kind references a declared kind; SubentityKindSpec.lifecycle
+    reference + plural/local_prefix non-empty & uniqueness."""
+    referenced = sorted({ts.subentity_kind for ts in items.values() if ts.subentity_kind})
+    errors.extend(
+        f"item type references undeclared subentity kind {kind!r} (not in subentity_kinds)"
+        for kind in referenced
+        if kind not in subentity_kinds
+    )
+
+    seen_plurals: dict[str, str] = {}
+    seen_prefixes: dict[str, str] = {}
+    for kind, ks in subentity_kinds.items():
+        if ks.lifecycle not in all_lifecycle_names:
+            errors.append(
+                f"subentity kind {kind!r}: lifecycle {ks.lifecycle!r} not declared in lifecycles"
+            )
+
+        if not ks.plural:
+            errors.append(f"subentity kind {kind!r}: plural must be non-empty")
+        elif ks.plural in seen_plurals:
+            errors.append(
+                f"duplicate subentity plural {ks.plural!r}: used by kinds "
+                f"{seen_plurals[ks.plural]!r} and {kind!r}"
+            )
+        else:
+            seen_plurals[ks.plural] = kind
+
+        if not ks.local_prefix:
+            errors.append(f"subentity kind {kind!r}: local_prefix must be non-empty")
+        elif ks.local_prefix in seen_prefixes:
+            errors.append(
+                f"duplicate subentity local_prefix {ks.local_prefix!r}: used by kinds "
+                f"{seen_prefixes[ks.local_prefix]!r} and {kind!r}"
+            )
+        else:
+            seen_prefixes[ks.local_prefix] = kind
 
 
 def _check_parent_cycles(
@@ -665,7 +733,8 @@ class WorkflowSpec(BaseModel):
     #: ``ItemSpec.fields``/``SubentityKindSpec.fields`` bind to (priority/severity are two
     #: bundled defaults, no longer special-cased enums).
     collections: dict[str, Collection] = {}
-    #: Per-sub-entity-kind declarations (currently just ``fields``), keyed by kind name.
+    #: Per-sub-entity-kind declarations (machine binding, CLI/storage vocabulary, and
+    #: field bindings), keyed by kind name.
     subentity_kinds: dict[str, SubentityKindSpec] = {}
 
     # ------------------------------------------------------------------ convenience accessors
@@ -743,17 +812,21 @@ class WorkflowSpec(BaseModel):
         """Return the ``Workflow`` shim for the given item type."""
         return Workflow.from_machine(self.machine_for(item_type))
 
+    def _subentity_machine(self, kind: str) -> Lifecycle:
+        """The lifecycle machine bound to *kind* via ``SubentityKindSpec.lifecycle``."""
+        return self.lifecycles[self.subentity_kinds[kind].lifecycle]
+
     def subentity_workflow(self, kind: str) -> Workflow:
         """Return the ``Workflow`` shim for the given sub-entity kind."""
-        return Workflow.from_machine(self.lifecycles[kind])
+        return Workflow.from_machine(self._subentity_machine(kind))
 
     def subentity_initial(self, kind: str) -> str:
         """Return the initial status for the given sub-entity kind."""
-        return self.lifecycles[kind].initial
+        return self._subentity_machine(kind).initial
 
     def subentity_can_transition(self, kind: str, src: str, dst: str) -> bool:
         """Return True if the given transition is valid for the given sub-entity kind."""
-        return self.lifecycles[kind].can_transition(src, dst)
+        return self._subentity_machine(kind).can_transition(src, dst)
 
     def subentity_completion(self, kind: str) -> str:
         """The sub-entity/finding machine's designated completion status.
@@ -825,6 +898,9 @@ class WorkflowSpec(BaseModel):
 
         # Field->collection referential integrity + default-badge resolution.
         _check_field_collections(self.items, self.subentity_kinds, self.collections, errors)
+
+        # SubentityKindSpec.lifecycle reference + plural/local_prefix uniqueness.
+        _check_subentity_kinds(self.items, self.subentity_kinds, all_lifecycle_names, errors)
 
         # Reserved-vocab floor — the spec must declare the three meta-types, each with
         # is_meta=true. This is the ONLY type-axis floor: every other type
