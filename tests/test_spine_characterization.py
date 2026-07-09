@@ -38,7 +38,6 @@ import pytest
 
 from squads._cli import app
 from squads._errors import SquadsError
-from squads._models._enums import Status
 from squads._services._base import SUBENTITY_KIND
 from squads._workflow import ALLOWED_PARENTS, parent_hint
 from squads._workflow import work_types as _work_types
@@ -360,9 +359,9 @@ async def test_bug_show_includes_severity_row(svc, invoke) -> None:
 
 async def test_superseded_decision_without_incoming_edge_warns(svc) -> None:
     """A decision with status Superseded but no incoming supersedes edge → sq check warns."""
-    dec = (await svc.create("decision", "d", status=Status.ACCEPTED)).item
+    dec = (await svc.create("decision", "d", status="Accepted")).item
     # Force status to Superseded without creating an incoming supersedes edge.
-    await svc.set_status(dec.id, Status.SUPERSEDED, force=True)
+    await svc.set_status(dec.id, "Superseded", force=True)
 
     issues = await svc.check()
     warns = [i for i in issues if i.level == "warn" and i.item == dec.id]
@@ -373,10 +372,10 @@ async def test_superseded_decision_without_incoming_edge_warns(svc) -> None:
 
 async def test_superseded_decision_with_incoming_edge_is_clean(svc) -> None:
     """A decision with status Superseded AND an incoming supersedes edge → sq check is clean."""
-    old_dec = (await svc.create("decision", "old", status=Status.ACCEPTED)).item
-    await svc.set_status(old_dec.id, Status.SUPERSEDED, force=True)
+    old_dec = (await svc.create("decision", "old", status="Accepted")).item
+    await svc.set_status(old_dec.id, "Superseded", force=True)
 
-    new_dec = (await svc.create("decision", "new", status=Status.ACCEPTED)).item
+    new_dec = (await svc.create("decision", "new", status="Accepted")).item
     await svc.add_ref(new_dec.id, old_dec.id, kind="supersedes")
 
     issues = await svc.check()
@@ -439,21 +438,21 @@ async def test_check_flags_subtask_story_mapping_with_wrong_parent(svc) -> None:
 async def test_retype_different_workflow_resets_status(svc) -> None:
     """Retyping between different workflows resets status to the new type's initial."""
     task = (await svc.create("task", "t")).item
-    await svc.set_status(task.id, Status.IN_PROGRESS)
+    await svc.set_status(task.id, "InProgress")
 
     res = await svc.retype(task.id, "bug")
     assert res.status_reset, "expected status reset when crossing workflow boundary"
-    assert res.item.status == Status.OPEN  # bug initial is Open
+    assert res.item.status == "Open"  # bug initial is Open
 
 
 async def test_retype_same_workflow_carries_status(svc) -> None:
     """Retyping within the same workflow carries status unchanged."""
     feat = (await svc.create("feature", "f")).item
-    await svc.set_status(feat.id, Status.READY)
+    await svc.set_status(feat.id, "Ready")
 
     res = await svc.retype(feat.id, "epic")
     assert not res.status_reset, "expected status carried when same workflow"
-    assert res.item.status == Status.READY
+    assert res.item.status == "Ready"
 
 
 # ---------------------------------------------------------------------------

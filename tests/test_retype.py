@@ -5,7 +5,6 @@ import pytest
 from squads._cli import app
 from squads._errors import SquadsError
 from squads._itemfile import read_frontmatter
-from squads._models._enums import Status
 from squads._models._item import Item
 from squads._sections import get_section
 
@@ -107,42 +106,42 @@ async def test_retype_index_updated(svc):
 async def test_retype_task_to_bug_resets_status(svc):
     """task→bug crosses workflow boundaries (_WORK→_BUG) → status resets to Open."""
     task = (await svc.create("task", "t")).item
-    await svc.set_status(task.id, Status.IN_PROGRESS)
+    await svc.set_status(task.id, "InProgress")
 
     res = await svc.retype(task.id, "bug")
     assert res.status_reset
-    assert res.old_status == Status.IN_PROGRESS.value
-    assert res.item.status == Status.OPEN
+    assert res.old_status == "InProgress"
+    assert res.item.status == "Open"
 
 
 async def test_retype_feature_to_epic_carries_status(svc):
     """feature↔epic share _WORK workflow → status carried."""
     feat = (await svc.create("feature", "f")).item
-    await svc.set_status(feat.id, Status.READY)
+    await svc.set_status(feat.id, "Ready")
 
     res = await svc.retype(feat.id, "epic")
     assert not res.status_reset
-    assert res.item.status == Status.READY
+    assert res.item.status == "Ready"
 
 
 async def test_retype_task_to_decision_resets_status(svc):
     """task→decision crosses workflow boundaries → status resets to Proposed."""
     task = (await svc.create("task", "t")).item
-    await svc.set_status(task.id, Status.IN_PROGRESS)
+    await svc.set_status(task.id, "InProgress")
 
     res = await svc.retype(task.id, "decision")
     assert res.status_reset
-    assert res.old_status == Status.IN_PROGRESS.value
-    assert res.item.status == Status.PROPOSED
+    assert res.old_status == "InProgress"
+    assert res.item.status == "Proposed"
 
 
 async def test_retype_task_to_guide_resets_status(svc):
     """task→guide crosses workflow → status resets to Draft."""
     task = (await svc.create("task", "t")).item
-    await svc.set_status(task.id, Status.IN_PROGRESS)
+    await svc.set_status(task.id, "InProgress")
     res = await svc.retype(task.id, "guide")
     assert res.status_reset
-    assert res.item.status == Status.DRAFT
+    assert res.item.status == "Draft"
 
 
 async def test_retype_decision_to_review_resets_status(svc):
@@ -150,7 +149,7 @@ async def test_retype_decision_to_review_resets_status(svc):
     dec = (await svc.create("decision", "ADR")).item
     res = await svc.retype(dec.id, "review")
     assert res.status_reset
-    assert res.item.status == Status.REQUESTED
+    assert res.item.status == "Requested"
 
 
 # --------------------------------------------------------------------------- refusals

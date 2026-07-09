@@ -13,7 +13,6 @@ from squads._index._store import (
     IndexStore,
     _propagate_prefix,  # pyright: ignore[reportPrivateUsage]
 )
-from squads._models._enums import Status
 from squads._models._index import SquadsDB
 from squads._models._item import DEFAULT_ID_PADDING, Item, format_item_id
 from squads._workflow import bundled_spec
@@ -29,7 +28,7 @@ def test_index_keys_items_by_sequence_number():
         prefix="TASK",
         title="t",
         slug="t",
-        status=Status.DRAFT,
+        status="Draft",
         path="tasks/x.md",
         created_at=now,
         updated_at=now,
@@ -133,7 +132,7 @@ def test_backrefs_computed_not_stored(tmp_path):
         prefix="TASK",
         title="a",
         slug="a",
-        status=Status.DRAFT,
+        status="Draft",
         refs=["GUIDE-000002"],
         path="tasks/a.md",
         created_at=now,
@@ -220,7 +219,7 @@ def test_item_id_renders_unpadded():
         prefix="TASK",
         title="t",
         slug="t",
-        status=Status.DRAFT,
+        status="Draft",
         path="tasks/x.md",
         created_at=now,
         updated_at=now,
@@ -245,7 +244,7 @@ def _make_item(seq: int, item_type: str, refs: list[str] | None = None) -> Item:
         prefix=prefix,
         title=f"item {seq}",
         slug=f"item-{seq}",
-        status=Status.DRAFT,
+        status="Draft",
         refs=refs or [],
         path=f"{BUILTIN_FOLDER[item_type]}/{prefix}-{seq:06d}-item-{seq}.md",
         created_at=now,

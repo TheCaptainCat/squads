@@ -21,7 +21,6 @@ from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code._backend import ClaudeCodeBackend
 from squads._models._config import SquadsConfig
-from squads._models._enums import Status
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import SquadPaths
@@ -120,7 +119,7 @@ def _make_role_item(sequence_id: int, slug: str, squad_dir: Path) -> Item:
         type="role",
         title="Catherine Manager",
         slug=slug,
-        status=Status.ACTIVE,
+        status="Active",
         path=path_str,
         created_at=_FIXED_TS,
         updated_at=_FIXED_TS,
@@ -150,7 +149,7 @@ def _make_skill_item(sequence_id: int, slug: str, squad_dir: Path) -> Item:
         type="skill",
         title=slug,
         slug=slug,
-        status=Status.ACTIVE,
+        status="Active",
         path=path_str,
         created_at=_FIXED_TS,
         updated_at=_FIXED_TS,

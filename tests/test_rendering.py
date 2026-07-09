@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 import pytest
 
 from _helpers import BUILTIN_TYPES
-from squads._models._enums import Status
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._workflow import bundled_spec
@@ -19,7 +18,7 @@ def test_every_type_template_renders_with_markers(item_type):
         prefix=spec.items[item_type].prefix,
         title="Example",
         slug="example",
-        status=Status.DRAFT,
+        status="Draft",
         path=f"{spec.items[item_type].folder}/x.md",
         created_at=now,
         updated_at=now,
@@ -99,7 +98,7 @@ def test_subentity_summary_template_layout():
         SubEntity(
             local_id="F1",
             title="Null deref",
-            status=Status.OPEN,
+            status="Open",
             severity=Severity.HIGH,
             assignee="qa",
         )
@@ -117,7 +116,7 @@ def test_review_has_findings_container_and_summary_region():
         type="review",
         title="Review",
         slug="review",
-        status=Status.REQUESTED,
+        status="Requested",
         path="reviews/x.md",
         created_at=now,
         updated_at=now,

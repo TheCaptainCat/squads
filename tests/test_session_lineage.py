@@ -21,7 +21,6 @@ from typer.testing import CliRunner
 from squads import _actor as actor
 from squads._cli import app
 from squads._index._reflog import ReflogLine, append_line, read_lines, reflog_path
-from squads._models._enums import Status
 from squads._models._schema import SCHEMA_VERSION
 
 pytestmark = pytest.mark.anyio
@@ -273,7 +272,7 @@ async def test_service_set_status_updates_modified_session(svc, frozen_time):
     actor.seed_session("sid-create", None)
     item = (await svc.create("task", "Session update test")).item
     actor.seed_session("sid-modify", None)
-    await svc.set_status(item.id, Status.IN_PROGRESS)
+    await svc.set_status(item.id, "InProgress")
     actor.seed_session(None, None)
 
     loaded = await svc.get(item.id)

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import BUILTIN_TYPES, WORK_TYPES
+from _helpers import BUILTIN_TYPES, FLOOR_STATUSES, FORMER_FLOOR_STATUSES, WORK_TYPES
 from squads._errors import SquadsError
 from squads._workflow import META_TYPES, bundled_spec
 from squads._workflow._models import ItemSpec, Lifecycle, WorkflowSpec
@@ -99,31 +99,32 @@ def test_spec_missing_work_type_loads_successfully(work_type: str) -> None:
     WorkflowSpec.model_validate(raw)  # must not raise
 
 
-@pytest.mark.parametrize(
-    "floor_status",
-    [
-        "Draft",
-        "Active",
-        "Archived",
-        "Todo",
-        "InProgress",
-        "Blocked",
-        "Done",
-        "Cancelled",
-        "Open",
-        "Fixed",
-        "Verified",
-        "WontFix",
-    ],
-)
+@pytest.mark.parametrize("floor_status", sorted(FLOOR_STATUSES))
 def test_spec_missing_floor_status_raises(floor_status: str) -> None:
-    """A spec missing a structural-floor status raises SquadsError (§5-6b).
+    """A spec missing an agent-lifecycle floor status raises SquadsError (ADR-322 §5).
 
-    Confirms the fail-closed status floor is enforced for all floor members.
+    Confirms the fail-closed status floor is enforced for all three floor members
+    (Draft/Active/Archived) — the only statuses still reserved on the status axis.
     """
     raw = _spec_without_status(floor_status)
     with pytest.raises(SquadsError, match="spec missing reserved Status members"):
         WorkflowSpec.model_validate(raw)
+
+
+@pytest.mark.parametrize("former_floor_status", sorted(FORMER_FLOOR_STATUSES))
+def test_spec_missing_subentity_status_no_longer_hits_the_floor(
+    former_floor_status: str,
+) -> None:
+    """The sub-entity/finding statuses left the reserved floor (ADR-322 §5).
+
+    Dropping one still fails on the bundled spec (a lifecycle still names it in its
+    transitions), but via the lifecycle-integrity check, never via 'spec missing reserved
+    Status members' — proving these names are ordinary spec vocabulary now, not a floor.
+    """
+    raw = _spec_without_status(former_floor_status)
+    with pytest.raises(SquadsError) as exc_info:
+        WorkflowSpec.model_validate(raw)
+    assert "spec missing reserved Status members" not in str(exc_info.value)
 
 
 # ---------------------------------------------------------------------------

@@ -4,7 +4,6 @@ import pytest
 
 from squads._errors import InvalidTransitionError, ItemNotFoundError, SquadsError
 from squads._itemfile import read_frontmatter
-from squads._models._enums import Status
 
 pytestmark = pytest.mark.anyio
 
@@ -30,10 +29,10 @@ async def test_create_rejects_missing_parent(svc):
 async def test_status_transition_and_validation(svc):
     res = await svc.create("task", "t")
     with pytest.raises(InvalidTransitionError):
-        await svc.set_status(res.item.id, Status.DONE)  # Draft -> Done illegal
-    await svc.set_status(res.item.id, Status.IN_PROGRESS)
-    forced = await svc.set_status(res.item.id, Status.DONE, force=False)  # InProgress -> Done legal
-    assert forced.status == Status.DONE
+        await svc.set_status(res.item.id, "Done")  # Draft -> Done illegal
+    await svc.set_status(res.item.id, "InProgress")
+    forced = await svc.set_status(res.item.id, "Done", force=False)  # InProgress -> Done legal
+    assert forced.status == "Done"
     # frontmatter mirrors the index
     assert read_frontmatter(svc.paths.abspath(forced.path))["status"] == "Done"
 
@@ -174,7 +173,7 @@ async def test_subentity_state_lives_in_frontmatter_not_markers(svc):
     await svc.add_story(feat.id, "Reset password")  # US1
     task = (await svc.create("task", "Auth", parent=feat.id)).item
     await svc.add_subtask(task.id, "Validate", story="US1")
-    await svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+    await svc.set_subtask_status(task.id, "ST1", "InProgress")
 
     text = svc.paths.abspath((await svc.get(task.id)).path).read_text(encoding="utf-8")
     fm = read_frontmatter(text=text)
@@ -193,7 +192,7 @@ async def test_repair_reconstructs_subentities_from_frontmatter(svc):
     svc.paths.index_path.unlink()
     result = await svc.repair()
     (sub,) = result.db.get(task.id).subentities
-    assert (sub.local_id, sub.title, sub.status) == ("ST1", "Validate", Status.TODO)
+    assert (sub.local_id, sub.title, sub.status) == ("ST1", "Validate", "Todo")
 
 
 # --------------------------------------------------------------------------- refs (forward edges)
@@ -567,7 +566,7 @@ async def test_skill_add_generates_pointer(svc):
         "PDF extract", description="Pull text", when_to_use="when a pdf is attached"
     )
     assert skill.type == "skill"
-    assert skill.status == Status.ACTIVE
+    assert skill.status == "Active"
     pointer = svc.paths.root / ".claude" / "skills" / "pdf-extract" / "SKILL.md"
     assert pointer.exists()
     assert skill.path in pointer.read_text(encoding="utf-8")
@@ -906,8 +905,8 @@ async def test_blocked_closed_blocker_not_included(svc):
 
     await svc.add_ref(dependent.id, blocker.id, kind="depends-on")
     # close the blocker
-    await svc.set_status(blocker.id, Status.IN_PROGRESS)
-    await svc.set_status(blocker.id, Status.DONE)
+    await svc.set_status(blocker.id, "InProgress")
+    await svc.set_status(blocker.id, "Done")
 
     assert await svc.blocked() == []
 
@@ -941,8 +940,8 @@ async def test_check_warns_superseded_decision_without_edge(svc):
     """check() warns when a Superseded decision has no incoming supersedes edge."""
     old_adr = (await svc.create("decision", "old decision")).item
     # Force it to Superseded status
-    await svc.set_status(old_adr.id, Status.PROPOSED)
-    await svc.set_status(old_adr.id, Status.SUPERSEDED, force=True)
+    await svc.set_status(old_adr.id, "Proposed")
+    await svc.set_status(old_adr.id, "Superseded", force=True)
 
     issues = await svc.check()
     warn_issues = [
@@ -958,8 +957,8 @@ async def test_check_no_warn_superseded_decision_with_edge(svc):
     old_adr = (await svc.create("decision", "old decision")).item
     new_adr = (await svc.create("decision", "new decision")).item
 
-    await svc.set_status(old_adr.id, Status.PROPOSED)
-    await svc.set_status(old_adr.id, Status.SUPERSEDED, force=True)
+    await svc.set_status(old_adr.id, "Proposed")
+    await svc.set_status(old_adr.id, "Superseded", force=True)
     # new supersedes old — edge lives on new_adr
     await svc.add_ref(new_adr.id, old_adr.id, kind="supersedes")
 
@@ -1258,7 +1257,7 @@ async def test_check_decisions_width_tolerant_after_repad(svc):
     adr1 = (await svc.create("decision", "old decision")).item
     adr2 = (await svc.create("decision", "new decision")).item
     await svc.add_ref(adr2.id, adr1.id, kind="supersedes")
-    await svc.set_status(adr1.id, Status.SUPERSEDED, force=True)
+    await svc.set_status(adr1.id, "Superseded", force=True)
 
     await svc.repad(7)
 

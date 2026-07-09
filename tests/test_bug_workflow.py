@@ -11,25 +11,24 @@ import pytest
 from squads import _workflow as workflow
 from squads._cli import app
 from squads._errors import InvalidTransitionError, StatusNotInWorkflowError
-from squads._models._enums import Status
 
 # --------------------------------------------------------------------------- workflow unit tests
 
 
 def test_bug_initial_status_is_open():
-    assert workflow.initial_status("bug") == Status.OPEN
+    assert workflow.initial_status("bug") == "Open"
 
 
 def test_bug_workflow_states():
     states = workflow.workflow_for("bug").states
     expected = {
-        Status.OPEN,
-        Status.IN_PROGRESS,
-        Status.FIXED,
-        Status.VERIFIED,
-        Status.BLOCKED,
-        Status.WONT_FIX,
-        Status.CANCELLED,
+        "Open",
+        "InProgress",
+        "Fixed",
+        "Verified",
+        "Blocked",
+        "WontFix",
+        "Cancelled",
     }
     assert states == expected
 
@@ -38,46 +37,46 @@ def test_bug_workflow_excludes_work_states():
     """Draft, Ready, InReview, Done, Todo are not bug states."""
     states = workflow.workflow_for("bug").states
     for invalid in (
-        Status.DRAFT,
-        Status.READY,
-        Status.IN_REVIEW,
-        Status.DONE,
-        Status.TODO,
+        "Draft",
+        "Ready",
+        "InReview",
+        "Done",
+        "Todo",
     ):
         assert invalid not in states
 
 
 def test_bug_valid_transitions():
     wf = workflow.workflow_for("bug")
-    assert wf.can_transition(Status.OPEN, Status.IN_PROGRESS)
-    assert wf.can_transition(Status.OPEN, Status.WONT_FIX)
-    assert wf.can_transition(Status.OPEN, Status.CANCELLED)
-    assert wf.can_transition(Status.IN_PROGRESS, Status.FIXED)
-    assert wf.can_transition(Status.IN_PROGRESS, Status.BLOCKED)
-    assert wf.can_transition(Status.IN_PROGRESS, Status.WONT_FIX)
-    assert wf.can_transition(Status.IN_PROGRESS, Status.CANCELLED)
-    assert wf.can_transition(Status.FIXED, Status.VERIFIED)
-    assert wf.can_transition(Status.FIXED, Status.IN_PROGRESS)  # reopen on failed verify
-    assert wf.can_transition(Status.VERIFIED, Status.IN_PROGRESS)  # reopen on regression
-    assert wf.can_transition(Status.BLOCKED, Status.IN_PROGRESS)
-    assert wf.can_transition(Status.BLOCKED, Status.WONT_FIX)
-    assert wf.can_transition(Status.BLOCKED, Status.CANCELLED)
-    assert wf.can_transition(Status.WONT_FIX, Status.OPEN)
-    assert wf.can_transition(Status.CANCELLED, Status.OPEN)
+    assert wf.can_transition("Open", "InProgress")
+    assert wf.can_transition("Open", "WontFix")
+    assert wf.can_transition("Open", "Cancelled")
+    assert wf.can_transition("InProgress", "Fixed")
+    assert wf.can_transition("InProgress", "Blocked")
+    assert wf.can_transition("InProgress", "WontFix")
+    assert wf.can_transition("InProgress", "Cancelled")
+    assert wf.can_transition("Fixed", "Verified")
+    assert wf.can_transition("Fixed", "InProgress")  # reopen on failed verify
+    assert wf.can_transition("Verified", "InProgress")  # reopen on regression
+    assert wf.can_transition("Blocked", "InProgress")
+    assert wf.can_transition("Blocked", "WontFix")
+    assert wf.can_transition("Blocked", "Cancelled")
+    assert wf.can_transition("WontFix", "Open")
+    assert wf.can_transition("Cancelled", "Open")
 
 
 def test_bug_invalid_transitions():
     wf = workflow.workflow_for("bug")
-    assert not wf.can_transition(Status.OPEN, Status.VERIFIED)
-    assert not wf.can_transition(Status.OPEN, Status.FIXED)
-    assert not wf.can_transition(Status.VERIFIED, Status.FIXED)
-    assert not wf.can_transition(Status.VERIFIED, Status.OPEN)
+    assert not wf.can_transition("Open", "Verified")
+    assert not wf.can_transition("Open", "Fixed")
+    assert not wf.can_transition("Verified", "Fixed")
+    assert not wf.can_transition("Verified", "Open")
 
 
 def test_bug_terminals_in_terminal_set():
     """Verified, WontFix, Cancelled must all be in TERMINAL."""
-    for s in (Status.VERIFIED, Status.WONT_FIX, Status.CANCELLED):
-        assert s in workflow.TERMINAL, f"{s.value} not in TERMINAL"
+    for s in ("Verified", "WontFix", "Cancelled"):
+        assert s in workflow.TERMINAL, f"{s} not in TERMINAL"
 
 
 # --------------------------------------------------------------------------- set-time validation
@@ -86,10 +85,10 @@ def test_bug_terminals_in_terminal_set():
 async def test_set_status_rejects_out_of_workflow_vocabulary(svc):
     """StatusNotInWorkflowError raised at set-time for a status not in the bug workflow."""
     bug = (await svc.create("bug", "crash on login")).item
-    assert bug.status == Status.OPEN
+    assert bug.status == "Open"
 
     with pytest.raises(StatusNotInWorkflowError, match="'Done' is not a valid status for bug"):
-        await svc.set_status(bug.id, Status.DONE)
+        await svc.set_status(bug.id, "Done")
 
 
 async def test_force_does_not_bypass_vocabulary_check(svc):
@@ -97,7 +96,7 @@ async def test_force_does_not_bypass_vocabulary_check(svc):
     bug = (await svc.create("bug", "crash")).item
 
     with pytest.raises(StatusNotInWorkflowError, match="not a valid status for bug"):
-        await svc.set_status(bug.id, Status.DONE, force=True)
+        await svc.set_status(bug.id, "Done", force=True)
 
 
 async def test_force_bypasses_transition_edge_within_bug_vocabulary(svc):
@@ -106,16 +105,16 @@ async def test_force_bypasses_transition_edge_within_bug_vocabulary(svc):
     # Open→Verified is not a legal edge, but Verified is a valid bug state
     # Without force this raises InvalidTransitionError (not StatusNotInWorkflowError)
     with pytest.raises(InvalidTransitionError):
-        await svc.set_status(bug.id, Status.VERIFIED)
+        await svc.set_status(bug.id, "Verified")
     # With force it succeeds
-    result = await svc.set_status(bug.id, Status.VERIFIED, force=True)
-    assert result.status == Status.VERIFIED
+    result = await svc.set_status(bug.id, "Verified", force=True)
+    assert result.status == "Verified"
 
 
 async def test_set_status_rejects_multiple_invalid_statuses(svc):
     """All work-item-only statuses are rejected for bugs."""
     bug = (await svc.create("bug", "crash")).item
-    for invalid in (Status.DRAFT, Status.READY, Status.IN_REVIEW, Status.DONE):
+    for invalid in ("Draft", "Ready", "InReview", "Done"):
         with pytest.raises(StatusNotInWorkflowError):
             await svc.set_status(bug.id, invalid, force=True)
 
@@ -123,35 +122,35 @@ async def test_set_status_rejects_multiple_invalid_statuses(svc):
 async def test_bug_happy_path_lifecycle(svc):
     """Full Open → InProgress → Fixed → Verified lifecycle works."""
     bug = (await svc.create("bug", "null pointer")).item
-    assert bug.status == Status.OPEN
+    assert bug.status == "Open"
 
-    bug = await svc.set_status(bug.id, Status.IN_PROGRESS)
-    assert bug.status == Status.IN_PROGRESS
+    bug = await svc.set_status(bug.id, "InProgress")
+    assert bug.status == "InProgress"
 
-    bug = await svc.set_status(bug.id, Status.FIXED)
-    assert bug.status == Status.FIXED
+    bug = await svc.set_status(bug.id, "Fixed")
+    assert bug.status == "Fixed"
 
-    bug = await svc.set_status(bug.id, Status.VERIFIED)
-    assert bug.status == Status.VERIFIED
+    bug = await svc.set_status(bug.id, "Verified")
+    assert bug.status == "Verified"
 
 
 async def test_bug_wontfix_and_reopen(svc):
     """Open → WontFix → Open reopen works."""
     bug = (await svc.create("bug", "by design")).item
-    bug = await svc.set_status(bug.id, Status.WONT_FIX)
-    assert bug.status == Status.WONT_FIX
-    bug = await svc.set_status(bug.id, Status.OPEN)
-    assert bug.status == Status.OPEN
+    bug = await svc.set_status(bug.id, "WontFix")
+    assert bug.status == "WontFix"
+    bug = await svc.set_status(bug.id, "Open")
+    assert bug.status == "Open"
 
 
 async def test_bug_regression_reopen(svc):
     """Verified → InProgress reopens a regressed bug."""
     bug = (await svc.create("bug", "flicker")).item
-    await svc.set_status(bug.id, Status.IN_PROGRESS)
-    await svc.set_status(bug.id, Status.FIXED)
-    await svc.set_status(bug.id, Status.VERIFIED)
-    bug = await svc.set_status(bug.id, Status.IN_PROGRESS)
-    assert bug.status == Status.IN_PROGRESS
+    await svc.set_status(bug.id, "InProgress")
+    await svc.set_status(bug.id, "Fixed")
+    await svc.set_status(bug.id, "Verified")
+    bug = await svc.set_status(bug.id, "InProgress")
+    assert bug.status == "InProgress"
 
 
 # --------------------------------------------------------------------------- CLI smoke tests

@@ -6,10 +6,7 @@ from typing import Any, cast
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 from squads import _clock as clock
-from squads._models._enums import (  # noqa: F401 — re-exported for callers
-    Priority,
-    Status,  # pyright: ignore[reportUnusedImport]
-)
+from squads._models._enums import Priority  # pyright: ignore[reportUnusedImport]
 from squads._models._subentity import SubEntity
 from squads._util import NonEmpty
 
@@ -125,8 +122,8 @@ class Item(BaseModel):
     type: str
     title: NonEmpty
     slug: NonEmpty
-    #: Status as a plain string.
-    #: Same reserved-vocab guarantee and StrEnum equality as ``type``.
+    #: The item's status: a plain string. The loaded ``WorkflowSpec`` is the sole vocabulary
+    #: authority; validated against it at the service load boundary, same as ``type``.
     status: str
     description: str = ""
     parent: str | None = None
@@ -172,7 +169,7 @@ class Item(BaseModel):
     def _coerce_str_fields(cls, v: object) -> str:
         """Coerce StrEnum members to plain str so pydantic stores a clean string.
 
-        ``use_enum_values=False`` prevents auto-coercion; callers may pass a ``Status``
+        ``use_enum_values=False`` prevents auto-coercion; callers may pass a ``Priority``
         member (StrEnum, which IS a str subclass) which is assignment-compatible but must
         be stored as plain ``str`` to keep YAML serialisation and identity checks clean.
 

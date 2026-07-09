@@ -85,10 +85,9 @@ async def test_read_reflog_filter_by_actor(svc, frozen_time):
 
 async def test_read_reflog_filter_by_op(svc, frozen_time):
     """--op filter returns only entries with that operation name."""
-    from squads._models._enums import Status
 
     item = (await svc.create("task", "T")).item
-    await svc.set_status(item.id, Status.IN_PROGRESS)
+    await svc.set_status(item.id, "InProgress")
     status_entries = await svc.read_reflog(op_filter="status")
     assert all(r.op == "status" for r in status_entries)
     assert status_entries

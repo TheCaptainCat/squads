@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from squads._models._config import SquadsConfig
-from squads._models._enums import Severity, Status
+from squads._models._enums import Severity
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -18,7 +18,7 @@ def _item(**over):
         type="task",
         title="t",
         slug="t",
-        status=Status.DRAFT,
+        status="Draft",
         path="tasks/x.md",
         created_at=_NOW,
         updated_at=_NOW,
@@ -52,7 +52,7 @@ def test_subentity_roundtrips_through_frontmatter():
     sub = SubEntity(
         local_id="F1",
         title="Null deref",
-        status=Status.OPEN,
+        status="Open",
         assignee="qa",
         severity=Severity.HIGH,
     )
@@ -67,13 +67,13 @@ def test_subentity_roundtrips_through_frontmatter():
     }
     back = SubEntity.from_frontmatter(data)
     assert back == sub
-    assert back.status == Status.OPEN and back.severity is Severity.HIGH
+    assert back.status == "Open" and back.severity is Severity.HIGH
 
 
 def test_item_subentities_roundtrip_through_frontmatter():
     it = _item(
         type="task",
-        subentities=[SubEntity(local_id="ST1", title="Wire", status=Status.TODO, story="US1")],
+        subentities=[SubEntity(local_id="ST1", title="Wire", status="Todo", story="US1")],
     )
     fm = it.to_frontmatter_dict()
     assert fm["subentities"] == [

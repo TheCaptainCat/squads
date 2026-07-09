@@ -16,7 +16,7 @@ from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._interactions import TITLE_ADVISORY_MAX
 from squads._models import _markers as markers
-from squads._models._enums import DEFAULT_SEVERITY, Severity, Status
+from squads._models._enums import DEFAULT_SEVERITY, Severity
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -169,10 +169,15 @@ class SubentitiesMixin(ServiceCore):
         await self._set_block_status(review_id, "finding", local_id, status, **kw)
 
     async def set_subtask_done(self, task_id: str, local_id: str, *, done: bool = True) -> None:
-        # convenience toggle (forces past intermediate states, like the old checkbox)
-        await self._set_block_status(
-            task_id, "subtask", local_id, Status.DONE if done else Status.TODO, force=True
+        # convenience toggle (forces past intermediate states, like the old checkbox).
+        # Resolves the subtask machine's designated completion status / start state by
+        # its role in the state machine rather than a hardcoded status literal.
+        target = (
+            self.spec.subentity_completion("subtask")
+            if done
+            else self.spec.subentity_initial("subtask")
         )
+        await self._set_block_status(task_id, "subtask", local_id, target, force=True)
 
     async def set_subtask_assignee(self, task_id: str, local_id: str, assignee: str | None) -> None:
         await self._set_block_assignee(task_id, "subtask", local_id, assignee)
@@ -308,8 +313,7 @@ class SubentitiesMixin(ServiceCore):
     def _apply_subentity_status(
         self, kind: str, sub: SubEntity, status: str, *, force: bool
     ) -> None:
-        # Coerce to plain str — callers may pass a Status StrEnum member
-        # (use_enum_values=False prevents auto-coercion).
+        # Defensive str() — status is spec vocabulary (a plain string), no enum involved.
         status = str(status)
         current = sub.status
         if (

@@ -441,7 +441,6 @@ async def test_show_legacy_item_no_session_renders_unchanged(svc, frozen_time):
 
 async def test_service_tree_from_chain(svc, frozen_time):
     """A manager→tech-lead→dev chain in the reflog builds a clean 3-level tree."""
-    from squads._models._enums import Status
 
     # Create items under different sessions to simulate a chain.
     actor.seed_session("mgr-root", None)
@@ -451,7 +450,7 @@ async def test_service_tree_from_chain(svc, frozen_time):
     task = (await svc.create("task", "Task")).item
 
     actor.seed_session("dev-leaf", "tl-child")
-    await svc.set_status(task.id, Status.IN_PROGRESS)
+    await svc.set_status(task.id, "InProgress")
 
     actor.seed_session(None, None)
 

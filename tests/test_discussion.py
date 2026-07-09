@@ -1,6 +1,6 @@
 from squads import _discussion as discussion
 from squads import _sections as sections
-from squads._models._enums import Severity, Status
+from squads._models._enums import Severity
 from squads._models._subentity import SubEntity
 
 
@@ -43,7 +43,7 @@ def test_extract_mentions():
 
 
 def _sub(local_id: str, **kw) -> SubEntity:
-    return SubEntity(local_id=local_id, status=kw.pop("status", Status.TODO), **kw)
+    return SubEntity(local_id=local_id, status=kw.pop("status", "Todo"), **kw)
 
 
 def test_next_local_id():
@@ -75,7 +75,7 @@ def test_render_summary():
         SubEntity(
             local_id="F1",
             title="Null deref",
-            status=Status.OPEN,
+            status="Open",
             severity=Severity.HIGH,
             assignee="qa",
         )

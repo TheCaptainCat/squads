@@ -53,7 +53,7 @@ class GraphNode:
 
     id: str
     type: str
-    status: str  # Status.value string
+    status: str  # spec-defined status name
     priority: str | None  # Priority.value string, or None
     assignee: str | None
     edge_kind: str | None  # None for root; normalized kind for all other nodes
@@ -132,7 +132,7 @@ class RetypeResult:
     old_id: str
     old_type: str  # for display
     status_reset: bool
-    old_status: str  # Status.value string (meaningful only when status_reset is True)
+    old_status: str  # spec-defined status name (meaningful only when status_reset is True)
     rewritten: list[str]  # paths of files whose text was updated (relative display names)
 
 

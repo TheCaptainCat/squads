@@ -11,7 +11,6 @@ import math
 import pytest
 
 from squads._errors import SquadsError
-from squads._models._enums import Status
 from squads._workflow._loader import (
     _build_spec,  # pyright: ignore[reportPrivateUsage]
     load_workflow_spec,
@@ -176,13 +175,13 @@ def test_ref_rule_model_fields(spec: WorkflowSpec) -> None:
 
 def test_superseded_has_role_superseded(spec: WorkflowSpec) -> None:
     """The Superseded status has role='superseded'."""
-    assert spec.statuses[Status.SUPERSEDED].role == "superseded"
+    assert spec.statuses["Superseded"].role == "superseded"
 
 
 def test_no_other_status_has_a_role(spec: WorkflowSpec) -> None:
     """No other status has a non-None role value in the default spec."""
     for s, ss in spec.statuses.items():
-        if s != Status.SUPERSEDED:
+        if s != "Superseded":
             assert ss.role is None, f"{s} should have role=None, got {ss.role!r}"
 
 
@@ -198,7 +197,7 @@ def test_lifecycle_rejects_unknown_key() -> None:
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         Lifecycle.model_validate(
             {
-                "initial": Status.DRAFT,
+                "initial": "Draft",
                 "transitions": {},
                 "unexpected_key": "boom",
             }
@@ -491,4 +490,4 @@ def test_fractional_custom_order_sorts_between_two_bundled_types() -> None:
     assert task_idx < incident_idx < bug_idx, (
         f"expected incident (order=35.5) between task (30) and bug (40); got {ordered}"
     )
-    assert spec.statuses[Status.SUPERSEDED].role == "superseded"
+    assert spec.statuses["Superseded"].role == "superseded"

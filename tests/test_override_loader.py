@@ -174,7 +174,6 @@ def _task_ctx() -> dict[str, object]:
     """Minimal context that satisfies the bundled task template's variables."""
     from datetime import UTC, datetime
 
-    from squads._models._enums import Status
     from squads._models._item import Item
 
     now = datetime(2026, 1, 1, tzinfo=UTC)
@@ -183,7 +182,7 @@ def _task_ctx() -> dict[str, object]:
         type="task",
         title="Test task",
         slug="test-task",
-        status=Status.READY,
+        status="Ready",
         path="tasks/TASK-000001-test-task.md",
         created_at=now,
         updated_at=now,

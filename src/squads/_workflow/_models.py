@@ -1,13 +1,15 @@
 """WorkflowSpec pydantic v2 value objects.
 
-The loaded spec is the sole vocabulary authority for item types: TOML type keys stay plain
-``str`` (no enum coercion). ``Status`` values are still coerced at parse/load time — an
-unknown name raises immediately (the status axis is out of scope here).
+The loaded spec is the sole vocabulary authority for both axes: TOML type keys AND status
+keys stay plain ``str`` (no enum coercion, no closed set). The reserved surface is exactly
+the three meta-types (``META_TYPES``) plus their agent-lifecycle statuses
+(``_RESERVED_FLOOR`` — ``Draft``/``Active``/``Archived``); every other type or status is
+ordinary spec vocabulary a project may drop, rename, or reorder.
 
-The capability flags declared here (``is_meta``, ``subentity_kind``,
-``severity_field``, ``parent_required``, ``ref_rules``, and ``StatusSpec.role``)
-are additive and not yet consumed by the engine. They are encoded in
-``default_workflow.toml``.
+The capability flags declared here (``is_meta``, ``subentity_kind``, ``severity_field``,
+``parent_required``, ``ref_rules``, ``StatusSpec.role``) are additive; ``StatusSpec.completion``
+is consumed by the sub-entity/finding done-toggle (``_services/_subentities.py``). They are
+encoded in ``default_workflow.toml``.
 """
 
 import math
@@ -24,6 +26,16 @@ META_SKILL = "skill"
 META_OPERATOR = "operator"
 META_TYPES: frozenset[str] = frozenset({META_ROLE, META_SKILL, META_OPERATOR})
 
+#: The agent-lifecycle statuses the engine binds by literal name — the same irreducible
+#: minimum on the status axis as ``META_TYPES`` is on the type axis: a meta-type must be
+#: creatable (``Draft``), activatable (``Active``), and archivable (``Archived``), which is
+#: structural. Every other status — work-item, sub-entity, and finding alike — is ordinary
+#: spec vocabulary bound by role in its state machine, never by name.
+STATUS_DRAFT = "Draft"
+STATUS_ACTIVE = "Active"
+STATUS_ARCHIVED = "Archived"
+_RESERVED_FLOOR: frozenset[str] = frozenset({STATUS_DRAFT, STATUS_ACTIVE, STATUS_ARCHIVED})
+
 # ---------------------------------------------------------------------------
 # Workflow dataclass — the thin shim over Lifecycle
 # ---------------------------------------------------------------------------
@@ -33,9 +45,7 @@ META_TYPES: frozenset[str] = frozenset({META_ROLE, META_SKILL, META_OPERATOR})
 class Workflow:
     """Thin shim: exposes the ``Workflow`` interface backed by ``Lifecycle``.
 
-    Status fields are ``str``. Callers passing ``Status`` enum members
-    continue to work because ``Status`` is a ``StrEnum`` — its members compare equal
-    to their plain string values.
+    Status fields are plain ``str`` — there is no enum backing them.
     """
 
     initial: str
@@ -67,10 +77,8 @@ class Lifecycle(BaseModel):
     ``.states`` is derived (initial union all sources union all targets),
     mirroring ``Workflow.states``.
 
-    Status fields are ``str`` — ``Status`` enum members are retained as the
-    reserved-vocabulary source but are not used as the stored field type.  Since
-    ``Status`` is a ``StrEnum`` its members compare equal to their string values, so
-    callers passing ``Status.DONE`` or passing ``"Done"`` both work.
+    Status fields are plain ``str`` — there is no enum backing them; the spec is the sole
+    vocabulary authority (module docstring above).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -158,7 +166,7 @@ class ItemSpec(BaseModel):
 
 
 class StatusSpec(BaseModel):
-    """Terminal flag + optional sub-entity badge for one ``Status``."""
+    """Terminal flag + optional sub-entity badge for one status name."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -174,6 +182,17 @@ class StatusSpec(BaseModel):
     Currently used to identify ``Superseded`` (``role="superseded"``).
     Future rules add a new role name here rather than a new flag column.
     Not yet consumed by the engine."""
+
+    completion: bool = False
+    """Marks this status as a sub-entity/finding machine's done-toggle target — the status
+    ``subentity_completion(kind)`` resolves to. Each sub-entity/finding machine (the
+    lifecycle named after its kind: ``subtask``/``story``/``finding``) must have exactly
+    one reachable status flagged ``completion=True``; enforced at spec load by
+    ``_check_completion_status``. Independent of ``terminal``: a status name can be shared
+    across lifecycles (e.g. ``Fixed`` is also a non-terminal, pending-verification *bug*
+    item status), so completion is not required to also be terminal — it only marks "this
+    is the one status this sub-entity/finding kind's toggle sets", distinct from a
+    cancel-style side state (e.g. ``Cancelled``/``WontFix``)."""
 
 
 # ---------------------------------------------------------------------------
@@ -249,6 +268,35 @@ def _check_reachable_terminal(
                 f"lifecycle {name!r}: no terminal status reachable from initial "
                 f"{m.initial!r} (reachable: {sorted(reachable)}) — items on this "
                 f"lifecycle could never close; add a transition to a terminal status"
+            )
+
+
+def _check_completion_status(
+    items: dict[str, ItemSpec],
+    lifecycles: dict[str, Lifecycle],
+    statuses: dict[str, StatusSpec],
+    errors: list[str],
+) -> None:
+    """Each sub-entity/finding machine must name exactly one ``completion`` status.
+
+    A sub-entity/finding machine is identified the same way ``subentity_machine()`` finds
+    it: by the kind name declared in some ``ItemSpec.subentity_kind`` (``subtask``/
+    ``story``/``finding`` in the bundled default), which shares its name with the
+    corresponding entry in ``lifecycles``. This is the machine-role binding the done-toggle
+    resolves against instead of a hardcoded ``Done``/``Fixed`` literal.
+    """
+    kinds = sorted({ts.subentity_kind for ts in items.values() if ts.subentity_kind})
+    for kind in kinds:
+        machine = lifecycles.get(kind)
+        if machine is None:
+            continue  # missing lifecycle is caught by _check_item_refs
+        completion_states = sorted(
+            s for s in machine.states if statuses.get(s, StatusSpec(terminal=False)).completion
+        )
+        if len(completion_states) != 1:
+            errors.append(
+                f"sub-entity machine {kind!r} must name exactly one completion status "
+                f"(found {len(completion_states)}: {completion_states})"
             )
 
 
@@ -522,6 +570,25 @@ class WorkflowSpec(BaseModel):
         """Return True if the given transition is valid for the given sub-entity kind."""
         return self.lifecycles[kind].can_transition(src, dst)
 
+    def subentity_completion(self, kind: str) -> str:
+        """The sub-entity/finding machine's designated completion status.
+
+        This is what the done-toggle resolves to instead of a hardcoded ``Done``/``Fixed``
+        literal. ``_check_completion_status`` guarantees at load time that a validated spec
+        has exactly one such status per sub-entity/finding kind, so this only raises for a
+        spec that was never validated (e.g. hand-built in a test without going through
+        ``WorkflowSpec.model_validate``).
+        """
+        machine = self.lifecycles[kind]
+        for s in machine.states:
+            spec = self.statuses.get(s)
+            if spec and spec.completion:
+                return s
+
+        from squads._errors import SquadsError
+
+        raise SquadsError(f"sub-entity machine {kind!r} has no completion status")
+
     def parent_hint(self, child: str) -> str:
         """Human guidance for an invalid parent (used in error messages)."""
         parents = self.items[child].parents
@@ -559,6 +626,9 @@ class WorkflowSpec(BaseModel):
         # Every lifecycle must be able to reach a terminal status.
         _check_reachable_terminal(self.lifecycles, self.statuses, errors)
 
+        # Every sub-entity/finding machine names exactly one completion status.
+        _check_completion_status(self.items, self.lifecycles, self.statuses, errors)
+
         # ItemSpec cross-refs + uniqueness.
         _check_item_refs(self.items, all_lifecycle_names, all_types, errors)
 
@@ -581,38 +651,16 @@ class WorkflowSpec(BaseModel):
 
         # Reserved-vocab subset — spec must include the *structural floor* statuses.
         #
-        # The floor is the subset of Status members that the engine references by name
-        # (not just by lifecycle transitions), so a custom spec MUST always declare them:
-        #
-        #   • agent lifecycle (role/skill/operator): Draft, Active, Archived
-        #   • sub-entity lifecycles (subtask/story): Todo, InProgress, Blocked, Done, Cancelled
-        #   • finding lifecycle: Open, Fixed, Verified, WontFix
-        #
-        # Work-item-only statuses (Ready, InReview, Proposed, Accepted, Requested,
-        # ChangesRequested, Approved, Rejected, Superseded, Deprecated, Published) are NOT in
-        # the floor — a custom spec that omits them (e.g. no ADR/review/guide lifecycle) must
-        # not be rejected.  The work-item vocabularies are enforced implicitly by the
-        # lifecycle initial/transition statuses check above (they must be declared).
+        # The floor is narrowed to exactly the agent lifecycle (Draft/Active/Archived —
+        # module-level ``_RESERVED_FLOOR``, mirroring ``META_TYPES`` on the type axis): the
+        # only statuses the engine references by literal name. Every other status —
+        # work-item, sub-entity, and finding alike — is ordinary spec vocabulary that a
+        # custom spec may omit, rename, or reorder; sub-entity/finding lifecycles bind by
+        # machine role instead (start state on create, ``completion`` flag on the
+        # done-toggle — see ``_check_completion_status``), so no name literal is required
+        # there. A dropped status still referenced by a declared lifecycle's initial/
+        # transitions is caught by the check above, not by this floor.
         spec_statuses = set(self.statuses)
-        _RESERVED_FLOOR: frozenset[str] = frozenset(
-            {
-                # agent lifecycle
-                "Draft",
-                "Active",
-                "Archived",
-                # sub-entity (subtask/story)
-                "Todo",
-                "InProgress",
-                "Blocked",
-                "Done",
-                "Cancelled",
-                # finding lifecycle
-                "Open",
-                "Fixed",
-                "Verified",
-                "WontFix",
-            }
-        )
         missing_statuses = _RESERVED_FLOOR - spec_statuses
         if missing_statuses:
             errors.append(f"spec missing reserved Status members: {sorted(missing_statuses)}")

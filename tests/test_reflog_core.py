@@ -18,7 +18,6 @@ import pytest
 from squads import _actor as actor
 from squads import _clock as clock
 from squads._index._reflog import ReflogLine, append_line, read_lines, reflog_path
-from squads._models._enums import Status
 from squads._models._schema import SCHEMA_VERSION
 
 pytestmark = pytest.mark.anyio
@@ -174,7 +173,7 @@ async def test_create_emits_reflog_line(svc, frozen_time):
 async def test_set_status_emits_reflog_line(svc, frozen_time):
     """Service.set_status() appends one reflog line with op=status and before→after."""
     item = (await svc.create("task", "T")).item
-    await svc.set_status(item.id, Status.IN_PROGRESS)
+    await svc.set_status(item.id, "InProgress")
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     status_lines = [ln for ln in lines if ln.op == "status" and ln.target == item.id]
     assert status_lines

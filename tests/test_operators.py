@@ -5,7 +5,6 @@ import json
 import pytest
 
 from squads._itemfile import read_frontmatter
-from squads._models._enums import Status
 from squads._util import operator_slug
 
 pytestmark = pytest.mark.anyio
@@ -25,7 +24,7 @@ def test_operator_slug_is_op_prefixed_first_name():
 async def test_add_operator_writes_operator_item(svc):
     op = await svc.add_operator("Pierre Chat")
     assert op.type == "operator"
-    assert op.status == Status.ACTIVE
+    assert op.status == "Active"
     assert op.id.startswith("OP-")
     assert op.extra.get("slug") == "op-pierre"
     fm = read_frontmatter(svc.paths.abspath(op.path))

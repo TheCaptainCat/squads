@@ -3,7 +3,7 @@
 import pytest
 
 from squads._itemfile import read_frontmatter
-from squads._models._enums import Priority, Status
+from squads._models._enums import Priority
 
 pytestmark = pytest.mark.anyio
 
@@ -70,8 +70,8 @@ async def test_blocked_view(svc):
     rows = await svc.blocked()
     assert [(t.id, [x.id for x in bs]) for t, bs in rows] == [(a.id, [b.id])]
     # closing the blocker clears it
-    await svc.set_status(b.id, Status.IN_PROGRESS)
-    await svc.set_status(b.id, Status.DONE)
+    await svc.set_status(b.id, "InProgress")
+    await svc.set_status(b.id, "Done")
     assert await svc.blocked() == []
 
 
@@ -81,8 +81,8 @@ async def test_blocked_view(svc):
 async def test_workload_counts_open_and_closed(svc):
     await svc.create("task", "t1", assignee="manager")
     done = (await svc.create("task", "t2", assignee="manager")).item
-    await svc.set_status(done.id, Status.IN_PROGRESS)
-    await svc.set_status(done.id, Status.DONE)
+    await svc.set_status(done.id, "InProgress")
+    await svc.set_status(done.id, "Done")
     await svc.create("task", "unassigned")
     rows = {r.assignee: r for r in await svc.workload()}
     assert rows["manager"].open == 1 and rows["manager"].closed == 1 and rows["manager"].total == 2

@@ -267,13 +267,12 @@ class TestServiceLaneWarning:
 
     async def test_status_mutation_does_not_trigger_lane_check(self, svc, frozen_time):
         """Status transitions are not laned in Slice B (AC-B6 — Option A)."""
-        from squads._models._enums import Status
 
         actor.set_actor("python-dev")
         res = await svc.create("feature", "Feature", author="manager")
         # A python-dev transitioning a feature status should not raise or warn.
         # (The lane check only fires on create; this call should succeed silently.)
-        await svc.set_status(res.item.id, Status.IN_PROGRESS)
+        await svc.set_status(res.item.id, "InProgress")
 
     async def test_non_laned_type_role_creates_no_lane_warning(self, svc, frozen_time):
         """Creating a role item (internal artifact type) produces no lane warning (REV-000165 F2).

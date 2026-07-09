@@ -18,7 +18,7 @@ class SubEntity(BaseModel):
     #: ``F<n>`` finding.
     local_id: str
     title: str = ""
-    #: Status as a plain string.
+    #: The sub-entity's status: a plain string, spec-vocabulary.
     status: str
     #: Registered agent slug responsible for it (optional).
     assignee: str | None = None

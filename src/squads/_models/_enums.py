@@ -1,45 +1,17 @@
-"""Status values, badge enums, and their helpers.
+"""Badge enums and their helpers.
 
-The item-type vocabulary (the type enum, ``WORK_TYPES``, ``TYPE_ALIASES``, and the
-reserved prefix/folder maps) has been deleted: the loaded workflow spec is now the sole type
-authority (``spec.items`` / ``spec.work_types()``; prefix/folder resolve via
-:func:`squads._models._vocab.prefix_for` and ``spec.items[t].folder`` respectively).
+Both closed-set vocabulary enums that used to back this module are gone: the item-type
+enum (``WORK_TYPES``, ``TYPE_ALIASES``, and the reserved prefix/folder maps) and the
+``Status`` enum. The loaded workflow spec is now the sole authority for both axes —
+``spec.items`` / ``spec.work_types()`` for types (prefix/folder resolve via
+:func:`squads._models._vocab.prefix_for` and ``spec.items[t].folder``), and
+``spec.statuses`` / ``spec.workflow_for(type).states`` for statuses. The few status names
+the engine still binds by literal name (the agent lifecycle) live as validated string
+constants in :mod:`squads._workflow._models` (``STATUS_DRAFT``/``STATUS_ACTIVE``/
+``STATUS_ARCHIVED``), mirroring the meta-type name constants there.
 """
 
 from enum import StrEnum
-
-
-class Status(StrEnum):
-    # work items
-    DRAFT = "Draft"
-    READY = "Ready"
-    IN_PROGRESS = "InProgress"
-    IN_REVIEW = "InReview"
-    DONE = "Done"
-    BLOCKED = "Blocked"
-    CANCELLED = "Cancelled"
-    # ADR / decision
-    PROPOSED = "Proposed"
-    ACCEPTED = "Accepted"
-    SUPERSEDED = "Superseded"
-    REJECTED = "Rejected"
-    DEPRECATED = "Deprecated"
-    # code review
-    REQUESTED = "Requested"
-    CHANGES_REQUESTED = "ChangesRequested"
-    APPROVED = "Approved"
-    # guide
-    PUBLISHED = "Published"
-    # role / skill
-    ACTIVE = "Active"
-    ARCHIVED = "Archived"
-    # sub-entities (subtasks / user stories)
-    TODO = "Todo"
-    # review findings
-    OPEN = "Open"
-    FIXED = "Fixed"
-    VERIFIED = "Verified"
-    WONT_FIX = "WontFix"
 
 
 class Priority(StrEnum):

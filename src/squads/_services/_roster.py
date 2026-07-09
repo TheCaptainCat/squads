@@ -2,14 +2,13 @@
 
 from squads._errors import SquadsError
 from squads._interactions import skills_for_role
-from squads._models._enums import Status
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._roles._resolver import resolve_dev_role, resolve_role
 from squads._services._base import ServiceCore
 from squads._services._results import WorkloadRow
 from squads._util import operator_slug, slugify
-from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL
+from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL, STATUS_ACTIVE
 
 
 class RosterMixin(ServiceCore):
@@ -33,7 +32,7 @@ class RosterMixin(ServiceCore):
             META_ROLE,
             role.full_name,
             description=role.mission,
-            status=Status.ACTIVE,
+            status=STATUS_ACTIVE,
             slug=role.slug,
             author=role.slug,  # an activated role authors itself
             extra={
@@ -60,7 +59,7 @@ class RosterMixin(ServiceCore):
             META_ROLE,
             role.full_name,
             description=role.mission,
-            status=Status.ACTIVE,
+            status=STATUS_ACTIVE,
             slug=role.slug,
             author=role.slug,  # a dev role authors itself
             extra={
@@ -94,7 +93,7 @@ class RosterMixin(ServiceCore):
             name,
             description=description,
             parent=parent,
-            status=Status.ACTIVE,
+            status=STATUS_ACTIVE,
             slug=slug,
             author=slug,  # a skill authors itself
             extra={
@@ -117,7 +116,7 @@ class RosterMixin(ServiceCore):
         res = await self.create(
             META_OPERATOR,
             name,
-            status=Status.ACTIVE,
+            status=STATUS_ACTIVE,
             slug=slug,
             author=slug,  # an operator authors itself
             extra={X.SLUG: slug, X.FULL_NAME: name},

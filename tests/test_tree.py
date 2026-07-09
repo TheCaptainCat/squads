@@ -19,7 +19,7 @@ import pytest
 from typer.testing import CliRunner
 
 from squads._cli import app
-from squads._models._enums import Priority, Status
+from squads._models._enums import Priority
 from squads._services._base import ItemFilter
 from squads._services._results import TreeNode
 
@@ -63,7 +63,7 @@ def test_item_filter_is_empty_when_no_fields_set():
 
 def test_item_filter_not_empty_with_any_field():
     assert ItemFilter(item_type="task").is_empty() is False
-    assert ItemFilter(status=Status.READY).is_empty() is False
+    assert ItemFilter(status="Ready").is_empty() is False
     assert ItemFilter(assignee="qa").is_empty() is False
     assert ItemFilter(priority=Priority.HIGH).is_empty() is False
     assert ItemFilter(parent="FEAT-000001").is_empty() is False
@@ -82,10 +82,10 @@ async def test_item_filter_matches_type(svc):
 async def test_item_filter_matches_status(svc):
     item = (await svc.create("task", "T")).item
     # Draft is initial status for tasks
-    assert item.status == Status.DRAFT
-    f_draft = ItemFilter(status=Status.DRAFT)
+    assert item.status == "Draft"
+    f_draft = ItemFilter(status="Draft")
     assert f_draft.matches(item) is True
-    f_ready = ItemFilter(status=Status.READY)
+    f_ready = ItemFilter(status="Ready")
     assert f_ready.matches(item) is False
 
 
@@ -403,8 +403,8 @@ async def test_tree_view_depth_in_range_match_visible(svc):
 async def test_tree_view_closed_items_hidden_by_default(svc):
     """Closed items are not shown unless include_closed=True."""
     feat = (await svc.create("feature", "Feat")).item
-    await svc.set_status(feat.id, Status.IN_PROGRESS)
-    await svc.set_status(feat.id, Status.DONE)
+    await svc.set_status(feat.id, "InProgress")
+    await svc.set_status(feat.id, "Done")
 
     nodes = await svc.tree_view()
     assert feat.id not in _collect_ids(nodes)
@@ -413,8 +413,8 @@ async def test_tree_view_closed_items_hidden_by_default(svc):
 async def test_tree_view_include_closed_shows_closed(svc):
     """include_closed=True reveals closed items."""
     feat = (await svc.create("feature", "Feat")).item
-    await svc.set_status(feat.id, Status.IN_PROGRESS)
-    await svc.set_status(feat.id, Status.DONE)
+    await svc.set_status(feat.id, "InProgress")
+    await svc.set_status(feat.id, "Done")
 
     nodes = await svc.tree_view(include_closed=True)
     assert feat.id in _collect_ids(nodes)
@@ -423,15 +423,15 @@ async def test_tree_view_include_closed_shows_closed(svc):
 async def test_tree_view_status_filter_reveals_closed_match(svc):
     """A status filter that matches a closed item is used with include_closed=True."""
     feat = (await svc.create("feature", "Feat")).item
-    await svc.set_status(feat.id, Status.IN_PROGRESS)
-    await svc.set_status(feat.id, Status.DONE)
+    await svc.set_status(feat.id, "InProgress")
+    await svc.set_status(feat.id, "Done")
 
     # Without include_closed, the done item is in the candidate set only if include_closed
     # (the CLI passes include_closed based on whether --status or --all is given)
-    nodes_closed = await svc.tree_view(filter=ItemFilter(status=Status.DONE), include_closed=True)
+    nodes_closed = await svc.tree_view(filter=ItemFilter(status="Done"), include_closed=True)
     assert feat.id in _collect_ids(nodes_closed)
 
-    nodes_open = await svc.tree_view(filter=ItemFilter(status=Status.DONE))
+    nodes_open = await svc.tree_view(filter=ItemFilter(status="Done"))
     # Not in candidate set (include_closed=False), so even though status matches, not shown
     assert feat.id not in _collect_ids(nodes_open)
 

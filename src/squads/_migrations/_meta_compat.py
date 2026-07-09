@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 
 from squads._models import _markers as markers
-from squads._models._enums import Severity, Status
+from squads._models._enums import Severity
 from squads._models._subentity import SubEntity
 from squads._sections import get_section, replace_section
 from squads._workflow import bundled_spec
@@ -20,6 +20,12 @@ _LOCAL_ID_PREFIX = {"story": "US", "subtask": "ST", "finding": "F"}
 # the meta keys, in render order; assignee/severity/story are optional per kind
 _META_ORDER = ("status", "assignee", "severity", "story")
 
+# Frozen pre-2/pre-3 checkbox-lifecycle status literals — the subtask/story status names as
+# they existed at this schema version. NEVER derive these from the live spec/enum: a
+# migration is a point-in-time snapshot, and the live spec/enum must never be re-introduced.
+_STATUS_TODO = "Todo"
+_STATUS_DONE = "Done"
+
 
 @dataclass
 class BlockInfo:
@@ -27,7 +33,7 @@ class BlockInfo:
 
     local_id: str
     title: str
-    status: str  # a Status value string
+    status: str  # a status name string
     severity: str | None = None  # Severity value, findings only
     story: str | None = None  # mapped user story, subtasks only
     assignee: str | None = None  # registered agent slug owning this sub-entity
@@ -110,7 +116,7 @@ def to_subentity(b: BlockInfo) -> SubEntity:
     return SubEntity(
         local_id=b.local_id,
         title=b.title,
-        status=Status(b.status),
+        status=b.status,
         assignee=b.assignee,
         severity=Severity(b.severity) if b.severity else None,
         story=b.story,
@@ -153,7 +159,7 @@ def _parse_legacy_heading(text: str, local_id: str) -> tuple[str, str | None, st
     token, raw = (m.group(1), m.group(2) or "") if m else (None, "")
     story = _LEGACY_STORY_REF_RE.search(raw)
     title = _LEGACY_STORY_REF_RE.sub("", raw).strip()
-    status = Status.DONE.value if (token or "").lower() == "x" else Status.TODO.value
+    status = _STATUS_DONE if (token or "").lower() == "x" else _STATUS_TODO
     return status, (story.group(1) if story else None), title
 
 

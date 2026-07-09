@@ -25,7 +25,6 @@ from squads._interactions import (
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
-from squads._models._enums import Status
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
@@ -45,7 +44,7 @@ from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
-from squads._workflow import META_ROLE, META_SKILL
+from squads._workflow import META_ROLE, META_SKILL, STATUS_ACTIVE
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` — every type (built-in or custom) resolves from the spec.
@@ -278,7 +277,7 @@ class MaintenanceMixin(ServiceCore):
                     prefix=skill_prefix,
                     title=slug,
                     slug=slug,
-                    status=Status.ACTIVE,
+                    status=STATUS_ACTIVE,
                     description=desc,
                     author=slug,
                     path=squad_rel,
@@ -296,7 +295,7 @@ class MaintenanceMixin(ServiceCore):
                 self.store._log(  # pyright: ignore[reportPrivateUsage]
                     "create",
                     item_id,
-                    {"title": slug, "type": META_SKILL, "status": Status.ACTIVE.value},
+                    {"title": slug, "type": META_SKILL, "status": STATUS_ACTIVE},
                 )
             # Remove the legacy slug-named file now that convention file is written.
             await _aio.path_unlink(legacy_path)
@@ -354,7 +353,7 @@ class MaintenanceMixin(ServiceCore):
                     prefix=skill_prefix,
                     title=slug,
                     slug=slug,
-                    status=Status.ACTIVE,
+                    status=STATUS_ACTIVE,
                     description=desc,
                     author=slug,
                     path=squad_rel,
@@ -371,7 +370,7 @@ class MaintenanceMixin(ServiceCore):
                 self.store._log(  # pyright: ignore[reportPrivateUsage]
                     "create",
                     item_id,
-                    {"title": slug, "type": META_SKILL, "status": Status.ACTIVE.value},
+                    {"title": slug, "type": META_SKILL, "status": STATUS_ACTIVE},
                 )
             # Remove the legacy slug-named file now that convention file is written.
             await _aio.path_unlink(legacy_path)
