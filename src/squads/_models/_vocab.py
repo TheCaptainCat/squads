@@ -48,7 +48,9 @@ def prefix_for(type_str: str, spec: object = None) -> str:
                 prefix = cast("str", getattr(item_spec, "prefix", ""))
                 if prefix:
                     return prefix
-        except AttributeError, TypeError:
+        # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
+        # ruff's py314-target formatter would otherwise strip the parens back off.
+        except (AttributeError, TypeError):  # fmt: skip
             pass
     raise SquadsError(
         f"unknown item type {type_str!r}: no spec supplied, or the spec does not "

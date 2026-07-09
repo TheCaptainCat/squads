@@ -208,7 +208,9 @@ async def init(
                     default="",
                     show_default=False,
                 ).strip()
-            except typer.Abort, EOFError:
+            # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
+            # ruff's py314-target formatter would otherwise strip the parens back off.
+            except (typer.Abort, EOFError):  # fmt: skip
                 # On Windows, sys.stdin.isatty() may report a console even inside a
                 # subprocess with a closed/empty stdin pipe, causing typer.prompt to
                 # raise EOFError (or typer.Abort) on the first read. Degrade gracefully:

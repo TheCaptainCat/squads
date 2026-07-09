@@ -49,6 +49,7 @@ dev = [
     "ruff>=0.6",
     "pyright>=1.1.380",
     "anyio[trio]>=4.14.0",
+    "vulture>=2.16",
 ]
 
 [build-system]
@@ -119,3 +120,51 @@ reportUnknownParameterType = "none"
 reportUnknownArgumentType = "none"
 reportUnknownLambdaType = "none"
 reportMissingParameterType = "none"
+
+# vulture is a periodic, non-gating dead-code scan (see CLAUDE.md) — not part of
+# the pyright/ruff commit gate. Known false-positive *categories* are suppressed
+# declaratively here (no whitelist .py file — TOML patterns only):
+#   - ignore_decorators: every Typer command/callback shape used under `_cli/`
+#     (every sub-typer names its attribute `.command`/`.callback`, only the object
+#     varies: `app`, `item`, `sub`, `_addr`, `dev_app`, `role_app`, ... — a wildcard
+#     on the attribute alone is enough) plus pydantic's method-level hooks, which
+#     are entry points Typer/pydantic call by registration, not by a visible call
+#     site vulture's AST scan can see.
+#   - ignore_names: identifiers vulture can never see used, because the call site
+#     is a runtime `getattr(obj, f"...")` dispatch rather than a static reference
+#     (pydantic's `model_config`, read by the metaclass; the kind-generic
+#     sub-entity methods dispatched from `_cli/_items.py`'s
+#     `list_sub`/`s_show`/`s_body` — `list_{plural}`, `get_{kind}`,
+#     `set_{kind}_body`). Deliberately NOT pattern-based wildcards (e.g. `get_*`)
+#     since that would also mask genuinely-dead `get_`-shaped functions.
+#   Deliberately NOT suppressed: the `Status` enum members (read by value from
+#   spec/frontmatter data or exercised only in tests/, which vulture doesn't scan).
+#   The `Status` enum is slated for removal, so don't hardcode its member names
+#   here now — that would be dead config almost immediately. A run before that
+#   removal lands will show that expected noise; a later hygiene sweep will clean
+#   up (or add fresh suppressions) once the vocabulary has settled.
+[tool.vulture]
+paths = ["src/squads"]
+min_confidence = 60
+ignore_decorators = [
+    "@*.command",
+    "@*.callback",
+    "@field_validator",
+    "@model_validator",
+    "@computed_field",
+]
+ignore_names = [
+    # pydantic ConfigDict class attribute — consumed by the metaclass, not by name.
+    "model_config",
+    # Service methods reached only via getattr(service, f"...") dynamic dispatch
+    # from _cli/_items.py (list_sub / s_show / s_body).
+    "list_stories",
+    "list_subtasks",
+    "list_findings",
+    "get_subtask",
+    "get_story",
+    "get_finding",
+    "set_subtask_body",
+    "set_story_body",
+    "set_finding_body",
+]
