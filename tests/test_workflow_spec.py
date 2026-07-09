@@ -300,23 +300,24 @@ def test_golden_status_badges(spec: WorkflowSpec) -> None:
 
 
 def test_golden_subentity_lifecycles(spec: WorkflowSpec) -> None:
-    """Sub-entity lifecycles match snapshot and SUBENTITY_WORKFLOWS shim."""
+    """Sub-entity machines (resolved per kind via SubentityKindSpec.lifecycle, not by
+    kind-name==lifecycle-name) match snapshot and the SUBENTITY_WORKFLOWS shim."""
     for kind, snap in _SUBENTITY_SNAPSHOT.items():
-        assert kind in spec.lifecycles, f"lifecycle {kind!r} missing from spec"
-        m = spec.lifecycles[kind]
+        wf = spec.subentity_workflow(kind)
         expected_initial: str = snap["initial"]  # type: ignore[assignment]
-        assert m.initial == expected_initial, (
-            f"subentity {kind!r}: initial {m.initial!r} != {expected_initial!r}"
+        assert wf.initial == expected_initial, (
+            f"subentity {kind!r}: initial {wf.initial!r} != {expected_initial!r}"
         )
         expected_trans: dict[str, list[str]] = snap["transitions"]  # type: ignore[assignment]
-        assert dict(m.transitions) == expected_trans, (
+        actual_trans = {s: list(dsts) for s, dsts in wf.transitions.items()}
+        assert actual_trans == expected_trans, (
             f"subentity {kind!r}: transitions differ.\n"
-            f"  spec: {dict(m.transitions)}\n"
+            f"  spec: {actual_trans}\n"
             f"  snapshot: {expected_trans}"
         )
         # Also check the shim.
         shim = SUBENTITY_WORKFLOWS[kind]
-        assert shim.initial == m.initial, (
+        assert shim.initial == wf.initial, (
             f"subentity {kind!r}: SUBENTITY_WORKFLOWS initial mismatch"
         )
 
@@ -496,60 +497,41 @@ def test_former_floor_status_omission_no_longer_hits_the_reserved_floor(
 
 
 # ---------------------------------------------------------------------------
-# Sub-entity/finding machines must each name exactly one completion status —
-# the status the done-toggle resolves to instead of a hardcoded status literal.
+# Each declared sub-entity kind's `completion` must name a reachable, non-initial status
+# of its own lifecycle — the status the done-toggle resolves to instead of a hardcoded
+# literal. Re-homed from the retired global StatusSpec.completion flag scan.
 # ---------------------------------------------------------------------------
 
 
-def _spec_with_status_override(
-    spec: WorkflowSpec, name: str, override: StatusSpec
-) -> dict[str, object]:
-    """A raw WorkflowSpec.model_validate payload with one status swapped for ``override``."""
-    statuses = dict(spec.statuses)
-    statuses[name] = override
-    return {
-        "items": spec.items,
-        "statuses": statuses,
-        "lifecycles": spec.lifecycles,
-        "prefix_to_type": spec.prefix_to_type,
-        "alias_to_type": spec.alias_to_type,
-    }
-
-
-def test_subtask_and_story_machine_with_no_completion_status_fails_to_load(
+def test_subentity_completion_pointing_at_initial_status_fails_to_load(
     spec: WorkflowSpec,
 ) -> None:
-    """'Done' is the subtask/story machines' one completion status — un-flagging it
-    leaves both kinds with zero, which must be rejected at load."""
-    raw = _spec_with_status_override(spec, "Done", StatusSpec(terminal=True, completion=False))
-    with pytest.raises(SquadsError, match="must name exactly one completion status"):
-        WorkflowSpec.model_validate(raw)
+    """Nothing is 'done' at creation — completion can't be the kind's own initial status."""
+    bad = spec.subentity_kinds["subtask"].model_copy(update={"completion": "Todo"})
+    with pytest.raises(SquadsError, match="completion 'Todo' is the initial status"):
+        _rebuild_subentity_kinds(spec, {**spec.subentity_kinds, "subtask": bad})
 
 
-def test_finding_machine_with_no_completion_status_fails_to_load(spec: WorkflowSpec) -> None:
-    """'Fixed' is the finding machine's one completion status — un-flagging it leaves
-    zero, which must be rejected at load."""
-    raw = _spec_with_status_override(spec, "Fixed", StatusSpec(terminal=False, completion=False))
-    with pytest.raises(SquadsError, match="must name exactly one completion status"):
-        WorkflowSpec.model_validate(raw)
-
-
-def test_subtask_and_story_machine_with_two_completion_statuses_fails_to_load(
+def test_finding_completion_pointing_at_initial_status_fails_to_load(
     spec: WorkflowSpec,
 ) -> None:
-    """Flagging a second reachable subtask/story status ('Cancelled') as completion,
-    alongside 'Done', leaves both kinds with two, which must be rejected at load."""
-    raw = _spec_with_status_override(spec, "Cancelled", StatusSpec(terminal=True, completion=True))
-    with pytest.raises(SquadsError, match="must name exactly one completion status"):
-        WorkflowSpec.model_validate(raw)
+    bad = spec.subentity_kinds["finding"].model_copy(update={"completion": "Open"})
+    with pytest.raises(SquadsError, match="completion 'Open' is the initial status"):
+        _rebuild_subentity_kinds(spec, {**spec.subentity_kinds, "finding": bad})
 
 
-def test_finding_machine_with_two_completion_statuses_fails_to_load(spec: WorkflowSpec) -> None:
-    """Flagging a second reachable finding status ('WontFix') as completion, alongside
-    'Fixed', leaves finding with two, which must be rejected at load."""
-    raw = _spec_with_status_override(spec, "WontFix", StatusSpec(terminal=True, completion=True))
-    with pytest.raises(SquadsError, match="must name exactly one completion status"):
-        WorkflowSpec.model_validate(raw)
+def test_subentity_completion_outside_own_machine_fails_to_load(spec: WorkflowSpec) -> None:
+    """'WontFix' belongs to the finding machine, not the shared story/subtask one."""
+    bad = spec.subentity_kinds["subtask"].model_copy(update={"completion": "WontFix"})
+    with pytest.raises(SquadsError, match="completion 'WontFix' not a reachable status"):
+        _rebuild_subentity_kinds(spec, {**spec.subentity_kinds, "subtask": bad})
+
+
+def test_finding_completion_outside_own_machine_fails_to_load(spec: WorkflowSpec) -> None:
+    """'Cancelled' belongs to the story/subtask machine, not finding's."""
+    bad = spec.subentity_kinds["finding"].model_copy(update={"completion": "Cancelled"})
+    with pytest.raises(SquadsError, match="completion 'Cancelled' not a reachable status"):
+        _rebuild_subentity_kinds(spec, {**spec.subentity_kinds, "finding": bad})
 
 
 def test_bundled_spec_resolves_one_completion_status_per_subentity_kind(
@@ -660,30 +642,34 @@ def test_non_reserved_status_omission_is_allowed(spec: WorkflowSpec) -> None:
 
 
 def test_bundled_subentity_kinds_declare_machine_and_vocab(spec: WorkflowSpec) -> None:
-    """story/subtask/finding are now fully declared: lifecycle/plural/local_prefix/
-    maps_parent_story reproduce today's hardcoded _discussion.py vocabulary exactly."""
+    """story/subtask/finding are now fully declared: lifecycle/completion/plural/
+    local_prefix/maps_parent_story reproduce today's hardcoded vocabulary exactly.
+    story and subtask share one lifecycle machine (`subentity`); finding has its own."""
     story = spec.subentity_kinds["story"]
     subtask = spec.subentity_kinds["subtask"]
     finding = spec.subentity_kinds["finding"]
 
-    assert (story.lifecycle, story.plural, story.local_prefix, story.maps_parent_story) == (
-        "story",
-        "stories",
-        "US",
-        False,
-    )
+    assert (
+        story.lifecycle,
+        story.completion,
+        story.plural,
+        story.local_prefix,
+        story.maps_parent_story,
+    ) == ("subentity", "Done", "stories", "US", False)
     assert (
         subtask.lifecycle,
+        subtask.completion,
         subtask.plural,
         subtask.local_prefix,
         subtask.maps_parent_story,
-    ) == ("subtask", "subtasks", "ST", True)
+    ) == ("subentity", "Done", "subtasks", "ST", True)
     assert (
         finding.lifecycle,
+        finding.completion,
         finding.plural,
         finding.local_prefix,
         finding.maps_parent_story,
-    ) == ("finding", "findings", "F", False)
+    ) == ("finding", "Fixed", "findings", "F", False)
 
     assert story.placeholder and "user story" in story.placeholder
     assert subtask.placeholder and "subtask" in subtask.placeholder
@@ -695,8 +681,9 @@ def test_subentity_accessors_resolve_via_kind_spec_lifecycle(spec: WorkflowSpec)
     SubentityKindSpec.lifecycle instead of the retired kind-name==lifecycle-name
     convention, but the bundled result is byte-identical."""
     for kind in ("story", "subtask", "finding"):
-        assert spec.subentity_initial(kind) == spec.lifecycles[kind].initial
-        assert spec.subentity_workflow(kind).initial == spec.lifecycles[kind].initial
+        machine = spec.lifecycles[spec.subentity_kinds[kind].lifecycle]
+        assert spec.subentity_initial(kind) == machine.initial
+        assert spec.subentity_workflow(kind).initial == machine.initial
     assert spec.subentity_can_transition("subtask", "Todo", "InProgress") is True
     assert spec.subentity_can_transition("subtask", "Todo", "Done") is False
 

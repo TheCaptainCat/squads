@@ -47,19 +47,13 @@ _BUNDLED_SPEC: WorkflowSpec = load_workflow_spec()
 # directly; they always reflect the bundled spec.
 # ---------------------------------------------------------------------------
 
-_SUBENTITY_KINDS: frozenset[str] = frozenset({"subtask", "story", "finding"})
-
 
 def _make_workflows(spec: WorkflowSpec) -> dict[str, Workflow]:
     return {t: Workflow.from_machine(spec.machine_for(t)) for t in spec.items}
 
 
 def _make_subentity_workflows(spec: WorkflowSpec) -> dict[str, Workflow]:
-    return {
-        kind: Workflow.from_machine(spec.lifecycles[kind])
-        for kind in _SUBENTITY_KINDS
-        if kind in spec.lifecycles
-    }
+    return {kind: spec.subentity_workflow(kind) for kind in spec.subentity_kinds}
 
 
 def _make_allowed_parents(spec: WorkflowSpec) -> dict[str, set[str]]:

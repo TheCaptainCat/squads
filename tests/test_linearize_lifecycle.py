@@ -238,7 +238,7 @@ def test_all_states_on_spine_no_side_states() -> None:
 
 @pytest.mark.parametrize(
     "lifecycle_name",
-    ["work", "adr", "review", "bug", "guide", "agent", "subtask", "story", "finding"],
+    ["work", "adr", "review", "bug", "guide", "agent", "subentity", "finding"],
 )
 def test_bundled_lifecycles_produce_non_empty_strings(lifecycle_name: str) -> None:
     """linearize_lifecycle produces a non-empty string for every bundled lifecycle."""

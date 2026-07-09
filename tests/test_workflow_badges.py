@@ -330,7 +330,13 @@ def test_field_rejects_unknown_key() -> None:
 def test_subentity_kind_spec_rejects_unknown_key() -> None:
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         SubentityKindSpec.model_validate(
-            {"lifecycle": "x", "plural": "xs", "local_prefix": "X", "bogus": True}
+            {
+                "lifecycle": "x",
+                "completion": "y",
+                "plural": "xs",
+                "local_prefix": "X",
+                "bogus": True,
+            }
         )
 
 
@@ -418,6 +424,7 @@ Done = []
 
 [subentity_kinds.action]
 lifecycle = "action"
+completion = "Done"
 plural = "actions"
 local_prefix = "AC"
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
@@ -427,6 +434,7 @@ fields = [{ code = "priority", label = "Priority", collection = "priority" }]
     assert [f.code for f in spec.fields_for("action")] == ["priority"]
     assert spec.subentity_kinds["action"].plural == "actions"
     assert spec.subentity_kinds["action"].local_prefix == "AC"
+    assert spec.subentity_completion("action") == "Done"
     # The finding kind (bundled) is untouched.
     assert [f.code for f in spec.fields_for("finding")] == ["severity"]
 

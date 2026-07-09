@@ -112,7 +112,8 @@ BUILTIN_STATUSES: tuple[str, ...] = (
 FLOOR_STATUSES: tuple[str, ...] = ("Draft", "Active", "Archived")
 
 #: The sub-entity/finding statuses that left the floor and became ordinary spec vocabulary
-#: (ADR-322 §5) — bound by machine role (start state / completion flag) instead of by name.
+#: (ADR-322 §5) — bound by machine role (start state / per-kind completion target) instead
+#: of by name.
 FORMER_FLOOR_STATUSES: tuple[str, ...] = (
     "Todo",
     "InProgress",

@@ -13,7 +13,8 @@
 # all live in one merged namespace (names don't collide).
 #
 # Item lifecycles:    work, adr, review, bug, guide, agent
-# Sub-entity kinds:   subtask, story, finding  (referenced by kind name)
+# Sub-entity kinds:   story + subtask share `subentity`; finding has its own `finding`
+#   (bound via subentity_kinds.<kind>.lifecycle, not by kind-name==lifecycle-name)
 # ---------------------------------------------------------------------------
 
 [lifecycles.work]
@@ -82,25 +83,14 @@ Draft = ["Active"]
 Active = ["Archived"]
 Archived = ["Active"]
 
-# Sub-entity lifecycles — keyed by kind name.
-# subtask and story share the same machine definition (duplicated intentionally
-# to keep the merged namespace flat with no extra indirection).
+# Sub-entity lifecycles. story and subtask share one machine (subentity_kinds.story/subtask
+# both name it via `lifecycle`) — collapsing this from two identical tables is byte-identical
+# now that the machine binding is explicit rather than kind-name-positional.
 
-[lifecycles.subtask]
+[lifecycles.subentity]
 initial = "Todo"
 
-[lifecycles.subtask.transitions]
-Todo = ["InProgress", "Blocked", "Cancelled"]
-InProgress = ["Done", "Blocked", "Cancelled"]
-Blocked = ["InProgress", "Cancelled"]
-Done = ["InProgress"]
-Cancelled = ["Todo"]
-
-[lifecycles.story]
-# Story reuses the subtask lifecycle (same transitions).
-initial = "Todo"
-
-[lifecycles.story.transitions]
+[lifecycles.subentity.transitions]
 Todo = ["InProgress", "Blocked", "Cancelled"]
 InProgress = ["Done", "Blocked", "Cancelled"]
 Blocked = ["InProgress", "Cancelled"]
@@ -118,18 +108,13 @@ Verified = []
 WontFix = ["Open"]
 
 # ---------------------------------------------------------------------------
-# Statuses (terminal flag + optional sub-entity badge + completion flag)
-# terminal mirrors today's TERMINAL frozenset exactly (unchanged — completion is additive,
-# not a replacement for it; "Fixed" is completion=true for the finding machine below without
-# being terminal=true, since "Fixed" is also the (non-terminal, pending-verification) bug
-# item status and StatusSpec.terminal is one flag per status name shared across every
-# lifecycle that uses it).
-# badge is declared for the 9 sub-entity statuses only; other statuses render the graceful
-# default when their badge is looked up.
-# completion is declared only for the two sub-entity/finding machines' designated
-# done-toggle targets (Done for subtask/story, Fixed for finding) — see
-# WorkflowSpec._check_completion_status. It carries no meaning for work-item/ADR/review/
-# guide/agent lifecycles.
+# Statuses (terminal flag + optional sub-entity badge)
+# terminal mirrors today's TERMINAL frozenset exactly. badge is declared for the 9
+# sub-entity statuses only; other statuses render the graceful default when their badge is
+# looked up. The done-toggle target per sub-entity kind lives on
+# subentity_kinds.<kind>.completion below, not here — "Fixed" being non-terminal (it's
+# also the pending-verification bug item status) has no bearing on it being the finding
+# kind's completion target; the two concepts are independent by design.
 # ---------------------------------------------------------------------------
 
 [statuses.Draft]
@@ -147,7 +132,6 @@ terminal = false
 
 [statuses.Done]
 terminal = true
-completion = true
 badge = "🟢"
 
 [statuses.Blocked]
@@ -202,7 +186,6 @@ badge = "🔴"
 
 [statuses.Fixed]
 terminal = false
-completion = true
 badge = "🟡"
 
 [statuses.Verified]
@@ -389,22 +372,24 @@ ref_rules = []
 # parent_required absent → None
 
 # ---------------------------------------------------------------------------
-# Sub-entity kinds — machine binding (`lifecycle`) + CLI/storage vocabulary
-# (`plural`/`local_prefix`/`placeholder`/`maps_parent_story`) + field declarations
-# (mirrors the item `fields` mechanism). `lifecycle` is an explicit reference, mirroring
-# `ItemSpec.lifecycle` — it happens to equal the kind name for all three bundled kinds
-# today (retiring the *implicit* convention the engine used to rely on), but a custom
-# kind is free to share a machine with another kind by naming the same lifecycle.
+# Sub-entity kinds — machine binding (`lifecycle`) + done-toggle target (`completion`) +
+# CLI/storage vocabulary (`plural`/`local_prefix`/`placeholder`/`maps_parent_story`) +
+# field declarations (mirrors the item `fields` mechanism). `lifecycle` is an explicit
+# reference, mirroring `ItemSpec.lifecycle` — story and subtask share `subentity`; a
+# custom kind is likewise free to share a machine with another kind by naming it.
+# `completion` must be a reachable, non-initial status of that lifecycle.
 # ---------------------------------------------------------------------------
 
 [subentity_kinds.story]
-lifecycle = "story"
+lifecycle = "subentity"
+completion = "Done"
 plural = "stories"
 local_prefix = "US"
 placeholder = "_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._"
 
 [subentity_kinds.subtask]
-lifecycle = "subtask"
+lifecycle = "subentity"
+completion = "Done"
 plural = "subtasks"
 local_prefix = "ST"
 placeholder = "_Describe this subtask here — free-form paragraphs or bullet lists._"
@@ -412,6 +397,7 @@ maps_parent_story = true
 
 [subentity_kinds.finding]
 lifecycle = "finding"
+completion = "Fixed"
 plural = "findings"
 local_prefix = "F"
 placeholder = "_Describe the finding, its impact, and a recommendation — free-form._"
