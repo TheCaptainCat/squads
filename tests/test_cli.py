@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -8,6 +9,19 @@ from typer.testing import CliRunner
 
 from squads._cli import _hoist_global_options, app  # pyright: ignore[reportPrivateUsage]
 from squads._models._schema import SCHEMA_VERSION
+
+_ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain(text: str) -> str:
+    """Drop ANSI SGR codes so help-flag assertions survive a color-forcing help console.
+
+    Rich styles an option's leading ``-`` as its own span, so a colored ``--onto`` renders as
+    ``-<reset><style>-onto`` — the literal ``--onto`` substring is absent until the escapes are
+    stripped. Local runs neutralise the color-forcing env before import; some CI consoles still
+    colorize ``--help`` output, so normalise before matching flag names.
+    """
+    return _ANSI_SGR.sub("", text)
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="cp1252 console encoding is Windows-specific")
@@ -748,8 +762,9 @@ def test_renumber_listed_in_root_help_and_shows_onto_recipe(runner, tmp_path, mo
 
     sub = runner.invoke(app, ["renumber", "--help"])
     assert sub.exit_code == 0, sub.output
-    assert "--onto" in sub.output and "--by" in sub.output
-    assert "squads.json" in sub.output and "jq .counter" in sub.output
+    help_text = _plain(sub.output)
+    assert "--onto" in help_text and "--by" in help_text
+    assert "squads.json" in help_text and "jq .counter" in help_text
 
 
 async def test_check_cli_flags_index_item_with_no_file(project, invoke, frozen_time):
