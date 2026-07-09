@@ -116,11 +116,11 @@ async def test_item_skills_teach_full_comments_briefing(svc, project):
     for it in interactions.managed_item_types():
         body = _item_skill_body(project, it)
         assert "--full --comments" in body, (
-            f"sq-{it.value} skill is missing --full --comments briefing guidance"
+            f"sq-{it} skill is missing --full --comments briefing guidance"
         )
         # The Enter section specifically should carry the dossier instruction
         assert "show --full --comments" in body, (
-            f"sq-{it.value} Enter section missing 'show --full --comments'"
+            f"sq-{it} Enter section missing 'show --full --comments'"
         )
 
 

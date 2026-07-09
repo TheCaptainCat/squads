@@ -203,6 +203,14 @@ badge = "⚫"
 # Items (prefix / folder / lifecycle / parents / aliases)
 # Mirrors PREFIX_BY_TYPE / FOLDER_BY_TYPE / ALLOWED_PARENTS / TYPE_ALIASES exactly.
 # parents = [] means unconstrained (any parent or none is valid).
+#
+# `order` is the explicit CLI registration/display order (ascending; type name breaks
+# ties) — a float, deliberately spaced by 10 so a future type can be inserted between
+# two existing ones (even fractionally, e.g. 25.5 between task and bug) without
+# renumbering everything. Work types keep today's logical sequence; meta types
+# (role/skill/operator) come after them for completeness, though they register via
+# their own dedicated subcommands rather than this ordering. A type that omits
+# `order` defaults to +inf (ItemSpec.order) — sorts after every value declared here.
 # ---------------------------------------------------------------------------
 
 [items.epic]
@@ -211,6 +219,7 @@ folder = "epics"
 lifecycle = "work"
 parents = []
 aliases = ["e"]
+order = 10
 is_meta = false
 severity_field = false
 ref_rules = []
@@ -223,6 +232,7 @@ folder = "features"
 lifecycle = "work"
 parents = ["epic"]
 aliases = ["feat", "f"]
+order = 20
 is_meta = false
 subentity_kind = "story"
 severity_field = false
@@ -235,6 +245,7 @@ folder = "tasks"
 lifecycle = "work"
 parents = ["feature"]
 aliases = ["t"]
+order = 30
 is_meta = false
 subentity_kind = "subtask"
 severity_field = false
@@ -250,6 +261,7 @@ folder = "bugs"
 lifecycle = "bug"
 parents = []
 aliases = ["b"]
+order = 40
 is_meta = false
 severity_field = true
 ref_rules = []
@@ -262,6 +274,7 @@ folder = "adrs"
 lifecycle = "adr"
 parents = []
 aliases = ["dec", "d"]
+order = 50
 is_meta = false
 severity_field = false
 ref_rules = [{ kind = "supersedes", hint = "" }]
@@ -274,6 +287,7 @@ folder = "reviews"
 lifecycle = "review"
 parents = []
 aliases = ["rev", "r"]
+order = 60
 is_meta = false
 subentity_kind = "finding"
 severity_field = false
@@ -286,6 +300,7 @@ folder = "guides"
 lifecycle = "guide"
 parents = []
 aliases = ["g"]
+order = 70
 is_meta = false
 severity_field = false
 ref_rules = []
@@ -298,6 +313,7 @@ folder = "agents/roles"
 lifecycle = "agent"
 parents = []
 aliases = []
+order = 80
 is_meta = true
 severity_field = false
 ref_rules = []
@@ -310,6 +326,7 @@ folder = "agents/skills"
 lifecycle = "agent"
 parents = []
 aliases = []
+order = 90
 is_meta = true
 severity_field = false
 ref_rules = []
@@ -322,6 +339,7 @@ folder = "operators"
 lifecycle = "agent"
 parents = []
 aliases = []
+order = 100
 is_meta = true
 severity_field = false
 ref_rules = []

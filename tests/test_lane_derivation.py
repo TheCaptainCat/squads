@@ -146,7 +146,7 @@ class TestLanedTypes:
         """Every item type in PLAYBOOK is a laned type (they all appear in some lane)."""
         for item_type in PLAYBOOK:
             assert item_type in LANED_TYPES, (
-                f"PLAYBOOK type {item_type.value!r} not in LANED_TYPES — "
+                f"PLAYBOOK type {item_type!r} not in LANED_TYPES — "
                 "update CREATE_LANES if a new laned type is added."
             )
 

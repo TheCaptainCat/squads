@@ -21,7 +21,6 @@ from squads._errors import SquadsError
 from squads._models._enums import (
     PRIORITY_EMOJI,
     SEVERITY_EMOJI,
-    ItemType,
     Priority,
     Severity,
 )
@@ -609,7 +608,7 @@ def _is_full_id_shape(token: str) -> bool:
     return bool(sep) and tail.isdigit()
 
 
-async def resolve_agent_addr(token: str, item_type: ItemType, svc: Service) -> str:
+async def resolve_agent_addr(token: str, item_type: str, svc: Service) -> str:
     """Resolve a CLI address token for role/skill/operator to a full item ID.
 
     Resolution order (exact match only — no fuzzy):
@@ -625,9 +624,9 @@ async def resolve_agent_addr(token: str, item_type: ItemType, svc: Service) -> s
         return await resolve_item_id_typed(token, item_type, svc)
     # Path 3: treat as a slug — delegate to the service's authoritative slug lookup.
     _SLUG_LOOKUP = {
-        ItemType.ROLE: svc._role_item,  # pyright: ignore[reportPrivateUsage]
-        ItemType.SKILL: svc._skill_item,  # pyright: ignore[reportPrivateUsage]
-        ItemType.OPERATOR: svc._operator_item,  # pyright: ignore[reportPrivateUsage]
+        "role": svc._role_item,  # pyright: ignore[reportPrivateUsage]
+        "skill": svc._skill_item,  # pyright: ignore[reportPrivateUsage]
+        "operator": svc._operator_item,  # pyright: ignore[reportPrivateUsage]
     }
     lookup = _SLUG_LOOKUP.get(item_type)
     if lookup is not None:

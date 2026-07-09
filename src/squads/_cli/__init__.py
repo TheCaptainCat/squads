@@ -94,16 +94,15 @@ class _CustomTypeGroup(typer.core.TyperGroup):
             return merged
 
     def _custom_work_types_for_ctx(self, ctx: Any) -> frozenset[str]:
-        """Return the set of custom (non-built-in) work type names from the resolved spec.
+        """Return the set of custom work type names from the resolved spec.
 
-        Safe to call at any time; returns the empty set on any error.
+        "Custom" here means "not already registered by the static import-time loop"
+        (``_STATIC_TYPES``) — i.e. anything a project's own workflow override adds on top
+        of the bundled spec. Safe to call at any time; returns the empty set on any error.
         """
         try:
-            from squads._models._enums import ItemType
-
             spec = self._resolve_spec_for_ctx(ctx)
-            built_in_names: frozenset[str] = frozenset(t.value for t in ItemType)
-            return frozenset(t for t in spec.work_types() if t not in built_in_names)
+            return frozenset(t for t in spec.work_types() if t not in _STATIC_TYPES)
         except Exception:  # pylint: disable=broad-except
             return frozenset()
 
@@ -132,12 +131,10 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         # to let Click emit "No such command".
         try:
             from squads._cli._items import build_item_app
-            from squads._models._enums import ItemType
 
-            built_in_names: frozenset[str] = frozenset(t.value for t in ItemType)
-            if cmd_name in built_in_names:
-                # Built-ins are always in the static table; if we're here, it's genuinely
-                # unknown (shouldn't happen, but guard so we never shadow built-ins).
+            if cmd_name in _STATIC_TYPES:
+                # Statically-registered types are always in the static table; if we're here,
+                # it's genuinely unknown (shouldn't happen, but guard so we never shadow them).
                 return None
 
             spec = self._resolve_spec_for_ctx(ctx)
@@ -289,7 +286,6 @@ from squads._cli import (  # noqa: E402
     _workflow_cmd,
 )
 from squads._cli import _main as _main  # noqa: E402
-from squads._models._enums import ItemType  # noqa: E402
 from squads._workflow import bundled_spec as _bundled_spec  # noqa: E402
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
@@ -312,24 +308,24 @@ app.add_typer(
 )
 
 # Resource-oriented item groups: `sq <type> <num> <verb> …`.
-# Build each type's sub-app once from the BUNDLED spec, then register it under its canonical
-# name and any hidden aliases so every alias routes to the identical command tree.
+# Build one sub-app per type declared in the BUNDLED spec — built-in and (bundled-declared)
+# custom alike go through this one loop, then register each under its canonical name and any
+# hidden aliases so every alias routes to the identical command tree.
 #
 # The bundled spec is the source of truth for the STATIC (import-time) registration loop —
-# this gives byte-identical --help output for non-custom squads (AC#7).  Custom types declared
-# in a project's .overrides/workflow.toml are handled lazily by _CustomTypeGroup.get_command
+# this gives byte-identical --help output for non-custom squads (AC#7).  Types added later by
+# a project's own .overrides/workflow.toml (not present in the bundled spec at import time,
+# so impossible to register statically) are handled lazily by _CustomTypeGroup.get_command,
 # which fires AFTER --dir is resolved and the active spec is bound.
 _spec = _bundled_spec()
-# Work types in declaration order (stable for CLI registration and help output).
-# Only non-meta (work) types that belong to the built-in ItemType enum get static registration;
-# custom spec types are deferred to the lazy-dispatch group.
-_builtin_work_type_names: frozenset[str] = frozenset(
-    t for t in _spec.work_types() if t in frozenset(e.value for e in ItemType)
-)
-# Preserve declaration order from ItemType (the spec's managed_types is a frozenset, unordered).
-_ORDERED_WORK_TYPES: list[str] = [t.value for t in ItemType if t.value in _builtin_work_type_names]
+# Deterministic registration order: each type's explicit ItemSpec.order (ascending), the
+# type-name string breaking ties. This is an explicit, documented ordering key — independent
+# of default_workflow.toml's own [items.*] table order — so neither a reshuffle of the
+# bundled TOML nor a project override can silently reorder `sq --help`. A type that omits
+# `order` defaults to +inf (see ItemSpec.order) and sorts after every bundled type.
+_STATIC_TYPES: list[str] = sorted(_spec.work_types(), key=lambda t: (_spec.items[t].order, t))
 
-for _type_str in _ORDERED_WORK_TYPES:
+for _type_str in _STATIC_TYPES:
     _type_app = _items.build_item_app(_type_str)
     app.add_typer(
         _type_app,

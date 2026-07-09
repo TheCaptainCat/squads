@@ -31,7 +31,6 @@ from squads._cli._common import (
     resolve_agent_addr,
     resolve_item_id_any,
 )
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import DEFAULT_KIND, split_ref
 
@@ -84,7 +83,7 @@ async def _resolve_addr(
 ) -> None:
     svc = get_service()
     ctx.ensure_object(dict)
-    ctx.obj = {"id": await resolve_agent_addr(addr, ItemType.SKILL, svc)}
+    ctx.obj = {"id": await resolve_agent_addr(addr, "skill", svc)}
 
 
 @_addr.command("show")

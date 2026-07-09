@@ -33,7 +33,6 @@ from squads._cli._common import (
 )
 from squads._errors import SquadsError
 from squads._interactions import allowed_create_types
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_role
@@ -126,11 +125,11 @@ async def _resolve_addr(
     # Detect numeric or full-ID-shaped tokens (TYPE-NNNNNN).
     if t.isdigit() or _is_full_id_shape(t):
         # Numeric or full-ID tokens: strict DB resolution — wrong-type errors bubble up.
-        ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, ItemType.ROLE, svc)
+        ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
     else:
         # Slug token: try DB; if not found, store None so show() can render a bundled card.
         try:
-            ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, ItemType.ROLE, svc)
+            ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
         except SquadsError:
             ctx.obj[_ID_KEY] = None
 
@@ -180,7 +179,7 @@ async def show_role(
                     "model": r.model,
                     "is_default": r.is_default,
                     "can_spawn": r.can_spawn,
-                    "create_lane": sorted(t.value for t in allowed_create_types(slug)),
+                    "create_lane": sorted(allowed_create_types(slug)),
                     "responsibilities": list(r.responsibilities),
                 }
             )
@@ -195,7 +194,7 @@ async def show_role(
                         "model": it3.extra.get(X.MODEL),
                         "is_default": it3.extra.get(X.IS_DEFAULT, False),
                         "can_spawn": it3.extra.get(X.CAN_SPAWN, False),
-                        "create_lane": sorted(t.value for t in allowed_create_types(slug)),
+                        "create_lane": sorted(allowed_create_types(slug)),
                         "responsibilities": it3.extra.get(X.RESPONSIBILITIES, []),
                     }
                 )
@@ -207,7 +206,7 @@ async def show_role(
     # Build the catalog card from the resolved role definition (project override → bundled).
     try:
         r = resolve_role(slug, svc.paths.squad_dir)
-        lane_types = sorted(t.value for t in allowed_create_types(slug))
+        lane_types = sorted(allowed_create_types(slug))
         creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
         rows = [
             f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",

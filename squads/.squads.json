@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.6.0",
-  "counter": 331,
+  "counter": 332,
   "padding": 6,
   "items": {
     "12": {
@@ -2227,7 +2227,8 @@
       "priority": null,
       "labels": [],
       "refs": [
-        "FEAT-208"
+        "FEAT-208",
+        "EPIC-325:depends-on"
       ],
       "subentities": [
         {
@@ -2265,7 +2266,7 @@
       ],
       "path": "features/FEAT-000231-ground-up-test-battery-behavior-named-fast-redundancy-pruned.md",
       "created_at": "2026-06-26T09:33:10Z",
-      "updated_at": "2026-06-26T14:38:35Z",
+      "updated_at": "2026-07-08T08:39:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12298,7 +12299,7 @@
       "type": "epic",
       "title": "Complete the generic item engine",
       "slug": "complete-the-generic-item-engine",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Finish the spec-is-sole-vocabulary arc: generic types/statuses/sub-entity kinds/badges, reserved surface = meta-types + agent-lifecycle only",
       "parent": null,
       "author": "product-owner",
@@ -12315,7 +12316,7 @@
       "subentities": [],
       "path": "epics/EPIC-000325-complete-the-generic-item-engine.md",
       "created_at": "2026-07-07T14:37:01Z",
-      "updated_at": "2026-07-07T14:37:33Z",
+      "updated_at": "2026-07-08T08:30:13Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12326,7 +12327,7 @@
       "type": "feature",
       "title": "Remove the ItemType + Status enums — generic item engine",
       "slug": "remove-the-itemtype-status-enums-generic-item-engine",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "Delete ItemType/Status enums; spec becomes sole type+status vocabulary; reserved floor = meta-types + agent-lifecycle only",
       "parent": "EPIC-325",
       "author": "product-owner",
@@ -12372,7 +12373,7 @@
       ],
       "path": "features/FEAT-000326-remove-the-itemtype-status-enums-generic-item-engine.md",
       "created_at": "2026-07-07T14:37:36Z",
-      "updated_at": "2026-07-07T14:58:59Z",
+      "updated_at": "2026-07-08T08:25:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12383,7 +12384,7 @@
       "type": "feature",
       "title": "Spec badge collections for priority/severity",
       "slug": "spec-badge-collections-for-priority-severity",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Priority/Severity enums -> spec badge collections; Collection/Field/Badge model; CLI derives --<field> generically",
       "parent": "EPIC-325",
       "author": "product-owner",
@@ -12430,7 +12431,7 @@
       ],
       "path": "features/FEAT-000327-spec-badge-collections-for-priority-severity.md",
       "created_at": "2026-07-07T14:38:59Z",
-      "updated_at": "2026-07-07T14:40:30Z",
+      "updated_at": "2026-07-08T08:30:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12441,7 +12442,7 @@
       "type": "task",
       "title": "Delete ItemType enum + RESERVED maps; spec-only type vocabulary",
       "slug": "delete-itemtype-enum-reserved-maps-spec-only-type-vocabulary",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": "FEAT-326",
       "author": "tech-lead",
@@ -12477,7 +12478,7 @@
       ],
       "path": "tasks/TASK-000328-delete-itemtype-enum-reserved-maps-spec-only-type-vocabulary.md",
       "created_at": "2026-07-07T14:50:23Z",
-      "updated_at": "2026-07-07T14:52:41Z",
+      "updated_at": "2026-07-08T08:30:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12488,7 +12489,7 @@
       "type": "task",
       "title": "Generic playbook + CLI type registration from spec.items",
       "slug": "generic-playbook-cli-type-registration-from-spec-items",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-326",
       "author": "tech-lead",
@@ -12500,7 +12501,7 @@
         {
           "local_id": "ST1",
           "title": "Playbook keyed by str; coverage over work_types(); thin auto-skill fallback",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3"
@@ -12508,7 +12509,7 @@
         {
           "local_id": "ST2",
           "title": "CLI registers all spec.items types dynamically in deterministic order",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3"
@@ -12516,7 +12517,7 @@
         {
           "local_id": "ST3",
           "title": "SUBENTITY_* + sq check subtask literal rederive from spec",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3"
@@ -12524,7 +12525,7 @@
       ],
       "path": "tasks/TASK-000329-generic-playbook-cli-type-registration-from-spec-items.md",
       "created_at": "2026-07-07T14:50:23Z",
-      "updated_at": "2026-07-07T14:52:51Z",
+      "updated_at": "2026-07-08T11:36:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12535,7 +12536,7 @@
       "type": "task",
       "title": "Delete Status enum; narrow floor + completion-flag machine binding",
       "slug": "delete-status-enum-narrow-floor-completion-flag-machine-bind",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": "FEAT-326",
       "author": "tech-lead",
@@ -12571,7 +12572,7 @@
       ],
       "path": "tasks/TASK-000330-delete-status-enum-narrow-floor-completion-flag-machine-bind.md",
       "created_at": "2026-07-07T14:50:24Z",
-      "updated_at": "2026-07-07T14:53:00Z",
+      "updated_at": "2026-07-08T08:30:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12582,7 +12583,7 @@
       "type": "task",
       "title": "Freeze migration vocabulary + additive prefix-line normalization",
       "slug": "freeze-migration-vocabulary-additive-prefix-line-normalizati",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": "FEAT-326",
       "author": "tech-lead",
@@ -12610,11 +12611,35 @@
       ],
       "path": "tasks/TASK-000331-freeze-migration-vocabulary-additive-prefix-line-normalizati.md",
       "created_at": "2026-07-07T14:50:25Z",
-      "updated_at": "2026-07-07T14:53:08Z",
+      "updated_at": "2026-07-08T08:30:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "TASK-331"
+    },
+    "332": {
+      "sequence_id": 332,
+      "type": "task",
+      "title": "Parallelize the pytest suite with pytest-xdist",
+      "slug": "parallelize-the-pytest-suite-with-pytest-xdist",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-231"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000332-parallelize-the-pytest-suite-with-pytest-xdist.md",
+      "created_at": "2026-07-08T08:43:08Z",
+      "updated_at": "2026-07-08T08:43:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-332"
     }
   }
 }

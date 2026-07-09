@@ -6,6 +6,8 @@ The golden-lock (test_workflow_spec.py) is the behavioral regression gate; this 
 is the forward-looking surface test for the capability flags introduced in TASK-000233.
 """
 
+import math
+
 import pytest
 
 from squads._errors import SquadsError
@@ -71,6 +73,16 @@ def test_subentity_kind_values(spec: WorkflowSpec) -> None:
         ItemType.OPERATOR,
     ):
         assert spec.items[t].subentity_kind is None, f"{t.value} should have subentity_kind=None"
+
+
+def test_item_subentity_kind_returns_none_for_unknown_type(spec: WorkflowSpec) -> None:
+    """item_subentity_kind degrades gracefully (None) for a type not declared in the spec.
+
+    A dropped/renamed type must cleanly lose its sub-entity check rather than raise
+    KeyError — not triggerable via today's additive-only overrides, but the eventual
+    type drop/rename support must not crash the sq-check helpers that call this.
+    """
+    assert spec.item_subentity_kind("not-a-real-type") is None
 
 
 # ---------------------------------------------------------------------------
@@ -428,4 +440,55 @@ def test_bundled_spec_loads_with_new_flags() -> None:
     assert spec.items[ItemType.TASK].parent_required == "feature"
     assert spec.items[ItemType.BUG].severity_field is True
     assert spec.items[ItemType.ROLE].is_meta is True
+
+
+# ---------------------------------------------------------------------------
+# ItemSpec.order — explicit CLI registration/display order, float, +inf default
+# ---------------------------------------------------------------------------
+
+
+def test_order_is_float_with_gapped_values_and_logical_sequence() -> None:
+    """Bundled work types carry ascending float `order` values in today's logical sequence."""
+    spec = load_workflow_spec()
+    sequence = ["epic", "feature", "task", "bug", "decision", "review", "guide"]
+    orders = [spec.items[t].order for t in sequence]
+    assert orders == sorted(orders), f"{sequence} orders not ascending: {orders}"
+    assert all(isinstance(o, float) for o in orders)
+    # Gapped (spaced by 10), not consecutive integers — room to insert between any two.
+    assert orders == [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0]
+
+
+def test_order_omitted_defaults_to_positive_infinity() -> None:
+    """A type that omits `order` defaults to +inf — sorts after every explicit value."""
+    assert ItemSpec(prefix="INC", folder="incidents", lifecycle="work").order == math.inf
+
+
+def test_fractional_custom_order_sorts_between_two_bundled_types() -> None:
+    """A custom type with a fractional order (e.g. 35.5) lands between task (30) and bug (40).
+
+    Exercises the exact sort key the CLI's static registration loop uses
+    (``key=lambda t: (spec.items[t].order, t)``) so insertion-without-renumbering is proven
+    at the data level, independent of the CLI's lazy dynamic-dispatch path for
+    project-declared custom types (which is unaffected by `order` and always sorts
+    alphabetically after every statically-registered type).
+    """
+    base = load_workflow_spec()
+    new_items = dict(base.items)
+    new_items["incident"] = ItemSpec(prefix="INC", folder="incidents", lifecycle="work", order=35.5)
+    spec = WorkflowSpec.model_validate(
+        {
+            "items": new_items,
+            "statuses": base.statuses,
+            "lifecycles": base.lifecycles,
+            "prefix_to_type": {**base.prefix_to_type, "INC": "incident"},
+            "alias_to_type": base.alias_to_type,
+        }
+    )
+    ordered = sorted(spec.work_types(), key=lambda t: (spec.items[t].order, t))
+    task_idx = ordered.index("task")
+    bug_idx = ordered.index("bug")
+    incident_idx = ordered.index("incident")
+    assert task_idx < incident_idx < bug_idx, (
+        f"expected incident (order=35.5) between task (30) and bug (40); got {ordered}"
+    )
     assert spec.statuses[Status.SUPERSEDED].role == "superseded"

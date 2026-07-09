@@ -42,7 +42,7 @@ from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
-from squads._services._base import SUBENTITY_KIND, ServiceCore
+from squads._services._base import ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
@@ -1057,7 +1057,11 @@ class MaintenanceMixin(ServiceCore):
     def _check_subentity_status(self, index: SquadsDB) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
         for item in index.items.values():
-            kind = SUBENTITY_KIND.get(item.type)
+            # Routed through the ACTIVE resolved spec (not the bundled-only SUBENTITY_KIND
+            # constant) so a project override that renames/drops a type's subentity_kind is
+            # reflected here too — a dropped/renamed type cleanly loses this check instead of
+            # silently keeping (or silently missing) it.
+            kind = self.spec.item_subentity_kind(item.type)
             if kind is None:
                 continue
             valid = self.spec.subentity_workflow(kind).states
@@ -1118,7 +1122,7 @@ class MaintenanceMixin(ServiceCore):
         """
         issues: list[CheckIssue] = []
         for item in index.items.values():
-            kind = SUBENTITY_KIND.get(item.type)
+            kind = self.spec.item_subentity_kind(item.type)
             if kind is None or not item.subentities:
                 continue
             entry = on_disk.get(item.sequence_id)
@@ -1183,8 +1187,7 @@ class MaintenanceMixin(ServiceCore):
                 )
         return issues
 
-    @staticmethod
-    def _check_subentity_title_lengths(index: SquadsDB) -> list[CheckIssue]:
+    def _check_subentity_title_lengths(self, index: SquadsDB) -> list[CheckIssue]:
         """Advisory: flag sub-entity titles longer than TITLE_ADVISORY_MAX chars.
 
         Read-only — does not mutate any item. Each over-long title emits a warn-level
@@ -1193,7 +1196,7 @@ class MaintenanceMixin(ServiceCore):
         """
         issues: list[CheckIssue] = []
         for item in index.items.values():
-            kind = SUBENTITY_KIND.get(item.type)
+            kind = self.spec.item_subentity_kind(item.type)
             if kind is None:
                 continue
             issues.extend(

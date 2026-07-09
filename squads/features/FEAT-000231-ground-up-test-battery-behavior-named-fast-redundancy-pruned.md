@@ -7,6 +7,7 @@ status: Draft
 author: qa
 refs:
 - FEAT-208
+- EPIC-325:depends-on
 subentities:
 - local_id: US1
   title: Behavior-named tests, not development archaeology
@@ -21,7 +22,7 @@ subentities:
   title: Coverage ledger preserves previously-caught bugs
   status: Todo
 created_at: '2026-06-26T09:33:10Z'
-updated_at: '2026-06-26T14:38:35Z'
+updated_at: '2026-07-08T08:39:38Z'
 ---
 <!-- sq:body -->
 ## Overview
@@ -309,4 +310,10 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
     4. Failure/edge surface (FIRST-CLASS, the part the old suite lacked) — invalid/unknown vocab at the load boundary, malformed spec, reserved-vocab violations, override-merge conflicts, custom-type/status scenarios.
     
     Motivating case = the FEAT-208 F1 miss: a 1247-test suite missed that corrupt frontmatter (an invalid type/status) is silently indexed then crashes sq check — because the bad-vocab path never existed under enums and was never characterized. Genericity opened the failure mode; the battery must cover it. Net: fewer per-type tests, but the genericity earns its own validation/edge pile — budget for it explicitly. Pairs with the FORCE_COLOR / has_dev / is-vs-== entries in the coverage ledger.
+- [2026-07-08T08:36:29Z] Catherine Manager:
+  - Scheduled into the 0.8 release by op-pierre, sequenced AFTER EPIC-325 (the spec/generic-engine rewrite) — depends-on EPIC-325 added. Rationale: (1) perf — the current ~4-min suite is not acceptable; the rewrite must land a dramatically faster suite (QA to set a concrete wall-clock target, sub-minute goal). (2) quality — the tests are a mess: dev-archaeology names, FEAT-000NNN refs, and redundant CLI smokes, per this feature's own overview.
+  - Deferred until EPIC-325 lands so the battery is written against the FINAL generic spec engine (byte-identical-default behaviour, no ItemType/Status enums), not a moving target. Kept OFF the EPIC-325 critical path — the enum/badge golden fallout from FEAT-326/327 is still owned inside those features, not here.
+  - Before dispatch (post-EPIC-325): @qa to add a concrete perf-target acceptance criterion and @tech-lead to break this into tasks + re-baseline scope against the shipped engine. Staying Draft until that prose refresh; then Ready.
+- [2026-07-08T08:39:38Z] Catherine Manager:
+  - Design inputs from op-pierre (scope for the rewrite): (1) Parallelize with pytest-xdist — run '-n auto' across available cores. Largely orthogonal to the rewrite (a config + dep add) and likely the single biggest cheap wall-clock win; the scale/slow tests that dominate today parallelize well. (2) The behavioural WHY: agents re-run the full suite 3-4x back-to-back even when explicitly told not to, repeatedly — prompt discipline alone doesn't hold (cf. the main-loop-owns-the-suite + run-once-to-a-file guidance). So the design goal is to make a re-run CHEAP enough that the thrash is harmless, not to rely on instructions suppressing it. Target framing: sub-minute full run via xdist + marking/excluding slow scale tests by default, full sweep explicit/CI.
 <!-- sq:discussion:end -->
