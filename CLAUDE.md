@@ -152,6 +152,26 @@ file, and read the file (`uv run pytest -q > "$CLAUDE_JOB_DIR/tmp/pytest.log" 2>
 `tail`/`grep` the log) — never re-run the whole suite just to reslice its output. While iterating
 on a fix, use `--lf` / `-x` / a path selector instead of the full sweep.
 
+### Dead-code scan (vulture) — periodic, non-gating
+
+`uv run vulture` finds dead top-level functions/classes/constants that ruff/pyright can't
+(they only catch unused *locals* and *imports*). It is **not** part of the `pyright`/`ruff`
+commit gate and is **not** wired into CI — run it periodically (e.g. during a hygiene sweep)
+and triage its output by hand, the same way you'd read a linter report someone hands you.
+`[tool.vulture]` in `pyproject.toml` suppresses the known false-positive *categories* so a
+run stays near-pure signal: `ignore_decorators` covers every Typer command/callback shape,
+and `ignore_names` lists identifiers vulture can't see used because the call site is a
+runtime `getattr(obj, f"...")` dispatch rather than a static reference (pydantic's
+`model_config`, and the sub-entity `Service` methods dispatched from `_cli/_items.py`).
+When a new run surfaces an intentional false positive, add its exact name to `ignore_names`
+(or a decorator pattern to `ignore_decorators`) with a one-line reason — don't silence it by
+editing the flagged code, and prefer a real pattern only when one exists without masking
+genuinely dead code (e.g. don't add a broad `get_*`/`list_*` wildcard just to cover one or
+two names). Vulture also cannot parse this project's Python 3.14 PEP 758 parenthesis-less
+`except A, B:` — the (rare) multi-exception sites are parenthesized (`except (A, B):`) with
+a `# fmt: skip` so ruff's py314-target formatter doesn't strip the parens back off; this is
+now the project convention for any new multi-exception handler.
+
 ## Build scope
 
 This codebase implements all three originally planned build phases. The one explicitly deferred

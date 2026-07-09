@@ -31,7 +31,9 @@ def _load_manifest() -> dict[str, dict[str, str]]:
         raw = ref.read_text(encoding="utf-8")
         data: dict[str, dict[str, str]] = json.loads(raw)
         _manifest_cache = data
-    except FileNotFoundError, json.JSONDecodeError:
+    # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
+    # ruff's py314-target formatter would otherwise strip the parens back off.
+    except (FileNotFoundError, json.JSONDecodeError):  # fmt: skip
         _manifest_cache = {}
     return _manifest_cache
 
@@ -53,7 +55,9 @@ def current_template_hash(template_name: str) -> str | None:
     ref = pkg_resources.files("squads._rendering.templates") / template_name
     try:
         raw = ref.read_bytes()
-    except FileNotFoundError, IsADirectoryError:
+    # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
+    # ruff's py314-target formatter would otherwise strip the parens back off.
+    except (FileNotFoundError, IsADirectoryError):  # fmt: skip
         return None
     # Normalize CRLF → LF before hashing so the digest is identical on Windows
     # (where git may check out text files as CRLF) and Linux/macOS (LF only).
@@ -67,7 +71,9 @@ def bundled_template_content(template_name: str) -> str | None:
     ref = pkg_resources.files("squads._rendering.templates") / template_name
     try:
         return ref.read_text(encoding="utf-8")
-    except FileNotFoundError, IsADirectoryError:
+    # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
+    # ruff's py314-target formatter would otherwise strip the parens back off.
+    except (FileNotFoundError, IsADirectoryError):  # fmt: skip
         return None
 
 
