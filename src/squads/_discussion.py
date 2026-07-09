@@ -21,26 +21,18 @@ from squads._models import _markers as markers
 from squads._models._subentity import SubEntity
 from squads._rendering._engine import render
 from squads._sections import get_section, replace_section
-from squads._workflow import WorkflowSpec
+from squads._workflow import WorkflowSpec, bundled_spec
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
-_LOCAL_ID_PREFIX = {"story": "US", "subtask": "ST", "finding": "F"}
 
 # Matches the header line of a formatted comment, e.g.:
 #   - [2026-06-07T10:00:00Z] Author Name:
 _COMMENT_HEADER_RE = re.compile(r"^- \[([^\]]+)\] (.+?):$")
 
-_STORY_PLACEHOLDER = (
-    "_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance "
-    "criteria here — free-form paragraphs or bullet lists._"
-)
-_SUBTASK_PLACEHOLDER = "_Describe this subtask here — free-form paragraphs or bullet lists._"
-_FINDING_PLACEHOLDER = "_Describe the finding, its impact, and a recommendation — free-form._"
-_PLACEHOLDER = {
-    "story": _STORY_PLACEHOLDER,
-    "subtask": _SUBTASK_PLACEHOLDER,
-    "finding": _FINDING_PLACEHOLDER,
-}
+
+def _resolve_spec(spec: WorkflowSpec | None) -> WorkflowSpec:
+    """The given spec, or the bundled default for call sites that don't thread one."""
+    return spec if spec is not None else bundled_spec()
 
 
 # --------------------------------------------------------------------------- comments
@@ -133,16 +125,20 @@ def extract_mentions(text: str) -> set[str]:
 # --------------------------------------------------------------------------- ids / tags
 
 
-def local_id_for(kind: str, token: str) -> str:
-    """Normalize a CLI local-id token to its canonical form: ``2`` → ``STn``/``USn``/``Fn``."""
-    prefix = _LOCAL_ID_PREFIX[kind]
+def local_id_for(kind: str, token: str, spec: WorkflowSpec | None = None) -> str:
+    """Normalize a CLI local-id token to its canonical form: ``2`` → ``STn``/``USn``/``Fn``.
+
+    The prefix resolves from *kind*'s ``SubentityKindSpec.local_prefix`` in the given (or
+    bundled) spec.
+    """
+    prefix = _resolve_spec(spec).subentity_kinds[kind].local_prefix
     t = token.strip()
     return f"{prefix}{int(t)}" if t.isdigit() else t.upper()
 
 
-def next_local_id(subentities: list[SubEntity], kind: str) -> str:
+def next_local_id(subentities: list[SubEntity], kind: str, spec: WorkflowSpec | None = None) -> str:
     """The next free local id for ``kind``, computed from the parent's stored sub-entities."""
-    prefix = _LOCAL_ID_PREFIX[kind]
+    prefix = _resolve_spec(spec).subentity_kinds[kind].local_prefix
     nums = [
         int(s.local_id[len(prefix) :])
         for s in subentities
@@ -162,12 +158,29 @@ def _head_tag(kind: str, local_id: str) -> str:
 # --------------------------------------------------------------------------- block scaffold
 
 
-def body_placeholder(kind: str) -> str:
-    """The italic placeholder a freshly-scaffolded ``:body`` region holds until content is set."""
-    return _PLACEHOLDER[kind]
+def _generic_placeholder(kind: str) -> str:
+    """Scaffold prose for a kind that declares no explicit ``placeholder``."""
+    return f"_Describe this {kind} here — free-form paragraphs or bullet lists._"
 
 
-def build_block(kind: str, local_id: str, title: str = "", *, body: str | None = None) -> str:
+def body_placeholder(kind: str, spec: WorkflowSpec | None = None) -> str:
+    """The italic placeholder a freshly-scaffolded ``:body`` region holds until content is set.
+
+    Resolves ``SubentityKindSpec.placeholder``; a kind that declares none (``None``) falls
+    back to a generic kind-name-derived scaffold line.
+    """
+    ks = _resolve_spec(spec).subentity_kinds[kind]
+    return ks.placeholder or _generic_placeholder(kind)
+
+
+def build_block(
+    kind: str,
+    local_id: str,
+    title: str = "",
+    *,
+    body: str | None = None,
+    spec: WorkflowSpec | None = None,
+) -> str:
     """A sub-entity block: heading + empty ``:head`` + ``:body`` + ``:discussion``.
 
     State (status/assignee/severity/story) lives in the parent's frontmatter, not here. The skeleton
@@ -179,7 +192,7 @@ def build_block(kind: str, local_id: str, title: str = "", *, body: str | None =
         "subentities/block.md.j2",
         tag=f"{kind}:{local_id}",
         heading=heading,
-        body=body or _PLACEHOLDER[kind],
+        body=body or body_placeholder(kind, spec),
     )
 
 
@@ -252,24 +265,48 @@ def set_head(
 # --------------------------------------------------------------------------- summary table
 
 
-_SUMMARY_COLS: dict[str, tuple[str, ...]] = {
-    "subtask": ("Subtask", "Status", "Assignee", "Title", "Story"),
-    "story": ("Story", "Status", "Assignee", "Title"),
-    "finding": ("Finding", "Severity", "Status", "Assignee", "Title"),
-}
+def summary_columns(kind: str, spec: WorkflowSpec | None = None) -> list[str]:
+    """The header row for *kind*'s summary/list table.
+
+    Fixed base (local-id column headed by the kind name, then Status/Assignee/Title) + one
+    column per declared ``Field`` (headed by its ``label`` — e.g. Severity — inserted right
+    after the local-id column) + a trailing Story column iff the kind declares
+    ``maps_parent_story``. This is the single column-derivation shared by the body summary
+    table and the CLI list/show tables — never re-rolled per caller.
+    """
+    active_spec = _resolve_spec(spec)
+    field_labels = [f.label for f in active_spec.fields_for(kind)]
+    cols = [kind.title(), *field_labels, "Status", "Assignee", "Title"]
+    ks = active_spec.subentity_kinds.get(kind)
+    if ks is not None and ks.maps_parent_story:
+        cols.append("Story")
+    return cols
 
 
-def _summary_cells(kind: str, s: SubEntity, spec: WorkflowSpec | None = None) -> list[str]:
-    if kind == "finding":
-        sev = (
-            badges.badge_render(badges.resolve_collection(kind, "severity", spec), s.severity, spec)
-            if s.severity
-            else ""
+def _field_value(sub: SubEntity, code: str) -> str | None:
+    """The stored badge code for a declared field, read off the sub-entity's own attribute of
+    the same name (only ``severity`` has a typed storage slot today) — ``None`` for a field
+    with no storage slot yet, rather than a per-field special case."""
+    value = getattr(sub, code, None)
+    return value if isinstance(value, str) else None
+
+
+def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec | None = None) -> list[str]:
+    """One row aligned to :func:`summary_columns`: local id, field badges, base, then story."""
+    active_spec = _resolve_spec(spec)
+    field_cells = [
+        badges.badge_render(
+            badges.resolve_collection(kind, f.code, active_spec), value, active_spec
         )
-        return [s.local_id, sev, s.status, s.assignee or "", s.title]
-    if kind == "subtask":
-        return [s.local_id, s.status, s.assignee or "", s.title, s.story or ""]
-    return [s.local_id, s.status, s.assignee or "", s.title]
+        if (value := _field_value(sub, f.code))
+        else ""
+        for f in active_spec.fields_for(kind)
+    ]
+    row = [sub.local_id, *field_cells, sub.status, sub.assignee or "", sub.title]
+    ks = active_spec.subentity_kinds.get(kind)
+    if ks is not None and ks.maps_parent_story:
+        row.append(sub.story or "")
+    return row
 
 
 def render_summary(
@@ -282,12 +319,12 @@ def render_summary(
     """
     if not subentities:
         return ""
-    cols = _SUMMARY_COLS[kind]
+    cols = summary_columns(kind, spec)
     return render(
         "subentities/summary.md.j2",
-        cols=list(cols),
+        cols=cols,
         seps=["---"] * len(cols),
-        rows=[_summary_cells(kind, s, spec) for s in subentities],
+        rows=[summary_row(kind, s, spec) for s in subentities],
     )
 
 

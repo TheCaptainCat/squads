@@ -106,6 +106,28 @@ def test_severity_badge_falls_back_for_an_undeclared_code():
     assert badges.badge_render("severity", "nonexistent", as_label=True) == "⚪ Nonexistent"
 
 
+def test_custom_kind_summary_table_derives_columns_from_declared_fields():
+    """ADR-348 §5: a custom kind's summary table gets one column per declared field, headed
+    by its label, with no per-kind special-casing — severity is just the generic case."""
+    from squads._workflow import bundled_spec
+    from squads._workflow._models import Field, SubentityKindSpec
+
+    base = bundled_spec()
+    action = SubentityKindSpec(
+        lifecycle="subentity",
+        completion="Done",
+        plural="actions",
+        local_prefix="AC",
+        fields=[Field(code="impact", label="Impact", collection="severity")],
+    )
+    spec = base.model_copy(update={"subentity_kinds": {**base.subentity_kinds, "action": action}})
+
+    sub = SubEntity(local_id="AC1", title="Patch the leak", status="Todo")
+    out = discussion.render_summary("action", [sub], spec)
+    assert "| Action | Impact | Status | Assignee | Title |" in out
+    assert "AC1" in out and "Patch the leak" in out
+
+
 def test_set_head_renders_badges_into_empty_region():
     block = discussion.build_block("subtask", "ST1", "Validate")
     out = discussion.set_head(

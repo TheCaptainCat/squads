@@ -22,12 +22,20 @@ from squads._services._base import ServiceCore, subentity_container_map, subenti
 from squads._services._results import RetypeResult
 from squads._workflow._models import WorkflowSpec
 
-# Sub-entity container headings for each kind that has one.
-_CONTAINER_HEADINGS: dict[str, str] = {
+# Bundled sub-entity container headings — an explicit lookup because "User Stories" isn't
+# derivable from `plural` ("stories".title() == "Stories", not "User Stories"); a custom kind
+# falls back to its `plural` title-cased instead (see _container_heading).
+_BUNDLED_CONTAINER_HEADINGS: dict[str, str] = {
     "story": "User Stories",
     "subtask": "Subtasks",
     "finding": "Findings",
 }
+
+
+def _container_heading(spec: WorkflowSpec, kind: str) -> str:
+    """The container heading for *kind*: the bundled literal for a built-in kind, else its
+    declared ``plural`` title-cased (e.g. ``"actions"`` -> ``"Actions"``)."""
+    return _BUNDLED_CONTAINER_HEADINGS.get(kind) or spec.subentity_kinds[kind].plural.title()
 
 
 def _validate_work_types(spec: WorkflowSpec, old_type: str, new_type: str, old_id: str) -> None:
@@ -207,7 +215,7 @@ async def _ensure_subentity_container(spec: WorkflowSpec, new_type: str, path: P
         return
     container_tag = subentity_container_map(spec)[kind]
     text = await _aio.read_text(path)
-    heading = _CONTAINER_HEADINGS[kind]
+    heading = _container_heading(spec, kind)
     text = discussion.ensure_container(text, heading, container_tag)
     await _aio.write_text(path, text)
 
