@@ -107,21 +107,24 @@ def _validate_item_vocab(db: SquadsDB, spec: WorkflowSpec) -> None:
     for item in db.items.values():
         if item.type not in known_types:
             raise SquadsError(
-                f"item {item.id} has unknown type {item.type!r}; "
-                f"run `sq repair` if the index is stale, or check the frontmatter"
+                f"item {item.id} has type {item.type!r}, which the active spec no longer "
+                "declares; migrate or re-type this item before it can load again "
+                "(or run `sq repair` if the index itself is merely stale)"
             )
         if item.status not in known_statuses:
             raise SquadsError(
-                f"item {item.id} has unknown status {item.status!r}; "
-                f"run `sq repair` if the index is stale, or check the frontmatter"
+                f"item {item.id} has status {item.status!r}, which the active spec no "
+                "longer declares; migrate or re-type this item before it can load again "
+                "(or run `sq repair` if the index itself is merely stale)"
             )
         # F5: sub-entity statuses share the same vocabulary — validate each one too.
         for sub in item.subentities:
             if sub.status not in known_statuses:
                 raise SquadsError(
-                    f"item {item.id} sub-entity {sub.local_id} has unknown status "
-                    f"{sub.status!r}; run `sq repair` if the index is stale, or "
-                    f"check the frontmatter"
+                    f"item {item.id} sub-entity {sub.local_id} has status {sub.status!r}, "
+                    "which the active spec no longer declares; migrate or re-type this "
+                    "sub-entity before it can load again (or run `sq repair` if the index "
+                    "itself is merely stale)"
                 )
 
 
@@ -166,11 +169,10 @@ class IndexStore:
         """
         self.index_path = index_path
         self.lock_path = lock_path
-        self._lock_timeout = lock_timeout
         if spec is None:
-            from squads._workflow import bundled_spec as _bundled_spec_fn
+            from squads._workflow import bundled_spec
 
-            self._spec: WorkflowSpec = _bundled_spec_fn()
+            self._spec: WorkflowSpec = bundled_spec()
         else:
             self._spec = spec
         # Layer 3 — cross-process file lock. thread_local=False is safe because Layer 2

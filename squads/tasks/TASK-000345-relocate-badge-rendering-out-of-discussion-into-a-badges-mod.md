@@ -10,10 +10,11 @@ refs:
 - ADR-323
 - TASK-342:depends-on
 - TASK-343:depends-on
+- REV-346:addresses
 description: 'Pure move: _status_badge/resolve_collection/badge_render out of _discussion.py
   into top-level _badges.py; repoint callers; byte-identical, no golden change'
 created_at: '2026-07-09T12:18:37Z'
-updated_at: '2026-07-09T12:31:31Z'
+updated_at: '2026-07-09T14:55:02Z'
 ---
 <!-- sq:body -->
 ## What this delivers

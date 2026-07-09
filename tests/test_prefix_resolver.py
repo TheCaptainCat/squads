@@ -157,16 +157,14 @@ class TestEffectivePrefix:
     def test_returns_prefix_when_set(self) -> None:
         from squads._models._item import effective_prefix
 
-        assert effective_prefix("INC", "incident") == "INC"
-        assert effective_prefix("TASK", "task") == "TASK"
+        assert effective_prefix("INC") == "INC"
+        assert effective_prefix("TASK") == "TASK"
 
-    def test_degrades_to_sentinel_when_unset_regardless_of_type(self) -> None:
-        """Never a type.upper() guess — not even for a type where that would coincide."""
+    def test_degrades_to_sentinel_when_unset(self) -> None:
+        """Never a type.upper() guess."""
         from squads._models._item import UNRESOLVED_PREFIX, effective_prefix
 
-        assert effective_prefix("", "task") == UNRESOLVED_PREFIX
-        assert effective_prefix("", "decision") == UNRESOLVED_PREFIX
-        assert effective_prefix("", "review") == UNRESOLVED_PREFIX
+        assert effective_prefix("") == UNRESOLVED_PREFIX
 
 
 # ---------------------------------------------------------------------------

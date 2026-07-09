@@ -106,14 +106,14 @@ def has_template(template_name: str) -> bool:
     custom types can fall back to ``items/_default.md.j2`` without raising
     ``TemplateNotFound``.
     """
-    from jinja2 import TemplateNotFound as _TemplateNotFound
+    from jinja2 import TemplateNotFound
 
     env = _env()
     if env.loader is None:
         return False
     try:
         env.loader.get_source(env, template_name)
-    except _TemplateNotFound:
+    except TemplateNotFound:
         return False
     return True
 

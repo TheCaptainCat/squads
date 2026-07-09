@@ -16,6 +16,7 @@ from rich.markup import escape
 from rich.panel import Panel
 
 from squads import __version__, _clock
+from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._errors import SquadsError
 from squads._models._item import (
@@ -31,7 +32,7 @@ from squads._models._subentity import SubEntity
 from squads._paths import resolve
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
-from squads._workflow import bundled_spec as _bundled_spec
+from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 console = Console()
@@ -70,7 +71,7 @@ def set_active_spec(spec: WorkflowSpec | None) -> None:
 
 def get_active_spec() -> WorkflowSpec:
     """Return the per-invocation spec, or the bundled spec if none has been bound yet."""
-    return _active_spec if _active_spec is not None else _bundled_spec()
+    return _active_spec if _active_spec is not None else bundled_spec()
 
 
 def apply_timestamp(at: str | None) -> None:
@@ -158,7 +159,7 @@ def _build_item_panel_rows(it: Item) -> list[str]:
     for field in spec.fields_for(it.type):
         val = it.badge_value(field.code)
         if val:
-            rendered = discussion.badge_render(field.collection, val, spec)
+            rendered = badges.badge_render(field.collection, val, spec)
             rows.append(f"[bold]{field.code}:[/bold] {e(rendered)}")
     if it.description:
         rows.append(f"[bold]summary:[/bold] {e(it.description)}")
@@ -199,14 +200,12 @@ def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
     into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
     (plain path) use this value directly so no backslashes leak.
     """
-    status_badge = discussion._status_badge(  # pyright: ignore[reportPrivateUsage]
-        sub.status, get_active_spec()
-    )
+    status_badge = badges.status_badge(sub.status, get_active_spec())
     parts = [f"{sub.local_id} — {sub.title}  {status_badge}"]
     if kind == "finding" and sub.severity:
         spec = get_active_spec()
-        coll = discussion.resolve_collection(kind, "severity", spec)
-        sev_badge = discussion.badge_render(coll, sub.severity, spec, as_label=True)
+        coll = badges.resolve_collection(kind, "severity", spec)
+        sev_badge = badges.badge_render(coll, sub.severity, spec, as_label=True)
         parts.append(sev_badge)
     if sub.assignee:
         parts.append(sub.assignee)
@@ -367,10 +366,10 @@ def _print_subentity_summary(it: Item) -> None:
         table.add_column(col)
 
     spec = get_active_spec()
-    sev_coll = discussion.resolve_collection(kind, "severity", spec)
+    sev_coll = badges.resolve_collection(kind, "severity", spec)
     for sub in it.subentities:
         if kind == "finding":
-            sev_str = discussion.badge_render(sev_coll, sub.severity, spec) if sub.severity else ""
+            sev_str = badges.badge_render(sev_coll, sub.severity, spec) if sub.severity else ""
             table.add_row(sub.local_id, sev_str, sub.status, e(sub.assignee or ""), e(sub.title))
         elif kind == "subtask":
             table.add_row(
@@ -601,7 +600,7 @@ async def resolve_item_id_any(token: str, svc: Service) -> str:
         raise SquadsError(f"no item with number {seq} (use a full ID like {hint} or bare {seq})")
 
     if given_prefix is not None:
-        expected_prefix = effective_prefix(item.prefix, item.type)
+        expected_prefix = effective_prefix(item.prefix)
         if given_prefix != expected_prefix:
             raise SquadsError(f"{token} is {item.id} ({item.type})")
 
@@ -753,7 +752,7 @@ def parse_badge_code(collection_code: str, value: str, spec: WorkflowSpec | None
     The one generic value-parser for every flat badge axis (priority/severity/a project's
     own custom axis) — replaces the former hand-written pair of per-axis parsers.
     ``collection_code`` is usually a field's own ``.collection`` (resolved via
-    :func:`squads._discussion.resolve_collection` at the call site).
+    :func:`squads._badges.resolve_collection` at the call site).
     """
     active_spec = spec if spec is not None else get_active_spec()
     coll = active_spec.collections.get(collection_code)

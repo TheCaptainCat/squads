@@ -22,13 +22,6 @@ def read_frontmatter(path: Path | None = None, *, text: str | None = None) -> di
     return split_frontmatter(text)[0]
 
 
-async def load_item(path: Path, *, squad_relative: str) -> Item:
-    """Read and parse the item file on a worker thread."""
-    text = await _aio.read_text(path)
-    data = split_frontmatter(text)[0]
-    return Item.from_frontmatter(data, path=squad_relative)
-
-
 async def write_new(path: Path, item: Item, rendered_body: str) -> None:
     """Create a brand-new item file: frontmatter + the rendered (templated) body."""
     text = join_frontmatter(item.to_frontmatter_dict(), rendered_body)

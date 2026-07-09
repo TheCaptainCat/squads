@@ -16,7 +16,7 @@ from rich.table import Table
 
 import squads._cli._common as common
 from squads import _actor as actor
-from squads import _discussion as discussion
+from squads import _badges as badges
 from squads._cli._common import (
     console,
     e,
@@ -42,13 +42,13 @@ from squads._models._subentity import SubEntity
 
 #: The bundled default's finding severity field's bound collection code — resolved fresh at
 #: each call site via ``get_active_spec()`` (this constant is only the *fallback* used by
-#: :func:`squads._discussion.resolve_collection` when a live field can't be found).
+#: :func:`squads._badges.resolve_collection` when a live field can't be found).
 _SEVERITY_FIELD_CODE = "severity"
 
 
 def _severity_collection() -> str:
     """The collection the ``finding`` kind's ``severity`` field is bound to (spec-derived)."""
-    return discussion.resolve_collection("finding", _SEVERITY_FIELD_CODE, common.get_active_spec())
+    return badges.resolve_collection("finding", _SEVERITY_FIELD_CODE, common.get_active_spec())
 
 
 # Built-in sub-entity map (keyed by string so custom-type strings compare cleanly).
@@ -324,10 +324,8 @@ def _cmd_remove(item: typer.Typer) -> None:
         svc = get_service()
         res = await svc.remove_work_item(item_id, force=force)
         if json_out:
-            import json as _json
-
             print_json_clean(
-                _json.dumps(
+                json.dumps(
                     {
                         "removed_id": res.removed_id,
                         "severed_refs": res.severed_refs,
@@ -431,7 +429,7 @@ def _sub_table(kind: str, blocks: list[SubEntity]) -> None:
         table.add_column(col)
     for b in blocks:
         if kind == "finding":
-            sev = discussion.badge_render(_severity_collection(), b.severity) if b.severity else ""
+            sev = badges.badge_render(_severity_collection(), b.severity) if b.severity else ""
             table.add_row(b.local_id, sev, b.status, b.assignee or "", e(b.title))
         elif kind == "subtask":
             table.add_row(b.local_id, b.status, b.assignee or "", e(b.title), b.story or "")

@@ -13,7 +13,7 @@ import json
 from typing import Any, ClassVar
 
 import typer
-import typer._click as _click
+import typer._click as _click  # underscore is upstream's own private module path, not ours
 import typer.core
 import typer.main
 
@@ -30,7 +30,7 @@ from squads._cli._common import (
 )
 from squads._models._extras import ExtraKey as X
 from squads._models._item import make_ref, split_ref
-from squads._workflow import bundled_spec as _bundled_spec
+from squads._workflow import bundled_spec
 
 
 def _build_create_cmd(item_type_str: str) -> _click.Command:
@@ -215,7 +215,7 @@ create_app = typer.Typer(
 # ties) — no hand-maintained type tuple. `guide` is excluded — it gets its own command below
 # with extra --tech/--tag options; role/skill/operator are meta-types with their own
 # dedicated commands, never `sq create`.
-_create_spec = _bundled_spec()
+_create_spec = bundled_spec()
 _CREATABLE: tuple[str, ...] = tuple(
     t
     for t in sorted(_create_spec.work_types(), key=lambda t: (_create_spec.items[t].order, t))

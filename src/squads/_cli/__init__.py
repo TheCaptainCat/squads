@@ -5,7 +5,7 @@ import sys
 from typing import Any, ClassVar
 
 import typer
-import typer._click as _click
+import typer._click as _click  # underscore is upstream's own private module path, not ours
 import typer.core
 import typer.main
 
@@ -61,7 +61,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         Always returns a ``WorkflowSpec`` (never raises).
         """
         try:
-            from squads._workflow import bundled_spec as _bundled_spec
+            from squads._workflow import bundled_spec
             from squads._workflow._loader import (
                 WORKFLOW_OVERRIDE_FILENAME,
                 load_workflow_spec,
@@ -80,12 +80,12 @@ class _CustomTypeGroup(typer.core.TyperGroup):
                 dir_override = ctx.params.get("dir")
 
             # Resolve the spec for the given dir (same logic as _bind_active_spec).
-            from squads._paths import resolve as _resolve
+            from squads._paths import resolve
 
-            sp = _resolve(dir_override)
+            sp = resolve(dir_override)
             override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
             if not override_path.is_file():
-                return _bundled_spec()
+                return bundled_spec()
             merged = load_workflow_spec(squad_dir=sp.squad_dir)
             validate_against_index_fail_closed(merged, sp.squad_dir)
         except Exception:  # pylint: disable=broad-except
@@ -211,18 +211,18 @@ def _bind_active_spec(dir_override: str | None) -> None:
     ``sq`` outside a squad still work.
     """
     try:
-        from squads._paths import resolve as _resolve
-        from squads._workflow import bundled_spec as _bundled_spec
+        from squads._paths import resolve
+        from squads._workflow import bundled_spec
         from squads._workflow._loader import (
             WORKFLOW_OVERRIDE_FILENAME,
             load_workflow_spec,
             validate_against_index_fail_closed,
         )
 
-        sp = _resolve(dir_override)
+        sp = resolve(dir_override)
         override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
         if not override_path.is_file():
-            common.set_active_spec(_bundled_spec())
+            common.set_active_spec(bundled_spec())
             return
 
         merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
@@ -286,7 +286,7 @@ from squads._cli import (  # noqa: E402
     _workflow_cmd,
 )
 from squads._cli import _main as _main  # noqa: E402
-from squads._workflow import bundled_spec as _bundled_spec  # noqa: E402
+from squads._workflow import bundled_spec  # noqa: E402
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
@@ -317,7 +317,7 @@ app.add_typer(
 # a project's own .overrides/workflow.toml (not present in the bundled spec at import time,
 # so impossible to register statically) are handled lazily by _CustomTypeGroup.get_command,
 # which fires AFTER --dir is resolved and the active spec is bound.
-_spec = _bundled_spec()
+_spec = bundled_spec()
 # Deterministic registration order: each type's explicit ItemSpec.order (ascending), the
 # type-name string breaking ties. This is an explicit, documented ordering key — independent
 # of default_workflow.toml's own [items.*] table order — so neither a reshuffle of the
@@ -333,7 +333,6 @@ for _type_str in _STATIC_TYPES:
         help=f"Operate on a {_type_str} by number.",
     )
     # Aliases come from the spec's ItemSpec.aliases — the single source of truth.
-    # (TYPE_ALIASES in _enums.py is a non-authoritative shim kept for legacy consumers.)
     for _alias in _spec.items[_type_str].aliases:
         app.add_typer(_type_app, name=_alias, hidden=True)
 

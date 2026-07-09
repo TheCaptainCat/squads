@@ -3,13 +3,14 @@ id: TASK-339
 sequence_id: 339
 type: task
 title: Lead vocab-validation errors with the dropped-type cause, not sq repair
-status: Draft
+status: InReview
 author: tech-lead
+assignee: python-dev
 refs:
 - ADR-322
 - FEAT-281
 created_at: '2026-07-08T16:13:06Z'
-updated_at: '2026-07-08T16:13:51Z'
+updated_at: '2026-07-09T14:59:50Z'
 ---
 <!-- sq:body -->
 ## What this fixes
@@ -85,4 +86,6 @@ _Add with `sq task 339 add-subtask "<title>"`; track with `sq task 339 subtask <
 - [2026-07-08T16:13:51Z] Olivia Lead:
   - Authored as an interim honesty-fix follow-up to Robert's droppability ruling on ADR-322. Targeting the 0.8 wave. Purely technical, message-strings-only, low risk — no change to the fail-closed guard itself.
   - Dispatch AFTER TASK-338 lands: _store.py is churning under 338 (derive-prefix-from-id), so touching these strings now would collide. Left standalone (no feature parent) since it doesn't implement FEAT-281; refs ADR-322 (the contract) and FEAT-281 (whose future re-type/migrate command the eventual final wording should cite) as related context.
+- [2026-07-09T14:59:50Z] Elias Python:
+  - Reworded the three _validate_item_vocab messages (unknown type/status, sub-entity status) to lead with the spec-drop/rename cause first, demoting sq repair to a parenthetical secondary clause; citation-free per Robert's interim ruling. Added a load() test with a spec missing a still-populated type, asserting the real-cause text precedes 'sq repair'. Updated the 3 existing IndexStore.load() message-match tests (repair()-path tests untouched, different message owner in _maintenance.py). pyright/ruff/format clean; hygiene + load_boundary_vocab targeted suites green.
 <!-- sq:discussion:end -->

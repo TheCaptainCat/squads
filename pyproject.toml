@@ -88,6 +88,7 @@ select = [
     "TRY",                                   # exception hygiene
     "PLR0911", "PLR0912", "PLR0913", "PLR0915",  # too many returns/branches/args/statements
     "ASYNC",                                 # blocking calls inside async fns
+    "ERA",                                   # commented-out code
 ]
 ignore = [
     "TRY003",  # long messages in raise() are intentional (user-facing SquadsError text)
@@ -102,8 +103,10 @@ max-args = 8
 [tool.ruff.lint.per-file-ignores]
 # Typer relies on function calls (Option/Argument) as parameter defaults.
 "src/squads/_cli/*" = ["B008"]
-# tests favour readability over these rules
-"tests/*" = ["PLR2004", "PLR0913", "S101"]
+# tests favour readability over these rules; ERA001 false-positives heavily on our
+# section-divider comments ("# Label: word", "# Label (word)") and the verbatim-quoted
+# docstring text in the backend-conformance findings catalogue
+"tests/*" = ["PLR2004", "PLR0913", "S101", "ERA001"]
 
 [tool.pyright]
 include = ["src", "tests"]

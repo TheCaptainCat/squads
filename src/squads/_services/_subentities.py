@@ -182,11 +182,6 @@ class SubentitiesMixin(ServiceCore):
     ) -> None:
         await self._set_block_status(feature_id, "story", local_id, status, **kw)
 
-    async def set_finding_status(
-        self, review_id: str, local_id: str, status: str, **kw: bool
-    ) -> None:
-        await self._set_block_status(review_id, "finding", local_id, status, **kw)
-
     async def set_subtask_done(self, task_id: str, local_id: str, *, done: bool = True) -> None:
         # convenience toggle (forces past intermediate states, like the old checkbox).
         # Resolves the subtask machine's designated completion status / start state by
@@ -200,16 +195,6 @@ class SubentitiesMixin(ServiceCore):
 
     async def set_subtask_assignee(self, task_id: str, local_id: str, assignee: str | None) -> None:
         await self._set_block_assignee(task_id, "subtask", local_id, assignee)
-
-    async def set_story_assignee(
-        self, feature_id: str, local_id: str, assignee: str | None
-    ) -> None:
-        await self._set_block_assignee(feature_id, "story", local_id, assignee)
-
-    async def set_finding_assignee(
-        self, review_id: str, local_id: str, assignee: str | None
-    ) -> None:
-        await self._set_block_assignee(review_id, "finding", local_id, assignee)
 
     async def set_subtask_body(
         self, task_id: str, local_id: str, body: str, *, append: bool = False

@@ -684,7 +684,7 @@ class MaintenanceMixin(ServiceCore):
         await self._apply_remap((md for _, md, *_ in records), remap, renames)
         return remap
 
-    # ------------------------------------------------------------------ renumber (pre-merge)
+    # ------------------------------------------------------------------ renumber pre-merge
     @staticmethod
     def _offset_plan(
         records: list[_FileRec],
