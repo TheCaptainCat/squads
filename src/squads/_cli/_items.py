@@ -66,8 +66,8 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
 def build_item_app(item_type: str) -> typer.Typer:
     """A ``sq <type> <num> …`` group for one work-item type.
 
-    Accepts a plain string type name (``"task"``, ``"incident"`` …).  ``ItemType`` enum members
-    are ``StrEnum``s and satisfy this; custom types declared only in the spec also work.
+    Accepts a plain string type name (``"task"``, ``"incident"`` …) — every type, built-in
+    or custom, is ordinary spec vocabulary.
 
     Capability flags (subentity kind, retype/remove eligibility) are resolved from
     ``get_active_spec()`` at call time so a custom type's spec-declared capabilities are
@@ -105,15 +105,11 @@ def build_item_app(item_type: str) -> typer.Typer:
         _register_subentity(item, *sub_info)
     # retype/remove: available for all non-meta work types (spec-derived).
     # For types unknown to the spec (pre-callback edge case), fall back to checking
-    # against the reserved built-in meta type names via the spec — the bundled spec
-    # always carries role/skill/operator so item_is_meta is safe for reserved types.
-    from squads._models._vocab import is_reserved
+    # against the three meta-type names directly (the irreducible,
+    # by-name-bound minimum, not a spec lookup).
+    from squads._workflow import META_TYPES
 
-    is_meta = (
-        spec.item_is_meta(item_type)
-        if item_type in spec.items
-        else is_reserved(item_type) and item_type in {"role", "skill", "operator"}
-    )
+    is_meta = spec.item_is_meta(item_type) if item_type in spec.items else item_type in META_TYPES
     if not is_meta:
         _cmd_retype(item)
         _cmd_remove(item)

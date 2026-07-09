@@ -18,7 +18,6 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._migrations import _meta_compat
 from squads._models import _markers as markers
-from squads._models._enums import ItemType
 from squads._models._item import fold_legacy_kinds
 from squads._paths import SquadPaths
 
@@ -40,10 +39,26 @@ review `<n>`, drive an agent with:
 5. Verify: `sq review <n> findings` shows them all and `sq check` is clean.
 """
 
+# Frozen v0.1/v0.2 type vocabulary — the type-name/prefix/folder literals as they existed at
+# this schema version. NEVER derive this from the live spec/enum: a migration is a
+# point-in-time snapshot — the live spec/enum must never be re-introduced here.
+_TYPES: tuple[tuple[str, str, str], ...] = (
+    ("epic", "EPIC", "epics"),
+    ("feature", "FEAT", "features"),
+    ("task", "TASK", "tasks"),
+    ("bug", "BUG", "bugs"),
+    ("decision", "ADR", "adrs"),
+    ("review", "REV", "reviews"),
+    ("guide", "GUIDE", "guides"),
+    ("role", "ROLE", "agents/roles"),
+    ("skill", "SKILL", "agents/skills"),
+    ("operator", "OP", "operators"),
+)
+
 # Item types whose body holds sub-entities, and the (kind, container) to upgrade + summarise.
-_BODY_KIND: dict[ItemType, tuple[str, str]] = {
-    ItemType.TASK: ("subtask", markers.SUBTASKS),
-    ItemType.FEATURE: ("story", markers.STORIES),
+_BODY_KIND: dict[str, tuple[str, str]] = {
+    "task": ("subtask", markers.SUBTASKS),
+    "feature": ("story", markers.STORIES),
 }
 
 
@@ -78,7 +93,7 @@ def _insert_findings_skeleton(text: str) -> str:
     return text.replace(disc, container + disc, 1) if disc in text else f"{text}\n{container}"
 
 
-def _migrate_file(md: Path, item_type: ItemType) -> bool:
+def _migrate_file(md: Path, item_type: str) -> bool:
     """Apply all 1→2 transforms to one file; return whether it changed."""
     original = md.read_text(encoding="utf-8")
     text = _fold_ref_kinds(original)
@@ -90,7 +105,7 @@ def _migrate_file(md: Path, item_type: ItemType) -> bool:
         if sections.has_section(text, container):
             subs = [_meta_compat.to_subentity(b) for b in _meta_compat.list_blocks(text, kind)]
             text = discussion.ensure_summary(text, kind, container, subs)
-    elif item_type is ItemType.REVIEW and not sections.has_section(text, markers.FINDINGS):
+    elif item_type == "review" and not sections.has_section(text, markers.FINDINGS):
         text = _insert_findings_skeleton(text)
         text = discussion.ensure_summary(text, "finding", markers.FINDINGS, [])
     if text == original:
@@ -102,11 +117,11 @@ def _migrate_file(md: Path, item_type: ItemType) -> bool:
 def migrate(paths: SquadPaths) -> int:
     """Migrate every item file under the squad to schema 0.2; return the count changed."""
     changed = 0
-    for item_type in ItemType:
-        folder = paths.folder_for(item_type)
+    for item_type, prefix, folder_name in _TYPES:
+        folder = paths.squad_dir / folder_name
         if not folder.is_dir():
             continue
-        for md in sorted(folder.glob(f"{item_type.prefix}-*.md")):
+        for md in sorted(folder.glob(f"{prefix}-*.md")):
             if _migrate_file(md, item_type):
                 changed += 1
     return changed

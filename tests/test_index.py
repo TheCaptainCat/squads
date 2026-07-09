@@ -7,11 +7,16 @@ import anyio.to_thread
 import pytest
 from filelock import FileLock, Timeout
 
+from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX
 from squads._errors import SquadsError
-from squads._index._store import IndexStore
-from squads._models._enums import ItemType, Status
+from squads._index._store import (
+    IndexStore,
+    _propagate_prefix,  # pyright: ignore[reportPrivateUsage]
+)
+from squads._models._enums import Status
 from squads._models._index import SquadsDB
 from squads._models._item import DEFAULT_ID_PADDING, Item, format_item_id
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -20,7 +25,8 @@ def test_index_keys_items_by_sequence_number():
     now = datetime(2026, 1, 1, tzinfo=UTC)
     it = Item(
         sequence_id=7,
-        type=ItemType.TASK,
+        type="task",
+        prefix="TASK",
         title="t",
         slug="t",
         status=Status.DRAFT,
@@ -51,9 +57,9 @@ async def test_global_counter_unique_across_types(tmp_path):
     store.create_empty("0.1.0")
     ids = []
     async with store.transaction() as db:
-        ids.append(db.allocate_id(ItemType.EPIC))
-        ids.append(db.allocate_id(ItemType.FEATURE))
-        ids.append(db.allocate_id(ItemType.TASK))
+        ids.append(db.allocate_id("epic", prefix="EPIC"))
+        ids.append(db.allocate_id("feature", prefix="FEAT"))
+        ids.append(db.allocate_id("task", prefix="TASK"))
     assert ids == ["EPIC-000001", "FEAT-000002", "TASK-000003"]
     numbers = [int(i.rsplit("-", 1)[-1]) for i in ids]
     assert len(set(numbers)) == 3  # no number shared across types
@@ -64,7 +70,7 @@ async def test_atomic_write_roundtrips_valid_json(tmp_path):
     store = IndexStore(path, tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
     async with store.transaction() as db:
-        db.allocate_id(ItemType.BUG)
+        db.allocate_id("bug")
     data = json.loads(path.read_text(encoding="utf-8"))
     assert data["counter"] == 1
     SquadsDB.model_validate_json(path.read_text(encoding="utf-8"))  # validates
@@ -76,7 +82,7 @@ async def test_atomic_write_leaves_no_temp_file(tmp_path):
     store = IndexStore(path, tmp_path / ".squads.json.lock")
     store.create_empty("0.1.0")
     async with store.transaction() as db:
-        db.allocate_id(ItemType.TASK)
+        db.allocate_id("task")
     assert path.is_file()
     assert list(tmp_path.glob("*.tmp")) == []
 
@@ -94,7 +100,7 @@ async def test_concurrent_allocation_distinct_ids(tmp_path):
     def alloc(_: int) -> str:
         async def _do() -> str:
             async with store.transaction() as db:
-                return db.allocate_id(ItemType.TASK)
+                return db.allocate_id("task")
 
         return anyio.run(_do)
 
@@ -123,7 +129,8 @@ def test_backrefs_computed_not_stored(tmp_path):
     now = datetime(2026, 1, 1, tzinfo=UTC)
     a = Item(
         sequence_id=1,
-        type=ItemType.TASK,
+        type="task",
+        prefix="TASK",
         title="a",
         slug="a",
         status=Status.DRAFT,
@@ -163,9 +170,19 @@ def test_format_item_id_uses_requested_width():
 def test_db_format_id_uses_stored_padding():
     """SquadsDB.format_id() routes through the stored padding."""
     db6 = SquadsDB(padding=6)
-    assert db6.format_id(ItemType.TASK, 7) == "TASK-000007"
+    assert db6.format_id("task", 7, prefix="TASK") == "TASK-000007"
     db7 = SquadsDB(padding=7)
-    assert db7.format_id(ItemType.TASK, 7) == "TASK-0000007"
+    assert db7.format_id("task", 7, prefix="TASK") == "TASK-0000007"
+
+
+def test_db_format_id_degrades_to_unresolved_sentinel_without_prefix():
+    """With no prefix supplied, format_id degrades to the loud UNRESOLVED_PREFIX sentinel —
+    never a plausible-but-wrong item_type.upper() guess (e.g. "decision" -> "DECISION" instead
+    of the real "ADR")."""
+    from squads._models._item import UNRESOLVED_PREFIX
+
+    db = SquadsDB(padding=6)
+    assert db.format_id("decision", 7) == f"{UNRESOLVED_PREFIX}-000007"
 
 
 async def test_allocate_id_uses_stored_padding(tmp_path):
@@ -174,7 +191,7 @@ async def test_allocate_id_uses_stored_padding(tmp_path):
     store.create_empty("0.1.0")
     async with store.transaction() as db:
         db.padding = 7
-        item_id = db.allocate_id(ItemType.TASK)
+        item_id = db.allocate_id("task", prefix="TASK")
     assert item_id == "TASK-0000001"
     assert (await store.load()).counter == 1
 
@@ -189,7 +206,7 @@ async def test_allocate_id_raises_index_full_at_capacity(tmp_path):
     # One more allocation must fail.
     async with store.transaction() as db:
         with pytest.raises(SquadsError, match="sq migrate repad"):
-            db.allocate_id(ItemType.TASK)
+            db.allocate_id("task")
     # Counter must not have advanced.
     assert (await store.load()).counter == 10**6 - 1
 
@@ -199,7 +216,8 @@ def test_item_id_renders_unpadded():
     now = datetime(2026, 1, 1, tzinfo=UTC)
     item = Item(
         sequence_id=1,
-        type=ItemType.TASK,
+        type="task",
+        prefix="TASK",
         title="t",
         slug="t",
         status=Status.DRAFT,
@@ -218,16 +236,18 @@ def test_item_id_renders_unpadded():
 # --------------------------------------------------------------------------- width-tolerant IDs
 
 
-def _make_item(seq: int, item_type: ItemType, refs: list[str] | None = None) -> Item:
+def _make_item(seq: int, item_type: str, refs: list[str] | None = None) -> Item:
     now = datetime(2026, 1, 1, tzinfo=UTC)
+    prefix = BUILTIN_PREFIX[item_type]
     return Item(
         sequence_id=seq,
         type=item_type,
+        prefix=prefix,
         title=f"item {seq}",
         slug=f"item-{seq}",
         status=Status.DRAFT,
         refs=refs or [],
-        path=f"{item_type.folder}/{item_type.prefix}-{seq:06d}-item-{seq}.md",
+        path=f"{BUILTIN_FOLDER[item_type]}/{prefix}-{seq:06d}-item-{seq}.md",
         created_at=now,
         updated_at=now,
     )
@@ -240,11 +260,14 @@ def test_display_padding_independent_of_squad_filename_padding():
     filenames, never Item.id.
     """
     db = SquadsDB(padding=7)
-    item = _make_item(1, ItemType.TASK)
+    item = _make_item(1, "task")
     assert item.id == "TASK-1"
     db.add(item)
-    # Round-trip through JSON (simulates store.load()) — display stays unpadded.
+    # Round-trip through JSON (simulates store.load()) — display stays unpadded. prefix is
+    # excluded from the JSON index, so mirror the store's post-load backfill pass
+    # (_propagate_prefix) to resolve it back before checking .id.
     reloaded = SquadsDB.model_validate_json(db.to_json())
+    _propagate_prefix(reloaded, bundled_spec())
     assert reloaded.padding == 7
     assert reloaded.items[1].id == "TASK-1"
 
@@ -257,13 +280,18 @@ def test_backrefs_width_tolerant():
     id — resolution is by (prefix, sequence_id), never the literal string (ADR-000282).
     """
     # item 1 (TASK) refs item 2 (FEAT) using the old width-6 string.
-    task = _make_item(1, ItemType.TASK, refs=["FEAT-000002"])
-    feat = _make_item(2, ItemType.FEATURE)
+    task = _make_item(1, "task", refs=["FEAT-000002"])
+    feat = _make_item(2, "feature")
     db = SquadsDB(padding=7, counter=2)  # squad repadded to width-7
     db.add(task)
     db.add(feat)
-    # Round-trip through JSON to simulate store.load().
+    # Round-trip through JSON to simulate store.load(): prefix is excluded from the JSON
+    # index (never persisted there), so the store's post-load backfill pass
+    # (_propagate_prefix) is what actually resolves it back — mirror that here rather than
+    # relying on Item.id's bare type.upper() degrade-gracefully fallback (which would give
+    # the wrong prefix for "feature").
     db = SquadsDB.model_validate_json(db.to_json())
+    _propagate_prefix(db, bundled_spec())
     assert db.items[2].id == "FEAT-2"  # display is always unpadded, regardless of db.padding
     # Querying by the new filename width, the old filename width, and the unpadded display id
     # must all find the TASK whose ref holds "FEAT-000002".
@@ -274,8 +302,8 @@ def test_backrefs_width_tolerant():
 def test_backrefs_no_cross_type_false_positive():
     """backrefs() does not cross-match when two items share a sequence number (collision)."""
     # Two items both at seq=3 but different types — a collision state before renumber.
-    bug = _make_item(3, ItemType.BUG)
-    task = _make_item(1, ItemType.TASK, refs=["BUG-000003"])
+    bug = _make_item(3, "bug")
+    task = _make_item(1, "task", refs=["BUG-000003"])
     db = SquadsDB(padding=6, counter=3)
     # In a collision, the index can only hold one item at seq=3 (BUG wins here).
     db.add(bug)
@@ -288,7 +316,7 @@ def test_backrefs_no_cross_type_false_positive():
 
 def test_db_get_width_tolerant():
     """SquadsDB.get() resolves any zero-pad width to the correct item."""
-    item = _make_item(7, ItemType.TASK)
+    item = _make_item(7, "task")
     db = SquadsDB(padding=7, counter=7)
     db.add(item)
     # Both old and new width resolve to the same item.
@@ -344,7 +372,7 @@ async def test_concurrent_coroutines_allocate_distinct_ids(tmp_path):
 
         async def allocate() -> None:
             async with store.transaction() as db:
-                ids.append(db.allocate_id(ItemType.TASK))
+                ids.append(db.allocate_id("task"))
                 # Yield inside the held lock so the event loop can schedule another coroutine —
                 # this is what forces thread-reuse and triggers the race in a single-layer model.
                 await anyio.lowlevel.checkpoint()

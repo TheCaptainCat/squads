@@ -15,12 +15,11 @@ from squads._backends._base import AgentBackend, Artifact, BackendContext, Opera
 from squads._backends._claude_code import _claude_md as claude_md
 from squads._backends._claude_code._frontmatter import normalize_model, oneline
 from squads._models import _markers as markers
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
-from squads._workflow import linearize_lifecycle
+from squads._workflow import META_SKILL, linearize_lifecycle
 
 _AGENTS = "agents"
 _SKILLS = "skills"
@@ -309,7 +308,7 @@ class ClaudeCodeBackend(AgentBackend):
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         slug = item.extra.get(X.SLUG, item.slug)
         cdir = ctx.root / _CLAUDE_DIR
-        if item.type == ItemType.SKILL:
+        if item.type == META_SKILL:
             skill_dir = cdir / _SKILLS / slug
             if skill_dir.is_dir():
                 await _aio.to_thread(lambda: shutil.rmtree(skill_dir))

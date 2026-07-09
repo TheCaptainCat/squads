@@ -36,9 +36,8 @@ async def test_read_reflog_no_file(svc, frozen_time):
 
 async def test_read_reflog_truncated_last_line(svc, frozen_time):
     """A truncated trailing line is tolerated; good entries are returned."""
-    from squads._models._enums import ItemType
 
-    await svc.create(ItemType.TASK, "T")
+    await svc.create("task", "T")
     rpath = reflog_path(svc.paths.squad_dir)
     # Append a partial (truncated) line with no \n.
     with rpath.open("a", encoding="utf-8") as fh:
@@ -51,9 +50,8 @@ async def test_read_reflog_truncated_last_line(svc, frozen_time):
 
 async def test_read_reflog_returns_reflog_entries(svc, frozen_time):
     """read_reflog returns a list of ReflogEntry dataclasses."""
-    from squads._models._enums import ItemType
 
-    item = (await svc.create(ItemType.TASK, "Entry test")).item
+    item = (await svc.create("task", "Entry test")).item
     result = await svc.read_reflog()
     assert all(isinstance(r, ReflogEntry) for r in result)
     create_entries = [r for r in result if r.op == "create" and r.target == item.id]
@@ -62,10 +60,9 @@ async def test_read_reflog_returns_reflog_entries(svc, frozen_time):
 
 async def test_read_reflog_filter_by_item(svc, frozen_time):
     """--item filter returns only entries for that target."""
-    from squads._models._enums import ItemType
 
-    a = (await svc.create(ItemType.TASK, "A")).item
-    b = (await svc.create(ItemType.TASK, "B")).item
+    a = (await svc.create("task", "A")).item
+    b = (await svc.create("task", "B")).item
     result = await svc.read_reflog(item=a.id)
     assert all(r.target == a.id for r in result)
     # B's entries are filtered out.
@@ -75,12 +72,11 @@ async def test_read_reflog_filter_by_item(svc, frozen_time):
 async def test_read_reflog_filter_by_actor(svc, frozen_time):
     """--actor filter returns only entries for that actor slug."""
     from squads import _actor as actor
-    from squads._models._enums import ItemType
 
     actor.set_actor("python-dev")
-    await svc.create(ItemType.TASK, "By python-dev")
+    await svc.create("task", "By python-dev")
     actor.set_actor("system")
-    await svc.create(ItemType.TASK, "By system")
+    await svc.create("task", "By system")
 
     dev_entries = await svc.read_reflog(actor_filter="python-dev")
     assert all(r.actor == "python-dev" for r in dev_entries)
@@ -89,9 +85,9 @@ async def test_read_reflog_filter_by_actor(svc, frozen_time):
 
 async def test_read_reflog_filter_by_op(svc, frozen_time):
     """--op filter returns only entries with that operation name."""
-    from squads._models._enums import ItemType, Status
+    from squads._models._enums import Status
 
-    item = (await svc.create(ItemType.TASK, "T")).item
+    item = (await svc.create("task", "T")).item
     await svc.set_status(item.id, Status.IN_PROGRESS)
     status_entries = await svc.read_reflog(op_filter="status")
     assert all(r.op == "status" for r in status_entries)
@@ -107,19 +103,17 @@ async def test_read_reflog_filter_by_since(svc, frozen_time):
 
     # Filter with a past date includes everything.
     past_ts = "2000-01-01T00:00:00Z"
-    from squads._models._enums import ItemType
 
-    await svc.create(ItemType.TASK, "T")
+    await svc.create("task", "T")
     result_all = await svc.read_reflog(since=past_ts)
     assert len(result_all) > 0
 
 
 async def test_read_reflog_tail_limits_results(svc, frozen_time):
     """tail=N returns at most N entries (the last N)."""
-    from squads._models._enums import ItemType
 
     for i in range(5):
-        await svc.create(ItemType.TASK, f"Task {i}")
+        await svc.create("task", f"Task {i}")
     result_all = await svc.read_reflog(tail=None)
     result_tail = await svc.read_reflog(tail=3)
     assert len(result_tail) == 3
@@ -129,9 +123,8 @@ async def test_read_reflog_tail_limits_results(svc, frozen_time):
 
 async def test_read_reflog_repair_never_reads_reflog(svc, frozen_time):
     """Invariant 1: sq repair does not read or depend on the reflog."""
-    from squads._models._enums import ItemType
 
-    await svc.create(ItemType.TASK, "T")
+    await svc.create("task", "T")
     rpath = reflog_path(svc.paths.squad_dir)
     # Corrupt the reflog — repair must succeed and rebuild from .md files.
     rpath.write_text("not json\nnot json either\n", encoding="utf-8")

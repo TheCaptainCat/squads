@@ -28,7 +28,7 @@ from squads._interactions import (
 )
 from squads._itemfile import update_frontmatter, write_new
 from squads._models import _markers as markers
-from squads._models._enums import ItemType, Priority
+from squads._models._enums import Priority
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import VALID_REF_KINDS, Item, split_ref
@@ -38,7 +38,7 @@ from squads._rendering._engine import render, set_active_squad_dir
 from squads._roles._resolver import resolve_role
 from squads._services._results import CreateResult, TreeNode
 from squads._util import slugify
-from squads._workflow import bundled_spec
+from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL, bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 # Body-local sub-entities: kind -> parent item type and its container marker. Package-internal
@@ -478,11 +478,11 @@ class ServiceCore:
         """A slug that can author/be-assigned work: a registered role agent or a human operator.
 
         Skills are meta-types but NOT participants — only role and operator are.
-        ``item_is_meta(t) and not ItemType.SKILL`` expresses the same set.
+        ``item_is_meta(t) and t != META_SKILL`` expresses the same set.
         """
         return any(
             self.spec.item_is_meta(it.type)
-            and it.type != ItemType.SKILL
+            and it.type != META_SKILL
             and it.extra.get(X.SLUG) == slug
             for it in db.items.values()
         )
@@ -537,7 +537,7 @@ class ServiceCore:
     # ------------------------------------------------------------------ role / skill lookups
     async def _role_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type == ItemType.ROLE and it.extra.get(X.SLUG) == slug:
+            if it.type == META_ROLE and it.extra.get(X.SLUG) == slug:
                 return it
         return None
 
@@ -558,13 +558,13 @@ class ServiceCore:
 
     async def _skill_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type == ItemType.SKILL and it.extra.get(X.SLUG, it.slug) == slug:
+            if it.type == META_SKILL and it.extra.get(X.SLUG, it.slug) == slug:
                 return it
         return None
 
     async def _operator_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type == ItemType.OPERATOR and it.extra.get(X.SLUG) == slug:
+            if it.type == META_OPERATOR and it.extra.get(X.SLUG) == slug:
                 return it
         return None
 
@@ -588,7 +588,7 @@ class ServiceCore:
                 title=it.extra.get(X.TITLE, it.title),
                 is_default=it.extra.get(X.IS_DEFAULT, False),
             )
-            for it in await self.list_items(item_type=ItemType.ROLE)
+            for it in await self.list_items(item_type=META_ROLE)
         ]
 
     async def operators(self) -> list[OperatorView]:
@@ -597,7 +597,7 @@ class ServiceCore:
                 slug=it.extra.get(X.SLUG, it.slug),
                 full_name=it.extra.get(X.FULL_NAME, it.title),
             )
-            for it in await self.list_items(item_type=ItemType.OPERATOR)
+            for it in await self.list_items(item_type=META_OPERATOR)
         ]
 
     async def _skill_paths(self) -> dict[str, Path]:
@@ -606,7 +606,7 @@ class ServiceCore:
         Backends receive this via BackendContext so they never need to load the
         index themselves (layering invariant: _backends must not import _index).
         """
-        skill_items = await self.list_items(item_type=ItemType.SKILL)
+        skill_items = await self.list_items(item_type=META_SKILL)
         return {
             it.extra[X.SLUG]: self.paths.abspath(it.path)
             for it in skill_items

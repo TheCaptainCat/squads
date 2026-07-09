@@ -11,9 +11,7 @@ from squads import __version__, _aio
 from squads._errors import AlreadyInitializedError
 from squads._index._store import IndexStore
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
-from squads._models._vocab import RESERVED_FOLDER
 from squads._paths import SquadPaths, load_config, resolve
 from squads._roles._catalog import RoleDef, resolve_roles
 from squads._services._collab import CollabMixin
@@ -24,6 +22,7 @@ from squads._services._results import AdoptResult, InitResult
 from squads._services._retype import RetypeMixin
 from squads._services._roster import RosterMixin
 from squads._services._subentities import SubentitiesMixin
+from squads._workflow import META_ROLE, bundled_spec
 
 
 class Service(
@@ -80,8 +79,8 @@ async def init(
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
-    for folder in RESERVED_FOLDER.values():
-        await _aio.mkdir(sp.squad_dir / folder, parents=True, exist_ok=True)
+    for ts in bundled_spec().items.values():
+        await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)
     await _aio.write_text(sp.squad_dir / ".gitignore", ".squads.json.lock\n*.tmp\n")
 
     store = IndexStore(sp.index_path, sp.lock_path)
@@ -135,8 +134,8 @@ async def adopt(
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
-    for folder in RESERVED_FOLDER.values():
-        await _aio.mkdir(sp.squad_dir / folder, parents=True, exist_ok=True)
+    for ts in bundled_spec().items.values():
+        await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)
     gitignore = sp.squad_dir / ".gitignore"
     if not await _aio.path_exists(gitignore):
         await _aio.write_text(gitignore, ".squads.json.lock\n*.tmp\n")
@@ -149,7 +148,7 @@ async def adopt(
     # Import any existing squads-native .md files (sets counter from them).
     repair_result = await svc.repair()
     existing_roles = {
-        it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type == ItemType.ROLE
+        it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type == META_ROLE
     }
 
     if not no_claude:
@@ -181,7 +180,6 @@ def open_service(dir_override: str | None = None) -> Service:
     it reports the same errors in collect mode without going through ``open_service``.
     """
     from squads._errors import SquadsError
-    from squads._workflow import bundled_spec
     from squads._workflow._loader import (
         WORKFLOW_OVERRIDE_FILENAME,
         load_workflow_spec,

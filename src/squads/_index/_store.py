@@ -43,18 +43,20 @@ def _propagate_prefix(db: SquadsDB, spec: WorkflowSpec) -> None:
     Mirrors ``SquadsDB._propagate_padding``: ``prefix`` is excluded from JSON serialisation
     (never persisted in the index), so items loaded from the JSON file always come back with
     the field's default value (``""``).  This post-load pass resolves the prefix from the
-    spec (or the reserved built-in map) and stamps it in-memory.
+    spec — the sole vocabulary source, for every type — and stamps it in-memory.
 
     Items with a non-empty prefix already set (i.e. items loaded via ``from_frontmatter``
-    whose frontmatter carried a ``prefix:`` line — custom types only) keep their value.
+    whose frontmatter carried a ``prefix:`` line — every type writes one now) keep their
+    value; only a legacy file that predates the line needs this backfill.
+
+    Calls ``prefix_for`` directly with no defensive ``try/except``: ``load()`` always runs
+    ``_validate_item_vocab`` first, which already raises on any item whose type isn't in
+    ``spec.items`` — by the time this function runs, every item's type is known-valid, so
+    ``prefix_for`` cannot fail here.
     """
     for item in db.items.values():
         if not item.prefix:
-            try:
-                item.prefix = prefix_for(item.type, spec)
-            except Exception:
-                # Unknown type — validation will catch this separately; don't crash here.
-                item.prefix = item.type.upper()
+            item.prefix = prefix_for(item.type, spec)
 
 
 def _validate_item_vocab(db: SquadsDB, spec: WorkflowSpec) -> None:

@@ -1,7 +1,8 @@
 """WorkflowSpec pydantic v2 value objects.
 
-TOML string values are coerced into ``ItemType``/``Status`` at parse/load
-time — an unknown name raises immediately.
+The loaded spec is the sole vocabulary authority for item types: TOML type keys stay plain
+``str`` (no enum coercion). ``Status`` values are still coerced at parse/load time — an
+unknown name raises immediately (the status axis is out of scope here).
 
 The capability flags declared here (``is_meta``, ``subentity_kind``,
 ``severity_field``, ``parent_required``, ``ref_rules``, and ``StatusSpec.role``)
@@ -14,7 +15,14 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from squads._models._enums import ItemType
+#: The three meta-types the engine binds by literal name — the irreducible
+#: structural minimum: the roster, the backends (which write role/skill files), and the
+#: agent lifecycle genuinely reference these by name. NOT a closed type vocabulary — every
+#: other type (built-in or custom) is ordinary, droppable/renamable spec vocabulary.
+META_ROLE = "role"
+META_SKILL = "skill"
+META_OPERATOR = "operator"
+META_TYPES: frozenset[str] = frozenset({META_ROLE, META_SKILL, META_OPERATOR})
 
 # ---------------------------------------------------------------------------
 # Workflow dataclass — the thin shim over Lifecycle
@@ -101,7 +109,7 @@ class RefRule(BaseModel):
 
 
 class ItemSpec(BaseModel):
-    """Vocabulary for one ``ItemType``: prefix, folder, lifecycle, parents, aliases.
+    """Vocabulary for one item type: prefix, folder, lifecycle, parents, aliases.
 
     Capability flags are additive and default to the ``False``/``None`` values
     that represent the common case (non-meta work item with no special spine).
@@ -557,13 +565,19 @@ class WorkflowSpec(BaseModel):
         # Parent-cycle detection in the type-parent graph.
         _check_parent_cycles(self.items, errors)
 
-        # Reserved-vocab subset — spec must include ALL reserved ItemType members.
-        # A custom spec may ADD new types but must never OMIT a reserved one.
+        # Reserved-vocab floor — the spec must declare the three meta-types, each with
+        # is_meta=true. This is the ONLY type-axis floor: every other type
+        # (built-in or custom) is ordinary spec vocabulary that may be omitted, renamed, or
+        # re-prefixed. A missing meta-type OR one declared without is_meta=true fails closed.
         spec_types = set(self.items)
-        reserved_types: set[str] = {t.value for t in ItemType}
-        missing_types = reserved_types - spec_types
-        if missing_types:
-            errors.append(f"spec missing reserved ItemType members: {sorted(missing_types)}")
+        missing_meta = META_TYPES - spec_types
+        if missing_meta:
+            errors.append(f"spec missing required meta-types: {sorted(missing_meta)}")
+        errors.extend(
+            f"meta-type {t!r} must declare is_meta = true"
+            for t in sorted(META_TYPES & spec_types)
+            if not self.items[t].is_meta
+        )
 
         # Reserved-vocab subset — spec must include the *structural floor* statuses.
         #

@@ -2,10 +2,11 @@
 
 ``load_workflow_spec()`` is the single entry point.  It reads
 ``default_workflow.toml`` via ``importlib.resources`` (offline, no filesystem
-assumption), parses with stdlib ``tomllib``, coerces all string keys/values into
-``ItemType``/``Status`` enums, builds the derived reverse indexes, and runs
-``WorkflowSpec.validate()`` (the pydantic ``model_validator``).  A corrupt or
-invalid bundled spec raises ``SquadsError`` — fail closed.
+assumption), parses with stdlib ``tomllib``, coerces status values into ``Status``
+(item type keys stay plain ``str`` since the type-vocabulary enum was removed), builds
+the derived reverse indexes, and runs ``WorkflowSpec.validate()`` (the pydantic
+``model_validator``).  A corrupt or invalid bundled spec raises ``SquadsError`` —
+fail closed.
 
 The loader routes through ``model_validate(...)`` for each spec model so
 ``extra="forbid"`` fires at parse time, not just at pydantic construction,
@@ -35,7 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from squads._errors import SquadsError
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._workflow._models import ItemSpec, Lifecycle, RefRule, StatusSpec, WorkflowSpec
 
 #: Canonical location for the project workflow override (relative to squad_dir).
@@ -108,13 +109,6 @@ def _coerce_status(value: str, ctx: str) -> Status:
         raise SquadsError(f"{ctx}: unknown Status value {value!r}") from None
 
 
-def _coerce_item_type(value: str, ctx: str) -> ItemType:
-    try:
-        return ItemType(value)
-    except ValueError:
-        raise SquadsError(f"{ctx}: unknown ItemType value {value!r}") from None
-
-
 def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
     initial = _coerce_status(data["initial"], f"lifecycle {name!r}")
     raw_trans: dict[str, list[str]] = data.get("transitions", {})
@@ -169,18 +163,14 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         except Exception as exc:
             raise SquadsError(f"Invalid status {name!r}: {exc}") from exc
 
-    # --- items ---
-    items: dict[ItemType, ItemSpec] = {}
-    prefix_to_type: dict[str, ItemType] = {}
-    alias_to_type: dict[str, ItemType] = {}
+    # --- items --- (type keys/values stay plain str; the type-vocab enum was removed)
+    items: dict[str, ItemSpec] = {}
+    prefix_to_type: dict[str, str] = {}
+    alias_to_type: dict[str, str] = {}
 
     for name, data in raw.get("items", {}).items():
-        t = _coerce_item_type(name, "items")
-        # Pre-coerce enum-typed fields (parents list) while passing the rest through so
-        # model_validate's extra="forbid" can reject any unknown keys.
-        parents: list[ItemType] = [
-            _coerce_item_type(p, f"items.{name}.parents") for p in data.get("parents", [])
-        ]
+        # parents stays a list of plain strings; cross-refs are checked in WorkflowSpec._validate.
+        parents: list[str] = list(data.get("parents", []))
         ref_rules_raw: list[dict[str, Any]] = data.get("ref_rules", [])
         ref_rules = _parse_ref_rules(ref_rules_raw, f"items.{name}")
         # Build the payload: start with the raw data, then override the pre-coerced fields
@@ -190,10 +180,10 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
             ts = ItemSpec.model_validate(payload)
         except Exception as exc:
             raise SquadsError(f"Invalid item spec {name!r}: {exc}") from exc
-        items[t] = ts
-        prefix_to_type[ts.prefix] = t
+        items[name] = ts
+        prefix_to_type[ts.prefix] = name
         for alias in ts.aliases:
-            alias_to_type[alias] = t
+            alias_to_type[alias] = name
 
     # WorkflowSpec construction triggers the model_validator (pydantic v2).
     # Route through model_validate so extra="forbid" fires at construction.

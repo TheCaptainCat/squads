@@ -77,8 +77,6 @@ _FINDING_LIFECYCLE = Lifecycle(
     },
 )
 
-_META_TYPES = frozenset({"role", "skill", "operator"})
-
 
 def _build_spec(
     *,
@@ -87,21 +85,16 @@ def _build_spec(
 ) -> WorkflowSpec:
     """Construct a minimal-but-complete WorkflowSpec for lint-check unit tests.
 
-    Every reserved ItemType gets an ItemSpec (meta-types on the agent lifecycle,
-    everything else on ``work_lifecycle``), satisfying §5-6a/§5-6b so only the
-    behaviour under test (transition-target vocab / reachable-terminal) can fail.
+    Declares the three meta-types (on the agent lifecycle — ADR-322 §2's floor) plus one
+    work type ('task', on ``work_lifecycle``), satisfying the floor so only the behaviour
+    under test (transition-target vocab / reachable-terminal) can fail.
     """
-    from squads._models._enums import ItemType
-
     statuses = {**_FLOOR_STATUSES, **extra_statuses}
     items_map = {
-        t.value: ItemSpec(
-            prefix=t.prefix,
-            folder=t.folder,
-            lifecycle="agent" if t.value in _META_TYPES else "work",
-            is_meta=(t.value in _META_TYPES),
-        )
-        for t in ItemType
+        "task": ItemSpec(prefix="TASK", folder="tasks", lifecycle="work", is_meta=False),
+        "role": ItemSpec(prefix="ROLE", folder="agents/roles", lifecycle="agent", is_meta=True),
+        "skill": ItemSpec(prefix="SKILL", folder="agents/skills", lifecycle="agent", is_meta=True),
+        "operator": ItemSpec(prefix="OP", folder="operators", lifecycle="agent", is_meta=True),
     }
     return WorkflowSpec.model_validate(
         {
@@ -114,7 +107,7 @@ def _build_spec(
                 "story": _SUBENTITY_LIFECYCLE,
                 "finding": _FINDING_LIFECYCLE,
             },
-            "prefix_to_type": {t.prefix: t.value for t in ItemType},
+            "prefix_to_type": {ts.prefix: name for name, ts in items_map.items()},
             "alias_to_type": {},
         }
     )

@@ -2,7 +2,6 @@ import pytest
 
 from squads import _interactions as interactions
 from squads._cli import app
-from squads._models._enums import ItemType
 from squads._sections import split_frontmatter
 
 pytestmark = pytest.mark.anyio
@@ -49,7 +48,7 @@ async def test_item_skills_generated_with_active_role_sections(project):
         fm, _ = split_frontmatter(pointer)
         assert fm["name"] == interactions.item_skill_name(it)
         assert (project.squad_dir / "agents" / "skills" / f"{fm['name']}.md").is_file()
-    feature = _item_skill_body(project, ItemType.FEATURE)
+    feature = _item_skill_body(project, "feature")
     # 'minimal' roster = manager only, who does not interact with features → no role sections
     assert "## For " not in feature
     # but the generic command block is always present
@@ -60,7 +59,7 @@ async def test_item_skill_shows_only_active_roles(svc, project):
     await svc.activate_role("product-owner")
     await svc.activate_role("qa")
     await svc.refresh_managed()
-    feature = _item_skill_body(project, ItemType.FEATURE)
+    feature = _item_skill_body(project, "feature")
     assert "Nina Product" in feature  # active PO section present
     assert "Olivia Lead" not in feature  # tech-lead not activated → no section
 
@@ -68,7 +67,7 @@ async def test_item_skill_shows_only_active_roles(svc, project):
 async def test_item_skill_actor_guidance_is_structured(svc, project):
     await svc.add_dev("python")  # the developers section is gated on an active dev (see below)
     await svc.refresh_managed()
-    task = _item_skill_body(project, ItemType.TASK)
+    task = _item_skill_body(project, "task")
     assert "## For developers" in task
     for label in ("**Enter**", "**Do:**", "**Hand off:**", "**Watch for:**"):
         assert label in task
@@ -79,16 +78,16 @@ async def test_item_skill_actor_guidance_is_structured(svc, project):
 
 async def test_dev_section_gated_on_active_dev(svc, project):
     # no dev in the roster → no developers section anywhere
-    assert "## For developers" not in _item_skill_body(project, ItemType.TASK)
+    assert "## For developers" not in _item_skill_body(project, "task")
     await svc.add_dev("rust")
     await svc.refresh_managed()
-    assert "## For developers" in _item_skill_body(project, ItemType.TASK)
+    assert "## For developers" in _item_skill_body(project, "task")
 
 
 async def test_item_skill_watch_for_reviewer(svc, project):
     await svc.activate_role("reviewer")
     await svc.refresh_managed()
-    task = _item_skill_body(project, ItemType.TASK)
+    task = _item_skill_body(project, "task")
     assert "Paul Reviewer" in task
     assert "don't fix the code yourself" in task  # reviewer scope discipline
 
@@ -218,17 +217,17 @@ async def test_per_type_skills_carry_scoped_comment_guidance(svc, project):
     await svc.add_dev("python")
     await svc.refresh_managed()
 
-    review = _item_skill_body(project, ItemType.REVIEW)
+    review = _item_skill_body(project, "review")
     # reviewer: finding-scoped comment when closing/responding
     assert "finding <k> comment" in review
     assert "comment-scoping convention" in review
 
-    feature = _item_skill_body(project, ItemType.FEATURE)
+    feature = _item_skill_body(project, "feature")
     # product-owner and tech-lead: story-scoped comments for acceptance clarifications
     assert "story <k> comment" in feature
     assert "comment-scoping convention" in feature
 
-    task = _item_skill_body(project, ItemType.TASK)
+    task = _item_skill_body(project, "task")
     # dev: subtask-scoped comments for implementation notes
     assert "subtask <k> comment" in task
     assert "comment-scoping convention" in task
@@ -242,19 +241,19 @@ async def test_item_skills_teach_handle_vs_body_note(svc, project):
     await svc.activate_role("tech-lead")
     await svc.refresh_managed()
 
-    review = _item_skill_body(project, ItemType.REVIEW)
+    review = _item_skill_body(project, "review")
     # reviewer finding guidance must note title is handle, description goes in body
     assert "short handle" in review
     assert "full description goes in the finding body" in review
     assert "finding <k> body" in review
 
-    feature = _item_skill_body(project, ItemType.FEATURE)
+    feature = _item_skill_body(project, "feature")
     # product-owner story guidance must note title is user-story phrase, criteria in body
     assert "user-story phrase" in feature
     assert "the acceptance criteria live there, not in the title" in feature
     assert "story <k> body" in feature
 
-    task = _item_skill_body(project, ItemType.TASK)
+    task = _item_skill_body(project, "task")
     # tech-lead subtask guidance must note title is handle, implementation detail in body
     assert "short handle" in task
     assert "implementation detail goes in the subtask body" in task

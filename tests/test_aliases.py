@@ -8,8 +8,8 @@ type names / full IDs in all output, including --json.
 
 import json
 
+from _helpers import WORK_TYPES
 from squads._cli import app
-from squads._models._enums import WORK_TYPES
 from squads._workflow import load_workflow_spec
 
 # --------------------------------------------------------------------------- helpers
@@ -34,11 +34,11 @@ def test_type_aliases_spec_is_complete():
     it now verifies the authoritative source — WorkflowSpec.items[t].aliases.
     """
     spec = load_workflow_spec()
-    all_aliases: list[str] = [a for t in WORK_TYPES for a in spec.items[str(t)].aliases]
+    all_aliases: list[str] = [a for t in WORK_TYPES for a in spec.items[t].aliases]
     assert len(all_aliases) == len(set(all_aliases)), "No alias must appear twice in the spec"
 
     # Canonical type names must not appear as aliases (they're already canonical)
-    canonical_names = {t.value for t in WORK_TYPES}
+    canonical_names = set(WORK_TYPES)
     for alias in all_aliases:
         assert alias not in canonical_names, f"Alias {alias!r} clashes with a canonical type name"
 
@@ -48,7 +48,7 @@ def test_aliases_not_in_root_help(runner):
     spec = load_workflow_spec()
     r = runner.invoke(app, ["--help"])
     assert r.exit_code == 0, r.output
-    all_aliases = [a for t in WORK_TYPES for a in spec.items[str(t)].aliases]
+    all_aliases = [a for t in WORK_TYPES for a in spec.items[t].aliases]
     for alias in all_aliases:
         # Aliases should not appear as command names at the start of a help line.
         for line in r.output.splitlines():
@@ -68,7 +68,7 @@ def test_canonical_type_commands_present_in_root_help(runner):
     r = runner.invoke(app, ["--help"])
     assert r.exit_code == 0, r.output
     for item_type in WORK_TYPES:
-        canonical = item_type.value
+        canonical = item_type
         # Rich renders the command list inside a table with box-drawing borders.
         # We just need the canonical name to be present in the help text — the
         # alias test separately verifies aliases are absent.
@@ -90,13 +90,13 @@ def test_workflow_output_contains_alias_table(runner):
     assert r.exit_code == 0, r.output
     # Every canonical type name must appear in the alias table section.
     for item_type in WORK_TYPES:
-        assert item_type.value in r.output, (
-            f"Canonical type {item_type.value!r} missing from sq workflow alias table"
+        assert item_type in r.output, (
+            f"Canonical type {item_type!r} missing from sq workflow alias table"
         )
     # Every alias must appear too.
     spec = load_workflow_spec()
     for t in WORK_TYPES:
-        for alias in spec.items[str(t)].aliases:
+        for alias in spec.items[t].aliases:
             assert alias in r.output, f"Alias {alias!r} missing from sq workflow alias table"
 
 

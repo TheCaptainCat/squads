@@ -104,7 +104,7 @@ class RetypeMixin(ServiceCore):
     async def retype(self, item_id: str, new_type: str) -> RetypeResult:
         """Reclassify *item_id* to *new_type* in place.
 
-        - Both the current type and *new_type* must be members of :data:`WORK_TYPES`.
+        - Both the current type and *new_type* must be non-meta work types (``spec.work_types()``).
         - Refuses (actionable :class:`~squads._errors.SquadsError`) when the item has
           sub-entities, when the existing parent would be invalid for the new type, or when
           any current child would become invalid under the new type.

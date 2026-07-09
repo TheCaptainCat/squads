@@ -23,7 +23,6 @@ import pytest
 from typer.testing import CliRunner
 
 from squads._cli import _CustomTypeGroup, app  # pyright: ignore[reportPrivateUsage]
-from squads._models._enums import ItemType
 from squads._services import _service as service
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ItemSpec, Lifecycle, WorkflowSpec
@@ -182,12 +181,10 @@ class TestBuiltInSurfaceUnchanged:
         from squads._workflow import bundled_spec
 
         spec = bundled_spec()
-        for item_type in ItemType:
-            if item_type.value not in spec.work_types():
-                continue  # meta types have no aliases
-            spec_aliases = spec.items[item_type.value].aliases
+        for item_type in spec.work_types():
+            spec_aliases = spec.items[item_type].aliases
             assert spec_aliases, (
-                f"{item_type.value}: spec declares no aliases — did default_workflow.toml change?"
+                f"{item_type}: spec declares no aliases — did default_workflow.toml change?"
             )
 
 

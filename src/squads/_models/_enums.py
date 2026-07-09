@@ -1,48 +1,12 @@
-"""Item types, status values, and the enum/badge helpers.
+"""Status values, badge enums, and their helpers.
 
-Vocabulary tables (prefix, folder, alias, type-by-prefix) live in
-:mod:`squads._models._vocab`.  Import from there for any call site that needs
-prefix or folder resolution; the enums here delegate to that module.
+The item-type vocabulary (the type enum, ``WORK_TYPES``, ``TYPE_ALIASES``, and the
+reserved prefix/folder maps) has been deleted: the loaded workflow spec is now the sole type
+authority (``spec.items`` / ``spec.work_types()``; prefix/folder resolve via
+:func:`squads._models._vocab.prefix_for` and ``spec.items[t].folder`` respectively).
 """
 
 from enum import StrEnum
-
-from squads._models._vocab import RESERVED_FOLDER, RESERVED_PREFIX
-
-
-class ItemType(StrEnum):
-    EPIC = "epic"
-    FEATURE = "feature"
-    TASK = "task"
-    BUG = "bug"
-    DECISION = "decision"
-    REVIEW = "review"
-    GUIDE = "guide"
-    ROLE = "role"
-    SKILL = "skill"
-    OPERATOR = "operator"
-
-    @property
-    def prefix(self) -> str:
-        """The authoritative ID prefix for this built-in type (e.g. ``"TASK"``)."""
-        return RESERVED_PREFIX[self]
-
-    @property
-    def folder(self) -> str:
-        """The squad-folder-relative subfolder for this built-in type (e.g. ``"tasks"``)."""
-        return RESERVED_FOLDER[self]
-
-
-#: The 7 work-item types that can be retyped; excludes agent/operator meta-types.
-WORK_TYPES: tuple[ItemType, ...] = (
-    ItemType.EPIC,
-    ItemType.FEATURE,
-    ItemType.TASK,
-    ItemType.BUG,
-    ItemType.DECISION,
-    ItemType.REVIEW,
-    ItemType.GUIDE,
-)
 
 
 class Status(StrEnum):

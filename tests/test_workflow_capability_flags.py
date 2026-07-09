@@ -11,7 +11,7 @@ import math
 import pytest
 
 from squads._errors import SquadsError
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._workflow._loader import (
     _build_spec,  # pyright: ignore[reportPrivateUsage]
     load_workflow_spec,
@@ -38,18 +38,18 @@ def spec() -> WorkflowSpec:
 
 def test_meta_types_have_is_meta_true(spec: WorkflowSpec) -> None:
     """role/skill/operator all have is_meta=True; all work types have is_meta=False."""
-    for t in (ItemType.ROLE, ItemType.SKILL, ItemType.OPERATOR):
-        assert spec.items[t].is_meta is True, f"{t.value} should have is_meta=True"
+    for t in ("role", "skill", "operator"):
+        assert spec.items[t].is_meta is True, f"{t} should have is_meta=True"
     for t in (
-        ItemType.EPIC,
-        ItemType.FEATURE,
-        ItemType.TASK,
-        ItemType.BUG,
-        ItemType.DECISION,
-        ItemType.REVIEW,
-        ItemType.GUIDE,
+        "epic",
+        "feature",
+        "task",
+        "bug",
+        "decision",
+        "review",
+        "guide",
     ):
-        assert spec.items[t].is_meta is False, f"{t.value} should have is_meta=False"
+        assert spec.items[t].is_meta is False, f"{t} should have is_meta=False"
 
 
 # ---------------------------------------------------------------------------
@@ -59,20 +59,20 @@ def test_meta_types_have_is_meta_true(spec: WorkflowSpec) -> None:
 
 def test_subentity_kind_values(spec: WorkflowSpec) -> None:
     """subentity_kind encodes the correct kind for each type."""
-    assert spec.items[ItemType.FEATURE].subentity_kind == "story"
-    assert spec.items[ItemType.TASK].subentity_kind == "subtask"
-    assert spec.items[ItemType.REVIEW].subentity_kind == "finding"
+    assert spec.items["feature"].subentity_kind == "story"
+    assert spec.items["task"].subentity_kind == "subtask"
+    assert spec.items["review"].subentity_kind == "finding"
     # All other types should have no subentity_kind.
     for t in (
-        ItemType.EPIC,
-        ItemType.BUG,
-        ItemType.DECISION,
-        ItemType.GUIDE,
-        ItemType.ROLE,
-        ItemType.SKILL,
-        ItemType.OPERATOR,
+        "epic",
+        "bug",
+        "decision",
+        "guide",
+        "role",
+        "skill",
+        "operator",
     ):
-        assert spec.items[t].subentity_kind is None, f"{t.value} should have subentity_kind=None"
+        assert spec.items[t].subentity_kind is None, f"{t} should have subentity_kind=None"
 
 
 def test_item_subentity_kind_returns_none_for_unknown_type(spec: WorkflowSpec) -> None:
@@ -92,19 +92,19 @@ def test_item_subentity_kind_returns_none_for_unknown_type(spec: WorkflowSpec) -
 
 def test_severity_field_only_on_bug(spec: WorkflowSpec) -> None:
     """severity_field=True only for bug; all other types have it False."""
-    assert spec.items[ItemType.BUG].severity_field is True
+    assert spec.items["bug"].severity_field is True
     for t in (
-        ItemType.EPIC,
-        ItemType.FEATURE,
-        ItemType.TASK,
-        ItemType.DECISION,
-        ItemType.REVIEW,
-        ItemType.GUIDE,
-        ItemType.ROLE,
-        ItemType.SKILL,
-        ItemType.OPERATOR,
+        "epic",
+        "feature",
+        "task",
+        "decision",
+        "review",
+        "guide",
+        "role",
+        "skill",
+        "operator",
     ):
-        assert spec.items[t].severity_field is False, f"{t.value} should have severity_field=False"
+        assert spec.items[t].severity_field is False, f"{t} should have severity_field=False"
 
 
 # ---------------------------------------------------------------------------
@@ -114,19 +114,19 @@ def test_severity_field_only_on_bug(spec: WorkflowSpec) -> None:
 
 def test_parent_required_only_on_task(spec: WorkflowSpec) -> None:
     """parent_required="feature" on task; all other types have it None."""
-    assert spec.items[ItemType.TASK].parent_required == "feature"
+    assert spec.items["task"].parent_required == "feature"
     for t in (
-        ItemType.EPIC,
-        ItemType.FEATURE,
-        ItemType.BUG,
-        ItemType.DECISION,
-        ItemType.REVIEW,
-        ItemType.GUIDE,
-        ItemType.ROLE,
-        ItemType.SKILL,
-        ItemType.OPERATOR,
+        "epic",
+        "feature",
+        "bug",
+        "decision",
+        "review",
+        "guide",
+        "role",
+        "skill",
+        "operator",
     ):
-        assert spec.items[t].parent_required is None, f"{t.value} should have parent_required=None"
+        assert spec.items[t].parent_required is None, f"{t} should have parent_required=None"
 
 
 # ---------------------------------------------------------------------------
@@ -136,35 +136,35 @@ def test_parent_required_only_on_task(spec: WorkflowSpec) -> None:
 
 def test_task_ref_rules_contain_fixes_and_addresses(spec: WorkflowSpec) -> None:
     """task.ref_rules contains exactly fixes and addresses rules."""
-    kinds = {r.kind for r in spec.items[ItemType.TASK].ref_rules}
+    kinds = {r.kind for r in spec.items["task"].ref_rules}
     assert "fixes" in kinds
     assert "addresses" in kinds
 
 
 def test_decision_ref_rules_contain_supersedes(spec: WorkflowSpec) -> None:
     """decision.ref_rules contains a supersedes rule."""
-    kinds = {r.kind for r in spec.items[ItemType.DECISION].ref_rules}
+    kinds = {r.kind for r in spec.items["decision"].ref_rules}
     assert "supersedes" in kinds
 
 
 def test_other_types_have_empty_ref_rules(spec: WorkflowSpec) -> None:
     """Types with no special ref rules have an empty ref_rules list."""
     for t in (
-        ItemType.EPIC,
-        ItemType.FEATURE,
-        ItemType.BUG,
-        ItemType.REVIEW,
-        ItemType.GUIDE,
-        ItemType.ROLE,
-        ItemType.SKILL,
-        ItemType.OPERATOR,
+        "epic",
+        "feature",
+        "bug",
+        "review",
+        "guide",
+        "role",
+        "skill",
+        "operator",
     ):
-        assert spec.items[t].ref_rules == [], f"{t.value} should have empty ref_rules"
+        assert spec.items[t].ref_rules == [], f"{t} should have empty ref_rules"
 
 
 def test_ref_rule_model_fields(spec: WorkflowSpec) -> None:
     """Each RefRule carries a kind and (optionally) a hint."""
-    for rule in spec.items[ItemType.TASK].ref_rules:
+    for rule in spec.items["task"].ref_rules:
         assert isinstance(rule.kind, str) and rule.kind
         assert isinstance(rule.hint, str)  # may be empty but must be a str
 
@@ -437,9 +437,9 @@ def test_bundled_spec_loads_with_new_flags() -> None:
     spec = load_workflow_spec()
     assert spec is not None
     # Spot-check a few flags that must be set.
-    assert spec.items[ItemType.TASK].parent_required == "feature"
-    assert spec.items[ItemType.BUG].severity_field is True
-    assert spec.items[ItemType.ROLE].is_meta is True
+    assert spec.items["task"].parent_required == "feature"
+    assert spec.items["bug"].severity_field is True
+    assert spec.items["role"].is_meta is True
 
 
 # ---------------------------------------------------------------------------

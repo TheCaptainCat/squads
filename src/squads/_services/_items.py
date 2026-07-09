@@ -7,14 +7,15 @@ from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkf
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _markers as markers
-from squads._models._enums import ItemType, Priority
+from squads._models._enums import Priority
 from squads._models._index import SquadsDB
-from squads._models._item import Item, format_item_id, ref_id_matches, split_ref
+from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import RemoveResult
 from squads._util import slugify
+from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL
 
 
 class ItemsMixin(ServiceCore):
@@ -92,7 +93,7 @@ class ItemsMixin(ServiceCore):
             item.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, item), item)
             self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
-        if self.spec.item_is_meta(item.type) and item.type != ItemType.OPERATOR:
+        if self.spec.item_is_meta(item.type) and item.type != META_OPERATOR:
             await self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
         return item
 
@@ -181,10 +182,10 @@ class ItemsMixin(ServiceCore):
         """Regenerate the backend pointer for a role or skill from its current item data."""
         item = await self.get(item_id)
         ctx = self._ctx
-        if item.type == ItemType.ROLE:
+        if item.type == META_ROLE:
             for backend in self._backends():
                 await backend.generate_role_entry(ctx, item, RoleDef.from_extra(item.extra))
-        elif item.type == ItemType.SKILL:
+        elif item.type == META_SKILL:
             for backend in self._backends():
                 await backend.generate_skill_entry(ctx, item)
         else:
@@ -200,7 +201,7 @@ class ItemsMixin(ServiceCore):
         reject_markers(body)
 
         def mutate(text: str, item: Item) -> str:
-            if self.spec.item_is_meta(item.type) and item.type != ItemType.OPERATOR:
+            if self.spec.item_is_meta(item.type) and item.type != META_OPERATOR:
                 raise SquadsError(
                     f"{item_id} is a {item.type}; its body is generated from its fields"
                     " (edit via `sq update --set …` / `sq sync`)"
@@ -241,7 +242,7 @@ class ItemsMixin(ServiceCore):
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
             del db.items[item.sequence_id]
-        if self.spec.item_is_meta(item.type) and item.type != ItemType.OPERATOR:
+        if self.spec.item_is_meta(item.type) and item.type != META_OPERATOR:
             ctx = self._ctx
             for backend in self._backends():
                 await backend.remove_artifacts(ctx, item)
@@ -302,7 +303,7 @@ class ItemsMixin(ServiceCore):
             # ------------------------------------------------------------------
             severed: list[str] = []
             if force and referrer_ids:
-                target_prefix = item.prefix or item.type.upper()
+                target_prefix = effective_prefix(item.prefix, item.type)
                 target_seq = item.sequence_id
                 for ref_id in referrer_ids:
                     referrer = db.get(ref_id)

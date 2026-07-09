@@ -18,7 +18,7 @@ import pytest
 from squads import _actor as actor
 from squads import _clock as clock
 from squads._index._reflog import ReflogLine, append_line, read_lines, reflog_path
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._models._schema import SCHEMA_VERSION
 
 pytestmark = pytest.mark.anyio
@@ -160,7 +160,7 @@ def test_reflog_path_is_in_squad_dir(tmp_path):
 
 async def test_create_emits_reflog_line(svc, frozen_time):
     """Service.create() appends one reflog line with op=create."""
-    item = (await svc.create(ItemType.TASK, "Write tests")).item
+    item = (await svc.create("task", "Write tests")).item
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     # init() also emits lines; we care about the last one (the create).
     create_lines = [ln for ln in lines if ln.op == "create" and ln.target == item.id]
@@ -173,7 +173,7 @@ async def test_create_emits_reflog_line(svc, frozen_time):
 
 async def test_set_status_emits_reflog_line(svc, frozen_time):
     """Service.set_status() appends one reflog line with op=status and before→after."""
-    item = (await svc.create(ItemType.TASK, "T")).item
+    item = (await svc.create("task", "T")).item
     await svc.set_status(item.id, Status.IN_PROGRESS)
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     status_lines = [ln for ln in lines if ln.op == "status" and ln.target == item.id]
@@ -184,7 +184,7 @@ async def test_set_status_emits_reflog_line(svc, frozen_time):
 
 async def test_update_emits_reflog_line(svc, frozen_time):
     """Service.update() appends one reflog line with op=update."""
-    item = (await svc.create(ItemType.TASK, "T")).item
+    item = (await svc.create("task", "T")).item
     await svc.update(item.id, title="Updated T")
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     update_lines = [ln for ln in lines if ln.op == "update" and ln.target == item.id]
@@ -196,8 +196,8 @@ async def test_update_emits_reflog_line(svc, frozen_time):
 
 async def test_ref_add_emits_reflog_line(svc, frozen_time):
     """Service.add_ref() appends one reflog line with op=ref."""
-    a = (await svc.create(ItemType.TASK, "A")).item
-    b = (await svc.create(ItemType.BUG, "B")).item
+    a = (await svc.create("task", "A")).item
+    b = (await svc.create("bug", "B")).item
     await svc.add_ref(a.id, b.id, kind="related")
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     ref_lines = [ln for ln in lines if ln.op == "ref" and ln.target == a.id]
@@ -209,7 +209,7 @@ async def test_ref_add_emits_reflog_line(svc, frozen_time):
 
 async def test_remove_emits_reflog_line(svc, frozen_time):
     """Service.remove_work_item() appends one reflog line with op=remove + gone-item snapshot."""
-    item = (await svc.create(ItemType.TASK, "Gone")).item
+    item = (await svc.create("task", "Gone")).item
     item_id = item.id
     item_type = item.type
     item_title = item.title
@@ -230,9 +230,9 @@ async def test_retype_emits_reflog_line(svc, frozen_time):
     Pins BUG-000120: this test would fail against the pre-fix code (no _log call in retype()).
     The delta must carry old_id, new_id, old_type, new_type, status_carried, and status.
     """
-    item = (await svc.create(ItemType.TASK, "Needs retype")).item
+    item = (await svc.create("task", "Needs retype")).item
     old_id = item.id
-    result = await svc.retype(old_id, ItemType.BUG)
+    result = await svc.retype(old_id, "bug")
     new_id = result.item.id
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     retype_lines = [ln for ln in lines if ln.op == "retype"]
@@ -249,7 +249,7 @@ async def test_retype_emits_reflog_line(svc, frozen_time):
 
 async def test_comment_emits_reflog_line(svc, frozen_time):
     """Service.comment() appends one reflog line with op=comment."""
-    item = (await svc.create(ItemType.TASK, "T")).item
+    item = (await svc.create("task", "T")).item
     await svc.comment(item.id, ["Hello world"])
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     comment_lines = [ln for ln in lines if ln.op == "comment" and ln.target == item.id]
@@ -258,7 +258,7 @@ async def test_comment_emits_reflog_line(svc, frozen_time):
 
 async def test_subentity_add_emits_reflog_line(svc, frozen_time):
     """Service.add_subtask() appends one reflog line with op=subentity."""
-    item = (await svc.create(ItemType.TASK, "T")).item
+    item = (await svc.create("task", "T")).item
     await svc.add_subtask(item.id, "ST")
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     sub_lines = [ln for ln in lines if ln.op == "subentity" and ln.target == item.id]
@@ -279,7 +279,7 @@ async def test_repair_emits_reflog_line(svc, frozen_time):
 async def test_actor_flows_into_reflog_line(svc, frozen_time):
     """The ambient actor set via set_actor() appears in the reflog line."""
     actor.set_actor("python-dev")
-    item = (await svc.create(ItemType.TASK, "Authored by python-dev")).item
+    item = (await svc.create("task", "Authored by python-dev")).item
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     create_lines = [ln for ln in lines if ln.op == "create" and ln.target == item.id]
     assert create_lines
@@ -289,7 +289,7 @@ async def test_actor_flows_into_reflog_line(svc, frozen_time):
 async def test_reflog_line_timestamp_uses_clock(svc, frozen_time):
     """Reflog timestamps respect the frozen clock (injectable via _clock.set_now)."""
     expected_ts = clock.iso(frozen_time)
-    item = (await svc.create(ItemType.TASK, "Timestamped")).item
+    item = (await svc.create("task", "Timestamped")).item
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     create_lines = [ln for ln in lines if ln.op == "create" and ln.target == item.id]
     assert create_lines
@@ -299,7 +299,7 @@ async def test_reflog_line_timestamp_uses_clock(svc, frozen_time):
 async def test_reflog_not_consulted_by_repair(svc, frozen_time, tmp_path):
     """Invariant 1: sq repair never reads the reflog — it rebuilds from .md files only."""
     # Create an item, then corrupt the reflog — repair must still succeed.
-    await svc.create(ItemType.TASK, "T")
+    await svc.create("task", "T")
     rpath = reflog_path(svc.paths.squad_dir)
     rpath.write_text("this is not json at all\n", encoding="utf-8")
     # repair must not raise and must rebuild the same index
@@ -313,7 +313,7 @@ async def test_no_reflog_squad_is_backward_compatible(svc, frozen_time):
     if rpath.exists():
         rpath.unlink()
     # All read/write ops must still work.
-    item = (await svc.create(ItemType.TASK, "No reflog")).item
+    item = (await svc.create("task", "No reflog")).item
     assert (await svc.get(item.id)).title == "No reflog"
     # The file was (re-)created by the create op.
     assert rpath.exists()
@@ -379,6 +379,6 @@ async def test_failed_reflog_append_does_not_rollback_mutation(
     # so patching the module attribute takes effect there.
     monkeypatch.setattr(_reflog, "append_line", _boom)
 
-    item = (await svc.create(ItemType.TASK, "Must exist")).item
+    item = (await svc.create("task", "Must exist")).item
     # The index committed and the item is readable despite the reflog blowing up.
     assert (await svc.get(item.id)).title == "Must exist"

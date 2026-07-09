@@ -52,7 +52,7 @@ class GraphNode:
     """
 
     id: str
-    type: str  # ItemType.value string
+    type: str
     status: str  # Status.value string
     priority: str | None  # Priority.value string, or None
     assignee: str | None
@@ -130,7 +130,7 @@ class RetypeResult:
 
     item: Item
     old_id: str
-    old_type: str  # ItemType.value string, for display
+    old_type: str  # for display
     status_reset: bool
     old_status: str  # Status.value string (meaningful only when status_reset is True)
     rewritten: list[str]  # paths of files whose text was updated (relative display names)

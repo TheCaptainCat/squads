@@ -21,7 +21,6 @@ import pytest
 
 from squads._cli import app
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._services import _service as service
@@ -33,7 +32,7 @@ pytestmark = pytest.mark.anyio
 
 async def _get_role_item(svc: service.Service, slug: str):
     """Return the ROLE item for the given slug, or raise."""
-    items = await svc.list_items(item_type=ItemType.ROLE)
+    items = await svc.list_items(item_type="role")
     for it in items:
         if it.extra.get(X.SLUG) == slug:
             return it

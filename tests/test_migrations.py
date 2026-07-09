@@ -6,14 +6,14 @@ from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations import _meta_compat, _v0_1_to_v0_2, _v0_2_to_v0_3
 from squads._models import _markers as markers
-from squads._models._enums import ItemType, Severity
+from squads._models._enums import Severity
 
 pytestmark = pytest.mark.anyio
 
 
 async def _write_legacy_task(svc) -> str:
     """A task created normally, then hand-rewritten to the pre-2 (bare refs + ref_kinds) shape."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     path = svc.paths.abspath(task.path)
     text = path.read_text(encoding="utf-8")
     fm, _ = sections.split_frontmatter(text)
@@ -42,12 +42,12 @@ async def test_migrate_folds_kinds_and_is_idempotent(svc):
 
 
 async def test_migrate_noop_on_already_v2(svc):
-    await svc.create(ItemType.TASK, "fresh")  # written in the new format already
+    await svc.create("task", "fresh")  # written in the new format already
     assert _v0_1_to_v0_2.migrate(svc.paths) == 0
 
 
 async def test_migrate_gives_legacy_review_a_findings_skeleton(svc):
-    rev = (await svc.create(ItemType.REVIEW, "R")).item
+    rev = (await svc.create("review", "R")).item
     path = svc.paths.abspath(rev.path)
     # devolve to pre-2: a review with no findings container / summary region (free-form prose only)
     text = path.read_text(encoding="utf-8")
@@ -88,11 +88,11 @@ async def _devolve_to_v0_2(svc, item_id: str, kind: str) -> None:
 
 async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_head(svc):
     await svc.add_dev("python", name="Grace Hopper")  # python-dev
-    feat = (await svc.create(ItemType.FEATURE, "Login")).item
+    feat = (await svc.create("feature", "Login")).item
     await svc.add_story(feat.id, "As a user, I want to reset my password")  # US1
-    task = (await svc.create(ItemType.TASK, "Auth", parent=feat.id)).item
+    task = (await svc.create("task", "Auth", parent=feat.id)).item
     await svc.add_subtask(task.id, "Validate", story="US1", assignee="python-dev")
-    rev = (await svc.create(ItemType.REVIEW, "r")).item
+    rev = (await svc.create("review", "r")).item
     await svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
 
     for item_id, kind in ((feat.id, "story"), (task.id, "subtask"), (rev.id, "finding")):
@@ -130,7 +130,7 @@ async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_head(svc):
 
 
 async def test_v0_2_to_v0_3_backfills_sequence_id(svc):
-    task = (await svc.create(ItemType.TASK, "t")).item  # TASK-2 (sequence 2)
+    task = (await svc.create("task", "t")).item  # TASK-2 (sequence 2)
     p = svc.paths.abspath(task.path)
     # simulate a file written before sequence_id was persisted: drop the line
     stripped = re.sub(r"\nsequence_id: \d+", "", p.read_text(encoding="utf-8"))

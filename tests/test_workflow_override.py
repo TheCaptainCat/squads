@@ -1495,16 +1495,16 @@ def test_ac1_custom_type_not_registered_as_cli_command(tmp_path: Path) -> None:
     'No such command'.
 
     This is a known architectural gap (FEAT-000209 final QA): _cli/__init__.py
-    registers item apps at import time from the static ItemType enum, before
-    open_service rebinds the spec.  The test asserts the current (broken) behaviour
-    so any future fix will require updating this test.
+    registers item apps at import time from the bundled spec, before open_service
+    rebinds to a project's override spec.  The test asserts the current (broken)
+    behaviour so any future fix will require updating this test.
     """
     from typer.testing import CliRunner
 
     from squads._cli import app
 
     runner = CliRunner()
-    # "incident" is not in ItemType enum — CLI cannot accept it as a create subcommand
+    # "incident" is not declared in the bundled spec — CLI cannot accept it as a create subcommand
     result = runner.invoke(app, ["create", "incident", "Test incident", "--author", "qa"])
     # Document the current failure: "No such command 'incident'"
     assert result.exit_code != 0, (

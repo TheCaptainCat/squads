@@ -12,8 +12,6 @@ import json
 
 import pytest
 
-from squads._models._enums import ItemType
-
 pytestmark = pytest.mark.anyio
 
 
@@ -28,7 +26,7 @@ def _banner_issues(issues):
 
 class TestServiceStatusBannerCheckPositive:
     async def test_body_opening_with_status_colon_is_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(feat.id, "STATUS: Proposed — drafting is not a greenlight yet.")
         issues = _banner_issues(await svc.check())
         assert len(issues) == 1
@@ -36,27 +34,27 @@ class TestServiceStatusBannerCheckPositive:
         assert issues[0].level == "warn"
 
     async def test_body_with_leading_status_heading_is_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(feat.id, "## Status\n\nThis is still being drafted.")
         issues = _banner_issues(await svc.check())
         assert len(issues) == 1
         assert issues[0].item == feat.id
 
     async def test_bold_status_banner_is_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(feat.id, "**STATUS: Proposed / assessment** — do not merge yet.")
         issues = _banner_issues(await svc.check())
         assert len(issues) == 1
 
     async def test_description_opening_with_status_banner_is_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.update(feat.id, description="STATUS: Draft, not ready for review")
         issues = _banner_issues(await svc.check())
         assert len(issues) == 1
         assert issues[0].item == feat.id
 
     async def test_message_names_the_offending_item_and_the_fix(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(feat.id, "STATUS: Proposed")
         issue = _banner_issues(await svc.check())[0]
         assert "frontmatter" in issue.message
@@ -70,7 +68,7 @@ class TestServiceStatusBannerCheckPositive:
 
 class TestServiceStatusBannerCheckNegative:
     async def test_topical_lifecycle_mention_mid_body_is_not_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(
             feat.id,
             "This feature builds the Draft→Ready transition for the review workflow, so"
@@ -80,7 +78,7 @@ class TestServiceStatusBannerCheckNegative:
         assert not issues
 
     async def test_cross_reference_to_another_items_status_is_not_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(
             feat.id,
             "This work blocks the payments migration task until that lands, since it"
@@ -90,7 +88,7 @@ class TestServiceStatusBannerCheckNegative:
         assert not issues
 
     async def test_status_word_inside_fenced_code_is_not_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(
             feat.id,
             "Example CLI output:\n\n```\nSTATUS: Draft\n```\n\nThat is the shape of the"
@@ -100,19 +98,19 @@ class TestServiceStatusBannerCheckNegative:
         assert not issues
 
     async def test_status_banner_in_discussion_is_not_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(feat.id, "Plain, state-free acceptance criteria.")
         await svc.comment(feat.id, ["STATUS: Proposed — moved here on 2026-01-01."])
         issues = _banner_issues(await svc.check())
         assert not issues
 
     async def test_item_with_no_body_produces_no_issue(self, svc):
-        await svc.create(ItemType.FEATURE, "My feature")
+        await svc.create("feature", "My feature")
         issues = _banner_issues(await svc.check())
         assert not issues
 
     async def test_warn_level_does_not_affect_other_issue_levels(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.set_body(feat.id, "STATUS: Proposed")
         issues = await svc.check()
         for issue in _banner_issues(issues):

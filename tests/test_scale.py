@@ -15,7 +15,6 @@ from pathlib import Path
 import pytest
 
 from squads._cli import app
-from squads._models._enums import ItemType
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -46,7 +45,7 @@ async def _build_scale_squad_async(tmp_path: Path) -> service.Service:
     feat_ids: list[str] = []
     for i in range(_FEATURES):
         r = await svc.create(
-            ItemType.FEATURE,
+            "feature",
             f"Feature {i}",
             description=f"Generated feature {i} for scale testing.",
         )
@@ -55,7 +54,7 @@ async def _build_scale_squad_async(tmp_path: Path) -> service.Service:
     # 600 tasks — distributed across all features (3 per feature on average)
     for i in range(_TASKS):
         await svc.create(
-            ItemType.TASK,
+            "task",
             f"Task {i}",
             parent=feat_ids[i % len(feat_ids)],
         )
@@ -63,7 +62,7 @@ async def _build_scale_squad_async(tmp_path: Path) -> service.Service:
     # 200 bugs
     for i in range(_BUGS):
         await svc.create(
-            ItemType.BUG,
+            "bug",
             f"Bug {i}",
             description=f"Generated bug {i} for scale testing.",
         )

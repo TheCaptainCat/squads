@@ -17,7 +17,6 @@ from pathlib import Path
 import pytest
 
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_dev_role, resolve_role
@@ -214,7 +213,7 @@ async def test_activate_role_new_slug_creates_item(project):
     svc = service.Service(project)
     item = await svc.activate_role("security-expert")
 
-    assert item.type == ItemType.ROLE
+    assert item.type == "role"
     assert item.extra.get(X.FULL_NAME) == "Sam Security"
     assert item.extra.get(X.SLUG) == "security-expert"
 

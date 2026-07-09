@@ -25,7 +25,7 @@ from squads._interactions import (
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
@@ -37,6 +37,7 @@ from squads._models._item import (
     split_ref,
 )
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
+from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
@@ -44,9 +45,10 @@ from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
+from squads._workflow import META_ROLE, META_SKILL
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
-# ``type`` is a plain ``str`` so that custom types (not in ItemType) are supported.
+# ``type`` is a plain ``str`` — every type (built-in or custom) resolves from the spec.
 type _FileRec = tuple[str, Path, str, str, int]
 
 # A leading status/lifecycle banner: "STATUS:" / "**STATUS…**" opening a line, or a
@@ -123,12 +125,12 @@ class MaintenanceMixin(ServiceCore):
         ctx = self._ctx
         for backend in backends:
             await backend.ensure_scaffold(ctx)
-        for it in await self.list_items(item_type=ItemType.ROLE):
+        for it in await self.list_items(item_type=META_ROLE):
             await self._refresh_catalog_extra(it)
             for backend in backends:
                 await backend.generate_role_entry(ctx, it, RoleDef.from_extra(it.extra))
             await self._regen_role_body(it)
-        for it in await self.list_items(item_type=ItemType.SKILL):
+        for it in await self.list_items(item_type=META_SKILL):
             for backend in backends:
                 await backend.generate_skill_entry(ctx, it)
         skill_map = await self._skill_paths()
@@ -229,8 +231,8 @@ class MaintenanceMixin(ServiceCore):
         """Stamp SKILL-… ids onto the bundled managed skill body files (idempotent).
 
         Called by ``sq init`` after ``refresh_managed()`` has written the skill body files.
-        Each bundled skill receives a full ``Item`` of ``ItemType.SKILL`` with the meta-type
-        profile (status ``Active``, no sub-entities), allocated through
+        Each bundled skill receives a full ``Item`` of the ``skill`` meta-type with the
+        meta-type profile (status ``Active``, no sub-entities), allocated through
         ``IndexStore.transaction()`` in lexical-by-slug order.
 
         Files are written with the convention-correct name
@@ -245,12 +247,13 @@ class MaintenanceMixin(ServiceCore):
         """
         now = clock.now()
         seeded: list[Item] = []
-        skills_folder = self.paths.squad_dir / ItemType.SKILL.folder
+        skill_prefix = prefix_for(META_SKILL, self.spec)
+        skills_folder = self.paths.squad_dir / self.spec.items[META_SKILL].folder
         for slug in bundled_skill_slugs():
             desc = skill_description(slug)
 
             # Check if a convention-named file already exists — idempotent skip.
-            existing_convention = list(skills_folder.glob(f"{ItemType.SKILL.prefix}-*-{slug}.md"))
+            existing_convention = list(skills_folder.glob(f"{skill_prefix}-*-{slug}.md"))
             if existing_convention:
                 continue  # already at convention name — leave id/sequence_id untouched
 
@@ -263,15 +266,16 @@ class MaintenanceMixin(ServiceCore):
             # Allocate a new SKILL id through the single global counter.
             sid, _psid = actor.current_session()
             async with self.store.transaction() as db:
-                item_id = db.allocate_id(ItemType.SKILL)
+                item_id = db.allocate_id(META_SKILL, prefix=skill_prefix)
                 # Convention-correct filename from the allocated id.
                 seq = number_for_id(item_id)
                 # Padded filename stem — deliberately NOT the displayed item.id.
-                new_name = f"{ItemType.SKILL.prefix}-{seq:0{db.padding}d}-{slug}.md"
-                squad_rel = self.paths.squad_relative(ItemType.SKILL, new_name)
+                new_name = f"{skill_prefix}-{seq:0{db.padding}d}-{slug}.md"
+                squad_rel = self.paths.squad_relative(META_SKILL, new_name, spec=self.spec)
                 item = Item(
                     sequence_id=db.counter,
-                    type=ItemType.SKILL,
+                    type=META_SKILL,
+                    prefix=skill_prefix,
                     title=slug,
                     slug=slug,
                     status=Status.ACTIVE,
@@ -292,7 +296,7 @@ class MaintenanceMixin(ServiceCore):
                 self.store._log(  # pyright: ignore[reportPrivateUsage]
                     "create",
                     item_id,
-                    {"title": slug, "type": ItemType.SKILL.value, "status": Status.ACTIVE.value},
+                    {"title": slug, "type": META_SKILL, "status": Status.ACTIVE.value},
                 )
             # Remove the legacy slug-named file now that convention file is written.
             await _aio.path_unlink(legacy_path)
@@ -310,7 +314,7 @@ class MaintenanceMixin(ServiceCore):
         """Stamp SKILL-… ids onto custom-type managed skill body files (idempotent).
 
         Mirrors :meth:`seed_bundled_skills` but operates on custom types declared in the
-        active spec (beyond the built-in ``ItemType`` members).  SKILL ids are allocated in
+        active spec (beyond the built-in types).  SKILL ids are allocated in
         the same lexical-by-slug order as :func:`bundled_skill_slugs`, satisfying AC#6 (no
         SKILL-id churn for existing bundled skills — custom slugs sort independently into the
         full sorted slug space).
@@ -320,12 +324,13 @@ class MaintenanceMixin(ServiceCore):
         """
         now = clock.now()
         seeded: list[Item] = []
-        skills_folder = self.paths.squad_dir / ItemType.SKILL.folder
+        skill_prefix = prefix_for(META_SKILL, self.spec)
+        skills_folder = self.paths.squad_dir / self.spec.items[META_SKILL].folder
         for slug in custom_skill_slugs(self.spec):
             desc = custom_item_skill_description(slug.removeprefix("sq-"))
 
             # Check if a convention-named file already exists — idempotent skip.
-            existing_convention = list(skills_folder.glob(f"{ItemType.SKILL.prefix}-*-{slug}.md"))
+            existing_convention = list(skills_folder.glob(f"{skill_prefix}-*-{slug}.md"))
             if existing_convention:
                 continue  # already at convention name — leave id/sequence_id untouched
 
@@ -338,14 +343,15 @@ class MaintenanceMixin(ServiceCore):
             # Allocate a new SKILL id through the single global counter.
             sid, _psid = actor.current_session()
             async with self.store.transaction() as db:
-                item_id = db.allocate_id(ItemType.SKILL)
+                item_id = db.allocate_id(META_SKILL, prefix=skill_prefix)
                 seq = number_for_id(item_id)
                 # Padded filename stem — deliberately NOT the displayed item.id.
-                new_name = f"{ItemType.SKILL.prefix}-{seq:0{db.padding}d}-{slug}.md"
-                squad_rel = self.paths.squad_relative(ItemType.SKILL, new_name)
+                new_name = f"{skill_prefix}-{seq:0{db.padding}d}-{slug}.md"
+                squad_rel = self.paths.squad_relative(META_SKILL, new_name, spec=self.spec)
                 item = Item(
                     sequence_id=db.counter,
-                    type=ItemType.SKILL,
+                    type=META_SKILL,
+                    prefix=skill_prefix,
                     title=slug,
                     slug=slug,
                     status=Status.ACTIVE,
@@ -365,7 +371,7 @@ class MaintenanceMixin(ServiceCore):
                 self.store._log(  # pyright: ignore[reportPrivateUsage]
                     "create",
                     item_id,
-                    {"title": slug, "type": ItemType.SKILL.value, "status": Status.ACTIVE.value},
+                    {"title": slug, "type": META_SKILL, "status": Status.ACTIVE.value},
                 )
             # Remove the legacy slug-named file now that convention file is written.
             await _aio.path_unlink(legacy_path)
@@ -380,41 +386,33 @@ class MaintenanceMixin(ServiceCore):
     def _iter_item_files(self) -> Iterator[tuple[str, Path]]:
         """Yield (item_type, markdown path) for every item file across the type folders.
 
+        Every type declared in the active spec — built-in or custom — is scanned uniformly
+        (one generic path, no static/dynamic split), ordered by each type's
+        ``ItemSpec.order`` (the same deterministic-not-alphabetical axis the CLI/playbook
+        registration already uses), tie-broken by type name. This reproduces the exact
+        historical built-in scan order (epic, feature, task, bug, decision, review, guide,
+        role, skill, operator) byte-for-byte, which matters for collision resolution when
+        two items share a sequence number pre-renumber (`sq repair --renumber`).
+
         Skill files follow the ``SKILL-<NNNNNN>-<slug>.md`` convention so they are scanned
         with the same ``PREFIX-*.md`` glob as every other type.  Legacy slug-named files
-        (pre-migration) are also yielded so callers can detect
-        them; files without an ``id`` in their frontmatter are silently skipped by the
-        repair/check callers.
-
-        Custom types (declared in ``self.spec`` but not in the built-in ``ItemType`` enum) are
-        also scanned: their folder is determined from the spec and their files are matched with
-        the ``<PREFIX>-*.md`` glob derived from their declared prefix.
+        (pre-migration) are also yielded so callers can detect them; files without an ``id``
+        in their frontmatter are silently skipped by the repair/check callers.
         """
-        # Built-in types first (preserves existing scan order for repair/check).
-        for item_type in ItemType:
-            folder = self.paths.folder_for(item_type)
+        for item_type, ts in sorted(self.spec.items.items(), key=lambda kv: (kv[1].order, kv[0])):
+            folder = self.paths.squad_dir / ts.folder
             if not folder.is_dir():
                 continue
-            prefix = item_type.prefix
-            if item_type == ItemType.SKILL:
+            prefix = ts.prefix
+            if item_type == META_SKILL:
                 # Convention files follow SKILL-*.md (post-migration / fresh init).
                 # Also include legacy <slug>.md files so pre-migration squads can still be
                 # repaired/checked (they will be silently skipped by callers that require an id).
                 convention = sorted(folder.glob(f"{prefix}-*.md"))
                 legacy = sorted(md for md in folder.glob("*.md") if not md.name.startswith(prefix))
-                yield from ((str(item_type), md) for md in convention + legacy)
+                yield from ((item_type, md) for md in convention + legacy)
             else:
-                yield from ((str(item_type), md) for md in sorted(folder.glob(f"{prefix}-*.md")))
-
-        # Custom types — declared in the active spec but not in the built-in ItemType enum.
-        builtin_types: frozenset[str] = frozenset(t.value for t in ItemType)
-        for ctype, ts in sorted(self.spec.items.items()):
-            if ctype in builtin_types:
-                continue  # already scanned above
-            folder = self.paths.squad_dir / ts.folder
-            if not folder.is_dir():
-                continue
-            yield from ((ctype, md) for md in sorted(folder.glob(f"{ts.prefix}-*.md")))
+                yield from ((item_type, md) for md in sorted(folder.glob(f"{prefix}-*.md")))
 
     # ------------------------------------------------------------------ repair / renumber
     async def _rebuild_index_from_disk(
@@ -448,6 +446,13 @@ class MaintenanceMixin(ServiceCore):
                     f"item {item.id} has unknown type {item.type!r} in {md.name}; "
                     f"fix the frontmatter before running `sq repair`"
                 )
+            # Legacy files predating the prefix: line have no stored prefix —
+            # backfill it now the type is known-valid, mirroring the store's own post-load
+            # pass (_propagate_prefix), so a freshly-rebuilt index never carries a
+            # type.upper() stand-in id for a built-in type whose real prefix differs
+            # (e.g. "feature" -> "FEAT", not "FEATURE").
+            if not item.prefix:
+                item.prefix = prefix_for(item.type, self.spec)
             if item.status not in self.spec.statuses:
                 raise SquadsError(
                     f"item {item.id} has unknown status {item.status!r} in {md.name}; "
@@ -944,7 +949,7 @@ class MaintenanceMixin(ServiceCore):
         """
         issues: list[CheckIssue] = []
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]] = {}
-        skill_prefix = ItemType.SKILL.prefix + "-"
+        skill_prefix = prefix_for(META_SKILL, self.spec) + "-"
         for item_type, md in self._iter_item_files():
             text = await _aio.read_text(md)
             issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
@@ -953,7 +958,7 @@ class MaintenanceMixin(ServiceCore):
             if not fid:
                 # Slug-named skill body files (e.g. squads.md) are pre-migration: skip silently.
                 # Only ID-prefixed files that are missing an id are a real error.
-                if item_type == ItemType.SKILL and not md.name.startswith(skill_prefix):
+                if item_type == META_SKILL and not md.name.startswith(skill_prefix):
                     continue
                 issues.append(CheckIssue("error", md.name, "file has no `id` in frontmatter"))
                 continue

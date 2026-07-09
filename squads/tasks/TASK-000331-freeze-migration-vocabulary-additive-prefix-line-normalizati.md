@@ -4,45 +4,46 @@ sequence_id: 331
 type: task
 title: Freeze migration vocabulary + additive prefix-line normalization
 status: Ready
+prefix: TASK
 parent: FEAT-326
 author: tech-lead
 subentities:
 - local_id: ST1
-  title: Inline frozen local vocab constants in all historical migration runners
+  title: Additive prefix-line normalization pass wired into MIGRATIONS
   status: Todo
   story: US4
 - local_id: ST2
-  title: Additive prefix-line normalization pass; assess/decide SCHEMA_VERSION bump
+  title: Assess/decide/record the SCHEMA_VERSION bump
   status: Todo
   story: US4
 created_at: '2026-07-07T14:50:25Z'
-updated_at: '2026-07-08T08:30:15Z'
+updated_at: '2026-07-08T12:50:38Z'
 ---
 <!-- sq:body -->
 ## Scope
 
-Keep the historical migration runners reproducible after both enums are gone by
-pinning the vocabulary each one targets as **inline frozen local constants**
-(never the live spec, never a removed enum); add the additive `prefix:`-line
-normalization pass; and make the `SCHEMA_VERSION` call. A migration is a
-point-in-time transform — it must snapshot the vocabulary as it existed at the
-schema version it targets. Serves the "unmodified default behaves identically /
-historical runs stay reproducible" acceptance (US4).
+Land the disk-normalization side of the type-axis change: an **additive
+`prefix:`-line normalization** `sq migrate` pass that stamps the now-canonical
+`prefix:` line onto every legacy built-in item file, plus the `SCHEMA_VERSION`
+assess/decide-and-record call. Serves the "unmodified default behaves
+identically / historical runs stay reproducible" acceptance (US4).
+
+**Migration-vocabulary freeze moved out.** Freezing the migration runners'
+`ItemType` references to inline frozen local constants now lives in TASK-328,
+and their `Status` references in TASK-330 — each enum's freeze had to land in
+the same task that deletes that enum, since the delete is only grep/pyright-clean
+once every reference is gone. This task no longer touches the runners' vocabulary;
+it only adds the new normalization pass and makes the schema-version call.
 
 ## Areas / files
 
-- `_migrations/_v0_1_to_v0_2.py`, `_v0_2_to_v0_3.py`, `_v0_4_to_v0_5.py`,
-  `_v0_5_to_v0_7.py` — replace `ItemType.X`, `for item_type in ItemType`, and the
-  `_BODY_KIND` enum references with inline frozen literal tuples/maps equal to the
-  **type names as they existed at that schema version**.
-- `_migrations/_meta_compat.py`, `_v0_4_to_v0_5.py` — same treatment for the
-  `Status` references (frozen literal **status** names for that version).
 - Normalization pass — an additive `sq migrate` step that stamps the now-canonical
   `prefix:` line onto every legacy built-in item file, so the `from_frontmatter`
   legacy omit-branch can eventually be deleted outright. Reads already tolerate
-  its absence (spec backfill at load); this normalizes on disk. Wire it into
-  `_migrations/_registry.py::MIGRATIONS` with its `Migration` record + `manual`
-  runbook string, run through `sq migrate up` (then `repair` + stamp).
+  its absence (spec backfill at load, added in TASK-328); this normalizes on
+  disk. Wire it into `_migrations/_registry.py::MIGRATIONS` with its `Migration`
+  record + `manual` runbook string, run through `sq migrate up` (then `repair` +
+  stamp).
 - `SCHEMA_VERSION` (`_models/_schema.py`) — assess and decide: a bump is **not**
   required for read correctness (backfill at load), but is reasonable to
   *normalize* every file. Make the call, record the rationale in this task's
@@ -52,8 +53,6 @@ historical runs stay reproducible" acceptance (US4).
 
 ## Done criteria
 
-- No migration runner references a removed enum or the live spec for its
-  vocabulary; each pins frozen local constants.
 - The normalization pass stamps `prefix:` on legacy built-in files and runs clean
   via `sq migrate up` + `sq repair`.
 - The `SCHEMA_VERSION` decision is recorded (this task's discussion) and, if
@@ -63,9 +62,11 @@ historical runs stay reproducible" acceptance (US4).
 
 ## Sequencing note
 
-Lands alongside/after the enum deletions — the runners can only stop referencing
-`ItemType`/`Status` once the frozen local constants replace them, which is the
-whole point of this task.
+Lands last on the type/status axis, after the enum deletions (TASK-328/330) —
+the normalization pass writes the canonical `prefix:` line that TASK-328's
+spec-free round-trip and load-backfill establish, so it depends on that work
+being in place. The migration-runner vocabulary freeze it used to own now lands
+inside those enum-deletion tasks.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -75,14 +76,14 @@ _Add with `sq task 331 add-subtask "<title>"`; track with `sq task 331 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Inline frozen local vocab constants in all historical migration runners | US4 |
-| ST2 | Todo |  | Additive prefix-line normalization pass; assess/decide SCHEMA_VERSION bump | US4 |
+| ST1 | Todo |  | Additive prefix-line normalization pass wired into MIGRATIONS | US4 |
+| ST2 | Todo |  | Assess/decide/record the SCHEMA_VERSION bump | US4 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Inline frozen local vocab constants in all historical migration runners
+### ST1 — Additive prefix-line normalization pass wired into MIGRATIONS
 
 <!-- sq:subtask:ST1:head -->
 **Status:** ⚪ Todo
@@ -90,7 +91,7 @@ _Add with `sq task 331 add-subtask "<title>"`; track with `sq task 331 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-Replace ItemType.X, 'for item_type in ItemType', the _BODY_KIND enum references, and Status.X in _v0_1_to_v0_2/_v0_2_to_v0_3/_v0_4_to_v0_5/_v0_5_to_v0_7 and _meta_compat.py with inline frozen local literal tuples/maps equal to the type and status names as they existed at each runner's target schema version.
+Add an additive sq migrate step that stamps the now-canonical prefix line onto every legacy built-in item file (so the from_frontmatter omit-branch can later be deleted). Wire it into _migrations/_registry.py MIGRATIONS with its Migration record + manual runbook; runs through sq migrate up (then repair + stamp). Reads already tolerate its absence via TASK-328's load backfill; this normalizes on disk.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -100,7 +101,7 @@ Replace ItemType.X, 'for item_type in ItemType', the _BODY_KIND enum references,
 <!-- sq:subtask:ST1:end -->
 
 <!-- sq:subtask:ST2 -->
-### ST2 — Additive prefix-line normalization pass; assess/decide SCHEMA_VERSION bump
+### ST2 — Assess/decide/record the SCHEMA_VERSION bump
 
 <!-- sq:subtask:ST2:head -->
 **Status:** ⚪ Todo
@@ -108,7 +109,7 @@ Replace ItemType.X, 'for item_type in ItemType', the _BODY_KIND enum references,
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-Add an additive sq migrate step (wired into _migrations/_registry.py MIGRATIONS with its Migration record + manual runbook) that stamps the now-canonical prefix line onto every legacy built-in item file, so the from_frontmatter omit-branch can later be deleted. Assess and decide the SCHEMA_VERSION bump (not required for read correctness; reasonable to normalize), record the rationale in this task's discussion, and implement+stamp if taken.
+Assess and decide the SCHEMA_VERSION bump: not required for read correctness (backfill at load), but reasonable to normalize every file. Record the rationale in this task's discussion; if bumping, add the ordered migration + stamp per the migrate runbook. Coordinate with the EPIC-280/FEAT-281 migration owners. NOTE: the migration-vocabulary freeze (ItemType/Status) formerly in this task moved to TASK-328/TASK-330.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -121,4 +122,10 @@ Add an additive sq migrate step (wired into _migrations/_registry.py MIGRATIONS 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-08T11:40:41Z] Olivia Lead:
+  - Re-scoped (pre-dispatch): NARROWED. Removed 'freeze all migration vocabulary' — that's now split into TASK-328 (ItemType refs) and TASK-330 (Status refs), because each enum's freeze must land in the same task that deletes that enum (the delete is only grep/pyright-clean once every reference is gone; a last-in-sequence freeze would leave 328/330 red).
+  - Remaining scope is exactly: (a) the additive prefix-line normalization sq migrate pass wired into _migrations/_registry.py MIGRATIONS with its Migration record + manual runbook, and (b) the SCHEMA_VERSION assess/decide-and-record call. Still lands last on the axis — it depends on TASK-328's spec-free round-trip + load backfill. Repurposed ST1 (normalization pass) and ST2 (schema-version decision) accordingly.
+- [2026-07-08T12:50:38Z] Catherine Manager:
+  - Correction: TASK-331 is NOT complete. The TASK-328 dev's handoff claimed 331 was 'folded in, nothing remains' — that conflated the load-time prefix backfill (which IS part of 328, ADR §3) with 331's actual remaining scope.
+  - 331 still owns: (ST1) the ADDITIVE sq migrate normalization pass that stamps the canonical prefix: line onto legacy built-in files on disk (wired into _migrations/_registry.py MIGRATIONS with a Migration record + manual runbook), so the from_frontmatter unset-prefix branch can eventually be deleted; and (ST2) the SCHEMA_VERSION assess/decide-and-record call. Verified neither was done: SCHEMA_VERSION is still 0.7, no new normalization runner, no registry change. Staying Ready — dispatch after 330.
 <!-- sq:discussion:end -->

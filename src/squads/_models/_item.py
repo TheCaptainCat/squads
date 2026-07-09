@@ -7,12 +7,10 @@ from pydantic import BaseModel, Field, computed_field, field_validator
 
 from squads import _clock as clock
 from squads._models._enums import (  # noqa: F401 — re-exported for callers
-    ItemType,  # pyright: ignore[reportUnusedImport]
     Priority,
     Status,  # pyright: ignore[reportUnusedImport]
 )
 from squads._models._subentity import SubEntity
-from squads._models._vocab import RESERVED_PREFIX as _RESERVED_PREFIX
 from squads._util import NonEmpty
 
 REF_SEP = ":"
@@ -38,6 +36,35 @@ def format_item_id(prefix: str, sequence_id: int, padding: int = DEFAULT_ID_PADD
     This is the single canonical formatter; all `:0Nd` formatting elsewhere must route through it.
     """
     return f"{prefix}-{sequence_id:0{padding}d}"
+
+
+#: Obviously-synthetic sentinel for "no real prefix resolved yet" — never a real prefix, and
+#: never mistaken for one. Real vocabulary resolution (``prefix_for``) always raises on an
+#: unknown/absent type rather than guessing; this sentinel is strictly the last-resort stand-in
+#: for the handful of acyclic formatters/matchers below that cannot raise (they render ids for
+#: reprs, logs, filenames, and ref-matching) and cannot import ``_workflow`` to resolve real
+#: vocabulary (the acyclic invariant). A leaked pre-resolution id then reads e.g.
+#: ``UNRESOLVED-42`` — loud and test-visible — never a plausible-but-wrong ``type.upper()``
+#: guess (which would silently mis-render e.g. decision -> "DECISION" instead of "ADR").
+UNRESOLVED_PREFIX = "UNRESOLVED"
+
+
+def effective_prefix(prefix: str, item_type: str) -> str:
+    """Return *prefix* if set, else the diagnosable :data:`UNRESOLVED_PREFIX` sentinel.
+
+    The one shared "best prefix we have right now, without resolving real vocabulary" helper —
+    every acyclic formatter/matcher that used to fall back to ``item_type.upper()`` (Item.id,
+    ``SquadsDB.format_id``, the ref-matching helpers in ``_services``/``_cli``) routes through
+    this instead. ``item_type`` is accepted (rather than making this a bare ``prefix or
+    UNRESOLVED_PREFIX`` one-liner at every call site) so the signature stays self-documenting
+    about what it's a stand-in prefix *for*, and so a future refinement (e.g. logging the type
+    on a sentinel hit) has a natural home.
+
+    In production this branch should never actually run: ``prefix`` is spec-resolved at
+    create/retype time and backfilled at every load boundary before ``.id``/matching is
+    consumed. It exists purely as a never-should-happen guard, never a vocabulary source.
+    """
+    return prefix or UNRESOLVED_PREFIX
 
 
 #: The closed vocabulary of ref kinds — exhaustive, no custom-kind escape hatch.
@@ -93,10 +120,8 @@ def fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
 class Item(BaseModel):
     #: The global counter number — the item's real identity. ``id`` is derived from it + ``type``.
     sequence_id: int
-    #: Item type as a plain string.
-    #: Reserved vocabulary is validated at the service load boundary via ``WorkflowSpec``.
-    #: ``ItemType`` members compare equal to their plain string values (StrEnum), so callers
-    #: may compare ``item.type == ItemType.TASK`` or ``item.type == "task"`` interchangeably.
+    #: Item type as a plain string. The loaded ``WorkflowSpec`` is the sole vocabulary
+    #: authority; validated against it at the service load boundary.
     type: str
     title: NonEmpty
     slug: NonEmpty
@@ -132,12 +157,12 @@ class Item(BaseModel):
     modified_session: str | None = None
     #: Type-specific fields (e.g. agent role config, dev tech, adr context).
     extra: dict[str, Any] = {}
-    #: The resolved ID prefix for this item (e.g. ``"TASK"``, ``"INC"``).
-    #: Stamped at create/retype time from the active spec (or the reserved map for built-ins).
-    #: Excluded from the JSON index (never persisted there) but written to frontmatter for
-    #: custom (non-reserved) types so it survives round-trips without a spec in hand.
-    #: For reserved built-in types, ``prefix`` is always re-derived from ``RESERVED_PREFIX``
-    #: on load — their frontmatter stays byte-identical with no new ``prefix:`` line.
+    #: The resolved ID prefix for this item (e.g. ``"TASK"``, ``"INC"``), for EVERY type
+    #: (built-in or custom). Stamped at create/retype time from the active spec.
+    #: Excluded from the JSON index (never persisted there — see ``IndexStore``'s post-load
+    #: backfill) but always written to frontmatter, so a file round-trips through
+    #: ``from_frontmatter``/``to_frontmatter_dict`` with no spec in hand (``_models`` stays
+    #: spec-decoupled and never imports ``_workflow``).
     prefix: str = Field(default="", exclude=True, repr=False)
 
     model_config = {"use_enum_values": False}
@@ -147,10 +172,9 @@ class Item(BaseModel):
     def _coerce_str_fields(cls, v: object) -> str:
         """Coerce StrEnum members to plain str so pydantic stores a clean string.
 
-        ``use_enum_values=False`` prevents auto-coercion; callers may pass ``ItemType``
-        or ``Status`` members (both StrEnum, which IS a str subclass) which are
-        assignment-compatible but must be stored as plain ``str`` to keep YAML
-        serialisation and identity checks clean.
+        ``use_enum_values=False`` prevents auto-coercion; callers may pass a ``Status``
+        member (StrEnum, which IS a str subclass) which is assignment-compatible but must
+        be stored as plain ``str`` to keep YAML serialisation and identity checks clean.
 
         Only ``str`` (and subclasses such as ``StrEnum``) are accepted.  Anything else
         — ``int``, ``None``, etc. — raises ``ValueError`` so Pydantic surfaces a
@@ -172,27 +196,27 @@ class Item(BaseModel):
 
         ``prefix`` is stamped at create/retype time by the service (which holds the spec)
         and propagated by the index store after load.  The model itself never derives vocab:
-        it formats from whatever prefix string it was given.
+        it formats purely from whatever prefix string it was given.
 
-        If ``prefix`` is empty (e.g. a bare ``Item(...)`` constructed in a test without one),
-        fall back to the reserved map so built-in items always render correctly even when the
-        prefix was not explicitly supplied.
+        If ``prefix`` is empty (e.g. a bare ``Item(...)`` constructed in a test without one,
+        or a legacy file read before the load-boundary backfill), the id degrades to the
+        :data:`UNRESOLVED_PREFIX` sentinel rather than crashing or guessing — the model itself
+        never derives real vocabulary (that would require importing ``_workflow``, breaking the
+        acyclic invariant).
         """
-        effective_prefix = self.prefix or _RESERVED_PREFIX.get(self.type, self.type.upper())
-        return format_item_id(effective_prefix, self.sequence_id, DISPLAY_ID_PADDING)
+        return format_item_id(
+            effective_prefix(self.prefix, self.type), self.sequence_id, DISPLAY_ID_PADDING
+        )
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The mapping written into the markdown file's YAML frontmatter (durable truth).
 
-        For custom (non-reserved) types, ``prefix`` is written as a frontmatter line so the
-        correct prefix survives a round-trip without a spec (e.g. ``sq repair``).  Reserved
-        built-in types always re-derive their prefix from the reserved map on load, so no
-        ``prefix:`` line is written — their files stay byte-identical.
+        ``prefix`` is written as a frontmatter line for EVERY type, built-in or custom —
+        this is what lets a file round-trip through ``from_frontmatter``
+        with no spec in hand (e.g. ``sq repair``).
         """
         data: dict[str, Any] = self._core_frontmatter_fields()
-        # Write prefix frontmatter ONLY for custom (non-reserved) types.
-        # Built-ins re-derive from RESERVED_PREFIX on load; no frontmatter change needed.
-        if self.prefix and self.type not in _RESERVED_PREFIX:
+        if self.prefix:
             data["prefix"] = self.prefix
         _add_optional_frontmatter_fields(data, self)
         return data
@@ -210,21 +234,16 @@ class Item(BaseModel):
     def from_frontmatter(cls, data: dict[str, Any], *, path: str) -> Item:
         """Reconstruct an Item from parsed frontmatter — used by ``sq repair``.
 
-        ``type`` and ``status`` are stored as plain strings; the reserved-vocab
+        ``type`` and ``status`` are stored as plain strings; the vocabulary
         validation (against WorkflowSpec) runs at the service load boundary, not here.
 
-        ``prefix`` is read back when present in frontmatter (custom types write it so the
-        correct prefix survives a round-trip without a spec).  When absent (legacy files and
-        all built-in types), ``prefix`` is left as ``""`` and the store's post-load pass fills
+        ``prefix`` is read back straight from frontmatter when present (every type, built-in
+        or custom, writes it).  When absent (legacy files predating the
+        ``prefix:`` line), ``prefix`` is left as ``""`` and the store's post-load pass fills
         it via ``prefix_for`` before returning the DB (parallel to ``_propagate_padding``).
         """
         item_type: str = data["type"]
-        # Read stored prefix when present; for built-ins it is always absent (re-derived later).
         stored_prefix: str = data.get("prefix") or ""
-        # For reserved types, always use the authoritative RESERVED_PREFIX — never trust a
-        # stored value (protects against a corrupt/hand-edited frontmatter).
-        if item_type in _RESERVED_PREFIX:
-            stored_prefix = _RESERVED_PREFIX[item_type]
         return cls(
             sequence_id=data["sequence_id"],
             type=item_type,

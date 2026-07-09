@@ -253,50 +253,49 @@ async def test_resolve_item_id_typed(svc):
     """
     from squads._cli._common import resolve_item_id_typed  # pyright: ignore[reportPrivateUsage]
     from squads._errors import SquadsError
-    from squads._models._enums import ItemType
 
     # create a feature (seq 2 — ROLE-1 is seq 1 from init --roles minimal)
-    await svc.create(ItemType.FEATURE, "Feat A", author="manager")  # FEAT-2
+    await svc.create("feature", "Feat A", author="manager")  # FEAT-2
 
     # bare number resolves to the feature
-    assert await resolve_item_id_typed("2", ItemType.FEATURE, svc) == "FEAT-2"
+    assert await resolve_item_id_typed("2", "feature", svc) == "FEAT-2"
 
     # zero-padded bare number resolves to the feature
-    assert await resolve_item_id_typed("000002", ItemType.FEATURE, svc) == "FEAT-2"
+    assert await resolve_item_id_typed("000002", "feature", svc) == "FEAT-2"
 
     # full ID (padded or not) resolves to the feature
-    assert await resolve_item_id_typed("FEAT-000002", ItemType.FEATURE, svc) == "FEAT-2"
+    assert await resolve_item_id_typed("FEAT-000002", "feature", svc) == "FEAT-2"
 
     # case-insensitive prefix
-    assert await resolve_item_id_typed("feat-2", ItemType.FEATURE, svc) == "FEAT-2"
+    assert await resolve_item_id_typed("feat-2", "feature", svc) == "FEAT-2"
 
     # bare number that belongs to a feature, asked as a task → type-mismatch error
     # (F1) both forms produce the same shape: "<token> is FEAT-2 (feature), not a task"
     with pytest.raises(SquadsError, match=r"2 is FEAT-2 \(feature\), not a task"):
-        await resolve_item_id_typed("2", ItemType.TASK, svc)
+        await resolve_item_id_typed("2", "task", svc)
 
     # full ID with wrong prefix → same shape as bare-number mismatch (F1 fix).
     # The echoed label is the raw (possibly padded) token; the resolved id is unpadded.
     with pytest.raises(SquadsError, match=r"FEAT-000002 is FEAT-2 \(feature\), not a task"):
-        await resolve_item_id_typed("FEAT-000002", ItemType.TASK, svc)
+        await resolve_item_id_typed("FEAT-000002", "task", svc)
 
     # unknown bare number → error mentioning both forms (F2); the hint is unpadded (ADR-000282)
     with pytest.raises(
         SquadsError,
         match=r"no item with number 99 \(use TASK-99 or bare 99\)",
     ):
-        await resolve_item_id_typed("99", ItemType.TASK, svc)
+        await resolve_item_id_typed("99", "task", svc)
 
     # unknown full ID → same wording mentioning both forms (F2)
     with pytest.raises(
         SquadsError,
         match=r"no item with number 99 \(use TASK-99 or bare 99\)",
     ):
-        await resolve_item_id_typed("TASK-000099", ItemType.TASK, svc)
+        await resolve_item_id_typed("TASK-000099", "task", svc)
 
     # invalid token → uses shared error (F3)
     with pytest.raises(SquadsError, match="invalid item id"):
-        await resolve_item_id_typed("abc", ItemType.TASK, svc)
+        await resolve_item_id_typed("abc", "task", svc)
 
 
 async def test_unpadded_and_padded_ids_resolve_to_same_item(svc):
@@ -310,14 +309,13 @@ async def test_unpadded_and_padded_ids_resolve_to_same_item(svc):
         resolve_item_id_any,  # pyright: ignore[reportPrivateUsage]
         resolve_item_id_typed,  # pyright: ignore[reportPrivateUsage]
     )
-    from squads._models._enums import ItemType
 
-    created = (await svc.create(ItemType.FEATURE, "Widely addressed", author="manager")).item
+    created = (await svc.create("feature", "Widely addressed", author="manager")).item
     assert created.id == "FEAT-2"  # display is unpadded
 
     unpadded, padded = "FEAT-2", "FEAT-000002"
-    assert await resolve_item_id_typed(unpadded, ItemType.FEATURE, svc) == created.id
-    assert await resolve_item_id_typed(padded, ItemType.FEATURE, svc) == created.id
+    assert await resolve_item_id_typed(unpadded, "feature", svc) == created.id
+    assert await resolve_item_id_typed(padded, "feature", svc) == created.id
     assert await resolve_item_id_any(unpadded, svc) == created.id
     assert await resolve_item_id_any(padded, svc) == created.id
 
@@ -329,10 +327,9 @@ async def test_resolve_item_id_any(svc):
     """Service-level: type-less resolver resolves bare number or full ID regardless of type."""
     from squads._cli._common import resolve_item_id_any  # pyright: ignore[reportPrivateUsage]
     from squads._errors import SquadsError
-    from squads._models._enums import ItemType
 
-    await svc.create(ItemType.FEATURE, "Feat B", author="manager")  # FEAT-2
-    await svc.create(ItemType.TASK, "Task C", author="manager")  # TASK-3
+    await svc.create("feature", "Feat B", author="manager")  # FEAT-2
+    await svc.create("task", "Task C", author="manager")  # TASK-3
 
     # bare number resolves to feature
     assert await resolve_item_id_any("2", svc) == "FEAT-2"
@@ -682,12 +679,11 @@ def test_dir_override(runner, tmp_path, monkeypatch, frozen_time):
 async def test_repair_cli_holds_counter_after_file_loss(project, invoke, frozen_time):
     """sq repair reports missing items and holds the counter when the top file is deleted."""
     # Create two items so counter reaches 3 (ROLE-000001 + FEAT-000002 + TASK-000003).
-    from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    await svc.create(ItemType.FEATURE, "feat")  # FEAT-000002
-    top = (await svc.create(ItemType.TASK, "task")).item  # TASK-000003
+    await svc.create("feature", "feat")  # FEAT-000002
+    top = (await svc.create("task", "task")).item  # TASK-000003
 
     # Delete the top item's file.
     svc.paths.abspath(top.path).unlink()
@@ -705,13 +701,12 @@ async def test_repair_cli_holds_counter_after_file_loss(project, invoke, frozen_
 
 async def test_renumber_cli_shifts_block_and_updates_refs(project, invoke, frozen_time):
     """sq renumber --from/--onto shifts the block, rewrites refs, renames files, bumps counter."""
-    from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    feat = (await svc.create(ItemType.FEATURE, "keep")).item  # FEAT-2
-    task = (await svc.create(ItemType.TASK, "shift-task", parent=feat.id)).item  # TASK-3
-    bug = (await svc.create(ItemType.BUG, "shift-bug")).item  # BUG-4
+    feat = (await svc.create("feature", "keep")).item  # FEAT-2
+    task = (await svc.create("task", "shift-task", parent=feat.id)).item  # TASK-3
+    bug = (await svc.create("bug", "shift-bug")).item  # BUG-4
     await svc.add_ref(task.id, bug.id)
 
     r = await invoke(["renumber", "--from", "3", "--onto", "10"])
@@ -771,11 +766,10 @@ async def test_check_cli_flags_index_item_with_no_file(project, invoke, frozen_t
     """sq check exits 3 and flags items in the index whose files are gone."""
     import json
 
-    from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    await svc.create(ItemType.TASK, "real task")  # TASK-000002
+    await svc.create("task", "real task")  # TASK-000002
 
     # Inject a ghost item into the index (no file on disk).
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
@@ -1675,11 +1669,10 @@ async def test_exit_code_3_check_json_error_level_issue(project, invoke, frozen_
 
 async def test_repair_cli_holds_padding_after_file_loss(project, invoke, frozen_time):
     """sq repair preserves the stored padding floor even when item files are deleted."""
-    from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    top = (await svc.create(ItemType.TASK, "task")).item
+    top = (await svc.create("task", "task")).item
 
     # Bump padding to 7 in the index to simulate a post-repad squad.
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
@@ -1712,11 +1705,10 @@ async def test_create_cli_exits_1_when_index_full(project, invoke, frozen_time):
 
 async def test_migrate_repad_cli(project, invoke, frozen_time):
     """sq migrate repad <width> renames files, prints summary, exits 0."""
-    from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    await svc.create(ItemType.TASK, "task one")
+    await svc.create("task", "task one")
 
     r = await invoke(["migrate", "repad", "7"])
     assert r.exit_code == 0, r.output
@@ -1758,11 +1750,10 @@ async def test_cli_old_width_address_resolves_after_repad(project, invoke, froze
     """
     import json as _json
 
-    from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    await svc.create(ItemType.TASK, "my task")  # TASK-2
+    await svc.create("task", "my task")  # TASK-2
 
     await invoke(["migrate", "repad", "7"])
 
@@ -1789,12 +1780,11 @@ async def test_cli_tree_with_mixed_width_after_repad(project, invoke, frozen_tim
     """sq tree resolves old-width and new-width root IDs correctly after a repad."""
     import json as _json
 
-    from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    await svc.create(ItemType.FEATURE, "feat")  # FEAT-000002
-    await svc.create(ItemType.TASK, "task", parent="FEAT-000002")  # TASK-000003
+    await svc.create("feature", "feat")  # FEAT-000002
+    await svc.create("task", "task", parent="FEAT-000002")  # TASK-000003
 
     await invoke(["migrate", "repad", "7"])
 
@@ -1818,12 +1808,11 @@ async def test_cli_tree_with_mixed_width_after_repad(project, invoke, frozen_tim
 
 async def test_cli_check_clean_with_old_width_refs_after_repad(project, invoke, frozen_time):
     """sq check is clean when items hold old-width refs after a repad."""
-    from squads._models._enums import ItemType
     from squads._services._service import Service
 
     svc = Service(project)
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-000002
-    task = (await svc.create(ItemType.TASK, "task")).item  # TASK-000003
+    feat = (await svc.create("feature", "feat")).item  # FEAT-000002
+    task = (await svc.create("task", "task")).item  # TASK-000003
     await svc.add_ref(task.id, feat.id, kind="implements")  # TASK refs FEAT (width-6 stored)
 
     await invoke(["migrate", "repad", "7"])

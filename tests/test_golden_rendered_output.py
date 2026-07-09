@@ -219,7 +219,7 @@ def _render_agents_section() -> str:
     )
 
 
-def _render_item_skill(item_type: Any) -> str:  # item_type: ItemType
+def _render_item_skill(item_type: str) -> str:
     """Render the sq-<type> skill body for *item_type* with the pinned roster.
 
     Mirrors ``ClaudeCodeBackend._write_item_skills`` exactly:
@@ -251,8 +251,8 @@ def _render_item_skill(item_type: Any) -> str:  # item_type: ItemType
         )
     return render(
         "agents/item_skill.md.j2",
-        title=item_type.value.capitalize(),
-        type=item_type.value,
+        title=item_type.capitalize(),
+        type=item_type,
         overview=pb.overview,
         lifecycle=pb.lifecycle,
         commands=list(pb.commands),
@@ -350,56 +350,49 @@ class TestItemSkillGoldens:
 
     def test_skill_body_sq_epic(self) -> None:
         """sq-epic skill body is byte-identical to the golden (epic has no dev section)."""
-        from squads._models._enums import ItemType
 
         # Epic playbook has no DEV guide — confirm that expectation.
-        pb = PLAYBOOK[ItemType.EPIC]
+        pb = PLAYBOOK["epic"]
         has_dev_guide = any(g.slug == DEV for g in pb.roles)
-        self._check_skill(ItemType.EPIC, expect_dev_section=has_dev_guide)
+        self._check_skill("epic", expect_dev_section=has_dev_guide)
 
     def test_skill_body_sq_feature(self) -> None:
         """sq-feature skill body is byte-identical to the golden."""
-        from squads._models._enums import ItemType
 
-        pb = PLAYBOOK[ItemType.FEATURE]
+        pb = PLAYBOOK["feature"]
         has_dev_guide = any(g.slug == DEV for g in pb.roles)
-        self._check_skill(ItemType.FEATURE, expect_dev_section=has_dev_guide)
+        self._check_skill("feature", expect_dev_section=has_dev_guide)
 
     def test_skill_body_sq_task(self) -> None:
         """sq-task skill body is byte-identical to the golden (includes developer section)."""
-        from squads._models._enums import ItemType
 
-        self._check_skill(ItemType.TASK, expect_dev_section=True)
+        self._check_skill("task", expect_dev_section=True)
 
     def test_skill_body_sq_bug(self) -> None:
         """sq-bug skill body is byte-identical to the golden (includes developer section)."""
-        from squads._models._enums import ItemType
 
-        self._check_skill(ItemType.BUG, expect_dev_section=True)
+        self._check_skill("bug", expect_dev_section=True)
 
     def test_skill_body_sq_decision(self) -> None:
         """sq-decision skill body is byte-identical to the golden."""
-        from squads._models._enums import ItemType
 
-        pb = PLAYBOOK[ItemType.DECISION]
+        pb = PLAYBOOK["decision"]
         has_dev_guide = any(g.slug == DEV for g in pb.roles)
-        self._check_skill(ItemType.DECISION, expect_dev_section=has_dev_guide)
+        self._check_skill("decision", expect_dev_section=has_dev_guide)
 
     def test_skill_body_sq_review(self) -> None:
         """sq-review skill body is byte-identical to the golden."""
-        from squads._models._enums import ItemType
 
-        pb = PLAYBOOK[ItemType.REVIEW]
+        pb = PLAYBOOK["review"]
         has_dev_guide = any(g.slug == DEV for g in pb.roles)
-        self._check_skill(ItemType.REVIEW, expect_dev_section=has_dev_guide)
+        self._check_skill("review", expect_dev_section=has_dev_guide)
 
     def test_skill_body_sq_guide(self) -> None:
         """sq-guide skill body is byte-identical to the golden."""
-        from squads._models._enums import ItemType
 
-        pb = PLAYBOOK[ItemType.GUIDE]
+        pb = PLAYBOOK["guide"]
         has_dev_guide = any(g.slug == DEV for g in pb.roles)
-        self._check_skill(ItemType.GUIDE, expect_dev_section=has_dev_guide)
+        self._check_skill("guide", expect_dev_section=has_dev_guide)
 
     def test_all_managed_item_types_covered(self) -> None:
         """Every type from managed_item_types() has a golden covering its skill body.
@@ -408,17 +401,16 @@ class TestItemSkillGoldens:
         corresponding golden test being added here.  Add a new test_skill_body_sq_<type>
         method and run UPDATE_GOLDENS=1 to capture the new type's output.
         """
-        from squads._models._enums import ItemType
 
         # The types this module explicitly tests.
         covered = {
-            ItemType.EPIC,
-            ItemType.FEATURE,
-            ItemType.TASK,
-            ItemType.BUG,
-            ItemType.DECISION,
-            ItemType.REVIEW,
-            ItemType.GUIDE,
+            "epic",
+            "feature",
+            "task",
+            "bug",
+            "decision",
+            "review",
+            "guide",
         }
         managed = set(managed_item_types())
         assert managed == covered, (

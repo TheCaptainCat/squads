@@ -6,7 +6,7 @@ sq init seeds bundled skills as first-class SKILL items (TASK-188).
 import pytest
 
 from squads import _interactions as interactions
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._sections import split_frontmatter
 from squads._services import _service as service
 
@@ -39,11 +39,11 @@ def svc_with_skills(project_with_skills):
 async def test_init_seeds_bundled_skills_as_skill_items(project_with_skills):
     """After sq init (with seeding), sq list -t skill is non-empty (FEAT-178 AC#1 / TASK-188)."""
     svc = service.Service(project_with_skills)
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    skills = await svc.list_items(item_type="skill")
     assert len(skills) > 0, "sq list -t skill must be non-empty after init with seeding"
     # All skills must have type=skill and status=Active
     for sk in skills:
-        assert sk.type == ItemType.SKILL
+        assert sk.type == "skill"
         assert sk.status == Status.ACTIVE
     # Must include the core bundled skill slugs
     slugs = {sk.slug for sk in skills}
@@ -54,7 +54,7 @@ async def test_init_seeds_bundled_skills_as_skill_items(project_with_skills):
 async def test_skill_files_have_valid_frontmatter_after_seeding(project_with_skills):
     """Every skill file must have valid sq frontmatter with a unique SKILL-… id (AC#2)."""
     svc = service.Service(project_with_skills)
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    skills = await svc.list_items(item_type="skill")
     seen_ids: set[str] = set()
     for sk in skills:
         path = svc.paths.abspath(sk.path)
@@ -73,11 +73,11 @@ async def test_repair_after_seeding_rebuilds_cleanly(project_with_skills):
     """sq repair after seeding reconstructs the index from skill file frontmatter (AC#2)."""
     svc = service.Service(project_with_skills)
     # Get current skill count
-    before = await svc.list_items(item_type=ItemType.SKILL)
+    before = await svc.list_items(item_type="skill")
     # Nuke the index and rebuild
     svc.paths.index_path.unlink()
     result = await svc.repair()
-    after = {it.id for it in result.db.items.values() if it.type == ItemType.SKILL}
+    after = {it.id for it in result.db.items.values() if it.type == "skill"}
     assert len(after) == len(before), "repair must recover all skill items"
     before_ids = {sk.id for sk in before}
     assert before_ids == after, "repair must recover the exact same skill ids"
@@ -86,7 +86,7 @@ async def test_repair_after_seeding_rebuilds_cleanly(project_with_skills):
 async def test_skill_allocation_order_is_lexical_by_slug(project_with_skills):
     """Skills are allocated in lexical-by-slug order (ADR-000181 decision #5 / AC#5)."""
     svc = service.Service(project_with_skills)
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    skills = await svc.list_items(item_type="skill")
     # Sort by sequence_id to get allocation order
     ordered = sorted(skills, key=lambda sk: sk.sequence_id)
     slugs_in_order = [sk.slug for sk in ordered]
@@ -111,7 +111,7 @@ async def test_check_clean_after_seeding(project_with_skills):
 
 async def test_sync_preserves_skill_frontmatter(svc_with_skills):
     """sq sync must not clobber skill frontmatter (ADR-000181 decision #3)."""
-    skills = await svc_with_skills.list_items(item_type=ItemType.SKILL)
+    skills = await svc_with_skills.list_items(item_type="skill")
     squads_skill = next((sk for sk in skills if sk.slug == "squads"), None)
     assert squads_skill is not None, "squads skill must be in the index"
 
@@ -137,7 +137,7 @@ async def test_sync_twice_leaves_skill_ids_unchanged(svc_with_skills):
 
     This is the mandatory idempotence test from FEAT-000178 AC#4 and TASK-187.
     """
-    skills = await svc_with_skills.list_items(item_type=ItemType.SKILL)
+    skills = await svc_with_skills.list_items(item_type="skill")
     assert len(skills) > 0, "need at least one seeded skill for idempotence test"
 
     # Snapshot ids/sequence_ids before any sync (keyed by slug for clarity)
@@ -178,7 +178,7 @@ async def test_skill_body_region_updated_on_sync(svc_with_skills):
     from squads import _sections as sections
     from squads._models import _markers as markers
 
-    skills = await svc_with_skills.list_items(item_type=ItemType.SKILL)
+    skills = await svc_with_skills.list_items(item_type="skill")
     squads_skill = next((sk for sk in skills if sk.slug == "squads"), None)
     assert squads_skill is not None
 
@@ -204,7 +204,7 @@ async def test_skill_body_region_updated_on_sync(svc_with_skills):
 
 async def test_seed_bundled_skills_is_idempotent(svc_with_skills):
     """Calling seed_bundled_skills() twice must not allocate new ids (ADR-000181 decision #4)."""
-    skills_before = await svc_with_skills.list_items(item_type=ItemType.SKILL)
+    skills_before = await svc_with_skills.list_items(item_type="skill")
     ids_before = {sk.id for sk in skills_before}
     seqs_before = {sk.sequence_id for sk in skills_before}
 
@@ -212,7 +212,7 @@ async def test_seed_bundled_skills_is_idempotent(svc_with_skills):
     newly_seeded = await svc_with_skills.seed_bundled_skills()
     assert len(newly_seeded) == 0, "second seed call must return empty list (all already stamped)"
 
-    skills_after = await svc_with_skills.list_items(item_type=ItemType.SKILL)
+    skills_after = await svc_with_skills.list_items(item_type="skill")
     ids_after = {sk.id for sk in skills_after}
     seqs_after = {sk.sequence_id for sk in skills_after}
 
@@ -254,7 +254,7 @@ async def test_init_seeds_skill_descriptions(project_with_skills):
     from squads._interactions import skill_description
 
     svc = service.Service(project_with_skills)
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    skills = await svc.list_items(item_type="skill")
     assert skills, "need at least one seeded skill"
     for sk in skills:
         expected = skill_description(sk.slug)

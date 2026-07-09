@@ -25,7 +25,14 @@ from squads._models._enums import (
     Severity,
 )
 from squads._models._extras import ExtraKey as X
-from squads._models._item import DEFAULT_KIND, DISPLAY_ID_PADDING, Item, format_item_id, split_ref
+from squads._models._item import (
+    DEFAULT_KIND,
+    DISPLAY_ID_PADDING,
+    Item,
+    effective_prefix,
+    format_item_id,
+    split_ref,
+)
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import resolve
@@ -540,16 +547,15 @@ async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str
     :class:`SquadsError` on type mismatch (naming the real item and type) or on an
     unknown item (mentioning both accepted forms — full ID and bare number).
 
-    ``item_type`` is a plain string (``ItemType`` members are ``StrEnum`` so they satisfy
-    this; custom types declared only in the spec also work).  The prefix is resolved from
-    the per-invocation spec (``get_active_spec()``) so custom types that declare their own
-    prefix in ``.overrides/workflow.toml`` get the correct validation.
+    ``item_type`` is a plain string — every type (built-in or custom) resolves the same
+    way.  The prefix is resolved from the per-invocation spec (``get_active_spec()``) so
+    custom types that declare their own prefix in ``.overrides/workflow.toml`` get the
+    correct validation.
 
     Mirrors :func:`resolve_slug_or_raise` in shape — takes ``svc`` as a second argument.
     One DB read per call.
     """
-    # Resolve the prefix: spec-declared first (covers both built-ins and custom types),
-    # fall back to the reserved map for the rare pre-callback call path.
+    # Resolve the prefix from the active spec — the sole vocabulary source.
     from squads._models._vocab import prefix_for
 
     spec = get_active_spec()
@@ -595,7 +601,7 @@ async def resolve_item_id_any(token: str, svc: Service) -> str:
         raise SquadsError(f"no item with number {seq} (use a full ID like {hint} or bare {seq})")
 
     if given_prefix is not None:
-        expected_prefix = item.prefix or item.type.upper()
+        expected_prefix = effective_prefix(item.prefix, item.type)
         if given_prefix != expected_prefix:
             raise SquadsError(f"{token} is {item.id} ({item.type})")
 

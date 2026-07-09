@@ -27,26 +27,46 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations import _meta_compat
-from squads._models._enums import ItemType
 from squads._paths import SquadPaths
 
 MANUAL = ""  # fully automatic — nothing for `sq migrate chlog` to surface
 
+# Frozen v0.2/v0.3 type vocabulary — the type-name/prefix/folder literals as they existed at
+# this schema version. NEVER derive this from the live spec/enum: a migration is a
+# point-in-time snapshot — the live spec/enum must never be re-introduced here.
+_TYPES: tuple[tuple[str, str, str], ...] = (
+    ("epic", "EPIC", "epics"),
+    ("feature", "FEAT", "features"),
+    ("task", "TASK", "tasks"),
+    ("bug", "BUG", "bugs"),
+    ("decision", "ADR", "adrs"),
+    ("review", "REV", "reviews"),
+    ("guide", "GUIDE", "guides"),
+    ("role", "ROLE", "agents/roles"),
+    ("skill", "SKILL", "agents/skills"),
+    ("operator", "OP", "operators"),
+)
+
+_ROLE_PREFIX = "ROLE"
+_ROLE_FOLDER = "agents/roles"
+_FEATURE_PREFIX = "FEAT"
+_FEATURE_FOLDER = "features"
+
 # Parent item type → its sub-entity kind.
-_KIND_BY_TYPE: dict[ItemType, str] = {
-    ItemType.FEATURE: "story",
-    ItemType.TASK: "subtask",
-    ItemType.REVIEW: "finding",
+_KIND_BY_TYPE: dict[str, str] = {
+    "feature": "story",
+    "task": "subtask",
+    "review": "finding",
 }
 
 
 def _name_map(paths: SquadPaths) -> dict[str, str]:
     """Agent slug → full name, scanned from the squad's role files (for the assignee badge)."""
     out: dict[str, str] = {}
-    folder = paths.folder_for(ItemType.ROLE)
+    folder = paths.squad_dir / _ROLE_FOLDER
     if not folder.is_dir():
         return out
-    for md in folder.glob(f"{ItemType.ROLE.prefix}-*.md"):
+    for md in folder.glob(f"{_ROLE_PREFIX}-*.md"):
         fm = read_frontmatter(md)
         raw = fm.get("extra")
         extra = cast("dict[str, Any]", raw) if isinstance(raw, dict) else {}
@@ -59,10 +79,10 @@ def _name_map(paths: SquadPaths) -> dict[str, str]:
 def _story_titles(paths: SquadPaths) -> dict[str, dict[str, str]]:
     """Feature id → {story local id: title}, to resolve a subtask's ``Implements: USn — …`` link."""
     out: dict[str, dict[str, str]] = {}
-    folder = paths.folder_for(ItemType.FEATURE)
+    folder = paths.squad_dir / _FEATURE_FOLDER
     if not folder.is_dir():
         return out
-    for md in folder.glob(f"{ItemType.FEATURE.prefix}-*.md"):
+    for md in folder.glob(f"{_FEATURE_PREFIX}-*.md"):
         fid = read_frontmatter(md).get("id")
         if fid:
             blocks = _meta_compat.list_blocks(md.read_text(encoding="utf-8"), "story")
@@ -128,12 +148,12 @@ def migrate(paths: SquadPaths) -> int:
     names = _name_map(paths)
     stories = _story_titles(paths)
     changed = 0
-    for item_type in ItemType:
-        folder = paths.folder_for(item_type)
+    for item_type, prefix, folder_name in _TYPES:
+        folder = paths.squad_dir / folder_name
         if not folder.is_dir():
             continue
         kind = _KIND_BY_TYPE.get(item_type)
-        for md in sorted(folder.glob(f"{item_type.prefix}-*.md")):
+        for md in sorted(folder.glob(f"{prefix}-*.md")):
             touched = _backfill_sequence_id(md)
             if kind is not None and _migrate_subentities(md, kind, names, stories):
                 touched = True

@@ -5,7 +5,6 @@ import pytest
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations import _v0_5_to_v0_7
-from squads._models._enums import ItemType
 from squads._models._item import DEFAULT_ID_PADDING, format_item_id
 
 pytestmark = pytest.mark.anyio
@@ -43,11 +42,9 @@ async def _devolve_to_padded(
 
 
 async def test_migrate_unpads_frontmatter_refs_and_prose_but_skips_code_spans(svc):
-    feature = (await svc.create(ItemType.FEATURE, "Login")).item
-    bug = (await svc.create(ItemType.BUG, "Session leak")).item
-    task = (
-        await svc.create(ItemType.TASK, "Implement auth", parent=feature.id, refs=[bug.id])
-    ).item
+    feature = (await svc.create("feature", "Login")).item
+    bug = (await svc.create("bug", "Session leak")).item
+    task = (await svc.create("task", "Implement auth", parent=feature.id, refs=[bug.id])).item
     await svc.add_subtask(task.id, "placeholder")  # ST1 — retitled (padded mention) below
     await svc.set_subtask_body(task.id, "ST1", "Real subtask description, not the stub.")
 

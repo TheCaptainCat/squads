@@ -203,8 +203,11 @@ read/build helpers now live only in `_migrations/_meta_compat.py`.
 
 ## 6. Types, statuses, and workflows (`_models/_enums.py`, `_workflow.py`)
 
-- **`ItemType`** carries its `prefix` and `folder` (e.g. `DECISION` → `ADR` → `adrs/`).
-  Prefixes: `EPIC FEAT TASK BUG ADR REV GUIDE ROLE SKILL`.
+- The loaded `WorkflowSpec` is the sole type-vocabulary authority (`spec.items`, keyed by
+  plain `str`): each type's `prefix` and `folder` (e.g. `decision` → `ADR` → `adrs/`) come
+  from there, resolved via `prefix_for(type, spec)`. The only structurally reserved names
+  are the three meta-types (`role`/`skill`/`operator`, `is_meta=True`); every work type is
+  ordinary, droppable/renamable spec vocabulary.
 - **`Status`** is one enum of all values; `WORKFLOWS[type]` is a small per-type state machine
   (`initial`, `transitions`). `can_transition(type, src, dst)` gates `sq status` (`--force`
   overrides); a new item starts at the machine's initial state.

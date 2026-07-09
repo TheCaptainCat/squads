@@ -1,37 +1,52 @@
-"""Tests for TASK-000259: RESERVED_TYPES enforcement + meta-machinery robustness.
+"""Tests for TASK-000259 / ADR-322: reserved-type-floor enforcement + meta-machinery robustness.
 
 Confirms that:
-1. RESERVED_TYPES invariant is fail-closed at spec-load (§5-6a/b) — already enforced by _validate.
+1. The type floor is fail-closed for the three meta-types only (ADR-322 §2) — already
+   enforced by _validate; the 7 work types are ordinary, droppable spec vocabulary.
 2. work_types() correctly excludes meta-types (role/skill/operator) and includes custom work types.
 3. Custom type prefix/folder cannot shadow a reserved prefix/folder (uniqueness check).
 4. Graceful degradation when a custom work type has no PLAYBOOK/interactions entry (no KeyError).
-5. sq workflow lint surfaces a missing-reserved-type error with an actionable message.
+5. sq workflow lint surfaces a missing-meta-type error with an actionable message.
 
 These tests CONFIRM existing invariants rather than add new enforcement — the
-enforcement already exists via WorkflowSpec._validate (§5-6a/b) and _check_item_refs (§5-5).
+enforcement already exists via WorkflowSpec._validate and _check_item_refs (§5-5).
 """
 
 from pathlib import Path
 
 import pytest
 
+from _helpers import BUILTIN_TYPES, WORK_TYPES
 from squads._errors import SquadsError
-from squads._models._enums import ItemType
-from squads._workflow import bundled_spec
+from squads._workflow import META_TYPES, bundled_spec
 from squads._workflow._models import ItemSpec, Lifecycle, WorkflowSpec
 
 pytestmark = pytest.mark.anyio
 
 
 # ---------------------------------------------------------------------------
-# Helper: build a spec without a reserved ItemType (to prove fail-closed)
+# Helper: build a spec without a given type (to prove fail-closed / droppable)
 # ---------------------------------------------------------------------------
 
 
 def _spec_without_type(drop_type: str) -> dict[str, object]:
-    """Return a raw dict for WorkflowSpec.model_validate that is missing ``drop_type``."""
+    """Return a raw dict for WorkflowSpec.model_validate that is missing ``drop_type``.
+
+    Also strips ``drop_type`` from every remaining type's ``parents`` list, so this
+    isolates the floor-membership check from the separate parent-reference integrity
+    check (``_check_item_refs``) — dropping e.g. "epic" must not also trip over
+    "feature"'s ``parents = ["epic"]``.
+    """
     base = bundled_spec()
-    items_without = {k: v for k, v in base.items.items() if k != drop_type}
+    items_without = {
+        k: (
+            v.model_copy(update={"parents": [p for p in v.parents if p != drop_type]})
+            if drop_type in v.parents
+            else v
+        )
+        for k, v in base.items.items()
+        if k != drop_type
+    }
     prefix_without = {p: t for p, t in base.prefix_to_type.items() if t != drop_type}
     return {
         "items": items_without,
@@ -56,20 +71,32 @@ def _spec_without_status(drop_status: str) -> dict[str, object]:
 
 
 # ---------------------------------------------------------------------------
-# §5-6a: RESERVED_TYPES must not be dropped — fail-closed at spec construction
+# ADR-322 §2: the type floor is the three meta-types only — fail-closed at spec
+# construction; the 7 work types are ordinary, droppable spec vocabulary.
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("reserved_type", [t.value for t in ItemType])
-def test_spec_missing_reserved_type_raises(reserved_type: str) -> None:
-    """A spec that omits any reserved ItemType member raises SquadsError (§5-6a).
+@pytest.mark.parametrize("meta_type", sorted(META_TYPES))
+def test_spec_missing_meta_type_raises(meta_type: str) -> None:
+    """A spec that omits any of the three meta-types raises SquadsError (ADR-322 §2).
 
-    This confirms the fail-closed invariant is in place for EVERY reserved type,
-    not just the ones tested in test_workflow_spec.py (which tests 'epic').
+    This confirms the fail-closed invariant is in place for EVERY meta-type, not just
+    the one tested in test_workflow_spec.py.
     """
-    raw = _spec_without_type(reserved_type)
-    with pytest.raises(SquadsError, match="spec missing reserved ItemType members"):
+    raw = _spec_without_type(meta_type)
+    with pytest.raises(SquadsError, match="spec missing required meta-types"):
         WorkflowSpec.model_validate(raw)
+
+
+@pytest.mark.parametrize("work_type", sorted(WORK_TYPES))
+def test_spec_missing_work_type_loads_successfully(work_type: str) -> None:
+    """A spec that omits any of the 7 work types loads successfully (ADR-322 §1/§2/FEAT-326 AC#4).
+
+    Only the three meta-types are floor-enforced; every work type is ordinary,
+    droppable spec vocabulary.
+    """
+    raw = _spec_without_type(work_type)
+    WorkflowSpec.model_validate(raw)  # must not raise
 
 
 @pytest.mark.parametrize(
@@ -108,7 +135,7 @@ def test_work_types_excludes_meta_types() -> None:
     """work_types() must not include role/skill/operator (the meta-types)."""
     spec = bundled_spec()
     wt = spec.work_types()
-    meta_types = {t.value for t in ItemType if spec.item_is_meta(t)}
+    meta_types = {t for t in spec.items if spec.item_is_meta(t)}
     assert meta_types, "no meta-types found — check is_meta flags in default_workflow.toml"
     for mt in meta_types:
         assert mt not in wt, f"meta-type {mt!r} incorrectly included in work_types()"
@@ -118,7 +145,7 @@ def test_work_types_includes_all_builtin_work_types() -> None:
     """work_types() includes all built-in non-meta types."""
     spec = bundled_spec()
     wt = spec.work_types()
-    expected_work = {t.value for t in ItemType if not spec.item_is_meta(t)}
+    expected_work = {t for t in spec.items if not spec.item_is_meta(t)}
     assert wt == expected_work, f"work_types() mismatch: {wt!r} != {expected_work!r}"
 
 
@@ -242,7 +269,7 @@ def test_managed_item_types_excludes_custom_types() -> None:
     managed = managed_item_types()
     # Only built-in types should appear.
     for item_type in managed:
-        assert item_type in ItemType, f"unexpected type in managed_item_types(): {item_type!r}"
+        assert item_type in BUILTIN_TYPES, f"unexpected type in managed_item_types(): {item_type!r}"
     # "incident" (a hypothetical custom type) is not present — graceful absence.
     assert "incident" not in [str(t) for t in managed]
 
@@ -284,10 +311,10 @@ def test_in_lane_owner_graceful_for_custom_type() -> None:
 
 
 def test_workflow_lint_surfaces_missing_reserved_type(tmp_path: Path) -> None:
-    """sq workflow lint reports a missing-reserved-type error with an actionable message.
+    """sq workflow lint reports a missing-meta-type error with an actionable message.
 
     Writes an override that drops 'epic' from the spec; lint should surface the
-    'spec missing reserved ItemType members' error captured from _validate.
+    'spec missing required meta-types' error captured from _validate.
     """
     from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, lint_workflow_spec
 

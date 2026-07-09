@@ -21,7 +21,6 @@ from squads._cli._main import (
     _build_session_maps,  # pyright: ignore[reportPrivateUsage]
     _render_reflog_tree,  # pyright: ignore[reportPrivateUsage]
 )
-from squads._models._enums import ItemType
 from squads._services._results import ReflogEntry
 
 pytestmark = pytest.mark.anyio
@@ -417,7 +416,7 @@ async def test_show_legacy_item_no_session_renders_unchanged(svc, frozen_time):
     from squads._index._resolver import item_file
 
     actor.seed_session(None, None)
-    item_obj = (await svc.create(ItemType.TASK, "Legacy show item")).item
+    item_obj = (await svc.create("task", "Legacy show item")).item
 
     path = item_file(svc.paths, item_obj)
     text = await _aio.read_text(path)
@@ -446,10 +445,10 @@ async def test_service_tree_from_chain(svc, frozen_time):
 
     # Create items under different sessions to simulate a chain.
     actor.seed_session("mgr-root", None)
-    await svc.create(ItemType.FEATURE, "Feature")
+    await svc.create("feature", "Feature")
 
     actor.seed_session("tl-child", "mgr-root")
-    task = (await svc.create(ItemType.TASK, "Task")).item
+    task = (await svc.create("task", "Task")).item
 
     actor.seed_session("dev-leaf", "tl-child")
     await svc.set_status(task.id, Status.IN_PROGRESS)
@@ -472,7 +471,7 @@ async def test_service_tree_from_chain(svc, frozen_time):
 async def test_service_tree_unknown_parent_gives_forest(svc, frozen_time):
     """An entry whose parent is not in the reflog becomes a forest root — no error."""
     actor.seed_session("orphan-sid", "ghost-parent-never-exists")
-    await svc.create(ItemType.TASK, "Orphan task")
+    await svc.create("task", "Orphan task")
     actor.seed_session(None, None)
 
     entries = await svc.read_reflog()
@@ -486,7 +485,7 @@ async def test_service_tree_unknown_parent_gives_forest(svc, frozen_time):
 async def test_service_tree_legacy_entries_in_no_session(svc, frozen_time):
     """Reflog entries written with no session (legacy) appear in the no_session list."""
     actor.seed_session(None, None)
-    await svc.create(ItemType.TASK, "Legacy task")
+    await svc.create("task", "Legacy task")
 
     entries = await svc.read_reflog()
     _, _, _, no_session = _build_session_maps(entries)
@@ -499,8 +498,8 @@ async def test_service_self_review_same_session_single_root(svc, frozen_time):
     The tree groups them under a single root — visibly non-independent.
     """
     actor.seed_session("self-reviewer-sid", None)
-    feat = (await svc.create(ItemType.FEATURE, "Feature under review")).item
-    rev = (await svc.create(ItemType.REVIEW, "Self review")).item
+    feat = (await svc.create("feature", "Feature under review")).item
+    rev = (await svc.create("review", "Self review")).item
     actor.seed_session(None, None)
 
     entries = await svc.read_reflog(item=feat.id)

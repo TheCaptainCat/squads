@@ -21,7 +21,7 @@ from typer.testing import CliRunner
 from squads import _actor as actor
 from squads._cli import app
 from squads._index._reflog import ReflogLine, append_line, read_lines, reflog_path
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._models._schema import SCHEMA_VERSION
 
 pytestmark = pytest.mark.anyio
@@ -222,7 +222,7 @@ async def test_mixed_legacy_and_new_lines_parse_correctly(tmp_path):
 async def test_service_create_records_session_on_reflog(svc, frozen_time):
     """When session env vars are set, the create reflog entry carries session_id."""
     actor.seed_session("sid-create", "sid-parent")
-    item = (await svc.create(ItemType.TASK, "Session task")).item
+    item = (await svc.create("task", "Session task")).item
     actor.seed_session(None, None)
 
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
@@ -237,7 +237,7 @@ async def test_service_create_records_session_on_reflog(svc, frozen_time):
 async def test_service_create_no_session_slug_only(svc, frozen_time):
     """When no session is set, the create reflog entry has no session fields."""
     actor.seed_session(None, None)
-    item = (await svc.create(ItemType.TASK, "No-session task")).item
+    item = (await svc.create("task", "No-session task")).item
 
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     create_lines = [ln for ln in lines if ln.op == "create" and ln.target == item.id]
@@ -250,7 +250,7 @@ async def test_service_create_no_session_slug_only(svc, frozen_time):
 async def test_service_create_records_session_on_item_frontmatter(svc, frozen_time):
     """When session is set, the created item has created_session / modified_session."""
     actor.seed_session("sid-fm", "sid-pm")
-    item = (await svc.create(ItemType.TASK, "Frontmatter session")).item
+    item = (await svc.create("task", "Frontmatter session")).item
     actor.seed_session(None, None)
 
     loaded = await svc.get(item.id)
@@ -261,7 +261,7 @@ async def test_service_create_records_session_on_item_frontmatter(svc, frozen_ti
 async def test_service_create_no_session_frontmatter_absent(svc, frozen_time):
     """When no session, created_session and modified_session are None on the item."""
     actor.seed_session(None, None)
-    item = (await svc.create(ItemType.TASK, "No-session frontmatter")).item
+    item = (await svc.create("task", "No-session frontmatter")).item
 
     loaded = await svc.get(item.id)
     assert loaded.created_session is None
@@ -271,7 +271,7 @@ async def test_service_create_no_session_frontmatter_absent(svc, frozen_time):
 async def test_service_set_status_updates_modified_session(svc, frozen_time):
     """Status mutation updates modified_session; created_session is unchanged."""
     actor.seed_session("sid-create", None)
-    item = (await svc.create(ItemType.TASK, "Session update test")).item
+    item = (await svc.create("task", "Session update test")).item
     actor.seed_session("sid-modify", None)
     await svc.set_status(item.id, Status.IN_PROGRESS)
     actor.seed_session(None, None)
@@ -286,7 +286,7 @@ async def test_service_read_reflog_returns_session_fields(svc, frozen_time):
     from squads._services._results import ReflogEntry
 
     actor.seed_session("sid-svc", "sid-par")
-    item = (await svc.create(ItemType.TASK, "Reflog entry session")).item
+    item = (await svc.create("task", "Reflog entry session")).item
     actor.seed_session(None, None)
 
     entries = await svc.read_reflog(item=item.id)
@@ -305,7 +305,7 @@ async def test_legacy_items_load_without_session_fields(svc, frozen_time):
     from squads import _sections as sections
     from squads._index._resolver import item_file
 
-    item = (await svc.create(ItemType.TASK, "Legacy item")).item
+    item = (await svc.create("task", "Legacy item")).item
     path = item_file(svc.paths, item)
 
     # Manually strip the session fields from the frontmatter to simulate a legacy file.
@@ -330,7 +330,7 @@ async def test_repair_on_legacy_items_invariant_1(svc, frozen_time):
     from squads import _sections as sections
     from squads._index._resolver import item_file
 
-    item = (await svc.create(ItemType.TASK, "Repair legacy")).item
+    item = (await svc.create("task", "Repair legacy")).item
     path = item_file(svc.paths, item)
 
     # Strip session fields.

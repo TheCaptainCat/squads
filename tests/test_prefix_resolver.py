@@ -1,16 +1,19 @@
-"""Tests for TASK-000267: Item.prefix field + prefix_for resolver + retype prefix stamping.
+"""Tests for TASK-000267 / ADR-322 (TASK-000328): Item.prefix field + prefix_for resolver +
+retype prefix stamping.
 
 Covers:
-- prefix_for() returns the correct prefix for reserved and custom types.
+- prefix_for() resolves solely from the spec, for every type (built-in or custom); an
+  unknown type or a missing spec raises SquadsError (no reserved-map / type.upper() guess).
 - Item.prefix is stamped at create time; Item.id formats from it correctly.
+- Every Item, built-in or custom, writes a prefix: frontmatter line (ADR-322 §3).
 - Retype stamps the target type's prefix: INC-000019, not INCIDENT-000019.
 - File is named INC-000019-*.md after retype.
 - sq incident INC-000019 show round-trips (CLI + service).
 - sq list -t incident returns the custom item.
 - ref add / remove work for a custom type item without KeyError.
-- Legacy files without a prefix: frontmatter line still load (re-derived on load).
-- Built-in items: id/filename/CLI output byte-identical (no prefix: line written).
-- prefix_for raises SquadsError for an unknown type without a spec.
+- Legacy files without a prefix: frontmatter line still load (re-derived by the store's
+  post-load backfill, not by from_frontmatter itself — the spec-free round-trip now lives
+  purely in the stored prefix string).
 """
 
 from pathlib import Path
@@ -19,8 +22,8 @@ import pytest
 from typer.testing import CliRunner
 
 from squads._cli import app
-from squads._models._item import Item
-from squads._models._vocab import RESERVED_PREFIX, is_reserved, prefix_for
+from squads._models._item import UNRESOLVED_PREFIX, Item
+from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths
 from squads._services import _service as service
 from squads._workflow._loader import load_workflow_spec
@@ -88,10 +91,12 @@ def _spec_with_incident() -> WorkflowSpec:
 
 
 class TestPrefixFor:
-    """Unit tests for the _models._vocab.prefix_for() resolver."""
+    """Unit tests for the _models._vocab.prefix_for() resolver (ADR-322: spec-only, no
+    reserved-map fast path — every type, built-in or custom, resolves the same way)."""
 
-    def test_reserved_types_return_correct_prefix(self) -> None:
-        """prefix_for returns the authoritative prefix for every reserved built-in type."""
+    def test_builtin_types_resolve_via_spec(self) -> None:
+        """prefix_for returns the spec-declared prefix for every built-in type."""
+        spec = _spec_with_incident()
         expected = {
             "epic": "EPIC",
             "feature": "FEAT",
@@ -105,13 +110,14 @@ class TestPrefixFor:
             "operator": "OP",
         }
         for type_str, expected_prefix in expected.items():
-            assert prefix_for(type_str) == expected_prefix, f"wrong prefix for {type_str!r}"
+            assert prefix_for(type_str, spec) == expected_prefix, f"wrong prefix for {type_str!r}"
 
-    def test_reserved_types_ignore_spec(self) -> None:
-        """For reserved types, prefix_for returns the built-in prefix even when a spec is passed."""
-        spec = _spec_with_incident()
-        assert prefix_for("task", spec) == "TASK"
-        assert prefix_for("feature", spec) == "FEAT"
+    def test_builtin_type_no_spec_raises(self) -> None:
+        """A built-in type with no spec supplied raises — there is no reserved-map fallback."""
+        from squads._errors import SquadsError
+
+        with pytest.raises(SquadsError, match="unknown item type"):
+            prefix_for("task")
 
     def test_custom_type_with_spec_returns_declared_prefix(self) -> None:
         """prefix_for returns spec-declared prefix for a custom type."""
@@ -133,13 +139,31 @@ class TestPrefixFor:
         with pytest.raises(SquadsError, match="unknown item type"):
             prefix_for("blork", spec)
 
-    def test_is_reserved_true_for_builtins(self) -> None:
-        for type_str in RESERVED_PREFIX:
-            assert is_reserved(type_str), f"{type_str!r} should be reserved"
 
-    def test_is_reserved_false_for_custom(self) -> None:
-        assert not is_reserved("incident")
-        assert not is_reserved("blork")
+# ---------------------------------------------------------------------------
+# Unit: effective_prefix() — the shared acyclic-formatter fallback helper
+# ---------------------------------------------------------------------------
+
+
+class TestEffectivePrefix:
+    """effective_prefix() is the ONE shared stand-in used by every acyclic formatter/matcher
+    that cannot call prefix_for (no spec in hand) and cannot raise (Item.id, format_id, the
+    ref-matching helpers). It never guesses type.upper() — architect ruling on the residual
+    type.upper() idiom, folded into TASK-000328."""
+
+    def test_returns_prefix_when_set(self) -> None:
+        from squads._models._item import effective_prefix
+
+        assert effective_prefix("INC", "incident") == "INC"
+        assert effective_prefix("TASK", "task") == "TASK"
+
+    def test_degrades_to_sentinel_when_unset_regardless_of_type(self) -> None:
+        """Never a type.upper() guess — not even for a type where that would coincide."""
+        from squads._models._item import UNRESOLVED_PREFIX, effective_prefix
+
+        assert effective_prefix("", "task") == UNRESOLVED_PREFIX
+        assert effective_prefix("", "decision") == UNRESOLVED_PREFIX
+        assert effective_prefix("", "review") == UNRESOLVED_PREFIX
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +172,8 @@ class TestPrefixFor:
 
 
 class TestItemPrefixField:
-    """Item.prefix drives Item.id; the reserved fallback keeps built-ins stable."""
+    """Item.prefix drives Item.id; the model formats purely from the stored string
+    (ADR-322 §3 — no reserved-map fallback lives in the model any more)."""
 
     def test_item_id_uses_prefix_field_when_set(self) -> None:
         """When prefix is explicitly supplied, Item.id formats from it."""
@@ -168,14 +193,20 @@ class TestItemPrefixField:
         assert item.id == "INC-19"
         assert item.prefix == "INC"
 
-    def test_item_id_fallback_for_builtin_without_explicit_prefix(self) -> None:
-        """Built-in items without an explicit prefix fall back to RESERVED_PREFIX."""
+    def test_item_id_fallback_for_missing_prefix_is_unresolved_sentinel(self) -> None:
+        """With no prefix set at all, Item.id degrades to the UNRESOLVED_PREFIX sentinel —
+        never a type.upper() guess (which used to coincidentally look right for 'task' but
+        silently mis-renders e.g. 'decision' as DECISION-N instead of ADR-N). A leaked
+        pre-resolution id reads loud and test-visible: UNRESOLVED-N, never a
+        plausible-but-wrong id — _models must stay spec-decoupled and never import
+        _workflow, so this can never be a real vocabulary lookup."""
         from datetime import UTC, datetime
 
         item = Item(
             sequence_id=7,
             type="task",
-            # prefix left as default "" — should fall back to RESERVED_PREFIX
+            # prefix left as default "" — degrades to the UNRESOLVED_PREFIX sentinel,
+            # regardless of type (never a type.upper() guess, even one that would coincide).
             title="A task",
             slug="a-task",
             status="Draft",
@@ -183,14 +214,16 @@ class TestItemPrefixField:
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
         )
-        assert item.id == "TASK-7"
+        assert item.prefix == ""
+        assert item.id == f"{UNRESOLVED_PREFIX}-7"
 
-    def test_to_frontmatter_dict_writes_prefix_only_for_custom(self) -> None:
-        """prefix: is written to frontmatter for custom types, NOT for reserved types."""
+    def test_to_frontmatter_dict_writes_prefix_for_every_type(self) -> None:
+        """prefix: is written to frontmatter for EVERY type — built-in or custom
+        (ADR-322 §3: this is what lets a file round-trip with no spec in hand)."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC)
-        # Custom type: prefix must be in frontmatter
+        # Custom type: prefix must be in frontmatter.
         custom_item = Item(
             sequence_id=1,
             type="incident",
@@ -206,7 +239,7 @@ class TestItemPrefixField:
         assert "prefix" in fm_custom, "custom type must write prefix to frontmatter"
         assert fm_custom["prefix"] == "INC"
 
-        # Reserved type: prefix must NOT be in frontmatter (byte-identical)
+        # Built-in type: prefix is now ALSO written (ADR-322 — no more built-in exemption).
         builtin_item = Item(
             sequence_id=1,
             type="task",
@@ -219,7 +252,26 @@ class TestItemPrefixField:
             updated_at=now,
         )
         fm_builtin = builtin_item.to_frontmatter_dict()
-        assert "prefix" not in fm_builtin, "built-in type must NOT write prefix to frontmatter"
+        assert fm_builtin.get("prefix") == "TASK", "built-in type must now write prefix too"
+
+    def test_to_frontmatter_dict_omits_prefix_when_unset(self) -> None:
+        """An Item constructed with no prefix at all (e.g. a bare test fixture) writes no
+        prefix: line — there's nothing to persist."""
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
+        item = Item(
+            sequence_id=1,
+            type="task",
+            title="A task",
+            slug="a-task",
+            status="Draft",
+            path="tasks/TASK-000001-a-task.md",
+            created_at=now,
+            updated_at=now,
+        )
+        fm = item.to_frontmatter_dict()
+        assert "prefix" not in fm
 
     def test_from_frontmatter_reads_prefix_for_custom_type(self) -> None:
         """from_frontmatter picks up a stored prefix: line for custom types."""
@@ -241,8 +293,9 @@ class TestItemPrefixField:
         assert item.prefix == "INC"
         assert item.id == "INC-19"
 
-    def test_from_frontmatter_derives_prefix_for_builtins(self) -> None:
-        """from_frontmatter re-derives prefix for reserved types (always from RESERVED_PREFIX)."""
+    def test_from_frontmatter_reads_prefix_for_builtins_too(self) -> None:
+        """from_frontmatter reads a stored prefix: line for built-in types the same way as
+        custom types — there is no separate built-in code path any more (ADR-322 §3)."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC).isoformat()
@@ -250,7 +303,7 @@ class TestItemPrefixField:
             "id": "TASK-000007",
             "sequence_id": 7,
             "type": "task",
-            # No prefix: line — as on-disk for built-ins
+            "prefix": "TASK",
             "title": "A task",
             "slug": "a-task",
             "status": "Draft",
@@ -261,9 +314,34 @@ class TestItemPrefixField:
         assert item.prefix == "TASK"
         assert item.id == "TASK-7"
 
-    def test_from_frontmatter_ignores_stored_prefix_for_reserved_type(self) -> None:
-        """Even if a corrupt frontmatter has a wrong prefix: line for a reserved type,
-        from_frontmatter uses the authoritative RESERVED_PREFIX value."""
+    def test_from_frontmatter_leaves_prefix_empty_when_line_absent(self) -> None:
+        """A legacy file with no prefix: line leaves Item.prefix empty after from_frontmatter
+        — re-deriving it is the store's post-load job (_propagate_prefix), not
+        from_frontmatter's; _models must stay spec-decoupled (no _workflow import)."""
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC).isoformat()
+        data = {
+            "id": "TASK-000007",
+            "sequence_id": 7,
+            "type": "task",
+            # No prefix: line — as on-disk for a pre-ADR-322 legacy built-in file.
+            "title": "A task",
+            "slug": "a-task",
+            "status": "Draft",
+            "created_at": now,
+            "updated_at": now,
+        }
+        item = Item.from_frontmatter(data, path="tasks/TASK-000007-a-task.md")
+        assert item.prefix == ""
+        # id degrades to the loud UNRESOLVED_PREFIX sentinel until the store's post-load
+        # backfill runs — never a silent type.upper() guess.
+        assert item.id == f"{UNRESOLVED_PREFIX}-7"
+
+    def test_from_frontmatter_trusts_stored_prefix_even_if_corrupt(self) -> None:
+        """A hand-edited/corrupt prefix: line is now trusted as-is for every type — there is
+        no reserved-map override protecting built-ins any more (ADR-322 §3 tradeoff: the
+        model formats purely from the stored string, uniformly)."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC).isoformat()
@@ -279,8 +357,38 @@ class TestItemPrefixField:
             "updated_at": now,
         }
         item = Item.from_frontmatter(data, path="tasks/TASK-000007-a-task.md")
-        assert item.prefix == "TASK"  # override by RESERVED_PREFIX
-        assert item.id == "TASK-7"
+        assert item.prefix == "WRONGPREFIX"
+        assert item.id == "WRONGPREFIX-7"
+
+    def test_full_round_trip_with_no_spec_loaded(self) -> None:
+        """Explicit spec-free round-trip (ADR-322 §3 / FEAT-326 AC#3 / done-criteria):
+        to_frontmatter_dict() -> from_frontmatter() reproduces the same id for BOTH a
+        built-in and a custom type, with no WorkflowSpec constructed or imported anywhere
+        in this test — proving _models never needs one to round-trip an item's own id."""
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
+        for item_type, prefix, path in (
+            ("task", "TASK", "tasks/TASK-000007-a-task.md"),
+            ("incident", "INC", "incidents/INC-000019-an-incident.md"),
+        ):
+            original = Item(
+                sequence_id=7,
+                type=item_type,
+                prefix=prefix,
+                title="Round trip",
+                slug="round-trip",
+                status="Draft",
+                path=path,
+                created_at=now,
+                updated_at=now,
+            )
+            fm = original.to_frontmatter_dict()
+            assert fm["prefix"] == prefix, f"{item_type}: prefix missing from frontmatter dict"
+
+            reloaded = Item.from_frontmatter(fm, path=path)
+            assert reloaded.prefix == prefix, f"{item_type}: prefix did not round-trip"
+            assert reloaded.id == original.id, f"{item_type}: id did not round-trip"
 
 
 # ---------------------------------------------------------------------------
@@ -459,23 +567,34 @@ class TestRefPathsForCustomType:
 
 
 class TestLegacyFileLoad:
-    """Items without a prefix: frontmatter line still load correctly (re-derived on load)."""
+    """Items without a prefix: frontmatter line still load correctly (re-derived on load).
+
+    A freshly created item (built-in or custom) now always writes a prefix: line
+    (ADR-322 §3); these tests simulate a pre-ADR-322 legacy file by stripping it back out.
+    """
 
     async def test_legacy_builtin_loads_without_prefix_line(
         self, project: SquadPaths, svc: service.Service, frozen_time
     ) -> None:
         """A legacy task file with no prefix: line re-derives TASK on load."""
+        from squads import _sections as sections
         from squads._itemfile import read_frontmatter
 
-        # Create a task — built-in types never write prefix: to frontmatter.
         result = await svc.create("task", "Legacy task", author="manager")
         task_path = project.squad_dir / result.item.path
 
-        # Verify no prefix: line in frontmatter (built-in behavior).
-        fm = read_frontmatter(text=task_path.read_text())
-        assert "prefix" not in fm, "Built-in task must not have prefix: in frontmatter"
+        # A freshly created task DOES carry a prefix: line now — strip it to simulate a
+        # legacy (pre-ADR-322) file that predates the line.
+        text = task_path.read_text()
+        fm, _body = sections.split_frontmatter(text)
+        assert fm.get("prefix") == "TASK", "sanity: create() should stamp prefix: TASK"
+        del fm["prefix"]
+        task_path.write_text(sections.join_frontmatter(fm, text))
 
-        # Reload from disk — should still resolve the correct id.
+        legacy_fm = read_frontmatter(text=task_path.read_text())
+        assert "prefix" not in legacy_fm  # sanity: simulated-legacy file has no prefix: line
+
+        # Reload from disk — should still resolve the correct id (store's post-load backfill).
         loaded = await svc.get(result.item.id)
         assert loaded.id == result.item.id
         assert loaded.prefix == "TASK"
@@ -513,23 +632,24 @@ class TestLegacyFileLoad:
 
 
 # ---------------------------------------------------------------------------
-# Byte-identical: built-in item files unchanged by this change
+# Built-in item IDs: unchanged behavior despite the new prefix: frontmatter line
 # ---------------------------------------------------------------------------
 
 
 class TestBuiltinByteIdentical:
-    """Built-in items must not gain a prefix: frontmatter line from this change."""
+    """Built-in item IDs/folders are unaffected by ADR-322's new prefix: line."""
 
-    async def test_builtin_task_frontmatter_has_no_prefix_line(
+    async def test_builtin_task_frontmatter_now_carries_prefix_line(
         self, project: SquadPaths, svc: service.Service, frozen_time
     ) -> None:
-        """A newly created task must not have prefix: in its frontmatter."""
+        """A newly created task NOW carries prefix: in its frontmatter (ADR-322 §3 —
+        every type writes it, built-in or custom; this is a sanctioned, additive change)."""
         from squads._itemfile import read_frontmatter
 
-        result = await svc.create("task", "No prefix line", author="manager")
+        result = await svc.create("task", "Has a prefix line now", author="manager")
         task_path = project.squad_dir / result.item.path
         fm = read_frontmatter(text=task_path.read_text())
-        assert "prefix" not in fm, "Built-in task must not write prefix: to frontmatter"
+        assert fm.get("prefix") == "TASK"
 
     async def test_builtin_ids_unchanged(
         self, project: SquadPaths, svc: service.Service, frozen_time

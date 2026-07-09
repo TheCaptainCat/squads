@@ -5,7 +5,7 @@ import json
 import pytest
 
 from squads._itemfile import read_frontmatter
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._util import operator_slug
 
 pytestmark = pytest.mark.anyio
@@ -24,7 +24,7 @@ def test_operator_slug_is_op_prefixed_first_name():
 
 async def test_add_operator_writes_operator_item(svc):
     op = await svc.add_operator("Pierre Chat")
-    assert op.type == ItemType.OPERATOR
+    assert op.type == "operator"
     assert op.status == Status.ACTIVE
     assert op.id.startswith("OP-")
     assert op.extra.get("slug") == "op-pierre"
@@ -45,7 +45,7 @@ async def test_operator_survives_repair(svc):
     op = await svc.add_operator("Pierre Chat")
     await svc.repair()  # rebuild the index purely from frontmatter
     again = await svc.get(op.id)
-    assert again.type == ItemType.OPERATOR and again.extra.get("slug") == "op-pierre"
+    assert again.type == "operator" and again.extra.get("slug") == "op-pierre"
 
 
 # --------------------------------------------------------------------------- gates
@@ -53,7 +53,7 @@ async def test_operator_survives_repair(svc):
 
 async def test_operator_is_a_valid_author_and_assignee(svc):
     await svc.add_operator("Pierre Chat")
-    res = await svc.create(ItemType.TASK, "Manual deploy", author="op-pierre", assignee="op-pierre")
+    res = await svc.create("task", "Manual deploy", author="op-pierre", assignee="op-pierre")
     assert res.item.author == "op-pierre" and res.item.assignee == "op-pierre"
     # and on update
     await svc.update(res.item.id, assignee="manager")  # a role still works (no regression)
@@ -62,20 +62,20 @@ async def test_operator_is_a_valid_author_and_assignee(svc):
 
 async def test_operator_assignable_on_subentities(svc):
     await svc.add_operator("Pierre Chat")
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     await svc.add_subtask(task.id, "Sign off the release", assignee="op-pierre")
     assert (await svc.list_subtasks(task.id))[0].assignee == "op-pierre"
 
 
 async def test_check_accepts_operator_author_and_assignee(svc):
     await svc.add_operator("Pierre Chat")
-    await svc.create(ItemType.TASK, "Manual deploy", author="op-pierre", assignee="op-pierre")
+    await svc.create("task", "Manual deploy", author="op-pierre", assignee="op-pierre")
     warnings = [i for i in await svc.check() if "not a registered agent" in i.message]
     assert warnings == []
 
 
 async def test_unknown_slug_still_rejected(svc):
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     with pytest.raises(Exception, match="not a registered agent or operator"):
         await svc.update(task.id, assignee="op-ghost")
 
@@ -86,7 +86,7 @@ async def test_unknown_slug_still_rejected(svc):
 async def test_author_resolves_operator_full_name(svc):
     await svc.add_operator("Pierre Chat")
     assert await svc.author("op-pierre") == "Pierre Chat"
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     await svc.comment(task.id, ["looks good"], as_slug="op-pierre")
     text = svc.paths.abspath((await svc.get(task.id)).path).read_text(encoding="utf-8")
     assert "Pierre Chat:" in text  # the comment renders the full name, not the slug
@@ -97,7 +97,7 @@ async def test_author_resolves_operator_full_name(svc):
 
 async def test_operator_not_counted_in_workload_but_is_not_spawnable(svc, project):
     await svc.add_operator("Pierre Chat")
-    await svc.create(ItemType.TASK, "deploy", assignee="op-pierre")
+    await svc.create("task", "deploy", assignee="op-pierre")
     rows = {r.assignee: r for r in await svc.workload()}
     assert rows["op-pierre"].open == 1  # work assigned to the human counts
     assert None not in rows  # the operator *definition* item is not counted as work
