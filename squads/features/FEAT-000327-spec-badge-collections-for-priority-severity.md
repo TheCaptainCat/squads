@@ -3,7 +3,7 @@ id: FEAT-327
 sequence_id: 327
 type: feature
 title: Spec badge collections for priority/severity
-status: Ready
+status: Done
 parent: EPIC-325
 author: product-owner
 refs:
@@ -25,7 +25,7 @@ subentities:
   title: Spec load fails closed on bad field decls
   status: Todo
 created_at: '2026-07-07T14:38:59Z'
-updated_at: '2026-07-08T08:30:14Z'
+updated_at: '2026-07-09T14:12:22Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -222,4 +222,11 @@ As a project admin, I want spec loading to reject invalid badge field declaratio
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-09T14:11:14Z] Mara Tester:
+  - QA end-to-end acceptance pass on all four ACs/USs (TASK-340..343 all Done). Verdict: PASS — all four USs VERIFIED by driving the real CLI against scratch squads (fresh sq init / hand-built .overrides/workflow.toml / a hand-devolved v0.7-shaped bug file). No bugs filed.
+  - US1 (byte-identical bundled badges): sq init -> schema 0.8; grep -rn 'class Priority|class Severity|PRIORITY_EMOJI|SEVERITY_EMOJI|DEFAULT_SEVERITY|severity_field|item_has_severity' src/squads is empty (AC2). default_workflow.toml's [collections.priority]/[collections.severity] + per-type fields match pre-feature codes/labels/emoji/defaults exactly. Drove: sq create task --priority {high,urgent}; sq list -t task --sort priority / --min-priority high / --priority urgent -> correct rank/order; sq create bug --priority medium then bug update --set severity=critical|low -> badges render '🔴 critical'/'🟢 low'; sq review add-finding (no --severity) -> defaults to medium via field/collection default; sq check clean. VERIFIED.
+  - US2 (generic CLI derivation on a custom axis): declared [collections.level] + [items.incident] with impact/urgency off one collection per ADR-323's own reuse example, via .overrides/workflow.toml on a fresh squad (no code change). Drove: sq create incident; incident update --set impact=high --set urgency=low (and the reverse); bad code 'impact=medium' -> clean 'invalid impact ... (one of: high, low)' error; sq incident show renders both badges; sq list --type incident --badge impact=high|low exact filter; --min-badge urgency=high|low threshold; --sort urgency; sq tree --type incident --all --sort urgency and --badge impact=high — all correct. Note (not a defect, confirmed against REV-346 F3's accepted disposition): there is no per-field --<field> Typer flag or list-table column for custom fields (create/list stay on the --priority sugar + fixed Priority column); the generic surface is --badge/--min-badge/--sort + --set + the show-panel, which is the reviewed/accepted shape. VERIFIED.
+  - US3 (bug severity migration): fresh sq init lands at schema 0.8 directly. Built a v0.7-shaped squad by hand (schema_version=0.7 in .squads.toml + a bug file with legacy extra: {severity: critical}, no top-level key): sq list correctly hard-stops ('this squad is at schema v0.7 ... Run sq migrate up'); sq migrate up runs the v0.7->v0.8 runner, relocates severity to a top-level key, drops the now-empty extra map; sq check and sq repair both clean after; sq bug show renders the preserved value ('🔴 critical'). VERIFIED.
+  - US4 (fail-closed validation): each drove a real .overrides/workflow.toml through sq list / sq workflow lint (checked table+hint output too) and got a clear one-line error + exit 1, never a traceback: (a) duplicate field code 'impact' on one type -> 'duplicate field code impact'; (b) field code 'status' -> 'shadows a reserved frontmatter key'; (c) collection='nonexistent' -> 'collection nonexistent not declared'; (d) [collections.x] ordered=false -> 'unordered collections are not supported yet' (the F1 fix). Bonus (beyond AC7's literal three): a field default not present in its collection, and required=true with no resolvable default, both also fail closed with clear messages. VERIFIED.
+  - Gates: uv run pyright / ruff check / ruff format --check all clean (AC8). Targeted suite (badge/severity/priority/migration -k filter) green, 148 passed. No regressions found versus pre-feature behavior (checked against git history at 571ce04/a81808b for the create/update severity surface — was always update/--set-only, never a create-time flag, so US2's incident-create note above is not a regression).
 <!-- sq:discussion:end -->
