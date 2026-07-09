@@ -3,14 +3,14 @@ id: ADR-323
 sequence_id: 323
 type: decision
 title: 'Spec badges for priority/severity: reusable collections + relabeling fields'
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - ADR-322:depends-on
 - ADR-214
 - ADR-232
 created_at: '2026-07-07T10:00:07Z'
-updated_at: '2026-07-07T12:40:16Z'
+updated_at: '2026-07-07T14:35:18Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -287,4 +287,6 @@ referential integrity at spec load.
   - Decisions locked: (1) fields are first-class and relabel their collection — one type may carry TWO fields off ONE collection (impact + urgency -> level), reuse is explicit. (2) default and required live on the FIELD (severity required on findings, optional on bug; priority optional everywhere; each type sets its own default); a collection may carry a fallback default the field overrides. (3) ordered-only this pass — ship only ordered collections (drives sort + --min-<field>), reserve an 'ordered' flag for a future unordered kind, don't design it now. Priority + severity ship as two byte-identical bundled default COLLECTIONS with matching bundled FIELDS -> keys/flags/round-trip unchanged.
   - NEW risks introduced by the first-class-field/relabel model (all fail-closed at spec load): (1) field-code uniqueness per type — two fields on one type must have distinct codes or the second silently shadows the first's frontmatter key. (2) field codes must not collide with reserved frontmatter keys (type/status/id/prefix/parent/refs/...). (3) collection-code referential integrity — every field.collection must name a declared collection, and every default (field- and collection-level) must be a badge code present in that collection; a required field needs a resolvable default. (4) relabel-vs-verbatim boundary is a docs/UX risk — authors must not expect per-field badge overrides (change badges = new collection). (5) sub-entity fields must share ONE schema with item-type fields, coordinated with EPIC-280's custom-sub-entity-kinds work, not forked.
   - Recommendation unchanged in spirit, sharpened to the three-level model; sequenced after ADR-322. Still Proposed, no code/tasks. @manager
+- [2026-07-07T14:35:18Z] Catherine Manager:
+  - Accepted as-is at the design-gate review (op-pierre deciding). Full three-level Badge/Collection/Field model confirmed: a field references a collection and carries its own label; the collection holds ordered badges; each badge = code + label + emoji. Sequenced after ADR-322.
 <!-- sq:discussion:end -->

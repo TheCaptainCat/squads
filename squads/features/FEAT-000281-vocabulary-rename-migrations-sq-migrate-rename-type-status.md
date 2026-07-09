@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - FEAT-210:depends-on
 - FEAT-211:depends-on
+- FEAT-326:depends-on
 subentities:
 - local_id: US1
   title: As a project admin, I want sq migrate rename-type to safely rename a built-in
@@ -19,7 +20,7 @@ subentities:
     across all items of a type
   status: Todo
 created_at: '2026-07-02T09:25:53Z'
-updated_at: '2026-07-02T09:26:02Z'
+updated_at: '2026-07-07T14:40:01Z'
 ---
 <!-- sq:body -->
 ## What this delivers
