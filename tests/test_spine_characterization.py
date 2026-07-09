@@ -38,8 +38,8 @@ import pytest
 
 from squads._cli import app
 from squads._errors import SquadsError
-from squads._services._base import SUBENTITY_KIND
-from squads._workflow import ALLOWED_PARENTS, parent_hint
+from squads._services._base import subentity_kind_map
+from squads._workflow import ALLOWED_PARENTS, bundled_spec, parent_hint
 from squads._workflow import work_types as _work_types
 
 pytestmark = pytest.mark.anyio
@@ -320,15 +320,17 @@ async def test_review_hosts_findings_not_stories(svc) -> None:
 
 
 def test_subentity_kind_map_covers_exactly_feature_task_review() -> None:
-    """SUBENTITY_KIND maps exactly {feature→story, task→subtask, review→finding}."""
-    assert SUBENTITY_KIND == {
+    """subentity_kind_map(bundled_spec()) maps exactly {feature→story, task→subtask,
+    review→finding}."""
+    sk = subentity_kind_map(bundled_spec())
+    assert sk == {
         "feature": "story",
         "task": "subtask",
         "review": "finding",
     }
     # epic/bug/decision/guide are NOT in the map.
     for t in ("epic", "bug", "decision", "guide"):
-        assert t not in SUBENTITY_KIND, f"{t} should not be in SUBENTITY_KIND"
+        assert t not in sk, f"{t} should not be in the subentity kind map"
 
 
 # ---------------------------------------------------------------------------
@@ -505,15 +507,18 @@ async def test_role_slug_valid_as_author_and_assignee(svc) -> None:
 
 
 def test_subentity_kind_derived_from_subentity_parent() -> None:
-    """SUBENTITY_KIND is the inverse of SUBENTITY_PARENT (service-base constants)."""
-    from squads._services._base import SUBENTITY_KIND as SK
-    from squads._services._base import SUBENTITY_PARENT as SP
+    """subentity_kind_map is the inverse of subentity_parent_map, for the active spec."""
+    from squads._services._base import subentity_parent_map
+
+    spec = bundled_spec()
+    sk = subentity_kind_map(spec)
+    sp = subentity_parent_map(spec)
 
     # Inverse relationship holds.
-    for kind, parent_type in SP.items():
-        assert SK[parent_type] == kind, f"SUBENTITY_KIND[{parent_type!r}] should be {kind!r}"
+    for kind, parent_type in sp.items():
+        assert sk[parent_type] == kind, f"subentity_kind_map[{parent_type!r}] should be {kind!r}"
     # Cardinality matches.
-    assert len(SK) == len(SP)
+    assert len(sk) == len(sp)
 
 
 # ---------------------------------------------------------------------------
