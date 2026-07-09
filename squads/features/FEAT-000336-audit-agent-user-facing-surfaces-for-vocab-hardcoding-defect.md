@@ -4,7 +4,6 @@ sequence_id: 336
 type: feature
 title: Audit agent/user-facing surfaces for vocab-hardcoding defects
 status: Draft
-prefix: FEAT
 parent: EPIC-335
 author: product-owner
 refs:

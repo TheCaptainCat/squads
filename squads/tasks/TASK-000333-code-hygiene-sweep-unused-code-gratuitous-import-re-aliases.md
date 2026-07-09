@@ -4,7 +4,6 @@ sequence_id: 333
 type: task
 title: 'Code hygiene sweep: unused code + gratuitous import re-aliases'
 status: Draft
-prefix: TASK
 author: tech-lead
 priority: low
 labels:

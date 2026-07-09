@@ -445,13 +445,6 @@ class MaintenanceMixin(ServiceCore):
                     f"item {item.id} has unknown type {item.type!r} in {md.name}; "
                     f"fix the frontmatter before running `sq repair`"
                 )
-            # Legacy files predating the prefix: line have no stored prefix —
-            # backfill it now the type is known-valid, mirroring the store's own post-load
-            # pass (_propagate_prefix), so a freshly-rebuilt index never carries a
-            # type.upper() stand-in id for a built-in type whose real prefix differs
-            # (e.g. "feature" -> "FEAT", not "FEATURE").
-            if not item.prefix:
-                item.prefix = prefix_for(item.type, self.spec)
             if item.status not in self.spec.statuses:
                 raise SquadsError(
                     f"item {item.id} has unknown status {item.status!r} in {md.name}; "

@@ -4,7 +4,6 @@ sequence_id: 328
 type: task
 title: Delete ItemType enum + RESERVED maps; spec-only type vocabulary
 status: Done
-prefix: TASK
 parent: FEAT-326
 author: tech-lead
 subentities:
