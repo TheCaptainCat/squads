@@ -36,7 +36,6 @@ from squads._cli._common import (
 from squads._cli._common import get_active_spec as _get_active_spec
 from squads._errors import SquadsError
 from squads._models._config import CONFIG_FILENAME
-from squads._models._enums import Priority
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import load_config
@@ -377,7 +376,7 @@ async def tree(
                 "id": it.id,
                 "type": it.type,
                 "status": it.status,
-                "priority": it.priority.value if it.priority else None,
+                "priority": it.priority,
                 "assignee": it.assignee,
                 "blocked": it.id in blocked_ids,
                 "children": [node(c) for c in tn.children],
@@ -564,7 +563,7 @@ def _attach_graph_node(parent_tree: Tree, node: GraphNode) -> None:
         else:
             edge_part = ""
 
-        prio = f"{e(priority_badge(Priority(child.priority)))} · " if child.priority else ""
+        prio = f"{e(priority_badge(child.priority))} · " if child.priority else ""
         seen_mark = " [dim](seen)[/dim]" if child.seen else ""
         node_label = f"{edge_part} [bold]{child.id}[/bold] {prio}{e(child.status)}{seen_mark}"
         branch = parent_tree.add(node_label)
@@ -648,7 +647,7 @@ async def graph(
         return
 
     # Rich tree rendering
-    prio = f"{e(priority_badge(Priority(root_node.priority)))} · " if root_node.priority else ""
+    prio = f"{e(priority_badge(root_node.priority))} · " if root_node.priority else ""
     root_label = f"[bold]{root_node.id}[/bold] {prio}{e(root_node.status)}"
     tree_view = Tree(root_label)
     _attach_graph_node(tree_view, root_node)

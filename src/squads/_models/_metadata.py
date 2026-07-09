@@ -3,16 +3,20 @@
 Global fields (title/status/parent/author/assignee/labels) are dedicated `update` flags; this module
 covers only the **type-specific** `extra` keys, with the value kind used to coerce the CLI string.
 Identity/derived keys (``slug``, ``is_dev``) are intentionally absent — they're not settable.
+
+Item-level bug severity is no longer one of these ``extra`` keys — it's a top-level, spec-declared
+badge field (``Item.severity``); ``ItemsMixin._apply_extra`` routes ``--set severity=`` onto it
+directly (validated against the spec's ``severity`` collection), a frozen per-axis shim until a
+follow-up generalizes ``--set`` over every declared field.
 """
 
 from dataclasses import dataclass
 from typing import Any, Literal
 
 from squads._errors import SquadsError
-from squads._models._enums import Severity
 from squads._models._extras import ExtraKey as X
 
-Kind = Literal["str", "list", "bool", "severity"]
+Kind = Literal["str", "list", "bool"]
 
 
 @dataclass(frozen=True)
@@ -40,7 +44,6 @@ EXTRA_FIELDS: dict[str, tuple[Field, ...]] = {
     "skill": (Field(X.WHEN_TO_USE), Field(X.ALLOWED_TOOLS), Field(X.MODEL)),
     "guide": (Field(X.TAGS, "list"),),
     "review": (Field(X.TARGET_REF),),
-    "bug": (Field(X.SEVERITY, "severity"),),
 }
 
 #: Global fields with their own `update` flags — named so `--set author=…` can hint to use the flag.
@@ -58,12 +61,6 @@ def coerce(field: Field, raw: str) -> Any:
         return [part.strip() for part in raw.split(",") if part.strip()]
     if field.kind == "bool":
         return raw.strip().lower() in ("1", "true", "yes", "on")
-    if field.kind == "severity":
-        try:
-            return Severity(raw.strip().lower()).value
-        except ValueError:
-            choices = ", ".join(s.value for s in Severity)
-            raise SquadsError(f"invalid severity {raw!r} (one of: {choices})") from None
     return raw
 
 

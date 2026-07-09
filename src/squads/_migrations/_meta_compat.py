@@ -11,7 +11,6 @@ import re
 from dataclasses import dataclass
 
 from squads._models import _markers as markers
-from squads._models._enums import Severity
 from squads._models._subentity import SubEntity
 from squads._sections import get_section, replace_section
 from squads._workflow import bundled_spec
@@ -118,7 +117,7 @@ def to_subentity(b: BlockInfo) -> SubEntity:
         title=b.title,
         status=b.status,
         assignee=b.assignee,
-        severity=Severity(b.severity) if b.severity else None,
+        severity=b.severity,
         story=b.story,
     )
 

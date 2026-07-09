@@ -1,8 +1,9 @@
-"""Tests for the additive Badge/Collection/Field spec schema (workflow badge-collection model).
+"""Tests for the Badge/Collection/Field spec schema (workflow badge-collection model, ADR-323).
 
 Covers:
-- The bundled priority/severity collections + fields reproduce today's Priority/Severity
-  enum codes/labels/emoji/default exactly (byte-identical, no-override characterization).
+- The bundled priority/severity collections + fields ARE the runtime vocabulary now (no more
+  Priority/Severity enums) — byte-identical codes/labels/emoji/default to what the enums used
+  to hardcode.
 - fields_for()/collection() accessors, for item types AND sub-entity kinds.
 - Fail-closed validation: duplicate field code, reserved-key collision, unresolved
   collection, invalid default badge, required field with no resolvable default.
@@ -10,9 +11,6 @@ Covers:
 - Additive-only override support: new collections/subentity_kinds accepted; redefining a
   built-in collection or subentity_kinds entry raises.
 - extra="forbid" on the new models.
-
-Does NOT test runtime consumption — Priority/Severity still drive runtime this pass; this
-is the parallel vocabulary alongside it (the next task switches the engine onto it).
 """
 
 from pathlib import Path
@@ -21,13 +19,6 @@ import pytest
 from pydantic import ValidationError
 
 from squads._errors import SquadsError
-from squads._models._enums import (
-    DEFAULT_SEVERITY,
-    PRIORITY_EMOJI,
-    SEVERITY_EMOJI,
-    Priority,
-    Severity,
-)
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import (
     Badge,
@@ -47,28 +38,34 @@ def spec() -> WorkflowSpec:
 
 
 # ---------------------------------------------------------------------------
-# Byte-identical bundled collections (vs the still-live Priority/Severity enums)
+# Bundled collections — pinned to the exact codes/labels/emoji the retired Priority/Severity
+# enums used to hardcode (the byte-identical, no-override characterization).
 # ---------------------------------------------------------------------------
 
 
-def test_priority_collection_matches_enum_exactly(spec: WorkflowSpec) -> None:
+def test_priority_collection_is_byte_identical_to_the_retired_enum(spec: WorkflowSpec) -> None:
     coll = spec.collections["priority"]
     assert coll.ordered is True
     assert coll.default is None
-    assert [b.code for b in coll.badges] == [p.value for p in Priority]
-    for b in coll.badges:
-        assert b.emoji == PRIORITY_EMOJI[Priority(b.code)]
-        assert b.label == b.code.capitalize()
+    assert [(b.code, b.label, b.emoji) for b in coll.badges] == [
+        ("urgent", "Urgent", "🔴"),
+        ("high", "High", "🟠"),
+        ("medium", "Medium", "🟡"),
+        ("low", "Low", "🟢"),
+    ]
 
 
-def test_severity_collection_matches_enum_exactly(spec: WorkflowSpec) -> None:
+def test_severity_collection_is_byte_identical_to_the_retired_enum(spec: WorkflowSpec) -> None:
     coll = spec.collections["severity"]
     assert coll.ordered is True
-    assert coll.default == DEFAULT_SEVERITY.value
-    assert [b.code for b in coll.badges] == [s.value for s in Severity]
-    for b in coll.badges:
-        assert b.emoji == SEVERITY_EMOJI[Severity(b.code)]
-        assert b.label == b.code.capitalize()
+    assert coll.default == "medium"
+    assert [(b.code, b.label, b.emoji) for b in coll.badges] == [
+        ("critical", "Critical", "🔴"),
+        ("high", "High", "🟠"),
+        ("medium", "Medium", "🟡"),
+        ("low", "Low", "🟢"),
+        ("info", "Info", "🔵"),
+    ]
 
 
 def test_priority_field_on_every_bundled_work_type(spec: WorkflowSpec) -> None:
@@ -182,6 +179,19 @@ def test_priority_and_severity_codes_are_not_reserved(spec: WorkflowSpec) -> Non
     """The bundled priority/severity fields keep their literal code — the reserved-key
     check must exempt exactly those two, or the bundled defaults couldn't load at all."""
     assert spec is not None  # the bundled spec (with its priority/severity fields) loaded clean
+
+
+def test_field_code_prefix_stays_reserved_despite_being_frontmatter_excluded(
+    spec: WorkflowSpec,
+) -> None:
+    """TASK-340 review finding: 'prefix' is a *tolerated* legacy frontmatter key (Item.id
+    always wins over it, never itself written) — NOT exempt like path. A live field coded
+    'prefix' would be silently read-and-discarded on round-trip, so it must stay reserved."""
+    task = spec.items["task"]
+    bad_fields = [Field(code="prefix", label="Prefix2", collection="priority")]
+    new_items = {**spec.items, "task": task.model_copy(update={"fields": bad_fields})}
+    with pytest.raises(SquadsError, match="field code 'prefix' shadows a reserved frontmatter key"):
+        _rebuild(spec, items=new_items)
 
 
 # ---------------------------------------------------------------------------

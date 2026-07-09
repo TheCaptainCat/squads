@@ -165,11 +165,6 @@ def item_is_meta(item_type: str) -> bool:
     return _BUNDLED_SPEC.item_is_meta(item_type)
 
 
-def item_has_severity(item_type: str) -> bool:
-    """True for types that surface a severity field (today: bug only)."""
-    return _BUNDLED_SPEC.item_has_severity(item_type)
-
-
 def item_subentity_kind(item_type: str) -> str | None:
     """The sub-entity kind this type hosts, or None."""
     return _BUNDLED_SPEC.item_subentity_kind(item_type)
@@ -219,7 +214,6 @@ __all__ = [
     "can_transition",
     "initial_status",
     "is_open",
-    "item_has_severity",
     "item_is_meta",
     "item_parent_required",
     "item_ref_rules",

@@ -16,7 +16,6 @@ from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._interactions import TITLE_ADVISORY_MAX
 from squads._models import _markers as markers
-from squads._models._enums import DEFAULT_SEVERITY, Severity
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -28,6 +27,12 @@ from squads._services._base import (
     reject_markers,
 )
 from squads._services._results import BlockResult, SubentityDetail
+
+#: The finding severity field's default badge code (bundled ``severity`` collection/field —
+#: see ``default_workflow.toml``). Frozen here rather than resolved via ``fields_for()`` since
+#: it's only a single CLI-option default, mirroring the ``--severity`` default already
+#: hardcoded at the CLI edge; a follow-up owns the full generic derivation.
+_DEFAULT_FINDING_SEVERITY = "medium"
 
 
 class SubentitiesMixin(ServiceCore):
@@ -59,7 +64,7 @@ class SubentitiesMixin(ServiceCore):
         review_id: str,
         title: str = "",
         *,
-        severity: Severity = DEFAULT_SEVERITY,
+        severity: str = _DEFAULT_FINDING_SEVERITY,
         assignee: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
@@ -74,7 +79,7 @@ class SubentitiesMixin(ServiceCore):
         title: str,
         *,
         story: str | None = None,
-        severity: Severity | None = None,
+        severity: str | None = None,
         assignee: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
@@ -261,7 +266,7 @@ class SubentitiesMixin(ServiceCore):
         local_id: str,
         *,
         title: str | None = None,
-        severity: Severity | None = None,
+        severity: str | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
         status: str | None = None,
@@ -349,7 +354,7 @@ class SubentitiesMixin(ServiceCore):
         local_id: str,
         *,
         title: str | None = None,
-        severity: Severity | None = None,
+        severity: str | None = None,
         story: str | None = None,
         clear_story: bool = False,
         assignee: str | None = None,
@@ -429,7 +434,7 @@ class SubentitiesMixin(ServiceCore):
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
         text = discussion.set_heading(text, kind, head_for.local_id, head_for.title)
         text = await self._refresh_head(text, db, item, kind, head_for)
-        text = discussion.ensure_summary(text, kind, container, item.subentities)
+        text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
         await _aio.write_text(path, text)
 
     async def _refresh_head(
@@ -441,7 +446,7 @@ class SubentitiesMixin(ServiceCore):
             kind,
             sub.local_id,
             status=sub.status,
-            severity=sub.severity.value if sub.severity else None,
+            severity=sub.severity,
             story=self._story_label(db, item, sub.story),
             assignee_name=await self.author(sub.assignee) if sub.assignee else None,
             spec=self.spec,

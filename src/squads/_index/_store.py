@@ -32,8 +32,63 @@ from pydantic import ValidationError
 
 from squads import _aio
 from squads._errors import SquadsError
+from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._workflow._models import WorkflowSpec
+from squads._models._item import Item
+from squads._models._subentity import SubEntity
+from squads._workflow._models import Field, WorkflowSpec
+
+
+def _backfill_severity(db: SquadsDB) -> None:
+    """Backfill top-level ``Item.severity`` from the legacy ``extra[X.SEVERITY]`` location
+    for any item indexed before item-level severity became a top-level badge field.
+
+    In-memory only, mirroring the old ``_propagate_prefix`` pattern: the corrected value
+    reaches disk on the next write to that item (or ``sq repair``) — a dedicated one-way
+    migration that walks every file to relocate it on disk is a separate, later step.
+    """
+    for item in db.items.values():
+        if item.severity is None:
+            legacy = item.extra.pop(X.SEVERITY, None)
+            if legacy:
+                item.severity = legacy
+
+
+def _check_field_codes(
+    label: str, obj: Item | SubEntity, fields: list[Field], spec: WorkflowSpec
+) -> None:
+    """Raise if any of *obj*'s stored badge codes aren't in its field's bound collection.
+
+    Only field codes backed by a same-named model attribute (``priority``/``severity``
+    today) are checked — ``getattr`` skips anything else (e.g. a future ``extra``-stored
+    custom field), matching the storage this task actually implements.
+    """
+    for f in fields:
+        code = getattr(obj, f.code, None)
+        if code is None:
+            continue
+        coll = spec.collections.get(f.collection)
+        if coll is None or code not in coll.badge_codes:
+            raise SquadsError(
+                f"{label} field {f.code!r} has unknown code {code!r}; "
+                "run `sq repair` if the index is stale, or check the frontmatter"
+            )
+
+
+def _validate_badge_codes(db: SquadsDB, spec: WorkflowSpec) -> None:
+    """Validate every item's/sub-entity's stored badge codes against their bound collections.
+
+    The badge-vocabulary counterpart to :func:`_validate_item_vocab`'s type/status check —
+    same seam, same fail-closed contract.
+    """
+    for item in db.items.values():
+        _check_field_codes(item.id, item, spec.fields_for(item.type), spec)
+        kind = spec.item_subentity_kind(item.type)
+        if kind is None:
+            continue
+        sub_fields = spec.fields_for(kind)
+        for sub in item.subentities:
+            _check_field_codes(f"{item.id} sub-entity {sub.local_id}", sub, sub_fields, spec)
 
 
 def _validate_item_vocab(db: SquadsDB, spec: WorkflowSpec) -> None:
@@ -178,7 +233,9 @@ class IndexStore:
         max_seq = max((item.sequence_id for item in db.items.values()), default=0)
         if db.counter < max_seq:
             db.counter = max_seq
+        _backfill_severity(db)
         _validate_item_vocab(db, self._spec)
+        _validate_badge_codes(db, self._spec)
         return db
 
     # ------------------------------------------------------------------ transaction

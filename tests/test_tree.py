@@ -19,7 +19,6 @@ import pytest
 from typer.testing import CliRunner
 
 from squads._cli import app
-from squads._models._enums import Priority
 from squads._services._base import ItemFilter
 from squads._services._results import TreeNode
 
@@ -65,7 +64,7 @@ def test_item_filter_not_empty_with_any_field():
     assert ItemFilter(item_type="task").is_empty() is False
     assert ItemFilter(status="Ready").is_empty() is False
     assert ItemFilter(assignee="qa").is_empty() is False
-    assert ItemFilter(priority=Priority.HIGH).is_empty() is False
+    assert ItemFilter(priority="high").is_empty() is False
     assert ItemFilter(parent="FEAT-000001").is_empty() is False
     assert ItemFilter(label="urgent").is_empty() is False
 
@@ -100,24 +99,24 @@ async def test_item_filter_matches_assignee(svc):
 
 
 async def test_item_filter_matches_priority(svc):
-    item = (await svc.create("task", "T", priority=Priority.HIGH)).item
-    f_high = ItemFilter(priority=Priority.HIGH)
-    f_low = ItemFilter(priority=Priority.LOW)
+    item = (await svc.create("task", "T", priority="high")).item
+    f_high = ItemFilter(priority="high")
+    f_low = ItemFilter(priority="low")
     assert f_high.matches(item) is True
     assert f_low.matches(item) is False
 
 
 async def test_item_filter_matches_combined_and(svc):
     """Combined filter = AND of all set dimensions."""
-    item = (await svc.create("task", "T", priority=Priority.HIGH)).item
+    item = (await svc.create("task", "T", priority="high")).item
     # Matches type AND priority
-    f = ItemFilter(item_type="task", priority=Priority.HIGH)
+    f = ItemFilter(item_type="task", priority="high")
     assert f.matches(item) is True
     # Matches type but not priority
-    f_wrong_prio = ItemFilter(item_type="task", priority=Priority.LOW)
+    f_wrong_prio = ItemFilter(item_type="task", priority="low")
     assert f_wrong_prio.matches(item) is False
     # Matches priority but not type
-    f_wrong_type = ItemFilter(item_type="feature", priority=Priority.HIGH)
+    f_wrong_type = ItemFilter(item_type="feature", priority="high")
     assert f_wrong_type.matches(item) is False
 
 
@@ -129,15 +128,15 @@ async def test_item_filter_matches_combined_and(svc):
 async def test_shared_filter_matches_same_as_list_items(svc):
     """The same ItemFilter selects the same items that list_items would (no drift)."""
     feat = (await svc.create("feature", "Feat")).item
-    t1 = (await svc.create("task", "T1", priority=Priority.HIGH, parent=feat.id)).item
-    t2 = (await svc.create("task", "T2", priority=Priority.LOW, parent=feat.id)).item
+    t1 = (await svc.create("task", "T1", priority="high", parent=feat.id)).item
+    t2 = (await svc.create("task", "T2", priority="low", parent=feat.id)).item
     _bug = (await svc.create("bug", "B1")).item
 
     # Filter: type=task, priority=high
-    f = ItemFilter(item_type="task", priority=Priority.HIGH)
+    f = ItemFilter(item_type="task", priority="high")
 
     # list_items path
-    listed = await svc.list_items(item_type="task", priority=Priority.HIGH)
+    listed = await svc.list_items(item_type="task", priority="high")
     listed_ids = {i.id for i in listed}
 
     # ItemFilter path
@@ -198,9 +197,9 @@ async def test_tree_view_filter_type(svc):
 async def test_tree_view_filter_priority(svc):
     """--priority filter narrows to matching items, with ancestors preserved."""
     epic_id, feat_id, task_id, bug_id = await _make_hierarchy(svc)
-    await svc.update(task_id, priority=Priority.HIGH)
+    await svc.update(task_id, priority="high")
 
-    nodes = await svc.tree_view(filter=ItemFilter(priority=Priority.HIGH))
+    nodes = await svc.tree_view(filter=ItemFilter(priority="high"))
     all_ids = _collect_ids(nodes)
     assert task_id in all_ids
     # Ancestors preserved as path-only
@@ -229,15 +228,15 @@ async def test_tree_view_filter_assignee(svc):
 async def test_tree_view_filter_combined_and(svc):
     """Combined filter = AND — type AND priority must both match."""
     _epic_id, _feat_id, task_id, _bug_id = await _make_hierarchy(svc)
-    await svc.update(task_id, priority=Priority.HIGH)
+    await svc.update(task_id, priority="high")
 
     # type=task AND priority=high → task matches
-    nodes = await svc.tree_view(filter=ItemFilter(item_type="task", priority=Priority.HIGH))
+    nodes = await svc.tree_view(filter=ItemFilter(item_type="task", priority="high"))
     all_ids = _collect_ids(nodes)
     assert task_id in all_ids
 
     # type=bug AND priority=high → nothing matches
-    nodes2 = await svc.tree_view(filter=ItemFilter(item_type="bug", priority=Priority.HIGH))
+    nodes2 = await svc.tree_view(filter=ItemFilter(item_type="bug", priority="high"))
     assert _collect_ids(nodes2) == set()
 
 
@@ -257,7 +256,7 @@ async def test_tree_view_explicit_root(svc):
 async def test_tree_view_explicit_root_with_filter(svc):
     """Explicit root + filter prunes within the subtree."""
     epic_id, feat_id, task_id, _bug_id = await _make_hierarchy(svc)
-    await svc.update(task_id, priority=Priority.HIGH)
+    await svc.update(task_id, priority="high")
 
     # Root at feat, filter type=task
     nodes = await svc.tree_view(feat_id, filter=ItemFilter(item_type="task"))
@@ -319,10 +318,10 @@ async def test_tree_view_matching_ancestor_not_path_only(svc):
     root = (await svc.create("epic", "Root")).item
     feat = (await svc.create("feature", "Feat", parent=root.id)).item
     task = (await svc.create("task", "Task", parent=feat.id)).item
-    await svc.update(feat.id, priority=Priority.HIGH)
-    await svc.update(task.id, priority=Priority.HIGH)
+    await svc.update(feat.id, priority="high")
+    await svc.update(task.id, priority="high")
 
-    nodes = await svc.tree_view(filter=ItemFilter(priority=Priority.HIGH))
+    nodes = await svc.tree_view(filter=ItemFilter(priority="high"))
     all_path_only = _collect_path_only_ids(nodes)
     # Both feat and task match → neither is path_only
     assert feat.id not in all_path_only
@@ -368,11 +367,11 @@ async def test_tree_view_depth_wins_over_deep_match(svc):
     root = (await svc.create("epic", "Root")).item
     mid = (await svc.create("feature", "Mid", parent=root.id)).item
     leaf = (await svc.create("task", "Leaf", parent=mid.id)).item
-    await svc.update(leaf.id, priority=Priority.HIGH)
+    await svc.update(leaf.id, priority="high")
 
     # depth=1 means root (level 0) and mid (level 1) are in range;
     # leaf (level 2) is cut by depth — even though it matches the filter.
-    nodes = await svc.tree_view(filter=ItemFilter(priority=Priority.HIGH), depth=1)
+    nodes = await svc.tree_view(filter=ItemFilter(priority="high"), depth=1)
     all_ids = _collect_ids(nodes)
     assert leaf.id not in all_ids  # depth wins: match below cut is not shown
     # The in-depth ancestors (root, mid) still render since they ARE within depth
@@ -386,10 +385,10 @@ async def test_tree_view_depth_in_range_match_visible(svc):
     """A match within --depth is shown normally, with in-depth ancestors intact."""
     root = (await svc.create("epic", "Root")).item
     mid = (await svc.create("feature", "Mid", parent=root.id)).item
-    await svc.update(mid.id, priority=Priority.HIGH)
+    await svc.update(mid.id, priority="high")
 
     # depth=1: mid is at level 1 from root → within depth; matches filter
-    nodes = await svc.tree_view(filter=ItemFilter(priority=Priority.HIGH), depth=1)
+    nodes = await svc.tree_view(filter=ItemFilter(priority="high"), depth=1)
     all_ids = _collect_ids(nodes)
     assert mid.id in all_ids
     assert root.id in all_ids  # root is path_only ancestor within depth

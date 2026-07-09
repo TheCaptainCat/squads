@@ -6,7 +6,6 @@ from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations import _meta_compat, _v0_1_to_v0_2, _v0_2_to_v0_3
 from squads._models import _markers as markers
-from squads._models._enums import Severity
 
 pytestmark = pytest.mark.anyio
 
@@ -62,7 +61,7 @@ async def test_migrate_gives_legacy_review_a_findings_skeleton(svc):
     final = path.read_text(encoding="utf-8")
     assert sections.has_section(final, "findings") and sections.has_section(final, "summary")
     # the new finding commands now work on the migrated review (the manual LLM step)
-    await svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
+    await svc.add_finding(rev.id, "Null deref", severity="high")
     assert (await svc.list_findings(rev.id))[0].title == "Null deref"
 
 
@@ -93,7 +92,7 @@ async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_head(svc):
     task = (await svc.create("task", "Auth", parent=feat.id)).item
     await svc.add_subtask(task.id, "Validate", story="US1", assignee="python-dev")
     rev = (await svc.create("review", "r")).item
-    await svc.add_finding(rev.id, "Null deref", severity=Severity.HIGH)
+    await svc.add_finding(rev.id, "Null deref", severity="high")
 
     for item_id, kind in ((feat.id, "story"), (task.id, "subtask"), (rev.id, "finding")):
         await _devolve_to_v0_2(svc, item_id, kind)

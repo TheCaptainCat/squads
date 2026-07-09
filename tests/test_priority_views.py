@@ -3,7 +3,6 @@
 import pytest
 
 from squads._itemfile import read_frontmatter
-from squads._models._enums import Priority
 
 pytestmark = pytest.mark.anyio
 
@@ -11,8 +10,8 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_create_with_priority_writes_frontmatter(svc):
-    res = await svc.create("task", "Token validation", priority=Priority.HIGH)
-    assert res.item.priority is Priority.HIGH
+    res = await svc.create("task", "Token validation", priority="high")
+    assert res.item.priority == "high"
     fm = read_frontmatter(res.path)
     assert fm["priority"] == "high"
 
@@ -25,26 +24,26 @@ async def test_create_without_priority_omits_it(svc):
 
 async def test_update_sets_and_clears_priority(svc):
     res = await svc.create("task", "t")
-    await svc.update(res.item.id, priority=Priority.URGENT)
+    await svc.update(res.item.id, priority="urgent")
     assert read_frontmatter(res.path)["priority"] == "urgent"
-    assert (await svc.get(res.item.id)).priority is Priority.URGENT
+    assert (await svc.get(res.item.id)).priority == "urgent"
     await svc.update(res.item.id, clear_priority=True)
     assert "priority" not in read_frontmatter(res.path)
     assert (await svc.get(res.item.id)).priority is None
 
 
 async def test_list_filters_by_priority(svc):
-    hi = await svc.create("task", "hi", priority=Priority.HIGH)
-    await svc.create("task", "lo", priority=Priority.LOW)
-    got = await svc.list_items(priority=Priority.HIGH)
+    hi = await svc.create("task", "hi", priority="high")
+    await svc.create("task", "lo", priority="low")
+    got = await svc.list_items(priority="high")
     assert [i.id for i in got] == [hi.item.id]
 
 
 async def test_priority_survives_repair(svc):
     """Frontmatter is the source of truth: a rebuilt index keeps the priority."""
-    res = await svc.create("bug", "b", priority=Priority.MEDIUM)
+    res = await svc.create("bug", "b", priority="medium")
     await svc.repair()
-    assert (await svc.get(res.item.id)).priority is Priority.MEDIUM
+    assert (await svc.get(res.item.id)).priority == "medium"
 
 
 # --------------------------------------------------------------------------- search

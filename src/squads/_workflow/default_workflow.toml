@@ -1,12 +1,12 @@
 # squads default workflow specification
 # Encodes the vocabulary byte-for-byte, including capability flags (is_meta,
-# subentity_kind, severity_field, parent_required, ref_rules) and StatusSpec.role.
+# subentity_kind, parent_required, ref_rules) and StatusSpec.role.
 # Loaded and validated by load_workflow_spec() in _loader.py.
 # DO NOT edit without updating the golden-lock test in tests/test_workflow_spec.py.
 #
-# [collections.*] + the `fields` lists below are an ADDITIVE parallel schema — the bundled
-# priority/severity collections/fields reproduce today's Priority/Severity enums exactly,
-# but the enums (and severity_field above) still drive runtime; nothing here is consumed yet.
+# [collections.*] + the `fields` lists below are the badge vocabulary — the bundled
+# priority/severity collections/fields ARE the runtime vocabulary now (no more Priority/Severity
+# enums); "does type/kind X carry field Y" is a fields_for(X) lookup.
 
 # ---------------------------------------------------------------------------
 # Named lifecycle state machines — item lifecycles and sub-entity lifecycles
@@ -214,8 +214,9 @@ terminal = true
 badge = "⚫"
 
 # ---------------------------------------------------------------------------
-# Collections — reusable badge libraries. Bundled priority/severity reproduce today's
-# Priority/Severity enum codes/labels/emoji/default exactly (see _models/_enums.py).
+# Collections — reusable badge libraries. priority/severity are the sole vocabulary for
+# those two axes (no more Priority/Severity enums) — codes/labels/emoji/default here ARE
+# what renders, resolved via fields_for()/WorkflowSpec.collection() at runtime.
 # ---------------------------------------------------------------------------
 
 [collections.priority]
@@ -262,7 +263,6 @@ parents = []
 aliases = ["e"]
 order = 10
 is_meta = false
-severity_field = false
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None (no sub-entities)
@@ -277,7 +277,6 @@ aliases = ["feat", "f"]
 order = 20
 is_meta = false
 subentity_kind = "story"
-severity_field = false
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # parent_required absent → None (unconstrained — any parent or none is valid)
@@ -291,7 +290,6 @@ aliases = ["t"]
 order = 30
 is_meta = false
 subentity_kind = "subtask"
-severity_field = false
 parent_required = "feature"
 ref_rules = [
   { kind = "fixes", hint = "link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`" },
@@ -307,7 +305,6 @@ parents = []
 aliases = ["b"]
 order = 40
 is_meta = false
-severity_field = true
 ref_rules = []
 fields = [
   { code = "priority", label = "Priority", collection = "priority" },
@@ -324,7 +321,6 @@ parents = []
 aliases = ["dec", "d"]
 order = 50
 is_meta = false
-severity_field = false
 ref_rules = [{ kind = "supersedes", hint = "" }]
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None
@@ -339,7 +335,6 @@ aliases = ["rev", "r"]
 order = 60
 is_meta = false
 subentity_kind = "finding"
-severity_field = false
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # parent_required absent → None
@@ -352,7 +347,6 @@ parents = []
 aliases = ["g"]
 order = 70
 is_meta = false
-severity_field = false
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None
@@ -366,7 +360,6 @@ parents = []
 aliases = []
 order = 80
 is_meta = true
-severity_field = false
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
@@ -379,7 +372,6 @@ parents = []
 aliases = []
 order = 90
 is_meta = true
-severity_field = false
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
@@ -392,7 +384,6 @@ parents = []
 aliases = []
 order = 100
 is_meta = true
-severity_field = false
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None

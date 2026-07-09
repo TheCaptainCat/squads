@@ -91,6 +91,24 @@ def _patch_md_subentity_status(md_path: Path, bad_status: str) -> None:
     md_path.write_text("".join(patched), encoding="utf-8")
 
 
+def _patch_index_item_by_seq(index_path: Path, seq: int, **fields: object) -> None:
+    """Mutate the item keyed by *seq* in .squads.json, setting each of ``fields``.
+
+    Unlike :func:`_patch_index_item_field` (which patches whichever item happens to be
+    first — fine for the type/status checks above, which don't care which item is bad),
+    the field/collection checks below target ONE specific item (the roster's seeded role
+    items sort first and don't declare a priority/severity field at all).
+    """
+    from typing import Any
+
+    raw = index_path.read_text(encoding="utf-8")
+    data: dict[str, Any] = json.loads(raw)
+    items: dict[str, Any] = data["items"]
+    key = str(seq)
+    items[key] = {**items[key], **fields}
+    index_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
 def _patch_md_frontmatter_field(md_path: Path, field: str, value: str) -> None:
     """Patch one YAML frontmatter field in a markdown file (simple key: value replacement)."""
     text = md_path.read_text(encoding="utf-8")
@@ -218,3 +236,61 @@ async def test_repair_rejects_unknown_subentity_status(svc) -> None:
 
     with pytest.raises(SquadsError, match="unknown status"):
         await svc.repair()
+
+
+# ---------------------------------------------------------------------------
+# TASK-341 (ADR-323): badge-code validation — the field/collection-axis counterpart
+# to the type/status checks above.
+# ---------------------------------------------------------------------------
+
+
+async def test_load_rejects_unknown_priority_code(svc, project) -> None:
+    """IndexStore.load() raises a clean SquadsError when an item's priority code isn't a
+    badge in the bound 'priority' collection (hand-edited/stale index entry)."""
+    task = (await svc.create("task", "Normal task", priority="high")).item
+
+    _patch_index_item_by_seq(_index_path(project), task.sequence_id, priority="stratospheric")
+
+    with pytest.raises(SquadsError, match="field 'priority' has unknown code 'stratospheric'"):
+        await svc.list_items()
+
+
+async def test_load_rejects_unknown_severity_code(svc, project) -> None:
+    """Same check for item-level bug severity."""
+    bug = (await svc.create("bug", "Normal bug")).item
+
+    _patch_index_item_by_seq(_index_path(project), bug.sequence_id, severity="apocalyptic")
+
+    with pytest.raises(SquadsError, match="field 'severity' has unknown code 'apocalyptic'"):
+        await svc.list_items()
+
+
+async def test_load_rejects_unknown_finding_severity_code(svc, project) -> None:
+    """Same check for a sub-entity (finding) badge field."""
+    rev = (await svc.create("review", "Review with a bad finding severity")).item
+    await svc.add_finding(rev.id, "Null deref")
+
+    (sub,) = (await svc.get(rev.id)).subentities
+    _patch_index_item_by_seq(
+        _index_path(project),
+        rev.sequence_id,
+        subentities=[{**sub.to_frontmatter_dict(), "severity": "off-the-scale"}],
+    )
+
+    with pytest.raises(SquadsError, match="field 'severity' has unknown code 'off-the-scale'"):
+        await svc.list_items()
+
+
+async def test_load_backfills_legacy_extra_severity_for_a_pre_adr323_bug(svc, project) -> None:
+    """A bug indexed before ADR-323's storage move still has severity in extra[X.SEVERITY]
+    (not top-level); IndexStore.load() backfills it onto Item.severity in memory and drops
+    the stale extra copy, so the item reads correctly without a dedicated migration."""
+    bug = (await svc.create("bug", "Legacy-shaped bug")).item
+
+    _patch_index_item_by_seq(
+        _index_path(project), bug.sequence_id, severity=None, extra={"severity": "critical"}
+    )
+
+    got = await svc.get(bug.id)
+    assert got.severity == "critical"
+    assert "severity" not in got.extra

@@ -28,7 +28,6 @@ from squads._interactions import (
 )
 from squads._itemfile import update_frontmatter, write_new
 from squads._models import _markers as markers
-from squads._models._enums import Priority
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import VALID_REF_KINDS, Item, split_ref
@@ -75,7 +74,7 @@ class ItemFilter:
     parent: str | None = None
     label: str | None = None
     assignee: str | None = None
-    priority: Priority | None = None
+    priority: str | None = None
 
     def matches(self, it: Item) -> bool:
         """Return True iff *it* satisfies every non-None dimension of this filter."""
@@ -85,7 +84,7 @@ class ItemFilter:
             and (not self.parent or it.parent == self.parent)
             and (not self.label or self.label in it.labels)
             and (not self.assignee or it.assignee == self.assignee)
-            and (not self.priority or it.priority is self.priority)
+            and (not self.priority or it.priority == self.priority)
         )
 
     def is_empty(self) -> bool:
@@ -264,7 +263,7 @@ class ServiceCore:
         labels: list[str] | None = None,
         refs: list[str] | None = None,
         assignee: str | None = None,
-        priority: Priority | None = None,
+        priority: str | None = None,
         extra: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
@@ -374,7 +373,7 @@ class ServiceCore:
         parent: str | None = None,
         label: str | None = None,
         assignee: str | None = None,
-        priority: Priority | None = None,
+        priority: str | None = None,
     ) -> list[Item]:
         f = ItemFilter(
             item_type=str(item_type) if item_type is not None else None,

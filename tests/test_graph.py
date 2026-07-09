@@ -672,11 +672,8 @@ def test_cli_graph_format_mermaid(graph_squad):
 def test_cli_graph_priority_badge_renders(tmp_path, monkeypatch, frozen_time):
     """sq graph renders correctly when root and/or child carries a non-None priority.
 
-    Regression for F1 (REV-000184): GraphNode.priority is a value-string (e.g. "high"),
-    not a Priority enum.  priority_badge() expects a Priority enum and called .value on it,
-    causing AttributeError: 'str' object has no attribute 'value'.  The fix wraps the
-    value-string in Priority(...) at both call sites in _attach_graph_node and the graph
-    command's root rendering path.
+    GraphNode.priority is a plain badge-code string (e.g. "high"); priority_badge() takes
+    that string directly (no enum wrapping — the Priority enum is gone).
     """
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()

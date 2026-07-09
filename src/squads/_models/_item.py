@@ -6,7 +6,7 @@ from typing import Any, cast
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
 from squads import _clock as clock
-from squads._models._enums import Priority  # pyright: ignore[reportUnusedImport]
+from squads._models._extras import ExtraKey as X
 from squads._models._subentity import SubEntity
 from squads._util import NonEmpty
 
@@ -142,8 +142,14 @@ class Item(BaseModel):
     #: The registered agent (role slug) who authored the item.
     author: str | None = None
     assignee: str | None = None
-    #: Optional importance, independent of status. Unset means no priority assigned.
-    priority: Priority | None = None
+    #: Optional importance, independent of status. Unset means no priority assigned. Stores
+    #: only the badge code (spec-declared ``priority`` collection); label/emoji resolve at
+    #: render time.
+    priority: str | None = None
+    #: Item-level severity (today: bug only) — the badge code, top-level like ``priority``. A
+    #: legacy file predating this field may still carry it in ``extra[X.SEVERITY]``;
+    #: :meth:`from_frontmatter` backfills it from there when this key is absent (never the reverse).
+    severity: str | None = None
     labels: list[str] = []
     #: Forward edges only. Backrefs are computed by inverting these across all items.
     refs: list[str] = []
@@ -206,9 +212,9 @@ class Item(BaseModel):
     def _coerce_str_fields(cls, v: object) -> str:
         """Coerce StrEnum members to plain str so pydantic stores a clean string.
 
-        ``use_enum_values=False`` prevents auto-coercion; callers may pass a ``Priority``
-        member (StrEnum, which IS a str subclass) which is assignment-compatible but must
-        be stored as plain ``str`` to keep YAML serialisation and identity checks clean.
+        ``use_enum_values=False`` prevents auto-coercion; a caller may still pass a StrEnum
+        member (assignment-compatible, since StrEnum IS a str subclass) which must be stored
+        as plain ``str`` to keep YAML serialisation and identity checks clean.
 
         Only ``str`` (and subclasses such as ``StrEnum``) are accepted.  Anything else
         — ``int``, ``None``, etc. — raises ``ValueError`` so Pydantic surfaces a
@@ -290,7 +296,8 @@ class Item(BaseModel):
                 "parent": data.get("parent"),
                 "author": data.get("author"),
                 "assignee": data.get("assignee"),
-                "priority": Priority(data["priority"]) if data.get("priority") else None,
+                "priority": data.get("priority") or None,
+                "severity": _read_severity(data),
                 "labels": list(data.get("labels", []) or []),
                 "refs": _read_refs(data),
                 "subentities": [
@@ -317,11 +324,33 @@ def _read_refs(data: dict[str, Any]) -> list[str]:
     return refs
 
 
+def _read_severity(data: dict[str, Any]) -> str | None:
+    """``severity`` top-level, falling back to the legacy ``extra[X.SEVERITY]`` location (a
+    bug file predating this field). Tolerant read only — relocating the value on disk is a
+    separate, later one-way migration, not this."""
+    top = data.get("severity")
+    if top:
+        return top
+    legacy = dict(data.get("extra", {}) or {}).get(X.SEVERITY)
+    return legacy or None
+
+
 def _read_extra(data: dict[str, Any]) -> dict[str, Any]:
-    """Item ``extra``, minus the legacy ``ref_kinds`` (now carried inline on the refs)."""
+    """Item ``extra``, minus the legacy ``ref_kinds`` (now inline on the refs) and the legacy
+    ``severity`` key (now read top-level via :func:`_read_severity`)."""
     extra: dict[str, Any] = dict(data.get("extra", {}) or {})
     extra.pop("ref_kinds", None)
+    extra.pop(X.SEVERITY, None)
     return extra
+
+
+def _add_badge_fields(data: dict[str, Any], item: Item) -> None:
+    """The two top-level badge-code fields (priority/severity) — split out of
+    :func:`_add_optional_frontmatter_fields` to keep it below the C901 ceiling."""
+    if item.priority:
+        data["priority"] = item.priority
+    if item.severity:
+        data["severity"] = item.severity
 
 
 def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
@@ -335,8 +364,7 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
         data["author"] = item.author
     if item.assignee:
         data["assignee"] = item.assignee
-    if item.priority:
-        data["priority"] = item.priority.value
+    _add_badge_fields(data, item)
     if item.refs:
         data["refs"] = list(item.refs)
     if item.labels:

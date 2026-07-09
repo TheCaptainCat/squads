@@ -17,7 +17,6 @@ import re
 from dataclasses import dataclass
 
 from squads._models import _markers as markers
-from squads._models._enums import SEVERITY_EMOJI, Severity
 from squads._models._subentity import SubEntity
 from squads._rendering._engine import render
 from squads._sections import get_section, replace_section
@@ -222,9 +221,27 @@ def _status_badge(status_value: str, spec: WorkflowSpec | None = None) -> str:
     return f"{emoji} {label}".strip()
 
 
-def _severity_badge(severity_value: str) -> str:
-    """``"high"`` → ``"🟠 High"`` for the header (same palette as the summary table)."""
-    return f"{SEVERITY_EMOJI[Severity(severity_value)]} {severity_value.title()}"
+def _severity_emoji(code: str, spec: WorkflowSpec | None = None) -> str:
+    """The ``severity`` collection's emoji for *code*, or :data:`_DEFAULT_BADGE` (graceful —
+    a missing collection/badge never crashes, e.g. a project that dropped/renamed it)."""
+    active_spec = spec if spec is not None else bundled_spec()
+    coll = active_spec.collections.get("severity")
+    badge = next((b for b in coll.badges if b.code == code), None) if coll else None
+    return (badge.emoji if badge and badge.emoji else None) or _DEFAULT_BADGE
+
+
+def _severity_badge(severity_value: str, spec: WorkflowSpec | None = None) -> str:
+    """``"high"`` → ``"🟠 High"`` for the header (same palette as the summary table).
+
+    Label resolves from the spec's ``severity`` collection; falls back to the raw code
+    title-cased when the collection/badge is missing (graceful — never crash). ``spec``
+    defaults to the bundled spec, mirroring :func:`_status_badge`.
+    """
+    active_spec = spec if spec is not None else bundled_spec()
+    coll = active_spec.collections.get("severity")
+    badge = next((b for b in coll.badges if b.code == severity_value), None) if coll else None
+    label = badge.label if badge else severity_value.title()
+    return f"{_severity_emoji(severity_value, active_spec)} {label}"
 
 
 def set_head(
@@ -253,7 +270,7 @@ def set_head(
     inner = render(
         "subentities/head.md.j2",
         status=_status_badge(status, spec) if status else None,
-        severity=_severity_badge(severity) if severity else None,
+        severity=_severity_badge(severity, spec) if severity else None,
         story=story,
         assignee=assignee_name,
     )
@@ -276,19 +293,22 @@ _SUMMARY_COLS: dict[str, tuple[str, ...]] = {
 }
 
 
-def _summary_cells(kind: str, s: SubEntity) -> list[str]:
+def _summary_cells(kind: str, s: SubEntity, spec: WorkflowSpec | None = None) -> list[str]:
     if kind == "finding":
-        sev = f"{SEVERITY_EMOJI[s.severity]} {s.severity.value}" if s.severity else ""
+        sev = f"{_severity_emoji(s.severity, spec)} {s.severity}" if s.severity else ""
         return [s.local_id, sev, s.status, s.assignee or "", s.title]
     if kind == "subtask":
         return [s.local_id, s.status, s.assignee or "", s.title, s.story or ""]
     return [s.local_id, s.status, s.assignee or "", s.title]
 
 
-def render_summary(kind: str, subentities: list[SubEntity]) -> str:
+def render_summary(
+    kind: str, subentities: list[SubEntity], spec: WorkflowSpec | None = None
+) -> str:
     """The sq-managed roll-up table for a parent's sub-entities (empty until there are any).
 
-    The table layout lives in ``templates/subentities/summary.md.j2``.
+    The table layout lives in ``templates/subentities/summary.md.j2``. ``spec`` defaults to
+    the bundled spec (frozen migration runners call this with no spec on purpose).
     """
     if not subentities:
         return ""
@@ -297,7 +317,7 @@ def render_summary(kind: str, subentities: list[SubEntity]) -> str:
         "subentities/summary.md.j2",
         cols=list(cols),
         seps=["---"] * len(cols),
-        rows=[_summary_cells(kind, s) for s in subentities],
+        rows=[_summary_cells(kind, s, spec) for s in subentities],
     )
 
 
@@ -316,7 +336,13 @@ def ensure_container(text: str, heading: str, container: str) -> str:
     return text + block
 
 
-def ensure_summary(text: str, kind: str, container: str, subentities: list[SubEntity]) -> str:
+def ensure_summary(
+    text: str,
+    kind: str,
+    container: str,
+    subentities: list[SubEntity],
+    spec: WorkflowSpec | None = None,
+) -> str:
     """Insert an empty ``sq:summary`` region before ``container`` if missing, then (re)render it."""
     if get_section(text, markers.SUMMARY) is None:
         region = (
@@ -325,4 +351,4 @@ def ensure_summary(text: str, kind: str, container: str, subentities: list[SubEn
         text = text.replace(
             markers.open_marker(container), region + markers.open_marker(container), 1
         )
-    return replace_section(text, markers.SUMMARY, render_summary(kind, subentities))
+    return replace_section(text, markers.SUMMARY, render_summary(kind, subentities, spec))

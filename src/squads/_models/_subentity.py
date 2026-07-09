@@ -10,8 +10,6 @@ from typing import Any
 
 from pydantic import BaseModel, field_validator
 
-from squads._models._enums import Severity
-
 
 class SubEntity(BaseModel):
     #: Local id within its parent, kind-prefixed: ``US<n>`` story / ``ST<n>`` subtask /
@@ -22,8 +20,8 @@ class SubEntity(BaseModel):
     status: str
     #: Registered agent slug responsible for it (optional).
     assignee: str | None = None
-    #: Findings only — the finding's severity.
-    severity: Severity | None = None
+    #: Findings only — the finding's severity badge code (spec-declared ``severity`` field).
+    severity: str | None = None
     #: Subtasks only — the mapped user story's local id (e.g. ``US<n>``).
     story: str | None = None
 
@@ -52,7 +50,7 @@ class SubEntity(BaseModel):
         if self.assignee:
             data["assignee"] = self.assignee
         if self.severity:
-            data["severity"] = self.severity.value
+            data["severity"] = self.severity
         if self.story:
             data["story"] = self.story
         return data
@@ -64,6 +62,6 @@ class SubEntity(BaseModel):
             title=data.get("title", ""),
             status=data["status"],
             assignee=data.get("assignee"),
-            severity=Severity(data["severity"]) if data.get("severity") else None,
+            severity=data.get("severity") or None,
             story=data.get("story"),
         )

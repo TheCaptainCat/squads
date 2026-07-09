@@ -1,6 +1,5 @@
 from squads import _discussion as discussion
 from squads import _sections as sections
-from squads._models._enums import Severity
 from squads._models._subentity import SubEntity
 
 
@@ -76,7 +75,7 @@ def test_render_summary():
             local_id="F1",
             title="Null deref",
             status="Open",
-            severity=Severity.HIGH,
+            severity="high",
             assignee="qa",
         )
     ]
@@ -84,6 +83,31 @@ def test_render_summary():
     assert "| Finding | Severity | Status | Assignee | Title |" in out
     assert "🟠 high" in out and "Open" in out and "qa" in out
     assert discussion.render_summary("finding", []) == ""
+
+
+def test_severity_badge_and_summary_degrade_gracefully_without_collection():
+    """A spec that dropped/renamed the severity collection never crashes — the raw code plus
+    the neutral fallback badge, mirroring _status_badge's graceful degradation."""
+    from squads._workflow import bundled_spec
+
+    spec = bundled_spec().model_copy(update={"collections": {}})
+    assert (
+        discussion._severity_badge("high", spec)  # pyright: ignore[reportPrivateUsage]
+        == "⚪ High"
+    )
+
+    subs = [SubEntity(local_id="F1", title="Null deref", status="Open", severity="high")]
+    out = discussion.render_summary("finding", subs, spec)
+    assert "⚪ high" in out  # emoji degrades; the raw code still renders, never crashes
+
+
+def test_severity_badge_falls_back_for_an_undeclared_code():
+    """A stored code that isn't (or is no longer) a badge in the collection also degrades
+    gracefully rather than raising a KeyError (unlike the old SEVERITY_EMOJI[...] dict)."""
+    assert (
+        discussion._severity_badge("nonexistent")  # pyright: ignore[reportPrivateUsage]
+        == "⚪ Nonexistent"
+    )
 
 
 def test_set_head_renders_badges_into_empty_region():

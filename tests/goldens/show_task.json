@@ -9,6 +9,7 @@
   "author": "manager",
   "assignee": null,
   "priority": null,
+  "severity": null,
   "labels": [],
   "refs": [
     "BUG-4:depends-on"
