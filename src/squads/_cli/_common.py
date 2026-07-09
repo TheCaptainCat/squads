@@ -353,30 +353,25 @@ async def print_item(
 
 
 def _print_subentity_summary(it: Item) -> None:
-    """Print the sub-entity summary table from the item's frontmatter sub-entities."""
+    """Print the sub-entity summary table from the item's frontmatter sub-entities.
+
+    Columns and cells come from the shared field-driven derivation in ``_discussion.py``
+    (:func:`discussion.summary_columns`/:func:`discussion.summary_row`) — the same one the
+    body's ``:summary`` region renders from, so the two never drift.
+    """
     from rich.table import Table as RichTable
 
-    kind = get_active_spec().item_subentity_kind(it.type)
+    spec = get_active_spec()
+    kind = spec.item_subentity_kind(it.type)
     if kind is None:
         return
 
-    cols = discussion._SUMMARY_COLS[kind]  # pyright: ignore[reportPrivateUsage]
     table = RichTable(box=None, pad_edge=False)
-    for col in cols:
+    for col in discussion.summary_columns(kind, spec):
         table.add_column(col)
-
-    spec = get_active_spec()
-    sev_coll = badges.resolve_collection(kind, "severity", spec)
     for sub in it.subentities:
-        if kind == "finding":
-            sev_str = badges.badge_render(sev_coll, sub.severity, spec) if sub.severity else ""
-            table.add_row(sub.local_id, sev_str, sub.status, e(sub.assignee or ""), e(sub.title))
-        elif kind == "subtask":
-            table.add_row(
-                sub.local_id, sub.status, e(sub.assignee or ""), e(sub.title), sub.story or ""
-            )
-        else:
-            table.add_row(sub.local_id, sub.status, e(sub.assignee or ""), e(sub.title))
+        cells = discussion.summary_row(kind, sub, spec)
+        table.add_row(*(e(c) for c in cells))
 
     console.print()
     console.print(table)
@@ -691,7 +686,7 @@ class AddressDispatchGroup(typer.core.TyperGroup):
 
 def resolve_local_id(token: str, kind: str) -> str:
     """A CLI sub-entity token → canonical local id: ``2`` → ``STn``/``USn``/``Fn``."""
-    return discussion.local_id_for(kind, token)
+    return discussion.local_id_for(kind, token, get_active_spec())
 
 
 async def resolve_slug_or_raise(slug: str, svc: Service) -> str:

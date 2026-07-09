@@ -1,7 +1,7 @@
 """Tests for the `sq check` advisory that flags an unwritten sub-entity body.
 
 A freshly-scaffolded story/subtask/finding body starts as its kind's placeholder stub
-(`_discussion.py::_PLACEHOLDER`). `sq check` should flag any sub-entity whose body is still
+(`_discussion.py::body_placeholder`). `sq check` should flag any sub-entity whose body is still
 exactly that placeholder, and stop flagging it once real content is written — even content
 that only starts to diverge from the placeholder text.
 """
