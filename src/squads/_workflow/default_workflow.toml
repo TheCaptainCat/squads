@@ -389,10 +389,32 @@ ref_rules = []
 # parent_required absent → None
 
 # ---------------------------------------------------------------------------
-# Sub-entity kinds — per-kind field declarations (mirrors the item `fields` mechanism).
+# Sub-entity kinds — machine binding (`lifecycle`) + CLI/storage vocabulary
+# (`plural`/`local_prefix`/`placeholder`/`maps_parent_story`) + field declarations
+# (mirrors the item `fields` mechanism). `lifecycle` is an explicit reference, mirroring
+# `ItemSpec.lifecycle` — it happens to equal the kind name for all three bundled kinds
+# today (retiring the *implicit* convention the engine used to rely on), but a custom
+# kind is free to share a machine with another kind by naming the same lifecycle.
 # ---------------------------------------------------------------------------
 
+[subentity_kinds.story]
+lifecycle = "story"
+plural = "stories"
+local_prefix = "US"
+placeholder = "_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._"
+
+[subentity_kinds.subtask]
+lifecycle = "subtask"
+plural = "subtasks"
+local_prefix = "ST"
+placeholder = "_Describe this subtask here — free-form paragraphs or bullet lists._"
+maps_parent_story = true
+
 [subentity_kinds.finding]
+lifecycle = "finding"
+plural = "findings"
+local_prefix = "F"
+placeholder = "_Describe the finding, its impact, and a recommendation — free-form._"
 fields = [
   { code = "severity", label = "Severity", collection = "severity", required = true, default = "medium" },
 ]

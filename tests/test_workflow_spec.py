@@ -32,6 +32,7 @@ from squads._workflow import (
     WorkflowSpec,
     load_workflow_spec,
 )
+from squads._workflow._models import SubentityKindSpec
 
 pytestmark = pytest.mark.anyio
 
@@ -651,3 +652,106 @@ def test_non_reserved_status_omission_is_allowed(spec: WorkflowSpec) -> None:
         }
     )
     assert "Ready" not in result.statuses
+
+
+# ---------------------------------------------------------------------------
+# TASK-000349 / ADR-348 §1/§2/§6: SubentityKindSpec machine + vocab keys.
+# ---------------------------------------------------------------------------
+
+
+def test_bundled_subentity_kinds_declare_machine_and_vocab(spec: WorkflowSpec) -> None:
+    """story/subtask/finding are now fully declared: lifecycle/plural/local_prefix/
+    maps_parent_story reproduce today's hardcoded _discussion.py vocabulary exactly."""
+    story = spec.subentity_kinds["story"]
+    subtask = spec.subentity_kinds["subtask"]
+    finding = spec.subentity_kinds["finding"]
+
+    assert (story.lifecycle, story.plural, story.local_prefix, story.maps_parent_story) == (
+        "story",
+        "stories",
+        "US",
+        False,
+    )
+    assert (
+        subtask.lifecycle,
+        subtask.plural,
+        subtask.local_prefix,
+        subtask.maps_parent_story,
+    ) == ("subtask", "subtasks", "ST", True)
+    assert (
+        finding.lifecycle,
+        finding.plural,
+        finding.local_prefix,
+        finding.maps_parent_story,
+    ) == ("finding", "findings", "F", False)
+
+    assert story.placeholder and "user story" in story.placeholder
+    assert subtask.placeholder and "subtask" in subtask.placeholder
+    assert finding.placeholder and "finding" in finding.placeholder
+
+
+def test_subentity_accessors_resolve_via_kind_spec_lifecycle(spec: WorkflowSpec) -> None:
+    """subentity_workflow/subentity_initial/subentity_can_transition now resolve through
+    SubentityKindSpec.lifecycle instead of the retired kind-name==lifecycle-name
+    convention, but the bundled result is byte-identical."""
+    for kind in ("story", "subtask", "finding"):
+        assert spec.subentity_initial(kind) == spec.lifecycles[kind].initial
+        assert spec.subentity_workflow(kind).initial == spec.lifecycles[kind].initial
+    assert spec.subentity_can_transition("subtask", "Todo", "InProgress") is True
+    assert spec.subentity_can_transition("subtask", "Todo", "Done") is False
+
+
+def _rebuild_subentity_kinds(
+    spec: WorkflowSpec, subentity_kinds: dict[str, SubentityKindSpec]
+) -> WorkflowSpec:
+    return WorkflowSpec.model_validate(
+        {
+            "items": spec.items,
+            "statuses": spec.statuses,
+            "lifecycles": spec.lifecycles,
+            "prefix_to_type": spec.prefix_to_type,
+            "alias_to_type": spec.alias_to_type,
+            "collections": spec.collections,
+            "subentity_kinds": subentity_kinds,
+        }
+    )
+
+
+def test_item_referencing_undeclared_subentity_kind_fails_closed(spec: WorkflowSpec) -> None:
+    """An ItemSpec.subentity_kind naming a kind absent from subentity_kinds must fail
+    closed at load, not raw-KeyError later out of subentity_workflow/initial/can_transition."""
+    bad_feature = spec.items["feature"].model_copy(update={"subentity_kind": "ghost"})
+    with pytest.raises(SquadsError, match="undeclared subentity kind 'ghost'"):
+        WorkflowSpec.model_validate(
+            {
+                "items": {**spec.items, "feature": bad_feature},
+                "statuses": spec.statuses,
+                "lifecycles": spec.lifecycles,
+                "prefix_to_type": spec.prefix_to_type,
+                "alias_to_type": spec.alias_to_type,
+                "collections": spec.collections,
+                "subentity_kinds": spec.subentity_kinds,
+            }
+        )
+
+
+def test_subentity_kind_undeclared_lifecycle_fails_closed(spec: WorkflowSpec) -> None:
+    bad_story = spec.subentity_kinds["story"].model_copy(update={"lifecycle": "no-such-lifecycle"})
+    with pytest.raises(SquadsError, match="lifecycle 'no-such-lifecycle' not declared"):
+        _rebuild_subentity_kinds(spec, {**spec.subentity_kinds, "story": bad_story})
+
+
+def test_subentity_kind_duplicate_plural_fails_closed(spec: WorkflowSpec) -> None:
+    bad_story = spec.subentity_kinds["story"].model_copy(
+        update={"plural": spec.subentity_kinds["subtask"].plural}
+    )
+    with pytest.raises(SquadsError, match="duplicate subentity plural 'subtasks'"):
+        _rebuild_subentity_kinds(spec, {**spec.subentity_kinds, "story": bad_story})
+
+
+def test_subentity_kind_duplicate_local_prefix_fails_closed(spec: WorkflowSpec) -> None:
+    bad_story = spec.subentity_kinds["story"].model_copy(
+        update={"local_prefix": spec.subentity_kinds["subtask"].local_prefix}
+    )
+    with pytest.raises(SquadsError, match="duplicate subentity local_prefix 'ST'"):
+        _rebuild_subentity_kinds(spec, {**spec.subentity_kinds, "story": bad_story})

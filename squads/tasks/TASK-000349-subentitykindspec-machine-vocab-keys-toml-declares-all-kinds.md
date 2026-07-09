@@ -3,7 +3,7 @@ id: TASK-349
 sequence_id: 349
 type: task
 title: 'SubentityKindSpec: machine + vocab keys; toml declares all kinds'
-status: InProgress
+status: Done
 parent: FEAT-212
 author: tech-lead
 subentities:
@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T21:31:26Z'
-updated_at: '2026-07-09T22:09:24Z'
+updated_at: '2026-07-09T22:14:11Z'
 ---
 <!-- sq:body -->
 Realizes ADR-348 §1/§2/§6 schema foundation. Everything else in FEAT-212 derives from this — land first.
@@ -105,4 +105,6 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Fixture sweep before adding the check: grepped every test file + corpus fixture for subentity_kind usage (test_custom_type_*, test_workflow_*, test_reserved_types_invariants, test_spine_characterization, tests/fixtures/corpus/*/.squads.toml) — nothing sets ItemSpec.subentity_kind to a value absent from subentity_kinds; the only real declaration site is default_workflow.toml, which TASK-349 already fully declares (story/subtask/finding). No ripple, so added the check directly rather than deferring.
   - New test: test_item_referencing_undeclared_subentity_kind_fails_closed in tests/test_workflow_spec.py.
   - Gates re-run: pyright clean, ruff check + format clean. Green: test_workflow_spec.py, test_workflow_badges.py, test_workflow_override.py, test_squad_ref_hygiene.py, plus the same wider sweep as before (capability_flags, reserved_types_invariants, renderer_261, prefix_resolver, custom_type_skill/create/cli/paths, authoring_prose, spine_characterization) and test_migration_corpus.py/test_migrations.py. Did not run the full suite.
+- [2026-07-09T22:14:10Z] Catherine Manager:
+  - Review finding F1 (false validation-coverage comment) closed by adding the fail-closed check: an ItemSpec.subentity_kind referencing an undeclared kind now raises SquadsError at load (ADR-348 §6), not a runtime KeyError. Full parallel suite green (verified twice — post-impl and post-F1-fix). Reviewer-approved. Landing.
 <!-- sq:discussion:end -->
