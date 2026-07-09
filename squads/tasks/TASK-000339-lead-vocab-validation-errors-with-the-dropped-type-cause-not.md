@@ -3,14 +3,14 @@ id: TASK-339
 sequence_id: 339
 type: task
 title: Lead vocab-validation errors with the dropped-type cause, not sq repair
-status: InReview
+status: Done
 author: tech-lead
 assignee: python-dev
 refs:
 - ADR-322
 - FEAT-281
 created_at: '2026-07-08T16:13:06Z'
-updated_at: '2026-07-09T14:59:50Z'
+updated_at: '2026-07-09T19:24:18Z'
 ---
 <!-- sq:body -->
 ## What this fixes
@@ -88,4 +88,11 @@ _Add with `sq task 339 add-subtask "<title>"`; track with `sq task 339 subtask <
   - Dispatch AFTER TASK-338 lands: _store.py is churning under 338 (derive-prefix-from-id), so touching these strings now would collide. Left standalone (no feature parent) since it doesn't implement FEAT-281; refs ADR-322 (the contract) and FEAT-281 (whose future re-type/migrate command the eventual final wording should cite) as related context.
 - [2026-07-09T14:59:50Z] Elias Python:
   - Reworded the three _validate_item_vocab messages (unknown type/status, sub-entity status) to lead with the spec-drop/rename cause first, demoting sq repair to a parenthetical secondary clause; citation-free per Robert's interim ruling. Added a load() test with a spec missing a still-populated type, asserting the real-cause text precedes 'sq repair'. Updated the 3 existing IndexStore.load() message-match tests (repair()-path tests untouched, different message owner in _maintenance.py). pyright/ruff/format clean; hygiene + load_boundary_vocab targeted suites green.
+- [2026-07-09T19:23:33Z] Paul Reviewer:
+  - APPROVE — reviewer verification (independent).
+  - All three _validate_item_vocab messages in src/squads/_index/_store.py (unknown type L109-113, status L114-119, sub-entity status L123-128) now lead with the real cause ('…which the active spec no longer declares; migrate or re-type this item before it can load again') and demote sq repair to a secondary parenthetical ('…or run sq repair if the index itself is merely stale').
+  - Fail-closed guard behavior UNCHANGED: each branch still raises SquadsError at IndexStore.load(); only the message strings changed. Confirmed against the load-boundary suite.
+  - Citation-free: no unbuilt command cited in source ('migrate or re-type' is generic prose, not a command surface); no squad IDs in the source strings (test_squad_ref_hygiene green). The task's FEAT-281 ref is sq linkage, not a source citation — fine.
+  - test_load_error_leads_with_dropped_type_cause_not_sq_repair asserts message.index('no longer declares') < message.index('sq repair') on a genuine dropped-type spec (not corruption) — the right regression lock. Gates green (pyright/ruff/format); targeted + hygiene suites pass (215).
+  - One LOW/non-blocking nit (out of scope for this task, pre-existing): tests/test_load_boundary_vocab.py:239 docstring still reads 'raw ValueError from _discussion._status_badge downstream' — that helper now lives at squads._badges.status_badge. Stale prose only, no code impact; sweep opportunistically.
 <!-- sq:discussion:end -->

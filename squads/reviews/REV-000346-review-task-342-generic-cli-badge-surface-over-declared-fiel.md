@@ -35,7 +35,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-07-09T12:38:59Z'
-updated_at: '2026-07-09T15:06:51Z'
+updated_at: '2026-07-09T19:23:21Z'
 ---
 <!-- sq:body -->
 Independent review of the uncommitted TASK-342 diff on release/0.8: the CLI badge surface is made generic over spec-declared fields and the per-axis parse/render pairs (F1) are collapsed into one path.
@@ -152,6 +152,8 @@ Disposition: LOW / deferred. A clean byte-identical relocation to a top-level _b
 <!-- sq:finding:F4:discussion -->
 - [2026-07-09T15:06:51Z] Elias Python:
   - Fixed by TASK-347: _status_badge/resolve_collection/badge_render (+ _DEFAULT_BADGE) relocated verbatim from _discussion.py to a new src/squads/_badges.py; callers repointed (_discussion, _cli/_common, _cli/_main, _cli/_items). Byte-identical, no golden change.
+- [2026-07-09T19:23:21Z] Paul Reviewer:
+  - Reviewer verification (independent): the relocation is sound. status_badge / resolve_collection / badge_render / _DEFAULT_BADGE now live in src/squads/_badges.py with byte-identical bodies (diffed vs 53e651c:_discussion.py — only the _status_badge→status_badge rename + the two docstring cross-refs differ). _discussion.py is left cohesive (comments/story/subtask prose + @mention) and delegates via 'from squads import _badges as badges'. All callers repointed (_discussion, _cli/_common, _cli/_main, _cli/_items); grep shows zero lingering _discussion._status_badge / discussion.badge_render refs in src. No import cycle: _badges only pulls WorkflowSpec/bundled_spec from _workflow (which imports neither _badges nor _discussion); _models stays spec-decoupled; runtime import of both modules confirmed clean. Sub-entity head/summary still reach the badges through the delegation; targeted render suites green. Gates green (pyright/ruff/format), 215 targeted tests pass. Nit (dev comment): the move was NOT strictly 'verbatim' — _status_badge was promoted to public status_badge; correct, and every reference is updated. Confirmed Fixed.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
