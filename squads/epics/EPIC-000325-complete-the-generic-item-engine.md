@@ -3,7 +3,7 @@ id: EPIC-325
 sequence_id: 325
 type: epic
 title: Complete the generic item engine
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - EPIC-206
@@ -14,7 +14,7 @@ refs:
 description: 'Finish the spec-is-sole-vocabulary arc: generic types/statuses/sub-entity
   kinds/badges, reserved surface = meta-types + agent-lifecycle only'
 created_at: '2026-07-07T14:37:01Z'
-updated_at: '2026-07-08T08:30:13Z'
+updated_at: '2026-07-09T14:12:08Z'
 ---
 <!-- sq:body -->
 ## Vision
