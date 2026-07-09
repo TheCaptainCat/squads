@@ -20,7 +20,7 @@ subentities:
     type across my whole squad
   status: Cancelled
 created_at: '2026-06-25T13:21:20Z'
-updated_at: '2026-07-07T14:40:07Z'
+updated_at: '2026-07-09T21:20:56Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -148,4 +148,8 @@ As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on
   - Ownership note (from the FEAT-210/REV-265/ADR-266 work): FEAT-212 owns retiring _SUBENTITY_PLURAL (_cli/_items.py) — the last static per-type vocabulary artifact. ADR-266 established the Item.prefix + reserved-vocab resolver pattern and retired the prefix/folder/alias/meta statics in the FEAT-210 corrective; _SUBENTITY_PLURAL was deliberately deferred here because it needs FEAT-212's subentity_kinds schema addition (sub-entity plural vocab). When scoped, add a subentity_plural accessor to the resolver and delete _SUBENTITY_PLURAL. op-pierre confirmed this boundary.
 - [2026-07-07T14:40:07Z] Nina Product:
   - Must be re-baselined against the post-322/323 world before dispatch (see EPIC-325): specifically it should consume ADR-323's shared Field schema for sub-entity fields (FEAT-327) rather than fork its own field model. Scope otherwise unchanged for now.
+- [2026-07-09T21:13:56Z] Catherine Manager:
+  - Design pass kicked off before dispatch (op-pierre greenlit): SubentityKindSpec currently carries only `fields` — the machine + summary-columns half needed for a genuinely custom kind isn't in the model yet. Robert to draft an ADR on what a custom sub-entity kind must declare (schema shape + dynamic add-<kind> derivation + _SUBENTITY_PLURAL retirement), re-baselined on ADR-323's Field schema. Implementation stays gated on that ADR.
+- [2026-07-09T21:20:56Z] Robert Architect:
+  - Design ADR drafted: ADR-348 (Proposed) — what a custom sub-entity kind must declare beyond ADR-323 fields. Headlines: (1) SubentityKindSpec gains explicit `lifecycle` (mirror ItemSpec, retires the kind-name==lifecycle magic + the story/subtask machine dup) + per-kind `completion` status (retires global StatusSpec.completion — resolves REV-337 F3) + `plural`/`local_prefix`/optional `placeholder`/`maps_parent_story`. (2) Everything else is DERIVED, not stored: singular=dict key, initial=machine.initial, container marker=plural, parent-types=inversion of ItemSpec.subentity_kind, and summary/CLI columns + --<field> flags = ADR-323 fields (severity column is just the generic field column). (3) _SUBENTITY_PLURAL + _SUB_COLS/_SUMMARY_COLS + _LOCAL_ID_PREFIX + SUBENTITY_CONTAINER all retire; CLI verbs derive generically in build_item_app via kind-parameterized generic service methods. AC5 lint: extend _check_completion_status (per-kind, reachable-non-initial) + lifecycle-ref check. Left Proposed for op-pierre to read before accepting. One flag for you: it retires TASK-330's StatusSpec.completion (blessed/tested work) — deliberate per F3, called out in the ADR risks.
 <!-- sq:discussion:end -->
