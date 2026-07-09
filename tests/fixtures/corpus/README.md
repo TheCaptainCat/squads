@@ -14,6 +14,7 @@ corpus/
   v0_3/    — schema 0.3: sequence_id in frontmatter, subentities list in frontmatter, :head regions
   v0_5/    — schema 0.5: skills are first-class SKILL-prefixed items
   v0_7/    — schema 0.7: unpadded display ids (frontmatter id/refs/parent; filenames stay padded)
+  v0_8/    — schema 0.8: bug severity as a top-level key (relocated off extra.severity)
 ```
 
 Each directory contains:
