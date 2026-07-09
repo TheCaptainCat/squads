@@ -91,6 +91,8 @@ def _spec_with_renamed_task_parent() -> WorkflowSpec:
             "lifecycles": base.lifecycles,
             "prefix_to_type": new_prefix_to_type,
             "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
         }
     )
 
@@ -169,6 +171,8 @@ class TestGracefulOmission:
                 "lifecycles": base.lifecycles,
                 "prefix_to_type": new_prefix_to_type,
                 "alias_to_type": base.alias_to_type,
+                "collections": base.collections,
+                "subentity_kinds": base.subentity_kinds,
             }
         )
         rendered = render("workflow.md.j2", spec=spec)

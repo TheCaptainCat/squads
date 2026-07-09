@@ -418,6 +418,8 @@ def test_omitting_a_work_type_is_now_allowed(spec: WorkflowSpec) -> None:
             "lifecycles": spec.lifecycles,
             "prefix_to_type": {p: t for p, t in spec.prefix_to_type.items() if t != "guide"},
             "alias_to_type": spec.alias_to_type,
+            "collections": spec.collections,
+            "subentity_kinds": spec.subentity_kinds,
         }
     )
     assert "guide" not in result.items

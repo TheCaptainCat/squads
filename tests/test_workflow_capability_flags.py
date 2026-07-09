@@ -481,6 +481,8 @@ def test_fractional_custom_order_sorts_between_two_bundled_types() -> None:
             "lifecycles": base.lifecycles,
             "prefix_to_type": {**base.prefix_to_type, "INC": "incident"},
             "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
         }
     )
     ordered = sorted(spec.work_types(), key=lambda t: (spec.items[t].order, t))

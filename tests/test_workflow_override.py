@@ -307,6 +307,8 @@ def test_workflows_dict_reflects_bundled_spec() -> None:
             "lifecycles": {**bundled.lifecycles, "custom_lc": custom_lc},
             "prefix_to_type": {**bundled.prefix_to_type, "INC": "incident"},
             "alias_to_type": dict(bundled.alias_to_type),
+            "collections": dict(bundled.collections),
+            "subentity_kinds": dict(bundled.subentity_kinds),
         }
     )
 
@@ -503,6 +505,8 @@ def test_isolation_workflows_dict_stable_identity() -> None:
             "lifecycles": {**bundled.lifecycles, "custom_probe": custom_lc},
             "prefix_to_type": {**bundled.prefix_to_type, "PRB": "probe"},
             "alias_to_type": dict(bundled.alias_to_type),
+            "collections": dict(bundled.collections),
+            "subentity_kinds": dict(bundled.subentity_kinds),
         }
     )
     # Constructing / passing a custom spec must not mutate WORKFLOWS.

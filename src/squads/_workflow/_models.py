@@ -10,9 +10,15 @@ The capability flags declared here (``is_meta``, ``subentity_kind``, ``severity_
 ``parent_required``, ``ref_rules``, ``StatusSpec.role``) are additive; ``StatusSpec.completion``
 is consumed by the sub-entity/finding done-toggle (``_services/_subentities.py``). They are
 encoded in ``default_workflow.toml``.
+
+``Badge``/``Collection``/``Field`` are a parallel, additive badge-vocabulary schema
+(``ItemSpec.fields`` / ``SubentityKindSpec.fields`` bind a type or sub-entity kind to a
+reusable ``Collection`` of ``Badge``s). Not yet consumed by the engine — ``Priority``/
+``Severity`` still drive runtime; this is the vocabulary alongside it.
 """
 
 import math
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -116,6 +122,67 @@ class RefRule(BaseModel):
     """Human-readable hint injected into ``parent_hint`` / error messages (optional)."""
 
 
+class Badge(BaseModel):
+    """One atomic value in a collection: stored ``code`` + display ``label`` + presentation
+    ``emoji``. Rendered verbatim — a field may relabel the collection, never a badge itself."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    code: str
+    label: str
+    emoji: str | None = None
+
+
+class Collection(BaseModel):
+    """A reusable, named library of badges.
+
+    Identified by its key in ``WorkflowSpec.collections`` — no self-stored code, mirroring
+    ``ItemSpec``/``StatusSpec``/``Lifecycle`` (identity lives in the dict key, never
+    duplicated onto the value). ``ordered`` drives sort + threshold filtering; ``default``
+    is the collection's own fallback badge code, overridable per-field.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    label: str
+    ordered: bool = False
+    default: str | None = None
+    badges: list[Badge] = []
+
+    @property
+    def badge_codes(self) -> frozenset[str]:
+        return frozenset(b.code for b in self.badges)
+
+
+class Field(BaseModel):
+    """A type's or sub-entity-kind's binding to a collection.
+
+    ``code`` is the frontmatter key + CLI flag identity (list-item identity, like
+    ``Badge.code``/``RefRule.kind``); ``label`` relabels the bound collection for this
+    field's display only. ``required``/``default`` are per-field, not per-collection.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    code: str
+    label: str
+    collection: str
+    required: bool = False
+    default: str | None = None
+
+
+class SubentityKindSpec(BaseModel):
+    """Per-sub-entity-kind declarations — currently just ``fields``.
+
+    Kept as its own table (mirroring ``ItemSpec.fields``) so the field mechanism is
+    identical for item types and sub-entity kinds, never forked.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    fields: list[Field] = []
+
+
 class ItemSpec(BaseModel):
     """Vocabulary for one item type: prefix, folder, lifecycle, parents, aliases.
 
@@ -163,6 +230,10 @@ class ItemSpec(BaseModel):
     ref_rules: list[RefRule] = []
     """Declared ref-kind rules that drive parent_hint text and sq check enforcement
     (e.g. task → fixes/addresses; decision → supersedes)."""
+
+    fields: list[Field] = []
+    """Badge-collection bindings this type carries (e.g. priority/severity). Additive;
+    not yet consumed by the engine — ``Priority``/``Severity`` still drive runtime."""
 
 
 class StatusSpec(BaseModel):
@@ -380,6 +451,102 @@ def _check_item_refs(
             seen_aliases[alias] = t
 
 
+#: Field codes exempt from the reserved-key check below because this exact schema models
+#: them by field code on purpose — the bundled ``priority``/``severity`` fields keep the
+#: literal key their axis has always used, so frontmatter keeps round-tripping unchanged.
+_FIELD_ELIGIBLE_ITEM_KEYS: frozenset[str] = frozenset({"priority"})
+_FIELD_ELIGIBLE_SUBENTITY_KEYS: frozenset[str] = frozenset({"severity"})
+
+
+def _reserved_item_keys() -> frozenset[str]:
+    """Item frontmatter keys a field code may not shadow.
+
+    Derived from ``Item``'s own model/computed fields (never hand-copied) minus ``path``/
+    ``prefix`` (model-only, never written to frontmatter) and the field-eligible exemptions.
+    """
+    from squads._models._item import Item
+
+    keys = set(Item.model_fields) | set(Item.model_computed_fields)
+    return frozenset(keys - {"path", "prefix"} - _FIELD_ELIGIBLE_ITEM_KEYS)
+
+
+def _reserved_subentity_keys() -> frozenset[str]:
+    """Sub-entity frontmatter keys a field code may not shadow (mirrors ``_reserved_item_keys``)."""
+    from squads._models._subentity import SubEntity
+
+    keys = set(SubEntity.model_fields) | set(SubEntity.model_computed_fields)
+    return frozenset(keys - _FIELD_ELIGIBLE_SUBENTITY_KEYS)
+
+
+def _iter_field_owners(
+    items: dict[str, ItemSpec],
+    subentity_kinds: dict[str, SubentityKindSpec],
+) -> Iterator[tuple[str, bool, list[Field]]]:
+    """Yield ``(owner_name, is_item, fields)`` for every type/kind that declares fields."""
+    for t, ts in items.items():
+        if ts.fields:
+            yield t, True, ts.fields
+    for k, ks in subentity_kinds.items():
+        if ks.fields:
+            yield k, False, ks.fields
+
+
+def _check_field_codes(
+    items: dict[str, ItemSpec],
+    subentity_kinds: dict[str, SubentityKindSpec],
+    errors: list[str],
+) -> None:
+    """Field-code uniqueness per owner + reserved-frontmatter-key collision."""
+    reserved_item = _reserved_item_keys()
+    reserved_subentity = _reserved_subentity_keys()
+    for owner, is_item, fields in _iter_field_owners(items, subentity_kinds):
+        seen: set[str] = set()
+        reserved = reserved_item if is_item else reserved_subentity
+        for f in fields:
+            if f.code in seen:
+                errors.append(f"{owner!r}: duplicate field code {f.code!r}")
+            seen.add(f.code)
+            if f.code in reserved:
+                errors.append(
+                    f"{owner!r}: field code {f.code!r} shadows a reserved frontmatter key"
+                )
+
+
+def _check_field_collections(
+    items: dict[str, ItemSpec],
+    subentity_kinds: dict[str, SubentityKindSpec],
+    collections: dict[str, Collection],
+    errors: list[str],
+) -> None:
+    """Every field's collection resolves; every default badge code (field- or
+    collection-level) names a badge in that collection; a required field with no
+    resolvable default is rejected."""
+    for code, coll in collections.items():
+        if coll.default is not None and coll.default not in coll.badge_codes:
+            errors.append(f"collection {code!r}: default {coll.default!r} not a declared badge")
+
+    for owner, _is_item, fields in _iter_field_owners(items, subentity_kinds):
+        for f in fields:
+            coll = collections.get(f.collection)
+            if coll is None:
+                errors.append(
+                    f"{owner!r} field {f.code!r}: collection {f.collection!r} not declared"
+                )
+                continue
+            if f.default is not None and f.default not in coll.badge_codes:
+                errors.append(
+                    f"{owner!r} field {f.code!r}: default {f.default!r} not a badge in "
+                    f"collection {f.collection!r}"
+                )
+            if f.required:
+                resolved = f.default or coll.default
+                if resolved is None or resolved not in coll.badge_codes:
+                    errors.append(
+                        f"{owner!r} field {f.code!r}: required with no resolvable default "
+                        f"badge in collection {f.collection!r}"
+                    )
+
+
 # Canonical priority order for well-known exception/side states.
 # States that appear together in the side-state list are sorted by this priority
 # (lower = earlier in the output), ensuring the output matches the established
@@ -484,6 +651,11 @@ class WorkflowSpec(BaseModel):
     # Derived reverse indexes — built by the loader, not stored in TOML.
     prefix_to_type: dict[str, str]
     alias_to_type: dict[str, str]
+    #: Reusable badge libraries, keyed by collection code. Additive; not yet consumed by the
+    #: engine — Priority/Severity still drive runtime.
+    collections: dict[str, Collection] = {}
+    #: Per-sub-entity-kind declarations (currently just ``fields``), keyed by kind name.
+    subentity_kinds: dict[str, SubentityKindSpec] = {}
 
     # ------------------------------------------------------------------ convenience accessors
 
@@ -516,6 +688,19 @@ class WorkflowSpec(BaseModel):
     def status_badge(self, status: str) -> str | None:
         spec = self.statuses.get(status)
         return spec.badge if spec else None
+
+    def collection(self, code: str) -> Collection:
+        """The reusable badge library named *code* (raises ``KeyError`` if undeclared)."""
+        return self.collections[code]
+
+    def fields_for(self, type_or_kind: str) -> list[Field]:
+        """Declared fields for an item type OR a sub-entity kind (same lookup, either
+        namespace — the two never collide in a valid spec)."""
+        item = self.items.get(type_or_kind)
+        if item is not None:
+            return list(item.fields)
+        kind_spec = self.subentity_kinds.get(type_or_kind)
+        return list(kind_spec.fields) if kind_spec else []
 
     # ------------------------------------------------------------------ capability-flag accessors
 
@@ -634,6 +819,12 @@ class WorkflowSpec(BaseModel):
 
         # Parent-cycle detection in the type-parent graph.
         _check_parent_cycles(self.items, errors)
+
+        # Field-code uniqueness + reserved-key collision (per item type / sub-entity kind).
+        _check_field_codes(self.items, self.subentity_kinds, errors)
+
+        # Field->collection referential integrity + default-badge resolution.
+        _check_field_collections(self.items, self.subentity_kinds, self.collections, errors)
 
         # Reserved-vocab floor — the spec must declare the three meta-types, each with
         # is_meta=true. This is the ONLY type-axis floor: every other type

@@ -94,6 +94,8 @@ def _spec_with_incident() -> WorkflowSpec:
             "lifecycles": new_lifecycles,
             "prefix_to_type": new_prefix_to_type,
             "alias_to_type": new_alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
         }
     )
 
@@ -139,6 +141,8 @@ def test_custom_skill_slugs_lexical_order() -> None:
             "lifecycles": new_lifecycles,
             "prefix_to_type": new_prefix_to_type,
             "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
         }
     )
     slugs = custom_skill_slugs(spec)

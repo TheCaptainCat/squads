@@ -31,11 +31,22 @@ which reports the same findings in collect mode without aborting.
 
 import importlib.resources
 import tomllib
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from squads._errors import SquadsError
-from squads._workflow._models import ItemSpec, Lifecycle, RefRule, StatusSpec, WorkflowSpec
+from squads._workflow._models import (
+    Badge,
+    Collection,
+    Field,
+    ItemSpec,
+    Lifecycle,
+    RefRule,
+    StatusSpec,
+    SubentityKindSpec,
+    WorkflowSpec,
+)
 
 #: Canonical location for the project workflow override (relative to squad_dir).
 WORKFLOW_OVERRIDE_FILENAME = ".overrides/workflow.toml"
@@ -132,6 +143,48 @@ def _parse_ref_rules(raw_rules: list[dict[str, Any]], ctx: str) -> list[RefRule]
     return rules
 
 
+def _parse_fields(raw_fields: list[dict[str, Any]], ctx: str) -> list[Field]:
+    """Parse a list of field dicts into ``Field`` objects (``extra="forbid"`` per entry)."""
+    fields: list[Field] = []
+    for i, field_data in enumerate(raw_fields):
+        try:
+            fields.append(Field.model_validate(field_data))
+        except Exception as exc:
+            raise SquadsError(f"{ctx} field[{i}]: {exc}") from exc
+    return fields
+
+
+def _parse_badges(raw_badges: list[dict[str, Any]], ctx: str) -> list[Badge]:
+    """Parse a list of badge dicts into ``Badge`` objects (``extra="forbid"`` per entry)."""
+    badges: list[Badge] = []
+    for i, badge_data in enumerate(raw_badges):
+        try:
+            badges.append(Badge.model_validate(badge_data))
+        except Exception as exc:
+            raise SquadsError(f"{ctx} badge[{i}]: {exc}") from exc
+    return badges
+
+
+def _parse_collection(code: str, data: dict[str, Any]) -> Collection:
+    """Parse one ``[collections.<code>]`` table (its ``badges`` list is pre-coerced)."""
+    badges = _parse_badges(data.get("badges", []), f"collections.{code}")
+    payload: dict[str, Any] = {**data, "badges": badges}
+    try:
+        return Collection.model_validate(payload)
+    except Exception as exc:
+        raise SquadsError(f"Invalid collection {code!r}: {exc}") from exc
+
+
+def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
+    """Parse one ``[subentity_kinds.<kind>]`` table (its ``fields`` list is pre-coerced)."""
+    fields = _parse_fields(data.get("fields", []), f"subentity_kinds.{kind}")
+    payload: dict[str, Any] = {**data, "fields": fields}
+    try:
+        return SubentityKindSpec.model_validate(payload)
+    except Exception as exc:
+        raise SquadsError(f"Invalid subentity_kinds entry {kind!r}: {exc}") from exc
+
+
 def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     # --- lifecycles (merged item + sub-entity machines) ---
     lifecycles: dict[str, Lifecycle] = {
@@ -158,9 +211,15 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         parents: list[str] = list(data.get("parents", []))
         ref_rules_raw: list[dict[str, Any]] = data.get("ref_rules", [])
         ref_rules = _parse_ref_rules(ref_rules_raw, f"items.{name}")
+        fields = _parse_fields(data.get("fields", []), f"items.{name}")
         # Build the payload: start with the raw data, then override the pre-coerced fields
         # so model_validate sees the right types AND any unknown keys trigger extra="forbid".
-        payload: dict[str, Any] = {**data, "parents": parents, "ref_rules": ref_rules}
+        payload: dict[str, Any] = {
+            **data,
+            "parents": parents,
+            "ref_rules": ref_rules,
+            "fields": fields,
+        }
         try:
             ts = ItemSpec.model_validate(payload)
         except Exception as exc:
@@ -170,6 +229,17 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         for alias in ts.aliases:
             alias_to_type[alias] = name
 
+    # --- collections (reusable badge libraries, keyed by collection code) ---
+    collections: dict[str, Collection] = {
+        code: _parse_collection(code, data) for code, data in raw.get("collections", {}).items()
+    }
+
+    # --- subentity_kinds (per-kind declarations, currently just fields) ---
+    subentity_kinds: dict[str, SubentityKindSpec] = {
+        kind: _parse_subentity_kind(kind, data)
+        for kind, data in raw.get("subentity_kinds", {}).items()
+    }
+
     # WorkflowSpec construction triggers the model_validator (pydantic v2).
     # Route through model_validate so extra="forbid" fires at construction.
     try:
@@ -178,6 +248,8 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
                 "items": items,
                 "statuses": statuses,
                 "lifecycles": lifecycles,
+                "collections": collections,
+                "subentity_kinds": subentity_kinds,
                 "prefix_to_type": prefix_to_type,
                 "alias_to_type": alias_to_type,
             }
@@ -215,7 +287,13 @@ def _parse_item_spec_str(name: str, data: dict[str, Any]) -> ItemSpec:
     parents: list[str] = data.get("parents", [])
     ref_rules_raw: list[dict[str, Any]] = data.get("ref_rules", [])
     ref_rules = _parse_ref_rules(ref_rules_raw, f"override items.{name}")
-    payload: dict[str, Any] = {**data, "parents": parents, "ref_rules": ref_rules}
+    fields = _parse_fields(data.get("fields", []), f"override items.{name}")
+    payload: dict[str, Any] = {
+        **data,
+        "parents": parents,
+        "ref_rules": ref_rules,
+        "fields": fields,
+    }
     try:
         return ItemSpec.model_validate(payload)
     except Exception as exc:
@@ -257,6 +335,8 @@ def _collect_additive_conflicts(
     builtin_lifecycles: frozenset[str] = frozenset(bundled.lifecycles)
     builtin_statuses: frozenset[str] = frozenset(bundled.statuses)
     builtin_types: frozenset[str] = frozenset(bundled.items)
+    builtin_collections: frozenset[str] = frozenset(bundled.collections)
+    builtin_subentity_kinds: frozenset[str] = frozenset(bundled.subentity_kinds)
 
     lc_conflicts = [
         f"workflow override may not redefine built-in lifecycle {name!r} "
@@ -279,7 +359,37 @@ def _collect_additive_conflicts(
         for name in raw.get("items", {})
         if name in builtin_types
     ]
-    return lc_conflicts + st_conflicts + it_conflicts
+    coll_conflicts = [
+        f"workflow override may not redefine built-in collection {name!r} "
+        f"(additive-only; you may add new collections but not change built-ins) "
+        f"— {override_path}"
+        for name in raw.get("collections", {})
+        if name in builtin_collections
+    ]
+    sek_conflicts = [
+        f"workflow override may not redefine built-in subentity_kinds entry {name!r} "
+        f"(additive-only; you may add new sub-entity kinds but not change built-ins) "
+        f"— {override_path}"
+        for name in raw.get("subentity_kinds", {})
+        if name in builtin_subentity_kinds
+    ]
+    return lc_conflicts + st_conflicts + it_conflicts + coll_conflicts + sek_conflicts
+
+
+def _merge_additive_section(
+    merged: dict[str, Any],
+    raw_section: dict[str, Any],
+    builtin_keys: frozenset[str],
+    parser: Callable[[str, dict[str, Any]], Any],
+) -> None:
+    """Add every non-built-in key of *raw_section* into *merged* via *parser* (in place).
+
+    Shared by every override section (lifecycles/statuses/items/collections/
+    subentity_kinds) — keeps ``_merge_override`` under the complexity ceiling.
+    """
+    for name, data in raw_section.items():
+        if name not in builtin_keys:
+            merged[name] = parser(name, data)
 
 
 def _merge_override(
@@ -306,26 +416,32 @@ def _merge_override(
     builtin_lifecycles: frozenset[str] = frozenset(bundled.lifecycles)
     builtin_statuses: frozenset[str] = frozenset(bundled.statuses)
     builtin_types: frozenset[str] = frozenset(bundled.items)
+    builtin_collections: frozenset[str] = frozenset(bundled.collections)
+    builtin_subentity_kinds: frozenset[str] = frozenset(bundled.subentity_kinds)
 
     # Start with copies of bundled maps (WorkflowSpec is frozen; we build new dicts).
     merged_lifecycles: dict[str, Lifecycle] = dict(bundled.lifecycles)
     merged_statuses: dict[str, StatusSpec] = dict(bundled.statuses)
     merged_items: dict[str, ItemSpec] = dict(bundled.items)
+    merged_collections: dict[str, Collection] = dict(bundled.collections)
+    merged_subentity_kinds: dict[str, SubentityKindSpec] = dict(bundled.subentity_kinds)
 
-    # --- override lifecycles ---
-    for name, data in raw.get("lifecycles", {}).items():
-        if name not in builtin_lifecycles:
-            merged_lifecycles[name] = _parse_lifecycle_str(name, data)
-
-    # --- override statuses ---
-    for name, data in raw.get("statuses", {}).items():
-        if name not in builtin_statuses:
-            merged_statuses[name] = _parse_status_spec_str(name, data)
-
-    # --- override item types ---
-    for name, data in raw.get("items", {}).items():
-        if name not in builtin_types:
-            merged_items[name] = _parse_item_spec_str(name, data)
+    _merge_additive_section(
+        merged_lifecycles, raw.get("lifecycles", {}), builtin_lifecycles, _parse_lifecycle_str
+    )
+    _merge_additive_section(
+        merged_statuses, raw.get("statuses", {}), builtin_statuses, _parse_status_spec_str
+    )
+    _merge_additive_section(merged_items, raw.get("items", {}), builtin_types, _parse_item_spec_str)
+    _merge_additive_section(
+        merged_collections, raw.get("collections", {}), builtin_collections, _parse_collection
+    )
+    _merge_additive_section(
+        merged_subentity_kinds,
+        raw.get("subentity_kinds", {}),
+        builtin_subentity_kinds,
+        _parse_subentity_kind,
+    )
 
     # Rebuild derived reverse indexes over the MERGED set.
     prefix_to_type: dict[str, str] = {ts.prefix: t for t, ts in merged_items.items()}
@@ -344,6 +460,8 @@ def _merge_override(
                 "lifecycles": merged_lifecycles,
                 "prefix_to_type": prefix_to_type,
                 "alias_to_type": alias_to_type,
+                "collections": merged_collections,
+                "subentity_kinds": merged_subentity_kinds,
             }
         )
     except SquadsError:

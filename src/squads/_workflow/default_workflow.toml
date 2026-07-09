@@ -3,6 +3,10 @@
 # subentity_kind, severity_field, parent_required, ref_rules) and StatusSpec.role.
 # Loaded and validated by load_workflow_spec() in _loader.py.
 # DO NOT edit without updating the golden-lock test in tests/test_workflow_spec.py.
+#
+# [collections.*] + the `fields` lists below are an ADDITIVE parallel schema — the bundled
+# priority/severity collections/fields reproduce today's Priority/Severity enums exactly,
+# but the enums (and severity_field above) still drive runtime; nothing here is consumed yet.
 
 # ---------------------------------------------------------------------------
 # Named lifecycle state machines — item lifecycles and sub-entity lifecycles
@@ -210,6 +214,33 @@ terminal = true
 badge = "⚫"
 
 # ---------------------------------------------------------------------------
+# Collections — reusable badge libraries. Bundled priority/severity reproduce today's
+# Priority/Severity enum codes/labels/emoji/default exactly (see _models/_enums.py).
+# ---------------------------------------------------------------------------
+
+[collections.priority]
+label = "Priority"
+ordered = true
+badges = [
+  { code = "urgent", label = "Urgent", emoji = "🔴" },
+  { code = "high",   label = "High",   emoji = "🟠" },
+  { code = "medium", label = "Medium", emoji = "🟡" },
+  { code = "low",    label = "Low",    emoji = "🟢" },
+]
+
+[collections.severity]
+label = "Severity"
+ordered = true
+default = "medium"
+badges = [
+  { code = "critical", label = "Critical", emoji = "🔴" },
+  { code = "high",     label = "High",     emoji = "🟠" },
+  { code = "medium",   label = "Medium",   emoji = "🟡" },
+  { code = "low",      label = "Low",      emoji = "🟢" },
+  { code = "info",     label = "Info",     emoji = "🔵" },
+]
+
+# ---------------------------------------------------------------------------
 # Items (prefix / folder / lifecycle / parents / aliases)
 # Mirrors PREFIX_BY_TYPE / FOLDER_BY_TYPE / ALLOWED_PARENTS / TYPE_ALIASES exactly.
 # parents = [] means unconstrained (any parent or none is valid).
@@ -233,6 +264,7 @@ order = 10
 is_meta = false
 severity_field = false
 ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None (no sub-entities)
 # parent_required absent → None (unconstrained)
 
@@ -247,6 +279,7 @@ is_meta = false
 subentity_kind = "story"
 severity_field = false
 ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # parent_required absent → None (unconstrained — any parent or none is valid)
 
 [items.task]
@@ -264,6 +297,7 @@ ref_rules = [
   { kind = "fixes", hint = "link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`" },
   { kind = "addresses", hint = "link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`" },
 ]
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 
 [items.bug]
 prefix = "BUG"
@@ -275,6 +309,10 @@ order = 40
 is_meta = false
 severity_field = true
 ref_rules = []
+fields = [
+  { code = "priority", label = "Priority", collection = "priority" },
+  { code = "severity", label = "Severity", collection = "severity", required = false, default = "medium" },
+]
 # subentity_kind absent → None
 # parent_required absent → None
 
@@ -288,6 +326,7 @@ order = 50
 is_meta = false
 severity_field = false
 ref_rules = [{ kind = "supersedes", hint = "" }]
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None
 # parent_required absent → None
 
@@ -302,6 +341,7 @@ is_meta = false
 subentity_kind = "finding"
 severity_field = false
 ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # parent_required absent → None
 
 [items.guide]
@@ -314,6 +354,7 @@ order = 70
 is_meta = false
 severity_field = false
 ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None
 # parent_required absent → None
 
@@ -355,3 +396,12 @@ severity_field = false
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
+
+# ---------------------------------------------------------------------------
+# Sub-entity kinds — per-kind field declarations (mirrors the item `fields` mechanism).
+# ---------------------------------------------------------------------------
+
+[subentity_kinds.finding]
+fields = [
+  { code = "severity", label = "Severity", collection = "severity", required = true, default = "medium" },
+]
