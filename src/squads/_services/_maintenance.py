@@ -1126,7 +1126,7 @@ class MaintenanceMixin(ServiceCore):
             if entry is None:
                 continue
             text = await _aio.read_text(entry[1])
-            placeholder = discussion.body_placeholder(kind)
+            placeholder = discussion.body_placeholder(kind, self.spec)
             for sub in item.subentities:
                 body = sections.get_section(text, discussion.body_tag(kind, sub.local_id))
                 if body is not None and body.strip() == placeholder:

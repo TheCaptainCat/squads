@@ -31,12 +31,13 @@ class CollabMixin(ServiceCore):
         story: str | None = None,
         subtask: str | None = None,
         finding: str | None = None,
+        sub: tuple[str, str] | None = None,
     ) -> Item:
         if not messages:
             raise SquadsError("a comment needs at least one -m message")
         for msg in messages:
             reject_markers(msg, "comment message")
-        tag = self._discussion_tag(story, subtask, finding)
+        tag = self._discussion_tag(story, subtask, finding, sub)
         entry = discussion.format_comment(
             clock.iso(clock.now()), await self.author(as_slug), messages
         )
@@ -56,9 +57,23 @@ class CollabMixin(ServiceCore):
         return await self._locked_section_edit(item_id, mutate)
 
     @staticmethod
-    def _discussion_tag(story: str | None, subtask: str | None, finding: str | None) -> str:
-        if sum(bool(t) for t in (story, subtask, finding)) > 1:
+    def _discussion_tag(
+        story: str | None,
+        subtask: str | None,
+        finding: str | None,
+        sub: tuple[str, str] | None = None,
+    ) -> str:
+        """Resolve the discussion region to append to.
+
+        ``story``/``subtask``/``finding`` are the built-in kinds' historical named params
+        (kept for existing call sites); ``sub`` is the generic ``(kind, local_id)`` pair the
+        CLI's spec-driven sub-entity comment verb uses for any kind, built-in or custom.
+        """
+        if sum(bool(t) for t in (story, subtask, finding, sub)) > 1:
             raise SquadsError("target only one of --story / --subtask / --finding")
+        if sub is not None:
+            kind, local_id = sub
+            return markers.discussion_tag(f"{kind}:{local_id}")
         if story:
             return markers.discussion_tag(markers.story_tag(story))
         if subtask:

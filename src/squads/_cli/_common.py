@@ -199,17 +199,23 @@ def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
     Returns plain text with no Rich markup escaping applied.  Callers that need to pass the title
     into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
     (plain path) use this value directly so no backslashes leak.
+
+    Generic over the kind's declared fields (spec-driven, not a ``kind == "finding"``/
+    ``"subtask"`` literal) — one label-badge per declared field with a stored value, then the
+    assignee, then the mapped story iff the kind declares ``maps_parent_story``.
     """
-    status_badge = badges.status_badge(sub.status, get_active_spec())
+    spec = get_active_spec()
+    status_badge = badges.status_badge(sub.status, spec)
     parts = [f"{sub.local_id} — {sub.title}  {status_badge}"]
-    if kind == "finding" and sub.severity:
-        spec = get_active_spec()
-        coll = badges.resolve_collection(kind, "severity", spec)
-        sev_badge = badges.badge_render(coll, sub.severity, spec, as_label=True)
-        parts.append(sev_badge)
+    for field in spec.fields_for(kind):
+        value = getattr(sub, field.code, None)
+        if isinstance(value, str) and value:
+            coll = badges.resolve_collection(kind, field.code, spec)
+            parts.append(badges.badge_render(coll, value, spec, as_label=True))
     if sub.assignee:
         parts.append(sub.assignee)
-    if kind == "subtask" and sub.story:
+    ks = spec.subentity_kinds.get(kind)
+    if ks is not None and ks.maps_parent_story and sub.story:
         parts.append(sub.story)
     return "  ".join(parts)
 
@@ -226,10 +232,8 @@ async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: b
     if not kind or not it.subentities:
         return
 
-    get_detail = getattr(svc, f"get_{kind}")
-
     for sub in it.subentities:
-        detail = await get_detail(it.id, sub.local_id)
+        detail = await svc.get_block(it.id, kind, sub.local_id)
         # Build the raw (un-escaped) title once; apply e() only at the styled Panel boundary.
         raw_title = _subentity_pane_title_raw(sub, kind)
         body_text = detail.body or ""

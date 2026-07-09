@@ -29,10 +29,11 @@ _DEFAULT_FINDING_SEVERITY = "medium"
 
 
 class SubentitiesMixin(ServiceCore):
-    def _field_default(self, type_or_kind: str, code: str) -> str | None:
+    def field_default(self, type_or_kind: str, code: str) -> str | None:
         """The badge code an omitted field falls back to: the field's own ``default``,
         else its collection's ``default``, else ``None`` (generic — no field/collection
-        special-cased by name)."""
+        special-cased by name). Public: the CLI's generic add-<kind> builder calls this
+        directly for every declared field, not just ``finding``'s ``severity``."""
         field = next((f for f in self.spec.fields_for(type_or_kind) if f.code == code), None)
         if field is None:
             return None
@@ -74,7 +75,7 @@ class SubentitiesMixin(ServiceCore):
         body: str | None = None,
     ) -> BlockResult:
         resolved_severity = (
-            severity or self._field_default("finding", "severity") or _DEFAULT_FINDING_SEVERITY
+            severity or self.field_default("finding", "severity") or _DEFAULT_FINDING_SEVERITY
         )
         return await self.add_block(
             review_id, "finding", title, severity=resolved_severity, assignee=assignee, body=body
@@ -112,7 +113,7 @@ class SubentitiesMixin(ServiceCore):
             text = await _aio.read_text(path)
             if not sections.has_section(text, container):
                 raise SquadsError(f"no {container} section in {item_id}")
-            local_id = discussion.next_local_id(item.subentities, kind)
+            local_id = discussion.next_local_id(item.subentities, kind, self.spec)
             sub = SubEntity(
                 local_id=local_id,
                 title=title,
@@ -123,7 +124,7 @@ class SubentitiesMixin(ServiceCore):
             )
             item.subentities.append(sub)
             item.updated_at = clock.now()
-            block = discussion.build_block(kind, local_id, title, body=body)
+            block = discussion.build_block(kind, local_id, title, body=body, spec=self.spec)
             text = sections.append_to_section(text, container, block)
             await self._write_block_file(db, item, path, text=text, head_for=sub)
             # Advisory title-length check.
@@ -404,7 +405,7 @@ class SubentitiesMixin(ServiceCore):
             new_body = body
             if append:
                 current = (sections.get_section(text, btag) or "").strip("\n")
-                if current and current.strip() != discussion.body_placeholder(kind):
+                if current and current.strip() != discussion.body_placeholder(kind, self.spec):
                     new_body = f"{current}\n\n{body}"
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "subentity",
