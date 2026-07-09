@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.7.0",
-  "counter": 339,
+  "counter": 343,
   "padding": 6,
   "items": {
     "12": {
@@ -3094,7 +3094,7 @@
       "type": "feature",
       "title": "Remove the ItemType + Status enums — generic item engine",
       "slug": "remove-the-itemtype-status-enums-generic-item-engine",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Delete ItemType/Status enums; spec becomes sole type+status vocabulary; reserved floor = meta-types + agent-lifecycle only",
       "parent": "EPIC-325",
       "author": "product-owner",
@@ -3140,7 +3140,7 @@
       ],
       "path": "features/FEAT-000326-remove-the-itemtype-status-enums-generic-item-engine.md",
       "created_at": "2026-07-07T14:37:36Z",
-      "updated_at": "2026-07-08T08:25:48Z",
+      "updated_at": "2026-07-09T08:15:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7926,7 +7926,7 @@
       "type": "task",
       "title": "Parallelize the pytest suite with pytest-xdist",
       "slug": "parallelize-the-pytest-suite-with-pytest-xdist",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "tech-lead",
@@ -7939,7 +7939,7 @@
       "subentities": [],
       "path": "tasks/TASK-000332-parallelize-the-pytest-suite-with-pytest-xdist.md",
       "created_at": "2026-07-08T08:43:08Z",
-      "updated_at": "2026-07-08T08:43:23Z",
+      "updated_at": "2026-07-09T09:10:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7963,7 +7963,7 @@
       "subentities": [],
       "path": "tasks/TASK-000333-code-hygiene-sweep-unused-code-gratuitous-import-re-aliases.md",
       "created_at": "2026-07-08T12:25:09Z",
-      "updated_at": "2026-07-08T14:28:17Z",
+      "updated_at": "2026-07-09T08:16:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12901,6 +12901,165 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-339"
+    },
+    "340": {
+      "sequence_id": 340,
+      "type": "task",
+      "title": "Add Collection/Badge/Field spec schema; bundle priority/severity",
+      "slug": "add-collection-badge-field-spec-schema-bundle-priority-sever",
+      "status": "Draft",
+      "description": "Additive: 3-level badge schema + bundled default priority/severity collections/fields + fail-closed validation; byte-identical",
+      "parent": "FEAT-327",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-323"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add Collection/Badge/Field schema + bundle byte-identical priority/severity",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Fail-closed validation: field-code uniqueness, reserved-key, collection integrity",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000340-add-collection-badge-field-spec-schema-bundle-priority-sever.md",
+      "created_at": "2026-07-09T08:19:59Z",
+      "updated_at": "2026-07-09T08:21:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-340"
+    },
+    "341": {
+      "sequence_id": 341,
+      "type": "task",
+      "title": "Delete Priority/Severity enums; generic badge-code storage",
+      "slug": "delete-priority-severity-enums-generic-badge-code-storage",
+      "status": "Draft",
+      "description": "Switch runtime off the enums onto fields_for(); store badge code only; bug severity -> top-level; render fallback",
+      "parent": "FEAT-327",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-323",
+        "TASK-340:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Delete enums/*_EMOJI/DEFAULT_SEVERITY/severity_field; fields_for severity lookup",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Generic storage: badge code only, bug severity -> top-level, render fallback",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000341-delete-priority-severity-enums-generic-badge-code-storage.md",
+      "created_at": "2026-07-09T08:20:10Z",
+      "updated_at": "2026-07-09T08:21:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-341"
+    },
+    "342": {
+      "sequence_id": 342,
+      "type": "task",
+      "title": "CLI derives --<field> filter/sort/badges generically",
+      "slug": "cli-derives-field-filter-sort-badges-generically",
+      "status": "Draft",
+      "description": "One parse_badge_code/badge_render for all axes; --<field>/--min-<field>/sort/columns from fields_for(); custom-axis verified",
+      "parent": "FEAT-327",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-323",
+        "TASK-341:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Generic parse_badge_code/badge_render; --<field>/--min-<field>/sort/columns from fields",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Verify full CLI surface against a custom badge axis beyond priority/severity",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000342-cli-derives-field-filter-sort-badges-generically.md",
+      "created_at": "2026-07-09T08:20:10Z",
+      "updated_at": "2026-07-09T08:21:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-342"
+    },
+    "343": {
+      "sequence_id": 343,
+      "type": "task",
+      "title": "Bug severity data migration extra->top-level; SCHEMA_VERSION 0.8",
+      "slug": "bug-severity-data-migration-extra-top-level-schema-version-0",
+      "status": "Draft",
+      "description": "First 0.8 change: _v0_7_to_v0_8 runner + registry + manual + SCHEMA_VERSION 0.7->0.8; frozen vocab; one-way",
+      "parent": "FEAT-327",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-323",
+        "TASK-341:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "_v0_7_to_v0_8 runner + registry + manual + SCHEMA_VERSION 0.7->0.8 bump",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000343-bug-severity-data-migration-extra-top-level-schema-version-0.md",
+      "created_at": "2026-07-09T08:20:11Z",
+      "updated_at": "2026-07-09T08:21:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-343"
     }
   }
 }

@@ -12,7 +12,7 @@ description: Delete dead code (ERA commented-out blocks, unused effective_prefix
   and strip pointless public->private import re-aliases; one sweep on the stable post-enum-removal
   tree
 created_at: '2026-07-08T12:25:09Z'
-updated_at: '2026-07-08T14:28:17Z'
+updated_at: '2026-07-09T08:16:00Z'
 ---
 <!-- sq:body -->
 One code-hygiene sweep over `src/squads/` (and, for dead code, `tests/`),
@@ -205,4 +205,6 @@ _Add with `sq task 333 add-subtask "<title>"`; track with `sq task 333 subtask <
   - Fixed a squad-ref-hygiene violation the full suite caught: two [tool.vulture] comment lines in pyproject.toml cited squad IDs directly, which is banned outside squads/** item files. Reworded to keep the same meaning without literal IDs ('the Status enum is slated for removal, so don't hardcode its member names here' / 'a later hygiene sweep will clean up ... once the vocabulary has settled') — no ID anywhere in the string now.
   - Ran the full tests/test_squad_ref_hygiene.py (all 5 tests) to check for any other hits from this work — clean, nothing else flagged (checked CLAUDE.md, pyproject.toml, and the code comments in _cli/_main.py, _models/_vocab.py, _overrides/_manifest.py; none reference squad IDs).
   - Re-ran uv run pyright / ruff check / ruff format --check — all clean. Did not touch anything else; still no deletions in src/, still no commit.
+- [2026-07-09T08:16:00Z] Catherine Manager:
+  - QA feature-acceptance pass on FEAT-326 flagged a stale comment for this sweep to fix: src/squads/_cli/__init__.py:335 references 'TYPE_ALIASES in _enums.py' as a non-authoritative shim, but that name no longer exists (deleted in the ItemType removal). Cosmetic — drop/correct the comment as part of the hygiene sweep.
 <!-- sq:discussion:end -->
