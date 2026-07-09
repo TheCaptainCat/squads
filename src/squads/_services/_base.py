@@ -40,23 +40,29 @@ from squads._util import slugify
 from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL, bundled_spec
 from squads._workflow._models import WorkflowSpec
 
-# Body-local sub-entities: kind -> parent item type and its container marker. Package-internal
-# (non-underscore so sibling mixins can import them without tripping reportPrivateUsage).
+
+# Body-local sub-entities: kind <-> parent item type, and the kind's container marker.
 #
-# SUBENTITY_PARENT/SUBENTITY_KIND derive kind<->type from the BUNDLED spec's per-type
-# `subentity_kind` instead of a hand-maintained literal dict — a type that drops or renames
-# its declared subentity_kind changes this map automatically. Custom sub-entity kinds on
-# project-declared types are a deferred non-goal, so this stays keyed off the bundled spec,
-# not the per-service (possibly overridden) one.
-SUBENTITY_PARENT: dict[str, str] = {
-    ts.subentity_kind: t for t, ts in bundled_spec().items.items() if ts.subentity_kind
-}
-SUBENTITY_CONTAINER: dict[str, str] = {
-    "story": markers.STORIES,
-    "subtask": markers.SUBTASKS,
-    "finding": markers.FINDINGS,
-}
-SUBENTITY_KIND: dict[str, str] = {p: k for k, p in SUBENTITY_PARENT.items()}
+# These are derived from the ACTIVE spec's per-type `subentity_kind` (forward edge, invariant
+# #4) rather than a hand-maintained literal dict, and rather than the bundled default — a
+# project-declared type/kind must be visible here too. Free functions (not module constants)
+# because the active spec is per-service, not global; ServiceCore exposes them as instance
+# properties below so mixins read `self.subentity_parent`/`self.subentity_kind`/
+# `self.subentity_container` and non-mixin callers (e.g. retype) pass a spec explicitly.
+def subentity_parent_map(spec: WorkflowSpec) -> dict[str, str]:
+    """Sub-entity kind -> hosting item type, inverted from the spec's declared
+    ``ItemSpec.subentity_kind``."""
+    return {ts.subentity_kind: t for t, ts in spec.items.items() if ts.subentity_kind}
+
+
+def subentity_kind_map(spec: WorkflowSpec) -> dict[str, str]:
+    """Item type -> sub-entity kind; the inverse of :func:`subentity_parent_map`."""
+    return {t: k for k, t in subentity_parent_map(spec).items()}
+
+
+def subentity_container_map(spec: WorkflowSpec) -> dict[str, str]:
+    """Sub-entity kind -> container marker tag — simply the kind's declared ``plural``."""
+    return {kind: ks.plural for kind, ks in spec.subentity_kinds.items()}
 
 
 @dataclass(frozen=True)
@@ -247,6 +253,24 @@ class ServiceCore:
         # Activate the squad-aware template search path so render() picks up any project
         # overrides under <squad_dir>/.overrides/templates/ for this service's squad.
         set_active_squad_dir(paths.squad_dir)
+
+    # ------------------------------------------------------------------ sub-entity vocabulary
+    # Resolved from THIS service's active spec (self.spec), not the bundled default — a
+    # project-declared type/kind is visible here with no code change.
+    @property
+    def subentity_parent(self) -> dict[str, str]:
+        """Sub-entity kind -> hosting item type."""
+        return subentity_parent_map(self.spec)
+
+    @property
+    def subentity_kind(self) -> dict[str, str]:
+        """Item type -> sub-entity kind (inverse of ``subentity_parent``)."""
+        return subentity_kind_map(self.spec)
+
+    @property
+    def subentity_container(self) -> dict[str, str]:
+        """Sub-entity kind -> container marker tag."""
+        return subentity_container_map(self.spec)
 
     def _template_for(self, item_type: str) -> str:
         """Return the Jinja2 template path for ``item_type``.

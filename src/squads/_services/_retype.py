@@ -18,7 +18,7 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, format_item_id
 from squads._models._vocab import prefix_for
-from squads._services._base import SUBENTITY_CONTAINER, SUBENTITY_KIND, ServiceCore
+from squads._services._base import ServiceCore, subentity_container_map, subentity_kind_map
 from squads._services._results import RetypeResult
 from squads._workflow._models import WorkflowSpec
 
@@ -153,7 +153,7 @@ class RetypeMixin(ServiceCore):
             await update_frontmatter(new_path, item)
 
             # Append sub-entity container if the new type hosts one and it is absent
-            await _ensure_subentity_container(new_type, new_path)
+            await _ensure_subentity_container(self.spec, new_type, new_path)
 
             # Rewrite all incoming edges (refs, parent links, prose mentions)
             all_paths = [
@@ -200,12 +200,12 @@ class RetypeMixin(ServiceCore):
         )
 
 
-async def _ensure_subentity_container(new_type: str, path: Path) -> None:
+async def _ensure_subentity_container(spec: WorkflowSpec, new_type: str, path: Path) -> None:
     """Append an empty sub-entity container block when *new_type* hosts sub-entities."""
-    kind = SUBENTITY_KIND.get(new_type)
+    kind = subentity_kind_map(spec).get(new_type)
     if kind is None:
         return
-    container_tag = SUBENTITY_CONTAINER[kind]
+    container_tag = subentity_container_map(spec)[kind]
     text = await _aio.read_text(path)
     heading = _CONTAINER_HEADINGS[kind]
     text = discussion.ensure_container(text, heading, container_tag)
