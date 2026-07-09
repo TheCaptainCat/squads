@@ -4,7 +4,6 @@ import pytest
 
 from squads import _clock as clock
 from squads._cli import app
-from squads._models._enums import ItemType
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -35,7 +34,7 @@ async def test_adopt_imports_existing_and_is_idempotent(tmp_path, monkeypatch, f
     # a pre-existing squad with one task, but no config/index (legacy/native files only)
     # _skip_skill_seed=True keeps the counter at 2 so the legacy task is TASK-000002.
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    await service.Service(init.paths).create(ItemType.TASK, "legacy")
+    await service.Service(init.paths).create("task", "legacy")
     (tmp_path / ".squads.toml").unlink()
     (tmp_path / "squads" / ".squads.json").unlink()
 

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
-  "squads_version": "0.6.0",
-  "counter": 332,
+  "squads_version": "0.7.0",
+  "counter": 333,
   "padding": 6,
   "items": {
     "12": {
@@ -249,6 +249,56 @@
       "modified_session": null,
       "extra": {},
       "id": "EPIC-280"
+    },
+    "316": {
+      "sequence_id": 316,
+      "type": "epic",
+      "title": "Shared team knowledge — agent memory and the bulletin board",
+      "slug": "shared-team-knowledge-agent-memory-and-the-bulletin-board",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "epics/EPIC-000316-shared-team-knowledge-agent-memory-and-the-bulletin-board.md",
+      "created_at": "2026-07-06T16:08:36Z",
+      "updated_at": "2026-07-06T16:08:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "EPIC-316"
+    },
+    "325": {
+      "sequence_id": 325,
+      "type": "epic",
+      "title": "Complete the generic item engine",
+      "slug": "complete-the-generic-item-engine",
+      "status": "InProgress",
+      "description": "Finish the spec-is-sole-vocabulary arc: generic types/statuses/sub-entity kinds/badges, reserved surface = meta-types + agent-lifecycle only",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "EPIC-206",
+        "ADR-322",
+        "ADR-323",
+        "EPIC-280",
+        "FEAT-231"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000325-complete-the-generic-item-engine.md",
+      "created_at": "2026-07-07T14:37:01Z",
+      "updated_at": "2026-07-08T08:30:13Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "EPIC-325"
     },
     "13": {
       "sequence_id": 13,
@@ -2715,6 +2765,444 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-289"
+    },
+    "315": {
+      "sequence_id": 315,
+      "type": "feature",
+      "title": "Agent memory — committed per-role notebook surfaced at boot",
+      "slug": "agent-memory-committed-per-role-notebook-surfaced-at-boot",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-316",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-314:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an agent, I can jot a small learned fact to my role's memory so it persists for future runs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent, my role's memory index is surfaced at boot so relevant facts don't slip past me",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an agent, I can list, search, and show my role's memories to pull full content when relevant",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As a teammate, committed per-role memory arrives on checkout and merges cleanly across branches",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US6",
+          "title": "As an agent, the sq-memory skill teaches the memory workflow and curation discipline",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000315-agent-memory-committed-per-role-notebook-surfaced-at-boot.md",
+      "created_at": "2026-07-06T16:05:08Z",
+      "updated_at": "2026-07-06T16:08:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-315"
+    },
+    "317": {
+      "sequence_id": 317,
+      "type": "feature",
+      "title": "Team bulletin board — broadcast notices with expiry",
+      "slug": "team-bulletin-board-broadcast-notices-with-expiry",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-316",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-314:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As any agent, current board notices are surfaced at the start of a run so I'm aware of standing notices",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As anyone, I can list current notices to see what's active",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As a lead or operator, I can clear a notice that no longer applies",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As an agent, a guiding skill teaches board posting discipline and the memory-vs-board boundary",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000317-team-bulletin-board-broadcast-notices-with-expiry.md",
+      "created_at": "2026-07-06T16:08:53Z",
+      "updated_at": "2026-07-06T16:09:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-317"
+    },
+    "318": {
+      "sequence_id": 318,
+      "type": "feature",
+      "title": "Full-text search across item prose, with structured filters",
+      "slug": "full-text-search-across-item-prose-with-structured-filters",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-38",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a steering user, I can search item prose by free text so I can find buried context",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a steering user, results show where each match is and its authority so I can judge relevance",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a steering user, I can narrow the search with structured filters so I can audit a slice",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As an agent, I can get search results as JSON so a session can act on them programmatically",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000318-full-text-search-across-item-prose-with-structured-filters.md",
+      "created_at": "2026-07-07T07:15:49Z",
+      "updated_at": "2026-07-07T07:16:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-318"
+    },
+    "319": {
+      "sequence_id": 319,
+      "type": "feature",
+      "title": "MCP connector — drive a hosted squad from the Claude apps",
+      "slug": "mcp-connector-drive-a-hosted-squad-from-the-claude-apps",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-29",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-33"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an operator, I can connect my hosted squad to a Claude app as a remote MCP connector via OAuth",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As an app, I get a small curated set of MCP tools for core squads operations, not every CLI verb",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As an operator, MCP access is authenticated and scoped to my squad",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As a maintainer, the MCP endpoint is a third frontend over the service layer, matching CLI behaviour",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000319-mcp-connector-drive-a-hosted-squad-from-the-claude-apps.md",
+      "created_at": "2026-07-07T08:01:07Z",
+      "updated_at": "2026-07-07T08:01:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-319"
+    },
+    "321": {
+      "sequence_id": 321,
+      "type": "feature",
+      "title": "The contract (PRD) item type — a living functional source of truth",
+      "slug": "the-contract-prd-item-type-a-living-functional-source-of-tru",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-320:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a team, I can create and manage contract items (PRD prefix) like any other item type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a reader, a contract describes what the product does for a user right now, from the user's POV",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US5",
+          "title": "As an existing squad, sq migrate up adds the contracts folder and bumps the schema to 0.8",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000321-the-contract-prd-item-type-a-living-functional-source-of-tru.md",
+      "created_at": "2026-07-07T08:33:54Z",
+      "updated_at": "2026-07-07T08:34:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-321"
+    },
+    "326": {
+      "sequence_id": 326,
+      "type": "feature",
+      "title": "Remove the ItemType + Status enums — generic item engine",
+      "slug": "remove-the-itemtype-status-enums-generic-item-engine",
+      "status": "InProgress",
+      "description": "Delete ItemType/Status enums; spec becomes sole type+status vocabulary; reserved floor = meta-types + agent-lifecycle only",
+      "parent": "EPIC-325",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-322:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Full self-service type vocabulary in spec",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "Statuses become ordinary spec vocabulary",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Playbook + CLI register types generically",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "Unmodified default squad behaves identically",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000326-remove-the-itemtype-status-enums-generic-item-engine.md",
+      "created_at": "2026-07-07T14:37:36Z",
+      "updated_at": "2026-07-08T08:25:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-326"
+    },
+    "327": {
+      "sequence_id": 327,
+      "type": "feature",
+      "title": "Spec badge collections for priority/severity",
+      "slug": "spec-badge-collections-for-priority-severity",
+      "status": "Ready",
+      "description": "Priority/Severity enums -> spec badge collections; Collection/Field/Badge model; CLI derives --<field> generically",
+      "parent": "EPIC-325",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-323:implements",
+        "FEAT-326:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Priority/severity become spec badge collections",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "CLI derives filter/sort/badges from fields",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "Bug severity migration preserves data",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US4",
+          "title": "Spec load fails closed on bad field decls",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000327-spec-badge-collections-for-priority-severity.md",
+      "created_at": "2026-07-07T14:38:59Z",
+      "updated_at": "2026-07-08T08:30:14Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-327"
     },
     "42": {
       "sequence_id": 42,
@@ -6536,6 +7024,951 @@
       "extra": {},
       "id": "TASK-291"
     },
+    "294": {
+      "sequence_id": 294,
+      "type": "task",
+      "title": "Relocate do-not-edit warning to agent-facing generated files",
+      "slug": "relocate-do-not-edit-warning-to-agent-facing-generated-files",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-287",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-13",
+        "REV-296:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Remove redundant squad-skill do-not-edit marker and version stamp",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add the warning inside CLAUDE.md and AGENTS.md managed regions",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Make .claude/ pointer files state the pointer itself is regenerated",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST4",
+          "title": "Document the tool-generated-warning rule as an AgentBackend contract",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000294-relocate-do-not-edit-warning-to-agent-facing-generated-files.md",
+      "created_at": "2026-07-05T20:53:29Z",
+      "updated_at": "2026-07-05T21:31:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-294"
+    },
+    "297": {
+      "sequence_id": 297,
+      "type": "task",
+      "title": "Extract shared renumber executor from _renumber apply-path",
+      "slug": "extract-shared-renumber-executor-from-renumber-apply-path",
+      "status": "Done",
+      "description": "Lift rewrite_ids->rename->resync into one executor both verbs call",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Reused apply-path executor drives repair --renumber unchanged",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5"
+        }
+      ],
+      "path": "tasks/TASK-000297-extract-shared-renumber-executor-from-renumber-apply-path.md",
+      "created_at": "2026-07-06T08:47:56Z",
+      "updated_at": "2026-07-06T09:55:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-297"
+    },
+    "298": {
+      "sequence_id": 298,
+      "type": "task",
+      "title": "Disjoint block-shift offset planner (--from/--onto/--by)",
+      "slug": "disjoint-block-shift-offset-planner-from-onto-by",
+      "status": "Done",
+      "description": "Operator integers -> validated disjoint offset -> remap + padded renames",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-297:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Offset lands the shifted block disjoint from both ranges",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rename targets minted at filename padding, content unpadded",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000298-disjoint-block-shift-offset-planner-from-onto-by.md",
+      "created_at": "2026-07-06T08:47:57Z",
+      "updated_at": "2026-07-06T09:55:27Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-298"
+    },
+    "299": {
+      "sequence_id": 299,
+      "type": "task",
+      "title": "Add sq renumber CLI verb wiring planner to executor",
+      "slug": "add-sq-renumber-cli-verb-wiring-planner-to-executor",
+      "status": "Done",
+      "description": "New top-level 1.0 verb; intent-preserving pre-merge shift; counter bump",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-297:depends-on",
+        "TASK-298:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Pre-merge shift preserves referential intent",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000299-add-sq-renumber-cli-verb-wiring-planner-to-executor.md",
+      "created_at": "2026-07-06T08:47:57Z",
+      "updated_at": "2026-07-06T09:55:28Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-299"
+    },
+    "300": {
+      "sequence_id": 300,
+      "type": "task",
+      "title": "Append renumber reflog event; leave history literal",
+      "slug": "append-renumber-reflog-event-leave-history-literal",
+      "status": "Done",
+      "description": "One summary event; no in-place rewrite; verify inline-mention rewrite",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-299:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Reflog + inline mentions rewritten; history left literal",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000300-append-renumber-reflog-event-leave-history-literal.md",
+      "created_at": "2026-07-06T08:47:58Z",
+      "updated_at": "2026-07-06T10:15:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-300"
+    },
+    "301": {
+      "sequence_id": 301,
+      "type": "task",
+      "title": "Coexistence docs: sq renumber vs repair --renumber",
+      "slug": "coexistence-docs-sq-renumber-vs-repair-renumber",
+      "status": "Done",
+      "description": "Preferred pre-merge vs fallback post-merge; FEAT-13 deferral note",
+      "parent": "FEAT-288",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-299:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Pre-merge shift and post-merge --renumber documented as complementary",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5"
+        }
+      ],
+      "path": "tasks/TASK-000301-coexistence-docs-sq-renumber-vs-repair-renumber.md",
+      "created_at": "2026-07-06T08:47:59Z",
+      "updated_at": "2026-07-06T10:06:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-301"
+    },
+    "303": {
+      "sequence_id": 303,
+      "type": "task",
+      "title": "Add sq check for unwritten placeholder sub-entity bodies",
+      "slug": "add-sq-check-for-unwritten-placeholder-sub-entity-bodies",
+      "status": "Done",
+      "description": "New warn-level _check_* helper flagging any sub-entity body still equal to its kind placeholder",
+      "parent": "FEAT-289",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add _check_unwritten_subentity_bodies helper + wire into check()",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Emit the check at warn severity per the recorded decision",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Tests: add-story stub is flagged, real body clears; CLI smoke",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000303-add-sq-check-for-unwritten-placeholder-sub-entity-bodies.md",
+      "created_at": "2026-07-06T11:37:22Z",
+      "updated_at": "2026-07-06T12:10:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-303"
+    },
+    "304": {
+      "sequence_id": 304,
+      "type": "task",
+      "title": "Sharpen sq-feature skill: story-body write as ordered DoD step",
+      "slug": "sharpen-sq-feature-skill-story-body-write-as-ordered-dod-ste",
+      "status": "Done",
+      "description": "Split body-writing into its own PO Do step + Watch-for DoD line in playbook.toml; regen via sq sync",
+      "parent": "FEAT-289",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Split story-body write into its own PO Do step in playbook.toml",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add the Watch-for DoD line + regen skill via sq sync",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000304-sharpen-sq-feature-skill-story-body-write-as-ordered-dod-ste.md",
+      "created_at": "2026-07-06T11:37:24Z",
+      "updated_at": "2026-07-06T12:10:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-304"
+    },
+    "305": {
+      "sequence_id": 305,
+      "type": "task",
+      "title": "Document 'no status/lifecycle prose in bodies' convention in CLAUDE.md",
+      "slug": "document-no-status-lifecycle-prose-in-bodies-convention-in-c",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-264",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Write the convention paragraph in CLAUDE.md",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Resolve the repo CLAUDE.md ## Status section + record decision",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000305-document-no-status-lifecycle-prose-in-bodies-convention-in-c.md",
+      "created_at": "2026-07-06T12:13:32Z",
+      "updated_at": "2026-07-06T12:31:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-305"
+    },
+    "306": {
+      "sequence_id": 306,
+      "type": "task",
+      "title": "Add sq check rule flagging leading status/lifecycle banners in bodies",
+      "slug": "add-sq-check-rule-flagging-leading-status-lifecycle-banners",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-264",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-237"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Implement the leading-banner detector helper + wire into check",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add positive + negative detector tests",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Reconcile broken fixtures/goldens without weakening the detector",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000306-add-sq-check-rule-flagging-leading-status-lifecycle-banners.md",
+      "created_at": "2026-07-06T12:13:33Z",
+      "updated_at": "2026-07-06T12:31:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-306"
+    },
+    "307": {
+      "sequence_id": 307,
+      "type": "task",
+      "title": "Sweep dogfood tree of existing status/lifecycle body banners",
+      "slug": "sweep-dogfood-tree-of-existing-status-lifecycle-body-banners",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-264",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-306:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Enumerate + clean flagged item bodies via the guard",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Verify markers/frontmatter intact after the sweep",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000307-sweep-dogfood-tree-of-existing-status-lifecycle-body-banners.md",
+      "created_at": "2026-07-06T12:13:33Z",
+      "updated_at": "2026-07-06T12:50:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-307"
+    },
+    "308": {
+      "sequence_id": 308,
+      "type": "task",
+      "title": "Sweep src/ commentary: workflow/models/roles/playbook cluster",
+      "slug": "sweep-src-commentary-workflow-models-roles-playbook-cluster",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip refs from comments/docstrings",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Restyle: terse + history-free",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Remove refs from any user-facing strings here",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000308-sweep-src-commentary-workflow-models-roles-playbook-cluster.md",
+      "created_at": "2026-07-06T12:55:24Z",
+      "updated_at": "2026-07-06T13:21:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-308"
+    },
+    "309": {
+      "sequence_id": 309,
+      "type": "task",
+      "title": "Sweep src/ commentary: services/CLI/index/store cluster",
+      "slug": "sweep-src-commentary-services-cli-index-store-cluster",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip refs from comments/docstrings",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Restyle: terse + history-free",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Remove refs from CLI help/output strings",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000309-sweep-src-commentary-services-cli-index-store-cluster.md",
+      "created_at": "2026-07-06T12:55:25Z",
+      "updated_at": "2026-07-06T13:51:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-309"
+    },
+    "310": {
+      "sequence_id": 310,
+      "type": "task",
+      "title": "Strip squad-item refs from bundled TOML comments",
+      "slug": "strip-squad-item-refs-from-bundled-toml-comments",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip refs from TOML structural comments",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000310-strip-squad-item-refs-from-bundled-toml-comments.md",
+      "created_at": "2026-07-06T12:55:26Z",
+      "updated_at": "2026-07-06T13:21:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-310"
+    },
+    "311": {
+      "sequence_id": 311,
+      "type": "task",
+      "title": "Strip squad-item refs from docs/ and README (removal only)",
+      "slug": "strip-squad-item-refs-from-docs-and-readme-removal-only",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Remove refs from docs/README (no rewording)",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Preserve legit CLI-syntax / example payloads",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000311-strip-squad-item-refs-from-docs-and-readme-removal-only.md",
+      "created_at": "2026-07-06T12:55:26Z",
+      "updated_at": "2026-07-06T14:06:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-311"
+    },
+    "312": {
+      "sequence_id": 312,
+      "type": "task",
+      "title": "Strip squad-item refs from bundled prose + CLAUDE.md",
+      "slug": "strip-squad-item-refs-from-bundled-prose-claude-md",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip refs from bundled prose templates",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Verify/clean CLAUDE.md (removal only)",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5"
+        }
+      ],
+      "path": "tasks/TASK-000312-strip-squad-item-refs-from-bundled-prose-claude-md.md",
+      "created_at": "2026-07-06T12:55:27Z",
+      "updated_at": "2026-07-06T14:06:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-312"
+    },
+    "313": {
+      "sequence_id": 313,
+      "type": "task",
+      "title": "CI guard: forbid squad-item refs outside squads/**",
+      "slug": "ci-guard-forbid-squad-item-refs-outside-squads",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-237",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "labels": [],
+      "refs": [
+        "TASK-308:depends-on",
+        "TASK-309:depends-on",
+        "TASK-310:depends-on",
+        "TASK-311:depends-on",
+        "TASK-312:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Implement gate + wire into CI",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Tolerate legitimate id-shaped tokens",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Negative check: gate fails on a new ref",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000313-ci-guard-forbid-squad-item-refs-outside-squads.md",
+      "created_at": "2026-07-06T12:55:28Z",
+      "updated_at": "2026-07-06T14:32:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-313"
+    },
+    "328": {
+      "sequence_id": 328,
+      "type": "task",
+      "title": "Delete ItemType enum + RESERVED maps; spec-only type vocabulary",
+      "slug": "delete-itemtype-enum-reserved-maps-spec-only-type-vocabulary",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-326",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Delete ItemType + RESERVED_*/TYPE_ALIASES; prefix_for is spec-only",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Carry prefix on every Item frontmatter; spec-free id round-trip + load backfill",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Narrow type floor to three is_meta types; META_* constants for meta refs",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        },
+        {
+          "local_id": "ST4",
+          "title": "Freeze ItemType refs in all four migration runners to inline frozen local constants",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1"
+        }
+      ],
+      "path": "tasks/TASK-000328-delete-itemtype-enum-reserved-maps-spec-only-type-vocabulary.md",
+      "created_at": "2026-07-07T14:50:23Z",
+      "updated_at": "2026-07-08T13:55:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-328"
+    },
+    "329": {
+      "sequence_id": 329,
+      "type": "task",
+      "title": "Generic playbook + CLI type registration from spec.items",
+      "slug": "generic-playbook-cli-type-registration-from-spec-items",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-326",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Playbook keyed by str; coverage over work_types(); thin auto-skill fallback",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST2",
+          "title": "CLI registers all spec.items types dynamically in deterministic order",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        },
+        {
+          "local_id": "ST3",
+          "title": "SUBENTITY_* + sq check subtask literal rederive from spec",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3"
+        }
+      ],
+      "path": "tasks/TASK-000329-generic-playbook-cli-type-registration-from-spec-items.md",
+      "created_at": "2026-07-07T14:50:23Z",
+      "updated_at": "2026-07-08T11:36:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-329"
+    },
+    "330": {
+      "sequence_id": 330,
+      "type": "task",
+      "title": "Delete Status enum; narrow floor + completion-flag machine binding",
+      "slug": "delete-status-enum-narrow-floor-completion-flag-machine-bind",
+      "status": "Ready",
+      "description": "",
+      "parent": "FEAT-326",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Delete Status enum; narrow _RESERVED_FLOOR to Draft/Active/Archived + STATUS_* constants",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add completion flag + one-completion-per-machine validation; flag default_workflow.toml",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST3",
+          "title": "Sub-entity create=start state, done-toggle=completion status (no Status literals)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        },
+        {
+          "local_id": "ST4",
+          "title": "Freeze Status refs in _v0_4_to_v0_5.py + _meta_compat.py to inline frozen local status-name constants",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2"
+        }
+      ],
+      "path": "tasks/TASK-000330-delete-status-enum-narrow-floor-completion-flag-machine-bind.md",
+      "created_at": "2026-07-07T14:50:24Z",
+      "updated_at": "2026-07-08T11:40:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-330"
+    },
+    "331": {
+      "sequence_id": 331,
+      "type": "task",
+      "title": "Freeze migration vocabulary + additive prefix-line normalization",
+      "slug": "freeze-migration-vocabulary-additive-prefix-line-normalizati",
+      "status": "Ready",
+      "description": "",
+      "parent": "FEAT-326",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Additive prefix-line normalization pass wired into MIGRATIONS",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        },
+        {
+          "local_id": "ST2",
+          "title": "Assess/decide/record the SCHEMA_VERSION bump",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4"
+        }
+      ],
+      "path": "tasks/TASK-000331-freeze-migration-vocabulary-additive-prefix-line-normalizati.md",
+      "created_at": "2026-07-07T14:50:25Z",
+      "updated_at": "2026-07-08T12:50:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-331"
+    },
+    "332": {
+      "sequence_id": 332,
+      "type": "task",
+      "title": "Parallelize the pytest suite with pytest-xdist",
+      "slug": "parallelize-the-pytest-suite-with-pytest-xdist",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-231"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000332-parallelize-the-pytest-suite-with-pytest-xdist.md",
+      "created_at": "2026-07-08T08:43:08Z",
+      "updated_at": "2026-07-08T08:43:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-332"
+    },
+    "333": {
+      "sequence_id": 333,
+      "type": "task",
+      "title": "Code hygiene sweep: unused code + gratuitous import re-aliases",
+      "slug": "code-hygiene-sweep-unused-code-gratuitous-import-re-aliases",
+      "status": "Draft",
+      "description": "Delete dead code (ERA commented-out blocks, unused effective_prefix param) and strip pointless public->private import re-aliases; one sweep on the stable post-enum-removal tree",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "low",
+      "labels": [
+        "hygiene"
+      ],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000333-code-hygiene-sweep-unused-code-gratuitous-import-re-aliases.md",
+      "created_at": "2026-07-08T12:25:09Z",
+      "updated_at": "2026-07-08T13:42:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-333"
+    },
     "11": {
       "sequence_id": 11,
       "type": "bug",
@@ -6889,6 +8322,28 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-272"
+    },
+    "324": {
+      "sequence_id": 324,
+      "type": "bug",
+      "title": "gen_template_manifest.py breaks after BUG-213's importlib.metadata version fix",
+      "slug": "gen-template-manifest-py-breaks-after-bug-213-s-importlib-me",
+      "status": "Fixed",
+      "description": "The template-manifest generator parses squads/__init__.py as text to read __version__; it now returns the literal source line instead of a version string, breaking CI's manifest-freshness check and the release write-path.",
+      "parent": null,
+      "author": "devops",
+      "assignee": null,
+      "priority": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000324-gen-template-manifest-py-breaks-after-bug-213-s-importlib-me.md",
+      "created_at": "2026-07-07T13:06:59Z",
+      "updated_at": "2026-07-07T13:11:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-324"
     },
     "49": {
       "sequence_id": 49,
@@ -7775,6 +9230,131 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-282"
+    },
+    "295": {
+      "sequence_id": 295,
+      "type": "decision",
+      "title": "sq renumber pre-merge block-shift: CLI, boundary, disjointness, reflog",
+      "slug": "sq-renumber-pre-merge-block-shift-cli-boundary-disjointness",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-72",
+        "ADR-117",
+        "ADR-282",
+        "FEAT-288"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000295-sq-renumber-pre-merge-block-shift-cli-boundary-disjointness.md",
+      "created_at": "2026-07-05T21:01:35Z",
+      "updated_at": "2026-07-06T07:14:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-295"
+    },
+    "314": {
+      "sequence_id": 314,
+      "type": "decision",
+      "title": "Storage & id model for agent memory and the team bulletin board",
+      "slug": "storage-id-model-for-agent-memory-and-the-team-bulletin-boar",
+      "status": "Proposed",
+      "description": "Slug-file-per-memory + own lighter board store, both off the global counter and outside .squads.json",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "adrs/ADR-000314-storage-id-model-for-agent-memory-and-the-team-bulletin-boar.md",
+      "created_at": "2026-07-06T16:03:50Z",
+      "updated_at": "2026-07-06T16:03:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-314"
+    },
+    "320": {
+      "sequence_id": 320,
+      "type": "decision",
+      "title": "Introduce the contract (PRD) item type — the living functional contract",
+      "slug": "introduce-the-contract-prd-item-type-the-living-functional-c",
+      "status": "Proposed",
+      "description": "Add a first-class contract/PRD type: the living functional twin of the ADR set",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "adrs/ADR-000320-introduce-the-contract-prd-item-type-the-living-functional-c.md",
+      "created_at": "2026-07-07T08:32:44Z",
+      "updated_at": "2026-07-07T08:32:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-320"
+    },
+    "322": {
+      "sequence_id": 322,
+      "type": "decision",
+      "title": "Remove the ItemType and Status enums; the spec is the sole vocabulary authority",
+      "slug": "remove-the-itemtype-and-status-enums-the-spec-is-the-sole-vo",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-214",
+        "ADR-266",
+        "ADR-274",
+        "EPIC-280",
+        "ADR-232"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000322-remove-the-itemtype-and-status-enums-the-spec-is-the-sole-vo.md",
+      "created_at": "2026-07-07T09:37:31Z",
+      "updated_at": "2026-07-08T13:05:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-322"
+    },
+    "323": {
+      "sequence_id": 323,
+      "type": "decision",
+      "title": "Spec badges for priority/severity: reusable collections + relabeling fields",
+      "slug": "spec-badges-for-priority-severity-reusable-collections-relab",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-322:depends-on",
+        "ADR-214",
+        "ADR-232"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000323-spec-badges-for-priority-severity-reusable-collections-relab.md",
+      "created_at": "2026-07-07T10:00:07Z",
+      "updated_at": "2026-07-07T14:35:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-323"
     },
     "48": {
       "sequence_id": 48,
@@ -10285,6 +11865,138 @@
       "extra": {},
       "id": "REV-292"
     },
+    "293": {
+      "sequence_id": 293,
+      "type": "review",
+      "title": "Review: schema 0.5→0.7 unpadded-ID migration (TASK-291)",
+      "slug": "review-schema-0-5-0-7-unpadded-id-migration-task-291",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-291:addresses",
+        "FEAT-283"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Prose rewrite unpads padded IDs embedded in on-disk filename references, breaking them",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Subentity titles (frontmatter) are not unpadded — stays padded in rendered summary/head",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Custom (spec-declared) item types are skipped entirely by the runner",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000293-review-schema-0-5-0-7-unpadded-id-migration-task-291.md",
+      "created_at": "2026-07-04T23:01:42Z",
+      "updated_at": "2026-07-04T23:22:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-293"
+    },
+    "296": {
+      "sequence_id": 296,
+      "type": "review",
+      "title": "Review: relocate do-not-edit warning to agent-facing generated files (TASK-294)",
+      "slug": "review-relocate-do-not-edit-warning-to-agent-facing-generate",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-287"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "BackendContext.version now unread — vestigial after removing the skill-render kwargs",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000296-review-relocate-do-not-edit-warning-to-agent-facing-generate.md",
+      "created_at": "2026-07-05T21:24:58Z",
+      "updated_at": "2026-07-05T21:30:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-296"
+    },
+    "302": {
+      "sequence_id": 302,
+      "type": "review",
+      "title": "sq renumber core (TASK-297/298/299) vs ADR-295",
+      "slug": "sq-renumber-core-task-297-298-299-vs-adr-295",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-288:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "sq-item IDs embedded in source (worst: CLI --help)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Padded-filename seam test would pass even if filenames regressed to unpadded",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "renumber not wrapped in a single IndexStore.transaction()",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000302-sq-renumber-core-task-297-298-299-vs-adr-295.md",
+      "created_at": "2026-07-06T09:31:27Z",
+      "updated_at": "2026-07-06T09:56:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-302"
+    },
     "79": {
       "sequence_id": 79,
       "type": "guide",
@@ -10968,1678 +12680,6 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-10"
-    },
-    "293": {
-      "sequence_id": 293,
-      "type": "review",
-      "title": "Review: schema 0.5→0.7 unpadded-ID migration (TASK-291)",
-      "slug": "review-schema-0-5-0-7-unpadded-id-migration-task-291",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "TASK-291:addresses",
-        "FEAT-283"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "Prose rewrite unpads padded IDs embedded in on-disk filename references, breaking them",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "Subentity titles (frontmatter) are not unpadded — stays padded in rendered summary/head",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F3",
-          "title": "Custom (spec-declared) item types are skipped entirely by the runner",
-          "status": "WontFix",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000293-review-schema-0-5-0-7-unpadded-id-migration-task-291.md",
-      "created_at": "2026-07-04T23:01:42Z",
-      "updated_at": "2026-07-04T23:22:16Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "REV-293"
-    },
-    "294": {
-      "sequence_id": 294,
-      "type": "task",
-      "title": "Relocate do-not-edit warning to agent-facing generated files",
-      "slug": "relocate-do-not-edit-warning-to-agent-facing-generated-files",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-287",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-13",
-        "REV-296:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Remove redundant squad-skill do-not-edit marker and version stamp",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Add the warning inside CLAUDE.md and AGENTS.md managed regions",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST3",
-          "title": "Make .claude/ pointer files state the pointer itself is regenerated",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        },
-        {
-          "local_id": "ST4",
-          "title": "Document the tool-generated-warning rule as an AgentBackend contract",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US4"
-        }
-      ],
-      "path": "tasks/TASK-000294-relocate-do-not-edit-warning-to-agent-facing-generated-files.md",
-      "created_at": "2026-07-05T20:53:29Z",
-      "updated_at": "2026-07-05T21:31:11Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-294"
-    },
-    "295": {
-      "sequence_id": 295,
-      "type": "decision",
-      "title": "sq renumber pre-merge block-shift: CLI, boundary, disjointness, reflog",
-      "slug": "sq-renumber-pre-merge-block-shift-cli-boundary-disjointness",
-      "status": "Accepted",
-      "description": "",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-72",
-        "ADR-117",
-        "ADR-282",
-        "FEAT-288"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000295-sq-renumber-pre-merge-block-shift-cli-boundary-disjointness.md",
-      "created_at": "2026-07-05T21:01:35Z",
-      "updated_at": "2026-07-06T07:14:09Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "ADR-295"
-    },
-    "296": {
-      "sequence_id": 296,
-      "type": "review",
-      "title": "Review: relocate do-not-edit warning to agent-facing generated files (TASK-294)",
-      "slug": "review-relocate-do-not-edit-warning-to-agent-facing-generate",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-287"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "BackendContext.version now unread — vestigial after removing the skill-render kwargs",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000296-review-relocate-do-not-edit-warning-to-agent-facing-generate.md",
-      "created_at": "2026-07-05T21:24:58Z",
-      "updated_at": "2026-07-05T21:30:26Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "REV-296"
-    },
-    "297": {
-      "sequence_id": 297,
-      "type": "task",
-      "title": "Extract shared renumber executor from _renumber apply-path",
-      "slug": "extract-shared-renumber-executor-from-renumber-apply-path",
-      "status": "Done",
-      "description": "Lift rewrite_ids->rename->resync into one executor both verbs call",
-      "parent": "FEAT-288",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Reused apply-path executor drives repair --renumber unchanged",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US5"
-        }
-      ],
-      "path": "tasks/TASK-000297-extract-shared-renumber-executor-from-renumber-apply-path.md",
-      "created_at": "2026-07-06T08:47:56Z",
-      "updated_at": "2026-07-06T09:55:26Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-297"
-    },
-    "298": {
-      "sequence_id": 298,
-      "type": "task",
-      "title": "Disjoint block-shift offset planner (--from/--onto/--by)",
-      "slug": "disjoint-block-shift-offset-planner-from-onto-by",
-      "status": "Done",
-      "description": "Operator integers -> validated disjoint offset -> remap + padded renames",
-      "parent": "FEAT-288",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "TASK-297:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Offset lands the shifted block disjoint from both ranges",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Rename targets minted at filename padding, content unpadded",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US4"
-        }
-      ],
-      "path": "tasks/TASK-000298-disjoint-block-shift-offset-planner-from-onto-by.md",
-      "created_at": "2026-07-06T08:47:57Z",
-      "updated_at": "2026-07-06T09:55:27Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-298"
-    },
-    "299": {
-      "sequence_id": 299,
-      "type": "task",
-      "title": "Add sq renumber CLI verb wiring planner to executor",
-      "slug": "add-sq-renumber-cli-verb-wiring-planner-to-executor",
-      "status": "Done",
-      "description": "New top-level 1.0 verb; intent-preserving pre-merge shift; counter bump",
-      "parent": "FEAT-288",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "TASK-297:depends-on",
-        "TASK-298:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Pre-merge shift preserves referential intent",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000299-add-sq-renumber-cli-verb-wiring-planner-to-executor.md",
-      "created_at": "2026-07-06T08:47:57Z",
-      "updated_at": "2026-07-06T09:55:28Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-299"
-    },
-    "300": {
-      "sequence_id": 300,
-      "type": "task",
-      "title": "Append renumber reflog event; leave history literal",
-      "slug": "append-renumber-reflog-event-leave-history-literal",
-      "status": "Done",
-      "description": "One summary event; no in-place rewrite; verify inline-mention rewrite",
-      "parent": "FEAT-288",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "TASK-299:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Reflog + inline mentions rewritten; history left literal",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        }
-      ],
-      "path": "tasks/TASK-000300-append-renumber-reflog-event-leave-history-literal.md",
-      "created_at": "2026-07-06T08:47:58Z",
-      "updated_at": "2026-07-06T10:15:41Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-300"
-    },
-    "301": {
-      "sequence_id": 301,
-      "type": "task",
-      "title": "Coexistence docs: sq renumber vs repair --renumber",
-      "slug": "coexistence-docs-sq-renumber-vs-repair-renumber",
-      "status": "Done",
-      "description": "Preferred pre-merge vs fallback post-merge; FEAT-13 deferral note",
-      "parent": "FEAT-288",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "TASK-299:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Pre-merge shift and post-merge --renumber documented as complementary",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US5"
-        }
-      ],
-      "path": "tasks/TASK-000301-coexistence-docs-sq-renumber-vs-repair-renumber.md",
-      "created_at": "2026-07-06T08:47:59Z",
-      "updated_at": "2026-07-06T10:06:44Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-301"
-    },
-    "302": {
-      "sequence_id": 302,
-      "type": "review",
-      "title": "sq renumber core (TASK-297/298/299) vs ADR-295",
-      "slug": "sq-renumber-core-task-297-298-299-vs-adr-295",
-      "status": "Approved",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-288:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "sq-item IDs embedded in source (worst: CLI --help)",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "high",
-          "story": null
-        },
-        {
-          "local_id": "F2",
-          "title": "Padded-filename seam test would pass even if filenames regressed to unpadded",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        },
-        {
-          "local_id": "F3",
-          "title": "renumber not wrapped in a single IndexStore.transaction()",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "low",
-          "story": null
-        }
-      ],
-      "path": "reviews/REV-000302-sq-renumber-core-task-297-298-299-vs-adr-295.md",
-      "created_at": "2026-07-06T09:31:27Z",
-      "updated_at": "2026-07-06T09:56:17Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "REV-302"
-    },
-    "303": {
-      "sequence_id": 303,
-      "type": "task",
-      "title": "Add sq check for unwritten placeholder sub-entity bodies",
-      "slug": "add-sq-check-for-unwritten-placeholder-sub-entity-bodies",
-      "status": "Done",
-      "description": "New warn-level _check_* helper flagging any sub-entity body still equal to its kind placeholder",
-      "parent": "FEAT-289",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Add _check_unwritten_subentity_bodies helper + wire into check()",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Emit the check at warn severity per the recorded decision",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST3",
-          "title": "Tests: add-story stub is flagged, real body clears; CLI smoke",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000303-add-sq-check-for-unwritten-placeholder-sub-entity-bodies.md",
-      "created_at": "2026-07-06T11:37:22Z",
-      "updated_at": "2026-07-06T12:10:01Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-303"
-    },
-    "304": {
-      "sequence_id": 304,
-      "type": "task",
-      "title": "Sharpen sq-feature skill: story-body write as ordered DoD step",
-      "slug": "sharpen-sq-feature-skill-story-body-write-as-ordered-dod-ste",
-      "status": "Done",
-      "description": "Split body-writing into its own PO Do step + Watch-for DoD line in playbook.toml; regen via sq sync",
-      "parent": "FEAT-289",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Split story-body write into its own PO Do step in playbook.toml",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Add the Watch-for DoD line + regen skill via sq sync",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        }
-      ],
-      "path": "tasks/TASK-000304-sharpen-sq-feature-skill-story-body-write-as-ordered-dod-ste.md",
-      "created_at": "2026-07-06T11:37:24Z",
-      "updated_at": "2026-07-06T12:10:01Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-304"
-    },
-    "305": {
-      "sequence_id": 305,
-      "type": "task",
-      "title": "Document 'no status/lifecycle prose in bodies' convention in CLAUDE.md",
-      "slug": "document-no-status-lifecycle-prose-in-bodies-convention-in-c",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-264",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Write the convention paragraph in CLAUDE.md",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Resolve the repo CLAUDE.md ## Status section + record decision",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000305-document-no-status-lifecycle-prose-in-bodies-convention-in-c.md",
-      "created_at": "2026-07-06T12:13:32Z",
-      "updated_at": "2026-07-06T12:31:43Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-305"
-    },
-    "306": {
-      "sequence_id": 306,
-      "type": "task",
-      "title": "Add sq check rule flagging leading status/lifecycle banners in bodies",
-      "slug": "add-sq-check-rule-flagging-leading-status-lifecycle-banners",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-264",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-237"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Implement the leading-banner detector helper + wire into check",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Add positive + negative detector tests",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST3",
-          "title": "Reconcile broken fixtures/goldens without weakening the detector",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000306-add-sq-check-rule-flagging-leading-status-lifecycle-banners.md",
-      "created_at": "2026-07-06T12:13:33Z",
-      "updated_at": "2026-07-06T12:31:55Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-306"
-    },
-    "307": {
-      "sequence_id": 307,
-      "type": "task",
-      "title": "Sweep dogfood tree of existing status/lifecycle body banners",
-      "slug": "sweep-dogfood-tree-of-existing-status-lifecycle-body-banners",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-264",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "TASK-306:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Enumerate + clean flagged item bodies via the guard",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Verify markers/frontmatter intact after the sweep",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000307-sweep-dogfood-tree-of-existing-status-lifecycle-body-banners.md",
-      "created_at": "2026-07-06T12:13:33Z",
-      "updated_at": "2026-07-06T12:50:03Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-307"
-    },
-    "308": {
-      "sequence_id": 308,
-      "type": "task",
-      "title": "Sweep src/ commentary: workflow/models/roles/playbook cluster",
-      "slug": "sweep-src-commentary-workflow-models-roles-playbook-cluster",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-237",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "medium",
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Strip refs from comments/docstrings",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Restyle: terse + history-free",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST3",
-          "title": "Remove refs from any user-facing strings here",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US4"
-        }
-      ],
-      "path": "tasks/TASK-000308-sweep-src-commentary-workflow-models-roles-playbook-cluster.md",
-      "created_at": "2026-07-06T12:55:24Z",
-      "updated_at": "2026-07-06T13:21:30Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-308"
-    },
-    "309": {
-      "sequence_id": 309,
-      "type": "task",
-      "title": "Sweep src/ commentary: services/CLI/index/store cluster",
-      "slug": "sweep-src-commentary-services-cli-index-store-cluster",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-237",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "medium",
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Strip refs from comments/docstrings",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Restyle: terse + history-free",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST3",
-          "title": "Remove refs from CLI help/output strings",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US4"
-        }
-      ],
-      "path": "tasks/TASK-000309-sweep-src-commentary-services-cli-index-store-cluster.md",
-      "created_at": "2026-07-06T12:55:25Z",
-      "updated_at": "2026-07-06T13:51:15Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-309"
-    },
-    "310": {
-      "sequence_id": 310,
-      "type": "task",
-      "title": "Strip squad-item refs from bundled TOML comments",
-      "slug": "strip-squad-item-refs-from-bundled-toml-comments",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-237",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "medium",
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Strip refs from TOML structural comments",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000310-strip-squad-item-refs-from-bundled-toml-comments.md",
-      "created_at": "2026-07-06T12:55:26Z",
-      "updated_at": "2026-07-06T13:21:32Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-310"
-    },
-    "311": {
-      "sequence_id": 311,
-      "type": "task",
-      "title": "Strip squad-item refs from docs/ and README (removal only)",
-      "slug": "strip-squad-item-refs-from-docs-and-readme-removal-only",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-237",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "medium",
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Remove refs from docs/README (no rewording)",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US4"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Preserve legit CLI-syntax / example payloads",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US4"
-        }
-      ],
-      "path": "tasks/TASK-000311-strip-squad-item-refs-from-docs-and-readme-removal-only.md",
-      "created_at": "2026-07-06T12:55:26Z",
-      "updated_at": "2026-07-06T14:06:17Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-311"
-    },
-    "312": {
-      "sequence_id": 312,
-      "type": "task",
-      "title": "Strip squad-item refs from bundled prose + CLAUDE.md",
-      "slug": "strip-squad-item-refs-from-bundled-prose-claude-md",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-237",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "medium",
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Strip refs from bundled prose templates",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US5"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Verify/clean CLAUDE.md (removal only)",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US5"
-        }
-      ],
-      "path": "tasks/TASK-000312-strip-squad-item-refs-from-bundled-prose-claude-md.md",
-      "created_at": "2026-07-06T12:55:27Z",
-      "updated_at": "2026-07-06T14:06:18Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-312"
-    },
-    "313": {
-      "sequence_id": 313,
-      "type": "task",
-      "title": "CI guard: forbid squad-item refs outside squads/**",
-      "slug": "ci-guard-forbid-squad-item-refs-outside-squads",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-237",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "high",
-      "labels": [],
-      "refs": [
-        "TASK-308:depends-on",
-        "TASK-309:depends-on",
-        "TASK-310:depends-on",
-        "TASK-311:depends-on",
-        "TASK-312:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Implement gate + wire into CI",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US3"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Tolerate legitimate id-shaped tokens",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US3"
-        },
-        {
-          "local_id": "ST3",
-          "title": "Negative check: gate fails on a new ref",
-          "status": "Done",
-          "assignee": "python-dev",
-          "severity": null,
-          "story": "US3"
-        }
-      ],
-      "path": "tasks/TASK-000313-ci-guard-forbid-squad-item-refs-outside-squads.md",
-      "created_at": "2026-07-06T12:55:28Z",
-      "updated_at": "2026-07-06T14:32:05Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-313"
-    },
-    "314": {
-      "sequence_id": 314,
-      "type": "decision",
-      "title": "Storage & id model for agent memory and the team bulletin board",
-      "slug": "storage-id-model-for-agent-memory-and-the-team-bulletin-boar",
-      "status": "Proposed",
-      "description": "Slug-file-per-memory + own lighter board store, both off the global counter and outside .squads.json",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "adrs/ADR-000314-storage-id-model-for-agent-memory-and-the-team-bulletin-boar.md",
-      "created_at": "2026-07-06T16:03:50Z",
-      "updated_at": "2026-07-06T16:03:50Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "ADR-314"
-    },
-    "315": {
-      "sequence_id": 315,
-      "type": "feature",
-      "title": "Agent memory — committed per-role notebook surfaced at boot",
-      "slug": "agent-memory-committed-per-role-notebook-surfaced-at-boot",
-      "status": "Draft",
-      "description": "",
-      "parent": "EPIC-316",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-314:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As an agent, I can jot a small learned fact to my role's memory so it persists for future runs",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As an agent, my role's memory index is surfaced at boot so relevant facts don't slip past me",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As an agent, I can list, search, and show my role's memories to pull full content when relevant",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US4",
-          "title": "As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US5",
-          "title": "As a teammate, committed per-role memory arrives on checkout and merges cleanly across branches",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US6",
-          "title": "As an agent, the sq-memory skill teaches the memory workflow and curation discipline",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000315-agent-memory-committed-per-role-notebook-surfaced-at-boot.md",
-      "created_at": "2026-07-06T16:05:08Z",
-      "updated_at": "2026-07-06T16:08:52Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "FEAT-315"
-    },
-    "316": {
-      "sequence_id": 316,
-      "type": "epic",
-      "title": "Shared team knowledge — agent memory and the bulletin board",
-      "slug": "shared-team-knowledge-agent-memory-and-the-bulletin-board",
-      "status": "Draft",
-      "description": "",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "epics/EPIC-000316-shared-team-knowledge-agent-memory-and-the-bulletin-board.md",
-      "created_at": "2026-07-06T16:08:36Z",
-      "updated_at": "2026-07-06T16:08:52Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "EPIC-316"
-    },
-    "317": {
-      "sequence_id": 317,
-      "type": "feature",
-      "title": "Team bulletin board — broadcast notices with expiry",
-      "slug": "team-bulletin-board-broadcast-notices-with-expiry",
-      "status": "Draft",
-      "description": "",
-      "parent": "EPIC-316",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-314:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As any agent, current board notices are surfaced at the start of a run so I'm aware of standing notices",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As anyone, I can list current notices to see what's active",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US4",
-          "title": "As a lead or operator, I can clear a notice that no longer applies",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US5",
-          "title": "As an agent, a guiding skill teaches board posting discipline and the memory-vs-board boundary",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000317-team-bulletin-board-broadcast-notices-with-expiry.md",
-      "created_at": "2026-07-06T16:08:53Z",
-      "updated_at": "2026-07-06T16:09:55Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "FEAT-317"
-    },
-    "318": {
-      "sequence_id": 318,
-      "type": "feature",
-      "title": "Full-text search across item prose, with structured filters",
-      "slug": "full-text-search-across-item-prose-with-structured-filters",
-      "status": "Draft",
-      "description": "",
-      "parent": "EPIC-38",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As a steering user, I can search item prose by free text so I can find buried context",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As a steering user, results show where each match is and its authority so I can judge relevance",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As a steering user, I can narrow the search with structured filters so I can audit a slice",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US4",
-          "title": "As an agent, I can get search results as JSON so a session can act on them programmatically",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US5",
-          "title": "As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000318-full-text-search-across-item-prose-with-structured-filters.md",
-      "created_at": "2026-07-07T07:15:49Z",
-      "updated_at": "2026-07-07T07:16:52Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "FEAT-318"
-    },
-    "319": {
-      "sequence_id": 319,
-      "type": "feature",
-      "title": "MCP connector — drive a hosted squad from the Claude apps",
-      "slug": "mcp-connector-drive-a-hosted-squad-from-the-claude-apps",
-      "status": "Draft",
-      "description": "",
-      "parent": "EPIC-29",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-33"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As an operator, I can connect my hosted squad to a Claude app as a remote MCP connector via OAuth",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As an app, I get a small curated set of MCP tools for core squads operations, not every CLI verb",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As an operator, MCP access is authenticated and scoped to my squad",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US4",
-          "title": "As a maintainer, the MCP endpoint is a third frontend over the service layer, matching CLI behaviour",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000319-mcp-connector-drive-a-hosted-squad-from-the-claude-apps.md",
-      "created_at": "2026-07-07T08:01:07Z",
-      "updated_at": "2026-07-07T08:01:50Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "FEAT-319"
-    },
-    "320": {
-      "sequence_id": 320,
-      "type": "decision",
-      "title": "Introduce the contract (PRD) item type — the living functional contract",
-      "slug": "introduce-the-contract-prd-item-type-the-living-functional-c",
-      "status": "Proposed",
-      "description": "Add a first-class contract/PRD type: the living functional twin of the ADR set",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "adrs/ADR-000320-introduce-the-contract-prd-item-type-the-living-functional-c.md",
-      "created_at": "2026-07-07T08:32:44Z",
-      "updated_at": "2026-07-07T08:32:44Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "ADR-320"
-    },
-    "321": {
-      "sequence_id": 321,
-      "type": "feature",
-      "title": "The contract (PRD) item type — a living functional source of truth",
-      "slug": "the-contract-prd-item-type-a-living-functional-source-of-tru",
-      "status": "Draft",
-      "description": "",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-320:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "As a team, I can create and manage contract items (PRD prefix) like any other item type",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "As a reader, a contract describes what the product does for a user right now, from the user's POV",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US4",
-          "title": "As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US5",
-          "title": "As an existing squad, sq migrate up adds the contracts folder and bumps the schema to 0.8",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000321-the-contract-prd-item-type-a-living-functional-source-of-tru.md",
-      "created_at": "2026-07-07T08:33:54Z",
-      "updated_at": "2026-07-07T08:34:43Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "FEAT-321"
-    },
-    "322": {
-      "sequence_id": 322,
-      "type": "decision",
-      "title": "Remove the ItemType and Status enums; the spec is the sole vocabulary authority",
-      "slug": "remove-the-itemtype-and-status-enums-the-spec-is-the-sole-vo",
-      "status": "Accepted",
-      "description": "",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-214",
-        "ADR-266",
-        "ADR-274",
-        "EPIC-280",
-        "ADR-232"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000322-remove-the-itemtype-and-status-enums-the-spec-is-the-sole-vo.md",
-      "created_at": "2026-07-07T09:37:31Z",
-      "updated_at": "2026-07-07T14:35:18Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "ADR-322"
-    },
-    "323": {
-      "sequence_id": 323,
-      "type": "decision",
-      "title": "Spec badges for priority/severity: reusable collections + relabeling fields",
-      "slug": "spec-badges-for-priority-severity-reusable-collections-relab",
-      "status": "Accepted",
-      "description": "",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-322:depends-on",
-        "ADR-214",
-        "ADR-232"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-000323-spec-badges-for-priority-severity-reusable-collections-relab.md",
-      "created_at": "2026-07-07T10:00:07Z",
-      "updated_at": "2026-07-07T14:35:18Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "ADR-323"
-    },
-    "324": {
-      "sequence_id": 324,
-      "type": "bug",
-      "title": "gen_template_manifest.py breaks after BUG-213's importlib.metadata version fix",
-      "slug": "gen-template-manifest-py-breaks-after-bug-213-s-importlib-me",
-      "status": "Fixed",
-      "description": "The template-manifest generator parses squads/__init__.py as text to read __version__; it now returns the literal source line instead of a version string, breaking CI's manifest-freshness check and the release write-path.",
-      "parent": null,
-      "author": "devops",
-      "assignee": null,
-      "priority": "high",
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "bugs/BUG-000324-gen-template-manifest-py-breaks-after-bug-213-s-importlib-me.md",
-      "created_at": "2026-07-07T13:06:59Z",
-      "updated_at": "2026-07-07T13:11:17Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "BUG-324"
-    },
-    "325": {
-      "sequence_id": 325,
-      "type": "epic",
-      "title": "Complete the generic item engine",
-      "slug": "complete-the-generic-item-engine",
-      "status": "InProgress",
-      "description": "Finish the spec-is-sole-vocabulary arc: generic types/statuses/sub-entity kinds/badges, reserved surface = meta-types + agent-lifecycle only",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "EPIC-206",
-        "ADR-322",
-        "ADR-323",
-        "EPIC-280",
-        "FEAT-231"
-      ],
-      "subentities": [],
-      "path": "epics/EPIC-000325-complete-the-generic-item-engine.md",
-      "created_at": "2026-07-07T14:37:01Z",
-      "updated_at": "2026-07-08T08:30:13Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "EPIC-325"
-    },
-    "326": {
-      "sequence_id": 326,
-      "type": "feature",
-      "title": "Remove the ItemType + Status enums — generic item engine",
-      "slug": "remove-the-itemtype-status-enums-generic-item-engine",
-      "status": "InProgress",
-      "description": "Delete ItemType/Status enums; spec becomes sole type+status vocabulary; reserved floor = meta-types + agent-lifecycle only",
-      "parent": "EPIC-325",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-322:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Full self-service type vocabulary in spec",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "Statuses become ordinary spec vocabulary",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "Playbook + CLI register types generically",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US4",
-          "title": "Unmodified default squad behaves identically",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000326-remove-the-itemtype-status-enums-generic-item-engine.md",
-      "created_at": "2026-07-07T14:37:36Z",
-      "updated_at": "2026-07-08T08:25:48Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "FEAT-326"
-    },
-    "327": {
-      "sequence_id": 327,
-      "type": "feature",
-      "title": "Spec badge collections for priority/severity",
-      "slug": "spec-badge-collections-for-priority-severity",
-      "status": "Ready",
-      "description": "Priority/Severity enums -> spec badge collections; Collection/Field/Badge model; CLI derives --<field> generically",
-      "parent": "EPIC-325",
-      "author": "product-owner",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "ADR-323:implements",
-        "FEAT-326:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Priority/severity become spec badge collections",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US2",
-          "title": "CLI derives filter/sort/badges from fields",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US3",
-          "title": "Bug severity migration preserves data",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        },
-        {
-          "local_id": "US4",
-          "title": "Spec load fails closed on bad field decls",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null
-        }
-      ],
-      "path": "features/FEAT-000327-spec-badge-collections-for-priority-severity.md",
-      "created_at": "2026-07-07T14:38:59Z",
-      "updated_at": "2026-07-08T08:30:14Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "FEAT-327"
-    },
-    "328": {
-      "sequence_id": 328,
-      "type": "task",
-      "title": "Delete ItemType enum + RESERVED maps; spec-only type vocabulary",
-      "slug": "delete-itemtype-enum-reserved-maps-spec-only-type-vocabulary",
-      "status": "Ready",
-      "description": "",
-      "parent": "FEAT-326",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Delete ItemType + RESERVED_*/TYPE_ALIASES; prefix_for is spec-only",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Carry prefix on every Item frontmatter; spec-free id round-trip + load backfill",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        },
-        {
-          "local_id": "ST3",
-          "title": "Narrow type floor to three is_meta types; META_* constants for meta refs",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US1"
-        }
-      ],
-      "path": "tasks/TASK-000328-delete-itemtype-enum-reserved-maps-spec-only-type-vocabulary.md",
-      "created_at": "2026-07-07T14:50:23Z",
-      "updated_at": "2026-07-08T08:30:14Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-328"
-    },
-    "329": {
-      "sequence_id": 329,
-      "type": "task",
-      "title": "Generic playbook + CLI type registration from spec.items",
-      "slug": "generic-playbook-cli-type-registration-from-spec-items",
-      "status": "Done",
-      "description": "",
-      "parent": "FEAT-326",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Playbook keyed by str; coverage over work_types(); thin auto-skill fallback",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        },
-        {
-          "local_id": "ST2",
-          "title": "CLI registers all spec.items types dynamically in deterministic order",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        },
-        {
-          "local_id": "ST3",
-          "title": "SUBENTITY_* + sq check subtask literal rederive from spec",
-          "status": "Done",
-          "assignee": null,
-          "severity": null,
-          "story": "US3"
-        }
-      ],
-      "path": "tasks/TASK-000329-generic-playbook-cli-type-registration-from-spec-items.md",
-      "created_at": "2026-07-07T14:50:23Z",
-      "updated_at": "2026-07-08T11:36:12Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-329"
-    },
-    "330": {
-      "sequence_id": 330,
-      "type": "task",
-      "title": "Delete Status enum; narrow floor + completion-flag machine binding",
-      "slug": "delete-status-enum-narrow-floor-completion-flag-machine-bind",
-      "status": "Ready",
-      "description": "",
-      "parent": "FEAT-326",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Delete Status enum; narrow _RESERVED_FLOOR to Draft/Active/Archived + STATUS_* constants",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Add completion flag + one-completion-per-machine validation; flag default_workflow.toml",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        },
-        {
-          "local_id": "ST3",
-          "title": "Sub-entity create=start state, done-toggle=completion status (no Status literals)",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US2"
-        }
-      ],
-      "path": "tasks/TASK-000330-delete-status-enum-narrow-floor-completion-flag-machine-bind.md",
-      "created_at": "2026-07-07T14:50:24Z",
-      "updated_at": "2026-07-08T08:30:15Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-330"
-    },
-    "331": {
-      "sequence_id": 331,
-      "type": "task",
-      "title": "Freeze migration vocabulary + additive prefix-line normalization",
-      "slug": "freeze-migration-vocabulary-additive-prefix-line-normalizati",
-      "status": "Ready",
-      "description": "",
-      "parent": "FEAT-326",
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Inline frozen local vocab constants in all historical migration runners",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US4"
-        },
-        {
-          "local_id": "ST2",
-          "title": "Additive prefix-line normalization pass; assess/decide SCHEMA_VERSION bump",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": "US4"
-        }
-      ],
-      "path": "tasks/TASK-000331-freeze-migration-vocabulary-additive-prefix-line-normalizati.md",
-      "created_at": "2026-07-07T14:50:25Z",
-      "updated_at": "2026-07-08T08:30:15Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-331"
-    },
-    "332": {
-      "sequence_id": 332,
-      "type": "task",
-      "title": "Parallelize the pytest suite with pytest-xdist",
-      "slug": "parallelize-the-pytest-suite-with-pytest-xdist",
-      "status": "Draft",
-      "description": "",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": null,
-      "priority": null,
-      "labels": [],
-      "refs": [
-        "FEAT-231"
-      ],
-      "subentities": [],
-      "path": "tasks/TASK-000332-parallelize-the-pytest-suite-with-pytest-xdist.md",
-      "created_at": "2026-07-08T08:43:08Z",
-      "updated_at": "2026-07-08T08:43:23Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-332"
     }
   }
 }

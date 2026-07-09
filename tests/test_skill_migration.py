@@ -10,7 +10,6 @@ from pathlib import Path
 import pytest
 
 from squads._migrations._v0_4_to_v0_5 import migrate as migrate_v0_4_to_v0_5
-from squads._models._enums import ItemType
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
 from squads._sections import split_frontmatter
@@ -48,7 +47,7 @@ async def test_migration_stamps_all_bundled_skills(tmp_path, monkeypatch, frozen
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
 
     # Before migration: skill files exist with slug names and have no id.
-    skills_dir = paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = paths.squad_dir / "agents/skills"
     for slug in bundled_skill_slugs():
         md = skills_dir / f"{slug}.md"
         if md.is_file():
@@ -86,7 +85,7 @@ async def test_migration_idempotent(tmp_path, monkeypatch, frozen_time):
     assert first > 0
 
     # Capture convention filenames + ids after first run.
-    skills_dir = paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = paths.squad_dir / "agents/skills"
     ids_after_first: dict[str, str] = {}
     for md in sorted(skills_dir.glob("SKILL-*.md")):
         fm, _ = split_frontmatter(md.read_text(encoding="utf-8"))
@@ -117,7 +116,7 @@ async def test_repair_after_migration_rebuilds_cleanly(tmp_path, monkeypatch, fr
     assert not errors, f"sq check produced errors after migration+repair: {errors}"
 
     # All stamped skills must be findable via list.
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    skills = await svc.list_items(item_type="skill")
     assert len(skills) > 0, "sq list -t skill must be non-empty after migration+repair"
 
 
@@ -134,7 +133,7 @@ async def test_migration_lexical_ordering_parity_with_init(tmp_path, monkeypatch
     result_a = await service.init(root=dir_a, roles_spec="minimal")
     svc_a = service.Service(result_a.paths)
     init_skills = sorted(
-        await svc_a.list_items(item_type=ItemType.SKILL),
+        await svc_a.list_items(item_type="skill"),
         key=lambda s: s.sequence_id,
     )
     init_slugs = [sk.slug for sk in init_skills]
@@ -148,7 +147,7 @@ async def test_migration_lexical_ordering_parity_with_init(tmp_path, monkeypatch
     svc_b = service.Service(result_b.paths)
     await svc_b.repair()
     migrated_skills = sorted(
-        await svc_b.list_items(item_type=ItemType.SKILL),
+        await svc_b.list_items(item_type="skill"),
         key=lambda s: s.sequence_id,
     )
     migrated_slugs = [sk.slug for sk in migrated_skills]
@@ -230,7 +229,7 @@ async def seeded_paths(tmp_path, monkeypatch, frozen_time):
 async def test_sq_skill_show_renders_skill(seeded_paths, invoke):
     """sq skill <n> show renders the skill's id, slug, status, and body (FEAT-178 AC US1)."""
     svc = service.Service(seeded_paths)
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    skills = await svc.list_items(item_type="skill")
     assert skills, "need at least one seeded skill"
     sk = skills[0]
 
@@ -244,7 +243,7 @@ async def test_sq_skill_show_renders_skill(seeded_paths, invoke):
 async def test_sq_skill_show_json(seeded_paths, invoke):
     """sq skill <n> show --json emits valid JSON with id, slug, status."""
     svc = service.Service(seeded_paths)
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    skills = await svc.list_items(item_type="skill")
     assert skills
     sk = skills[0]
 
@@ -259,8 +258,8 @@ async def test_sq_skill_show_json(seeded_paths, invoke):
 async def test_ref_add_skill_from_task(seeded_paths, invoke):
     """sq task ref add SKILL-… succeeds and the ref appears in sq task refs (AC US1)."""
     svc = service.Service(seeded_paths)
-    task = (await svc.create(ItemType.TASK, "Ref test task")).item
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    task = (await svc.create("task", "Ref test task")).item
+    skills = await svc.list_items(item_type="skill")
     assert skills
     sk = skills[0]
 
@@ -276,8 +275,8 @@ async def test_ref_add_skill_from_task(seeded_paths, invoke):
 async def test_ref_backref_appears_on_skill(seeded_paths, invoke):
     """Backref from task → skill appears in sq skill refs --in (forward-edges-only invariant)."""
     svc = service.Service(seeded_paths)
-    task = (await svc.create(ItemType.TASK, "Backref test task")).item
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    task = (await svc.create("task", "Backref test task")).item
+    skills = await svc.list_items(item_type="skill")
     assert skills
     sk = skills[0]
 
@@ -293,8 +292,8 @@ async def test_ref_backref_appears_on_skill(seeded_paths, invoke):
 async def test_ref_round_trip_from_feature(seeded_paths, invoke):
     """sq feature ref add SKILL-… round-trip: ref appears forward + backref on skill."""
     svc = service.Service(seeded_paths)
-    feat = (await svc.create(ItemType.FEATURE, "Ref test feature")).item
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    feat = (await svc.create("feature", "Ref test feature")).item
+    skills = await svc.list_items(item_type="skill")
     assert skills
     sk = skills[0]
 
@@ -323,7 +322,7 @@ async def test_migration_renames_already_stamped_slug_file(tmp_path, monkeypatch
     from squads._interactions import bundled_skill_slugs
 
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    skills_dir = paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = paths.squad_dir / "agents/skills"
 
     # Manually stamp one skill file without renaming it (simulate partial prior migration).
     slug = bundled_skill_slugs()[0]
@@ -374,7 +373,7 @@ async def test_migration_rename_pointer_resolves(tmp_path, monkeypatch, frozen_t
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
     await migrate_v0_4_to_v0_5(paths)
 
-    skills_dir = paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = paths.squad_dir / "agents/skills"
     claude_skills = paths.root / ".claude" / "skills"
 
     for slug in bundled_skill_slugs():
@@ -409,7 +408,7 @@ async def test_init_skill_files_use_convention_name(tmp_path, monkeypatch, froze
 
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
-    skills_dir = result.paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = result.paths.squad_dir / "agents/skills"
     claude_skills = result.paths.root / ".claude" / "skills"
 
     for slug in bundled_skill_slugs():
@@ -449,7 +448,7 @@ async def test_migration_stamps_description_on_unstamped_file(tmp_path, monkeypa
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
     await migrate_v0_4_to_v0_5(paths)
 
-    skills_dir = paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = paths.squad_dir / "agents/skills"
     for slug in bundled_skill_slugs():
         convention = list(skills_dir.glob(f"SKILL-*-{slug}.md"))
         if not convention:
@@ -474,7 +473,7 @@ async def test_migration_backfills_description_on_already_stamped_convention_fil
     await migrate_v0_4_to_v0_5(paths)
 
     # Simulate the pre-TASK-204 state: wipe descriptions from convention files.
-    skills_dir = paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = paths.squad_dir / "agents/skills"
     for slug in bundled_skill_slugs():
         convention = list(skills_dir.glob(f"SKILL-*-{slug}.md"))
         if not convention:
@@ -514,7 +513,7 @@ async def test_migration_backfill_idempotent(tmp_path, monkeypatch, frozen_time)
     assert second == 0, "second migration run with descriptions present must be 0 (idempotent)"
 
     # Verify ids are unchanged.
-    skills_dir = paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = paths.squad_dir / "agents/skills"
     ids: set[str] = set()
     for slug in bundled_skill_slugs():
         convention = list(skills_dir.glob(f"SKILL-*-{slug}.md"))
@@ -558,10 +557,10 @@ async def test_double_sync_preserves_skill_ids_and_filenames(tmp_path, monkeypat
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
     svc = service.Service(result.paths)
-    skills_dir = result.paths.squad_dir / ItemType.SKILL.folder
+    skills_dir = result.paths.squad_dir / "agents/skills"
 
     # Snapshot after init.
-    skills = await svc.list_items(item_type=ItemType.SKILL)
+    skills = await svc.list_items(item_type="skill")
     before_ids = {sk.slug: sk.id for sk in skills}
     before_seqs = {sk.slug: sk.sequence_id for sk in skills}
     before_names: dict[str, str] = {}
@@ -581,7 +580,7 @@ async def test_double_sync_preserves_skill_ids_and_filenames(tmp_path, monkeypat
 
     # Second sync.
     await svc.sync()
-    skills_after = await svc.list_items(item_type=ItemType.SKILL)
+    skills_after = await svc.list_items(item_type="skill")
     after_ids = {sk.slug: sk.id for sk in skills_after}
     after_seqs = {sk.slug: sk.sequence_id for sk in skills_after}
     assert before_ids == after_ids, "double sync must not change skill ids"

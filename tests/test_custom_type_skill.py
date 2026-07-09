@@ -22,7 +22,6 @@ from squads._interactions import (
     custom_item_skill_commands,
     custom_skill_slugs,
 )
-from squads._models._enums import ItemType
 from squads._sections import split_frontmatter
 from squads._services import _service as service
 from squads._workflow import linearize_lifecycle
@@ -267,7 +266,7 @@ async def test_seed_custom_skills_allocates_skill_id(tmp_path, monkeypatch, froz
     await svc.sync()
 
     # The index should contain a SKILL item with slug='sq-incident'.
-    skill_items = await svc.list_items(item_type=ItemType.SKILL)
+    skill_items = await svc.list_items(item_type="skill")
     slugs = {it.extra.get("slug") for it in skill_items}
     assert "sq-incident" in slugs, f"sq-incident not in SKILL items; found: {slugs}"
 
@@ -282,7 +281,7 @@ async def test_seed_custom_skills_is_idempotent(tmp_path, monkeypatch, frozen_ti
 
     await svc.sync()
 
-    skill_items_after_first = await svc.list_items(item_type=ItemType.SKILL)
+    skill_items_after_first = await svc.list_items(item_type="skill")
     incident_count_after_first = sum(
         1 for it in skill_items_after_first if it.extra.get("slug") == "sq-incident"
     )
@@ -292,7 +291,7 @@ async def test_seed_custom_skills_is_idempotent(tmp_path, monkeypatch, frozen_ti
 
     # Second sync must not create duplicate SKILL entries.
     await svc.sync()
-    skill_items_after_second = await svc.list_items(item_type=ItemType.SKILL)
+    skill_items_after_second = await svc.list_items(item_type="skill")
     incident_count_after_second = sum(
         1 for it in skill_items_after_second if it.extra.get("slug") == "sq-incident"
     )
@@ -322,7 +321,7 @@ async def test_custom_skill_id_allocation_order(tmp_path, monkeypatch, frozen_ti
 
     await svc.sync()  # seeds custom skills
 
-    skill_items = await svc.list_items(item_type=ItemType.SKILL)
+    skill_items = await svc.list_items(item_type="skill")
     by_slug = {it.extra.get("slug"): it for it in skill_items if it.extra.get("slug")}
 
     bundled = bundled_skill_slugs()
@@ -351,7 +350,7 @@ async def test_bundled_skills_unchanged_after_custom_type_sync(
 
     # Capture bundled skill sequence ids before adding a custom type.
     svc_bundled = service.Service(paths)
-    skills_before = await svc_bundled.list_items(item_type=ItemType.SKILL)
+    skills_before = await svc_bundled.list_items(item_type="skill")
     seq_before = {it.extra.get("slug"): it.sequence_id for it in skills_before}
 
     # Now sync with the spec that includes the custom incident type.
@@ -359,7 +358,7 @@ async def test_bundled_skills_unchanged_after_custom_type_sync(
     svc_custom = service.Service(paths, spec=spec)
     await svc_custom.sync()
 
-    skills_after = await svc_custom.list_items(item_type=ItemType.SKILL)
+    skills_after = await svc_custom.list_items(item_type="skill")
     seq_after = {it.extra.get("slug"): it.sequence_id for it in skills_after}
 
     # All bundled skill sequence ids must be unchanged.

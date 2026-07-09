@@ -44,7 +44,7 @@ from squads import _sections as sections
 from squads._backends._claude_code._frontmatter import oneline
 from squads._index._store import IndexStore
 from squads._interactions import bundled_skill_slugs, skill_description
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import SquadPaths
@@ -53,6 +53,13 @@ from squads._rendering._engine import render
 _CLAUDE_DIR = ".claude"
 _SKILLS = "skills"
 _SKILL_FILE = "SKILL.md"
+
+# Frozen v0.4/v0.5 "skill" vocabulary — the type-name/prefix/folder literals as they existed
+# at this schema version. NEVER derive this from the live spec/enum: a migration is a
+# point-in-time snapshot — the live spec/enum must never be re-introduced here.
+_SKILL_TYPE = "skill"
+_SKILL_PREFIX = "SKILL"
+_SKILL_FOLDER = "agents/skills"
 
 MANUAL = """\
 ## Schema 0.4 → 0.5 — SKILL ids and filename convention for existing squads
@@ -86,7 +93,7 @@ def _convention_name(slug: str, item_id: str, padding: int) -> str:
     from squads._paths import number_for_id
 
     seq = number_for_id(item_id)
-    return f"{ItemType.SKILL.prefix}-{seq:0{padding}d}-{slug}.md"
+    return f"{_SKILL_PREFIX}-{seq:0{padding}d}-{slug}.md"
 
 
 async def _rewrite_pointer(
@@ -150,7 +157,7 @@ async def _rename_stamped_legacy(
     new_name = _convention_name(slug, item_id, padding)
     new_path = skills_folder / new_name
     await _aio.path_rename(legacy_path, new_path)
-    squad_rel = paths.squad_relative(ItemType.SKILL, new_name)
+    squad_rel = f"{_SKILL_FOLDER}/{new_name}"
     fm["path"] = squad_rel
     if not fm.get("description"):  # fill-if-empty: don't clobber an operator edit
         fm["description"] = desc
@@ -172,7 +179,7 @@ async def migrate(paths: SquadPaths) -> int:
 
     Returns the count of files acted on (stampings + renames + backfills).
     """
-    skills_folder = paths.folder_for(ItemType.SKILL)
+    skills_folder = paths.squad_dir / _SKILL_FOLDER
     if not skills_folder.is_dir():
         return 0
 
@@ -189,7 +196,7 @@ async def migrate(paths: SquadPaths) -> int:
         squad_dir_rel = str(paths.squad_dir.relative_to(paths.root))
 
         # Check for an already-convention-named file (normal post-migration state).
-        existing_convention = list(skills_folder.glob(f"{ItemType.SKILL.prefix}-*-{slug}.md"))
+        existing_convention = list(skills_folder.glob(f"{_SKILL_PREFIX}-*-{slug}.md"))
         if existing_convention:
             updated = await _backfill_description(
                 paths, slug, existing_convention[0], desc, squad_dir_rel
@@ -215,12 +222,13 @@ async def migrate(paths: SquadPaths) -> int:
             async with store.transaction() as db:
                 # item_id is the padded filename stem (allocate_id formats at db.padding);
                 # deliberately NOT the unpadded displayed Item.id.
-                item_id = db.allocate_id(ItemType.SKILL)
+                item_id = db.allocate_id(_SKILL_TYPE, prefix=_SKILL_PREFIX)
                 new_name = _convention_name(slug, item_id, db.padding)
-                squad_rel = paths.squad_relative(ItemType.SKILL, new_name)
+                squad_rel = f"{_SKILL_FOLDER}/{new_name}"
                 item = Item(
                     sequence_id=db.counter,
-                    type=ItemType.SKILL,
+                    type=_SKILL_TYPE,
+                    prefix=_SKILL_PREFIX,
                     title=slug,
                     slug=slug,
                     status=Status.ACTIVE,

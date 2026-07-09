@@ -31,8 +31,8 @@ Filenames are untouched (already width-padded and stay so — no renames, no pat
 beyond what the trailing ``sq repair`` already does after every migration batch runs).
 
 Custom (spec-declared) item types are **not** covered — :func:`_iter_files` only walks the
-built-in :class:`ItemType` folders, matching every other runner in this package (none of them
-thread the active spec). See ``MANUAL`` below.
+built-in type folders (frozen local constants, not the live spec), matching every other
+runner in this package (none of them thread the active spec). See ``MANUAL`` below.
 
 Idempotent: once every id/ref/parent/mention is unpadded, the discovery map is empty and the
 second pass is a no-op.
@@ -45,7 +45,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-from squads._models._enums import ItemType
 from squads._models._item import (
     DISPLAY_ID_PADDING,
     format_item_id,
@@ -58,6 +57,22 @@ from squads._sections import join_frontmatter, split_frontmatter
 #: Fenced code blocks (```…```, DOTALL so they can span lines) or inline code spans (`…`,
 #: single line). Tried in this order so a fenced block is not mistaken for two inline spans.
 _CODE_SPAN_RE = re.compile(r"(```.*?```|`[^`\n]*`)", re.DOTALL)
+
+# Frozen v0.5/v0.7 built-in type vocabulary — the prefix/folder literals as they existed at
+# this schema version. NEVER derive this from the live spec/enum: a migration is a
+# point-in-time snapshot — the live spec/enum must never be re-introduced here.
+_TYPES: tuple[tuple[str, str], ...] = (
+    ("EPIC", "epics"),
+    ("FEAT", "features"),
+    ("TASK", "tasks"),
+    ("BUG", "bugs"),
+    ("ADR", "adrs"),
+    ("REV", "reviews"),
+    ("GUIDE", "guides"),
+    ("ROLE", "agents/roles"),
+    ("SKILL", "agents/skills"),
+    ("OP", "operators"),
+)
 
 MANUAL = """\
 ## Schema 0.5 → 0.7 — unpadded display IDs
@@ -142,14 +157,14 @@ def _rewrite_mentions(body: str, id_map: dict[str, str]) -> str:
     return "".join(parts)
 
 
-def _iter_files(paths: SquadPaths) -> list[tuple[Path, ItemType]]:
-    """Every item file across the built-in type folders, as (path, item_type) pairs."""
-    files: list[tuple[Path, ItemType]] = []
-    for item_type in ItemType:
-        folder = paths.folder_for(item_type)
+def _iter_files(paths: SquadPaths) -> list[tuple[Path, str]]:
+    """Every item file across the built-in type folders, as (path, prefix) pairs."""
+    files: list[tuple[Path, str]] = []
+    for prefix, folder_name in _TYPES:
+        folder = paths.squad_dir / folder_name
         if not folder.is_dir():
             continue
-        files.extend((md, item_type) for md in sorted(folder.glob(f"{item_type.prefix}-*.md")))
+        files.extend((md, prefix) for md in sorted(folder.glob(f"{prefix}-*.md")))
     return files
 
 
@@ -164,7 +179,7 @@ def migrate(paths: SquadPaths) -> int:
     # map from each item's own current frontmatter id, before anything is rewritten.
     raw: dict[Path, str] = {}
     id_map: dict[str, str] = {}
-    for md, item_type in files:
+    for md, prefix in files:
         text = md.read_text(encoding="utf-8")
         raw[md] = text
         fm, _ = split_frontmatter(text)
@@ -172,19 +187,19 @@ def migrate(paths: SquadPaths) -> int:
         seq = fm.get("sequence_id")
         if not old_id or seq is None:
             continue
-        new_id = format_item_id(item_type.prefix, int(seq), DISPLAY_ID_PADDING)
+        new_id = format_item_id(prefix, int(seq), DISPLAY_ID_PADDING)
         if new_id != old_id:
             id_map[str(old_id)] = new_id
 
     # Pass 2 — rewrite: structural frontmatter fields, then bounded/fence-skipping prose.
     changed = 0
-    for md, item_type in files:
+    for md, prefix in files:
         text = raw[md]
         fm, body = split_frontmatter(text)
         if "id" not in fm or "sequence_id" not in fm:
             continue  # unstamped file — nothing to unpad
 
-        fm["id"] = format_item_id(item_type.prefix, int(fm["sequence_id"]), DISPLAY_ID_PADDING)
+        fm["id"] = format_item_id(prefix, int(fm["sequence_id"]), DISPLAY_ID_PADDING)
         if fm.get("parent"):
             fm["parent"] = _unpad_ref(str(fm["parent"]))
         if fm.get("refs"):

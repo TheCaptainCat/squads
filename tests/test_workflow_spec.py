@@ -14,12 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import EXPECTED_BUILTIN_STATUS_BADGES
-from squads._models._enums import (
-    ItemType,
-    Status,
-)
-from squads._models._vocab import RESERVED_FOLDER, RESERVED_PREFIX
+from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX, BUILTIN_TYPES, EXPECTED_BUILTIN_STATUS_BADGES
+from squads._errors import SquadsError
+from squads._models._enums import Status
 from squads._workflow import (
     ALLOWED_PARENTS,
     SUBENTITY_WORKFLOWS,
@@ -140,19 +137,19 @@ _SUBENTITY_SNAPSHOT: dict[str, dict[str, object]] = {
 }
 
 
-def _lifecycle_name_for(item_type: ItemType) -> str:
-    """Return the expected lifecycle name for each ItemType (mirrors the TOML assignment)."""
-    _LIFECYCLE_BY_TYPE: dict[ItemType, str] = {
-        ItemType.EPIC: "work",
-        ItemType.FEATURE: "work",
-        ItemType.TASK: "work",
-        ItemType.BUG: "bug",
-        ItemType.DECISION: "adr",
-        ItemType.REVIEW: "review",
-        ItemType.GUIDE: "guide",
-        ItemType.ROLE: "agent",
-        ItemType.SKILL: "agent",
-        ItemType.OPERATOR: "agent",
+def _lifecycle_name_for(item_type: str) -> str:
+    """Return the expected lifecycle name for each built-in type (mirrors the TOML assignment)."""
+    _LIFECYCLE_BY_TYPE: dict[str, str] = {
+        "epic": "work",
+        "feature": "work",
+        "task": "work",
+        "bug": "bug",
+        "decision": "adr",
+        "review": "review",
+        "guide": "guide",
+        "role": "agent",
+        "skill": "agent",
+        "operator": "agent",
     }
     return _LIFECYCLE_BY_TYPE[item_type]
 
@@ -169,9 +166,9 @@ def test_spec_loads_without_error(spec: WorkflowSpec) -> None:
 
 
 def test_golden_type_set(spec: WorkflowSpec) -> None:
-    """Every ItemType must be present in the spec — enums-intact (ADR §5-6a)."""
-    assert set(spec.items) == set(ItemType), (
-        f"spec item set {set(spec.items)!r} != set(ItemType) {set(ItemType)!r}"
+    """Every built-in type must be present in the bundled spec (no-override characterization)."""
+    assert set(spec.items) == set(BUILTIN_TYPES), (
+        f"spec item set {set(spec.items)!r} != {set(BUILTIN_TYPES)!r}"
     )
 
 
@@ -183,14 +180,14 @@ def test_golden_status_set(spec: WorkflowSpec) -> None:
 
 
 def test_golden_prefixes_and_folders(spec: WorkflowSpec) -> None:
-    """Each item type's prefix and folder match the reserved built-in vocab exactly."""
-    for t in ItemType:
+    """Each item type's prefix and folder match the built-in vocab exactly."""
+    for t in BUILTIN_TYPES:
         ts = spec.items[t]
-        assert ts.prefix == RESERVED_PREFIX[t], (
-            f"{t!r}: spec prefix {ts.prefix!r} != {RESERVED_PREFIX[t]!r}"
+        assert ts.prefix == BUILTIN_PREFIX[t], (
+            f"{t!r}: spec prefix {ts.prefix!r} != {BUILTIN_PREFIX[t]!r}"
         )
-        assert ts.folder == RESERVED_FOLDER[t], (
-            f"{t!r}: spec folder {ts.folder!r} != {RESERVED_FOLDER[t]!r}"
+        assert ts.folder == BUILTIN_FOLDER[t], (
+            f"{t!r}: spec folder {ts.folder!r} != {BUILTIN_FOLDER[t]!r}"
         )
 
 
@@ -210,16 +207,16 @@ def test_golden_aliases(spec: WorkflowSpec) -> None:
         "review": ["r", "rev"],
         "guide": ["g"],
     }
-    for t in ItemType:
+    for t in BUILTIN_TYPES:
         ts = spec.items[t]
-        expected = _EXPECTED_ALIASES.get(str(t), [])
+        expected = _EXPECTED_ALIASES.get(t, [])
         actual = sorted(ts.aliases)
         assert actual == expected, f"{t!r}: spec aliases {actual!r} != {expected!r}"
 
 
 def test_golden_allowed_parents(spec: WorkflowSpec) -> None:
     """Each item type's parents list matches today's ALLOWED_PARENTS exactly."""
-    for t in ItemType:
+    for t in BUILTIN_TYPES:
         ts = spec.items[t]
         # ALLOWED_PARENTS only contains types WITH constraints; absent = unconstrained (empty).
         expected = ALLOWED_PARENTS.get(t, set())
@@ -229,7 +226,7 @@ def test_golden_allowed_parents(spec: WorkflowSpec) -> None:
 
 def test_golden_lifecycle_assignments(spec: WorkflowSpec) -> None:
     """Each item type uses the expected named lifecycle (mirrors WORKFLOWS assignment)."""
-    for t in ItemType:
+    for t in BUILTIN_TYPES:
         expected_lifecycle = _lifecycle_name_for(t)
         ts = spec.items[t]
         assert ts.lifecycle == expected_lifecycle, (
@@ -256,7 +253,7 @@ def test_golden_lifecycles_initial_and_transitions(spec: WorkflowSpec) -> None:
 
 def test_golden_workflow_shim_matches_lifecycles(spec: WorkflowSpec) -> None:
     """WORKFLOWS shim has identical initial/transitions to the spec lifecycles."""
-    for t in ItemType:
+    for t in BUILTIN_TYPES:
         wf = WORKFLOWS[t]
         m = spec.machine_for(t)
         assert wf.initial == m.initial, (
@@ -389,29 +386,47 @@ async def test_sq_workflow_cli_unchanged(invoke) -> None:  # type: ignore[no-unt
 
 
 # ---------------------------------------------------------------------------
-# TASK-000235: reserved-vocab subset — negative tests (ADR-000232 §5-6a/b)
-# A custom spec that OMITS any reserved ItemType or Status member must fail
-# closed with a SquadsError at construction time.
+# TASK-000235 / ADR-322 §2: reserved-vocab subset — negative tests.
+# Only the three meta-types are floor-enforced; a custom spec that omits a non-meta
+# (work) type is now accepted (TASK-000328 narrowed the floor). Status floor
+# (TASK-000330's scope) is unaffected — still fails closed on omission.
 # ---------------------------------------------------------------------------
 
 
-def test_reserved_vocab_omit_item_type_fails_closed(spec: WorkflowSpec) -> None:
-    """A spec missing one reserved ItemType raises SquadsError (§5-6a fail-closed).
+def test_omitting_a_work_type_is_now_allowed(spec: WorkflowSpec) -> None:
+    """Dropping a non-meta type no longer raises (ADR-322 narrows the floor to the three
+    meta-types only).
 
-    Drops 'epic' from the items dict — WorkflowSpec._validate must detect it.
+    Drops 'guide', which has no back-references from any other type's ``parents`` — this
+    isolates the floor-membership behavior from the separate parent-reference check.
     """
-    from squads._errors import SquadsError
+    items_without_guide = {k: v for k, v in spec.items.items() if k != "guide"}
+    assert "guide" not in items_without_guide  # sanity
 
-    items_without_epic = {k: v for k, v in spec.items.items() if k != "epic"}
-    assert "epic" not in items_without_epic  # sanity
+    result = WorkflowSpec.model_validate(
+        {
+            "items": items_without_guide,
+            "statuses": spec.statuses,
+            "lifecycles": spec.lifecycles,
+            "prefix_to_type": {p: t for p, t in spec.prefix_to_type.items() if t != "guide"},
+            "alias_to_type": spec.alias_to_type,
+        }
+    )
+    assert "guide" not in result.items
 
-    with pytest.raises(SquadsError, match="spec missing reserved ItemType members"):
+
+def test_omitting_a_meta_type_still_fails_closed(spec: WorkflowSpec) -> None:
+    """A spec missing a meta-type (role/skill/operator) still raises SquadsError (ADR-322 §2)."""
+    items_without_role = {k: v for k, v in spec.items.items() if k != "role"}
+    assert "role" not in items_without_role  # sanity
+
+    with pytest.raises(SquadsError, match="spec missing required meta-types"):
         WorkflowSpec.model_validate(
             {
-                "items": items_without_epic,
+                "items": items_without_role,
                 "statuses": spec.statuses,
                 "lifecycles": spec.lifecycles,
-                "prefix_to_type": {p: t for p, t in spec.prefix_to_type.items() if t != "epic"},
+                "prefix_to_type": {p: t for p, t in spec.prefix_to_type.items() if t != "role"},
                 "alias_to_type": spec.alias_to_type,
             }
         )
@@ -473,9 +488,8 @@ def test_non_reserved_status_omission_is_allowed(spec: WorkflowSpec) -> None:
         "WontFix": StatusSpec(terminal=True),
     }
 
-    # Add all the other Status members needed by the ItemType enum members' reserved check
-    # (§5-6a requires all ItemType members, but §5-1/§5-2 requires all referenced statuses).
-    # Use a lifecycle that only touches floor statuses so 'Ready' is never referenced.
+    # §5-1/§5-2 requires every referenced status to be declared. Use a lifecycle that only
+    # touches floor statuses so 'Ready' is never referenced.
     minimal_lifecycle = Lifecycle(
         initial="Draft",
         transitions={"Draft": ["Done"], "Done": []},
@@ -510,16 +524,13 @@ def test_non_reserved_status_omission_is_allowed(spec: WorkflowSpec) -> None:
     # statuses), so §5-1/§5-2 won't flag the omission.
     all_statuses = {**floor_statuses}  # no 'Ready'
 
-    # Every ItemType member must be in items (§5-6a); assign minimal or agent lifecycle.
-    _META_TYPES = {"role", "skill", "operator"}
+    # Only the three meta-types are floor-required (ADR-322 §2); 'task' is declared too so
+    # minimal_lifecycle has a real work-type consumer.
     items_map = {
-        t.value: ItemSpec(
-            prefix=t.prefix,
-            folder=t.folder,
-            lifecycle="agent" if t.value in _META_TYPES else "minimal",
-            is_meta=(t.value in _META_TYPES),
-        )
-        for t in ItemType
+        "task": ItemSpec(prefix="TASK", folder="tasks", lifecycle="minimal", is_meta=False),
+        "role": ItemSpec(prefix="ROLE", folder="agents/roles", lifecycle="agent", is_meta=True),
+        "skill": ItemSpec(prefix="SKILL", folder="agents/skills", lifecycle="agent", is_meta=True),
+        "operator": ItemSpec(prefix="OP", folder="operators", lifecycle="agent", is_meta=True),
     }
 
     # No SquadsError should be raised — 'Ready' is absent but is not a floor status.
@@ -534,7 +545,7 @@ def test_non_reserved_status_omission_is_allowed(spec: WorkflowSpec) -> None:
                 "story": subentity_lifecycle,
                 "finding": finding_lifecycle,
             },
-            "prefix_to_type": {t.prefix: t.value for t in ItemType},
+            "prefix_to_type": {ts.prefix: name for name, ts in items_map.items()},
             "alias_to_type": {},
         }
     )

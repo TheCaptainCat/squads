@@ -38,9 +38,10 @@ import pytest
 
 from squads._cli import app
 from squads._errors import SquadsError
-from squads._models._enums import WORK_TYPES, ItemType, Status
+from squads._models._enums import Status
 from squads._services._base import SUBENTITY_KIND
 from squads._workflow import ALLOWED_PARENTS, parent_hint
+from squads._workflow import work_types as _work_types
 
 pytestmark = pytest.mark.anyio
 
@@ -52,19 +53,19 @@ pytestmark = pytest.mark.anyio
 
 def test_meta_types_not_in_work_types() -> None:
     """role, skill, operator are excluded from WORK_TYPES; the 7 work types are all present."""
-    assert ItemType.ROLE not in WORK_TYPES
-    assert ItemType.SKILL not in WORK_TYPES
-    assert ItemType.OPERATOR not in WORK_TYPES
+    assert "role" not in _work_types()
+    assert "skill" not in _work_types()
+    assert "operator" not in _work_types()
     expected_work = {
-        ItemType.EPIC,
-        ItemType.FEATURE,
-        ItemType.TASK,
-        ItemType.BUG,
-        ItemType.DECISION,
-        ItemType.REVIEW,
-        ItemType.GUIDE,
+        "epic",
+        "feature",
+        "task",
+        "bug",
+        "decision",
+        "review",
+        "guide",
     }
-    assert set(WORK_TYPES) == expected_work
+    assert set(_work_types()) == expected_work
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +77,7 @@ async def test_role_may_self_author_bootstrap(svc) -> None:
     """A role item may author itself (self-author bypass for bootstrap)."""
     # ROLE-000001 is the manager role seeded by the minimal-init fixture; it authored itself.
     role = await svc.get("ROLE-000001")
-    assert role.type == ItemType.ROLE
+    assert role.type == "role"
     # Creating a new role (or operator) with author == its own slug is allowed.
     await svc.activate_role("tech-lead")  # uses slug == author internally
 
@@ -88,13 +89,13 @@ async def test_skill_may_self_author_bootstrap(svc) -> None:
     # At least one skill was seeded successfully.
     assert len(seeded) >= 1
     for item in seeded:
-        assert item.type == ItemType.SKILL
+        assert item.type == "skill"
 
 
 async def test_work_item_with_unregistered_author_rejected(svc) -> None:
     """A work item whose author is not a registered participant is rejected."""
     with pytest.raises(SquadsError, match="not a registered agent or operator"):
-        await svc.create(ItemType.TASK, "t", author="ghost-dev")
+        await svc.create("task", "t", author="ghost-dev")
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +110,7 @@ async def test_skill_file_without_skill_prefix_silently_skipped_in_scan(svc) -> 
     are treated as legacy body files, not errors.
     """
     # Create a legacy-style skill body file with no frontmatter id.
-    skills_folder = svc.paths.squad_dir / ItemType.SKILL.folder
+    skills_folder = svc.paths.squad_dir / "agents/skills"
     skills_folder.mkdir(parents=True, exist_ok=True)
     (skills_folder / "some-skill.md").write_text(
         "---\ntitle: some-skill\n---\n# some skill\n", encoding="utf-8"
@@ -122,7 +123,7 @@ async def test_skill_file_without_skill_prefix_silently_skipped_in_scan(svc) -> 
 
 async def test_skill_file_with_skill_prefix_but_no_id_reported_as_error(svc) -> None:
     """A SKILL-prefixed file missing its frontmatter id is a real error (not silently skipped)."""
-    skills_folder = svc.paths.squad_dir / ItemType.SKILL.folder
+    skills_folder = svc.paths.squad_dir / "agents/skills"
     skills_folder.mkdir(parents=True, exist_ok=True)
     (skills_folder / "SKILL-badfile.md").write_text(
         "---\ntitle: broken\n---\n# broken\n", encoding="utf-8"
@@ -158,7 +159,7 @@ async def test_skill_body_set_rejected(svc) -> None:
 
 async def test_regen_on_task_raises(svc) -> None:
     """svc.regen() raises for non-role/skill types."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     with pytest.raises(SquadsError, match="only roles/skills have entries"):
         await svc.regen(task.id)
 
@@ -168,7 +169,7 @@ async def test_regen_on_role_succeeds(svc) -> None:
     role = await svc.get("ROLE-000001")
     # Regen on a role should not raise even when no backend is active.
     result = await svc.regen(role.id)
-    assert result.type == ItemType.ROLE
+    assert result.type == "role"
 
 
 # ---------------------------------------------------------------------------
@@ -180,8 +181,8 @@ def test_work_type_commands_registered_in_app(runner) -> None:
     """Each WORK_TYPE has a named command registered on the root app."""
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for t in WORK_TYPES:
-        assert t.value in result.output, f"{t.value} command missing from sq --help"
+    for t in _work_types():
+        assert t in result.output, f"{t} command missing from sq --help"
 
 
 def test_meta_type_commands_not_as_type_commands(runner) -> None:
@@ -190,9 +191,9 @@ def test_meta_type_commands_not_as_type_commands(runner) -> None:
     # sq operator), which is correct. But there is NO generic `sq role <n> show` work-item path.
     # This test verifies that meta-types are absent from WORK_TYPES (the loop that registers
     # the generic sq <type> app).
-    assert ItemType.ROLE not in WORK_TYPES
-    assert ItemType.SKILL not in WORK_TYPES
-    assert ItemType.OPERATOR not in WORK_TYPES
+    assert "role" not in _work_types()
+    assert "skill" not in _work_types()
+    assert "operator" not in _work_types()
 
 
 # ---------------------------------------------------------------------------
@@ -203,28 +204,28 @@ def test_meta_type_commands_not_as_type_commands(runner) -> None:
 async def test_retype_refuses_role_source(svc) -> None:
     """Retyping a role (meta-type) is refused with 'only work items can be retyped'."""
     with pytest.raises(SquadsError, match="only work items can be retyped"):
-        await svc.retype("ROLE-000001", ItemType.TASK)
+        await svc.retype("ROLE-000001", "task")
 
 
 async def test_retype_refuses_role_target(svc) -> None:
     """Retyping TO a meta-type is refused."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     with pytest.raises(SquadsError, match="target must be a work type"):
-        await svc.retype(task.id, ItemType.ROLE)
+        await svc.retype(task.id, "role")
 
 
 async def test_retype_refuses_skill_target(svc) -> None:
     """Retyping TO skill (meta-type) is refused."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     with pytest.raises(SquadsError, match="target must be a work type"):
-        await svc.retype(task.id, ItemType.SKILL)
+        await svc.retype(task.id, "skill")
 
 
 async def test_retype_refuses_operator_target(svc) -> None:
     """Retyping TO operator (meta-type) is refused."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     with pytest.raises(SquadsError, match="target must be a work type"):
-        await svc.retype(task.id, ItemType.OPERATOR)
+        await svc.retype(task.id, "operator")
 
 
 # ---------------------------------------------------------------------------
@@ -234,34 +235,34 @@ async def test_retype_refuses_operator_target(svc) -> None:
 
 async def test_task_parent_feature_allowed(svc) -> None:
     """A task may be parented to a feature."""
-    feat = (await svc.create(ItemType.FEATURE, "f")).item
-    task = (await svc.create(ItemType.TASK, "t", parent=feat.id)).item
+    feat = (await svc.create("feature", "f")).item
+    task = (await svc.create("task", "t", parent=feat.id)).item
     assert task.parent == feat.id
 
 
 async def test_task_parent_epic_refused(svc) -> None:
     """A task may NOT be parented to an epic."""
-    epic = (await svc.create(ItemType.EPIC, "e")).item
+    epic = (await svc.create("epic", "e")).item
     with pytest.raises(SquadsError, match="must be of type feature"):
-        await svc.create(ItemType.TASK, "t", parent=epic.id)
+        await svc.create("task", "t", parent=epic.id)
 
 
 async def test_task_parent_bug_refused(svc) -> None:
     """A task may NOT be parented to a bug."""
-    bug = (await svc.create(ItemType.BUG, "b")).item
+    bug = (await svc.create("bug", "b")).item
     with pytest.raises(SquadsError, match="must be of type feature"):
-        await svc.create(ItemType.TASK, "t", parent=bug.id)
+        await svc.create("task", "t", parent=bug.id)
 
 
 async def test_task_allowed_parents_set(svc) -> None:
     """ALLOWED_PARENTS for task contains only feature."""
-    assert ALLOWED_PARENTS.get(ItemType.TASK) == {ItemType.FEATURE}
+    assert ALLOWED_PARENTS.get("task") == {"feature"}
 
 
 async def test_epic_bug_decision_have_no_parent_constraint(svc) -> None:
     """Epic, bug, and decision have no parent constraint (unconstrained)."""
-    for t in (ItemType.EPIC, ItemType.BUG, ItemType.DECISION, ItemType.REVIEW, ItemType.GUIDE):
-        assert t not in ALLOWED_PARENTS, f"{t.value} should be unconstrained"
+    for t in ("epic", "bug", "decision", "review", "guide"):
+        assert t not in ALLOWED_PARENTS, f"{t} should be unconstrained"
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +272,7 @@ async def test_epic_bug_decision_have_no_parent_constraint(svc) -> None:
 
 def test_parent_hint_for_task_mentions_feature_and_ref_add() -> None:
     """parent_hint for task names 'feature' AND includes the 'sq ref add … fixes|addresses' hint."""
-    hint = parent_hint(ItemType.TASK)
+    hint = parent_hint("task")
     assert "feature" in hint
     assert "sq ref add" in hint
     assert "fixes|addresses" in hint or "fixes" in hint
@@ -279,7 +280,7 @@ def test_parent_hint_for_task_mentions_feature_and_ref_add() -> None:
 
 def test_parent_hint_for_feature_does_not_mention_ref_add() -> None:
     """parent_hint for feature names 'epic' but does NOT include the ref-add hint."""
-    hint = parent_hint(ItemType.FEATURE)
+    hint = parent_hint("feature")
     assert "epic" in hint
     assert "sq ref add" not in hint
 
@@ -291,7 +292,7 @@ def test_parent_hint_for_feature_does_not_mention_ref_add() -> None:
 
 async def test_feature_hosts_stories_not_subtasks(svc) -> None:
     """add_story succeeds on a feature; add_subtask is refused."""
-    feat = (await svc.create(ItemType.FEATURE, "f")).item
+    feat = (await svc.create("feature", "f")).item
     result = await svc.add_story(feat.id, "user can log in")
     assert result.local_id == "US1"
     # add_subtask on a feature should fail (feature hosts stories, not subtasks)
@@ -301,7 +302,7 @@ async def test_feature_hosts_stories_not_subtasks(svc) -> None:
 
 async def test_task_hosts_subtasks_not_stories(svc) -> None:
     """add_subtask succeeds on a task; add_story is refused."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     result = await svc.add_subtask(task.id, "implement it")
     assert result.local_id == "ST1"
     # add_story on a task should fail (task hosts subtasks, not stories)
@@ -311,7 +312,7 @@ async def test_task_hosts_subtasks_not_stories(svc) -> None:
 
 async def test_review_hosts_findings_not_stories(svc) -> None:
     """add_finding succeeds on a review; add_story is refused."""
-    rev = (await svc.create(ItemType.REVIEW, "r")).item
+    rev = (await svc.create("review", "r")).item
     result = await svc.add_finding(rev.id, "null deref")
     assert result.local_id == "F1"
     # add_story on a review should fail
@@ -322,13 +323,13 @@ async def test_review_hosts_findings_not_stories(svc) -> None:
 def test_subentity_kind_map_covers_exactly_feature_task_review() -> None:
     """SUBENTITY_KIND maps exactly {feature→story, task→subtask, review→finding}."""
     assert SUBENTITY_KIND == {
-        ItemType.FEATURE: "story",
-        ItemType.TASK: "subtask",
-        ItemType.REVIEW: "finding",
+        "feature": "story",
+        "task": "subtask",
+        "review": "finding",
     }
     # epic/bug/decision/guide are NOT in the map.
-    for t in (ItemType.EPIC, ItemType.BUG, ItemType.DECISION, ItemType.GUIDE):
-        assert t not in SUBENTITY_KIND, f"{t.value} should not be in SUBENTITY_KIND"
+    for t in ("epic", "bug", "decision", "guide"):
+        assert t not in SUBENTITY_KIND, f"{t} should not be in SUBENTITY_KIND"
 
 
 # ---------------------------------------------------------------------------
@@ -338,7 +339,7 @@ def test_subentity_kind_map_covers_exactly_feature_task_review() -> None:
 
 async def test_bug_show_includes_severity_row(svc, invoke) -> None:
     """sq bug <n> show includes a 'severity:' row; a task show does not."""
-    bug = (await svc.create(ItemType.BUG, "null-ptr")).item
+    bug = (await svc.create("bug", "null-ptr")).item
     # Set severity on the bug item via extra.
     await svc.update(bug.id, set_extra={"severity": "high"})
 
@@ -346,7 +347,7 @@ async def test_bug_show_includes_severity_row(svc, invoke) -> None:
     assert r.exit_code == 0, r.output
     assert "severity" in r.output
 
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     r2 = await invoke(["task", str(task.sequence_id), "show"])
     assert r2.exit_code == 0, r2.output
     assert "severity" not in r2.output
@@ -359,7 +360,7 @@ async def test_bug_show_includes_severity_row(svc, invoke) -> None:
 
 async def test_superseded_decision_without_incoming_edge_warns(svc) -> None:
     """A decision with status Superseded but no incoming supersedes edge → sq check warns."""
-    dec = (await svc.create(ItemType.DECISION, "d", status=Status.ACCEPTED)).item
+    dec = (await svc.create("decision", "d", status=Status.ACCEPTED)).item
     # Force status to Superseded without creating an incoming supersedes edge.
     await svc.set_status(dec.id, Status.SUPERSEDED, force=True)
 
@@ -372,10 +373,10 @@ async def test_superseded_decision_without_incoming_edge_warns(svc) -> None:
 
 async def test_superseded_decision_with_incoming_edge_is_clean(svc) -> None:
     """A decision with status Superseded AND an incoming supersedes edge → sq check is clean."""
-    old_dec = (await svc.create(ItemType.DECISION, "old", status=Status.ACCEPTED)).item
+    old_dec = (await svc.create("decision", "old", status=Status.ACCEPTED)).item
     await svc.set_status(old_dec.id, Status.SUPERSEDED, force=True)
 
-    new_dec = (await svc.create(ItemType.DECISION, "new", status=Status.ACCEPTED)).item
+    new_dec = (await svc.create("decision", "new", status=Status.ACCEPTED)).item
     await svc.add_ref(new_dec.id, old_dec.id, kind="supersedes")
 
     issues = await svc.check()
@@ -395,7 +396,7 @@ async def test_non_decision_superseded_not_checked(svc) -> None:
     # Guide has a terminal status 'Deprecated', decision has 'Superseded'.
     # Force a task into Superseded status (bypassing workflow); sq check should not
     # emit a supersedes-edge warning for it (the check is decision-only).
-    dec = (await svc.create(ItemType.DECISION, "adr")).item
+    dec = (await svc.create("decision", "adr")).item
     # Also create a task; tasks don't have a Superseded status so we use the decision
     # to prove the filtering: only decisions get the supersedes check.
     issues = await svc.check()
@@ -415,9 +416,9 @@ async def test_non_decision_superseded_not_checked(svc) -> None:
 
 async def test_check_flags_subtask_story_mapping_with_wrong_parent(svc) -> None:
     """sq check errors when a subtask maps to a story but the task has no feature parent."""
-    feat = (await svc.create(ItemType.FEATURE, "f")).item
+    feat = (await svc.create("feature", "f")).item
     await svc.add_story(feat.id, "login")  # US1
-    task = (await svc.create(ItemType.TASK, "t", parent=feat.id)).item
+    task = (await svc.create("task", "t", parent=feat.id)).item
     await svc.add_subtask(task.id, "impl", story="US1")
 
     # Remove the parent link to break the spine.
@@ -437,20 +438,20 @@ async def test_check_flags_subtask_story_mapping_with_wrong_parent(svc) -> None:
 
 async def test_retype_different_workflow_resets_status(svc) -> None:
     """Retyping between different workflows resets status to the new type's initial."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     await svc.set_status(task.id, Status.IN_PROGRESS)
 
-    res = await svc.retype(task.id, ItemType.BUG)
+    res = await svc.retype(task.id, "bug")
     assert res.status_reset, "expected status reset when crossing workflow boundary"
     assert res.item.status == Status.OPEN  # bug initial is Open
 
 
 async def test_retype_same_workflow_carries_status(svc) -> None:
     """Retyping within the same workflow carries status unchanged."""
-    feat = (await svc.create(ItemType.FEATURE, "f")).item
+    feat = (await svc.create("feature", "f")).item
     await svc.set_status(feat.id, Status.READY)
 
-    res = await svc.retype(feat.id, ItemType.EPIC)
+    res = await svc.retype(feat.id, "epic")
     assert not res.status_reset, "expected status carried when same workflow"
     assert res.item.status == Status.READY
 
@@ -462,7 +463,7 @@ async def test_retype_same_workflow_carries_status(svc) -> None:
 
 async def test_repair_rebuilds_index_from_frontmatter(svc) -> None:
     """repair() reconstructs the full index from on-disk frontmatter."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     # Corrupt the index by wiping it.
     await svc.store.overwrite(__import__("squads._models._index", fromlist=["SquadsDB"]).SquadsDB())
     # After repair, the task should be back in the index.
@@ -480,21 +481,21 @@ async def test_skill_slug_not_valid_as_author(svc) -> None:
     seeded = await svc.seed_bundled_skills()
     skill_slug = seeded[0].extra.get("slug", seeded[0].slug)
     with pytest.raises(SquadsError, match="not a registered agent or operator"):
-        await svc.create(ItemType.TASK, "t", author=skill_slug)
+        await svc.create("task", "t", author=skill_slug)
 
 
 async def test_skill_slug_not_valid_as_assignee(svc) -> None:
     """A skill slug is not a valid assignee (only role and operator slugs are)."""
     seeded = await svc.seed_bundled_skills()
     skill_slug = seeded[0].extra.get("slug", seeded[0].slug)
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     with pytest.raises(SquadsError, match="not a registered agent or operator"):
         await svc.update(task.id, assignee=skill_slug)
 
 
 async def test_role_slug_valid_as_author_and_assignee(svc) -> None:
     """A role slug IS a valid author and assignee."""
-    feat = (await svc.create(ItemType.FEATURE, "f")).item
+    feat = (await svc.create("feature", "f")).item
     task = await svc.update(feat.id, assignee="manager")
     assert task.assignee == "manager"
 
@@ -524,12 +525,12 @@ def test_subentity_kind_derived_from_subentity_parent() -> None:
 async def test_operator_may_self_author_bootstrap(svc) -> None:
     """add_operator succeeds without 'unregistered agent' error (operator self-author bypass).
 
-    Pins the `item_type in (ItemType.ROLE, ItemType.SKILL, ItemType.OPERATOR)` membership
+    Pins the `item_type in ("role", "skill", "operator")` membership
     check in _base._check_author.  Under str-typing (TASK-235) this becomes
     `"operator" in {...}` — must still pass.
     """
     op = await svc.add_operator("Test Person", slug="op-testperson")
-    assert op.type == ItemType.OPERATOR
+    assert op.type == "operator"
     assert op.author == "op-testperson"  # self-authored
 
 
@@ -543,13 +544,13 @@ async def test_workload_excludes_role_and_skill_items(svc) -> None:
 
     Pins the `it.type in _NON_WORK_TYPES` membership check in _roster.workload,
     where _NON_WORK_TYPES = {ROLE, SKILL, OPERATOR}.  Under str-typing (TASK-235)
-    `"role" in {ItemType.ROLE, ...}` must still match.
+    `"role" in {"role", ...}` must still match.
     """
     # Seed a skill so there are role + skill items to check.
     await svc.seed_bundled_skills()
 
     # Create a work item assigned to the manager role so the workload is non-empty.
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     await svc.update(task.id, assignee="manager")
 
     rows = await svc.workload()
@@ -566,11 +567,7 @@ async def test_workload_excludes_role_and_skill_items(svc) -> None:
 
     # Count work items directly (excluding meta-types).
     db = await svc.store.load()
-    work_count = sum(
-        1
-        for it in db.items.values()
-        if it.type not in (ItemType.ROLE, ItemType.SKILL, ItemType.OPERATOR)
-    )
+    work_count = sum(1 for it in db.items.values() if it.type not in ("role", "skill", "operator"))
     assert total_from_workload == work_count, (
         f"workload total {total_from_workload} != work item count {work_count};"
         f" meta-type items are leaking into workload counts. rows: {rows}"

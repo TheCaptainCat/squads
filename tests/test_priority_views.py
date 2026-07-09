@@ -3,7 +3,7 @@
 import pytest
 
 from squads._itemfile import read_frontmatter
-from squads._models._enums import ItemType, Priority, Status
+from squads._models._enums import Priority, Status
 
 pytestmark = pytest.mark.anyio
 
@@ -11,20 +11,20 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_create_with_priority_writes_frontmatter(svc):
-    res = await svc.create(ItemType.TASK, "Token validation", priority=Priority.HIGH)
+    res = await svc.create("task", "Token validation", priority=Priority.HIGH)
     assert res.item.priority is Priority.HIGH
     fm = read_frontmatter(res.path)
     assert fm["priority"] == "high"
 
 
 async def test_create_without_priority_omits_it(svc):
-    res = await svc.create(ItemType.TASK, "no prio")
+    res = await svc.create("task", "no prio")
     assert res.item.priority is None
     assert "priority" not in read_frontmatter(res.path)
 
 
 async def test_update_sets_and_clears_priority(svc):
-    res = await svc.create(ItemType.TASK, "t")
+    res = await svc.create("task", "t")
     await svc.update(res.item.id, priority=Priority.URGENT)
     assert read_frontmatter(res.path)["priority"] == "urgent"
     assert (await svc.get(res.item.id)).priority is Priority.URGENT
@@ -34,15 +34,15 @@ async def test_update_sets_and_clears_priority(svc):
 
 
 async def test_list_filters_by_priority(svc):
-    hi = await svc.create(ItemType.TASK, "hi", priority=Priority.HIGH)
-    await svc.create(ItemType.TASK, "lo", priority=Priority.LOW)
+    hi = await svc.create("task", "hi", priority=Priority.HIGH)
+    await svc.create("task", "lo", priority=Priority.LOW)
     got = await svc.list_items(priority=Priority.HIGH)
     assert [i.id for i in got] == [hi.item.id]
 
 
 async def test_priority_survives_repair(svc):
     """Frontmatter is the source of truth: a rebuilt index keeps the priority."""
-    res = await svc.create(ItemType.BUG, "b", priority=Priority.MEDIUM)
+    res = await svc.create("bug", "b", priority=Priority.MEDIUM)
     await svc.repair()
     assert (await svc.get(res.item.id)).priority is Priority.MEDIUM
 
@@ -51,7 +51,7 @@ async def test_priority_survives_repair(svc):
 
 
 async def test_search_matches_title_and_body(svc):
-    res = await svc.create(ItemType.TASK, "Token validation")
+    res = await svc.create("task", "Token validation")
     await svc.set_body(res.item.id, "Validate the JWT expiry and signature.")
     by_title = await svc.search("token")
     assert [i.id for i, _ in by_title] == [res.item.id]
@@ -64,8 +64,8 @@ async def test_search_matches_title_and_body(svc):
 
 
 async def test_blocked_view(svc):
-    a = (await svc.create(ItemType.TASK, "blocked one")).item
-    b = (await svc.create(ItemType.TASK, "the blocker")).item
+    a = (await svc.create("task", "blocked one")).item
+    b = (await svc.create("task", "the blocker")).item
     await svc.add_ref(b.id, a.id, kind="blocks")  # "B blocks A" → A is blocked while B is open
     rows = await svc.blocked()
     assert [(t.id, [x.id for x in bs]) for t, bs in rows] == [(a.id, [b.id])]
@@ -79,11 +79,11 @@ async def test_blocked_view(svc):
 
 
 async def test_workload_counts_open_and_closed(svc):
-    await svc.create(ItemType.TASK, "t1", assignee="manager")
-    done = (await svc.create(ItemType.TASK, "t2", assignee="manager")).item
+    await svc.create("task", "t1", assignee="manager")
+    done = (await svc.create("task", "t2", assignee="manager")).item
     await svc.set_status(done.id, Status.IN_PROGRESS)
     await svc.set_status(done.id, Status.DONE)
-    await svc.create(ItemType.TASK, "unassigned")
+    await svc.create("task", "unassigned")
     rows = {r.assignee: r for r in await svc.workload()}
     assert rows["manager"].open == 1 and rows["manager"].closed == 1 and rows["manager"].total == 2
     assert rows[None].open == 1

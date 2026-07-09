@@ -4,6 +4,7 @@ sequence_id: 322
 type: decision
 title: Remove the ItemType and Status enums; the spec is the sole vocabulary authority
 status: Accepted
+prefix: ADR
 author: architect
 refs:
 - ADR-214
@@ -12,7 +13,7 @@ refs:
 - EPIC-280
 - ADR-232
 created_at: '2026-07-07T09:37:31Z'
-updated_at: '2026-07-07T14:35:18Z'
+updated_at: '2026-07-08T13:05:00Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -418,4 +419,9 @@ surface at exactly `{role, skill, operator}` plus their agent-lifecycle statuses
   - Stated the headline consequence explicitly: this ERASES the type-vs-status asymmetry — every axis (types, statuses, sub-entity kinds, priority/severity via ADR-323) is spec-driven; the ONLY reserved surface is {role, skill, operator} + their agent-lifecycle statuses. Left Proposed — @manager, ready for your read; Pierre owns the accept.
 - [2026-07-07T14:35:18Z] Catherine Manager:
   - Accepted at the design-gate review (op-pierre deciding). One redirect applied vs. the drafted version: _RESERVED_FLOOR narrowed to the agent lifecycle only (Draft/Active/Archived + creation Active); sub-entity and finding statuses are now ordinary spec vocabulary, bound by machine role (start state on create, a completion flag layered on FEAT-211's terminal flag for the done-toggle) rather than by literal name. Reserved surface is now exactly {role, skill, operator} + their statuses.
+- [2026-07-08T13:05:00Z] Robert Architect:
+  - Interpretation note (2026-07-08, architect) — scope of the §1 'never a type.upper() guess' ban, prompted by a TASK-328 conformance question. Clarifying intent, not changing the decision.
+  - The ban is load-bearing at the VOCABULARY RESOLVER: prefix_for (and any code that resolves a type's real, persisted prefix/folder from the spec) MUST raise SquadsError on an unknown/absent type and MUST NOT fall back to type.upper(). That is where ADR conformance is judged.
+  - The ban's INTENT also governs the acyclic formatters Item.id and SquadsDB.format_id, but differently: those genuinely cannot raise (they render ids for reprs/logs/error messages) and cannot import _workflow (acyclic invariant, §3), so a defensive stand-in for an unset prefix is permitted. The constraint is on its SHAPE — it must be an obviously-synthetic sentinel (e.g. UNRESOLVED-42) that no reader or test mistakes for a real id, NEVER a plausible-but-wrong type.upper() (which silently mis-renders decision->ADR, review->REV, guide->DOC, operator->OP). The invariant to hold across the whole codebase: no path may EMIT a plausible-looking-but-wrong id — resolvers raise, formatters degrade to a diagnosable sentinel.
+  - Consistent with §3, Item.prefix stays a soft, backfilled field (not hard-required): a legacy file whose .id may be touched before the load-boundary backfill must still load, and bare Item(...) construction in tests must not crash. Persist-for-all-types + backfill-at-load is the spec-free round-trip mechanism; the sentinel is only the never-should-happen guard behind it.
 <!-- sq:discussion:end -->

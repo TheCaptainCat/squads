@@ -21,7 +21,6 @@ import pytest
 
 from squads._index._reflog import read_lines, reflog_path
 from squads._interactions import TITLE_ADVISORY_MAX
-from squads._models._enums import ItemType
 
 pytestmark = pytest.mark.anyio
 
@@ -57,110 +56,110 @@ class TestServiceTitleAdvisory:
 
     # ------------------------------------------------------------------ add-story
     async def test_add_story_above_threshold_returns_advisory(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, LONG_TITLE)
         assert res.title_advisory is not None
 
     async def test_add_story_advisory_names_length(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, LONG_TITLE)
         assert str(len(LONG_TITLE)) in (res.title_advisory or "")
 
     async def test_add_story_advisory_names_body_command(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, LONG_TITLE)
         advisory = res.title_advisory or ""
         assert "body" in advisory
         assert res.local_id in advisory
 
     async def test_add_story_at_threshold_no_advisory(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, EXACT_TITLE)
         assert res.title_advisory is None
 
     async def test_add_story_below_threshold_no_advisory(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, SHORT_TITLE)
         assert res.title_advisory is None
 
     async def test_add_story_still_creates_sub_entity(self, svc):
         """Sub-entity is always created even when the advisory fires."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, LONG_TITLE)
         assert res.local_id is not None
         assert res.path.exists()
 
     # ------------------------------------------------------------------ add-subtask
     async def test_add_subtask_above_threshold_returns_advisory(self, svc):
-        task = (await svc.create(ItemType.TASK, "My task")).item
+        task = (await svc.create("task", "My task")).item
         res = await svc.add_subtask(task.id, LONG_TITLE)
         assert res.title_advisory is not None
 
     async def test_add_subtask_advisory_names_length(self, svc):
-        task = (await svc.create(ItemType.TASK, "My task")).item
+        task = (await svc.create("task", "My task")).item
         res = await svc.add_subtask(task.id, LONG_TITLE)
         assert str(len(LONG_TITLE)) in (res.title_advisory or "")
 
     async def test_add_subtask_advisory_names_body_command(self, svc):
-        task = (await svc.create(ItemType.TASK, "My task")).item
+        task = (await svc.create("task", "My task")).item
         res = await svc.add_subtask(task.id, LONG_TITLE)
         advisory = res.title_advisory or ""
         assert "body" in advisory
         assert res.local_id in advisory
 
     async def test_add_subtask_at_threshold_no_advisory(self, svc):
-        task = (await svc.create(ItemType.TASK, "My task")).item
+        task = (await svc.create("task", "My task")).item
         res = await svc.add_subtask(task.id, EXACT_TITLE)
         assert res.title_advisory is None
 
     async def test_add_subtask_below_threshold_no_advisory(self, svc):
-        task = (await svc.create(ItemType.TASK, "My task")).item
+        task = (await svc.create("task", "My task")).item
         res = await svc.add_subtask(task.id, SHORT_TITLE)
         assert res.title_advisory is None
 
     async def test_add_subtask_still_creates_sub_entity(self, svc):
-        task = (await svc.create(ItemType.TASK, "My task")).item
+        task = (await svc.create("task", "My task")).item
         res = await svc.add_subtask(task.id, LONG_TITLE)
         assert res.local_id is not None
         assert res.path.exists()
 
     # ------------------------------------------------------------------ add-finding
     async def test_add_finding_above_threshold_returns_advisory(self, svc):
-        review = (await svc.create(ItemType.REVIEW, "My review")).item
+        review = (await svc.create("review", "My review")).item
         res = await svc.add_finding(review.id, LONG_TITLE)
         assert res.title_advisory is not None
 
     async def test_add_finding_advisory_names_length(self, svc):
-        review = (await svc.create(ItemType.REVIEW, "My review")).item
+        review = (await svc.create("review", "My review")).item
         res = await svc.add_finding(review.id, LONG_TITLE)
         assert str(len(LONG_TITLE)) in (res.title_advisory or "")
 
     async def test_add_finding_advisory_names_body_command(self, svc):
-        review = (await svc.create(ItemType.REVIEW, "My review")).item
+        review = (await svc.create("review", "My review")).item
         res = await svc.add_finding(review.id, LONG_TITLE)
         advisory = res.title_advisory or ""
         assert "body" in advisory
         assert res.local_id in advisory
 
     async def test_add_finding_at_threshold_no_advisory(self, svc):
-        review = (await svc.create(ItemType.REVIEW, "My review")).item
+        review = (await svc.create("review", "My review")).item
         res = await svc.add_finding(review.id, EXACT_TITLE)
         assert res.title_advisory is None
 
     async def test_add_finding_below_threshold_no_advisory(self, svc):
-        review = (await svc.create(ItemType.REVIEW, "My review")).item
+        review = (await svc.create("review", "My review")).item
         res = await svc.add_finding(review.id, SHORT_TITLE)
         assert res.title_advisory is None
 
     async def test_add_finding_still_creates_sub_entity(self, svc):
-        review = (await svc.create(ItemType.REVIEW, "My review")).item
+        review = (await svc.create("review", "My review")).item
         res = await svc.add_finding(review.id, LONG_TITLE)
         assert res.local_id is not None
         assert res.path.exists()
 
     # ------------------------------------------------------------------ reflog
     async def test_add_story_advisory_recorded_in_reflog(self, svc, frozen_time):
-        feat = (await svc.create(ItemType.FEATURE, "F")).item
+        feat = (await svc.create("feature", "F")).item
         await svc.add_story(feat.id, LONG_TITLE)
         lines = await read_lines(reflog_path(svc.paths.squad_dir))
         sub_lines = [ln for ln in lines if ln.op == "subentity" and ln.target == feat.id]
@@ -174,7 +173,7 @@ class TestServiceTitleAdvisory:
         assert ta["title_len"] == len(LONG_TITLE)
 
     async def test_add_story_no_advisory_reflog_no_title_advisory_key(self, svc, frozen_time):
-        feat = (await svc.create(ItemType.FEATURE, "F")).item
+        feat = (await svc.create("feature", "F")).item
         await svc.add_story(feat.id, SHORT_TITLE)
         lines = await read_lines(reflog_path(svc.paths.squad_dir))
         sub_lines = [ln for ln in lines if ln.op == "subentity" and ln.target == feat.id]
@@ -183,7 +182,7 @@ class TestServiceTitleAdvisory:
         assert "title_advisory" not in add_lines[-1].delta
 
     async def test_add_subtask_advisory_recorded_in_reflog(self, svc, frozen_time):
-        task = (await svc.create(ItemType.TASK, "T")).item
+        task = (await svc.create("task", "T")).item
         await svc.add_subtask(task.id, LONG_TITLE)
         lines = await read_lines(reflog_path(svc.paths.squad_dir))
         sub_lines = [ln for ln in lines if ln.op == "subentity" and ln.target == task.id]
@@ -194,7 +193,7 @@ class TestServiceTitleAdvisory:
         assert delta["title_advisory"]["advisory"] is True  # type: ignore[index]
 
     async def test_add_finding_advisory_recorded_in_reflog(self, svc, frozen_time):
-        review = (await svc.create(ItemType.REVIEW, "R")).item
+        review = (await svc.create("review", "R")).item
         await svc.add_finding(review.id, LONG_TITLE)
         lines = await read_lines(reflog_path(svc.paths.squad_dir))
         sub_lines = [ln for ln in lines if ln.op == "subentity" and ln.target == review.id]
@@ -205,7 +204,7 @@ class TestServiceTitleAdvisory:
     # ------------------------------------------------------------------ advisory wording
     async def test_advisory_wording_no_enforcement_language(self, svc):
         """Warning text is advisory; no enforcement/gate/forbid language (ADR-000167)."""
-        feat = (await svc.create(ItemType.FEATURE, "F")).item
+        feat = (await svc.create("feature", "F")).item
         res = await svc.add_story(feat.id, LONG_TITLE)
         advisory = (res.title_advisory or "").lower()
         for forbidden in ("enforce", "guarantee", "secur", "forbid", "blocked", "prevented"):
@@ -215,7 +214,7 @@ class TestServiceTitleAdvisory:
 
     async def test_advisory_wording_advisory_language_present(self, svc):
         """Warning text mentions the char count and the body command."""
-        feat = (await svc.create(ItemType.FEATURE, "F")).item
+        feat = (await svc.create("feature", "F")).item
         res = await svc.add_story(feat.id, LONG_TITLE)
         advisory = res.title_advisory or ""
         assert str(len(LONG_TITLE)) in advisory
@@ -340,7 +339,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_short_titles_no_advisory_issues(self, svc):
         """Items with short sub-entity titles produce no check advisory issues."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, SHORT_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]
@@ -348,7 +347,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_long_story_title_emits_warn_issue(self, svc):
         """A story with title > 120 chars emits a warn-level check issue."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, LONG_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]
@@ -357,7 +356,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_long_subtask_title_emits_warn_issue(self, svc):
         """A subtask with title > 120 chars emits a warn-level check issue."""
-        task = (await svc.create(ItemType.TASK, "My task")).item
+        task = (await svc.create("task", "My task")).item
         await svc.add_subtask(task.id, LONG_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]
@@ -366,7 +365,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_long_finding_title_emits_warn_issue(self, svc):
         """A finding with title > 120 chars emits a warn-level check issue."""
-        review = (await svc.create(ItemType.REVIEW, "My review")).item
+        review = (await svc.create("review", "My review")).item
         await svc.add_finding(review.id, LONG_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]
@@ -375,7 +374,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_issue_references_item_id(self, svc):
         """The check issue carries the parent item ID."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, LONG_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]
@@ -383,7 +382,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_issue_message_contains_length(self, svc):
         """The check issue message includes the actual char count."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, LONG_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]
@@ -391,7 +390,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_issue_message_references_threshold(self, svc):
         """The check issue message references the threshold value."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, LONG_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]
@@ -399,7 +398,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_at_threshold_no_check_issue(self, svc):
         """Title exactly at threshold (120 chars) does not emit a check issue."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, EXACT_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]
@@ -407,7 +406,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_multiple_long_titles_multiple_issues(self, svc):
         """Each over-long title produces its own warn issue."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, LONG_TITLE)
         await svc.add_story(feat.id, LONG_TITLE)
         issues = await svc.check()
@@ -416,7 +415,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_mixed_long_and_short_only_long_flagged(self, svc):
         """Only the over-long title is flagged; the short one is silent."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, LONG_TITLE)
         await svc.add_story(feat.id, SHORT_TITLE)
         issues = await svc.check()
@@ -425,7 +424,7 @@ class TestCheckSubentityTitleLengths:
 
     async def test_warn_only_does_not_flip_to_error_level(self, svc):
         """Advisory issues are always warn, never error."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, LONG_TITLE)
         issues = await svc.check()
         title_issues = [i for i in issues if "advisory" in i.message and "chars" in i.message]

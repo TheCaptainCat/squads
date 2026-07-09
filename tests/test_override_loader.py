@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-from squads._models._enums import ItemType
 from squads._rendering._engine import invalidate_squad_dir, render, set_active_squad_dir
 from squads._services import _service as service
 
@@ -92,7 +91,7 @@ async def test_service_create_uses_override_template(project, svc):
     svc2 = service.Service(project)
 
     # The minimal fixture roster registers `manager`; use the default author.
-    result = await svc2.create(ItemType.TASK, "Override smoke test")
+    result = await svc2.create("task", "Override smoke test")
     body = result.path.read_text(encoding="utf-8")
     assert "OVERRIDDEN_BODY" in body
     assert "Custom Project Section" in body
@@ -100,7 +99,7 @@ async def test_service_create_uses_override_template(project, svc):
 
 async def test_service_create_bundled_template_unchanged(project, svc):
     """Without an override, service.create() must produce the standard bundled output."""
-    result = await svc.create(ItemType.TASK, "Bundled task")
+    result = await svc.create("task", "Bundled task")
     body = result.path.read_text(encoding="utf-8")
     # Bundled task template always has these.
     assert "## Description" in body
@@ -175,13 +174,13 @@ def _task_ctx() -> dict[str, object]:
     """Minimal context that satisfies the bundled task template's variables."""
     from datetime import UTC, datetime
 
-    from squads._models._enums import ItemType, Status
+    from squads._models._enums import Status
     from squads._models._item import Item
 
     now = datetime(2026, 1, 1, tzinfo=UTC)
     item = Item(
         sequence_id=1,
-        type=ItemType.TASK,
+        type="task",
         title="Test task",
         slug="test-task",
         status=Status.READY,

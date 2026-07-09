@@ -16,7 +16,6 @@ import pytest
 
 from squads._cli import app
 from squads._errors import SquadsError
-from squads._models._enums import ItemType
 
 pytestmark = pytest.mark.anyio
 
@@ -25,7 +24,7 @@ pytestmark = pytest.mark.anyio
 
 async def test_remove_work_item_deletes_file_and_index_entry(svc):
     """Hard delete: file gone, index entry gone, counter unchanged."""
-    task = (await svc.create(ItemType.TASK, "Oops")).item
+    task = (await svc.create("task", "Oops")).item
     seq = task.sequence_id
     path = svc.paths.abspath(task.path)
     counter_before = (await svc.store.load()).counter
@@ -46,7 +45,7 @@ async def test_remove_work_item_deletes_file_and_index_entry(svc):
 
 async def test_remove_work_item_counter_never_shrinks_and_repair_respects_gap(svc):
     """The freed sequence number is never reissued after remove + repair (ADR-000114 §4)."""
-    task = (await svc.create(ItemType.TASK, "Gone")).item
+    task = (await svc.create("task", "Gone")).item
     removed_seq = task.sequence_id
     counter_after_create = (await svc.store.load()).counter
 
@@ -62,15 +61,15 @@ async def test_remove_work_item_counter_never_shrinks_and_repair_respects_gap(sv
     assert removed_seq not in db_after.items
 
     # a new item gets the *next* number, not the freed one
-    new_task = (await svc.create(ItemType.TASK, "New")).item
+    new_task = (await svc.create("task", "New")).item
     assert new_task.sequence_id > removed_seq
     assert new_task.sequence_id not in {removed_seq}
 
 
 async def test_remove_refuses_on_incoming_refs_without_force(svc):
     """Default (no --force): refuses and lists the referrer."""
-    task = (await svc.create(ItemType.TASK, "Target")).item
-    other = (await svc.create(ItemType.TASK, "Referrer")).item
+    task = (await svc.create("task", "Target")).item
+    other = (await svc.create("task", "Referrer")).item
     await svc.add_ref(other.id, task.id)
 
     with pytest.raises(SquadsError, match=other.id):
@@ -82,8 +81,8 @@ async def test_remove_refuses_on_incoming_refs_without_force(svc):
 
 async def test_remove_force_severs_incoming_refs(svc):
     """--force: severs the incoming ref from the referrer and removes the item."""
-    task = (await svc.create(ItemType.TASK, "Target")).item
-    other = (await svc.create(ItemType.TASK, "Referrer")).item
+    task = (await svc.create("task", "Target")).item
+    other = (await svc.create("task", "Referrer")).item
     await svc.add_ref(other.id, task.id, kind="related")
 
     res = await svc.remove_work_item(task.id, force=True)
@@ -101,9 +100,9 @@ async def test_remove_force_severs_incoming_refs(svc):
 
 async def test_remove_force_severs_multiple_referrers(svc):
     """--force severs all incoming refs (multiple referrers)."""
-    target = (await svc.create(ItemType.TASK, "T")).item
-    a = (await svc.create(ItemType.TASK, "A")).item
-    b = (await svc.create(ItemType.BUG, "B")).item
+    target = (await svc.create("task", "T")).item
+    a = (await svc.create("task", "A")).item
+    b = (await svc.create("bug", "B")).item
     await svc.add_ref(a.id, target.id, kind="related")
     await svc.add_ref(b.id, target.id, kind="blocks")
 
@@ -116,8 +115,8 @@ async def test_remove_force_severs_multiple_referrers(svc):
 
 async def test_remove_refuses_when_children_exist_even_with_force(svc):
     """Children block removal even with --force; the hint lists them."""
-    feat = (await svc.create(ItemType.FEATURE, "Parent feat")).item
-    task = (await svc.create(ItemType.TASK, "Child task")).item
+    feat = (await svc.create("feature", "Parent feat")).item
+    task = (await svc.create("task", "Child task")).item
     await svc.link(task.id, feat.id)
 
     with pytest.raises(SquadsError, match=task.id):
@@ -129,8 +128,8 @@ async def test_remove_refuses_when_children_exist_even_with_force(svc):
 
 async def test_remove_succeeds_after_child_removed(svc):
     """After removing the child, the parent can be removed."""
-    feat = (await svc.create(ItemType.FEATURE, "F")).item
-    task = (await svc.create(ItemType.TASK, "T")).item
+    feat = (await svc.create("feature", "F")).item
+    task = (await svc.create("task", "T")).item
     await svc.link(task.id, feat.id)
 
     await svc.remove_work_item(task.id)
@@ -142,15 +141,15 @@ async def test_remove_succeeds_after_child_removed(svc):
 
 async def test_remove_no_refs_or_children_passes_without_force(svc):
     """A bare item (no refs, no children) is removed without --force."""
-    bug = (await svc.create(ItemType.BUG, "Small bug")).item
+    bug = (await svc.create("bug", "Small bug")).item
     res = await svc.remove_work_item(bug.id)
     assert res.removed_id == bug.id
 
 
 async def test_remove_check_clean_after_forced_removal(svc):
     """sq check is clean after a forced removal that severs refs."""
-    a = (await svc.create(ItemType.TASK, "A")).item
-    b = (await svc.create(ItemType.TASK, "B")).item
+    a = (await svc.create("task", "A")).item
+    b = (await svc.create("task", "B")).item
     await svc.add_ref(a.id, b.id, kind="depends-on")
 
     await svc.remove_work_item(b.id, force=True)
@@ -164,8 +163,8 @@ async def test_remove_width_tolerant_ref_severing(svc):
     """Ref severing is width-tolerant: a ref stored at the old width is still found."""
     from squads._models._item import make_ref
 
-    target = (await svc.create(ItemType.BUG, "Bug")).item
-    referrer = (await svc.create(ItemType.TASK, "Task")).item
+    target = (await svc.create("bug", "Bug")).item
+    referrer = (await svc.create("task", "Task")).item
 
     # Manually inject a ref at a narrower width (simulates pre-repad ref text)
     old_width_id = f"BUG-{target.sequence_id:04d}"  # 4-digit, current default is 6
@@ -186,9 +185,9 @@ async def test_remove_width_tolerant_ref_severing(svc):
 
 async def test_remove_children_helper_returns_correct_list(svc):
     """SquadsDB.children() returns direct children by parent field."""
-    feat = (await svc.create(ItemType.FEATURE, "F")).item
-    task1 = (await svc.create(ItemType.TASK, "T1")).item
-    task2 = (await svc.create(ItemType.TASK, "T2")).item
+    feat = (await svc.create("feature", "F")).item
+    task1 = (await svc.create("task", "T1")).item
+    task2 = (await svc.create("task", "T2")).item
     await svc.link(task1.id, feat.id)
     await svc.link(task2.id, feat.id)
 
@@ -197,7 +196,7 @@ async def test_remove_children_helper_returns_correct_list(svc):
     assert sorted(children) == sorted([task1.id, task2.id])
 
     # unrelated item not in children
-    other = (await svc.create(ItemType.TASK, "Other")).item
+    other = (await svc.create("task", "Other")).item
     assert other.id not in db.children(feat.id)
 
 
@@ -306,7 +305,7 @@ async def test_remove_unlink_happens_before_index_commit_no_resurrection(svc, mo
     """
     from squads._index._store import IndexStore
 
-    task = (await svc.create(ItemType.TASK, "AtomicCheck")).item
+    task = (await svc.create("task", "AtomicCheck")).item
     seq = task.sequence_id
     path = svc.paths.abspath(task.path)
 

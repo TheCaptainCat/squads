@@ -1,14 +1,11 @@
-"""Tests for TASK-000258: spec-aware folder/prefix mapping in _paths for custom types.
+"""Tests for TASK-000258 / ADR-322: spec-aware folder/prefix mapping in _paths.
 
 Covers:
-- folder_for: built-in type returns same result as FOLDER_BY_TYPE (byte-identical).
-- folder_for: custom type returns spec-declared folder when spec is supplied.
-- folder_for: raises SquadsError for unknown type with no spec (fail-closed).
-- squad_relative: built-in type byte-identical with original behaviour.
-- squad_relative: custom type uses spec folder when spec supplied.
-- type_for_id: built-in prefix parses to the correct type (unchanged).
-- type_for_id: custom prefix resolves via spec.prefix_to_type when spec supplied.
-- type_for_id: raises InvalidIdError for unknown prefix with no spec.
+- folder_for: resolves solely from the spec, for built-in AND custom types alike.
+- folder_for: raises SquadsError for unknown type, or any type with no spec (fail-closed).
+- squad_relative: same spec-only resolution as folder_for.
+- type_for_id: resolves solely from spec.prefix_to_type, for built-in AND custom types alike.
+- type_for_id: raises InvalidIdError for unknown prefix, or any prefix with no spec.
 - ID round-trip: INC-000001 allocates and parses back to "incident" via the spec.
 - Folder auto-created when a custom-type item is created (via write_new / create()).
 - sq repair is a stable no-op: a custom-type item file is indexed and then repaired.
@@ -18,15 +15,17 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX, BUILTIN_TYPES
 from squads._errors import InvalidIdError, SquadsError
-from squads._models._enums import ItemType
-from squads._models._vocab import RESERVED_FOLDER, RESERVED_TYPE_BY_PREFIX
 from squads._paths import SquadPaths, number_for_id, type_for_id
 from squads._services import _service as service
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ItemSpec, Lifecycle, WorkflowSpec
 
 pytestmark = pytest.mark.anyio
+
+#: prefix -> built-in type, derived from BUILTIN_PREFIX (test-only, mirrors _helpers).
+_BUILTIN_TYPE_BY_PREFIX: dict[str, str] = {v: k for k, v in BUILTIN_PREFIX.items()}
 
 # ---------------------------------------------------------------------------
 # Helper: build a minimal WorkflowSpec that adds an "incident" custom type
@@ -78,26 +77,25 @@ def _spec_with_incident() -> WorkflowSpec:
 # ---------------------------------------------------------------------------
 
 
-def test_folder_for_builtin_types_unchanged(tmp_path: Path) -> None:
-    """Built-in types produce the same folder as the reserved vocab (byte-identical)."""
+def test_folder_for_builtin_types_with_spec(tmp_path: Path) -> None:
+    """Built-in types resolve to the expected folder when a spec is supplied (ADR-322: the
+    spec is the sole vocabulary source — there is no reserved-map fast path any more)."""
+    spec = _spec_with_incident()
     sp = SquadPaths(
         root=tmp_path,
         squad_dir=tmp_path / "squads",
         config=None,  # type: ignore[arg-type]
     )
-    for item_type in ItemType:
-        expected = tmp_path / "squads" / RESERVED_FOLDER[item_type]
-        assert sp.folder_for(str(item_type)) == expected, f"{item_type}: folder_for mismatch"
+    for item_type in BUILTIN_TYPES:
+        expected = tmp_path / "squads" / BUILTIN_FOLDER[item_type]
+        assert sp.folder_for(item_type, spec=spec) == expected, f"{item_type}: folder_for mismatch"
 
 
-def test_folder_for_builtin_ignores_spec(tmp_path: Path) -> None:
-    """Built-in types use FOLDER_BY_TYPE even when a spec is supplied."""
-    spec = _spec_with_incident()
+def test_folder_for_builtin_type_no_spec_raises(tmp_path: Path) -> None:
+    """Every type — built-in or custom — requires a spec; there is no reserved-map fallback."""
     sp = SquadPaths(root=tmp_path, squad_dir=tmp_path / "squads", config=None)  # type: ignore[arg-type]
-    for item_type in ItemType:
-        assert sp.folder_for(str(item_type), spec=spec) == sp.folder_for(str(item_type)), (
-            f"{item_type}: spec-armed folder_for differed from spec-less"
-        )
+    with pytest.raises(SquadsError, match="unknown item type"):
+        sp.folder_for("task")
 
 
 def test_folder_for_custom_type_with_spec(tmp_path: Path) -> None:
@@ -130,13 +128,13 @@ def test_folder_for_unknown_type_wrong_spec_raises(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_squad_relative_builtin_unchanged(tmp_path: Path) -> None:
-    """Built-in types produce the same squad-relative path as before (byte-identical)."""
+def test_squad_relative_builtin_with_spec(tmp_path: Path) -> None:
+    """Built-in types resolve via the spec, same as custom types (ADR-322)."""
+    spec = _spec_with_incident()
     sp = SquadPaths(root=tmp_path, squad_dir=tmp_path / "squads", config=None)  # type: ignore[arg-type]
-    for item_type in ItemType:
-        result = sp.squad_relative(str(item_type), "TASK-000001-title.md")
-        # Each type has its own folder; compare the folder part from the reserved vocab.
-        assert result == f"{RESERVED_FOLDER[item_type]}/TASK-000001-title.md"
+    for item_type in BUILTIN_TYPES:
+        result = sp.squad_relative(item_type, "TASK-000001-title.md", spec=spec)
+        assert result == f"{BUILTIN_FOLDER[item_type]}/TASK-000001-title.md"
 
 
 def test_squad_relative_custom_type(tmp_path: Path) -> None:
@@ -159,13 +157,22 @@ def test_squad_relative_unknown_type_raises(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_type_for_id_builtins_unchanged() -> None:
-    """Built-in IDs still resolve to the same type as before (byte-identical)."""
-    for prefix, expected_type in RESERVED_TYPE_BY_PREFIX.items():
+def test_type_for_id_builtins_with_spec() -> None:
+    """Built-in IDs resolve via spec.prefix_to_type, same as custom types (ADR-322)."""
+    from squads._workflow import bundled_spec
+
+    spec = bundled_spec()
+    for prefix, expected_type in _BUILTIN_TYPE_BY_PREFIX.items():
         item_id = f"{prefix}-000001"
-        assert type_for_id(item_id) == expected_type, (
+        assert type_for_id(item_id, spec=spec) == expected_type, (
             f"type_for_id({item_id!r}) != {expected_type!r}"
         )
+
+
+def test_type_for_id_builtin_no_spec_raises() -> None:
+    """A built-in prefix with no spec supplied raises — there is no reserved-map fallback."""
+    with pytest.raises(InvalidIdError, match="unknown ID prefix"):
+        type_for_id("TASK-000001")
 
 
 def test_type_for_id_custom_type_with_spec() -> None:
@@ -199,9 +206,8 @@ def test_type_for_id_unknown_prefix_wrong_spec_raises() -> None:
 async def test_incident_id_round_trip(project) -> None:  # type: ignore[no-untyped-def]
     """INC-000001 allocated for 'incident' type round-trips via type_for_id with the spec.
 
-    Verifies TASK-000258 AC#2: ID allocation uses the global counter (no special path,
-    PREFIX_BY_TYPE.get(type, type.upper()) fallback), and the allocated ID parses
-    correctly via type_for_id when the spec is provided.
+    Verifies TASK-000258 AC#2: ID allocation uses the global counter (no special path), and
+    the allocated ID parses correctly via type_for_id when the spec is provided.
     """
     spec = _spec_with_incident()
     svc = service.Service(project, spec=spec)
@@ -212,14 +218,13 @@ async def test_incident_id_round_trip(project) -> None:  # type: ignore[no-untyp
     async with svc.store.transaction() as db:
         incident_id = db.allocate_id(_INCIDENT_TYPE)
 
-    # The ID prefix must be INC (spec-declared prefix — but SquadsDB.format_id uses
-    # PREFIX_BY_TYPE.get(type, type.upper()) which gives "INCIDENT" for an unknown type).
-    # The spec's prefix is "INC"; however, IndexStore/SquadsDB.format_id does NOT consult
-    # the spec — it uses PREFIX_BY_TYPE.get(type, type.upper()).  For a custom type not in
-    # PREFIX_BY_TYPE, this produces the uppercased type name ("INCIDENT").  The round-trip
-    # is therefore: allocate "INCIDENT-000001", spec maps "INC" prefix to "incident".
-    # This test verifies the ACTUAL behavior: allocate_id uses type.upper() fallback,
-    # and type_for_id with the spec resolves "INC" to "incident" (spec-prefix mapping).
+    # SquadsDB.allocate_id does NOT consult the spec on its own (that's the service-layer
+    # create() path's job, via prefix_for) — called bare like this, with no explicit
+    # `prefix=`, it degrades to the diagnosable UNRESOLVED_PREFIX sentinel (never a
+    # plausible-but-wrong type.upper() guess). The round-trip under test is therefore:
+    # allocate "UNRESOLVED-000001" (this call site never resolved a real prefix), then
+    # separately prove type_for_id resolves the REAL "INC" prefix to "incident" via the spec
+    # (spec-prefix mapping) below — the two are independent halves of the same seam.
     assert "-" in incident_id, f"malformed allocated ID {incident_id!r}"
     seq = number_for_id(incident_id)
     assert seq > 0, "sequence must be positive"

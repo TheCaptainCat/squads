@@ -33,7 +33,7 @@ def load_playbook(catalog: RoleCatalogSpec, spec: WorkflowSpec | None = None) ->
     referential integrity, and a ``WorkflowSpec`` (the bundled spec by default) as the
     type authority: every one of *spec*'s ``work_types()`` must have a playbook entry,
     and no entry may name anything else (meta type or unknown name). This replaces the
-    old ``ItemType(name)`` coercion and the hardcoded ``_WORK_TYPES``/``_META_TYPES``
+    the old per-name-enum coercion and the hardcoded ``_WORK_TYPES``/``_META_TYPES``
     floors — the loaded ``WorkflowSpec`` is now the sole authority on which types exist.
     Called once at module level in ``__init__.py`` to build the singleton. Raises
     ``SquadsError`` on any violation.

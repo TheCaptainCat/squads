@@ -11,7 +11,6 @@ import json
 import pytest
 
 from squads import _discussion as discussion
-from squads._models._enums import ItemType
 
 pytestmark = pytest.mark.anyio
 
@@ -27,31 +26,31 @@ def _warn_body_issues(issues):
 
 class TestServiceUnwrittenBodyCheck:
     async def test_fresh_story_placeholder_is_flagged(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, "A story")
         issues = _warn_body_issues(await svc.check())
         assert len(issues) == 1
 
     async def test_flagged_issue_is_warn_level(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, "A story")
         issue = _warn_body_issues(await svc.check())[0]
         assert issue.level == "warn"
 
     async def test_flagged_issue_names_parent_item(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, "A story")
         issue = _warn_body_issues(await svc.check())[0]
         assert issue.item == feat.id
 
     async def test_flagged_issue_names_local_id(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, "A story")
         issue = _warn_body_issues(await svc.check())[0]
         assert res.local_id in issue.message
 
     async def test_writing_real_body_clears_the_flag(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, "A story")
         await svc.set_story_body(feat.id, res.local_id, "As a user, I want X so that Y.")
         issues = _warn_body_issues(await svc.check())
@@ -59,7 +58,7 @@ class TestServiceUnwrittenBodyCheck:
 
     async def test_body_merely_diverging_from_placeholder_is_not_flagged(self, svc):
         """Even a single edited character counts as written — no heuristics."""
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         res = await svc.add_story(feat.id, "A story")
         placeholder = discussion.body_placeholder("story")
         divergent = placeholder[:-1] + "!"
@@ -68,26 +67,26 @@ class TestServiceUnwrittenBodyCheck:
         assert not issues
 
     async def test_unwritten_subtask_body_is_flagged(self, svc):
-        task = (await svc.create(ItemType.TASK, "My task")).item
+        task = (await svc.create("task", "My task")).item
         await svc.add_subtask(task.id, "A subtask")
         issues = _warn_body_issues(await svc.check())
         assert len(issues) == 1
 
     async def test_unwritten_finding_body_is_flagged(self, svc):
-        review = (await svc.create(ItemType.REVIEW, "My review")).item
+        review = (await svc.create("review", "My review")).item
         await svc.add_finding(review.id, "A finding")
         issues = _warn_body_issues(await svc.check())
         assert len(issues) == 1
 
     async def test_multiple_unwritten_bodies_each_produce_own_issue(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, "Story one")
         await svc.add_story(feat.id, "Story two")
         issues = _warn_body_issues(await svc.check())
         assert len(issues) == 2
 
     async def test_mixed_written_and_unwritten_only_flags_unwritten(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         written = await svc.add_story(feat.id, "Story one")
         await svc.set_story_body(feat.id, written.local_id, "Real acceptance criteria.")
         await svc.add_story(feat.id, "Story two")
@@ -95,12 +94,12 @@ class TestServiceUnwrittenBodyCheck:
         assert len(issues) == 1
 
     async def test_item_with_no_subentities_produces_no_issue(self, svc):
-        await svc.create(ItemType.FEATURE, "My feature")
+        await svc.create("feature", "My feature")
         issues = _warn_body_issues(await svc.check())
         assert not issues
 
     async def test_warn_level_does_not_affect_other_issue_levels(self, svc):
-        feat = (await svc.create(ItemType.FEATURE, "My feature")).item
+        feat = (await svc.create("feature", "My feature")).item
         await svc.add_story(feat.id, "A story")
         issues = await svc.check()
         for issue in _warn_body_issues(issues):

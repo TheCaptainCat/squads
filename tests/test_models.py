@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from squads._models._config import SquadsConfig
-from squads._models._enums import ItemType, Severity, Status
+from squads._models._enums import Severity, Status
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -15,7 +15,7 @@ _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 def _item(**over):
     base = dict(
         sequence_id=1,
-        type=ItemType.TASK,
+        type="task",
         title="t",
         slug="t",
         status=Status.DRAFT,
@@ -33,8 +33,19 @@ def test_item_requires_non_empty_title_slug_path():
 
 
 def test_item_id_is_derived_from_sequence_and_type():
-    assert _item(sequence_id=7, type=ItemType.TASK).id == "TASK-7"
-    assert _item(sequence_id=42, type=ItemType.REVIEW).id == "REV-42"
+    # An explicit prefix is always required for a real id; Item.id itself never derives real
+    # vocabulary (that would need a spec/_workflow import, breaking the acyclic invariant).
+    assert _item(sequence_id=7, type="task", prefix="TASK").id == "TASK-7"
+    assert _item(sequence_id=42, type="review", prefix="REV").id == "REV-42"
+
+
+def test_item_id_without_prefix_degrades_to_unresolved_sentinel():
+    """With no prefix set, Item.id degrades to the loud UNRESOLVED_PREFIX sentinel — never a
+    type.upper() guess, even for a type like 'task' where that would coincidentally look
+    right."""
+    from squads._models._item import UNRESOLVED_PREFIX
+
+    assert _item(sequence_id=7, type="task").id == f"{UNRESOLVED_PREFIX}-7"
 
 
 def test_subentity_roundtrips_through_frontmatter():
@@ -61,7 +72,7 @@ def test_subentity_roundtrips_through_frontmatter():
 
 def test_item_subentities_roundtrip_through_frontmatter():
     it = _item(
-        type=ItemType.TASK,
+        type="task",
         subentities=[SubEntity(local_id="ST1", title="Wire", status=Status.TODO, story="US1")],
     )
     fm = it.to_frontmatter_dict()

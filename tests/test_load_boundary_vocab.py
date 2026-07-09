@@ -20,7 +20,6 @@ from pathlib import Path
 import pytest
 
 from squads._errors import SquadsError
-from squads._models._enums import ItemType
 
 pytestmark = pytest.mark.anyio
 
@@ -117,7 +116,7 @@ async def test_load_rejects_unknown_type(svc, project) -> None:
     trigger a load via svc.list_items() — must surface SquadsError, not KeyError.
     """
     # Create an item so the index is non-empty.
-    await svc.create(ItemType.TASK, "Normal task")
+    await svc.create("task", "Normal task")
 
     # Corrupt the index: set type to an unknown value.
     _patch_index_item_field(_index_path(project), "type", "gizmo")
@@ -133,7 +132,7 @@ async def test_load_rejects_unknown_status(svc, project) -> None:
     Repro: hand-edit .squads.json to set the first item's status to 'Frobnicated',
     then trigger a load — must surface SquadsError, not KeyError.
     """
-    await svc.create(ItemType.TASK, "Normal task")
+    await svc.create("task", "Normal task")
 
     _patch_index_item_field(_index_path(project), "status", "Frobnicated")
 
@@ -148,7 +147,7 @@ async def test_load_rejects_unknown_status(svc, project) -> None:
 
 async def _get_first_item_md(svc) -> Path:  # type: ignore[no-untyped-def]
     """Create a task and return the Path to its markdown file."""
-    res = await svc.create(ItemType.TASK, "Repair target task")
+    res = await svc.create("task", "Repair target task")
     return res.path
 
 
@@ -193,7 +192,7 @@ async def test_load_rejects_unknown_subentity_status(svc, project) -> None:
     to 'Frobnicated', then trigger a load — must raise SquadsError, not crash with a
     raw ValueError from _discussion._status_badge downstream.
     """
-    feat_res = await svc.create(ItemType.FEATURE, "Feature with story")
+    feat_res = await svc.create("feature", "Feature with story")
     await svc.add_story(feat_res.item.id, "User story one")
 
     # Corrupt the sub-entity status in the index.
@@ -211,7 +210,7 @@ async def test_repair_rejects_unknown_subentity_status(svc) -> None:
     frontmatter to 'Frobnicated', then run sq repair — must raise SquadsError (not silently
     index and crash with a raw ValueError on show --full).
     """
-    feat_res = await svc.create(ItemType.FEATURE, "Feature with story for repair test")
+    feat_res = await svc.create("feature", "Feature with story for repair test")
     await svc.add_story(feat_res.item.id, "Sub-entity with bad status")
 
     # Corrupt the sub-entity status in the feature's markdown frontmatter.

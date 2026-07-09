@@ -35,7 +35,6 @@ import pytest
 from squads._interactions import DEV, PLAYBOOK, RoleGuide, get_playbook_spec, spec_to_item_playbook
 from squads._interactions._loader import load_playbook
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec, RoleGuideSpec
-from squads._models._enums import ItemType
 from squads._rendering._engine import render
 from squads._roles._catalog import get_catalog
 
@@ -503,7 +502,7 @@ def test_golden_type_keys(spec: PlaybookSpec) -> None:
 def test_golden_all_item_type_fields(spec: PlaybookSpec) -> None:
     """Every field of every ItemPlaybookSpec matches the frozen snapshot."""
     for type_name, snap in _SNAPSHOT.items():
-        item_type = ItemType(type_name)
+        item_type = type_name
         assert item_type in spec.types, f"type {type_name!r} missing from spec"
         entry = spec.types[item_type]
 
@@ -568,7 +567,7 @@ def test_shim_playbook_matches_snapshot() -> None:
     any drift from either direction is caught.
     """
     for type_name, snap in _SNAPSHOT.items():
-        item_type = ItemType(type_name)
+        item_type = type_name
         assert item_type in PLAYBOOK, f"{type_name!r} missing from PLAYBOOK"
         pb = PLAYBOOK[item_type]
 
@@ -612,7 +611,7 @@ _FIXED_ROSTER: dict[str, str] = {
 }
 
 #: The three work types whose playbook has a ``*dev`` guide (task, bug, review).
-_DEV_GUIDE_TYPES: frozenset[ItemType] = frozenset({ItemType.TASK, ItemType.BUG, ItemType.REVIEW})
+_DEV_GUIDE_TYPES: frozenset[str] = frozenset({"task", "bug", "review"})
 
 
 def _build_sections(
@@ -680,7 +679,7 @@ def test_layer_b_rendered_output_byte_identical_to_snapshot() -> None:
     regression.
     """
     for type_name, snap in _SNAPSHOT.items():
-        item_type = ItemType(type_name)
+        item_type = type_name
 
         # --- expected: render from frozen snapshot (represents pre-FEAT-220 Python literals) ---
         snap_roles: list[dict[str, object]] = snap["roles"]  # type: ignore[assignment]

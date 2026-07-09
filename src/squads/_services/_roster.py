@@ -2,13 +2,14 @@
 
 from squads._errors import SquadsError
 from squads._interactions import skills_for_role
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._roles._resolver import resolve_dev_role, resolve_role
 from squads._services._base import ServiceCore
 from squads._services._results import WorkloadRow
 from squads._util import operator_slug, slugify
+from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL
 
 
 class RosterMixin(ServiceCore):
@@ -29,7 +30,7 @@ class RosterMixin(ServiceCore):
 
             role = dc_replace(role, full_name=name)
         res = await self.create(
-            ItemType.ROLE,
+            META_ROLE,
             role.full_name,
             description=role.mission,
             status=Status.ACTIVE,
@@ -49,16 +50,14 @@ class RosterMixin(ServiceCore):
     async def add_dev(
         self, tech: str, *, name: str | None = None, model: str | None = None
     ) -> Item:
-        seq = sum(
-            1 for it in await self.list_items(item_type=ItemType.ROLE) if it.extra.get(X.IS_DEV)
-        )
+        seq = sum(1 for it in await self.list_items(item_type=META_ROLE) if it.extra.get(X.IS_DEV))
         role = resolve_dev_role(
             tech, name=name, seq=seq, model=model, squad_dir=self.paths.squad_dir
         )
         if await self._role_item(role.slug) is not None:
             raise SquadsError(f"a developer with slug {role.slug!r} already exists")
         res = await self.create(
-            ItemType.ROLE,
+            META_ROLE,
             role.full_name,
             description=role.mission,
             status=Status.ACTIVE,
@@ -91,7 +90,7 @@ class RosterMixin(ServiceCore):
         if await self._skill_item(slug) is not None:
             raise SquadsError(f"a skill with slug {slug!r} already exists")
         res = await self.create(
-            ItemType.SKILL,
+            META_SKILL,
             name,
             description=description,
             parent=parent,
@@ -116,7 +115,7 @@ class RosterMixin(ServiceCore):
         if await self._operator_item(slug) is not None:
             raise SquadsError(f"an operator with slug {slug!r} already exists")
         res = await self.create(
-            ItemType.OPERATOR,
+            META_OPERATOR,
             name,
             status=Status.ACTIVE,
             slug=slug,
@@ -127,7 +126,7 @@ class RosterMixin(ServiceCore):
         return res.item
 
     async def list_operators(self) -> list[Item]:
-        return await self.list_items(item_type=ItemType.OPERATOR)
+        return await self.list_items(item_type=META_OPERATOR)
 
     async def workload(self) -> list[WorkloadRow]:
         """Open/closed/total work-item counts per assignee (busiest first; unassigned last)."""

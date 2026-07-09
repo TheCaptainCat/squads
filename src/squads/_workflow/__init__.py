@@ -9,11 +9,14 @@ owned by ``Service`` and threaded explicitly through call sites.
 """
 
 from squads._models._enums import (  # noqa: F401 — re-exported for callers
-    ItemType,  # pyright: ignore[reportUnusedImport]
     Status,  # pyright: ignore[reportUnusedImport]
 )
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import (
+    META_OPERATOR,
+    META_ROLE,
+    META_SKILL,
+    META_TYPES,
     ItemSpec,
     Lifecycle,
     RefRule,
@@ -189,6 +192,10 @@ def status_role(status: str) -> str | None:
 
 __all__ = [
     "ALLOWED_PARENTS",
+    "META_OPERATOR",
+    "META_ROLE",
+    "META_SKILL",
+    "META_TYPES",
     "SUBENTITY_WORKFLOWS",
     "TERMINAL",
     "WORKFLOWS",

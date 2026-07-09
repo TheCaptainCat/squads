@@ -12,6 +12,7 @@ from squads._models._item import (
     DEFAULT_KIND,
     VALID_REF_KINDS,
     Item,
+    effective_prefix,
     make_ref,
     ref_id_matches,
     split_ref,
@@ -89,7 +90,7 @@ def _in_neighbours(ctx: _TraversalCtx, item: Item) -> list[tuple[str, str, str]]
         edge_kind="depends-on", direction="out" (item would have a depends-on to neighbour).
     Other kinds: edge_kind=kind, direction="in".
     """
-    target_prefix = item.prefix or item.type.upper()
+    target_prefix = effective_prefix(item.prefix, item.type)
     target_seq = item.sequence_id
     result: list[tuple[str, str, str]] = []
     for other in ctx.db_items.values():
@@ -294,7 +295,7 @@ class RefsMixin(ServiceCore):
             # Dedup by (prefix, seq) so old-width stored refs ("PREFIX-000007") are replaced
             # when re-adding across a repad boundary where to_id is "PREFIX-0000007" — file
             # contents are never rewritten, so widths diverge.
-            tgt_prefix = tgt.prefix or tgt.type.upper()
+            tgt_prefix = effective_prefix(tgt.prefix, tgt.type)
             tgt_seq = tgt.sequence_id
             src.refs = [
                 r for r in src.refs if not ref_id_matches(split_ref(r)[0], tgt_prefix, tgt_seq)
@@ -347,7 +348,7 @@ class RefsMixin(ServiceCore):
         """
         db = await self.store.load()
         target = require_item(db, item_id)
-        target_prefix = target.prefix or target.type.upper()
+        target_prefix = effective_prefix(target.prefix, target.type)
         target_seq = target.sequence_id
         out: list[tuple[str, str]] = []
         for it in db.items.values():

@@ -23,7 +23,6 @@ from squads._interactions import (
     in_lane_owner,
     is_lane_exempt,
 )
-from squads._models._enums import ItemType
 
 pytestmark = pytest.mark.anyio
 
@@ -42,13 +41,13 @@ class TestLaneTable:
 
     def test_create_lanes_map_matches_nina_table(self):
         """CREATE_LANES itself must equal Nina's §1 table (the declarative source test)."""
-        expected: dict[str, set[ItemType]] = {
-            "product-owner": {ItemType.FEATURE, ItemType.EPIC},
-            "tech-lead": {ItemType.TASK},
-            "architect": {ItemType.DECISION, ItemType.GUIDE},
-            "reviewer": {ItemType.REVIEW},
-            "qa": {ItemType.BUG},
-            "tech-writer": {ItemType.GUIDE},
+        expected: dict[str, set[str]] = {
+            "product-owner": {"feature", "epic"},
+            "tech-lead": {"task"},
+            "architect": {"decision", "guide"},
+            "reviewer": {"review"},
+            "qa": {"bug"},
+            "tech-writer": {"guide"},
             DEV: set(),
         }
         assert expected == CREATE_LANES, (
@@ -76,23 +75,23 @@ class TestLaneTable:
             )
 
     def test_product_owner_lane(self):
-        assert allowed_create_types("product-owner") == {ItemType.FEATURE, ItemType.EPIC}
+        assert allowed_create_types("product-owner") == {"feature", "epic"}
 
     def test_tech_lead_lane(self):
         # task only — co-authors guide but GUIDE is not in CREATE_LANES for tech-lead
-        assert allowed_create_types("tech-lead") == {ItemType.TASK}
+        assert allowed_create_types("tech-lead") == {"task"}
 
     def test_architect_lane(self):
-        assert allowed_create_types("architect") == {ItemType.DECISION, ItemType.GUIDE}
+        assert allowed_create_types("architect") == {"decision", "guide"}
 
     def test_reviewer_lane(self):
-        assert allowed_create_types("reviewer") == {ItemType.REVIEW}
+        assert allowed_create_types("reviewer") == {"review"}
 
     def test_qa_lane(self):
-        assert allowed_create_types("qa") == {ItemType.BUG}
+        assert allowed_create_types("qa") == {"bug"}
 
     def test_tech_writer_lane(self):
-        assert allowed_create_types("tech-writer") == {ItemType.GUIDE}
+        assert allowed_create_types("tech-writer") == {"guide"}
 
     def test_dev_lane_is_empty(self):
         """Any *-dev slug derives an empty lane (DEV sentinel has no sq create author verb)."""
@@ -138,9 +137,9 @@ class TestLanedTypes:
 
     def test_laned_types_does_not_contain_internal_artifact_types(self):
         """role, skill, and operator are internal artifact types — not laned."""
-        assert ItemType.ROLE not in LANED_TYPES
-        assert ItemType.SKILL not in LANED_TYPES
-        assert ItemType.OPERATOR not in LANED_TYPES
+        assert "role" not in LANED_TYPES
+        assert "skill" not in LANED_TYPES
+        assert "operator" not in LANED_TYPES
 
     def test_laned_types_contains_all_playbook_types(self):
         """Every item type in PLAYBOOK is a laned type (they all appear in some lane)."""
@@ -153,27 +152,27 @@ class TestLanedTypes:
 
 class TestInLaneOwner:
     def test_feature_owner_is_product_owner(self):
-        assert in_lane_owner(ItemType.FEATURE) == {"product-owner"}
+        assert in_lane_owner("feature") == {"product-owner"}
 
     def test_task_owner_is_tech_lead(self):
-        assert in_lane_owner(ItemType.TASK) == {"tech-lead"}
+        assert in_lane_owner("task") == {"tech-lead"}
 
     def test_bug_owner_is_qa(self):
-        assert in_lane_owner(ItemType.BUG) == {"qa"}
+        assert in_lane_owner("bug") == {"qa"}
 
     def test_review_owner_is_reviewer(self):
-        assert in_lane_owner(ItemType.REVIEW) == {"reviewer"}
+        assert in_lane_owner("review") == {"reviewer"}
 
     def test_decision_owner_is_architect(self):
-        assert in_lane_owner(ItemType.DECISION) == {"architect"}
+        assert in_lane_owner("decision") == {"architect"}
 
     def test_guide_owner_includes_architect_and_tech_writer(self):
-        owners = in_lane_owner(ItemType.GUIDE)
+        owners = in_lane_owner("guide")
         assert "architect" in owners
         assert "tech-writer" in owners
 
     def test_epic_owner_is_product_owner(self):
-        assert in_lane_owner(ItemType.EPIC) == {"product-owner"}
+        assert in_lane_owner("epic") == {"product-owner"}
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +185,7 @@ class TestServiceLaneWarning:
         """python-dev creating a feature → lane_warning names python-dev + product-owner."""
         await svc.add_dev("python")
         actor.set_actor("python-dev")
-        res = await svc.create(ItemType.FEATURE, "Oops", author="python-dev")
+        res = await svc.create("feature", "Oops", author="python-dev")
         assert res.lane_warning is not None
         assert "python-dev" in res.lane_warning
         assert "product-owner" in res.lane_warning
@@ -199,13 +198,13 @@ class TestServiceLaneWarning:
         """tech-lead creating a task → no warning (task is in tech-lead's derived lane)."""
         await svc.activate_role("tech-lead")
         actor.set_actor("tech-lead")
-        res = await svc.create(ItemType.TASK, "Fix stuff", author="tech-lead")
+        res = await svc.create("task", "Fix stuff", author="tech-lead")
         assert res.lane_warning is None
 
     async def test_manager_is_exempt_no_warning(self, svc, frozen_time):
         """manager creating any type → no warning (fully exempt)."""
         actor.set_actor("manager")
-        res = await svc.create(ItemType.FEATURE, "Manager feature", author="manager")
+        res = await svc.create("feature", "Manager feature", author="manager")
         assert res.lane_warning is None
 
     async def test_op_slug_is_exempt_no_warning(self, svc, frozen_time):
@@ -213,7 +212,7 @@ class TestServiceLaneWarning:
         # Register an operator so the author check passes
         await svc.add_operator("Pierre", slug="op-pierre")
         actor.set_actor("op-pierre")
-        res = await svc.create(ItemType.FEATURE, "Human feature", author="op-pierre")
+        res = await svc.create("feature", "Human feature", author="op-pierre")
         assert res.lane_warning is None
 
     async def test_dev_creates_bug_returns_warning(self, svc, frozen_time):
@@ -224,7 +223,7 @@ class TestServiceLaneWarning:
         """
         await svc.add_dev("python")
         actor.set_actor("python-dev")
-        res = await svc.create(ItemType.BUG, "Found a defect", author="python-dev")
+        res = await svc.create("bug", "Found a defect", author="python-dev")
         assert res.lane_warning is not None
         assert "python-dev" in res.lane_warning
         assert "qa" in res.lane_warning
@@ -236,14 +235,14 @@ class TestServiceLaneWarning:
         """qa creating a bug → no warning."""
         await svc.activate_role("qa")
         actor.set_actor("qa")
-        res = await svc.create(ItemType.BUG, "Known defect", author="qa")
+        res = await svc.create("bug", "Known defect", author="qa")
         assert res.lane_warning is None
 
     async def test_out_of_lane_warning_recorded_in_reflog(self, svc, frozen_time):
         """The create reflog delta carries the advisory lane_warning tag (AC-B2)."""
         await svc.add_dev("python")
         actor.set_actor("python-dev")
-        res = await svc.create(ItemType.FEATURE, "Bad feature", author="python-dev")
+        res = await svc.create("feature", "Bad feature", author="python-dev")
         lines = await read_lines(reflog_path(svc.paths.squad_dir))
         create_lines = [ln for ln in lines if ln.op == "create" and ln.target == res.item.id]
         assert len(create_lines) == 1
@@ -260,7 +259,7 @@ class TestServiceLaneWarning:
         """In-lane create reflog delta has no lane_warning key."""
         await svc.activate_role("tech-lead")
         actor.set_actor("tech-lead")
-        res = await svc.create(ItemType.TASK, "Clean task", author="tech-lead")
+        res = await svc.create("task", "Clean task", author="tech-lead")
         lines = await read_lines(reflog_path(svc.paths.squad_dir))
         create_lines = [ln for ln in lines if ln.op == "create" and ln.target == res.item.id]
         assert len(create_lines) == 1
@@ -271,7 +270,7 @@ class TestServiceLaneWarning:
         from squads._models._enums import Status
 
         actor.set_actor("python-dev")
-        res = await svc.create(ItemType.FEATURE, "Feature", author="manager")
+        res = await svc.create("feature", "Feature", author="manager")
         # A python-dev transitioning a feature status should not raise or warn.
         # (The lane check only fires on create; this call should succeed silently.)
         await svc.set_status(res.item.id, Status.IN_PROGRESS)
@@ -283,7 +282,7 @@ class TestServiceLaneWarning:
         the lane check entirely for them — no warning, no lane_warning key in the reflog,
         regardless of what author slug is used.
         """
-        # activate_role calls svc.create(ItemType.ROLE, …, author=role.slug) — self-authored.
+        # activate_role calls svc.create("role", …, author=role.slug) — self-authored.
         # This is a real internal flow: sq dev add / role activation go through ServiceCore.create.
         role_item = await svc.activate_role("architect")
         lines = await read_lines(reflog_path(svc.paths.squad_dir))
@@ -295,7 +294,7 @@ class TestServiceLaneWarning:
 
     async def test_non_laned_type_operator_creates_no_lane_warning(self, svc, frozen_time):
         """Operator create (internal artifact type) produces no lane warning (REV-000165 F2)."""
-        # add_operator internally calls svc.create(ItemType.OPERATOR, …) and returns the Item.
+        # add_operator internally calls svc.create("operator", …) and returns the Item.
         op_item = await svc.add_operator("Test User", slug="op-test")
         # Check the reflog: the operator create delta must not carry a lane_warning key
         lines = await read_lines(reflog_path(svc.paths.squad_dir))

@@ -4,7 +4,7 @@ import pytest
 
 from squads._errors import InvalidTransitionError, ItemNotFoundError, SquadsError
 from squads._itemfile import read_frontmatter
-from squads._models._enums import ItemType, Status
+from squads._models._enums import Status
 
 pytestmark = pytest.mark.anyio
 
@@ -12,7 +12,7 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_create_allocates_id_and_writes_file(svc):
-    res = await svc.create(ItemType.FEATURE, "User authentication", description="Login")
+    res = await svc.create("feature", "User authentication", description="Login")
     assert res.item.id == "FEAT-2"  # ROLE-1 took the first number; display is unpadded
     assert res.path.exists()
     # Filename stays padded (ADR-000282) even though the displayed id is unpadded.
@@ -24,11 +24,11 @@ async def test_create_allocates_id_and_writes_file(svc):
 
 async def test_create_rejects_missing_parent(svc):
     with pytest.raises(ItemNotFoundError):
-        await svc.create(ItemType.TASK, "x", parent="FEAT-999999")
+        await svc.create("task", "x", parent="FEAT-999999")
 
 
 async def test_status_transition_and_validation(svc):
-    res = await svc.create(ItemType.TASK, "t")
+    res = await svc.create("task", "t")
     with pytest.raises(InvalidTransitionError):
         await svc.set_status(res.item.id, Status.DONE)  # Draft -> Done illegal
     await svc.set_status(res.item.id, Status.IN_PROGRESS)
@@ -39,7 +39,7 @@ async def test_status_transition_and_validation(svc):
 
 
 async def test_update_title_renames_file(svc):
-    res = await svc.create(ItemType.TASK, "Fix login")
+    res = await svc.create("task", "Fix login")
     old = res.path
     updated = await svc.update(res.item.id, title="Fix login loop")
     assert updated.slug == "fix-login-loop"
@@ -57,25 +57,23 @@ async def test_rename_and_retype_keep_filename_padded_while_id_unpadded(svc):
     Covers the two seams that concatenate a formatted id into a filename — rename (via
     update --title) and retype — in addition to create (test_create_allocates_id_and_writes_file).
     """
-    from squads._models._enums import ItemType as _IT
-
     # Rename seam.
-    task = (await svc.create(_IT.TASK, "Original title")).item
+    task = (await svc.create("task", "Original title")).item
     renamed = await svc.update(task.id, title="Renamed title")
     renamed_path = svc.paths.abspath(renamed.path)
     assert renamed_path.name == "TASK-000002-renamed-title.md"
     assert read_frontmatter(renamed_path)["id"] == "TASK-2"
 
     # Retype seam.
-    retyped = (await svc.retype(task.id, _IT.BUG)).item
+    retyped = (await svc.retype(task.id, "bug")).item
     retyped_path = svc.paths.abspath(retyped.path)
     assert retyped_path.name == "BUG-000002-renamed-title.md"
     assert read_frontmatter(retyped_path)["id"] == "BUG-2"
 
 
 async def test_link_unlink(svc):
-    feat = (await svc.create(ItemType.FEATURE, "f")).item
-    task = (await svc.create(ItemType.TASK, "t")).item
+    feat = (await svc.create("feature", "f")).item
+    task = (await svc.create("task", "t")).item
     await svc.link(task.id, feat.id)
     assert (await svc.get(task.id)).parent == feat.id
     await svc.unlink(task.id)
@@ -83,7 +81,7 @@ async def test_link_unlink(svc):
 
 
 async def test_set_body_replaces_appends_and_rejects(svc):
-    task = (await svc.create(ItemType.TASK, "t", description="summary stays in frontmatter")).item
+    task = (await svc.create("task", "t", description="summary stays in frontmatter")).item
     # the description is a frontmatter summary, NOT rendered into the body
     assert "summary stays in frontmatter" not in await svc.read_body(task.id)
     await svc.set_body(task.id, "## Description\n\nFull body content.")
@@ -102,13 +100,13 @@ async def test_set_body_replaces_appends_and_rejects(svc):
 
 
 async def test_create_with_body(svc):
-    res = await svc.create(ItemType.FEATURE, "Login", body="## Summary\n\nEmail + password.")
+    res = await svc.create("feature", "Login", body="## Summary\n\nEmail + password.")
     assert await svc.read_body(res.item.id) == "## Summary\n\nEmail + password."
 
 
 async def test_repair_rebuilds_index_from_frontmatter(svc):
-    await svc.create(ItemType.FEATURE, "f")
-    await svc.create(ItemType.TASK, "t")
+    await svc.create("feature", "f")
+    await svc.create("task", "t")
     # frontmatter is the durable truth: nuke the index and rebuild
     svc.paths.index_path.unlink()
     result = await svc.repair()
@@ -123,7 +121,7 @@ async def test_repair_carries_padding_forward(svc):
     """repair() preserves stored padding as a floor (ADR-000104); default squads get 6."""
     import json
 
-    await svc.create(ItemType.TASK, "t")
+    await svc.create("task", "t")
     # Default padding is 6.
     assert (await svc.store.load()).padding == 6
     # repair on an unmodified squad keeps padding at 6.
@@ -144,7 +142,7 @@ async def test_repair_writes_padding_for_pre_existing_index(svc):
     """repair() materialises padding=6 into an index that predates the padding field."""
     import json
 
-    await svc.create(ItemType.TASK, "t")
+    await svc.create("task", "t")
     # Remove padding from the index as if it were a pre-FEAT-000027 index.
     raw = json.loads(svc.paths.index_path.read_text(encoding="utf-8"))
     del raw["padding"]
@@ -168,13 +166,13 @@ async def test_create_at_capacity_raises_index_full_error(svc):
     svc.paths.index_path.write_text(json.dumps(raw), encoding="utf-8")
 
     with pytest.raises(SquadsError, match="sq migrate repad"):
-        await svc.create(ItemType.TASK, "overflow")
+        await svc.create("task", "overflow")
 
 
 async def test_subentity_state_lives_in_frontmatter_not_markers(svc):
-    feat = (await svc.create(ItemType.FEATURE, "Login")).item
+    feat = (await svc.create("feature", "Login")).item
     await svc.add_story(feat.id, "Reset password")  # US1
-    task = (await svc.create(ItemType.TASK, "Auth", parent=feat.id)).item
+    task = (await svc.create("task", "Auth", parent=feat.id)).item
     await svc.add_subtask(task.id, "Validate", story="US1")
     await svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
 
@@ -190,7 +188,7 @@ async def test_subentity_state_lives_in_frontmatter_not_markers(svc):
 
 
 async def test_repair_reconstructs_subentities_from_frontmatter(svc):
-    task = (await svc.create(ItemType.TASK, "Auth")).item
+    task = (await svc.create("task", "Auth")).item
     await svc.add_subtask(task.id, "Validate", assignee=None)
     svc.paths.index_path.unlink()
     result = await svc.repair()
@@ -202,8 +200,8 @@ async def test_repair_reconstructs_subentities_from_frontmatter(svc):
 
 
 async def test_refs_out_and_computed_backrefs(svc):
-    task = (await svc.create(ItemType.TASK, "t")).item
-    guide = (await svc.create(ItemType.GUIDE, "g")).item
+    task = (await svc.create("task", "t")).item
+    guide = (await svc.create("guide", "g")).item
     await svc.add_ref(task.id, guide.id, kind="implements")
     assert await svc.refs_out(task.id) == [(guide.id, "implements")]
     assert await svc.refs_in(guide.id) == [(task.id, "implements")]
@@ -215,8 +213,8 @@ async def test_refs_out_and_computed_backrefs(svc):
 
 
 async def test_default_kind_stored_bare(svc):
-    a = (await svc.create(ItemType.TASK, "a")).item
-    b = (await svc.create(ItemType.GUIDE, "b")).item
+    a = (await svc.create("task", "a")).item
+    b = (await svc.create("guide", "b")).item
     await svc.add_ref(a.id, b.id)  # default kind 'related'
     fm = read_frontmatter(svc.paths.abspath((await svc.get(a.id)).path))
     assert fm["refs"] == [b.id]  # no ':related' suffix
@@ -224,16 +222,16 @@ async def test_default_kind_stored_bare(svc):
 
 
 async def test_readd_updates_kind(svc):
-    a = (await svc.create(ItemType.TASK, "a")).item
-    b = (await svc.create(ItemType.BUG, "b")).item
+    a = (await svc.create("task", "a")).item
+    b = (await svc.create("bug", "b")).item
     await svc.add_ref(a.id, b.id, kind="related")
     await svc.add_ref(a.id, b.id, kind="fixes")  # re-add updates, not duplicates
     assert await svc.refs_out(a.id) == [(b.id, "fixes")]
 
 
 async def test_ref_rm_and_self_ref_rejected(svc):
-    a = (await svc.create(ItemType.TASK, "a")).item
-    b = (await svc.create(ItemType.TASK, "b")).item
+    a = (await svc.create("task", "a")).item
+    b = (await svc.create("task", "b")).item
     await svc.add_ref(a.id, b.id, kind="blocks")
     await svc.rm_ref(a.id, b.id)  # removed by ID regardless of kind
     assert await svc.refs_out(a.id) == []
@@ -246,10 +244,10 @@ async def test_ref_rm_and_self_ref_rejected(svc):
 
 async def test_repair_renumber_resolves_collision(svc):
     # build a collision like a git merge would: two items sharing number 000003
-    await svc.create(ItemType.TASK, "real task")  # TASK-000002
-    bug = (await svc.create(ItemType.BUG, "real bug")).item  # BUG-000003
+    await svc.create("task", "real task")  # TASK-000002
+    bug = (await svc.create("bug", "real bug")).item  # BUG-000003
     # forge a feature file that also claims number 000003, referenced by the bug
-    feat_dir = svc.paths.folder_for(ItemType.FEATURE)
+    feat_dir = svc.paths.folder_for("feature", spec=svc.spec)
     forged = feat_dir / "FEAT-000003-forged.md"
     forged.write_text(
         "---\nid: FEAT-000003\nsequence_id: 3\ntype: feature\ntitle: forged\nstatus: Draft\n"
@@ -348,9 +346,9 @@ async def test_renumber_shifts_block_and_preserves_referential_intent(svc):
     item afterward — the referential-intent guarantee the post-merge collision fixer cannot
     make (contrast test_repair_renumber_resolves_collision, whose ref gets repointed to the
     *other* collided item)."""
-    feat = (await svc.create(ItemType.FEATURE, "keep")).item  # FEAT-2, below --from
-    task = (await svc.create(ItemType.TASK, "shift-task", parent=feat.id)).item  # TASK-3
-    bug = (await svc.create(ItemType.BUG, "shift-bug")).item  # BUG-4
+    feat = (await svc.create("feature", "keep")).item  # FEAT-2, below --from
+    task = (await svc.create("task", "shift-task", parent=feat.id)).item  # TASK-3
+    bug = (await svc.create("bug", "shift-bug")).item  # BUG-4
     await svc.add_ref(task.id, bug.id)
 
     result = await svc.renumber(from_seq=3, onto=10)
@@ -392,8 +390,8 @@ async def test_renumber_rewrites_an_unshifted_items_ref_to_a_shifted_item(svc):
     item rewritten to the new id — the reverse of the shifted-referrer case above, and the
     other half of the referential-intent guarantee: resolvability holds from both directions.
     """
-    referrer = (await svc.create(ItemType.TASK, "stay-put")).item  # TASK-2, will NOT be shifted
-    bug = (await svc.create(ItemType.BUG, "shift-me")).item  # BUG-3
+    referrer = (await svc.create("task", "stay-put")).item  # TASK-2, will NOT be shifted
+    bug = (await svc.create("bug", "shift-me")).item  # BUG-3
     await svc.add_ref(referrer.id, bug.id)
 
     result = await svc.renumber(from_seq=bug.sequence_id, onto=10)
@@ -415,7 +413,7 @@ async def test_renumber_does_not_misreport_shifted_items_as_missing_in_reflog(sv
     log a false "missing" entry for every item this operation deliberately renumbered."""
     import json
 
-    bug = (await svc.create(ItemType.BUG, "shift-me")).item  # BUG-2
+    bug = (await svc.create("bug", "shift-me")).item  # BUG-2
 
     await svc.renumber(from_seq=bug.sequence_id, onto=10)
 
@@ -442,8 +440,8 @@ async def test_renumber_appends_a_single_event_summarizing_the_shift(svc):
 
     before = _read_reflog_lines(svc.paths.squad_dir)
 
-    task = (await svc.create(ItemType.TASK, "shift-me")).item
-    bug = (await svc.create(ItemType.BUG, "shift-me-too")).item
+    task = (await svc.create("task", "shift-me")).item
+    bug = (await svc.create("bug", "shift-me-too")).item
     result = await svc.renumber(from_seq=task.sequence_id, onto=10)
 
     after = _read_reflog_lines(svc.paths.squad_dir)
@@ -465,7 +463,7 @@ async def test_renumber_by_form_records_by_and_leaves_onto_null(svc):
     """The mirror case: a --by shift records `by` and leaves `onto` null in the summary."""
     import json
 
-    task = (await svc.create(ItemType.TASK, "shift-me")).item  # counter reaches 2
+    task = (await svc.create("task", "shift-me")).item  # counter reaches 2
 
     result = await svc.renumber(from_seq=task.sequence_id, by=5)
 
@@ -479,7 +477,7 @@ async def test_renumber_by_form_records_by_and_leaves_onto_null(svc):
 async def test_renumber_leaves_prior_reflog_lines_byte_for_byte_unchanged(svc):
     """The append is a pure append: every line written before the shift is untouched — no
     in-place rewrite of a historical target/delta to the item's new (post-shift) id."""
-    bug = (await svc.create(ItemType.BUG, "shift-me")).item
+    bug = (await svc.create("bug", "shift-me")).item
 
     before = _read_reflog_lines(svc.paths.squad_dir)
     assert before  # sanity: something was already logged (the create above)
@@ -497,8 +495,8 @@ async def test_renumber_leaves_prior_reflog_lines_byte_for_byte_unchanged(svc):
 async def test_renumber_rewrites_a_prose_mention_of_a_shifted_id_in_a_body(svc):
     """A shifted item's id, mentioned in another item's body prose (not a structured ref/
     parent field), is still rewritten — the content-side half of intent preservation."""
-    note = (await svc.create(ItemType.TASK, "keep-a-note")).item  # stays below --from
-    bug = (await svc.create(ItemType.BUG, "shift-me")).item
+    note = (await svc.create("task", "keep-a-note")).item  # stays below --from
+    bug = (await svc.create("bug", "shift-me")).item
     await svc.set_body(note.id, f"See {bug.id} for context.")
 
     result = await svc.renumber(from_seq=bug.sequence_id, onto=10)
@@ -516,7 +514,7 @@ async def test_renumber_nothing_to_shift_is_a_noop(svc):
 
 async def test_renumber_unsafe_by_leaves_filesystem_untouched(svc):
     """The refuse-path (unsafe --by) exits before touching a single file."""
-    task = (await svc.create(ItemType.TASK, "t")).item  # TASK-2, counter=2
+    task = (await svc.create("task", "t")).item  # TASK-2, counter=2
 
     squad_dir = svc.paths.squad_dir
     before_files = sorted(p.name for p in squad_dir.rglob("*.md"))
@@ -568,7 +566,7 @@ async def test_skill_add_generates_pointer(svc):
     skill = await svc.add_skill(
         "PDF extract", description="Pull text", when_to_use="when a pdf is attached"
     )
-    assert skill.type == ItemType.SKILL
+    assert skill.type == "skill"
     assert skill.status == Status.ACTIVE
     pointer = svc.paths.root / ".claude" / "skills" / "pdf-extract" / "SKILL.md"
     assert pointer.exists()
@@ -591,17 +589,17 @@ async def test_skill_rm_purge_removes_pointer_and_file(svc):
 
 async def test_author_defaults_to_registered_role_and_validates(svc):
     # the svc fixture's minimal roster registers `manager`; create defaults author to it
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     assert task.author == "manager"
     # the bundled manager role self-authored at init
     assert (await svc.get("ROLE-000001")).author == "manager"
     # an explicit unregistered author is rejected
     with pytest.raises(SquadsError, match="not a registered agent"):
-        await svc.create(ItemType.TASK, "x", author="ghost")
+        await svc.create("task", "x", author="ghost")
 
 
 async def test_check_flags_author_whose_role_was_removed(svc):
-    task = (await svc.create(ItemType.TASK, "t", author="manager")).item
+    task = (await svc.create("task", "t", author="manager")).item
     await svc.remove_item((await svc.get("ROLE-000001")).id)  # drop the manager role
     issues = await svc.check()
     assert any(i.item == task.id and "author" in i.message for i in issues)
@@ -609,11 +607,11 @@ async def test_check_flags_author_whose_role_was_removed(svc):
 
 async def test_assignee_validated_against_roster(svc):
     await svc.add_dev("python")  # registers python-dev as an agent
-    task = (await svc.create(ItemType.TASK, "t", assignee="python-dev")).item
+    task = (await svc.create("task", "t", assignee="python-dev")).item
     assert task.assignee == "python-dev"
     # an unregistered assignee is rejected at create and at update
     with pytest.raises(SquadsError, match="not a registered agent"):
-        await svc.create(ItemType.TASK, "x", assignee="ghost")
+        await svc.create("task", "x", assignee="ghost")
     await svc.update(task.id, assignee="manager")
     assert (await svc.get(task.id)).assignee == "manager"
     with pytest.raises(SquadsError, match="not a registered agent"):
@@ -625,11 +623,9 @@ async def test_assignee_validated_against_roster(svc):
 
 async def test_check_flags_assignee_whose_role_was_removed(svc):
     await svc.add_dev("rust")  # registers rust-dev
-    task = (await svc.create(ItemType.TASK, "t", assignee="rust-dev")).item
+    task = (await svc.create("task", "t", assignee="rust-dev")).item
     role = next(
-        r
-        for r in await svc.list_items(item_type=ItemType.ROLE)
-        if r.extra.get("slug") == "rust-dev"
+        r for r in await svc.list_items(item_type="role") if r.extra.get("slug") == "rust-dev"
     )
     await svc.remove_item(role.id)
     issues = await svc.check()
@@ -690,8 +686,8 @@ async def test_version_notice_triggers_when_newer(capsys, project, monkeypatch):
 
 async def test_repair_keeps_counter_after_top_item_deleted(svc):
     """Repair must not regress the counter when the highest-numbered item's file is deleted."""
-    await svc.create(ItemType.FEATURE, "alpha")  # FEAT-000002
-    top = (await svc.create(ItemType.TASK, "beta")).item  # TASK-000003; counter → 3
+    await svc.create("feature", "alpha")  # FEAT-000002
+    top = (await svc.create("task", "beta")).item  # TASK-000003; counter → 3
     assert (await svc.store.load()).counter == 3
 
     # Delete the top item's markdown file — simulates accidental or manual removal.
@@ -706,14 +702,14 @@ async def test_repair_keeps_counter_after_top_item_deleted(svc):
 
 async def test_allocate_after_repair_never_reuses(svc):
     """Next create after a repair-after-file-loss must yield max+1, not a reused number."""
-    await svc.create(ItemType.FEATURE, "alpha")  # FEAT-000002
-    top = (await svc.create(ItemType.TASK, "beta")).item  # TASK-000003; counter → 3
+    await svc.create("feature", "alpha")  # FEAT-000002
+    top = (await svc.create("task", "beta")).item  # TASK-000003; counter → 3
 
     svc.paths.abspath(top.path).unlink()
     await svc.repair()
 
     # The next allocation must be 4, never 3.
-    new_item = (await svc.create(ItemType.BUG, "new bug")).item
+    new_item = (await svc.create("bug", "new bug")).item
     assert new_item.sequence_id == 4, f"expected sequence 4, got {new_item.sequence_id}"
     assert new_item.id == "BUG-4"
 
@@ -726,8 +722,8 @@ async def test_load_corrects_regressed_counter(svc):
     """
     import json
 
-    await svc.create(ItemType.FEATURE, "f1")  # FEAT-000002
-    await svc.create(ItemType.TASK, "t1")  # TASK-000003; counter → 3
+    await svc.create("feature", "f1")  # FEAT-000002
+    await svc.create("task", "t1")  # TASK-000003; counter → 3
 
     # Simulate a hand-edit that regressed the counter to 1.
     async with svc.store.transaction() as db:
@@ -746,7 +742,7 @@ async def test_load_corrects_regressed_counter(svc):
     assert raw_after["counter"] == 1, "load() must not write back to the file"
 
     # The next create (a transaction) allocates max+1 = 4 and persists counter=4 to disk.
-    new_item = (await svc.create(ItemType.BUG, "should be 4")).item
+    new_item = (await svc.create("bug", "should be 4")).item
     assert new_item.sequence_id == 4, f"expected sequence 4, got {new_item.sequence_id}"
     raw_persisted = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
     assert raw_persisted["counter"] == 4, "transaction must persist the corrected counter"
@@ -754,8 +750,8 @@ async def test_load_corrects_regressed_counter(svc):
 
 async def test_repair_reports_missing_ids(svc):
     """Repair surfaces the IDs of items that were indexed but whose files disappeared."""
-    feat = (await svc.create(ItemType.FEATURE, "feature a")).item  # FEAT-000002
-    task = (await svc.create(ItemType.TASK, "task b")).item  # TASK-000003
+    feat = (await svc.create("feature", "feature a")).item  # FEAT-000002
+    task = (await svc.create("task", "task b")).item  # TASK-000003
 
     # Delete one file.
     svc.paths.abspath(task.path).unlink()
@@ -767,7 +763,7 @@ async def test_repair_reports_missing_ids(svc):
 
 async def test_check_flags_index_item_with_no_file(svc):
     """check() reports an error for items present in the index but missing from disk."""
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     # Artificially add a ghost item to the index (no file on disk).
     import json
 
@@ -797,8 +793,8 @@ async def test_check_flags_index_item_with_no_file(svc):
 
 async def test_add_ref_rejects_unknown_kind(svc):
     """add_ref with an unknown kind raises SquadsError listing the valid kinds."""
-    a = (await svc.create(ItemType.TASK, "a")).item
-    b = (await svc.create(ItemType.TASK, "b")).item
+    a = (await svc.create("task", "a")).item
+    b = (await svc.create("task", "b")).item
     with pytest.raises(SquadsError) as exc_info:
         await svc.add_ref(a.id, b.id, kind="banana")
     msg = str(exc_info.value)
@@ -812,10 +808,8 @@ async def test_add_ref_accepts_all_valid_kinds(svc):
     """add_ref accepts each of the eight vocabulary kinds."""
     from squads._models._item import VALID_REF_KINDS
 
-    items = [
-        (await svc.create(ItemType.TASK, f"item-{i}")).item for i in range(len(VALID_REF_KINDS))
-    ]
-    target = (await svc.create(ItemType.TASK, "target")).item
+    items = [(await svc.create("task", f"item-{i}")).item for i in range(len(VALID_REF_KINDS))]
+    target = (await svc.create("task", "target")).item
     for i, kind in enumerate(sorted(VALID_REF_KINDS)):
         await svc.add_ref(items[i].id, target.id, kind=kind)
         pairs = await svc.refs_out(items[i].id)
@@ -824,8 +818,8 @@ async def test_add_ref_accepts_all_valid_kinds(svc):
 
 async def test_add_ref_bare_defaults_related(svc):
     """add_ref without a kind defaults to 'related' — no nudge, no friction."""
-    a = (await svc.create(ItemType.TASK, "a")).item
-    b = (await svc.create(ItemType.TASK, "b")).item
+    a = (await svc.create("task", "a")).item
+    b = (await svc.create("task", "b")).item
     await svc.add_ref(a.id, b.id)
     fm = read_frontmatter(svc.paths.abspath((await svc.get(a.id)).path))
     assert fm["refs"] == [b.id]  # stored bare (no ':related' suffix)
@@ -834,12 +828,12 @@ async def test_add_ref_bare_defaults_related(svc):
 
 async def test_add_ref_three_new_kinds_persist(svc):
     """supersedes, depends-on, duplicates are accepted and round-trip through frontmatter."""
-    dec_a = (await svc.create(ItemType.DECISION, "old decision")).item
-    dec_b = (await svc.create(ItemType.DECISION, "new decision")).item
-    task_a = (await svc.create(ItemType.TASK, "blocker")).item
-    task_b = (await svc.create(ItemType.TASK, "dependent")).item
-    bug_a = (await svc.create(ItemType.BUG, "original")).item
-    bug_b = (await svc.create(ItemType.BUG, "duplicate")).item
+    dec_a = (await svc.create("decision", "old decision")).item
+    dec_b = (await svc.create("decision", "new decision")).item
+    task_a = (await svc.create("task", "blocker")).item
+    task_b = (await svc.create("task", "dependent")).item
+    bug_a = (await svc.create("bug", "original")).item
+    bug_b = (await svc.create("bug", "duplicate")).item
 
     await svc.add_ref(dec_b.id, dec_a.id, kind="supersedes")
     await svc.add_ref(task_b.id, task_a.id, kind="depends-on")
@@ -862,9 +856,9 @@ async def test_create_with_ref_rejects_unknown_kind(svc):
     """svc.create with refs containing an unknown kind raises SquadsError."""
     from squads._models._item import make_ref
 
-    a = (await svc.create(ItemType.TASK, "a")).item
+    a = (await svc.create("task", "a")).item
     with pytest.raises(SquadsError) as exc_info:
-        await svc.create(ItemType.TASK, "b", refs=[make_ref(a.id, "bogus")])
+        await svc.create("task", "b", refs=[make_ref(a.id, "bogus")])
     assert "bogus" in str(exc_info.value)
 
 
@@ -873,8 +867,8 @@ async def test_create_with_ref_rejects_unknown_kind(svc):
 
 async def test_blocked_depends_on_equivalent_to_blocks(svc):
     """depends-on produces the same (blocked, [blocker]) pair as the equivalent blocks edge."""
-    blocker = (await svc.create(ItemType.TASK, "blocker")).item
-    dependent = (await svc.create(ItemType.TASK, "dependent")).item
+    blocker = (await svc.create("task", "blocker")).item
+    dependent = (await svc.create("task", "dependent")).item
 
     # A depends-on B means A is blocked by B — same as B blocks A
     await svc.add_ref(dependent.id, blocker.id, kind="depends-on")
@@ -888,9 +882,9 @@ async def test_blocked_depends_on_equivalent_to_blocks(svc):
 
 async def test_blocked_mixed_edges_no_duplicates(svc):
     """An item blocked via both blocks and depends-on appears once with all blockers."""
-    blocker_a = (await svc.create(ItemType.TASK, "blocker-a")).item
-    blocker_b = (await svc.create(ItemType.TASK, "blocker-b")).item
-    dependent = (await svc.create(ItemType.TASK, "dependent")).item
+    blocker_a = (await svc.create("task", "blocker-a")).item
+    blocker_b = (await svc.create("task", "blocker-b")).item
+    dependent = (await svc.create("task", "dependent")).item
 
     # blocker_a blocks dependent (edge on blocker_a)
     await svc.add_ref(blocker_a.id, dependent.id, kind="blocks")
@@ -907,8 +901,8 @@ async def test_blocked_mixed_edges_no_duplicates(svc):
 
 async def test_blocked_closed_blocker_not_included(svc):
     """A closed blocker is not counted; if all blockers are closed the item is not listed."""
-    blocker = (await svc.create(ItemType.TASK, "blocker")).item
-    dependent = (await svc.create(ItemType.TASK, "dependent")).item
+    blocker = (await svc.create("task", "blocker")).item
+    dependent = (await svc.create("task", "dependent")).item
 
     await svc.add_ref(dependent.id, blocker.id, kind="depends-on")
     # close the blocker
@@ -926,8 +920,8 @@ async def test_check_warns_on_unknown_ref_kind(svc):
     import squads._sections as sections
     from squads._itemfile import read_frontmatter
 
-    a = (await svc.create(ItemType.TASK, "a")).item
-    b = (await svc.create(ItemType.TASK, "b")).item
+    a = (await svc.create("task", "a")).item
+    b = (await svc.create("task", "b")).item
 
     # Inject a junk kind directly into the frontmatter, bypassing add_ref validation.
     path = svc.paths.abspath((await svc.get(a.id)).path)
@@ -945,7 +939,7 @@ async def test_check_warns_on_unknown_ref_kind(svc):
 
 async def test_check_warns_superseded_decision_without_edge(svc):
     """check() warns when a Superseded decision has no incoming supersedes edge."""
-    old_adr = (await svc.create(ItemType.DECISION, "old decision")).item
+    old_adr = (await svc.create("decision", "old decision")).item
     # Force it to Superseded status
     await svc.set_status(old_adr.id, Status.PROPOSED)
     await svc.set_status(old_adr.id, Status.SUPERSEDED, force=True)
@@ -961,8 +955,8 @@ async def test_check_warns_superseded_decision_without_edge(svc):
 
 async def test_check_no_warn_superseded_decision_with_edge(svc):
     """check() does NOT warn when a Superseded decision has an incoming supersedes edge."""
-    old_adr = (await svc.create(ItemType.DECISION, "old decision")).item
-    new_adr = (await svc.create(ItemType.DECISION, "new decision")).item
+    old_adr = (await svc.create("decision", "old decision")).item
+    new_adr = (await svc.create("decision", "new decision")).item
 
     await svc.set_status(old_adr.id, Status.PROPOSED)
     await svc.set_status(old_adr.id, Status.SUPERSEDED, force=True)
@@ -990,9 +984,7 @@ async def test_repair_raises_padding_from_filename_width(svc):
     """
     import json
 
-    from squads._models._enums import ItemType
-
-    task = (await svc.create(ItemType.TASK, "task")).item
+    task = (await svc.create("task", "task")).item
     # Confirm default padding.
     assert (await svc.store.load()).padding == 6
 
@@ -1016,8 +1008,8 @@ async def test_repair_raises_padding_from_filename_width(svc):
 
 async def test_repad_renames_files_and_bumps_padding(svc):
     """repad(7) renames all item files to width-7 and stores padding=7."""
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-000002
-    task = (await svc.create(ItemType.TASK, "task")).item  # TASK-000003
+    feat = (await svc.create("feature", "feat")).item  # FEAT-000002
+    task = (await svc.create("task", "task")).item  # TASK-000003
 
     renamed = await svc.repad(7)
 
@@ -1045,7 +1037,7 @@ async def test_repad_renames_files_and_bumps_padding(svc):
 
 async def test_repad_refuses_to_lower(svc):
     """repad raises SquadsError when the requested width is <= the current padding."""
-    await svc.create(ItemType.TASK, "t")
+    await svc.create("task", "t")
     assert (await svc.store.load()).padding == 6
 
     with pytest.raises(SquadsError, match="must be greater than"):
@@ -1057,7 +1049,7 @@ async def test_repad_refuses_to_lower(svc):
 
 async def test_repad_leaves_file_contents_byte_identical(svc):
     """repad only renames files; the bytes inside each file are unchanged."""
-    task = (await svc.create(ItemType.TASK, "byte check task")).item
+    task = (await svc.create("task", "byte check task")).item
 
     # Capture the file contents before repad.
     old_path = svc.paths.abspath(task.path)
@@ -1069,7 +1061,7 @@ async def test_repad_leaves_file_contents_byte_identical(svc):
     assert not old_path.exists()
 
     # Find the renamed file and check that its bytes are identical.
-    task_folder = svc.paths.folder_for(ItemType.TASK)
+    task_folder = svc.paths.folder_for("task", spec=svc.spec)
     new_files = list(task_folder.glob("TASK-*.md"))
     assert len(new_files) == 1, "expected exactly one task file after repad"
     new_bytes = new_files[0].read_bytes()
@@ -1078,7 +1070,7 @@ async def test_repad_leaves_file_contents_byte_identical(svc):
 
 async def test_repad_sq_check_clean_afterwards(svc):
     """sq check must pass on a repadded squad."""
-    await svc.create(ItemType.TASK, "t")
+    await svc.create("task", "t")
     await svc.repad(7)
     issues = await svc.check()
     errors = [i for i in issues if i.level == "error"]
@@ -1087,7 +1079,7 @@ async def test_repad_sq_check_clean_afterwards(svc):
 
 async def test_repad_is_idempotent_on_already_wide_files(svc):
     """repad(8) on a width-7 squad: files that are already width-8 are not re-renamed."""
-    await svc.create(ItemType.TASK, "t")
+    await svc.create("task", "t")
     await svc.repad(7)
     db7 = await svc.store.load()
     assert db7.padding == 7
@@ -1107,7 +1099,6 @@ async def test_renumber_plan_uses_supplied_padding(svc):
     """
     from pathlib import Path
 
-    from squads._models._enums import ItemType
     from squads._services._maintenance import MaintenanceMixin
 
     # Build two synthetic _FileRec tuples that collide on sequence 3.
@@ -1115,8 +1106,8 @@ async def test_renumber_plan_uses_supplied_padding(svc):
     fid_b = "FEAT-000003"
     fake_path = Path("/fake/path.md")
     records = [
-        (fid_a, fake_path, str(ItemType.TASK), "task", 3),
-        (fid_b, fake_path, str(ItemType.FEATURE), "feat", 3),
+        (fid_a, fake_path, "task", "task", 3),
+        (fid_b, fake_path, "feature", "feat", 3),
     ]
     _, renames = MaintenanceMixin._renumber_plan(records, padding=7)  # pyright: ignore[reportPrivateUsage]
     # The reassigned ID must use 7-digit formatting.
@@ -1134,7 +1125,7 @@ async def test_display_stays_unpadded_after_repad(svc):
     Display padding is a fixed constant (DISPLAY_ID_PADDING=0); SquadsDB.padding governs
     filenames only and never affects item.id, before or after a repad.
     """
-    task = (await svc.create(ItemType.TASK, "t")).item
+    task = (await svc.create("task", "t")).item
     assert task.id == "TASK-2"
 
     await svc.repad(7)
@@ -1153,8 +1144,8 @@ async def test_refs_in_width_tolerant_after_repad(svc):
     are all matched/rendered by (prefix, sequence_id), never literal string width
     (ADR-000282). A query at the (now-irrelevant) old or new filename width still resolves.
     """
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-2
-    task = (await svc.create(ItemType.TASK, "task")).item  # TASK-3
+    feat = (await svc.create("feature", "feat")).item  # FEAT-2
+    task = (await svc.create("task", "task")).item  # TASK-3
     await svc.add_ref(task.id, feat.id)  # stores the unpadded ref "FEAT-2"
 
     await svc.repad(7)
@@ -1174,8 +1165,8 @@ async def test_refs_in_width_tolerant_after_repad(svc):
 
 async def test_backrefs_width_tolerant_after_repad(svc):
     """SquadsDB.backrefs() works with old-width refs after a repad."""
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item
-    task = (await svc.create(ItemType.TASK, "task")).item
+    feat = (await svc.create("feature", "feat")).item
+    task = (await svc.create("task", "task")).item
     await svc.add_ref(task.id, feat.id)
 
     await svc.repad(7)
@@ -1194,8 +1185,8 @@ async def test_parent_lookup_width_tolerant_after_repad(svc):
     index.get(item.parent) is width-tolerant via _seq; _check_items must not report a
     dangling-parent error regardless of the squad's current filename padding.
     """
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item
-    task = (await svc.create(ItemType.TASK, "task", parent=feat.id)).item
+    feat = (await svc.create("feature", "feat")).item
+    task = (await svc.create("task", "task", parent=feat.id)).item
     assert task.parent == "FEAT-2"  # stored unpadded — display is always unpadded
 
     await svc.repad(7)
@@ -1224,8 +1215,8 @@ async def test_add_ref_dedup_width_tolerant(svc):
     Before repad: item A refs item B ("FEAT-000002").
     After repad:  add_ref(A, "FEAT-0000002") must replace the old ref, not add a second one.
     """
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item
-    task = (await svc.create(ItemType.TASK, "task")).item
+    feat = (await svc.create("feature", "feat")).item
+    task = (await svc.create("task", "task")).item
     await svc.add_ref(task.id, feat.id)  # stores "FEAT-000002" in task's refs
 
     await svc.repad(7)
@@ -1248,8 +1239,8 @@ async def test_add_ref_dedup_width_tolerant(svc):
 
 async def test_rm_ref_width_tolerant(svc):
     """rm_ref() removes a ref stored with old-width ID when addressed with new-width ID."""
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item
-    task = (await svc.create(ItemType.TASK, "task")).item
+    feat = (await svc.create("feature", "feat")).item
+    task = (await svc.create("task", "task")).item
     await svc.add_ref(task.id, feat.id)  # stores "FEAT-000002"
 
     await svc.repad(7)
@@ -1264,8 +1255,8 @@ async def test_rm_ref_width_tolerant(svc):
 
 async def test_check_decisions_width_tolerant_after_repad(svc):
     """_check_decisions does not false-warn when the supersedes ref uses the old width."""
-    adr1 = (await svc.create(ItemType.DECISION, "old decision")).item
-    adr2 = (await svc.create(ItemType.DECISION, "new decision")).item
+    adr1 = (await svc.create("decision", "old decision")).item
+    adr2 = (await svc.create("decision", "new decision")).item
     await svc.add_ref(adr2.id, adr1.id, kind="supersedes")
     await svc.set_status(adr1.id, Status.SUPERSEDED, force=True)
 
@@ -1285,9 +1276,9 @@ async def test_end_to_end_repad_resolution(svc):
     working at any queried width, and sq check must be clean.
     """
     # Build a squad with cross-references and parent links (all stored unpadded).
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item  # FEAT-2
-    task = (await svc.create(ItemType.TASK, "task", parent=feat.id)).item  # TASK-3, parent FEAT-2
-    bug = (await svc.create(ItemType.BUG, "bug")).item  # BUG-4
+    feat = (await svc.create("feature", "feat")).item  # FEAT-2
+    task = (await svc.create("task", "task", parent=feat.id)).item  # TASK-3, parent FEAT-2
+    bug = (await svc.create("bug", "bug")).item  # BUG-4
     await svc.add_ref(task.id, bug.id, kind="fixes")  # TASK-3 fixes BUG-4
     await svc.add_ref(feat.id, task.id, kind="related")  # FEAT-2 refs TASK-3
 
@@ -1351,9 +1342,9 @@ async def test_repair_after_repad_no_spurious_missing(svc):
     previous_ids - found_ids equals the entire corpus.  This test must FAIL against that
     bug and pass only after repair() computes missing_ids by sequence_id (int).
     """
-    feat = (await svc.create(ItemType.FEATURE, "feat")).item
-    task = (await svc.create(ItemType.TASK, "task", parent=feat.id)).item
-    bug = (await svc.create(ItemType.BUG, "bug")).item
+    feat = (await svc.create("feature", "feat")).item
+    task = (await svc.create("task", "task", parent=feat.id)).item
+    bug = (await svc.create("bug", "bug")).item
     await svc.add_ref(task.id, bug.id, kind="fixes")
 
     # Repad to width 7 — renames files, leaves frontmatter IDs at width 6.
@@ -1381,7 +1372,7 @@ async def test_async_consumer(project, frozen_time):
 
     svc = service.Service(project)
 
-    res = await svc.create(ItemType.TASK, "Async consumer demo", author="manager")
+    res = await svc.create("task", "Async consumer demo", author="manager")
     task_id = res.item.id
 
     item = await svc.comment(task_id, ["hello from async world"], as_slug="manager")

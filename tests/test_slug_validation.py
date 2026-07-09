@@ -9,7 +9,6 @@ import pytest
 
 from squads._cli._common import resolve_slug_or_raise  # pyright: ignore[reportPrivateUsage]
 from squads._errors import SquadsError
-from squads._models._enums import ItemType
 
 pytestmark = pytest.mark.anyio
 
@@ -201,11 +200,11 @@ async def test_subtask_update_valid_operator_assignee_works(invoke, project):
     assert r.exit_code == 0
 
 
-# ----------------------------------------------------------------- create ItemType + operator
+# ----------------------------------------------------------------- create item + operator
 
 
 async def test_create_item_with_operator_as_author_still_validates(svc):
     """Service-level: operator slug is a valid author on work items."""
     await svc.add_operator("Pierre Chat")
-    res = await svc.create(ItemType.TASK, "manual", author="op-pierre")
+    res = await svc.create("task", "manual", author="op-pierre")
     assert res.item.author == "op-pierre"

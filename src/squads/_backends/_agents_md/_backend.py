@@ -15,11 +15,11 @@ from pathlib import Path
 from squads import _aio
 from squads._backends._agents_md import _managed as managed
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
+from squads._workflow import META_SKILL
 
 _AGENTS_MD = "AGENTS.md"
 _STAGING_DIR = ".agents_md"
@@ -143,7 +143,7 @@ class AgentsMdBackend(AgentBackend):
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         """Remove the per-item staging file for a role or skill (missing_ok semantics)."""
         slug = item.extra.get(X.SLUG, item.slug)
-        if item.type == ItemType.SKILL:
+        if item.type == META_SKILL:
             await _aio.path_unlink(
                 ctx.root / _STAGING_DIR / _SKILLS_DIR / f"{slug}.md", missing_ok=True
             )
