@@ -54,6 +54,8 @@ def _spec_without_type(drop_type: str) -> dict[str, object]:
         "lifecycles": base.lifecycles,
         "prefix_to_type": prefix_without,
         "alias_to_type": base.alias_to_type,
+        "collections": base.collections,
+        "subentity_kinds": base.subentity_kinds,
     }
 
 
@@ -67,6 +69,8 @@ def _spec_without_status(drop_status: str) -> dict[str, object]:
         "lifecycles": base.lifecycles,
         "prefix_to_type": base.prefix_to_type,
         "alias_to_type": base.alias_to_type,
+        "collections": base.collections,
+        "subentity_kinds": base.subentity_kinds,
     }
 
 
@@ -171,6 +175,8 @@ def test_work_types_includes_custom_work_type() -> None:
             "lifecycles": new_lifecycles,
             "prefix_to_type": new_prefix_to_type,
             "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
         }
     )
     wt = spec.work_types()
@@ -197,6 +203,8 @@ def test_custom_meta_type_excluded_from_work_types() -> None:
             "lifecycles": base.lifecycles,
             "prefix_to_type": new_prefix_to_type,
             "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
         }
     )
     wt = spec.work_types()

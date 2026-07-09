@@ -2316,7 +2316,7 @@
       ],
       "path": "features/FEAT-000231-ground-up-test-battery-behavior-named-fast-redundancy-pruned.md",
       "created_at": "2026-06-26T09:33:10Z",
-      "updated_at": "2026-07-08T08:39:38Z",
+      "updated_at": "2026-07-09T09:46:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12907,7 +12907,7 @@
       "type": "task",
       "title": "Add Collection/Badge/Field spec schema; bundle priority/severity",
       "slug": "add-collection-badge-field-spec-schema-bundle-priority-sever",
-      "status": "Draft",
+      "status": "Done",
       "description": "Additive: 3-level badge schema + bundled default priority/severity collections/fields + fail-closed validation; byte-identical",
       "parent": "FEAT-327",
       "author": "tech-lead",
@@ -12921,7 +12921,7 @@
         {
           "local_id": "ST1",
           "title": "Add Collection/Badge/Field schema + bundle byte-identical priority/severity",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1"
@@ -12929,7 +12929,7 @@
         {
           "local_id": "ST2",
           "title": "Fail-closed validation: field-code uniqueness, reserved-key, collection integrity",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4"
@@ -12937,7 +12937,7 @@
       ],
       "path": "tasks/TASK-000340-add-collection-badge-field-spec-schema-bundle-priority-sever.md",
       "created_at": "2026-07-09T08:19:59Z",
-      "updated_at": "2026-07-09T08:21:05Z",
+      "updated_at": "2026-07-09T09:47:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12979,7 +12979,7 @@
       ],
       "path": "tasks/TASK-000341-delete-priority-severity-enums-generic-badge-code-storage.md",
       "created_at": "2026-07-09T08:20:10Z",
-      "updated_at": "2026-07-09T08:21:06Z",
+      "updated_at": "2026-07-09T09:42:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},

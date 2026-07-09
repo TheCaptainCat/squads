@@ -22,7 +22,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T08:20:10Z'
-updated_at: '2026-07-09T08:21:06Z'
+updated_at: '2026-07-09T09:42:27Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -160,4 +160,6 @@ Store only the badge code per field; add top-level Item.severity written to fron
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-09T09:42:27Z] Catherine Manager:
+  - Carry-over from TASK-340 review (REV/APPROVE, LOW): when this task makes fields live, do NOT subtract 'prefix' from _reserved_item_keys() in _workflow/_models.py — keep it reserved (fail-closed). 'prefix' is a tolerated-and-ignored legacy frontmatter key (id always wins), so a live field coded 'prefix' would be silently discarded on round-trip — the exact shadow the reserved-key check prevents. 'path' can stay excluded (never a frontmatter key).
 <!-- sq:discussion:end -->

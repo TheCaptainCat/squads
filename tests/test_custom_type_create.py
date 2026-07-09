@@ -179,6 +179,8 @@ async def test_service_create_custom_type_no_template_error(
             "lifecycles": new_lc,
             "prefix_to_type": new_p2t,
             "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
         }
     )
 
@@ -306,6 +308,8 @@ async def test_generic_template_produces_valid_markers(
             "lifecycles": {**base.lifecycles, "triage": triage},
             "prefix_to_type": {**base.prefix_to_type, "INC": "incident"},
             "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
         }
     )
     svc = service.Service(paths, spec=spec)

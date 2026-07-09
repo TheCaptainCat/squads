@@ -22,7 +22,7 @@ subentities:
   title: Coverage ledger preserves previously-caught bugs
   status: Todo
 created_at: '2026-06-26T09:33:10Z'
-updated_at: '2026-07-08T08:39:38Z'
+updated_at: '2026-07-09T09:46:01Z'
 ---
 <!-- sq:body -->
 ## Overview
@@ -316,4 +316,6 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
   - Before dispatch (post-EPIC-325): @qa to add a concrete perf-target acceptance criterion and @tech-lead to break this into tasks + re-baseline scope against the shipped engine. Staying Draft until that prose refresh; then Ready.
 - [2026-07-08T08:39:38Z] Catherine Manager:
   - Design inputs from op-pierre (scope for the rewrite): (1) Parallelize with pytest-xdist — run '-n auto' across available cores. Largely orthogonal to the rewrite (a config + dep add) and likely the single biggest cheap wall-clock win; the scale/slow tests that dominate today parallelize well. (2) The behavioural WHY: agents re-run the full suite 3-4x back-to-back even when explicitly told not to, repeatedly — prompt discipline alone doesn't hold (cf. the main-loop-owns-the-suite + run-once-to-a-file guidance). So the design goal is to make a re-run CHEAP enough that the thrash is harmless, not to rely on instructions suppressing it. Target framing: sub-minute full run via xdist + marking/excluding slow scale tests by default, full sweep explicit/CI.
+- [2026-07-09T09:46:01Z] Pierre Chat:
+  - The test-suite rebuild here is a full DESTROY-and-rebuild — all tests get torn down and rebuilt fresh, not incrementally renamed or restructured. So don't fix test naming/structure piecemeal beforehand (e.g. ticket-ID filenames like test_workflow_renderer_261.py); this feature replaces the lot.
 <!-- sq:discussion:end -->
