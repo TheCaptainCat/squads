@@ -3,7 +3,7 @@ id: TASK-330
 sequence_id: 330
 type: task
 title: Delete Status enum; narrow floor + completion-flag machine binding
-status: Draft
+status: Ready
 parent: FEAT-326
 author: tech-lead
 subentities:
@@ -21,7 +21,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-07-07T14:50:24Z'
-updated_at: '2026-07-07T14:53:00Z'
+updated_at: '2026-07-08T08:30:15Z'
 ---
 <!-- sq:body -->
 ## Scope

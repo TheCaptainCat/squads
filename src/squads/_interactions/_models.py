@@ -8,8 +8,6 @@ rather than silently reverting to a default.
 
 from pydantic import BaseModel, ConfigDict
 
-from squads._models._enums import ItemType
-
 
 class RoleGuideSpec(BaseModel):
     """Guidance for one actor on one item type — mirrors :class:`RoleGuide` exactly."""
@@ -43,4 +41,4 @@ class PlaybookSpec(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    types: dict[ItemType, ItemPlaybookSpec]  # keyed by item type; work types only
+    types: dict[str, ItemPlaybookSpec]  # keyed by item-type name; work types only

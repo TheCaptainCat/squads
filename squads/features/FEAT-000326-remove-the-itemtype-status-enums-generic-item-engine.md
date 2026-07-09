@@ -3,7 +3,7 @@ id: FEAT-326
 sequence_id: 326
 type: feature
 title: Remove the ItemType + Status enums — generic item engine
-status: Draft
+status: InProgress
 parent: EPIC-325
 author: product-owner
 refs:
@@ -24,7 +24,7 @@ subentities:
   title: Unmodified default squad behaves identically
   status: Todo
 created_at: '2026-07-07T14:37:36Z'
-updated_at: '2026-07-07T14:58:59Z'
+updated_at: '2026-07-08T08:25:48Z'
 ---
 <!-- sq:body -->
 ## What this delivers

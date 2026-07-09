@@ -20,7 +20,6 @@ from squads._interactions._models import (
     PlaybookSpec,
     RoleGuideSpec,
 )
-from squads._models._enums import ItemType
 from squads._roles._catalog import get_catalog, role_by_slug
 from squads._workflow._models import WorkflowSpec
 
@@ -94,7 +93,7 @@ def get_playbook_spec() -> PlaybookSpec:
 # Public constants — backed by the singleton (behavior-identical shims).
 # ---------------------------------------------------------------------------
 
-PLAYBOOK: dict[ItemType, ItemPlaybook] = {
+PLAYBOOK: dict[str, ItemPlaybook] = {
     t: _spec_to_item_playbook(pb) for t, pb in _PLAYBOOK_SPEC.types.items()
 }
 
@@ -123,11 +122,11 @@ SKILL_DESCRIPTIONS: dict[str, str] = {
         "Use when a person opens a session; skip it when spawned as a subagent for a job."
     ),
     # sq-<type> descriptions — iterate PLAYBOOK directly (same source as managed_item_types()
-    # and bundled_skill_slugs()) so the set stays in sync if a new ItemType is added to the
+    # and bundled_skill_slugs()) so the set stays in sync if a new type is added to the
     # playbook — no duplicate hand-written exclusion list.
     **{
-        f"sq-{item_type.value}": (
-            f"Working with {item_type.value} items in this squad: "
+        f"sq-{item_type}": (
+            f"Working with {item_type} items in this squad: "
             "lifecycle, commands, and role-specific guidance."
         )
         for item_type in PLAYBOOK
@@ -177,23 +176,23 @@ TITLE_ADVISORY_MAX: int = 120
 # new type; the table-pinning test will fail if the two diverge.
 # ---------------------------------------------------------------------------
 
-#: Declarative create-lane map: role slug → set of item types it is in-lane to author.
+#: Declarative create-lane map: role slug → set of item type names it is in-lane to author.
 #: ``DEV`` sentinel covers all ``<tech>-dev`` slugs → empty lane (devs have no sq create verbs).
 #: Asserted-equal-to-the-playbook in tests/test_lane_derivation.py (table-pinning test).
-CREATE_LANES: dict[str, set[ItemType]] = {
-    "product-owner": {ItemType.FEATURE, ItemType.EPIC},
-    "tech-lead": {ItemType.TASK},
-    "architect": {ItemType.DECISION, ItemType.GUIDE},
-    "reviewer": {ItemType.REVIEW},
-    "qa": {ItemType.BUG},
-    "tech-writer": {ItemType.GUIDE},
+CREATE_LANES: dict[str, set[str]] = {
+    "product-owner": {"feature", "epic"},
+    "tech-lead": {"task"},
+    "architect": {"decision", "guide"},
+    "reviewer": {"review"},
+    "qa": {"bug"},
+    "tech-writer": {"guide"},
     DEV: set(),  # *dev sentinel: any <tech>-dev slug derives an empty lane
 }
 
 #: The union of all item types that participate in the create-lane domain.
 #: Derived from CREATE_LANES (single source); types outside this set (role, skill, operator)
 #: are internal artifact types that are never lane-checked.
-LANED_TYPES: frozenset[ItemType] = frozenset(t for lane in CREATE_LANES.values() for t in lane)
+LANED_TYPES: frozenset[str] = frozenset(t for lane in CREATE_LANES.values() for t in lane)
 
 
 def is_lane_exempt(slug: str) -> bool:
@@ -205,7 +204,7 @@ def is_lane_exempt(slug: str) -> bool:
     return slug == "manager" or slug.startswith("op-")
 
 
-def allowed_create_types(slug: str) -> set[ItemType]:
+def allowed_create_types(slug: str) -> set[str]:
     """Return the set of item types *slug* is in-lane to author via ``sq create``.
 
     Derived from :data:`CREATE_LANES`.  The ``*dev``/``DEV`` sentinel covers any
@@ -230,8 +229,8 @@ def in_lane_owner(item_type: str) -> set[str]:
     return {slug for slug, types in CREATE_LANES.items() if item_type in types and slug != DEV}
 
 
-def item_skill_name(item_type: ItemType) -> str:
-    return f"sq-{item_type.value}"
+def item_skill_name(item_type: str) -> str:
+    return f"sq-{item_type}"
 
 
 def custom_item_skill_name(type_name: str) -> str:
@@ -267,14 +266,14 @@ def custom_item_skill_description(type_name: str) -> str:
     )
 
 
-def managed_item_types() -> list[ItemType]:
+def managed_item_types() -> list[str]:
     return list(PLAYBOOK)
 
 
-def item_types_for_role(slug: str) -> list[ItemType]:
+def item_types_for_role(slug: str) -> list[str]:
     """Item types this role interacts with (DEV sentinel matches any ``*-dev`` slug)."""
     dev = is_dev_slug(slug)
-    out: list[ItemType] = []
+    out: list[str] = []
     for item_type, pb in PLAYBOOK.items():
         slugs = {g.slug for g in pb.roles}
         if slug in slugs or (dev and DEV in slugs):
@@ -300,23 +299,21 @@ def bundled_skill_slugs() -> list[str]:
 
 
 def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
-    """All custom (non-built-in) type skill slugs for *spec*, in lexical order.
+    """All custom type skill slugs for *spec*, in lexical order.
 
-    Extends the same allocation primitive to custom types: each custom type
-    declared in the spec (beyond the built-in ``ItemType`` members) gets a
-    ``sq-<type>`` skill slug allocated in the same lexical-by-slug order so
-    there is no churn of existing SKILL ids.
+    Extends the same allocation primitive to custom types: each type declared in the spec
+    with no ``PLAYBOOK`` entry (F4's thin-auto-generated-skill boundary — regardless of
+    whether it's a built-in or a project-declared type) gets a ``sq-<type>`` skill slug
+    allocated in the same lexical-by-slug order so there is no churn of existing SKILL ids.
 
-    The returned list contains only custom type slugs (not the bundled ones
-    returned by ``bundled_skill_slugs()``).  Callers that need the full merged
-    set should sort ``bundled_skill_slugs() + custom_skill_slugs(spec)``
-    lexically.
+    The returned list contains only these types' slugs (not the bundled ones returned by
+    ``bundled_skill_slugs()``).  Callers that need the full merged set should sort
+    ``bundled_skill_slugs() + custom_skill_slugs(spec)`` lexically.
     """
-    builtin_type_names: frozenset[str] = frozenset(t.value for t in ItemType)
     return sorted(
         custom_item_skill_name(ctype)
         for ctype in spec.items
-        if ctype not in builtin_type_names and not spec.items[ctype].is_meta
+        if ctype not in PLAYBOOK and not spec.items[ctype].is_meta
     )
 
 

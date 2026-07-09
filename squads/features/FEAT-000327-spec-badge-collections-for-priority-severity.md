@@ -3,7 +3,7 @@ id: FEAT-327
 sequence_id: 327
 type: feature
 title: Spec badge collections for priority/severity
-status: Draft
+status: Ready
 parent: EPIC-325
 author: product-owner
 refs:
@@ -25,7 +25,7 @@ subentities:
   title: Spec load fails closed on bad field decls
   status: Todo
 created_at: '2026-07-07T14:38:59Z'
-updated_at: '2026-07-07T14:40:30Z'
+updated_at: '2026-07-08T08:30:14Z'
 ---
 <!-- sq:body -->
 ## What this delivers

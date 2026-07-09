@@ -41,12 +41,16 @@ from squads._util import slugify
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 
-# Body-local sub-entities: kind → parent item type and its container marker. Package-internal
+# Body-local sub-entities: kind -> parent item type and its container marker. Package-internal
 # (non-underscore so sibling mixins can import them without tripping reportPrivateUsage).
+#
+# SUBENTITY_PARENT/SUBENTITY_KIND derive kind<->type from the BUNDLED spec's per-type
+# `subentity_kind` instead of a hand-maintained literal dict — a type that drops or renames
+# its declared subentity_kind changes this map automatically. Custom sub-entity kinds on
+# project-declared types are a deferred non-goal, so this stays keyed off the bundled spec,
+# not the per-service (possibly overridden) one.
 SUBENTITY_PARENT: dict[str, str] = {
-    "story": "feature",
-    "subtask": "task",
-    "finding": "review",
+    ts.subentity_kind: t for t, ts in bundled_spec().items.items() if ts.subentity_kind
 }
 SUBENTITY_CONTAINER: dict[str, str] = {
     "story": markers.STORIES,

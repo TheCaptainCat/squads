@@ -3,7 +3,7 @@ id: TASK-331
 sequence_id: 331
 type: task
 title: Freeze migration vocabulary + additive prefix-line normalization
-status: Draft
+status: Ready
 parent: FEAT-326
 author: tech-lead
 subentities:
@@ -16,7 +16,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-07-07T14:50:25Z'
-updated_at: '2026-07-07T14:53:08Z'
+updated_at: '2026-07-08T08:30:15Z'
 ---
 <!-- sq:body -->
 ## Scope

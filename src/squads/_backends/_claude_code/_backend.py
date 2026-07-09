@@ -192,15 +192,16 @@ class ClaudeCodeBackend(AgentBackend):
         (a ``<tech>-dev`` role), so a squad with no devs yet doesn't carry guidance for an actor
         that can't act.
 
-        Custom types (declared in the spec but not in the built-in ``ItemType`` enum) also get a
-        thin auto-generated skill: lifecycle string (from ``linearize_lifecycle``), the standard
-        command list, and no role sections (graceful degradation — no PLAYBOOK entry).
+        A type with no ``PLAYBOOK`` entry — built-in or project-declared alike (F4; there is no
+        static built-in/custom split any more) — also gets a thin auto-generated skill: lifecycle
+        string (from ``linearize_lifecycle``), the standard command list, and no role sections
+        (graceful degradation).
         """
         by_slug = {r.slug: r for r in roster}
         has_dev = any(interactions.is_dev_slug(r.slug) for r in roster)
         out: list[Artifact] = []
 
-        # Built-in types — rich skill with full PLAYBOOK guidance.
+        # Types with a PLAYBOOK entry — rich skill with full role guidance.
         for item_type in interactions.managed_item_types():
             pb = interactions.PLAYBOOK[item_type]
             sections: list[dict[str, Any]] = []
@@ -226,8 +227,8 @@ class ClaudeCodeBackend(AgentBackend):
             name = interactions.item_skill_name(item_type)
             body = render(
                 "agents/item_skill.md.j2",
-                title=item_type.value.capitalize(),
-                type=item_type.value,
+                title=item_type.capitalize(),
+                type=item_type,
                 overview=pb.overview,
                 lifecycle=pb.lifecycle,
                 commands=list(pb.commands),
@@ -240,11 +241,12 @@ class ClaudeCodeBackend(AgentBackend):
                 body=body,
             )
 
-        # Custom types — thin skill with auto-derived lifecycle + standard command list.
+        # Types with no PLAYBOOK entry — thin skill with auto-derived lifecycle + standard
+        # command list (F4). This is the sole "custom vs built-in" line now: any type absent
+        # from PLAYBOOK falls back here, whether or not it happens to be a bundled type.
         if ctx.spec is not None:
-            builtin_type_names: frozenset[str] = frozenset(t.value for t in ItemType)
             for ctype, ctype_spec in ctx.spec.items.items():
-                if ctype in builtin_type_names or ctype_spec.is_meta:
+                if ctype in interactions.PLAYBOOK or ctype_spec.is_meta:
                     continue
                 machine = ctx.spec.machine_for(ctype)
                 lifecycle_str = linearize_lifecycle(machine)

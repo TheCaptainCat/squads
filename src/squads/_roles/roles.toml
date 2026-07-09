@@ -8,8 +8,17 @@
 # ---------------------------------------------------------------------------
 
 [bundles]
-all     = ["manager", "architect", "tech-lead", "reviewer", "qa", "devops", "product-owner", "tech-writer"]
-core    = ["manager", "architect", "tech-lead", "reviewer"]
+all = [
+  "manager",
+  "architect",
+  "tech-lead",
+  "reviewer",
+  "qa",
+  "devops",
+  "product-owner",
+  "tech-writer",
+]
+core = ["manager", "architect", "tech-lead", "reviewer"]
 minimal = ["manager"]
 
 # ---------------------------------------------------------------------------

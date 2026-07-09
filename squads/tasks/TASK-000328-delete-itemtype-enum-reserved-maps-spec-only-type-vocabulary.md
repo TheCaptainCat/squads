@@ -3,7 +3,7 @@ id: TASK-328
 sequence_id: 328
 type: task
 title: Delete ItemType enum + RESERVED maps; spec-only type vocabulary
-status: Draft
+status: Ready
 parent: FEAT-326
 author: tech-lead
 subentities:
@@ -20,7 +20,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-07T14:50:23Z'
-updated_at: '2026-07-07T14:52:41Z'
+updated_at: '2026-07-08T08:30:14Z'
 ---
 <!-- sq:body -->
 ## Scope

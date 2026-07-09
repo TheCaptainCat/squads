@@ -28,7 +28,6 @@ from squads._cli._common import (
     resolve_body_optional,
     resolve_item_id_any,
 )
-from squads._models._enums import ItemType
 from squads._models._extras import ExtraKey as X
 from squads._models._item import make_ref, split_ref
 from squads._workflow import bundled_spec as _bundled_spec
@@ -137,14 +136,16 @@ class _CustomCreateGroup(typer.core.TyperGroup):
     _custom_cmd_cache: ClassVar[dict[str, _click.Command]] = {}
 
     def _custom_work_types(self) -> frozenset[str]:
-        """Return custom (non-built-in) work type names from the resolved spec.
+        """Return custom work type names from the resolved spec.
 
-        Safe to call at any time; returns the empty set on any error.
+        "Custom" here means "not already registered by the static import-time loop"
+        (``_STATIC_CREATE_TYPES``) — i.e. anything a project's own workflow override adds
+        on top of the bundled spec. Safe to call at any time; returns the empty set on any
+        error.
         """
         try:
             spec = common.get_active_spec()
-            built_in_names: frozenset[str] = frozenset(t.value for t in ItemType)
-            return frozenset(t for t in spec.work_types() if t not in built_in_names)
+            return frozenset(t for t in spec.work_types() if t not in _STATIC_CREATE_TYPES)
         except Exception:  # pylint: disable=broad-except
             return frozenset()
 
@@ -170,8 +171,7 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         # (a) cmd_name confirmed (or resolved via alias) as a declared custom work type, or
         # (b) return None so Click emits "No such command".
         try:
-            built_in_names: frozenset[str] = frozenset(t.value for t in ItemType)
-            if cmd_name in built_in_names:
+            if cmd_name in _STATIC_CREATE_TYPES:
                 return None
 
             spec = common.get_active_spec()
@@ -183,7 +183,7 @@ class _CustomCreateGroup(typer.core.TyperGroup):
                 if (
                     resolved is not None
                     and resolved in spec.work_types()
-                    and resolved not in built_in_names
+                    and resolved not in _STATIC_CREATE_TYPES
                 ):
                     canonical = resolved
                 else:
@@ -209,19 +209,21 @@ create_app = typer.Typer(
     cls=_CustomCreateGroup,
 )
 
-# Generic creatable types. `guide` is created here too but with extra --tech/--tag options;
-# roles/skills/devs have their own commands (they generate artifacts).
-_CREATABLE = (
-    ItemType.EPIC,
-    ItemType.FEATURE,
-    ItemType.TASK,
-    ItemType.BUG,
-    ItemType.DECISION,
-    ItemType.REVIEW,
+# The bundled spec is the source of truth for the STATIC (import-time) registration loop,
+# mirroring the resource-group loop in _cli/__init__.py: one generic `_make` per creatable
+# work type, ordered by each type's explicit ItemSpec.order (ascending, type name breaking
+# ties) — no hand-maintained type tuple. `guide` is excluded — it gets its own command below
+# with extra --tech/--tag options; role/skill/operator are meta-types with their own
+# dedicated commands, never `sq create`.
+_create_spec = _bundled_spec()
+_CREATABLE: tuple[str, ...] = tuple(
+    t
+    for t in sorted(_create_spec.work_types(), key=lambda t: (_create_spec.items[t].order, t))
+    if t != "guide"
 )
 
 
-def _make(item_type: ItemType):
+def _make(item_type_str: str):
     @common.command
     async def cmd(  # noqa: PLR0913 — Typer options are the command's surface
         title: str = typer.Argument(..., help="Item title."),
@@ -258,7 +260,7 @@ def _make(item_type: ItemType):
                 rid, kind = split_ref(r)
                 resolved_refs.append(make_ref(await resolve_item_id_any(rid, svc), kind))
         res = await svc.create(
-            item_type,
+            item_type_str,
             title,
             description=desc,
             parent=resolved_parent,
@@ -279,21 +281,24 @@ def _make(item_type: ItemType):
             if res.lane_warning is not None:
                 console.print(e(res.lane_warning))
 
-    cmd.__name__ = f"create_{item_type.value}"
+    cmd.__name__ = f"create_{item_type_str}"
     return cmd
 
 
 for _t in _CREATABLE:
-    create_app.command(_t.value, help=f"Create a {_t.value}.")(_make(_t))
+    create_app.command(_t, help=f"Create a {_t}.")(_make(_t))
 
-# Register hidden aliases for the _CREATABLE built-in types so `sq create feat TITLE`
-# dispatches identically to `sq create feature TITLE`.  Aliases come from the bundled
-# spec (the single source of truth, same as the resource-group loop in _cli/__init__.py).
-# Hidden = not shown in --help, preserving byte-identical output (AC#7/#8).
-_create_spec = _bundled_spec()
+# Register hidden aliases for the _CREATABLE types so `sq create feat TITLE` dispatches
+# identically to `sq create feature TITLE`.  Aliases come from the bundled spec (the single
+# source of truth, same as the resource-group loop in _cli/__init__.py).  Hidden = not shown
+# in --help, preserving byte-identical output (AC#7/#8).
 for _t in _CREATABLE:
-    for _alias in _create_spec.items[_t.value].aliases:
+    for _alias in _create_spec.items[_t].aliases:
         create_app.command(_alias, hidden=True)(_make(_t))
+
+# Type names with a static `sq create <type>` command already registered above — used by
+# _CustomCreateGroup to draw the line between "already known" and "resolve dynamically".
+_STATIC_CREATE_TYPES: frozenset[str] = frozenset({*_CREATABLE, "guide"})
 
 
 @create_app.command("guide", help="Create a guide.")
@@ -323,7 +328,7 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
     actor.set_actor(author)
     resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
     res = await svc.create(
-        ItemType.GUIDE,
+        "guide",
         title,
         description=desc,
         parent=resolved_parent,
@@ -344,5 +349,5 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
 
 
 # Hidden guide aliases (same pattern as _CREATABLE loop above).
-for _guide_alias in _create_spec.items[ItemType.GUIDE.value].aliases:
+for _guide_alias in _create_spec.items["guide"].aliases:
     create_app.command(_guide_alias, hidden=True)(create_guide)

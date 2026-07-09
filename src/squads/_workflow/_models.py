@@ -9,6 +9,7 @@ are additive and not yet consumed by the engine. They are encoded in
 ``default_workflow.toml``.
 """
 
+import math
 from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -114,6 +115,15 @@ class ItemSpec(BaseModel):
     lifecycle: str
     parents: list[str] = []
     aliases: list[str] = []
+
+    order: float = math.inf
+    """Explicit ascending registration/display order; the type-name string breaks ties.
+    Drives the CLI's per-type command registration order (deterministic, not alphabetical
+    and not on-disk TOML order). A ``float`` (not ``int``) so a type can be inserted between
+    two adjacent explicitly-ordered types (e.g. ``25.5`` between ``20`` and ``30``) without
+    renumbering anything. Omitted ⇒ ``+inf``, so an un-ordered type (e.g. a project-declared
+    custom type that doesn't set this) sorts after every explicitly-ordered type, then
+    alphabetically among themselves."""
 
     # ------------------------------------------------------------------
     # Capability flags (additive; not yet consumed by engine)
@@ -466,8 +476,14 @@ class WorkflowSpec(BaseModel):
         return self.items[item_type].severity_field
 
     def item_subentity_kind(self, item_type: str) -> str | None:
-        """The sub-entity kind this type hosts, or None."""
-        return self.items[item_type].subentity_kind
+        """The sub-entity kind this type hosts, or None.
+
+        Also returns None (rather than raising) when *item_type* isn't declared in this
+        spec at all — a dropped/renamed type must cleanly lose its sub-entity check, not
+        crash the caller.
+        """
+        ts = self.items.get(item_type)
+        return ts.subentity_kind if ts else None
 
     def item_parent_required(self, item_type: str) -> str | None:
         """The required parent type slug, or None (no constraint)."""

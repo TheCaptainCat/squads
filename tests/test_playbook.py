@@ -400,6 +400,7 @@ def test_unknown_key_in_item_entry_raises_squads_error() -> None:
     so extra="forbid" actually fires rather than silently dropping the unknown field.
     """
     from squads._interactions._loader import _build_spec  # pyright: ignore[reportPrivateUsage]
+    from squads._workflow import bundled_spec
 
     # Minimal valid raw playbook with one synthetic entry that has an unknown key.
     catalog = get_catalog()
@@ -415,7 +416,7 @@ def test_unknown_key_in_item_entry_raises_squads_error() -> None:
         }
     }
     with pytest.raises(Exception, match=r"(?i)(extra|commandz|invalid|unknown|forbidden)"):
-        _build_spec(raw, catalog)
+        _build_spec(raw, catalog, bundled_spec())
 
 
 def test_unknown_key_in_role_guide_raises_squads_error() -> None:
@@ -424,6 +425,7 @@ def test_unknown_key_in_role_guide_raises_squads_error() -> None:
     This proves that RoleGuideSpec.model_validate is called, so extra="forbid" fires.
     """
     from squads._interactions._loader import _build_spec  # pyright: ignore[reportPrivateUsage]
+    from squads._workflow import bundled_spec
 
     catalog = get_catalog()
     raw: dict[str, Any] = {
@@ -446,7 +448,7 @@ def test_unknown_key_in_role_guide_raises_squads_error() -> None:
         }
     }
     with pytest.raises(Exception, match=r"(?i)(extra|entr|invalid|unknown|forbidden)"):
-        _build_spec(raw, catalog)
+        _build_spec(raw, catalog, bundled_spec())
 
 
 # ---------------------------------------------------------------------------
@@ -493,7 +495,7 @@ def test_golden_type_count(spec: PlaybookSpec) -> None:
 
 def test_golden_type_keys(spec: PlaybookSpec) -> None:
     """Loaded spec keys match the snapshot keys (same 7 work types)."""
-    assert {t.value for t in spec.types} == set(_SNAPSHOT), (
+    assert set(spec.types) == set(_SNAPSHOT), (
         f"spec types {set(spec.types)!r} != snapshot {set(_SNAPSHOT)!r}"
     )
 
@@ -545,13 +547,13 @@ def test_shim_conversion_is_lossless() -> None:
         shim = PLAYBOOK[item_type]
         converted = spec_to_item_playbook(spec_entry)
 
-        assert shim.overview == converted.overview, f"{item_type.value}: overview"
-        assert shim.lifecycle == converted.lifecycle, f"{item_type.value}: lifecycle"
-        assert shim.commands == converted.commands, f"{item_type.value}: commands"
-        assert len(shim.roles) == len(converted.roles), f"{item_type.value}: role count"
+        assert shim.overview == converted.overview, f"{item_type}: overview"
+        assert shim.lifecycle == converted.lifecycle, f"{item_type}: lifecycle"
+        assert shim.commands == converted.commands, f"{item_type}: commands"
+        assert len(shim.roles) == len(converted.roles), f"{item_type}: role count"
 
         for i, (sr, cr) in enumerate(zip(shim.roles, converted.roles, strict=True)):
-            ctx = f"{item_type.value}.roles[{i}] ({sr.slug!r})"
+            ctx = f"{item_type}.roles[{i}] ({sr.slug!r})"
             assert sr.slug == cr.slug, f"{ctx}: slug"
             assert sr.enter == cr.enter, f"{ctx}: enter"
             assert sr.do == cr.do, f"{ctx}: do"
@@ -646,7 +648,7 @@ def _build_sections(
 
 
 def _render_skill(
-    item_type: ItemType,
+    item_type: str,
     overview: str,
     lifecycle: str,
     commands: list[str],
@@ -658,8 +660,8 @@ def _render_skill(
     sections = _build_sections(roles, _FIXED_ROSTER)
     return render(
         "agents/item_skill.md.j2",
-        title=item_type.value.capitalize(),
-        type=item_type.value,
+        title=item_type.capitalize(),
+        type=item_type,
         version=version,
         overview=overview,
         lifecycle=lifecycle,
@@ -736,12 +738,12 @@ def test_layer_b_dev_section_present_in_three_types() -> None:
         has_section = "## For developers" in body
         if item_type in _DEV_GUIDE_TYPES:
             assert has_section, (
-                f"{item_type.value}: '## For developers' section is MISSING — "
+                f"{item_type}: '## For developers' section is MISSING — "
                 f"the *dev sentinel was not resolved correctly"
             )
         else:
             assert not has_section, (
-                f"{item_type.value}: unexpected '## For developers' section — "
+                f"{item_type}: unexpected '## For developers' section — "
                 f"this type should not have a *dev guide"
             )
 
@@ -757,8 +759,8 @@ def test_layer_b_dev_section_absent_without_dev_in_roster() -> None:
         sections = _build_sections(pb.roles, roster_no_dev)
         body = render(
             "agents/item_skill.md.j2",
-            title=item_type.value.capitalize(),
-            type=item_type.value,
+            title=item_type.capitalize(),
+            type=item_type,
             version="0.5.0",
             overview=pb.overview,
             lifecycle=pb.lifecycle,
@@ -766,7 +768,7 @@ def test_layer_b_dev_section_absent_without_dev_in_roster() -> None:
             sections=sections,
         )
         assert "## For developers" not in body, (
-            f"{item_type.value}: '## For developers' section appeared without a dev in the roster"
+            f"{item_type}: '## For developers' section appeared without a dev in the roster"
         )
 
 
