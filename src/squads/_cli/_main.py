@@ -8,6 +8,7 @@ registered as a Typer sub-app in ``_cli/__init__.py``.
 """
 
 import json
+import math
 import sys as _sys
 from collections.abc import Callable
 from typing import Any
@@ -18,18 +19,18 @@ from rich.table import Table
 from rich.tree import Tree
 
 import squads._cli._common as common
+from squads import _discussion as discussion
 from squads._cli import app
 from squads._cli._common import (
     console,
     e,
     get_service,
     handle_errors,
-    parse_priority,
+    parse_badge_code,
     parse_status,
     parse_type,
     print_item,
     print_json_clean,
-    priority_badge,
     resolve_item_id_any,
     resolve_slug_or_raise,
 )
@@ -45,6 +46,67 @@ from squads._services._refs import graph_to_dot, graph_to_mermaid
 from squads._services._results import GraphNode, ReflogEntry, TreeNode
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
+from squads._workflow._models import WorkflowSpec
+
+# ---------------------------------------------------------------------------
+# Generic badge helpers — one path for priority/severity/any project-declared axis.
+# ---------------------------------------------------------------------------
+
+
+def _field_badge(
+    item_type: str, field_code: str, value: str, spec: WorkflowSpec | None = None
+) -> str:
+    """Render *field_code*'s badge *value* for an item/node of *item_type*, resolving the
+    collection from its own declared field (list/tree/graph's "raw code" rendering
+    convention). Takes the bare type string (not an ``Item``) so it also serves
+    ``GraphNode`` — the ref-graph's own lightweight node shape."""
+    active_spec = spec or _get_active_spec()
+    coll = discussion.resolve_collection(item_type, field_code, active_spec)
+    return discussion.badge_render(coll, value, active_spec)
+
+
+def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
+    """Parse repeatable ``CODE=VALUE`` tokens (``--badge``/``--min-badge``) into a dict."""
+    out: dict[str, str] = {}
+    for pair in pairs:
+        code, sep, value = pair.partition("=")
+        if not sep or not code.strip():
+            raise SquadsError(f"expected CODE=VALUE, got {pair!r}")
+        out[code.strip()] = value.strip().lower()
+    return out
+
+
+def _badge_rank(it: Item, field_code: str, spec: WorkflowSpec) -> float:
+    """The badge's position in its ordered collection (lower = first); unresolvable sorts last."""
+    field = next((f for f in spec.fields_for(it.type) if f.code == field_code), None)
+    coll = spec.collections.get(field.collection) if field else None
+    value = it.badge_value(field_code)
+    if coll is None or value is None:
+        return math.inf
+    codes = [b.code for b in coll.badges]
+    return codes.index(value) if value in codes else math.inf
+
+
+def _sort_by_badge(items: list[Item], sort: str | None, spec: WorkflowSpec) -> list[Item]:
+    """Stable-sort *items* by a badge field's rank when ``--sort CODE`` is given."""
+    if sort is None:
+        return items
+    return sorted(items, key=lambda it: _badge_rank(it, sort, spec))
+
+
+def _build_badge_filters(
+    priority: str | None, min_priority: str | None, badge: list[str], min_badge: list[str]
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Merge the dedicated ``--priority``/``--min-priority`` sugar into the generic
+    ``--badge``/``--min-badge CODE=VALUE`` maps shared by ``list``/``tree``."""
+    badges = _parse_badge_pairs(badge)
+    if priority:
+        badges["priority"] = parse_badge_code("priority", priority)
+    badge_min = _parse_badge_pairs(min_badge)
+    if min_priority:
+        badge_min["priority"] = parse_badge_code("priority", min_priority)
+    return badges, badge_min
+
 
 # ---------------------------------------------------------------------------
 # TTY detection — injectable for testing.
@@ -98,7 +160,7 @@ def _item_table(items: list[Item]) -> Table:
             it.id,
             it.type,
             it.status,
-            e(priority_badge(it.priority)) if it.priority else "",
+            e(_field_badge(it.type, "priority", it.priority)) if it.priority else "",
             e(it.title),
             it.parent or "",
             e(it.assignee or ""),
@@ -287,30 +349,53 @@ async def adopt(
 
 @app.command(name="list")
 @common.command
-async def list_items(
+async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
     type: str | None = typer.Option(None, "--type", "-t"),
     status: str | None = typer.Option(None, "--status", "-s"),
     parent: str | None = typer.Option(None, "--parent"),
     label: str | None = typer.Option(None, "--label"),
     assignee: str | None = typer.Option(None, "--assignee"),
     priority: str | None = typer.Option(None, "--priority", help="urgent|high|medium|low."),
+    min_priority: str | None = typer.Option(
+        None, "--min-priority", help="At-least-this-urgent threshold: urgent|high|medium|low."
+    ),
+    badge: list[str] = typer.Option(
+        [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
+    ),
+    min_badge: list[str] = typer.Option(
+        [],
+        "--min-badge",
+        help="Threshold filter on any ordered badge field: CODE=VALUE (repeatable).",
+    ),
+    sort: str | None = typer.Option(
+        None, "--sort", help="Sort by an ordered badge field's rank (e.g. priority)."
+    ),
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """List items in a table (closed items are hidden unless --all or --status is given)."""
+    """List items in a table (closed items are hidden unless --all or --status is given).
+
+    ``--priority``/``--min-priority`` are dedicated sugar for the bundled axis; ``--badge``/
+    ``--min-badge CODE=VALUE`` (repeatable) work generically for any field a spec declares —
+    including a project's own custom axis — deriving filter/threshold semantics from
+    ``fields_for()`` rather than a hand-written per-axis pair.
+    """
     svc = get_service()
     validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
     resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+    badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
     items = await svc.list_items(
         item_type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
         parent=resolved_parent,
         label=label,
         assignee=validated_assignee,
-        priority=parse_priority(priority) if priority else None,
+        badges=badges or None,
+        badge_min=badge_min or None,
     )
     if not (all_ or status):
         items = [i for i in items if _get_active_spec().is_open(i.status)]
+    items = _sort_by_badge(items, sort, _get_active_spec())
     if json_out:
         print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
         return
@@ -322,12 +407,26 @@ async def list_items(
 
 @app.command()
 @common.command
-async def tree(
+async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
     root_id: str | None = typer.Argument(None),
     type: str | None = typer.Option(None, "--type", "-t"),
     status: str | None = typer.Option(None, "--status", "-s"),
     assignee: str | None = typer.Option(None, "--assignee"),
     priority: str | None = typer.Option(None, "--priority", help="urgent|high|medium|low."),
+    min_priority: str | None = typer.Option(
+        None, "--min-priority", help="At-least-this-urgent threshold: urgent|high|medium|low."
+    ),
+    badge: list[str] = typer.Option(
+        [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
+    ),
+    min_badge: list[str] = typer.Option(
+        [],
+        "--min-badge",
+        help="Threshold filter on any ordered badge field: CODE=VALUE (repeatable).",
+    ),
+    sort: str | None = typer.Option(
+        None, "--sort", help="Sort each level by an ordered badge field's rank."
+    ),
     depth: int | None = typer.Option(None, "--depth", help="Maximum depth from root (root = 0)."),
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
     json_out: bool = typer.Option(False, "--json", help="Emit the nested subtree as JSON."),
@@ -337,11 +436,13 @@ async def tree(
     Filters (--type, --status, --assignee, --priority) narrow the tree to matching nodes;
     ancestor paths are always preserved so every match shows in context (ancestors that only
     serve as path are rendered dimmed).  --depth N limits the tree to N levels from the root.
+    ``--badge``/``--min-badge`` work generically for any declared field (see `sq list --help`).
 
     `--json` emits the subtree (`id/type/status/priority/assignee/blocked` + nested `children`) —
     the read an orchestrating agent uses to see a feature's state and decide what to do next.
     """
     svc = get_service()
+    spec = _get_active_spec()
     # Resolve root_id early so bare numbers work and unknown IDs get a clear error.
     resolved_root: str | None = None
     if root_id is not None:
@@ -353,11 +454,15 @@ async def tree(
     #   --priority / --assignee / --type alone do NOT widen to closed.
     include_closed = bool(all_ or status)
 
+    badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
+
     item_filter = ItemFilter(
         item_type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
         assignee=validated_assignee,
-        priority=parse_priority(priority) if priority else None,
+        badges=tuple(badges.items()),
+        badge_min=tuple(badge_min.items()),
+        spec=spec,
     )
 
     nodes = await svc.tree_view(
@@ -366,6 +471,12 @@ async def tree(
         depth=depth,
         include_closed=include_closed,
     )
+
+    def _sort_children(tns: list[TreeNode]) -> list[TreeNode]:
+        if sort is None:
+            return tns
+        sort_code = sort
+        return sorted(tns, key=lambda tn: _badge_rank(tn.item, sort_code, spec))
 
     if json_out:
         blocked_ids = {t.id for t, _ in await svc.blocked()}
@@ -379,14 +490,15 @@ async def tree(
                 "priority": it.priority,
                 "assignee": it.assignee,
                 "blocked": it.id in blocked_ids,
-                "children": [node(c) for c in tn.children],
+                "children": [node(c) for c in _sort_children(tn.children)],
             }
 
-        print_json_clean(json.dumps([node(n) for n in nodes]))
+        print_json_clean(json.dumps([node(n) for n in _sort_children(nodes)]))
         return
 
     def _label(it: Item, path_only: bool) -> str:
-        prio = f"{e(priority_badge(it.priority))} · " if it.priority else ""
+        badge = _field_badge(it.type, "priority", it.priority, spec) if it.priority else ""
+        prio = f"{e(badge)} · " if badge else ""
         base = f"[bold]{it.id}[/bold] {prio}{e(it.title)} [dim]({it.status})[/dim]"
         if path_only:
             return f"[dim]{base}[/dim]"
@@ -394,11 +506,11 @@ async def tree(
 
     def _attach(parent: Tree, tn: TreeNode) -> None:
         branch = parent.add(_label(tn.item, tn.path_only))
-        for child in tn.children:
+        for child in _sort_children(tn.children):
             _attach(branch, child)
 
     rich_tree = Tree("squad")
-    for n in nodes:
+    for n in _sort_children(nodes):
         _attach(rich_tree, n)
     console.print(rich_tree)
 
@@ -563,7 +675,8 @@ def _attach_graph_node(parent_tree: Tree, node: GraphNode) -> None:
         else:
             edge_part = ""
 
-        prio = f"{e(priority_badge(child.priority))} · " if child.priority else ""
+        badge = _field_badge(child.type, "priority", child.priority) if child.priority else ""
+        prio = f"{e(badge)} · " if badge else ""
         seen_mark = " [dim](seen)[/dim]" if child.seen else ""
         node_label = f"{edge_part} [bold]{child.id}[/bold] {prio}{e(child.status)}{seen_mark}"
         branch = parent_tree.add(node_label)
@@ -647,7 +760,11 @@ async def graph(
         return
 
     # Rich tree rendering
-    prio = f"{e(priority_badge(root_node.priority))} · " if root_node.priority else ""
+    prio = (
+        f"{e(_field_badge(root_node.type, 'priority', root_node.priority))} · "
+        if root_node.priority
+        else ""
+    )
     root_label = f"[bold]{root_node.id}[/bold] {prio}{e(root_node.status)}"
     tree_view = Tree(root_label)
     _attach_graph_node(tree_view, root_node)

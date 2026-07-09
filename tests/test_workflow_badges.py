@@ -226,6 +226,35 @@ def test_collection_level_default_not_a_badge_fails_closed(spec: WorkflowSpec) -
         _rebuild(spec, collections=new_collections)
 
 
+def test_unordered_collection_fails_closed(spec: WorkflowSpec) -> None:
+    """ADR-323 §3: ordered-only this pass — ``ordered`` stays reserved in the schema, but an
+    unordered collection must fail load rather than silently rank badges by declaration order
+    (REV-346 F1)."""
+    bad_collection = spec.collections["severity"].model_copy(update={"ordered": False})
+    new_collections = {**spec.collections, "severity": bad_collection}
+    with pytest.raises(
+        SquadsError, match="collection 'severity': unordered collections are not supported yet"
+    ):
+        _rebuild(spec, collections=new_collections)
+
+
+def test_unordered_collection_override_fails_closed(tmp_path: Path) -> None:
+    """Same rule via the on-disk override loader (not just the in-memory rebuild path)."""
+    _write_override(
+        tmp_path,
+        """
+[collections.level]
+label = "Level"
+ordered = false
+badges = [{ code = "high", label = "High" }]
+""",
+    )
+    with pytest.raises(
+        SquadsError, match="collection 'level': unordered collections are not supported yet"
+    ):
+        load_workflow_spec(squad_dir=tmp_path)
+
+
 def test_required_field_with_no_resolvable_default_fails_closed(spec: WorkflowSpec) -> None:
     task = spec.items["task"]
     bad_fields = [Field(code="impact", label="Impact", collection="priority", required=True)]

@@ -17,12 +17,6 @@ from squads._util import slugify
 from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL
 from squads._workflow._models import Field
 
-#: Field codes settable via ``--set`` that resolve onto a top-level ``Item`` attribute of the
-#: same name rather than ``extra`` — today just bug's ``severity`` (``priority`` already has
-#: its own dedicated ``--priority`` flag). A frozen per-axis shim until a follow-up generalizes
-#: ``--set``/badge storage over every declared field.
-_ITEM_BADGE_ATTR_FIELDS: frozenset[str] = frozenset({"severity"})
-
 
 class ItemsMixin(ServiceCore):
     async def set_status(self, item_id: str, status: str, *, force: bool = False) -> Item:
@@ -115,21 +109,22 @@ class ItemsMixin(ServiceCore):
         self, item: Item, set_extra: dict[str, str] | None, unset: list[str] | None
     ) -> None:
         for key, raw in (set_extra or {}).items():
-            field = self._badge_attr_field(item.type, key)
+            field = self._badge_field(item.type, key)
             if field is not None:
-                setattr(item, key, self._parse_badge_code(field, raw))
+                item.set_badge_value(field.code, self._parse_badge_code(field, raw))
             else:
                 item.extra[key] = coerce_extra(item.type, key, raw)
         for key in unset or []:
-            if key in _ITEM_BADGE_ATTR_FIELDS:
-                setattr(item, key, None)
+            field = self._badge_field(item.type, key)
+            if field is not None:
+                item.set_badge_value(field.code, None)
             else:
                 item.extra.pop(key, None)
 
-    def _badge_attr_field(self, item_type: str, key: str) -> Field | None:
-        """The declared field for *key*, when it's one of :data:`_ITEM_BADGE_ATTR_FIELDS`."""
-        if key not in _ITEM_BADGE_ATTR_FIELDS:
-            return None
+    def _badge_field(self, item_type: str, key: str) -> Field | None:
+        """The declared field for *key* on *item_type*, generic over every axis (``--set
+        <field>=<code>``): priority/severity/a project's own custom axis alike — not a
+        hand-maintained allowlist of attribute-backed codes."""
         return next((f for f in self.spec.fields_for(item_type) if f.code == key), None)
 
     def _parse_badge_code(self, field: Field, raw: str) -> str:

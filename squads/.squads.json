@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.7.0",
-  "counter": 344,
+  "counter": 346,
   "padding": 6,
   "items": {
     "12": {
@@ -13326,7 +13326,7 @@
       "type": "task",
       "title": "CLI derives --<field> filter/sort/badges generically",
       "slug": "cli-derives-field-filter-sort-badges-generically",
-      "status": "Draft",
+      "status": "Done",
       "description": "One parse_badge_code/badge_render for all axes; --<field>/--min-<field>/sort/columns from fields_for(); custom-axis verified",
       "parent": "FEAT-327",
       "author": "tech-lead",
@@ -13342,7 +13342,7 @@
         {
           "local_id": "ST1",
           "title": "Generic parse_badge_code/badge_render; --<field>/--min-<field>/sort/columns from fields",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2"
@@ -13350,7 +13350,7 @@
         {
           "local_id": "ST2",
           "title": "Verify full CLI surface against a custom badge axis beyond priority/severity",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2"
@@ -13358,7 +13358,7 @@
       ],
       "path": "tasks/TASK-000342-cli-derives-field-filter-sort-badges-generically.md",
       "created_at": "2026-07-09T08:20:10Z",
-      "updated_at": "2026-07-09T10:40:41Z",
+      "updated_at": "2026-07-09T13:12:13Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -13448,6 +13448,99 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-344"
+    },
+    "345": {
+      "sequence_id": 345,
+      "type": "task",
+      "title": "Relocate badge rendering out of _discussion into a _badges module",
+      "slug": "relocate-badge-rendering-out-of-discussion-into-a-badges-mod",
+      "status": "Cancelled",
+      "description": "Pure move: _status_badge/resolve_collection/badge_render out of _discussion.py into top-level _badges.py; repoint callers; byte-identical, no golden change",
+      "parent": "FEAT-327",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-323",
+        "TASK-342:depends-on",
+        "TASK-343:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000345-relocate-badge-rendering-out-of-discussion-into-a-badges-mod.md",
+      "created_at": "2026-07-09T12:18:37Z",
+      "updated_at": "2026-07-09T12:31:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-345"
+    },
+    "346": {
+      "sequence_id": 346,
+      "type": "review",
+      "title": "Review TASK-342: generic CLI badge surface over declared fields",
+      "slug": "review-task-342-generic-cli-badge-surface-over-declared-fiel",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-342:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "ordered flag never enforced: --min-badge/--sort rank by declaration order on any collection",
+          "status": "Fixed",
+          "assignee": "tech-lead",
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "Generic --badge/--min-badge CODE=VALUE do not validate code or value; typos silently return empty",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Per-field --<field> option generation delivered as a generic --badge escape hatch instead",
+          "status": "WontFix",
+          "assignee": "tech-lead",
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F4",
+          "title": "Badge-rendering helpers misplaced in _discussion.py; relocate to a _badges module (deferred)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        },
+        {
+          "local_id": "F5",
+          "title": "tests/test_custom_badge_axis.py docstring leads with a real ticket ID (no-ticket-IDs-in-code)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000346-review-task-342-generic-cli-badge-surface-over-declared-fiel.md",
+      "created_at": "2026-07-09T12:38:59Z",
+      "updated_at": "2026-07-09T12:52:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-346"
     }
   }
 }

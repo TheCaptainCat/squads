@@ -16,13 +16,13 @@ from rich.table import Table
 
 import squads._cli._common as common
 from squads import _actor as actor
+from squads import _discussion as discussion
 from squads._cli._common import (
     console,
     e,
     get_service,
     handle_errors,
-    parse_priority,
-    parse_severity,
+    parse_badge_code,
     parse_status,
     parse_type,
     print_block,
@@ -35,11 +35,21 @@ from squads._cli._common import (
     resolve_item_id_typed,
     resolve_local_id,
     resolve_slug_or_raise,
-    severity_badge,
 )
 from squads._errors import SquadsError
 from squads._models._item import DEFAULT_KIND, split_ref
 from squads._models._subentity import SubEntity
+
+#: The bundled default's finding severity field's bound collection code — resolved fresh at
+#: each call site via ``get_active_spec()`` (this constant is only the *fallback* used by
+#: :func:`squads._discussion.resolve_collection` when a live field can't be found).
+_SEVERITY_FIELD_CODE = "severity"
+
+
+def _severity_collection() -> str:
+    """The collection the ``finding`` kind's ``severity`` field is bound to (spec-derived)."""
+    return discussion.resolve_collection("finding", _SEVERITY_FIELD_CODE, common.get_active_spec())
+
 
 # Built-in sub-entity map (keyed by string so custom-type strings compare cleanly).
 # Custom types that declare a subentity_kind in the spec are handled via
@@ -183,7 +193,7 @@ def _cmd_update(item: typer.Typer) -> None:
             title=title,
             description=desc,
             assignee=validated_assignee,
-            priority=parse_priority(priority) if priority else None,
+            priority=parse_badge_code("priority", priority) if priority else None,
             clear_priority=no_priority,
             add_labels=add_label or None,
             rm_labels=rm_label or None,
@@ -421,7 +431,7 @@ def _sub_table(kind: str, blocks: list[SubEntity]) -> None:
         table.add_column(col)
     for b in blocks:
         if kind == "finding":
-            sev = severity_badge(b.severity) if b.severity else ""
+            sev = discussion.badge_render(_severity_collection(), b.severity) if b.severity else ""
             table.add_row(b.local_id, sev, b.status, b.assignee or "", e(b.title))
         elif kind == "subtask":
             table.add_row(b.local_id, b.status, b.assignee or "", e(b.title), b.story or "")
@@ -531,8 +541,10 @@ def _register_add(item: typer.Typer, kind: str) -> None:
         async def add_finding(
             ctx: typer.Context,
             title: str = typer.Argument("", help="Optional short label; detail in body."),
-            severity: str = typer.Option(
-                "medium", "--severity", help="critical|high|medium|low|info."
+            severity: str | None = typer.Option(
+                None,
+                "--severity",
+                help="critical|high|medium|low|info (defaults to the spec's severity default).",
             ),
             assignee: str | None = typer.Option(None, "--assignee"),
             message: list[str] = typer.Option(None, "-m", "--message"),
@@ -545,7 +557,7 @@ def _register_add(item: typer.Typer, kind: str) -> None:
             res = await svc.add_finding(
                 _id(ctx),
                 title,
-                severity=parse_severity(severity),
+                severity=parse_badge_code(_severity_collection(), severity) if severity else None,
                 assignee=validated_assignee,
                 body=resolve_body_optional(message or None, file),
             )
@@ -625,7 +637,7 @@ def _register_update(sub: typer.Typer, kind: str) -> None:
                 pid,
                 lid,
                 title=title,
-                severity=parse_severity(severity) if severity else None,
+                severity=parse_badge_code(_severity_collection(), severity) if severity else None,
                 assignee=validated_assignee,
                 clear_assignee=clear_assignee,
                 status=parse_status(status) if status else None,

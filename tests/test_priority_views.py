@@ -35,7 +35,7 @@ async def test_update_sets_and_clears_priority(svc):
 async def test_list_filters_by_priority(svc):
     hi = await svc.create("task", "hi", priority="high")
     await svc.create("task", "lo", priority="low")
-    got = await svc.list_items(priority="high")
+    got = await svc.list_items(badges={"priority": "high"})
     assert [i.id for i in got] == [hi.item.id]
 
 

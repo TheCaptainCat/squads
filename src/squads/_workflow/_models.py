@@ -526,6 +526,12 @@ def _check_field_collections(
     collection-level) names a badge in that collection; a required field with no
     resolvable default is rejected."""
     for code, coll in collections.items():
+        if not coll.ordered:
+            # Ordered-only for now. The flag stays in the schema (reserved for a future
+            # unordered kind), but nothing downstream (sort/--min-<field>) reads it —
+            # accepting ordered=false here would rank badges by declaration order
+            # silently, a meaningless-but-quiet result. Fail closed instead.
+            errors.append(f"collection {code!r}: unordered collections are not supported yet")
         if coll.default is not None and coll.default not in coll.badge_codes:
             errors.append(f"collection {code!r}: default {coll.default!r} not a declared badge")
 
