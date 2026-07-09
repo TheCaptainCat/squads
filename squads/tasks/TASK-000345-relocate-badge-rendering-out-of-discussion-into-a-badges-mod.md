@@ -14,7 +14,7 @@ refs:
 description: 'Pure move: _status_badge/resolve_collection/badge_render out of _discussion.py
   into top-level _badges.py; repoint callers; byte-identical, no golden change'
 created_at: '2026-07-09T12:18:37Z'
-updated_at: '2026-07-09T14:55:02Z'
+updated_at: '2026-07-09T19:44:55Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -66,4 +66,6 @@ _Add with `sq task 345 add-subtask "<title>"`; track with `sq task 345 subtask <
 <!-- sq:discussion -->
 - [2026-07-09T12:31:31Z] Catherine Manager:
   - Reclassified: this is a review finding (module-cohesion — badge rendering misplaced in _discussion), not a feature deliverable. Cancelling the task; it will be recorded as a finding on TASK-342's review and only spawn a fix-task if/when we act on it.
+- [2026-07-09T19:44:55Z] Catherine Manager:
+  - Superseded by TASK-347, which is the fix-task that actually landed this relocation (addresses REV-346 F4, now Done/Fixed). Staying Cancelled.
 <!-- sq:discussion:end -->

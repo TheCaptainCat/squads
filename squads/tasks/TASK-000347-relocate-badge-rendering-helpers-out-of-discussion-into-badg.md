@@ -3,7 +3,7 @@ id: TASK-347
 sequence_id: 347
 type: task
 title: Relocate badge-rendering helpers out of _discussion into _badges
-status: InReview
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: low
@@ -12,7 +12,7 @@ refs:
 description: Byte-identical move of badge/status-badge rendering helpers into a focused
   _badges module
 created_at: '2026-07-09T14:56:25Z'
-updated_at: '2026-07-09T15:10:55Z'
+updated_at: '2026-07-09T19:44:54Z'
 ---
 <!-- sq:body -->
 Pure structural relocation (no behaviour change) addressing REV-346 finding F4. The badge/status-badge presentation helpers currently live in `src/squads/_discussion.py`, whose remit is comment/story/subtask prose formatting + @mention extraction. Badge rendering is presentation, not discussion — it belongs in its own module.
@@ -42,4 +42,6 @@ _Add with `sq task 347 add-subtask "<title>"`; track with `sq task 347 subtask <
   - Gates: pyright/ruff check/ruff format clean; test_squad_ref_hygiene.py green; targeted discussion/badges/rendering/status/custom-badge-axis/graph/show-render/priority-views/tree/reflog-tree/golden-json/golden-rendered-output/bug-severity-migration suites green; no goldens changed. grep for def _status_badge|resolve_collection|badge_render in _discussion.py is empty.
 - [2026-07-09T15:10:55Z] Elias Python:
   - Per coordinator: renamed _status_badge -> status_badge (no underscore, matches resolve_collection/badge_render) instead of suppressing reportUnusedFunction; the leading underscore was the real bug (module-private name used cross-module) not a pyright false-positive. Updated all call sites and removed every pyright-ignore I'd added. Re-verified: pyright 0 errors/0 new ignores, ruff check/format clean, test_squad_ref_hygiene.py green, targeted suites green, no golden change.
+- [2026-07-09T19:44:54Z] Catherine Manager:
+  - The badge relocation this task performs was reviewed byte-identical (diffed against the pre-move _discussion.py) with no import cycle and all callers repointed; full suite green. This is the canonical fix-task addressing REV-346 F4 (now Fixed). TASK-345 was an earlier duplicate framing of the same relocation and is Cancelled — this task (347) is the one that landed it.
 <!-- sq:discussion:end -->
