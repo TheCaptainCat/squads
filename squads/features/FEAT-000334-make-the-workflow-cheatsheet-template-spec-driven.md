@@ -4,7 +4,6 @@ sequence_id: 334
 type: feature
 title: Make the workflow cheatsheet template spec-driven
 status: Draft
-prefix: FEAT
 parent: EPIC-335
 author: product-owner
 refs:

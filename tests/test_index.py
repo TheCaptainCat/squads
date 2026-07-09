@@ -9,13 +9,9 @@ from filelock import FileLock, Timeout
 
 from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX
 from squads._errors import SquadsError
-from squads._index._store import (
-    IndexStore,
-    _propagate_prefix,  # pyright: ignore[reportPrivateUsage]
-)
+from squads._index._store import IndexStore
 from squads._models._index import SquadsDB
 from squads._models._item import DEFAULT_ID_PADDING, Item, format_item_id
-from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -262,11 +258,10 @@ def test_display_padding_independent_of_squad_filename_padding():
     item = _make_item(1, "task")
     assert item.id == "TASK-1"
     db.add(item)
-    # Round-trip through JSON (simulates store.load()) — display stays unpadded. prefix is
-    # excluded from the JSON index, so mirror the store's post-load backfill pass
-    # (_propagate_prefix) to resolve it back before checking .id.
+    # Round-trip through JSON (simulates store.load()) — display stays unpadded. ``prefix``
+    # is excluded from the JSON index, but the dumped ``id`` re-derives it on validation
+    # (Item._derive_prefix_from_id), so no separate backfill pass is needed.
     reloaded = SquadsDB.model_validate_json(db.to_json())
-    _propagate_prefix(reloaded, bundled_spec())
     assert reloaded.padding == 7
     assert reloaded.items[1].id == "TASK-1"
 
@@ -285,12 +280,10 @@ def test_backrefs_width_tolerant():
     db.add(task)
     db.add(feat)
     # Round-trip through JSON to simulate store.load(): prefix is excluded from the JSON
-    # index (never persisted there), so the store's post-load backfill pass
-    # (_propagate_prefix) is what actually resolves it back — mirror that here rather than
-    # relying on Item.id's bare type.upper() degrade-gracefully fallback (which would give
-    # the wrong prefix for "feature").
+    # index (never persisted there), but the dumped ``id`` re-derives it on validation
+    # (Item._derive_prefix_from_id) rather than relying on Item.id's UNRESOLVED-sentinel
+    # degrade-gracefully fallback (which would give no prefix at all for "feature").
     db = SquadsDB.model_validate_json(db.to_json())
-    _propagate_prefix(db, bundled_spec())
     assert db.items[2].id == "FEAT-2"  # display is always unpadded, regardless of db.padding
     # Querying by the new filename width, the old filename width, and the unpadded display id
     # must all find the TASK whose ref holds "FEAT-000002".

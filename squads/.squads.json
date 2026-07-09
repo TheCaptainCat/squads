@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.7.0",
-  "counter": 337,
+  "counter": 339,
   "padding": 6,
   "items": {
     "12": {
@@ -7887,7 +7887,7 @@
       "type": "task",
       "title": "Freeze migration vocabulary + additive prefix-line normalization",
       "slug": "freeze-migration-vocabulary-additive-prefix-line-normalizati",
-      "status": "Ready",
+      "status": "Cancelled",
       "description": "",
       "parent": "FEAT-326",
       "author": "tech-lead",
@@ -7915,7 +7915,7 @@
       ],
       "path": "tasks/TASK-000331-freeze-migration-vocabulary-additive-prefix-line-normalizati.md",
       "created_at": "2026-07-07T14:50:25Z",
-      "updated_at": "2026-07-08T12:50:38Z",
+      "updated_at": "2026-07-08T16:05:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9324,7 +9324,7 @@
       "subentities": [],
       "path": "adrs/ADR-000322-remove-the-itemtype-and-status-enums-the-spec-is-the-sole-vo.md",
       "created_at": "2026-07-07T09:37:31Z",
-      "updated_at": "2026-07-08T15:16:14Z",
+      "updated_at": "2026-07-08T16:11:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12854,6 +12854,53 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-337"
+    },
+    "338": {
+      "sequence_id": 338,
+      "type": "task",
+      "title": "Derive item prefix from the persisted id, drop stored prefix field",
+      "slug": "derive-item-prefix-from-the-persisted-id-drop-stored-prefix",
+      "status": "Done",
+      "description": "Stop emitting the redundant prefix: frontmatter line; derive prefix from the item's id on read",
+      "parent": "FEAT-326",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000338-derive-item-prefix-from-the-persisted-id-drop-stored-prefix.md",
+      "created_at": "2026-07-08T16:08:18Z",
+      "updated_at": "2026-07-09T07:00:20Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-338"
+    },
+    "339": {
+      "sequence_id": 339,
+      "type": "task",
+      "title": "Lead vocab-validation errors with the dropped-type cause, not sq repair",
+      "slug": "lead-vocab-validation-errors-with-the-dropped-type-cause-not",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "ADR-322",
+        "FEAT-281"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000339-lead-vocab-validation-errors-with-the-dropped-type-cause-not.md",
+      "created_at": "2026-07-08T16:13:06Z",
+      "updated_at": "2026-07-08T16:13:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-339"
     }
   }
 }

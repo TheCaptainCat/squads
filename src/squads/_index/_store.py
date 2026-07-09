@@ -33,30 +33,7 @@ from pydantic import ValidationError
 from squads import _aio
 from squads._errors import SquadsError
 from squads._models._index import SquadsDB
-from squads._models._vocab import prefix_for
 from squads._workflow._models import WorkflowSpec
-
-
-def _propagate_prefix(db: SquadsDB, spec: WorkflowSpec) -> None:
-    """Fill ``Item.prefix`` for every loaded item that does not already have one set.
-
-    Mirrors ``SquadsDB._propagate_padding``: ``prefix`` is excluded from JSON serialisation
-    (never persisted in the index), so items loaded from the JSON file always come back with
-    the field's default value (``""``).  This post-load pass resolves the prefix from the
-    spec — the sole vocabulary source, for every type — and stamps it in-memory.
-
-    Items with a non-empty prefix already set (i.e. items loaded via ``from_frontmatter``
-    whose frontmatter carried a ``prefix:`` line — every type writes one now) keep their
-    value; only a legacy file that predates the line needs this backfill.
-
-    Calls ``prefix_for`` directly with no defensive ``try/except``: ``load()`` always runs
-    ``_validate_item_vocab`` first, which already raises on any item whose type isn't in
-    ``spec.items`` — by the time this function runs, every item's type is known-valid, so
-    ``prefix_for`` cannot fail here.
-    """
-    for item in db.items.values():
-        if not item.prefix:
-            item.prefix = prefix_for(item.type, spec)
 
 
 def _validate_item_vocab(db: SquadsDB, spec: WorkflowSpec) -> None:
@@ -202,7 +179,6 @@ class IndexStore:
         if db.counter < max_seq:
             db.counter = max_seq
         _validate_item_vocab(db, self._spec)
-        _propagate_prefix(db, self._spec)
         return db
 
     # ------------------------------------------------------------------ transaction

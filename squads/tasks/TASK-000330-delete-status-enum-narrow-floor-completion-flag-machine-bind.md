@@ -4,7 +4,6 @@ sequence_id: 330
 type: task
 title: Delete Status enum; narrow floor + completion-flag machine binding
 status: Done
-prefix: TASK
 parent: FEAT-326
 author: tech-lead
 subentities:

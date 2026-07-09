@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
 from squads import _clock as clock
 from squads._models._enums import Priority  # pyright: ignore[reportUnusedImport]
@@ -62,6 +62,18 @@ def effective_prefix(prefix: str, item_type: str) -> str:
     consumed. It exists purely as a never-should-happen guard, never a vocabulary source.
     """
     return prefix or UNRESOLVED_PREFIX
+
+
+def prefix_from_id(item_id: str) -> str:
+    """The type-prefix segment of a formatted id (``"INC-49"`` -> ``"INC"``).
+
+    Pure string parsing (rsplit on the last ``-``) — the id is durable (written to every
+    item's frontmatter, and included in the JSON index dump) so the prefix is always
+    recoverable from it without resolving vocabulary. Returns ``""`` when *item_id* has no
+    hyphen (not a well-formed id).
+    """
+    prefix, sep, _ = item_id.rpartition("-")
+    return prefix if sep else ""
 
 
 #: The closed vocabulary of ref kinds — exhaustive, no custom-kind escape hatch.
@@ -155,14 +167,39 @@ class Item(BaseModel):
     #: Type-specific fields (e.g. agent role config, dev tech, adr context).
     extra: dict[str, Any] = {}
     #: The resolved ID prefix for this item (e.g. ``"TASK"``, ``"INC"``), for EVERY type
-    #: (built-in or custom). Stamped at create/retype time from the active spec.
-    #: Excluded from the JSON index (never persisted there — see ``IndexStore``'s post-load
-    #: backfill) but always written to frontmatter, so a file round-trips through
-    #: ``from_frontmatter``/``to_frontmatter_dict`` with no spec in hand (``_models`` stays
-    #: spec-decoupled and never imports ``_workflow``).
+    #: (built-in or custom). Set at create/retype time from the active spec (explicit
+    #: constructors pass it directly); otherwise re-derived from a persisted ``id`` by
+    #: :meth:`_derive_prefix_from_id` — see that validator for the two read paths it covers.
+    #: Not itself written to frontmatter or the JSON index; recoverable from ``id`` alone,
+    #: so ``_models`` stays spec-decoupled and never imports ``_workflow``.
     prefix: str = Field(default="", exclude=True, repr=False)
 
     model_config = {"use_enum_values": False}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _derive_prefix_from_id(cls, data: Any) -> Any:
+        """Populate ``prefix`` from a persisted ``id`` string, when one is given.
+
+        Covers both read paths that carry a durable ``id`` but no ``prefix``: the JSON
+        index round-trip (``id`` is a computed field, included in the dump but not itself
+        assignable, so it reappears here as plain input data) and ``from_frontmatter``
+        (which passes the frontmatter's own ``id:`` line through under this same key).
+        Explicit constructors that resolve ``prefix`` directly at creation time (and never
+        pass ``id``) are left untouched.
+
+        Always wins over the input's own ``prefix`` key when ``id`` is present — this is
+        what lets a stray legacy ``prefix:`` frontmatter line be tolerated rather than
+        trusted: it is silently overwritten with the value re-derived from ``id``, never
+        read.
+        """
+        if not isinstance(data, dict):
+            return data
+        d = cast("dict[str, Any]", data)
+        raw_id = d.get("id")
+        if isinstance(raw_id, str):
+            d = {**d, "prefix": prefix_from_id(raw_id)}
+        return d
 
     @field_validator("type", "status", mode="before")
     @classmethod
@@ -191,15 +228,16 @@ class Item(BaseModel):
         squad's stored filename width (``SquadsDB.padding``). Written to frontmatter as the
         durable human id; reconstructed via ``from_frontmatter``.
 
-        ``prefix`` is stamped at create/retype time by the service (which holds the spec)
-        and propagated by the index store after load.  The model itself never derives vocab:
-        it formats purely from whatever prefix string it was given.
+        ``prefix`` is either stamped at create/retype time by the service (which holds the
+        spec) or, on any read path that hands the model a persisted ``id`` (the JSON index,
+        ``from_frontmatter``), re-derived from it by :meth:`_derive_prefix_from_id` — pure
+        string parsing, never a vocabulary lookup.
 
-        If ``prefix`` is empty (e.g. a bare ``Item(...)`` constructed in a test without one,
-        or a legacy file read before the load-boundary backfill), the id degrades to the
-        :data:`UNRESOLVED_PREFIX` sentinel rather than crashing or guessing — the model itself
-        never derives real vocabulary (that would require importing ``_workflow``, breaking the
-        acyclic invariant).
+        If ``prefix`` is empty (e.g. a bare ``Item(...)`` constructed in a test with neither
+        an ``id`` nor a ``prefix``), the id degrades to the :data:`UNRESOLVED_PREFIX`
+        sentinel rather than crashing or guessing — the model itself never derives real
+        vocabulary (that would require importing ``_workflow``, breaking the acyclic
+        invariant).
         """
         return format_item_id(
             effective_prefix(self.prefix, self.type), self.sequence_id, DISPLAY_ID_PADDING
@@ -208,13 +246,11 @@ class Item(BaseModel):
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The mapping written into the markdown file's YAML frontmatter (durable truth).
 
-        ``prefix`` is written as a frontmatter line for EVERY type, built-in or custom —
-        this is what lets a file round-trip through ``from_frontmatter``
-        with no spec in hand (e.g. ``sq repair``).
+        No ``prefix`` key is written — the prefix is recoverable from ``id`` alone (see
+        :func:`prefix_from_id`), so this is the only place needed to round-trip through
+        ``from_frontmatter`` with no spec in hand (e.g. ``sq repair``).
         """
         data: dict[str, Any] = self._core_frontmatter_fields()
-        if self.prefix:
-            data["prefix"] = self.prefix
         _add_optional_frontmatter_fields(data, self)
         return data
 
@@ -234,38 +270,41 @@ class Item(BaseModel):
         ``type`` and ``status`` are stored as plain strings; the vocabulary
         validation (against WorkflowSpec) runs at the service load boundary, not here.
 
-        ``prefix`` is read back straight from frontmatter when present (every type, built-in
-        or custom, writes it).  When absent (legacy files predating the
-        ``prefix:`` line), ``prefix`` is left as ``""`` and the store's post-load pass fills
-        it via ``prefix_for`` before returning the DB (parallel to ``_propagate_padding``).
+        ``prefix`` is derived from the frontmatter's own ``id:`` line (rsplit on the last
+        ``-``, e.g. ``"INC-49"`` -> ``"INC"``) by :meth:`Item._derive_prefix_from_id` — the
+        ``id`` key below is passed through for that validator to consume; it is not a
+        settable field, so it never surfaces on the constructed ``Item`` itself. A stray
+        legacy ``prefix:`` key in *data* (written by an older build) is tolerated: it is
+        simply never read here, and the derived value always wins if both are present.
         """
         item_type: str = data["type"]
-        stored_prefix: str = data.get("prefix") or ""
-        return cls(
-            sequence_id=data["sequence_id"],
-            type=item_type,
-            prefix=stored_prefix,
-            title=data.get("title", ""),
-            slug=data.get("slug") or _slug_from_path(path),
-            status=data["status"],
-            description=data.get("description", ""),
-            parent=data.get("parent"),
-            author=data.get("author"),
-            assignee=data.get("assignee"),
-            priority=Priority(data["priority"]) if data.get("priority") else None,
-            labels=list(data.get("labels", []) or []),
-            refs=_read_refs(data),
-            subentities=[
-                SubEntity.from_frontmatter(s)
-                for s in cast("list[dict[str, Any]]", data.get("subentities") or [])
-            ],
-            path=path,
-            created_at=_parse_dt(data.get("created_at")),
-            updated_at=_parse_dt(data.get("updated_at")),
-            # Session fields are optional — absent from legacy files; None == unset.
-            created_session=data.get("created_session") or None,
-            modified_session=data.get("modified_session") or None,
-            extra=_read_extra(data),
+        return cls.model_validate(
+            {
+                "id": data.get("id"),
+                "sequence_id": data["sequence_id"],
+                "type": item_type,
+                "title": data.get("title", ""),
+                "slug": data.get("slug") or _slug_from_path(path),
+                "status": data["status"],
+                "description": data.get("description", ""),
+                "parent": data.get("parent"),
+                "author": data.get("author"),
+                "assignee": data.get("assignee"),
+                "priority": Priority(data["priority"]) if data.get("priority") else None,
+                "labels": list(data.get("labels", []) or []),
+                "refs": _read_refs(data),
+                "subentities": [
+                    SubEntity.from_frontmatter(s)
+                    for s in cast("list[dict[str, Any]]", data.get("subentities") or [])
+                ],
+                "path": path,
+                "created_at": _parse_dt(data.get("created_at")),
+                "updated_at": _parse_dt(data.get("updated_at")),
+                # Session fields are optional — absent from legacy files; None == unset.
+                "created_session": data.get("created_session") or None,
+                "modified_session": data.get("modified_session") or None,
+                "extra": _read_extra(data),
+            }
         )
 
 

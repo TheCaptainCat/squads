@@ -1,19 +1,20 @@
-"""Tests for TASK-000267 / ADR-322 (TASK-000328): Item.prefix field + prefix_for resolver +
-retype prefix stamping.
+"""Tests for TASK-000267 / ADR-322 (TASK-000328, revised by TASK-000338): Item.prefix +
+prefix_for resolver + retype prefix stamping.
 
 Covers:
 - prefix_for() resolves solely from the spec, for every type (built-in or custom); an
   unknown type or a missing spec raises SquadsError (no reserved-map / type.upper() guess).
-- Item.prefix is stamped at create time; Item.id formats from it correctly.
-- Every Item, built-in or custom, writes a prefix: frontmatter line (ADR-322 §3).
+  Used at create/retype time, when a spec is in hand.
+- No item, built-in or custom, writes a prefix: frontmatter line — Item.prefix is instead
+  re-derived from the durable id string on every read path (rsplit on the last "-"), so
+  there is nothing redundant left to persist or backfill.
 - Retype stamps the target type's prefix: INC-000019, not INCIDENT-000019.
 - File is named INC-000019-*.md after retype.
 - sq incident INC-000019 show round-trips (CLI + service).
 - sq list -t incident returns the custom item.
 - ref add / remove work for a custom type item without KeyError.
-- Legacy files without a prefix: frontmatter line still load (re-derived by the store's
-  post-load backfill, not by from_frontmatter itself — the spec-free round-trip now lives
-  purely in the stored prefix string).
+- A stray prefix: key left over in frontmatter (from an earlier build) is tolerated on read
+  and never trusted — the derived-from-id value always wins.
 """
 
 from pathlib import Path
@@ -217,13 +218,13 @@ class TestItemPrefixField:
         assert item.prefix == ""
         assert item.id == f"{UNRESOLVED_PREFIX}-7"
 
-    def test_to_frontmatter_dict_writes_prefix_for_every_type(self) -> None:
-        """prefix: is written to frontmatter for EVERY type — built-in or custom
-        (ADR-322 §3: this is what lets a file round-trip with no spec in hand)."""
+    def test_to_frontmatter_dict_never_writes_prefix(self) -> None:
+        """No prefix: line is written for ANY type — built-in or custom (TASK-338: the
+        prefix is recoverable from the written id: line alone, so there is nothing left to
+        persist redundantly)."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC)
-        # Custom type: prefix must be in frontmatter.
         custom_item = Item(
             sequence_id=1,
             type="incident",
@@ -236,10 +237,9 @@ class TestItemPrefixField:
             updated_at=now,
         )
         fm_custom = custom_item.to_frontmatter_dict()
-        assert "prefix" in fm_custom, "custom type must write prefix to frontmatter"
-        assert fm_custom["prefix"] == "INC"
+        assert "prefix" not in fm_custom
+        assert fm_custom["id"] == "INC-1"
 
-        # Built-in type: prefix is now ALSO written (ADR-322 — no more built-in exemption).
         builtin_item = Item(
             sequence_id=1,
             type="task",
@@ -252,7 +252,8 @@ class TestItemPrefixField:
             updated_at=now,
         )
         fm_builtin = builtin_item.to_frontmatter_dict()
-        assert fm_builtin.get("prefix") == "TASK", "built-in type must now write prefix too"
+        assert "prefix" not in fm_builtin
+        assert fm_builtin["id"] == "TASK-1"
 
     def test_to_frontmatter_dict_omits_prefix_when_unset(self) -> None:
         """An Item constructed with no prefix at all (e.g. a bare test fixture) writes no
@@ -273,8 +274,9 @@ class TestItemPrefixField:
         fm = item.to_frontmatter_dict()
         assert "prefix" not in fm
 
-    def test_from_frontmatter_reads_prefix_for_custom_type(self) -> None:
-        """from_frontmatter picks up a stored prefix: line for custom types."""
+    def test_from_frontmatter_derives_prefix_for_custom_type(self) -> None:
+        """from_frontmatter derives the prefix from the id: line for custom types — no
+        stored prefix: key involved at all."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC).isoformat()
@@ -282,7 +284,6 @@ class TestItemPrefixField:
             "id": "INC-000019",
             "sequence_id": 19,
             "type": "incident",
-            "prefix": "INC",
             "title": "An incident",
             "slug": "an-incident",
             "status": "Open",
@@ -293,9 +294,9 @@ class TestItemPrefixField:
         assert item.prefix == "INC"
         assert item.id == "INC-19"
 
-    def test_from_frontmatter_reads_prefix_for_builtins_too(self) -> None:
-        """from_frontmatter reads a stored prefix: line for built-in types the same way as
-        custom types — there is no separate built-in code path any more (ADR-322 §3)."""
+    def test_from_frontmatter_derives_prefix_for_builtins_too(self) -> None:
+        """from_frontmatter derives the prefix from id: for built-in types the same way as
+        custom types — there is no separate built-in code path."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC).isoformat()
@@ -303,7 +304,6 @@ class TestItemPrefixField:
             "id": "TASK-000007",
             "sequence_id": 7,
             "type": "task",
-            "prefix": "TASK",
             "title": "A task",
             "slug": "a-task",
             "status": "Draft",
@@ -314,18 +314,17 @@ class TestItemPrefixField:
         assert item.prefix == "TASK"
         assert item.id == "TASK-7"
 
-    def test_from_frontmatter_leaves_prefix_empty_when_line_absent(self) -> None:
-        """A legacy file with no prefix: line leaves Item.prefix empty after from_frontmatter
-        — re-deriving it is the store's post-load job (_propagate_prefix), not
-        from_frontmatter's; _models must stay spec-decoupled (no _workflow import)."""
+    def test_from_frontmatter_degrades_to_unresolved_when_id_absent(self) -> None:
+        """With no id: line at all (a bare/malformed record), Item.prefix stays empty and
+        the id degrades to the loud UNRESOLVED_PREFIX sentinel — never a silent guess. In
+        practice every item's frontmatter has always carried id:, so this is a
+        never-should-happen guard, not a real legacy-file scenario."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC).isoformat()
         data = {
-            "id": "TASK-000007",
             "sequence_id": 7,
             "type": "task",
-            # No prefix: line — as on-disk for a pre-ADR-322 legacy built-in file.
             "title": "A task",
             "slug": "a-task",
             "status": "Draft",
@@ -334,14 +333,12 @@ class TestItemPrefixField:
         }
         item = Item.from_frontmatter(data, path="tasks/TASK-000007-a-task.md")
         assert item.prefix == ""
-        # id degrades to the loud UNRESOLVED_PREFIX sentinel until the store's post-load
-        # backfill runs — never a silent type.upper() guess.
         assert item.id == f"{UNRESOLVED_PREFIX}-7"
 
-    def test_from_frontmatter_trusts_stored_prefix_even_if_corrupt(self) -> None:
-        """A hand-edited/corrupt prefix: line is now trusted as-is for every type — there is
-        no reserved-map override protecting built-ins any more (ADR-322 §3 tradeoff: the
-        model formats purely from the stored string, uniformly)."""
+    def test_from_frontmatter_ignores_stray_prefix_key(self) -> None:
+        """A stray prefix: key left in frontmatter by an earlier build (TASK-328's now-
+        reverted mechanism) is tolerated — it never errors, and it is never trusted: the
+        prefix re-derived from id: always wins, even when the stray value disagrees."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC).isoformat()
@@ -349,7 +346,7 @@ class TestItemPrefixField:
             "id": "TASK-000007",
             "sequence_id": 7,
             "type": "task",
-            "prefix": "WRONGPREFIX",  # corrupt / hand-edited
+            "prefix": "WRONGPREFIX",  # stray legacy key — must be ignored, not trusted
             "title": "A task",
             "slug": "a-task",
             "status": "Draft",
@@ -357,14 +354,15 @@ class TestItemPrefixField:
             "updated_at": now,
         }
         item = Item.from_frontmatter(data, path="tasks/TASK-000007-a-task.md")
-        assert item.prefix == "WRONGPREFIX"
-        assert item.id == "WRONGPREFIX-7"
+        assert item.prefix == "TASK"
+        assert item.id == "TASK-7"
 
     def test_full_round_trip_with_no_spec_loaded(self) -> None:
-        """Explicit spec-free round-trip (ADR-322 §3 / FEAT-326 AC#3 / done-criteria):
-        to_frontmatter_dict() -> from_frontmatter() reproduces the same id for BOTH a
-        built-in and a custom type, with no WorkflowSpec constructed or imported anywhere
-        in this test — proving _models never needs one to round-trip an item's own id."""
+        """Explicit spec-free round-trip (FEAT-326 AC#3 / done-criteria, revised by
+        TASK-338): to_frontmatter_dict() -> from_frontmatter() reproduces the same id for
+        BOTH a built-in and a custom type, with no WorkflowSpec constructed or imported
+        anywhere in this test and no prefix: key ever written — proving _models never needs
+        a spec to round-trip an item's own id."""
         from datetime import UTC, datetime
 
         now = datetime.now(UTC)
@@ -384,10 +382,10 @@ class TestItemPrefixField:
                 updated_at=now,
             )
             fm = original.to_frontmatter_dict()
-            assert fm["prefix"] == prefix, f"{item_type}: prefix missing from frontmatter dict"
+            assert "prefix" not in fm, f"{item_type}: prefix: must not be written"
 
             reloaded = Item.from_frontmatter(fm, path=path)
-            assert reloaded.prefix == prefix, f"{item_type}: prefix did not round-trip"
+            assert reloaded.prefix == prefix, f"{item_type}: prefix did not re-derive from id"
             assert reloaded.id == original.id, f"{item_type}: id did not round-trip"
 
 
@@ -562,94 +560,85 @@ class TestRefPathsForCustomType:
 
 
 # ---------------------------------------------------------------------------
-# Legacy file round-trip: no prefix: line in frontmatter → re-derived on load
+# A stray prefix: key surviving on disk (from an earlier, reverted build) still loads
 # ---------------------------------------------------------------------------
 
 
 class TestLegacyFileLoad:
-    """Items without a prefix: frontmatter line still load correctly (re-derived on load).
-
-    A freshly created item (built-in or custom) now always writes a prefix: line
-    (ADR-322 §3); these tests simulate a pre-ADR-322 legacy file by stripping it back out.
+    """A file that happens to carry a stray prefix: frontmatter key (written by an
+    earlier, since-reverted build) still loads correctly — the key is tolerated, and the
+    prefix re-derived from id: is used regardless of what it says.
     """
 
-    async def test_legacy_builtin_loads_without_prefix_line(
+    async def test_stray_prefix_key_ignored_on_reload(
         self, project: SquadPaths, svc: service.Service, frozen_time
     ) -> None:
-        """A legacy task file with no prefix: line re-derives TASK on load."""
+        """A hand-inserted stray prefix: line (disagreeing with the real prefix) does not
+        change what gets loaded — the id: line is always the source of truth."""
         from squads import _sections as sections
-        from squads._itemfile import read_frontmatter
 
         result = await svc.create("task", "Legacy task", author="manager")
         task_path = project.squad_dir / result.item.path
 
-        # A freshly created task DOES carry a prefix: line now — strip it to simulate a
-        # legacy (pre-ADR-322) file that predates the line.
+        # create() never writes a prefix: line; hand-insert a disagreeing stray one to
+        # simulate a file left over from an earlier, since-reverted build.
         text = task_path.read_text()
         fm, _body = sections.split_frontmatter(text)
-        assert fm.get("prefix") == "TASK", "sanity: create() should stamp prefix: TASK"
-        del fm["prefix"]
+        assert "prefix" not in fm, "sanity: create() must not stamp a prefix: line"
+        fm["prefix"] = "WRONGPREFIX"
         task_path.write_text(sections.join_frontmatter(fm, text))
 
-        legacy_fm = read_frontmatter(text=task_path.read_text())
-        assert "prefix" not in legacy_fm  # sanity: simulated-legacy file has no prefix: line
-
-        # Reload from disk — should still resolve the correct id (store's post-load backfill).
+        # Reload from disk — the stray key must not surface as an error or as the id.
         loaded = await svc.get(result.item.id)
         assert loaded.id == result.item.id
         assert loaded.prefix == "TASK"
 
-    async def test_legacy_custom_without_prefix_still_loads(
+    async def test_stray_prefix_key_ignored_for_custom_type(
         self, project: SquadPaths, svc: service.Service, frozen_time
     ) -> None:
-        """A custom-type file whose prefix: line is manually stripped still loads via re-derive."""
+        """Same tolerance for a custom type: a stray prefix: key is ignored on repair."""
         from squads import _sections as sections
 
         _write_override(project.squad_dir)
         svc = service.open_service()
 
-        # Create + retype to get an incident item with prefix: in frontmatter.
         result = await svc.create("task", "Incident legacy", author="manager")
         await svc.retype(result.item.id, "incident")
         incidents = await svc.list_items(item_type="incident")
         inc = incidents[0]
         inc_path = project.squad_dir / inc.path
 
-        # Manually strip the prefix: line from frontmatter to simulate a legacy file.
         text = inc_path.read_text()
         fm, _body = sections.split_frontmatter(text)
-        if fm and "prefix" in fm:
-            del fm["prefix"]
-        text_without_prefix = sections.join_frontmatter(fm or {}, text)
-        inc_path.write_text(text_without_prefix)
+        fm["prefix"] = "WRONGPREFIX"
+        inc_path.write_text(sections.join_frontmatter(fm, text))
 
-        # Repair rebuilds the index from disk — the item should still load with correct prefix.
+        # Repair rebuilds the index from disk — the stray key must not survive the reload.
         await svc.repair()
         loaded = await svc.get(inc.id)
-        # The prefix re-derived from the spec should be INC.
         assert loaded.prefix == "INC"
         assert loaded.id.startswith("INC-")
 
 
 # ---------------------------------------------------------------------------
-# Built-in item IDs: unchanged behavior despite the new prefix: frontmatter line
+# Built-in item IDs: no prefix: frontmatter line, id: alone carries the identity
 # ---------------------------------------------------------------------------
 
 
 class TestBuiltinByteIdentical:
-    """Built-in item IDs/folders are unaffected by ADR-322's new prefix: line."""
+    """Built-in item IDs/folders round-trip correctly with no prefix: line at all."""
 
-    async def test_builtin_task_frontmatter_now_carries_prefix_line(
+    async def test_builtin_task_frontmatter_carries_no_prefix_line(
         self, project: SquadPaths, svc: service.Service, frozen_time
     ) -> None:
-        """A newly created task NOW carries prefix: in its frontmatter (ADR-322 §3 —
-        every type writes it, built-in or custom; this is a sanctioned, additive change)."""
+        """A newly created task's frontmatter has no prefix: key — TASK-338 dropped it."""
         from squads._itemfile import read_frontmatter
 
-        result = await svc.create("task", "Has a prefix line now", author="manager")
+        result = await svc.create("task", "No prefix line", author="manager")
         task_path = project.squad_dir / result.item.path
         fm = read_frontmatter(text=task_path.read_text())
-        assert fm.get("prefix") == "TASK"
+        assert "prefix" not in fm
+        assert fm.get("id") == result.item.id
 
     async def test_builtin_ids_unchanged(
         self, project: SquadPaths, svc: service.Service, frozen_time

@@ -4,7 +4,6 @@ sequence_id: 337
 type: review
 title: 'Review: TASK-330 Status-enum deletion + completion-flag binding'
 status: Approved
-prefix: REV
 author: reviewer
 refs:
 - TASK-330:addresses

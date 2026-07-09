@@ -4,7 +4,6 @@ sequence_id: 335
 type: epic
 title: Modernize agent/user-facing docs for spec-driven vocabulary
 status: Draft
-prefix: EPIC
 author: product-owner
 refs:
 - FEAT-326:depends-on

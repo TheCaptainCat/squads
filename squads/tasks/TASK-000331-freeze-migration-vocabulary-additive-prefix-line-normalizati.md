@@ -3,8 +3,7 @@ id: TASK-331
 sequence_id: 331
 type: task
 title: Freeze migration vocabulary + additive prefix-line normalization
-status: Ready
-prefix: TASK
+status: Cancelled
 parent: FEAT-326
 author: tech-lead
 subentities:
@@ -17,7 +16,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-07-07T14:50:25Z'
-updated_at: '2026-07-08T12:50:38Z'
+updated_at: '2026-07-08T16:05:34Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -128,4 +127,6 @@ Assess and decide the SCHEMA_VERSION bump: not required for read correctness (ba
 - [2026-07-08T12:50:38Z] Catherine Manager:
   - Correction: TASK-331 is NOT complete. The TASK-328 dev's handoff claimed 331 was 'folded in, nothing remains' — that conflated the load-time prefix backfill (which IS part of 328, ADR §3) with 331's actual remaining scope.
   - 331 still owns: (ST1) the ADDITIVE sq migrate normalization pass that stamps the canonical prefix: line onto legacy built-in files on disk (wired into _migrations/_registry.py MIGRATIONS with a Migration record + manual runbook), so the from_frontmatter unset-prefix branch can eventually be deleted; and (ST2) the SCHEMA_VERSION assess/decide-and-record call. Verified neither was done: SCHEMA_VERSION is still 0.7, no new normalization runner, no registry change. Staying Ready — dispatch after 330.
+- [2026-07-08T16:05:34Z] Catherine Manager:
+  - Cancelled: op-pierre identified that carrying a separate prefix: line on every item is redundant — the prefix is already recoverable from the item's stored id (PREFIX-nnn). The fix is to derive the prefix from the id on read and drop the frontmatter field, which eliminates the need for this task's normalization migration and the SCHEMA_VERSION 0.7->0.8 bump entirely (nothing to normalize). Superseded by a rework of TASK-328's prefix mechanism + an ADR-322 §3 correction. All of this task's uncommitted work (runner, schema bump, dogfood prefix-stamps, corpus/goldens) has been reverted.
 <!-- sq:discussion:end -->
