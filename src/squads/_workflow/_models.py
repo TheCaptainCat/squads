@@ -7,9 +7,9 @@ the three meta-types (``META_TYPES``) plus their agent-lifecycle statuses
 ordinary spec vocabulary a project may drop, rename, or reorder.
 
 The capability flags declared here (``is_meta``, ``subentity_kind``, ``parent_required``,
-``ref_rules``, ``StatusSpec.role``) are additive; ``StatusSpec.completion`` is consumed by
-the sub-entity/finding done-toggle (``_services/_subentities.py``). They are encoded in
-``default_workflow.toml``.
+``ref_rules``, ``StatusSpec.role``) are additive; ``SubentityKindSpec.completion`` is
+consumed by the sub-entity/finding done-toggle (``_services/_subentities.py``). They are
+encoded in ``default_workflow.toml``.
 
 ``Badge``/``Collection``/``Field`` are the badge-vocabulary schema: ``ItemSpec.fields`` /
 ``SubentityKindSpec.fields`` bind a type or sub-entity kind to a reusable ``Collection`` of
@@ -201,6 +201,12 @@ class SubentityKindSpec(BaseModel):
     (drives the ``--story`` option and the ``Story`` column). ``True`` only for the
     built-in ``subtask`` kind."""
 
+    completion: str
+    """The done-toggle target status inside this kind's own ``lifecycle`` — what
+    ``subentity_completion(kind)`` resolves to instead of a hardcoded ``Done``/``Fixed``
+    literal. Must name a reachable, non-initial state of that lifecycle (enforced at load
+    by ``_check_completion_status``)."""
+
     fields: list[Field] = []
 
 
@@ -271,17 +277,6 @@ class StatusSpec(BaseModel):
     Currently used to identify ``Superseded`` (``role="superseded"``).
     Future rules add a new role name here rather than a new flag column.
     Not yet consumed by the engine."""
-
-    completion: bool = False
-    """Marks this status as a sub-entity/finding machine's done-toggle target — the status
-    ``subentity_completion(kind)`` resolves to. Each sub-entity/finding machine (the
-    lifecycle named after its kind: ``subtask``/``story``/``finding``) must have exactly
-    one reachable status flagged ``completion=True``; enforced at spec load by
-    ``_check_completion_status``. Independent of ``terminal``: a status name can be shared
-    across lifecycles (e.g. ``Fixed`` is also a non-terminal, pending-verification *bug*
-    item status), so completion is not required to also be terminal — it only marks "this
-    is the one status this sub-entity/finding kind's toggle sets", distinct from a
-    cancel-style side state (e.g. ``Cancelled``/``WontFix``)."""
 
 
 # ---------------------------------------------------------------------------
@@ -361,34 +356,28 @@ def _check_reachable_terminal(
 
 
 def _check_completion_status(
-    items: dict[str, ItemSpec],
+    subentity_kinds: dict[str, SubentityKindSpec],
     lifecycles: dict[str, Lifecycle],
-    statuses: dict[str, StatusSpec],
     errors: list[str],
 ) -> None:
-    """Each sub-entity/finding machine must name exactly one ``completion`` status.
-
-    A sub-entity/finding machine is identified by the kind name declared in some
-    ``ItemSpec.subentity_kind`` (``subtask``/``story``/``finding`` in the bundled default),
-    which shares its name with the corresponding entry in ``lifecycles``. This is the
-    machine-role binding the done-toggle resolves against instead of a hardcoded
-    ``Done``/``Fixed`` literal.
+    """Each declared sub-entity kind's ``completion`` must name a reachable, non-initial
+    state of its own ``lifecycle`` — the done-toggle target ``subentity_completion(kind)``
+    resolves to. An undeclared ``lifecycle`` is caught separately by
+    ``_check_subentity_kinds``; skipped here to avoid a duplicate error.
     """
-    kinds = sorted({ts.subentity_kind for ts in items.values() if ts.subentity_kind})
-    for kind in kinds:
-        machine = lifecycles.get(kind)
+    for kind, ks in subentity_kinds.items():
+        machine = lifecycles.get(ks.lifecycle)
         if machine is None:
-            # Positional lookup (kind name == lifecycle name), not subentity_kinds[kind]
-            # .lifecycle — a custom kind naming a different lifecycle silently skips this
-            # scan (the kind itself being undeclared is caught by _check_subentity_kinds).
             continue
-        completion_states = sorted(
-            s for s in machine.states if statuses.get(s, StatusSpec(terminal=False)).completion
-        )
-        if len(completion_states) != 1:
+        if ks.completion == machine.initial:
             errors.append(
-                f"sub-entity machine {kind!r} must name exactly one completion status "
-                f"(found {len(completion_states)}: {completion_states})"
+                f"subentity kind {kind!r}: completion {ks.completion!r} is the initial "
+                f"status of lifecycle {ks.lifecycle!r} — nothing is done at creation"
+            )
+        elif ks.completion not in machine.states:
+            errors.append(
+                f"subentity kind {kind!r}: completion {ks.completion!r} not a reachable "
+                f"status of lifecycle {ks.lifecycle!r} (states: {sorted(machine.states)})"
             )
 
 
@@ -829,23 +818,13 @@ class WorkflowSpec(BaseModel):
         return self._subentity_machine(kind).can_transition(src, dst)
 
     def subentity_completion(self, kind: str) -> str:
-        """The sub-entity/finding machine's designated completion status.
+        """The sub-entity/finding kind's designated completion status.
 
         This is what the done-toggle resolves to instead of a hardcoded ``Done``/``Fixed``
-        literal. ``_check_completion_status`` guarantees at load time that a validated spec
-        has exactly one such status per sub-entity/finding kind, so this only raises for a
-        spec that was never validated (e.g. hand-built in a test without going through
-        ``WorkflowSpec.model_validate``).
+        literal. An O(1) lookup — ``_check_completion_status`` guarantees at load time that
+        a validated spec's ``completion`` names a reachable, non-initial status.
         """
-        machine = self.lifecycles[kind]
-        for s in machine.states:
-            spec = self.statuses.get(s)
-            if spec and spec.completion:
-                return s
-
-        from squads._errors import SquadsError
-
-        raise SquadsError(f"sub-entity machine {kind!r} has no completion status")
+        return self.subentity_kinds[kind].completion
 
     def parent_hint(self, child: str) -> str:
         """Human guidance for an invalid parent (used in error messages)."""
@@ -884,9 +863,6 @@ class WorkflowSpec(BaseModel):
         # Every lifecycle must be able to reach a terminal status.
         _check_reachable_terminal(self.lifecycles, self.statuses, errors)
 
-        # Every sub-entity/finding machine names exactly one completion status.
-        _check_completion_status(self.items, self.lifecycles, self.statuses, errors)
-
         # ItemSpec cross-refs + uniqueness.
         _check_item_refs(self.items, all_lifecycle_names, all_types, errors)
 
@@ -901,6 +877,9 @@ class WorkflowSpec(BaseModel):
 
         # SubentityKindSpec.lifecycle reference + plural/local_prefix uniqueness.
         _check_subentity_kinds(self.items, self.subentity_kinds, all_lifecycle_names, errors)
+
+        # Each declared sub-entity kind's completion names a reachable, non-initial status.
+        _check_completion_status(self.subentity_kinds, self.lifecycles, errors)
 
         # Reserved-vocab floor — the spec must declare the three meta-types, each with
         # is_meta=true. This is the ONLY type-axis floor: every other type
