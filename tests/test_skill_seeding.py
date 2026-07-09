@@ -6,7 +6,6 @@ sq init seeds bundled skills as first-class SKILL items (TASK-188).
 import pytest
 
 from squads import _interactions as interactions
-from squads._models._enums import Status
 from squads._sections import split_frontmatter
 from squads._services import _service as service
 
@@ -44,7 +43,7 @@ async def test_init_seeds_bundled_skills_as_skill_items(project_with_skills):
     # All skills must have type=skill and status=Active
     for sk in skills:
         assert sk.type == "skill"
-        assert sk.status == Status.ACTIVE
+        assert sk.status == "Active"
     # Must include the core bundled skill slugs
     slugs = {sk.slug for sk in skills}
     assert "squads" in slugs

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.7",
   "squads_version": "0.7.0",
-  "counter": 333,
+  "counter": 337,
   "padding": 6,
   "items": {
     "12": {
@@ -7832,7 +7832,7 @@
       "type": "task",
       "title": "Delete Status enum; narrow floor + completion-flag machine binding",
       "slug": "delete-status-enum-narrow-floor-completion-flag-machine-bind",
-      "status": "Ready",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-326",
       "author": "tech-lead",
@@ -7844,7 +7844,7 @@
         {
           "local_id": "ST1",
           "title": "Delete Status enum; narrow _RESERVED_FLOOR to Draft/Active/Archived + STATUS_* constants",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2"
@@ -7852,7 +7852,7 @@
         {
           "local_id": "ST2",
           "title": "Add completion flag + one-completion-per-machine validation; flag default_workflow.toml",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2"
@@ -7860,7 +7860,7 @@
         {
           "local_id": "ST3",
           "title": "Sub-entity create=start state, done-toggle=completion status (no Status literals)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2"
@@ -7868,7 +7868,7 @@
         {
           "local_id": "ST4",
           "title": "Freeze Status refs in _v0_4_to_v0_5.py + _meta_compat.py to inline frozen local status-name constants",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2"
@@ -7876,7 +7876,7 @@
       ],
       "path": "tasks/TASK-000330-delete-status-enum-narrow-floor-completion-flag-machine-bind.md",
       "created_at": "2026-07-07T14:50:24Z",
-      "updated_at": "2026-07-08T11:40:41Z",
+      "updated_at": "2026-07-08T15:41:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9324,7 +9324,7 @@
       "subentities": [],
       "path": "adrs/ADR-000322-remove-the-itemtype-and-status-enums-the-spec-is-the-sole-vo.md",
       "created_at": "2026-07-07T09:37:31Z",
-      "updated_at": "2026-07-08T13:05:00Z",
+      "updated_at": "2026-07-08T15:16:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -12680,6 +12680,180 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-10"
+    },
+    "334": {
+      "sequence_id": 334,
+      "type": "feature",
+      "title": "Make the workflow cheatsheet template spec-driven",
+      "slug": "make-the-workflow-cheatsheet-template-spec-driven",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-335",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-326:depends-on",
+        "EPIC-325"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a team using a customized vocabulary spec, I want an accurate, non-blank workflow cheatsheet",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a reader of the cheatsheet, I want a concise cross-type overview, not a repeat of the sq-<type> skills",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As the operator of the bundled default squad, I want the cheatsheet to stay at least as good as it is today",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000334-make-the-workflow-cheatsheet-template-spec-driven.md",
+      "created_at": "2026-07-08T15:06:36Z",
+      "updated_at": "2026-07-08T15:09:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-334"
+    },
+    "335": {
+      "sequence_id": 335,
+      "type": "epic",
+      "title": "Modernize agent/user-facing docs for spec-driven vocabulary",
+      "slug": "modernize-agent-user-facing-docs-for-spec-driven-vocabulary",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-326:depends-on",
+        "EPIC-325"
+      ],
+      "subentities": [],
+      "path": "epics/EPIC-000335-modernize-agent-user-facing-docs-for-spec-driven-vocabulary.md",
+      "created_at": "2026-07-08T15:09:25Z",
+      "updated_at": "2026-07-08T15:11:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "EPIC-335"
+    },
+    "336": {
+      "sequence_id": 336,
+      "type": "feature",
+      "title": "Audit agent/user-facing surfaces for vocab-hardcoding defects",
+      "slug": "audit-agent-user-facing-surfaces-for-vocab-hardcoding-defect",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-335",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "FEAT-326:depends-on",
+        "FEAT-334"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a planner, I want the full surface list confirmed complete",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US2",
+          "title": "As a planner, I want each surface's audience/altitude/vocab captured",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        },
+        {
+          "local_id": "US3",
+          "title": "As a planner, I want a recommended fix per surface",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null
+        }
+      ],
+      "path": "features/FEAT-000336-audit-agent-user-facing-surfaces-for-vocab-hardcoding-defect.md",
+      "created_at": "2026-07-08T15:09:51Z",
+      "updated_at": "2026-07-08T15:11:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-336"
+    },
+    "337": {
+      "sequence_id": 337,
+      "type": "review",
+      "title": "Review: TASK-330 Status-enum deletion + completion-flag binding",
+      "slug": "review-task-330-status-enum-deletion-completion-flag-binding",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "labels": [],
+      "refs": [
+        "TASK-330:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "No automated test for the completion-count spec-load validation",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null
+        },
+        {
+          "local_id": "F2",
+          "title": "completion decoupled from terminal deviates from Accepted ADR-322 §5 wording — needs architect sign-off",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null
+        },
+        {
+          "local_id": "F3",
+          "title": "Global-per-status-name completion flag: same shared-name coupling as terminal; will resurface for custom sub-entity kinds",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null
+        }
+      ],
+      "path": "reviews/REV-000337-review-task-330-status-enum-deletion-completion-flag-binding.md",
+      "created_at": "2026-07-08T15:11:40Z",
+      "updated_at": "2026-07-08T15:24:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-337"
     }
   }
 }

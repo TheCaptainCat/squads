@@ -67,3 +67,60 @@ WORK_TYPES: tuple[str, ...] = ("epic", "feature", "task", "bug", "decision", "re
 
 #: The 3 meta-types the engine binds by name (ADR-322 §2).
 META_TYPES: tuple[str, ...] = ("role", "skill", "operator")
+
+#: All 23 built-in status names across every lifecycle (work/adr/review/bug/guide/agent +
+#: sub-entity/finding), mirroring the bundled ``default_workflow.toml`` exactly.
+#:
+#: Test-only (no production analogue): production resolves the status vocabulary from the
+#: loaded ``WorkflowSpec`` alone (ADR-322 — the ``Status`` enum this used to enumerate is
+#: deleted). Tests that need "every built-in status" (golden-lock set equality, terminal/
+#: badge iteration) use this shared tuple instead of each hardcoding its own copy.
+BUILTIN_STATUSES: tuple[str, ...] = (
+    # work items
+    "Draft",
+    "Ready",
+    "InProgress",
+    "InReview",
+    "Done",
+    "Blocked",
+    "Cancelled",
+    # ADR / decision
+    "Proposed",
+    "Accepted",
+    "Superseded",
+    "Rejected",
+    "Deprecated",
+    # code review
+    "Requested",
+    "ChangesRequested",
+    "Approved",
+    # guide
+    "Published",
+    # role / skill / operator (agent lifecycle)
+    "Active",
+    "Archived",
+    # sub-entities (subtasks / user stories)
+    "Todo",
+    # review findings
+    "Open",
+    "Fixed",
+    "Verified",
+    "WontFix",
+)
+
+#: The agent-lifecycle statuses — the only status-axis floor (ADR-322 §5).
+FLOOR_STATUSES: tuple[str, ...] = ("Draft", "Active", "Archived")
+
+#: The sub-entity/finding statuses that left the floor and became ordinary spec vocabulary
+#: (ADR-322 §5) — bound by machine role (start state / completion flag) instead of by name.
+FORMER_FLOOR_STATUSES: tuple[str, ...] = (
+    "Todo",
+    "InProgress",
+    "Blocked",
+    "Done",
+    "Cancelled",
+    "Open",
+    "Fixed",
+    "Verified",
+    "WontFix",
+)

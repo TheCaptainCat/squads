@@ -2,11 +2,10 @@
 
 ``load_workflow_spec()`` is the single entry point.  It reads
 ``default_workflow.toml`` via ``importlib.resources`` (offline, no filesystem
-assumption), parses with stdlib ``tomllib``, coerces status values into ``Status``
-(item type keys stay plain ``str`` since the type-vocabulary enum was removed), builds
-the derived reverse indexes, and runs ``WorkflowSpec.validate()`` (the pydantic
-``model_validator``).  A corrupt or invalid bundled spec raises ``SquadsError`` —
-fail closed.
+assumption), parses with stdlib ``tomllib`` (both item type keys and status keys stay
+plain ``str`` — neither vocabulary enum survives), builds the derived reverse indexes,
+and runs ``WorkflowSpec.validate()`` (the pydantic ``model_validator``).  A corrupt or
+invalid bundled spec raises ``SquadsError`` — fail closed.
 
 The loader routes through ``model_validate(...)`` for each spec model so
 ``extra="forbid"`` fires at parse time, not just at pydantic construction,
@@ -36,7 +35,6 @@ from pathlib import Path
 from typing import Any
 
 from squads._errors import SquadsError
-from squads._models._enums import Status
 from squads._workflow._models import ItemSpec, Lifecycle, RefRule, StatusSpec, WorkflowSpec
 
 #: Canonical location for the project workflow override (relative to squad_dir).
@@ -98,33 +96,21 @@ def _load_bundled_spec() -> WorkflowSpec:
 
 
 # ---------------------------------------------------------------------------
-# Coercion helpers (bundled path — coerce strings to enums)
+# Bundled-path parsers — status keys stay plain str (no enum coercion; the loaded spec
+# is the sole status vocabulary, same as the type axis).
 # ---------------------------------------------------------------------------
 
 
-def _coerce_status(value: str, ctx: str) -> Status:
-    try:
-        return Status(value)
-    except ValueError:
-        raise SquadsError(f"{ctx}: unknown Status value {value!r}") from None
-
-
 def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
-    initial = _coerce_status(data["initial"], f"lifecycle {name!r}")
+    initial: str = data["initial"]
     raw_trans: dict[str, list[str]] = data.get("transitions", {})
-    transitions: dict[Status, list[Status]] = {}
-    for src_str, dst_strs in raw_trans.items():
-        src = _coerce_status(src_str, f"lifecycle {name!r} transition source")
-        transitions[src] = [
-            _coerce_status(d, f"lifecycle {name!r} transition target") for d in dst_strs
-        ]
     # Build the dict with ONLY the known keys, then also pass through any extras so
     # model_validate's extra="forbid" fires on unknown fields.
     # The lifecycle TOML format has exactly "initial" + "transitions"; unknown top-level
     # keys should be rejected, but the transitions sub-table must not be passed as extra.
     known_keys = {"initial", "transitions"}
     extra_keys = {k: data[k] for k in data if k not in known_keys}
-    payload: dict[str, Any] = {"initial": initial, "transitions": transitions, **extra_keys}
+    payload: dict[str, Any] = {"initial": initial, "transitions": raw_trans, **extra_keys}
     try:
         return Lifecycle.model_validate(payload)
     except Exception as exc:
@@ -152,14 +138,13 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         name: _parse_lifecycle(name, data) for name, data in raw.get("lifecycles", {}).items()
     }
 
-    # --- statuses ---
-    statuses: dict[Status, StatusSpec] = {}
+    # --- statuses --- (keys stay plain str; the status-vocab enum was removed)
+    statuses: dict[str, StatusSpec] = {}
     for name, data in raw.get("statuses", {}).items():
-        s = _coerce_status(name, "statuses")
         # Pass the full status data dict through model_validate so extra="forbid" fires
         # on any unknown keys.
         try:
-            statuses[s] = StatusSpec.model_validate(data)
+            statuses[name] = StatusSpec.model_validate(data)
         except Exception as exc:
             raise SquadsError(f"Invalid status {name!r}: {exc}") from exc
 

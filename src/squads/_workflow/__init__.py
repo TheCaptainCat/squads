@@ -8,15 +8,15 @@ There is no process-global mutable state here: per-invocation spec context is
 owned by ``Service`` and threaded explicitly through call sites.
 """
 
-from squads._models._enums import (  # noqa: F401 — re-exported for callers
-    Status,  # pyright: ignore[reportUnusedImport]
-)
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import (
     META_OPERATOR,
     META_ROLE,
     META_SKILL,
     META_TYPES,
+    STATUS_ACTIVE,
+    STATUS_ARCHIVED,
+    STATUS_DRAFT,
     ItemSpec,
     Lifecycle,
     RefRule,
@@ -142,6 +142,10 @@ def subentity_initial(kind: str) -> str:
     return _BUNDLED_SPEC.subentity_initial(kind)
 
 
+def subentity_completion(kind: str) -> str:
+    return _BUNDLED_SPEC.subentity_completion(kind)
+
+
 def subentity_can_transition(kind: str, src: str, dst: str) -> bool:
     return _BUNDLED_SPEC.subentity_can_transition(kind, src, dst)
 
@@ -196,6 +200,9 @@ __all__ = [
     "META_ROLE",
     "META_SKILL",
     "META_TYPES",
+    "STATUS_ACTIVE",
+    "STATUS_ARCHIVED",
+    "STATUS_DRAFT",
     "SUBENTITY_WORKFLOWS",
     "TERMINAL",
     "WORKFLOWS",
@@ -223,6 +230,7 @@ __all__ = [
     "parent_hint",
     "status_role",
     "subentity_can_transition",
+    "subentity_completion",
     "subentity_initial",
     "subentity_workflow",
     "work_types",

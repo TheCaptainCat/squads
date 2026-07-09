@@ -2,7 +2,6 @@
 
 from squads import _sections as sections
 from squads._migrations import _meta_compat
-from squads._models._enums import Status
 
 
 def _legacy_subtask() -> str:
@@ -30,7 +29,7 @@ def test_to_subentity_types_the_state():
     (b,) = _meta_compat.list_blocks(out, "subtask")
     sub = _meta_compat.to_subentity(b)
     assert sub.local_id == "ST1"
-    assert sub.status == Status.DONE
+    assert sub.status == "Done"
     assert sub.story == "US2"
 
 

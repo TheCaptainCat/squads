@@ -10,7 +10,6 @@ every consumer that cares about terminal status is now correct.
 import pytest
 
 from squads import _workflow as workflow
-from squads._models._enums import Status
 
 pytestmark = pytest.mark.anyio
 
@@ -18,13 +17,13 @@ pytestmark = pytest.mark.anyio
 
 
 def test_accepted_and_published_are_terminal():
-    assert Status.ACCEPTED in workflow.TERMINAL
-    assert Status.PUBLISHED in workflow.TERMINAL
+    assert "Accepted" in workflow.TERMINAL
+    assert "Published" in workflow.TERMINAL
 
 
 def test_accepted_and_published_are_not_open():
-    assert not workflow.is_open(Status.ACCEPTED)
-    assert not workflow.is_open(Status.PUBLISHED)
+    assert not workflow.is_open("Accepted")
+    assert not workflow.is_open("Published")
 
 
 # --------------------------------------------------------------------------- inbox
@@ -41,7 +40,7 @@ async def test_inbox_excludes_mention_on_accepted_decision(svc):
     assert adr.id in ids_before
 
     # accept the decision
-    await svc.set_status(adr.id, Status.ACCEPTED)
+    await svc.set_status(adr.id, "Accepted")
     ids_after = {it.id for it, _ in await svc.inbox("reviewer")}
     assert adr.id not in ids_after
 
@@ -54,7 +53,7 @@ async def test_inbox_excludes_mention_on_published_guide(svc):
     ids_before = {it.id for it, _ in await svc.inbox("qa")}
     assert guide.id in ids_before
 
-    await svc.set_status(guide.id, Status.PUBLISHED)
+    await svc.set_status(guide.id, "Published")
     ids_after = {it.id for it, _ in await svc.inbox("qa")}
     assert guide.id not in ids_after
 
@@ -64,39 +63,39 @@ async def test_inbox_excludes_mention_on_published_guide(svc):
 
 def test_accepted_can_transition_to_superseded():
     """ACCEPTED → SUPERSEDED is a valid exit even though ACCEPTED is terminal."""
-    assert workflow.can_transition("decision", Status.ACCEPTED, Status.SUPERSEDED)
+    assert workflow.can_transition("decision", "Accepted", "Superseded")
 
 
 def test_accepted_can_transition_to_deprecated():
-    assert workflow.can_transition("decision", Status.ACCEPTED, Status.DEPRECATED)
+    assert workflow.can_transition("decision", "Accepted", "Deprecated")
 
 
 def test_published_can_transition_to_draft():
     """PUBLISHED → DRAFT is a valid exit (guide revision cycle)."""
-    assert workflow.can_transition("guide", Status.PUBLISHED, Status.DRAFT)
+    assert workflow.can_transition("guide", "Published", "Draft")
 
 
 def test_published_can_transition_to_deprecated():
-    assert workflow.can_transition("guide", Status.PUBLISHED, Status.DEPRECATED)
+    assert workflow.can_transition("guide", "Published", "Deprecated")
 
 
 async def test_guide_full_cycle_published_draft_published(svc):
     """A guide can go Draft→Published→Draft→Published: terminal does not block re-opening."""
     guide = (await svc.create("guide", "Cycle guide")).item
-    await svc.set_status(guide.id, Status.PUBLISHED)
-    assert (await svc.get(guide.id)).status == Status.PUBLISHED
-    await svc.set_status(guide.id, Status.DRAFT)
-    assert (await svc.get(guide.id)).status == Status.DRAFT
-    await svc.set_status(guide.id, Status.PUBLISHED)
-    assert (await svc.get(guide.id)).status == Status.PUBLISHED
+    await svc.set_status(guide.id, "Published")
+    assert (await svc.get(guide.id)).status == "Published"
+    await svc.set_status(guide.id, "Draft")
+    assert (await svc.get(guide.id)).status == "Draft"
+    await svc.set_status(guide.id, "Published")
+    assert (await svc.get(guide.id)).status == "Published"
 
 
 async def test_decision_accepted_to_superseded(svc):
     """Accepted decision can be superseded (new ADR takes over)."""
     old_adr = (await svc.create("decision", "Old pattern")).item
-    await svc.set_status(old_adr.id, Status.ACCEPTED)
-    await svc.set_status(old_adr.id, Status.SUPERSEDED)
-    assert (await svc.get(old_adr.id)).status == Status.SUPERSEDED
+    await svc.set_status(old_adr.id, "Accepted")
+    await svc.set_status(old_adr.id, "Superseded")
+    assert (await svc.get(old_adr.id)).status == "Superseded"
 
 
 # --------------------------------------------------------------------------- blocked semantics
@@ -114,7 +113,7 @@ async def test_accepted_decision_unblocks_dependent(svc):
     blocked_ids = {it.id for it, _ in pairs}
     assert task.id in blocked_ids  # ADR is still Proposed (open) → task is blocked
 
-    await svc.set_status(adr.id, Status.ACCEPTED)  # ADR accepted → now terminal → unblocks
+    await svc.set_status(adr.id, "Accepted")  # ADR accepted → now terminal → unblocks
     assert await svc.blocked() == []
 
 
@@ -128,7 +127,7 @@ async def test_published_guide_unblocks_dependent(svc):
     blocked_ids = {it.id for it, _ in pairs}
     assert task.id in blocked_ids  # guide is Draft (open)
 
-    await svc.set_status(guide.id, Status.PUBLISHED)
+    await svc.set_status(guide.id, "Published")
     assert await svc.blocked() == []
 
 
@@ -143,7 +142,7 @@ async def test_accepted_decision_hidden_in_default_list_visible_with_all(svc):
     default view. We replicate that here using is_open directly.
     """
     adr = (await svc.create("decision", "ADR: Use PostgreSQL")).item
-    await svc.set_status(adr.id, Status.ACCEPTED)
+    await svc.set_status(adr.id, "Accepted")
 
     all_items = await svc.list_items()
     assert adr.id in [i.id for i in all_items]  # list_items() returns everything
@@ -159,7 +158,7 @@ async def test_published_guide_hidden_in_default_list_visible_with_all(svc):
     """A Published guide is not open (terminal) so it is absent from the is_open-filtered
     view but present in the full list and in search results."""
     guide = (await svc.create("guide", "Squads overview guide")).item
-    await svc.set_status(guide.id, Status.PUBLISHED)
+    await svc.set_status(guide.id, "Published")
 
     all_items = await svc.list_items()
     assert guide.id in [i.id for i in all_items]

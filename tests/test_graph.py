@@ -17,7 +17,6 @@ import pytest
 from typer.testing import CliRunner
 
 from squads._cli import app
-from squads._models._enums import Status
 from squads._services._refs import graph_to_dot, graph_to_mermaid
 from squads._services._results import GraphNode
 
@@ -354,8 +353,8 @@ async def test_closed_items_hidden_by_default(svc):
     """Closed items (Done/Cancelled) are not traversed unless include_closed=True."""
     a = (await svc.create("feature", "A")).item
     b = (await svc.create("task", "B")).item
-    await svc.set_status(b.id, Status.IN_PROGRESS)
-    await svc.set_status(b.id, Status.DONE)
+    await svc.set_status(b.id, "InProgress")
+    await svc.set_status(b.id, "Done")
     await svc.add_ref(a.id, b.id, kind="related")
 
     root = await svc.graph(a.id, depth=1)
@@ -367,8 +366,8 @@ async def test_include_closed_reveals_closed_items(svc):
     """include_closed=True includes closed items."""
     a = (await svc.create("feature", "A")).item
     b = (await svc.create("task", "B")).item
-    await svc.set_status(b.id, Status.IN_PROGRESS)
-    await svc.set_status(b.id, Status.DONE)
+    await svc.set_status(b.id, "InProgress")
+    await svc.set_status(b.id, "Done")
     await svc.add_ref(a.id, b.id, kind="related")
 
     root = await svc.graph(a.id, depth=1, include_closed=True)

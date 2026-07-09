@@ -114,10 +114,18 @@ Verified = []
 WontFix = ["Open"]
 
 # ---------------------------------------------------------------------------
-# Statuses (terminal flag + optional sub-entity badge)
-# terminal mirrors today's TERMINAL frozenset exactly.
+# Statuses (terminal flag + optional sub-entity badge + completion flag)
+# terminal mirrors today's TERMINAL frozenset exactly (unchanged — completion is additive,
+# not a replacement for it; "Fixed" is completion=true for the finding machine below without
+# being terminal=true, since "Fixed" is also the (non-terminal, pending-verification) bug
+# item status and StatusSpec.terminal is one flag per status name shared across every
+# lifecycle that uses it).
 # badge is declared for the 9 sub-entity statuses only; other statuses render the graceful
 # default when their badge is looked up.
+# completion is declared only for the two sub-entity/finding machines' designated
+# done-toggle targets (Done for subtask/story, Fixed for finding) — see
+# WorkflowSpec._check_completion_status. It carries no meaning for work-item/ADR/review/
+# guide/agent lifecycles.
 # ---------------------------------------------------------------------------
 
 [statuses.Draft]
@@ -135,6 +143,7 @@ terminal = false
 
 [statuses.Done]
 terminal = true
+completion = true
 badge = "🟢"
 
 [statuses.Blocked]
@@ -189,6 +198,7 @@ badge = "🔴"
 
 [statuses.Fixed]
 terminal = false
+completion = true
 badge = "🟡"
 
 [statuses.Verified]

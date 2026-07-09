@@ -44,7 +44,6 @@ from squads import _sections as sections
 from squads._backends._claude_code._frontmatter import oneline
 from squads._index._store import IndexStore
 from squads._interactions import bundled_skill_slugs, skill_description
-from squads._models._enums import Status
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import SquadPaths
@@ -54,12 +53,13 @@ _CLAUDE_DIR = ".claude"
 _SKILLS = "skills"
 _SKILL_FILE = "SKILL.md"
 
-# Frozen v0.4/v0.5 "skill" vocabulary — the type-name/prefix/folder literals as they existed
-# at this schema version. NEVER derive this from the live spec/enum: a migration is a
+# Frozen v0.4/v0.5 "skill" vocabulary — the type-name/prefix/folder/status literals as they
+# existed at this schema version. NEVER derive this from the live spec/enum: a migration is a
 # point-in-time snapshot — the live spec/enum must never be re-introduced here.
 _SKILL_TYPE = "skill"
 _SKILL_PREFIX = "SKILL"
 _SKILL_FOLDER = "agents/skills"
+_STATUS_ACTIVE = "Active"
 
 MANUAL = """\
 ## Schema 0.4 → 0.5 — SKILL ids and filename convention for existing squads
@@ -231,7 +231,7 @@ async def migrate(paths: SquadPaths) -> int:
                     prefix=_SKILL_PREFIX,
                     title=slug,
                     slug=slug,
-                    status=Status.ACTIVE,
+                    status=_STATUS_ACTIVE,
                     description=desc,
                     author=slug,
                     path=squad_rel,

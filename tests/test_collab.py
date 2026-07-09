@@ -3,7 +3,7 @@ import pytest
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._itemfile import read_frontmatter
-from squads._models._enums import Severity, Status
+from squads._models._enums import Severity
 
 pytestmark = pytest.mark.anyio
 
@@ -198,7 +198,7 @@ async def test_head_shows_status_severity_and_story(svc):
     assert "**Implements:** US1 — As a user, I want to reset my password" in head
 
     # status transitions re-render the badge
-    await svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+    await svc.set_subtask_status(task.id, "ST1", "InProgress")
     assert "**Status:** 🟡 In Progress" in await _head(svc, task.id, "subtask:ST1:head")
 
     # findings show a severity badge
@@ -220,13 +220,13 @@ async def test_body_set_at_add_time(svc):
 async def test_update_subtask_title_rerenders_heading_and_summary(svc):
     task = (await svc.create("task", "t")).item
     await svc.add_subtask(task.id, "Old name", body="prose body")
-    await svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+    await svc.set_subtask_status(task.id, "ST1", "InProgress")
 
     await svc.update_subtask(task.id, "ST1", title="New name")
 
     # frontmatter title updated, other state untouched
     sub = (await svc.list_subtasks(task.id))[0]
-    assert (sub.title, sub.status) == ("New name", Status.IN_PROGRESS)
+    assert (sub.title, sub.status) == ("New name", "InProgress")
     text = svc.paths.abspath((await svc.get(task.id)).path).read_text(encoding="utf-8")
     # the body heading and the parent summary-table row both re-render; the body prose is preserved
     assert "### ST1 — New name" in text and "Old name" not in text
@@ -276,16 +276,16 @@ async def test_update_applies_several_fields_and_validates_status(svc):
 
     # one call sets title + assignee + status (a valid transition)
     await svc.update_subtask(
-        task.id, "ST1", title="New", assignee="python-dev", status=Status.IN_PROGRESS
+        task.id, "ST1", title="New", assignee="python-dev", status="InProgress"
     )
     sub = (await svc.list_subtasks(task.id))[0]
-    assert (sub.title, sub.assignee, sub.status) == ("New", "python-dev", Status.IN_PROGRESS)
+    assert (sub.title, sub.assignee, sub.status) == ("New", "python-dev", "InProgress")
 
     # an invalid transition is rejected without --force, accepted with it
     with pytest.raises(SquadsError, match="cannot move"):
-        await svc.update_subtask(task.id, "ST1", status=Status.TODO)
-    await svc.update_subtask(task.id, "ST1", status=Status.TODO, force=True)
-    assert (await svc.list_subtasks(task.id))[0].status == Status.TODO
+        await svc.update_subtask(task.id, "ST1", status="Todo")
+    await svc.update_subtask(task.id, "ST1", status="Todo", force=True)
+    assert (await svc.list_subtasks(task.id))[0].status == "Todo"
 
     # an unregistered assignee is rejected
     with pytest.raises(SquadsError, match="not a registered agent"):
@@ -318,13 +318,13 @@ async def test_subtask_done_toggle(svc):
 async def test_subtask_status_machine(svc):
     task = (await svc.create("task", "t")).item
     await svc.add_subtask(task.id, "Validate")
-    await svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+    await svc.set_subtask_status(task.id, "ST1", "InProgress")
     assert (await svc.list_subtasks(task.id))[0].status == "InProgress"
     # Todo→Done is not a legal move (must pass through InProgress); already InProgress→Done is ok
-    await svc.set_subtask_status(task.id, "ST1", Status.DONE)
+    await svc.set_subtask_status(task.id, "ST1", "Done")
     assert (await svc.list_subtasks(task.id))[0].status == "Done"
     with pytest.raises(SquadsError):
-        await svc.set_story_status(task.id, "ST1", Status.TODO)  # wrong parent type
+        await svc.set_story_status(task.id, "ST1", "Todo")  # wrong parent type
 
 
 async def test_subtask_done_unknown_id(svc):
@@ -346,7 +346,7 @@ async def test_subtask_assignee_set_reassigned_and_cleared(svc):
     with pytest.raises(SquadsError, match="not a registered agent"):
         await svc.add_subtask(task.id, "x", assignee="ghost")
     # reassigning preserves the status set in between
-    await svc.set_subtask_status(task.id, "ST1", Status.IN_PROGRESS)
+    await svc.set_subtask_status(task.id, "ST1", "InProgress")
     await svc.set_subtask_assignee(task.id, "ST1", "python-dev")
     assert (await svc.list_subtasks(task.id))[0].status == "InProgress"
     # --clear path: None unassigns, and the summary table reflects it
@@ -364,8 +364,8 @@ async def test_inbox_finds_open_mentions_only(svc):
     t2 = (await svc.create("task", "done one")).item
     await svc.comment(t1.id, ["@qa please verify"], as_slug="architect")
     await svc.comment(t2.id, ["@qa check this too"], as_slug="architect")
-    await svc.set_status(t2.id, Status.IN_PROGRESS)
-    await svc.set_status(t2.id, Status.DONE)  # terminal → excluded from inbox
+    await svc.set_status(t2.id, "InProgress")
+    await svc.set_status(t2.id, "Done")  # terminal → excluded from inbox
     hits = await svc.inbox("qa")
     ids = {it.id for it, _ in hits}
     assert t1.id in ids

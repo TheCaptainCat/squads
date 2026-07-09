@@ -14,14 +14,21 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX, BUILTIN_TYPES, EXPECTED_BUILTIN_STATUS_BADGES
+from _helpers import (
+    BUILTIN_FOLDER,
+    BUILTIN_PREFIX,
+    BUILTIN_STATUSES,
+    BUILTIN_TYPES,
+    EXPECTED_BUILTIN_STATUS_BADGES,
+    FORMER_FLOOR_STATUSES,
+)
 from squads._errors import SquadsError
-from squads._models._enums import Status
 from squads._workflow import (
     ALLOWED_PARENTS,
     SUBENTITY_WORKFLOWS,
     TERMINAL,
     WORKFLOWS,
+    StatusSpec,
     WorkflowSpec,
     load_workflow_spec,
 )
@@ -37,68 +44,68 @@ pytestmark = pytest.mark.anyio
 _LIFECYCLE_SNAPSHOT: dict[str, dict[str, object]] = {
     # ---- work lifecycle ----
     "work": {
-        "initial": Status.DRAFT,
+        "initial": "Draft",
         "transitions": {
-            Status.DRAFT: [Status.READY, Status.IN_PROGRESS, Status.CANCELLED],
-            Status.READY: [Status.IN_PROGRESS, Status.BLOCKED, Status.CANCELLED],
-            Status.IN_PROGRESS: [Status.IN_REVIEW, Status.BLOCKED, Status.DONE, Status.CANCELLED],
-            Status.IN_REVIEW: [Status.IN_PROGRESS, Status.DONE, Status.BLOCKED, Status.CANCELLED],
-            Status.BLOCKED: [Status.READY, Status.IN_PROGRESS, Status.CANCELLED],
-            Status.DONE: [Status.IN_PROGRESS],
-            Status.CANCELLED: [Status.DRAFT],
+            "Draft": ["Ready", "InProgress", "Cancelled"],
+            "Ready": ["InProgress", "Blocked", "Cancelled"],
+            "InProgress": ["InReview", "Blocked", "Done", "Cancelled"],
+            "InReview": ["InProgress", "Done", "Blocked", "Cancelled"],
+            "Blocked": ["Ready", "InProgress", "Cancelled"],
+            "Done": ["InProgress"],
+            "Cancelled": ["Draft"],
         },
     },
     # ---- adr lifecycle ----
     "adr": {
-        "initial": Status.PROPOSED,
+        "initial": "Proposed",
         "transitions": {
-            Status.PROPOSED: [Status.ACCEPTED, Status.REJECTED],
-            Status.ACCEPTED: [Status.SUPERSEDED, Status.DEPRECATED],
-            Status.REJECTED: [Status.PROPOSED],
-            Status.SUPERSEDED: [],
-            Status.DEPRECATED: [],
+            "Proposed": ["Accepted", "Rejected"],
+            "Accepted": ["Superseded", "Deprecated"],
+            "Rejected": ["Proposed"],
+            "Superseded": [],
+            "Deprecated": [],
         },
     },
     # ---- review lifecycle ----
     "review": {
-        "initial": Status.REQUESTED,
+        "initial": "Requested",
         "transitions": {
-            Status.REQUESTED: [Status.IN_REVIEW, Status.REJECTED],
-            Status.IN_REVIEW: [Status.CHANGES_REQUESTED, Status.APPROVED, Status.REJECTED],
-            Status.CHANGES_REQUESTED: [Status.IN_REVIEW, Status.APPROVED, Status.REJECTED],
-            Status.APPROVED: [],
-            Status.REJECTED: [],
+            "Requested": ["InReview", "Rejected"],
+            "InReview": ["ChangesRequested", "Approved", "Rejected"],
+            "ChangesRequested": ["InReview", "Approved", "Rejected"],
+            "Approved": [],
+            "Rejected": [],
         },
     },
     # ---- bug lifecycle ----
     "bug": {
-        "initial": Status.OPEN,
+        "initial": "Open",
         "transitions": {
-            Status.OPEN: [Status.IN_PROGRESS, Status.WONT_FIX, Status.CANCELLED],
-            Status.IN_PROGRESS: [Status.FIXED, Status.BLOCKED, Status.WONT_FIX, Status.CANCELLED],
-            Status.FIXED: [Status.VERIFIED, Status.IN_PROGRESS],
-            Status.VERIFIED: [Status.IN_PROGRESS],
-            Status.BLOCKED: [Status.IN_PROGRESS, Status.WONT_FIX, Status.CANCELLED],
-            Status.WONT_FIX: [Status.OPEN],
-            Status.CANCELLED: [Status.OPEN],
+            "Open": ["InProgress", "WontFix", "Cancelled"],
+            "InProgress": ["Fixed", "Blocked", "WontFix", "Cancelled"],
+            "Fixed": ["Verified", "InProgress"],
+            "Verified": ["InProgress"],
+            "Blocked": ["InProgress", "WontFix", "Cancelled"],
+            "WontFix": ["Open"],
+            "Cancelled": ["Open"],
         },
     },
     # ---- guide lifecycle ----
     "guide": {
-        "initial": Status.DRAFT,
+        "initial": "Draft",
         "transitions": {
-            Status.DRAFT: [Status.PUBLISHED],
-            Status.PUBLISHED: [Status.DEPRECATED, Status.DRAFT],
-            Status.DEPRECATED: [Status.PUBLISHED],
+            "Draft": ["Published"],
+            "Published": ["Deprecated", "Draft"],
+            "Deprecated": ["Published"],
         },
     },
     # ---- agent lifecycle (role/skill/operator) ----
     "agent": {
-        "initial": Status.DRAFT,
+        "initial": "Draft",
         "transitions": {
-            Status.DRAFT: [Status.ACTIVE],
-            Status.ACTIVE: [Status.ARCHIVED],
-            Status.ARCHIVED: [Status.ACTIVE],
+            "Draft": ["Active"],
+            "Active": ["Archived"],
+            "Archived": ["Active"],
         },
     },
 }
@@ -106,32 +113,32 @@ _LIFECYCLE_SNAPSHOT: dict[str, dict[str, object]] = {
 # Sub-entity lifecycle snapshot (keyed by kind).
 _SUBENTITY_SNAPSHOT: dict[str, dict[str, object]] = {
     "subtask": {
-        "initial": Status.TODO,
+        "initial": "Todo",
         "transitions": {
-            Status.TODO: [Status.IN_PROGRESS, Status.BLOCKED, Status.CANCELLED],
-            Status.IN_PROGRESS: [Status.DONE, Status.BLOCKED, Status.CANCELLED],
-            Status.BLOCKED: [Status.IN_PROGRESS, Status.CANCELLED],
-            Status.DONE: [Status.IN_PROGRESS],
-            Status.CANCELLED: [Status.TODO],
+            "Todo": ["InProgress", "Blocked", "Cancelled"],
+            "InProgress": ["Done", "Blocked", "Cancelled"],
+            "Blocked": ["InProgress", "Cancelled"],
+            "Done": ["InProgress"],
+            "Cancelled": ["Todo"],
         },
     },
     "story": {
-        "initial": Status.TODO,
+        "initial": "Todo",
         "transitions": {
-            Status.TODO: [Status.IN_PROGRESS, Status.BLOCKED, Status.CANCELLED],
-            Status.IN_PROGRESS: [Status.DONE, Status.BLOCKED, Status.CANCELLED],
-            Status.BLOCKED: [Status.IN_PROGRESS, Status.CANCELLED],
-            Status.DONE: [Status.IN_PROGRESS],
-            Status.CANCELLED: [Status.TODO],
+            "Todo": ["InProgress", "Blocked", "Cancelled"],
+            "InProgress": ["Done", "Blocked", "Cancelled"],
+            "Blocked": ["InProgress", "Cancelled"],
+            "Done": ["InProgress"],
+            "Cancelled": ["Todo"],
         },
     },
     "finding": {
-        "initial": Status.OPEN,
+        "initial": "Open",
         "transitions": {
-            Status.OPEN: [Status.FIXED, Status.WONT_FIX],
-            Status.FIXED: [Status.VERIFIED, Status.OPEN],
-            Status.VERIFIED: [],
-            Status.WONT_FIX: [Status.OPEN],
+            "Open": ["Fixed", "WontFix"],
+            "Fixed": ["Verified", "Open"],
+            "Verified": [],
+            "WontFix": ["Open"],
         },
     },
 }
@@ -173,9 +180,9 @@ def test_golden_type_set(spec: WorkflowSpec) -> None:
 
 
 def test_golden_status_set(spec: WorkflowSpec) -> None:
-    """Every Status must be present in the spec — enums-intact (ADR §5-6b)."""
-    assert set(spec.statuses) == set(Status), (
-        f"spec status set {set(spec.statuses)!r} != set(Status) {set(Status)!r}"
+    """Every built-in status must be present in the bundled spec (no-override characterization)."""
+    assert set(spec.statuses) == set(BUILTIN_STATUSES), (
+        f"spec status set {set(spec.statuses)!r} != {set(BUILTIN_STATUSES)!r}"
     )
 
 
@@ -239,11 +246,11 @@ def test_golden_lifecycles_initial_and_transitions(spec: WorkflowSpec) -> None:
     for name, snap in _LIFECYCLE_SNAPSHOT.items():
         assert name in spec.lifecycles, f"lifecycle {name!r} missing from spec"
         m = spec.lifecycles[name]
-        expected_initial: Status = snap["initial"]  # type: ignore[assignment]
+        expected_initial: str = snap["initial"]  # type: ignore[assignment]
         assert m.initial == expected_initial, (
             f"lifecycle {name!r}: initial {m.initial!r} != {expected_initial!r}"
         )
-        expected_trans: dict[Status, list[Status]] = snap["transitions"]  # type: ignore[assignment]
+        expected_trans: dict[str, list[str]] = snap["transitions"]  # type: ignore[assignment]
         assert dict(m.transitions) == expected_trans, (
             f"lifecycle {name!r}: transitions differ.\n"
             f"  spec: {dict(m.transitions)}\n"
@@ -272,7 +279,7 @@ def test_golden_terminal_set(spec: WorkflowSpec) -> None:
     assert spec.terminal_set() == TERMINAL, (
         f"spec terminal set {spec.terminal_set()!r} != TERMINAL {TERMINAL!r}"
     )
-    for s in Status:
+    for s in BUILTIN_STATUSES:
         expected_terminal = s in TERMINAL
         actual_terminal = spec.statuses[s].terminal
         assert actual_terminal == expected_terminal, (
@@ -282,8 +289,8 @@ def test_golden_terminal_set(spec: WorkflowSpec) -> None:
 
 def test_golden_status_badges(spec: WorkflowSpec) -> None:
     """Status badges from EXPECTED_BUILTIN_STATUS_BADGES match spec StatusSpec.badge."""
-    for s in Status:
-        expected_badge = EXPECTED_BUILTIN_STATUS_BADGES.get(s.value)
+    for s in BUILTIN_STATUSES:
+        expected_badge = EXPECTED_BUILTIN_STATUS_BADGES.get(s)
         actual_badge = spec.statuses[s].badge
         assert actual_badge == expected_badge, (
             f"status {s!r}: spec.badge={actual_badge!r} != "
@@ -296,11 +303,11 @@ def test_golden_subentity_lifecycles(spec: WorkflowSpec) -> None:
     for kind, snap in _SUBENTITY_SNAPSHOT.items():
         assert kind in spec.lifecycles, f"lifecycle {kind!r} missing from spec"
         m = spec.lifecycles[kind]
-        expected_initial: Status = snap["initial"]  # type: ignore[assignment]
+        expected_initial: str = snap["initial"]  # type: ignore[assignment]
         assert m.initial == expected_initial, (
             f"subentity {kind!r}: initial {m.initial!r} != {expected_initial!r}"
         )
-        expected_trans: dict[Status, list[Status]] = snap["transitions"]  # type: ignore[assignment]
+        expected_trans: dict[str, list[str]] = snap["transitions"]  # type: ignore[assignment]
         assert dict(m.transitions) == expected_trans, (
             f"subentity {kind!r}: transitions differ.\n"
             f"  spec: {dict(m.transitions)}\n"
@@ -386,10 +393,11 @@ async def test_sq_workflow_cli_unchanged(invoke) -> None:  # type: ignore[no-unt
 
 
 # ---------------------------------------------------------------------------
-# TASK-000235 / ADR-322 §2: reserved-vocab subset — negative tests.
-# Only the three meta-types are floor-enforced; a custom spec that omits a non-meta
-# (work) type is now accepted (TASK-000328 narrowed the floor). Status floor
-# (TASK-000330's scope) is unaffected — still fails closed on omission.
+# TASK-000235 / ADR-322 §2/§5: reserved-vocab subset — negative tests.
+# Only the three meta-types are floor-enforced on the type axis; a custom spec that omits
+# a non-meta (work) type is now accepted. On the status axis the floor narrows to exactly
+# the agent lifecycle (Draft/Active/Archived) — every other status, including the former
+# sub-entity/finding floor members, is now ordinary spec vocabulary.
 # ---------------------------------------------------------------------------
 
 
@@ -433,30 +441,121 @@ def test_omitting_a_meta_type_still_fails_closed(spec: WorkflowSpec) -> None:
 
 
 def test_reserved_vocab_omit_status_fails_closed(spec: WorkflowSpec) -> None:
-    """A spec missing one floor-reserved Status raises SquadsError (§5-6b fail-closed).
+    """A spec missing an agent-lifecycle floor status raises SquadsError (ADR-322 §5).
 
-    Drops 'Done' (sub-entity lifecycle floor member) from the statuses dict — a spec
-    that omits a structural-floor status must be rejected even if the floor is narrowed
-    from the full Status enum set (TASK-000235 F2).
+    Drops 'Active' — one of the three agent-lifecycle statuses (Draft/Active/Archived)
+    that remain the ONLY status-axis floor after the narrowing. A spec omitting one of
+    these must still be rejected, even though every other status (work-item, sub-entity,
+    finding) is now ordinary, droppable vocabulary (see the former-floor test below).
     """
-    from squads._errors import SquadsError
+    statuses_without_active = {k: v for k, v in spec.statuses.items() if k != "Active"}
+    assert "Active" not in statuses_without_active  # sanity
 
-    statuses_without_done = {k: v for k, v in spec.statuses.items() if k != "Done"}
-    assert "Done" not in statuses_without_done  # sanity
-
-    # We also need to drop lifecycles that reference 'Done' so the §5-1/§5-2 check
-    # doesn't obscure the §5-6b failure.  The missing-floor error appears regardless
-    # because §5-6b runs even when §5-1/§5-2 already found errors.
+    # The 'agent' lifecycle also references 'Active' in its transitions, so the
+    # lifecycle-integrity check fires too — the missing-floor error appears regardless,
+    # since every check runs and collects into one combined error message.
     with pytest.raises(SquadsError, match="spec missing reserved Status members"):
         WorkflowSpec.model_validate(
             {
                 "items": spec.items,
-                "statuses": statuses_without_done,
+                "statuses": statuses_without_active,
                 "lifecycles": spec.lifecycles,
                 "prefix_to_type": spec.prefix_to_type,
                 "alias_to_type": spec.alias_to_type,
             }
         )
+
+
+@pytest.mark.parametrize("status_name", FORMER_FLOOR_STATUSES)
+def test_former_floor_status_omission_no_longer_hits_the_reserved_floor(
+    spec: WorkflowSpec, status_name: str
+) -> None:
+    """Sub-entity/finding statuses left the reserved floor (ADR-322 §5).
+
+    Dropping one of them from a copy of the bundled spec still fails — the subtask/
+    story/finding lifecycles still name it in their transitions — but via the
+    lifecycle-integrity check, never via the (narrowed) 'spec missing reserved Status
+    members' floor check.  That distinction is the whole point: these names are ordinary,
+    renamable spec vocabulary now, not a hardcoded floor.
+    """
+    statuses_without = {k: v for k, v in spec.statuses.items() if k != status_name}
+    with pytest.raises(SquadsError) as exc_info:
+        WorkflowSpec.model_validate(
+            {
+                "items": spec.items,
+                "statuses": statuses_without,
+                "lifecycles": spec.lifecycles,
+                "prefix_to_type": spec.prefix_to_type,
+                "alias_to_type": spec.alias_to_type,
+            }
+        )
+    assert "spec missing reserved Status members" not in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# Sub-entity/finding machines must each name exactly one completion status —
+# the status the done-toggle resolves to instead of a hardcoded status literal.
+# ---------------------------------------------------------------------------
+
+
+def _spec_with_status_override(
+    spec: WorkflowSpec, name: str, override: StatusSpec
+) -> dict[str, object]:
+    """A raw WorkflowSpec.model_validate payload with one status swapped for ``override``."""
+    statuses = dict(spec.statuses)
+    statuses[name] = override
+    return {
+        "items": spec.items,
+        "statuses": statuses,
+        "lifecycles": spec.lifecycles,
+        "prefix_to_type": spec.prefix_to_type,
+        "alias_to_type": spec.alias_to_type,
+    }
+
+
+def test_subtask_and_story_machine_with_no_completion_status_fails_to_load(
+    spec: WorkflowSpec,
+) -> None:
+    """'Done' is the subtask/story machines' one completion status — un-flagging it
+    leaves both kinds with zero, which must be rejected at load."""
+    raw = _spec_with_status_override(spec, "Done", StatusSpec(terminal=True, completion=False))
+    with pytest.raises(SquadsError, match="must name exactly one completion status"):
+        WorkflowSpec.model_validate(raw)
+
+
+def test_finding_machine_with_no_completion_status_fails_to_load(spec: WorkflowSpec) -> None:
+    """'Fixed' is the finding machine's one completion status — un-flagging it leaves
+    zero, which must be rejected at load."""
+    raw = _spec_with_status_override(spec, "Fixed", StatusSpec(terminal=False, completion=False))
+    with pytest.raises(SquadsError, match="must name exactly one completion status"):
+        WorkflowSpec.model_validate(raw)
+
+
+def test_subtask_and_story_machine_with_two_completion_statuses_fails_to_load(
+    spec: WorkflowSpec,
+) -> None:
+    """Flagging a second reachable subtask/story status ('Cancelled') as completion,
+    alongside 'Done', leaves both kinds with two, which must be rejected at load."""
+    raw = _spec_with_status_override(spec, "Cancelled", StatusSpec(terminal=True, completion=True))
+    with pytest.raises(SquadsError, match="must name exactly one completion status"):
+        WorkflowSpec.model_validate(raw)
+
+
+def test_finding_machine_with_two_completion_statuses_fails_to_load(spec: WorkflowSpec) -> None:
+    """Flagging a second reachable finding status ('WontFix') as completion, alongside
+    'Fixed', leaves finding with two, which must be rejected at load."""
+    raw = _spec_with_status_override(spec, "WontFix", StatusSpec(terminal=True, completion=True))
+    with pytest.raises(SquadsError, match="must name exactly one completion status"):
+        WorkflowSpec.model_validate(raw)
+
+
+def test_bundled_spec_resolves_one_completion_status_per_subentity_kind(
+    spec: WorkflowSpec,
+) -> None:
+    """The bundled default's done-toggle target for each sub-entity/finding kind."""
+    assert spec.subentity_completion("subtask") == "Done"
+    assert spec.subentity_completion("story") == "Done"
+    assert spec.subentity_completion("finding") == "Fixed"
 
 
 def test_non_reserved_status_omission_is_allowed(spec: WorkflowSpec) -> None:

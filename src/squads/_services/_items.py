@@ -113,9 +113,7 @@ class ItemsMixin(ServiceCore):
             item.extra.pop(key, None)
 
     def _apply_status(self, item: Item, status: str, *, force: bool) -> None:
-        # Coerce to plain str — callers may pass a Status enum member (which is a StrEnum
-        # and compares equal to its value, but pydantic won't auto-coerce when
-        # use_enum_values=False).
+        # Defensive str() — status is spec vocabulary (a plain string), no enum involved.
         status = str(status)
         states = self.spec.workflow_for(item.type).states
         if status not in states:
