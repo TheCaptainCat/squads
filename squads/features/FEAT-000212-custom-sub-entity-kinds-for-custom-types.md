@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - FEAT-210:depends-on
 - FEAT-211:depends-on
+- FEAT-327:depends-on
 subentities:
 - local_id: US1
   title: As a project admin, I want to define custom sub-entity kinds for my custom
@@ -19,7 +20,7 @@ subentities:
     type across my whole squad
   status: Cancelled
 created_at: '2026-06-25T13:21:20Z'
-updated_at: '2026-07-02T09:25:37Z'
+updated_at: '2026-07-07T14:40:07Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -145,4 +146,6 @@ As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on
 <!-- sq:discussion -->
 - [2026-07-01T08:27:49Z] Catherine Manager:
   - Ownership note (from the FEAT-210/REV-265/ADR-266 work): FEAT-212 owns retiring _SUBENTITY_PLURAL (_cli/_items.py) — the last static per-type vocabulary artifact. ADR-266 established the Item.prefix + reserved-vocab resolver pattern and retired the prefix/folder/alias/meta statics in the FEAT-210 corrective; _SUBENTITY_PLURAL was deliberately deferred here because it needs FEAT-212's subentity_kinds schema addition (sub-entity plural vocab). When scoped, add a subentity_plural accessor to the resolver and delete _SUBENTITY_PLURAL. op-pierre confirmed this boundary.
+- [2026-07-07T14:40:07Z] Nina Product:
+  - Must be re-baselined against the post-322/323 world before dispatch (see EPIC-325): specifically it should consume ADR-323's shared Field schema for sub-entity fields (FEAT-327) rather than fork its own field model. Scope otherwise unchanged for now.
 <!-- sq:discussion:end -->
