@@ -672,8 +672,8 @@ def test_cli_graph_format_mermaid(graph_squad):
 def test_cli_graph_priority_badge_renders(tmp_path, monkeypatch, frozen_time):
     """sq graph renders correctly when root and/or child carries a non-None priority.
 
-    GraphNode.priority is a plain badge-code string (e.g. "high"); priority_badge() takes
-    that string directly (no enum wrapping — the Priority enum is gone).
+    GraphNode.priority is a plain badge-code string (e.g. "high"); the generic badge_render()
+    renderer takes that string directly (no enum wrapping — the Priority enum is gone).
     """
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()

@@ -23,7 +23,7 @@ from squads._cli._common import (
     console,
     e,
     get_service,
-    parse_priority,
+    parse_badge_code,
     print_json_clean,
     resolve_body_optional,
     resolve_item_id_any,
@@ -88,7 +88,7 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
             labels=label or None,
             refs=resolved_refs,
             assignee=assignee,
-            priority=parse_priority(priority) if priority else None,
+            priority=parse_badge_code("priority", priority) if priority else None,
             body=resolve_body_optional(message or None, file),
         )
         if json_out:
@@ -268,7 +268,7 @@ def _make(item_type_str: str):
             labels=label or None,
             refs=resolved_refs,
             assignee=assignee,
-            priority=parse_priority(priority) if priority else None,
+            priority=parse_badge_code("priority", priority) if priority else None,
             body=resolve_body_optional(message or None, file),
         )
         if json_out:

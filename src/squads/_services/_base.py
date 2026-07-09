@@ -74,23 +74,57 @@ class ItemFilter:
     parent: str | None = None
     label: str | None = None
     assignee: str | None = None
-    priority: str | None = None
+    #: Exact badge-field filters, keyed by field CODE (e.g. ``priority``, or a project's own
+    #: custom axis) — generic over ``fields_for()``, not a hand-written priority-only param.
+    badges: tuple[tuple[str, str], ...] = ()
+    #: Threshold badge-field filters (ordered collections only): (field code, minimum code).
+    #: Resolving "at least as high as" needs the field's declared collection, so this variant
+    #: is only usable when ``spec`` is set.
+    badge_min: tuple[tuple[str, str], ...] = ()
+    #: The active spec — needed only to resolve ``badge_min`` rank; ``None`` disables it.
+    spec: WorkflowSpec | None = None
 
     def matches(self, it: Item) -> bool:
         """Return True iff *it* satisfies every non-None dimension of this filter."""
-        return (
+        base = (
             (not self.item_type or it.type == self.item_type)
             and (not self.status or it.status == self.status)
             and (not self.parent or it.parent == self.parent)
             and (not self.label or self.label in it.labels)
             and (not self.assignee or it.assignee == self.assignee)
-            and (not self.priority or it.priority == self.priority)
         )
+        if not base:
+            return False
+        if any(it.badge_value(code) != want for code, want in self.badges):
+            return False
+        return all(self._meets_min(it, code, min_code) for code, min_code in self.badge_min)
+
+    def _meets_min(self, it: Item, code: str, min_code: str) -> bool:
+        """True when *it*'s badge for *code* ranks at least as high as *min_code* (lower
+        index = higher-ranked). Unresolvable (no spec, no field, no ordered collection, or
+        an unrecognised code) is a graceful non-match, never a crash."""
+        if self.spec is None:
+            return False
+        field = next((f for f in self.spec.fields_for(it.type) if f.code == code), None)
+        coll = self.spec.collections.get(field.collection) if field else None
+        if coll is None:
+            return False
+        order = [b.code for b in coll.badges]
+        value = it.badge_value(code)
+        return value in order and min_code in order and order.index(value) <= order.index(min_code)
 
     def is_empty(self) -> bool:
         """Return True when no filter dimension is set (matches all items)."""
         return not any(
-            (self.item_type, self.status, self.parent, self.label, self.assignee, self.priority)
+            (
+                self.item_type,
+                self.status,
+                self.parent,
+                self.label,
+                self.assignee,
+                self.badges,
+                self.badge_min,
+            )
         )
 
 
@@ -373,15 +407,25 @@ class ServiceCore:
         parent: str | None = None,
         label: str | None = None,
         assignee: str | None = None,
-        priority: str | None = None,
+        badges: dict[str, str] | None = None,
+        badge_min: dict[str, str] | None = None,
     ) -> list[Item]:
+        """List items matching every given filter dimension.
+
+        ``badges``/``badge_min`` are keyed by badge field CODE (e.g. ``"priority"``, or a
+        project's own custom axis) — generic over ``fields_for()``, not a dedicated param
+        per axis. ``badge_min`` only matches ordered collections
+        (see :meth:`ItemFilter._meets_min`).
+        """
         f = ItemFilter(
             item_type=str(item_type) if item_type is not None else None,
             status=str(status) if status is not None else None,
             parent=parent,
             label=label,
             assignee=assignee,
-            priority=priority,
+            badges=tuple((badges or {}).items()),
+            badge_min=tuple((badge_min or {}).items()),
+            spec=self.spec,
         )
         out: list[Item] = []
         for it in (await self.store.load()).items.values():

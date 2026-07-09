@@ -28,14 +28,25 @@ from squads._services._base import (
 )
 from squads._services._results import BlockResult, SubentityDetail
 
-#: The finding severity field's default badge code (bundled ``severity`` collection/field —
-#: see ``default_workflow.toml``). Frozen here rather than resolved via ``fields_for()`` since
-#: it's only a single CLI-option default, mirroring the ``--severity`` default already
-#: hardcoded at the CLI edge; a follow-up owns the full generic derivation.
+#: Last-resort finding-severity fallback — only reached when the active spec's ``finding``
+#: kind carries no ``severity`` field at all (a customized spec that dropped it), so
+#: ``add_finding`` never crashes for want of a default.
 _DEFAULT_FINDING_SEVERITY = "medium"
 
 
 class SubentitiesMixin(ServiceCore):
+    def _field_default(self, type_or_kind: str, code: str) -> str | None:
+        """The badge code an omitted field falls back to: the field's own ``default``,
+        else its collection's ``default``, else ``None`` (generic — no field/collection
+        special-cased by name)."""
+        field = next((f for f in self.spec.fields_for(type_or_kind) if f.code == code), None)
+        if field is None:
+            return None
+        if field.default:
+            return field.default
+        coll = self.spec.collections.get(field.collection)
+        return coll.default if coll else None
+
     async def add_story(
         self,
         feature_id: str,
@@ -64,12 +75,15 @@ class SubentitiesMixin(ServiceCore):
         review_id: str,
         title: str = "",
         *,
-        severity: str = _DEFAULT_FINDING_SEVERITY,
+        severity: str | None = None,
         assignee: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
+        resolved_severity = (
+            severity or self._field_default("finding", "severity") or _DEFAULT_FINDING_SEVERITY
+        )
         return await self._add_block(
-            review_id, "finding", title, severity=severity, assignee=assignee, body=body
+            review_id, "finding", title, severity=resolved_severity, assignee=assignee, body=body
         )
 
     async def _add_block(

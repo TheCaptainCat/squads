@@ -86,7 +86,7 @@ def test_status_and_severity_badges():
 
     assert d._status_badge("InProgress") == "🟡 In Progress"  # pyright: ignore[reportPrivateUsage]
     assert d._status_badge("WontFix") == "⚫ Wont Fix"  # pyright: ignore[reportPrivateUsage]
-    assert d._severity_badge("high") == "🟠 High"  # pyright: ignore[reportPrivateUsage]
+    assert d.badge_render("severity", "high", as_label=True) == "🟠 High"
 
 
 def test_subentity_summary_template_layout():

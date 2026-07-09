@@ -249,6 +249,24 @@ class Item(BaseModel):
             effective_prefix(self.prefix, self.type), self.sequence_id, DISPLAY_ID_PADDING
         )
 
+    def badge_value(self, code: str) -> str | None:
+        """Generic badge-code getter for any spec-declared field on this item.
+
+        ``priority``/``severity`` are real attributes; any other declared field code
+        (e.g. a custom ``impact``) has no dedicated attribute and is stored in ``extra``.
+        No spec needed to read — the code is the stored, authoritative value.
+        """
+        return getattr(self, code, None) if hasattr(self, code) else self.extra.get(code)
+
+    def set_badge_value(self, code: str, value: str | None) -> None:
+        """Generic badge-code setter — the write-side mirror of :meth:`badge_value`."""
+        if hasattr(self, code):
+            setattr(self, code, value)
+        elif value is None:
+            self.extra.pop(code, None)
+        else:
+            self.extra[code] = value
+
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The mapping written into the markdown file's YAML frontmatter (durable truth).
 

@@ -91,10 +91,8 @@ def test_severity_badge_and_summary_degrade_gracefully_without_collection():
     from squads._workflow import bundled_spec
 
     spec = bundled_spec().model_copy(update={"collections": {}})
-    assert (
-        discussion._severity_badge("high", spec)  # pyright: ignore[reportPrivateUsage]
-        == "⚪ High"
-    )
+    coll = discussion.resolve_collection("finding", "severity", spec)
+    assert discussion.badge_render(coll, "high", spec, as_label=True) == "⚪ High"
 
     subs = [SubEntity(local_id="F1", title="Null deref", status="Open", severity="high")]
     out = discussion.render_summary("finding", subs, spec)
@@ -104,10 +102,7 @@ def test_severity_badge_and_summary_degrade_gracefully_without_collection():
 def test_severity_badge_falls_back_for_an_undeclared_code():
     """A stored code that isn't (or is no longer) a badge in the collection also degrades
     gracefully rather than raising a KeyError (unlike the old SEVERITY_EMOJI[...] dict)."""
-    assert (
-        discussion._severity_badge("nonexistent")  # pyright: ignore[reportPrivateUsage]
-        == "⚪ Nonexistent"
-    )
+    assert discussion.badge_render("severity", "nonexistent", as_label=True) == "⚪ Nonexistent"
 
 
 def test_set_head_renders_badges_into_empty_region():
