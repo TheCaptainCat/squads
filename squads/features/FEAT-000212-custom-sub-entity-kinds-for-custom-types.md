@@ -3,7 +3,7 @@ id: FEAT-212
 sequence_id: 212
 type: feature
 title: Custom sub-entity kinds for custom types
-status: Ready
+status: Done
 parent: EPIC-280
 author: product-owner
 refs:
@@ -20,7 +20,7 @@ subentities:
     type across my whole squad
   status: Cancelled
 created_at: '2026-06-25T13:21:20Z'
-updated_at: '2026-07-09T21:20:56Z'
+updated_at: '2026-07-10T00:26:05Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -152,4 +152,6 @@ As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on
   - Design pass kicked off before dispatch (op-pierre greenlit): SubentityKindSpec currently carries only `fields` — the machine + summary-columns half needed for a genuinely custom kind isn't in the model yet. Robert to draft an ADR on what a custom sub-entity kind must declare (schema shape + dynamic add-<kind> derivation + _SUBENTITY_PLURAL retirement), re-baselined on ADR-323's Field schema. Implementation stays gated on that ADR.
 - [2026-07-09T21:20:56Z] Robert Architect:
   - Design ADR drafted: ADR-348 (Proposed) — what a custom sub-entity kind must declare beyond ADR-323 fields. Headlines: (1) SubentityKindSpec gains explicit `lifecycle` (mirror ItemSpec, retires the kind-name==lifecycle magic + the story/subtask machine dup) + per-kind `completion` status (retires global StatusSpec.completion — resolves REV-337 F3) + `plural`/`local_prefix`/optional `placeholder`/`maps_parent_story`. (2) Everything else is DERIVED, not stored: singular=dict key, initial=machine.initial, container marker=plural, parent-types=inversion of ItemSpec.subentity_kind, and summary/CLI columns + --<field> flags = ADR-323 fields (severity column is just the generic field column). (3) _SUBENTITY_PLURAL + _SUB_COLS/_SUMMARY_COLS + _LOCAL_ID_PREFIX + SUBENTITY_CONTAINER all retire; CLI verbs derive generically in build_item_app via kind-parameterized generic service methods. AC5 lint: extend _check_completion_status (per-kind, reachable-non-initial) + lifecycle-ref check. Left Proposed for op-pierre to read before accepting. One flag for you: it retires TASK-330's StatusSpec.completion (blessed/tested work) — deliberate per F3, called out in the ADR risks.
+- [2026-07-10T00:25:41Z] Catherine Manager:
+  - FEAT-212 complete. All tasks landed and committed: TASK-349 (SubentityKindSpec schema foundation), 350 (per-kind completion, resolving REV-337 F3), 351 (service-layer spec-derived maps + public kind-taking surface), 352 (spec/field-driven discussion rendering + F1 container-heading fix), 353 (generic CLI surface, _SUBENTITY_PLURAL deleted, custom-kind end-to-end), 361 (ADR-348 §4 generic sub-entity field store — the breakdown gap), 354 (vulture reconcile + AC5 lint + dead-code deletion). Realizes ADR-348 in full. Reviewer sign-off: acceptance-complete and byte-identical for built-ins; custom kinds work end-to-end with settable custom fields, no code change. Two display-only deferrals tracked on REV-360 (print_subentity severity-only meta line) for the FEAT-336 pass. US2 was already Cancelled (moved to FEAT-281).
 <!-- sq:discussion:end -->
