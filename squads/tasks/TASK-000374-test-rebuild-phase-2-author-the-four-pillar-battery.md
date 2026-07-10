@@ -20,7 +20,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-07-10T04:48:20Z'
-updated_at: '2026-07-10T04:50:03Z'
+updated_at: '2026-07-10T07:50:08Z'
 ---
 <!-- sq:body -->
 ## Phase 2 — Author the four-pillar battery
@@ -145,4 +145,6 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-10T07:50:08Z] Catherine Manager:
+  - Note: the fast-default slow-test split (ST2 in this task's scope) was implemented standalone at op-pierre's request — --run-slow opt-in in tests/conftest.py, slow tests skipped by default. Phase 2 does NOT need to redo the addopts/marker flip; just don't regress the ~30s default while re-authoring.
 <!-- sq:discussion:end -->
