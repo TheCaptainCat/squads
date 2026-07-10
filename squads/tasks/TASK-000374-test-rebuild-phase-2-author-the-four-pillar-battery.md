@@ -3,7 +3,7 @@ id: TASK-374
 sequence_id: 374
 type: task
 title: 'Test rebuild Phase 2: author the four-pillar battery'
-status: InProgress
+status: Done
 parent: FEAT-231
 author: tech-lead
 subentities:
@@ -20,7 +20,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-07-10T04:48:20Z'
-updated_at: '2026-07-10T12:12:55Z'
+updated_at: '2026-07-10T12:12:56Z'
 ---
 <!-- sq:body -->
 ## Phase 2 — Author the four-pillar battery
