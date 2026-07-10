@@ -1,8 +1,11 @@
 """`sq migrate` — run schema migrations and read their steps.
 
-- `sq migrate up`            run the automatic migration(s) for this squad
-- `sq migrate help`          the migration changelog index (every shipped migration)
-- `sq migrate chlog vA..vB`  the complete manual steps for migrating across that release range
+- `sq migrate up`                          run the automatic migration(s) for this squad
+- `sq migrate help`                        the migration changelog index (every shipped migration)
+- `sq migrate chlog vA..vB`                the complete manual steps for migrating across a
+                                            release range
+- `sq migrate rename-type OLD NEW`         bulk-rename every OLD-type item to NEW type
+- `sq migrate rename-status TYPE OLD NEW`  bulk-move every TYPE item at OLD status to NEW status
 """
 
 import typer
@@ -110,6 +113,51 @@ async def migrate_repad(
     console.print(
         f"[green]repad done[/green]: padding {current} → {new_width}; "
         f"{renamed} file(s) renamed; index rebuilt"
+    )
+    console.print("  run [cyan]`sq check`[/cyan] to verify integrity")
+
+
+@migrate_app.command("rename-type")
+@common.command
+async def migrate_rename_type(
+    old_type: str = typer.Argument(..., metavar="OLD_TYPE", help="Declared type to rename from."),
+    new_type: str = typer.Argument(..., metavar="NEW_TYPE", help="Declared type to rename to."),
+):
+    """Bulk-rename every OLD_TYPE item to NEW_TYPE (same semantics, new prefix/folder).
+
+    Both types must already be declared, non-meta work types in the active spec — this
+    call never declares NEW_TYPE. Run `sq check` after to verify integrity.
+    """
+    svc = get_service()
+    result = await svc.rename_type(old_type, new_type)
+    console.print(
+        f"[green]rename-type done[/green]: {e(old_type)} → {e(new_type)}, "
+        f"{result.renamed} item(s) renamed; index rebuilt"
+    )
+    console.print("  run [cyan]`sq check`[/cyan] to verify integrity")
+
+
+@migrate_app.command("rename-status")
+@common.command
+async def migrate_rename_status(
+    item_type: str = typer.Argument(
+        ..., metavar="TYPE", help="Declared work type whose lifecycle status to rename."
+    ),
+    old_status: str = typer.Argument(
+        ..., metavar="OLD_STATUS", help="Status value to rename from."
+    ),
+    new_status: str = typer.Argument(..., metavar="NEW_STATUS", help="Status value to rename to."),
+):
+    """Bulk-move every TYPE item at OLD_STATUS to NEW_STATUS (a relabel, not a workflow move).
+
+    NEW_STATUS must already be a member of TYPE's own lifecycle states. Run `sq check`
+    after to verify integrity.
+    """
+    svc = get_service()
+    result = await svc.rename_status(item_type, old_status, new_status)
+    console.print(
+        f"[green]rename-status done[/green]: {e(item_type)}: {e(old_status)} → {e(new_status)}, "
+        f"{result.renamed} item(s) renamed"
     )
     console.print("  run [cyan]`sq check`[/cyan] to verify integrity")
 
