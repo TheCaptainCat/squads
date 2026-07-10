@@ -77,7 +77,4 @@ sq bug <n> status InProgress
 ---
 The `.md` files are sq-managed — never edit them by hand. Items are addressed as
 `sq bug <n> <verb>`. Set this item's body with `sq bug <n> body
--m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
-get their bodies from `sq bug <n> <kind> <k> body -m "…"`. Read anything back with
-`sq bug <n> show --full --comments` (full dossier, including discussion) /
-`sq bug <n> <kind> <k> show`.
+-m "…"` (or `--file`); `--desc` sets only the short summary. Read anything back with `sq bug <n> show --full --comments` (full dossier, including discussion).

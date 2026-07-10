@@ -196,8 +196,11 @@ class ClaudeCodeBackend(AgentBackend):
         string (from ``linearize_lifecycle``), the standard command list, and no role sections
         (graceful degradation).
         """
+        from squads._workflow import bundled_spec
+
         by_slug = {r.slug: r for r in roster}
         has_dev = any(interactions.is_dev_slug(r.slug) for r in roster)
+        spec = ctx.spec if ctx.spec is not None else bundled_spec()
         out: list[Artifact] = []
 
         # Types with a PLAYBOOK entry — rich skill with full role guidance.
@@ -223,15 +226,26 @@ class ClaudeCodeBackend(AgentBackend):
                         "watch": guide.watch,
                     }
                 )
+            # Lifecycle + sub-entity kind derive from the active spec (not the frozen
+            # playbook prose) so an override on a kept built-in type stays correct; fall
+            # back to the frozen string only if the type itself was dropped from the spec.
+            subentity_kind = spec.item_subentity_kind(item_type)
+            lifecycle_str = (
+                linearize_lifecycle(spec.machine_for(item_type))
+                if item_type in spec.items
+                else pb.lifecycle
+            )
             name = interactions.item_skill_name(item_type)
             body = render(
                 "agents/item_skill.md.j2",
                 title=item_type.capitalize(),
                 type=item_type,
                 overview=pb.overview,
-                lifecycle=pb.lifecycle,
+                lifecycle=lifecycle_str,
                 commands=list(pb.commands),
                 sections=sections,
+                subentity_kind=subentity_kind,
+                subentity_plural=spec.subentity_plural(subentity_kind) if subentity_kind else None,
             )
             out += await self._write_managed_skill(
                 ctx,
@@ -259,6 +273,7 @@ class ClaudeCodeBackend(AgentBackend):
                     commands=interactions.custom_item_skill_commands(ctype),
                     sections=[],
                     subentity_kind=None,
+                    subentity_plural=None,
                 )
                 out += await self._write_managed_skill(
                     ctx,

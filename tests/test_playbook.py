@@ -655,7 +655,11 @@ def _render_skill(
     *,
     version: str = "0.5.0",
 ) -> str:
-    """Render the ``agents/item_skill.md.j2`` template exactly as the backend does."""
+    """Render the ``agents/item_skill.md.j2`` template exactly as the backend does.
+
+    This module tests role-guide/section building, not the lifecycle/sub-entity-kind
+    derivation (covered elsewhere) — sub-entity kind is fixed None here.
+    """
     sections = _build_sections(roles, _FIXED_ROSTER)
     return render(
         "agents/item_skill.md.j2",
@@ -666,6 +670,8 @@ def _render_skill(
         lifecycle=lifecycle,
         commands=commands,
         sections=sections,
+        subentity_kind=None,
+        subentity_plural=None,
     )
 
 
@@ -765,6 +771,8 @@ def test_layer_b_dev_section_absent_without_dev_in_roster() -> None:
             lifecycle=pb.lifecycle,
             commands=list(pb.commands),
             sections=sections,
+            subentity_kind=None,
+            subentity_plural=None,
         )
         assert "## For developers" not in body, (
             f"{item_type}: '## For developers' section appeared without a dev in the roster"

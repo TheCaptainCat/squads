@@ -58,6 +58,7 @@ from squads._backends._base import OperatorView, RoleView
 from squads._interactions import DEV, PLAYBOOK, is_dev_slug, item_skill_name, managed_item_types
 from squads._rendering._engine import render
 from squads._workflow import bundled_spec as _bundled_spec
+from squads._workflow import linearize_lifecycle as _linearize_lifecycle
 
 # Golden files live in the shared goldens directory alongside the JSON goldens.
 GOLDENS_DIR = Path(__file__).parent / "goldens"
@@ -249,14 +250,18 @@ def _render_item_skill(item_type: str) -> str:
                 "watch": guide.watch,
             }
         )
+    spec = _bundled_spec()
+    subentity_kind = spec.item_subentity_kind(item_type)
     return render(
         "agents/item_skill.md.j2",
         title=item_type.capitalize(),
         type=item_type,
         overview=pb.overview,
-        lifecycle=pb.lifecycle,
+        lifecycle=_linearize_lifecycle(spec.machine_for(item_type)),
         commands=list(pb.commands),
         sections=sections,
+        subentity_kind=subentity_kind,
+        subentity_plural=spec.subentity_plural(subentity_kind) if subentity_kind else None,
     )
 
 
