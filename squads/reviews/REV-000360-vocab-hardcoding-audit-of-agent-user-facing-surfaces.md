@@ -3,12 +3,12 @@ id: REV-360
 sequence_id: 360
 type: review
 title: Vocab-hardcoding audit of agent/user-facing surfaces
-status: Requested
+status: Approved
 author: reviewer
 refs:
 - FEAT-336:addresses
 created_at: '2026-07-09T21:39:49Z'
-updated_at: '2026-07-10T04:14:40Z'
+updated_at: '2026-07-10T04:44:07Z'
 ---
 <!-- sq:body -->
 Automated vocab-hardcoding audit (FEAT-336) across five facing surfaces: CLI help/messages, Jinja templates, shipped docs, generated skills/roles, and services-core logic. A defect = a facing surface that assumes the bundled vocabulary instead of deriving it from the active spec, so a squad with custom types/statuses/kinds/badges sees wrong, missing, or misleading output. Reserved meta-types (role/skill/operator) are excluded by design (ADR-266).
@@ -93,4 +93,6 @@ _Add with `sq review 360 add-finding "…" --severity high`; track with `sq revi
   - The print_subentity severity-only-meta-line finding (added during TASK-361) is now RESOLVED by TASK-365: print_subentity loops fields_for(kind) via badge_value, byte-identical for built-ins and showing a custom kind's declared fields.
 - [2026-07-10T04:14:40Z] Catherine Manager:
   - FEAT-336 fix pass complete: all non-workflow.md.j2 findings addressed across TASK-365 (CLI help + print_subentity), 366 (item templates + spec plumbing), 368 (sq-<type> skill lifecycle/trailer), 369 (squads skill + roles, sq story add bug), 370 (services-core messages + EXTRA_FIELDS rename-safety). Sanctioned deferrals (INFO/WontFix): SUBENTITY_CONTAINER/_CONTAINER_HEADINGS/_SUBENTITY_KINDS (custom sub-entity-kind non-goal, now partly moot post-FEAT-212), _SIDE_PRIORITY (cosmetic, deterministic fallback), CREATE_LANES (documented graceful degradation). Follow-ups filed: BUG-371 (cold-first --help timing gap), optional GraphNode priority→generic-axis rename (CLI-facing, not needed now). REMAINING OPEN: the workflow.md.j2 / claude_section.md.j2 findings, owned by FEAT-334 (TASK-363) — REV-360 stays open until that lands.
+- [2026-07-10T04:44:06Z] Catherine Manager:
+  - Closing: all 42 findings dispositioned. FIXED across TASK-365/366/368/369/370 (FEAT-336 surfaces) and TASK-363 (workflow.md.j2/claude_section.md.j2, FEAT-334). Sanctioned WontFix/INFO deferrals noted earlier. Follow-ups tracked: BUG-371 (cold-first --help timing gap) and the optional GraphNode priority→generic-axis rename. Audit complete.
 <!-- sq:discussion:end -->

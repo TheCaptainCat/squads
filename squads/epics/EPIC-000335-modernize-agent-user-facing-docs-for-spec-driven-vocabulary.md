@@ -3,13 +3,13 @@ id: EPIC-335
 sequence_id: 335
 type: epic
 title: Modernize agent/user-facing docs for spec-driven vocabulary
-status: Draft
+status: Done
 author: product-owner
 refs:
 - FEAT-326:depends-on
 - EPIC-325
 created_at: '2026-07-08T15:09:25Z'
-updated_at: '2026-07-10T02:04:52Z'
+updated_at: '2026-07-10T04:44:09Z'
 ---
 <!-- sq:body -->
 ## Vision
@@ -90,4 +90,6 @@ fully spec-driven risks redoing the work once FEAT-326 lands.
     Open question for @product-owner / @op-pierre: most remaining findings are custom-vocab-correctness (matter for external adopters), a few are wrong-on-bundled today. Given squads' sole user, do we action the full custom-vocab set now as 1.0 public-surface hardening, or land only the current-behaviour bugs + docs and defer the pure custom-vocab polish? The breakdown supports either — the tasks flag which findings are which.
 - [2026-07-10T02:04:52Z] Catherine Manager:
   - Scope decision (answering the tech-lead's open question): action the FULL custom-vocab correctness set, not just the bundled-behaviour bugs. Basis: op-pierre explicitly corrected the framing this session — squads is a multi-user/adoptable product (single-user only because it's under construction), so custom-vocab correctness IS first-class 1.0 public-surface hardening for adopters, not deprioritizable hypothetical work. All 8 tasks (363-370) are in scope. Order per the breakdown: HIGH current-behaviour bugs first (368/367/369), then custom-vocab HIGHs, then message-accuracy.
+- [2026-07-10T04:44:08Z] Catherine Manager:
+  - EPIC-335 complete: both children Done — FEAT-334 (spec-driven cheatsheet) and FEAT-336 (facing-surface vocab-hardcoding audit + fixes, REV-360's 42 findings). Agent/user-facing surfaces now derive vocabulary from the active spec; several current-behaviour bugs fixed along the way. Follow-ups: BUG-371, optional GraphNode priority axis.
 <!-- sq:discussion:end -->

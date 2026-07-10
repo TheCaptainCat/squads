@@ -3,7 +3,7 @@ id: FEAT-334
 sequence_id: 334
 type: feature
 title: Make the workflow cheatsheet template spec-driven
-status: Draft
+status: Done
 parent: EPIC-335
 author: product-owner
 refs:
@@ -23,7 +23,7 @@ subentities:
     at least as good as it is today
   status: Todo
 created_at: '2026-07-08T15:06:36Z'
-updated_at: '2026-07-08T15:09:46Z'
+updated_at: '2026-07-10T04:43:47Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -214,4 +214,6 @@ Acceptance: this story is verified by a human/tech-writer read-through of the re
   - Framed the crux design question as US2: the cheatsheet must stay a concise cross-type overview (summarized playbook data), distinct in altitude from the sq-<type> skills (full per-type playbook detail) — not a second copy of the same content.
   - depends-on FEAT-326 (generic type/status engine) — a fully generic cheatsheet is only clean once types/statuses are spec-driven; relates-to EPIC-325.
   - Left Draft/backlog, not dispatched. @tech-lead to break into tasks once FEAT-326 lands; will need a dev for the generic render and @tech-writer for format/voice sign-off (see US3).
+- [2026-07-10T04:43:45Z] Catherine Manager:
+  - FEAT-334 complete: the workflow cheatsheet is spec-driven (TASK-363) and verified across all three user stories (TASK-364). Generic per-type map, crash-safe on dropped/renamed types, reflects custom vocab, corrected a pre-existing lifecycle-sharing factual error.
 <!-- sq:discussion:end -->
