@@ -295,7 +295,7 @@ async def test_feature_hosts_stories_not_subtasks(svc) -> None:
     result = await svc.add_story(feat.id, "user can log in")
     assert result.local_id == "US1"
     # add_subtask on a feature should fail (feature hosts stories, not subtasks)
-    with pytest.raises(SquadsError, match="subtasks live on a task"):
+    with pytest.raises(SquadsError, match="does not host subtasks"):
         await svc.add_subtask(feat.id, "st")
 
 
@@ -305,7 +305,7 @@ async def test_task_hosts_subtasks_not_stories(svc) -> None:
     result = await svc.add_subtask(task.id, "implement it")
     assert result.local_id == "ST1"
     # add_story on a task should fail (task hosts subtasks, not stories)
-    with pytest.raises(SquadsError, match="storys live on a feature"):
+    with pytest.raises(SquadsError, match="does not host storys"):
         await svc.add_story(task.id, "us")
 
 
@@ -315,7 +315,7 @@ async def test_review_hosts_findings_not_stories(svc) -> None:
     result = await svc.add_finding(rev.id, "null deref")
     assert result.local_id == "F1"
     # add_story on a review should fail
-    with pytest.raises(SquadsError, match="storys live on a feature"):
+    with pytest.raises(SquadsError, match="does not host storys"):
         await svc.add_story(rev.id, "us")
 
 
