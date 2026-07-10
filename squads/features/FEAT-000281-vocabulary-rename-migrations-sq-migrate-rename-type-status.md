@@ -3,7 +3,7 @@ id: FEAT-281
 sequence_id: 281
 type: feature
 title: Vocabulary rename migrations (sq migrate rename-type/status)
-status: Ready
+status: InProgress
 parent: EPIC-280
 author: product-owner
 refs:
@@ -20,7 +20,7 @@ subentities:
     across all items of a type
   status: Todo
 created_at: '2026-07-02T09:25:53Z'
-updated_at: '2026-07-09T21:47:56Z'
+updated_at: '2026-07-10T00:26:50Z'
 ---
 <!-- sq:body -->
 ## What this delivers
