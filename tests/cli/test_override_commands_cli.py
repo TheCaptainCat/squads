@@ -133,3 +133,57 @@ async def test_check_json_reports_an_override_error_and_exits_3(project, invoke)
     assert result.exit_code == 3
     data = json.loads(result.output)
     assert [d for d in data if d["level"] == "error" and ".overrides" in d["item"]]
+
+
+async def test_list_plain_output_renders_a_table_with_the_state_column(project, invoke) -> None:
+    """The non-``--json`` render path — every prior list test in this file used ``--json``
+    once at least one override existed, so the plain Table (and its per-state color) never ran
+    with actual rows."""
+    await invoke(["override", "scaffold", "items/task.md.j2"])
+    r = await invoke(["override", "list"])
+    assert r.exit_code == 0, r.output
+    assert "items/task.md.j2" in r.output
+    assert "current" in r.output.lower()
+
+
+async def test_scaffold_diff_and_update_all_reach_the_workflow_kind(project, invoke) -> None:
+    """The workflow-kind branch of every override subcommand, driven through the real CLI —
+    both the ``workflow`` positional name and the ``--workflow`` flag form."""
+    scaffolded = await invoke(["override", "scaffold", "workflow"])
+    assert scaffolded.exit_code == 0, scaffolded.output
+    dest = project.squad_dir / ".overrides" / "workflow.toml"
+    assert dest.exists()
+
+    listed = await invoke(["override", "list"])
+    assert "workflow" in listed.output
+
+    diffed = await invoke(["override", "diff", "--workflow"])
+    assert diffed.exit_code == 0, diffed.output
+    assert "Δ-mine" in diffed.output and "Δ-upgrade" in diffed.output
+
+    from squads._overrides._stamp import stamp_toml_file
+
+    stamp_toml_file(dest, "0.1.0")
+    updated = await invoke(["override", "update", "workflow"])
+    assert updated.exit_code == 0, updated.output
+
+    from squads import __version__
+    from squads._overrides._stamp import read_toml_stamp
+
+    assert read_toml_stamp(dest.read_text(encoding="utf-8")) == __version__
+
+
+async def test_diff_plain_output_renders_for_the_role_and_workflow_kinds_too(
+    project, invoke
+) -> None:
+    """The template kind's plain diff render is already proven above; role and workflow each
+    take their own label branch in ``_print_diff_result``."""
+    await invoke(["override", "scaffold", "--role", "architect"])
+    role_diff = await invoke(["override", "diff", "--role", "architect"])
+    assert role_diff.exit_code == 0, role_diff.output
+    assert "--role architect" in role_diff.output
+
+    await invoke(["override", "scaffold", "workflow"])
+    workflow_diff = await invoke(["override", "diff", "workflow"])
+    assert workflow_diff.exit_code == 0, workflow_diff.output
+    assert "kind: workflow" in workflow_diff.output

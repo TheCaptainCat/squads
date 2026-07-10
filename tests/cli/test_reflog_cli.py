@@ -26,6 +26,12 @@ async def _seed(invoke) -> None:
     await invoke(["task", "2", "comment", "--as", "manager", "-m", "A comment"])
 
 
+async def test_tree_flag_exits_0_on_an_empty_reflog(project, invoke):
+    """``sq reflog --tree`` degrades gracefully — exit 0, no crash — with nothing logged yet."""
+    r = await invoke(["reflog", "--tree"])
+    assert r.exit_code == 0, r.output
+
+
 async def test_default_tails_and_exits_0(project, invoke):
     await _seed(invoke)
     result = await invoke(["reflog"])

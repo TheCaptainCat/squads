@@ -6,6 +6,13 @@ marker into an error, the full stale->diff->update->clean loop closes, and `sq m
 never touches a file under `.overrides/`. CLI exit-code/JSON smoke lives in
 tests/cli/test_override_commands_cli.py; manifest/stamp mechanics live in
 tests/unit/test_override_manifest_and_stamp_freshness.py.
+
+The third override kind, `workflow` (`.overrides/workflow.toml`, additive-only — no bundled
+counterpart to diff against, so drift is version-stamp-only), gets its own `TestWorkflowOverride`
+class below: `open_service` actually consuming a hand-written workflow.toml is proven
+separately at tests/integration/test_workflow_override_service_integration.py — this file covers
+the scaffold/scan/diff/update/check lifecycle commands themselves, exactly as it does for
+`template`/`role`.
 """
 
 from pathlib import Path
@@ -17,16 +24,19 @@ from squads._errors import SquadsError
 from squads._overrides._service import (
     STATE_BROKEN,
     STATE_CURRENT,
+    STATE_DRIFTED,
     DiffResult,
     check_override_issues,
     diff_override,
     scaffold_role,
     scaffold_template,
+    scaffold_workflow,
     scan_overrides,
     update_stamp,
 )
-from squads._overrides._stamp import read_template_stamp, read_toml_stamp
+from squads._overrides._stamp import read_template_stamp, read_toml_stamp, stamp_toml_file
 from squads._services import _service as service
+from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
 pytestmark = pytest.mark.anyio
 
@@ -122,6 +132,99 @@ class TestScaffold:
         dest.write_text("# old content\n", encoding="utf-8")
         scaffold_role(squad_dir, slug="architect", force=True)
         assert read_toml_stamp(dest.read_text(encoding="utf-8")) is not None
+
+
+class TestWorkflowOverride:
+    """The `workflow` override kind's scaffold/scan/diff/update/check lifecycle — additive-only
+    (no bundled counterpart), so drift is detected by version stamp alone."""
+
+    async def test_scaffold_creates_a_stamped_file_containing_the_worked_example(
+        self, project
+    ) -> None:
+        dest = scaffold_workflow(project.squad_dir)
+        text = dest.read_text(encoding="utf-8")
+        assert read_toml_stamp(text) == __version__
+        assert "incident" in text  # the commented worked example
+
+        with pytest.raises(SquadsError, match="already exists"):
+            scaffold_workflow(project.squad_dir)
+
+        dest.write_text("custom content", encoding="utf-8")
+        scaffold_workflow(project.squad_dir, force=True)
+        assert "incident" in dest.read_text(encoding="utf-8")
+
+    async def test_scan_reports_a_workflow_entry_current_when_freshly_scaffolded(
+        self, project
+    ) -> None:
+        scaffold_workflow(project.squad_dir)
+        entries = scan_overrides(project.squad_dir)
+        assert len(entries) == 1
+        assert entries[0].name == "workflow"
+        assert entries[0].kind == "workflow"
+        assert entries[0].base_version == __version__
+        assert entries[0].state == STATE_CURRENT
+
+    async def test_scan_flags_an_old_or_missing_stamp_as_drifted(self, project) -> None:
+        path = scaffold_workflow(project.squad_dir)
+        stamp_toml_file(path, "0.1.0")
+        assert scan_overrides(project.squad_dir)[0].state == STATE_DRIFTED
+
+        path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
+        assert scan_overrides(project.squad_dir)[0].state == STATE_DRIFTED
+
+    async def test_diff_raises_when_absent_and_reflects_the_stamp_state_once_present(
+        self, project
+    ) -> None:
+        with pytest.raises(SquadsError, match="no workflow override found"):
+            diff_override(project.squad_dir, "workflow", "workflow")
+
+        path = scaffold_workflow(project.squad_dir)
+        current = diff_override(project.squad_dir, "workflow", "workflow")
+        assert current.kind == "workflow"
+        assert "incident" in current.delta_mine  # additive-only: diffed against empty
+        assert current.base_available is True
+        assert "no upgrade delta" in current.delta_upgrade
+
+        stamp_toml_file(path, "0.1.0")
+        stale = diff_override(project.squad_dir, "workflow", "workflow")
+        assert "review the squads changelog" in stale.delta_upgrade
+
+        path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
+        unstamped = diff_override(project.squad_dir, "workflow", "workflow")
+        assert unstamped.base_available is False
+        assert "no stamp" in unstamped.delta_upgrade
+
+    async def test_update_stamp_restamps_and_raises_when_absent(self, project) -> None:
+        with pytest.raises(SquadsError, match="no workflow override found"):
+            update_stamp(project.squad_dir, "workflow", "workflow")
+
+        path = scaffold_workflow(project.squad_dir)
+        stamp_toml_file(path, "0.1.0")
+        stamped = update_stamp(project.squad_dir, "workflow", "workflow")
+        assert stamped == ["workflow"]
+        assert read_toml_stamp(path.read_text(encoding="utf-8")) == __version__
+
+    async def test_bulk_update_stamp_includes_the_workflow_override(self, project) -> None:
+        path = scaffold_workflow(project.squad_dir)
+        stamp_toml_file(path, "0.1.0")
+        stamped = update_stamp(project.squad_dir, None, None)
+        assert "workflow" in stamped
+
+    async def test_check_warns_on_a_stale_stamp(self, project, svc) -> None:
+        path = scaffold_workflow(project.squad_dir)
+        assert check_override_issues(project.squad_dir) == []  # freshly scaffolded: clean
+
+        stamp_toml_file(path, "0.1.0")
+        issues = check_override_issues(project.squad_dir)
+        assert len(issues) == 1
+        level, display, message = issues[0]
+        assert level == "warn"
+        assert display == WORKFLOW_OVERRIDE_FILENAME
+        assert "workflow override may be stale" in message
+
+        # surfaces through the real sq check too, without flipping the exit code.
+        svc_issues = await svc.check()
+        assert any(".overrides" in i.item or "workflow" in i.item for i in svc_issues)
 
 
 class TestScanOverrides:

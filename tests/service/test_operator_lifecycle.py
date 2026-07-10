@@ -83,6 +83,15 @@ async def test_author_resolves_to_the_operators_full_name(svc):
     assert "Pierre Chat:" in text  # the comment renders the full name, not the slug
 
 
+async def test_author_falls_back_to_a_bundled_but_not_yet_activated_role_then_to_the_slug_itself(
+    svc,
+):
+    # "architect" isn't a live ROLE-/OP- item yet, but is still a known predefined role.
+    assert await svc.author("architect") == "Robert Architect"
+    # a genuinely unknown slug degrades to itself, never raising.
+    assert await svc.author("totally-unknown-slug") == "totally-unknown-slug"
+
+
 async def test_operator_counts_as_work_but_is_never_spawnable(svc, project):
     await svc.add_operator("Pierre Chat")
     await svc.create("task", "deploy", assignee="op-pierre")
