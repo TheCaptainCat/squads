@@ -1,0 +1,411 @@
+{
+  "types": {
+    "epic": {
+      "overview": "A large body of work that groups related features toward one outcome.",
+      "lifecycle": "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
+      "commands": [
+        "sq create epic \"…\" --author <slug>",
+        "sq feature <n> update --parent EPIC-…   # group a feature under this epic",
+        "sq tree EPIC-… [--json]"
+      ],
+      "roles": [
+        {
+          "slug": "product-owner",
+          "enter": [
+            "confirm the outcome the epic targets and who it's for"
+          ],
+          "do": [
+            "author it (`sq create epic \"…\" --author product-owner`)",
+            "set the body to the goal + the outcomes it groups (`sq epic <n> body -m …`)"
+          ],
+          "handoff": [
+            "when the epic is ready, create the features under it and `@tech-lead` to break them down"
+          ],
+          "watch": [
+            "an epic is an outcome, not a task list — keep it about the why"
+          ]
+        },
+        {
+          "slug": "architect",
+          "enter": [
+            "read the epic's goal and any related epics/ADRs"
+          ],
+          "do": [
+            "shape it technically; spin off ADRs (`sq create decision`) for cross-cutting calls and link them (`sq epic <n> ref add ADR-… --kind related`)"
+          ],
+          "handoff": [
+            "when the technical shape is settled, `@tech-lead` to break it into features and tasks"
+          ],
+          "watch": []
+        },
+        {
+          "slug": "tech-lead",
+          "enter": [
+            "review the epic's features and their state (`sq tree EPIC-… --json`)"
+          ],
+          "do": [
+            "group features under the epic (`sq feature <n> update --parent EPIC-…`)",
+            "keep its scope coherent; track status as features progress"
+          ],
+          "handoff": [],
+          "watch": [
+            "authoring features is the product-owner's job, not yours"
+          ]
+        }
+      ]
+    },
+    "feature": {
+      "overview": "A user-facing capability, described through persona-worded user stories.",
+      "lifecycle": "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
+      "commands": [
+        "sq create feature \"…\" --author product-owner [--parent EPIC-…]",
+        "sq feature <n> add-story \"As a <role>, I want … so that …\"",
+        "sq feature <n> story <k> update --status InProgress   # Todo → InProgress → Done",
+        "sq feature <n> stories"
+      ],
+      "roles": [
+        {
+          "slug": "product-owner",
+          "enter": [
+            "confirm the user need and which epic (if any) it belongs under"
+          ],
+          "do": [
+            "author the feature (`sq create feature \"…\" --author product-owner`)",
+            "add persona-worded user stories (`sq feature <n> add-story \"As a … I want …\"`) — the title is the user-story phrase",
+            "write each story's body (`sq feature <n> story <k> body -m …`) — the acceptance criteria live there, not in the title",
+            "use `sq feature <n> story <k> comment` for story-scoped acceptance clarifications or questions — cross-cutting notes go on the feature (see the `squads` skill's comment-scoping convention)"
+          ],
+          "handoff": [
+            "when stories and acceptance criteria are complete and the feature is greenlit, `@tech-lead` to break it into tasks"
+          ],
+          "watch": [
+            "stories describe user value + acceptance criteria — not implementation steps",
+            "a story is not done until its body carries acceptance criteria — an unwritten placeholder body is a defect even if the title reads fine"
+          ]
+        },
+        {
+          "slug": "tech-lead",
+          "enter": [
+            "read every user story + its acceptance criteria (`sq feature <n> show`)"
+          ],
+          "do": [
+            "create tasks with this feature as parent (`sq create task … --parent FEAT-<n>`)",
+            "map each subtask to one user story (`sq task <n> add-subtask … --story USk`)",
+            "use `sq feature <n> story <k> comment` for story-scoped questions (see the `squads` skill's comment-scoping convention)"
+          ],
+          "handoff": [
+            "when tasks are created, assigned, and sequenced, `@<tech>-dev` (or spawn the developer) to begin implementation"
+          ],
+          "watch": [
+            "if a story is ambiguous, ask the product-owner (`@product-owner`) first"
+          ]
+        },
+        {
+          "slug": "qa",
+          "enter": [
+            "read the user stories + acceptance criteria"
+          ],
+          "do": [
+            "derive test cases from each story",
+            "verify the feature against its acceptance criteria once tasks land"
+          ],
+          "handoff": [
+            "when acceptance criteria all pass, confirm in a comment so the feature can close; when one fails, file a bug and `@tech-lead`"
+          ],
+          "watch": []
+        }
+      ]
+    },
+    "task": {
+      "overview": "A unit of implementation work. Its parent is the feature it implements; subtasks each map to one user story.",
+      "lifecycle": "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)",
+      "commands": [
+        "sq create task \"…\" --author tech-lead --parent FEAT-…",
+        "sq task <n> add-subtask \"…\" --story USn",
+        "sq task <n> subtask <k> update --status InProgress   # Todo → InProgress → Done",
+        "sq task <n> ref add BUG-… --kind fixes   # or REV-… --kind addresses",
+        "sq task <n> status InProgress"
+      ],
+      "roles": [
+        {
+          "slug": "tech-lead",
+          "enter": [
+            "confirm the parent feature exists and its stories are clear"
+          ],
+          "do": [
+            "author the task (`sq create task \"…\" --author tech-lead --parent FEAT-…`)",
+            "add subtasks, each mapped to a story (`add-subtask … --story USn`) — the title is a short handle; implementation detail goes in the subtask body (`sq task <n> subtask <k> body -m …`)",
+            "set `--priority`/`--assignee`; sequence with `ref add … --kind blocks`"
+          ],
+          "handoff": [
+            "once the task is fully defined, assign the developer (`sq task <n> update --assignee <tech>-dev`) — spawn or `@<tech>-dev` to start implementation"
+          ],
+          "watch": [
+            "a task's parent must be a feature; link bugs/reviews via refs, never as parent"
+          ]
+        },
+        {
+          "slug": "*dev",
+          "enter": [
+            "read the parent feature's stories + acceptance criteria (`sq feature <n> show`)",
+            "confirm your subtask→story mapping"
+          ],
+          "do": [
+            "`sq task <n> status InProgress`",
+            "implement with tests; tick subtasks (`subtask <k> update --status …`)",
+            "use `sq task <n> subtask <k> comment` for implementation notes scoped to one subtask; use `sq task <n> comment` for handoffs and cross-cutting notes (see the `squads` skill's comment-scoping convention)"
+          ],
+          "handoff": [
+            "when implementation is complete, `sq task <n> status InReview`",
+            "comment a summary of what changed + `@reviewer`/`@qa`",
+            "for a review follow-up, link it (`ref add REV-… --kind addresses`)"
+          ],
+          "watch": [
+            "don't author features/tasks — that's the product-owner/tech-lead",
+            "file a newly-found defect as a bug; don't silently expand scope"
+          ]
+        },
+        {
+          "slug": "reviewer",
+          "enter": [
+            "read the task's changes + the linked feature stories"
+          ],
+          "do": [
+            "open a review (`sq create review … --author reviewer`) and link it (`sq task <n> ref add REV-… --kind addresses`)",
+            "log findings with `--severity`; drive Requested → InReview → verdict"
+          ],
+          "handoff": [
+            "on ChangesRequested, `@<tech>-dev` with the findings",
+            "on Approved, comment the verdict so the task can close"
+          ],
+          "watch": [
+            "request changes — don't fix the code yourself"
+          ]
+        },
+        {
+          "slug": "qa",
+          "enter": [
+            "derive test cases from the parent feature's stories + acceptance criteria"
+          ],
+          "do": [
+            "verify the implementation against each story; reproduce on failure"
+          ],
+          "handoff": [
+            "on pass, comment confirmation so the task can reach Done",
+            "on fail, file a bug (`sq create bug …`) and `@<tech>-dev`"
+          ],
+          "watch": [
+            "verify against acceptance criteria, not just that it runs"
+          ]
+        }
+      ]
+    },
+    "bug": {
+      "overview": "A defect: what's wrong, how to reproduce, expected vs actual.",
+      "lifecycle": "Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)",
+      "commands": [
+        "sq create bug \"…\" --author <slug>",
+        "sq task <n> ref add BUG-… --kind fixes",
+        "sq bug <n> status InProgress"
+      ],
+      "roles": [
+        {
+          "slug": "qa",
+          "enter": [
+            "reproduce the defect and capture the exact steps"
+          ],
+          "do": [
+            "file it (`sq create bug \"…\" --author qa`)",
+            "in the body give repro steps + expected vs actual (`sq bug <n> body -m …`)",
+            "set `--severity`/`--priority`"
+          ],
+          "handoff": [
+            "once filed, `@tech-lead` to triage; once a fix task lands, verify it and confirm in a comment so the bug can close"
+          ],
+          "watch": []
+        },
+        {
+          "slug": "*dev",
+          "enter": [
+            "read the repro steps; confirm you can reproduce it"
+          ],
+          "do": [
+            "fix it inside a task and link it (`sq task <n> ref add BUG-… --kind fixes`)",
+            "add a regression test"
+          ],
+          "handoff": [
+            "when the fix is ready, move the task to InReview and `@reviewer`/`@qa`; the bug closes when the fix is verified"
+          ],
+          "watch": [
+            "track the fix on a task — don't implement straight off the bug"
+          ]
+        },
+        {
+          "slug": "tech-lead",
+          "enter": [
+            "assess impact + severity against current work"
+          ],
+          "do": [
+            "triage and prioritise; create the fix task and assign a developer"
+          ],
+          "handoff": [
+            "once the fix task is created and assigned, `@<tech>-dev` to start the fix"
+          ],
+          "watch": []
+        },
+        {
+          "slug": "reviewer",
+          "enter": [
+            "read the bug + the fix task's changes"
+          ],
+          "do": [
+            "review the fix for correctness and a regression test before it lands"
+          ],
+          "handoff": [],
+          "watch": [
+            "make sure the root cause is fixed, not just the symptom"
+          ]
+        }
+      ]
+    },
+    "decision": {
+      "overview": "An architecture decision record: context, decision, consequences.",
+      "lifecycle": "Proposed → Accepted → Superseded (+ Rejected, Deprecated)",
+      "commands": [
+        "sq create decision \"…\" --author architect",
+        "sq decision <n> status Accepted"
+      ],
+      "roles": [
+        {
+          "slug": "architect",
+          "enter": [
+            "gather the context + the options you're weighing"
+          ],
+          "do": [
+            "author the ADR (`sq create decision \"…\" --author architect`)",
+            "in the body capture context, the decision, and consequences",
+            "link what it affects (`sq decision <n> ref add … --kind related`)"
+          ],
+          "handoff": [
+            "once the decision is agreed, `sq decision <n> status Accepted` and `@tech-lead` to apply it in the affected tasks"
+          ],
+          "watch": [
+            "supersede an old ADR rather than editing its decision after acceptance"
+          ]
+        },
+        {
+          "slug": "tech-lead",
+          "enter": [
+            "read the proposed decision + its context"
+          ],
+          "do": [
+            "co-author/review it; ensure tasks follow it once Accepted"
+          ],
+          "handoff": [
+            "supersede it (new ADR) when reality changes"
+          ],
+          "watch": []
+        }
+      ]
+    },
+    "review": {
+      "overview": "A code review: scope, findings (each with severity + status), and a verdict.",
+      "lifecycle": "Requested → InReview → ChangesRequested → Approved (+ Rejected)",
+      "commands": [
+        "sq create review \"…\" --author reviewer",
+        "sq review <n> add-finding \"…\" --severity high",
+        "sq review <n> finding <k> update --status Fixed   # transition a finding",
+        "sq review <n> status InReview",
+        "sq task <n> ref add REV-… --kind addresses"
+      ],
+      "roles": [
+        {
+          "slug": "reviewer",
+          "enter": [
+            "read the task/changes under review + the feature's acceptance criteria"
+          ],
+          "do": [
+            "`sq review <n> status InReview`",
+            "log each issue as a finding (`add-finding \"…\" --severity …`) — the title is a short handle; the full description goes in the finding body (`sq review <n> finding <k> body -m …`)",
+            "drive to a verdict: Approved or ChangesRequested",
+            "use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, verification notes, 'agreed — closing this one') — cross-cutting notes and the final verdict go on the review (see the `squads` skill's comment-scoping convention)"
+          ],
+          "handoff": [
+            "on ChangesRequested, `@<tech>-dev` with the findings",
+            "on Approved, comment the verdict"
+          ],
+          "watch": [
+            "severity-tag findings honestly; don't approve with open high findings"
+          ]
+        },
+        {
+          "slug": "*dev",
+          "enter": [
+            "read every finding and its severity (`sq review <n> findings`)"
+          ],
+          "do": [
+            "fix each one, then `sq review <n> finding <k> update --status Fixed`",
+            "link the fix task (`sq task <n> ref add REV-… --kind addresses`)",
+            "use `sq review <n> finding <k> comment` when closing a finding with fix rationale — keep the review's main discussion for handoff @mentions (see the `squads` skill's comment-scoping convention)"
+          ],
+          "handoff": [
+            "`@reviewer` once all findings are Fixed, for re-review"
+          ],
+          "watch": [
+            "don't close findings you didn't actually address"
+          ]
+        }
+      ]
+    },
+    "guide": {
+      "overview": "Project-agnostic best-practice notes on a technology or framework.",
+      "lifecycle": "Draft → Published → Deprecated",
+      "commands": [
+        "sq create guide \"…\" --author architect [--tech …] [--tag …]",
+        "sq guide <n> status Published"
+      ],
+      "roles": [
+        {
+          "slug": "architect",
+          "enter": [
+            "identify the recurring practice or anti-pattern worth capturing"
+          ],
+          "do": [
+            "author it (`sq create guide \"…\" --author architect --tech …`)",
+            "write good practice + anti-patterns in the body"
+          ],
+          "handoff": [
+            "when the first draft is complete, `@tech-writer` to polish; set `sq guide <n> status Published` once it's clean"
+          ],
+          "watch": []
+        },
+        {
+          "slug": "tech-lead",
+          "enter": [
+            "spot a lesson from a real task worth generalising"
+          ],
+          "do": [
+            "co-author the guide drawn from concrete work"
+          ],
+          "handoff": [],
+          "watch": []
+        },
+        {
+          "slug": "tech-writer",
+          "enter": [
+            "read the draft guide"
+          ],
+          "do": [
+            "edit for clarity, structure, and currency"
+          ],
+          "handoff": [
+            "`sq guide <n> status Published` when it's clean"
+          ],
+          "watch": [
+            "keep it project-agnostic; deprecate guides that go stale"
+          ]
+        }
+      ]
+    }
+  }
+}
