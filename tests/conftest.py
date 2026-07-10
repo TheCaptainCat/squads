@@ -69,6 +69,21 @@ def _reset_actor():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest 
 
 
 @pytest.fixture(autouse=True)
+def _reset_session_seed():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
+    """Ensure the ambient session pair (`_actor.seed_session`) never leaks between tests —
+    same leak-guard class as `_reset_actor`/`_reset_clock_override`, just the session-lineage
+    half of `_actor`'s module-global state. A test that seeds a session (explicitly, or via a
+    real CLI invocation with `SQUADS_SESSION_ID` set) must not leave it seeded for the next
+    test's own fixtures — in particular `project`, which calls `service.init()` directly and
+    so never re-seeds the session itself the way a real CLI invocation's root callback would.
+    Reset at both ends: before, so a prior test's leftover state never reaches this test's own
+    fixture setup (which runs before the test body); after, as the usual backstop."""
+    actor.seed_session(None, None)
+    yield
+    actor.seed_session(None, None)
+
+
+@pytest.fixture(autouse=True)
 def _reset_active_spec():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
     """Ensure a test's per-invocation CLI globals never leak (same leak-guard class as the actor/
     clock resets above): `_active_spec`/`_active_dir` in `_cli/_common` are the CLI's per-invocation
