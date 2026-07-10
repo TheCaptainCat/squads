@@ -72,7 +72,7 @@ testpaths = ["tests"]
 addopts = "-q -n auto"
 anyio_mode = "auto"
 markers = [
-    "slow: marks tests that generate large data sets or have wall-clock bounds (deselect with -m 'not slow')",
+    "slow: marks tests that generate large data sets or have wall-clock bounds (skipped by default, opt in with --run-slow)",
 ]
 
 [tool.ruff]

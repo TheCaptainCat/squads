@@ -151,12 +151,15 @@ preserved body). When adding a feature, add a service-level test and a CLI smoke
 already isolated in its own `tmp_path` (frontmatter files, `.squads.json`, the clock override),
 so distributing tests across worker processes is safe with no per-test opt-in needed. Use `-n0`
 to force serial (not `-p no:xdist`, which unloads the plugin but leaves `-n auto` in `addopts`,
-so it errors as an unrecognized arg), e.g. under `--pdb` or for an uncontended timing of the
-`slow`-marked scale-bound tests. The full suite is still slow in wall clock (the scale tests, not
-a hang). Run it **once**, redirect to a file, and read the file (`uv run pytest -q >
-"$CLAUDE_JOB_DIR/tmp/pytest.log" 2>&1`, then `tail`/`grep` the log) — never re-run the whole suite
-just to reslice its output. While iterating on a fix, use `--lf` / `-x` / a path selector instead
-of the full sweep (all compose fine with the default `-n auto`).
+so it errors as an unrecognized arg), e.g. under `--pdb`.
+
+The `slow`-marked scale-bound tests (`tests/test_scale.py`) are **skipped by default** (a
+`conftest.py` `pytest_collection_modifyitems` hook), so a bare `uv run pytest` is fast (~30s, not
+a hang). Pass `--run-slow` to opt in and run them too (adds ~2 minutes). Run either **once**,
+redirect to a file, and read the file (`uv run pytest -q > "$CLAUDE_JOB_DIR/tmp/pytest.log" 2>&1`,
+then `tail`/`grep` the log) — never re-run the whole suite just to reslice its output. While
+iterating on a fix, use `--lf` / `-x` / a path selector instead of the full sweep (all compose
+fine with the default `-n auto`, and with `--run-slow`).
 
 ### Dead-code scan (vulture) — periodic, non-gating
 
