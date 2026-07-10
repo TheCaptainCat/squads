@@ -3,7 +3,7 @@ id: TASK-375
 sequence_id: 375
 type: task
 title: 'Test rebuild Phase 3: parity verification + destructive swap'
-status: Ready
+status: Done
 parent: FEAT-231
 author: tech-lead
 subentities:
@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-07-10T04:48:20Z'
-updated_at: '2026-07-10T14:08:44Z'
+updated_at: '2026-07-10T15:36:32Z'
 ---
 <!-- sq:body -->
 ## Phase 3 — Parity verification + destructive swap
@@ -108,4 +108,6 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Dead/obsolete-code check: NONE found. Every gap line is a currently-reachable, meaningful branch (validation guard, rendering path, migration idempotency, or the still-shipping override-workflow feature) — no gap traces to a since-removed code path. All 239 lines need a real new test, not a deletion.
   - Caveat (per the task brief): this is line-coverage, necessary-not-sufficient — it proves the new suite doesn't even RUN these lines, but a line the new suite executes-without-asserting won't show as a gap. Combine with the earlier per-chunk assertion reviews; this diff is the objective floor.
   - HEADLINE: GAPS REMAIN (239 lines / 23 files). Do not proceed to the destructive swap until these are homed — the override-workflow subsystem (finding 3) and the two known classes (finding 2) are the priority items; the rest are single-digit-line, single-test guard/branch gaps, individually cheap to port.
+- [2026-07-10T15:36:32Z] Catherine Manager:
+  - Phase 3 complete: old flat suite deleted (82 files: 79 superseded test_*.py + 3 dead goldens) after objective parity — coverage-diff 0 gap lines (new ⊇ old), reviewer-confirmed non-vacuous, meta-tests (ticket-ID/docfiles/ships-in-wheel/manifest) re-homed + verified independently of the diff, surviving suite green standalone (1224 --run-slow). op-pierre pre-authorized the swap contingent on parity.
 <!-- sq:discussion:end -->
