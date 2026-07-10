@@ -3,11 +3,11 @@ id: TASK-364
 sequence_id: 364
 type: task
 title: Verify cheatsheet altitude and default/custom-vocab renders
-status: Draft
+status: Done
 parent: FEAT-334
 author: tech-lead
 created_at: '2026-07-10T02:00:03Z'
-updated_at: '2026-07-10T02:02:35Z'
+updated_at: '2026-07-10T04:43:45Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -58,4 +58,6 @@ _Add with `sq task 364 add-subtask "<title>"`; track with `sq task 364 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-10T04:43:43Z] Catherine Manager:
+  - Verification complete. US1 (custom-vocab render): a custom type participates in the cheatsheet, test-proven (incident/finding) + reviewer-confirmed. US2 (altitude): rendered cheatsheet is a concise cross-type system map — one condensed line per authoring type-role pairing, distinct from the per-type sq-<type> playbooks (independently confirmed by reviewer read + manager read of the golden). US3 (default readability): the bundled cheatsheet reads well, accurate lifecycles/aliases/retype/ref-kinds. No code expected; verified via the regenerated golden + TASK-363's independent review + the custom-type test.
 <!-- sq:discussion:end -->
