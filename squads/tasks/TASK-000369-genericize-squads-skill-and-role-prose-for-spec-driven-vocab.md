@@ -3,11 +3,11 @@ id: TASK-369
 sequence_id: 369
 type: task
 title: Genericize squads skill and role prose for spec-driven vocab
-status: Draft
+status: Done
 parent: FEAT-336
 author: tech-lead
 created_at: '2026-07-10T02:00:11Z'
-updated_at: '2026-07-10T02:02:38Z'
+updated_at: '2026-07-10T02:55:15Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -79,4 +79,19 @@ _Add with `sq task 369 add-subtask "<title>"`; track with `sq task 369 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-10T02:49:08Z] Elias Python:
+  - Fixed roles.toml:154 sq story add -> sq feature <n> add-story (real bug).
+  - Genericized squads_skill.md.j2: priority guidance (--priority + values) now derives from spec.fields_for('task')'s ordered field + its collection's badges (falls back to nothing if task carries no ordered field); create-example type list derives from spec.work_types(); comment-scoping table/prose derive kind->host-type + kind fields from spec.subentity_kinds/items.
+  - roles.toml: softened architect/tech-lead/reviewer/qa/product-owner responsibility lines that named work types/kinds/axes as though closed vocab (parenthetical 'bundled default'/'in the bundled workflow' framing), keeping the actual bundled commands as illustrative examples -- there's no role-override mechanism so left mission/description prose (e.g. 'ADRs' in mission text) untouched, only touching the cited lines.
+  - Regenerated manifest (gen_template_manifest.py) + sq sync snapshots: SKILL-000200-squads.md and ROLE-000002/3/4/5/7.md changed, all diffs spot-checked correct. Updated the role-catalog golden-lock test + role_qa_show.json golden to match. Added 3 behaviour-named tests (custom priority collection shows in guidance not the bundled literal; dropped work type disappears from the create-example list; product-owner cites the real add-story command).
+  - Gates green: pyright/ruff/ruff format clean; targeted tests (test_skills, test_role_catalog, test_skill_seeding, test_override_commands incl. manifest freshness, test_squad_ref_hygiene) all pass. Did not run the full suite per instructions.
+- [2026-07-10T02:54:32Z] Paul Reviewer:
+  - Reviewed uncommitted TASK-369 diff (independent). VERDICT: APPROVE. gates clean (ruff/pyright unaffected — no src .py changed), manifest regenerated, full suite green (exit 0, 0 failures). All four focus questions yes. One LOW nice-to-have test.
+  - HIGH bug fixed (Q1): YES. roles.toml:154 product-owner 'sq story add' -> 'sq feature <n> add-story' (the real command); ROLE-000007 snapshot shows 'sq story add' gone from both the extra: block and the rendered Responsibilities. Regression test test_product_owner_role_cites_a_real_add_story_command asserts the old string absent + the real one present.
+  - Priority derivation correct + graceful (Q2): YES. Template resolves the task type's FIRST ordered field/collection at render time (spec.fields_for('task') + spec.collection(...)), taking the field code + live badge codes; both usages (create example, 'Set importance') are guarded by {% if _priority.field %} so a task with no ordered field OMITS the sentence rather than crashing. Bundled render reads well and the 'Set importance with --priority urgent|high|medium|low' line is byte-identical (no snapshot diff there). test_squads_skill_priority_guidance_derives_from_active_collection proves a custom 'p0' collection surfaces verbatim with no bundled-literal fallback.
+  - Snapshots clean, no drift (Q3): YES. SKILL-000200 + ROLE-2/3/4/5/7 diffs are ONLY the intended vocab-derivation/prose-softening; mission/title/model/color untouched, roster held at 9. The scoping-table row reorder (now spec-declaration order: story/subtask/finding) is cosmetic — same 3 rows/commands, not a regression. create-example '# also:' now spec.work_types()|reject task|sort (same 6 types, alphabetized). spec is correctly threaded into the render (_backend.py:79 spec=spec).
+  - Role prose not overclaiming (Q4): softened lines are accurate and read well — architect 'Record significant design decisions (ADRs in the bundled workflow)', tech-lead 'scoped units of work ... (bundled default: sq create task ...)', reviewer 'badge field(s) set (severity in the bundled workflow)', qa 'acceptance criteria (user stories ...)' / 'tracked items (bug items ...)', PO 'sq feature <n> add-story'. Leaving mission/description as bundled-default is a reasonable call (no role-override mechanism). Manifest FRESH (Q5): squads_skill.md.j2 hash regenerated, freshness test passes; version NOT bumped. No ticket IDs in source.
+  - LOW (non-blocking): the priority graceful-OMIT path (task declares no ordered field -> sentence dropped) is guarded-by-construction but not covered by a test (the custom-collection test uses ordered=True). A thin test asserting the sentence is absent when task has no ordered field would close it. Optional.
+- [2026-07-10T02:55:14Z] Catherine Manager:
+  - Reviewer-approved; all focus answers YES (sq story add fixed, priority derivation correct+graceful, snapshots clean/no drift, manifest fresh, version not bumped). Full suite green. F1 (LOW: the priority graceful-OMIT path untested — guarded by construction, display-only, zero correctness risk) accepted as noted, not round-tripped. Landing.
 <!-- sq:discussion:end -->

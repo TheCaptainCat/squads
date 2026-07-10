@@ -69,7 +69,7 @@ _ROLE_SNAPSHOT: list[dict[str, object]] = [
         ),
         "responsibilities": (
             "Design components and their interactions",
-            "Write and maintain ADRs",
+            "Record significant design decisions (ADRs in the bundled workflow)",
             "Author cross-cutting guides",
             "Review designs before implementation",
         ),
@@ -86,11 +86,13 @@ _ROLE_SNAPSHOT: list[dict[str, object]] = [
         "description": "Coordination and breaking features into tasks.",
         "mission": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
         "responsibilities": (
-            "Author tasks (`sq create task`); set each task's parent to the feature it implements",
-            'Map each subtask to a single user story (`sq task <n> add-subtask "…" --story USn`)',
-            "For a bug fix or review follow-up, link via refs "
-            "(`sq task <n> ref add <id> --kind fixes|addresses`)",
-            "Leave purely-technical tasks unlinked",
+            "Break each feature into scoped units of work, parented to the feature they "
+            "implement (bundled default: `sq create task --parent FEAT-<n>`)",
+            "Map each unit of work's sub-items to a single user story where the type supports "
+            'it (bundled default: `sq task <n> add-subtask "…" --story USn`)',
+            "For a fix or review follow-up, link via refs rather than re-describing the work "
+            "(bundled default: `sq task <n> ref add <id> --kind fixes|addresses`)",
+            "Leave purely-technical work items unlinked to a feature",
             "Sequence and assign work; unblock developers",
             "Co-author guides with the architect",
         ),
@@ -116,8 +118,9 @@ _ROLE_SNAPSHOT: list[dict[str, object]] = [
         ),
         "agreements": (
             "File review findings as tracked sub-entities — `sq review <n> add-finding` with "
-            "severity, statuses updated as they close — never as body prose; finding-scoped "
-            "comments, statuses, and dossier panes all depend on the structure.",
+            "its badge field(s) set (severity in the bundled workflow), statuses updated as "
+            "they close — never as body prose; finding-scoped comments, statuses, and dossier "
+            "panes all depend on the structure.",
         ),
         "model": "opus",
         "color": "red",
@@ -133,9 +136,9 @@ _ROLE_SNAPSHOT: list[dict[str, object]] = [
             "Prove the software works: design test cases from user stories and verify fixes."
         ),
         "responsibilities": (
-            "Derive test cases from user stories",
-            "Verify bug fixes and features",
-            "Report defects as bug items",
+            "Derive test cases from acceptance criteria (user stories in the bundled workflow)",
+            "Verify fixes and features",
+            "Report defects as tracked items (bug items in the bundled workflow)",
         ),
         "agreements": (),
         "model": "sonnet",
@@ -170,8 +173,9 @@ _ROLE_SNAPSHOT: list[dict[str, object]] = [
             "prioritise the backlog."
         ),
         "responsibilities": (
-            "Author features (`sq create feature`)",
-            "Write each feature's user stories (`sq story add`)",
+            "Author features and capture requirements (`sq create feature` in the bundled "
+            "workflow)",
+            "Write each feature's user stories (bundled default: `sq feature <n> add-story`)",
             "Prioritise the backlog and define acceptance criteria",
         ),
         "agreements": (),

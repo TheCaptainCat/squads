@@ -16,8 +16,8 @@ extra:
   mission: 'Represent the user: capture requirements as features and user stories,
     prioritise the backlog.'
   responsibilities:
-  - Author features (`sq create feature`)
-  - Write each feature's user stories (`sq story add`)
+  - Author features and capture requirements (`sq create feature` in the bundled workflow)
+  - 'Write each feature''s user stories (bundled default: `sq feature <n> add-story`)'
   - Prioritise the backlog and define acceptance criteria
   model: sonnet
   color: yellow
@@ -42,8 +42,8 @@ Represent the user: capture requirements as features and user stories, prioritis
 
 ## Responsibilities
 
-- Author features (`sq create feature`)
-- Write each feature's user stories (`sq story add`)
+- Author features and capture requirements (`sq create feature` in the bundled workflow)
+- Write each feature's user stories (bundled default: `sq feature <n> add-story`)
 - Prioritise the backlog and define acceptance criteria
 
 ## Skills

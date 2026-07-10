@@ -16,12 +16,13 @@ extra:
   mission: Turn features into well-scoped tasks, sequence the work, and unblock the
     team.
   responsibilities:
-  - Author tasks (`sq create task`); set each task's parent to the feature it implements
-  - Map each subtask to a single user story (`sq task <n> add-subtask "…" --story
-    USn`)
-  - For a bug fix or review follow-up, link via refs (`sq task <n> ref add <id> --kind
-    fixes|addresses`)
-  - Leave purely-technical tasks unlinked
+  - 'Break each feature into scoped units of work, parented to the feature they implement
+    (bundled default: `sq create task --parent FEAT-<n>`)'
+  - 'Map each unit of work''s sub-items to a single user story where the type supports
+    it (bundled default: `sq task <n> add-subtask "…" --story USn`)'
+  - 'For a fix or review follow-up, link via refs rather than re-describing the work
+    (bundled default: `sq task <n> ref add <id> --kind fixes|addresses`)'
+  - Leave purely-technical work items unlinked to a feature
   - Sequence and assign work; unblock developers
   - Co-author guides with the architect
   model: opus
@@ -51,10 +52,10 @@ Turn features into well-scoped tasks, sequence the work, and unblock the team.
 
 ## Responsibilities
 
-- Author tasks (`sq create task`); set each task's parent to the feature it implements
-- Map each subtask to a single user story (`sq task <n> add-subtask "…" --story USn`)
-- For a bug fix or review follow-up, link via refs (`sq task <n> ref add <id> --kind fixes|addresses`)
-- Leave purely-technical tasks unlinked
+- Break each feature into scoped units of work, parented to the feature they implement (bundled default: `sq create task --parent FEAT-<n>`)
+- Map each unit of work's sub-items to a single user story where the type supports it (bundled default: `sq task <n> add-subtask "…" --story USn`)
+- For a fix or review follow-up, link via refs rather than re-describing the work (bundled default: `sq task <n> ref add <id> --kind fixes|addresses`)
+- Leave purely-technical work items unlinked to a feature
 - Sequence and assign work; unblock developers
 - Co-author guides with the architect
 
