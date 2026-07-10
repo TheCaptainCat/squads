@@ -3,7 +3,7 @@ id: FEAT-336
 sequence_id: 336
 type: feature
 title: Audit agent/user-facing surfaces for vocab-hardcoding defects
-status: Draft
+status: Done
 parent: EPIC-335
 author: product-owner
 refs:
@@ -20,7 +20,7 @@ subentities:
   title: As a planner, I want a recommended fix per surface
   status: Todo
 created_at: '2026-07-08T15:09:51Z'
-updated_at: '2026-07-08T15:11:01Z'
+updated_at: '2026-07-10T04:14:42Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -183,4 +183,6 @@ Acceptance: the audit does not itself create the follow-up fix features — it h
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-10T04:14:41Z] Catherine Manager:
+  - FEAT-336 complete: audit (REV-360, 42 findings) + all six surface fix-tasks (365-370) landed, reviewed, full-suite-green. Agent/user-facing surfaces now derive vocabulary from the active spec (or honestly de-enumerate where static), several current-behaviour bugs fixed (skill trailers, sq story add, EXTRA_FIELDS rename-safety). workflow.md.j2 findings handed to FEAT-334; BUG-371 filed for the cold-help edge.
 <!-- sq:discussion:end -->
