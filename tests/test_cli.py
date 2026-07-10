@@ -1737,6 +1737,83 @@ async def test_migrate_repad_cli_refuses_to_lower(project, invoke, frozen_time):
     assert "must be greater than" in r.output
 
 
+# ---------------------------------------------------------------------- rename-type/rename-status
+
+# "ticket" mirrors "task" (same lifecycle/parent/sub-entity kind) except its prefix/folder —
+# the feature does not declare this itself, so tests bring it in as a project override.
+_TICKET_OVERRIDE_TOML = """\
+[items.ticket]
+prefix = "TICKET"
+folder = "tickets"
+lifecycle = "work"
+parents = ["feature"]
+subentity_kind = "subtask"
+parent_required = "feature"
+"""
+
+
+def _write_ticket_override(squad_dir) -> None:
+    override_dir = squad_dir / ".overrides"
+    override_dir.mkdir(parents=True, exist_ok=True)
+    (override_dir / "workflow.toml").write_text(_TICKET_OVERRIDE_TOML, encoding="utf-8")
+
+
+async def test_migrate_rename_type_cli(project, invoke, frozen_time):
+    """sq migrate rename-type moves every item of one declared type to another."""
+    from squads._services._service import Service
+
+    _write_ticket_override(project.squad_dir)
+    svc = Service(project)
+    created = await svc.create("task", "task one")
+
+    r = await invoke(["migrate", "rename-type", "task", "ticket"])
+    assert r.exit_code == 0, r.output
+    assert "task → ticket" in r.output
+    assert "1 item(s) renamed" in r.output
+    assert "sq check" in r.output
+
+    # Read the raw index: a plain Service(project) uses the bundled-only spec, which no
+    # longer declares "ticket" once the rename lands, so it can't load() the squad.
+    raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
+    entry = raw["items"][str(created.item.sequence_id)]
+    assert entry["type"] == "ticket"
+
+
+async def test_migrate_rename_type_cli_refuses_reserved_meta_type(project, invoke, frozen_time):
+    """sq migrate rename-type exits 1 cleanly when the source type is a reserved meta-type."""
+    r = await invoke(["migrate", "rename-type", "role", "worker"])
+    assert r.exit_code == 1, r.output
+    assert "reserved meta-type" in r.output
+
+
+async def test_migrate_rename_status_cli(project, invoke, frozen_time):
+    """sq migrate rename-status moves every matching item to the new status label."""
+    from squads._services._service import Service
+
+    svc = Service(project)
+    created = await svc.create("task", "task one")  # created at Draft
+    item_id = created.item.id
+
+    r = await invoke(["migrate", "rename-status", "task", "Draft", "Ready"])
+    assert r.exit_code == 0, r.output
+    assert "task: Draft → Ready" in r.output
+    assert "1 item(s) renamed" in r.output
+    # The id-pair pitfall: a status rename never changes the id, so it must not print
+    # something like "TASK-1 → TASK-1".
+    assert f"{item_id} → {item_id}" not in r.output
+
+    db = await svc.store.load()
+    item = db.items[created.item.sequence_id]
+    assert item.status == "Ready"
+
+
+async def test_migrate_rename_status_cli_refuses_invalid_new_status(project, invoke, frozen_time):
+    """sq migrate rename-status exits 1 when NEW_STATUS isn't a state of TYPE's lifecycle."""
+    r = await invoke(["migrate", "rename-status", "task", "Draft", "NotAStatus"])
+    assert r.exit_code == 1, r.output
+    assert "is not a state of" in r.output
+
+
 # --------------------------------------------------------------------------- width-tolerant CLI
 
 
