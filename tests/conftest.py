@@ -27,6 +27,27 @@ from squads._rendering._engine import (  # noqa: E402
 from squads._services import _service as service  # noqa: E402
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-slow",
+        action="store_true",
+        default=False,
+        help="run tests marked @pytest.mark.slow (the wall-clock-bound scale tests), "
+        "skipped by default",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip @pytest.mark.slow tests unless --run-slow is given (collection-time, so it composes
+    with both -n auto and -n0)."""
+    if config.getoption("--run-slow"):
+        return
+    skip_slow = pytest.mark.skip(reason="slow: use --run-slow")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
+
+
 @pytest.fixture
 def anyio_backend():
     """Pin the anyio test backend to asyncio (trio not needed for this project)."""
