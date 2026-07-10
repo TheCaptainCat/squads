@@ -146,6 +146,64 @@ def test_ref_rule_model_fields(spec: WorkflowSpec) -> None:
         assert isinstance(rule.hint, str)  # may be empty but must be a str
 
 
+def test_parent_hint_uses_declared_hint_not_literal_kind_detection() -> None:
+    """parent_hint appends the RefRule's own declared hint text, not a re-detected
+    'fixes'/'addresses' literal + bundled 'bug or review' prose — proven on a renamed
+    type/parent with a custom ref rule and hint."""
+    custom = WorkflowSpec.model_validate(
+        {
+            "items": {
+                "role": ItemSpec(prefix="ROLE", folder="roles", lifecycle="agent", is_meta=True),
+                "skill": ItemSpec(prefix="SKILL", folder="skills", lifecycle="agent", is_meta=True),
+                "operator": ItemSpec(
+                    prefix="OP", folder="operators", lifecycle="agent", is_meta=True
+                ),
+                "feat": ItemSpec(prefix="FEAT", folder="feats", lifecycle="work"),
+                "chore": ItemSpec(
+                    prefix="CHORE",
+                    folder="chores",
+                    lifecycle="work",
+                    parents=["feat"],
+                    ref_rules=[RefRule(kind="mends", hint="see `sq ref add <chore> <id>`")],
+                ),
+            },
+            "statuses": {
+                "Draft": StatusSpec(terminal=False),
+                "Active": StatusSpec(terminal=False),
+                "Archived": StatusSpec(terminal=True),
+                "Done": StatusSpec(terminal=True),
+            },
+            "lifecycles": {
+                "agent": Lifecycle(
+                    initial="Draft", transitions={"Draft": ["Active"], "Active": ["Archived"]}
+                ),
+                "work": Lifecycle(initial="Draft", transitions={"Draft": ["Done"]}),
+            },
+            "prefix_to_type": {},
+            "alias_to_type": {},
+        }
+    )
+    hint = custom.parent_hint("chore")
+    assert hint == "a chore's parent must be of type feat; see `sq ref add <chore> <id>`"
+
+
+# ---------------------------------------------------------------------------
+# ItemSpec.extra_fields flag
+# ---------------------------------------------------------------------------
+
+
+def test_bundled_guide_and_review_declare_extra_fields(spec: WorkflowSpec) -> None:
+    """The bundled spec anchors tags/target_ref on guide/review via extra_fields, not a
+    hardcoded type-name lookup elsewhere."""
+    assert spec.item_extra_fields("guide") == ["tags"]
+    assert spec.item_extra_fields("review") == ["target_ref"]
+
+
+def test_item_extra_fields_empty_for_type_with_none_declared(spec: WorkflowSpec) -> None:
+    """A type declaring no extra_fields (e.g. task) resolves to an empty list, not an error."""
+    assert spec.item_extra_fields("task") == []
+
+
 # ---------------------------------------------------------------------------
 # StatusSpec.role flag
 # ---------------------------------------------------------------------------

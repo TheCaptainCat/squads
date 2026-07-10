@@ -320,6 +320,7 @@ is_meta = false
 subentity_kind = "finding"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+extra_fields = ["target_ref"]
 # parent_required absent → None
 
 [items.guide]
@@ -332,6 +333,7 @@ order = 70
 is_meta = false
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+extra_fields = ["tags"]
 # subentity_kind absent → None
 # parent_required absent → None
 

@@ -259,6 +259,12 @@ class ItemSpec(BaseModel):
     """Badge-collection bindings this type carries (e.g. priority/severity) — "does this type
     carry field X" is ``X in {f.code for f in fields}``, exposed via ``fields_for()``."""
 
+    extra_fields: list[str] = []
+    """Generic (non-badge) ``extra`` metadata keys (``ExtraKey`` values) this type exposes via
+    ``sq update --set`` — spec-declared identity so a renamed work type (e.g. guide->doc)
+    keeps its settable fields instead of losing them to a hardcoded literal type name. The
+    value kind (str/list/bool) per key is fixed in ``_models/_metadata.py``, not declared here."""
+
 
 class StatusSpec(BaseModel):
     """Terminal flag + optional sub-entity badge for one status name."""
@@ -788,6 +794,12 @@ class WorkflowSpec(BaseModel):
         """The required parent type slug, or None (no constraint)."""
         return self.items[item_type].parent_required
 
+    def item_extra_fields(self, item_type: str) -> list[str]:
+        """Declared generic ``extra``-metadata keys for this type (drives ``sq update --set``
+        identity for a renamed/custom type, e.g. guide's ``tags``, review's ``target_ref``)."""
+        ts = self.items.get(item_type)
+        return list(ts.extra_fields) if ts else []
+
     def item_ref_rules(self, item_type: str) -> list[RefRule]:
         """Declared ref-kind rules for the type (e.g. fixes/addresses/supersedes)."""
         return list(self.items[item_type].ref_rules)
@@ -835,13 +847,18 @@ class WorkflowSpec(BaseModel):
         return self.subentity_kinds[kind].plural
 
     def parent_hint(self, child: str) -> str:
-        """Human guidance for an invalid parent (used in error messages)."""
+        """Human guidance for an invalid parent (used in error messages).
+
+        Appends the spec-declared ``RefRule.hint`` text(s) instead of re-detecting a
+        literal ``fixes``/``addresses`` ref kind and emitting bundled "bug or review"
+        prose — a renamed type or a custom ref rule gets its own declared hint verbatim.
+        """
         parents = self.items[child].parents
         names = " or ".join(sorted(parents)) or "none"
         msg = f"a {child}'s parent must be of type {names}"
-        ref_rule_kinds = {r.kind for r in self.item_ref_rules(child)}
-        if "fixes" in ref_rule_kinds or "addresses" in ref_rule_kinds:
-            msg += "; link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`"
+        hints = {r.hint for r in self.item_ref_rules(child) if r.hint}
+        if hints:
+            msg += "; " + "; ".join(sorted(hints))
         return msg
 
     # ------------------------------------------------------------------ validation

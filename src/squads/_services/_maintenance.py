@@ -1027,25 +1027,28 @@ class MaintenanceMixin(ServiceCore):
     def _check_subtask_stories(self, index: SquadsDB) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
         for item in index.items.values():
-            if self.spec.item_subentity_kind(item.type) != "subtask":
+            kind = self.spec.item_subentity_kind(item.type)
+            if kind != "subtask":
                 continue
             refs = [(s.local_id, s.story) for s in item.subentities if s.story]
             if not refs:
                 continue
             parent = index.get(item.parent) if item.parent else None
             required_parent = self.spec.item_parent_required(item.type)
+            host = required_parent or "parent"
+            story_kind = self.spec.item_subentity_kind(host) or "story"
             if parent is None or (required_parent is not None and parent.type != required_parent):
                 issues.append(
                     CheckIssue(
                         "error",
                         item.id,
-                        "subtask maps to a user story but the task has no feature parent",
+                        f"{kind} maps to a {story_kind} but the {item.type} has no {host} parent",
                     )
                 )
                 continue
             known = {s.local_id for s in parent.subentities}
             issues += [
-                CheckIssue("error", item.id, f"subtask {stn} → {us} missing from {parent.id}")
+                CheckIssue("error", item.id, f"{kind} {stn} → {us} missing from {parent.id}")
                 for stn, us in refs
                 if us not in known
             ]
@@ -1095,7 +1098,7 @@ class MaintenanceMixin(ServiceCore):
                     CheckIssue(
                         "warn",
                         item.id,
-                        "status is Superseded but no incoming supersedes edge found",
+                        f"status is {item.status} but no incoming supersedes edge found",
                     )
                 )
         return issues

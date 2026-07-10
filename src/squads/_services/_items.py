@@ -113,7 +113,9 @@ class ItemsMixin(ServiceCore):
             if field is not None:
                 item.set_badge_value(field.code, self._parse_badge_code(field, raw))
             else:
-                item.extra[key] = coerce_extra(item.type, key, raw)
+                item.extra[key] = coerce_extra(
+                    item.type, key, raw, self.spec.item_extra_fields(item.type)
+                )
         for key in unset or []:
             field = self._badge_field(item.type, key)
             if field is not None:

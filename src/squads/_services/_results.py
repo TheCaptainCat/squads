@@ -54,11 +54,17 @@ class GraphNode:
     id: str
     type: str
     status: str  # spec-defined status name
-    priority: str | None  # the priority badge code, or None
+    priority: str | None  # the priority badge code, or None — kept for the CLI's bundled-axis
+    #: rendering (``_cli/_main.py``); ``badges`` below is the generic replacement for --json
+    #: consumers, since a type on a different/renamed badge axis leaves ``priority`` null.
     assignee: str | None
     edge_kind: str | None  # None for root; normalized kind for all other nodes
     direction: str | None  # "out" | "in" | None (None for root)
     seen: bool
+    badges: dict[str, str] = field(default_factory=lambda: dict[str, str]())
+    """Every spec-declared badge field this node's type carries, keyed by field code (e.g.
+    ``{"priority": "high"}``, or ``{"impact": "high", "urgency": "low"}`` for a custom axis) —
+    generic over the type's actual vocabulary, unlike the fixed ``priority`` attribute above."""
     children: list[GraphNode] = field(default_factory=lambda: list[GraphNode]())
 
     def to_dict(self) -> dict[str, Any]:
@@ -68,6 +74,7 @@ class GraphNode:
             "type": self.type,
             "status": self.status,
             "priority": self.priority,
+            "badges": self.badges,
             "assignee": self.assignee,
             "edge_kind": self.edge_kind,
             "direction": self.direction,

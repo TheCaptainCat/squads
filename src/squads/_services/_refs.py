@@ -20,6 +20,7 @@ from squads._models._item import (
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._services._results import GraphNode
+from squads._workflow._models import WorkflowSpec
 
 # ---------------------------------------------------------------------------
 # Graph traversal helpers
@@ -40,6 +41,7 @@ class _TraversalCtx:
     direction: str  # "out" | "in" | "both"
     include_closed: bool
     is_open: Callable[[str], bool]  # spec.is_open bound at construction
+    spec: WorkflowSpec  # resolves each node's declared badge fields (GraphNode.badges)
     seen: set[str] = field(default_factory=lambda: set[str]())
 
 
@@ -137,6 +139,17 @@ def _neighbours(ctx: _TraversalCtx, item: Item) -> list[tuple[str, str, str]]:
     return deduped
 
 
+def _resolve_badges(spec: WorkflowSpec, item: Item) -> dict[str, str]:
+    """Every declared badge field this item's type carries, resolved generically — the
+    type's actual axis (e.g. a custom impact/urgency pair) rather than the fixed ``priority``
+    attribute, which stays null for a type not on the bundled priority field."""
+    return {
+        f.code: value
+        for f in spec.fields_for(item.type)
+        if (value := item.badge_value(f.code)) is not None
+    }
+
+
 def _build_graph_node(
     item_id: str,
     edge_kind: str | None,
@@ -165,6 +178,7 @@ def _build_graph_node(
             edge_kind=edge_kind,
             direction=direction,
             seen=True,
+            badges={},
             children=[],
         )
 
@@ -181,6 +195,7 @@ def _build_graph_node(
         edge_kind=edge_kind,
         direction=direction,
         seen=already_seen,
+        badges=_resolve_badges(ctx.spec, item),
         children=[],
     )
 
@@ -207,6 +222,7 @@ def _build_graph_node(
         edge_kind=node.edge_kind,
         direction=node.direction,
         seen=node.seen,
+        badges=node.badges,
         children=children,
     )
 
@@ -430,6 +446,7 @@ class RefsMixin(ServiceCore):
                 edge_kind=None,
                 direction=None,
                 seen=False,
+                badges=_resolve_badges(self.spec, root_item),
                 children=[],
             )
 
@@ -440,6 +457,7 @@ class RefsMixin(ServiceCore):
             direction=direction,
             include_closed=include_closed,
             is_open=self.spec.is_open,
+            spec=self.spec,
         )
         # The root node is NOT pre-added to ctx.seen here; _build_graph_node adds it
         # when it first emits the root, before recursing into children.  This ensures
