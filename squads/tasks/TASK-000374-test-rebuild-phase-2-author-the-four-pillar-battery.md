@@ -3,7 +3,7 @@ id: TASK-374
 sequence_id: 374
 type: task
 title: 'Test rebuild Phase 2: author the four-pillar battery'
-status: Done
+status: InProgress
 parent: FEAT-231
 author: tech-lead
 subentities:
@@ -20,7 +20,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-07-10T04:48:20Z'
-updated_at: '2026-07-10T12:12:56Z'
+updated_at: '2026-07-10T13:52:56Z'
 ---
 <!-- sq:body -->
 ## Phase 2 — Author the four-pillar battery
@@ -282,4 +282,24 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
   - Verified: pyright 0 errors, ruff check/format clean. Full default suite: 2857 passed, 6 skipped, exit 0 (identical count to before -- no regressions). test_session_lineage.py (old, 26 tests) + both hygiene gates (12 tests) green under the new root guard. New-tree sweep: 1067 passed. Nothing committed; TASK-374 left InProgress.
 - [2026-07-10T12:12:55Z] Catherine Manager:
   - Chunk 5/6 (final authoring, ledger rows 112-159) reviewer-APPROVED — ledger FULLY COVERED (all 159 rows homed). G20 status-machine enforcement non-vacuous (distinct exception types for force-edge-vs-vocabulary), F-b both section goldens pinned. F-final: session leak-guard promoted to root conftest _reset_session_seed (peer of _reset_actor) protecting old test_session_lineage + future tests; 3 local copies removed. Full suite green (2857, --run-slow green). Landing chunk 5 — Phase 2 authoring complete.
+- [2026-07-10T13:32:53Z] Elias Python:
+  - Phase-2 gap-fill (TASK-375's manifest BLOCK): closed test_cli.py's unhomed coverage.
+  - Read test_cli.py in full (2027 lines, not just the QA list) — found all 10 QA gaps genuine, plus 2 more: CLI-level repair output text (counter/missing-ids), and check's unknown-ref-kind/superseded-without-edge warnings (also unhomed in old test_service.py).
+  - Added 14 new test files across cli/service/integration/unit (44 tests) + COVERAGE_LEDGER.md group 25 (rows 160-176).
+  - Gates: pyright/ruff/ruff-format clean; full suite (old+new) 2907 passed/9 skipped/0 failed; ref-hygiene scans green.
+  - Handing back to tech-lead/QA for TASK-375 re-run.
+- [2026-07-10T13:41:39Z] Paul Reviewer:
+  - Reviewed the FEAT-231 Phase-3 gap-fill (test_cli.py supersession, ledger group 25 rows 160-176). VERDICT: CHANGES-REQUESTED — the 14 authored files are excellent and non-vacuous, but the "everything else in test_cli.py is superseded" claim has a real HOLE: the meta-type item-first grammar (regen/rm verbs + wrong-type-token error) and the *_list_removed clean-error regression are NOT homed. Deleting test_cli.py now would silently lose them. Both trees green (full run incl --run-slow: exit 0, 0 failures). Narrow fix; then safe to delete.
+  - The AUTHORED gap-fill is genuine and non-vacuous (rows 160-176 all solid). sq renumber (integration/test_renumber_cli.py): block-shift + ref-rewrite + FILE RENAME (old path gone, new exists) + boundary-crossing parent still resolves + counter above both branches; --onto/--by mutual-exclusion; unsafe --by 0 refused with the index left BYTE-IDENTICAL (zero mutation); root+sub --help with the jq .counter recipe. Schema-mismatch gate: forges schema 0.1 on disk, ordinary command hard-stops exit 1 -> "sq migrate up", then migrate succeeds exit 0. Exit-code contract 0/1/2/3 each pinned (incl. --at usage error=2, check error-level=3 text+json). migrate repad/help/chlog, docs dispatch, _hoist_global_options (7 cases + real python -m entrypoint), shell completion, FEAT-250 spec-binding-order all substantively covered.
+  - BOTH bonus finds REAL: (1) integration/test_repair_cli_output.py asserts sq repair prints counter=N + the missing item id + holds the padding floor at 7. (2) The two sq check warning rules — the ones the manifest wrongly marked safe-to-delete in test_service.py — are now genuinely homed at service/test_check_ref_kind_and_supersedes_warnings.py (unknown-ref-kind warns; Superseded-decision-without-incoming-edge warns; does NOT warn when the edge is present) + the integration CLI test (both surface in sq check text, exit stays 0, never 3). Confirmed non-vacuous.
+  - F1 (BLOCKER for the deletion gate — the supersession claim fails for 6 old fns): (a) test_role_list_removed / test_skill_list_removed / test_operator_list_removed — assert sq role|skill|operator list falls through to the unknown-address path with a CLEAN exit 1, no internal _addr token leak, no Traceback (+ the --available variant). No new-suite test covers this; grep across tests/{cli,integration,service,unit} finds zero homes. It is a real regression guard (against leaking dispatch internals) that dies on deletion. (b) test_role_item_first_grammar / test_skill_item_first_grammar / test_operator_item_first_grammar — the item-first ADDRESSING grammar. The <slug|number> show happy-path IS re-homed (can_spawn_surfaces role manager/reviewer show; test_show_command skill 3 / operator 2 show; json_output_shape skill 8 show), but the regen and rm verbs via address, the full-ID form, and the wrong-type-token clean error are NOT (regen/rm are real current verbs per _cli/_skill.py; the only "regen" hits in the new suite are svc.sync() regeneration + the "regenerated by sq sync" warning string, not the sq skill <addr> regen|rm command). Fix: add one cli test file homing the meta-type list-removed clean error + the regen/rm/wrong-type item-first grammar, then test_cli.py is safe to delete.
+  - Everything else verified: the other ~70 test_cli.py fns spot-check as genuinely superseded (rename CLI -> integration/test_rename.py; repair counter/padding mechanism -> integration/test_repair_integrity.py; degrades-for-bundled/not-yet-activated role show -> can_spawn_surfaces; bracket/[x] fidelity -> test_show_command; operator add/list/show -> test_operator_lifecycle; check-index-no-file, blocked, marker-reject, bare-number resolution all present). Ledger group 25 accurately maps each old name -> new home with honest provenance notes; row count updated 159 -> 176. No ticket IDs / banned names in the 14 files. Re-review = confirm the one meta-grammar/list-removed test file lands green; with that, test_cli.py deletion is safe and the whole ledger is genuinely homed.
+- [2026-07-10T13:50:56Z] Elias Python:
+  - Reviewer's 2nd-pass gap-fill: closed the 6 flagged test_cli.py functions (meta-type list-removed + item-first-grammar regen/rm/full-id/wrong-type).
+  - Added tests/cli/test_meta_type_address_verbs_and_list_removal.py (11 tests) + verified against src/_skill.py/_role.py/_operator.py (role: show/regen/rm; skill: show/refs/regen/rm; operator: show/rm only, no regen). Ledger rows 177-182 appended, group 25, row-count summary bumped to 182.
+  - Gates: pyright/ruff/ruff-format clean; new file 11 passed + hygiene scans 12 passed; full suite 2918 passed/9 skipped/0 failed.
+  - Re-scan for more test_cli.py gaps found something real beyond the 6 asked: grep for the literal 'not both' clash-rejection text (--parent/--no-parent, --assignee/--clear-assignee, --story/--no-story, body -m/--file, --priority/--no-priority) returns ZERO hits anywhere in tests/unit|service|cli|integration — none of that mutual-exclusion family is tested post-rebuild. Also: the generic extra-field --set/--unset path (_metadata.coerce_extra — target_ref-style per-type fields, the 'not a settable field' unknown-key rejection, the '--<flag>' redirect hint for global fields) is separately untested; test_generic_badge_axis_cli.py only covers the sibling badge-field --set path (impact/urgency), not this one. Did not add a 2nd file since the ask was for exactly one — flagging both for a follow-up gap-fill decision.
+  - Left TASK-374 InProgress per instruction.
+- [2026-07-10T13:52:56Z] Catherine Manager:
+  - Phase-3 parity gate found test_cli.py entirely unhomed (never in the ledger) + more on exhaustive read: gap-fill 1 homed sq renumber/schema-gate/exit-codes/migrate-CLI/docs/hoist/completion/FEAT-250 + 2 bonus finds (repair CLI output, 2 check-warning rules that were ALSO unhomed in the manifest's supposedly-safe test_service.py); gap-fill 2 (F1) homed the meta-type list-removed clean error + regen/rm/wrong-type item-first grammar. Ledger extended to group 25 (rows 160-182). BUT the re-scan found 2 more unhomed classes (--x/--no-x 'not both' mutual-exclusion; generic extra-field --set/--unset via coerce_extra). Given the ledger keeps proving leaky, switching the deletion gate from ledger-cross-check to an OBJECTIVE old-vs-new coverage diff before any swap.
 <!-- sq:discussion:end -->

@@ -317,6 +317,39 @@ where the exact behaviour was already covered).**
 | 158 | Capability-flag model validators fail closed on an unknown key (`Lifecycle`, `ItemSpec`, `StatusSpec`, `RefRule`, and `WorkflowSpec`'s own top-level keys), and so does the TOML loader itself | `test_workflow_capability_flags.py` (unknown-key cluster, 6 tests) | unit | cross-ref row 37 — same fail-closed shape, one layer lower (the model itself, not the override-merge step) |
 | 159 | `order` (the float-valued display-sequencing flag): a gapped-but-logical sequence sorts correctly; an omitted order defaults to `+infinity` (sorts last); a fractional custom order sorts between two bundled types with no renumbering of the rest | `test_workflow_capability_flags.py` (order cluster, 3 tests) | unit | |
 
+## 25. CLI plumbing, renumber, exit-codes & schema-gate
+
+**Phase-3 parity gap-fill (2026-07-10): `tests/test_cli.py` was never cited as a "Currently
+tested in" source by any of the original 159 rows (it only appeared in the Deliverable-2
+duration table) and held real, unhomed behaviour. Rows below close that gap so the ledger
+regains authority as the Phase-3 accept gate.**
+
+| # | Behaviour / bug-class | Currently tested in | Target | Notes |
+|---|---|---|---|---|
+| 160 | `sq renumber --from/--onto`: shifts a local-ID block, rewrites refs/parents, renames files, bumps the counter above both branches' max | `test_cli.py::test_renumber_cli_shifts_block_and_updates_refs` | `integration/test_renumber_cli.py` | never in the ledger at all before this row — row 17's "renumber-collision resolution" is `repair`'s *internal* collision handling, a different mechanism |
+| 161 | `sq renumber` rejects specifying both `--onto` and `--by` | `test_cli.py::test_renumber_cli_rejects_both_onto_and_by` | `integration/test_renumber_cli.py` | |
+| 162 | `sq renumber` refuses an unsafe `--by` offset with zero mutation (index left byte-identical) | `test_cli.py::test_renumber_cli_unsafe_by_refuses_with_no_mutation` | `integration/test_renumber_cli.py` | |
+| 163 | `sq renumber` is listed in root `--help`; its own `--help` shows the `--onto`/`jq .counter` recipe | `test_cli.py::test_renumber_listed_in_root_help_and_shows_onto_recipe` | `integration/test_renumber_cli.py` | |
+| 164 | Root CLI callback hard-stops an ordinary command on a schema-version mismatch and points at `sq migrate up`; `migrate` itself is exempt from the gate so it can perform the upgrade | `test_cli.py::test_schema_gate_blocks_until_migrate` | `integration/test_schema_mismatch_gate.py` | every pre-existing migration test proved `migrate up` *succeeds*; none proved an ordinary command *refuses first* |
+| 165 | The exit-code contract as its own tested surface: 0 = success / `check` clean / `check` warnings-only; 1 = a `SquadsError` / schema mismatch; 2 = a usage error (`--at` malformed); 3 = `check` (text and `--json`) with an error-level issue | `test_cli.py::test_exit_code_0_success`, `test_exit_code_0_check_clean`, `test_exit_code_0_check_warnings_only`, `test_exit_code_1_squads_runtime_error`, `test_exit_code_1_schema_mismatch`, `test_exit_code_2_invalid_at_timestamp`, `test_exit_code_3_check_error_level_issue`, `test_exit_code_3_check_json_error_level_issue` | `cli/test_exit_code_contract.py` | individual codes were incidentally hit elsewhere; the contract itself ("exactly these four codes, this triggers each") had no dedicated test |
+| 166 | `sq migrate repad` CLI entry point: its own message text (`padding N → M`, file count, `sq check` pointer), exit 0; refuses to lower the width | `test_cli.py::test_migrate_repad_cli`, `test_migrate_repad_cli_refuses_to_lower` | `integration/test_migrate_repad_cli.py` | the pre-existing `integration/test_repad.py` calls `svc.repad()` directly, never through the CLI — this row covers the command wiring itself |
+| 167 | `sq create` exits 1 and names `sq migrate repad` when the index is at capacity | `test_cli.py::test_create_cli_exits_1_when_index_full` | `integration/test_migrate_repad_cli.py` | |
+| 168 | `sq migrate help` lists the changelog index; `sq migrate chlog vA..vB` prints manual steps for a range that has them, prints none for a range that doesn't, and errors cleanly on a malformed range | `test_cli.py::test_migrate_help_and_chlog` | `cli/test_migrate_help_and_chlog_cli.py` | |
+| 169 | `sq docs` CLI dispatch: lists without a squad, prints a named doc as raw markdown, `--rich` renders without error, exits 1 on an unknown doc | `test_cli.py::test_docs_lists_and_prints` | `cli/test_docs_cli.py` | the pre-existing `unit/test_bundled_docs_registry.py` only proved the underlying registry, never invoked the command |
+| 170 | `_hoist_global_options`: a leading global option is untouched; a trailing (or `=`-form) `--at`/`--dir` is hoisted to the front wherever it appears; a dangling `--at` with no value is left for Click; `--show-completion`/`--install-completion` pass through untouched even mixed with a real global option | `test_cli.py::test_hoist_global_options`, `test_hoist_global_options_does_not_break_completion_args` | `unit/test_hoist_global_options.py` | |
+| 171 | `--at` after the subcommand works end to end through the real console-script entry point (`python -m squads`), not just the pure hoist function | `test_cli.py::test_at_after_subcommand_works` | `integration/test_hoist_global_options_end_to_end.py` | |
+| 172 | Shell completion: `--show-completion bash`/`zsh` each emit a non-empty, well-formed, shell-specific script; the two are distinct | `test_cli.py::test_shell_completion_scripts_are_non_empty` | `cli/test_shell_completion_cli.py` | |
+| 173 | Per-invocation spec-context binding order (FEAT-250/the threaded-context-not-globals contract): the active `WorkflowSpec` is bound before Typer's `parse_type`/`parse_status` parser callbacks fire; both fall back to the bundled spec when no invocation has bound one yet; `parse_status` accepts loose and canonical forms and rejects unknown values | `test_cli.py::test_spec_bound_before_parse_type_runs`, `test_parse_type_fallback_to_bundled_spec_outside_squad`, `test_parse_status_validates_against_active_spec` | `cli/test_spec_context_binding_order.py` | |
+| 174 | `--dir` targets a squad from an unrelated cwd; `ref add --help` points at `sq workflow`; the CLI survives a legacy cp1252 console encoding (Windows-only, forces UTF-8 stdio) | `test_cli.py::test_dir_override`, `test_ref_add_help_references_workflow`, `test_workflow_survives_cp1252_console` | `cli/test_cli_plumbing_misc.py` | the cp1252 case is real but always-skipped off Windows |
+| 175 | `sq repair`'s own printed output names the missing items and reports the held counter; a repair after a file loss holds the padding floor | `test_cli.py::test_repair_cli_holds_counter_after_file_loss`, `test_repair_cli_holds_padding_after_file_loss` | `integration/test_repair_cli_output.py` | the counter/padding *mechanism* was already proven at `integration/test_repair_integrity.py`; this row covers the CLI command's own output text, which wasn't |
+| 176 | `sq check` warns on an edge whose stored ref kind is outside the vocabulary, and on a decision left `Superseded` with no incoming `supersedes` edge (never on one that has the edge); both surface through the real CLI without flipping the exit code | `test_cli.py::test_check_warns_unknown_kind_and_superseded_cli` | `service/test_check_ref_kind_and_supersedes_warnings.py` + `integration/test_check_surfaces_ref_kind_and_supersedes_warnings_cli.py` | found unhomed during this sweep beyond the original QA list — the equivalent old `test_service.py` tests (superseded/safe-to-delete) covered the same two rules but likewise had no new-suite home until this row |
+| 177 | `sq role list` falls through to the unknown-address path — clean exit 1, no internal `_addr` token leaking, no traceback — covering plain `list` and `list --available` | `test_cli.py::test_role_list_removed` | `cli/test_meta_type_address_verbs_and_list_removal.py` | reviewer-flagged follow-up: `test_cli.py`'s "everything else superseded" claim was wrong for this function and the 5 below |
+| 178 | `sq skill list` falls through to the same clean unknown-address error | `test_cli.py::test_skill_list_removed` | `cli/test_meta_type_address_verbs_and_list_removal.py` | |
+| 179 | `sq operator list` falls through to the same clean unknown-address error | `test_cli.py::test_operator_list_removed` | `cli/test_meta_type_address_verbs_and_list_removal.py` | |
+| 180 | `sq role <addr> regen`/`rm` resolve by bare number and full ID exactly like `show`; a wrong-type address token is a clean `SquadsError` naming the actual item+type, never a traceback | `test_cli.py::test_role_item_first_grammar` | `cli/test_meta_type_address_verbs_and_list_removal.py` | the `show` happy-path half of this old function is already homed at `cli/test_role_activate_with_override_cli.py`; this row is specifically the `regen`/`rm`/full-ID/wrong-type slice the reviewer found still uncovered |
+| 181 | `sq skill <addr> regen`/`rm` resolve by bare number and full ID; a wrong-type address token is a clean error | `test_cli.py::test_skill_item_first_grammar` | `cli/test_meta_type_address_verbs_and_list_removal.py` | |
+| 182 | `sq operator <addr> rm` resolves by bare number and full ID (operators have no `regen` verb — no Claude pointer, per CLAUDE.md's Operators section); a wrong-type address token is a clean error | `test_cli.py::test_operator_item_first_grammar` | `cli/test_meta_type_address_verbs_and_list_removal.py` | |
+
 ---
 
 ## Dev-archaeology naming to purge (Phase 2 authors against clean names)
@@ -380,10 +413,13 @@ Measured on this machine (14 cores, `pytest-xdist -n auto`, already the default 
 
 ## Row-count summary
 
-**159 numbered rows** across 24 contract groups (112–159 added on the 2026-07-10 independent-review
-follow-up), plus 4 explicitly-named naming-purge items, 8 duplicate-invariant clusters, and 4 flagged
-gaps (none blocking, all additive). Every bug-class named in FEAT-231 Principle 5 and the manager's
-four-pillar comment appears above:
+**182 numbered rows** across 25 contract groups (112–159 added on the 2026-07-10 independent-review
+follow-up; 160–176 added the same day by the TASK-374 Phase-3 gap-fill, closing `test_cli.py`'s
+unhomed coverage; 177–182 added the same day by a reviewer-flagged second pass on that gap-fill,
+closing the meta-type `list`-removed and address-verb (`regen`/`rm`) slice the first pass missed
+— see group 25), plus 4 explicitly-named naming-purge items, 8 duplicate-invariant clusters, and 4
+flagged gaps (none blocking, all additive). Every bug-class named in FEAT-231 Principle 5 and the
+manager's four-pillar comment appears above:
 
 - `is`-vs-`==` retype identity → row 2 (+ gap note on the adversarial case)
 - Dangling `.claude` pointers → rows 61–62 (+ gap note on the compound init→migrate scenario)
