@@ -9,6 +9,7 @@ from squads._itemfile import read_frontmatter
 from squads._services import _service as service
 from squads._services._rename import (
     _append_rename_comment,  # pyright: ignore[reportPrivateUsage]
+    _append_rename_status_comment,  # pyright: ignore[reportPrivateUsage]
     _apply_type_change,  # pyright: ignore[reportPrivateUsage]
 )
 from squads._workflow._loader import load_workflow_spec
@@ -281,3 +282,131 @@ async def test_rename_writes_reflog_and_comment_per_item(svc):
 
     fm = read_frontmatter(ticket_svc.paths.abspath(moved.path))
     assert fm["type"] == "ticket"
+
+
+# --------------------------------------------------------------------------- rename_status (AC2)
+
+
+async def test_rename_status_moves_matching_items_only(svc):
+    """All task items at old_status move to new_status; a task NOT at old_status is untouched."""
+    t1 = (await svc.create("task", "t1")).item
+    t2 = (await svc.create("task", "t2")).item
+    other = (await svc.create("task", "other")).item
+    await svc.set_status(t1.id, "Ready")
+    await svc.set_status(t2.id, "Ready")
+    await svc.set_status(other.id, "InProgress")
+
+    res = await svc.rename_status("task", "Ready", "Blocked")
+
+    assert res.renamed == 2
+    assert {new.status for new in [await svc.get(t1.id), await svc.get(t2.id)]} == {"Blocked"}
+    assert (await svc.get(other.id)).status == "InProgress"  # untouched
+
+
+async def test_rename_status_scoped_to_one_type(svc):
+    """A bug sharing old_status with a task is not touched by a task-scoped rename."""
+    task = (await svc.create("task", "t")).item
+    bug = (await svc.create("bug", "b")).item
+    await svc.set_status(task.id, "InProgress")
+    await svc.set_status(bug.id, "InProgress")  # bug's own lifecycle also has InProgress
+
+    await svc.rename_status("task", "InProgress", "Blocked")
+
+    assert (await svc.get(task.id)).status == "Blocked"
+    assert (await svc.get(bug.id)).status == "InProgress"  # different type, untouched
+
+
+async def test_rename_status_leaves_subentities_untouched(svc):
+    """Sub-entity status vocabulary (a separate axis) is never touched by a top-level rename."""
+    task = (await svc.create("task", "t")).item
+    await svc.add_subtask(task.id, "do the thing")
+    before_sub_status = (await svc.get(task.id)).subentities[0].status
+
+    await svc.rename_status("task", "Draft", "Ready")
+
+    moved = await svc.get(task.id)
+    assert moved.status == "Ready"
+    assert moved.subentities[0].status == before_sub_status
+
+
+async def test_rename_status_refuses_non_member_new_status(svc):
+    """new_status must resolve as a STATE of the type's own lifecycle."""
+    before = _snapshot_tree(svc.paths.squad_dir)
+    await svc.create("task", "t")
+    after_create = _snapshot_tree(svc.paths.squad_dir)
+    assert before != after_create
+
+    with pytest.raises(SquadsError, match="not a state"):
+        await svc.rename_status("task", "Draft", "NoSuchState")
+
+    assert _snapshot_tree(svc.paths.squad_dir) == after_create
+
+
+async def test_rename_status_refuses_reserved_meta_type(svc):
+    with pytest.raises(SquadsError, match="reserved meta-type"):
+        await svc.rename_status("role", "Draft", "Active")
+
+
+async def test_rename_status_refuses_undeclared_type(svc):
+    with pytest.raises(SquadsError, match="not declared"):
+        await svc.rename_status("nosuchtype", "Draft", "Ready")
+
+
+async def test_rename_status_no_items_is_a_noop(svc):
+    res = await svc.rename_status("task", "Draft", "Ready")
+    assert res.renamed == 0
+    assert res.ids == []
+
+
+async def test_rename_status_mid_flight_failure_restores_disk_and_index(svc, monkeypatch):
+    """An error partway through the mutation loop rolls the filesystem (and hence index +
+    reflog) back to byte-identical, even though frontmatter was already rewritten eagerly."""
+    t1 = (await svc.create("task", "t1")).item
+    t2 = (await svc.create("task", "t2")).item
+    await svc.set_status(t1.id, "Ready")
+    await svc.set_status(t2.id, "Ready")
+
+    before = _snapshot_tree(svc.paths.squad_dir)
+
+    calls = {"n": 0}
+    real = _append_rename_status_comment
+
+    async def _flaky(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:  # let the first item's frontmatter rewrite happen, then blow up
+            raise RuntimeError("boom")
+        return await real(*args, **kwargs)
+
+    monkeypatch.setattr("squads._services._rename._append_rename_status_comment", _flaky)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await svc.rename_status("task", "Ready", "Blocked")
+
+    assert _snapshot_tree(svc.paths.squad_dir) == before
+    db = await svc.store.load()
+    assert {it.status for it in db.items.values() if it.title in ("t1", "t2")} == {"Ready"}
+
+
+async def test_rename_status_writes_reflog_and_comment_per_item(svc):
+    """Each moved item gets a reflog line and a system discussion comment."""
+    from squads._index._reflog import read_lines, reflog_path
+
+    task = (await svc.create("task", "t")).item
+    await svc.set_status(task.id, "Ready")
+
+    await svc.rename_status("task", "Ready", "Blocked")
+
+    lines = await read_lines(reflog_path(svc.paths.squad_dir))
+    entry = next(line for line in lines if line.op == "rename-status")
+    assert entry.target == task.id
+    assert entry.delta["type"] == "task"
+    assert entry.delta["old_status"] == "Ready"
+    assert entry.delta["new_status"] == "Blocked"
+
+    moved = await svc.get(task.id)
+    assert moved.status == "Blocked"
+    text = svc.paths.abspath(moved.path).read_text(encoding="utf-8")
+    assert "Ready" in text and "Blocked" in text  # the audit comment names both statuses
+
+    fm = read_frontmatter(svc.paths.abspath(moved.path))
+    assert fm["status"] == "Blocked"
