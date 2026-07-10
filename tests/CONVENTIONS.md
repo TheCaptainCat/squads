@@ -19,6 +19,10 @@ which file happened to already test something nearby.
 | `tests/cli/` | The public command surface, via `CliRunner` | `project`, `runner` (or `invoke` for async tests) | Exit code, stdout/stderr text, `--json` shape, generated files |
 | `tests/integration/` | Multi-step workflows and migration round-trips — explicitly cross-layer | Composites of the above | End-to-end behaviour a single layer can't observe alone (e.g. init → migrate → no dangling pointers) |
 
+Repo-artifact/packaging self-tests that read static repo assets (ref-hygiene scans, the docs
+registry, "ships in the wheel" checks) still count as unit — "no filesystem" means no squad tmp
+dir, not never opening a file.
+
 **Placement rule of thumb:** if a unit test would prove the claim, it belongs in `unit/` even if a
 `cli/` test *could* also exercise it — see §5 (dedup discipline). A test only belongs in
 `integration/` when the claim genuinely requires chaining two or more operations that no single

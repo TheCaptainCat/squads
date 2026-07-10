@@ -1,8 +1,7 @@
 """Bundled TOML assets ship as package data: accessible via importlib.resources and present
 in the built wheel. One parametrized test over the asset list (the ledger's "ships in the
-wheel" duplicate-invariant cluster) — covers the playbook and role catalog TOMLs in this
-chunk's scope. default_workflow.toml's own instance of the same check is homed wherever the
-workflow-spec-loading chunk lands (not duplicated here).
+wheel" duplicate-invariant cluster) — covers the playbook, role catalog, and default-workflow
+TOMLs.
 """
 
 import shutil
@@ -18,6 +17,7 @@ import pytest
 _ASSETS: list[tuple[str, str, bytes]] = [
     ("squads._interactions", "playbook.toml", b"[types.task]"),
     ("squads._roles", "roles.toml", b"manager"),
+    ("squads._workflow", "default_workflow.toml", b"[lifecycles.work]"),
 ]
 
 
