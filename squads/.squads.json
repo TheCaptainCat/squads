@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.7.0",
-  "counter": 376,
+  "counter": 377,
   "padding": 6,
   "items": {
     "12": {
@@ -14977,6 +14977,57 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-376"
+    },
+    "377": {
+      "sequence_id": 377,
+      "type": "feature",
+      "title": "Inline Mermaid diagrams across sq markdown surfaces",
+      "slug": "inline-mermaid-diagrams-across-sq-markdown-surfaces",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Fenced Mermaid output from sq graph",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Derived per-item Mermaid graph section in the item dossier",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Spec-derived Mermaid diagrams in docs and the workflow cheatsheet",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000377-inline-mermaid-diagrams-across-sq-markdown-surfaces.md",
+      "created_at": "2026-07-10T09:04:53Z",
+      "updated_at": "2026-07-10T09:05:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-377"
     }
   }
 }
