@@ -22,7 +22,7 @@ subentities:
   title: Coverage ledger preserves previously-caught bugs
   status: Todo
 created_at: '2026-06-26T09:33:10Z'
-updated_at: '2026-07-10T04:50:51Z'
+updated_at: '2026-07-10T05:31:47Z'
 ---
 <!-- sq:body -->
 ## Overview
@@ -334,4 +334,6 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
     Baseline for scoping: current suite is ~1796 tests across 80 flat files, -n auto xdist, `slow` marker already registered but not yet in addopts.
     
     All 5 left Draft. Open questions for op-pierre before Ready/dispatch: (1) confirm the <30s default-run target as the acceptance number, or set a firmer sub-minute/CI figure; (2) is `tests/COVERAGE_LEDGER.md` the right home/name for the durable ledger; (3) Phase 3 sign-off gate is on YOU — Phase 0's ledger completeness is what you'll be signing.
+- [2026-07-10T05:31:47Z] Catherine Manager:
+  - HELD at the Phase-0 accept gate for operator direction. Phase 0 (TASK-372) complete + reviewer-signed-off: tests/COVERAGE_LEDGER.md (159 rows, all 80 current files homed, zero blind spots) is the delete-authorizing gate. Phases 1-4 (373-376) are Draft and NOT dispatched. Rationale for holding here rather than auto-building the rebuild overnight: (a) Phase 1's CONVENTIONS.md sets the whole new suite's structure/naming — a design call worth the operator's shaping; (b) Phase 2 is a large speculative rebuild better directed after ledger review; (c) Phase 3 deletes the EPIC-206 safety net and is explicitly gated on operator sign-off of this ledger. Open questions for op-pierre: (1) confirm the perf-target accept number (profiling shows -m 'not slow' = 25.78s, already under the 30s AC); (2) ledger granularity (159 rows) + home (tests/COVERAGE_LEDGER.md) OK as the durable artifact?; (3) greenlight to proceed with Phases 1-2 (non-destructive, new suite built alongside old), with Phase 3 swap still requiring explicit sign-off after parity is proven.
 <!-- sq:discussion:end -->
