@@ -3,7 +3,7 @@ id: FEAT-281
 sequence_id: 281
 type: feature
 title: Vocabulary rename migrations (sq migrate rename-type/status)
-status: InProgress
+status: Done
 parent: EPIC-280
 author: product-owner
 refs:
@@ -20,7 +20,7 @@ subentities:
     across all items of a type
   status: Todo
 created_at: '2026-07-02T09:25:53Z'
-updated_at: '2026-07-10T01:36:11Z'
+updated_at: '2026-07-10T01:56:00Z'
 ---
 <!-- sq:body -->
 ## What this delivers
@@ -218,4 +218,6 @@ As a project admin, I want `sq migrate rename-status <type> <old> <new>` to rewr
   - Re-baseline shape signed off: no SCHEMA_VERSION bump (on-demand project-invoked rewrite, like sq migrate repad, outside the upgrade chain); rename-type uses new bulk-rewrite primitives that carry sub-entities/status over (NOT a retype() wrapper — retype's guardrails would reject anything with sub-entities); the target type must be declared via ordinary additive override first, then rename-type moves data onto it (never auto-declares). Proceed on this shape. Sequenced after FEAT-212.
 - [2026-07-10T01:36:11Z] Mara Tester:
   - Acceptance sweep (TASK-359) found BUG-362: declaring a rename target type that mirrors an existing type's subentity_kind (as this feature's own worked example does) breaks add_subtask/add_finding/add_story on the OLD type's items while both coexist pre-rename. Doesn't block rename-type/rename-status themselves (worked around in the acceptance test by seeding before declaring the override) but blocks the feature's documented usage pattern.
+- [2026-07-10T01:55:59Z] Catherine Manager:
+  - FEAT-281 complete. All tasks landed and committed: TASK-355 (rename-safe retype primitive), 356 (rename-type bulk service, atomic), 357 (rename-status bulk service), 358 (sq migrate CLI wiring), 359 (independent acceptance sweep — all 5 ACs PASS). The sweep surfaced BUG-362 (sub-entity owner resolution when two types share a kind — the exact declare-then-rename pattern this feature documents); fixed and Verified. Re-baseline shape honoured: no SCHEMA_VERSION bump, on-demand rewrites like repad, rename-type carries sub-entities/status unconditionally via new bulk primitives, target type declared additively first. Reviewer-approved throughout; full suite green.
 <!-- sq:discussion:end -->
