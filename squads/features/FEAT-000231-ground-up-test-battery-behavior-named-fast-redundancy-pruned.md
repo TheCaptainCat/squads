@@ -22,7 +22,7 @@ subentities:
   title: Coverage ledger preserves previously-caught bugs
   status: Todo
 created_at: '2026-06-26T09:33:10Z'
-updated_at: '2026-07-10T15:49:45Z'
+updated_at: '2026-07-10T15:53:02Z'
 ---
 <!-- sq:body -->
 ## Overview
@@ -341,4 +341,6 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
   - Headline numbers: default 'uv run pytest' = 24.09s, 1225 collected (1219 passed/6 skipped) — under the 30s target. 'uv run pytest --run-slow' = 2m34.7s, 1225 collected (1224 passed/1 skipped), exit 0 — the 5 scale tests all exercised.
   - Zero dev-archaeology vocab (layer_a/layer_b/golden_lock/ticket-ID) in the shipped test tree outside the two governance docs + the hygiene test's own allowlisted test data. Coverage ledger: 211 rows/26 groups, every Principle-5 bug-class mapped. sq check: exit 0, clean.
   - Light-polish doc fixes made during acceptance: CONVENTIONS.md and COVERAGE_LEDGER.md intros/status lines were still framed as in-progress (Phase 0/1 language) post-swap; corrected to reflect the finalized state, plus one factual fix (the shipped slow-test opt-in is a --run-slow collection hook, not an addopts -m 'not slow' flip as the draft had said).
+- [2026-07-10T15:53:02Z] Pierre Chat:
+  - tests/COVERAGE_LEDGER.md removed post-swap: it was rebuild scaffolding (the accept-gate old->new coverage map), not a living artifact — once the old suite was deleted its 'old home' column became dead references and it would only rot as new tests are added. The rebuild history lives in git + TASK-372..376; CONVENTIONS.md is the durable go-forward artifact. This supersedes the FEAT-231 AC that called for the ledger as a standing characterization doc.
 <!-- sq:discussion:end -->

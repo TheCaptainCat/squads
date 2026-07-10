@@ -1,12 +1,10 @@
 # tests/ — authoring conventions
 
 **Status: finalized (FEAT-231, Phase 4).** This document governs `tests/unit/`, `tests/service/`,
-`tests/cli/`, `tests/integration/` — the sole test tree, authored per these rules in Phase 2 and
-verified for parity in Phase 3. The old flat `tests/test_*.py` suite predated this document and
-was retired wholesale in Phase 3, not edited to comply. `tests/COVERAGE_LEDGER.md` is the
-companion artifact: it maps every contract the retired suite protected to its target layer/pillar
-below — read it before authoring a new test so you land it in the right place and don't re-derive
-a home that's already decided.
+`tests/cli/`, `tests/integration/` — the four behavioral layers — plus the orthogonal
+`tests/meta/` repo-self-test category (see §1). Together they are the sole test tree, authored
+per these rules in Phase 2 and verified for parity in Phase 3. The old flat `tests/test_*.py`
+suite predated this document and was retired wholesale in Phase 3, not edited to comply.
 
 ## 1. The four layers
 
@@ -19,10 +17,12 @@ which file happened to already test something nearby.
 | `tests/service/` | The `Service` facade + `IndexStore` — real filesystem, no CLI | `svc` (and `project`, which `svc` depends on) | Return values **and** on-disk frontmatter/index state |
 | `tests/cli/` | The public command surface, via `CliRunner` | `project`, `runner` (or `invoke` for async tests) | Exit code, stdout/stderr text, `--json` shape, generated files |
 | `tests/integration/` | Multi-step workflows and migration round-trips — explicitly cross-layer | Composites of the above | End-to-end behaviour a single layer can't observe alone (e.g. init → migrate → no dangling pointers) |
+| `tests/meta/` | Repo/package self-tests: ticket-ID hygiene scan, the bundled-docs registry, ships-in-wheel packaging, template-manifest freshness | No — reads static repo/package assets | The repository or built package itself, not `squads` runtime behaviour |
 
-Repo-artifact/packaging self-tests that read static repo assets (ref-hygiene scans, the docs
-registry, "ships in the wheel" checks) still count as unit — "no filesystem" means no squad tmp
-dir, not never opening a file.
+`tests/meta/` is **not** a fifth behavioral layer — it's an orthogonal category for tests that
+assert on the repo/package as an artifact (file layout, packaging, hygiene scans) rather than on
+`squads` code's runtime behaviour. The "don't add a fifth layer" guard below still applies to
+behavior-shaped tests only.
 
 **Placement rule of thumb:** if a unit test would prove the claim, it belongs in `unit/` even if a
 `cli/` test *could* also exercise it — see §5 (dedup discipline). A test only belongs in
@@ -103,8 +103,9 @@ test_migration_preserves_ref_kinds_across_schema_versions
   the `FORCE_COLOR`/`COLUMNS` neutralization). Pytest's normal conftest resolution makes these
   visible in every subdirectory automatically — nothing needs re-importing per layer.
 - **Per-layer `conftest.py` files exist under each of `tests/unit/`, `tests/service/`,
-  `tests/cli/`, `tests/integration/`** as the documented home for a fixture that only that layer
-  needs. They start empty (a docstring only) — add to them, don't invent a fifth location.
+  `tests/cli/`, `tests/integration/`, `tests/meta/`** as the documented home for a fixture that
+  only that directory needs. They start empty (a docstring only) — add to them, don't invent
+  a new location.
 - **Never construct a `project`/`svc`/`runner` fixture by hand inside `tests/unit/`.** If a unit
   test needs one, that's a sign the claim belongs in `service/` or `cli/` instead.
 - `tests/fixtures/corpus/*` (the frozen migration-input snapshots, v0.1 through v0.8) are
@@ -123,10 +124,9 @@ this specific fact?* If yes, either the new test is proving something genuinely 
 own layer (e.g. "the CLI reaches the validator" vs. "the validator itself is correct" — both are
 legitimate, at different layers) or it's a duplicate.
 
-`tests/COVERAGE_LEDGER.md`'s "Duplicate-invariant clusters" section is the worked reference for
-this — e.g. "repair idempotency" was independently re-asserted per feature (seeding, skill
+A worked example: "repair idempotency" was independently re-asserted per feature (seeding, skill
 migration, custom-type paths, repad) instead of once, generically, parametrized over setups. When
-in doubt, match the shape of one of those clusters:
+in doubt, match the shape of that cluster:
 - **Genuine duplicate** → consolidate to one test (possibly parametrized) at the lowest layer that
   can express it.
 - **Deliberate repetition at a wiring point** → keep it, but say so. The ledger's slug-validation

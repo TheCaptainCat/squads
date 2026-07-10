@@ -1,6 +1,6 @@
 """`sq docs` — the bundled documentation reader. Needs no squad: it reads package data, not
 project state. The registry itself (`available`/`read`) is proven at
-tests/unit/test_bundled_docs_registry.py; this file proves the CLI command dispatches to it.
+tests/meta/test_bundled_docs_registry.py; this file proves the CLI command dispatches to it.
 """
 
 from squads._cli import app

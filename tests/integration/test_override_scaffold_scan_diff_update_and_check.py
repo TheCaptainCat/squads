@@ -5,7 +5,7 @@ anything structurally broken), `sq check` turns drift into a warning and a missi
 marker into an error, the full stale->diff->update->clean loop closes, and `sq migrate up`
 never touches a file under `.overrides/`. CLI exit-code/JSON smoke lives in
 tests/cli/test_override_commands_cli.py; manifest/stamp mechanics live in
-tests/unit/test_override_manifest_and_stamp_freshness.py.
+tests/meta/test_override_manifest_and_stamp_freshness.py.
 
 The third override kind, `workflow` (`.overrides/workflow.toml`, additive-only — no bundled
 counterpart to diff against, so drift is version-stamp-only), gets its own `TestWorkflowOverride`

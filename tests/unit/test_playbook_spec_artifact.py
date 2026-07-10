@@ -2,7 +2,7 @@
 key (extra="forbid" actually fires, not silently dropped), every declared field is covered
 by the pinned golden, the loaded shape is byte-identical to it, and the PLAYBOOK shim
 (dataclass form consumed by the renderer) is a lossless conversion of the spec. Packaging
-(playbook.toml ships in the wheel) lives in tests/unit/test_bundled_toml_packaging.py.
+(playbook.toml ships in the wheel) lives in tests/meta/test_bundled_toml_packaging.py.
 """
 
 import json
