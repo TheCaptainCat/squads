@@ -3,7 +3,7 @@ id: FEAT-231
 sequence_id: 231
 type: feature
 title: 'Ground-up test battery: behavior-named, fast, redundancy-pruned'
-status: Draft
+status: InProgress
 author: qa
 refs:
 - FEAT-208
@@ -22,7 +22,7 @@ subentities:
   title: Coverage ledger preserves previously-caught bugs
   status: Todo
 created_at: '2026-06-26T09:33:10Z'
-updated_at: '2026-07-09T21:47:55Z'
+updated_at: '2026-07-10T04:50:51Z'
 ---
 <!-- sq:body -->
 ## Overview
@@ -320,4 +320,18 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
   - The test-suite rebuild here is a full DESTROY-and-rebuild — all tests get torn down and rebuilt fresh, not incrementally renamed or restructured. So don't fix test naming/structure piecemeal beforehand (e.g. ticket-ID filenames like test_workflow_renderer_261.py); this feature replaces the lot.
 - [2026-07-09T21:47:55Z] Pierre Chat:
   - Sequencing decision: the ground-up test-suite rebuild runs LAST — after FEAT-212 and FEAT-281 land. 212/281 reshape the sub-entity/migration/vocab surfaces the suite targets; rebuilding first discards that coverage and collides on the test tree mid-dev. Guardrail on 212/281 dispatch: thin, behavior-named acceptance tests only — FEAT-231 owns exhaustive coverage. The addopts '-m not slow' wall-clock win is folded INTO the rebuild (no piecemeal patching of the old suite).
+- [2026-07-10T04:50:51Z] Olivia Lead:
+  - Broke the rebuild into 5 phased Draft tasks (0->4, largely sequential) realizing the recorded strategy — no re-invention, no implementation:
+    
+    - TASK-372 Phase 0 — behavior inventory + coverage ledger (the accept gate; NO deletion). ST1->US4 (ledger covers every Principle-5 bug-class + the four-pillar edge cases incl. the FEAT-208 F1 load-boundary crash), ST2->US3 (durations + cov profiling to find duplicate-invariant clusters).
+    - TASK-373 Phase 1 — layered scaffolding (unit/service/cli/integration) + CONVENTIONS.md + re-homed conftest carrying the FORCE_COLOR strip, all leak-guards, and corpus verbatim; new tree green-empty beside the old.
+    - TASK-374 Phase 2 — author the four pillars vs the SHIPPED engine (generic-once, spec-as-artifact+goldens, thin behavioural spine absorbing the EPIC-280/335 acceptance seeds, first-class failure/edge surface). ST1->US1 (behavior names), ST2->US2 (mark scale slow + flip addopts to -m 'not slow', <30s — the deferred wall-clock win folds in here), ST3->US3 (each invariant once at lowest layer). Old suite still green; adds only.
+    - TASK-375 Phase 3 — parity verification + destructive swap. ST1->US4. Flagged in-body: REQUIRES operator sign-off on the Phase-0 coverage ledger before execution — do not dispatch without it. This is the one task that deletes the old suite.
+    - TASK-376 Phase 4 — finalize CONVENTIONS.md + the ledger as the durable characterization artifact; hand to QA for feature acceptance against all 6 ACs + US1-4.
+    
+    Deps: 0->1->2->3->4 sequential. Parallelism only within Phase 2 (the four pillars sit in mostly-separate subdirs) — but they share conftest/CONVENTIONS/goldens, so concurrent authors must worktree-isolate or sequence those touch points.
+    
+    Baseline for scoping: current suite is ~1796 tests across 80 flat files, -n auto xdist, `slow` marker already registered but not yet in addopts.
+    
+    All 5 left Draft. Open questions for op-pierre before Ready/dispatch: (1) confirm the <30s default-run target as the acceptance number, or set a firmer sub-minute/CI figure; (2) is `tests/COVERAGE_LEDGER.md` the right home/name for the durable ledger; (3) Phase 3 sign-off gate is on YOU — Phase 0's ledger completeness is what you'll be signing.
 <!-- sq:discussion:end -->
