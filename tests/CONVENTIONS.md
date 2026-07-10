@@ -1,11 +1,12 @@
 # tests/ — authoring conventions
 
-**Status: Phase 1 scaffold (FEAT-231).** This document governs `tests/unit/`, `tests/service/`,
-`tests/cli/`, `tests/integration/` — the new tree Phase 2 authors into. The old flat `tests/test_*.py`
-suite predates this document and is unaffected by it; it is retired wholesale in Phase 3, not
-edited to comply. `tests/COVERAGE_LEDGER.md` is the companion artifact: it maps every contract the
-old suite protects to a target layer/pillar below — read it before authoring a new test so you
-land it in the right place and don't re-derive a home that's already decided.
+**Status: finalized (FEAT-231, Phase 4).** This document governs `tests/unit/`, `tests/service/`,
+`tests/cli/`, `tests/integration/` — the sole test tree, authored per these rules in Phase 2 and
+verified for parity in Phase 3. The old flat `tests/test_*.py` suite predated this document and
+was retired wholesale in Phase 3, not edited to comply. `tests/COVERAGE_LEDGER.md` is the
+companion artifact: it maps every contract the retired suite protected to its target layer/pillar
+below — read it before authoring a new test so you land it in the right place and don't re-derive
+a home that's already decided.
 
 ## 1. The four layers
 
@@ -75,8 +76,9 @@ that…"** without requiring the reader to know anything about this project's de
   (`test_bundled_spec_is_byte_identical_to_the_golden`, not `test_golden_lock_spec`).
 - Any `FEAT-`, `TASK-`, `ADR-`, `REV-`, `BUG-` reference (file name, test name, or docstring).
   Ticket pointers belong in commit history, not the test tree — this is the same project rule that
-  bans ticket IDs from source (`tests/test_squad_ref_hygiene.py` enforces it for `src/`+`docs/`;
-  Phase 2 extends that scan to cover `tests/` too, closing the loop mechanically).
+  bans ticket IDs from source. `tests/unit/test_source_and_new_test_tree_have_no_stray_ticket_references.py`
+  enforces it mechanically: full-text for `src/`+`docs/`, and by name/docstring (not assertion
+  data) across this tree — closing the loop the old suite's `test_squad_ref_hygiene.py` left open.
 - A ticket ID embedded in a *filename* specifically (e.g. the old suite's
   `test_workflow_renderer_261.py`) — same rule, just the file-level instance of it.
 
@@ -162,6 +164,9 @@ docstrings for the specific bugs each one fixes):
 
 ## 8. Scale / slow tests
 
-The `@pytest.mark.slow` marker and `--run-slow` opt-in (root conftest) carry forward unchanged.
-Phase 1 does not flip `addopts` to `-m "not slow"` by default — that flip, plus marking the actual
-scale tests, is Phase 2's job (it lands together with the tests it's marking, not ahead of them).
+The `@pytest.mark.slow` marker and `--run-slow` opt-in (root `conftest.py`) carry forward
+unchanged. The default-run speed goal (Principle 3) is realized by that opt-in, not by an
+`addopts` `-m "not slow"` flip: `pytest_collection_modifyitems` skips every `slow`-marked test at
+collection time unless `--run-slow` is passed, so a bare `uv run pytest` stays fast while
+`uv run pytest --run-slow` exercises the scale paths (`tests/test_scale.py`) exactly like
+`-m slow` would, without requiring every invocation to remember a marker expression.

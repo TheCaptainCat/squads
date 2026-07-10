@@ -3,7 +3,7 @@ id: FEAT-231
 sequence_id: 231
 type: feature
 title: 'Ground-up test battery: behavior-named, fast, redundancy-pruned'
-status: InProgress
+status: Done
 author: qa
 refs:
 - FEAT-208
@@ -22,7 +22,7 @@ subentities:
   title: Coverage ledger preserves previously-caught bugs
   status: Todo
 created_at: '2026-06-26T09:33:10Z'
-updated_at: '2026-07-10T05:31:47Z'
+updated_at: '2026-07-10T15:49:45Z'
 ---
 <!-- sq:body -->
 ## Overview
@@ -336,4 +336,9 @@ As a future developer introducing a schema change, I want a coverage ledger mapp
     All 5 left Draft. Open questions for op-pierre before Ready/dispatch: (1) confirm the <30s default-run target as the acceptance number, or set a firmer sub-minute/CI figure; (2) is `tests/COVERAGE_LEDGER.md` the right home/name for the durable ledger; (3) Phase 3 sign-off gate is on YOU — Phase 0's ledger completeness is what you'll be signing.
 - [2026-07-10T05:31:47Z] Catherine Manager:
   - HELD at the Phase-0 accept gate for operator direction. Phase 0 (TASK-372) complete + reviewer-signed-off: tests/COVERAGE_LEDGER.md (159 rows, all 80 current files homed, zero blind spots) is the delete-authorizing gate. Phases 1-4 (373-376) are Draft and NOT dispatched. Rationale for holding here rather than auto-building the rebuild overnight: (a) Phase 1's CONVENTIONS.md sets the whole new suite's structure/naming — a design call worth the operator's shaping; (b) Phase 2 is a large speculative rebuild better directed after ledger review; (c) Phase 3 deletes the EPIC-206 safety net and is explicitly gated on operator sign-off of this ledger. Open questions for op-pierre: (1) confirm the perf-target accept number (profiling shows -m 'not slow' = 25.78s, already under the 30s AC); (2) ledger granularity (159 rows) + home (tests/COVERAGE_LEDGER.md) OK as the durable artifact?; (3) greenlight to proceed with Phases 1-2 (non-destructive, new suite built alongside old), with Phase 3 swap still requiring explicit sign-off after parity is proven.
+- [2026-07-10T15:49:44Z] Mara Tester:
+  - FEAT-231 ACCEPTED. All 6 acceptance criteria + US1-4 verified end-to-end on the final post-swap state (full verdict + evidence on TASK-376).
+  - Headline numbers: default 'uv run pytest' = 24.09s, 1225 collected (1219 passed/6 skipped) — under the 30s target. 'uv run pytest --run-slow' = 2m34.7s, 1225 collected (1224 passed/1 skipped), exit 0 — the 5 scale tests all exercised.
+  - Zero dev-archaeology vocab (layer_a/layer_b/golden_lock/ticket-ID) in the shipped test tree outside the two governance docs + the hygiene test's own allowlisted test data. Coverage ledger: 211 rows/26 groups, every Principle-5 bug-class mapped. sq check: exit 0, clean.
+  - Light-polish doc fixes made during acceptance: CONVENTIONS.md and COVERAGE_LEDGER.md intros/status lines were still framed as in-progress (Phase 0/1 language) post-swap; corrected to reflect the finalized state, plus one factual fix (the shipped slow-test opt-in is a --run-slow collection hook, not an addopts -m 'not slow' flip as the draft had said).
 <!-- sq:discussion:end -->

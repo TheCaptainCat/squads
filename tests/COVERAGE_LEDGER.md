@@ -1,15 +1,18 @@
-# Coverage ledger — Phase 0 of the test-suite rebuild
+# Coverage ledger — the durable characterization artifact for the test-suite rebuild
 
-**Status: characterization artifact, Phase 0 (analysis only). Nothing under `tests/` has been
-deleted, moved, or rewritten to produce this document.**
+**Status: finalized (FEAT-231, Phase 4). The rebuild is complete — the retired flat suite is
+gone; `tests/{unit,service,cli,integration}/` (plus `tests/test_scale.py`) is now the sole
+suite.** This document is kept as the standing map a future developer reads before a
+schema/vocab change, not as a work-log of the rebuild itself.
 
-This ledger maps every distinct bug-class / invariant the *current* suite (80 files, 1796
-collected tests, confirmed via `pytest --collect-only`) protects to a planned home in the new
-four-layer / four-pillar battery (FEAT-231). It is the accept gate referenced by that feature:
-**Phase 3 (the destructive swap) may not proceed until every row below has a green home in the
-new suite.** Rows are grouped by contract, not by current file, per the Phase 0 task's
-instruction — a single current file often serves several rows below, and a single row is often
-asserted (redundantly) across several current files, flagged under "Duplicate-invariant
+This ledger originated (Phase 0) by mapping every distinct bug-class / invariant the then-current
+suite (80 files, 1796 collected tests, confirmed via `pytest --collect-only`) protected to a
+planned home in the new four-layer / four-pillar battery (FEAT-231), and served as the accept gate
+for Phase 3's destructive swap — every row below had to have a green home in the new suite before
+that swap could proceed. That swap has landed; the rows below now describe where each contract
+actually lives in the shipped suite. Rows are grouped by contract, not by current file, per the
+Phase 0 task's instruction — a single old file often served several rows below, and a single row
+was often asserted (redundantly) across several old files, flagged under "Duplicate-invariant
 clusters" at the end.
 
 Target layers: `unit` / `service` / `cli` / `integration` (FEAT-231 principle 2).
