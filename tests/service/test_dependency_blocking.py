@@ -49,6 +49,18 @@ async def test_a_closed_blocker_no_longer_counts(svc):
     assert await svc.blocked() == []
 
 
+async def test_a_closed_dependent_is_never_reported_as_blocked_even_with_an_open_blocker(svc):
+    """The *target* being closed (not the blocker) short-circuits ``blocked()`` — a distinct
+    branch from ``test_a_closed_blocker_no_longer_counts`` above, which closes the blocker."""
+    blocker = (await svc.create("task", "still open")).item
+    dependent = (await svc.create("task", "already done")).item
+    await svc.add_ref(dependent.id, blocker.id, kind="depends-on")
+
+    await svc.set_status(dependent.id, "InProgress")
+    await svc.set_status(dependent.id, "Done")
+    assert await svc.blocked() == []
+
+
 async def test_an_item_can_be_ready_and_blocked_at_the_same_time(svc):
     """Ready-ness is about the item's OWN prose being done; blocked-ness is about a
     still-open dependency. The two facts hold on the same item simultaneously — orthogonal

@@ -96,6 +96,21 @@ async def test_root_show_errors_cleanly_on_unknown_id_and_wrong_type_prefix(
     assert wrong_prefix.exit_code != 0
     assert "FEAT-2" in wrong_prefix.output
 
+    garbage = await invoke(["show", "abc"])
+    assert garbage.exit_code != 0
+    assert "invalid item id" in garbage.output
+
+
+async def test_a_typed_command_rejects_a_full_id_with_the_wrong_type_prefix(
+    project, invoke
+) -> None:
+    """``sq <type> <n> show`` resolves ``<n>`` via ``resolve_item_id_typed`` — distinct from
+    root ``sq show``'s type-less ``resolve_item_id_any`` (tested just above)."""
+    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
+    r = await invoke(["task", "FEAT-000002", "show"])
+    assert r.exit_code != 0
+    assert "FEAT-2" in r.output and "not a task" in r.output
+
 
 async def test_root_show_accepts_raw_json_comments_and_full_flags(project, invoke) -> None:
     await invoke(["create", "task", "T", "--author", "manager", "-m", "Body."])
@@ -239,3 +254,45 @@ async def test_role_show_of_a_bundled_but_inactive_role_offers_an_activation_hin
     r = await invoke(["role", "qa", "show"])
     assert r.exit_code == 0, r.output
     assert "activate" in r.output.lower()
+
+
+async def test_an_item_with_an_explicitly_emptied_body_shows_the_default_empty_hint(
+    project, invoke
+) -> None:
+    await invoke(["create", "task", "T", "--author", "manager"])
+    await invoke(["task", "2", "body", "-m", ""])  # replaces the template's TODO placeholder
+    r = await invoke(["task", "2", "show"])
+    assert r.exit_code == 0, r.output
+    assert "empty" in r.output and "body" in r.output
+
+
+async def test_the_info_panel_surfaces_the_description_summary_and_the_created_and_modified_session(
+    project, invoke, monkeypatch
+) -> None:
+    monkeypatch.setenv("SQUADS_SESSION_ID", "created-session-abc")
+    monkeypatch.delenv("SQUADS_PARENT_SESSION_ID", raising=False)
+    await invoke(
+        ["create", "task", "T", "--author", "manager", "--desc", "A short frontmatter summary."]
+    )
+    created = await invoke(["task", "2", "show"])
+    assert created.exit_code == 0, created.output
+    assert "A short frontmatter summary." in created.output
+    assert "created-session-abc" in created.output
+
+    monkeypatch.setenv("SQUADS_SESSION_ID", "modified-session-xyz")
+    await invoke(["task", "2", "update", "--title", "T2"])
+    modified = await invoke(["task", "2", "show"])
+    assert "modified-session-xyz" in modified.output
+
+
+async def test_full_styled_pane_shows_a_declared_badge_field_and_embeds_a_sub_entity_comment(
+    project, styled, invoke
+) -> None:
+    await invoke(["create", "review", "R", "--author", "manager"])
+    await invoke(["review", "2", "add-finding", "Something's off", "--severity", "high"])
+    await invoke(["review", "2", "finding", "1", "comment", "--as", "manager", "-m", "Detail."])
+
+    r = await invoke(["review", "2", "show", "--full", "--comments"])
+    assert r.exit_code == 0, r.output
+    assert "High" in r.output  # the badge label, rendered via badge_render(as_label=True)
+    assert "Detail." in r.output  # the sub-entity comment, embedded in a styled Panel

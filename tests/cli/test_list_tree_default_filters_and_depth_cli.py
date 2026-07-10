@@ -65,3 +65,24 @@ async def test_tree_human_render_separates_priority_badge_and_title_with_a_middl
     task_node = _find_node(all_nodes, "TASK-2")
     assert task_node is not None
     assert task_node["priority"] == "high" and "·" not in str(task_node["priority"])
+
+
+async def test_tree_type_filter_still_renders_path_only_ancestors_but_excludes_siblings(
+    project, invoke
+):
+    """A ``--type`` filter dims non-matching ancestors (path-only) rather than hiding them, and
+    drops a sibling subtree with no matching descendant entirely."""
+    await invoke(["create", "epic", "Epic A", "--author", "manager"])
+    await invoke(["create", "feature", "Feature B", "--author", "manager", "--parent", "EPIC-2"])
+    await invoke(["create", "task", "Task C", "--author", "manager", "--parent", "FEAT-3"])
+    await invoke(["create", "bug", "Bug D", "--author", "manager", "--parent", "FEAT-3"])
+
+    r = await invoke(["tree", "--type", "task"])
+    assert r.exit_code == 0, r.output
+    assert "TASK-4" in r.output
+    assert "EPIC-2" in r.output and "FEAT-3" in r.output  # path-only ancestors still rendered
+    assert "BUG-5" not in r.output  # non-matching sibling excluded entirely
+
+    scoped = await invoke(["tree", "FEAT-3", "--type", "task"])
+    assert "TASK-4" in scoped.output and "FEAT-3" in scoped.output
+    assert "EPIC-2" not in scoped.output

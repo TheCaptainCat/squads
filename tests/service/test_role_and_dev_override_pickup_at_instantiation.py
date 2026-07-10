@@ -4,8 +4,10 @@ field_merge.py): a non-name field (model/mission) reaches the created ROLE item;
 slug's TOML admits it; with no TOML, the bundled default (or the dev-name pool) is used
 unchanged; ``resolve_dev_role`` itself picks up a dev-slug TOML override.
 
-The explicit-``--name``-wins-over-a-TOML-``full_name`` half of this same mechanism is already
-proven at tests/service/test_agent_naming_precedence.py — not re-derived here.
+The explicit-``--name``-wins-over-a-TOML-``full_name`` half of this same mechanism is proven at
+tests/service/test_agent_naming_precedence.py for ``activate_role`` — but ``add_dev`` reads
+through the *different* ``resolve_dev_role`` resolver, so that half of the precedence rule is
+re-proven here for the dev-specific code path.
 """
 
 from pathlib import Path
@@ -81,3 +83,18 @@ def test_resolve_dev_role_with_no_squad_dir_returns_the_vanilla_pool_output() ->
     r = resolve_dev_role("dotnet", seq=0, squad_dir=None)
     assert r.slug == "dotnet-dev"
     assert r.full_name.endswith("Dotnet")
+
+
+async def test_add_dev_explicit_name_wins_over_a_toml_full_name_override(project, svc):
+    _place_role_toml(project.squad_dir, "go-dev", 'full_name = "TOML Go Dev"\nmodel = "haiku"\n')
+    item = await svc.add_dev("go", name="Alice Go")
+    assert item.extra.get(X.FULL_NAME) == "Alice Go"
+    assert item.extra.get(X.MODEL) == "haiku"  # non-name fields still apply
+
+
+async def test_add_dev_rejects_a_second_dev_for_a_technology_already_registered(svc):
+    from squads._errors import SquadsError
+
+    await svc.add_dev("dotnet")
+    with pytest.raises(SquadsError, match="already exists"):
+        await svc.add_dev("dotnet")

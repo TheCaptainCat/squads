@@ -118,3 +118,21 @@ async def test_priority_is_the_bundled_instance_of_the_same_generic_axis(project
 
     everything = await invoke(["list", "--min-priority", "low"])
     assert t1 in everything.output and t2 in everything.output
+
+
+async def test_set_and_unset_reach_a_non_badge_generic_extra_field_too(project, invoke) -> None:
+    """``--set``/``--unset`` are not badge-only: a review's declared ``target_ref`` (a plain
+    str field, not a badge collection) round-trips through the identical CLI flags."""
+    await invoke(["create", "review", "R", "--author", "manager"])
+
+    r = await invoke(["review", "2", "update", "--set", "target_ref=FEAT-2"])
+    assert r.exit_code == 0, r.output
+    shown = await invoke(["review", "2", "show", "--json"])
+    import json
+
+    assert json.loads(shown.output)["extra"]["target_ref"] == "FEAT-2"
+
+    unset = await invoke(["review", "2", "update", "--unset", "target_ref"])
+    assert unset.exit_code == 0, unset.output
+    shown_after = await invoke(["review", "2", "show", "--json"])
+    assert "target_ref" not in json.loads(shown_after.output)["extra"]

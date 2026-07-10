@@ -94,6 +94,16 @@ async def test_skill_rm_resolves_by_bare_number(project, invoke):
     assert result.exit_code == 0, result.output
 
 
+async def test_skill_show_resolves_by_its_slug(project, invoke):
+    """The exact-slug branch of the address resolver — distinct from the bare-number/full-ID
+    forms the other tests in this module already cover."""
+    await invoke(["skill", "add", "my-skill", "--desc", "test skill"])  # SKILL-2
+
+    result = await invoke(["skill", "my-skill", "show"])
+    assert result.exit_code == 0, result.output
+    assert "my-skill" in result.output
+
+
 async def test_skill_regen_on_a_wrong_type_token_is_a_clean_error(project, invoke):
     # seq 1 is the manager role after `project`'s minimal init.
     result = await invoke(["skill", "1", "regen"])
@@ -123,3 +133,13 @@ async def test_operator_rm_on_a_wrong_type_token_is_a_clean_error(project, invok
     assert result.exit_code == 1
     assert "not an operator" in result.output or "role" in result.output
     assert "Traceback" not in result.output
+
+
+# --------------------------------------------------------------------------- role: catalog
+
+
+async def test_role_catalog_renders_a_table_of_slug_name_title_and_default_marker(project, invoke):
+    result = await invoke(["role", "catalog"])
+    assert result.exit_code == 0, result.output
+    assert "manager" in result.output
+    assert "Slug" in result.output and "Title" in result.output

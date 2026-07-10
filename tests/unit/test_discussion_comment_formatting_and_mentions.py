@@ -36,6 +36,18 @@ def test_extract_mentions_finds_at_role_tokens_and_ignores_lookalikes() -> None:
     assert discussion.extract_mentions(text) == {"qa", "reviewer"}
 
 
+def test_split_discussion_parses_each_comment_at_its_own_header_line() -> None:
+    """A region with two comments is split into two Comment objects — the mid-loop flush at
+    each new header line, not just the final flush after the last one."""
+    region = (
+        "- [2026-06-07T10:00:00Z] Alice:\n  - First.\n- [2026-06-07T11:00:00Z] Bob:\n  - Second.\n"
+    )
+    comments = discussion.split_discussion(region)
+    assert len(comments) == 2
+    assert comments[0].author == "Alice" and "First." in comments[0].body
+    assert comments[1].author == "Bob" and "Second." in comments[1].body
+
+
 def _sub(local_id: str, **kw) -> SubEntity:
     return SubEntity(local_id=local_id, status=kw.pop("status", "Todo"), **kw)
 

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from squads._errors import SquadsError
 from squads._index._reflog import read_lines, reflog_path
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
@@ -120,6 +121,47 @@ async def test_rename_type_leaves_check_clean_and_repair_a_pure_no_op(
     assert before == after, "repair changed item data -- index is not a pure rebuild"
 
 
+async def test_rename_type_refuses_an_undeclared_new_type_and_a_no_op_rename_to_itself(
+    svc,
+) -> None:
+    await svc.create("task", "t")
+    with pytest.raises(SquadsError, match="not declared"):
+        await svc.rename_type("task", "ticket")
+    with pytest.raises(SquadsError, match="itself"):
+        await svc.rename_type("task", "task")
+
+
+async def test_rename_type_refuses_when_a_child_would_have_an_invalid_parent_under_the_new_type(
+    svc,
+) -> None:
+    from squads._workflow._loader import load_workflow_spec
+    from squads._workflow._models import ItemSpec, WorkflowSpec
+
+    base = load_workflow_spec()
+    generic = ItemSpec(prefix="GEN", folder="generics", lifecycle="work")
+    spec = WorkflowSpec.model_validate(
+        {
+            "items": {**base.items, "generic": generic},
+            "statuses": base.statuses,
+            "lifecycles": base.lifecycles,
+            "prefix_to_type": {**base.prefix_to_type, "GEN": "generic"},
+            "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
+        }
+    )
+    generic_svc = service.Service(svc.paths, spec=spec)
+
+    feat = (await svc.create("feature", "f")).item
+    task = (await svc.create("task", "t", parent=feat.id)).item  # requires a feature parent
+
+    with pytest.raises(SquadsError, match="child item"):
+        await generic_svc.rename_type("feature", "generic")
+
+    still = await svc.get(task.id)
+    assert still.parent == feat.id  # untouched
+
+
 async def test_rename_type_mid_flight_failure_restores_disk_and_index(
     svc, monkeypatch, tmp_path
 ) -> None:
@@ -218,6 +260,52 @@ async def test_rename_status_invalid_target_fails_closed_with_no_partial_rewrite
     db_after = await svc.store.load()
     statuses_after = {it.id: it.status for it in db_after.items.values()}
     assert statuses_after == statuses_before
+
+
+async def test_rename_status_refuses_an_undeclared_item_type(svc) -> None:
+    with pytest.raises(SquadsError, match="not declared"):
+        await svc.rename_status("nosuchtype", "Draft", "Ready")
+
+
+async def test_rename_status_mid_flight_failure_restores_disk_and_index(svc, monkeypatch) -> None:
+    """The rename-status mutation loop has its own rollback wiring, distinct from
+    rename-type's — mirror the same failure-injection technique against the sibling
+    private helper it actually calls."""
+    from squads._services._rename import (
+        _append_rename_status_comment,  # pyright: ignore[reportPrivateUsage]
+    )
+
+    t1 = (await svc.create("task", "t1")).item
+    t2 = (await svc.create("task", "t2")).item
+    await svc.set_status(t1.id, "Ready")
+    await svc.set_status(t2.id, "Ready")
+
+    def _snapshot(root: Path) -> dict[str, str]:
+        return {
+            str(p.relative_to(root)): p.read_text(encoding="utf-8")
+            for p in root.rglob("*")
+            if p.is_file()
+        }
+
+    before = _snapshot(svc.paths.squad_dir)
+
+    calls = {"n": 0}
+    real = _append_rename_status_comment
+
+    async def _flaky(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:  # let the first item's frontmatter rewrite happen, then blow up
+            raise RuntimeError("boom")
+        return await real(*args, **kwargs)
+
+    monkeypatch.setattr("squads._services._rename._append_rename_status_comment", _flaky)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await svc.rename_status("task", "Ready", "Blocked")
+
+    assert _snapshot(svc.paths.squad_dir) == before
+    db = await svc.store.load()
+    assert {it.status for it in db.items.values() if it.title in ("t1", "t2")} == {"Ready"}
 
 
 # --------------------------------------------------------------------------- audit trail

@@ -156,6 +156,17 @@ def test_work_types_includes_a_custom_work_type_but_not_a_custom_meta_type() -> 
     assert "custom-agent" not in wt
 
 
+def test_the_module_level_work_types_free_function_matches_the_bundled_specs_own_method() -> None:
+    """``squads._workflow.work_types()`` — a package-level convenience wrapper over the
+    bundled singleton's own ``work_types()`` method, proven above."""
+    from squads._workflow import work_types
+
+    spec = bundled_spec()
+    assert work_types() == spec.work_types()
+    for mt in META_TYPES:
+        assert mt not in work_types()
+
+
 # --------------------------------------------------------------------------- graceful degradation
 # A custom work type has no PLAYBOOK/interactions entry — every playbook accessor degrades to
 # empty rather than KeyError (the playbook stays PLAYBOOK-keyed / built-in-only).

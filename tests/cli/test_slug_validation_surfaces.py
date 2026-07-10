@@ -48,6 +48,14 @@ class TestInbox:
         assert r.exit_code == 0
         assert "TASK-2" in r.output
 
+    async def test_a_valid_slug_with_no_mentions_at_all_prints_a_clean_nothing_message(
+        self, invoke, project
+    ) -> None:
+        await invoke(["create", "task", "T", "--author", "manager"])
+        r = await invoke(["inbox", "manager"])
+        assert r.exit_code == 0
+        assert "nothing for @manager" in r.output
+
 
 class TestCommentAs:
     async def test_unknown_slug_exits_1(self, invoke, project) -> None:

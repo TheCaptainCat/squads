@@ -137,6 +137,36 @@ async def test_repair_after_migration_rebuilds_the_index_cleanly(
     assert await svc.list_items(item_type="skill")
 
 
+async def test_migration_backfills_description_onto_an_already_stamped_convention_file(
+    tmp_path, monkeypatch, frozen_time
+):
+    """A live-repo corner case: a convention-named, already-stamped skill file whose
+    description was wiped (e.g. by an older pre-backfill migration run) gets its
+    description filled in on a *second* migration pass, not just the first."""
+    from squads._sections import replace_frontmatter, split_frontmatter
+
+    paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
+    await migrate_v0_4_to_v0_5(paths)  # first pass: creates convention files with description
+
+    skills_dir = paths.squad_dir / "agents/skills"
+    for slug in bundled_skill_slugs():
+        convention = list(skills_dir.glob(f"SKILL-*-{slug}.md"))
+        if not convention:
+            continue
+        text = convention[0].read_text(encoding="utf-8")
+        fm, _ = split_frontmatter(text)
+        fm["description"] = ""
+        convention[0].write_text(replace_frontmatter(text, fm), encoding="utf-8")
+
+    acted = await migrate_v0_4_to_v0_5(paths)
+    assert acted > 0, "the re-run must backfill every description-less convention file"
+
+    for slug in bundled_skill_slugs():
+        convention = list(skills_dir.glob(f"SKILL-*-{slug}.md"))
+        fm, _ = split_frontmatter(convention[0].read_text(encoding="utf-8"))
+        assert fm.get("description") == skill_description(slug)
+
+
 # --------------------------------------------------------------------------- CLI wiring (thin)
 
 
