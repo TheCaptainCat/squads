@@ -143,9 +143,11 @@ no manual markdown editing.
 
 `sq <type> <n> <kind> <k> update` is the one metadata entry point for a sub-entity — `--title`,
 `--status` (+`--force`), `--assignee`/`--clear-assignee`, plus a subtask's `--story`/`--no-story` and
-a finding's `--severity`. Findings carry a **severity** (🔴 critical · 🟠 high · 🟡 medium · 🟢 low ·
-🔵 info), set at `add` time and changeable with `update --severity`. Transitions are validated by the
-sub-entity machines (`squads._workflow.SUBENTITY_WORKFLOWS`); `--force` overrides.
+a finding's `--severity`. Findings carry a **severity** value from the bundled `severity` collection
+(by default: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info), set at `add` time and changeable
+with `update --severity`. The severity collection is fully customizable via `.overrides/workflow.toml`;
+you can relabel badges, change emoji, add/remove values, or define a custom collection for your
+findings. Transitions are validated by the sub-entity machines; `--force` overrides.
 
 ---
 
@@ -231,7 +233,8 @@ This creates `.overrides/workflow.toml` in your squad directory (next to `.squad
 
 ### Override format
 
-The override file is standard TOML with three sections: `[lifecycles.*]`, `[statuses.*]`, and `[items.*]`.
+The override file is standard TOML with four sections: `[items.*]`, `[statuses.*]`, `[lifecycles.*]`,
+and `[collections.*]`.
 
 #### Lifecycles
 
@@ -290,6 +293,38 @@ prefix = "INC"
 folder = "incidents"
 lifecycle = "incident"
 ```
+
+#### Collections
+
+A collection is a reusable set of badge options (like priority or severity) that can be applied to
+items or sub-entities. Collections are ordered or unordered; ordered collections support filtering
+and sorting by rank.
+
+```toml
+[collections.impact]
+ordered = true
+default_code = "medium"
+
+[[collections.impact.badges]]
+code = "low"
+label = "Low impact"
+emoji = "🔵"
+
+[[collections.impact.badges]]
+code = "medium"
+label = "Medium impact"
+emoji = "🟡"
+
+[[collections.impact.badges]]
+code = "high"
+label = "High impact"
+emoji = "🔴"
+```
+
+The bundled default collections are `priority` (urgent, high, medium, low) and `severity`
+(critical, high, medium, low, info). You can add new custom collections, and items can declare
+which collections they carry as fields. For example, a custom incident type might use an `impact`
+collection in place of (or alongside) the built-in priority axis.
 
 ### Additive-only rules
 
@@ -397,3 +432,39 @@ to update the version stamp in the override file.
 ### Hard stops and error recovery
 
 If a workflow spec becomes invalid (e.g. because you edited `.overrides/workflow.toml` directly and introduced a syntax error), any `sq` command will hard-stop with a pointer to `sq workflow lint`. Always run `sq workflow lint` to diagnose and fix the issue before proceeding.
+
+---
+
+## Renaming existing types and statuses
+
+The workflow override system is **additive-only**: you extend the vocabulary by adding new types and
+statuses, but cannot change or remove built-in ones directly in the spec. However, if you've named a
+type or status poorly and want to rename it across your squad's **existing items**, you can use the
+on-demand **data migration commands**:
+
+- **`sq migrate rename-type OLD_TYPE NEW_TYPE`** — bulk-rename every item of type `OLD_TYPE` to
+  `NEW_TYPE`. Both types must already exist in the active spec (as non-meta work types). The command
+  rewrites every affected item's ID, folder, and all references (parent, refs, inline mentions) to
+  use the new prefix and location. Logged to the reflog; run `sq check` after.
+
+  ```bash
+  sq migrate rename-type task job         # every TASK-<n> becomes JOB-<n> (if both exist in the spec)
+  ```
+
+- **`sq migrate rename-status TYPE OLD_STATUS NEW_STATUS`** — bulk-move every item of `TYPE` at
+  `OLD_STATUS` to `NEW_STATUS`. This is a relabel, not a workflow transition — items simply change
+  their status value without moving through the state machine. `NEW_STATUS` must already be a member
+  of `TYPE`'s lifecycle. Scoped per-type. Logged to the reflog; run `sq check` after.
+
+  ```bash
+  sq migrate rename-status task Blocked Waiting   # every task at Blocked → Waiting
+  ```
+
+These are **audited data rewrites** — they log every change, are atomic per type, and are designed to
+preserve referential integrity. Always verify with `sq check` after.
+
+**Use case:** You released your squad with the built-in `task` type but later realize you want to call
+them `job` instead. Add a `job` type to your workflow override (or simply declare the new type as a
+custom type), then run `sq migrate rename-type task job` to move all existing tasks to the new name.
+The spec remains additive (you haven't deleted or redefined `task`), but your items now use the `job`
+vocabulary going forward.

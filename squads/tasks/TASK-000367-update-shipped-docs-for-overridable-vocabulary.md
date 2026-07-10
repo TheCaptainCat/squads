@@ -3,11 +3,11 @@ id: TASK-367
 sequence_id: 367
 type: task
 title: Update shipped docs for overridable vocabulary
-status: Draft
+status: Done
 parent: FEAT-336
 author: tech-lead
 created_at: '2026-07-10T02:00:10Z'
-updated_at: '2026-07-10T02:02:37Z'
+updated_at: '2026-07-10T02:38:18Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -75,4 +75,24 @@ _Add with `sq task 367 add-subtask "<title>"`; track with `sq task 367 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-10T02:35:00Z] Theo Writer:
+  - Updated shipped docs to present item-type/status/priority/severity vocabulary as the customizable DEFAULT, not a fixed grammar.
+  - Changes made:
+  - • docs/overrides.md: Added .overrides/workflow.toml to the Override layout tree; added new 'Workflow overrides' section documenting [items.*], [statuses.*], [lifecycles.*], [collections.*] sections with examples.
+  - • docs/workflow.md: Fixed 'Override format' section to list four sections (not three), added [collections.*] section with priority/severity collection documentation.
+  - • docs/workflow.md: Updated severity description to note it's a bundled default collection, fully customizable.
+  - • docs/stability.md: Updated Tier 1 'Project-level overrides' to include .overrides/workflow.toml and document additive-only semantics.
+  - • README.md: Framed item types as 'bundled default' with custom types via override; updated Concepts section to note type customizability; updated Status workflows table with 'bundled default' note; updated --priority documentation.
+  - • docs/recipes.md: Added note that priority is a customizable badge collection, not fixed codes.
+  - • docs/internals.md: Updated on-disk layout diagram to show .overrides/workflow.toml; added note on type-to-folder mapping being customizable.
+  - All changes are docs-only; no code changes, no sq item IDs cited, no external URLs added. Every override capability documented is verified against _workflow/_loader.py.
+- [2026-07-10T02:37:28Z] Theo Writer:
+  - Added documentation for on-demand data migrations that let squads rename existing types and statuses despite additive-only overrides.
+  - Changes:
+  - • docs/workflow.md: New section 'Renaming existing types and statuses' documenting sq migrate rename-type and sq migrate rename-status with exact command shapes and use cases.
+  - • docs/overrides.md: Added one-line pointer in the additive-only paragraph to the new migrations section.
+  - This clarifies that while overrides are additive (you extend vocab, don't mutate spec), the rename migrations let you relabel existing types/statuses across your squad's live items via audited data rewrites.
+  - Verified: ruff check ✓, pytest test_squad_ref_hygiene.py ✓, no external URLs or sq item IDs cited.
+- [2026-07-10T02:38:18Z] Catherine Manager:
+  - Manager-verified (docs-only): read the new overrides.md workflow section, confirmed sq override scaffold workflow and the rename-migration command shapes against --help, and grepped the full docs diff clean of sq IDs/external URLs. Added rename-type/rename-status docs so the additive-only framing isn't misleading. ruff + ref-hygiene green; docs are inert to the test suite. Landing.
 <!-- sq:discussion:end -->

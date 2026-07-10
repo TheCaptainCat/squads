@@ -67,23 +67,29 @@ makes the index rebuildable from files alone (see [internals.md](internals.md) �
 
 ### Project-level overrides
 
-A squad may customize bundled templates and roles under `.overrides/`, a folder in the squad
-directory. The frozen surfaces are:
+A squad may customize bundled templates, roles, and item-type vocabulary under `.overrides/`, a
+folder in the squad directory. The frozen surfaces are:
 
-- **Layout:** `<squad-dir>/.overrides/{templates,roles}/`. Templates mirror bundled template names
-  1:1; roles are TOML files keyed by slug (e.g., `architect.toml`).
+- **Layout:** `<squad-dir>/.overrides/{templates,roles}/` and `.overrides/workflow.toml`. Templates
+  mirror bundled template names 1:1; roles are TOML files keyed by slug (e.g., `architect.toml`);
+  `workflow.toml` defines custom item types, statuses, lifecycles, and badge collections.
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
-  override whole-file; roles merge field-wise by slug.
-- **Staleness & drift:** overrides carry a `<!-- squads:override-base:<version> -->` stamp. `sq
-  check` warns if the bundled counterpart changed since that base version (drift), and errors if a
-  template is missing required markers. `sq migrate` never rewrites overrides; the `sq override`
-  command group (`scaffold` / `diff` / `update` / `list`) is the user-owned upgrade path. `sq
-  override diff` shows two deltas: Δ-mine (your customisation vs current bundled) and Δ-upgrade
-  (base-version bundled vs current bundled), so you see exactly what to merge.
+  override whole-file; roles merge field-wise by slug; workflow overrides are **additive-only**
+  (new types/statuses/collections accepted; shadowing built-ins is an error).
+- **Staleness & drift:** template and role overrides carry a `<!-- squads:override-base:<version> -->`
+  stamp. `sq check` warns if the bundled counterpart changed since that base version (drift), and
+  errors if a template is missing required markers. `sq migrate` never rewrites overrides; the `sq
+  override` command group (`scaffold` / `diff` / `update` / `list`) is the user-owned upgrade path
+  for templates and roles. `sq override diff` shows two deltas: Δ-mine (your customisation vs
+  current bundled) and Δ-upgrade (base-version bundled vs current bundled), so you see exactly what
+  to merge.
+- **Workflow spec validation:** `sq workflow lint` validates the workflow override for
+  well-formedness, reference integrity, and liveness (reachability of live items). After a squad
+  upgrade, `sq workflow lint` revalidates the spec.
 - **Manifest:** `squads._rendering/templates_manifest.json` ships as package data, mapping
   version → {template_name → sha256_hex}, used for drift detection and base-version recovery.
 
-See [docs/overrides.md](overrides.md).
+See [docs/overrides.md](overrides.md) and [docs/workflow.md](workflow.md) § "Project workflow overrides".
 
 ### Reflog on-disk format
 

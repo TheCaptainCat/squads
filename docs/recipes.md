@@ -99,6 +99,11 @@ sq list --all
 sq list --status Done
 ```
 
+The codes above (urgent, high, medium, low) are the bundled default for the priority collection.
+You can customize the priority axis — relabel badges, change emoji, add/remove values, or define
+custom badge collections — via `.overrides/workflow.toml`; see [workflow.md](workflow.md)
+§ "Project workflow overrides".
+
 ## Migrate a legacy ticket (preserve its date)
 
 ```bash
