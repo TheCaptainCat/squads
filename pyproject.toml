@@ -128,8 +128,9 @@ reportUnknownLambdaType = "none"
 reportMissingParameterType = "none"
 
 # vulture: periodic, non-gating dead-code scan (see CLAUDE.md). Suppresses framework
-# false-positive categories only — Typer/pydantic decorators and getattr-dispatched
-# names vulture's AST can't see. No `get_*`-style wildcards (would mask real dead code).
+# false-positive categories only — Typer/pydantic decorators, plus test-only public
+# API vulture can't see because it scans src/squads only. No `get_*`-style wildcards
+# (would mask real dead code).
 [tool.vulture]
 paths = ["src/squads"]
 min_confidence = 60
@@ -143,15 +144,28 @@ ignore_decorators = [
 ignore_names = [
     # pydantic ConfigDict class attribute — consumed by the metaclass, not by name.
     "model_config",
-    # Service methods reached only via getattr(service, f"...") dynamic dispatch
-    # from _cli/_items.py (list_sub / s_show / s_body).
+    # Typer reads these off the dynamically-built generic sub-entity command
+    # functions (_cli/_items.py's add-<kind>/update builders) at runtime.
+    "__signature__",
+    "__doc__",
+    # Per-kind sub-entity service wrappers (thin delegators over the generic
+    # add_block/list_blocks/get_block/update_block/set_block_body/set_block_status
+    # surface) — the CLI dispatches generically now, so these are test-only public
+    # service API, kept as delegators for their existing test call sites.
+    "add_story",
+    "add_subtask",
+    "add_finding",
     "list_stories",
     "list_subtasks",
     "list_findings",
     "get_subtask",
     "get_story",
-    "get_finding",
     "set_subtask_body",
     "set_story_body",
-    "set_finding_body",
+    "set_subtask_status",
+    "set_story_status",
+    "set_subtask_done",
+    "set_subtask_assignee",
+    "update_subtask",
+    "update_finding",
 ]
