@@ -217,33 +217,6 @@ class SubentitiesMixin(ServiceCore):
     ) -> None:
         await self.set_block_body(feature_id, "story", local_id, body, append=append)
 
-    async def set_finding_body(
-        self, review_id: str, local_id: str, body: str, *, append: bool = False
-    ) -> None:
-        await self.set_block_body(review_id, "finding", local_id, body, append=append)
-
-    async def update_story(
-        self,
-        feature_id: str,
-        local_id: str,
-        *,
-        title: str | None = None,
-        assignee: str | None = None,
-        clear_assignee: bool = False,
-        status: str | None = None,
-        force: bool = False,
-    ) -> None:
-        await self.update_block(
-            feature_id,
-            "story",
-            local_id,
-            title=title,
-            assignee=assignee,
-            clear_assignee=clear_assignee,
-            status=status,
-            force=force,
-        )
-
     async def update_subtask(  # noqa: PLR0913 — full metadata entry point for a subtask
         self,
         task_id: str,
@@ -299,9 +272,6 @@ class SubentitiesMixin(ServiceCore):
 
     async def get_story(self, feature_id: str, local_id: str) -> SubentityDetail:
         return await self.get_block(feature_id, "story", local_id)
-
-    async def get_finding(self, review_id: str, local_id: str) -> SubentityDetail:
-        return await self.get_block(review_id, "finding", local_id)
 
     async def set_block_status(
         self, parent_id: str, kind: str, local_id: str, status: str, *, force: bool = False

@@ -476,3 +476,53 @@ async def test_cli_workflow_lint_exits_0_on_bundled_spec(project: SquadPaths, in
     """sq workflow lint exits 0 when no override is present (bundled spec is always clean)."""
     result = await invoke(["workflow", "lint"])
     assert result.exit_code == 0, f"Expected exit 0, got {result.exit_code}\n{result.output}"
+
+
+_SUBENTITY_COMPLETION_OFF_VOCAB_OVERRIDE = """
+[lifecycles.action]
+initial = "Open"
+[lifecycles.action.transitions]
+Open = ["InProgress", "Done"]
+InProgress = ["Done"]
+Done = []
+
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "action"
+subentity_kind = "action"
+
+[subentity_kinds.action]
+lifecycle = "action"
+completion = "Verified"
+plural = "actions"
+local_prefix = "AC"
+"""
+
+
+def test_lint_reports_custom_subentity_kind_completion_off_vocab(tmp_path: Path) -> None:
+    """lint_workflow_spec reports a custom sub-entity kind's completion naming a status
+    outside its own machine (ADR-000348 §6 / FEAT-000212 AC5 — the per-kind completion
+    check that replaced the retired global StatusSpec.completion flag). "Verified" is a
+    real global status (finding's), just not reachable on the custom kind's own machine.
+    """
+    _write_override(tmp_path, _SUBENTITY_COMPLETION_OFF_VOCAB_OVERRIDE)
+    findings = lint_workflow_spec(tmp_path)
+    errors = [f for f in findings if f[0] == "error"]
+    assert errors, "Expected an error finding for an off-vocab subentity completion"
+    assert any(
+        "action" in msg and "Verified" in msg and "not a reachable" in msg
+        for _, _, msg, _ in errors
+    ), f"Expected 'action' + 'Verified' + 'not a reachable' in an error message: {errors}"
+
+
+async def test_cli_workflow_lint_exits_1_on_subentity_completion_off_vocab(
+    project: SquadPaths, invoke
+) -> None:
+    """sq workflow lint exits 1 for the same custom-kind off-vocab completion, end to end."""
+    _write_override(project.squad_dir, _SUBENTITY_COMPLETION_OFF_VOCAB_OVERRIDE)
+    result = await invoke(["workflow", "lint"])
+    assert result.exit_code == 1, f"Expected exit 1, got {result.exit_code}\n{result.output}"
+    flat = _flatten(result.output)
+    assert "action" in flat
+    assert "1 error" in flat
