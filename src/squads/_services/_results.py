@@ -137,6 +137,15 @@ class RetypeResult:
 
 
 @dataclass(frozen=True)
+class RenameResult:
+    """Outcome of ``Service.rename_type()``."""
+
+    renamed: int  # count of items moved from old_type to new_type
+    ids: list[tuple[str, str]]  # (old_id, new_id) pairs, one per renamed item
+    rewritten: list[str]  # paths of files whose text was updated (relative display names)
+
+
+@dataclass(frozen=True)
 class RemoveResult:
     """Outcome of ``Service.remove_work_item()``.
 
