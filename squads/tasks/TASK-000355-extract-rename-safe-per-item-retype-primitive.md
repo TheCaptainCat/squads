@@ -3,7 +3,7 @@ id: TASK-355
 sequence_id: 355
 type: task
 title: Extract rename-safe per-item retype primitive
-status: Draft
+status: Done
 parent: FEAT-281
 author: tech-lead
 subentities:
@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T21:34:34Z'
-updated_at: '2026-07-09T21:36:00Z'
+updated_at: '2026-07-10T00:38:24Z'
 ---
 <!-- sq:body -->
 Enabler for rename-type (TASK-356). Refactor _services/_retype.py so the per-item rewrite sequence inside retype() becomes a reusable primitive that the bulk rename path can call without retype()'s single-item reclassification guardrails.
@@ -62,4 +62,24 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-10T00:31:38Z] Operator:
+  - Extracted `_apply_type_change(paths, spec, db, item, new_type, *, carry_status)` — the per-item self-rewrite core (prefix/id/status/file-move/frontmatter/sub-entity container); retype() now just resolves carry_status via _carry_or_reset_status and calls it.
+  - Generalized _resync_edges to take a {old:new} remap dict + exclude set (one pass over db.items regardless of remap size); added _remap_ref via split_ref/make_ref for correct multi-key ref rewriting. rewrite_ids was already remap-dict-capable, no change needed there — it's the shared batchable file-rewrite seam for both retype (1-entry dict) and the future bulk rename (N-entry dict).
+  - Left _append_retype_comment/store._log('retype', ...) retype-specific rather than generalizing the op/message — rename's audit shape (per-item reflog+comment, but building one combined id remap first) looked different enough that a shared parameterized emitter would just be a thin wrapper; TASK-356/357 can lift the same discussion.format_comment/store._log pattern with their own message.
+  - Pure extraction, byte-identical: tests/test_retype.py (34 tests) unchanged and green; pyright/ruff/ruff-format clean; test_squad_ref_hygiene.py green. Reviewer: check _remap_ref's split_ref/make_ref reconstruction is truly equivalent to the old startswith(old_id+':') string-slice for the ID:kind case (I verified by hand, no new test added since behavior is unchanged).
+- [2026-07-10T00:32:06Z] Elias Python:
+  - (re-attributing prior handoff comment — posted with the wrong --as by mistake)
+  - Extracted _apply_type_change(paths, spec, db, item, new_type, *, carry_status) — the per-item self-rewrite core (prefix/id/status/file-move/frontmatter/sub-entity container); retype() now resolves carry_status via _carry_or_reset_status and calls it.
+  - Generalized _resync_edges to a {old:new} remap dict + exclude set (one pass regardless of remap size); added _remap_ref via split_ref/make_ref for correct multi-key rewriting. rewrite_ids was already remap-dict-capable — the shared batchable file-rewrite seam for both retype (1-entry dict) and the future bulk rename (N-entry dict), no change needed.
+  - Left _append_retype_comment/store._log('retype', ...) retype-specific rather than generalizing the op/message — rename's per-item audit trail can reuse the same discussion.format_comment/store._log pattern with its own message; a shared emitter looked like a thin wrapper not worth the indirection. Flagging for TASK-356/357.
+  - Pure extraction, byte-identical: tests/test_retype.py (34 tests) unchanged and green; pyright/ruff/ruff-format clean; test_squad_ref_hygiene.py green. Reviewer: check _remap_ref's split_ref/make_ref reconstruction against the old startswith(old_id+':') slice for the ID:kind ref case.
+- [2026-07-10T00:37:24Z] Paul Reviewer:
+  - Reviewed uncommitted TASK-355 diff (independent, on committed FEAT-212). VERDICT: APPROVE. Pure, clean extraction — no functional drift. gates clean (pyright/ruff/format), test_retype.py 34/34 pass UNCHANGED, full suite green (exit 0, 0 failures). No findings.
+  - retype() byte-identical: YES. Status equivalence holds exactly — _carry_or_reset_status's reset branch returns (True, spec.initial_status(new_type)) (_retype.py:150), and _apply_type_change sets item.status = spec.initial_status(new_type) iff  where carry_status = not status_reset — same condition, same value; the carry branch leaves status untouched in both. File move/prefix/id/frontmatter/container sequence extracted verbatim. Reflog+comment emitters untouched (still retype-specific) so the audit trail is unchanged.
+  - _remap_ref equivalence (the correctness-critical bit): YES, exact for all three cases. split_ref('ID')->('ID','related'=DEFAULT_KIND) + make_ref(new,'related') collapses to bare new_id (== old r==old_id branch); 'ID:kind'->make_ref keeps 'new:kind' (== old startswith(old_id+':') branch); and split_ref partitions on the first ':' so a remap of TASK-1 never touches a ref to TASK-12 (matches the old startswith(old_id+':') guard, and is structurally more robust than the string-slice).
+  - Seam for TASK-356/357 is clean/O(N): _apply_type_change is per-item and touches no other item's edges; rewrite_ids already takes a {old:new} dict; _resync_edges now takes (remap dict, exclude set) in one pass. A bulk caller can _apply_type_change each renamed item (carry_status=True), accumulate one combined {old:new}, then do a single rewrite_ids + single _resync_edges(exclude=all renamed seqs) — no O(N^2). Scope-disciplined: only _retype.py touched, _workflow/_models.py untouched; no ticket IDs in source; no existing test assertion weakened (test file unchanged).
+- [2026-07-10T00:37:47Z] Paul Reviewer:
+  - Correction (a shell glitch dropped words from the status-equivalence bullet above; restating cleanly): retype() status handling is byte-identical. In _apply_type_change, the reset assignment runs when NOT carry_status, and carry_status is passed as (NOT status_reset), so it runs exactly when status_reset is true — the same condition as the old code. The value assigned, spec.initial_status(new_type), equals the old reset-branch value returned by _carry_or_reset_status (True, spec.initial_status(new_type)). When carrying (status_reset false), neither old nor new touches item.status. Values and conditions match on both branches.
+- [2026-07-10T00:38:24Z] Catherine Manager:
+  - Reviewer-approved, no findings. retype() byte-identical (test_retype.py 34/34 unchanged); _remap_ref equivalence verified for bare/ID:kind/prefix-substring cases; O(N) bulk-rename seam confirmed clean for 356/357. Full suite green. Landing.
 <!-- sq:discussion:end -->
