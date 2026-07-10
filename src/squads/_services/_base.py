@@ -50,14 +50,23 @@ from squads._workflow._models import WorkflowSpec
 # properties below so mixins read `self.subentity_parent`/`self.subentity_kind`/
 # `self.subentity_container` and non-mixin callers (e.g. retype) pass a spec explicitly.
 def subentity_parent_map(spec: WorkflowSpec) -> dict[str, str]:
-    """Sub-entity kind -> hosting item type, inverted from the spec's declared
-    ``ItemSpec.subentity_kind``."""
+    """Sub-entity kind -> ONE hosting item type, inverted from the spec's declared
+    ``ItemSpec.subentity_kind``.
+
+    The type<->kind relation is 1:many (two item types may declare the same kind, e.g.
+    a project-declared type mirroring ``task``'s ``subentity_kind="subtask"``) — this
+    inversion collapses that to a single representative type per kind, so it is only a
+    naming HINT (e.g. for a help string) and must never back an ownership/validation
+    decision. Use ``spec.item_subentity_kind(item.type) == kind`` (forward, 1:1) for that.
+    """
     return {ts.subentity_kind: t for t, ts in spec.items.items() if ts.subentity_kind}
 
 
 def subentity_kind_map(spec: WorkflowSpec) -> dict[str, str]:
-    """Item type -> sub-entity kind; the inverse of :func:`subentity_parent_map`."""
-    return {t: k for k, t in subentity_parent_map(spec).items()}
+    """Item type -> sub-entity kind, read directly off the spec (genuinely 1:1 per type;
+    NOT built by inverting :func:`subentity_parent_map`, which would drop every type that
+    map's inversion collapsed away)."""
+    return {t: ts.subentity_kind for t, ts in spec.items.items() if ts.subentity_kind}
 
 
 def subentity_container_map(spec: WorkflowSpec) -> dict[str, str]:

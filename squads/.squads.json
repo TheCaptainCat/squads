@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.7.0",
-  "counter": 361,
+  "counter": 362,
   "padding": 6,
   "items": {
     "12": {
@@ -2736,7 +2736,7 @@
       ],
       "path": "features/FEAT-000281-vocabulary-rename-migrations-sq-migrate-rename-type-status.md",
       "created_at": "2026-07-02T09:25:53Z",
-      "updated_at": "2026-07-10T00:26:50Z",
+      "updated_at": "2026-07-10T01:36:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -14485,7 +14485,7 @@
       "type": "task",
       "title": "End-to-end acceptance sweep for vocabulary rename migrations",
       "slug": "end-to-end-acceptance-sweep-for-vocabulary-rename-migrations",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-281",
       "author": "tech-lead",
@@ -14516,7 +14516,7 @@
       ],
       "path": "tasks/TASK-000359-end-to-end-acceptance-sweep-for-vocabulary-rename-migrations.md",
       "created_at": "2026-07-09T21:34:36Z",
-      "updated_at": "2026-07-09T21:36:03Z",
+      "updated_at": "2026-07-10T01:55:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -14572,6 +14572,29 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-361"
+    },
+    "362": {
+      "sequence_id": 362,
+      "type": "bug",
+      "title": "add_subtask/add_finding resolve wrong owner when two types share a subentity_kind",
+      "slug": "add-subtask-add-finding-resolve-wrong-owner-when-two-types-s",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000362-add-subtask-add-finding-resolve-wrong-owner-when-two-types-s.md",
+      "created_at": "2026-07-10T01:35:51Z",
+      "updated_at": "2026-07-10T01:55:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-362"
     }
   }
 }

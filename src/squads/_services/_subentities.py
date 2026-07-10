@@ -104,12 +104,12 @@ class SubentitiesMixin(ServiceCore):
         assignee: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
-        expect, container = self.subentity_parent[kind], self.subentity_container[kind]
+        container = self.subentity_container[kind]
         reject_markers(title, "title")
         if body is not None:
             reject_markers(body)
         async with self.store.transaction() as db:
-            item = self._require_parent(db, item_id, kind, expect)
+            item = self._require_parent(db, item_id, kind)
             self._check_assignee(db, assignee)
             if story:
                 self._check_maps_parent_story(kind)
@@ -277,7 +277,7 @@ class SubentitiesMixin(ServiceCore):
         self, parent_id: str, kind: str, local_id: str, status: str, *, force: bool = False
     ) -> None:
         async with self.store.transaction() as db:
-            item = self._require_parent(db, parent_id, kind, self.subentity_parent[kind])
+            item = self._require_parent(db, parent_id, kind)
             sub = self._find(item, kind, local_id)
             old_status = sub.status
             self._apply_subentity_status(kind, sub, status, force=force)
@@ -315,7 +315,7 @@ class SubentitiesMixin(ServiceCore):
     ) -> None:
         async with self.store.transaction() as db:
             self._check_assignee(db, assignee)
-            item = self._require_parent(db, parent_id, kind, self.subentity_parent[kind])
+            item = self._require_parent(db, parent_id, kind)
             sub = self._find(item, kind, local_id)
             sub.assignee = assignee
             item.updated_at = clock.now()
@@ -344,7 +344,7 @@ class SubentitiesMixin(ServiceCore):
         if title is not None:
             reject_markers(title, "title")
         async with self.store.transaction() as db:
-            item = self._require_parent(db, parent_id, kind, self.subentity_parent[kind])
+            item = self._require_parent(db, parent_id, kind)
             sub = self._find(item, kind, local_id)
             if title is not None:
                 sub.title = title
@@ -456,16 +456,19 @@ class SubentitiesMixin(ServiceCore):
         if story not in {s.local_id for s in parent.subentities}:
             raise SquadsError(f"user story {story} not found in {parent.id}")
 
-    def _require_parent(self, db: SquadsDB, parent_id: str, kind: str, expect: str) -> Item:
+    def _require_parent(self, db: SquadsDB, parent_id: str, kind: str) -> Item:
         item = require_item(db, parent_id)
-        if item.type != expect:
-            raise SquadsError(f"{parent_id} is a {item.type}; {kind}s live on a {expect}")
+        self._check_type(item, kind)
         return item
 
     def _check_type(self, item: Item, kind: str) -> None:
-        expect = self.subentity_parent[kind]
-        if item.type != expect:
-            raise SquadsError(f"{item.id} is a {item.type}; {kind}s live on a {expect}")
+        # Forward, 1:1 check (spec.item_subentity_kind) — never resolve ownership by
+        # inverting kind->type, which collapses when two types share a kind.
+        hosts = self.spec.item_subentity_kind(item.type)
+        if hosts == kind:
+            return
+        hint = f" ({item.type}s host {hosts}s)" if hosts else ""
+        raise SquadsError(f"{item.id} is a {item.type}, which does not host {kind}s{hint}")
 
     def _check_maps_parent_story(self, kind: str) -> None:
         """Raise unless *kind* declares the ``maps_parent_story`` capability — the
