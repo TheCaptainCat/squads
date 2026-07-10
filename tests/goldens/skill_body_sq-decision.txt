@@ -47,7 +47,4 @@ sq decision <n> status Accepted
 ---
 The `.md` files are sq-managed — never edit them by hand. Items are addressed as
 `sq decision <n> <verb>`. Set this item's body with `sq decision <n> body
--m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
-get their bodies from `sq decision <n> <kind> <k> body -m "…"`. Read anything back with
-`sq decision <n> show --full --comments` (full dossier, including discussion) /
-`sq decision <n> <kind> <k> show`.
+-m "…"` (or `--file`); `--desc` sets only the short summary. Read anything back with `sq decision <n> show --full --comments` (full dossier, including discussion).

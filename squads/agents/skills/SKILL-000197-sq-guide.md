@@ -73,9 +73,6 @@ sq guide <n> status Published
 ---
 The `.md` files are sq-managed — never edit them by hand. Items are addressed as
 `sq guide <n> <verb>`. Set this item's body with `sq guide <n> body
--m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
-get their bodies from `sq guide <n> <kind> <k> body -m "…"`. Read anything back with
-`sq guide <n> show --full --comments` (full dossier, including discussion) /
-`sq guide <n> <kind> <k> show`.
+-m "…"` (or `--file`); `--desc` sets only the short summary. Read anything back with `sq guide <n> show --full --comments` (full dossier, including discussion).
 
 <!-- sq:body:end -->

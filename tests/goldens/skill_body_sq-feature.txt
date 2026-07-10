@@ -71,7 +71,7 @@ sq feature <n> stories
 ---
 The `.md` files are sq-managed — never edit them by hand. Items are addressed as
 `sq feature <n> <verb>`. Set this item's body with `sq feature <n> body
--m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
-get their bodies from `sq feature <n> <kind> <k> body -m "…"`. Read anything back with
+-m "…"` (or `--file`); `--desc` sets only the short summary. Its stories
+get their bodies from `sq feature <n> story <k> body -m "…"`. Read anything back with
 `sq feature <n> show --full --comments` (full dossier, including discussion) /
-`sq feature <n> <kind> <k> show`.
+`sq feature <n> story <k> show`.

@@ -92,6 +92,57 @@ async def test_item_skill_watch_for_reviewer(svc, project):
     assert "don't fix the code yourself" in task  # reviewer scope discipline
 
 
+async def test_item_skill_trailer_names_only_actual_subentity_kind(project):
+    # each type's trailer names only its real sub-entity kind, never the other two
+    feature = _item_skill_body(project, "feature")
+    assert "Its stories\nget their bodies from `sq feature <n> story <k> body" in feature
+    task = _item_skill_body(project, "task")
+    assert "Its subtasks\nget their bodies from `sq task <n> subtask <k> body" in task
+    review = _item_skill_body(project, "review")
+    assert "Its findings\nget their bodies from `sq review <n> finding <k> body" in review
+    # types with no sub-entity kind at all get no such clause
+    for hostless in ("epic", "decision", "guide", "bug"):
+        body = _item_skill_body(project, hostless)
+        assert "get their bodies from" not in body
+
+
+async def test_item_skill_lifecycle_reflects_overridden_status_machine(project):
+    # a kept built-in type's overridden status machine changes the Lifecycle line, not the
+    # frozen playbook.toml prose
+    from squads._services import _service as service
+    from squads._workflow import bundled_spec
+
+    base = bundled_spec()
+    overridden_task = base.items["task"].model_copy(update={"lifecycle": "guide"})
+    spec = base.model_copy(update={"items": {**base.items, "task": overridden_task}})
+    await service.Service(project, spec=spec).refresh_managed()
+    task = _item_skill_body(project, "task")
+    lifecycle_line = next(line for line in task.splitlines() if line.startswith("**Lifecycle:**"))
+    assert lifecycle_line == "**Lifecycle:** Draft → Published → Deprecated"
+
+
+async def test_item_skill_falls_back_to_frozen_lifecycle_when_type_dropped_from_spec(project):
+    # a built-in type dropped from the active spec entirely (renamed/removed via override)
+    # must not crash sync -- the frozen playbook lifecycle line is the graceful fallback,
+    # and the sub-entity clause drops too (item_subentity_kind degrades to None for it).
+    # "bug" (not "task"/"feature"/"epic") -- those three sit on workflow.md.j2's hardcoded
+    # task->feature->epic hierarchy walk (FEAT-334 scope) and would crash for an unrelated
+    # reason; "bug" isn't referenced by any hardcoded literal in the rendered templates.
+    from squads._services import _service as service
+    from squads._workflow import bundled_spec
+
+    base = bundled_spec()
+    dropped_items = {k: v for k, v in base.items.items() if k != "bug"}
+    spec = base.model_copy(update={"items": dropped_items})
+    await service.Service(project, spec=spec).refresh_managed()
+    bug = _item_skill_body(project, "bug")
+    lifecycle_line = next(line for line in bug.splitlines() if line.startswith("**Lifecycle:**"))
+    assert lifecycle_line == (
+        "**Lifecycle:** Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)"
+    )
+    assert "get their bodies from" not in bug
+
+
 async def test_squads_skill_has_direct_operator_rule(project):
     body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
     assert "Working directly with the operator" in body

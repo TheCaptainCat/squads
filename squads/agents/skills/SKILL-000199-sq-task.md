@@ -112,9 +112,9 @@ sq task <n> status InProgress
 ---
 The `.md` files are sq-managed — never edit them by hand. Items are addressed as
 `sq task <n> <verb>`. Set this item's body with `sq task <n> body
--m "…"` (or `--file`); `--desc` sets only the short summary. Its user stories / subtasks / findings
-get their bodies from `sq task <n> <kind> <k> body -m "…"`. Read anything back with
+-m "…"` (or `--file`); `--desc` sets only the short summary. Its subtasks
+get their bodies from `sq task <n> subtask <k> body -m "…"`. Read anything back with
 `sq task <n> show --full --comments` (full dossier, including discussion) /
-`sq task <n> <kind> <k> show`.
+`sq task <n> subtask <k> show`.
 
 <!-- sq:body:end -->
