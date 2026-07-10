@@ -245,3 +245,16 @@ async def test_custom_kind_declared_field_is_settable_and_round_trips(project, i
     assert shown_json.exit_code == 0, shown_json.output
     data = json.loads(shown_json.output)
     assert data["subentities"][0]["extra"]["urgency"] == "low"
+
+
+async def test_kind_show_meta_line_displays_a_declared_non_severity_field(project, invoke) -> None:
+    """`sq <type> <kind> <n> show`'s meta line renders every field the kind declares
+    (e.g. urgency), not the old severity-only slot that showed nothing for a custom axis."""
+    _write_overrides(project.squad_dir, _WORKFLOW_OVERRIDE_WITH_FIELD)
+    created = await invoke(["create", "incident", "Outage", "--author", "manager"])
+    inc_num = _num(_created_id(created.output))
+    await invoke(["incident", inc_num, "add-action", "Restart service", "--urgency", "high"])
+
+    shown = await invoke(["incident", inc_num, "action", "1", "show"])
+    assert shown.exit_code == 0, shown.output
+    assert "urgency: high" in shown.output

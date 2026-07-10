@@ -304,7 +304,7 @@ async def init(
         lines.append("[bold]agent backends:[/bold] (none)")
     console.print(Panel("\n".join(lines), title="squads initialized", expand=False))
     console.print(
-        'Next: [cyan]sq create task "…"[/cyan] · [cyan]sq list[/cyan]'
+        "Next: [cyan]sq create --help[/cyan] to see your item types · [cyan]sq list[/cyan]"
         " · [cyan]sq role catalog[/cyan]"
     )
 
@@ -355,9 +355,15 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     parent: str | None = typer.Option(None, "--parent"),
     label: str | None = typer.Option(None, "--label"),
     assignee: str | None = typer.Option(None, "--assignee"),
-    priority: str | None = typer.Option(None, "--priority", help="urgent|high|medium|low."),
+    priority: str | None = typer.Option(
+        None,
+        "--priority",
+        help="Priority code (as defined by your workflow's priority collection).",
+    ),
     min_priority: str | None = typer.Option(
-        None, "--min-priority", help="At-least-this-urgent threshold: urgent|high|medium|low."
+        None,
+        "--min-priority",
+        help="At-least-this-priority threshold (your workflow's priority collection).",
     ),
     badge: list[str] = typer.Option(
         [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
@@ -412,9 +418,15 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     type: str | None = typer.Option(None, "--type", "-t"),
     status: str | None = typer.Option(None, "--status", "-s"),
     assignee: str | None = typer.Option(None, "--assignee"),
-    priority: str | None = typer.Option(None, "--priority", help="urgent|high|medium|low."),
+    priority: str | None = typer.Option(
+        None,
+        "--priority",
+        help="Priority code (as defined by your workflow's priority collection).",
+    ),
     min_priority: str | None = typer.Option(
-        None, "--min-priority", help="At-least-this-urgent threshold: urgent|high|medium|low."
+        None,
+        "--min-priority",
+        help="At-least-this-priority threshold (your workflow's priority collection).",
     ),
     badge: list[str] = typer.Option(
         [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
@@ -862,7 +874,7 @@ async def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
-        help="Filter by target item ID (e.g. TASK-<n>).",
+        help="Filter by target item ID (any full ID, e.g. <PREFIX>-<n>).",
         metavar="ID",
     ),
     actor: str | None = typer.Option(
@@ -903,7 +915,7 @@ async def reflog(
     """Show the operation reflog — a chronological log of every mutating sq command.
 
     Tails the most recent entries by default (``--tail 50``); use ``--tail 0`` for
-    all.  Filters are AND-ed: ``--item TASK-<n> --op status`` shows only status
+    all.  Filters are AND-ed: ``--item <PREFIX>-<n> --op status`` shows only status
     changes on that item.
 
     A squad with no reflog (upgraded from an old schema, or first run) prints empty

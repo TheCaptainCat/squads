@@ -388,8 +388,12 @@ def print_subentity(detail: SubentityDetail, kind: str) -> None:
     meta = [f"status: {e(info.status)}"]
     if info.assignee:
         meta.append(f"assignee: {e(info.assignee)}")
-    if info.severity:
-        meta.append(f"severity: {e(info.severity)}")
+    # Every declared field for this kind (severity today; any custom axis on a custom kind
+    # tomorrow) — not just the severity-only slot, so a custom badge field actually shows up.
+    for field in get_active_spec().fields_for(kind):
+        value = info.badge_value(field.code)
+        if value:
+            meta.append(f"{field.label.lower()}: {e(value)}")
     if info.story:
         meta.append(f"story: {e(info.story)}")
     console.print("  " + "   ".join(meta))

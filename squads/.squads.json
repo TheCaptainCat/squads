@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.7.0",
-  "counter": 370,
+  "counter": 371,
   "padding": 6,
   "items": {
     "12": {
@@ -14541,7 +14541,7 @@
       "subentities": [],
       "path": "reviews/REV-000360-vocab-hardcoding-audit-of-agent-user-facing-surfaces.md",
       "created_at": "2026-07-09T21:39:49Z",
-      "updated_at": "2026-07-10T00:09:30Z",
+      "updated_at": "2026-07-10T03:48:51Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -14647,7 +14647,7 @@
       "type": "task",
       "title": "Genericize CLI help text and messages for spec-driven vocab",
       "slug": "genericize-cli-help-text-and-messages-for-spec-driven-vocab",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-336",
       "author": "tech-lead",
@@ -14659,7 +14659,7 @@
       "subentities": [],
       "path": "tasks/TASK-000365-genericize-cli-help-text-and-messages-for-spec-driven-vocab.md",
       "created_at": "2026-07-10T02:00:09Z",
-      "updated_at": "2026-07-10T02:02:36Z",
+      "updated_at": "2026-07-10T03:49:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -14779,6 +14779,32 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-370"
+    },
+    "371": {
+      "sequence_id": 371,
+      "type": "bug",
+      "title": "Custom-type CLI help built from bundled spec on cold first dispatch",
+      "slug": "custom-type-cli-help-built-from-bundled-spec-on-cold-first-d",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-336",
+        "REV-360"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000371-custom-type-cli-help-built-from-bundled-spec-on-cold-first-d.md",
+      "created_at": "2026-07-10T03:48:50Z",
+      "updated_at": "2026-07-10T03:48:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-371"
     }
   }
 }
