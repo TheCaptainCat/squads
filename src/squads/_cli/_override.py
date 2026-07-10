@@ -47,7 +47,7 @@ override_app = typer.Typer(
 @handle_errors
 def scaffold(
     name: str | None = typer.Argument(
-        None, help="Bundled template name (e.g. 'items/task.md.j2') or 'workflow'."
+        None, help="Bundled template name (e.g. 'items/<type>.md.j2') or 'workflow'."
     ),
     role: str | None = typer.Option(
         None, "--role", help="Role slug to scaffold a TOML override for (e.g. architect)."
@@ -95,7 +95,7 @@ def scaffold(
 
     if name is None:
         raise typer.BadParameter(
-            "provide a template name (e.g. 'items/task.md.j2'), 'workflow', "
+            "provide a template name (e.g. 'items/<type>.md.j2'), 'workflow', "
             "or --role <slug> / --workflow to scaffold a role or workflow override"
         )
 

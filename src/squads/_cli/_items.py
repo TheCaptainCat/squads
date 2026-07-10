@@ -74,6 +74,17 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
         raise SquadsError("nothing to update (pass at least one field, e.g. --title/--status)")
 
 
+def _priority_help(item_type: str, spec: WorkflowSpec, template: str) -> str:
+    """``--priority``/``--min-priority`` help text, derived from the priority collection
+    bound to *item_type* — falls back to a spec-pointing phrase (no enumeration) when the
+    type doesn't declare a priority field/collection at all."""
+    coll_code = badges.resolve_collection(item_type, "priority", spec)
+    coll = spec.collections.get(coll_code)
+    if coll and coll.badges:
+        return template.format(codes="|".join(b.code for b in coll.badges))
+    return "Priority code (as defined by your workflow's priority collection)."
+
+
 def build_item_app(item_type: str) -> typer.Typer:
     """A ``sq <type> <num> …`` group for one work-item type.
 
@@ -86,6 +97,11 @@ def build_item_app(item_type: str) -> typer.Typer:
     """
     item = typer.Typer(no_args_is_help=True, help=f"Operate on a {item_type} by number/id.")
 
+    # Resolved once, up front, so every command builder below (retype's target-type help,
+    # update's --priority help) derives its help text from the same spec used to decide
+    # eligibility — help and enforcement can never disagree.
+    spec = common.get_active_spec()
+
     @item.callback()
     @common.command
     async def _resolve(
@@ -96,7 +112,7 @@ def build_item_app(item_type: str) -> typer.Typer:
         ctx.obj = {"id": await resolve_item_id_typed(num, item_type, svc)}
 
     _cmd_show(item)
-    _cmd_update(item)
+    _cmd_update(item, item_type, spec)
     _cmd_status(item)
     _cmd_body(item)
     _cmd_comment(item)
@@ -105,7 +121,6 @@ def build_item_app(item_type: str) -> typer.Typer:
     # Sub-entity surface: entirely spec-driven — a type hosts a kind (built-in or a
     # project-declared custom one) or it doesn't; item_subentity_kind() already degrades to
     # None for a type the spec doesn't declare, so no fallback vocabulary is needed here.
-    spec = common.get_active_spec()
     subentity_kind = spec.item_subentity_kind(item_type)
     if subentity_kind is not None:
         _register_subentity(item, subentity_kind, spec)
@@ -118,7 +133,7 @@ def build_item_app(item_type: str) -> typer.Typer:
 
     is_meta = spec.item_is_meta(item_type) if item_type in spec.items else item_type in META_TYPES
     if not is_meta:
-        _cmd_retype(item)
+        _cmd_retype(item, spec)
         _cmd_remove(item)
     return item
 
@@ -148,7 +163,9 @@ def _cmd_show(item: typer.Typer) -> None:
         await print_item(svc, it, raw=raw, comments=comments, full=full)
 
 
-def _cmd_update(item: typer.Typer) -> None:
+def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
+    priority_help = _priority_help(item_type, spec, "Priority: {codes}.")
+
     @item.command("update")
     @common.command
     async def update(  # noqa: PLR0913 — the one metadata entry point
@@ -161,9 +178,7 @@ def _cmd_update(item: typer.Typer) -> None:
         parent: str | None = typer.Option(None, "--parent", help="Set the parent item ID."),
         no_parent: bool = typer.Option(False, "--no-parent", help="Clear the parent."),
         assignee: str | None = typer.Option(None, "--assignee"),
-        priority: str | None = typer.Option(
-            None, "--priority", help="Priority: urgent|high|medium|low."
-        ),
+        priority: str | None = typer.Option(None, "--priority", help=priority_help),
         no_priority: bool = typer.Option(False, "--no-priority", help="Clear the priority."),
         add_label: list[str] = typer.Option(None, "--add-label"),
         rm_label: list[str] = typer.Option(None, "--rm-label"),
@@ -248,7 +263,9 @@ def _cmd_comment(item: typer.Typer) -> None:
         console.print(f"commented on {_id(ctx)} as {slug}")
 
 
-def _cmd_retype(item: typer.Typer) -> None:
+def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
+    targets = "|".join(sorted(spec.work_types(), key=lambda t: (spec.items[t].order, t)))
+
     @item.command("retype")
     @common.command
     async def retype(
@@ -257,7 +274,7 @@ def _cmd_retype(item: typer.Typer) -> None:
             ...,
             metavar="NEW-TYPE",
             help=(
-                "Target work-item type: epic|feature|task|bug|decision|review|guide. "
+                f"Target work-item type: {targets}. "
                 "The item number is preserved; only the ID prefix flips."
             ),
         ),

@@ -19,6 +19,7 @@ import typer.main
 
 import squads._cli._common as common
 from squads import _actor as actor
+from squads import _badges as badges
 from squads._cli._common import (
     console,
     e,
@@ -31,6 +32,19 @@ from squads._cli._common import (
 from squads._models._extras import ExtraKey as X
 from squads._models._item import make_ref, split_ref
 from squads._workflow import bundled_spec
+
+
+def _priority_help(item_type: str) -> str:
+    """``--priority`` help text for ``create <item_type>``, derived from the priority
+    collection bound to *item_type* in the resolved active spec (bundled spec for the
+    statically-registered types, since it's read before ``_bind_active_spec`` runs at
+    import time — byte-identical to the previous hardcoded text there)."""
+    spec = common.get_active_spec()
+    coll_code = badges.resolve_collection(item_type, "priority", spec)
+    coll = spec.collections.get(coll_code)
+    if coll and coll.badges:
+        return f"Priority: {'|'.join(b.code for b in coll.badges)}."
+    return "Priority code (as defined by your workflow's priority collection)."
 
 
 def _build_create_cmd(item_type_str: str) -> _click.Command:
@@ -59,9 +73,7 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
             None, "--ref", help="Forward-ref to another ID (repeatable)."
         ),
         assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
-        priority: str | None = typer.Option(
-            None, "--priority", help="Priority: urgent|high|medium|low."
-        ),
+        priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
         message: list[str] = typer.Option(
             None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
         ),
@@ -239,9 +251,7 @@ def _make(item_type_str: str):
             None, "--ref", help="Forward-ref to another ID (repeatable)."
         ),
         assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
-        priority: str | None = typer.Option(
-            None, "--priority", help="Priority: urgent|high|medium|low."
-        ),
+        priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
         message: list[str] = typer.Option(
             None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
         ),
