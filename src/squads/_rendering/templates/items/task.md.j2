@@ -6,7 +6,8 @@ _TODO: describe this task._
 
 ## Subtasks
 
-_Add with `sq task {{ item.id | idnum }} add-subtask "<title>"`; track with `sq task {{ item.id | idnum }} subtask <n> update --status <Status>`._
+{% set kind = spec.item_subentity_kind(item.type) %}
+_Add with `sq {{ item.type }} {{ item.id | idnum }} add-{{ kind }} "<title>"`; track with `sq {{ item.type }} {{ item.id | idnum }} {{ kind }} <n> update --status <Status>`._
 
 <!-- sq:summary -->
 <!-- sq:summary:end -->

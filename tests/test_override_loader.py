@@ -175,6 +175,7 @@ def _task_ctx() -> dict[str, object]:
     from datetime import UTC, datetime
 
     from squads._models._item import Item
+    from squads._workflow import bundled_spec
 
     now = datetime(2026, 1, 1, tzinfo=UTC)
     item = Item(
@@ -187,7 +188,7 @@ def _task_ctx() -> dict[str, object]:
         created_at=now,
         updated_at=now,
     )
-    return {"item": item, "description": "", "extra": {}}
+    return {"item": item, "description": "", "extra": {}, "spec": bundled_spec()}
 
 
 def _minimal_override(label: str) -> str:

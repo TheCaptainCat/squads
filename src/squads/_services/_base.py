@@ -382,7 +382,11 @@ class ServiceCore:
                 extra=extra or {},
             )
             rendered = render(
-                self._template_for(item_type), item=item, description=description, extra=item.extra
+                self._template_for(item_type),
+                item=item,
+                description=description,
+                extra=item.extra,
+                spec=self.spec,
             )
             if body is not None:
                 reject_markers(body)

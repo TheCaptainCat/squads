@@ -236,8 +236,9 @@ def set_head(
     New blocks ship the region empty (from ``block.md.j2``); on a legacy block that lacks it (the
     migration path) it's created lazily, just before the block's ``:body`` marker.
 
-    ``spec`` is the active workflow spec, used to resolve the status badge (falls back to the
-    bundled spec when not passed — see :func:`squads._badges.status_badge`).
+    ``spec`` is the active workflow spec, used to resolve the status badge and the severity
+    axis's declared label (falls back to the bundled spec when not passed — see
+    :func:`squads._badges.status_badge` / :func:`squads._badges.field_label`).
     """
     head_tag = _head_tag(kind, local_id)
     inner = render(
@@ -250,6 +251,7 @@ def set_head(
             if severity
             else None
         ),
+        severity_label=badges.field_label(kind, "severity", spec) if severity else None,
         story=story,
         assignee=assignee_name,
     )

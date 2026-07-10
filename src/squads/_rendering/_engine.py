@@ -20,6 +20,7 @@ from pathlib import Path
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, StrictUndefined
 
+from squads import _badges as badges
 from squads._interactions import authoring_owner, parent_chain
 from squads._models import _markers as markers
 from squads._paths import number_for_id
@@ -66,6 +67,12 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # CREATE_LANES + the role catalog + the spec's parent chain, not hardcoded prose.
     env.globals["authoring_owner"] = authoring_owner  # pyright: ignore[reportArgumentType]
     env.globals["parent_chain"] = parent_chain  # pyright: ignore[reportArgumentType]
+    # badge-vocabulary helpers — item templates render an active `spec` and derive axis
+    # labels/legends/examples from it rather than hardcoding bundled vocab (e.g. severity).
+    env.globals["resolve_collection"] = badges.resolve_collection  # pyright: ignore[reportArgumentType]
+    env.globals["field_label"] = badges.field_label  # pyright: ignore[reportArgumentType]
+    env.globals["field_default"] = badges.field_default  # pyright: ignore[reportArgumentType]
+    env.globals["collection_legend"] = badges.collection_legend  # pyright: ignore[reportArgumentType]
     return env
 
 

@@ -10,9 +10,10 @@ _TODO: what is under review?_
 
 ## Findings
 
-_Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
+{% set finding_kind = spec.item_subentity_kind(item.type) %}
+_{{ field_label(finding_kind, 'severity', spec) }}:_ {{ collection_legend(resolve_collection(finding_kind, 'severity', spec), spec) }}
 
-_Add with `sq review {{ item.id | idnum }} add-finding "…" --severity high`; track with `sq review {{ item.id | idnum }} finding <n> update --status <Status>`._
+_Add with `sq review {{ item.id | idnum }} add-finding "…" --severity {{ field_default(finding_kind, 'severity', spec) }}`; track with `sq review {{ item.id | idnum }} finding <n> update --status <Status>`._
 
 <!-- sq:summary -->
 <!-- sq:summary:end -->
