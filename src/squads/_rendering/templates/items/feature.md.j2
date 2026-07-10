@@ -6,7 +6,8 @@ _TODO: summarise this feature._
 
 ## User Stories
 
-_Add with `sq feature {{ item.id | idnum }} add-story "As a <role>, I want … so that …"`; track with `sq feature {{ item.id | idnum }} story <n> update --status <Status>`._
+{% set kind = spec.item_subentity_kind(item.type) %}
+_Add with `sq {{ item.type }} {{ item.id | idnum }} add-{{ kind }} "As a <role>, I want … so that …"`; track with `sq {{ item.type }} {{ item.id | idnum }} {{ kind }} <n> update --status <Status>`._
 
 <!-- sq:summary -->
 <!-- sq:summary:end -->

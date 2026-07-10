@@ -40,6 +40,51 @@ def resolve_collection(type_or_kind: str, field_code: str, spec: WorkflowSpec | 
     return field.collection if field else field_code
 
 
+def field_label(kind: str, field_code: str, spec: WorkflowSpec | None = None) -> str:
+    """The declared ``Field.label`` for *field_code* on *kind* (item type or sub-entity kind).
+
+    Falls back to the title-cased code when the field isn't declared — same graceful posture
+    as :func:`resolve_collection`, so a template can relabel an axis (e.g. severity->impact)
+    with no code change, and degrades sanely rather than crashing on a dropped field.
+    """
+    active_spec = spec if spec is not None else bundled_spec()
+    field = next((f for f in active_spec.fields_for(kind) if f.code == field_code), None)
+    return field.label if field else field_code.title()
+
+
+def field_default(kind: str, field_code: str, spec: WorkflowSpec | None = None) -> str | None:
+    """A valid example/fallback value for *field_code* on *kind*.
+
+    The field's own ``default``, else its bound collection's ``default``, else the collection's
+    first badge. Mirrors ``Service.field_default`` (the add-<kind> CLI's own omitted-flag
+    fallback) so a template hint shows the same value the CLI would actually apply. Falls back
+    to resolving *field_code* directly as a collection code when the field itself isn't
+    declared (mirrors :func:`resolve_collection`'s fallback), so a dropped/renamed field with a
+    same-named collection still yields a usable example.
+    """
+    active_spec = spec if spec is not None else bundled_spec()
+    field = next((f for f in active_spec.fields_for(kind) if f.code == field_code), None)
+    if field and field.default:
+        return field.default
+    coll = active_spec.collections.get(field.collection if field else field_code)
+    if coll is None:
+        return None
+    if coll.default:
+        return coll.default
+    return coll.badges[0].code if coll.badges else None
+
+
+def collection_legend(collection_code: str, spec: WorkflowSpec | None = None) -> str:
+    """A ``" · "``-joined ``emoji code`` readout for every badge in *collection_code* — the
+    review findings legend / any other flat-scale readout. Empty string if the collection is
+    undeclared."""
+    active_spec = spec if spec is not None else bundled_spec()
+    coll = active_spec.collections.get(collection_code)
+    if not coll:
+        return ""
+    return " · ".join(f"{b.emoji or _DEFAULT_BADGE} {b.code}" for b in coll.badges)
+
+
 def badge_render(
     collection_code: str, code: str, spec: WorkflowSpec | None = None, *, as_label: bool = False
 ) -> str:

@@ -29,7 +29,7 @@ def test_every_type_template_renders_with_markers(item_type):
     type_str = str(item_type)
     is_meta = spec.item_is_meta(type_str)
     template_path = f"agents/{type_str}.md.j2" if is_meta else f"items/{type_str}.md.j2"
-    out = render(template_path, item=it, description="", extra=it.extra)
+    out = render(template_path, item=it, description="", extra=it.extra, spec=spec)
     assert "<!-- sq:body -->" in out and "<!-- sq:body:end -->" in out
     assert "<!-- sq:discussion -->" in out and "<!-- sq:discussion:end -->" in out
     # a top-level (h2) Discussion heading leads the discussion region
@@ -120,9 +120,86 @@ def test_review_has_findings_container_and_summary_region():
         created_at=now,
         updated_at=now,
     )
-    out = render("items/review.md.j2", item=it, description="", extra={})
+    out = render("items/review.md.j2", item=it, description="", extra={}, spec=bundled_spec())
     # sq-managed summary region + the findings container (filled by `sq finding add`)
     assert "<!-- sq:summary -->" in out and "<!-- sq:findings -->" in out
     assert "## Findings" in out
     for circle in ("🔴", "🟠", "🟡", "🟢", "🔵"):
         assert circle in out  # severity legend
+
+
+def test_review_legend_and_head_label_follow_a_relabeled_severity_collection():
+    """A project that relabels/re-values severity sees its own axis in the review legend and
+    the finding head badge, not the bundled critical/high/medium/low/info scale."""
+    from squads import _discussion as d
+    from squads._workflow._models import Badge, Collection, Field
+
+    base = bundled_spec()
+    impact_field = Field(code="severity", label="Impact", collection="impact", default="minor")
+    finding = base.subentity_kinds["finding"].model_copy(update={"fields": [impact_field]})
+    impact = Collection(
+        label="Impact",
+        ordered=True,
+        default="minor",
+        badges=[
+            Badge(code="severe", label="Severe", emoji="🟣"),
+            Badge(code="minor", label="Minor", emoji="⚪"),
+        ],
+    )
+    spec = base.model_copy(
+        update={
+            "subentity_kinds": {**base.subentity_kinds, "finding": finding},
+            "collections": {**base.collections, "impact": impact},
+        }
+    )
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    it = Item(
+        sequence_id=1,
+        type="review",
+        title="Review",
+        slug="review",
+        status="Requested",
+        path="reviews/x.md",
+        created_at=now,
+        updated_at=now,
+    )
+    out = render("items/review.md.j2", item=it, description="", extra={}, spec=spec)
+    assert "_Impact:_ 🟣 severe · ⚪ minor" in out
+    assert "--severity minor" in out
+    assert "critical" not in out  # bundled legend gone
+
+    head = d.set_head(
+        "<!-- sq:finding:F1:head -->\n<!-- sq:finding:F1:head:end -->",
+        "finding",
+        "F1",
+        severity="minor",
+        spec=spec,
+    )
+    assert "**Impact:** ⚪ Minor" in head
+
+
+def test_feature_and_task_scaffold_hints_name_a_renamed_subentity_kind():
+    """A project that renames its sub-entity kind (story->requirement) sees the real
+    add-<kind>/<kind> command in the scaffold hint, not the bundled add-story/story."""
+    base = bundled_spec()
+    renamed_feature = base.items["feature"].model_copy(update={"subentity_kind": "requirement"})
+    subentity_kinds = {**base.subentity_kinds, "requirement": base.subentity_kinds["story"]}
+    items = {**base.items, "feature": renamed_feature}
+    spec = base.model_copy(update={"items": items, "subentity_kinds": subentity_kinds})
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    it = Item(
+        sequence_id=1,
+        type="feature",
+        title="Feature",
+        slug="feature",
+        status="Draft",
+        path="features/x.md",
+        created_at=now,
+        updated_at=now,
+    )
+    out = render("items/feature.md.j2", item=it, description="", extra={}, spec=spec)
+    assert "add-requirement" in out
+    assert "requirement <n> update" in out
+    assert "add-story" not in out

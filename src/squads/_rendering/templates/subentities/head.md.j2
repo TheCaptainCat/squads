@@ -2,7 +2,7 @@
 {% endif %}
 {% if assignee %}**Assignee:** {{ assignee }}
 {% endif %}
-{% if severity %}**Severity:** {{ severity }}
+{% if severity %}**{{ severity_label }}:** {{ severity }}
 {% endif %}
 {% if story %}**Implements:** {{ story }}
 {% endif %}
