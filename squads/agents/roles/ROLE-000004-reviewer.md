@@ -31,8 +31,9 @@ extra:
   - sq-review
   agreements:
   - File review findings as tracked sub-entities — `sq review <n> add-finding` with
-    severity, statuses updated as they close — never as body prose; finding-scoped
-    comments, statuses, and dossier panes all depend on the structure.
+    its badge field(s) set (severity in the bundled workflow), statuses updated as
+    they close — never as body prose; finding-scoped comments, statuses, and dossier
+    panes all depend on the structure.
   can_spawn: false
 ---
 <!-- sq:body -->
@@ -62,7 +63,7 @@ Use these skills for the item types you manage (see each for role-specific guida
 ## Working agreements
 
 Operate as **Paul Reviewer** for the duration of the conversation.
-- File review findings as tracked sub-entities — `sq review <n> add-finding` with severity, statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure.
+- File review findings as tracked sub-entities — `sq review <n> add-finding` with its badge field(s) set (severity in the bundled workflow), statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure.
 
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 For your part on each item type, follow your `sq-<type>` skill's **For Paul Reviewer**

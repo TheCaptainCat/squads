@@ -6,6 +6,34 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
 `{{ squad_dir }}/`, indexed in `{{ squad_dir }}/.squads.json`. Every item has a stable ID like
 `TASK-<n>` (the prefix marks the type; the number is globally unique).
 
+{% set _priority = namespace(field=none, values=[]) %}
+{% for f in spec.fields_for('task') %}
+{% set _coll = spec.collection(f.collection) %}
+{% if _coll.ordered and _priority.field is none %}
+{% set _priority.field = f %}
+{% set _priority.values = _coll.badges | map(attribute='code') | list %}
+{% endif %}
+{% endfor %}
+{% set _kind_to_type = {} %}
+{% for _t, _tspec in spec.items.items() %}
+{% if _tspec.subentity_kind %}
+{% set _ = _kind_to_type.update({_tspec.subentity_kind: _t}) %}
+{% endif %}
+{% endfor %}
+{% set _kind_hints = [] %}
+{% set _kind_notes = {
+    "finding": 'Fix rationale, reproduction notes, "agreed — closing this one"',
+    "story": "Acceptance clarification, story-local blocker or question",
+    "subtask": "Implementation note, decision local to this unit of work",
+} %}
+{% for _kind, _kspec in spec.subentity_kinds.items() %}
+{% if _kspec.maps_parent_story %}
+{% set _ = _kind_hints.append("a " ~ _kind ~ "'s `--story`") %}
+{% endif %}
+{% for _f in _kspec.fields %}
+{% set _ = _kind_hints.append("a " ~ _kind ~ "'s `--" ~ _f.code ~ "`") %}
+{% endfor %}
+{% endfor %}
 ## Golden rules
 
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 update --status Done`);
@@ -15,8 +43,8 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
 - Set an **item's** body with `sq <type> <n> body -m "…"` (repeat `-m`, or `--file body.md` /
   `--file -`); `--desc` (on `create`/`update`) is just the short summary shown in lists.
 - Set a **sub-entity's** body with `sq <type> <n> <kind> <k> body -m "…"` (or `--file`); edit its
-  metadata with `sq <type> <n> <kind> <k> update` (`--title`, `--status`, `--assignee`, a subtask's
-  `--story`, a finding's `--severity`). Read either back with `sq <type> <n> show` /
+  metadata with `sq <type> <n> <kind> <k> update` (`--title`, `--status`, `--assignee`, plus any
+  kind-declared fields{% if _kind_hints %} — e.g. {{ _kind_hints | join(', ') }}{% endif %}). Read either back with `sq <type> <n> show` /
   `sq <type> <n> <kind> <k> show`. For a full dossier (body + sub-entities + discussion), use
   `sq <type> <n> show --full --comments` — decisions and refinements often live in comments.
 - Reference related items by ID so others read the right context.
@@ -39,16 +67,16 @@ to stay disciplined:
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
   -m "…"` summarising what changed — that's how the manager's loop (and the next agent) picks up
   where you left off.
-- **Scope your comment to the right discussion.** Sub-entities (stories, subtasks, findings) each
-  have their own discussion region alongside the parent item's main discussion. Use
+- **Scope your comment to the right discussion.** Sub-entities ({{ spec.subentity_kinds.values() | map(attribute='plural') | join(', ') }})
+  each have their own discussion region alongside the parent item's main discussion. Use
   `sq <type> <n> <kind> <k> comment` for anything scoped to that one sub-entity; use
   `sq <type> <n> comment` for cross-cutting material that applies to the whole item.
 
   | Scope | Command | When to use |
   |---|---|---|
-  | One finding | `sq review <n> finding <k> comment` | Fix rationale, reproduction notes, "agreed — closing this one" |
-  | One story | `sq feature <n> story <k> comment` | Acceptance clarification, story-local blocker or question |
-  | One subtask | `sq task <n> subtask <k> comment` | Implementation note, decision local to this unit of work |
+{% for _kind in spec.subentity_kinds %}
+  | One {{ _kind }} | `sq {{ _kind_to_type.get(_kind, "<type>") }} <n> {{ _kind }} <k> comment` | {{ _kind_notes.get(_kind, "Notes scoped to this sub-entity") }} |
+{% endfor %}
   | Whole item | `sq <type> <n> comment` | Handoff @mentions, decisions spanning multiple sub-entities, item-level status summaries |
 
   @mentions are surfaced by `sq inbox` wherever they live in the file — in a sub-entity discussion
@@ -69,11 +97,11 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
+sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: {{ spec.work_types() | reject('eq', 'task') | sort | join('|') }}
 #   --author is required and must be a registered agent (your own role slug)
 sq task 3 show --full --comments                                # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress                                     # transition (validated per type)
-sq task 3 update --assignee qa --priority high --parent FEAT-<n>  # metadata (parent validated)
+sq task 3 update --assignee qa{% if _priority.field %} --{{ _priority.field.code }} {{ _priority.values[0] }}{% endif %} --parent FEAT-<n>  # metadata (parent validated)
 sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
 sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
 sq list --type task --status InProgress                         # closed items hidden; --all to include
@@ -85,7 +113,7 @@ sq docs [internals|workflow|migration|...]                      # read the full 
 ```
 
 Closed items (Done/Cancelled/…) drop out of `sq list`/`sq tree` by default — pass `--all` or an
-explicit `--status` to see them. Set importance with `--priority urgent|high|medium|low`.
+explicit `--status` to see them.{% if _priority.field %} Set importance with `--{{ _priority.field.code }} {{ _priority.values | join('|') }}`.{% endif +%}
 
 **Coordinating a larger piece of work?** Delegate by spawning the specialist as a subagent and let
 `sq` carry the state between turns — see the **Orchestration loop** in `CLAUDE.md`.

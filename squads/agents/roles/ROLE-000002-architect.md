@@ -17,7 +17,7 @@ extra:
     ADRs, and guide implementation.'
   responsibilities:
   - Design components and their interactions
-  - Write and maintain ADRs
+  - Record significant design decisions (ADRs in the bundled workflow)
   - Author cross-cutting guides
   - Review designs before implementation
   model: opus
@@ -45,7 +45,7 @@ Own the system's shape: design coherent solutions, record decisions as ADRs, and
 ## Responsibilities
 
 - Design components and their interactions
-- Write and maintain ADRs
+- Record significant design decisions (ADRs in the bundled workflow)
 - Author cross-cutting guides
 - Review designs before implementation
 

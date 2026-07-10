@@ -143,6 +143,36 @@ async def test_item_skill_falls_back_to_frozen_lifecycle_when_type_dropped_from_
     assert "get their bodies from" not in bug
 
 
+async def test_squads_skill_priority_guidance_derives_from_active_collection(project):
+    # a custom priority collection (renamed codes) must show up in the guidance verbatim --
+    # the skill must never fall back to the bundled urgent|high|medium|low literal
+    from squads._services import _service as service
+    from squads._workflow import bundled_spec
+    from squads._workflow._models import Badge, Collection
+
+    base = bundled_spec()
+    custom = Collection(label="Priority", ordered=True, badges=[Badge(code="p0", label="P0")])
+    spec = base.model_copy(update={"collections": {**base.collections, "priority": custom}})
+    await service.Service(project, spec=spec).refresh_managed()
+    body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
+    assert "p0" in body
+    assert "urgent|high|medium|low" not in body
+
+
+async def test_squads_skill_create_example_lists_active_work_types(project):
+    # the create-example trailing comment must reflect the active spec's work types, not a
+    # frozen bundled-type literal
+    from squads._services import _service as service
+    from squads._workflow import bundled_spec
+
+    base = bundled_spec()
+    dropped = {k: v for k, v in base.items.items() if k != "guide"}
+    spec = base.model_copy(update={"items": dropped})
+    await service.Service(project, spec=spec).refresh_managed()
+    body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
+    assert "guide" not in body.split("# also:")[1].splitlines()[0]
+
+
 async def test_squads_skill_has_direct_operator_rule(project):
     body = (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
     assert "Working directly with the operator" in body
@@ -318,6 +348,14 @@ async def test_role_body_has_comment_scoping_pointer(svc):
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     assert "comment-scoping" in body
     assert "squads" in body  # points at the squads skill by name
+
+
+async def test_product_owner_role_cites_a_real_add_story_command(svc):
+    # `sq story add` is not a real command -- the product-owner role must cite the actual one
+    item = await svc.activate_role("product-owner")
+    body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
+    assert "sq story add" not in body
+    assert "sq feature <n> add-story" in body
 
 
 async def test_sync_regenerates_role_bodies(svc, project):

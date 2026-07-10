@@ -31,8 +31,8 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
 - Set an **item's** body with `sq <type> <n> body -m "…"` (repeat `-m`, or `--file body.md` /
   `--file -`); `--desc` (on `create`/`update`) is just the short summary shown in lists.
 - Set a **sub-entity's** body with `sq <type> <n> <kind> <k> body -m "…"` (or `--file`); edit its
-  metadata with `sq <type> <n> <kind> <k> update` (`--title`, `--status`, `--assignee`, a subtask's
-  `--story`, a finding's `--severity`). Read either back with `sq <type> <n> show` /
+  metadata with `sq <type> <n> <kind> <k> update` (`--title`, `--status`, `--assignee`, plus any
+  kind-declared fields — e.g. a subtask's `--story`, a finding's `--severity`). Read either back with `sq <type> <n> show` /
   `sq <type> <n> <kind> <k> show`. For a full dossier (body + sub-entities + discussion), use
   `sq <type> <n> show --full --comments` — decisions and refinements often live in comments.
 - Reference related items by ID so others read the right context.
@@ -55,16 +55,16 @@ to stay disciplined:
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
   -m "…"` summarising what changed — that's how the manager's loop (and the next agent) picks up
   where you left off.
-- **Scope your comment to the right discussion.** Sub-entities (stories, subtasks, findings) each
-  have their own discussion region alongside the parent item's main discussion. Use
+- **Scope your comment to the right discussion.** Sub-entities (stories, subtasks, findings)
+  each have their own discussion region alongside the parent item's main discussion. Use
   `sq <type> <n> <kind> <k> comment` for anything scoped to that one sub-entity; use
   `sq <type> <n> comment` for cross-cutting material that applies to the whole item.
 
   | Scope | Command | When to use |
   |---|---|---|
-  | One finding | `sq review <n> finding <k> comment` | Fix rationale, reproduction notes, "agreed — closing this one" |
   | One story | `sq feature <n> story <k> comment` | Acceptance clarification, story-local blocker or question |
   | One subtask | `sq task <n> subtask <k> comment` | Implementation note, decision local to this unit of work |
+  | One finding | `sq review <n> finding <k> comment` | Fix rationale, reproduction notes, "agreed — closing this one" |
   | Whole item | `sq <type> <n> comment` | Handoff @mentions, decisions spanning multiple sub-entities, item-level status summaries |
 
   @mentions are surfaced by `sq inbox` wherever they live in the file — in a sub-entity discussion
@@ -215,11 +215,11 @@ The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. U
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
+sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: bug|decision|epic|feature|guide|review
 #   --author is required and must be a registered agent (your own role slug)
 sq task 3 show --full --comments                                # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress                                     # transition (validated per type)
-sq task 3 update --assignee qa --priority high --parent FEAT-<n>  # metadata (parent validated)
+sq task 3 update --assignee qa --priority urgent --parent FEAT-<n>  # metadata (parent validated)
 sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
 sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
 sq list --type task --status InProgress                         # closed items hidden; --all to include
