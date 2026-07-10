@@ -266,16 +266,13 @@ may also talk to a specialist directly for live debugging; when that happens the
 
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
   `sq create <type>`. Sub-entities nest: `sq feature 12 story 1 update --status InProgress`.
-- The **product owner** authors **features** (`sq create feature`) and their **user stories**
-  (`sq feature <n> add-story`).
-- The **tech lead** authors **tasks** (`sq create task`) and breaks them down:
-  - a task's **parent is the feature** it implements (`--parent FEAT-…`);
-  - each **subtask maps to one user story** of that feature
-    (`sq task <n> add-subtask "…" --story USn`);
-  - a task that fixes a bug or follows up a review links it as a ref
-    (`sq task <n> ref add <id> --kind fixes|addresses`);
-  - a purely-technical task has no feature parent and no such ref.
-- `sq check` enforces this (a task's parent must be a feature; subtask→US must exist).
+- The **product owner** authors **epics** (`sq create epic`).
+- The **product owner** authors **features** (`sq create feature`), breaking work into `add-story`.
+- The **tech lead** authors **tasks** (`sq create task`); its parent is the feature it implements (`--parent FEAT-…`), breaking work into `add-subtask` (`--story USn` maps one to a parent story), and links fixes/follow-ups via `ref add <id> --kind fixes|addresses`.
+- The **QA engineer** authors **bugs** (`sq create bug`).
+- The **architect** authors **decisions** (`sq create decision`), and links fixes/follow-ups via `ref add <id> --kind supersedes`.
+- The **code reviewer** authors **reviews** (`sq create review`), breaking work into `add-finding`.
+- `sq check` enforces each declared parent/sub-entity rule (task).
 
 ## Working with squads
 

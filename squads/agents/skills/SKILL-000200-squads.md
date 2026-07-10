@@ -84,26 +84,19 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
 
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
   `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
-- **Product owner** → features + their user stories:
-  `sq create feature "…" --author product-owner`, then `sq feature <n> add-story "…"`.
-- **Tech lead** → tasks under a feature, with subtasks mapped to a user story:
-
-  ```bash
-  sq create task "…" --author tech-lead --parent FEAT-…   # --author (a registered agent) is required
-  sq task <n> add-subtask "…" --story USn       # USn must exist in the parent feature
-  sq task <n> ref add BUG-… --kind fixes        # bug fix  (or REV-… --kind addresses)
-  ```
-
-  A purely-technical task has no feature parent and no fix/addresses ref.
-- **Sub-entities are tracked too.** Subtasks & user stories run `Todo → InProgress → Done`
-  (`sq task <n> subtask <k> update --status …`, `sq feature <n> story <k> update --status …`); review
-  findings carry a severity + `Open → Fixed → Verified` (`sq review <n> add-finding "…" --severity
-  high`, `sq review <n> finding <k> update --status …`). `update` is the one metadata entry point for
-  a sub-entity (`--title`/`--status`/`--assignee`, a subtask's `--story`, a finding's `--severity`).
-  Each parent shows an sq-managed summary table.
-- Hierarchy: epic → feature → task; subtasks → user stories. `sq check` enforces the parent rules.
-- Each role has skills for the item types it manages (`sq-feature`, `sq-task`, `sq-bug`, …) —
-  open those for role-specific guidance. The default agent (Catherine Manager) triages and routes.
+- **Product owner** → `sq create epic "…" --author product-owner`.
+- **Product owner** → `sq create feature "…" --author product-owner`, then `add-story "…"`.
+- **Tech lead** → `sq create task "…" --author tech-lead` `--parent FEAT-…`, then `add-subtask "…"` `--story USn`; link with `ref add <id> --kind fixes|addresses`.
+- **QA engineer** → `sq create bug "…" --author qa`.
+- **Architect** → `sq create decision "…" --author architect`; link with `ref add <id> --kind supersedes`.
+- **Code reviewer** → `sq create review "…" --author reviewer`, then `add-finding "…"`.
+- **Sub-entities are tracked too:** `feature` → `story` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `task` → `subtask` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `review` → `finding` (`Open → Fixed → Verified (+ WontFix)`).
+  `update` is the one metadata entry point for a sub-entity (`--title`/`--status`/`--assignee`,
+  plus any declared field flag). Each parent shows an sq-managed summary table.
+- Hierarchy: epic → feature → task. `sq check` enforces the parent rules.
+- Each role has skills for the item types it manages (e.g. `sq-epic`, `sq-feature`, `sq-task`, …) —
+  open those for role-specific guidance. The default role triages and routes when no other agent
+  claims the work.
 - The `.md` files are sq-managed — never hand-edit them. Set an item's body with
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
@@ -157,9 +150,8 @@ sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
 
 Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
 
-**Status behaviour:** when the old and new types share the same workflow (task↔bug,
-feature↔epic) the status is carried as-is; otherwise the status resets to the new type's
-initial value and the command says so.
+**Status behaviour:** when the old and new types share the same workflow (e.g. epic↔feature↔task) the status is carried as-is; otherwise
+the status resets to the new type's initial value and the command says so.
 
 **Refusals with actionable hints:**
 - item has sub-entities (clear them first)
