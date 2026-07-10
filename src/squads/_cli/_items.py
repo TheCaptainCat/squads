@@ -47,12 +47,6 @@ from squads._models._subentity import SubEntity
 from squads._services._service import Service
 from squads._workflow._models import Field, WorkflowSpec
 
-#: SubEntity field codes with a dedicated storage slot today — only ``severity`` (the finding
-#: kind's bundled field). A generic field-code store for any other declared field is future
-#: scope; a custom field outside this set surfaces a clear error at the CLI rather than
-#: silently dropping the value or crashing the service call.
-_STORED_FIELD_CODES = frozenset({"severity"})
-
 
 def _id(ctx: typer.Context) -> str:
     return ctx.obj["id"]
@@ -496,14 +490,10 @@ def _resolve_add_fields(
 ) -> dict[str, str]:
     """One resolved+validated badge value per declared field, applying the field's own default
     when the flag is omitted (generalizes ``add_finding``'s old severity-default fallback to
-    any declared field with a real storage slot — see :data:`_STORED_FIELD_CODES`)."""
+    every declared field via the generic ``SubEntity.set_badge_value`` store)."""
     values: dict[str, str] = {}
     for field in fields:
         raw = _kw_str(kwargs, field.code)
-        if raw is not None and field.code not in _STORED_FIELD_CODES:
-            raise SquadsError(f"{kind}'s {field.code!r} field has no CLI storage yet")
-        if field.code not in _STORED_FIELD_CODES:
-            continue
         resolved = raw or svc.field_default(kind, field.code)
         if resolved:
             coll = badges.resolve_collection(kind, field.code, spec)
@@ -584,9 +574,9 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             kind,
             title,
             story=normalized_story,
+            fields=field_values or None,
             assignee=validated_assignee,
             body=resolve_body_optional(message or None, file),
-            **field_values,
         )
         print_block(_id(ctx), res, _kw_bool(kwargs, "json_out"))
 
@@ -672,8 +662,6 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             raw = _kw_str(kwargs, field.code)
             if raw is None:
                 continue
-            if field.code not in _STORED_FIELD_CODES:
-                raise SquadsError(f"{kind}'s {field.code!r} field has no CLI storage yet")
             coll = badges.resolve_collection(kind, field.code, spec)
             field_values[field.code] = parse_badge_code(coll, raw, spec)
 
@@ -692,13 +680,13 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             kind,
             lid,
             title=title,
+            fields=field_values or None,
             story=normalized_story,
             clear_story=no_story,
             assignee=validated_assignee,
             clear_assignee=clear_assignee,
             status=parse_status(status) if status else None,
             force=force,
-            **field_values,
         )
         console.print(f"updated {pid} {lid}")
 

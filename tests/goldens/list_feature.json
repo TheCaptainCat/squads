@@ -20,7 +20,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null
+        "story": null,
+        "extra": {}
       }
     ],
     "path": "features/FEAT-000002-user-authentication.md",

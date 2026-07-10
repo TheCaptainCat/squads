@@ -78,7 +78,12 @@ class SubentitiesMixin(ServiceCore):
             severity or self.field_default("finding", "severity") or _DEFAULT_FINDING_SEVERITY
         )
         return await self.add_block(
-            review_id, "finding", title, severity=resolved_severity, assignee=assignee, body=body
+            review_id,
+            "finding",
+            title,
+            fields={"severity": resolved_severity},
+            assignee=assignee,
+            body=body,
         )
 
     # ------------------------------------------------------------------ public kind-taking surface
@@ -95,7 +100,7 @@ class SubentitiesMixin(ServiceCore):
         title: str,
         *,
         story: str | None = None,
-        severity: str | None = None,
+        fields: dict[str, str] | None = None,
         assignee: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
@@ -119,9 +124,12 @@ class SubentitiesMixin(ServiceCore):
                 title=title,
                 status=self.spec.subentity_initial(kind),
                 assignee=assignee,
-                severity=severity,
                 story=story,
             )
+            # Generic field-code -> badge-code store: ``severity`` (typed attribute) or any
+            # other declared field (SubEntity.extra) — the same dispatch for every code.
+            for code, value in (fields or {}).items():
+                sub.set_badge_value(code, value)
             item.subentities.append(sub)
             item.updated_at = clock.now()
             block = discussion.build_block(kind, local_id, title, body=body, spec=self.spec)
@@ -279,7 +287,7 @@ class SubentitiesMixin(ServiceCore):
             "finding",
             local_id,
             title=title,
-            severity=severity,
+            fields={"severity": severity} if severity is not None else None,
             assignee=assignee,
             clear_assignee=clear_assignee,
             status=status,
@@ -355,7 +363,7 @@ class SubentitiesMixin(ServiceCore):
         local_id: str,
         *,
         title: str | None = None,
-        severity: str | None = None,
+        fields: dict[str, str] | None = None,
         story: str | None = None,
         clear_story: bool = False,
         assignee: str | None = None,
@@ -370,8 +378,8 @@ class SubentitiesMixin(ServiceCore):
             sub = self._find(item, kind, local_id)
             if title is not None:
                 sub.title = title
-            if severity is not None:
-                sub.severity = severity
+            for code, value in (fields or {}).items():
+                sub.set_badge_value(code, value)
             if clear_story:
                 sub.story = None
             elif story is not None:

@@ -208,8 +208,8 @@ def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
     status_badge = badges.status_badge(sub.status, spec)
     parts = [f"{sub.local_id} — {sub.title}  {status_badge}"]
     for field in spec.fields_for(kind):
-        value = getattr(sub, field.code, None)
-        if isinstance(value, str) and value:
+        value = sub.badge_value(field.code)
+        if value:
             coll = badges.resolve_collection(kind, field.code, spec)
             parts.append(badges.badge_render(coll, value, spec, as_label=True))
     if sub.assignee:

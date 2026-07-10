@@ -284,11 +284,9 @@ def summary_columns(kind: str, spec: WorkflowSpec | None = None) -> list[str]:
 
 
 def _field_value(sub: SubEntity, code: str) -> str | None:
-    """The stored badge code for a declared field, read off the sub-entity's own attribute of
-    the same name (only ``severity`` has a typed storage slot today) — ``None`` for a field
-    with no storage slot yet, rather than a per-field special case."""
-    value = getattr(sub, code, None)
-    return value if isinstance(value, str) else None
+    """The stored badge code for a declared field — ``severity``'s typed attribute or any
+    other declared field's generic store (:meth:`SubEntity.badge_value`)."""
+    return sub.badge_value(code)
 
 
 def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec | None = None) -> list[str]:
