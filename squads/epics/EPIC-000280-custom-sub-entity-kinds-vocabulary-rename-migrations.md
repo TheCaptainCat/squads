@@ -3,12 +3,12 @@ id: EPIC-280
 sequence_id: 280
 type: epic
 title: Custom sub-entity kinds & vocabulary rename migrations
-status: Draft
+status: Done
 author: product-owner
 refs:
 - EPIC-206
 created_at: '2026-07-02T09:24:53Z'
-updated_at: '2026-07-02T09:26:23Z'
+updated_at: '2026-07-10T01:56:48Z'
 ---
 <!-- sq:body -->
 ## Vision
@@ -48,4 +48,6 @@ Split from EPIC-206's F6 (former FEAT-212) per ADR-274 (Accepted).
   - Re-parented FEAT-212 here, retitled to 'Custom sub-entity kinds for custom types', trimmed to US1's scope; it keeps ownership of retiring _SUBENTITY_PLURAL via the subentity_plural resolver accessor (Catherine's ownership note, preserved).
   - Created FEAT-281 'Vocabulary rename migrations (sq migrate rename-type/status)' here for the second half (former US2); both features depends-on FEAT-210 (Done) and FEAT-211 (InProgress) and stay Draft/Ready — neither starts until F5 lands.
   - Note: ADR-274 suggested EPIC-000213 as the number, but the global counter had moved past it by execution time (213 is BUG-213); the epic was created as EPIC-280. Numbers in the ADR text are illustrative, not reserved.
+- [2026-07-10T01:56:46Z] Catherine Manager:
+  - EPIC-280 complete: both children Done — FEAT-212 (custom sub-entity kinds, ADR-348 realized end-to-end) and FEAT-281 (vocabulary rename migrations: sq migrate rename-type/rename-status). BUG-362 (surfaced by 281's acceptance sweep) fixed and Verified along the way.
 <!-- sq:discussion:end -->
