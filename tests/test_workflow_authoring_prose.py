@@ -101,13 +101,11 @@ class TestAuthoringProseTracksSpec:
     def test_task_parent_name_and_prefix_follow_spec_rename(self) -> None:
         spec = _spec_with_renamed_task_parent()
         rendered = render("workflow.md.j2", spec=spec)
-        assert "tasks under a initiative" in rendered or "tasks under a initiative," in rendered
         assert "--parent INIT-…" in rendered
-        assert "the parent initiative" in rendered
-        assert "no initiative parent" in rendered
+        assert "epic → initiative → task" in rendered
         # The old hardcoded wording must be gone.
-        assert "tasks under a feature" not in rendered
         assert "--parent FEAT-…" not in rendered
+        assert "epic → feature → task" not in rendered
 
     def test_hierarchy_line_follows_spec_rename(self) -> None:
         spec = _spec_with_renamed_task_parent()
@@ -137,22 +135,26 @@ class TestAuthoringProseTracksSpec:
 
 class TestGracefulOmission:
     def test_feature_bullet_omitted_when_subentity_kind_changes(self) -> None:
-        """If 'feature' stops hosting 'story' sub-entities, the story-specific bullet
-        is skipped rather than rendering a stale 'user stories' reference."""
+        """If 'feature' stops hosting 'story' sub-entities, the add-story clause of its
+        authoring bullet is dropped rather than rendering a stale reference — the bullet
+        itself stays (the owner still authors the type)."""
         base = bundled_spec()
         new_items = dict(base.items)
         new_items["feature"] = new_items["feature"].model_copy(update={"subentity_kind": None})
         spec = base.model_copy(update={"items": new_items})
         rendered = render("workflow.md.j2", spec=spec)
-        assert "Product owner** → features + their user stories" not in rendered
+        assert "add-story" not in rendered
+        assert "**Product owner** → `sq create feature" in rendered
 
     def test_task_bullet_omitted_when_no_parent_required(self) -> None:
+        """Clearing 'task's parent_required drops the --parent clause, not the whole bullet."""
         base = bundled_spec()
         new_items = dict(base.items)
         new_items["task"] = new_items["task"].model_copy(update={"parent_required": None})
         spec = base.model_copy(update={"items": new_items})
         rendered = render("workflow.md.j2", spec=spec)
-        assert "Tech lead** → tasks under a feature" not in rendered
+        assert "--parent FEAT-…" not in rendered
+        assert "**Tech lead** → `sq create task" in rendered
 
     def test_custom_type_with_no_lane_owner_is_silently_skipped(self) -> None:
         """A custom type appears in the retype-target list (Part A) but does not force
@@ -182,3 +184,78 @@ class TestGracefulOmission:
         assert (
             "incident" not in rendered.split("## Type-command aliases")[0].split("Valid targets")[0]
         )
+
+
+# ---------------------------------------------------------------------------
+# Dropping a built-in type must degrade gracefully, never crash the render
+# ---------------------------------------------------------------------------
+
+
+class TestDroppedBuiltinTypeDoesNotCrash:
+    def test_dropped_task_does_not_crash_workflow_cheatsheet(self) -> None:
+        """Regression: the Team-workflow section used to call spec.item_parent_required('task')
+        and parent_chain(spec, 'task') unconditionally, KeyError-ing the moment 'task' was
+        dropped from the spec. Dropping it must now render cleanly with no trace of it."""
+        base = bundled_spec()
+        dropped = {k: v for k, v in base.items.items() if k != "task"}
+        spec = base.model_copy(update={"items": dropped})
+        rendered = render("workflow.md.j2", spec=spec)
+        authoring_section = rendered.split("## Type-command aliases")[0]
+        assert "Tech lead" not in authoring_section  # task's only lane owner, no longer authored
+        assert "**Product owner** → `sq create epic" in authoring_section  # other types unaffected
+
+    def test_dropped_task_does_not_crash_claude_section(self) -> None:
+        base = bundled_spec()
+        dropped = {k: v for k, v in base.items.items() if k != "task"}
+        spec = base.model_copy(update={"items": dropped})
+        rendered = render(
+            "claude/claude_section.md.j2",
+            squad_dir="squads",
+            roles=[],
+            operators=[],
+            default_role_full_name="Catherine Manager",
+            default_role_slug="manager",
+            spec=spec,
+        )
+        assert "The **product owner** authors **epics**" in rendered  # rendered past the crash
+
+
+# ---------------------------------------------------------------------------
+# A custom type participates generically, not just in the alias/lifecycle tables
+# ---------------------------------------------------------------------------
+
+
+class TestCustomTypeGenericParticipation:
+    def test_custom_type_with_a_subentity_kind_appears_in_the_subentities_summary(self) -> None:
+        """A custom type that hosts a declared sub-entity kind shows up in the generic
+        'Sub-entities are tracked too' summary line, proving it's derived from the spec
+        (looping every type with item_subentity_kind set) rather than hardcoded to the
+        three bundled hosts (feature/task/review)."""
+        base = bundled_spec()
+        new_items = dict(base.items)
+        new_items["incident"] = base.items["bug"].model_copy(
+            update={
+                "prefix": "INC",
+                "folder": "incidents",
+                "aliases": ["inc"],
+                "subentity_kind": "finding",
+            }
+        )
+        new_prefix_to_type = dict(base.prefix_to_type)
+        new_prefix_to_type["INC"] = "incident"
+        spec = WorkflowSpec.model_validate(
+            {
+                "items": new_items,
+                "statuses": base.statuses,
+                "lifecycles": base.lifecycles,
+                "prefix_to_type": new_prefix_to_type,
+                "alias_to_type": {**base.alias_to_type, "inc": "incident"},
+                "collections": base.collections,
+                "subentity_kinds": base.subentity_kinds,
+            }
+        )
+        rendered = render("workflow.md.j2", spec=spec)
+        summary_line = next(
+            ln for ln in rendered.splitlines() if "Sub-entities are tracked too" in ln
+        )
+        assert "`incident` → `finding`" in summary_line

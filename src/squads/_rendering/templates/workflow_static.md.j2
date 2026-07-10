@@ -16,9 +16,32 @@ sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
 {% endfor %}
 Valid targets: {% for item_type in retype_targets %}`{{ item_type }}`{% if not loop.last %}, {% endif %}{% endfor %}.
 
-**Status behaviour:** when the old and new types share the same workflow (task↔bug,
-feature↔epic) the status is carried as-is; otherwise the status resets to the new type's
-initial value and the command says so.
+{# Same-workflow example: group non-meta types by their declared lifecycle name, rather than
+   naming specific bundled types — a custom spec may share/split workflows differently. #}
+{% set lifecycle_groups = [] %}
+{% for item_type, item_spec in spec.items.items() %}
+{% if not item_spec.is_meta %}
+{% set ns = namespace(matched=none) %}
+{% for g in lifecycle_groups %}
+{% if g.lifecycle == item_spec.lifecycle %}
+{% set ns.matched = g %}
+{% endif %}
+{% endfor %}
+{% if ns.matched %}
+{% set _ = ns.matched.types.append(item_type) %}
+{% else %}
+{% set _ = lifecycle_groups.append({"lifecycle": item_spec.lifecycle, "types": [item_type]}) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% set shared_groups = [] %}
+{% for g in lifecycle_groups %}
+{% if g.types | length > 1 %}
+{% set _ = shared_groups.append(g.types | join("↔")) %}
+{% endif %}
+{% endfor %}
+**Status behaviour:** when the old and new types share the same workflow{% if shared_groups %} (e.g. {{ shared_groups | join(", ") }}){% endif %} the status is carried as-is; otherwise
+the status resets to the new type's initial value and the command says so.
 
 **Refusals with actionable hints:**
 - item has sub-entities (clear them first)

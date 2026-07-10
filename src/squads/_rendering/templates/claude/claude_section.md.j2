@@ -78,24 +78,28 @@ may also talk to a specialist directly for live debugging; when that happens the
 
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
   `sq create <type>`. Sub-entities nest: `sq feature 12 story 1 update --status InProgress`.
-{% set feature_owner = authoring_owner('feature') %}
-{% if feature_owner and spec.item_subentity_kind('feature') == 'story' %}
-- The **{{ feature_owner[1] }}** authors **features** (`sq create feature`) and their **user stories**
-  (`sq feature <n> add-story`).
+{# One line per type-role authoring pairing, generically derived from the spec (mirrors
+   workflow.md.j2's Team workflow section) — never a hardcoded type name, so a dropped/renamed
+   built-in type degrades gracefully instead of crashing. #}
+{% for item_type, item_spec in spec.items.items() %}
+{% if not item_spec.is_meta %}
+{% set owner = authoring_owner(item_type) %}
+{% if owner %}
+{% set parent = spec.item_parent_required(item_type) %}
+{% set subkind = spec.item_subentity_kind(item_type) %}
+{% set refkinds = spec.item_ref_rules(item_type) | map(attribute="kind") | list %}
+- The **{{ owner[1] }}** authors **{{ item_type }}s** (`sq create {{ item_type }}`){% if parent and parent in spec.items %}; its parent is the {{ parent }} it implements (`--parent {{ spec.items[parent].prefix }}-…`){% endif %}{% if subkind %}, breaking work into `add-{{ subkind }}`{% if spec.subentity_kinds[subkind].maps_parent_story %} (`--story USn` maps one to a parent story){% endif %}{% endif %}{% if refkinds %}, and links fixes/follow-ups via `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
 {% endif %}
-{% set task_owner = authoring_owner('task') %}
-{% set task_parent = spec.item_parent_required('task') %}
-{% if task_owner and task_parent and spec.item_subentity_kind('task') == 'subtask' %}
-- The **{{ task_owner[1] }}** authors **tasks** (`sq create task`) and breaks them down:
-  - a task's **parent is the {{ task_parent }}** it implements (`--parent {{ spec.items[task_parent].prefix }}-…`);
-  - each **subtask maps to one user story** of that {{ task_parent }}
-    (`sq task <n> add-subtask "…" --story USn`);
-  - a task that fixes a bug or follows up a review links it as a ref
-    (`sq task <n> ref add <id> --kind fixes|addresses`);
-  - a purely-technical task has no {{ task_parent }} parent and no such ref.
 {% endif %}
-{% if task_parent %}
-- `sq check` enforces this (a task's parent must be a {{ task_parent }}; subtask→US must exist).
+{% endfor %}
+{% set parents_required = [] %}
+{% for item_type, item_spec in spec.items.items() %}
+{% if not item_spec.is_meta and spec.item_parent_required(item_type) %}
+{% set _ = parents_required.append(item_type) %}
+{% endif %}
+{% endfor %}
+{% if parents_required %}
+- `sq check` enforces each declared parent/sub-entity rule ({{ parents_required | join(", ") }}).
 {% endif %}
 
 ## Working with squads
