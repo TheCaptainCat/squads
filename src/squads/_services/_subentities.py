@@ -444,15 +444,16 @@ class SubentitiesMixin(ServiceCore):
         return f"{us_id} — {title}" if title else us_id
 
     def _validate_subtask_story(self, db: SquadsDB, task: Item, story: str) -> None:
+        required = self.spec.item_parent_required(task.type)
+        host = required or "parent"
         if not task.parent:
             raise SquadsError(
-                f"{task.id} has no feature parent; set one before mapping a subtask to {story}"
+                f"{task.id} has no {host} parent; set one before mapping a subtask to {story}"
             )
         parent = db.get(task.parent)
-        required = self.spec.item_parent_required(task.type)
         if parent is None or (required is not None and parent.type != required):
             kind = parent.type if parent else "missing parent"
-            raise SquadsError(f"{task.id}'s parent is a {kind}, not a feature")
+            raise SquadsError(f"{task.id}'s parent is a {kind}, not a {host}")
         if story not in {s.local_id for s in parent.subentities}:
             raise SquadsError(f"user story {story} not found in {parent.id}")
 

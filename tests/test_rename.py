@@ -284,6 +284,40 @@ async def test_rename_writes_reflog_and_comment_per_item(svc):
     assert fm["type"] == "ticket"
 
 
+async def test_extra_field_stays_settable_after_type_rename(svc):
+    """guide->doc: --set tags still works post-rename (EXTRA_FIELDS keys by spec identity,
+    not by the bundled literal type name)."""
+    base = load_workflow_spec()
+    doc_type = ItemSpec(
+        prefix="DOC",
+        folder="docs",
+        lifecycle=base.items["guide"].lifecycle,
+        extra_fields=["tags"],
+    )
+    doc_spec = WorkflowSpec.model_validate(
+        {
+            "items": {**base.items, "doc": doc_type},
+            "statuses": base.statuses,
+            "lifecycles": base.lifecycles,
+            "prefix_to_type": {**base.prefix_to_type, "DOC": "doc"},
+            "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
+        }
+    )
+    doc_svc = service.Service(svc.paths, spec=doc_spec)
+
+    await svc.create("guide", "g")
+    res = await doc_svc.rename_type("guide", "doc")
+    new_id = res.ids[0][1]
+
+    updated = await doc_svc.update(new_id, set_extra={"tags": "a,b"})
+    assert updated.extra["tags"] == ["a", "b"]
+
+    with pytest.raises(SquadsError, match="not a settable field"):
+        await doc_svc.update(new_id, set_extra={"target_ref": "TASK-1"})
+
+
 # --------------------------------------------------------------------------- rename_status (AC2)
 
 

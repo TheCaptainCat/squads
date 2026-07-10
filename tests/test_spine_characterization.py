@@ -38,9 +38,12 @@ import pytest
 
 from squads._cli import app
 from squads._errors import SquadsError
+from squads._services import _service as service
 from squads._services._base import subentity_kind_map
 from squads._workflow import ALLOWED_PARENTS, bundled_spec, parent_hint
 from squads._workflow import work_types as _work_types
+from squads._workflow._loader import load_workflow_spec
+from squads._workflow._models import ItemSpec, Lifecycle, RefRule, StatusSpec, WorkflowSpec
 
 pytestmark = pytest.mark.anyio
 
@@ -372,6 +375,42 @@ async def test_superseded_decision_without_incoming_edge_warns(svc) -> None:
     )
 
 
+async def test_superseded_check_message_names_the_actual_status(svc) -> None:
+    """The supersedes-edge warning names the item's REAL status, not a hardcoded 'Superseded'
+    literal — proven on a custom type/status sharing the supersedes-role marker."""
+    base = load_workflow_spec()
+    audit_spec = WorkflowSpec.model_validate(
+        {
+            "items": {
+                **base.items,
+                "audit": ItemSpec(
+                    prefix="AUD",
+                    folder="audits",
+                    lifecycle="audit_cycle",
+                    ref_rules=[RefRule(kind="supersedes", hint="")],
+                ),
+            },
+            "statuses": {**base.statuses, "Retired": StatusSpec(terminal=True, role="superseded")},
+            "lifecycles": {
+                **base.lifecycles,
+                "audit_cycle": Lifecycle(initial="Draft", transitions={"Draft": ["Retired"]}),
+            },
+            "prefix_to_type": {**base.prefix_to_type, "AUD": "audit"},
+            "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
+        }
+    )
+    audit_svc = service.Service(svc.paths, spec=audit_spec)
+    aud = (await audit_svc.create("audit", "a")).item
+    await audit_svc.set_status(aud.id, "Retired")
+
+    issues = await audit_svc.check()
+    warns = [i for i in issues if i.level == "warn" and i.item == aud.id]
+    assert any("Retired" in i.message for i in warns), f"expected 'Retired' in warning: {warns}"
+    assert not any("Superseded" in i.message for i in warns)
+
+
 async def test_superseded_decision_with_incoming_edge_is_clean(svc) -> None:
     """A decision with status Superseded AND an incoming supersedes edge → sq check is clean."""
     old_dec = (await svc.create("decision", "old", status="Accepted")).item
@@ -430,6 +469,61 @@ async def test_check_flags_subtask_story_mapping_with_wrong_parent(svc) -> None:
     assert any(
         "story" in i.message.lower() or "feature parent" in i.message.lower() for i in errors
     ), f"expected story/feature-parent error for {task.id}, got: {errors}"
+
+
+async def test_subtask_story_error_names_the_resolved_parent_type(svc) -> None:
+    """_check_subtask_stories/_validate_subtask_story name the SPEC-RESOLVED required parent
+    type, not a hardcoded 'feature' literal — proven on a differently-named host/parent pair."""
+    base = load_workflow_spec()
+    custom_spec = WorkflowSpec.model_validate(
+        {
+            "items": {
+                **base.items,
+                "initiative": ItemSpec(
+                    prefix="INIT", folder="initiatives", lifecycle="work", subentity_kind="story"
+                ),
+                "gizmo": ItemSpec(
+                    prefix="GIZ",
+                    folder="gizmos",
+                    lifecycle="work",
+                    parents=["initiative"],
+                    subentity_kind="subtask",
+                    parent_required="initiative",
+                ),
+            },
+            "statuses": base.statuses,
+            "lifecycles": base.lifecycles,
+            "prefix_to_type": {**base.prefix_to_type, "INIT": "initiative", "GIZ": "gizmo"},
+            "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
+        }
+    )
+    custom_svc = service.Service(svc.paths, spec=custom_spec)
+    init = (await custom_svc.create("initiative", "i")).item
+    giz = (await custom_svc.create("gizmo", "g", parent=init.id)).item
+
+    # Directly seed the sub-entity records (no dedicated "story"/"subtask" markers exist
+    # on the fallback item template for these custom types) — mirrors the corrupt-index
+    # technique test_check_flags_bad_task_parent already uses for the built-in checks.
+    from squads._models._subentity import SubEntity
+
+    async with custom_svc.store.transaction() as db:
+        db.items[init.sequence_id].subentities.append(
+            SubEntity(local_id="US1", title="login", status="Todo")
+        )
+        db.items[giz.sequence_id].subentities.append(
+            SubEntity(local_id="ST1", title="impl", status="Todo", story="US1")
+        )
+        db.items[giz.sequence_id].parent = None  # break the spine
+
+    issues = await custom_svc.check()
+    errors = [i for i in issues if i.level == "error" and i.item == giz.id]
+    assert any("initiative" in i.message for i in errors), f"expected 'initiative': {errors}"
+    assert not any("feature" in i.message for i in errors)
+
+    with pytest.raises(SquadsError, match="initiative"):
+        await custom_svc.add_subtask(giz.id, "impl2", story="US1")
 
 
 # ---------------------------------------------------------------------------
