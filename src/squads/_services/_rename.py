@@ -16,7 +16,7 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
-from squads._itemfile import rewrite_ids
+from squads._itemfile import rewrite_ids, update_frontmatter
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -59,6 +59,24 @@ def _validate_no_invalid_children(
         raise SquadsError(
             f"cannot rename {old_type} to {new_type}: child item(s) {ids} would have an "
             "invalid parent type. Re-parent or remove those children first."
+        )
+
+
+def _validate_rename_status(spec: WorkflowSpec, item_type: str, new_status: str) -> None:
+    """Raise unless *item_type* is a declared, non-meta work type and *new_status* is a
+    member of that type's own lifecycle states."""
+    if item_type not in spec.items:
+        raise SquadsError(f"{item_type!r} is not declared in the active spec")
+    if spec.item_is_meta(item_type):
+        raise SquadsError(
+            f"{item_type!r} is a reserved meta-type (role/skill/operator); "
+            "its status cannot be bulk-renamed"
+        )
+    states = spec.workflow_for(item_type).states
+    if new_status not in states:
+        raise SquadsError(
+            f"{new_status!r} is not a state of {item_type}'s lifecycle "
+            f"(states: {', '.join(sorted(states))})"
         )
 
 
@@ -175,11 +193,86 @@ class RenameMixin(ServiceCore):
 
         return RenameResult(renamed=len(pairs), ids=ids, rewritten=rewritten_names)
 
+    async def rename_status(self, item_type: str, old_status: str, new_status: str) -> RenameResult:
+        """Bulk-move every *item_type* item at *old_status* to *new_status*, in one transaction.
+
+        Scoped to one type's own lifecycle by construction: status names are global
+        vocabulary shared across many lifecycles, so this only validates and touches
+        *item_type*'s own machine and items — never a spec-wide status rename.
+
+        - *item_type* must be a declared, non-meta work type.
+        - *new_status* must be a member of ``spec.workflow_for(item_type).states`` — a valid
+          state, not a valid ``can_transition`` edge (this is a relabel, not a workflow move).
+          Terminal/open classification and any completion badge are inherited from whatever
+          *new_status* already declares; this only moves the ``status:`` value.
+        - Frontmatter-only: no id, file, or folder changes. Sub-entity status vocabulary
+          (``Item.subentities``) is a separate axis and is never touched.
+        - Each moved item gets one reflog line (``op="rename-status"``) and one system
+          comment, mirroring ``rename_type()``'s audit trail.
+
+        A failure anywhere in the mutation phase — including mid-flight, after some items'
+        frontmatter has already been rewritten on disk — restores every squad file to its
+        pre-call bytes before re-raising, same discipline as ``rename_type()``.
+        """
+        item_type = str(item_type)  # coerce StrEnum members to plain str
+        old_status = str(old_status)
+        new_status = str(new_status)
+        async with self.store.transaction() as db:
+            _validate_rename_status(self.spec, item_type, new_status)
+
+            matching = sorted(
+                (
+                    it
+                    for it in db.items.values()
+                    if it.type == item_type and it.status == old_status
+                ),
+                key=lambda it: it.sequence_id,
+            )
+
+            # Everything above is read-only; the snapshot below is taken only once validation
+            # has passed, right before the first byte on disk changes.
+            snapshot = await _snapshot_files(self.paths, db)
+            try:
+                ids: list[tuple[str, str]] = []
+                rewritten: list[Path] = []
+                for item in matching:
+                    item.status = new_status
+                    item.updated_at = clock.now()
+                    path = item_file(self.paths, item)
+                    await update_frontmatter(path, item)
+                    db.add(item)
+                    await _append_rename_status_comment(path, old_status, new_status)
+                    self.store._log(  # pyright: ignore[reportPrivateUsage]
+                        "rename-status",
+                        item.id,
+                        {"type": item_type, "old_status": old_status, "new_status": new_status},
+                    )
+                    ids.append((item.id, item.id))  # id itself never changes
+                    rewritten.append(path)
+            except Exception:
+                await _rollback_files(self.paths, db, snapshot)
+                raise
+
+            rewritten_names = [str(p.relative_to(self.paths.squad_dir)) for p in rewritten]
+
+        return RenameResult(renamed=len(matching), ids=ids, rewritten=rewritten_names)
+
 
 async def _append_rename_comment(path: Path, old_id: str, new_id: str, item: Item) -> None:
     """Append a system comment recording the rename to the item's discussion."""
     now_iso = clock.iso(clock.now())
     msg = f"renamed {old_id} → {new_id}; status carried as {item.status}"
+    entry = discussion.format_comment(now_iso, "squads", [msg])
+    text = await _aio.read_text(path)
+    if sections.has_section(text, markers.DISCUSSION):
+        text = sections.append_to_section(text, markers.DISCUSSION, entry)
+        await _aio.write_text(path, text)
+
+
+async def _append_rename_status_comment(path: Path, old_status: str, new_status: str) -> None:
+    """Append a system comment recording the status rename to the item's discussion."""
+    now_iso = clock.iso(clock.now())
+    msg = f"status renamed {old_status} → {new_status}"
     entry = discussion.format_comment(now_iso, "squads", [msg])
     text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
