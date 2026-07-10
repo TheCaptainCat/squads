@@ -93,11 +93,14 @@ sq tree
 
 ## Concepts
 
-- **Items** — every tracked thing is an item with a type and a stable ID. Types: `epic`,
-  `feature`, `task`, `bug`, `decision` (ADR), `review`, `guide`, `role`, `skill`.
+- **Items** — every tracked thing is an item with a type and a stable ID. Seven work-item types
+  are bundled by default (`epic`, `feature`, `task`, `bug`, `decision` (ADR), `review`, `guide`);
+  you can add custom types via `.overrides/workflow.toml`. Reserved meta-types (`role`, `skill`,
+  `operator`) cannot be customized.
 - **Global IDs** — `PREFIX-NNNNNN` with a single global counter, so the number is unique across
-  all types (you never have both `TASK-<n>` and `BUG-<n>`). The prefix marks the type:
-  `EPIC FEAT TASK BUG ADR REV GUIDE ROLE SKILL`.
+  all types (you never have both `TASK-<n>` and `BUG-<n>`). The prefix marks the type. Built-in
+  prefixes are `EPIC FEAT TASK BUG ADR REV GUIDE ROLE SKILL`; custom types declare their own via
+  the workflow override.
 - **Source of truth** — the markdown **frontmatter** is durable truth; `squads/.squads.json` is a
   fast index that is fully rebuildable from the files (`sq repair`).
 - **sq-owned sections** — files carry invisible markers (`<!-- sq:body -->`, `<!-- sq:discussion -->`,
@@ -123,6 +126,8 @@ your-project/
 
 ### Status workflows
 
+The following table shows the **bundled default** status lifecycles:
+
 | Type | Lifecycle |
 |------|-----------|
 | epic / feature / task / bug | `Draft → Ready → InProgress → InReview → Done` (+ `Blocked`, `Cancelled`) |
@@ -131,7 +136,8 @@ your-project/
 | guide | `Draft → Published → Deprecated` |
 | role / skill | `Draft → Active → Archived` |
 
-`sq status` validates transitions; use `--force` to override.
+Item types can have custom lifecycles via `.overrides/workflow.toml`. `sq status` validates
+transitions against the active spec; use `--force` to override.
 
 ---
 
@@ -166,7 +172,7 @@ Items are addressed by `<type> <number>` (bare `35`, padded `000035`, or full `T
 type word validates). Create with `sq create`; operate with `sq <type> <n> <verb>`.
 
 **Items**
-- `sq create epic|feature|task|bug|decision|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority urgent|high|medium|low] [-m "body"|--file] [--json]`
+- `sq create epic|feature|task|bug|decision|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority CODE] [-m "body"|--file] [--json]` — where `CODE` is from the bundled priority collection (urgent, high, medium, low) or a custom collection defined in the workflow override
 - `sq list [--type|--status|--parent|--label|--assignee|--priority] [--all] [--json]` · `sq tree [ROOT_ID] [--all] [--json]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`); `tree --json` emits the nested subtree (status/priority/assignee/blocked) for orchestrating agents
 - `sq <type> <n> show [--json]` · `sq <type> <n> body [-m "…"|--file PATH] [--append]`
 - `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]`

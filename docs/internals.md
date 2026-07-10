@@ -50,7 +50,10 @@ index, the filesystem, the backend, and rendering together.
 └── squads/               # the squad folder — self-contained & relocatable (override with --dir)
     ├── .squads.json      # the index (counter + all items + refs)
     ├── .gitignore        # ignores .squads.json.lock and *.tmp
-    ├── epics/ features/ tasks/ bugs/ adrs/ reviews/ guides/   # one folder per type → PREFIX-NNNNNN-slug.md
+    ├── epics/ features/ tasks/ bugs/ adrs/ reviews/ guides/   # bundled default folders; custom types use declared folders
+    ├── .overrides/
+    │   ├── workflow.toml # custom item types, statuses, lifecycles, badge collections
+    │   └── templates/ roles/    # template and role overrides
     └── agents/
         ├── roles/        # ROLE-*.md (real role definitions)
         └── skills/       # SKILL-*.md (user skills) + squads.md / sq-<type>.md (managed skill bodies)
@@ -60,6 +63,9 @@ index, the filesystem, the backend, and rendering together.
   `_paths.resolve()` finds the active squad via `--dir` → walk up to `.squads.toml` → default.
 - **The squad folder is self-contained** (`.squads.json` lives inside it), so it can be moved or a
   project can hold several and switch with `--dir`. Item `path`s are stored squad-folder-relative.
+- **Type-to-folder mapping is customizable** via `.overrides/workflow.toml` (see [overrides.md](overrides.md)
+  and [workflow.md](workflow.md)). The bundled default maps each of the seven work types to its own
+  folder. Custom item types declare their own folder in the override.
 
 ---
 

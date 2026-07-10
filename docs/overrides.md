@@ -66,6 +66,7 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
       pointer_agent.md.j2
       pointer_skill.md.j2
       claude_section.md.j2
+  workflow.toml
   roles/
     architect.toml
     tech-lead.toml
@@ -83,6 +84,9 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
 - **`roles/`** holds TOML files for role data: one file per role slug (e.g., `architect.toml`). You
   can override bundled roles (like changing the architect's name or model) or define entirely new
   custom roles.
+- **`workflow.toml`** defines custom item types, statuses, lifecycles, and badge collections (see
+  below). This is how you customize the vocabulary — type names, status machines, and the priority/severity
+  badge axes.
 - The directory is discovered automatically by the same walk-up that finds `.squads.toml`. It
   travels with your squad folder, so it's portable across projects.
 
@@ -134,6 +138,134 @@ mission = "Keep the team on the right side of policy."
 responsibilities = ["Review all PRs for policy violations", "Maintain the compliance handbook"]
 model = "opus"
 ```
+
+---
+
+## Workflow overrides: item types, statuses, and badge collections
+
+By default, squads uses a bundled set of **seven work-item types** (epic, feature, task, bug,
+decision/ADR, review, guide), **status lifecycles** (state machines for each type), and
+**badge collections** (priority and severity, the reusable axes that label findings, tasks, etc.).
+If your squad needs custom vocabulary — new item types, additional statuses, or renamed badge axes —
+you define it in **`.overrides/workflow.toml`**.
+
+### Creating a workflow override
+
+To scaffold a starter override file:
+
+```bash
+sq override scaffold workflow
+```
+
+This creates `.overrides/workflow.toml` in your squad directory with a commented-out worked example.
+Edit this file to add your custom types, statuses, lifecycles, and collections.
+
+### Format and sections
+
+The override file uses standard TOML with four sections: `[items.*]`, `[statuses.*]`, `[lifecycles.*]`,
+and `[collections.*]`. The bundled defaults already define all seven work types and the built-in
+status machines; your override is **additive-only** — you can extend by adding new types and
+statuses, but cannot redefine or remove built-ins. (To rename an existing type or status across
+your squad's items, use `sq migrate rename-type` or `sq migrate rename-status`; see
+[workflow.md](workflow.md) § "Renaming existing types and statuses".) The complete reference is in
+[workflow.md](workflow.md) § "Project workflow overrides".
+
+#### Items: custom work types
+
+Define a new item type (e.g., an `incident` type for on-call workflows):
+
+```toml
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "incident"      # reference a built-in or custom lifecycle
+```
+
+Required fields:
+- `prefix` — uppercase letter(s) for the type's ID prefix (e.g., `INC` for `INC-<n>`)
+- `folder` — subdirectory under `squads/` where items of this type are stored
+- `lifecycle` — the lifecycle name (built-in or custom) governing the type's state machine
+
+Optional:
+- `parents` — list of allowed parent item types; empty or omitted means no hierarchy constraint
+- `aliases` — list of short command aliases (e.g., `["inc"]` allows `sq inc <n>` as shorthand)
+
+#### Statuses: custom state labels
+
+Define new statuses (e.g., states for your custom incident lifecycle):
+
+```toml
+[statuses.Triage]
+terminal = false
+
+[statuses.Mitigating]
+terminal = false
+
+[statuses.Resolved]
+terminal = true
+```
+
+Required fields:
+- `terminal` — boolean; `true` if this status is terminal (items at terminal statuses are
+  "done" and hidden from `sq inbox` by default)
+
+Optional:
+- `badge` — emoji or short symbol displayed in sub-entity roll-up tables (used only for sub-entities)
+- `role` — special marker for specific statuses (used only for ADRs; e.g., `role = "superseded"`)
+
+#### Lifecycles: custom state machines
+
+Define a new lifecycle (the state transitions for a custom item type):
+
+```toml
+[lifecycles.incident]
+initial = "Triage"
+
+[lifecycles.incident.transitions]
+Triage = ["Mitigating", "Resolved"]
+Mitigating = ["Resolved", "Triage"]
+Resolved = ["Triage"]
+```
+
+Required fields:
+- `initial` — the starting status when a new item of this type is created
+- `transitions` — a map of `SourceStatus = [TargetStatus1, TargetStatus2, …]` showing which
+  transitions are allowed
+
+#### Collections: custom badge axes
+
+Define a custom badge collection (a reusable axis like priority or severity):
+
+```toml
+[collections.impact]
+ordered = true
+default_code = "medium"
+
+[[collections.impact.badges]]
+code = "low"
+label = "Low impact"
+emoji = "🔵"
+
+[[collections.impact.badges]]
+code = "medium"
+label = "Medium impact"
+emoji = "🟡"
+
+[[collections.impact.badges]]
+code = "high"
+label = "High impact"
+emoji = "🔴"
+```
+
+Required fields:
+- `ordered` — boolean; `true` if the badges have a meaningful ranking (low → high), `false` for unordered
+- `default_code` — the code of the default badge when no value is set
+- `badges` — list of badge definitions (each with `code`, `label`, `emoji`)
+
+Each badge's `code` is the identifier used in commands (e.g., `sq task <n> update --impact medium`).
+Ordered collections support `--min-` filters (e.g., `sq list --min-impact high`).
+
+See [workflow.md](workflow.md) § "Project workflow overrides" for a worked example.
 
 ---
 
