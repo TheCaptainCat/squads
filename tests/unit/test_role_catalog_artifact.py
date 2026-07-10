@@ -2,8 +2,8 @@
 RoleSpec field is covered by the pinned golden, and the loaded shape is byte-identical to
 that golden (a human-reviewed reference render — see tests/CONVENTIONS.md's golden
 protocol). Packaging (roles.toml ships in the wheel) lives in
-tests/unit/test_bundled_toml_packaging.py, deliberately consolidated per the ledger's
-"ships in the wheel" duplicate-invariant cluster.
+tests/meta/test_bundled_toml_packaging.py, deliberately consolidated into one
+parametrized test rather than a near-duplicate per asset.
 """
 
 import json

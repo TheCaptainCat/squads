@@ -14,8 +14,8 @@ allowlists all of ``tests/`` wholesale, since the old flat suite predates this r
 retired wholesale in Phase 3 rather than fixed up). This scan is scoped narrower on purpose:
 it must never walk the old flat ``tests/test_*.py`` files (several intentionally carry a
 ticket-ID in their own filename, a known legacy violation Phase 3 deletes) or this suite's
-own governance docs (``tests/CONVENTIONS.md``/``tests/COVERAGE_LEDGER.md``, which legitimately
-cite this rebuild's own ticket and row numbers by design).
+own governance docs (``tests/CONVENTIONS.md``, which legitimately cites this rebuild's own
+ticket and row numbers by design).
 """
 
 import ast
@@ -43,6 +43,7 @@ _NAME_AND_DOCSTRING_ROOTS: tuple[str, ...] = (
     "tests/service",
     "tests/cli",
     "tests/integration",
+    "tests/meta",
 )
 
 #: (path, matched token) pairs allowlisted because the docstring documents a *synthetic*

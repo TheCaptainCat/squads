@@ -3,7 +3,7 @@ produce exactly the bundled output; dropping an override under one template shad
 that template — every other template, and every other `sq create`, still resolves to the
 bundle. Env-cache isolation between two squads lives in
 tests/service/test_override_render_cache_isolation.py; manifest/stamp mechanics live in
-tests/unit/test_override_manifest_and_stamp_freshness.py.
+tests/meta/test_override_manifest_and_stamp_freshness.py.
 """
 
 from datetime import UTC, datetime
