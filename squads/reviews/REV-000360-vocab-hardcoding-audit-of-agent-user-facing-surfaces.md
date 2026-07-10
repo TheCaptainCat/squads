@@ -8,7 +8,7 @@ author: reviewer
 refs:
 - FEAT-336:addresses
 created_at: '2026-07-09T21:39:49Z'
-updated_at: '2026-07-09T21:39:59Z'
+updated_at: '2026-07-10T00:09:30Z'
 ---
 <!-- sq:body -->
 Automated vocab-hardcoding audit (FEAT-336) across five facing surfaces: CLI help/messages, Jinja templates, shipped docs, generated skills/roles, and services-core logic. A defect = a facing surface that assumes the bundled vocabulary instead of deriving it from the active spec, so a squad with custom types/statuses/kinds/badges sees wrong, missing, or misleading output. Reserved meta-types (role/skill/operator) are excluded by design (ADR-266).
@@ -87,4 +87,6 @@ _Add with `sq review 360 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:discussion -->
 - [2026-07-09T21:39:59Z] Paul Reviewer:
   - Findings from the FEAT-336 audit sweep (5 surfaces). Highs include current-behavior bugs, not just custom-vocab gaps: every built-in sq-<type> skill trailer lists 'user stories/subtasks/findings' for ALL types (incl. epic/decision/guide); built-in skill Lifecycle lines render frozen playbook prose instead of the spec machine; review.md.j2 severity legend is hardcoded because item templates aren't passed the active spec. workflow.md.j2 findings belong to FEAT-334. Fix-tasks spawned per finding only as we act.
+- [2026-07-10T00:09:30Z] Paul Reviewer:
+  - Additional services-core finding (surfaced during FEAT-212/TASK-361): _cli/_common.py:392 print_subentity hardcodes a severity-only meta line in the 'sq <kind> show' pane — it won't display any other declared field on a custom sub-entity kind. Display-incompleteness only (data round-trips and shows on the list table, pane title, and --json); same class as the other hardcoded-vocab render surfaces here. Fold into the FEAT-336 fix pass.
 <!-- sq:discussion:end -->

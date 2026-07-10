@@ -66,10 +66,52 @@ _TODO: summarise this incident._
 """
 
 
-def _write_overrides(squad_dir: Path) -> None:
+# Same "action" kind as above, plus a non-severity field ("urgency") to prove the generic
+# field-code store: bound to its own ordered collection, exactly ADR-323's field mechanism
+# reused on the sub-entity axis (no severity-special-casing survives the CLI wiring).
+_WORKFLOW_OVERRIDE_WITH_FIELD = """\
+[lifecycles.triage]
+initial = "Open"
+[lifecycles.triage.transitions]
+Open = ["Done"]
+Done = []
+
+[lifecycles.action]
+initial = "Open"
+[lifecycles.action.transitions]
+Open = ["InProgress", "Done"]
+InProgress = ["Done"]
+Done = []
+
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "triage"
+subentity_kind = "action"
+
+[collections.level]
+label = "Level"
+ordered = true
+badges = [
+  { code = "high", label = "High", emoji = "\U0001f534" },
+  { code = "low", label = "Low", emoji = "\U0001f7e2" },
+]
+
+[subentity_kinds.action]
+lifecycle = "action"
+completion = "Done"
+plural = "actions"
+local_prefix = "AC"
+fields = [
+  { code = "urgency", label = "Urgency", collection = "level" },
+]
+"""
+
+
+def _write_overrides(squad_dir: Path, workflow_toml: str = _WORKFLOW_OVERRIDE) -> None:
     override_dir = squad_dir / ".overrides"
     (override_dir).mkdir(parents=True, exist_ok=True)
-    (override_dir / "workflow.toml").write_text(_WORKFLOW_OVERRIDE, encoding="utf-8")
+    (override_dir / "workflow.toml").write_text(workflow_toml, encoding="utf-8")
     template_dir = override_dir / "templates" / "items"
     template_dir.mkdir(parents=True, exist_ok=True)
     (template_dir / "incident.md.j2").write_text(_INCIDENT_TEMPLATE, encoding="utf-8")
@@ -160,3 +202,46 @@ async def test_custom_kind_add_list_and_mutation_verbs_work_with_no_code_change(
     full = await invoke(["incident", inc_num, "show", "--full"])
     assert full.exit_code == 0, full.output
     assert "AC1" in full.output
+
+
+async def test_custom_kind_declared_field_is_settable_and_round_trips(project, invoke) -> None:
+    """A custom kind's non-severity field (``urgency``) is settable via add-<kind>/update,
+    stored generically (SubEntity.extra), and round-trips through frontmatter, the summary
+    column, and a --json (no-spec) read — the direct analog of the item badge axis."""
+    _write_overrides(project.squad_dir, _WORKFLOW_OVERRIDE_WITH_FIELD)
+
+    created = await invoke(["create", "incident", "Outage", "--author", "manager"])
+    assert created.exit_code == 0, created.output
+    inc_num = _num(_created_id(created.output))
+
+    # add-<kind>: the --urgency flag is derived from the declared field, not hand-written.
+    added = await invoke(
+        ["incident", inc_num, "add-action", "Restart service", "--urgency", "high"]
+    )
+    assert added.exit_code == 0, added.output
+    assert "AC1" in added.output
+
+    # renders in the derived summary column (Urgency), rendered as its collection's badge.
+    listed = await invoke(["incident", inc_num, "actions"])
+    assert listed.exit_code == 0, listed.output
+    assert "Urgency" in listed.output
+    assert "high" in listed.output
+
+    # update: --urgency remaps the stored code.
+    updated = await invoke(["incident", inc_num, "action", "1", "update", "--urgency", "low"])
+    assert updated.exit_code == 0, updated.output
+
+    listed_after = await invoke(["incident", inc_num, "actions"])
+    assert "low" in listed_after.output and "high" not in listed_after.output
+
+    # round-trips in frontmatter: the generic store is SubEntity.extra, persisted on disk.
+    inc_path = next((project.squad_dir / "incidents").glob("INC-*-outage.md"))
+    on_disk = inc_path.read_text(encoding="utf-8")
+    assert "urgency: low" in on_disk
+
+    # --json / no-spec read: the stored badge code is the item's own model dump, no
+    # label/emoji resolution needed to read it back.
+    shown_json = await invoke(["incident", inc_num, "show", "--json"])
+    assert shown_json.exit_code == 0, shown_json.output
+    data = json.loads(shown_json.output)
+    assert data["subentities"][0]["extra"]["urgency"] == "low"

@@ -65,7 +65,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": null
+        "story": null,
+        "extra": {}
       }
     ],
     "path": "features/FEAT-000002-user-authentication.md",
@@ -99,7 +100,8 @@
         "status": "Todo",
         "assignee": null,
         "severity": null,
-        "story": "US1"
+        "story": "US1",
+        "extra": {}
       }
     ],
     "path": "tasks/TASK-000003-implement-login.md",
@@ -177,7 +179,8 @@
         "status": "Open",
         "assignee": null,
         "severity": "high",
-        "story": null
+        "story": null,
+        "extra": {}
       }
     ],
     "path": "reviews/REV-000006-code-review-for-login.md",

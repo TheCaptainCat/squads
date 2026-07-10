@@ -24,6 +24,10 @@ class SubEntity(BaseModel):
     severity: str | None = None
     #: Subtasks only — the mapped user story's local id (e.g. ``US<n>``).
     story: str | None = None
+    #: Any other spec-declared field's badge code, keyed by field code (e.g. a custom
+    #: ``urgency``). ``severity`` keeps its own typed slot above for byte-identical
+    #: round-trip; this is the generic overflow, the direct analog of ``Item.extra``.
+    extra: dict[str, Any] = {}
 
     model_config = {"use_enum_values": False}
 
@@ -40,6 +44,25 @@ class SubEntity(BaseModel):
             raise ValueError(f"expected str, got {type(v).__name__!r}: {v!r}")  # noqa: TRY004
         return str(v)
 
+    def badge_value(self, code: str) -> str | None:
+        """Generic badge-code getter for any spec-declared field on this sub-entity.
+
+        ``severity`` is a real attribute; any other declared field code (e.g. a custom
+        ``urgency``) has no dedicated attribute and is stored in ``extra`` — the direct
+        analog of :meth:`Item.badge_value <squads._models._item.Item.badge_value>`. No
+        spec needed to read — the code is the stored, authoritative value.
+        """
+        return getattr(self, code, None) if hasattr(self, code) else self.extra.get(code)
+
+    def set_badge_value(self, code: str, value: str | None) -> None:
+        """Generic badge-code setter — the write-side mirror of :meth:`badge_value`."""
+        if hasattr(self, code):
+            setattr(self, code, value)
+        elif value is None:
+            self.extra.pop(code, None)
+        else:
+            self.extra[code] = value
+
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The compact mapping written into the parent's ``subentities`` frontmatter list."""
         data: dict[str, Any] = {
@@ -53,6 +76,8 @@ class SubEntity(BaseModel):
             data["severity"] = self.severity
         if self.story:
             data["story"] = self.story
+        if self.extra:
+            data["extra"] = self.extra
         return data
 
     @classmethod
@@ -64,4 +89,5 @@ class SubEntity(BaseModel):
             assignee=data.get("assignee"),
             severity=data.get("severity") or None,
             story=data.get("story"),
+            extra=dict(data.get("extra", {}) or {}),
         )
