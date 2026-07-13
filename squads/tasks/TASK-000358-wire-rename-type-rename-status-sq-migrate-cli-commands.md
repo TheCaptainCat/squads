@@ -16,7 +16,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-07-09T21:34:35Z'
-updated_at: '2026-07-10T01:27:21Z'
+updated_at: '2026-07-13T09:27:38Z'
 ---
 <!-- sq:body -->
 Implements US1+US2 CLI surface. Add two sq migrate sub-commands in src/squads/_cli/_migrate.py, siblings of 'repad' (NOT registry migrations): 'sq migrate rename-type <old-type> <new-type>' and 'sq migrate rename-status <type> <old-status> <new-status>'.
@@ -52,7 +52,7 @@ _Add with `sq task 358 add-subtask "<title>"`; track with `sq task 358 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Wired `sq migrate rename-type <old-type> <new-type>` as a sibling of `repad` in `_cli/_migrate.py`, calling `svc.rename_type(...)` and printing a green summary (type transition, count renamed, index rebuilt). It carries no `SCHEMA_VERSION` bump and no `_registry.py` entry — an on-demand, project-invoked data rewrite — and service refusals surface as a clean exit 1 through the existing error handler.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -70,7 +70,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Wired `sq migrate rename-status <type> <old-status> <new-status>` alongside rename-type, calling `svc.rename_status(...)` and printing the status transition plus count renamed (deliberately not rendering `RenameResult`'s id pairs, which are unchanged for a status rename). Same shape as repad: no schema bump, no registry entry, clean exit 1 on refusal.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

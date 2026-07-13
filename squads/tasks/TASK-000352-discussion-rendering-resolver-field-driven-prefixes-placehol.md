@@ -14,7 +14,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T21:31:32Z'
-updated_at: '2026-07-09T23:15:23Z'
+updated_at: '2026-07-13T09:27:34Z'
 ---
 <!-- sq:body -->
 ADR-348 §5 rendering half: retire the static per-kind tables in _discussion.py so local-id prefixes, scaffold prose, and summary columns all derive from the resolved SubentityKindSpec + its ADR-323 fields.
@@ -67,7 +67,7 @@ _Add with `sq task 352 add-subtask "<title>"`; track with `sq task 352 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Retired the static per-kind tables in `_discussion.py` (`_LOCAL_ID_PREFIX`/`_PLACEHOLDER`/`_SUMMARY_COLS`) so local-id prefixes, placeholders, and the summary columns all derive from the resolved kind spec: a fixed base (local-id, Status, Assignee, Title) plus one column per declared field and a Story column only when the kind maps to a parent story. Built-in blocks render byte-identical, a custom field renders as a generic labelled column, and the column derivation is shared with the CLI list table.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

@@ -11,8 +11,7 @@ shift with a new release.
 
 This is the strongest promise the contract makes. Your items, your metadata, your folder structure
 — all preserved. The migration runner is ordered and testable, with manual runbooks for the parts
-that need judgment. See [migration.md](migration.md) and the runner source (`_migrations/` in the
-repo) for how it works.
+that need judgment. See [migration.md](migration.md) for how it works.
 
 ---
 
@@ -280,10 +279,6 @@ is the contract: **internal modules are not re-exported by package `__init__` fi
 part of the public API.** This is not a breaking change to state — squads has never shipped a
 public library interface — but it is explicitly pinned to let integrators know where the boundaries
 are.
-
-The import graph is acyclic and strict typing (`pyright` strict mode, `ruff`) are the guards.
-Forward references work without `from __future__ import annotations` because the floor is **Python ≥
-3.14**, and PEP 649 lazy annotations are available.
 
 ### Shell completion
 

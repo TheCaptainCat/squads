@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T21:31:26Z'
-updated_at: '2026-07-09T22:14:11Z'
+updated_at: '2026-07-13T09:27:33Z'
 ---
 <!-- sq:body -->
 Realizes ADR-348 §1/§2/§6 schema foundation. Everything else in FEAT-212 derives from this — land first.
@@ -69,7 +69,7 @@ _Add with `sq task 349 add-subtask "<title>"`; track with `sq task 349 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Extended `SubentityKindSpec` with the stored machine/vocab keys (`lifecycle`, `plural`, `local_prefix`, `placeholder`, `maps_parent_story`) and fully declared story/subtask/finding in `default_workflow.toml`, rewiring the three accessors to resolve the machine via `kind_spec.lifecycle` instead of the kind-name convention. Bundled kinds reproduce prior behaviour byte-identically, and a kind referencing an undeclared lifecycle or a duplicate plural/local_prefix now fails spec load.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

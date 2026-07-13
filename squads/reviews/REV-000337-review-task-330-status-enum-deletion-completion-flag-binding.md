@@ -18,12 +18,11 @@ subentities:
   status: Fixed
   severity: medium
 - local_id: F3
-  title: 'Global-per-status-name completion flag: same shared-name coupling as terminal;
-    will resurface for custom sub-entity kinds'
+  title: Global-per-status-name completion flag reuses terminal's shared-name coupling
   status: WontFix
   severity: low
 created_at: '2026-07-08T15:11:40Z'
-updated_at: '2026-07-08T15:24:15Z'
+updated_at: '2026-07-13T09:25:40Z'
 ---
 <!-- sq:body -->
 Independent review of the uncommitted TASK-330 working tree (Status-enum deletion + completion-flag machine binding) on release/0.8. READ-ONLY.
@@ -46,7 +45,7 @@ _Add with `sq review 337 add-finding "…" --severity high`; track with `sq revi
 | --- | --- | --- | --- | --- |
 | F1 | 🟠 high | Fixed |  | No automated test for the completion-count spec-load validation |
 | F2 | 🟡 medium | Fixed |  | completion decoupled from terminal deviates from Accepted ADR-322 §5 wording — needs architect sign-off |
-| F3 | 🟢 low | WontFix |  | Global-per-status-name completion flag: same shared-name coupling as terminal; will resurface for custom sub-entity kinds |
+| F3 | 🟢 low | WontFix |  | Global-per-status-name completion flag reuses terminal's shared-name coupling |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -98,7 +97,7 @@ This is a contract-level divergence from an Accepted ADR that is part of the 1.0
 <!-- sq:finding:F2:end -->
 
 <!-- sq:finding:F3 -->
-### F3 — Global-per-status-name completion flag: same shared-name coupling as terminal; will resurface for custom sub-entity kinds
+### F3 — Global-per-status-name completion flag reuses terminal's shared-name coupling
 
 <!-- sq:finding:F3:head -->
 **Status:** ⚫ Wont Fix

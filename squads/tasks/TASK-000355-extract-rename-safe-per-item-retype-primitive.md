@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T21:34:34Z'
-updated_at: '2026-07-10T00:38:24Z'
+updated_at: '2026-07-13T09:27:35Z'
 ---
 <!-- sq:body -->
 Enabler for rename-type (TASK-356). Refactor _services/_retype.py so the per-item rewrite sequence inside retype() becomes a reusable primitive that the bulk rename path can call without retype()'s single-item reclassification guardrails.
@@ -49,7 +49,7 @@ _Add with `sq task 355 add-subtask "<title>"`; track with `sq task 355 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Extracted the per-item type-rewrite core out of `retype()` into a reusable `_apply_type_change(...)` primitive (prefix/id/status/file-move/frontmatter/sub-entity container), with status carry made a parameter, and generalised `_resync_edges`/`rewrite_ids` to take a `{old:new}` remap so both retype (one entry) and the bulk rename path (N entries) share one O(N) edge-rewrite pass. Pure extraction — `retype()` behaviour and its audit trail (reflog line + comment) stay byte-identical.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

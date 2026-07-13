@@ -15,7 +15,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T21:31:33Z'
-updated_at: '2026-07-09T23:51:01Z'
+updated_at: '2026-07-13T09:27:34Z'
 ---
 <!-- sq:body -->
 ADR-348 §5 CLI half + FEAT-212 AC1/AC2/AC3: build the whole sub-entity CLI surface generically from the resolved SubentityKindSpec, and delete the last static per-type vocabulary artifacts. This is where `sq incident <n> add-action ...` starts working with no code change.
@@ -74,7 +74,7 @@ _Add with `sq task 353 add-subtask "<title>"`; track with `sq task 353 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Rebuilt the whole sub-entity CLI surface generically from the resolved kind spec — `add-<kind>`, the `<plural>` list verb, and the nested `<kind> <n> show|update|body|comment` subgroup are all built from a dynamic signature (one `--<field-code>` flag per declared field, `--story` only when the kind maps a parent story), and `_SUBENTITY_PLURAL`/`_SUB_COLS` were deleted. A custom type's custom kind now works with no code change (e.g. `sq incident <n> add-action`), while built-in story/subtask/finding verbs, flags, and output stay unchanged.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

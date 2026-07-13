@@ -1,8 +1,7 @@
 # squads internals
 
 How squads works under the hood — for contributors, the curious, and agents that want to reason
-about the tool rather than just call it. Pairs with [adoption.md](adoption.md) (migration) and the
-repo's `CLAUDE.md` (contributor quick-reference).
+about the tool rather than just call it. Pairs with [adoption.md](adoption.md) (migration).
 
 > Module names below use the project's **private layout**: every implementation module and
 > subpackage is underscore-prefixed (`squads._service`, `squads._models._item`,
@@ -433,6 +432,3 @@ that the index stays rebuildable from frontmatter (section 4), so they're additi
 - **Marker-safe edits only** — touch content via `_sections.py`; never rewrite an agent's body.
 - **Forward edges only; backrefs computed.**
 - **`.claude/` is pointers + tool-owned config; real content lives under the squad folder.**
-- **No `from __future__ import annotations`** (Python 3.14 / PEP 649) and an **acyclic import graph**.
-- **Strict gate**: `pyright` (strict) + `ruff` (with complexity/PLR/SIM/PERF/PTH/TRY) + `pytest`
-  must stay green.
