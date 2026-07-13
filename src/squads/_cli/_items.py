@@ -85,22 +85,28 @@ def _priority_help(item_type: str, spec: WorkflowSpec, template: str) -> str:
     return "Priority code (as defined by your workflow's priority collection)."
 
 
-def build_item_app(item_type: str) -> typer.Typer:
+def build_item_app(item_type: str, spec: WorkflowSpec | None = None) -> typer.Typer:
     """A ``sq <type> <num> …`` group for one work-item type.
 
     Accepts a plain string type name (``"task"``, ``"incident"`` …) — every type, built-in
     or custom, is ordinary spec vocabulary.
 
-    Capability flags (subentity kind, retype/remove eligibility) are resolved from
-    ``get_active_spec()`` at call time so a custom type's spec-declared capabilities are
-    honoured without any enum membership requirement.
+    Capability flags (subentity kind, retype/remove eligibility) are resolved from *spec*
+    (defaulting to ``get_active_spec()`` at call time) so a custom type's spec-declared
+    capabilities are honoured without any enum membership requirement. Callers that have
+    already resolved the ctx-appropriate spec (e.g. the root group's lazy custom-type
+    dispatch, which must build from the *same* spec it used to decide the type exists —
+    not whatever ``get_active_spec()`` happens to hold before the root callback binds it)
+    should pass it explicitly.
     """
     item = typer.Typer(no_args_is_help=True, help=f"Operate on a {item_type} by number/id.")
 
-    # Resolved once, up front, so every command builder below (retype's target-type help,
-    # update's --priority help) derives its help text from the same spec used to decide
-    # eligibility — help and enforcement can never disagree.
-    spec = common.get_active_spec()
+    # Resolved once, up front (unless the caller already resolved it), so every command
+    # builder below (retype's target-type help, update's --priority help) derives its help
+    # text from the same spec used to decide eligibility — help and enforcement can never
+    # disagree.
+    if spec is None:
+        spec = common.get_active_spec()
 
     @item.callback()
     @common.command
