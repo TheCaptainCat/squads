@@ -158,7 +158,11 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         # are genuine failures for a type the user declared (and that --help lists), so they
         # must propagate rather than silently become "No such command".
         if canonical not in self._custom_cmd_cache:
-            type_app = build_item_app(canonical)
+            # Build from the SAME resolved spec used above to decide `canonical` is a
+            # declared custom type — not whatever `common.get_active_spec()` holds, which
+            # on a cold first-in-process dispatch is still the bundled fallback (the root
+            # callback that binds the real spec hasn't run yet at get_command() time).
+            type_app = build_item_app(canonical, spec=spec)
             # Give the app a name so help output uses it.
             type_app.info.name = canonical
             # Convert the Typer app to a Click command group.

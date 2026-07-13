@@ -29,11 +29,41 @@ lifecycle = "triage"
 aliases = ["inc"]
 """
 
+# Adds a sub-entity kind ("action") to the custom type, so a cold `--help` either does or
+# doesn't show the resulting `add-action` surface depending on which spec built the command tree.
+_OVERRIDE_TOML_WITH_SUBENTITY_KIND = """\
+[lifecycles.triage]
+initial = "Open"
+[lifecycles.triage.transitions]
+Open = ["Done", "WontFix"]
+Done = []
+WontFix = ["Open"]
 
-def _write_override(squad_dir: Path) -> None:
+[lifecycles.action]
+initial = "Open"
+[lifecycles.action.transitions]
+Open = ["Done"]
+Done = []
+
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "triage"
+aliases = ["inc"]
+subentity_kind = "action"
+
+[subentity_kinds.action]
+lifecycle = "action"
+completion = "Done"
+plural = "actions"
+local_prefix = "AC"
+"""
+
+
+def _write_override(squad_dir: Path, toml: str = _OVERRIDE_TOML) -> None:
     override_dir = squad_dir / ".overrides"
     override_dir.mkdir(parents=True, exist_ok=True)
-    (override_dir / "workflow.toml").write_text(_OVERRIDE_TOML, encoding="utf-8")
+    (override_dir / "workflow.toml").write_text(toml, encoding="utf-8")
 
 
 def _created_id(output: str) -> str:
@@ -172,3 +202,30 @@ async def test_an_invalid_override_still_degrades_gracefully_for_bare_help(proje
 
     result = await invoke(["--help"])
     assert result.exit_code == 0, result.output
+
+
+# --------------------------------------------------------------------------- a cold,
+# first-in-process --help for a custom type must build from the override-merged spec, not the
+# bundled spec the process starts with (Click resolves the subcommand group before the root
+# callback binds the real spec) — the built command tree is then cached for the process, so a
+# wrong first build stays wrong for good.
+
+
+async def test_cold_first_help_on_a_custom_type_shows_its_declared_subentity_and_retype_surface(
+    project, invoke
+) -> None:
+    _write_override(project.squad_dir, _OVERRIDE_TOML_WITH_SUBENTITY_KIND)
+
+    # First-in-process `--help` for "incident" — nothing has resolved/cached this type's
+    # command tree yet in this test. It must show the declared `add-action` sub-entity surface,
+    # not just the type's plain metadata verbs.
+    type_help = await invoke(["incident", "--help"])
+    assert type_help.exit_code == 0, type_help.output
+    assert "add-action" in type_help.output
+
+    # retype's target-type list is built from the same spec at the same time — must include
+    # "incident" itself (a valid retype source/target), not just the built-in types the bundled
+    # spec knows about.
+    retype_help = await invoke(["incident", "retype", "--help"])
+    assert retype_help.exit_code == 0, retype_help.output
+    assert "incident" in retype_help.output
