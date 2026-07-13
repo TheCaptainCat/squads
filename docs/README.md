@@ -36,25 +36,23 @@ backend.
 
 ```
                   ┌───────────────────────────────────────────────┐
-   you / agent ─▶ │  sq   —  Typer CLI  (squads._cli)              │
+   you / agent ─▶ │  sq   —  CLI command interface                 │
                   └───────────────────────┬───────────────────────┘
                                           │  calls
                   ┌───────────────────────▼───────────────────────┐
-                  │  Service  (_service)  —  orchestration façade  │
+                  │  Service orchestration layer                   │
                   └────────┬──────────────┬───────────────┬───────┘
                            │              │               │
               ┌────────────▼───┐  ┌───────▼──────┐  ┌─────▼──────────┐
-              │ IndexStore     │  │ Backend      │  │ Rendering      │
-              │ (_index)       │  │ (_backends)  │  │ (_rendering)   │
-              │ → .squads.json │  │ → .claude/   │  │ Jinja2 tmpls   │
+              │ Index          │  │ Backend      │  │ Rendering      │
+              │ Store          │  │              │  │ (Jinja2)       │
+              │ .squads.json   │  │ → .claude/   │  │                │
               └────────┬───────┘  └───────┬──────┘  └────────────────┘
                        │                  │
               ┌────────▼──────────────────▼────────────────────────┐
               │  squad folder:  *.md   (frontmatter = source of     │
               │                         truth; index is rebuildable)│
               └─────────────────────────────────────────────────────┘
-
-   shared leaves (no upward deps):  _models  _paths  _workflow  _sections  _clock  _interactions
 ```
 
 ## What lives where

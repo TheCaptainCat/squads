@@ -16,7 +16,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-07-09T21:34:36Z'
-updated_at: '2026-07-10T01:55:39Z'
+updated_at: '2026-07-13T09:27:39Z'
 ---
 <!-- sq:body -->
 Feature-acceptance sweep proving FEAT-281's criteria end-to-end (separate from the per-task unit/smoke tests in 355-358; this is the honest ground-truth gate — green unit tests are not acceptance).
@@ -56,7 +56,7 @@ _Add with `sq task 359 add-subtask "<title>"`; track with `sq task 359 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+End-to-end acceptance of rename-type: on a squad with a target type declared via `.overrides/workflow.toml`, seeded items carrying sub-entities, non-initial statuses, cross-refs, and prose mentions are renamed and every id, folder, parent/ref, frontmatter, and prose mention is rewritten — with sub-entities and status preserved unconditionally (the point of the feature, which retype's guardrails would have rejected or reset) — and `sq check` plus `sq repair` both come out clean. Covered by the behaviour-named `tests/test_rename_acceptance.py`.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -74,7 +74,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+End-to-end acceptance of rename-status: a rename to a status outside the type's lifecycle fails closed with no partial rewrite (every item's status unchanged after the failed call), plus a happy-path move of all matching items. Also asserts the audit trail (one reflog line + one system discussion comment per item), reserved-meta rejection, and no `SCHEMA_VERSION`/registry drift.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion

@@ -6,6 +6,70 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-13
+
+### Added
+
+- **Every work item type is now fully customizable — only `role`/`skill`/`operator` remain
+  reserved.** The built-in type and status vocabularies are no longer backed by fixed enums: all
+  seven bundled types (epic, feature, task, bug, decision, review, guide) and their statuses are
+  ordinary spec-declared vocabulary, on equal footing with anything a project defines in
+  `.overrides/workflow.toml`. A built-in type or status can be renamed, dropped, or replaced with no
+  code change, and every facing surface — CLI help, generated skills, the managed `CLAUDE.md` /
+  `AGENTS.md` sections, and the `sq workflow` cheatsheet — derives its wording from the active spec
+  instead of a hardcoded name, so a customized vocabulary reads correctly everywhere. Behavior on
+  the bundled (no-override) default is unchanged.
+- **Custom sub-entity kinds.** A custom item type can now declare its own sub-entity kind (not just
+  reuse story/subtask/finding) with its own lifecycle, completion status, fields, and generic CLI
+  verbs — `add-<kind>`, the `<plural>` list, and the nested `show`/`update`/`body`/`comment`
+  subgroup — generated with zero code change. A declared field beyond severity (e.g. an `impact` or
+  `urgency` axis) is now storable and settable via `--<field>` on any sub-entity kind, not only the
+  built-in ones.
+- **Badge collections — priority and severity generalized into spec-defined vocabulary.** Priority
+  and severity are now `Collection`/`Field`/`Badge` definitions in the workflow spec rather than
+  fixed enums, so a project can declare an entirely custom badge axis (e.g. `impact`/`urgency` on a
+  custom incident type) and get filtering, sorting, and colored badge rendering for free. A generic
+  `--badge CODE=VALUE` / `--min-badge` escape hatch works for any declared field on `sq list` /
+  `sq tree`, alongside the existing dedicated `--priority`/`--min-priority` sugar; `--sort` ranks by
+  any ordered field. Bundled `priority`/`severity` behavior is byte-identical to prior releases.
+- **Bulk vocabulary rename migrations — `sq migrate rename-type` and `sq migrate rename-status`.**
+  Rename an existing work type (`sq migrate rename-type OLD NEW`) or relabel every item of a type at
+  a given status (`sq migrate rename-status TYPE OLD_STATUS NEW_STATUS`) across an entire squad in
+  one atomic operation — carrying sub-entities, status, and incoming references along, with a
+  per-item audit trail. This is the escape hatch for vocabulary changes that an additive
+  `.overrides/workflow.toml` merge can't express on its own (an override can add vocabulary, not
+  rename or remove it).
+
+### Changed
+
+- **Item severity is now stored at the top level.** A bug's `severity` moves from the generic
+  `extra` bag onto a proper top-level `severity:` frontmatter field, consistent with how every other
+  declared badge field is now modeled. See Migration below.
+
+### Fixed
+
+- **A cold first CLI dispatch on a custom type could show the wrong command tree.** Running a custom
+  type's command (e.g. `sq incident --help`) as the very first `sq` invocation in a process could
+  render the bundled type's fallback surface instead of that type's own declared
+  sub-entity/`retype` commands, because the command tree was built from a stale process-global spec
+  reference before the real merged spec finished binding. Every invocation now resolves the correct,
+  already-bound spec.
+- **Clearer error when an item references a dropped or renamed type/status.** The vocabulary
+  validation error now leads with the actual cause — a type or status no longer declared in the
+  active spec — instead of pointing at `sq repair`, which cannot fix a vocabulary mismatch.
+- **Sub-entity ownership resolution when two types share the same sub-entity kind.** A project that
+  declares two work types mapped to the same sub-entity kind (for example a custom ticket type
+  mirroring `task`'s subtasks) previously had `add-subtask`/`add-finding` and similar commands
+  reject one of the two types' items. Ownership is now resolved per-item against the active spec, so
+  both types work correctly.
+
+### Migration
+
+**Schema 0.7 → 0.8 — run `sq migrate up`.** The runner relocates every bug's `severity` from the
+generic `extra` bag onto the top-level `severity:` frontmatter field it now belongs on, dropping the
+old copy. One-way and idempotent; if both the old and new locations are somehow present, the
+top-level value wins. Non-bug items are untouched.
+
 ## [0.7.0] - 2026-07-06
 
 ### Added
@@ -29,12 +93,6 @@ All notable changes to this project are documented here. The format follows
   (frontmatter) status moves on. Topical lifecycle discussion, cross-references to another item's
   status, and fenced-code examples are left alone; only a leading self-declared banner is flagged,
   and the discussion region is never scanned.
-- **Repo-wide squad-item-reference hygiene gate.** A CI-enforced check walks the tracked source
-  tree and fails the build if a concrete item/sub-entity reference (a ticket ID, a user-story or
-  subtask number, or a bare section reference) leaks into source comments, docstrings, CLI strings,
-  bundled prose templates, or shipped documentation — the sole allowed home for concrete references
-  is the dogfood squad's own tracked item files. Keeps the shipped codebase and docs free of
-  internal bookkeeping that would confuse or mislead downstream readers.
 
 ### Changed
 
@@ -49,15 +107,6 @@ All notable changes to this project are documented here. The format follows
   managed regions and the `.claude/` pointer files — as a cross-backend `AgentBackend` contract, so
   an agent editing one of those files in-session is told plainly that an edit there will be
   overwritten.
-
-### Fixed
-
-- **Package version is now single-sourced.** `src/squads/__init__.py` no longer hard-codes a
-  version literal; `__version__` is derived at import time from the installed package metadata
-  (`importlib.metadata.version("squads")`), so `pyproject.toml` is the one place a release bumps the
-  version. `sq --version` and the schema-mismatch guard message follow automatically — they can no
-  longer drift out of step with the installed package the way a partially-applied version bump
-  previously could.
 
 ### Migration
 
@@ -505,8 +554,7 @@ Existing item and reflog files remain valid throughout.
   (and any read path) used `Path.read_text()` with no encoding, so on a non-UTF-8 locale (e.g.
   cp1252) a heading such as `### ST1 — … (→ US1)` either raised `UnicodeDecodeError` or decoded the
   `→` to mojibake — breaking subtask/story validation. All file I/O is now pinned to
-  `encoding="utf-8"`. The CI test matrix now runs the suite on Windows and macOS as well as Linux,
-  so this class of bug is caught before release.
+  `encoding="utf-8"`.
 
 ## [0.1.0] - 2026-06-08
 

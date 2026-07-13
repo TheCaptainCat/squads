@@ -13,17 +13,15 @@ subentities:
   status: WontFix
   severity: low
 - local_id: F2
-  title: _items._parse_badge_code uses spec.collection() (raises raw KeyError) vs
-    _common._parse_axis_code's graceful .get + SquadsError
+  title: _items._parse_badge_code raises raw KeyError, not SquadsError
   status: WontFix
   severity: low
 - local_id: F3
-  title: sq repair rebuilds index without _validate_badge_codes; a bogus code passes
-    repair but fails next load (consistent with type/status vocab pattern, not a regression)
+  title: sq repair rebuilds index without _validate_badge_codes
   status: WontFix
   severity: info
 created_at: '2026-07-09T10:39:22Z'
-updated_at: '2026-07-09T10:39:56Z'
+updated_at: '2026-07-13T09:25:34Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -41,8 +39,8 @@ _Add with `sq review 344 add-finding "…" --severity high`; track with `sq revi
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
 | F1 | 🟢 low | WontFix |  | Duplicate emoji-resolution logic across _common._badge_emoji and _discussion._severity_emoji/_severity_badge |
-| F2 | 🟢 low | WontFix |  | _items._parse_badge_code uses spec.collection() (raises raw KeyError) vs _common._parse_axis_code's graceful .get + SquadsError |
-| F3 | 🔵 info | WontFix |  | sq repair rebuilds index without _validate_badge_codes; a bogus code passes repair but fails next load (consistent with type/status vocab pattern, not a regression) |
+| F2 | 🟢 low | WontFix |  | _items._parse_badge_code raises raw KeyError, not SquadsError |
+| F3 | 🔵 info | WontFix |  | sq repair rebuilds index without _validate_badge_codes |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -56,7 +54,7 @@ _Add with `sq review 344 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+Duplicate emoji-resolution logic across `_common._badge_emoji` and `_discussion._severity_emoji`/`_severity_badge`: the same badge/severity emoji lookup is implemented in more than one place. WontFix — not acting on the duplication in this task.
 <!-- sq:finding:F1:body:end -->
 
 #### Discussion
@@ -66,7 +64,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F1:end -->
 
 <!-- sq:finding:F2 -->
-### F2 — _items._parse_badge_code uses spec.collection() (raises raw KeyError) vs _common._parse_axis_code's graceful .get + SquadsError
+### F2 — _items._parse_badge_code raises raw KeyError, not SquadsError
 
 <!-- sq:finding:F2:head -->
 **Status:** ⚫ Wont Fix
@@ -74,7 +72,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+`_items._parse_badge_code` uses `spec.collection()`, which raises a raw `KeyError`, whereas `_common._parse_axis_code` does a graceful `.get` and raises `SquadsError` on a bad code. Inconsistent error handling between the two badge-code parsers. WontFix.
 <!-- sq:finding:F2:body:end -->
 
 #### Discussion
@@ -84,7 +82,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F2:end -->
 
 <!-- sq:finding:F3 -->
-### F3 — sq repair rebuilds index without _validate_badge_codes; a bogus code passes repair but fails next load (consistent with type/status vocab pattern, not a regression)
+### F3 — sq repair rebuilds index without _validate_badge_codes
 
 <!-- sq:finding:F3:head -->
 **Status:** ⚫ Wont Fix
@@ -92,7 +90,7 @@ _Describe the finding, its impact, and a recommendation — free-form._
 <!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
-_Describe the finding, its impact, and a recommendation — free-form._
+`sq repair` rebuilds the index without running `_validate_badge_codes`, so a bogus badge code passes repair but fails on the next load. This is consistent with the existing type/status vocab pattern and is not a regression. WontFix.
 <!-- sq:finding:F3:body:end -->
 
 #### Discussion

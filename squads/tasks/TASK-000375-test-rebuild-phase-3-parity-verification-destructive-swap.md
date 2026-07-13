@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-07-10T04:48:20Z'
-updated_at: '2026-07-10T15:36:32Z'
+updated_at: '2026-07-13T09:27:41Z'
 ---
 <!-- sq:body -->
 ## Phase 3 — Parity verification + destructive swap
@@ -72,7 +72,7 @@ _Add with `sq task 375 add-subtask "<title>"`; track with `sq task 375 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+The parity gate before the destructive swap: verified the new four-pillar battery fully supersedes the old flat suite via an objective old-vs-new line-coverage diff (driven to 0 gap lines, new a superset of old) rather than the leaky ledger cross-check, with the remaining gaps homed and the surviving suite green standalone under `--run-slow`. op-pierre pre-authorized the swap contingent on parity; the old ~80 `test_*.py` files were then deleted, keeping the frozen corpus fixtures, the in-use goldens, and the layered tree.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

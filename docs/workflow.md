@@ -122,9 +122,6 @@ role · skill     Draft ──▶ Active ⇄ Archived
 > entries (`sq comment`) are what record the *history* of a transition — see
 > [adoption.md](adoption.md) for replaying that history with `--at`.
 
-The machines themselves live in `squads._workflow` (`WORKFLOWS`, `can_transition`, `TERMINAL`,
-`ALLOWED_PARENTS`); see [internals.md](internals.md) for how they're wired in.
-
 ## Sub-entities: subtasks, user stories, findings
 
 The sub-entities (subtasks/stories/findings) are tracked by `sq` too — each has its own status, and

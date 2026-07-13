@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-07-09T21:34:34Z'
-updated_at: '2026-07-10T01:03:03Z'
+updated_at: '2026-07-13T09:27:36Z'
 ---
 <!-- sq:body -->
 Implements US1. Add the bulk rename-type service: rename_type(old_type, new_type) that bulk-moves every item of old_type to new_type in one transaction, reusing the primitive extracted in TASK-355.
@@ -53,7 +53,7 @@ _Add with `sq task 356 add-subtask "<title>"`; track with `sq task 356 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Added `RenameMixin.rename_type(old_type, new_type)` — a single-transaction bulk move of every item of one work type to another already-declared type, reusing the TASK-355 primitive with `carry_status=True`. Validation is fail-closed before any mutation (both types declared work types, non-reserved-meta, `old != new`, no child left with an invalid parent); sub-entities and status carry over unconditionally, and a snapshot/rollback layer keeps disk, index, and reflog byte-identical on any failure. Returns a `RenameResult`.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion

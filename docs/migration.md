@@ -78,39 +78,6 @@ defines compatibility:
   `from_frontmatter` doesn't read is **silently dropped on `sq repair`**); renaming/retyping a known
   key; renaming a marker tag; changing a sub-entity block shape; changing the folder layout / ID format.
 
----
-
-## Authoring a migration (for contributors)
-
-When a release changes the durable format:
-
-1. **Add a runner** `src/squads/_migrations/_vA_to_vB.py` (dotted versions as underscores, e.g.
-   `_v0_2_to_v0_3.py`) exposing `migrate(paths) -> int` — per-file,
-   **idempotent**, **marker-safe** (edit only via `_sections`), **utf-8-pinned**, and it must **not**
-   write the index (`repair` rebuilds it). If the step needs judgement, put an LLM runbook in a
-   module-level `MANUAL` string instead of (or alongside) the deterministic logic.
-2. **Register it** — append a `Migration(...)` to `_migrations/_registry.py::MIGRATIONS` (carrying the
-   release `version`, `from_schema`/`to_schema` as dotted schema strings, one-line `summary`, `run=…`,
-   and `manual=…`), and **bump** `_models/_schema.py::SCHEMA_VERSION`.
-3. **Prefer non-breaking** — if the new data can live under `extra:` or be defaulted by
-   `from_frontmatter`, you avoid a runner entirely.
-4. **Keep `from_frontmatter` tolerant** of the previous shape for one cycle, so `repair` reconstructs
-   the index correctly from a not-yet-rewritten file.
-5. **Document & test** — a `### Migration` note in `CHANGELOG.md`; tests that build an old-format file
-   in a `tmp_path` squad, run the runner (assert new shape + intact body + idempotent), and assert the
-   schema gate blocks until `sq migrate up`.
-
-The `manual` string is the source of truth for the runbook — `sq migrate chlog` renders it. Runner
-modules are **private**; never expose them as `python -m …`. `sq migrate` is the only entry point.
-
-```python
-# src/squads/_migrations/_registry.py
-MIGRATIONS = [
-    Migration("0.2.0", "0.1", "0.2", "…summary…", _v0_1_to_v0_2.migrate, manual=_v0_1_to_v0_2.MANUAL)
-]
-# src/squads/_models/_schema.py
-SCHEMA_VERSION = "0.3"  # dotted alpha string; compare with schema_tuple(), not < / >
-```
 
 ---
 

@@ -20,7 +20,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-07-10T04:48:20Z'
-updated_at: '2026-07-10T15:50:47Z'
+updated_at: '2026-07-13T09:27:40Z'
 ---
 <!-- sq:body -->
 ## Phase 2 — Author the four-pillar battery
@@ -96,7 +96,7 @@ _Add with `sq task 374 add-subtask "<title>"`; track with `sq task 374 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+The rebuilt four-pillar battery (generic-engine-once, spec-as-artifact + goldens, behavioural spine, and a first-class failure/edge surface) was authored under `tests/{unit,service,cli,integration}/` with every file, class, and test named for the behaviour it guarantees. No `layer_a/b`, `golden_lock`, ticket-ID filenames, or FEAT-/TASK-/ADR- references remain in the tree, verified by the ref-hygiene scan.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -114,7 +114,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Fast-by-default. The scale/stress split was implemented standalone ahead of Phase 2 (a `--run-slow` opt-in in `tests/conftest.py` that skips the slow scale-bound tests by default), so this phase did not redo the addopts/marker flip; the requirement here was to author the battery without regressing the ~30s default. Default `uv run pytest` stays green and under the 30s target, and `--run-slow` runs the scale paths.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -132,7 +132,7 @@ _Describe this subtask here — free-form paragraphs or bullet lists._
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Each invariant is asserted once at the lowest meaningful layer, using the Phase-0 duplicate-invariant clusters to collapse redundant multi-layer assertions — CLI tests prove a clean exit plus parseable output rather than re-checking model-field well-formedness, which is a unit concern. Dedup preserved every distinct case across the authoring chunks, confirmed per-chunk in review.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion

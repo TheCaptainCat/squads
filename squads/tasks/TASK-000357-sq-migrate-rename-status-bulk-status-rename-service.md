@@ -12,7 +12,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-07-09T21:34:35Z'
-updated_at: '2026-07-10T01:14:14Z'
+updated_at: '2026-07-13T09:27:36Z'
 ---
 <!-- sq:body -->
 Implements US2. Add rename_status(type, old_status, new_status) to RenameMixin (src/squads/_services/_rename.py, the module created in TASK-356): bulk-moves every item of <type> currently at <old-status> to <new-status> in one transaction.
@@ -49,7 +49,7 @@ _Add with `sq task 357 add-subtask "<title>"`; track with `sq task 357 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-_Describe this subtask here — free-form paragraphs or bullet lists._
+Added `RenameMixin.rename_status(type, old_status, new_status)` — a single-transaction, frontmatter-only relabel of every item of one type currently at a given status, scoped per-type (status names are global vocabulary, so only that type's items are touched). `new_status` is validated as a member of that type's lifecycle states (a relabel, not a workflow move), `Item.subentities` is left untouched, and it reuses TASK-356's `RenameResult` plus the snapshot/rollback atomicity.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
