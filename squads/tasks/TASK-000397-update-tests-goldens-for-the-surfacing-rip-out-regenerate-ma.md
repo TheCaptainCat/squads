@@ -3,7 +3,7 @@ id: TASK-397
 sequence_id: 397
 type: task
 title: Update tests + goldens for the surfacing rip-out; regenerate manifest
-status: InReview
+status: Done
 parent: FEAT-315
 author: tech-lead
 assignee: python-dev
@@ -13,7 +13,7 @@ refs:
 - FEAT-392:addresses
 - TASK-396:depends-on
 created_at: '2026-07-15T12:42:17Z'
-updated_at: '2026-07-15T13:00:20Z'
+updated_at: '2026-07-15T13:14:42Z'
 ---
 <!-- sq:body -->
 # Scope

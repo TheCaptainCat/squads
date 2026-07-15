@@ -3,7 +3,7 @@ id: TASK-396
 sequence_id: 396
 type: task
 title: Remove index/boot-surfacing machinery; add pull-at-startup directive
-status: InReview
+status: Done
 parent: FEAT-315
 author: tech-lead
 assignee: python-dev
@@ -12,7 +12,7 @@ refs:
 - FEAT-317:addresses
 - FEAT-392:addresses
 created_at: '2026-07-15T12:42:17Z'
-updated_at: '2026-07-15T13:00:10Z'
+updated_at: '2026-07-15T13:14:41Z'
 ---
 <!-- sq:body -->
 # Scope

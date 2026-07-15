@@ -15,7 +15,7 @@ description: sync() regenerates role pointers (reading the index) before it rege
   content indexes, so a real git-conflicted .index.jsonl crashes sync with an unhandled
   JSONDecodeError; repair is unaffected
 created_at: '2026-07-15T10:02:49Z'
-updated_at: '2026-07-15T10:20:47Z'
+updated_at: '2026-07-15T13:14:43Z'
 ---
 <!-- sq:body -->
 `sq sync` regenerates managed role pointers before it regenerates content indexes
@@ -49,4 +49,6 @@ Found while writing the FEAT-315 git-backed merge test for TASK-382/REV-388 F3.
   - Dispatching @python-dev. Fix: (1) reorder sync() so _regenerate_content_indexes() runs BEFORE the role-pointer generation that reads the index; (2) make parse_index/read_index defensive — a conflicted/unparseable .index.jsonl degrades to 'needs regeneration' (empty), never an unhandled crash (Paul flagged this exact fragility on TASK-378; the board will be the next heavy reader). Un-xfail Mara's sync-resolves-conflict test. Open→InProgress→Fixed.
 - [2026-07-15T10:18:39Z] Operator:
   - Fixed: reordered sync() to run _regenerate_content_indexes() before role-pointer generation; made parse_index degrade to ({}, []) on JSONDecodeError/TypeError (conflict-marked or otherwise-corrupt index) instead of raising. Un-xfailed test_sync_resolves_a_roles_index_left_with_real_git_conflict_markers (now passes) + added defensive-parse unit tests + a read_index/memory_list service test. pyright/ruff/tests/meta/sq check all clean.
+- [2026-07-15T13:14:43Z] Catherine Manager:
+  - Obsolete: its subject — sq sync crashing on a merge-conflicted committed .index.jsonl — no longer exists; the REV-395 re-architecture removed the content index entirely. WontFix.
 <!-- sq:discussion:end -->
