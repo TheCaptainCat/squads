@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.8.0",
-  "counter": 397,
+  "counter": 398,
   "padding": 6,
   "items": {
     "12": {
@@ -3154,9 +3154,9 @@
     "318": {
       "sequence_id": 318,
       "type": "feature",
-      "title": "Full-text search across item prose, with structured filters",
-      "slug": "full-text-search-across-item-prose-with-structured-filters",
-      "status": "Draft",
+      "title": "Enrich sq search: --status, region/authority, richer --json",
+      "slug": "enrich-sq-search-status-region-authority-richer-json",
+      "status": "InProgress",
       "description": "",
       "parent": "EPIC-38",
       "author": "product-owner",
@@ -3212,9 +3212,9 @@
           "extra": {}
         }
       ],
-      "path": "features/FEAT-000318-full-text-search-across-item-prose-with-structured-filters.md",
+      "path": "features/FEAT-000318-enrich-sq-search-status-region-authority-richer-json.md",
       "created_at": "2026-07-07T07:15:49Z",
-      "updated_at": "2026-07-07T07:16:52Z",
+      "updated_at": "2026-07-15T13:54:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3591,7 +3591,7 @@
       "type": "feature",
       "title": "Inline Mermaid diagrams across sq markdown surfaces",
       "slug": "inline-mermaid-diagrams-across-sq-markdown-surfaces",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -3613,7 +3613,7 @@
         {
           "local_id": "US2",
           "title": "Derived per-item Mermaid graph section in the item dossier",
-          "status": "Todo",
+          "status": "Cancelled",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -3631,7 +3631,7 @@
       ],
       "path": "features/FEAT-000377-inline-mermaid-diagrams-across-sq-markdown-surfaces.md",
       "created_at": "2026-07-10T09:04:53Z",
-      "updated_at": "2026-07-10T09:05:45Z",
+      "updated_at": "2026-07-15T14:00:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -15929,6 +15929,31 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-397"
+    },
+    "398": {
+      "sequence_id": 398,
+      "type": "decision",
+      "title": "Per-item derived Mermaid :graph region — refresh model and worth-it call",
+      "slug": "per-item-derived-mermaid-graph-region-refresh-model-and-wort",
+      "status": "Accepted",
+      "description": "US2 defer: ref graph is non-local (unlike the local :summary), no clean refresh; ship US1, constrain US2 to sync-time+gated if built",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-377:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000398-per-item-derived-mermaid-graph-region-refresh-model-and-wort.md",
+      "created_at": "2026-07-15T13:55:59Z",
+      "updated_at": "2026-07-15T14:00:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-398"
     }
   }
 }

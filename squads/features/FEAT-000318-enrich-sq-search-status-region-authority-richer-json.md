@@ -2,8 +2,8 @@
 id: FEAT-318
 sequence_id: 318
 type: feature
-title: Full-text search across item prose, with structured filters
-status: Draft
+title: 'Enrich sq search: --status, region/authority, richer --json'
+status: InProgress
 parent: EPIC-38
 author: product-owner
 subentities:
@@ -28,7 +28,7 @@ subentities:
     for steering not as a ritual
   status: Todo
 created_at: '2026-07-07T07:15:49Z'
-updated_at: '2026-07-07T07:16:52Z'
+updated_at: '2026-07-15T13:54:49Z'
 ---
 <!-- sq:body -->
 # Search the board
@@ -45,34 +45,40 @@ obsolete now?" A decision goes stale silently — frontmatter still reads `Accep
 quietly contradicts it; only the prose reveals the tension. Search is how you hunt that down instead
 of stumbling onto it.
 
-## User & moment
+## Scope note
 
-Deliberate and need-driven: **repo management and steering** — auditing, scoping future work, hunting
-a stale decision. Not a routine step and not a boot ritual; you reach for it *because* you're managing
-the repo.
+`sq search "<query>"` already exists and ships most of what this feature originally called for. This
+is now an **enrichment** of that command, not a build from scratch — the acceptance below is written
+against the delta only. Anything already provided is called out explicitly so it isn't re-implemented.
 
-## Shape
+## Already provided (verify, keep, don't rebuild)
 
-- `sq search "<query>"` scans the prose: item **bodies, discussion comments, sub-entity prose, and
-  titles**.
-- Composes with the structured filters we already have: `--type`, `--status`
-  (e.g. `sq search "counter" --type decision --status Accepted`).
-- Results show **where** it matched and with **what authority**: item id + type + status, the region
-  (body / which discussion comment / which sub-entity), and a snippet with the match in context.
-- A `--json` surface for agent consumption alongside the human-readable table.
-- **Discovery only** — it locates buried/stale prose; superseding or fixing it is a separate act.
+- The `search` verb itself, with `--json`, case-insensitive matching, a clean "no results" message at
+  exit 0.
+- `--type` filter, composable with the query.
+- Coverage of item **titles, bodies, discussion comments, and sub-entity prose** — the scan reads the
+  whole post-frontmatter file, so story/subtask/finding blocks and discussion are already in scope
+  (confirmed against `CollabMixin.search`, which strips only the frontmatter before scanning).
+
+## The delta (new work this feature covers)
+
+- **`--status` filter**, composing with `--type` and the query as AND (`list_items` already accepts
+  `status=`, so this threads an existing filter dimension into `search`, not a new one).
+- **Result authority/region.** Today a result is just `{id, title, hits[]}` — raw matching lines, no
+  indication of *where* a line came from. Extend results so each hit carries the item's type and
+  status plus the region it matched (body / a specific discussion comment / a named sub-entity), and
+  an in-context snippet around the match.
+- **Richer `--json` shape** — a superset of today's `{id, title, hits}` adding type, status, and
+  per-hit region + snippet/location, documented and stable, consistent with the repo's other `--json`
+  surfaces.
+- **`squads` skill section** — a "finding things across the board" section documenting `sq search`,
+  its filters, and its output; no new skill (search is a query verb, not a workflow).
 
 ## Implementation note (not an ADR)
 
 Content search reads the on-disk `.md` files — the `.squads.json` index carries only structured
 fields, so it can't answer prose queries — as a plain scan, with **no new search index**. If scale
 ever makes the scan too slow, an indexing decision can be raised as an ADR then; it isn't needed now.
-
-## Skill
-
-Guidance lives in the **`squads` skill** (a "finding things across the board" section), not a new
-skill — search is a query verb, not a workflow. One line frames the moment: reach for it when
-managing/scoping the repo, not as a routine step.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -102,9 +108,13 @@ _Add with `sq feature 318 add-story "As a <role>, I want … so that …"`; trac
 As a steering user, I want to search item prose by free text so I can find context buried on the board.
 
 **Acceptance**
-- `sq search "<query>"` matches across item bodies, discussion comments, sub-entity prose, and titles.
-- Case-insensitive by default; the matching semantics (substring/keyword vs regex) are documented, with a stated default.
-- No match yields a clean "no results" message and exit 0.
+- Already shipped, verify and keep: `sq search "<query>"` matches across item titles, bodies,
+  discussion comments, and sub-entity prose (confirmed — the scan reads the whole post-frontmatter
+  file, so story/subtask/finding blocks and discussion are already covered, not scoped separately).
+- Already shipped, verify and keep: case-insensitive substring match; a clean "no results" message at
+  exit 0 when nothing matches.
+- No new work required for this story; re-verify against the acceptance above rather than
+  re-implementing.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -123,10 +133,13 @@ As a steering user, I want to search item prose by free text so I can find conte
 <!-- sq:story:US2:body -->
 As a steering user, I want each result to show where the match is and its authority so I can judge relevance at a glance.
 
-**Acceptance**
-- Each result shows item id + type + status, and the region where it matched (body / a specific discussion comment / a named sub-entity).
-- A snippet shows the matched text in context.
-- Output is escaped for the console (Rich markup safety, per repo convention).
+**Acceptance (new work — today's result is just `{id, title, hits[]}`, raw matching lines)**
+- Each result carries the item's id + type + status (today: id + title only; status appears in the
+  human table but not the type, and neither appears in `--json`).
+- Each hit carries the region it matched: body / a specific discussion comment / a named sub-entity
+  (e.g. `story:S1`) — not just the raw source line with no origin.
+- Each hit carries an in-context snippet (the match with surrounding text), not the bare line.
+- Console output stays escaped for Rich markup safety (already true today — keep it that way).
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -146,9 +159,11 @@ As a steering user, I want each result to show where the match is and its author
 As a steering user, I want to narrow the search with the structured filters I already know so I can audit a slice of the board.
 
 **Acceptance**
-- `--type` and `--status` compose with the free-text query.
-- e.g. `sq search "counter" --type decision --status Accepted` returns only matches in accepted ADRs.
-- Text query and filters combine with AND semantics (documented).
+- Already shipped, verify and keep: `--type` composes with the free-text query.
+- New work: a `--status` filter composes with `--type` and the query, AND semantics
+  (e.g. `sq search "counter" --type decision --status Accepted` returns only matches in accepted
+  ADRs). `list_items` already accepts a `status=` filter dimension — this threads it into `search`,
+  it is not a new filtering mechanism.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -168,9 +183,10 @@ As a steering user, I want to narrow the search with the structured filters I al
 As an agent, I want search results as JSON so a session can act on them programmatically.
 
 **Acceptance**
-- `--json` emits structured results (item id/type/status, matched region, snippet, locations) with NO ANSI.
-- The JSON shape is stable and documented.
-- Consistent with the repo's existing `--json` surfaces.
+- Already shipped, verify and keep: `--json` emits structured results with no ANSI.
+- New work: a richer, superset shape — today's `{id, title, hits}` grows to also carry type, status,
+  and per-hit region + snippet/location — documented and stable, consistent with the repo's other
+  `--json` surfaces.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -189,9 +205,11 @@ As an agent, I want search results as JSON so a session can act on them programm
 <!-- sq:story:US5:body -->
 As an agent, I want the squads skill to teach when to reach for search so it is used for steering, not as a ritual.
 
-**Acceptance**
-- The `squads` skill gains a "finding things across the board" section documenting `sq search`, its filters, and its output.
-- It frames the moment: reach for it when managing/scoping the repo (hunting a prior decision, checking staleness), not as a routine boot step.
+**Acceptance (new work — no existing skill content covers this)**
+- The `squads` skill gains a "finding things across the board" section documenting `sq search`, its
+  filters (`--type`, `--status`), and its output (including the region/authority metadata from US2).
+- It frames the moment: reach for it when managing/scoping the repo (hunting a prior decision,
+  checking staleness), not as a routine boot step.
 - No new skill is created (search is a query verb, not a workflow).
 <!-- sq:story:US5:body:end -->
 
