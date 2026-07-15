@@ -13,25 +13,58 @@ pytestmark = pytest.mark.anyio
 async def test_add_then_list_then_show_then_forget_round_trips_a_memory(project, invoke):
     added = await invoke(["memory", "manager", "add", "the scale suite takes about 4 minutes"])
     assert added.exit_code == 0
-    assert "the-scale-suite-takes-about-4-minutes" in added.output
+    assert "the-scale-suite-takes-about" in added.output
 
     listed = await invoke(["memory", "manager", "list"])
     assert listed.exit_code == 0
-    assert "the-scale-suite-takes-about-4-minutes" in listed.output
+    assert "the-scale-suite-takes-about" in listed.output
     assert "the scale suite takes about 4 minutes" in listed.output
 
-    shown = await invoke(["memory", "manager", "show", "the-scale-suite-takes-about-4-minutes"])
+    shown = await invoke(["memory", "manager", "show", "the-scale-suite-takes-about"])
     assert shown.exit_code == 0
     assert "the scale suite takes about 4 minutes" in shown.output
 
-    forgotten = await invoke(
-        ["memory", "manager", "forget", "the-scale-suite-takes-about-4-minutes"]
-    )
+    forgotten = await invoke(["memory", "manager", "forget", "the-scale-suite-takes-about"])
     assert forgotten.exit_code == 0
 
     listed_after = await invoke(["memory", "manager", "list"])
     assert listed_after.exit_code == 0
-    assert "the-scale-suite-takes-about-4-minutes" not in listed_after.output
+    assert "the-scale-suite-takes-about" not in listed_after.output
+
+
+async def test_add_derives_a_short_slug_from_a_long_fact(project, invoke):
+    fact = "except A, B without parens is valid Python 3.14, not a bug"
+    added = await invoke(["memory", "manager", "add", fact])
+    assert added.exit_code == 0
+    assert fact not in added.output  # the remembered slug, not the whole fact
+
+    listed = await invoke(["memory", "manager", "list", "--json"])
+    rows = json.loads(listed.output)
+    assert len(rows) == 1
+    assert rows[0]["slug"].count("-") < 6
+    assert len(rows[0]["slug"]) <= 40
+    assert rows[0]["description"] == fact  # full fact text still lives in the summary
+
+
+async def test_add_with_an_explicit_slug_option_uses_it_instead_of_deriving_one(project, invoke):
+    added = await invoke(
+        ["memory", "manager", "add", "a fact worth remembering", "--slug", "My Handle"]
+    )
+    assert added.exit_code == 0
+    assert "my-handle" in added.output
+
+    shown = await invoke(["memory", "manager", "show", "my-handle"])
+    assert shown.exit_code == 0
+    assert "a fact worth remembering" in shown.output
+
+
+async def test_two_adds_with_the_same_explicit_slug_collide_and_get_a_suffix(project, invoke):
+    first = await invoke(["memory", "manager", "add", "watch out", "--slug", "gotcha"])
+    second = await invoke(["memory", "manager", "add", "watch out again", "--slug", "gotcha"])
+    assert first.exit_code == 0
+    assert second.exit_code == 0
+    assert "gotcha" in first.output
+    assert "gotcha-2" in second.output
 
 
 async def test_add_with_file_supplies_a_longer_body_than_the_fact(project, invoke, tmp_path):

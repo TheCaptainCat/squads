@@ -9,6 +9,7 @@ import pytest
 from squads._content_index import INDEX_FILENAME, header_record
 from squads._memory import _store as memory_store
 from squads._memory._store import MemoryNotFoundError
+from squads._sections import join_frontmatter
 
 pytestmark = pytest.mark.anyio
 
@@ -28,7 +29,7 @@ async def test_add_writes_a_slug_named_markdown_file_with_light_frontmatter_over
     assert text.startswith("---\n")
     assert "summary: the scale suite takes about 4 minutes" in text
     assert "the scale suite takes about 4 minutes" in text  # body defaults to the fact
-    assert entry.slug == "the-scale-suite-takes-about-4-minutes"
+    assert entry.slug == "the-scale-suite-takes-about"  # short handle, not the whole fact
     assert entry.created_at == frozen_time.isoformat().replace("+00:00", "Z")
 
 
@@ -52,6 +53,51 @@ async def test_memory_content_files_carry_no_sq_markers(svc):
     entry = await svc.memory_add("python-dev", "a marker-free fact")
     path = _role_folder(svc, "python-dev") / f"{entry.slug}.md"
     assert "<!-- sq:" not in path.read_text(encoding="utf-8")
+
+
+async def test_a_long_fact_yields_a_short_slug_while_the_summary_keeps_the_full_text(svc):
+    fact = "except A, B without parens is valid Python 3.14 (PEP 758), it is not a bug"
+    entry = await svc.memory_add("python-dev", fact)
+
+    assert entry.slug.count("-") < 6  # capped at a handful of words, not the whole sentence
+    assert len(entry.slug) <= 40
+    assert entry.summary == fact
+    reread = await svc.memory_show("python-dev", entry.slug)
+    assert reread.body == fact
+
+
+async def test_add_with_an_explicit_slug_override_uses_it_verbatim_slugified(svc):
+    entry = await svc.memory_add("python-dev", "a fact worth remembering", slug="My Handle")
+    assert entry.slug == "my-handle"
+    assert entry.summary == "a fact worth remembering"
+
+
+async def test_two_short_slugs_that_collide_still_get_a_disambiguating_suffix(svc):
+    first = await svc.memory_add("python-dev", "watch out", slug="gotcha")
+    second = await svc.memory_add("python-dev", "watch out again", slug="gotcha")
+    assert first.slug == "gotcha"
+    assert second.slug == "gotcha-2"
+
+
+async def test_a_pre_existing_long_slug_memory_still_resolves_by_its_on_disk_slug(svc):
+    """Derivation only changes what a NEW add() produces; an already-committed long-slug
+    ``.md`` file (the shape every memory had before this change) must still resolve
+    unchanged via show/forget — nothing here renames or migrates existing files."""
+    folder = _role_folder(svc, "python-dev")
+    folder.mkdir(parents=True, exist_ok=True)
+    long_slug = "except-a-b-without-parens-is-valid-python-3-14-pep-758-it-is"
+    text = join_frontmatter(
+        {"summary": "a pre-existing long-slug fact", "created_at": "2026-01-01T00:00:00Z"},
+        "the body",
+    )
+    (folder / f"{long_slug}.md").write_text(text, encoding="utf-8")
+
+    shown = await svc.memory_show("python-dev", long_slug)
+    assert shown.summary == "a pre-existing long-slug fact"
+
+    await svc.memory_forget("python-dev", long_slug)
+    with pytest.raises(MemoryNotFoundError):
+        await svc.memory_show("python-dev", long_slug)
 
 
 async def test_a_repeated_fact_that_slugifies_the_same_gets_a_disambiguating_suffix(svc):

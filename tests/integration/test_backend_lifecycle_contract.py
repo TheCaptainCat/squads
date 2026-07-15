@@ -505,7 +505,7 @@ class TestMemoryBootSurfacing:
         await memory_store.add(ctx.paths, role_def.slug, "the scale suite takes about 4 minutes")
         role_item = _make_role_item(1, role_def.slug, ctx.squad_dir)
         text = await self._managed_text(backend, ctx, roster, operators, role_item, role_def)
-        assert "the-scale-suite-takes-about-4-minutes" in text
+        assert "the-scale-suite-takes-about" in text
         assert "the scale suite takes about 4 minutes" in text
 
     async def test_only_the_index_is_surfaced_never_the_full_memory_body(

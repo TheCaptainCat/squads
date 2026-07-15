@@ -27,6 +27,10 @@ from squads._util import slugify
 #: Squad-relative root for every role's memory pool: ``<squad_dir>/agents/memory/<role-slug>/``.
 MEMORY_ROOT = "agents/memory"
 
+#: Cap on a derived slug's word count and character length (see :func:`_short_slug`).
+_SLUG_MAX_WORDS = 5
+_SLUG_MAX_CHARS = 40
+
 
 class MemoryNotFoundError(SquadsError):
     """Raised when a memory slug does not exist in a role's pool."""
@@ -64,6 +68,26 @@ async def _unique_slug(folder: Path, base_slug: str) -> str:
     return f"{base_slug}-{n}"
 
 
+def _short_slug(fact: str) -> str:
+    """A short, human-typeable handle for *fact*: its leading words, capped at
+    :data:`_SLUG_MAX_WORDS` words and :data:`_SLUG_MAX_CHARS` characters, cut at a word
+    boundary (never mid-word). The full fact remains in the entry's summary/body — this is
+    only a short address for it, not a restatement of its content.
+    """
+    words = slugify(fact).split("-")
+    kept: list[str] = []
+    length = 0
+    for word in words:
+        if len(kept) >= _SLUG_MAX_WORDS:
+            break
+        next_length = length + len(word) + (1 if kept else 0)
+        if kept and next_length > _SLUG_MAX_CHARS:
+            break
+        kept.append(word)
+        length = next_length
+    return "-".join(kept) or "untitled"
+
+
 async def add(
     paths: SquadPaths,
     role_slug: str,
@@ -71,19 +95,26 @@ async def add(
     *,
     body: str | None = None,
     tags: list[str] | None = None,
+    slug: str | None = None,
 ) -> MemoryEntry:
-    """Write a new memory: ``<slug>.md`` (slug derived from *fact*) + regenerate the index.
+    """Write a new memory: ``<slug>.md`` + regenerate the index.
 
-    *fact* is both the source of the slug and the frontmatter one-line ``summary``. *body*
+    *fact* is the frontmatter one-line ``summary`` (and the default slug source). *body*
     supplies the freeform markdown body (``--file`` content at the CLI edge); it defaults to
     *fact* itself so a bare ``add "<fact>"`` still yields a readable memory. No counter id is
     allocated and ``.squads.json`` is never touched.
+
+    The slug is a short handle, not a restatement of the fact: by default it's derived from
+    *fact*'s leading words (:func:`_short_slug`); pass *slug* to name the handle explicitly
+    instead (it is slugified for safety). Either way, :func:`_unique_slug` disambiguates a
+    collision with ``-2``, ``-3``, ...
     """
     fact = fact.strip()
     if not fact:
         raise SquadsError("a memory needs a non-empty fact/summary")
     folder = role_folder(paths, role_slug)
-    slug = await _unique_slug(folder, slugify(fact))
+    base_slug = slugify(slug) if slug else _short_slug(fact)
+    slug = await _unique_slug(folder, base_slug)
     entry = MemoryEntry(
         slug=slug,
         summary=fact,
