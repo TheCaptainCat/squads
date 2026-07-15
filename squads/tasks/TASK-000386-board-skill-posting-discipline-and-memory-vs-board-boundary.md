@@ -3,7 +3,7 @@ id: TASK-386
 sequence_id: 386
 type: task
 title: 'Board skill: posting discipline and memory-vs-board boundary'
-status: InReview
+status: Done
 parent: FEAT-317
 author: tech-lead
 assignee: python-dev
@@ -14,7 +14,7 @@ subentities:
   status: Done
   story: US5
 created_at: '2026-07-15T07:48:37Z'
-updated_at: '2026-07-15T10:48:19Z'
+updated_at: '2026-07-15T11:09:21Z'
 ---
 <!-- sq:body -->
 Add a managed guiding skill for the board, generated like the other skills.

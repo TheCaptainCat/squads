@@ -3,7 +3,7 @@ id: TASK-383
 sequence_id: 383
 type: task
 title: 'Board storage: notice model, file I/O, short-hash id'
-status: InReview
+status: Done
 parent: FEAT-317
 author: tech-lead
 refs:
@@ -24,7 +24,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-07-15T07:47:58Z'
-updated_at: '2026-07-15T10:29:53Z'
+updated_at: '2026-07-15T11:09:19Z'
 ---
 <!-- sq:body -->
 Build the storage/model layer for the team bulletin board on the model fixed by the accepted decision (ADR-314): its own lighter store under `squads/board/`, one file per notice, off the global counter and outside `.squads.json`.

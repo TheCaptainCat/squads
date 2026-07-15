@@ -12,14 +12,14 @@ description: 'Feature-level review of the bulletin board: correct + well-tested;
 subentities:
 - local_id: F1
   title: Redundant frontmatter id on board notices
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F2
   title: Anti-clobber _unique_id path is untested
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-07-15T11:03:49Z'
-updated_at: '2026-07-15T11:05:53Z'
+updated_at: '2026-07-15T11:09:18Z'
 ---
 <!-- sq:body -->
 Feature-level review of the team bulletin board (FEAT-317: TASK-383..387), board-specific code only. Verdict: APPROVE. Behaviour is correct and meets US1-US5; gates clean (ruff/pyright/format, sq check, 44 board tests pass). Two low-severity follow-ups filed as findings below.
@@ -34,8 +34,8 @@ _Add with `sq review 391 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Redundant frontmatter id on board notices |
-| F2 | 🟢 low | Open |  | Anti-clobber _unique_id path is untested |
+| F1 | 🟢 low | Fixed |  | Redundant frontmatter id on board notices |
+| F2 | 🟢 low | Fixed |  | Anti-clobber _unique_id path is untested |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -44,7 +44,7 @@ _Add with `sq review 391 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Redundant frontmatter id on board notices
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F1:head:end -->
 
@@ -62,7 +62,7 @@ BoardNotice.to_frontmatter_dict writes an 'id' field, but from_frontmatter takes
 ### F2 — Anti-clobber _unique_id path is untested
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
