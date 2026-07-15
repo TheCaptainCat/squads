@@ -130,6 +130,27 @@ async def list_entries(paths: SquadPaths, role_slug: str) -> list[MemoryEntry]:
     return out
 
 
+async def search(
+    paths: SquadPaths, role_slug: str, query: str
+) -> list[tuple[MemoryEntry, list[str]]]:
+    """Memories whose summary or body contains *query* (case-insensitive substring).
+
+    A plain content grep over the role's ``.md`` files — mirrors
+    :meth:`squads._services._collab.CollabMixin.search`'s shape (entry, matching lines).
+    An unknown/empty role pool simply yields no matches, consistent with :func:`list_entries`.
+    """
+    needle = query.strip().lower()
+    if not needle:
+        raise SquadsError("search needs a non-empty query")
+    out: list[tuple[MemoryEntry, list[str]]] = []
+    for entry in await list_entries(paths, role_slug):
+        candidates = [entry.summary, *entry.body.splitlines()]
+        hits = [ln.strip() for ln in candidates if ln and needle in ln.lower()]
+        if hits:
+            out.append((entry, hits))
+    return out
+
+
 async def forget(paths: SquadPaths, role_slug: str, slug: str) -> None:
     """Delete a memory's file for real (history retained in git) + regenerate the index.
 

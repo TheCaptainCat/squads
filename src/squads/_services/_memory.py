@@ -30,5 +30,10 @@ class MemoryMixin(ServiceCore):
     async def memory_list(self, role_slug: str) -> list[MemoryEntry]:
         return await memory_store.list_entries(self.paths, role_slug)
 
+    async def memory_search(
+        self, role_slug: str, query: str
+    ) -> list[tuple[MemoryEntry, list[str]]]:
+        return await memory_store.search(self.paths, role_slug, query)
+
     async def memory_forget(self, role_slug: str, slug: str) -> None:
         await memory_store.forget(self.paths, role_slug, slug)

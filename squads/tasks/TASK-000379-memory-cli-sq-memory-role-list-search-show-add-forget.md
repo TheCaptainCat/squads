@@ -3,7 +3,7 @@ id: TASK-379
 sequence_id: 379
 type: task
 title: 'Memory CLI: sq memory <role> list/search/show/add/forget'
-status: Draft
+status: InReview
 parent: FEAT-315
 author: tech-lead
 description: The sq memory command group, role as a positional subject over the storage
@@ -11,18 +11,18 @@ description: The sq memory command group, role as a positional subject over the 
 subentities:
 - local_id: ST1
   title: sq memory <role> add [--file]
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: sq memory <role> list / search <query> / show <slug>
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST3
   title: sq memory <role> forget <slug>; clean errors
-  status: Todo
+  status: Done
   story: US4
 created_at: '2026-07-15T07:47:00Z'
-updated_at: '2026-07-15T07:47:09Z'
+updated_at: '2026-07-15T08:27:56Z'
 ---
 <!-- sq:body -->
 Build the `sq memory <role> ...` command group over the memory storage layer. Role is a positional subject, consistent with `sq inbox <role>` / `sq mine <role>`.
@@ -53,9 +53,9 @@ _Add with `sq task 379 add-subtask "<title>"`; track with `sq task 379 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | sq memory <role> add [--file] | US1 |
-| ST2 | Todo |  | sq memory <role> list / search <query> / show <slug> | US3 |
-| ST3 | Todo |  | sq memory <role> forget <slug>; clean errors | US4 |
+| ST1 | Done |  | sq memory <role> add [--file] | US1 |
+| ST2 | Done |  | sq memory <role> list / search <query> / show <slug> | US3 |
+| ST3 | Done |  | sq memory <role> forget <slug>; clean errors | US4 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -64,7 +64,7 @@ _Add with `sq task 379 add-subtask "<title>"`; track with `sq task 379 subtask <
 ### ST1 — sq memory <role> add [--file]
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — As an agent, I can jot a small learned fact to my role's memory so it persists for future runs
 <!-- sq:subtask:ST1:head:end -->
 
@@ -82,7 +82,7 @@ Wire `add` to the storage layer: create the slug-named file and regenerate the i
 ### ST2 — sq memory <role> list / search <query> / show <slug>
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — As an agent, I can list, search, and show my role's memories to pull full content when relevant
 <!-- sq:subtask:ST2:head:end -->
 
@@ -100,7 +100,7 @@ Wire `add` to the storage layer: create the slug-named file and regenerate the i
 ### ST3 — sq memory <role> forget <slug>; clean errors
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US4 — As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy
 <!-- sq:subtask:ST3:head:end -->
 
@@ -118,4 +118,8 @@ Wire `add` to the storage layer: create the slug-named file and regenerate the i
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-15T08:20:49Z] Catherine Manager:
+  - Dispatching @python-dev on the memory CLI now that the storage/service layer (TASK-378) is in. Wire sq memory <role> list/search/show/add/forget onto the MemoryMixin service; add memory_search (content grep) to the service/store. Take Ready→InProgress; hand to InReview.
+- [2026-07-15T08:27:55Z] Elias Python:
+  - Implemented sq memory <role> list/search/show/add/forget (src/squads/_cli/_memory.py) + memory_search in Service/store. pyright/ruff/format clean, sq check clean; 7 new CLI tests + full memory suite (24) green.
 <!-- sq:discussion:end -->

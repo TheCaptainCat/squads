@@ -282,6 +282,7 @@ from squads._cli import (  # noqa: E402
     _create,
     _dev,
     _items,
+    _memory,
     _migrate,
     _operator,
     _override,
@@ -297,6 +298,11 @@ app.add_typer(_role.role_app, name="role", help="Manage agent roles.")
 app.add_typer(_dev.dev_app, name="dev", help="Manage developer roles.")
 app.add_typer(_operator.operator_app, name="operator", help="Manage human operators.")
 app.add_typer(_skill.skill_app, name="skill", help="Manage agent skills.")
+app.add_typer(
+    _memory.memory_app,
+    name="memory",
+    help="A role's committed memory notebook (list/search/show/add/forget).",
+)
 app.add_typer(
     _migrate.migrate_app, name="migrate", help="Run schema migrations and read their steps."
 )
