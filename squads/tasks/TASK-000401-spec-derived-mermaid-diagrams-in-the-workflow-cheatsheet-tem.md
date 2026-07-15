@@ -3,7 +3,7 @@ id: TASK-401
 sequence_id: 401
 type: task
 title: Spec-derived Mermaid diagrams in the workflow cheatsheet template
-status: InReview
+status: Done
 parent: FEAT-377
 author: tech-lead
 assignee: python-dev
@@ -14,7 +14,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-07-15T14:02:33Z'
-updated_at: '2026-07-15T14:30:35Z'
+updated_at: '2026-07-15T14:44:35Z'
 ---
 <!-- sq:body -->
 # Spec-derived Mermaid diagrams in the workflow cheatsheet

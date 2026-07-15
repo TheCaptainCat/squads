@@ -3,7 +3,7 @@ id: TASK-399
 sequence_id: 399
 type: task
 title: 'Enrich sq search: --status filter, region metadata, richer --json, skill section'
-status: InReview
+status: Done
 parent: FEAT-318
 author: tech-lead
 assignee: python-dev
@@ -27,7 +27,7 @@ subentities:
   status: Done
   story: US5
 created_at: '2026-07-15T14:02:32Z'
-updated_at: '2026-07-15T14:34:53Z'
+updated_at: '2026-07-15T14:44:33Z'
 ---
 <!-- sq:body -->
 # Enrich `sq search`
