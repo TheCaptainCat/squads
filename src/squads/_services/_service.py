@@ -17,6 +17,7 @@ from squads._roles._catalog import RoleDef, resolve_roles
 from squads._services._collab import CollabMixin
 from squads._services._items import ItemsMixin
 from squads._services._maintenance import MaintenanceMixin
+from squads._services._memory import MemoryMixin
 from squads._services._refs import RefsMixin
 from squads._services._rename import RenameMixin
 from squads._services._results import AdoptResult, InitResult
@@ -35,6 +36,7 @@ class Service(
     MaintenanceMixin,
     RetypeMixin,
     RenameMixin,
+    MemoryMixin,
 ):
     """Orchestration façade: the logic behind each CLI command.
 

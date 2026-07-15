@@ -3,30 +3,31 @@ id: TASK-378
 sequence_id: 378
 type: task
 title: 'Memory storage: entry model, file I/O, shared .index.jsonl generator'
-status: Draft
+status: Done
 parent: FEAT-315
 author: tech-lead
+assignee: python-dev
 description: Lightweight memory-entry model, per-file read/write, and the shared regenerated-whole
   .index.jsonl generator
 subentities:
 - local_id: ST1
   title: Write a memory as a slug-named .md; no global-counter id
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Shared whole-folder .index.jsonl generator with header stamp
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Forget removes the memory file (real deletion)
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST4
   title: Off-counter, outside .squads.json; repair leaves it alone
-  status: Todo
+  status: Done
   story: US5
 created_at: '2026-07-15T07:46:25Z'
-updated_at: '2026-07-15T07:46:45Z'
+updated_at: '2026-07-15T08:20:48Z'
 ---
 <!-- sq:body -->
 Build the storage/model layer for agent memory, on the storage/id model fixed by the accepted decision (ADR-314): one slug-named markdown file per memory under `squads/agents/memory/<role>/`, off the global counter and outside `.squads.json`.
@@ -55,10 +56,10 @@ _Add with `sq task 378 add-subtask "<title>"`; track with `sq task 378 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Write a memory as a slug-named .md; no global-counter id | US1 |
-| ST2 | Todo |  | Shared whole-folder .index.jsonl generator with header stamp | US1 |
-| ST3 | Todo |  | Forget removes the memory file (real deletion) | US4 |
-| ST4 | Todo |  | Off-counter, outside .squads.json; repair leaves it alone | US5 |
+| ST1 | Done |  | Write a memory as a slug-named .md; no global-counter id | US1 |
+| ST2 | Done |  | Shared whole-folder .index.jsonl generator with header stamp | US1 |
+| ST3 | Done |  | Forget removes the memory file (real deletion) | US4 |
+| ST4 | Done |  | Off-counter, outside .squads.json; repair leaves it alone | US5 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -67,7 +68,7 @@ _Add with `sq task 378 add-subtask "<title>"`; track with `sq task 378 subtask <
 ### ST1 — Write a memory as a slug-named .md; no global-counter id
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — As an agent, I can jot a small learned fact to my role's memory so it persists for future runs
 <!-- sq:subtask:ST1:head:end -->
 
@@ -85,7 +86,7 @@ _Add with `sq task 378 add-subtask "<title>"`; track with `sq task 378 subtask <
 ### ST2 — Shared whole-folder .index.jsonl generator with header stamp
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — As an agent, I can jot a small learned fact to my role's memory so it persists for future runs
 <!-- sq:subtask:ST2:head:end -->
 
@@ -103,7 +104,7 @@ Regenerate a folder's `.index.jsonl` whole from its `.md` files (never append/ha
 ### ST3 — Forget removes the memory file (real deletion)
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US4 — As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy
 <!-- sq:subtask:ST3:head:end -->
 
@@ -121,7 +122,7 @@ Regenerate a folder's `.index.jsonl` whole from its `.md` files (never append/ha
 ### ST4 — Off-counter, outside .squads.json; repair leaves it alone
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US5 — As a teammate, committed per-role memory arrives on checkout and merges cleanly across branches
 <!-- sq:subtask:ST4:head:end -->
 
@@ -139,4 +140,14 @@ Memory lives entirely outside `.squads.json` and off the global counter. `sq rep
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-15T08:03:07Z] Catherine Manager:
+  - Dispatching @python-dev on the memory storage foundation. Scope: memory-entry model + file I/O + the shared .index.jsonl generator per ADR-314. This is the keystone — TASK-379/380/383 build on it. Take Ready→InProgress on pickup; hand to InReview when done.
+- [2026-07-15T08:14:27Z] Elias Python:
+  - Storage layer done: MemoryEntry model (src/squads/_memory/_model.py), file I/O (_memory/_store.py: add/read/list_entries/forget, slug-collision suffixing, marker-free content), shared .index.jsonl generator (src/squads/_content_index.py: header_record/render_index/parse_index/regenerate — reusable by TASK-383) and a thin MemoryMixin (_services/_memory.py) wired into Service. Off-counter/outside-.squads.json + sq-repair-ignores-it invariants covered by tests.
+  - pyright/ruff clean; sq check clean. Tests: tests/unit/test_content_index_generator.py, tests/unit/test_memory_entry_model.py, tests/service/test_memory_storage_and_index_regeneration.py (46 passed). Full suite not run (main loop's job). Handing to @tech-lead for review — CLI is TASK-379.
+- [2026-07-15T08:19:36Z] Paul Reviewer:
+  - Reviewed the storage layer — APPROVED. Faithful to ADR-314: .index.jsonl header {schema:"squads.index/1", generated:<plain-text stamp>} + {slug,filename,description} entry lines, regenerated whole, caller-owned ordering (render_index/regenerate never sort — board's line-ordinal stays load-bearing), memory slug-addressed, content files marker-free.
+  - Invariants hold: no counter allocation / no IndexStore / .squads.json untouched (asserted), sq repair is memory-neutral (asserted), path-traversal safe via paths.abspath, reads never mutate (no spurious folder/mkdir). Conventions clean: private modules, empty __init__, injectable clock, SquadsError, no __future__, acyclic imports, pyright+ruff green, 23 new tests pass.
+  - Reuse seam is clean for TASK-383/board: IndexEntry/header_record/render_index/parse_index/regenerate are all generic; the feature-specific entry-builder (_regenerate_index, reads the 'summary' key) rightly stays in _memory/_store.py, not the shared module — the board won't fight it.
+  - Non-blocking notes for later (not findings): parse_index does IndexEntry(**json.loads(ln)) so a hand-corrupted/conflict-markered index raises raw TypeError/JSONDecodeError not SquadsError — fine since the index is regenerated-whole and never the merge battleground, but the board is its first real consumer; and content writes use plain write_text (not atomic os.replace like IndexStore) — a deliberate lighter-tier choice, git is the merge engine.
 <!-- sq:discussion:end -->
