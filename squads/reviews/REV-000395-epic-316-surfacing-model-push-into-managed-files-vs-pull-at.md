@@ -28,8 +28,19 @@ subentities:
     drop the .index.jsonl machinery'
   status: Open
   severity: high
+- local_id: F4
+  title: sq-memory skill still teaches push-at-boot surfacing — contradicts the pull
+    directive (F1 relapse)
+  status: Fixed
+  assignee: python-dev
+  severity: high
+- local_id: F5
+  title: Stale .index.jsonl references survive in the two content-model docstrings
+  status: Fixed
+  assignee: python-dev
+  severity: low
 created_at: '2026-07-15T12:22:49Z'
-updated_at: '2026-07-15T12:24:53Z'
+updated_at: '2026-07-15T13:12:00Z'
 ---
 <!-- sq:body -->
 Design review of how EPIC-316 shared team knowledge (agent memory + the bulletin board) reaches an agent at the start of a run.
@@ -59,6 +70,8 @@ _Add with `sq review 395 add-finding "…" --severity medium`; track with `sq re
 | F1 | 🟠 high | Open |  | Push boot-surfacing + unconditional directive vs conditional sections = dangling reference on fresh installs |
 | F2 | 🟠 high | Open |  | The .index.jsonl becomes readerless once surfacing is removed — derived data stored for no consumer |
 | F3 | 🟠 high | Open |  | Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and drop the .index.jsonl machinery |
+| F4 | 🟠 high | Fixed | python-dev | sq-memory skill still teaches push-at-boot surfacing — contradicts the pull directive (F1 relapse) |
+| F5 | 🟢 low | Fixed | python-dev | Stale .index.jsonl references survive in the two content-model docstrings |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -161,6 +174,44 @@ Replace push-into-managed-files with a **pull-at-startup** model, and drop the n
 <!-- sq:finding:F3:discussion -->
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
+
+<!-- sq:finding:F4 -->
+### F4 — sq-memory skill still teaches push-at-boot surfacing — contradicts the pull directive (F1 relapse)
+
+<!-- sq:finding:F4:head -->
+**Status:** 🟡 Fixed
+**Assignee:** Elias Python
+**Severity:** 🟠 High
+<!-- sq:finding:F4:head:end -->
+
+<!-- sq:finding:F4:body -->
+Rewrote both passages in memory_skill.md.j2 to pull form (sq memory <role> list / sq board list at start of a run); regenerated squads/agents/skills/sq-memory.md + templates_manifest.json.
+<!-- sq:finding:F4:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F4:discussion -->
+<!-- sq:finding:F4:discussion:end -->
+<!-- sq:finding:F4:end -->
+
+<!-- sq:finding:F5 -->
+### F5 — Stale .index.jsonl references survive in the two content-model docstrings
+
+<!-- sq:finding:F5:head -->
+**Status:** 🟡 Fixed
+**Assignee:** Elias Python
+**Severity:** 🟢 Low
+<!-- sq:finding:F5:head:end -->
+
+<!-- sq:finding:F5:body -->
+Dropped the .index.jsonl clause from _memory/_model.py and _board/_model.py docstrings.
+<!-- sq:finding:F5:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F5:discussion -->
+<!-- sq:finding:F5:discussion:end -->
+<!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -172,4 +223,13 @@ Replace push-into-managed-files with a **pull-at-startup** model, and drop the n
   - Do the full version: once surfacing is gone the .index.jsonl has no reader, so drop it too — storage is just the slug/hash-named .md files. That also kills the index merge-conflict problem at the root instead of patching around it (BUG-390 / the option-B design in REV-388).
 - [2026-07-15T12:24:53Z] Paul Reviewer:
   - ChangesRequested. F1 (dangling directive on fresh installs) and F2 (readerless .index.jsonl) verified against source; both trace to the push-into-managed-files model. F3 records op-pierre's directed resolution — pull-at-startup + drop the index (Full scope). Findings are the technical backing; this review is the record, fix-tasks come later. Amends ADR-314, FEAT-315/FEAT-317 US2, and FEAT-392 US1.
+- [2026-07-15T13:06:14Z] Paul Reviewer:
+  - Verification of the TASK-396/397 rip-out (uncommitted on release/0.9). The index/surfacing CODE is fully and correctly removed — F2's core is resolved and F3's mechanical steps are done:
+  - RESOLVED: _content_index.py / _memory_surface.py / _board_surface.py deleted; read_index + regenerate_from_content_files + regenerate_index gone; maintenance _regenerate_content_indexes/_memory_role_folders + both call sites removed; the four templates stripped of the ## Your memory / ## Board / per-role Memory blocks; role.md.j2 rewritten to the unconditional pull (sq memory <slug> list / sq board list), valid on empty pools. Stores read the .md files directly. Git-merge tests keep the .md-merge substance and drop only the index-conflict parts. Gates clean: pyright 0/0/0, ruff + format clean, sq check clean. No orphaned code refs (the one tests/ grep hit is the false-positive 'memory_surface_an_honest_conflict' test NAME). BUG-390 is genuinely obsolete — its subject (a committed conflicted .index.jsonl) no longer exists.
+  - NOT resolved — two orphans the rip-out left behind (see F4/F5), both from the same scope gap: TASK-396 enumerated a fixed template/docstring list that missed these surfaces.
+  - F4 (high): the sq-memory skill itself (memory_skill.md.j2 -> committed squads/agents/skills/sq-memory.md) still teaches the push-at-boot model — 'surfaced into your context automatically at boot ... you don't have to go looking'. That is F1's defect relapsed into the very skill governing memory/board use, and it contradicts the new pull directive. Keeping REV-395 in ChangesRequested for this.
+  - F5 (low): _memory/_model.py and _board/_model.py docstrings still cite the generated .index.jsonl roll-up ADR-314 says no longer exists.
+  - Not approving. Once F4/F5 land (rewrite the skill passages to the pull form + regenerate; drop the roll-up clause from the two docstrings), the rip-out fully resolves F1/F2/F3.
+- [2026-07-15T13:07:10Z] Catherine Manager:
+  - Dispatching @python-dev on F4 + F5. F4 (high): rewrite the two push-surfacing passages in memory_skill.md.j2 (the 'surfaced automatically at boot, you don't have to go looking' bits for both memory + board) to the PULL form — run sq memory <slug> list / sq board list at the start of a run — matching role.md.j2; then regenerate the on-disk sq-memory skill + manifest. F5 (low): drop the stale '.index.jsonl roll-up' clause from _memory/_model.py + _board/_model.py docstrings.
 <!-- sq:discussion:end -->

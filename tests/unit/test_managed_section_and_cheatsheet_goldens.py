@@ -74,7 +74,6 @@ def test_the_claude_md_managed_section_body_matches_its_pinned_golden() -> None:
         default_role_full_name=_DEFAULT_ROLE.full_name,
         default_role_slug=_DEFAULT_ROLE.slug,
         spec=bundled_spec(),
-        board_lines=[],
     )
     assert "Elias Python" in actual  # sanity: the pinned dev is in the roster
     assert "\x1b[" not in actual
@@ -92,13 +91,11 @@ def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
                 "slug": r.slug,
                 "mission": "",
                 "responsibilities": [],
-                "memory_lines": [],
             }
             for r in _PINNED_ROSTER
         ],
         operators=[{"full_name": o.full_name, "slug": o.slug} for o in _PINNED_OPERATORS],
         spec=bundled_spec(),
-        board_lines=[],
     )
     assert "Elias Python" in actual
     assert "\x1b[" not in actual

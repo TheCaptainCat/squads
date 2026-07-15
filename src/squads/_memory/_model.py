@@ -6,8 +6,7 @@ status/workflow machinery, sub-entities, or refs — memory is a lighter tier th
 and no global-counter id is ever allocated for one.
 
 Content files are marker-free: a memory's body carries no ``<!-- sq:... -->`` markers, since
-nothing inside it is regenerated (only the summary/created_at/tags frontmatter feeds the
-generated ``.index.jsonl`` roll-up).
+nothing inside it is regenerated.
 """
 
 from dataclasses import dataclass, field
