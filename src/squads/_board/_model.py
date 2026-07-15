@@ -27,8 +27,14 @@ class BoardNotice:
     until: str | None = None  # ISO-8601 expiry (via squads._clock.iso), or None if it never expires
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
-        """The light frontmatter block written over the freeform body."""
-        data: dict[str, Any] = {"id": self.id, "author": self.author, "posted_at": self.posted_at}
+        """The light frontmatter block written over the freeform body.
+
+        Omits ``id`` — it is fully derivable from the filename stem (see
+        :func:`from_frontmatter`, called with ``path.stem``) and nothing reads it back from
+        the frontmatter, so storing it would be redundant (mirrors the memory store, which
+        likewise omits its slug from frontmatter for the same reason).
+        """
+        data: dict[str, Any] = {"author": self.author, "posted_at": self.posted_at}
         if self.until:
             data["until"] = self.until
         return data

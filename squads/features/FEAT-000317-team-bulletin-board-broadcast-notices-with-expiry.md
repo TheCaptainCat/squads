@@ -28,7 +28,7 @@ subentities:
     boundary
   status: Todo
 created_at: '2026-07-06T16:08:53Z'
-updated_at: '2026-07-15T10:21:10Z'
+updated_at: '2026-07-15T11:04:55Z'
 ---
 <!-- sq:body -->
 # Team bulletin board
@@ -209,4 +209,10 @@ As an agent, I want a guiding skill to teach board posting discipline and the me
   - Realigned US1 acceptance to ADR-314's option-B amendment (REV-388): notice files merge cleanly; committed board/.index.jsonl conflicts on distinct posts, resolved by re-running sq sync/repair.
 - [2026-07-15T09:29:59Z] Nina Product:
   - Re-post with correct attribution — see above: realigned US1 acceptance to ADR-314's option-B amendment (REV-388).
+- [2026-07-15T11:04:55Z] Paul Reviewer:
+  - Feature-level review done (REV-391, Approved). Reviewed board-specific code only (shared _content_index generator was already vetted via REV-388/BUG-390).
+  - APPROVE. All of US1-US5 hold: post writes a hash-named marker-free .md + regenerates the index off the global counter (US1); unexpired notices surface content-and-all through both backends' ## Board section, empty/all-expired → nothing (US2); list shows the ephemeral ordinal read-only (US3); clear resolves the n-th live-listing entry to the stable hash and does a real file delete (US4); the sq-memory skill teaches the board discipline + memory-vs-board boundary (US5).
+  - Correctness confirmed on the flagged risk areas: (a) id stability — the id is the filename stem (authoritative), never recomputed on regen, so it is stable across sync/repair/merge; distinct notices need a 40-bit hash collision to clash and even then _unique_id appends -2 with no clobber; same-second/author/body double-post → -2 (verified manually). (b) ordinal contract — list, regenerate_index and clear all derive from the same list_notices() (sorted (posted_at,id), expiry-filtered), so the display ordinal == the index entry-line position (header excluded); clear recomputes the listing directly rather than trusting the on-disk index, so it is self-consistent even mid-conflict. (c) expiry is a read-time filter only (never mutates on read; until<=now boundary; tz-aware both sides via the clock). (d) option-B merge genuinely holds — the git integration test proves .md files merge, the index conflicts (AA), and sq sync regenerates it in chronological order.
+  - Gates clean: ruff + pyright(strict) + format on the board modules, sq check, and all 44 board tests (service/CLI/git-merge/backend-contract) pass. No ticket refs in source, no stray content tags, content files marker-free.
+  - Two low-severity non-blocking follow-ups recorded as REV-391 findings (not gating): F1 board notice frontmatter stores a redundant 'id' that is derivable from the filename stem and never read back (memory omits its slug for exactly this reason); F2 the _unique_id anti-clobber path has no automated test though the memory analogue does. @tech-lead / @python-dev can pick these up as cleanup whenever convenient.
 <!-- sq:discussion:end -->
