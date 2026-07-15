@@ -3,7 +3,7 @@ id: FEAT-317
 sequence_id: 317
 type: feature
 title: Team bulletin board — broadcast notices with expiry
-status: Done
+status: InProgress
 parent: EPIC-316
 author: product-owner
 refs:
@@ -28,7 +28,7 @@ subentities:
     boundary
   status: Todo
 created_at: '2026-07-06T16:08:53Z'
-updated_at: '2026-07-15T11:09:23Z'
+updated_at: '2026-07-15T12:43:22Z'
 ---
 <!-- sq:body -->
 # Team bulletin board
@@ -49,14 +49,14 @@ board.**
 
 - **Storage** is fixed by the accompanying decision: its own lighter store under `squads/board/`, one
   file per notice with a short-hash id plus author / posted-at / optional `until` / body — off the
-  global counter and outside `.squads.json`. `squads/board/` also carries a generated `.index.jsonl`
-  roll-up (same format as memory: one line per notice, entry schema `{slug, filename, description}`,
-  `slug` here being the notice's stable hash id).
-- **Expiry does real work.** Expired notices are filtered out at read time (listing and boot
-  surfacing); physical removal only happens on an explicit `clear`, never as a side effect of a read.
-- **Boot surfacing.** Unlike memory (index-only, content-on-recall), the board's notices are short
-  and prescriptive, so they can be surfaced *content and all* at boot — with `--until` keeping that
-  boot payload bounded, not just tidy.
+  global counter and outside `.squads.json`. The `.md` files are the sole store — no generated index.
+- **Expiry does real work.** Expired notices are filtered out at read time, on every `list` call
+  (including the boot-time pull); physical removal only happens on an explicit `clear`, never as a
+  side effect of a read.
+- **Retrieval is pull-at-startup, full content.** The role sheet directs every agent to run `sq
+  board list` at the start of a run. Unlike memory (index-only, content-on-recall), the board's
+  notices are short and prescriptive, so `list` shows full content directly — with `--until` keeping
+  that pull bounded, not just tidy.
 - **Command surface:**
 
   ```
@@ -65,10 +65,10 @@ board.**
   sq board clear <n>                                  # take one down
   ```
 
-  `clear <n>` is an ephemeral positional ordinal that is the n-th **entry line** of the generated
-  `squads/board/.index.jsonl` (header line excluded), resolved against the current sorted, unexpired
-  listing to the notice's stable hash id — the ordinal is a display affordance derived from the
-  generated index, not persisted meaning.
+  `clear <n>` is an ephemeral positional ordinal — the notice's position in the freshly-computed live
+  `sq board list` (globbed, expiry-filtered, sorted from the `.md` files), resolved to the notice's
+  stable hash id. The ordinal is a display affordance computed at list time, not persisted meaning;
+  no generated index is involved.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -101,7 +101,7 @@ As a lead or operator, I want to post a notice to the board with an optional exp
 - `sq board post -m "<text>"` creates a notice file under `squads/board/` with a short-hash id plus author, posted-at, and body; NO global-counter id.
 - `--until <date>` records an expiry.
 - The post is attributable to its author (operator via `--as op-<slug>` / agent role).
-- Two notices posted on separate branches get distinct hash ids and the notice files merge cleanly, but the committed `board/.index.jsonl` conflicts on the distinct posts — resolved mechanically by re-running `sq sync`/`repair` to regenerate it.
+- Two notices posted on separate branches get distinct hash ids and the notice files merge cleanly — there is no derived index, so there is nothing else to conflict on.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -121,9 +121,10 @@ As a lead or operator, I want to post a notice to the board with an optional exp
 As any agent, I want current board notices surfaced at the start of a run so I am aware of standing team notices.
 
 **Acceptance**
-- At boot, unexpired notices are surfaced into the agent's context through the active backend — content and all (they are short and prescriptive), not just an index.
-- Expired notices are excluded from boot surfacing.
-- An empty or all-expired board surfaces nothing.
+- The role sheet (the always-seen boot definition) directs the agent to run `sq board list` at the start of a run and apply what's relevant.
+- Nothing is pushed into the pointer / CLAUDE.md / AGENTS.md managed files — no boot-context injection, no backend surfacing hook.
+- `sq board list` reads the `.md` files live — globbed, expiry-filtered, and sorted — so expired notices are always excluded.
+- An empty or all-expired board: the directive is always valid, `sq board list` simply lists nothing.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -215,4 +216,6 @@ As an agent, I want a guiding skill to teach board posting discipline and the me
   - Correctness confirmed on the flagged risk areas: (a) id stability — the id is the filename stem (authoritative), never recomputed on regen, so it is stable across sync/repair/merge; distinct notices need a 40-bit hash collision to clash and even then _unique_id appends -2 with no clobber; same-second/author/body double-post → -2 (verified manually). (b) ordinal contract — list, regenerate_index and clear all derive from the same list_notices() (sorted (posted_at,id), expiry-filtered), so the display ordinal == the index entry-line position (header excluded); clear recomputes the listing directly rather than trusting the on-disk index, so it is self-consistent even mid-conflict. (c) expiry is a read-time filter only (never mutates on read; until<=now boundary; tz-aware both sides via the clock). (d) option-B merge genuinely holds — the git integration test proves .md files merge, the index conflicts (AA), and sq sync regenerates it in chronological order.
   - Gates clean: ruff + pyright(strict) + format on the board modules, sq check, and all 44 board tests (service/CLI/git-merge/backend-contract) pass. No ticket refs in source, no stray content tags, content files marker-free.
   - Two low-severity non-blocking follow-ups recorded as REV-391 findings (not gating): F1 board notice frontmatter stores a redundant 'id' that is derivable from the filename stem and never read back (memory omits its slug for exactly this reason); F2 the _unique_id anti-clobber path has no automated test though the memory analogue does. @tech-lead / @python-dev can pick these up as cleanup whenever convenient.
+- [2026-07-15T12:41:02Z] Nina Product:
+  - Acceptance realigned per REV-395: no .index.jsonl; US2 boot-surfacing flips to pull-at-startup (role sheet runs `sq board list`, nothing pushed into managed files); US1 merge bullet updated — no derived index to conflict on.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: FEAT-315
 sequence_id: 315
 type: feature
 title: Agent memory — committed per-role notebook surfaced at boot
-status: Done
+status: InProgress
 parent: EPIC-316
 author: product-owner
 refs:
@@ -34,7 +34,7 @@ subentities:
     discipline
   status: Todo
 created_at: '2026-07-06T16:05:08Z'
-updated_at: '2026-07-15T10:20:52Z'
+updated_at: '2026-07-15T12:43:22Z'
 ---
 <!-- sq:body -->
 # Agent memory
@@ -56,18 +56,17 @@ inherits the accumulated per-role memory, and it travels with the project across
 ## Shape
 
 - **Storage & id model** are fixed by the accompanying decision (file-per-memory, slug-named, under
-  `squads/agents/memory/<role>/`, a generated per-role `.index.jsonl` roll-up — one line per memory,
-  entry schema `{slug, filename, description}` — entirely off the global counter and outside
-  `.squads.json`). This feature builds the behaviour on top of that.
-- **Retrieval is pull-with-a-nudge.** The per-role `.index.jsonl` is surfaced at role-boot (one line
-  per memory) so the agent always knows the pool exists and roughly what's in it; full content is
-  fetched on demand. Index in, content on recall. Memory is **slug-addressed** (`show <slug>`) — line
-  position in the index is not load-bearing for recall.
+  `squads/agents/memory/<role>/`, entirely off the global counter and outside `.squads.json`). The
+  `.md` files are the sole store — no generated/committed index. This feature builds the behaviour on
+  top of that.
+- **Retrieval is pull-at-startup.** The role sheet directs the agent to run `sq memory <its-slug>
+  list` at the start of a run, reading the `.md` files live; full content is fetched on demand via
+  `show <slug>`. Memory is **slug-addressed** — list order is not load-bearing for recall.
 - **Command surface** (role is a positional subject, consistent with `sq inbox <role>` / `sq mine
   <role>`):
 
   ```
-  sq memory <role> list                     # browse the index
+  sq memory <role> list                     # browse the pool
   sq memory <role> search <query>           # find by content
   sq memory <role> show <slug>              # read one in full
   sq memory <role> add "<fact>" [--file f]  # jot a new memory
@@ -117,8 +116,7 @@ As an agent, I want to jot a small learned fact to my role's memory so it persis
 - `sq memory <role> add "<fact>"` creates a slug-named markdown file under `squads/agents/memory/<role>/`, slug derived from the fact.
 - `--file <path>` supplies a longer body instead of inline text.
 - The entry carries light frontmatter (summary, created_at) over a freeform body; NO global-counter id is allocated.
-- The role's `.index.jsonl` is regenerated to include the new entry (one `{slug, filename, description}` line).
-- Two memories added on separate branches produce independent `.md` files that merge cleanly (no memory lost); the committed `.index.jsonl` still conflicts and is resolved by regeneration — see US5.
+- Two memories added on separate branches produce independent `.md` files that merge cleanly (no memory lost) — the `.md` files are the sole store, so there is nothing else to conflict on; see US5.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -138,11 +136,11 @@ As an agent, I want to jot a small learned fact to my role's memory so it persis
 As an agent, I want my role's memory index surfaced at the start of a run so relevant facts don't slip past me.
 
 **Acceptance**
-- At role-boot the agent's own role `.index.jsonl` (one line per memory) is surfaced into its context through the active backend, not hard-coded.
-- Only the index is surfaced, not full bodies (index in, content on recall).
-- Memory is slug-addressed (`show <slug>`); line position in the index carries no meaning and is not relied on.
-- An empty pool surfaces nothing — no noise.
-- Surfacing goes through the backend abstraction so a non-Claude backend does the equivalent.
+- The role sheet (the always-seen boot definition) directs the agent to run `sq memory <its-slug> list` at the start of a run and apply what's relevant.
+- Nothing is pushed into the pointer / CLAUDE.md / AGENTS.md managed files — no boot-context injection, no backend surfacing hook.
+- `sq memory <slug> list` reads the `.md` files directly, live — no generated/committed index involved.
+- An empty pool: `sq memory <slug> list` simply lists nothing; the directive is always valid, so it never dangles on a fresh install.
+- Memory is slug-addressed (`show <slug>`); list order carries no meaning and is not relied on.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -208,7 +206,7 @@ As a teammate, I want committed per-role memory to arrive on checkout and merge 
 
 **Acceptance**
 - Memory files under `squads/agents/memory/` are committed (not gitignored).
-- Two branches each adding a distinct memory: the `.md` files merge cleanly (no memory lost), but the committed `.index.jsonl` conflicts on the distinct adds — resolved mechanically by re-running `sq sync`/`repair` to regenerate it.
+- Two branches each adding a distinct memory: the `.md` files merge cleanly (no memory lost) — there is no derived index, so there is nothing else to conflict on.
 - Two branches editing the SAME memory surface an honest git conflict (correct to resolve by hand).
 - Memory lives outside `.squads.json`; `sq repair` neither rebuilds nor disturbs it.
 <!-- sq:story:US5:body:end -->
@@ -257,4 +255,6 @@ As an agent, I want the sq-memory skill to teach the memory workflow and curatio
   - Re-post with correct attribution — see above: realigned US5 acceptance to ADR-314's option-B amendment (REV-388).
 - [2026-07-15T09:31:40Z] Nina Product:
   - Also corrected US1's matching acceptance bullet for coherence with US5's ADR-314 option-B fix — same .md-merges/.index.jsonl-conflicts distinction.
+- [2026-07-15T12:41:01Z] Nina Product:
+  - Acceptance realigned per REV-395: no .index.jsonl (dropped entirely, .md files are sole store); US2 boot-surfacing flips to pull-at-startup (role sheet runs `sq memory <slug> list`, nothing pushed into managed files).
 <!-- sq:discussion:end -->
