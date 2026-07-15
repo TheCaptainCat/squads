@@ -21,10 +21,10 @@ subentities:
 - local_id: F3
   title: US5 merge/branch behavior has no test — only the off-counter/repair-neutral
     point is asserted
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-07-15T08:50:38Z'
-updated_at: '2026-07-15T09:45:16Z'
+updated_at: '2026-07-15T10:12:08Z'
 ---
 <!-- sq:body -->
 Feature-level review of agent memory (FEAT-315) across TASK-378 (storage/generator), TASK-379 (CLI), TASK-380 (boot-surfacing) as committed on release/0.9. Code is clean at the seam level — the sq memory CLI, the MemoryMixin service, and the backend-neutral boot-surfacing (invariant #6) are all sound. Two real defects found by ground-truth git/sync verification that the current tests do not exercise; findings below.
@@ -41,7 +41,7 @@ _Add with `sq review 388 add-finding "…" --severity medium`; track with `sq re
 | --- | --- | --- | --- | --- |
 | F1 | 🟡 medium | Fixed |  | US5.2 violated: two distinct memory adds conflict on the committed .index.jsonl |
 | F2 | 🟡 medium | Fixed |  | index GENERATED_STAMP promises 'sq sync' regeneration that does not exist |
-| F3 | 🟢 low | Open |  | US5 merge/branch behavior has no test — only the off-counter/repair-neutral point is asserted |
+| F3 | 🟢 low | Fixed |  | US5 merge/branch behavior has no test — only the off-counter/repair-neutral point is asserted |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -98,7 +98,7 @@ Impact: this violates the invariant #7 spirit (a generated file must truthfully 
 ### F3 — US5 merge/branch behavior has no test — only the off-counter/repair-neutral point is asserted
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F3:head:end -->
 
@@ -113,6 +113,8 @@ Rest of the feature is well-covered: US1 (add/slug/frontmatter/no-counter), US3 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-07-15T10:12:08Z] Mara Tester:
+  - Closed by TASK-382: git-backed test proves distinct-branch adds merge .md cleanly / conflict the committed index / sq repair regenerates and resolves it; a separate test proves same-memory edits surface an honest .md conflict. See tests/integration/test_memory_git_merge_behavior.py. Also found + filed BUG-390: sq sync (unlike repair) currently crashes on a real conflict-marked index instead of regenerating it.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

@@ -122,6 +122,13 @@ class MaintenanceMixin(ServiceCore):
             folder = self.paths.squad_dir / ts.folder
             await _aio.mkdir(folder, parents=True, exist_ok=True)
 
+        # Regenerate every content-index folder (agent memory pools today) *before* anything
+        # below reads one — role-pointer generation reads a role's memory index for
+        # boot-surfacing, so a merge-conflicted or otherwise-corrupt `.index.jsonl` must be
+        # rebuilt whole from its `.md` files first, or that read sees the stale/broken content
+        # instead of the resolution this pass is supposed to provide.
+        await self._regenerate_content_indexes()
+
         backends = self._backends()
         ctx = self._ctx
         for backend in backends:
@@ -142,7 +149,6 @@ class MaintenanceMixin(ServiceCore):
             await backend.write_managed(ctx_with_skills, roster, ops)
         # Seed SKILL ids for any custom types declared in the spec (idempotent).
         await self.seed_custom_skills()
-        await self._regenerate_content_indexes()
         await self._stamp_version(__version__)
 
     async def _refresh_catalog_extra(self, item: Item) -> None:

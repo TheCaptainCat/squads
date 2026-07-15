@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.8.0",
-  "counter": 389,
+  "counter": 390,
   "padding": 6,
   "items": {
     "12": {
@@ -9940,7 +9940,7 @@
       "type": "task",
       "title": "Memory tests: service + CLI, merge and off-counter invariants",
       "slug": "memory-tests-service-cli-merge-and-off-counter-invariants",
-      "status": "Draft",
+      "status": "InReview",
       "description": "Service + CLI coverage for memory incl. merge behaviour and off-counter/outside-.squads.json invariants",
       "parent": "FEAT-315",
       "author": "tech-lead",
@@ -9953,7 +9953,7 @@
         {
           "local_id": "ST1",
           "title": "Test add writes file + regenerates index; no counter allocation",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -9962,7 +9962,7 @@
         {
           "local_id": "ST2",
           "title": "Test list/search/show and slug addressing",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -9971,7 +9971,7 @@
         {
           "local_id": "ST3",
           "title": "Test forget deletes + regenerates; clean error on missing slug",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -9980,7 +9980,7 @@
         {
           "local_id": "ST4",
           "title": "Test US5 merge: .md merges clean, committed index conflicts, sync/repair resolves",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -9989,7 +9989,7 @@
       ],
       "path": "tasks/TASK-000382-memory-tests-service-cli-merge-and-off-counter-invariants.md",
       "created_at": "2026-07-15T07:47:41Z",
-      "updated_at": "2026-07-15T09:31:11Z",
+      "updated_at": "2026-07-15T10:11:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -15534,7 +15534,7 @@
         {
           "local_id": "F3",
           "title": "US5 merge/branch behavior has no test — only the off-counter/repair-neutral point is asserted",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -15543,7 +15543,7 @@
       ],
       "path": "reviews/REV-000388-feat-315-agent-memory-us5-merge-story-index-generated-file-c.md",
       "created_at": "2026-07-15T08:50:38Z",
-      "updated_at": "2026-07-15T09:45:16Z",
+      "updated_at": "2026-07-15T10:12:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -15602,6 +15602,32 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-389"
+    },
+    "390": {
+      "sequence_id": 390,
+      "type": "bug",
+      "title": "sq sync crashes on a merge-conflicted memory index instead of regenerating it",
+      "slug": "sq-sync-crashes-on-a-merge-conflicted-memory-index-instead-o",
+      "status": "Fixed",
+      "description": "sync() regenerates role pointers (reading the index) before it regenerates content indexes, so a real git-conflicted .index.jsonl crashes sync with an unhandled JSONDecodeError; repair is unaffected",
+      "parent": null,
+      "author": "qa",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-315",
+        "REV-388"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000390-sq-sync-crashes-on-a-merge-conflicted-memory-index-instead-o.md",
+      "created_at": "2026-07-15T10:02:49Z",
+      "updated_at": "2026-07-15T10:18:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-390"
     }
   }
 }

@@ -83,6 +83,34 @@ async def test_search_finds_memories_matching_content_and_json_matches_human_out
     assert "no matches" in empty.output
 
 
+async def test_show_addresses_a_memory_by_slug_independent_of_its_list_position(project, invoke):
+    """Line position in the index carries no meaning and is not relied on: forgetting
+    the alphabetically-first memory shifts every remaining memory's position in `list`; `show`
+    must still resolve the others by their own stable slug, unaffected by that shift."""
+    await invoke(["memory", "manager", "add", "aaa first fact"])
+    await invoke(["memory", "manager", "add", "bbb second fact"])
+    await invoke(["memory", "manager", "add", "ccc third fact"])
+
+    before = await invoke(["memory", "manager", "list", "--json"])
+    assert [r["slug"] for r in json.loads(before.output)] == [
+        "aaa-first-fact",
+        "bbb-second-fact",
+        "ccc-third-fact",
+    ]
+
+    await invoke(["memory", "manager", "forget", "aaa-first-fact"])
+
+    after = await invoke(["memory", "manager", "list", "--json"])
+    assert [r["slug"] for r in json.loads(after.output)] == [
+        "bbb-second-fact",
+        "ccc-third-fact",
+    ]
+
+    shown = await invoke(["memory", "manager", "show", "ccc-third-fact"])
+    assert shown.exit_code == 0
+    assert "ccc third fact" in shown.output
+
+
 async def test_an_unknown_role_raises_a_clean_error_not_a_traceback(project, invoke):
     result = await invoke(["memory", "some-unregistered-role", "list"])
     assert result.exit_code == 1
