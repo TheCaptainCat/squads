@@ -12,11 +12,11 @@ description: 'Feature-level review of memory (TASK-378/379/380): committed .inde
 subentities:
 - local_id: F1
   title: 'US5.2 violated: two distinct memory adds conflict on the committed .index.jsonl'
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: index GENERATED_STAMP promises 'sq sync' regeneration that does not exist
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: US5 merge/branch behavior has no test — only the off-counter/repair-neutral
@@ -24,7 +24,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-15T08:50:38Z'
-updated_at: '2026-07-15T09:23:43Z'
+updated_at: '2026-07-15T09:45:16Z'
 ---
 <!-- sq:body -->
 Feature-level review of agent memory (FEAT-315) across TASK-378 (storage/generator), TASK-379 (CLI), TASK-380 (boot-surfacing) as committed on release/0.9. Code is clean at the seam level — the sq memory CLI, the MemoryMixin service, and the backend-neutral boot-surfacing (invariant #6) are all sound. Two real defects found by ground-truth git/sync verification that the current tests do not exercise; findings below.
@@ -39,8 +39,8 @@ _Add with `sq review 388 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Open |  | US5.2 violated: two distinct memory adds conflict on the committed .index.jsonl |
-| F2 | 🟡 medium | Open |  | index GENERATED_STAMP promises 'sq sync' regeneration that does not exist |
+| F1 | 🟡 medium | Fixed |  | US5.2 violated: two distinct memory adds conflict on the committed .index.jsonl |
+| F2 | 🟡 medium | Fixed |  | index GENERATED_STAMP promises 'sq sync' regeneration that does not exist |
 | F3 | 🟢 low | Open |  | US5 merge/branch behavior has no test — only the off-counter/repair-neutral point is asserted |
 <!-- sq:summary:end -->
 
@@ -50,7 +50,7 @@ _Add with `sq review 388 add-finding "…" --severity medium`; track with `sq re
 ### F1 — US5.2 violated: two distinct memory adds conflict on the committed .index.jsonl
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F1:head:end -->
 
@@ -74,7 +74,7 @@ Options: (a) gitignore .index.jsonl and rebuild it on sync + read fresh from the
 ### F2 — index GENERATED_STAMP promises 'sq sync' regeneration that does not exist
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F2:head:end -->
 
@@ -124,4 +124,6 @@ Rest of the feature is well-covered: US1 (add/slug/frontmatter/no-counter), US3 
   - Routing note: TASK-382 (Memory tests: 'merge and off-counter invariants') is still Draft. F1 means the merge test that task will add is expected to FAIL against the current implementation — so TASK-382 is not just 'write the tests': F1/F2 must be fixed first (or the merge behavior consciously re-specified). US6 (sq-memory skill) = TASK-381, also Draft. This review covers 378/379/380 only.
 - [2026-07-15T09:23:43Z] Pierre Chat:
   - Decision: option B. Keep the .index.jsonl committed (consistent with .squads.json as a rebuildable committed index), but fix the machinery — wire sq sync to regenerate the memory AND board indexes, correct the GENERATED_STAMP to match reality, and document honestly that two branches adding distinct memories conflict on the derived index (the .md files, the source of truth, still merge cleanly) with a mechanical resolution: re-run sq sync/repair to regenerate. @architect amend ADR-314 to record B; @tech-lead will follow with task + test amendments.
+- [2026-07-15T09:45:16Z] Catherine Manager:
+  - F1 + F2 fixed by TASK-389 (committed): sq sync/repair now regenerate the committed .index.jsonl from the .md files — F2's stamp+trigger corrected, F1's merge conflict now has a mechanical resolution. F3 (US5 merge-test coverage) remains open, tracked by TASK-382 (git-backed merge test, re-spec'd to the option-B behavior); will close on that landing.
 <!-- sq:discussion:end -->

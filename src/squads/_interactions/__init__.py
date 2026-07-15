@@ -100,6 +100,8 @@ PLAYBOOK: dict[str, ItemPlaybook] = {
 SQUADS_SKILL = "squads"
 #: Always-loaded skill for the start-of-conversation ritual (detect the human, register, greet).
 GREETING_SKILL = "greeting"
+#: Always-loaded skill for the memory workflow + curation discipline (cross-role, not per-type).
+MEMORY_SKILL = "sq-memory"
 
 # ---------------------------------------------------------------------------
 # Skill description registry — single source of truth
@@ -120,6 +122,11 @@ SKILL_DESCRIPTIONS: dict[str, str] = {
         "Start of a conversation with a human: detect & register the operator, then greet "
         "them — match their tone, say how you help, and give a quick read of the project. "
         "Use when a person opens a session; skip it when spawned as a subagent for a job."
+    ),
+    MEMORY_SKILL: (
+        "Your role's committed memory notebook: check your index at the start of a run, "
+        "jot one fact per memory, prune what's stale or wrong, and the memory-vs-board "
+        "boundary. Use whenever you learn something worth remembering for next time."
     ),
     # sq-<type> descriptions — iterate PLAYBOOK directly (same source as managed_item_types()
     # and bundled_skill_slugs()) so the set stays in sync if a new type is added to the
@@ -283,7 +290,12 @@ def item_types_for_role(slug: str) -> list[str]:
 
 def skills_for_role(slug: str) -> list[str]:
     """Skill names a role's pointer preloads: the always-on skills + the role's item skills."""
-    return [SQUADS_SKILL, GREETING_SKILL, *(item_skill_name(t) for t in item_types_for_role(slug))]
+    return [
+        SQUADS_SKILL,
+        GREETING_SKILL,
+        MEMORY_SKILL,
+        *(item_skill_name(t) for t in item_types_for_role(slug)),
+    ]
 
 
 def bundled_skill_slugs() -> list[str]:
@@ -294,7 +306,12 @@ def bundled_skill_slugs() -> list[str]:
     fresh-init assign the same relative ordinal to each skill (identical absolute numbers are
     impossible because the global counter may differ).
     """
-    all_slugs = [SQUADS_SKILL, GREETING_SKILL, *(item_skill_name(t) for t in managed_item_types())]
+    all_slugs = [
+        SQUADS_SKILL,
+        GREETING_SKILL,
+        MEMORY_SKILL,
+        *(item_skill_name(t) for t in managed_item_types()),
+    ]
     return sorted(set(all_slugs))
 
 

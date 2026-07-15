@@ -6,6 +6,7 @@ color: purple
 skills:
   - squads
   - greeting
+  - sq-memory
   - sq-epic
   - sq-feature
   - sq-task
