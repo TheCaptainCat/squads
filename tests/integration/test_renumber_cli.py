@@ -5,6 +5,7 @@ intent survives the shift, driven through the real CLI end to end.
 
 import pytest
 
+from _helpers import strip_ansi
 from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
@@ -54,12 +55,8 @@ async def test_renumber_refuses_an_unsafe_by_offset_with_zero_mutation(project, 
 
 
 def test_renumber_is_listed_in_root_help_with_the_onto_recipe(runner, tmp_path, monkeypatch):
-    import re
-
     monkeypatch.chdir(tmp_path)
     from squads._cli import app
-
-    _ansi = re.compile(r"\x1b\[[0-9;]*m")
 
     root = runner.invoke(app, ["--help"])
     assert root.exit_code == 0, root.output
@@ -67,6 +64,6 @@ def test_renumber_is_listed_in_root_help_with_the_onto_recipe(runner, tmp_path, 
 
     sub = runner.invoke(app, ["renumber", "--help"])
     assert sub.exit_code == 0, sub.output
-    help_text = _ansi.sub("", sub.output)  # tolerate a color-forcing help console
+    help_text = strip_ansi(sub.output)  # tolerate a color-forcing help console
     assert "--onto" in help_text and "--by" in help_text
     assert "squads.json" in help_text and "jq .counter" in help_text

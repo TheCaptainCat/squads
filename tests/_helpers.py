@@ -4,6 +4,16 @@ Kept separate from `conftest.py` (fixtures/autouse hooks) since these are plain 
 values, not pytest fixtures.
 """
 
+import re
+
+_ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def strip_ansi(text: str) -> str:
+    """Drop ANSI SGR codes so width/flag assertions survive a color-forcing help console."""
+    return _ANSI_SGR.sub("", text)
+
+
 #: The exact badge glyph for each of the 9 built-in sub-entity statuses (subtask/story:
 #: Todo/InProgress/Blocked/Done/Cancelled; review finding: Open/Fixed/Verified/WontFix).
 #:
