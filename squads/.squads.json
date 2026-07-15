@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.8.0",
-  "counter": 398,
+  "counter": 401,
   "padding": 6,
   "items": {
     "12": {
@@ -15954,6 +15954,132 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-398"
+    },
+    "399": {
+      "sequence_id": 399,
+      "type": "task",
+      "title": "Enrich sq search: --status filter, region metadata, richer --json, skill section",
+      "slug": "enrich-sq-search-status-filter-region-metadata-richer-json-s",
+      "status": "Draft",
+      "description": "",
+      "parent": "FEAT-318",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add --status filter, AND-composed with query and --type",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Return region/authority + snippet per hit; item type/status per result; console escaped",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Richer --json superset shape (type/status/region/snippet/location), documented + stable",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "squads skill: finding things across the board section",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000399-enrich-sq-search-status-filter-region-metadata-richer-json-s.md",
+      "created_at": "2026-07-15T14:02:32Z",
+      "updated_at": "2026-07-15T14:04:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-399"
+    },
+    "400": {
+      "sequence_id": 400,
+      "type": "task",
+      "title": "Fenced Mermaid output from sq graph",
+      "slug": "fenced-mermaid-output-from-sq-graph",
+      "status": "Draft",
+      "description": "",
+      "parent": "FEAT-377",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Pre-fenced Mermaid variant of graph_to_mermaid + CLI smoke test",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000400-fenced-mermaid-output-from-sq-graph.md",
+      "created_at": "2026-07-15T14:02:32Z",
+      "updated_at": "2026-07-15T14:04:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-400"
+    },
+    "401": {
+      "sequence_id": 401,
+      "type": "task",
+      "title": "Spec-derived Mermaid diagrams in the workflow cheatsheet template",
+      "slug": "spec-derived-mermaid-diagrams-in-the-workflow-cheatsheet-tem",
+      "status": "Draft",
+      "description": "",
+      "parent": "FEAT-377",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Spec-derived hierarchy flowchart + per-type lifecycle stateDiagram in workflow.md.j2; regen manifest",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000401-spec-derived-mermaid-diagrams-in-the-workflow-cheatsheet-tem.md",
+      "created_at": "2026-07-15T14:02:33Z",
+      "updated_at": "2026-07-15T14:04:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-401"
     }
   }
 }
