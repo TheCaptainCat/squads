@@ -67,3 +67,29 @@ def test_parse_index_round_trips_render_index_output():
 
 def test_parse_index_on_empty_text_returns_an_empty_header_and_no_entries():
     assert parse_index("") == ({}, [])
+
+
+def test_parse_index_on_real_git_conflict_markers_degrades_to_empty_instead_of_raising():
+    """The shape a real `git merge` leaves behind: literal `<<<<<<<`/`=======`/`>>>>>>>` marker
+    lines interleaved with otherwise-valid JSON lines. A generated, never-hand-edited file
+    (see GENERATED_STAMP) that fails to parse legitimately means 'stale, needs regeneration' —
+    never an unhandled JSONDecodeError."""
+    conflicted = (
+        '{"schema": "squads.index/1", "generated": "x"}\n'
+        "<<<<<<< HEAD\n"
+        '{"slug": "a", "filename": "a.md", "description": "a"}\n'
+        "=======\n"
+        '{"slug": "b", "filename": "b.md", "description": "b"}\n'
+        ">>>>>>> other-branch\n"
+    )
+    assert parse_index(conflicted) == ({}, [])
+
+
+def test_parse_index_on_a_single_corrupted_line_degrades_to_empty_instead_of_raising():
+    assert parse_index("not json at all\n") == ({}, [])
+
+
+def test_parse_index_on_a_valid_json_line_missing_required_fields_degrades_to_empty():
+    """Well-formed JSON that doesn't match IndexEntry's shape (TypeError from **kwargs) is the
+    same 'corrupt, regenerate me' case as a JSONDecodeError — degrade, don't raise."""
+    assert parse_index('{"schema": "squads.index/1"}\n{"unexpected": "shape"}\n') == ({}, [])

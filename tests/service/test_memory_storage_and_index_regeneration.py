@@ -7,6 +7,7 @@ import json
 import pytest
 
 from squads._content_index import INDEX_FILENAME, header_record
+from squads._memory import _store as memory_store
 from squads._memory._store import MemoryNotFoundError
 
 pytestmark = pytest.mark.anyio
@@ -165,6 +166,66 @@ async def test_repair_regenerates_a_roles_index_from_the_md_files_when_it_goes_m
     header, entries = _parse(index_path)
     assert header == header_record()
     assert {e["slug"] for e in entries} == {a.slug, b.slug}
+
+
+_REAL_GIT_CONFLICT_TEMPLATE = (
+    '{{"schema": "squads.index/1", "generated": "x"}}\n'
+    "<<<<<<< HEAD\n"
+    '{{"slug": "{a}", "filename": "{a}.md", "description": "a"}}\n'
+    "=======\n"
+    '{{"slug": "{b}", "filename": "{b}.md", "description": "b"}}\n'
+    ">>>>>>> other-branch\n"
+)
+
+
+async def test_repair_regenerates_a_roles_index_left_with_real_git_conflict_markers(svc):
+    """The shape a real `git merge` actually leaves behind — multiple lines, some of them
+    literal `<<<<<<<`/`=======`/`>>>>>>>` markers rather than parseable JSON — not just an
+    arbitrary single corrupted line. Repair discards it and rebuilds whole from the .md files,
+    same as the simpler corruption case above."""
+    a = await svc.memory_add("python-dev", "fact one")
+    b = await svc.memory_add("python-dev", "fact two")
+    index_path = _role_folder(svc, "python-dev") / INDEX_FILENAME
+    index_path.write_text(_REAL_GIT_CONFLICT_TEMPLATE.format(a=a.slug, b=b.slug), encoding="utf-8")
+
+    await svc.repair()
+
+    header, entries = _parse(index_path)
+    assert header == header_record()
+    assert {e["slug"] for e in entries} == {a.slug, b.slug}
+
+
+async def test_sync_resolves_a_roles_index_left_with_real_git_conflict_markers(svc):
+    """The acceptance criterion is 'sq sync/repair mechanically regenerates the index' — both
+    commands, not just repair. Currently only repair honours it for a genuinely
+    conflict-marked index; sync should too."""
+    a = await svc.memory_add("manager", "fact one")
+    b = await svc.memory_add("manager", "fact two")
+    index_path = _role_folder(svc, "manager") / INDEX_FILENAME
+    index_path.write_text(_REAL_GIT_CONFLICT_TEMPLATE.format(a=a.slug, b=b.slug), encoding="utf-8")
+
+    await svc.sync()
+
+    header, entries = _parse(index_path)
+    assert header == header_record()
+    assert {e["slug"] for e in entries} == {a.slug, b.slug}
+
+
+async def test_read_index_and_memory_list_survive_a_conflict_marked_index_untouched(svc):
+    """Defensive-read guard: a genuinely git-conflict-marked ``.index.jsonl`` — no ``sync``/
+    ``repair`` run yet — must never crash a reader. ``read_index`` degrades to an empty list
+    (the same as an absent index) instead of propagating ``JSONDecodeError``, and ``sq memory
+    list`` (which reads the ``.md`` files directly, not the index) is completely unaffected."""
+    a = await svc.memory_add("manager", "fact one")
+    b = await svc.memory_add("manager", "fact two")
+    index_path = _role_folder(svc, "manager") / INDEX_FILENAME
+    index_path.write_text(_REAL_GIT_CONFLICT_TEMPLATE.format(a=a.slug, b=b.slug), encoding="utf-8")
+
+    entries = await memory_store.read_index(svc.paths, "manager")
+    assert entries == []
+
+    listed = await svc.memory_list("manager")
+    assert {e.slug for e in listed} == {a.slug, b.slug}
 
 
 async def test_repair_regenerates_a_roles_index_deleted_out_from_under_it(svc):

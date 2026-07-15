@@ -69,12 +69,26 @@ def render_index(entries: Iterable[IndexEntry]) -> str:
 
 
 def parse_index(text: str) -> tuple[dict[str, str], list[IndexEntry]]:
-    """Parse `.index.jsonl` text back into ``(header, entries)``. Empty text -> ``({}, [])``."""
+    """Parse `.index.jsonl` text back into ``(header, entries)``. Empty text -> ``({}, [])``.
+
+    A file that fails to parse — most notably one left with literal, unresolved git
+    conflict-markers (``<<<<<<<``/``=======``/``>>>>>>>``) after a merge, or any other
+    hand/tool corruption — degrades to ``({}, [])`` exactly like an empty/missing file,
+    rather than propagating the underlying ``JSONDecodeError``/``TypeError``. This is a
+    generated, never-hand-edited roll-up (see :data:`GENERATED_STAMP`): a file that no
+    longer parses as its own format legitimately means "stale, needs regeneration," which
+    every caller already treats an empty index as meaning — it is never a case worth
+    silently hiding data loss for, since the ``.md`` content files (the real source of
+    truth) are untouched and a regeneration pass rebuilds this file whole from them.
+    """
     lines = [ln for ln in text.splitlines() if ln.strip()]
     if not lines:
         return {}, []
-    header: dict[str, str] = json.loads(lines[0])
-    entries = [IndexEntry(**json.loads(ln)) for ln in lines[1:]]
+    try:
+        header: dict[str, str] = json.loads(lines[0])
+        entries = [IndexEntry(**json.loads(ln)) for ln in lines[1:]]
+    except (json.JSONDecodeError, TypeError):  # fmt: skip
+        return {}, []
     return header, entries
 
 
