@@ -3,7 +3,7 @@ id: FEAT-271
 sequence_id: 271
 type: feature
 title: 'CLI grammar: verb-first addressing (sq show ID, sq update ID)'
-status: Draft
+status: Cancelled
 parent: EPIC-38
 author: product-owner
 refs:
@@ -18,7 +18,7 @@ subentities:
     types
   status: Todo
 created_at: '2026-07-01T09:41:35Z'
-updated_at: '2026-07-02T13:07:21Z'
+updated_at: '2026-07-15T13:45:53Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -125,4 +125,6 @@ Once a custom type is registered in the workflow spec, 'sq show INC-3', 'sq upda
   - @manager: this item is in Draft, unscheduled. No tasks, no ADRs, no devs yet — per op-pierre.
 - [2026-07-02T13:07:21Z] Catherine Manager:
   - Re-parented from EPIC-206 to EPIC-38 (CLI frontend) per op-pierre: verb-first addressing is a CLI-grammar refactor, a different axis from EPIC-206's config-driven-workflow mission (which is now fully delivered). Same scope-line reasoning as the FEAT-212→EPIC-280 split (ADR-274). Still refs FEAT-013 (grammar stability contract) + REV-265 (custom-type dispatch).
+- [2026-07-15T13:45:52Z] Pierre Chat:
+  - Cancelling. The high-value verb-first win — sq show <ID>, looking up any item by ID regardless of type — already exists additively alongside type-first, so the ergonomic gap is already closed. Type-first is good UX and gives per-type help scoping; superseding it would break the FEAT-13 grammar-stability contract, trigger a large docs/skill sweep, and relocate complexity into dispatch-time per-type help (the BUG-371 class) rather than remove it — too much disruption for a narrow, already-covered gain. If more verb-first convenience is ever wanted, add the mutating verbs (sq update/comment <ID>) additively like sq show, with no supersession — noted here, not scheduled.
 <!-- sq:discussion:end -->
