@@ -3,25 +3,25 @@ id: TASK-384
 sequence_id: 384
 type: task
 title: 'Board CLI: sq board post/list/clear'
-status: Draft
+status: InReview
 parent: FEAT-317
 author: tech-lead
 description: The sq board command group over the board storage layer
 subentities:
 - local_id: ST1
   title: sq board post -m [--until]; attributable author
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: 'sq board list: ordinal, author, posted-at, expiry'
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST3
   title: 'sq board clear <n>: resolve ordinal to hash id; clean out-of-range'
-  status: Todo
+  status: Done
   story: US4
 created_at: '2026-07-15T07:48:19Z'
-updated_at: '2026-07-15T07:48:21Z'
+updated_at: '2026-07-15T10:35:15Z'
 ---
 <!-- sq:body -->
 Build the `sq board ...` command group over the board storage layer.
@@ -48,9 +48,9 @@ _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | sq board post -m [--until]; attributable author | US1 |
-| ST2 | Todo |  | sq board list: ordinal, author, posted-at, expiry | US3 |
-| ST3 | Todo |  | sq board clear <n>: resolve ordinal to hash id; clean out-of-range | US4 |
+| ST1 | Done |  | sq board post -m [--until]; attributable author | US1 |
+| ST2 | Done |  | sq board list: ordinal, author, posted-at, expiry | US3 |
+| ST3 | Done |  | sq board clear <n>: resolve ordinal to hash id; clean out-of-range | US4 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -59,7 +59,7 @@ _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <
 ### ST1 — sq board post -m [--until]; attributable author
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it
 <!-- sq:subtask:ST1:head:end -->
 
@@ -77,7 +77,7 @@ _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <
 ### ST2 — sq board list: ordinal, author, posted-at, expiry
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — As anyone, I can list current notices to see what's active
 <!-- sq:subtask:ST2:head:end -->
 
@@ -95,7 +95,7 @@ _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <
 ### ST3 — sq board clear <n>: resolve ordinal to hash id; clean out-of-range
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US4 — As a lead or operator, I can clear a notice that no longer applies
 <!-- sq:subtask:ST3:head:end -->
 
@@ -113,4 +113,10 @@ _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-15T10:31:21Z] Catherine Manager:
+  - Dispatching @python-dev on the board CLI. sq board post/list/clear on the BoardMixin (board is team-scoped — NO positional role, unlike sq memory <role>). post -m + --until + --as author; list shows ordinal/author/posted-at/expiry; clear <n>. Take Ready→InProgress; hand to InReview.
+- [2026-07-15T10:35:07Z] Elias Python:
+  - Implemented sq board post/list/clear (src/squads/_cli/_board.py), registered in _cli/__init__.py. Team-scoped, no positional role.
+  - Gates clean: pyright, ruff check/format, tests/meta (23), targeted CLI tests (7). sq check clean.
+  - Moving to InReview.
 <!-- sq:discussion:end -->
