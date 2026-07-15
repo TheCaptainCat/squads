@@ -55,15 +55,16 @@ async def test_product_owner_body_cites_the_real_add_story_command(svc):
     assert "sq feature <n> add-story" in body
 
 
-async def test_role_body_directs_reviewing_memory_and_board_before_starting(svc):
-    """Every role's boot definition carries an always-seen directive to review its memory
-    index and the team board and apply anything relevant, not only the on-demand
-    sq-memory skill. Exercised against a fresh squad (no memories, no board notices yet)
-    to prove the directive stands regardless of whether either surface has content."""
+async def test_role_body_directs_pulling_memory_and_board_before_starting(svc):
+    """Every role's boot definition carries an always-seen directive to run `sq memory
+    <slug> list` and `sq board list` at the start of a run and apply anything relevant —
+    a live pull, not a rendered section. Exercised against a fresh squad (no memories, no
+    board notices yet) to prove the directive stands regardless of whether either pool
+    has content, since the command is always valid on an empty pool/board."""
     item = await svc.activate_role("qa")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
-    assert "## Your memory" in body
-    assert "## Board" in body
+    assert "sq memory qa list" in body
+    assert "sq board list" in body
     assert "apply anything relevant" in body
 
 

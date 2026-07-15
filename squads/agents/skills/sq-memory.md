@@ -9,11 +9,11 @@ checkouts, and machines.
 
 ## Check it at the start of a run
 
-Your role's memory index — one line per memory, slug plus a short description — is surfaced into
-your context automatically at boot. You don't have to go looking for it: skim those lines before
-you start work, the same way you'd skim a note left for yourself. Index in, content on recall — if
-a line looks relevant, pull the full entry with `sq memory <role> show <slug>` before you act on it.
-An empty pool surfaces nothing, which is fine — it just means you haven't written anything down yet.
+Before you start, run `sq memory <role> list` to see your role's memory index — one line per
+memory, slug plus a short description — the same way you'd skim a note left for yourself. Index in,
+content on recall — if a line looks relevant, pull the full entry with `sq memory <role> show
+<slug>` before you act on it. An empty pool lists nothing, which is fine — it just means you
+haven't written anything down yet.
 
 ## One fact per memory
 
@@ -57,8 +57,8 @@ sq memory <role> forget <slug>            # prune a stale or wrong one
 
 When something belongs on the shared side of the boundary above, it goes on the **team bulletin
 board**, not into anyone's memory — a single announcement everyone sees, not one entry copy-pasted
-into every role's pool. Current notices are surfaced to you automatically at the start of a run,
-content and all, so you don't have to go looking for them either.
+into every role's pool. Run `sq board list` at the start of a run to see current notices, content
+and all.
 
 A good notice is **short and prescriptive** — a sentence or two saying what to do or watch out for,
 not a narrative. Set `--until` whenever the notice has a natural expiry (a freeze, a temporary

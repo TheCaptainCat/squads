@@ -83,7 +83,6 @@ def test_the_claude_md_section_also_tracks_the_same_parent_rename() -> None:
         default_role_full_name="Catherine Manager",
         default_role_slug="manager",
         spec=spec,
-        board_lines=[],
     )
     assert "parent is the initiative" in rendered
     assert "--parent INIT-…" in rendered

@@ -22,17 +22,6 @@ leave comments. Address them by their `op-` slug.
 {% else %}
 _None registered yet._
 {% endif %}
-{% if board_lines %}
-
-## Board
-
-Current team notices (`sq board list` for the live listing; `sq board clear <n>` to take one
-down once it no longer applies):
-
-{% for line in board_lines %}
-{{ line }}
-{% endfor %}
-{% endif %}
 
 {% include "workflow.md.j2" %}
 
@@ -67,14 +56,6 @@ sq blocked                           # open items waiting on an open blocker
 **Responsibilities:**
 {% for resp in r.responsibilities %}
 - {{ resp }}
-{% endfor %}
-{% endif %}
-{% if r.memory_lines %}
-
-**Memory** (`sq memory {{ r.slug }} show <slug>` for the full entry):
-
-{% for line in r.memory_lines %}
-{{ line }}
 {% endfor %}
 {% endif %}
 

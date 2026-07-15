@@ -1,23 +1,18 @@
 """File I/O for agent memory: one slug-named ``.md`` per memory under
-``squads/agents/memory/<role-slug>/``, plus the shared ``.index.jsonl`` roll-up
-(:mod:`squads._content_index`).
+``squads/agents/memory/<role-slug>/``.
 
 Memory is **off the global counter and outside ``.squads.json``**: nothing here allocates a
-counter id, opens ``IndexStore``, or touches the index — ``sq repair`` has nothing to rebuild
+counter id, opens ``IndexStore``, or touches an index — ``sq repair`` has nothing to rebuild
 because there is nothing here for it to know about. Content files are marker-free (freeform,
-agent-owned body — see :mod:`squads._memory._model`).
+agent-owned body — see :mod:`squads._memory._model`). Storage is plain slug-named ``.md``
+files only, no roll-up; every read (`list_entries`/`search`/`read`) computes what it needs
+live by globbing and reading those files directly.
 """
 
 from pathlib import Path
 
 from squads import _aio
 from squads import _clock as clock
-from squads._content_index import (
-    INDEX_FILENAME,
-    IndexEntry,
-    parse_index,
-    regenerate_from_content_files,
-)
 from squads._errors import SquadsError
 from squads._memory._model import MemoryEntry
 from squads._paths import SquadPaths
@@ -37,7 +32,7 @@ class MemoryNotFoundError(SquadsError):
 
 
 def role_folder(paths: SquadPaths, role_slug: str) -> Path:
-    """The folder holding one role's memory pool + its ``.index.jsonl``."""
+    """The folder holding one role's memory pool."""
     return paths.abspath(f"{MEMORY_ROOT}/{role_slug}")
 
 
@@ -97,7 +92,7 @@ async def add(
     tags: list[str] | None = None,
     slug: str | None = None,
 ) -> MemoryEntry:
-    """Write a new memory: ``<slug>.md`` + regenerate the index.
+    """Write a new memory: ``<slug>.md``.
 
     *fact* is the frontmatter one-line ``summary`` (and the default slug source). *body*
     supplies the freeform markdown body (``--file`` content at the CLI edge); it defaults to
@@ -125,7 +120,6 @@ async def add(
     text = join_frontmatter(entry.to_frontmatter_dict(), entry.body)
     await _aio.mkdir(folder, parents=True, exist_ok=True)
     await _aio.write_text(folder / f"{slug}.md", text)
-    await regenerate_from_content_files(folder)
     return entry
 
 
@@ -171,23 +165,8 @@ async def search(
     return out
 
 
-async def read_index(paths: SquadPaths, role_slug: str) -> list[IndexEntry]:
-    """Read back *role_slug*'s generated ``.index.jsonl`` (entry lines only, header dropped).
-
-    Boot surfacing reads this directly rather than :func:`list_entries` — the index already
-    holds exactly what gets surfaced (slug + one-line description), so there's no need to
-    reopen every memory's ``.md`` file just to re-read a summary already rolled up. Missing
-    folder/index -> ``[]`` (an empty pool surfaces nothing), never an error.
-    """
-    index_path = role_folder(paths, role_slug) / INDEX_FILENAME
-    if not await _aio.path_exists(index_path):
-        return []
-    _, entries = parse_index(await _aio.read_text(index_path))
-    return entries
-
-
 async def forget(paths: SquadPaths, role_slug: str, slug: str) -> None:
-    """Delete a memory's file for real (history retained in git) + regenerate the index.
+    """Delete a memory's file for real (history retained in git).
 
     Raises :class:`MemoryNotFoundError` if *slug* doesn't exist — forgetting is not a silent
     no-op on an already-gone memory.
@@ -196,4 +175,3 @@ async def forget(paths: SquadPaths, role_slug: str, slug: str) -> None:
     if not await _aio.path_exists(path):
         raise MemoryNotFoundError(f"no memory {slug!r} for role {role_slug!r}")
     await _aio.path_unlink(path)
-    await regenerate_from_content_files(role_folder(paths, role_slug))

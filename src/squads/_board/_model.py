@@ -6,9 +6,8 @@ is no schema-version, status/workflow machinery, sub-entities, or refs, and no g
 id is ever allocated for one; it is identified by a stable short-hash id derived from its
 content (see :mod:`squads._board._store`).
 
-Content files are marker-free: nothing inside a notice body is regenerated (only the
-frontmatter feeds the generated ``.index.jsonl`` roll-up), so it carries no ``<!-- sq:... -->``
-markers.
+Content files are marker-free: nothing inside a notice body is regenerated, so it carries no
+``<!-- sq:... -->`` markers.
 """
 
 from dataclasses import dataclass
