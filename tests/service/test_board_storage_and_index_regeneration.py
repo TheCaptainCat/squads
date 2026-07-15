@@ -33,7 +33,7 @@ async def test_post_writes_a_hash_named_markdown_file_with_light_frontmatter_ove
     assert path.is_file()
     text = path.read_text(encoding="utf-8")
     assert text.startswith("---\n")
-    assert f"id: {notice.id}" in text
+    assert "id:" not in text  # derivable from the filename stem, never stored
     assert "author: op-pierre" in text
     assert "the CI runners are down for maintenance" in text
     assert notice.posted_at == frozen_time.isoformat().replace("+00:00", "Z")
@@ -74,6 +74,23 @@ async def test_two_distinct_posts_get_distinct_hash_ids_and_independent_files(sv
     assert b_path.is_file()
     assert "distinct notice alpha" in a_path.read_text(encoding="utf-8")
     assert "distinct notice beta" in b_path.read_text(encoding="utf-8")
+
+
+async def test_a_repeated_post_that_hashes_the_same_gets_a_disambiguating_suffix(svc, monkeypatch):
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 6, 7, 10, 0, 0, tzinfo=UTC))
+    first = await svc.board_post("op-pierre", "double-posted notice")
+    second = await svc.board_post("op-pierre", "double-posted notice")
+
+    assert second.id == f"{first.id}-2"
+    first_path = _board_folder(svc) / f"{first.id}.md"
+    second_path = _board_folder(svc) / f"{second.id}.md"
+    assert first_path.is_file()
+    assert second_path.is_file()
+    assert "double-posted notice" in first_path.read_text(encoding="utf-8")
+    assert "double-posted notice" in second_path.read_text(encoding="utf-8")
+
+    listed = await svc.board_list()
+    assert {n.id for n in listed} == {first.id, second.id}
 
 
 async def test_index_is_regenerated_whole_with_a_header_and_one_entry_per_notice(svc):
