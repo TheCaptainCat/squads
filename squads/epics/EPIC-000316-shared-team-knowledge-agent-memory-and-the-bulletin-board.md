@@ -3,10 +3,10 @@ id: EPIC-316
 sequence_id: 316
 type: epic
 title: Shared team knowledge — agent memory and the bulletin board
-status: Draft
+status: Ready
 author: product-owner
 created_at: '2026-07-06T16:08:36Z'
-updated_at: '2026-07-06T16:08:52Z'
+updated_at: '2026-07-13T09:11:34Z'
 ---
 <!-- sq:body -->
 # Shared team knowledge
