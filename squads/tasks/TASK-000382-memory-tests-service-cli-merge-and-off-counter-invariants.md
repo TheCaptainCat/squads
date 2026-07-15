@@ -3,7 +3,7 @@ id: TASK-382
 sequence_id: 382
 type: task
 title: 'Memory tests: service + CLI, merge and off-counter invariants'
-status: InReview
+status: Done
 parent: FEAT-315
 author: tech-lead
 description: Service + CLI coverage for memory incl. merge behaviour and off-counter/outside-.squads.json
@@ -27,7 +27,7 @@ subentities:
   status: Done
   story: US5
 created_at: '2026-07-15T07:47:41Z'
-updated_at: '2026-07-15T10:11:53Z'
+updated_at: '2026-07-15T10:20:51Z'
 ---
 <!-- sq:body -->
 Cover the memory behaviour through the service and CLI, per the repo testing conventions (all file generation in tmp dirs; assert generated files — valid frontmatter, JSONL header + entry lines, preserved bodies).

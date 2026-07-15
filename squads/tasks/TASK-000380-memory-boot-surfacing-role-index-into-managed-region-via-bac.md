@@ -3,7 +3,7 @@ id: TASK-380
 sequence_id: 380
 type: task
 title: 'Memory boot-surfacing: role index into managed region via backend'
-status: InReview
+status: Done
 parent: FEAT-315
 author: tech-lead
 description: Surface the agent's own role memory index at boot through the backend
@@ -14,7 +14,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-07-15T07:47:18Z'
-updated_at: '2026-07-15T08:42:04Z'
+updated_at: '2026-07-15T10:20:50Z'
 ---
 <!-- sq:body -->
 Surface the agent's own role memory `.index.jsonl` at role-boot through the active backend into the managed `CLAUDE.md`/`AGENTS.md` region — not hard-coded. Consistent with pull-with-a-nudge: index in, content on recall.

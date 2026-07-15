@@ -3,7 +3,7 @@ id: TASK-381
 sequence_id: 381
 type: task
 title: 'sq-memory skill: memory workflow and curation discipline'
-status: InReview
+status: Done
 parent: FEAT-315
 author: tech-lead
 assignee: python-dev
@@ -14,7 +14,7 @@ subentities:
   status: Done
   story: US6
 created_at: '2026-07-15T07:47:29Z'
-updated_at: '2026-07-15T09:53:12Z'
+updated_at: '2026-07-15T10:20:51Z'
 ---
 <!-- sq:body -->
 Add a managed `sq-memory` skill, generated like the other skills, teaching the memory workflow and curation discipline.

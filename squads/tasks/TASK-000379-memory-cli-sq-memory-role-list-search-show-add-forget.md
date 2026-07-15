@@ -3,7 +3,7 @@ id: TASK-379
 sequence_id: 379
 type: task
 title: 'Memory CLI: sq memory <role> list/search/show/add/forget'
-status: InReview
+status: Done
 parent: FEAT-315
 author: tech-lead
 description: The sq memory command group, role as a positional subject over the storage
@@ -22,7 +22,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-07-15T07:47:00Z'
-updated_at: '2026-07-15T08:27:56Z'
+updated_at: '2026-07-15T10:20:49Z'
 ---
 <!-- sq:body -->
 Build the `sq memory <role> ...` command group over the memory storage layer. Role is a positional subject, consistent with `sq inbox <role>` / `sq mine <role>`.
