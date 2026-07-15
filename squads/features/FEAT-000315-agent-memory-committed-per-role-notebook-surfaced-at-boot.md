@@ -3,7 +3,7 @@ id: FEAT-315
 sequence_id: 315
 type: feature
 title: Agent memory — committed per-role notebook surfaced at boot
-status: Draft
+status: Ready
 parent: EPIC-316
 author: product-owner
 refs:
@@ -34,7 +34,7 @@ subentities:
     discipline
   status: Todo
 created_at: '2026-07-06T16:05:08Z'
-updated_at: '2026-07-06T16:08:52Z'
+updated_at: '2026-07-13T09:13:46Z'
 ---
 <!-- sq:body -->
 # Agent memory
@@ -56,11 +56,13 @@ inherits the accumulated per-role memory, and it travels with the project across
 ## Shape
 
 - **Storage & id model** are fixed by the accompanying decision (file-per-memory, slug-named, under
-  `squads/agents/memory/<role>/`, a generated per-role `INDEX.md`, entirely off the global counter and
-  outside `.squads.json`). This feature builds the behaviour on top of that.
-- **Retrieval is pull-with-a-nudge.** The per-role index is surfaced at role-boot (one line per
-  memory) so the agent always knows the pool exists and roughly what's in it; full content is fetched
-  on demand. Index in, content on recall.
+  `squads/agents/memory/<role>/`, a generated per-role `.index.jsonl` roll-up — one line per memory,
+  entry schema `{slug, filename, description}` — entirely off the global counter and outside
+  `.squads.json`). This feature builds the behaviour on top of that.
+- **Retrieval is pull-with-a-nudge.** The per-role `.index.jsonl` is surfaced at role-boot (one line
+  per memory) so the agent always knows the pool exists and roughly what's in it; full content is
+  fetched on demand. Index in, content on recall. Memory is **slug-addressed** (`show <slug>`) — line
+  position in the index is not load-bearing for recall.
 - **Command surface** (role is a positional subject, consistent with `sq inbox <role>` / `sq mine
   <role>`):
 
@@ -115,7 +117,7 @@ As an agent, I want to jot a small learned fact to my role's memory so it persis
 - `sq memory <role> add "<fact>"` creates a slug-named markdown file under `squads/agents/memory/<role>/`, slug derived from the fact.
 - `--file <path>` supplies a longer body instead of inline text.
 - The entry carries light frontmatter (summary, created_at) over a freeform body; NO global-counter id is allocated.
-- The role's `INDEX.md` is regenerated to include the new entry.
+- The role's `.index.jsonl` is regenerated to include the new entry (one `{slug, filename, description}` line).
 - Two memories added on separate branches produce independent files with no merge conflict.
 <!-- sq:story:US1:body:end -->
 
@@ -136,8 +138,9 @@ As an agent, I want to jot a small learned fact to my role's memory so it persis
 As an agent, I want my role's memory index surfaced at the start of a run so relevant facts don't slip past me.
 
 **Acceptance**
-- At role-boot the agent's own role memory index (one line per memory) is surfaced into its context through the active backend, not hard-coded.
+- At role-boot the agent's own role `.index.jsonl` (one line per memory) is surfaced into its context through the active backend, not hard-coded.
 - Only the index is surfaced, not full bodies (index in, content on recall).
+- Memory is slug-addressed (`show <slug>`); line position in the index carries no meaning and is not relied on.
 - An empty pool surfaces nothing — no noise.
 - Surfacing goes through the backend abstraction so a non-Claude backend does the equivalent.
 <!-- sq:story:US2:body:end -->
@@ -159,9 +162,9 @@ As an agent, I want my role's memory index surfaced at the start of a run so rel
 As an agent, I want to list, search, and show my role's memories so I can pull full content when relevant.
 
 **Acceptance**
-- `sq memory <role> list` prints the index (one line per memory: slug + summary).
+- `sq memory <role> list` prints the role's `.index.jsonl` entries (one line per memory: slug, filename, description).
 - `sq memory <role> search <query>` returns memories whose content matches.
-- `sq memory <role> show <slug>` prints one memory's full body.
+- `sq memory <role> show <slug>` prints one memory's full body, addressed by slug — not by index position.
 - Role is a positional subject; an unknown role or slug raises a clean SquadsError, not a stack trace.
 <!-- sq:story:US3:body:end -->
 
@@ -182,7 +185,7 @@ As an agent, I want to list, search, and show my role's memories so I can pull f
 As an agent or operator, I want to prune a stale or wrong memory so the pool stays trustworthy.
 
 **Acceptance**
-- `sq memory <role> forget <slug>` removes the file and regenerates the index.
+- `sq memory <role> forget <slug>` removes the file and regenerates the role's `.index.jsonl`.
 - Forgetting a non-existent slug raises a clean error.
 - The removal is a real git file deletion (history retained in git log), never a side effect of a read.
 <!-- sq:story:US4:body:end -->
@@ -242,4 +245,6 @@ As an agent, I want the sq-memory skill to teach the memory workflow and curatio
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-13T09:10:33Z] Nina Product:
+  - Aligned to ADR-314's accepted design: INDEX.md -> generated .index.jsonl ({slug, filename, description} per line); memory stays slug-addressed, not positional. Shape + US1-US4 updated.
 <!-- sq:discussion:end -->

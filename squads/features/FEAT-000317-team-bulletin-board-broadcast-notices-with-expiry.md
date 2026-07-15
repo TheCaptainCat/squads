@@ -3,7 +3,7 @@ id: FEAT-317
 sequence_id: 317
 type: feature
 title: Team bulletin board — broadcast notices with expiry
-status: Draft
+status: Ready
 parent: EPIC-316
 author: product-owner
 refs:
@@ -28,7 +28,7 @@ subentities:
     boundary
   status: Todo
 created_at: '2026-07-06T16:08:53Z'
-updated_at: '2026-07-06T16:09:55Z'
+updated_at: '2026-07-13T09:13:47Z'
 ---
 <!-- sq:body -->
 # Team bulletin board
@@ -49,7 +49,9 @@ board.**
 
 - **Storage** is fixed by the accompanying decision: its own lighter store under `squads/board/`, one
   file per notice with a short-hash id plus author / posted-at / optional `until` / body — off the
-  global counter and outside `.squads.json`.
+  global counter and outside `.squads.json`. `squads/board/` also carries a generated `.index.jsonl`
+  roll-up (same format as memory: one line per notice, entry schema `{slug, filename, description}`,
+  `slug` here being the notice's stable hash id).
 - **Expiry does real work.** Expired notices are filtered out at read time (listing and boot
   surfacing); physical removal only happens on an explicit `clear`, never as a side effect of a read.
 - **Boot surfacing.** Unlike memory (index-only, content-on-recall), the board's notices are short
@@ -63,8 +65,10 @@ board.**
   sq board clear <n>                                  # take one down
   ```
 
-  `clear <n>` is an ephemeral positional ordinal resolved against the current sorted, unexpired
-  listing to the notice's stable hash id — the ordinal is a display affordance, not persisted meaning.
+  `clear <n>` is an ephemeral positional ordinal that is the n-th **entry line** of the generated
+  `squads/board/.index.jsonl` (header line excluded), resolved against the current sorted, unexpired
+  listing to the notice's stable hash id — the ordinal is a display affordance derived from the
+  generated index, not persisted meaning.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -140,7 +144,8 @@ As anyone on the team, I want to list current notices so I can see what is activ
 
 **Acceptance**
 - `sq board list` shows unexpired notices with an ephemeral positional ordinal, author, posted-at, and expiry (if set).
-- Expired notices are filtered out at read time.
+- The ordinal is the notice's entry-line position in the generated `squads/board/.index.jsonl` (header line excluded; entry line n = ordinal n).
+- Expired notices are filtered out at read time (excluded from the index and the listing).
 - Listing never mutates git-tracked files (no spurious diffs).
 <!-- sq:story:US3:body:end -->
 
@@ -161,8 +166,8 @@ As anyone on the team, I want to list current notices so I can see what is activ
 As a lead or operator, I want to clear a notice that no longer applies so the board stays current.
 
 **Acceptance**
-- `sq board clear <n>` resolves the n-th currently-listed unexpired notice to its stable hash id and removes its file.
-- Resolution is against the live listing (documented behaviour); an out-of-range ordinal errors cleanly.
+- `sq board clear <n>` resolves `<n>` as the n-th entry line of the generated `squads/board/.index.jsonl` (header line excluded) to that notice's stable hash id, and removes its file.
+- Resolution is against the live index at the moment `clear` runs (documented behaviour); an out-of-range ordinal errors cleanly.
 - Removal is a real git file deletion, never a side effect of a read.
 <!-- sq:story:US4:body:end -->
 
@@ -198,4 +203,6 @@ As an agent, I want a guiding skill to teach board posting discipline and the me
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-13T09:10:34Z] Nina Product:
+  - Aligned to ADR-314's accepted design: board also has a generated .index.jsonl roll-up under squads/board/; clear <n> ordinal is now concrete = n-th entry line (header excluded). Shape + US3/US4 updated.
 <!-- sq:discussion:end -->
