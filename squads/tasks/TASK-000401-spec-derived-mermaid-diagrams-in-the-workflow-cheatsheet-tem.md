@@ -3,17 +3,18 @@ id: TASK-401
 sequence_id: 401
 type: task
 title: Spec-derived Mermaid diagrams in the workflow cheatsheet template
-status: Draft
+status: InReview
 parent: FEAT-377
 author: tech-lead
+assignee: python-dev
 subentities:
 - local_id: ST1
   title: Spec-derived hierarchy flowchart + per-type lifecycle stateDiagram in workflow.md.j2;
     regen manifest
-  status: Todo
+  status: Done
   story: US3
 created_at: '2026-07-15T14:02:33Z'
-updated_at: '2026-07-15T14:04:08Z'
+updated_at: '2026-07-15T14:30:35Z'
 ---
 <!-- sq:body -->
 # Spec-derived Mermaid diagrams in the workflow cheatsheet
@@ -46,7 +47,7 @@ _Add with `sq task 401 add-subtask "<title>"`; track with `sq task 401 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Spec-derived hierarchy flowchart + per-type lifecycle stateDiagram in workflow.md.j2; regen manifest | US3 |
+| ST1 | Done |  | Spec-derived hierarchy flowchart + per-type lifecycle stateDiagram in workflow.md.j2; regen manifest | US3 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -55,7 +56,7 @@ _Add with `sq task 401 add-subtask "<title>"`; track with `sq task 401 subtask <
 ### ST1 — Spec-derived hierarchy flowchart + per-type lifecycle stateDiagram in workflow.md.j2; regen manifest
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — Spec-derived Mermaid diagrams in docs and the workflow cheatsheet
 <!-- sq:subtask:ST1:head:end -->
 
@@ -73,4 +74,9 @@ Emit two spec-derived fenced Mermaid diagrams in `workflow.md.j2`: a hierarchy f
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-15T14:30:35Z] Elias Python:
+  - workflow.md.j2 gains two fenced Mermaid diagrams: an item-type hierarchy flowchart (parent_chain/spec.items) and a per-type lifecycle stateDiagram-v2 (spec.machine_for + new lifecycle_states_in_order/lifecycle_edges helpers in _workflow/_models.py, registered as Jinja globals in _engine.py alongside a mermaid_id filter for safe node ids on a customized vocab).
+  - Both diagrams are deterministic (Lifecycle.states is a frozenset — hash-seed ordered — so diagrams use BFS-from-initial ordering, not direct set iteration). sq workflow renders the fences as a plain code block in Rich, no crash.
+  - Tests: tests/unit/test_workflow_cheatsheet_mermaid_diagrams.py (fencing, edges, terminal markers, renamed-type shows/bundled-literal-doesn't-leak, determinism), CLI smoke in tests/cli/test_workflow_command_points_to_cheatsheet.py. Golden churn: tests/goldens/workflow_cheatsheet.txt + agents_md_section.txt regenerated (additive, both include workflow.md.j2); claude_md_section.txt untouched (separate template).
+  - Manifest: regenerated templates_manifest.json (squads_skill.md.j2 from TASK-399-ST4 + workflow.md.j2) — only the current (unreleased) 0.8.0 entry updated, in place.
 <!-- sq:discussion:end -->

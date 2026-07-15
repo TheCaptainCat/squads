@@ -117,6 +117,16 @@ def split_discussion(region: str) -> list[Comment]:
     return comments
 
 
+def match_comment_header(line: str) -> tuple[str, str] | None:
+    """If ``line`` is a comment header (``- [TIMESTAMP] Author:``), return ``(timestamp, author)``.
+
+    Exposed for callers that need to attribute a line to *which* comment (e.g. search result
+    region attribution) without re-parsing a whole discussion region via :func:`split_discussion`.
+    """
+    m = _COMMENT_HEADER_RE.match(line)
+    return (m.group(1), m.group(2)) if m else None
+
+
 def extract_mentions(text: str) -> set[str]:
     """All ``@slug`` mentions in a blob of text (lowercased slugs)."""
     return {m.lower() for m in _MENTION_RE.findall(text)}

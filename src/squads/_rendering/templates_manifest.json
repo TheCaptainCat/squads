@@ -110,7 +110,7 @@
     "agents/operator.md.j2": "5f2b6962dc47cd36983a9140e8fa310f58d4ec6746a6597c4a473edf5c22fc11",
     "agents/role.md.j2": "a23f2a5ff1d780ca0ee9d0ac242ad27e6255c73b142c12b58c9406b81605ef9a",
     "agents/skill.md.j2": "3d9780f63e59e1b3ce07256e236c63015e78fb43be1e094e01501b27802c5358",
-    "agents/squads_skill.md.j2": "df15bd2c47119ad0a422d9ce40dff53255223d3fa1a5a728f2cff04a4e8e3f69",
+    "agents/squads_skill.md.j2": "c0c63a980d668668a93a24ec3ba82837f0f7e4bf126d2ea65ac7ea6b648c818f",
     "agents_md/agents_section.md.j2": "41961d35dfc2971e3583ebe5720a9ba395a615c9afc72f693a573c3455b5ce26",
     "agents_md/role_entry.md.j2": "1f05b89116be3fc46f7aa83ed8c89013c6d6089dd179fb412c07328e8de6a61e",
     "agents_md/skill_entry.md.j2": "a4c6b30998a20a2267415bc01cb98270fc7266b6ea2cea249f67ebd2b12bac5c",
@@ -128,7 +128,7 @@
     "subentities/block.md.j2": "80610456c63488244be6fa68c29b8af655dda7cf3966b5ac0eb84167647925d1",
     "subentities/head.md.j2": "aa518f815f6840832c6c148cdcbec1834747ac0fc6974c1c0b476aedb4a744e7",
     "subentities/summary.md.j2": "8a025754bdfdda21747270a9f7fbee0420c17e6070b2a3bc5e38c2d8dd60f0e7",
-    "workflow.md.j2": "f19dddb112a7623ddb69b01fa2f01db34340a6ea8889905dea21eff863104e3d",
+    "workflow.md.j2": "eb62bdcc53f3da5f585c207049ed35391e22ec59326a6ff4ff5a373eb99d58d2",
     "workflow_static.md.j2": "9b9543454a90bd3acee6b6ce9d20dc8b0f1cef7f3afa88453e410a7e89854a5c"
   }
 }

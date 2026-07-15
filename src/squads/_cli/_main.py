@@ -611,23 +611,65 @@ async def inbox(
 async def search(
     text: str = typer.Argument(..., help="Text to find (case-insensitive)."),
     type: str | None = typer.Option(None, "--type", "-t"),
+    status: str | None = typer.Option(None, "--status", "-s"),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """Search item titles, summaries, and bodies/discussion for text."""
+    """Search item titles, summaries, and bodies/discussion for text.
+
+    ``--type``/``--status`` AND-compose with the query (same filter dimensions as
+    ``sq list``/``sq tree``). A hit's ``region`` names where it matched: ``"title"``,
+    ``"description"``, ``"body"``, ``"discussion"`` (``"discussion#<n>"`` for the *n*-th
+    comment), or a named sub-entity — ``"<kind>:<local_id>"`` for its heading/body, or
+    ``"<kind>:<local_id>:discussion#<n>"`` for its *n*-th comment (e.g. ``"story:US<n>"``,
+    ``"story:US<n>:discussion#2"``).
+
+    ``--json`` shape (a stable superset of the legacy ``{id, title, hits}``)::
+
+        [
+          {
+            "id": "TASK-<n>", "title": "...", "type": "task", "status": "InProgress",
+            "hits": [
+              {"region": "body", "location": "body", "snippet": "..."},
+              {"region": "subtask:ST<n>", "location": "subtask:ST<n>", "snippet": "..."},
+              {"region": "discussion#1", "location": "discussion — comment 1 (manager, ...)",
+               "snippet": "[<ts>] manager: ..."}
+            ]
+          }
+        ]
+    """
     svc = get_service()
-    hits = await svc.search(text, item_type=parse_type(type) if type else None)
+    results = await svc.search(
+        text,
+        item_type=parse_type(type) if type else None,
+        status=parse_status(status) if status else None,
+    )
     if json_out:
         print_json_clean(
-            json.dumps([{"id": it.id, "title": it.title, "hits": lines} for it, lines in hits])
+            json.dumps(
+                [
+                    {
+                        "id": r.item.id,
+                        "title": r.item.title,
+                        "type": r.item.type,
+                        "status": r.item.status,
+                        "hits": [
+                            {"region": h.region, "location": h.location, "snippet": h.snippet}
+                            for h in r.hits
+                        ],
+                    }
+                    for r in results
+                ]
+            )
         )
         return
-    if not hits:
+    if not results:
         console.print(f"[dim]no matches for {e(text)}[/dim]")
         return
-    for it, lines in hits:
-        console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status})[/dim]")
-        for ln in lines[:3]:
-            console.print(f"    {e(ln)}")
+    for r in results:
+        status_part = f"[dim]({e(r.item.status)})[/dim]"
+        console.print(f"[bold]{e(r.item.id)}[/bold] {e(r.item.title)} {status_part}")
+        for h in r.hits[:3]:
+            console.print(f"    [dim]{e(h.region)}:[/dim] {e(h.snippet)}")
 
 
 @app.command()
@@ -717,7 +759,7 @@ async def graph(
     format_: str = typer.Option(
         "",
         "--format",
-        help="Export format: 'dot' or 'mermaid' (overrides Rich tree).",
+        help="Export format: 'dot', 'mermaid', or 'mermaid-md' (overrides Rich tree).",
     ),
 ):
     """Show the ref graph around an item (ego-centric BFS traversal).
@@ -742,10 +784,13 @@ async def graph(
     ``"depends on"`` and ``"required by"`` respectively.
 
     ``--format dot|mermaid`` emits a serialized graph instead of the Rich tree; suitable
-    for piping to ``dot``, ``mmdc``, or pasting into Mermaid Live.
+    for piping to ``dot``, ``mmdc``, or pasting into Mermaid Live. ``--format mermaid-md``
+    wraps the same Mermaid body in a ```` ```mermaid ```` fence, ready to paste into a doc,
+    PR description, or issue that renders Mermaid inline.
     """
-    if format_ and format_ not in ("dot", "mermaid"):
-        raise SquadsError(f"invalid --format {format_!r}; expected 'dot' or 'mermaid'")
+    valid_formats = ("dot", "mermaid", "mermaid-md")
+    if format_ and format_ not in valid_formats:
+        raise SquadsError(f"invalid --format {format_!r}; expected one of {valid_formats}")
 
     svc = get_service()
     resolved_id = await resolve_item_id_any(root_id, svc)
@@ -769,6 +814,11 @@ async def graph(
 
     if format_ == "mermaid":
         console.print(graph_to_mermaid(root_node), markup=False, highlight=False)
+        return
+
+    if format_ == "mermaid-md":
+        fenced = f"```mermaid\n{graph_to_mermaid(root_node)}\n```"
+        console.print(fenced, markup=False, highlight=False)
         return
 
     # Rich tree rendering

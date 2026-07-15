@@ -705,6 +705,39 @@ def linearize_lifecycle(machine: Lifecycle) -> str:
     return chain
 
 
+def lifecycle_states_in_order(machine: Lifecycle) -> list[str]:
+    """A deterministic listing of every state in ``machine``: BFS discovery order from
+    ``initial`` (mirroring :func:`linearize_lifecycle`'s traversal), then any state left
+    unreached (shouldn't normally happen) appended in sorted order.
+
+    ``Lifecycle.states`` is a ``frozenset`` — its iteration order is hash-seed-dependent, so
+    diagram-rendering callers (a Mermaid ``stateDiagram-v2``) need this instead to stay
+    byte-stable across process runs.
+    """
+    order = [machine.initial]
+    seen = {machine.initial}
+    queue = [machine.initial]
+    while queue:
+        node = queue.pop(0)
+        for nxt in machine.transitions.get(node, []):
+            if nxt not in seen:
+                seen.add(nxt)
+                order.append(nxt)
+                queue.append(nxt)
+    order.extend(sorted(s for s in machine.states if s not in seen))
+    return order
+
+
+def lifecycle_edges(machine: Lifecycle) -> list[tuple[str, str]]:
+    """Flattened ``(src, dst)`` transition edges for ``machine``, in the deterministic order
+    given by :func:`lifecycle_states_in_order` — the basis for a Mermaid ``stateDiagram-v2``."""
+    return [
+        (src, dst)
+        for src in lifecycle_states_in_order(machine)
+        for dst in machine.transitions.get(src, [])
+    ]
+
+
 class WorkflowSpec(BaseModel):
     """The full loaded workflow specification.
 

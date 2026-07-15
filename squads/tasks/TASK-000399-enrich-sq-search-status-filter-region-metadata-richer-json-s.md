@@ -3,30 +3,31 @@ id: TASK-399
 sequence_id: 399
 type: task
 title: 'Enrich sq search: --status filter, region metadata, richer --json, skill section'
-status: Draft
+status: InReview
 parent: FEAT-318
 author: tech-lead
+assignee: python-dev
 subentities:
 - local_id: ST1
   title: Add --status filter, AND-composed with query and --type
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST2
   title: Return region/authority + snippet per hit; item type/status per result; console
     escaped
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST3
   title: Richer --json superset shape (type/status/region/snippet/location), documented
     + stable
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST4
   title: 'squads skill: finding things across the board section'
-  status: Todo
+  status: Done
   story: US5
 created_at: '2026-07-15T14:02:32Z'
-updated_at: '2026-07-15T14:04:06Z'
+updated_at: '2026-07-15T14:34:53Z'
 ---
 <!-- sq:body -->
 # Enrich `sq search`
@@ -64,10 +65,10 @@ _Add with `sq task 399 add-subtask "<title>"`; track with `sq task 399 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Add --status filter, AND-composed with query and --type | US3 |
-| ST2 | Todo |  | Return region/authority + snippet per hit; item type/status per result; console escaped | US2 |
-| ST3 | Todo |  | Richer --json superset shape (type/status/region/snippet/location), documented + stable | US4 |
-| ST4 | Todo |  | squads skill: finding things across the board section | US5 |
+| ST1 | Done |  | Add --status filter, AND-composed with query and --type | US3 |
+| ST2 | Done |  | Return region/authority + snippet per hit; item type/status per result; console escaped | US2 |
+| ST3 | Done |  | Richer --json superset shape (type/status/region/snippet/location), documented + stable | US4 |
+| ST4 | Done |  | squads skill: finding things across the board section | US5 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -76,7 +77,7 @@ _Add with `sq task 399 add-subtask "<title>"`; track with `sq task 399 subtask <
 ### ST1 — Add --status filter, AND-composed with query and --type
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — As a steering user, I can narrow the search with structured filters so I can audit a slice
 <!-- sq:subtask:ST1:head:end -->
 
@@ -94,7 +95,7 @@ Thread `list_items`'s existing `status=` dimension into search; AND with query a
 ### ST2 — Return region/authority + snippet per hit; item type/status per result; console escaped
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US2 — As a steering user, results show where each match is and its authority so I can judge relevance
 <!-- sq:subtask:ST2:head:end -->
 
@@ -112,7 +113,7 @@ Change the service to return structured hits: each result carries item type + st
 ### ST3 — Richer --json superset shape (type/status/region/snippet/location), documented + stable
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US4 — As an agent, I can get search results as JSON so a session can act on them programmatically
 <!-- sq:subtask:ST3:head:end -->
 
@@ -130,7 +131,7 @@ Grow `--json` to a documented, stable superset of `{id,title,hits}` adding type/
 ### ST4 — squads skill: finding things across the board section
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US5 — As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual
 <!-- sq:subtask:ST4:head:end -->
 
@@ -148,4 +149,12 @@ Add a 'finding things across the board' section to the squads skill: `sq search`
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-15T14:05:33Z] Catherine Manager:
+  - Dispatching @python-dev for TASK-399 + TASK-400 + TASK-401 in one coordinated pass (they share the template/manifest surface). Take each Ready→InProgress→InReview.
+- [2026-07-15T14:30:34Z] Elias Python:
+  - Added --status filter (AND with query/--type, reuses parse_status), region+snippet attribution per hit (title/description/body/discussion#n/<kind>:<local_id>/<kind>:<local_id>:discussion#n), richer --json (type/status/region/location/snippet), squads skill 'Finding things across the board' section.
+  - Service: CollabMixin.search now returns list[SearchResult] (SearchHit: region/location/snippet) in _services/_collab.py + _results.py; region attribution via marker line-ranges (_sections.region_lines), no set-iteration nondeterminism.
+  - Tests: tests/service/test_search_and_workload_views.py (status AND-filter, region attribution, type/status on result), tests/cli/test_blocked_workload_search_cli.py (--status CLI, --json shape). Golden churn: tests/goldens/search_login.json regenerated (additive: type/status/hits[].location+region+snippet).
+- [2026-07-15T14:34:53Z] Elias Python:
+  - Fixed a missed consumer of the old search tuple shape: tests/service/test_terminal_status_reopen_and_unblock.py used [i.id for i, _ in ...] — updated to r.item.id. Grepped tests/+src/ for other .search( call sites: only re.search (unrelated) and memory_store.search (different function) remain; no other consumers of the old shape.
 <!-- sq:discussion:end -->

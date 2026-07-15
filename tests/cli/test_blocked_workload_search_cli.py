@@ -36,4 +36,21 @@ async def test_search_cli_finds_a_matching_item_and_json_matches_human_output(pr
     assert human.exit_code == 0 and "TASK-2" in human.output
 
     as_json = await invoke(["search", "token", "--json"])
-    assert json.loads(as_json.output)[0]["id"] == "TASK-2"
+    data = json.loads(as_json.output)
+    assert data[0]["id"] == "TASK-2"
+    assert data[0]["type"] == "task"
+    assert data[0]["status"]
+    assert data[0]["hits"][0]["region"]
+    assert data[0]["hits"][0]["snippet"]
+
+
+async def test_search_status_filter_narrows_results_to_matching_status(project, invoke):
+    await invoke(["create", "task", "Retry the payment webhook", "--author", "manager"])
+    await invoke(["create", "task", "Retry the payment queue", "--author", "manager"])
+    await invoke(["task", "3", "status", "InProgress"])
+
+    draft_only = await invoke(["search", "retry", "--status", "Draft"])
+    assert "TASK-2" in draft_only.output and "TASK-3" not in draft_only.output
+
+    in_progress_only = await invoke(["search", "retry", "--status", "InProgress"])
+    assert "TASK-3" in in_progress_only.output and "TASK-2" not in in_progress_only.output

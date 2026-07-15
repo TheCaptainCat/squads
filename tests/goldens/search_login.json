@@ -2,32 +2,68 @@
   {
     "id": "FEAT-2",
     "title": "User authentication",
+    "type": "feature",
+    "status": "Draft",
     "hits": [
-      "Login and logout flows"
+      {
+        "region": "description",
+        "location": "description",
+        "snippet": "Login and logout flows"
+      }
     ]
   },
   {
     "id": "TASK-3",
     "title": "Implement login",
+    "type": "task",
+    "status": "InProgress",
     "hits": [
-      "Implement login",
-      "| ST1 | Todo |  | Write login handler | US1 |",
-      "### ST1 \u2014 Write login handler",
-      "- @manager please review the login handler"
+      {
+        "region": "title",
+        "location": "title",
+        "snippet": "Implement login"
+      },
+      {
+        "region": "summary",
+        "location": "summary",
+        "snippet": "| --- | --- | --- | --- | --- | / | ST1 | Todo |  | Write login handler | US1 |"
+      },
+      {
+        "region": "subtask:ST1",
+        "location": "subtask:ST1",
+        "snippet": "### ST1 \u2014 Write login handler"
+      },
+      {
+        "region": "discussion#1",
+        "location": "discussion \u2014 comment 1 (Catherine Manager, 2026-06-07T10:00:00Z)",
+        "snippet": "[2026-06-07T10:00:00Z] Catherine Manager: - @manager please review the login handler"
+      }
     ]
   },
   {
     "id": "BUG-4",
     "title": "Login crashes on empty password",
+    "type": "bug",
+    "status": "Open",
     "hits": [
-      "Login crashes on empty password"
+      {
+        "region": "title",
+        "location": "title",
+        "snippet": "Login crashes on empty password"
+      }
     ]
   },
   {
     "id": "REV-6",
     "title": "Code review for login",
+    "type": "review",
+    "status": "Requested",
     "hits": [
-      "Code review for login"
+      {
+        "region": "title",
+        "location": "title",
+        "snippet": "Code review for login"
+      }
     ]
   }
 ]
