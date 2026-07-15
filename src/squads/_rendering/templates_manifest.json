@@ -106,7 +106,7 @@
   "0.8.0": {
     "agents/greeting_skill.md.j2": "04065493b33b436ffd0c80e9d3adb7e2fa91a7e5183b70a1d9f5e3f61107bba9",
     "agents/item_skill.md.j2": "219ca41406e5b0199b012c9fdeab7354993bd95e7deb0f1d03a81318cd45cc68",
-    "agents/memory_skill.md.j2": "f9116baf6e66b70d12c6e2b67aba41d4b42623222b133df4a5b15294f01795a0",
+    "agents/memory_skill.md.j2": "8873e0303d20fc9e2fd56908f1e19cd0e519c2f4a8fcbdf07b838721f0b9433f",
     "agents/operator.md.j2": "5f2b6962dc47cd36983a9140e8fa310f58d4ec6746a6597c4a473edf5c22fc11",
     "agents/role.md.j2": "1d9e2e29b1f2dd6cdda7ee5608131e40839fe84489207eeb291db9803261c0b8",
     "agents/skill.md.j2": "3d9780f63e59e1b3ce07256e236c63015e78fb43be1e094e01501b27802c5358",

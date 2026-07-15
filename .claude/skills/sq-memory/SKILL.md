@@ -1,6 +1,6 @@
 ---
 name: sq-memory
-description: "Your role's committed memory notebook: check your index at the start of a run, jot one fact per memory, prune what's stale or wrong, and the memory-vs-board boundary. Use whenever you learn something worth remembering for next time."
+description: "Your role's committed memory notebook and the team bulletin board: check your index at the start of a run, jot one fact per memory, prune what's stale or wrong, post/clear board notices, and the memory-vs-board boundary. Use whenever you learn something worth remembering, or need to announce something to the whole team."
 ---
 
 This is a squads-managed skill. Load and follow its full definition before using it:

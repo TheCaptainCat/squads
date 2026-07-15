@@ -124,9 +124,10 @@ SKILL_DESCRIPTIONS: dict[str, str] = {
         "Use when a person opens a session; skip it when spawned as a subagent for a job."
     ),
     MEMORY_SKILL: (
-        "Your role's committed memory notebook: check your index at the start of a run, "
-        "jot one fact per memory, prune what's stale or wrong, and the memory-vs-board "
-        "boundary. Use whenever you learn something worth remembering for next time."
+        "Your role's committed memory notebook and the team bulletin board: check your "
+        "index at the start of a run, jot one fact per memory, prune what's stale or wrong, "
+        "post/clear board notices, and the memory-vs-board boundary. Use whenever you learn "
+        "something worth remembering, or need to announce something to the whole team."
     ),
     # sq-<type> descriptions — iterate PLAYBOOK directly (same source as managed_item_types()
     # and bundled_skill_slugs()) so the set stays in sync if a new type is added to the
