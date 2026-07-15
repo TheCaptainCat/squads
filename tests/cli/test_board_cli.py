@@ -87,3 +87,17 @@ async def test_posting_with_an_unknown_as_slug_raises_a_clean_error(project, inv
     assert result.exit_code == 1
     assert "unknown slug" in result.output
     assert "Traceback" not in result.output
+
+
+async def test_plain_list_shows_author_posted_at_and_until_alongside_the_ordinal(project, invoke):
+    await invoke(
+        ["board", "post", "-m", "freeze the schema", "--as", "manager", "--until", "2099-01-01"]
+    )
+
+    result = await invoke(["board", "list"])
+    assert result.exit_code == 0
+    assert "1." in result.output
+    assert "manager" in result.output
+    assert "until" in result.output
+    assert "2099-01-01" in result.output
+    assert "2026" in result.output  # posted-at (frozen_time) is shown too
