@@ -136,17 +136,103 @@ async def test_memory_add_and_forget_never_allocate_a_counter_id_or_touch_squads
     assert len(after.items) == item_count_before
 
 
-async def test_repair_neither_rebuilds_nor_disturbs_memory_files(svc):
+async def test_repair_never_touches_memory_content_files_or_the_counter(svc):
+    """Repair rebuilds the counter-backed item index from item frontmatter only — it never
+    writes to a memory ``.md`` content file or allocates/bumps the counter for memory. It does
+    (separately, see the regeneration tests below) regenerate each role's ``.index.jsonl``."""
     entry = await svc.memory_add("python-dev", "repair should ignore me")
     path = _role_folder(svc, "python-dev") / f"{entry.slug}.md"
     before_text = path.read_text(encoding="utf-8")
-    index_before = (_role_folder(svc, "python-dev") / INDEX_FILENAME).read_text(encoding="utf-8")
     counter_before = (await svc.store.load()).counter
 
     await svc.repair()
 
     assert path.read_text(encoding="utf-8") == before_text
-    assert (_role_folder(svc, "python-dev") / INDEX_FILENAME).read_text(
-        encoding="utf-8"
-    ) == index_before
     assert (await svc.store.load()).counter == counter_before
+
+
+async def test_repair_regenerates_a_roles_index_from_the_md_files_when_it_goes_missing(svc):
+    """A merge-conflicted or hand-corrupted committed index has a one-command mechanical fix:
+    re-run repair (or sync) and it is rebuilt whole from the .md files, discarding whatever
+    conflict markers or stale content was there before."""
+    a = await svc.memory_add("python-dev", "fact one")
+    b = await svc.memory_add("python-dev", "fact two")
+    index_path = _role_folder(svc, "python-dev") / INDEX_FILENAME
+    index_path.write_text("<<<<<<< conflict garbage\n", encoding="utf-8")
+
+    await svc.repair()
+
+    header, entries = _parse(index_path)
+    assert header == header_record()
+    assert {e["slug"] for e in entries} == {a.slug, b.slug}
+
+
+async def test_repair_regenerates_a_roles_index_deleted_out_from_under_it(svc):
+    entry = await svc.memory_add("python-dev", "surviving fact")
+    index_path = _role_folder(svc, "python-dev") / INDEX_FILENAME
+    index_path.unlink()
+
+    await svc.repair()
+
+    assert index_path.is_file()
+    _, entries = _parse(index_path)
+    assert [e["slug"] for e in entries] == [entry.slug]
+
+
+async def test_sync_regenerates_a_roles_index_that_went_stale(svc):
+    """sq sync's "regenerate every tool-owned managed file" pass covers the memory index too —
+    a stale/conflicted committed index is rebuilt whole from the .md files on sync, the same
+    way repair does."""
+    a = await svc.memory_add("python-dev", "fact one")
+    b = await svc.memory_add("python-dev", "fact two")
+    index_path = _role_folder(svc, "python-dev") / INDEX_FILENAME
+    index_path.write_text('{"stale": "conflict"}\n', encoding="utf-8")
+
+    await svc.sync()
+
+    header, entries = _parse(index_path)
+    assert header == header_record()
+    assert {e["slug"] for e in entries} == {a.slug, b.slug}
+
+
+async def test_sync_regenerates_a_roles_index_deleted_out_from_under_it(svc):
+    entry = await svc.memory_add("python-dev", "surviving fact")
+    index_path = _role_folder(svc, "python-dev") / INDEX_FILENAME
+    index_path.unlink()
+
+    await svc.sync()
+
+    assert index_path.is_file()
+    _, entries = _parse(index_path)
+    assert [e["slug"] for e in entries] == [entry.slug]
+
+
+async def test_sync_regenerates_every_roles_memory_folder_in_one_pass(svc):
+    """The regeneration pass is generic over every memory folder on disk, not a single
+    hard-coded role."""
+    py = await svc.memory_add("python-dev", "python fact")
+    net = await svc.memory_add("dotnet-dev", "dotnet fact")
+    for role in ("python-dev", "dotnet-dev"):
+        (_role_folder(svc, role) / INDEX_FILENAME).unlink()
+
+    await svc.sync()
+
+    _, py_entries = _parse(_role_folder(svc, "python-dev") / INDEX_FILENAME)
+    _, net_entries = _parse(_role_folder(svc, "dotnet-dev") / INDEX_FILENAME)
+    assert [e["slug"] for e in py_entries] == [py.slug]
+    assert [e["slug"] for e in net_entries] == [net.slug]
+
+
+async def test_sync_regenerates_a_memory_folder_with_no_matching_role_item(svc):
+    """Memory pools are addressed by a bare role-slug string, off the role roster entirely —
+    sync must discover and regenerate a folder's index even for a slug with no corresponding
+    role item, not only for slugs already in the roster."""
+    entry = await svc.memory_add("a-role-with-no-item", "an orphaned fact")
+    index_path = _role_folder(svc, "a-role-with-no-item") / INDEX_FILENAME
+    index_path.unlink()
+
+    await svc.sync()
+
+    assert index_path.is_file()
+    _, entries = _parse(index_path)
+    assert [e["slug"] for e in entries] == [entry.slug]

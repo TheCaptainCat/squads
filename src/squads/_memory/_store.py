@@ -12,7 +12,12 @@ from pathlib import Path
 
 from squads import _aio
 from squads import _clock as clock
-from squads._content_index import INDEX_FILENAME, IndexEntry, parse_index, regenerate
+from squads._content_index import (
+    INDEX_FILENAME,
+    IndexEntry,
+    parse_index,
+    regenerate_from_content_files,
+)
 from squads._errors import SquadsError
 from squads._memory._model import MemoryEntry
 from squads._paths import SquadPaths
@@ -59,22 +64,6 @@ async def _unique_slug(folder: Path, base_slug: str) -> str:
     return f"{base_slug}-{n}"
 
 
-async def _regenerate_index(folder: Path) -> None:
-    """Rebuild *folder*'s ``.index.jsonl`` whole from its current ``.md`` files."""
-    entries: list[IndexEntry] = []
-    for path in await _content_files(folder):
-        text = await _aio.read_text(path)
-        frontmatter, _ = split_frontmatter(text)
-        entries.append(
-            IndexEntry(
-                slug=path.stem,
-                filename=path.name,
-                description=str(frontmatter.get("summary", "")),
-            )
-        )
-    await regenerate(folder, entries)
-
-
 async def add(
     paths: SquadPaths,
     role_slug: str,
@@ -105,7 +94,7 @@ async def add(
     text = join_frontmatter(entry.to_frontmatter_dict(), entry.body)
     await _aio.mkdir(folder, parents=True, exist_ok=True)
     await _aio.write_text(folder / f"{slug}.md", text)
-    await _regenerate_index(folder)
+    await regenerate_from_content_files(folder)
     return entry
 
 
@@ -176,4 +165,4 @@ async def forget(paths: SquadPaths, role_slug: str, slug: str) -> None:
     if not await _aio.path_exists(path):
         raise MemoryNotFoundError(f"no memory {slug!r} for role {role_slug!r}")
     await _aio.path_unlink(path)
-    await _regenerate_index(role_folder(paths, role_slug))
+    await regenerate_from_content_files(role_folder(paths, role_slug))

@@ -12,6 +12,7 @@ from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._backends._base import BackendContext
+from squads._content_index import regenerate_from_content_files
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
@@ -23,6 +24,7 @@ from squads._interactions import (
     skill_description,
 )
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
+from squads._memory import _store as memory_store
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
@@ -140,6 +142,7 @@ class MaintenanceMixin(ServiceCore):
             await backend.write_managed(ctx_with_skills, roster, ops)
         # Seed SKILL ids for any custom types declared in the spec (idempotent).
         await self.seed_custom_skills()
+        await self._regenerate_content_indexes()
         await self._stamp_version(__version__)
 
     async def _refresh_catalog_extra(self, item: Item) -> None:
@@ -184,6 +187,38 @@ class MaintenanceMixin(ServiceCore):
         existing = await _aio.read_text(path)
         updated = sections.replace_section(existing, markers.BODY, new_body_inner)
         await _aio.write_text(path, updated)
+
+    async def _regenerate_content_indexes(self) -> None:
+        """Regenerate every content-index folder's ``.index.jsonl`` whole from its ``.md`` files.
+
+        The generic "regenerate all content-index folders" pass ``sq sync``/``sq repair`` share:
+        today that's every role's ``agents/memory/<role-slug>/`` pool. Folders are discovered
+        straight off the filesystem (see :meth:`_memory_role_folders`), not the role roster —
+        a memory pool is off the global counter and outside ``.squads.json`` by design,
+        so it must not require a matching ``META_ROLE`` item to be found and regenerated.
+
+        The team board (``squads/board/``) is the same kind of content-index folder and plugs
+        into this exact pass with a one-line addition once its storage exists — this loop is
+        deliberately generic over "a folder of slug-named ``.md`` files with a roll-up", not
+        memory-specific, so that addition is the only change needed.
+        """
+        for folder in await self._memory_role_folders():
+            await regenerate_from_content_files(folder)
+        # The board's own content-index folder plugs into this same pass, once its storage
+        # exists, with one more call here alongside the loop above.
+
+    async def _memory_role_folders(self) -> list[Path]:
+        """Every role's memory pool folder currently on disk, sorted by role slug.
+
+        Read straight from ``agents/memory/``'s subfolders rather than the role roster: a
+        memory pool can exist for (or outlive) a role slug with no corresponding ``META_ROLE``
+        item, and this must still find and regenerate its index. No ``agents/memory/`` root yet
+        -> no folders (nothing has ever added a memory).
+        """
+        root = self.paths.abspath(memory_store.MEMORY_ROOT)
+        if not await _aio.path_exists(root):
+            return []
+        return await _aio.to_thread(lambda: sorted(p for p in root.iterdir() if p.is_dir()))
 
     async def _stamp_version(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"squads_version": version})
@@ -506,6 +541,11 @@ class MaintenanceMixin(ServiceCore):
         db = await self._rebuild_index_from_disk(
             previous_counter=previous_counter, previous_padding=previous_padding
         )
+        # F1's mechanical resolution path: a merge-conflicted or hand-corrupted content index
+        # (e.g. squads/agents/memory/<role>/.index.jsonl) is rebuilt whole from its .md files
+        # by the same generic pass sync uses — repair is a full disk-rescan, so this belongs
+        # here too, not only behind sync.
+        await self._regenerate_content_indexes()
 
         missing_seqs = sorted(previous_seq_to_id.keys() - set(db.items))
         missing_ids = [previous_seq_to_id[s] for s in missing_seqs]
