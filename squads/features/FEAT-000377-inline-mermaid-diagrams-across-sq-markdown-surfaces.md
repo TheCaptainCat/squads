@@ -3,7 +3,7 @@ id: FEAT-377
 sequence_id: 377
 type: feature
 title: Inline Mermaid diagrams across sq markdown surfaces
-status: Draft
+status: InProgress
 author: product-owner
 subentities:
 - local_id: US1
@@ -11,12 +11,12 @@ subentities:
   status: Todo
 - local_id: US2
   title: Derived per-item Mermaid graph section in the item dossier
-  status: Todo
+  status: Cancelled
 - local_id: US3
   title: Spec-derived Mermaid diagrams in docs and the workflow cheatsheet
   status: Todo
 created_at: '2026-07-10T09:04:53Z'
-updated_at: '2026-07-10T09:05:45Z'
+updated_at: '2026-07-15T14:00:31Z'
 ---
 <!-- sq:body -->
 VSCode, GitHub, PyCharm etc. already render a fenced ```mermaid block inline in any .md file. sq graph --format mermaid already emits a valid Mermaid graph body (graph_to_mermaid in _services/_refs.py) but it's raw, meant for piping to mmdc or pasting into Mermaid Live — not wrapped in a markdown fence. Wrapping that existing serializer in a fence, and reusing it in a couple more places, gets us free inline diagrams across sq's generated markdown with no new rendering engine.
@@ -37,7 +37,7 @@ _Add with `sq feature 377 add-story "As a <role>, I want … so that …"`; trac
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
 | US1 | Todo |  | Fenced Mermaid output from sq graph |
-| US2 | Todo |  | Derived per-item Mermaid graph section in the item dossier |
+| US2 | Cancelled |  | Derived per-item Mermaid graph section in the item dossier |
 | US3 | Todo |  | Spec-derived Mermaid diagrams in docs and the workflow cheatsheet |
 <!-- sq:summary:end -->
 
@@ -69,7 +69,7 @@ Acceptance:
 ### US2 — Derived per-item Mermaid graph section in the item dossier
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** ⚫ Cancelled
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -116,4 +116,8 @@ Acceptance:
 <!-- sq:discussion -->
 - [2026-07-10T09:05:45Z] Pierre Chat:
   - Requested this after noticing VSCode/GitHub render ```mermaid fenced blocks inline — three slices approved: fenced graph output, per-item derived graph section, spec-derived diagrams in docs/cheatsheet. Backlog, drafting only.
+- [2026-07-15T13:51:58Z] Pierre Chat:
+  - Greenlit for 0.9 — full feature, all three slices including US2 (the per-item derived :graph managed region), which I know needs the architect design pass / possible ADR. Run search (FEAT-318) + full Mermaid together as one loop.
+- [2026-07-15T14:00:31Z] Pierre Chat:
+  - Cancelled US2 (per-item derived :graph region) per ADR-398. The premise is wrong — a ref graph is non-local (depends on other items' refs/backrefs/open-closed status), so the cheap :summary-style mutation-refresh isn't achievable, every persistence option is flawed, and the value is marginal (most items have 0-2 refs; useful graphs are subtrees). US1's on-demand fenced graph serves that need. Proceeding with US1 + US3 only.
 <!-- sq:discussion:end -->
