@@ -273,3 +273,44 @@ async def test_sync_on_a_board_never_posted_to_writes_no_folder(svc):
     pool that has never been added to."""
     await svc.sync()
     assert not _board_folder(svc).exists()
+
+
+async def test_clear_ordinal_matches_the_physical_nth_entry_line_of_the_index_file(
+    svc, monkeypatch
+):
+    """The ordinal is documented as *the entry's line position in the generated
+    ``.index.jsonl``* (header line excluded), not merely an internal listing position that
+    happens to agree with it. Pin that literally: read the raw file's own line 2 (1-based
+    ordinal 2, after the header) and confirm ``clear(2)`` deletes exactly that notice."""
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 6, 7, 10, 0, 0, tzinfo=UTC))
+    await svc.board_post("op-pierre", "notice a")
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 6, 7, 11, 0, 0, tzinfo=UTC))
+    await svc.board_post("op-pierre", "notice b")
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 6, 7, 12, 0, 0, tzinfo=UTC))
+    await svc.board_post("op-pierre", "notice c")
+
+    index_path = _board_folder(svc) / INDEX_FILENAME
+    raw_lines = [ln for ln in index_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    entry_lines = raw_lines[1:]  # header excluded, entry line n == ordinal n
+    assert len(entry_lines) == 3
+    slug_at_ordinal_2 = json.loads(entry_lines[1])["slug"]
+
+    cleared = await svc.board_clear(2)
+
+    assert cleared.id == slug_at_ordinal_2
+
+
+async def test_listing_does_not_touch_the_index_file(svc):
+    """Listing must be as read-only towards the generated index as it is towards the notice
+    ``.md`` files (see ``test_listing_never_mutates_the_notice_files`` above) — a read must
+    never regenerate or otherwise rewrite a git-tracked file."""
+    await svc.board_post("op-pierre", "read-only index check")
+    index_path = _board_folder(svc) / INDEX_FILENAME
+    before_text = index_path.read_text(encoding="utf-8")
+    before_mtime = index_path.stat().st_mtime_ns
+
+    await svc.board_list()
+    await svc.board_list()
+
+    assert index_path.read_text(encoding="utf-8") == before_text
+    assert index_path.stat().st_mtime_ns == before_mtime

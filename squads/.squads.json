@@ -10170,7 +10170,7 @@
       "type": "task",
       "title": "Board tests: service + CLI, expiry filter and ordinal resolution",
       "slug": "board-tests-service-cli-expiry-filter-and-ordinal-resolution",
-      "status": "Draft",
+      "status": "InReview",
       "description": "Service + CLI coverage for the board incl. expiry filtering, positional ordinal, off-counter invariants",
       "parent": "FEAT-317",
       "author": "tech-lead",
@@ -10183,7 +10183,7 @@
         {
           "local_id": "ST1",
           "title": "Test post writes notice + hash id + index; distinct ids",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -10192,7 +10192,7 @@
         {
           "local_id": "ST2",
           "title": "Test list ordinal; expired filtered; no spurious diffs",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -10201,7 +10201,7 @@
         {
           "local_id": "ST3",
           "title": "Test clear resolves ordinal to hash and deletes; out-of-range error",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -10210,7 +10210,7 @@
         {
           "local_id": "ST4",
           "title": "Test boot surfacing excludes expired; empty surfaces nothing",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -10219,7 +10219,7 @@
       ],
       "path": "tasks/TASK-000387-board-tests-service-cli-expiry-filter-and-ordinal-resolution.md",
       "created_at": "2026-07-15T07:48:50Z",
-      "updated_at": "2026-07-15T09:31:24Z",
+      "updated_at": "2026-07-15T10:57:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
