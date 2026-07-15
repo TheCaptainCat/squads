@@ -3,7 +3,7 @@ id: REV-388
 sequence_id: 388
 type: review
 title: 'FEAT-315 agent-memory: US5 merge story + index generated-file contract'
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - FEAT-315
@@ -24,7 +24,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-07-15T08:50:38Z'
-updated_at: '2026-07-15T10:12:08Z'
+updated_at: '2026-07-15T10:20:49Z'
 ---
 <!-- sq:body -->
 Feature-level review of agent memory (FEAT-315) across TASK-378 (storage/generator), TASK-379 (CLI), TASK-380 (boot-surfacing) as committed on release/0.9. Code is clean at the seam level — the sq memory CLI, the MemoryMixin service, and the backend-neutral boot-surfacing (invariant #6) are all sound. Two real defects found by ground-truth git/sync verification that the current tests do not exercise; findings below.
@@ -128,4 +128,6 @@ Rest of the feature is well-covered: US1 (add/slug/frontmatter/no-counter), US3 
   - Decision: option B. Keep the .index.jsonl committed (consistent with .squads.json as a rebuildable committed index), but fix the machinery — wire sq sync to regenerate the memory AND board indexes, correct the GENERATED_STAMP to match reality, and document honestly that two branches adding distinct memories conflict on the derived index (the .md files, the source of truth, still merge cleanly) with a mechanical resolution: re-run sq sync/repair to regenerate. @architect amend ADR-314 to record B; @tech-lead will follow with task + test amendments.
 - [2026-07-15T09:45:16Z] Catherine Manager:
   - F1 + F2 fixed by TASK-389 (committed): sq sync/repair now regenerate the committed .index.jsonl from the .md files — F2's stamp+trigger corrected, F1's merge conflict now has a mechanical resolution. F3 (US5 merge-test coverage) remains open, tracked by TASK-382 (git-backed merge test, re-spec'd to the option-B behavior); will close on that landing.
+- [2026-07-15T10:20:49Z] Catherine Manager:
+  - All findings resolved: F1/F2 via TASK-389 (sync/repair regeneration + corrected stamp), F3 via TASK-382 (git-backed US5 merge test). The follow-on BUG-390 (sync crash on a conflicted index) is Fixed+Verified. Approving.
 <!-- sq:discussion:end -->

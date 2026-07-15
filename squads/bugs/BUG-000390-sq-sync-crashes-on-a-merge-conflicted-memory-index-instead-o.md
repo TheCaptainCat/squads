@@ -4,7 +4,7 @@ sequence_id: 390
 type: bug
 title: sq sync crashes on a merge-conflicted memory index instead of regenerating
   it
-status: Fixed
+status: Verified
 author: qa
 assignee: python-dev
 priority: medium
@@ -15,7 +15,7 @@ description: sync() regenerates role pointers (reading the index) before it rege
   content indexes, so a real git-conflicted .index.jsonl crashes sync with an unhandled
   JSONDecodeError; repair is unaffected
 created_at: '2026-07-15T10:02:49Z'
-updated_at: '2026-07-15T10:18:39Z'
+updated_at: '2026-07-15T10:20:47Z'
 ---
 <!-- sq:body -->
 `sq sync` regenerates managed role pointers before it regenerates content indexes

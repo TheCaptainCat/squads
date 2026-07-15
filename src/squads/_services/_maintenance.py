@@ -12,6 +12,7 @@ from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._backends._base import BackendContext
+from squads._board import _store as board_store
 from squads._content_index import regenerate_from_content_files
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
@@ -204,14 +205,16 @@ class MaintenanceMixin(ServiceCore):
         so it must not require a matching ``META_ROLE`` item to be found and regenerated.
 
         The team board (``squads/board/``) is the same kind of content-index folder and plugs
-        into this exact pass with a one-line addition once its storage exists — this loop is
-        deliberately generic over "a folder of slug-named ``.md`` files with a roll-up", not
-        memory-specific, so that addition is the only change needed.
+        into this exact pass below: a single folder (not per-role), regenerated through its own
+        entry-builder — :func:`squads._board._store.regenerate_index` — rather than the generic
+        :func:`~squads._content_index.regenerate_from_content_files`, because the board's entry
+        order is load-bearing (the positional ordinal *is* the entry's line position) and must
+        reflect the sorted, unexpired listing order, which the generic filename-sorted builder
+        does not know how to produce.
         """
         for folder in await self._memory_role_folders():
             await regenerate_from_content_files(folder)
-        # The board's own content-index folder plugs into this same pass, once its storage
-        # exists, with one more call here alongside the loop above.
+        await board_store.regenerate_index(self.paths)
 
     async def _memory_role_folders(self) -> list[Path]:
         """Every role's memory pool folder currently on disk, sorted by role slug.

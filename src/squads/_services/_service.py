@@ -14,6 +14,7 @@ from squads._models._config import CONFIG_FILENAME, SquadsConfig
 from squads._models._extras import ExtraKey as X
 from squads._paths import SquadPaths, load_config, resolve
 from squads._roles._catalog import RoleDef, resolve_roles
+from squads._services._board import BoardMixin
 from squads._services._collab import CollabMixin
 from squads._services._items import ItemsMixin
 from squads._services._maintenance import MaintenanceMixin
@@ -37,6 +38,7 @@ class Service(
     RetypeMixin,
     RenameMixin,
     MemoryMixin,
+    BoardMixin,
 ):
     """Orchestration façade: the logic behind each CLI command.
 

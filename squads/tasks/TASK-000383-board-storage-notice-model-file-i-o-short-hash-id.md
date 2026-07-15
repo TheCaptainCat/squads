@@ -3,7 +3,7 @@ id: TASK-383
 sequence_id: 383
 type: task
 title: 'Board storage: notice model, file I/O, short-hash id'
-status: Draft
+status: InReview
 parent: FEAT-317
 author: tech-lead
 refs:
@@ -13,18 +13,18 @@ description: Lightweight board-notice model, per-file read/write with a short-ha
 subentities:
 - local_id: ST1
   title: 'Notice model + file I/O: short-hash id, author/posted-at/until/body'
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Generate squads/board/.index.jsonl via the shared generator
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Read-time expiry filter; reads never mutate files
-  status: Todo
+  status: Done
   story: US3
 created_at: '2026-07-15T07:47:58Z'
-updated_at: '2026-07-15T09:31:24Z'
+updated_at: '2026-07-15T10:29:53Z'
 ---
 <!-- sq:body -->
 Build the storage/model layer for the team bulletin board on the model fixed by the accepted decision (ADR-314): its own lighter store under `squads/board/`, one file per notice, off the global counter and outside `.squads.json`.
@@ -55,9 +55,9 @@ _Add with `sq task 383 add-subtask "<title>"`; track with `sq task 383 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Notice model + file I/O: short-hash id, author/posted-at/until/body | US1 |
-| ST2 | Todo |  | Generate squads/board/.index.jsonl via the shared generator | US1 |
-| ST3 | Todo |  | Read-time expiry filter; reads never mutate files | US3 |
+| ST1 | Done |  | Notice model + file I/O: short-hash id, author/posted-at/until/body | US1 |
+| ST2 | Done |  | Generate squads/board/.index.jsonl via the shared generator | US1 |
+| ST3 | Done |  | Read-time expiry filter; reads never mutate files | US3 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -66,7 +66,7 @@ _Add with `sq task 383 add-subtask "<title>"`; track with `sq task 383 subtask <
 ### ST1 — Notice model + file I/O: short-hash id, author/posted-at/until/body
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it
 <!-- sq:subtask:ST1:head:end -->
 
@@ -84,7 +84,7 @@ _Add with `sq task 383 add-subtask "<title>"`; track with `sq task 383 subtask <
 ### ST2 — Generate squads/board/.index.jsonl via the shared generator
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it
 <!-- sq:subtask:ST2:head:end -->
 
@@ -102,7 +102,7 @@ Reuse the shared `.index.jsonl` generator (from the memory storage task) to writ
 ### ST3 — Read-time expiry filter; reads never mutate files
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — As anyone, I can list current notices to see what's active
 <!-- sq:subtask:ST3:head:end -->
 
@@ -120,4 +120,8 @@ Expired notices (past `until`) are excluded from the generated index and listing
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-15T10:21:10Z] Catherine Manager:
+  - Dispatching @python-dev on board storage — reuse the committed _content_index generator + regenerate_from_content_files seam (from memory), and plug squads/board/ into sync's _regenerate_content_indexes pass. Take Ready→InProgress; hand to InReview.
+- [2026-07-15T10:29:53Z] Elias Python:
+  - Storage layer done: _board/_model.py + _store.py (hash-id notices, post/list_notices/clear, regenerate_index), _services/_board.py mixin, plugged into MaintenanceMixin._regenerate_content_indexes. Service surface for TASK-384: board_post/board_list/board_clear. Gates green (pyright, ruff, ruff format, tests/meta, 21 targeted tests). Handing to InReview.
 <!-- sq:discussion:end -->
