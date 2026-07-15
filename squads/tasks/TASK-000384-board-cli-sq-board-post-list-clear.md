@@ -3,7 +3,7 @@ id: TASK-384
 sequence_id: 384
 type: task
 title: 'Board CLI: sq board post/list/clear'
-status: InReview
+status: Done
 parent: FEAT-317
 author: tech-lead
 description: The sq board command group over the board storage layer
@@ -21,7 +21,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-07-15T07:48:19Z'
-updated_at: '2026-07-15T10:35:15Z'
+updated_at: '2026-07-15T11:09:20Z'
 ---
 <!-- sq:body -->
 Build the `sq board ...` command group over the board storage layer.

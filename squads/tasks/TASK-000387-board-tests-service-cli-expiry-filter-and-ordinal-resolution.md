@@ -3,7 +3,7 @@ id: TASK-387
 sequence_id: 387
 type: task
 title: 'Board tests: service + CLI, expiry filter and ordinal resolution'
-status: InReview
+status: Done
 parent: FEAT-317
 author: tech-lead
 description: Service + CLI coverage for the board incl. expiry filtering, positional
@@ -26,7 +26,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-07-15T07:48:50Z'
-updated_at: '2026-07-15T10:57:39Z'
+updated_at: '2026-07-15T11:09:22Z'
 ---
 <!-- sq:body -->
 Cover the board behaviour through the service and CLI, per the repo testing conventions (all file generation in tmp dirs; assert generated files — valid frontmatter, JSONL header + entry lines, no spurious diffs on read).

@@ -3,7 +3,7 @@ id: FEAT-317
 sequence_id: 317
 type: feature
 title: Team bulletin board — broadcast notices with expiry
-status: InProgress
+status: Done
 parent: EPIC-316
 author: product-owner
 refs:
@@ -28,7 +28,7 @@ subentities:
     boundary
   status: Todo
 created_at: '2026-07-06T16:08:53Z'
-updated_at: '2026-07-15T11:04:55Z'
+updated_at: '2026-07-15T11:09:23Z'
 ---
 <!-- sq:body -->
 # Team bulletin board

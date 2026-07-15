@@ -3,7 +3,7 @@ id: TASK-385
 sequence_id: 385
 type: task
 title: 'Board boot-surfacing: unexpired notices (content) via backend'
-status: InReview
+status: Done
 parent: FEAT-317
 author: tech-lead
 assignee: python-dev
@@ -15,7 +15,7 @@ subentities:
   status: Done
   story: US2
 created_at: '2026-07-15T07:48:29Z'
-updated_at: '2026-07-15T10:42:47Z'
+updated_at: '2026-07-15T11:09:20Z'
 ---
 <!-- sq:body -->
 Surface the current board notices at role-boot through the active backend into the managed `CLAUDE.md`/`AGENTS.md` region — not hard-coded. Unlike memory (index-only), the board's notices are short and prescriptive, so they are surfaced content-and-all.
