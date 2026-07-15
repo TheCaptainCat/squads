@@ -8,7 +8,7 @@ author: architect
 description: Slug-file-per-memory + own lighter board store, both off the global counter
   and outside .squads.json
 created_at: '2026-07-06T16:03:50Z'
-updated_at: '2026-07-13T09:08:35Z'
+updated_at: '2026-07-15T09:26:39Z'
 ---
 <!-- sq:body -->
 # Context
@@ -74,8 +74,10 @@ place), content-hash/uuid ids, dedup/collapse on read.
 (Note: choosing JSONL for the *derived index* below does **not** resurrect Option B. Option B
 proposed JSONL as the **content store** — an append-only, hand/merge-edited log of facts, which
 is where the tombstone/merge-union hazards live. The Option-A index is a **regenerated-whole**
-roll-up rebuilt from the `.md` files; it is never appended in place, never hand-edited, and never
-the merge battleground, so none of B's hazards apply to it.)
+roll-up rebuilt from the `.md` files; it is never appended in place and never hand-edited, so
+none of B's hazards apply. When two branches' distinct adds do collide on it — a real conflict,
+see Consequences — the fix is a mechanical regenerate from the `.md` files, not B's silent
+duplicate / stale-line corruption.)
 
 # Options weighed — board storage
 
@@ -112,12 +114,22 @@ Both indexes use the **identical `.index.jsonl` format** (see Design notes) for 
 model; the memory-vs-board difference is purely in *how the CLI addresses entries* (durable slug
 vs ephemeral line-ordinal), matching each tier's semantics, not a divergence in the file format.
 
-**Both live entirely outside `.squads.json` and outside the global counter.** They are not
-items; `sq repair` ignores them; there is nothing about them for the index to reconstruct — which
-is the cleanest possible answer to driver 3 (rather than indexing them and making them
-rebuildable, we keep them out of the index altogether). Both use lightweight models of their own
-(a memory-entry / board-notice type), *not* the `Item` model, so the "lighter tier" stays honest
-and no schema-version / status machinery leaks in.
+**The content is outside `.squads.json` and outside the global counter.** The memories and notices
+are not items; `sq repair` ignores them; there is nothing about them for `.squads.json` to
+reconstruct — the cleanest possible answer to driver 3 (rather than indexing them in `.squads.json`,
+we keep them out of it altogether). Both use lightweight models of their own (a memory-entry /
+board-notice type), *not* the `Item` model, so the "lighter tier" stays honest and no
+schema-version / status machinery leaks in.
+
+**The per-folder `.index.jsonl` is a committed, rebuildable derived index.** It is committed to the
+repo — present on a fresh checkout, no build step to inspect it — and reconstructable at any time
+from that folder's `.md` files. This is the **same posture as `.squads.json`**: a derived index we
+commit for convenience while the `.md` frontmatter stays the source of truth (`sq repair` proves
+`.squads.json` is rebuildable; `sq sync`/`repair` do the same for `.index.jsonl`). It differs from
+`.squads.json` on two axes: it is **per-folder** (one roll-up per memory-role folder and one for the
+board), not a single global index, and it sits **outside the global counter** (entries are keyed by
+slug/hash, not a shared sequence number). Committing it never makes it authoritative over the `.md`
+files — on any divergence, regenerate.
 
 Rationale for A over B: A already satisfies driver 1 (slug filenames, no counter) exactly as B
 does, but its merge behavior is both simpler and *more correct* — file-per-fact lets git resolve
@@ -140,9 +152,11 @@ across both lighter tiers.
 
 - **The generated artifact is the per-folder `.index.jsonl`.** Every folder that holds content
   files — each `squads/agents/memory/<role>/` and `squads/board/` — carries one `.index.jsonl`,
-  a machine-readable roll-up regenerated *whole* from that folder's `.md` files on every
-  add/forget/edit and on `sq sync` (mirroring how the sub-entity summary roll-up is re-rendered on
-  every mutation). One identical format serves both tiers.
+  a machine-readable roll-up regenerated *whole* from that folder's `.md` files by the **add/forget
+  mutation path and on `sq sync`** (mirroring how the sub-entity summary roll-up is re-rendered on
+  every mutation, and how `sq sync` regenerates the other tool-owned managed files). One identical
+  format serves both tiers. There is no in-place "edit" path — a memory is added or forgotten, not
+  line-edited — so those two writes plus `sq sync` are the complete set of triggers.
 
   - **Format: JSON Lines (`.index.jsonl`) — one JSON object per line.** Chosen over a single
     JSON array/object because (a) the file is regenerated whole and streamed line-by-line, so a
@@ -169,11 +183,13 @@ across both lighter tiers.
   - **Generated-file contract for JSON (invariant #7).** A JSONL file cannot carry the HTML
     `<!-- sq:... -->` marker the managed-region wrapper stamps on markdown, so the contract is
     honored by a JSON-native equivalent: the header line's `generated` field is a plain-text
-    stamp ("regenerated by `sq` on add/forget/edit and `sq sync` — do not hand-edit") that plays
-    the role the managed-region warning plays in `CLAUDE.md`/`AGENTS.md`. The file is regenerable
-    and never migrated; the `schema` + `generated` header makes that visible in place, satisfying
-    #7 without a marker comment. Backends surface these indexes; the index-writer is
-    backend-neutral, the same way `_managed_region.py` is.
+    stamp ("regenerated by `sq` on add/forget and `sq sync` — do not hand-edit") that plays
+    the role the managed-region warning plays in `CLAUDE.md`/`AGENTS.md`. The stamp must name only
+    the triggers that actually regenerate the file — add, forget, and `sq sync` — and no phantom
+    trigger (there is no in-place edit path). The file is regenerable and never migrated; the
+    `schema` + `generated` header makes that visible in place, satisfying #7 without a marker
+    comment. Backends surface these indexes; the index-writer is backend-neutral, the same way
+    `_managed_region.py` is.
 
 - **Boot surfacing goes through the backend, not hard-coded.** At role-boot the agent's own
   memory `.index.jsonl` and the current board notices are surfaced into its context — the Claude
@@ -198,12 +214,27 @@ across both lighter tiers.
   concurrent same-fact edits as honest conflicts, at the cost of many small files and a `forget`
   being a real file deletion (history retained in git log). B would be tighter on disk but needs
   tombstone discipline and read-time dedup and silently duplicates when that discipline slips.
-- **A new generated-artifact surface.** Keeping memory/board out of `.squads.json` gives a clean
-  invariant story (nothing for `sq repair` to rebuild), but each folder's `.index.jsonl` becomes a
-  derived file that the mutation path and `sq sync` must keep fresh and stamped — a second
-  regeneration surface to keep honest, separate from the index. Because it is derived, a merge
-  conflict on an `.index.jsonl` is resolved by **regeneration** (`sq sync`), never by hand — the
-  `.md` files remain the merge battleground and source of truth.
+- **A committed derived index carries a real, if minor, merge conflict surface.** Keeping
+  memory/board out of `.squads.json` gives a clean invariant story (nothing for `sq repair` to
+  rebuild from *them*), but each folder's committed `.index.jsonl` is a derived roll-up the
+  add/forget path and `sq sync` must keep fresh and stamped. Because it is committed and rewritten
+  *whole*, two branches each adding a **distinct** memory both rewrite that one file with a
+  different entry line, so a 3-way merge **does conflict** on `.index.jsonl` — state this plainly
+  rather than paper over it. The `.md` content files — the source of truth — still merge cleanly
+  (adds are independent files), so **no memory is lost**; only the derived roll-up needs
+  reconciling. Resolution is **mechanical, not a judgement call**: re-run `sq sync` (or `sq repair`)
+  to regenerate the index from the `.md` files and discard the conflict markers. This is
+  deliberately **not** a merge-driver — union-merge was rejected above (Option B), and a trivially
+  rebuildable derived file does not warrant a gitattribute that every checkout and tool must honor.
+- **Residual trade-off vs driver 1 (reconciled honestly).** Driver 1 built this lighter tier to
+  escape the counter-collision merge pain of items, and that pain *is* still gone: ids are
+  human-meaningful slugs/hashes with no shared global counter, so the content files never collide
+  on filename or counter and no `renumber` cleanup is ever needed. What remains is a conflict on a
+  *derived, trivially-rebuildable* index with a one-command fix — a strictly smaller and
+  qualitatively different problem than the counter collision, which corrupted the source-of-truth
+  filenames themselves. We accept that residual index conflict in exchange for a committed,
+  inspectable roll-up present on a fresh checkout (the `.squads.json` posture), rather than
+  gitignoring the roll-up to make it conflict-free. The trade is real and named, not claimed away.
 - **Positional board clear has a mild list-then-act gap** — `clear <n>` resolves against the
   n-th entry line of the current `squads/board/.index.jsonl` (the live sorted, unexpired listing),
   so a concurrent post/clear/expiry that regenerates the index between `list` and `clear` can
@@ -227,4 +258,10 @@ across both lighter tiers.
   - Header decision: keep the inline header line ({schema, generated-stamp}) as the first line of `.index.jsonl` — one self-describing file per folder. The board ordinal counts entry lines (header excluded), so entry line n = clear <n>; the raw-line +1 offset is CLI-internal and invisible to users. ADR-314 design is settled — approved to accept.
 - [2026-07-13T09:08:35Z] Robert Architect:
   - Accepted per @op-pierre's approval. Design settled across two refinements: index is a per-folder generated `.index.jsonl` (JSON Lines) with entry schema {slug, filename, description}; memory stays slug-addressed, board ordinal = entry-line position (inline header excluded); generated-file contract honored via the header's schema+generated stamp.
+- [2026-07-15T09:26:39Z] Robert Architect:
+  - Amended per REV-388 (findings F1/F2) and @op-pierre's option-B decision — a correction to this accepted ADR, not a re-proposal (status stays Accepted).
+  - F1 (index conflicts on distinct concurrent adds): the .index.jsonl is now framed as a COMMITTED, rebuildable derived index — same posture as .squads.json (committed for convenience, .md frontmatter is source of truth), differing only in being per-folder and outside the global counter. Consequences now state plainly that two branches each adding a distinct memory DO conflict on the committed roll-up; the .md files still merge cleanly (no memory lost); resolution is mechanical — re-run sq sync/repair to regenerate. Explicitly NOT a merge-driver (union-merge stays rejected).
+  - F2 (phantom 'edit' trigger + false sync claim): corrected the GENERATED_STAMP wording to 'regenerated by sq on add/forget and sq sync — do not hand-edit' (dropped 'edit' — there is no in-place edit path) and stated the stamp must name only real triggers. The generated-artifact bullet now says the add/forget path AND sq sync regenerate the index.
+  - Reconciled with driver 1: the counter-collision pain is still gone (meaningful slug/hash ids, no shared counter, no renumber cleanup); what remains is a conflict on a derived, one-command-rebuildable index — a strictly smaller, qualitatively different problem — accepted in exchange for a committed, inspectable roll-up on fresh checkout. Trade is named, not claimed away.
+  - Wiring sq sync to actually regenerate the memory AND board indexes, fixing the stamp string, and the merge test follow separately (tech-lead: TASK-382 et al.); this amendment is the ADR record only.
 <!-- sq:discussion:end -->

@@ -22,11 +22,12 @@ subentities:
   status: Todo
   story: US4
 - local_id: ST4
-  title: Test independent-branch merge + outside-.squads.json + repair
+  title: 'Test US5 merge: .md merges clean, committed index conflicts, sync/repair
+    resolves'
   status: Todo
   story: US5
 created_at: '2026-07-15T07:47:41Z'
-updated_at: '2026-07-15T07:47:44Z'
+updated_at: '2026-07-15T09:31:11Z'
 ---
 <!-- sq:body -->
 Cover the memory behaviour through the service and CLI, per the repo testing conventions (all file generation in tmp dirs; assert generated files — valid frontmatter, JSONL header + entry lines, preserved bodies).
@@ -39,7 +40,7 @@ Cover the memory behaviour through the service and CLI, per the repo testing con
 
 - **forget** deletes the file and regenerates the index; a missing slug raises a clean error.
 
-- **Merge / invariants** — two independent adds produce separate files (no conflict); memory lives outside `.squads.json` and `sq repair` neither rebuilds nor disturbs it.
+- **Merge / invariants** — two branches each adding a distinct memory: the slug-named `.md` content files merge cleanly (no memory lost), while the committed `.index.jsonl` roll-up conflicts (both rewrote it whole); `sq sync`/`sq repair` mechanically regenerates the index from the `.md` files to resolve. Same-memory edits on both branches surface an honest `.md` conflict. Memory lives outside `.squads.json`; `sq repair` neither rebuilds nor disturbs the `.md` files, and rebuilds the index from them.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -52,7 +53,7 @@ _Add with `sq task 382 add-subtask "<title>"`; track with `sq task 382 subtask <
 | ST1 | Todo |  | Test add writes file + regenerates index; no counter allocation | US1 |
 | ST2 | Todo |  | Test list/search/show and slug addressing | US3 |
 | ST3 | Todo |  | Test forget deletes + regenerates; clean error on missing slug | US4 |
-| ST4 | Todo |  | Test independent-branch merge + outside-.squads.json + repair | US5 |
+| ST4 | Todo |  | Test US5 merge: .md merges clean, committed index conflicts, sync/repair resolves | US5 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -112,7 +113,7 @@ Add creates `<slug>.md` with light frontmatter and regenerates `.index.jsonl` (h
 <!-- sq:subtask:ST3:end -->
 
 <!-- sq:subtask:ST4 -->
-### ST4 — Test independent-branch merge + outside-.squads.json + repair
+### ST4 — Test US5 merge: .md merges clean, committed index conflicts, sync/repair resolves
 
 <!-- sq:subtask:ST4:head -->
 **Status:** ⚪ Todo
@@ -120,7 +121,11 @@ Add creates `<slug>.md` with light frontmatter and regenerates `.index.jsonl` (h
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
-Two distinct memories written independently coexist as separate files (no conflict). Memory sits outside `.squads.json`; `sq repair` leaves memory files and the index untouched.
+Two branches each adding a DISTINCT memory: the slug-named .md content files merge cleanly (no memory lost), while the committed .index.jsonl roll-up conflicts — both branches rewrote it whole with a different entry line. sq sync / sq repair then mechanically regenerates the index from the .md files to resolve the conflict (not: 'merges with no conflict').
+
+Two branches editing the SAME memory surface an honest .md conflict (correct to resolve by hand).
+
+Memory sits outside .squads.json; sq repair neither rebuilds nor disturbs the memory .md files, and rebuilds the index from them. Exercise with a git-backed test: init a repo in tmp_path, branch, add on each, merge — asserting the .md merge is clean, the index conflicts, and sync/repair regenerates it.
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion

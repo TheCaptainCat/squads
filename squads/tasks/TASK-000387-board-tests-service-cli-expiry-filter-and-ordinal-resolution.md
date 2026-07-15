@@ -26,7 +26,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-07-15T07:48:50Z'
-updated_at: '2026-07-15T07:48:53Z'
+updated_at: '2026-07-15T09:31:24Z'
 ---
 <!-- sq:body -->
 Cover the board behaviour through the service and CLI, per the repo testing conventions (all file generation in tmp dirs; assert generated files — valid frontmatter, JSONL header + entry lines, no spurious diffs on read).
@@ -40,6 +40,8 @@ Cover the board behaviour through the service and CLI, per the repo testing conv
 - **clear <n>** resolves the n-th entry line of the live index to the hash id and deletes the file; an out-of-range ordinal errors cleanly.
 
 - **boot surfacing** excludes expired notices; an empty or all-expired board surfaces nothing. Board lives outside `.squads.json`; `sq repair` ignores it.
+
+- Assume the committed-index-regenerated-on-sync model: the board `.index.jsonl` is committed and rebuilt from the notice `.md` files on post/clear and `sq sync`/`sq repair`. The expiry-filter and positional-ordinal tests resolve against that regenerated committed index.
 <!-- sq:body:end -->
 
 ## Subtasks
