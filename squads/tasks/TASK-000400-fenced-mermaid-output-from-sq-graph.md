@@ -3,7 +3,7 @@ id: TASK-400
 sequence_id: 400
 type: task
 title: Fenced Mermaid output from sq graph
-status: InReview
+status: Done
 parent: FEAT-377
 author: tech-lead
 assignee: python-dev
@@ -13,7 +13,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-07-15T14:02:32Z'
-updated_at: '2026-07-15T14:30:35Z'
+updated_at: '2026-07-15T14:44:34Z'
 ---
 <!-- sq:body -->
 # Fenced Mermaid output from `sq graph`

@@ -3,32 +3,32 @@ id: FEAT-318
 sequence_id: 318
 type: feature
 title: 'Enrich sq search: --status, region/authority, richer --json'
-status: InProgress
+status: Done
 parent: EPIC-38
 author: product-owner
 subentities:
 - local_id: US1
   title: As a steering user, I can search item prose by free text so I can find buried
     context
-  status: Todo
+  status: Done
 - local_id: US2
   title: As a steering user, results show where each match is and its authority so
     I can judge relevance
-  status: Todo
+  status: Done
 - local_id: US3
   title: As a steering user, I can narrow the search with structured filters so I
     can audit a slice
-  status: Todo
+  status: Done
 - local_id: US4
   title: As an agent, I can get search results as JSON so a session can act on them
     programmatically
-  status: Todo
+  status: Done
 - local_id: US5
   title: As an agent, the squads skill teaches when to reach for search so it's used
     for steering not as a ritual
-  status: Todo
+  status: Done
 created_at: '2026-07-07T07:15:49Z'
-updated_at: '2026-07-15T14:43:19Z'
+updated_at: '2026-07-15T14:45:03Z'
 ---
 <!-- sq:body -->
 # Search the board
@@ -88,11 +88,11 @@ _Add with `sq feature 318 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a steering user, I can search item prose by free text so I can find buried context |
-| US2 | Todo |  | As a steering user, results show where each match is and its authority so I can judge relevance |
-| US3 | Todo |  | As a steering user, I can narrow the search with structured filters so I can audit a slice |
-| US4 | Todo |  | As an agent, I can get search results as JSON so a session can act on them programmatically |
-| US5 | Todo |  | As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual |
+| US1 | Done |  | As a steering user, I can search item prose by free text so I can find buried context |
+| US2 | Done |  | As a steering user, results show where each match is and its authority so I can judge relevance |
+| US3 | Done |  | As a steering user, I can narrow the search with structured filters so I can audit a slice |
+| US4 | Done |  | As an agent, I can get search results as JSON so a session can act on them programmatically |
+| US5 | Done |  | As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -101,7 +101,7 @@ _Add with `sq feature 318 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — As a steering user, I can search item prose by free text so I can find buried context
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -127,7 +127,7 @@ As a steering user, I want to search item prose by free text so I can find conte
 ### US2 — As a steering user, results show where each match is and its authority so I can judge relevance
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -152,7 +152,7 @@ As a steering user, I want each result to show where the match is and its author
 ### US3 — As a steering user, I can narrow the search with structured filters so I can audit a slice
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -176,7 +176,7 @@ As a steering user, I want to narrow the search with the structured filters I al
 ### US4 — As an agent, I can get search results as JSON so a session can act on them programmatically
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
@@ -199,7 +199,7 @@ As an agent, I want search results as JSON so a session can act on them programm
 ### US5 — As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual
 
 <!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->

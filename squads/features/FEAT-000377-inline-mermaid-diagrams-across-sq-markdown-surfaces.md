@@ -3,20 +3,20 @@ id: FEAT-377
 sequence_id: 377
 type: feature
 title: Inline Mermaid diagrams across sq markdown surfaces
-status: InProgress
+status: Done
 author: product-owner
 subentities:
 - local_id: US1
   title: Fenced Mermaid output from sq graph
-  status: Todo
+  status: Done
 - local_id: US2
   title: Derived per-item Mermaid graph section in the item dossier
   status: Cancelled
 - local_id: US3
   title: Spec-derived Mermaid diagrams in docs and the workflow cheatsheet
-  status: Todo
+  status: Done
 created_at: '2026-07-10T09:04:53Z'
-updated_at: '2026-07-15T14:43:32Z'
+updated_at: '2026-07-15T14:45:04Z'
 ---
 <!-- sq:body -->
 VSCode, GitHub, PyCharm etc. already render a fenced ```mermaid block inline in any .md file. sq graph --format mermaid already emits a valid Mermaid graph body (graph_to_mermaid in _services/_refs.py) but it's raw, meant for piping to mmdc or pasting into Mermaid Live — not wrapped in a markdown fence. Wrapping that existing serializer in a fence, and reusing it in a couple more places, gets us free inline diagrams across sq's generated markdown with no new rendering engine.
@@ -36,9 +36,9 @@ _Add with `sq feature 377 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | Fenced Mermaid output from sq graph |
+| US1 | Done |  | Fenced Mermaid output from sq graph |
 | US2 | Cancelled |  | Derived per-item Mermaid graph section in the item dossier |
-| US3 | Todo |  | Spec-derived Mermaid diagrams in docs and the workflow cheatsheet |
+| US3 | Done |  | Spec-derived Mermaid diagrams in docs and the workflow cheatsheet |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -47,7 +47,7 @@ _Add with `sq feature 377 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — Fenced Mermaid output from sq graph
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -92,7 +92,7 @@ Open design question — flag before implementation: this is the slice most like
 ### US3 — Spec-derived Mermaid diagrams in docs and the workflow cheatsheet
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
