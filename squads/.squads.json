@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.8.0",
-  "counter": 394,
+  "counter": 395,
   "padding": 6,
   "items": {
     "12": {
@@ -15798,6 +15798,64 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-394"
+    },
+    "395": {
+      "sequence_id": 395,
+      "type": "review",
+      "title": "EPIC-316 surfacing model: push-into-managed-files vs pull-at-startup",
+      "slug": "epic-316-surfacing-model-push-into-managed-files-vs-pull-at",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-315:addresses",
+        "FEAT-317:addresses",
+        "FEAT-392:addresses",
+        "ADR-314:addresses",
+        "REV-388",
+        "REV-391"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Push boot-surfacing + unconditional directive vs conditional sections = dangling reference on fresh installs",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "The .index.jsonl becomes readerless once surfacing is removed — derived data stored for no consumer",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and drop the .index.jsonl machinery",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000395-epic-316-surfacing-model-push-into-managed-files-vs-pull-at.md",
+      "created_at": "2026-07-15T12:22:49Z",
+      "updated_at": "2026-07-15T12:24:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-395"
     }
   }
 }
