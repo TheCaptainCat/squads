@@ -279,6 +279,7 @@ def main_callback(
 # Register commands (imported after `app` is defined; they decorate it). `_main` is a side-effect
 # import — its `@app.command()`s attach the top-level commands but it's never referenced by name.
 from squads._cli import (  # noqa: E402
+    _board,
     _create,
     _dev,
     _items,
@@ -302,6 +303,11 @@ app.add_typer(
     _memory.memory_app,
     name="memory",
     help="A role's committed memory notebook (list/search/show/add/forget).",
+)
+app.add_typer(
+    _board.board_app,
+    name="board",
+    help="The team bulletin board (post/list/clear).",
 )
 app.add_typer(
     _migrate.migrate_app, name="migrate", help="Run schema migrations and read their steps."
