@@ -24,7 +24,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-07-15T07:47:58Z'
-updated_at: '2026-07-15T07:48:08Z'
+updated_at: '2026-07-15T09:31:24Z'
 ---
 <!-- sq:body -->
 Build the storage/model layer for the team bulletin board on the model fixed by the accepted decision (ADR-314): its own lighter store under `squads/board/`, one file per notice, off the global counter and outside `.squads.json`.
@@ -44,6 +44,8 @@ Build the storage/model layer for the team bulletin board on the model fixed by 
 - The positional ordinal is the entry's line position in the generated index (header excluded); it is a display affordance, not persisted meaning — the stored id is the short hash.
 
 - Two notices posted on separate branches get distinct hash ids and do not collide on merge.
+
+- The board's `.index.jsonl` is committed (same posture as `.squads.json`: a rebuildable derived index committed for convenience) and regenerated whole from the notice `.md` files on post/clear and on `sq sync`/`sq repair`, via the shared generator. On a merge conflict of the committed index the fix is mechanical: regenerate from the `.md` files.
 <!-- sq:body:end -->
 
 ## Subtasks

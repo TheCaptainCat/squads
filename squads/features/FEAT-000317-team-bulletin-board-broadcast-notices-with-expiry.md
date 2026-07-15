@@ -28,7 +28,7 @@ subentities:
     boundary
   status: Todo
 created_at: '2026-07-06T16:08:53Z'
-updated_at: '2026-07-13T09:13:47Z'
+updated_at: '2026-07-15T09:29:59Z'
 ---
 <!-- sq:body -->
 # Team bulletin board
@@ -101,7 +101,7 @@ As a lead or operator, I want to post a notice to the board with an optional exp
 - `sq board post -m "<text>"` creates a notice file under `squads/board/` with a short-hash id plus author, posted-at, and body; NO global-counter id.
 - `--until <date>` records an expiry.
 - The post is attributable to its author (operator via `--as op-<slug>` / agent role).
-- Two notices posted on separate branches get distinct hash ids and do not collide on merge.
+- Two notices posted on separate branches get distinct hash ids and the notice files merge cleanly, but the committed `board/.index.jsonl` conflicts on the distinct posts — resolved mechanically by re-running `sq sync`/`repair` to regenerate it.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -205,4 +205,8 @@ As an agent, I want a guiding skill to teach board posting discipline and the me
 <!-- sq:discussion -->
 - [2026-07-13T09:10:34Z] Nina Product:
   - Aligned to ADR-314's accepted design: board also has a generated .index.jsonl roll-up under squads/board/; clear <n> ordinal is now concrete = n-th entry line (header excluded). Shape + US3/US4 updated.
+- [2026-07-15T09:29:39Z] Operator:
+  - Realigned US1 acceptance to ADR-314's option-B amendment (REV-388): notice files merge cleanly; committed board/.index.jsonl conflicts on distinct posts, resolved by re-running sq sync/repair.
+- [2026-07-15T09:29:59Z] Nina Product:
+  - Re-post with correct attribution — see above: realigned US1 acceptance to ADR-314's option-B amendment (REV-388).
 <!-- sq:discussion:end -->

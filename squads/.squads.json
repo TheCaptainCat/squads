@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.8.0",
-  "counter": 387,
+  "counter": 389,
   "padding": 6,
   "items": {
     "12": {
@@ -3074,7 +3074,7 @@
       ],
       "path": "features/FEAT-000315-agent-memory-committed-per-role-notebook-surfaced-at-boot.md",
       "created_at": "2026-07-06T16:05:08Z",
-      "updated_at": "2026-07-15T08:03:06Z",
+      "updated_at": "2026-07-15T09:31:40Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3145,7 +3145,7 @@
       ],
       "path": "features/FEAT-000317-team-bulletin-board-broadcast-notices-with-expiry.md",
       "created_at": "2026-07-06T16:08:53Z",
-      "updated_at": "2026-07-13T09:13:47Z",
+      "updated_at": "2026-07-15T09:29:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -9979,7 +9979,7 @@
         },
         {
           "local_id": "ST4",
-          "title": "Test independent-branch merge + outside-.squads.json + repair",
+          "title": "Test US5 merge: .md merges clean, committed index conflicts, sync/repair resolves",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -9989,7 +9989,7 @@
       ],
       "path": "tasks/TASK-000382-memory-tests-service-cli-merge-and-off-counter-invariants.md",
       "created_at": "2026-07-15T07:47:41Z",
-      "updated_at": "2026-07-15T07:47:44Z",
+      "updated_at": "2026-07-15T09:31:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10042,7 +10042,7 @@
       ],
       "path": "tasks/TASK-000383-board-storage-notice-model-file-i-o-short-hash-id.md",
       "created_at": "2026-07-15T07:47:58Z",
-      "updated_at": "2026-07-15T07:48:08Z",
+      "updated_at": "2026-07-15T09:31:24Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -10219,7 +10219,7 @@
       ],
       "path": "tasks/TASK-000387-board-tests-service-cli-expiry-filter-and-ordinal-resolution.md",
       "created_at": "2026-07-15T07:48:50Z",
-      "updated_at": "2026-07-15T07:48:53Z",
+      "updated_at": "2026-07-15T09:31:24Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -11628,7 +11628,7 @@
       "subentities": [],
       "path": "adrs/ADR-000314-storage-id-model-for-agent-memory-and-the-team-bulletin-boar.md",
       "created_at": "2026-07-06T16:03:50Z",
-      "updated_at": "2026-07-13T09:08:35Z",
+      "updated_at": "2026-07-15T09:26:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -15495,6 +15495,113 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-10"
+    },
+    "388": {
+      "sequence_id": 388,
+      "type": "review",
+      "title": "FEAT-315 agent-memory: US5 merge story + index generated-file contract",
+      "slug": "feat-315-agent-memory-us5-merge-story-index-generated-file-c",
+      "status": "ChangesRequested",
+      "description": "Feature-level review of memory (TASK-378/379/380): committed .index.jsonl breaks US5 no-conflict + sync doesn't regenerate it",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-315"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "US5.2 violated: two distinct memory adds conflict on the committed .index.jsonl",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "index GENERATED_STAMP promises 'sq sync' regeneration that does not exist",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "US5 merge/branch behavior has no test — only the off-counter/repair-neutral point is asserted",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000388-feat-315-agent-memory-us5-merge-story-index-generated-file-c.md",
+      "created_at": "2026-07-15T08:50:38Z",
+      "updated_at": "2026-07-15T09:23:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-388"
+    },
+    "389": {
+      "sequence_id": 389,
+      "type": "task",
+      "title": "Wire sq sync/repair to regenerate content indexes; fix GENERATED_STAMP",
+      "slug": "wire-sq-sync-repair-to-regenerate-content-indexes-fix-genera",
+      "status": "Draft",
+      "description": "Wire sync/repair to rebuild the committed .index.jsonl roll-ups (memory + board) and correct the generated-file stamp (option B, REV-388)",
+      "parent": "FEAT-315",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-388:addresses",
+        "TASK-378"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Regenerate all content indexes on sq sync (memory folders + board)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Correct GENERATED_STAMP to the add/forget/sq sync string; drop phantom edit",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "sq repair/sync mechanically regenerates a conflicted index from the .md files",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000389-wire-sq-sync-repair-to-regenerate-content-indexes-fix-genera.md",
+      "created_at": "2026-07-15T09:30:17Z",
+      "updated_at": "2026-07-15T09:30:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-389"
     }
   }
 }
