@@ -58,5 +58,13 @@ sq blocked                           # open items waiting on an open blocker
 - {{ resp }}
 {% endfor %}
 {% endif %}
+{% if r.memory_lines %}
+
+**Memory** (`sq memory {{ r.slug }} show <slug>` for the full entry):
+
+{% for line in r.memory_lines %}
+{{ line }}
+{% endfor %}
+{% endif %}
 
 {% endfor %}

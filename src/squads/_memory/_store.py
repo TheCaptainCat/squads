@@ -12,7 +12,7 @@ from pathlib import Path
 
 from squads import _aio
 from squads import _clock as clock
-from squads._content_index import IndexEntry, regenerate
+from squads._content_index import INDEX_FILENAME, IndexEntry, parse_index, regenerate
 from squads._errors import SquadsError
 from squads._memory._model import MemoryEntry
 from squads._paths import SquadPaths
@@ -149,6 +149,21 @@ async def search(
         if hits:
             out.append((entry, hits))
     return out
+
+
+async def read_index(paths: SquadPaths, role_slug: str) -> list[IndexEntry]:
+    """Read back *role_slug*'s generated ``.index.jsonl`` (entry lines only, header dropped).
+
+    Boot surfacing reads this directly rather than :func:`list_entries` — the index already
+    holds exactly what gets surfaced (slug + one-line description), so there's no need to
+    reopen every memory's ``.md`` file just to re-read a summary already rolled up. Missing
+    folder/index -> ``[]`` (an empty pool surfaces nothing), never an error.
+    """
+    index_path = role_folder(paths, role_slug) / INDEX_FILENAME
+    if not await _aio.path_exists(index_path):
+        return []
+    _, entries = parse_index(await _aio.read_text(index_path))
+    return entries
 
 
 async def forget(paths: SquadPaths, role_slug: str, slug: str) -> None:

@@ -16,6 +16,7 @@ import pytest
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code._backend import ClaudeCodeBackend
+from squads._memory import _store as memory_store
 from squads._models._config import SquadsConfig
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
@@ -450,6 +451,99 @@ class TestFullLifecycleRoundTrip:
 def test_backend_name_is_a_non_empty_string(backend: AgentBackend) -> None:
     assert isinstance(backend.name, str)
     assert backend.name
+
+
+# ---------------------------------------------------------------------------
+# Agent memory boot surfacing (index-only, through the backend)
+# ---------------------------------------------------------------------------
+
+
+class TestMemoryBootSurfacing:
+    """A role's own memory index reaches its managed context through the backend — never
+    hard-coded outside it — as index-only lines (slug + one-line summary, never the body)."""
+
+    async def _managed_text(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+        role_item: Item,
+        role_def: RoleDef,
+    ) -> str:
+        await backend.ensure_scaffold(ctx)
+        artifacts = [*await backend.write_managed(ctx, roster, operators)]
+        artifacts.append(await backend.generate_role_entry(ctx, role_item, role_def))
+        text = ""
+        for artifact in artifacts:
+            full = ctx.root / artifact.path
+            if full.exists():
+                text += full.read_text(encoding="utf-8")
+        return text
+
+    async def test_an_empty_memory_pool_surfaces_no_memory_section(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+        role_def: RoleDef,
+    ) -> None:
+        role_item = _make_role_item(1, role_def.slug, ctx.squad_dir)
+        text = await self._managed_text(backend, ctx, roster, operators, role_item, role_def)
+        assert f"sq memory {role_def.slug} show" not in text
+
+    async def test_a_roles_memory_index_reaches_its_managed_output_through_the_backend(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+        role_def: RoleDef,
+    ) -> None:
+        await memory_store.add(ctx.paths, role_def.slug, "the scale suite takes about 4 minutes")
+        role_item = _make_role_item(1, role_def.slug, ctx.squad_dir)
+        text = await self._managed_text(backend, ctx, roster, operators, role_item, role_def)
+        assert "the-scale-suite-takes-about-4-minutes" in text
+        assert "the scale suite takes about 4 minutes" in text
+
+    async def test_only_the_index_is_surfaced_never_the_full_memory_body(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+        role_def: RoleDef,
+    ) -> None:
+        await memory_store.add(
+            ctx.paths,
+            role_def.slug,
+            "short summary fact",
+            body="A much longer freeform paragraph nobody should see at boot.",
+        )
+        role_item = _make_role_item(1, role_def.slug, ctx.squad_dir)
+        text = await self._managed_text(backend, ctx, roster, operators, role_item, role_def)
+        assert "short summary fact" in text
+        assert "A much longer freeform paragraph nobody should see at boot." not in text
+
+    async def test_a_newly_added_memory_reaches_the_managed_output_only_after_regeneration(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+        role_def: RoleDef,
+    ) -> None:
+        """Proves the surfacing goes through the backend's regeneration path — like the
+        rest of the managed content, refreshed on ``sq sync`` — rather than being baked in
+        once and going stale."""
+        role_item = _make_role_item(1, role_def.slug, ctx.squad_dir)
+        before = await self._managed_text(backend, ctx, roster, operators, role_item, role_def)
+        assert "a fact learned mid-session" not in before
+
+        await memory_store.add(ctx.paths, role_def.slug, "a fact learned mid-session")
+        after = await self._managed_text(backend, ctx, roster, operators, role_item, role_def)
+        assert "a fact learned mid-session" in after
 
 
 # ---------------------------------------------------------------------------
