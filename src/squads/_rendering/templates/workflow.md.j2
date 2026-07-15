@@ -64,6 +64,35 @@
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
 
+## Item hierarchy
+
+{# Spec-derived: every type's parent_chain(), flattened to unique parent->child edges — the
+   same source data as the "Hierarchy: ..." bullets above, as a diagram instead of prose. Node
+   ids run through the `mermaid_id` filter so a customized vocab's type names (spaces, hyphens,
+   …) stay valid Mermaid identifiers; the bracketed label always shows the real name. #}
+{% set hierarchy_edges = [] %}
+{% for item_type, item_spec in spec.items.items() %}
+{% if not item_spec.is_meta %}
+{% set chain = parent_chain(spec, item_type) %}
+{% for i in range(chain | length - 1) %}
+{% set edge = (chain[i], chain[i + 1]) %}
+{% if edge not in hierarchy_edges %}
+{% set _ = hierarchy_edges.append(edge) %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% if hierarchy_edges %}
+```mermaid
+flowchart TD
+{% for parent, child in hierarchy_edges %}
+    {{ parent | mermaid_id }}["{{ parent }}"] --> {{ child | mermaid_id }}["{{ child }}"]
+{% endfor %}
+```
+{% else %}
+_No multi-level parent/child hierarchy declared in the active spec._
+{% endif %}
+
 ## Type-command aliases
 
 Short and single-letter aliases for the item-type commands — input sugar only. They are hidden from
@@ -96,4 +125,31 @@ statuses and transitions.
 {% endif %}
 {% endfor %}
 
+{# Per-type stateDiagram-v2, one per non-meta type — the actual transition edges (the table
+   above only linearizes them into a readable chain). `lifecycle_states_in_order`/
+   `lifecycle_edges` walk the machine deterministically (Lifecycle.states is a frozenset,
+   hash-seed-ordered — unsafe to iterate directly in a byte-stable generated file). #}
+{% for item_type, item_spec in spec.items.items() %}
+{% if not item_spec.is_meta %}
+{% set machine = spec.machine_for(item_type) %}
+`{{ item_type }}` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> {{ machine.initial | mermaid_id }}
+{% for status in lifecycle_states_in_order(machine) %}
+    {{ status | mermaid_id }} : {{ status }}
+{% endfor %}
+{% for src, dst in lifecycle_edges(machine) %}
+    {{ src | mermaid_id }} --> {{ dst | mermaid_id }}
+{% endfor %}
+{% for status in lifecycle_states_in_order(machine) %}
+{% if spec.statuses[status].terminal %}
+    {{ status | mermaid_id }} --> [*]
+{% endif %}
+{% endfor %}
+```
+
+{% endif %}
+{% endfor %}
 {% include "workflow_static.md.j2" %}

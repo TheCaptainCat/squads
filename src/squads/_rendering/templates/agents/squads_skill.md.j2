@@ -92,6 +92,23 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
 `--author op-<slug>`). Register one with `sq operator add "<name>"`; list them with
 `sq list -t operator`.
 
+## Finding things across the board
+
+Reach for `sq search "<text>"` when you're steering or scoping — hunting the prior decision behind
+something, checking whether a topic is already tracked, or gauging how stale a thread has gone.
+It's a query verb, not a routine boot step: don't run it as part of every handoff, just when you
+need to find something you don't already have the ID for.
+
+- It scans **everything**: titles, summaries, bodies, discussion comments, and sub-entity prose
+  (story/subtask/finding blocks) — case-insensitive substring match.
+- Narrow with `--type <type>` and/or `--status <status>` (the same vocabulary as `sq list`); both
+  AND-compose with the query.
+- Each result names **where** it matched: `body`, a `discussion` comment, or a named sub-entity
+  (e.g. `story:US<n>`, `story:US<n>:discussion#2`), alongside an in-context snippet — so you can jump
+  straight to the right region instead of re-reading the whole item.
+- `sq search "<text>" --json` emits the same result set machine-readably (id/type/status plus
+  each hit's region/location/snippet) for a script or an orchestrating agent to consume.
+
 {% include "workflow.md.j2" %}
 
 ## Common commands

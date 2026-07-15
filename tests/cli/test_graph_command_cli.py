@@ -88,6 +88,27 @@ async def test_format_dot_and_mermaid_emit_serialized_graphs(project, invoke):
     assert "flowchart LR" in mermaid.output and "FEAT_2" in mermaid.output
 
 
+async def test_format_mermaid_md_wraps_the_serialized_body_in_a_fence(project, invoke):
+    await _seed(invoke)
+    plain = await invoke(
+        ["graph", "FEAT-000002", "--format", "mermaid", "--depth", "1", "--direction", "in"]
+    )
+    fenced = await invoke(
+        ["graph", "FEAT-000002", "--format", "mermaid-md", "--depth", "1", "--direction", "in"]
+    )
+    assert fenced.exit_code == 0
+    lines = fenced.output.splitlines()
+    assert lines[0] == "```mermaid"
+    assert lines[-1] == "```"
+    assert plain.output.strip() in fenced.output
+
+
+async def test_format_rejects_an_unknown_value(project, invoke):
+    await _seed(invoke)
+    result = await invoke(["graph", "FEAT-000002", "--format", "svg"])
+    assert result.exit_code != 0
+
+
 async def test_a_badge_field_renders_on_a_node_without_crashing(project, invoke):
     await invoke(["create", "feature", "Root", "--author", "manager", "--priority", "high"])
     await invoke(["create", "task", "Dep", "--author", "manager", "--priority", "urgent"])

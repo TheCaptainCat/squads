@@ -64,5 +64,5 @@ async def test_terminal_item_hidden_from_open_only_view_but_still_findable(
     open_items = [i for i in all_items if workflow.is_open(i.status)]
     assert item.id not in [i.id for i in open_items]
 
-    search_hits = [i.id for i, _ in await svc.search(search_term)]
+    search_hits = [r.item.id for r in await svc.search(search_term)]
     assert item.id in search_hits

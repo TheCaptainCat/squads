@@ -14,6 +14,15 @@ async def test_workflow_command_prints_the_team_workflow_cheatsheet(project, inv
     assert "parent" in result.output and "feature" in result.output
 
 
+async def test_workflow_command_renders_the_fenced_mermaid_diagrams_without_crashing(
+    project, invoke
+):
+    result = await invoke(["workflow"])
+    assert result.exit_code == 0
+    assert "flowchart TD" in result.output
+    assert "stateDiagram-v2" in result.output
+
+
 def test_root_help_points_to_the_workflow_command(runner):
     result = runner.invoke(app, ["--help"])
     assert "sq workflow" in result.output

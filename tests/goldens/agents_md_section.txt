@@ -45,6 +45,14 @@ leave comments. Address them by their `op-` slug.
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
 
+## Item hierarchy
+
+```mermaid
+flowchart TD
+    epic["epic"] --> feature["feature"]
+    feature["feature"] --> task["task"]
+```
+
 ## Type-command aliases
 
 Short and single-letter aliases for the item-type commands — input sugar only. They are hidden from
@@ -80,6 +88,202 @@ statuses and transitions.
 | `ADR` | `decision` | `Proposed → Accepted → Superseded (+ Rejected, Deprecated)` |
 | `REV` | `review` | `Requested → InReview → ChangesRequested → Approved (+ Rejected)` |
 | `GUIDE` | `guide` | `Draft → Published → Deprecated` |
+
+`epic` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft : Draft
+    Ready : Ready
+    InProgress : InProgress
+    Cancelled : Cancelled
+    Blocked : Blocked
+    InReview : InReview
+    Done : Done
+    Draft --> Ready
+    Draft --> InProgress
+    Draft --> Cancelled
+    Ready --> InProgress
+    Ready --> Blocked
+    Ready --> Cancelled
+    InProgress --> InReview
+    InProgress --> Blocked
+    InProgress --> Done
+    InProgress --> Cancelled
+    Cancelled --> Draft
+    Blocked --> Ready
+    Blocked --> InProgress
+    Blocked --> Cancelled
+    InReview --> InProgress
+    InReview --> Done
+    InReview --> Blocked
+    InReview --> Cancelled
+    Done --> InProgress
+    Cancelled --> [*]
+    Done --> [*]
+```
+
+`feature` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft : Draft
+    Ready : Ready
+    InProgress : InProgress
+    Cancelled : Cancelled
+    Blocked : Blocked
+    InReview : InReview
+    Done : Done
+    Draft --> Ready
+    Draft --> InProgress
+    Draft --> Cancelled
+    Ready --> InProgress
+    Ready --> Blocked
+    Ready --> Cancelled
+    InProgress --> InReview
+    InProgress --> Blocked
+    InProgress --> Done
+    InProgress --> Cancelled
+    Cancelled --> Draft
+    Blocked --> Ready
+    Blocked --> InProgress
+    Blocked --> Cancelled
+    InReview --> InProgress
+    InReview --> Done
+    InReview --> Blocked
+    InReview --> Cancelled
+    Done --> InProgress
+    Cancelled --> [*]
+    Done --> [*]
+```
+
+`task` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft : Draft
+    Ready : Ready
+    InProgress : InProgress
+    Cancelled : Cancelled
+    Blocked : Blocked
+    InReview : InReview
+    Done : Done
+    Draft --> Ready
+    Draft --> InProgress
+    Draft --> Cancelled
+    Ready --> InProgress
+    Ready --> Blocked
+    Ready --> Cancelled
+    InProgress --> InReview
+    InProgress --> Blocked
+    InProgress --> Done
+    InProgress --> Cancelled
+    Cancelled --> Draft
+    Blocked --> Ready
+    Blocked --> InProgress
+    Blocked --> Cancelled
+    InReview --> InProgress
+    InReview --> Done
+    InReview --> Blocked
+    InReview --> Cancelled
+    Done --> InProgress
+    Cancelled --> [*]
+    Done --> [*]
+```
+
+`bug` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open
+    Open : Open
+    InProgress : InProgress
+    WontFix : WontFix
+    Cancelled : Cancelled
+    Fixed : Fixed
+    Blocked : Blocked
+    Verified : Verified
+    Open --> InProgress
+    Open --> WontFix
+    Open --> Cancelled
+    InProgress --> Fixed
+    InProgress --> Blocked
+    InProgress --> WontFix
+    InProgress --> Cancelled
+    WontFix --> Open
+    Cancelled --> Open
+    Fixed --> Verified
+    Fixed --> InProgress
+    Blocked --> InProgress
+    Blocked --> WontFix
+    Blocked --> Cancelled
+    Verified --> InProgress
+    WontFix --> [*]
+    Cancelled --> [*]
+    Verified --> [*]
+```
+
+`decision` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Proposed
+    Proposed : Proposed
+    Accepted : Accepted
+    Rejected : Rejected
+    Superseded : Superseded
+    Deprecated : Deprecated
+    Proposed --> Accepted
+    Proposed --> Rejected
+    Accepted --> Superseded
+    Accepted --> Deprecated
+    Rejected --> Proposed
+    Accepted --> [*]
+    Rejected --> [*]
+    Superseded --> [*]
+    Deprecated --> [*]
+```
+
+`review` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Requested
+    Requested : Requested
+    InReview : InReview
+    Rejected : Rejected
+    ChangesRequested : ChangesRequested
+    Approved : Approved
+    Requested --> InReview
+    Requested --> Rejected
+    InReview --> ChangesRequested
+    InReview --> Approved
+    InReview --> Rejected
+    ChangesRequested --> InReview
+    ChangesRequested --> Approved
+    ChangesRequested --> Rejected
+    Rejected --> [*]
+    Approved --> [*]
+```
+
+`guide` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft : Draft
+    Published : Published
+    Deprecated : Deprecated
+    Draft --> Published
+    Published --> Deprecated
+    Published --> Draft
+    Deprecated --> Published
+    Published --> [*]
+    Deprecated --> [*]
+```
 
 ## Retype
 

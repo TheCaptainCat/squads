@@ -15,6 +15,7 @@ squad dirs replaces the active one.  Call ``set_active_squad_dir(None)`` to reve
 bundled-only loader (used by tests that want isolation).
 """
 
+import re
 from contextvars import ContextVar
 from pathlib import Path
 
@@ -25,7 +26,12 @@ from squads._interactions import authoring_owner, parent_chain
 from squads._models import _markers as markers
 from squads._paths import number_for_id
 from squads._util import slugify
-from squads._workflow._models import linearize_lifecycle
+from squads._workflow._models import lifecycle_edges, lifecycle_states_in_order, linearize_lifecycle
+
+#: Characters a Mermaid node/state id can't safely contain across renderers — mirrors the
+#: hyphen-avoidance precedent in ``RefsMixin.graph_to_mermaid``'s ``_safe_id``, generalized to
+#: any spec-declared (possibly customized) type/status name.
+_MERMAID_UNSAFE_RE = re.compile(r"[^A-Za-z0-9_]")
 
 # The active squad directory for this logical call stack. None means bundled-only.
 _active_squad_dir: ContextVar[Path | None] = ContextVar("_active_squad_dir", default=None)
@@ -61,8 +67,14 @@ def _make_env(squad_dir: Path | None) -> Environment:
     env.filters["open_marker"] = markers.open_marker
     env.filters["close_marker"] = markers.close_marker
     env.filters["idnum"] = _idnum  # "PREFIX-000007" | idnum → "7", for `sq task 7 …` hints
+    env.filters["mermaid_id"] = _mermaid_id  # any name -> a safe Mermaid node/state id
     # workflow helper — callable as {{ linearize_lifecycle(spec.machine_for(type)) }} in templates
     env.globals["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
+    # Mermaid stateDiagram-v2 helpers: a deterministic state listing + flattened transition
+    # edges (Lifecycle.states is a frozenset — hash-seed-ordered, unsafe to iterate directly
+    # in a template that must render byte-identically across process runs).
+    env.globals["lifecycle_states_in_order"] = lifecycle_states_in_order  # pyright: ignore[reportArgumentType]
+    env.globals["lifecycle_edges"] = lifecycle_edges  # pyright: ignore[reportArgumentType]
     # playbook helpers — the role->type authoring narrative in workflow.md.j2 renders from
     # CREATE_LANES + the role catalog + the spec's parent chain, not hardcoded prose.
     env.globals["authoring_owner"] = authoring_owner  # pyright: ignore[reportArgumentType]
@@ -104,6 +116,16 @@ def invalidate_squad_dir(squad_dir: Path | None) -> None:
 
 def _idnum(item_id: str) -> str:
     return str(number_for_id(item_id))
+
+
+def _mermaid_id(value: str) -> str:
+    """A Mermaid-node-id-safe token derived from any spec-declared name (a type or status).
+
+    Non-alphanumeric characters (spaces, hyphens, …) become underscores, so a customized
+    vocab's type/status names — not just the bundled CamelCase ones — render as valid Mermaid
+    identifiers. Diagrams display the original name as the node's label, never this token.
+    """
+    return _MERMAID_UNSAFE_RE.sub("_", value)
 
 
 def has_template(template_name: str) -> bool:

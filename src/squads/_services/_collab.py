@@ -1,5 +1,7 @@
 """Discussion: comments, author resolution, and the @mention inbox."""
 
+from dataclasses import dataclass, field
+
 from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
@@ -9,16 +11,135 @@ from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._services._base import ServiceCore, reject_markers
+from squads._services._results import SearchHit, SearchResult
+from squads._workflow import WorkflowSpec
+
+_SNIPPET_WIDTH = 160
 
 
-def _strip_frontmatter(text: str) -> str:
-    """Drop the leading ``---`` YAML block so a search matches prose, not index plumbing."""
+def _frontmatter_end_line(text: str) -> int:
+    """1-based line number of the frontmatter block's closing ``---``, or 0 if there is none."""
     lines = text.splitlines()
     if lines and lines[0].strip() == "---":
         for i in range(1, len(lines)):
             if lines[i].strip() == "---":
-                return "\n".join(lines[i + 1 :])
+                return i + 1
+    return 0
+
+
+@dataclass
+class _Region:
+    """A named, line-bounded region of an item file, used to attribute a search hit.
+
+    ``comment_headers`` (only populated for discussion regions) is ``(line_no, timestamp,
+    author)`` for each comment header found in the region, in file order — the basis for
+    naming *which* comment a hit landed in.
+    """
+
+    start: int
+    end: int
+    region: str
+    comment_headers: list[tuple[int, str, str]] = field(
+        default_factory=lambda: list[tuple[int, str, str]]()
+    )
+
+
+def _scan_comment_headers(lines: list[str], bounds: tuple[int, int]) -> list[tuple[int, str, str]]:
+    """Comment headers strictly inside a region's ``(open_line, close_line)`` marker bounds."""
+    start, end = bounds
+    headers: list[tuple[int, str, str]] = []
+    for line_no in range(start + 1, end):
+        m = discussion.match_comment_header(lines[line_no - 1].strip())
+        if m is not None:
+            headers.append((line_no, m[0], m[1]))
+    return headers
+
+
+def _build_regions(text: str, item: Item, spec: WorkflowSpec) -> list[_Region]:
+    """The named regions of ``item``'s file: top-level body/discussion/summary, plus each
+    sub-entity's own block (heading+body) and discussion, keyed by ``<kind>:<local_id>``.
+
+    Regions can nest (a sub-entity's discussion sits inside its block); classification always
+    picks the narrowest containing region, so nesting order here doesn't matter.
+    """
+    lines = text.splitlines()
+    regions: list[_Region] = []
+
+    def _add(tag: str, region_name: str, *, with_comments: bool = False) -> None:
+        bounds = sections.region_lines(text, tag)
+        if bounds is None:
+            return
+        headers = _scan_comment_headers(lines, bounds) if with_comments else []
+        regions.append(_Region(bounds[0], bounds[1], region_name, headers))
+
+    _add(markers.BODY, "body")
+    _add(markers.SUMMARY, "summary")
+    _add(markers.DISCUSSION, "discussion", with_comments=True)
+
+    kind = spec.item_subentity_kind(item.type)
+    if kind:
+        for se in item.subentities:
+            tag = f"{kind}:{se.local_id}"
+            _add(tag, tag)  # block-level fallback: heading + head badge line
+            _add(f"{tag}:body", tag)
+            _add(markers.discussion_tag(tag), f"{tag}:discussion", with_comments=True)
+
+    return regions
+
+
+def _classify_line(regions: list[_Region], line_no: int) -> _Region | None:
+    """The narrowest region containing ``line_no``, or ``None`` if it falls outside all of them."""
+    containing = [r for r in regions if r.start <= line_no <= r.end]
+    return min(containing, key=lambda r: r.end - r.start) if containing else None
+
+
+def _windowed_snippet(lines: list[str], line_no: int) -> str:
+    """In-context text around ``line_no``: itself plus a neighbor on each side, marker lines
+    dropped, collapsed to one line and capped at :data:`_SNIPPET_WIDTH` characters."""
+    idx = line_no - 1
+    window = [
+        s
+        for i in range(max(0, idx - 1), min(len(lines), idx + 2))
+        if (s := lines[i].strip()) and not s.startswith("<!--")
+    ]
+    text = " / ".join(window) if window else lines[idx].strip()
+    if len(text) > _SNIPPET_WIDTH:
+        text = text[: _SNIPPET_WIDTH - 1].rstrip() + "…"
     return text
+
+
+def _comment_at_or_before(
+    headers: list[tuple[int, str, str]], line_no: int
+) -> tuple[int, str, str] | None:
+    """The last ``(ordinal, timestamp, author)`` header at or before ``line_no``, if any."""
+    found: tuple[int, str, str] | None = None
+    for ordinal, (header_line, ts, author) in enumerate(headers, start=1):
+        if header_line > line_no:
+            break
+        found = (ordinal, ts, author)
+    return found
+
+
+def _hit_for_line(regions: list[_Region], lines: list[str], line_no: int) -> SearchHit:
+    """Build the :class:`SearchHit` for a matched line, resolving its region/location/snippet."""
+    region = _classify_line(regions, line_no)
+    if region is None:
+        return SearchHit(
+            region="other", location="other", snippet=_windowed_snippet(lines, line_no)
+        )
+    if region.comment_headers:
+        hit_comment = _comment_at_or_before(region.comment_headers, line_no)
+        if hit_comment is not None:
+            ordinal, ts, author = hit_comment
+            token = f"{region.region}#{ordinal}"
+            location = f"{region.region} — comment {ordinal} ({author}, {ts})"
+            snippet = f"[{ts}] {author}: {lines[line_no - 1].strip()}"
+            return SearchHit(region=token, location=location, snippet=snippet)
+    return SearchHit(
+        region=region.region,
+        location=region.region,
+        snippet=_windowed_snippet(lines, line_no),
+    )
 
 
 class CollabMixin(ServiceCore):
@@ -100,21 +221,39 @@ class CollabMixin(ServiceCore):
         return out
 
     async def search(
-        self, text: str, *, item_type: str | None = None
-    ) -> list[tuple[Item, list[str]]]:
-        """Items whose title, summary, or body/discussion contains ``text`` (case-insensitive)."""
+        self, text: str, *, item_type: str | None = None, status: str | None = None
+    ) -> list[SearchResult]:
+        """Items whose title, summary, or body/discussion contains ``text`` (case-insensitive).
+
+        ``item_type``/``status`` AND-compose with the query (the same filter dimensions
+        ``list_items`` exposes to ``sq list``/``sq tree``). Each result's hits carry the
+        region they matched — see :class:`SearchHit`.
+        """
         needle = text.strip().lower()
         if not needle:
             raise SquadsError("search needs a non-empty query")
-        out: list[tuple[Item, list[str]]] = []
-        for item in await self.list_items(item_type=item_type):
+        out: list[SearchResult] = []
+        for item in await self.list_items(item_type=item_type, status=status):
+            hits: list[SearchHit] = []
+            if item.title and needle in item.title.lower():
+                hits.append(SearchHit(region="title", location="title", snippet=item.title.strip()))
+            if item.description and needle in item.description.lower():
+                hits.append(
+                    SearchHit(
+                        region="description",
+                        location="description",
+                        snippet=item.description.strip(),
+                    )
+                )
             path = item_file(self.paths, item)
             if await _aio.path_exists(path):
-                prose = _strip_frontmatter(await _aio.read_text(path))
-            else:
-                prose = ""
-            candidates = [item.title, item.description, *prose.splitlines()]
-            hits = [ln.strip() for ln in candidates if ln and needle in ln.lower()]
+                full_text = await _aio.read_text(path)
+                lines = full_text.splitlines()
+                regions = _build_regions(full_text, item, self.spec)
+                for line_no in range(_frontmatter_end_line(full_text) + 1, len(lines) + 1):
+                    raw = lines[line_no - 1]
+                    if raw.strip() and needle in raw.lower():
+                        hits.append(_hit_for_line(regions, lines, line_no))
             if hits:
-                out.append((item, hits))
+                out.append(SearchResult(item=item, hits=hits))
         return out

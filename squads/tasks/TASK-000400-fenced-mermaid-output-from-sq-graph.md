@@ -3,16 +3,17 @@ id: TASK-400
 sequence_id: 400
 type: task
 title: Fenced Mermaid output from sq graph
-status: Draft
+status: InReview
 parent: FEAT-377
 author: tech-lead
+assignee: python-dev
 subentities:
 - local_id: ST1
   title: Pre-fenced Mermaid variant of graph_to_mermaid + CLI smoke test
-  status: Todo
+  status: Done
   story: US1
 created_at: '2026-07-15T14:02:32Z'
-updated_at: '2026-07-15T14:04:07Z'
+updated_at: '2026-07-15T14:30:35Z'
 ---
 <!-- sq:body -->
 # Fenced Mermaid output from `sq graph`
@@ -37,7 +38,7 @@ _Add with `sq task 400 add-subtask "<title>"`; track with `sq task 400 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Pre-fenced Mermaid variant of graph_to_mermaid + CLI smoke test | US1 |
+| ST1 | Done |  | Pre-fenced Mermaid variant of graph_to_mermaid + CLI smoke test | US1 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -46,7 +47,7 @@ _Add with `sq task 400 add-subtask "<title>"`; track with `sq task 400 subtask <
 ### ST1 — Pre-fenced Mermaid variant of graph_to_mermaid + CLI smoke test
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — Fenced Mermaid output from sq graph
 <!-- sq:subtask:ST1:head:end -->
 
@@ -64,4 +65,7 @@ Wrap the existing `graph_to_mermaid` output in a ```mermaid fence via a new `mer
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-15T14:30:35Z] Elias Python:
+  - Added --format mermaid-md to sq graph: wraps graph_to_mermaid output in a ```mermaid fence, printed markup=False/highlight=False. Serializer untouched.
+  - Tests: tests/cli/test_graph_command_cli.py — fence-lines smoke test + an invalid --format rejection test. No golden churn.
 <!-- sq:discussion:end -->

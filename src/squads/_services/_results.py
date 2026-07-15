@@ -203,6 +203,31 @@ class WorkloadRow:
     total: int
 
 
+@dataclass(frozen=True)
+class SearchHit:
+    """One matching line within an item, located precisely enough to jump straight to it.
+
+    ``region`` is the compact, machine-stable locator: ``"title"``, ``"description"``,
+    ``"body"``, ``"discussion"`` (or ``"discussion#<n>"`` naming the *n*-th comment when the
+    match falls inside one), or a named sub-entity (``"<kind>:<local_id>"`` for its
+    heading/body, or ``"<kind>:<local_id>:discussion#<n>"`` for its *n*-th comment).
+    ``location`` is the same thing spelled out for humans; ``snippet`` is in-context text
+    around the match — not the bare stripped line.
+    """
+
+    region: str
+    location: str
+    snippet: str
+
+
+@dataclass(frozen=True)
+class SearchResult:
+    """One item matching a :meth:`squads._services._collab.CollabMixin.search` query."""
+
+    item: Item
+    hits: list[SearchHit]
+
+
 @dataclass
 class ReflogEntry:
     """One parsed reflog line, surfaced by ``sq reflog``.
