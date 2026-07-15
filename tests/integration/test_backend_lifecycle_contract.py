@@ -16,6 +16,7 @@ import pytest
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code._backend import ClaudeCodeBackend
+from squads._board import _store as board_store
 from squads._memory import _store as memory_store
 from squads._models._config import SquadsConfig
 from squads._models._extras import ExtraKey as X
@@ -544,6 +545,99 @@ class TestMemoryBootSurfacing:
         await memory_store.add(ctx.paths, role_def.slug, "a fact learned mid-session")
         after = await self._managed_text(backend, ctx, roster, operators, role_item, role_def)
         assert "a fact learned mid-session" in after
+
+
+# ---------------------------------------------------------------------------
+# Bulletin board boot surfacing (content-and-all, team-scoped, through the backend)
+# ---------------------------------------------------------------------------
+
+
+class TestBoardBootSurfacing:
+    """Current board notices reach the shared managed output through the backend — never
+    hard-coded outside it — content and all (unlike memory, which is index-only), and
+    team-scoped rather than per-role."""
+
+    async def _managed_text(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+    ) -> str:
+        await backend.ensure_scaffold(ctx)
+        artifacts = await backend.write_managed(ctx, roster, operators)
+        text = ""
+        for artifact in artifacts:
+            full = ctx.root / artifact.path
+            if full.exists():
+                text += full.read_text(encoding="utf-8")
+        return text
+
+    async def test_an_empty_board_surfaces_no_board_section(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+    ) -> None:
+        text = await self._managed_text(backend, ctx, roster, operators)
+        assert "## Board" not in text
+
+    async def test_a_posted_notices_content_reaches_the_managed_output_through_the_backend(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+    ) -> None:
+        await board_store.post(ctx.paths, "op-pierre", "the CI runners are down for maintenance")
+        text = await self._managed_text(backend, ctx, roster, operators)
+        assert "the CI runners are down for maintenance" in text
+
+    async def test_an_expired_notice_is_excluded_from_boot_surfacing(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+    ) -> None:
+        await board_store.post(
+            ctx.paths, "op-pierre", "a notice long past its expiry", until="2020-01-01"
+        )
+        text = await self._managed_text(backend, ctx, roster, operators)
+        assert "a notice long past its expiry" not in text
+        assert "## Board" not in text
+
+    async def test_an_all_expired_board_surfaces_nothing(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+    ) -> None:
+        await board_store.post(ctx.paths, "op-pierre", "notice one", until="2020-01-01")
+        await board_store.post(ctx.paths, "tech-lead", "notice two", until="2020-06-01")
+        text = await self._managed_text(backend, ctx, roster, operators)
+        assert "notice one" not in text
+        assert "notice two" not in text
+        assert "## Board" not in text
+
+    async def test_a_newly_posted_notice_reaches_the_managed_output_only_after_regeneration(
+        self,
+        backend: AgentBackend,
+        ctx: BackendContext,
+        roster: list[RoleView],
+        operators: list[OperatorView],
+    ) -> None:
+        """Proves the surfacing goes through the backend's regeneration path — like the
+        rest of the managed content, refreshed on ``sq sync`` — rather than being baked in
+        once and going stale."""
+        before = await self._managed_text(backend, ctx, roster, operators)
+        assert "a notice posted mid-session" not in before
+
+        await board_store.post(ctx.paths, "op-pierre", "a notice posted mid-session")
+        after = await self._managed_text(backend, ctx, roster, operators)
+        assert "a notice posted mid-session" in after
 
 
 # ---------------------------------------------------------------------------

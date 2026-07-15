@@ -12,6 +12,7 @@ from squads import _aio
 from squads import _interactions as interactions
 from squads import _sections as sections
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
+from squads._backends._board_surface import board_notice_lines
 from squads._backends._claude_code import _claude_md as claude_md
 from squads._backends._claude_code._frontmatter import normalize_model, oneline
 from squads._backends._memory_surface import memory_index_lines
@@ -104,6 +105,7 @@ class ClaudeCodeBackend(AgentBackend):
             default_role_full_name=default.full_name if default else "the manager",
             default_role_slug=default.slug if default else "manager",
             spec=spec,
+            board_lines=await board_notice_lines(ctx.paths),
         )
         await claude_md.inject(ctx.root / _CLAUDE_MD, section)
         artifacts.append(Artifact(ctx.rel(ctx.root / _CLAUDE_MD), "claude_md", self.name))

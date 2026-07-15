@@ -35,6 +35,7 @@ def test_dropping_task_from_the_spec_does_not_crash_the_claude_md_section() -> N
         default_role_full_name="Catherine Manager",
         default_role_slug="manager",
         spec=spec,
+        board_lines=[],
     )
     assert "The **product owner** authors **epics**" in rendered  # rendered past the crash
 

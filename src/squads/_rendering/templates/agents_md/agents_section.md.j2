@@ -22,6 +22,17 @@ leave comments. Address them by their `op-` slug.
 {% else %}
 _None registered yet._
 {% endif %}
+{% if board_lines %}
+
+## Board
+
+Current team notices (`sq board list` for the live listing; `sq board clear <n>` to take one
+down once it no longer applies):
+
+{% for line in board_lines %}
+{{ line }}
+{% endfor %}
+{% endif %}
 
 {% include "workflow.md.j2" %}
 
