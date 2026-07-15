@@ -4,7 +4,7 @@ Grammar:
   sq memory <role> list                     — print the index (one line per memory)
   sq memory <role> search <query>           — memories whose content matches
   sq memory <role> show <slug>              — full body of one memory
-  sq memory <role> add "<fact>" [--file f]  — jot a new memory
+  sq memory <role> add "<fact>" [--file f] [--slug s]  — jot a new memory
   sq memory <role> forget <slug>            — delete one
 
 Role is a positional subject, consistent with `sq inbox <role>` / `sq mine <role>`: resolved
@@ -124,16 +124,19 @@ async def show_memory(
 @common.command
 async def add_memory(
     ctx: typer.Context,
-    fact: str = typer.Argument(..., help="The fact to remember (also the slug source)."),
+    fact: str = typer.Argument(..., help="The fact to remember (also the default slug source)."),
     file: str | None = typer.Option(
         None, "--file", help="Read a longer body from PATH ('-' for stdin)."
+    ),
+    slug: str | None = typer.Option(
+        None, "--slug", help="Name the handle explicitly instead of deriving it from the fact."
     ),
 ) -> None:
     """Jot a new memory to the role's pool; regenerates the role's index."""
     role_slug = _role(ctx)
     svc = get_service()
     body = resolve_body_optional(None, file)
-    entry = await svc.memory_add(role_slug, fact, body=body)
+    entry = await svc.memory_add(role_slug, fact, body=body, slug=slug)
     console.print(f"remembered [bold]{e(entry.slug)}[/bold] for {e(role_slug)}")
 
 

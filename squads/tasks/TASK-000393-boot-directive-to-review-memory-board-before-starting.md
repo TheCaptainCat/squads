@@ -3,20 +3,21 @@ id: TASK-393
 sequence_id: 393
 type: task
 title: Boot directive to review memory + board before starting
-status: Draft
+status: Done
 parent: FEAT-392
 author: tech-lead
+assignee: python-dev
 subentities:
 - local_id: ST1
   title: Add the boot directive to role.md.j2
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Regenerate manifest; flag golden churn
-  status: Todo
+  status: Done
   story: US1
 created_at: '2026-07-15T11:47:07Z'
-updated_at: '2026-07-15T11:47:28Z'
+updated_at: '2026-07-15T12:01:55Z'
 ---
 <!-- sq:body -->
 Implements US1 of the parent feature.
@@ -55,8 +56,8 @@ _Add with `sq task 393 add-subtask "<title>"`; track with `sq task 393 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Add the boot directive to role.md.j2 | US1 |
-| ST2 | Todo |  | Regenerate manifest; flag golden churn | US1 |
+| ST1 | Done |  | Add the boot directive to role.md.j2 | US1 |
+| ST2 | Done |  | Regenerate manifest; flag golden churn | US1 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -65,7 +66,7 @@ _Add with `sq task 393 add-subtask "<title>"`; track with `sq task 393 subtask <
 ### ST1 — Add the boot directive to role.md.j2
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — Boot directive: review memory + board before starting
 <!-- sq:subtask:ST1:head:end -->
 
@@ -83,7 +84,7 @@ Add the always-seen 'review your memory + the board before starting, apply what'
 ### ST2 — Regenerate manifest; flag golden churn
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — Boot directive: review memory + board before starting
 <!-- sq:subtask:ST2:head:end -->
 
@@ -101,4 +102,11 @@ Regenerate templates_manifest.json (mid-cycle template change). If the list comm
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-15T11:48:37Z] Catherine Manager:
+  - Dispatching @python-dev on TASK-393 + TASK-394 together (both small). Take each Ready→InProgress; hand to InReview when done.
+- [2026-07-15T11:59:55Z] Elias Python:
+  - Added the always-seen directive to role.md.j2's Working agreements section (unconditional static text, not gated on any variable — renders identically regardless of pool/board state).
+  - Regenerated templates_manifest.json in place (mid-cycle, current 0.8.0 entry only).
+  - Flag for the main loop: this touches the shared role boot template, so any golden/CLI-output test asserting the exact rendered role body elsewhere in the repo should be diffed against a full-suite run — I checked the known role/managed-section goldens (role_manager_show.json, role_qa_show.json, claude_md_section.txt, agents_md_section.txt) and none embed the role.md.j2 body text, so I don't expect churn, but please confirm on the full run.
+  - Added test_role_body_directs_reviewing_memory_and_board_before_starting (tests/integration/test_role_body_content_generation.py) — asserts the directive text + both heading references appear, exercised against a fresh squad (no memories/board notices).
 <!-- sq:discussion:end -->

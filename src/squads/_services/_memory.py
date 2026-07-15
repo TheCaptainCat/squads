@@ -21,8 +21,9 @@ class MemoryMixin(ServiceCore):
         *,
         body: str | None = None,
         tags: list[str] | None = None,
+        slug: str | None = None,
     ) -> MemoryEntry:
-        return await memory_store.add(self.paths, role_slug, fact, body=body, tags=tags)
+        return await memory_store.add(self.paths, role_slug, fact, body=body, tags=tags, slug=slug)
 
     async def memory_show(self, role_slug: str, slug: str) -> MemoryEntry:
         return await memory_store.read(self.paths, role_slug, slug)

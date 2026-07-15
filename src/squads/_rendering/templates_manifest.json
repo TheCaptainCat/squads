@@ -108,7 +108,7 @@
     "agents/item_skill.md.j2": "219ca41406e5b0199b012c9fdeab7354993bd95e7deb0f1d03a81318cd45cc68",
     "agents/memory_skill.md.j2": "8873e0303d20fc9e2fd56908f1e19cd0e519c2f4a8fcbdf07b838721f0b9433f",
     "agents/operator.md.j2": "5f2b6962dc47cd36983a9140e8fa310f58d4ec6746a6597c4a473edf5c22fc11",
-    "agents/role.md.j2": "1d9e2e29b1f2dd6cdda7ee5608131e40839fe84489207eeb291db9803261c0b8",
+    "agents/role.md.j2": "212abcf263c22d83d340638f8aabe04b9d8d1ef0f0b91d356e9ad768f323bf5b",
     "agents/skill.md.j2": "3d9780f63e59e1b3ce07256e236c63015e78fb43be1e094e01501b27802c5358",
     "agents/squads_skill.md.j2": "df15bd2c47119ad0a422d9ce40dff53255223d3fa1a5a728f2cff04a4e8e3f69",
     "agents_md/agents_section.md.j2": "acccbc650978d0e945b7a60090f622ea1fa006a8c2b5c145a39ba5142595f5b8",

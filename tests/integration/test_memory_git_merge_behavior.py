@@ -69,7 +69,7 @@ def test_memory_files_are_committed_not_gitignored(tmp_path):
     _seed_git_repo(tmp_path)
     _sq(tmp_path, "memory", "manager", "add", "a fact worth keeping in git")
 
-    md_path = _memory_dir(tmp_path) / "a-fact-worth-keeping-in-git.md"
+    md_path = _memory_dir(tmp_path) / "a-fact-worth-keeping-in.md"
     index_path = _memory_dir(tmp_path) / ".index.jsonl"
     assert md_path.is_file()
     assert index_path.is_file()
@@ -82,7 +82,7 @@ def test_memory_files_are_committed_not_gitignored(tmp_path):
 
     _git(tmp_path, "add", "-A")
     porcelain = _git(tmp_path, "status", "--porcelain").stdout
-    assert "agents/memory/manager/a-fact-worth-keeping-in-git.md" in porcelain
+    assert "agents/memory/manager/a-fact-worth-keeping-in.md" in porcelain
     assert "agents/memory/manager/.index.jsonl" in porcelain
 
 
@@ -96,16 +96,16 @@ def test_forgetting_a_memory_is_a_real_git_deletion_with_history_retained(tmp_pa
     _git(tmp_path, "commit", "-q", "-m", "add the fact")
     added_commit = _git(tmp_path, "rev-parse", "HEAD").stdout.strip()
 
-    memory_path = _memory_dir(tmp_path) / "a-fact-that-will-later-be-forgotten.md"
+    memory_path = _memory_dir(tmp_path) / "a-fact-that-will-later.md"
     assert memory_path.is_file()
 
-    _sq(tmp_path, "memory", "manager", "forget", "a-fact-that-will-later-be-forgotten")
+    _sq(tmp_path, "memory", "manager", "forget", "a-fact-that-will-later")
     assert not memory_path.is_file()
 
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-q", "-m", "forget the fact")
 
-    rel_path = "squads/agents/memory/manager/a-fact-that-will-later-be-forgotten.md"
+    rel_path = "squads/agents/memory/manager/a-fact-that-will-later.md"
     log = _git(tmp_path, "log", "--oneline", "--follow", "--", rel_path).stdout
     assert len(log.strip().splitlines()) >= 2, log  # the add commit and the delete commit
 
@@ -188,7 +188,7 @@ def test_two_branches_editing_the_same_memory_surface_an_honest_conflict(tmp_pat
     _git(tmp_path, "branch", "edit-a")
     _git(tmp_path, "branch", "edit-b")
 
-    memory_path = _memory_dir(tmp_path) / "a-fact-that-will-be-edited-on-two-branches.md"
+    memory_path = _memory_dir(tmp_path) / "a-fact-that-will-be.md"
     baseline_text = memory_path.read_text(encoding="utf-8")
 
     _git(tmp_path, "checkout", "-q", "edit-a")
@@ -219,8 +219,7 @@ def test_two_branches_editing_the_same_memory_surface_an_honest_conflict(tmp_pat
 
     status = _git(tmp_path, "status", "--porcelain").stdout
     assert any(
-        "a-fact-that-will-be-edited-on-two-branches.md" in ln and ln.startswith("UU")
-        for ln in status.splitlines()
+        "a-fact-that-will-be.md" in ln and ln.startswith("UU") for ln in status.splitlines()
     ), status
 
     _git(tmp_path, "merge", "--abort")
