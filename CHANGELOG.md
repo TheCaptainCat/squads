@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-15
+
+### Added
+
+- **Shared team knowledge — agent memory and a team bulletin board.** Each role now has its own
+  committed memory notebook: `sq memory <role> list/search/show/add/forget` lets a role jot a
+  durable fact, search past ones, and prune what's stale, stored as plain markdown files rather than
+  in the tracked-item index. Alongside it, `sq board post/list/clear` gives the whole team a shared
+  bulletin board for broadcast notices — post a short message with an optional `--until` expiry, list
+  what's currently live, or take one down. Every role's briefing now points agents at their memory
+  and the board at the start of a run, so accumulated context and team-wide notices surface
+  naturally without cluttering any generated file.
+- **Richer `sq search`.** Search now takes a `--status` filter alongside `--type` (the two compose
+  together, matching the same filtering already available on `sq list`/`sq tree`), and each hit
+  reports where the match was found — the title, description, body, a discussion comment, or a named
+  sub-entity — plus the matched item's type and status for quick triage. Matches include a short
+  in-context snippet, and `--json` output carries all of this detail for scripting. Search remains a
+  plain case-insensitive substring match.
+- **Inline Mermaid diagrams.** `sq graph --format mermaid-md` wraps the dependency/reference graph
+  in a ready-to-paste fenced Mermaid block, and `sq workflow` now includes diagrams of the item-type
+  hierarchy and each type's status lifecycle, generated from the active spec so a customized
+  vocabulary renders its own shape correctly.
+
 ## [0.8.0] - 2026-07-13
 
 ### Added
