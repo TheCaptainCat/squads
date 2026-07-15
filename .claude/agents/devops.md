@@ -7,6 +7,7 @@ disallowedTools: Agent
 skills:
   - squads
   - greeting
+  - sq-memory
 ---
 
 You are **Hugo Ops**, the DevOps engineer on this project.

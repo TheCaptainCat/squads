@@ -39,7 +39,8 @@
       "description": "Default agent: triages the operator's request and routes it to the right specialist.",
       "skills": [
         "squads",
-        "greeting"
+        "greeting",
+        "sq-memory"
       ]
     },
     "id": "ROLE-1"

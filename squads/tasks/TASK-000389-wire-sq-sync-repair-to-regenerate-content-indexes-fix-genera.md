@@ -3,7 +3,7 @@ id: TASK-389
 sequence_id: 389
 type: task
 title: Wire sq sync/repair to regenerate content indexes; fix GENERATED_STAMP
-status: InReview
+status: Done
 parent: FEAT-315
 author: tech-lead
 assignee: python-dev
@@ -26,7 +26,7 @@ subentities:
   status: Done
   story: US5
 created_at: '2026-07-15T09:30:17Z'
-updated_at: '2026-07-15T09:43:07Z'
+updated_at: '2026-07-15T09:45:14Z'
 ---
 <!-- sq:body -->
 Carry the amended storage/id decision (per REV-388, option B) into the machinery: keep the committed `.index.jsonl` roll-ups (same posture as `.squads.json` — a rebuildable derived index we commit for convenience) but fix the regeneration wiring and the generated-file stamp so a merge conflict on a committed index has an honest, mechanical, one-command resolution.

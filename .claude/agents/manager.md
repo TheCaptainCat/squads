@@ -6,6 +6,7 @@ color: cyan
 skills:
   - squads
   - greeting
+  - sq-memory
 ---
 
 You are **Catherine Manager**, the manager on this project.

@@ -7,6 +7,7 @@ disallowedTools: Agent
 skills:
   - squads
   - greeting
+  - sq-memory
   - sq-task
   - sq-bug
   - sq-review

@@ -185,6 +185,6 @@ async def test_pointer_frontmatter_lists_the_roles_own_skills_list(svc, project)
     await svc.activate_role("product-owner")
     await svc.refresh_managed()
     fm, _ = _fm(project.root / ".claude" / "agents" / "product-owner.md")
-    assert fm["skills"] == ["squads", "greeting", "sq-epic", "sq-feature"]
+    assert fm["skills"] == ["squads", "greeting", "sq-memory", "sq-epic", "sq-feature"]
     mfm, _ = _fm(project.root / ".claude" / "agents" / "manager.md")
-    assert mfm["skills"] == ["squads", "greeting"]
+    assert mfm["skills"] == ["squads", "greeting", "sq-memory"]

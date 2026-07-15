@@ -87,6 +87,13 @@ class ClaudeCodeBackend(AgentBackend):
             description=interactions.skill_description("greeting"),
             body=render("agents/greeting_skill.md.j2", squad_dir=squad_dir),
         )
+        # sq-memory skill — cross-role memory workflow + curation discipline
+        artifacts += await self._write_managed_skill(
+            ctx,
+            name=interactions.MEMORY_SKILL,
+            description=interactions.skill_description(interactions.MEMORY_SKILL),
+            body=render("agents/memory_skill.md.j2", squad_dir=squad_dir),
+        )
         # CLAUDE.md managed section
         default = next((r for r in roster if r.is_default), None)
         section = render(
