@@ -1,4 +1,4 @@
-# sq-memory — your role's committed notebook
+# sq-memory — your role's memory and the team board
 
 Your role has its own committed notebook of small facts you've learned while working on this
 project — things worth remembering before a run that don't belong in a formal doc: a timing
@@ -39,7 +39,7 @@ entry at a time. When you're about to jot something down, ask: *is this mine, le
 own work — or is this something the whole team needs to know?* The former is memory; the latter
 belongs somewhere shared, not duplicated per role.
 
-## Command surface
+## Memory command surface
 
 ```
 sq memory <role> list                     # browse the index
@@ -51,3 +51,25 @@ sq memory <role> forget <slug>            # prune a stale or wrong one
 
 `<role>` is a positional subject (`sq memory python-dev list`), consistent with `sq inbox <role>` /
 `sq mine <role>`. Memory is addressed by its own stable slug, not by position in the index.
+
+## The board — post there instead, when it's shared
+
+When something belongs on the shared side of the boundary above, it goes on the **team bulletin
+board**, not into anyone's memory — a single announcement everyone sees, not one entry copy-pasted
+into every role's pool. Current notices are surfaced to you automatically at the start of a run,
+content and all, so you don't have to go looking for them either.
+
+A good notice is **short and prescriptive** — a sentence or two saying what to do or watch out for,
+not a narrative. Set `--until` whenever the notice has a natural expiry (a freeze, a temporary
+heads-up) so it comes down on its own instead of turning into stale clutter someone else has to
+notice and remove. If a notice stops applying before its `--until` (or has none), `clear` it
+yourself rather than leaving it for someone else to puzzle over.
+
+```
+sq board post -m "<notice>" [--until <date>] [--as <slug>]  # post a notice
+sq board list                                                # current (unexpired) notices
+sq board clear <n>                                           # take one down
+```
+
+`--as` attributes the post (an agent role slug, or `op-<slug>` for a human); `<n>` in `clear` is the
+notice's positional ordinal from the current `sq board list`, not a stored id.

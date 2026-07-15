@@ -1,7 +1,9 @@
 """The bundled ``sq-memory`` skill is generated like the other cross-role managed skills
 (``squads``/``greeting``): a real body under the squad folder, a thin pointer under
 ``.claude/``, and it's preloaded on every role's pointer — not just one type's, since it's
-cross-role behaviour rather than a per-item-type ``sq-<type>`` skill.
+cross-role behaviour rather than a per-item-type ``sq-<type>`` skill. It also teaches the
+team bulletin board (``sq board ...``), folded into this same skill rather than duplicated
+as a separate one — the memory-vs-board boundary is stated once, here.
 """
 
 import pytest
@@ -27,12 +29,21 @@ async def test_memory_skill_has_a_real_body_and_a_thin_pointer(project):
     assert "sq memory <role> add" in body
 
 
-async def test_memory_skill_states_the_memory_vs_board_boundary_without_board_commands(project):
+async def test_memory_skill_states_the_memory_vs_board_boundary(project):
     body = (project.squad_dir / "agents" / "skills" / "sq-memory.md").read_text(encoding="utf-8")
     assert "personal" in body.lower()
     assert "cross-cutting" in body.lower() or "whole team" in body.lower()
-    # The board feature isn't built yet — the boundary is conceptual only, no board commands.
-    assert "sq board" not in body
+
+
+async def test_memory_skill_teaches_board_posting_discipline_and_commands(project):
+    body = (project.squad_dir / "agents" / "skills" / "sq-memory.md").read_text(encoding="utf-8")
+    assert "short and prescriptive" in body.lower()
+    assert "--until" in body
+    assert "sq board post" in body
+    assert "sq board list" in body
+    assert "sq board clear" in body
+    # The boundary is stated exactly once, not restated in the board section.
+    assert body.lower().count("cross-cutting") == 1
 
 
 async def test_every_role_pointer_preloads_the_memory_skill(project):
