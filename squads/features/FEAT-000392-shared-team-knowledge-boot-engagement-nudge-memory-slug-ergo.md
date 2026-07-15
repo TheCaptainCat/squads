@@ -3,7 +3,7 @@ id: FEAT-392
 sequence_id: 392
 type: feature
 title: Shared team knowledge — boot engagement nudge + memory slug ergonomics
-status: InProgress
+status: Done
 parent: EPIC-316
 author: product-owner
 subentities:
@@ -14,7 +14,7 @@ subentities:
   title: Short, human-friendly memory slugs
   status: Todo
 created_at: '2026-07-15T11:43:20Z'
-updated_at: '2026-07-15T12:43:23Z'
+updated_at: '2026-07-15T13:14:47Z'
 ---
 <!-- sq:body -->
 Two small refinements to the shared-team-knowledge surfaces shipped in FEAT-315

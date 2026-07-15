@@ -3,7 +3,7 @@ id: REV-395
 sequence_id: 395
 type: review
 title: 'EPIC-316 surfacing model: push-into-managed-files vs pull-at-startup'
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - FEAT-315:addresses
@@ -16,17 +16,17 @@ subentities:
 - local_id: F1
   title: Push boot-surfacing + unconditional directive vs conditional sections = dangling
     reference on fresh installs
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: The .index.jsonl becomes readerless once surfacing is removed — derived data
     stored for no consumer
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F3
   title: 'Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and
     drop the .index.jsonl machinery'
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F4
   title: sq-memory skill still teaches push-at-boot surfacing — contradicts the pull
@@ -40,7 +40,7 @@ subentities:
   assignee: python-dev
   severity: low
 created_at: '2026-07-15T12:22:49Z'
-updated_at: '2026-07-15T13:12:00Z'
+updated_at: '2026-07-15T13:14:40Z'
 ---
 <!-- sq:body -->
 Design review of how EPIC-316 shared team knowledge (agent memory + the bulletin board) reaches an agent at the start of a run.
@@ -67,9 +67,9 @@ _Add with `sq review 395 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Open |  | Push boot-surfacing + unconditional directive vs conditional sections = dangling reference on fresh installs |
-| F2 | 🟠 high | Open |  | The .index.jsonl becomes readerless once surfacing is removed — derived data stored for no consumer |
-| F3 | 🟠 high | Open |  | Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and drop the .index.jsonl machinery |
+| F1 | 🟠 high | Fixed |  | Push boot-surfacing + unconditional directive vs conditional sections = dangling reference on fresh installs |
+| F2 | 🟠 high | Fixed |  | The .index.jsonl becomes readerless once surfacing is removed — derived data stored for no consumer |
+| F3 | 🟠 high | Fixed |  | Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and drop the .index.jsonl machinery |
 | F4 | 🟠 high | Fixed | python-dev | sq-memory skill still teaches push-at-boot surfacing — contradicts the pull directive (F1 relapse) |
 | F5 | 🟢 low | Fixed | python-dev | Stale .index.jsonl references survive in the two content-model docstrings |
 <!-- sq:summary:end -->
@@ -80,7 +80,7 @@ _Add with `sq review 395 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Push boot-surfacing + unconditional directive vs conditional sections = dangling reference on fresh installs
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟠 High
 <!-- sq:finding:F1:head:end -->
 
@@ -106,7 +106,7 @@ But the sections it names are conditional. `## Your memory` renders only under `
 ### F2 — The .index.jsonl becomes readerless once surfacing is removed — derived data stored for no consumer
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟠 High
 <!-- sq:finding:F2:head:end -->
 
@@ -137,7 +137,7 @@ This is stored/derived data kept in sync for no reader — the "don't store what
 ### F3 — Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and drop the .index.jsonl machinery
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟠 High
 <!-- sq:finding:F3:head:end -->
 
@@ -232,4 +232,6 @@ Dropped the .index.jsonl clause from _memory/_model.py and _board/_model.py docs
   - Not approving. Once F4/F5 land (rewrite the skill passages to the pull form + regenerate; drop the roll-up clause from the two docstrings), the rip-out fully resolves F1/F2/F3.
 - [2026-07-15T13:07:10Z] Catherine Manager:
   - Dispatching @python-dev on F4 + F5. F4 (high): rewrite the two push-surfacing passages in memory_skill.md.j2 (the 'surfaced automatically at boot, you don't have to go looking' bits for both memory + board) to the PULL form — run sq memory <slug> list / sq board list at the start of a run — matching role.md.j2; then regenerate the on-disk sq-memory skill + manifest. F5 (low): drop the stale '.index.jsonl roll-up' clause from _memory/_model.py + _board/_model.py docstrings.
+- [2026-07-15T13:14:40Z] Catherine Manager:
+  - All findings resolved by the re-architecture (commit 7c9050b): F1/F2 removed (push-surfacing + the readerless .index.jsonl gone), F3 implemented (pull-at-startup role directive), F4/F5 fixed (skill + docstrings). Full suite green, no residual push/index language. Approving.
 <!-- sq:discussion:end -->

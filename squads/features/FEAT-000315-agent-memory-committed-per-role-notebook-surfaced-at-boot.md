@@ -3,7 +3,7 @@ id: FEAT-315
 sequence_id: 315
 type: feature
 title: Agent memory — committed per-role notebook surfaced at boot
-status: InProgress
+status: Done
 parent: EPIC-316
 author: product-owner
 refs:
@@ -34,7 +34,7 @@ subentities:
     discipline
   status: Todo
 created_at: '2026-07-06T16:05:08Z'
-updated_at: '2026-07-15T12:43:22Z'
+updated_at: '2026-07-15T13:14:44Z'
 ---
 <!-- sq:body -->
 # Agent memory
