@@ -91,6 +91,7 @@ def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
                 "slug": r.slug,
                 "mission": "",
                 "responsibilities": [],
+                "memory_lines": [],
             }
             for r in _PINNED_ROSTER
         ],

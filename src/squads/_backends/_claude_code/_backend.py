@@ -14,6 +14,7 @@ from squads import _sections as sections
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code import _claude_md as claude_md
 from squads._backends._claude_code._frontmatter import normalize_model, oneline
+from squads._backends._memory_surface import memory_index_lines
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
@@ -300,6 +301,7 @@ class ClaudeCodeBackend(AgentBackend):
                 squad_path=ctx.root_relative(item),
                 skills=interactions.skills_for_role(role.slug),
                 can_spawn=role.can_spawn,
+                memory_lines=await memory_index_lines(ctx.paths, role.slug),
             ),
         )
         return Artifact(ctx.rel(pointer), "agent", self.name)
