@@ -15,6 +15,7 @@ from pathlib import Path
 from squads import _aio
 from squads._backends._agents_md import _managed as managed
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
+from squads._backends._board_surface import board_notice_lines
 from squads._backends._memory_surface import memory_index_lines
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
@@ -95,6 +96,7 @@ class AgentsMdBackend(AgentBackend):
             roles=roles_data,
             operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
             spec=spec,
+            board_lines=await board_notice_lines(ctx.paths),
         )
         agents_md = ctx.root / _AGENTS_MD
         await managed.inject(agents_md, section)
