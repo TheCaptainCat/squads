@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.8.0",
-  "counter": 391,
+  "counter": 394,
   "padding": 6,
   "items": {
     "12": {
@@ -265,7 +265,7 @@
       "type": "epic",
       "title": "Shared team knowledge — agent memory and the bulletin board",
       "slug": "shared-team-knowledge-agent-memory-and-the-bulletin-board",
-      "status": "Done",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -277,7 +277,7 @@
       "subentities": [],
       "path": "epics/EPIC-000316-shared-team-knowledge-agent-memory-and-the-bulletin-board.md",
       "created_at": "2026-07-06T16:08:36Z",
-      "updated_at": "2026-07-15T11:09:25Z",
+      "updated_at": "2026-07-15T11:42:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -15672,6 +15672,132 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-391"
+    },
+    "392": {
+      "sequence_id": 392,
+      "type": "feature",
+      "title": "Shared team knowledge — boot engagement nudge + memory slug ergonomics",
+      "slug": "shared-team-knowledge-boot-engagement-nudge-memory-slug-ergo",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-316",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Boot directive: review memory + board before starting",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Short, human-friendly memory slugs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000392-shared-team-knowledge-boot-engagement-nudge-memory-slug-ergo.md",
+      "created_at": "2026-07-15T11:43:20Z",
+      "updated_at": "2026-07-15T11:44:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-392"
+    },
+    "393": {
+      "sequence_id": 393,
+      "type": "task",
+      "title": "Boot directive to review memory + board before starting",
+      "slug": "boot-directive-to-review-memory-board-before-starting",
+      "status": "Draft",
+      "description": "",
+      "parent": "FEAT-392",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add the boot directive to role.md.j2",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Regenerate manifest; flag golden churn",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000393-boot-directive-to-review-memory-board-before-starting.md",
+      "created_at": "2026-07-15T11:47:07Z",
+      "updated_at": "2026-07-15T11:47:28Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-393"
+    },
+    "394": {
+      "sequence_id": 394,
+      "type": "task",
+      "title": "Short, human-friendly memory slugs on add",
+      "slug": "short-human-friendly-memory-slugs-on-add",
+      "status": "Draft",
+      "description": "",
+      "parent": "FEAT-392",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Short slug derivation + --slug override",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Tests: derivation, override, collision, legacy resolve",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000394-short-human-friendly-memory-slugs-on-add.md",
+      "created_at": "2026-07-15T11:47:08Z",
+      "updated_at": "2026-07-15T11:47:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-394"
     }
   }
 }
