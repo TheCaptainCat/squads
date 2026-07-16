@@ -215,6 +215,7 @@ truth. See the `squads` skill for the `sq` CLI.
 - **Nina Product** — product owner (`product-owner`)
 - **Theo Writer** — technical writer (`tech-writer`)
 - **Elias Python** — Python developer (`python-dev`)
+- **Ada Typescript** — Typescript developer (`typescript-dev`)
 
 ## Operators (people)
 
