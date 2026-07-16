@@ -1,6 +1,6 @@
 ---
-id: TASK-386
-sequence_id: 386
+id: TASK-410
+sequence_id: 410
 type: task
 title: 'Board skill: posting discipline and memory-vs-board boundary'
 status: Done

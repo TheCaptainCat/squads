@@ -1,13 +1,13 @@
 ---
-id: REV-388
-sequence_id: 388
+id: REV-412
+sequence_id: 412
 type: review
 title: 'FEAT-315 agent-memory: US5 merge story + index generated-file contract'
 status: Approved
 author: reviewer
 refs:
 - FEAT-315
-description: 'Feature-level review of memory (TASK-378/379/380): committed .index.jsonl
+description: 'Feature-level review of memory (TASK-402/379/380): committed .index.jsonl
   breaks US5 no-conflict + sync doesn''t regenerate it'
 subentities:
 - local_id: F1
@@ -27,7 +27,7 @@ created_at: '2026-07-15T08:50:38Z'
 updated_at: '2026-07-15T10:20:49Z'
 ---
 <!-- sq:body -->
-Feature-level review of agent memory (FEAT-315) across TASK-378 (storage/generator), TASK-379 (CLI), TASK-380 (boot-surfacing) as committed on release/0.9. Code is clean at the seam level — the sq memory CLI, the MemoryMixin service, and the backend-neutral boot-surfacing (invariant #6) are all sound. Two real defects found by ground-truth git/sync verification that the current tests do not exercise; findings below.
+Feature-level review of agent memory (FEAT-315) across TASK-402 (storage/generator), TASK-403 (CLI), TASK-404 (boot-surfacing) as committed on release/0.9. Code is clean at the seam level — the sq memory CLI, the MemoryMixin service, and the backend-neutral boot-surfacing (invariant #6) are all sound. Two real defects found by ground-truth git/sync verification that the current tests do not exercise; findings below.
 <!-- sq:body:end -->
 
 ## Findings
@@ -114,7 +114,7 @@ Rest of the feature is well-covered: US1 (add/slug/frontmatter/no-counter), US3 
 
 <!-- sq:finding:F3:discussion -->
 - [2026-07-15T10:12:08Z] Mara Tester:
-  - Closed by TASK-382: git-backed test proves distinct-branch adds merge .md cleanly / conflict the committed index / sq repair regenerates and resolves it; a separate test proves same-memory edits surface an honest .md conflict. See tests/integration/test_memory_git_merge_behavior.py. Also found + filed BUG-390: sq sync (unlike repair) currently crashes on a real conflict-marked index instead of regenerating it.
+  - Closed by TASK-406: git-backed test proves distinct-branch adds merge .md cleanly / conflict the committed index / sq repair regenerates and resolves it; a separate test proves same-memory edits surface an honest .md conflict. See tests/integration/test_memory_git_merge_behavior.py. Also found + filed BUG-414: sq sync (unlike repair) currently crashes on a real conflict-marked index instead of regenerating it.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->
@@ -123,11 +123,11 @@ Rest of the feature is well-covered: US1 (add/slug/frontmatter/no-counter), US3 
 
 <!-- sq:discussion -->
 - [2026-07-15T08:52:26Z] Paul Reviewer:
-  - Routing note: TASK-382 (Memory tests: 'merge and off-counter invariants') is still Draft. F1 means the merge test that task will add is expected to FAIL against the current implementation — so TASK-382 is not just 'write the tests': F1/F2 must be fixed first (or the merge behavior consciously re-specified). US6 (sq-memory skill) = TASK-381, also Draft. This review covers 378/379/380 only.
+  - Routing note: TASK-406 (Memory tests: 'merge and off-counter invariants') is still Draft. F1 means the merge test that task will add is expected to FAIL against the current implementation — so TASK-406 is not just 'write the tests': F1/F2 must be fixed first (or the merge behavior consciously re-specified). US6 (sq-memory skill) = TASK-405, also Draft. This review covers 378/379/380 only.
 - [2026-07-15T09:23:43Z] Pierre Chat:
   - Decision: option B. Keep the .index.jsonl committed (consistent with .squads.json as a rebuildable committed index), but fix the machinery — wire sq sync to regenerate the memory AND board indexes, correct the GENERATED_STAMP to match reality, and document honestly that two branches adding distinct memories conflict on the derived index (the .md files, the source of truth, still merge cleanly) with a mechanical resolution: re-run sq sync/repair to regenerate. @architect amend ADR-314 to record B; @tech-lead will follow with task + test amendments.
 - [2026-07-15T09:45:16Z] Catherine Manager:
-  - F1 + F2 fixed by TASK-389 (committed): sq sync/repair now regenerate the committed .index.jsonl from the .md files — F2's stamp+trigger corrected, F1's merge conflict now has a mechanical resolution. F3 (US5 merge-test coverage) remains open, tracked by TASK-382 (git-backed merge test, re-spec'd to the option-B behavior); will close on that landing.
+  - F1 + F2 fixed by TASK-413 (committed): sq sync/repair now regenerate the committed .index.jsonl from the .md files — F2's stamp+trigger corrected, F1's merge conflict now has a mechanical resolution. F3 (US5 merge-test coverage) remains open, tracked by TASK-406 (git-backed merge test, re-spec'd to the option-B behavior); will close on that landing.
 - [2026-07-15T10:20:49Z] Catherine Manager:
-  - All findings resolved: F1/F2 via TASK-389 (sync/repair regeneration + corrected stamp), F3 via TASK-382 (git-backed US5 merge test). The follow-on BUG-390 (sync crash on a conflicted index) is Fixed+Verified. Approving.
+  - All findings resolved: F1/F2 via TASK-413 (sync/repair regeneration + corrected stamp), F3 via TASK-406 (git-backed US5 merge test). The follow-on BUG-414 (sync crash on a conflicted index) is Fixed+Verified. Approving.
 <!-- sq:discussion:end -->

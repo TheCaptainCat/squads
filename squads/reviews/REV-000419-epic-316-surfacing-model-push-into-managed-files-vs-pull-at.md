@@ -1,6 +1,6 @@
 ---
-id: REV-395
-sequence_id: 395
+id: REV-419
+sequence_id: 419
 type: review
 title: 'EPIC-316 surfacing model: push-into-managed-files vs pull-at-startup'
 status: Approved
@@ -8,10 +8,10 @@ author: reviewer
 refs:
 - FEAT-315:addresses
 - FEAT-317:addresses
-- FEAT-392:addresses
+- FEAT-416:addresses
 - ADR-314:addresses
-- REV-388
-- REV-391
+- REV-412
+- REV-415
 subentities:
 - local_id: F1
   title: Push boot-surfacing + unconditional directive vs conditional sections = dangling
@@ -122,9 +122,9 @@ But the sections it names are conditional. `## Your memory` renders only under `
 - the generator `_content_index.py` (`regenerate` / `regenerate_from_content_files` / `parse_index`);
 - the write-path regeneration on every `save`/`forget` (`_memory/_store.py`) and every board `post` (`_board/_store.py`);
 - the `sq sync` / `sq repair` pass `_services/_maintenance.py::_regenerate_content_indexes`;
-- the option-B committed-index decision (REV-388) and the merge-conflict-handling fix (BUG-390) — both only matter because a committed, regenerated index invites merge conflicts.
+- the option-B committed-index decision (REV-412) and the merge-conflict-handling fix (BUG-414) — both only matter because a committed, regenerated index invites merge conflicts.
 
-This is stored/derived data kept in sync for no reader — the "don't store what you can derive" smell, and it drags a whole merge-conflict class (BUG-390) along with it. The two things that actually need the pool contents (boot engagement, and the CLI) either will read the `.md` files live (F3) or already do.
+This is stored/derived data kept in sync for no reader — the "don't store what you can derive" smell, and it drags a whole merge-conflict class (BUG-414) along with it. The two things that actually need the pool contents (boot engagement, and the CLI) either will read the `.md` files live (F3) or already do.
 <!-- sq:finding:F2:body:end -->
 
 #### Discussion
@@ -159,12 +159,12 @@ Replace push-into-managed-files with a **pull-at-startup** model, and drop the n
 - Delete `_content_index.py` and the `regenerate` / `regenerate_from_content_files` / `parse_index` / `IndexEntry` surface.
 - Remove index regeneration from the memory write/forget paths and the board post path.
 - Remove `_regenerate_content_indexes` from `_services/_maintenance.py` (`sq sync` / `sq repair`).
-- Retire the option-B committed-index design (REV-388) and the merge-conflict handling (BUG-390) — dropping the committed index eliminates that merge-conflict class at its root rather than handling it.
+- Retire the option-B committed-index design (REV-412) and the merge-conflict handling (BUG-414) — dropping the committed index eliminates that merge-conflict class at its root rather than handling it.
 
 **Amendments this implies (to be reflected when fix-tasks land):**
 - **ADR-314** — the storage/id model: the `.index.jsonl` roll-up is removed; storage is plain `.md` files only.
 - **FEAT-315 US2 / FEAT-317 US2** — the "surfaced at boot" behavior changes from push-into-managed-files to pull-at-startup.
-- **FEAT-392 US1** — the boot engagement nudge points at a live `sq …` list, not the rendered `## Your memory` / `## Board` sections.
+- **FEAT-416 US1** — the boot engagement nudge points at a live `sq …` list, not the rendered `## Your memory` / `## Board` sections.
 
 **Not implemented here.** This review is the record; fix-tasks are authored later. Findings articulate the technical case backing op-pierre's directive.
 <!-- sq:finding:F3:body:end -->
@@ -220,14 +220,14 @@ Dropped the .index.jsonl clause from _memory/_model.py and _board/_model.py docs
 - [2026-07-15T12:24:43Z] Pierre Chat:
   - The if-gated push-surfacing is a terrible idea. Injecting memory and board content into the managed pointer/CLAUDE/AGENTS files means it's either a stale snapshot from the last sync or a dangling directive when it's empty — and empty is every new install's default.
   - Just tell the role sheet to list the board and memory at startup. Every agent runs `sq memory <its-slug> list` and `sq board list` at the start of a run and applies what's relevant. Always fresh, works when empty, nothing duplicated into managed files, nothing to go stale.
-  - Do the full version: once surfacing is gone the .index.jsonl has no reader, so drop it too — storage is just the slug/hash-named .md files. That also kills the index merge-conflict problem at the root instead of patching around it (BUG-390 / the option-B design in REV-388).
+  - Do the full version: once surfacing is gone the .index.jsonl has no reader, so drop it too — storage is just the slug/hash-named .md files. That also kills the index merge-conflict problem at the root instead of patching around it (BUG-414 / the option-B design in REV-412).
 - [2026-07-15T12:24:53Z] Paul Reviewer:
-  - ChangesRequested. F1 (dangling directive on fresh installs) and F2 (readerless .index.jsonl) verified against source; both trace to the push-into-managed-files model. F3 records op-pierre's directed resolution — pull-at-startup + drop the index (Full scope). Findings are the technical backing; this review is the record, fix-tasks come later. Amends ADR-314, FEAT-315/FEAT-317 US2, and FEAT-392 US1.
+  - ChangesRequested. F1 (dangling directive on fresh installs) and F2 (readerless .index.jsonl) verified against source; both trace to the push-into-managed-files model. F3 records op-pierre's directed resolution — pull-at-startup + drop the index (Full scope). Findings are the technical backing; this review is the record, fix-tasks come later. Amends ADR-314, FEAT-315/FEAT-317 US2, and FEAT-416 US1.
 - [2026-07-15T13:06:14Z] Paul Reviewer:
-  - Verification of the TASK-396/397 rip-out (uncommitted on release/0.9). The index/surfacing CODE is fully and correctly removed — F2's core is resolved and F3's mechanical steps are done:
-  - RESOLVED: _content_index.py / _memory_surface.py / _board_surface.py deleted; read_index + regenerate_from_content_files + regenerate_index gone; maintenance _regenerate_content_indexes/_memory_role_folders + both call sites removed; the four templates stripped of the ## Your memory / ## Board / per-role Memory blocks; role.md.j2 rewritten to the unconditional pull (sq memory <slug> list / sq board list), valid on empty pools. Stores read the .md files directly. Git-merge tests keep the .md-merge substance and drop only the index-conflict parts. Gates clean: pyright 0/0/0, ruff + format clean, sq check clean. No orphaned code refs (the one tests/ grep hit is the false-positive 'memory_surface_an_honest_conflict' test NAME). BUG-390 is genuinely obsolete — its subject (a committed conflicted .index.jsonl) no longer exists.
-  - NOT resolved — two orphans the rip-out left behind (see F4/F5), both from the same scope gap: TASK-396 enumerated a fixed template/docstring list that missed these surfaces.
-  - F4 (high): the sq-memory skill itself (memory_skill.md.j2 -> committed squads/agents/skills/sq-memory.md) still teaches the push-at-boot model — 'surfaced into your context automatically at boot ... you don't have to go looking'. That is F1's defect relapsed into the very skill governing memory/board use, and it contradicts the new pull directive. Keeping REV-395 in ChangesRequested for this.
+  - Verification of the TASK-420/397 rip-out (uncommitted on release/0.9). The index/surfacing CODE is fully and correctly removed — F2's core is resolved and F3's mechanical steps are done:
+  - RESOLVED: _content_index.py / _memory_surface.py / _board_surface.py deleted; read_index + regenerate_from_content_files + regenerate_index gone; maintenance _regenerate_content_indexes/_memory_role_folders + both call sites removed; the four templates stripped of the ## Your memory / ## Board / per-role Memory blocks; role.md.j2 rewritten to the unconditional pull (sq memory <slug> list / sq board list), valid on empty pools. Stores read the .md files directly. Git-merge tests keep the .md-merge substance and drop only the index-conflict parts. Gates clean: pyright 0/0/0, ruff + format clean, sq check clean. No orphaned code refs (the one tests/ grep hit is the false-positive 'memory_surface_an_honest_conflict' test NAME). BUG-414 is genuinely obsolete — its subject (a committed conflicted .index.jsonl) no longer exists.
+  - NOT resolved — two orphans the rip-out left behind (see F4/F5), both from the same scope gap: TASK-420 enumerated a fixed template/docstring list that missed these surfaces.
+  - F4 (high): the sq-memory skill itself (memory_skill.md.j2 -> committed squads/agents/skills/sq-memory.md) still teaches the push-at-boot model — 'surfaced into your context automatically at boot ... you don't have to go looking'. That is F1's defect relapsed into the very skill governing memory/board use, and it contradicts the new pull directive. Keeping REV-419 in ChangesRequested for this.
   - F5 (low): _memory/_model.py and _board/_model.py docstrings still cite the generated .index.jsonl roll-up ADR-314 says no longer exists.
   - Not approving. Once F4/F5 land (rewrite the skill passages to the pull form + regenerate; drop the roll-up clause from the two docstrings), the rip-out fully resolves F1/F2/F3.
 - [2026-07-15T13:07:10Z] Catherine Manager:

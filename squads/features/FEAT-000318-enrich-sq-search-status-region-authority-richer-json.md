@@ -224,8 +224,8 @@ As an agent, I want the squads skill to teach when to reach for search so it is 
 
 <!-- sq:discussion -->
 - [2026-07-15T14:43:19Z] Paul Reviewer:
-  - Reviewed TASK-399 (enrich sq search). APPROVED — no findings. Region attribution (_build_regions/_classify_line) verified end-to-end: title/description/body/summary, per-comment discussion (discussion#N with author+ts), and nested sub-entity discussion (story:US1:discussion#N) all attribute correctly via narrowest-containing-region; marker trailing ' -->' guards against S1/S10 prefix collisions; graceful 'other' fallback and no-discussion/no-subentity items handled without crashes.
+  - Reviewed TASK-423 (enrich sq search). APPROVED — no findings. Region attribution (_build_regions/_classify_line) verified end-to-end: title/description/body/summary, per-comment discussion (discussion#N with author+ts), and nested sub-entity discussion (story:US1:discussion#N) all attribute correctly via narrowest-containing-region; marker trailing ' -->' guards against S1/S10 prefix collisions; graceful 'other' fallback and no-discussion/no-subentity items handled without crashes.
   - --status reuses parse_status (same validation as list/tree), AND-composes via list_items(item_type,status). Case-insensitive substring retained; regex intentionally absent. Blast radius contained: svc.search()'s only consumer is _main.py (memory_search is separate); the pre-existing terminal-reopen test was the one stale unpack site, now fixed. --json is a documented superset (adds type/status; hits enriched string->object per the ST3 scope) — no external consumers. Gates: ruff/pyright/format clean, sq check clean, all search tests green.
   - Minor (non-blocking): SearchHit.location duplicates region for non-comment hits (only adds author/ts for comment hits) — in-scope per ST3, kept. Summary-table hits are mildly redundant with sub-entity hits but honest (text lives in both).
-  - @tech-lead TASK-399 verified — clear to close.
+  - @tech-lead TASK-423 verified — clear to close.
 <!-- sq:discussion:end -->

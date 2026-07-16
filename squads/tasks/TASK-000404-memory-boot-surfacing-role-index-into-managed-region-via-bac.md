@@ -1,6 +1,6 @@
 ---
-id: TASK-380
-sequence_id: 380
+id: TASK-404
+sequence_id: 404
 type: task
 title: 'Memory boot-surfacing: role index into managed region via backend'
 status: Done

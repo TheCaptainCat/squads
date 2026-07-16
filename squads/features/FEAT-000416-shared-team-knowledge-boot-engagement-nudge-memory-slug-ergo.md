@@ -1,6 +1,6 @@
 ---
-id: FEAT-392
-sequence_id: 392
+id: FEAT-416
+sequence_id: 416
 type: feature
 title: Shared team knowledge — boot engagement nudge + memory slug ergonomics
 status: Done
@@ -136,5 +136,5 @@ of its content.
 
 <!-- sq:discussion -->
 - [2026-07-15T12:41:02Z] Nina Product:
-  - US1 realigned per REV-395: boot directive now tells the agent to run `sq memory <slug> list` + `sq board list`, not to review surfaced managed-file sections — valid on empty pools/fresh installs.
+  - US1 realigned per REV-419: boot directive now tells the agent to run `sq memory <slug> list` + `sq board list`, not to review surfaced managed-file sections — valid on empty pools/fresh installs.
 <!-- sq:discussion:end -->

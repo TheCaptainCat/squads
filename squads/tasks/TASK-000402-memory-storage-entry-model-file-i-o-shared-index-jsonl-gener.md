@@ -1,6 +1,6 @@
 ---
-id: TASK-378
-sequence_id: 378
+id: TASK-402
+sequence_id: 402
 type: task
 title: 'Memory storage: entry model, file I/O, shared .index.jsonl generator'
 status: Done
@@ -141,13 +141,13 @@ Memory lives entirely outside `.squads.json` and off the global counter. `sq rep
 
 <!-- sq:discussion -->
 - [2026-07-15T08:03:07Z] Catherine Manager:
-  - Dispatching @python-dev on the memory storage foundation. Scope: memory-entry model + file I/O + the shared .index.jsonl generator per ADR-314. This is the keystone — TASK-379/380/383 build on it. Take Ready→InProgress on pickup; hand to InReview when done.
+  - Dispatching @python-dev on the memory storage foundation. Scope: memory-entry model + file I/O + the shared .index.jsonl generator per ADR-314. This is the keystone — TASK-403/380/383 build on it. Take Ready→InProgress on pickup; hand to InReview when done.
 - [2026-07-15T08:14:27Z] Elias Python:
-  - Storage layer done: MemoryEntry model (src/squads/_memory/_model.py), file I/O (_memory/_store.py: add/read/list_entries/forget, slug-collision suffixing, marker-free content), shared .index.jsonl generator (src/squads/_content_index.py: header_record/render_index/parse_index/regenerate — reusable by TASK-383) and a thin MemoryMixin (_services/_memory.py) wired into Service. Off-counter/outside-.squads.json + sq-repair-ignores-it invariants covered by tests.
-  - pyright/ruff clean; sq check clean. Tests: tests/unit/test_content_index_generator.py, tests/unit/test_memory_entry_model.py, tests/service/test_memory_storage_and_index_regeneration.py (46 passed). Full suite not run (main loop's job). Handing to @tech-lead for review — CLI is TASK-379.
+  - Storage layer done: MemoryEntry model (src/squads/_memory/_model.py), file I/O (_memory/_store.py: add/read/list_entries/forget, slug-collision suffixing, marker-free content), shared .index.jsonl generator (src/squads/_content_index.py: header_record/render_index/parse_index/regenerate — reusable by TASK-407) and a thin MemoryMixin (_services/_memory.py) wired into Service. Off-counter/outside-.squads.json + sq-repair-ignores-it invariants covered by tests.
+  - pyright/ruff clean; sq check clean. Tests: tests/unit/test_content_index_generator.py, tests/unit/test_memory_entry_model.py, tests/service/test_memory_storage_and_index_regeneration.py (46 passed). Full suite not run (main loop's job). Handing to @tech-lead for review — CLI is TASK-403.
 - [2026-07-15T08:19:36Z] Paul Reviewer:
   - Reviewed the storage layer — APPROVED. Faithful to ADR-314: .index.jsonl header {schema:"squads.index/1", generated:<plain-text stamp>} + {slug,filename,description} entry lines, regenerated whole, caller-owned ordering (render_index/regenerate never sort — board's line-ordinal stays load-bearing), memory slug-addressed, content files marker-free.
   - Invariants hold: no counter allocation / no IndexStore / .squads.json untouched (asserted), sq repair is memory-neutral (asserted), path-traversal safe via paths.abspath, reads never mutate (no spurious folder/mkdir). Conventions clean: private modules, empty __init__, injectable clock, SquadsError, no __future__, acyclic imports, pyright+ruff green, 23 new tests pass.
-  - Reuse seam is clean for TASK-383/board: IndexEntry/header_record/render_index/parse_index/regenerate are all generic; the feature-specific entry-builder (_regenerate_index, reads the 'summary' key) rightly stays in _memory/_store.py, not the shared module — the board won't fight it.
+  - Reuse seam is clean for TASK-407/board: IndexEntry/header_record/render_index/parse_index/regenerate are all generic; the feature-specific entry-builder (_regenerate_index, reads the 'summary' key) rightly stays in _memory/_store.py, not the shared module — the board won't fight it.
   - Non-blocking notes for later (not findings): parse_index does IndexEntry(**json.loads(ln)) so a hand-corrupted/conflict-markered index raises raw TypeError/JSONDecodeError not SquadsError — fine since the index is regenerated-whole and never the merge battleground, but the board is its first real consumer; and content writes use plain write_text (not atomic os.replace like IndexStore) — a deliberate lighter-tier choice, git is the merge engine.
 <!-- sq:discussion:end -->

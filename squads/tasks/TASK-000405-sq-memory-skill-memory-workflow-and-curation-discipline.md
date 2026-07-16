@@ -1,6 +1,6 @@
 ---
-id: TASK-381
-sequence_id: 381
+id: TASK-405
+sequence_id: 405
 type: task
 title: 'sq-memory skill: memory workflow and curation discipline'
 status: Done

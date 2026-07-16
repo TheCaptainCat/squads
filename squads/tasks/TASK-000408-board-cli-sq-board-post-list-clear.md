@@ -1,6 +1,6 @@
 ---
-id: TASK-384
-sequence_id: 384
+id: TASK-408
+sequence_id: 408
 type: task
 title: 'Board CLI: sq board post/list/clear'
 status: Done

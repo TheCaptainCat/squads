@@ -1,13 +1,13 @@
 ---
-id: TASK-383
-sequence_id: 383
+id: TASK-407
+sequence_id: 407
 type: task
 title: 'Board storage: notice model, file I/O, short-hash id'
 status: Done
 parent: FEAT-317
 author: tech-lead
 refs:
-- TASK-378
+- TASK-402
 description: Lightweight board-notice model, per-file read/write with a short-hash
   id, and read-time expiry filter
 subentities:
@@ -123,5 +123,5 @@ Expired notices (past `until`) are excluded from the generated index and listing
 - [2026-07-15T10:21:10Z] Catherine Manager:
   - Dispatching @python-dev on board storage — reuse the committed _content_index generator + regenerate_from_content_files seam (from memory), and plug squads/board/ into sync's _regenerate_content_indexes pass. Take Ready→InProgress; hand to InReview.
 - [2026-07-15T10:29:53Z] Elias Python:
-  - Storage layer done: _board/_model.py + _store.py (hash-id notices, post/list_notices/clear, regenerate_index), _services/_board.py mixin, plugged into MaintenanceMixin._regenerate_content_indexes. Service surface for TASK-384: board_post/board_list/board_clear. Gates green (pyright, ruff, ruff format, tests/meta, 21 targeted tests). Handing to InReview.
+  - Storage layer done: _board/_model.py + _store.py (hash-id notices, post/list_notices/clear, regenerate_index), _services/_board.py mixin, plugged into MaintenanceMixin._regenerate_content_indexes. Service surface for TASK-408: board_post/board_list/board_clear. Gates green (pyright, ruff, ruff format, tests/meta, 21 targeted tests). Handing to InReview.
 <!-- sq:discussion:end -->

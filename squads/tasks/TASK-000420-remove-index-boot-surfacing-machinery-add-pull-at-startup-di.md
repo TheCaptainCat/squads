@@ -1,6 +1,6 @@
 ---
-id: TASK-396
-sequence_id: 396
+id: TASK-420
+sequence_id: 420
 type: task
 title: Remove index/boot-surfacing machinery; add pull-at-startup directive
 status: Done
@@ -8,9 +8,9 @@ parent: FEAT-315
 author: tech-lead
 assignee: python-dev
 refs:
-- REV-395:addresses
+- REV-419:addresses
 - FEAT-317:addresses
-- FEAT-392:addresses
+- FEAT-416:addresses
 created_at: '2026-07-15T12:42:17Z'
 updated_at: '2026-07-15T13:14:41Z'
 ---
@@ -107,7 +107,7 @@ _Add with `sq task 396 add-subtask "<title>"`; track with `sq task 396 subtask <
 
 <!-- sq:discussion -->
 - [2026-07-15T12:44:32Z] Catherine Manager:
-  - Dispatching @python-dev for the coordinated rip-out: do TASK-396 (source) then TASK-397 (tests/goldens) in one pass. 396 leaves the suite red by design; 397 makes it green. Take each Ready→InProgress→InReview.
+  - Dispatching @python-dev for the coordinated rip-out: do TASK-420 (source) then TASK-421 (tests/goldens) in one pass. 396 leaves the suite red by design; 397 makes it green. Take each Ready→InProgress→InReview.
 - [2026-07-15T12:49:42Z] Elias Python:
   - Source rip-out done: deleted _content_index.py, _memory_surface.py, _board_surface.py; removed index regen from memory/board stores + maintenance sync/repair; stripped memory_lines/board_lines from templates + backend wiring; role.md.j2 now directs a pull (sq memory <slug> list / sq board list).
 <!-- sq:discussion:end -->
