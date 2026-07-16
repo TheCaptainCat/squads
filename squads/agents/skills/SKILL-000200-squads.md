@@ -80,6 +80,23 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
 `--author op-<slug>`). Register one with `sq operator add "<name>"`; list them with
 `sq list -t operator`.
 
+## Finding things across the board
+
+Reach for `sq search "<text>"` when you're steering or scoping — hunting the prior decision behind
+something, checking whether a topic is already tracked, or gauging how stale a thread has gone.
+It's a query verb, not a routine boot step: don't run it as part of every handoff, just when you
+need to find something you don't already have the ID for.
+
+- It scans **everything**: titles, summaries, bodies, discussion comments, and sub-entity prose
+  (story/subtask/finding blocks) — case-insensitive substring match.
+- Narrow with `--type <type>` and/or `--status <status>` (the same vocabulary as `sq list`); both
+  AND-compose with the query.
+- Each result names **where** it matched: `body`, a `discussion` comment, or a named sub-entity
+  (e.g. `story:US<n>`, `story:US<n>:discussion#2`), alongside an in-context snippet — so you can jump
+  straight to the right region instead of re-reading the whole item.
+- `sq search "<text>" --json` emits the same result set machine-readably (id/type/status plus
+  each hit's region/location/snippet) for a script or an orchestrating agent to consume.
+
 ## Team workflow
 
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
@@ -101,6 +118,14 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
+
+## Item hierarchy
+
+```mermaid
+flowchart TD
+    epic["epic"] --> feature["feature"]
+    feature["feature"] --> task["task"]
+```
 
 ## Type-command aliases
 
@@ -137,6 +162,202 @@ statuses and transitions.
 | `ADR` | `decision` | `Proposed → Accepted → Superseded (+ Rejected, Deprecated)` |
 | `REV` | `review` | `Requested → InReview → ChangesRequested → Approved (+ Rejected)` |
 | `GUIDE` | `guide` | `Draft → Published → Deprecated` |
+
+`epic` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft : Draft
+    Ready : Ready
+    InProgress : InProgress
+    Cancelled : Cancelled
+    Blocked : Blocked
+    InReview : InReview
+    Done : Done
+    Draft --> Ready
+    Draft --> InProgress
+    Draft --> Cancelled
+    Ready --> InProgress
+    Ready --> Blocked
+    Ready --> Cancelled
+    InProgress --> InReview
+    InProgress --> Blocked
+    InProgress --> Done
+    InProgress --> Cancelled
+    Cancelled --> Draft
+    Blocked --> Ready
+    Blocked --> InProgress
+    Blocked --> Cancelled
+    InReview --> InProgress
+    InReview --> Done
+    InReview --> Blocked
+    InReview --> Cancelled
+    Done --> InProgress
+    Cancelled --> [*]
+    Done --> [*]
+```
+
+`feature` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft : Draft
+    Ready : Ready
+    InProgress : InProgress
+    Cancelled : Cancelled
+    Blocked : Blocked
+    InReview : InReview
+    Done : Done
+    Draft --> Ready
+    Draft --> InProgress
+    Draft --> Cancelled
+    Ready --> InProgress
+    Ready --> Blocked
+    Ready --> Cancelled
+    InProgress --> InReview
+    InProgress --> Blocked
+    InProgress --> Done
+    InProgress --> Cancelled
+    Cancelled --> Draft
+    Blocked --> Ready
+    Blocked --> InProgress
+    Blocked --> Cancelled
+    InReview --> InProgress
+    InReview --> Done
+    InReview --> Blocked
+    InReview --> Cancelled
+    Done --> InProgress
+    Cancelled --> [*]
+    Done --> [*]
+```
+
+`task` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft : Draft
+    Ready : Ready
+    InProgress : InProgress
+    Cancelled : Cancelled
+    Blocked : Blocked
+    InReview : InReview
+    Done : Done
+    Draft --> Ready
+    Draft --> InProgress
+    Draft --> Cancelled
+    Ready --> InProgress
+    Ready --> Blocked
+    Ready --> Cancelled
+    InProgress --> InReview
+    InProgress --> Blocked
+    InProgress --> Done
+    InProgress --> Cancelled
+    Cancelled --> Draft
+    Blocked --> Ready
+    Blocked --> InProgress
+    Blocked --> Cancelled
+    InReview --> InProgress
+    InReview --> Done
+    InReview --> Blocked
+    InReview --> Cancelled
+    Done --> InProgress
+    Cancelled --> [*]
+    Done --> [*]
+```
+
+`bug` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open
+    Open : Open
+    InProgress : InProgress
+    WontFix : WontFix
+    Cancelled : Cancelled
+    Fixed : Fixed
+    Blocked : Blocked
+    Verified : Verified
+    Open --> InProgress
+    Open --> WontFix
+    Open --> Cancelled
+    InProgress --> Fixed
+    InProgress --> Blocked
+    InProgress --> WontFix
+    InProgress --> Cancelled
+    WontFix --> Open
+    Cancelled --> Open
+    Fixed --> Verified
+    Fixed --> InProgress
+    Blocked --> InProgress
+    Blocked --> WontFix
+    Blocked --> Cancelled
+    Verified --> InProgress
+    WontFix --> [*]
+    Cancelled --> [*]
+    Verified --> [*]
+```
+
+`decision` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Proposed
+    Proposed : Proposed
+    Accepted : Accepted
+    Rejected : Rejected
+    Superseded : Superseded
+    Deprecated : Deprecated
+    Proposed --> Accepted
+    Proposed --> Rejected
+    Accepted --> Superseded
+    Accepted --> Deprecated
+    Rejected --> Proposed
+    Accepted --> [*]
+    Rejected --> [*]
+    Superseded --> [*]
+    Deprecated --> [*]
+```
+
+`review` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Requested
+    Requested : Requested
+    InReview : InReview
+    Rejected : Rejected
+    ChangesRequested : ChangesRequested
+    Approved : Approved
+    Requested --> InReview
+    Requested --> Rejected
+    InReview --> ChangesRequested
+    InReview --> Approved
+    InReview --> Rejected
+    ChangesRequested --> InReview
+    ChangesRequested --> Approved
+    ChangesRequested --> Rejected
+    Rejected --> [*]
+    Approved --> [*]
+```
+
+`guide` lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft : Draft
+    Published : Published
+    Deprecated : Deprecated
+    Draft --> Published
+    Published --> Deprecated
+    Published --> Draft
+    Deprecated --> Published
+    Published --> [*]
+    Deprecated --> [*]
+```
 
 ## Retype
 
