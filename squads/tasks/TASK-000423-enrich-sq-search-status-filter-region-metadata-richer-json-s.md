@@ -1,6 +1,6 @@
 ---
-id: TASK-399
-sequence_id: 399
+id: TASK-423
+sequence_id: 423
 type: task
 title: 'Enrich sq search: --status filter, region metadata, richer --json, skill section'
 status: Done
@@ -150,7 +150,7 @@ Add a 'finding things across the board' section to the squads skill: `sq search`
 
 <!-- sq:discussion -->
 - [2026-07-15T14:05:33Z] Catherine Manager:
-  - Dispatching @python-dev for TASK-399 + TASK-400 + TASK-401 in one coordinated pass (they share the template/manifest surface). Take each Ready→InProgress→InReview.
+  - Dispatching @python-dev for TASK-423 + TASK-424 + TASK-425 in one coordinated pass (they share the template/manifest surface). Take each Ready→InProgress→InReview.
 - [2026-07-15T14:30:34Z] Elias Python:
   - Added --status filter (AND with query/--type, reuses parse_status), region+snippet attribution per hit (title/description/body/discussion#n/<kind>:<local_id>/<kind>:<local_id>:discussion#n), richer --json (type/status/region/location/snippet), squads skill 'Finding things across the board' section.
   - Service: CollabMixin.search now returns list[SearchResult] (SearchHit: region/location/snippet) in _services/_collab.py + _results.py; region attribution via marker line-ranges (_sections.region_lines), no set-iteration nondeterminism.

@@ -1,6 +1,6 @@
 ---
-id: TASK-397
-sequence_id: 397
+id: TASK-421
+sequence_id: 421
 type: task
 title: Update tests + goldens for the surfacing rip-out; regenerate manifest
 status: Done
@@ -8,10 +8,10 @@ parent: FEAT-315
 author: tech-lead
 assignee: python-dev
 refs:
-- REV-395:addresses
+- REV-419:addresses
 - FEAT-317:addresses
-- FEAT-392:addresses
-- TASK-396:depends-on
+- FEAT-416:addresses
+- TASK-420:depends-on
 created_at: '2026-07-15T12:42:17Z'
 updated_at: '2026-07-15T13:14:42Z'
 ---
@@ -106,7 +106,7 @@ _Add with `sq task 397 add-subtask "<title>"`; track with `sq task 397 subtask <
 <!-- sq:discussion -->
 - [2026-07-15T13:00:20Z] Elias Python:
   - Deleted tests/unit/test_content_index_generator.py; deleted TestMemoryBootSurfacing/TestBoardBootSurfacing from test_backend_lifecycle_contract.py.
-  - Renamed+trimmed the two storage test files (dropped _and_index_regeneration): test_memory_storage.py, test_board_storage.py — kept pure storage/off-counter/repair-neutral tests, dropped all index-regen/conflict/BUG-390 tests.
+  - Renamed+trimmed the two storage test files (dropped _and_index_regeneration): test_memory_storage.py, test_board_storage.py — kept pure storage/off-counter/repair-neutral tests, dropped all index-regen/conflict/BUG-414 tests.
   - Git-merge tests (memory+board) keep the .md-files-merge-cleanly assertions; dropped the index-conflict/sync-resolves parts and renamed the distinct-post test names to drop the index framing.
   - Flipped test_role_body_content_generation.py's directive test to assert the pull form (sq memory <slug> list / sq board list).
   - Cleared memory_lines/board_lines fixtures from test_managed_section_and_cheatsheet_goldens.py, test_authoring_prose_derives_from_spec.py, test_dropped_type_authoring_prose_no_crash.py — goldens unchanged (those sections were always empty-list renders, confirmed via UPDATE_GOLDENS=1 diff).

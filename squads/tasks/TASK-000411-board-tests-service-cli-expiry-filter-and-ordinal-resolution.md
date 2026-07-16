@@ -1,6 +1,6 @@
 ---
-id: TASK-387
-sequence_id: 387
+id: TASK-411
+sequence_id: 411
 type: task
 title: 'Board tests: service + CLI, expiry filter and ordinal resolution'
 status: Done

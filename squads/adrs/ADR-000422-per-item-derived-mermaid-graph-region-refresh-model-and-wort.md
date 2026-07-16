@@ -1,6 +1,6 @@
 ---
-id: ADR-398
-sequence_id: 398
+id: ADR-422
+sequence_id: 422
 type: decision
 title: Per-item derived Mermaid :graph region — refresh model and worth-it call
 status: Accepted

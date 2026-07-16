@@ -1,6 +1,6 @@
 ---
-id: TASK-379
-sequence_id: 379
+id: TASK-403
+sequence_id: 403
 type: task
 title: 'Memory CLI: sq memory <role> list/search/show/add/forget'
 status: Done
@@ -119,7 +119,7 @@ Wire `add` to the storage layer: create the slug-named file and regenerate the i
 
 <!-- sq:discussion -->
 - [2026-07-15T08:20:49Z] Catherine Manager:
-  - Dispatching @python-dev on the memory CLI now that the storage/service layer (TASK-378) is in. Wire sq memory <role> list/search/show/add/forget onto the MemoryMixin service; add memory_search (content grep) to the service/store. Take Ready→InProgress; hand to InReview.
+  - Dispatching @python-dev on the memory CLI now that the storage/service layer (TASK-402) is in. Wire sq memory <role> list/search/show/add/forget onto the MemoryMixin service; add memory_search (content grep) to the service/store. Take Ready→InProgress; hand to InReview.
 - [2026-07-15T08:27:55Z] Elias Python:
   - Implemented sq memory <role> list/search/show/add/forget (src/squads/_cli/_memory.py) + memory_search in Service/store. pyright/ruff/format clean, sq check clean; 7 new CLI tests + full memory suite (24) green.
 <!-- sq:discussion:end -->

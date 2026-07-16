@@ -1,10 +1,10 @@
 ---
-id: TASK-394
-sequence_id: 394
+id: TASK-418
+sequence_id: 418
 type: task
 title: Short, human-friendly memory slugs on add
 status: Done
-parent: FEAT-392
+parent: FEAT-416
 author: tech-lead
 assignee: python-dev
 subentities:

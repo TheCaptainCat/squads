@@ -1,6 +1,6 @@
 ---
-id: TASK-400
-sequence_id: 400
+id: TASK-424
+sequence_id: 424
 type: task
 title: Fenced Mermaid output from sq graph
 status: Done

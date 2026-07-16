@@ -1,6 +1,6 @@
 ---
-id: REV-391
-sequence_id: 391
+id: REV-415
+sequence_id: 415
 type: review
 title: Board feature review (FEAT-317)
 status: Approved
@@ -22,7 +22,7 @@ created_at: '2026-07-15T11:03:49Z'
 updated_at: '2026-07-15T11:09:18Z'
 ---
 <!-- sq:body -->
-Feature-level review of the team bulletin board (FEAT-317: TASK-383..387), board-specific code only. Verdict: APPROVE. Behaviour is correct and meets US1-US5; gates clean (ruff/pyright/format, sq check, 44 board tests pass). Two low-severity follow-ups filed as findings below.
+Feature-level review of the team bulletin board (FEAT-317: TASK-407..387), board-specific code only. Verdict: APPROVE. Behaviour is correct and meets US1-US5; gates clean (ruff/pyright/format, sq check, 44 board tests pass). Two low-severity follow-ups filed as findings below.
 <!-- sq:body:end -->
 
 ## Findings

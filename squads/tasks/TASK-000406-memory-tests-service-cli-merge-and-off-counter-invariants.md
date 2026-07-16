@@ -1,6 +1,6 @@
 ---
-id: TASK-382
-sequence_id: 382
+id: TASK-406
+sequence_id: 406
 type: task
 title: 'Memory tests: service + CLI, merge and off-counter invariants'
 status: Done
@@ -139,12 +139,12 @@ Memory sits outside .squads.json; sq repair neither rebuilds nor disturbs the me
 
 <!-- sq:discussion -->
 - [2026-07-15T09:57:17Z] Catherine Manager:
-  - Dispatching @qa on the comprehensive memory tests + FEAT-315 acceptance pass. Key deliverable: the git-backed US5 merge test (closes REV-388 F3) proving option-B behavior. Also verify every US1-6 acceptance has a passing test; flag gaps. Take Ready→InProgress; hand to InReview.
+  - Dispatching @qa on the comprehensive memory tests + FEAT-315 acceptance pass. Key deliverable: the git-backed US5 merge test (closes REV-412 F3) proving option-B behavior. Also verify every US1-6 acceptance has a passing test; flag gaps. Take Ready→InProgress; hand to InReview.
 - [2026-07-15T10:02:58Z] Mara Tester:
-  - Found + filed BUG-390 while building the git-backed merge test: sq sync crashes (unhandled JSONDecodeError) on a real merge-conflicted memory index because it regenerates role pointers (which read the index) before regenerating content indexes; sq repair is unaffected. Writing the merge test against repair (matches the task's 'sync (or repair)' wording) and will note the sync gap in the acceptance verdict.
+  - Found + filed BUG-414 while building the git-backed merge test: sq sync crashes (unhandled JSONDecodeError) on a real merge-conflicted memory index because it regenerates role pointers (which read the index) before regenerating content indexes; sq repair is unaffected. Writing the merge test against repair (matches the task's 'sync (or repair)' wording) and will note the sync gap in the acceptance verdict.
 - [2026-07-15T10:11:46Z] Mara Tester:
   - Done. New tests: tests/integration/test_memory_git_merge_behavior.py (git-backed: distinct-branch adds merge .md/conflict index/repair resolves; same-memory edit conflicts honestly; committed-not-ignored; forget retains git history) + tests/service/test_memory_storage_and_index_regeneration.py (repair vs a real multi-line conflict-marker index) + tests/cli/test_memory_cli.py (show addressed by slug independent of list position).
-  - Found + filed BUG-390 along the way: sq sync (not repair) crashes on a genuinely conflict-marked index — pinned as a strict xfail so it flips red once fixed. sq repair fully resolves every scenario tested, so the task's 'sync (or repair)' wording is satisfied.
-  - US1-US6 acceptance: all backed by passing tests. US5's sync-side gap is the one open item, tracked by BUG-390, not a test gap.
+  - Found + filed BUG-414 along the way: sq sync (not repair) crashes on a genuinely conflict-marked index — pinned as a strict xfail so it flips red once fixed. sq repair fully resolves every scenario tested, so the task's 'sync (or repair)' wording is satisfied.
+  - US1-US6 acceptance: all backed by passing tests. US5's sync-side gap is the one open item, tracked by BUG-414, not a test gap.
   - Gates clean: pyright/ruff/ruff format/tests-meta/sq check all pass. New memory suite: 104 passed, 1 xfailed (expected).
 <!-- sq:discussion:end -->

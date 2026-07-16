@@ -1,10 +1,10 @@
 ---
-id: TASK-393
-sequence_id: 393
+id: TASK-417
+sequence_id: 417
 type: task
 title: Boot directive to review memory + board before starting
 status: Done
-parent: FEAT-392
+parent: FEAT-416
 author: tech-lead
 assignee: python-dev
 subentities:
@@ -103,7 +103,7 @@ Regenerate templates_manifest.json (mid-cycle template change). If the list comm
 
 <!-- sq:discussion -->
 - [2026-07-15T11:48:37Z] Catherine Manager:
-  - Dispatching @python-dev on TASK-393 + TASK-394 together (both small). Take each Ready→InProgress; hand to InReview when done.
+  - Dispatching @python-dev on TASK-417 + TASK-418 together (both small). Take each Ready→InProgress; hand to InReview when done.
 - [2026-07-15T11:59:55Z] Elias Python:
   - Added the always-seen directive to role.md.j2's Working agreements section (unconditional static text, not gated on any variable — renders identically regardless of pool/board state).
   - Regenerated templates_manifest.json in place (mid-cycle, current 0.8.0 entry only).
