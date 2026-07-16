@@ -22,7 +22,8 @@
       "assignee": null,
       "severity": null,
       "story": "US1",
-      "extra": {}
+      "extra": {},
+      "body": "_Describe this subtask here \u2014 free-form paragraphs or bullet lists._"
     }
   ],
   "path": "tasks/TASK-000003-implement-login.md",
@@ -31,5 +32,13 @@
   "created_session": null,
   "modified_session": null,
   "extra": {},
-  "id": "TASK-3"
+  "id": "TASK-3",
+  "body": "## Description\n\n_TODO: describe this task._",
+  "discussion": [
+    {
+      "author": "Catherine Manager",
+      "ts": "2026-06-07T10:00:00Z",
+      "body": "- @manager please review the login handler"
+    }
+  ]
 }

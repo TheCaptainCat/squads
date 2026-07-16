@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.9.0",
-  "counter": 435,
+  "counter": 437,
   "padding": 6,
   "items": {
     "12": {
@@ -16184,7 +16184,7 @@
       "type": "task",
       "title": "clients/vscode skeleton: isolated TS toolchain, sq discovery, --json adapter",
       "slug": "clients-vscode-skeleton-isolated-ts-toolchain-sq-discovery-j",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-100",
       "author": "tech-lead",
@@ -16198,7 +16198,7 @@
       "subentities": [],
       "path": "tasks/TASK-000428-clients-vscode-skeleton-isolated-ts-toolchain-sq-discovery-j.md",
       "created_at": "2026-07-16T13:51:27Z",
-      "updated_at": "2026-07-16T16:02:19Z",
+      "updated_at": "2026-07-16T18:33:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16339,7 +16339,7 @@
       "type": "task",
       "title": "Core: clean sq show --raw + additive --json body/discussion keys",
       "slug": "core-clean-sq-show-raw-additive-json-body-discussion-keys",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-100",
       "author": "tech-lead",
@@ -16353,7 +16353,7 @@
       "subentities": [],
       "path": "tasks/TASK-000434-core-clean-sq-show-raw-additive-json-body-discussion-keys.md",
       "created_at": "2026-07-16T15:40:21Z",
-      "updated_at": "2026-07-16T15:41:09Z",
+      "updated_at": "2026-07-16T18:27:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16383,6 +16383,93 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-435"
+    },
+    "436": {
+      "sequence_id": 436,
+      "type": "review",
+      "title": "clients/vscode foundation: toolchain, sq discovery, --json adapter",
+      "slug": "clients-vscode-foundation-toolchain-sq-discovery-json-adapte",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-428:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Squad item IDs embedded in production source and README",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "No hygiene enforcement covers clients/ going forward",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "usage-error argv omits the resolved command, weakening the diagnostic",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "squads.command with an absolute-path first element never resolves",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000436-clients-vscode-foundation-toolchain-sq-discovery-json-adapte.md",
+      "created_at": "2026-07-16T18:25:10Z",
+      "updated_at": "2026-07-16T18:33:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-436"
+    },
+    "437": {
+      "sequence_id": 437,
+      "type": "review",
+      "title": "sq show --raw clean markdown + additive --json body/discussion",
+      "slug": "sq-show-raw-clean-markdown-additive-json-body-discussion",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-434:addresses"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000437-sq-show-raw-clean-markdown-additive-json-body-discussion.md",
+      "created_at": "2026-07-16T18:25:25Z",
+      "updated_at": "2026-07-16T18:27:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-437"
     }
   }
 }

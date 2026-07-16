@@ -3,14 +3,14 @@ id: TASK-434
 sequence_id: 434
 type: task
 title: 'Core: clean sq show --raw + additive --json body/discussion keys'
-status: Draft
+status: Done
 parent: FEAT-100
 author: tech-lead
 assignee: python-dev
 refs:
 - ADR-427:addresses
 created_at: '2026-07-16T15:40:21Z'
-updated_at: '2026-07-16T15:41:09Z'
+updated_at: '2026-07-16T18:27:00Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -87,4 +87,17 @@ _Add with `sq task 434 add-subtask "<title>"`; track with `sq task 434 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-16T18:14:07Z] Elias Python:
+  - Implemented both surfaces in src/squads/_cli/_common.py (new _print_item_raw/_raw_metadata_lines/_raw_subentity_sections/_subentity_badge_line + build_item_json), wired into src/squads/_cli/_items.py and src/squads/_cli/_main.py (the two show entry points). Only the --raw path changed; default styled show is untouched (verified byte-for-byte via the existing goldens + manual diff).
+  - (A) --raw now emits: '# TYPE-N — title', then '- **key:** value' bullets (status/priority-or-severity/assignee/parent/author/refs/labels, absent omitted), blank line, body verbatim; --full appends '## <Kind> <local_id> — <title>' + badge line + body per sub-entity; --comments appends '## Discussion' with '### <author> — <ts>' per comment ('_(no discussion)_' when empty). Zero Rich chrome — printed via console.print(markup=False, soft_wrap=True), same pattern as 'sq docs'.
+  - (B) --json gained top-level body + discussion ({author, ts, body} list) and a body key per subentities[] entry, unconditionally — verified byte-identical across --raw/--comments/--full (test_json_output_is_byte_identical_regardless_of_raw_or_comments_flags still passes, plus a manual diff of show --json vs --json --raw --full --comments).
+  - Goldens: added tests/goldens/item_show_raw.txt (new, via tests/cli/test_show_raw_markdown_golden.py — 4 tests incl. zero-chrome assertion + empty-discussion fallback); updated tests/goldens/feature_show.json + task_show.json in place (diff shows additive-only: new body/discussion keys, nothing renamed/removed). CHANGELOG.md: added an [Unreleased] Changed entry for both the --raw format change and the --json additions.
+  - Verification: uv run pyright + ruff check + ruff format --check clean on all touched files; uv run pytest -n auto tests -k 'show or raw or json or golden or render' -q -> 204 tests, all passed, exit 0; uv run sq check -> no issues. Did NOT run the full suite (main loop's gate) and did not commit.
+  - @reviewer — please verify the additive-only + byte-identical-across-flags claim per the task's reviewer gate before TASK-430 proceeds.
+- [2026-07-16T18:19:50Z] Elias Python:
+  - Fix per main-loop full-suite gate (tests/meta/test_source_and_new_test_tree_have_no_stray_ticket_references.py caught 2 real failures my scoped -k run skipped):
+  - 1) src/squads/_cli/_common.py had the literal ADR token in two docstrings (print_item, build_item_json) — removed both; kept the rationale (what the surface is for / why the invariant holds), just dropped the ID. The metadata-field generic-vs-literal judgment call I'd flagged there now lives only in this handoff comment, not in source.
+  - 2) tests/cli/test_show_raw_markdown_golden.py's fixture docstring spelled out literal fixture ids (feature/task/bug/story tokens) — reworded to describe the setup by role (parent feature with a story, the task under test with its metadata, a second item as the ref target) with no TYPE-N token in any docstring/name.
+  - Verified: uv run pytest -n auto tests/meta -q -> 23 tests, all passed, exit 0. Scoped show/raw/json/golden/render rerun -> 204 tests, all passed, exit 0. uv run pyright + ruff check + ruff format --check clean on touched files. uv run sq check -> no issues. Did not run the full suite, did not commit.
+  - @reviewer — same reviewer gate as before (additive-only --json + byte-identical-across-flags), now also clean on the ticket-reference hygiene gate.
 <!-- sq:discussion:end -->

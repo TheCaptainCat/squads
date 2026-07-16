@@ -1,0 +1,85 @@
+[
+  {
+    "id": "EPIC-99",
+    "type": "epic",
+    "status": "Ready",
+    "priority": "low",
+    "assignee": null,
+    "blocked": false,
+    "children": [
+      {
+        "id": "FEAT-100",
+        "type": "feature",
+        "status": "Ready",
+        "priority": "low",
+        "assignee": null,
+        "blocked": false,
+        "children": [
+          {
+            "id": "TASK-428",
+            "type": "task",
+            "status": "InProgress",
+            "priority": null,
+            "assignee": "typescript-dev",
+            "blocked": false,
+            "children": []
+          },
+          {
+            "id": "TASK-429",
+            "type": "task",
+            "status": "Draft",
+            "priority": null,
+            "assignee": "typescript-dev",
+            "blocked": true,
+            "children": []
+          },
+          {
+            "id": "TASK-430",
+            "type": "task",
+            "status": "Draft",
+            "priority": null,
+            "assignee": "typescript-dev",
+            "blocked": true,
+            "children": []
+          },
+          {
+            "id": "TASK-431",
+            "type": "task",
+            "status": "Draft",
+            "priority": null,
+            "assignee": "typescript-dev",
+            "blocked": true,
+            "children": []
+          },
+          {
+            "id": "TASK-432",
+            "type": "task",
+            "status": "Draft",
+            "priority": null,
+            "assignee": "devops",
+            "blocked": false,
+            "children": []
+          },
+          {
+            "id": "TASK-433",
+            "type": "task",
+            "status": "Draft",
+            "priority": null,
+            "assignee": "devops",
+            "blocked": true,
+            "children": []
+          },
+          {
+            "id": "TASK-434",
+            "type": "task",
+            "status": "InProgress",
+            "priority": null,
+            "assignee": "python-dev",
+            "blocked": false,
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]
