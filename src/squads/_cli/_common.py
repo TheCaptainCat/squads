@@ -193,20 +193,16 @@ def _build_item_panel_rows(it: Item) -> list[str]:
     return rows
 
 
-def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
-    """Build the raw (un-escaped) pane title for a sub-entity.
-
-    Returns plain text with no Rich markup escaping applied.  Callers that need to pass the title
-    into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
-    (plain path) use this value directly so no backslashes leak.
+def _subentity_badge_line(sub: SubEntity, kind: str) -> str:
+    """The badges for a sub-entity, joined for a single display line: status, then one per
+    declared field with a stored value, then the assignee, then the mapped story iff the kind
+    declares ``maps_parent_story``.
 
     Generic over the kind's declared fields (spec-driven, not a ``kind == "finding"``/
-    ``"subtask"`` literal) — one label-badge per declared field with a stored value, then the
-    assignee, then the mapped story iff the kind declares ``maps_parent_story``.
+    ``"subtask"`` literal). Shared by the styled pane title and the ``--raw`` markdown section.
     """
     spec = get_active_spec()
-    status_badge = badges.status_badge(sub.status, spec)
-    parts = [f"{sub.local_id} — {sub.title}  {status_badge}"]
+    parts = [badges.status_badge(sub.status, spec)]
     for field in spec.fields_for(kind):
         value = sub.badge_value(field.code)
         if value:
@@ -218,6 +214,16 @@ def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
     if ks is not None and ks.maps_parent_story and sub.story:
         parts.append(sub.story)
     return "  ".join(parts)
+
+
+def _subentity_pane_title_raw(sub: SubEntity, kind: str) -> str:
+    """Build the raw (un-escaped) pane title for a sub-entity.
+
+    Returns plain text with no Rich markup escaping applied.  Callers that need to pass the title
+    into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
+    (plain path) use this value directly so no backslashes leak.
+    """
+    return f"{sub.local_id} — {sub.title}  {_subentity_badge_line(sub, kind)}"
 
 
 async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: bool) -> None:
@@ -336,6 +342,85 @@ async def _print_discussion(svc: Service, it: Item, *, styled: bool) -> None:
         console.print("[dim](no discussion)[/dim]")
 
 
+def _raw_metadata_lines(it: Item) -> list[str]:
+    """The ``- **key:** value`` bullets for the ``--raw`` markdown metadata block.
+
+    Order: status, per-type badge fields (priority/severity/... — spec-driven, not hard-coded),
+    assignee, parent, author, refs, labels — absent fields omitted. Plain text: the raw path
+    bypasses Rich markup entirely, so nothing here is escaped with :func:`e`.
+    """
+    spec = get_active_spec()
+    lines = [f"- **status:** {it.status}"]
+    for field in spec.fields_for(it.type):
+        val = it.badge_value(field.code)
+        if val:
+            rendered = badges.badge_render(field.collection, val, spec)
+            lines.append(f"- **{field.code}:** {rendered}")
+    if it.assignee:
+        lines.append(f"- **assignee:** {it.assignee}")
+    if it.parent:
+        lines.append(f"- **parent:** {it.parent}")
+    if it.author:
+        lines.append(f"- **author:** {it.author}")
+    if it.refs:
+        rendered_refs = ", ".join(
+            rid if kind == DEFAULT_KIND else f"{rid} ({kind})"
+            for rid, kind in (split_ref(r) for r in it.refs)
+        )
+        lines.append(f"- **refs:** {rendered_refs}")
+    if it.labels:
+        lines.append(f"- **labels:** {', '.join(it.labels)}")
+    return lines
+
+
+async def _raw_subentity_sections(svc: Service, it: Item) -> list[str]:
+    """One ``## <Kind> <local_id> — <title>`` section per sub-entity, for ``--raw --full``."""
+    kind = get_active_spec().item_subentity_kind(it.type)
+    if not kind or not it.subentities:
+        return []
+    lines: list[str] = []
+    for sub in it.subentities:
+        detail = await svc.get_block(it.id, kind, sub.local_id)
+        lines += [
+            "",
+            f"## {kind.title()} {sub.local_id} — {sub.title}",
+            "",
+            _subentity_badge_line(sub, kind),
+            "",
+            detail.body or "",
+        ]
+    return lines
+
+
+async def _print_item_raw(svc: Service, it: Item, *, comments: bool, full: bool) -> None:
+    """The ``--raw`` dossier: a deterministic, markdown-preview-clean markdown document.
+
+    ``# TYPE-N — <title>``, a metadata bullet block, a blank line, then the body markdown
+    verbatim; ``--full`` appends one section per sub-entity, ``--comments`` appends a Discussion
+    section — zero Rich chrome (no box-panel header, no summary table, no ``=== … ===``
+    separators). Printed via a single ``console.print(..., markup=False, soft_wrap=True)`` so
+    nothing is escaped or reflowed (see the ``sq docs`` raw-markdown path for the same pattern).
+    """
+    lines = [
+        f"# {it.id} — {it.title}",
+        "",
+        *_raw_metadata_lines(it),
+        "",
+        await svc.read_body(it.id),
+    ]
+    if full:
+        lines.extend(await _raw_subentity_sections(svc, it))
+    if comments:
+        cmts = discussion.split_discussion(await svc.read_discussion(it.id))
+        lines += ["", "## Discussion"]
+        if cmts:
+            for cmt in cmts:
+                lines += ["", f"### {cmt.author} — {cmt.timestamp}", "", cmt.body]
+        else:
+            lines += ["", "_(no discussion)_"]
+    console.print("\n".join(lines), markup=False, highlight=False, soft_wrap=True)
+
+
 async def print_item(
     svc: Service,
     it: Item,
@@ -344,15 +429,22 @@ async def print_item(
     comments: bool = False,
     full: bool = False,
 ) -> None:
-    """Render an item's metadata panel + its body (for ``sq <type> <num> show``).
+    """Render an item's metadata + body (for ``sq <type> <num> show``).
 
-    On a TTY (with color) the body is styled Rich Markdown; piped / ``NO_COLOR`` / ``--raw`` falls
-    back to plain text.  ``--comments`` appends the discussion as per-comment panes.
-    ``--full`` adds one pane per sub-entity (body, badges); combined with ``--comments`` each
-    sub-entity pane embeds its own comments and the main discussion closes the output.
+    ``--raw`` renders the clean-markdown dossier (:func:`_print_item_raw`) — no Rich chrome at
+    all, suitable for piping straight into a markdown viewer. Any other invocation (TTY or
+    piped, styled or not) keeps the existing Rich panel + summary table rendering unchanged:
+    on a TTY (with color) the body is styled Rich Markdown, piped / ``NO_COLOR`` falls back to
+    plain text.
+    ``--comments`` appends the discussion as per-comment panes. ``--full`` adds one pane per
+    sub-entity (body, badges); combined with ``--comments`` each sub-entity pane embeds its own
+    comments and the main discussion closes the output.
     """
+    if raw:
+        await _print_item_raw(svc, it, comments=comments, full=full)
+        return
     console.print(Panel("\n".join(_build_item_panel_rows(it)), expand=False))
-    styled = _is_styled() and not raw
+    styled = _is_styled()
     await _print_item_content(svc, it, styled=styled, comments=comments, full=full)
 
 
@@ -424,6 +516,29 @@ def resolve_body(messages: list[str] | None, file: str | None) -> str:
     if body is None:
         raise SquadsError("provide the body via -m (repeatable) or --file PATH ('-' for stdin)")
     return body
+
+
+async def build_item_json(svc: Service, it: Item) -> str:
+    """The ``show --json`` payload: frontmatter fields plus body/discussion — additive only.
+
+    Adds top-level ``body`` (raw body markdown) and ``discussion`` (ordered
+    ``{author, ts, body}`` list), plus a ``body`` key on each ``subentities`` entry.  Added
+    unconditionally — not gated by ``--comments``/``--full`` — so the existing invariant that
+    ``show --json`` is byte-identical across ``--raw``/``--comments``/``--full`` still holds.
+    Nothing existing is renamed or removed.
+    """
+    payload: dict[str, Any] = json.loads(it.model_dump_json())
+    payload["body"] = await svc.read_body(it.id)
+    payload["discussion"] = [
+        {"author": cmt.author, "ts": cmt.timestamp, "body": cmt.body}
+        for cmt in discussion.split_discussion(await svc.read_discussion(it.id))
+    ]
+    kind = get_active_spec().item_subentity_kind(it.type)
+    if kind:
+        for sub_data in payload["subentities"]:
+            detail = await svc.get_block(it.id, kind, sub_data["local_id"])
+            sub_data["body"] = detail.body
+    return json.dumps(payload)
 
 
 def get_service() -> Service:

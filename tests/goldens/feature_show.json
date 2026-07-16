@@ -20,7 +20,8 @@
       "assignee": null,
       "severity": null,
       "story": null,
-      "extra": {}
+      "extra": {},
+      "body": "_Write the user story (e.g. \u201cAs an <role>, I want \u2026 so that \u2026\u201d) and its acceptance criteria here \u2014 free-form paragraphs or bullet lists._"
     }
   ],
   "path": "features/FEAT-000002-user-authentication.md",
@@ -29,5 +30,7 @@
   "created_session": null,
   "modified_session": null,
   "extra": {},
-  "id": "FEAT-2"
+  "id": "FEAT-2",
+  "body": "## Summary\n\n_TODO: summarise this feature._",
+  "discussion": []
 }

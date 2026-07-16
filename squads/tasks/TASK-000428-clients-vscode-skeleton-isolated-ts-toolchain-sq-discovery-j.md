@@ -3,14 +3,14 @@ id: TASK-428
 sequence_id: 428
 type: task
 title: 'clients/vscode skeleton: isolated TS toolchain, sq discovery, --json adapter'
-status: Draft
+status: Done
 parent: FEAT-100
 author: tech-lead
 assignee: typescript-dev
 refs:
 - ADR-427:addresses
 created_at: '2026-07-16T13:51:27Z'
-updated_at: '2026-07-16T16:02:19Z'
+updated_at: '2026-07-16T18:33:18Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -67,4 +67,21 @@ _Add with `sq task 428 add-subtask "<title>"`; track with `sq task 428 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-16T18:18:17Z] Ada Typescript:
+  - Foundation stood up at clients/vscode/: package.json (VS Code manifest incl. squads.sqPath/squads.command config contributions + a check = typecheck && lint && format:check gate), tsconfig.json (strict + all 8 requested strict-plus flags), eslint.config.mjs (typescript-eslint strictTypeChecked+stylisticTypeChecked, type-aware, complexity<=12/max-params<=8, simple-import-sort), .prettierrc.json, own package-lock.json, src/ + test/.
+  - Discovery module (src/discovery.ts): resolveSqInvocation implements the ADR-427 #2 order exactly (config-sq-path > config-command > venv > uv+project > poetry+project > bare-path), pure/injectable (DiscoveryEnvironment DI, no vscode/node:fs coupling so it's unit-testable with no host); SqDiscovery caches + invalidate() re-probes on failure; describeTriedOrder for the 'none found' notification text. Real fs/PATH-backed env lives in src/nodeEnvironment.ts, wired from src/extension.ts (minimal activate/deactivate only -- no tree/preview, that's US1-3).
+  - Adapter (src/sqAdapter.ts + src/processRunner.ts): shells out via the resolved invocation, maps exit codes 2/3/1+other to usage-error/check-error/runtime-error (schema-skew surfaced verbatim, no special-casing), plus parse-error/spawn-error for malformed JSON or a vanished binary -- every path returns a typed outcome, nothing throws. getTree/getList cover the two in-scope surfaces (sq show --raw fixture deferred to TASK-434/430 per the task note).
+  - Fixtures: test/fixtures/tree.json (sq tree EPIC-99 --json) and list.json (sq list --json), captured from this repo's real output.
+  - npm run check: clean (tsc --noEmit + eslint --max-warnings 0 + prettier --check all pass). npm test: 28/28 passing (vitest), covering the full discovery resolution order/precedence/caching and the adapter's exit-code mapping + fixture parsing, no sq binary needed.
+  - Python side: added clients to [tool.ruff] extend-exclude and [tool.pyright] exclude in pyproject.toml (only that change). Verified: uv run ruff check . / ruff format --check . / pyright all still clean; sq check clean.
+  - Note for reviewer: uv run pytest currently shows 2 unrelated failures in tests/meta/test_source_and_new_test_tree_have_no_stray_ticket_references.py from tests/cli/test_show_raw_markdown_golden.py -- that file + the TASK-434 md are uncommitted concurrent work (US2 core prerequisite), not touched by me; flagging so it isn't mistaken for something this task broke.
+  - @reviewer ready for review.
+- [2026-07-16T18:32:15Z] Ada Typescript:
+  - REV-436 changes-requested addressed, all 4 findings marked Fixed:
+  - F1 (medium): stripped ticket/ADR-ID citations from clients/vscode production source + README (src/extension.ts, src/discovery.ts x2, src/sqAdapter.ts, eslint.config.mjs, README.md) -- reworded to describe the design directly, no ID pointers. Left the EPIC-99/FEAT-100 fixture-assertion literals in test/sqAdapter.test.ts untouched (reviewer's explicit carve-out).
+  - F2: added test/hygiene.test.ts -- a forward guard scanning src/** + eslint.config.mjs/tsconfig.json/package.json/vitest.config.ts/.prettierrc.json/README.md for ADR|FEAT|TASK|REV|BUG|EPIC-N / USn / STn tokens, zero-tolerance, with test/** (fixtures + assertions) carved out -- mirrors the core's tests/meta gate inside the TS lane.
+  - F3: usage-error argv now carries the full resolved command line (invocation.command + args), e.g. ['/venv/bin/sq','tree','EPIC-99','--json'] or ['uv','run','sq','tree',...] -- replayable, not missing the binary.
+  - F4: tryConfigCommand now resolves a path-shaped squads.command[0] (contains a slash) via fileExists instead of a PATH scan, so an absolute-path override (e.g. ['/opt/py/bin/python','-m','squads']) resolves correctly; bare names (['uv','run','sq']) still go through isOnPath unchanged.
+  - Verified: npm run check clean (tsc --noEmit + eslint --max-warnings 0 + prettier --check), npm test 33/33 green (28 orig + 5 new: F3/F4 coverage + the hygiene guard). Python gate re-verified: ruff/pyright/sq check all clean.
+  - @reviewer ready for re-review.
 <!-- sq:discussion:end -->

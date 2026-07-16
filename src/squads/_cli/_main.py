@@ -22,6 +22,7 @@ import squads._cli._common as common
 from squads import _badges as badges
 from squads._cli import app
 from squads._cli._common import (
+    build_item_json,
     console,
     e,
     get_active_spec,
@@ -1191,7 +1192,7 @@ async def show_any(
     resolved_id = await resolve_item_id_any(item_id, svc)
     it = await svc.get(resolved_id)
     if json_out:
-        print_json_clean(it.model_dump_json())
+        print_json_clean(await build_item_json(svc, it))
         return
     await print_item(svc, it, raw=raw, comments=comments, full=full)
 

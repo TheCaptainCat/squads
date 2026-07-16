@@ -1,0 +1,28 @@
+# TASK-3 — Ship it
+
+- **status:** Draft
+- **priority:** 🟠 high
+- **assignee:** manager
+- **parent:** FEAT-2
+- **author:** manager
+- **refs:** BUG-4 (depends-on)
+- **labels:** backend
+
+## Overview
+
+Some **bold** text and a list:
+
+- one
+- two
+
+## Subtask ST1 — Write handler
+
+⚪ Todo  US1
+
+Implement the handler function.
+
+## Discussion
+
+### Catherine Manager — 2026-06-07T10:00:00Z
+
+- Please review the login handler.

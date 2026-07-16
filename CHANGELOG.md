@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **`sq show <id> --raw` is now clean markdown.** It emits a deterministic dossier — an `#`
+  title, a bullet list of metadata (status, priority/severity, assignee, parent, author, refs,
+  labels), and the body verbatim, with `--comments`/`--full` appending Discussion/sub-entity
+  sections — instead of the boxed panel, aligned summary table, and `=== … ===` separators it
+  used to render. Piping `sq show --raw` into a markdown viewer now renders cleanly. The default
+  (non-`--raw`) styled view is unchanged.
+- **`sq show --json` now carries the body and discussion.** The JSON payload gained a top-level
+  `body` (the raw body markdown), a top-level `discussion` (an ordered list of
+  `{author, ts, body}`), and a `body` key on each entry of `subentities` — additive only, nothing
+  renamed or removed.
+
 ## [0.9.0] - 2026-07-15
 
 ### Added
