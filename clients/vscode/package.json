@@ -36,6 +36,80 @@
           "description": "Full command + argv prefix used to invoke sq (e.g. [\"uv\", \"run\", \"sq\"]). Ignored when squads.sqPath is set."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "squads",
+          "title": "Squads",
+          "icon": "resources/activity-bar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "squads": [
+        {
+          "id": "squadsTree",
+          "name": "Work Items"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "squads.refreshTree",
+        "title": "Refresh",
+        "category": "Squads",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "squads.filterByType",
+        "title": "Filter by Type...",
+        "category": "Squads"
+      },
+      {
+        "command": "squads.filterByState",
+        "title": "Filter by Open/Closed...",
+        "category": "Squads"
+      },
+      {
+        "command": "squads.groupBy",
+        "title": "Group By...",
+        "category": "Squads"
+      },
+      {
+        "command": "squads.clearFiltersAndGrouping",
+        "title": "Clear Filters and Grouping",
+        "category": "Squads"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "squads.refreshTree",
+          "when": "view == squadsTree",
+          "group": "navigation"
+        },
+        {
+          "command": "squads.filterByType",
+          "when": "view == squadsTree",
+          "group": "1_squads"
+        },
+        {
+          "command": "squads.filterByState",
+          "when": "view == squadsTree",
+          "group": "1_squads"
+        },
+        {
+          "command": "squads.groupBy",
+          "when": "view == squadsTree",
+          "group": "1_squads"
+        },
+        {
+          "command": "squads.clearFiltersAndGrouping",
+          "when": "view == squadsTree",
+          "group": "1_squads"
+        }
+      ]
     }
   },
   "scripts": {

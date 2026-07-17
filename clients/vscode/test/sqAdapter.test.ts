@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { SqInvocation } from '../src/discovery';
 import type { ProcessResult, ProcessRunner } from '../src/processRunner';
-import { getList, getTree } from '../src/sqAdapter';
+import { describeFailure, getList, getListSnapshot, getRaw, getTree } from '../src/sqAdapter';
 
 const WORKSPACE_ROOT = '/workspace/example';
 
@@ -15,6 +15,7 @@ function fixture(name: string): string {
 
 const TREE_FIXTURE = fixture('tree.json');
 const LIST_FIXTURE = fixture('list.json');
+const SHOW_RAW_FIXTURE = fixture('show-raw.txt');
 
 function stubRunner(result: ProcessResult): ProcessRunner {
   return { run: () => Promise.resolve(result) };
@@ -161,5 +162,119 @@ describe('exit code mapping', () => {
     const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
 
     expect(outcome.kind).toBe('parse-error');
+  });
+});
+
+describe('getRaw', () => {
+  it('returns the committed sq show --raw fixture text verbatim on success', async () => {
+    const runner = stubRunner({ stdout: SHOW_RAW_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-430');
+
+    expect(outcome).toEqual({ kind: 'success', data: SHOW_RAW_FIXTURE });
+  });
+
+  it('builds argv as "show <id> --raw"', async () => {
+    const { runner, calls } = recordingRunner({ stdout: 'ignored', stderr: '', exitCode: 0 });
+    await getRaw(runner, UV_INVOCATION, WORKSPACE_ROOT, 'TASK-430');
+
+    expect(calls).toEqual([
+      { command: 'uv', args: ['run', 'sq', 'show', 'TASK-430', '--raw'], cwd: WORKSPACE_ROOT },
+    ]);
+  });
+
+  it('maps a non-zero exit the same way as the JSON surfaces', async () => {
+    const runner = stubRunner({ stdout: '', stderr: 'No such item: BOGUS-1', exitCode: 1 });
+    const outcome = await getRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'BOGUS-1');
+
+    expect(outcome).toEqual({
+      kind: 'runtime-error',
+      message: 'No such item: BOGUS-1',
+      exitCode: 1,
+    });
+  });
+
+  it('surfaces a spawn failure without throwing', async () => {
+    const runner: ProcessRunner = { run: () => Promise.reject(new Error('ENOENT')) };
+    const outcome = await getRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-430');
+
+    expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
+  });
+});
+
+describe('getListSnapshot', () => {
+  it('fetches --all then the default listing and classifies every id present in the default as open', async () => {
+    const allItems = JSON.parse(LIST_FIXTURE) as { id: string }[];
+    const defaultItems = allItems.slice(0, 2);
+    const allResponse: ProcessResult = { stdout: LIST_FIXTURE, stderr: '', exitCode: 0 };
+    const defaultResponse: ProcessResult = {
+      stdout: JSON.stringify(defaultItems),
+      stderr: '',
+      exitCode: 0,
+    };
+    let callCount = 0;
+    const runner: ProcessRunner = {
+      run: () => {
+        callCount += 1;
+        return Promise.resolve(callCount === 1 ? allResponse : defaultResponse);
+      },
+    };
+
+    const outcome = await getListSnapshot(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.items).toHaveLength(allItems.length);
+    for (const item of defaultItems) {
+      expect(outcome.data.openIds.has(item.id)).toBe(true);
+    }
+    const closedOnly = allItems.filter((item) => !defaultItems.some((open) => open.id === item.id));
+    for (const item of closedOnly) {
+      expect(outcome.data.openIds.has(item.id)).toBe(false);
+    }
+  });
+
+  it('calls --all first, then the default (unfiltered) listing, in that order', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getListSnapshot(runner, VENV_INVOCATION, WORKSPACE_ROOT, ['-t', 'task']);
+
+    expect(calls).toEqual([
+      {
+        command: '/venv/bin/sq',
+        args: ['list', '-t', 'task', '--all', '--json'],
+        cwd: WORKSPACE_ROOT,
+      },
+      { command: '/venv/bin/sq', args: ['list', '-t', 'task', '--json'], cwd: WORKSPACE_ROOT },
+    ]);
+  });
+
+  it('surfaces a failure from the --all call without attempting the second call', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '', stderr: 'boom', exitCode: 1 });
+    const outcome = await getListSnapshot(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'runtime-error', message: 'boom', exitCode: 1 });
+    expect(calls).toHaveLength(1);
+  });
+});
+
+describe('describeFailure', () => {
+  it('appends the replayable command line to a usage-error message', () => {
+    const message = describeFailure({
+      kind: 'usage-error',
+      message: 'No such option: --bogus-flag',
+      argv: ['sq', 'tree', '--json'],
+    });
+
+    expect(message).toBe('No such option: --bogus-flag (command: sq tree --json)');
+  });
+
+  it('passes every other outcome kind through verbatim', () => {
+    expect(describeFailure({ kind: 'check-error', message: '3 issues found' })).toBe(
+      '3 issues found',
+    );
+    expect(describeFailure({ kind: 'runtime-error', message: 'boom', exitCode: 17 })).toBe('boom');
+    expect(describeFailure({ kind: 'parse-error', message: 'bad json' })).toBe('bad json');
+    expect(describeFailure({ kind: 'spawn-error', message: 'ENOENT' })).toBe('ENOENT');
   });
 });

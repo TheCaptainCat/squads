@@ -1,20 +1,11 @@
----
-id: TASK-430
-sequence_id: 430
-type: task
-title: 'Open sq show --raw in a read-only squads: markdown preview'
-status: Done
-parent: FEAT-100
-author: tech-lead
-assignee: typescript-dev
-refs:
-- ADR-427:addresses
-- TASK-428:depends-on
-- TASK-434:depends-on
-created_at: '2026-07-16T13:51:29Z'
-updated_at: '2026-07-17T07:41:47Z'
----
-<!-- sq:body -->
+# TASK-430 — Open sq show --raw in a read-only squads: markdown preview
+
+- **status:** Ready
+- **assignee:** typescript-dev
+- **parent:** FEAT-100
+- **author:** tech-lead
+- **refs:** ADR-427 (addresses), TASK-428 (depends-on), TASK-434 (depends-on)
+
 ## Goal
 
 Clicking a tree node opens that item's `sq show <id> --raw` clean-markdown dossier in VS Code's markdown preview, through a read-only `squads:` virtual document — so an operator reads a clean item with no frontmatter or `<!-- sq:* -->` marker noise.
@@ -45,26 +36,3 @@ Clicking a tree node opens that item's `sq show <id> --raw` clean-markdown dossi
 sq/ticket IDs must not appear in source — name files/tests by behavior (e.g. `showDocumentProvider`, `previewCommand`). Depends on the foundation task and on the core `sq show --raw` clean-output task.
 
 Implements FEAT-100 story **US2** — "Clicking a tree node opens sq show --raw in markdown preview". Addresses ADR-427.
-<!-- sq:body:end -->
-
-## Subtasks
-
-_Add with `sq task 430 add-subtask "<title>"`; track with `sq task 430 subtask <n> update --status <Status>`._
-
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
-<!-- sq:subtasks -->
-<!-- sq:subtasks:end -->
-
-## Discussion
-
-<!-- sq:discussion -->
-- [2026-07-16T18:50:46Z] Ada Typescript:
-  - squads: TextDocumentContentProvider (src/showDocumentProvider.ts) + a new adapter.getRaw(id) (src/sqAdapter.ts) shelling 'sq show <id> --raw'; pure URI build/parse + outcome->markdown rendering in src/domain/showPreview.ts (vscode-free, unit-tested).
-  - Captured test/fixtures/show-raw.txt from a real 'sq show TASK-430 --raw' run (TASK-434's clean-markdown surface is live) -- confirmed no box-drawing chrome, no frontmatter, no sq: markers. Adapter + content-provider logic unit-tested against this fixture with no live sq.
-  - Tree-node click wires to command squads.openItemPreview (src/commands.ts), which opens vscode.Uri.parse('squads:/<id>') via 'markdown.showPreview' -- read-only, no write-back path exists.
-  - Failure path returns an actionable '# Squads: unable to load <id>' markdown block (never blank/stale) and fires a notification; spawn-error invalidates the shared discovery cache so preview + tree re-probe together next time.
-  - npm run check clean, npm test 67/67 green (getRaw + showPreview coverage). Verification honesty: no live extension host in this environment -- verified via unit tests + npm run check + reading showDocumentProvider.ts/commands.ts wiring; extension-host smoke test deferred to CI/manual.
-  - @reviewer ready for review.
-<!-- sq:discussion:end -->

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.9.0",
-  "counter": 437,
+  "counter": 438,
   "padding": 6,
   "items": {
     "12": {
@@ -16209,7 +16209,7 @@
       "type": "task",
       "title": "VS Code sidebar tree provider from sq tree --json",
       "slug": "vs-code-sidebar-tree-provider-from-sq-tree-json",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-100",
       "author": "tech-lead",
@@ -16224,7 +16224,7 @@
       "subentities": [],
       "path": "tasks/TASK-000429-vs-code-sidebar-tree-provider-from-sq-tree-json.md",
       "created_at": "2026-07-16T13:51:28Z",
-      "updated_at": "2026-07-16T15:58:27Z",
+      "updated_at": "2026-07-17T07:41:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16235,7 +16235,7 @@
       "type": "task",
       "title": "Open sq show --raw in a read-only squads: markdown preview",
       "slug": "open-sq-show-raw-in-a-read-only-squads-markdown-preview",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-100",
       "author": "tech-lead",
@@ -16251,7 +16251,7 @@
       "subentities": [],
       "path": "tasks/TASK-000430-open-sq-show-raw-in-a-read-only-squads-markdown-preview.md",
       "created_at": "2026-07-16T13:51:29Z",
-      "updated_at": "2026-07-16T16:02:40Z",
+      "updated_at": "2026-07-17T07:41:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16262,7 +16262,7 @@
       "type": "task",
       "title": "Tree filter/group by type and open/closed state, plus refresh command",
       "slug": "tree-filter-group-by-type-and-open-closed-state-plus-refresh",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-100",
       "author": "tech-lead",
@@ -16277,7 +16277,7 @@
       "subentities": [],
       "path": "tasks/TASK-000431-tree-filter-group-by-type-and-open-closed-state-plus-refresh.md",
       "created_at": "2026-07-16T13:51:29Z",
-      "updated_at": "2026-07-16T15:58:28Z",
+      "updated_at": "2026-07-17T07:41:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16288,7 +16288,7 @@
       "type": "task",
       "title": "Dev-time TS CI lane for clients/vscode (strict, non-gating for core)",
       "slug": "dev-time-ts-ci-lane-for-clients-vscode-strict-non-gating-for",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-100",
       "author": "tech-lead",
@@ -16302,7 +16302,7 @@
       "subentities": [],
       "path": "tasks/TASK-000432-dev-time-ts-ci-lane-for-clients-vscode-strict-non-gating-for.md",
       "created_at": "2026-07-16T13:51:30Z",
-      "updated_at": "2026-07-16T13:55:58Z",
+      "updated_at": "2026-07-17T07:41:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16470,6 +16470,62 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-437"
+    },
+    "438": {
+      "sequence_id": 438,
+      "type": "review",
+      "title": "VS Code extension browse UI (US1-3) + dev-time CI lane",
+      "slug": "vs-code-extension-browse-ui-us1-3-dev-time-ci-lane",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-429:addresses",
+        "TASK-430:addresses",
+        "TASK-431:addresses",
+        "TASK-432:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Hierarchy refresh fires a redundant open-only sq list invocation",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "CI covers only the unit test layer; integration skew-canary + host smoke absent",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Python test.yml runs on TS-only changes (no paths filter) despite the stated isolation",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000438-vs-code-extension-browse-ui-us1-3-dev-time-ci-lane.md",
+      "created_at": "2026-07-16T19:34:39Z",
+      "updated_at": "2026-07-17T07:41:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-438"
     }
   }
 }

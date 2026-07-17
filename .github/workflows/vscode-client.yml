@@ -1,0 +1,60 @@
+name: vscode-client
+
+# Dev-time TS gate for clients/vscode (ADR-427 #1/#3): kept on a separate
+# workflow, keyed on clients/vscode/** path filters, so it is independent of
+# and non-gating for the Python core's CI (test.yml) — a red job here never
+# blocks a Python-only change, and a Python-only change never triggers this
+# workflow at all. The reverse holds too: test.yml has no clients/** trigger
+# and is never touched by this file. Cross-language coupling is caught only
+# by the package's own integration skew canary, by design.
+#
+# Note: path-filtered triggers alone make this workflow not *run* on
+# Python-only changes, but they don't make it a required check. Full
+# non-gating enforcement (this job required on clients/vscode/** PRs, the
+# Python job required on Python-only PRs, neither blocking the other) also
+# needs branch-protection / required-status-checks configuration in the
+# GitHub repo settings — that's outside this repo's files and hasn't been
+# configured here.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "clients/vscode/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "clients/vscode/**"
+
+defaults:
+  run:
+    working-directory: clients/vscode
+
+jobs:
+  check:
+    name: check (tsc + eslint + prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: clients/vscode/package-lock.json
+      - run: npm ci
+      - name: npm run check (tsc --noEmit + eslint --max-warnings 0 + prettier --check)
+        run: npm run check
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: clients/vscode/package-lock.json
+      - run: npm ci
+      - name: npm test
+        run: npm test
