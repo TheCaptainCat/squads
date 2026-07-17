@@ -3,7 +3,7 @@ id: TASK-455
 sequence_id: 455
 type: task
 title: 'VS Code: meta-items view section'
-status: Ready
+status: Done
 parent: FEAT-449
 author: tech-lead
 assignee: typescript-dev
@@ -12,7 +12,7 @@ refs:
 description: 'Client: second activity-bar view for role/skill/operator under 3 buckets
   (US3/F12)'
 created_at: '2026-07-17T13:23:58Z'
-updated_at: '2026-07-17T13:59:47Z'
+updated_at: '2026-07-17T15:43:26Z'
 ---
 <!-- sq:body -->
 Story: US3 (meta-items view section). Covers REV-448 finding F12. Client-only, no new core surface.
@@ -51,4 +51,10 @@ _Add with `sq task 455 add-subtask "<title>"`; track with `sq task 455 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-17T15:37:21Z] Ada Typescript:
+  - Second view 'Roster' (id squadsMeta) added to the squads activity-bar container, alongside Work Items.
+  - domain/metaView.ts::buildMetaView bucketing role/skill/operator into fixed Roles/Skills/Operators groups (reservedTypes.ts::META_BUCKETS is the single source both directions read from); always 3 buckets, even empty; sorted by numeric id via idOrder.
+  - metaTreeDataProvider.ts fetches sq list --json --all (unfiltered by status); toTreeItem extracted to shared treeItemRendering.ts so both providers render identically. Clicking a meta item opens the same owned preview webview as a work item (getRaw/getTree/getGraph all already accept role/skill/operator ids — verified manually against ROLE-1, no core change needed).
+  - npm run check + npm test (131/131) + npm run test:canary (8/8) all green. New unit tests: test/metaView.test.ts (bucketing/ordering/empty-buckets/closed-flag, pure domain). View registration itself is CI/extension-host-smoke-test territory (added a squadsMeta.focus assertion to test/extensionHost/suite/index.ts) — not exercised by the unit gate.
+  - @reviewer ready for review.
 <!-- sq:discussion:end -->

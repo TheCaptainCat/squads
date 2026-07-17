@@ -3,7 +3,7 @@ id: TASK-456
 sequence_id: 456
 type: task
 title: 'VS Code: workflow cheatsheet title button'
-status: Ready
+status: InProgress
 parent: FEAT-449
 author: tech-lead
 assignee: typescript-dev
@@ -13,7 +13,7 @@ refs:
 description: 'Client: title button opens sq workflow --raw in the preview (US4/F8
   client half)'
 created_at: '2026-07-17T13:24:11Z'
-updated_at: '2026-07-17T13:59:48Z'
+updated_at: '2026-07-17T15:45:16Z'
 ---
 <!-- sq:body -->
 Story: US4 (workflow cheatsheet view). Covers REV-448 finding F8 — the **client half**. **Depends on** the core `sq workflow --raw` task (clean-markdown mode).

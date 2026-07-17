@@ -64,8 +64,12 @@ subentities:
   title: Use squads-icon-vscode.svg as the extension icon; delete the other svg variants
   status: Open
   severity: low
+- local_id: F14
+  title: Display the item's discussion/comments in the preview
+  status: Open
+  severity: medium
 created_at: '2026-07-17T12:19:57Z'
-updated_at: '2026-07-17T12:54:17Z'
+updated_at: '2026-07-17T15:34:04Z'
 ---
 <!-- sq:body -->
 Change requests from op-pierre after using the read-only browse extension (EPIC-99 / FEAT-100). Each finding is a desired change to align the extension with the operator's intent — a preference/feature review, not a correctness review. This review is the base for a follow-up feature that implements the agreed changes.
@@ -93,6 +97,7 @@ _Add with `sq review 448 add-finding "…" --severity medium`; track with `sq re
 | F11 | 🟡 medium | Open |  | Unfoldable mermaid graphs in the preview: item children + item refs, separate (needs webview) |
 | F12 | 🟡 medium | Open |  | Second view section for meta items (role/skill/operator) under 3 fixed subfolders |
 | F13 | 🟢 low | Open |  | Use squads-icon-vscode.svg as the extension icon; delete the other svg variants |
+| F14 | 🟡 medium | Open |  | Display the item's discussion/comments in the preview |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -330,6 +335,24 @@ Use resources/squads-icon-vscode.svg (viewBox 0 0 64 64, currentColor fill+strok
 <!-- sq:finding:F13:discussion -->
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
+
+<!-- sq:finding:F14 -->
+### F14 — Display the item's discussion/comments in the preview
+
+<!-- sq:finding:F14:head -->
+**Status:** 🔴 Open
+**Severity:** 🟡 Medium
+<!-- sq:finding:F14:head:end -->
+
+<!-- sq:finding:F14:body -->
+The preview shows the item body but not its discussion. Render the comments as a section in the webview preview. Source: sq show <id> --json's structured 'discussion' array ([{author, ts, body}]) — already exposed (TASK-434), so NO core change; client-only. Ideally a collapsible section, consistent with the children/refs graphs. Per op-pierre.
+<!-- sq:finding:F14:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F14:discussion -->
+<!-- sq:finding:F14:discussion:end -->
+<!-- sq:finding:F14:end -->
 <!-- sq:findings:end -->
 
 ## Discussion

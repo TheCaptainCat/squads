@@ -3,7 +3,7 @@ id: TASK-450
 sequence_id: 450
 type: task
 title: Expose per-type order on a machine surface
-status: Ready
+status: Done
 parent: FEAT-449
 author: tech-lead
 assignee: python-dev
@@ -12,7 +12,7 @@ refs:
 description: 'Core: additive --json type catalog exposing ItemSpec.order (US5/F1 core
   half)'
 created_at: '2026-07-17T13:23:45Z'
-updated_at: '2026-07-17T14:04:43Z'
+updated_at: '2026-07-17T15:49:03Z'
 ---
 <!-- sq:body -->
 Story: US5 (type-group ordering). Covers REV-448 finding F1 — the **core half** only; the client-side sort is a dependent task.
@@ -61,4 +61,9 @@ _Add with `sq task 450 add-subtask "<title>"`; track with `sq task 450 subtask <
   - Shape: a bare JSON array (matches tree/list/show convention), one object per declared type, emitted in ascending resolved order (type-name tiebreak — the same ordering the CLI registers per-type commands with). Include ALL declared types, work AND reserved.
   - Fields per object: `type` (type key, e.g. "task"), `order` (JSON number, or `null` when +inf — present-but-null, not omitted, so the key set is stable; consumer sorts null last), `prefix` (e.g. "TASK"), `reserved` (bool = ItemSpec.is_meta). No title (type key is the label — derivable), no folder (on-disk internal, off-limits per ADR-427), no lifecycle/status (separate surface).
   - Spec-driven: read the active WorkflowSpec (.types / work_types() + meta types), never a hardcoded list. Additive-superset only; new golden tests/goldens/workflow_types.json + a test pinning the byte-identical shape and asserting the field set matches the model. @python-dev this unblocks the build.
+- [2026-07-17T15:41:44Z] Elias Python:
+  - Built `sq workflow types` (src/squads/_cli/_workflow_cmd.py): default Rich table, --json bare array {type, order|null, prefix, reserved} in ascending resolved order, all declared types incl. reserved meta-types. Extracted a pure _type_catalog(spec) helper for testability.
+  - Golden: tests/goldens/workflow_types.json (wired into the shared golden-shape harness in tests/cli/test_json_output_shape.py). New tests/cli/test_workflow_types_cli.py covers CLI table/json, field-set-vs-model contract, and null-order representation for an unordered custom type.
+  - Scoped tests green (75), tests/meta clean (no ticket IDs in source), pyright + ruff clean on touched files, sq check clean. CHANGELOG updated. Left at InReview -- did not commit.
+  - @reviewer ready for independent review.
 <!-- sq:discussion:end -->

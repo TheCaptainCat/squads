@@ -16,6 +16,10 @@ diagnose.  Bypassing ``open_service`` means lint is never self-blocked by the sa
 trying to report.
 """
 
+import json
+import math
+from typing import TYPE_CHECKING
+
 import typer
 from rich.markdown import Markdown
 from rich.table import Table
@@ -23,13 +27,17 @@ from rich.table import Table
 from squads._cli._common import console, e, handle_errors
 from squads._errors import SquadsError
 
+if TYPE_CHECKING:
+    from squads._workflow._models import WorkflowSpec
+
 workflow_app = typer.Typer(
     no_args_is_help=False,
     invoke_without_command=True,
     help=(
         "Workflow cheatsheet and spec validation.\n\n"
         "Run `sq workflow` (or `sq workflow show`) for the team cheatsheet. "
-        "Run `sq workflow lint` to validate your workflow override spec."
+        "Run `sq workflow lint` to validate your workflow override spec. "
+        "Run `sq workflow types` for the machine-readable type catalog."
     ),
 )
 
@@ -71,6 +79,68 @@ def _print_cheatsheet(*, raw: bool) -> None:
         console.print(content, markup=False, highlight=False, soft_wrap=True)
     else:
         console.print(Markdown(content))
+
+
+# ─── types ────────────────────────────────────────────────────────────────────
+
+#: Frozen field set for the ``sq workflow types --json`` catalog. Kept as a module-level
+#: tuple so a test can assert the CLI never drifts from the declared contract.
+TYPE_CATALOG_FIELDS: tuple[str, str, str, str] = ("type", "order", "prefix", "reserved")
+
+
+def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The frozen type-catalog rows, ascending resolved ``order`` (type-name string
+    tiebreak — the same ordering the CLI uses to register per-type commands).
+
+    Includes every declared type (work AND reserved: role/skill/operator). ``order`` is
+    ``None`` when ``ItemSpec.order`` is unset (``+inf``) — present-but-null, never
+    omitted, so the key set stays stable across every row.
+    """
+    types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
+    return [
+        {
+            "type": t,
+            "order": None if math.isinf(spec.items[t].order) else spec.items[t].order,
+            "prefix": spec.items[t].prefix,
+            "reserved": spec.items[t].is_meta,
+        }
+        for t in types
+    ]
+
+
+@workflow_app.command("types")
+@handle_errors
+def workflow_types(
+    json_out: bool = typer.Option(False, "--json", help="Emit the machine type catalog."),
+) -> None:
+    """List every declared type in the active workflow spec.
+
+    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
+    declared type (work AND reserved), in ascending resolved ``order`` (type-name
+    string breaks ties): ``{type, order, prefix, reserved}``. ``order`` is ``null``
+    when the type has no explicit order (``+inf``) — present, never omitted, so the
+    key set is stable across every object.
+    """
+    from squads._cli._common import get_active_spec, print_json_clean
+
+    spec = get_active_spec()
+    rows = _type_catalog(spec)
+
+    if json_out:
+        print_json_clean(json.dumps(rows))
+        return
+
+    table = Table(box=None, pad_edge=False)
+    for col in ("Type", "Order", "Prefix", "Reserved"):
+        table.add_column(col)
+    for row in rows:
+        table.add_row(
+            e(str(row["type"])),
+            "" if row["order"] is None else str(row["order"]),
+            e(str(row["prefix"])),
+            "yes" if row["reserved"] else "",
+        )
+    console.print(table)
 
 
 # ─── lint ─────────────────────────────────────────────────────────────────────

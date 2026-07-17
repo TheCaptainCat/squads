@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **`sq workflow types` — a machine-readable type catalog.** New subcommand alongside `sq
+  workflow`/`sq workflow lint`: default prints a human table, `--json` emits a bare array (one
+  object per declared type, work and reserved alike) with `type`/`order`/`prefix`/`reserved`,
+  sorted in ascending resolved `order` (type-name tiebreak) — the same order the CLI registers
+  per-type commands in. `order` is `null` for a type with no explicit order, present rather than
+  omitted so the key set stays stable. Lets a consumer (e.g. the VS Code client) sort type groups
+  spec-driven instead of alphabetically, with no hardcoded type list.
+
 ### Changed
 
 - **`sq workflow --raw` / `sq workflow show --raw` print the cheatsheet as clean markdown.**
