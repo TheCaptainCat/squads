@@ -3,7 +3,7 @@ id: ADR-459
 sequence_id: 459
 type: decision
 title: 'Type catalog machine surface: sq workflow types --json'
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - TASK-450
@@ -13,7 +13,7 @@ description: 'New frozen --json type catalog on a dedicated subcommand (sq workf
   types): bare array of {type, order|null, prefix, reserved} in resolved order; additive-superset
   + golden-frozen; unblocks TASK-450 (REV-448 F1).'
 created_at: '2026-07-17T14:04:05Z'
-updated_at: '2026-07-17T14:04:44Z'
+updated_at: '2026-07-17T15:34:39Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -90,4 +90,6 @@ additions to this surface are additive-only (new keys), never removals or rename
 <!-- sq:discussion -->
 - [2026-07-17T14:04:44Z] Robert Architect:
   - Proposed. Authored to settle TASK-450's surface (REV-448 F1 core half) before the build. Chose a dedicated `sq workflow types` subcommand over a --json flag on the cheatsheet to keep each surface single-purpose and leave `sq workflow --raw` (F8) unconflicted. Needs Pierre/tech-lead sign-off before Accepted.
+- [2026-07-17T15:34:38Z] Pierre Chat:
+  - Signed off — accept.
 <!-- sq:discussion:end -->
