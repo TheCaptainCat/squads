@@ -2,15 +2,17 @@
  * Assembles the full webview HTML document for an item preview: a strict, self-contained
  * CSP (no remote content, no `unsafe-inline` — both the `<style>` and `<script>` tags carry
  * the same per-render nonce), the rendered dossier body, the two collapsible mermaid graph
- * sections, and the inline client script that both intercepts clicks on `a.sq-item-link`
- * (posting them back to the extension host) and renders the graphs' mermaid source via the
- * bundled renderer.
+ * sections, the collapsible discussion/comments section (F14, `buildDiscussionHtml`, built from
+ * `sq show <id> --json`'s `discussion` array), and the inline client script that both intercepts
+ * clicks on `a.sq-item-link` (posting them back to the extension host) and renders the graphs'
+ * mermaid source via the bundled renderer.
  *
  * Kept `vscode`-free/pure — `nonce` and the mermaid script's webview uri are passed in rather
  * than computed here, so this (and the markdown rendering it wraps) is unit-testable with no
  * host; only `itemPreviewManager.ts` touches the real `vscode.WebviewPanel` API.
  */
 import type { SqOutcome } from '../sqAdapter';
+import type { SqDiscussionEntry } from '../types';
 import { escapeHtml, renderMarkdownToHtml } from './markdown';
 import { OPEN_ITEM_COMMAND } from './previewMessages';
 
@@ -66,6 +68,24 @@ details.sq-graph .sq-graph-empty {
 .sq-graph-output svg {
   max-width: 100%;
   height: auto;
+}
+.sq-comment {
+  margin: 0.9rem 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+.sq-comment:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.sq-comment-header {
+  font-size: 0.9em;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 0.3rem;
+}
+.sq-comment-author {
+  font-weight: 600;
+  color: var(--vscode-editor-foreground);
 }
 `;
 
@@ -217,6 +237,48 @@ export function buildGraphsHtml(children: GraphOutcome, refs: GraphOutcome): str
   ].join('\n');
 }
 
+/** The discussion section's content, mirroring `GraphOutcome`'s success/failure shape: the
+ * parsed comment list (`sq show <id> --json`'s `discussion` array) on success, or a plain
+ * failure message shown in its place on a failed fetch — never silently dropped. Unlike a graph
+ * section, a *successful* but empty list (the common case — most items carry no comments) folds
+ * away to nothing rather than an empty section with nothing to show (see `buildDiscussionHtml`).
+ */
+export interface DiscussionOutcome {
+  readonly entries: readonly SqDiscussionEntry[] | null;
+  readonly message?: string;
+}
+
+/** One comment: an author + ISO-timestamp header, then its body rendered through the same
+ * markdown renderer the dossier body uses (so item-id references inside a comment linkify the
+ * same way, and `currentId` still suppresses a self-link). */
+function buildCommentHtml(entry: SqDiscussionEntry, currentId: string | undefined): string {
+  return (
+    `<div class="sq-comment"><div class="sq-comment-header">` +
+    `<span class="sq-comment-author">${escapeHtml(entry.author)}</span> ` +
+    `<span class="sq-comment-ts">${escapeHtml(entry.ts)}</span></div>` +
+    `<div class="sq-comment-body">${renderMarkdownToHtml(entry.body, currentId)}</div></div>`
+  );
+}
+
+/** The collapsible discussion/comments section (F14), appended after the dossier body and the
+ * graph sections. A failed fetch degrades to an inline failure message inside the same
+ * `<details>` shell the graph sections use (consistent styling, never silently blank); a
+ * successful fetch with no comments yet renders no section at all — nothing to fold open. */
+export function buildDiscussionHtml(outcome: DiscussionOutcome, currentId?: string): string {
+  if (outcome.entries === null) {
+    return (
+      `<details class="sq-graph" open><summary>Discussion</summary>` +
+      `<p class="sq-graph-empty">${escapeHtml(outcome.message ?? 'No data available.')}</p></details>`
+    );
+  }
+  if (outcome.entries.length === 0) {
+    return '';
+  }
+  const comments = outcome.entries.map((entry) => buildCommentHtml(entry, currentId)).join('\n');
+  const count = String(outcome.entries.length);
+  return `<details class="sq-graph" open><summary>Discussion (${count})</summary>${comments}</details>`;
+}
+
 export interface PreviewDocumentParams {
   readonly title: string;
   readonly bodyHtml: string;
@@ -229,6 +291,9 @@ export interface PreviewDocumentParams {
   /** Pre-rendered `<details>` markup for the two graph sections (`buildGraphsHtml`) — kept
    * separate from `bodyHtml` (the dossier) both visually and in the DOM. */
   readonly graphsHtml: string;
+  /** Pre-rendered `<details>` markup for the discussion section (`buildDiscussionHtml`,
+   * possibly `''` — no comments yet), appended after `graphsHtml`. */
+  readonly discussionHtml: string;
 }
 
 /** The complete `<!DOCTYPE html>` document set as the panel's `webview.html`. */
@@ -251,6 +316,7 @@ export function buildPreviewHtml(params: PreviewDocumentParams): string {
 <body>
 <article>${params.bodyHtml}</article>
 ${params.graphsHtml}
+${params.discussionHtml}
 <script nonce="${params.nonce}" src="${params.mermaidScriptUri}"></script>
 <script nonce="${params.nonce}">${clientScript(OPEN_ITEM_COMMAND)}
 ${mermaidRenderScript(params.nonce)}</script>

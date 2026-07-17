@@ -3,7 +3,7 @@ id: TASK-457
 sequence_id: 457
 type: task
 title: 'VS Code: order type groups by spec per-type order'
-status: Ready
+status: Done
 parent: FEAT-449
 author: tech-lead
 assignee: typescript-dev
@@ -13,7 +13,7 @@ refs:
 description: 'Client: sort type groups by the exposed per-type order (US5/F1 client
   half)'
 created_at: '2026-07-17T13:24:11Z'
-updated_at: '2026-07-17T13:59:49Z'
+updated_at: '2026-07-17T16:19:50Z'
 ---
 <!-- sq:body -->
 Story: US5 (type-group ordering). Covers REV-448 finding F1 — the **client half**. **Depends on** the core order-surface task (per-type `order` on a `--json` machine surface).
@@ -50,4 +50,8 @@ _Add with `sq task 457 add-subtask "<title>"`; track with `sq task 457 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-17T16:14:46Z] Ada Typescript:
+  - Group-by-type and the type-filter quick-pick now sort by `sq workflow types --json`'s per-type order (client half of F1).
+  - Added getTypeCatalog adapter + domain/typeOrder.ts comparator; listView.ts/treeMapping.ts sort by it (default epic->feature->task->bug->decision->review->guide), fallback to type-name order (empty map) if the catalog fetch fails — no hardcoded type list.
+  - Extended the skew canary to cover sq workflow types --json; npm run check + npm test (161) + npm run test:canary (10) all green. @reviewer
 <!-- sq:discussion:end -->

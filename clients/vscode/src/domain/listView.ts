@@ -8,6 +8,12 @@ import type { SqListItem } from '../types';
 import { buildTooltip, type DisplayNode, groupDisplayNode, iconForType } from './displayNode';
 import { compareIds } from './idOrder';
 import { isReservedType } from './reservedTypes';
+import {
+  compareTypesByOrder,
+  NO_TYPE_ORDER,
+  sortTypesByOrder,
+  type TypeOrderMap,
+} from './typeOrder';
 
 export interface ListFilter {
   readonly type: string | null;
@@ -19,11 +25,17 @@ export function excludeReservedTypes(items: readonly SqListItem[]): SqListItem[]
   return items.filter((item) => !isReservedType(item.type));
 }
 
-/** Distinct, sorted, non-reserved item types present in `items` — feeds the "filter by type"
- * quick-pick's option list without the client hardcoding a type catalog. */
-export function distinctTypes(items: readonly SqListItem[]): string[] {
-  return [...new Set(excludeReservedTypes(items).map((item) => item.type))].sort((a, b) =>
-    a.localeCompare(b),
+/** Distinct, non-reserved item types present in `items`, ordered by the spec's per-type `order`
+ * (F1) — feeds the "filter by type" quick-pick's option list without the client hardcoding a
+ * type catalog or its ordering. `orderMap` defaults to `NO_TYPE_ORDER`, degrading gracefully to
+ * a plain type-name sort when the catalog fetch failed. */
+export function distinctTypes(
+  items: readonly SqListItem[],
+  orderMap: TypeOrderMap = NO_TYPE_ORDER,
+): string[] {
+  return sortTypesByOrder(
+    [...new Set(excludeReservedTypes(items).map((item) => item.type))],
+    orderMap,
   );
 }
 
@@ -58,8 +70,8 @@ function itemToLeaf(item: SqListItem): DisplayNode {
   };
 }
 
-function sortedTypeEntries<T>(map: ReadonlyMap<string, T>): [string, T][] {
-  return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+function sortedTypeEntries<T>(map: ReadonlyMap<string, T>, orderMap: TypeOrderMap): [string, T][] {
+  return [...map.entries()].sort(([a], [b]) => compareTypesByOrder(orderMap, a, b));
 }
 
 /** Items sorted by id using shared numeric collation (a lower sequence number sorts first, never
@@ -68,11 +80,16 @@ function sortedLeaves(items: readonly SqListItem[]): DisplayNode[] {
   return [...items].sort((a, b) => compareIds(a.id, b.id)).map(itemToLeaf);
 }
 
-/** Groups `items` by type (one bucket per distinct type, sorted by type name) when
- * `groupByType`, otherwise returns the items themselves as sorted leaves. There is no
+/** Groups `items` by type (one bucket per distinct type, ordered by the spec's per-type `order`
+ * — F1, `orderMap` defaults to `NO_TYPE_ORDER` which degrades gracefully to a type-name sort)
+ * when `groupByType`, otherwise returns the items themselves as sorted leaves. There is no
  * open/closed grouping axis: open/closed is a separate show/hide toggle plus a dimmed visual
  * treatment applied by the tree-item renderer, not a grouping mode. */
-export function groupListItems(items: readonly SqListItem[], groupByType: boolean): DisplayNode[] {
+export function groupListItems(
+  items: readonly SqListItem[],
+  groupByType: boolean,
+  orderMap: TypeOrderMap = NO_TYPE_ORDER,
+): DisplayNode[] {
   if (!groupByType) {
     return sortedLeaves(items);
   }
@@ -85,18 +102,24 @@ export function groupListItems(items: readonly SqListItem[], groupByType: boolea
       bucket.push(item);
     }
   }
-  return sortedTypeEntries(buckets).map(([type, groupItems]) =>
+  return sortedTypeEntries(buckets, orderMap).map(([type, groupItems]) =>
     groupDisplayNode(`group:type:${type}`, type, groupItems.length, sortedLeaves(groupItems)),
   );
 }
 
-/** End-to-end: exclude reserved types, filter by type, then group by type if requested. Whether
- * closed items appear in `items` at all is the caller's fetch-time decision (the show-closed
- * toggle), not something this function classifies or filters. */
+/** End-to-end: exclude reserved types, filter by type, then group by type if requested, groups
+ * ordered by the spec's per-type `order` (F1). Whether closed items appear in `items` at all is
+ * the caller's fetch-time decision (the show-closed toggle), not something this function
+ * classifies or filters. */
 export function buildFilteredGroupedView(
   items: readonly SqListItem[],
   filter: ListFilter,
   groupByType: boolean,
+  orderMap: TypeOrderMap = NO_TYPE_ORDER,
 ): DisplayNode[] {
-  return groupListItems(filterListItems(excludeReservedTypes(items), filter), groupByType);
+  return groupListItems(
+    filterListItems(excludeReservedTypes(items), filter),
+    groupByType,
+    orderMap,
+  );
 }

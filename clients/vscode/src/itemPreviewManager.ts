@@ -3,7 +3,9 @@
  * extension controls end to end — never hijacked by opening another markdown file (unlike
  * the `markdown.showPreview` path this replaces) — rendering `sq show <id> --raw` as HTML via
  * the vscode-free `domain/markdown` + `domain/previewDocument` helpers, alongside the two
- * collapsible mermaid graphs (`domain/graphDiagrams`) built from `sq tree`/`sq graph --json`.
+ * collapsible mermaid graphs (`domain/graphDiagrams`) built from `sq tree`/`sq graph --json`,
+ * and the collapsible discussion section built from `sq show <id> --json`'s `discussion` array
+ * (`getShowJson`) — all fetched in parallel with the `--raw` dossier text.
  *
  * Navigation: a tree-node selection reuses the single owned panel if one is open (mirroring
  * the old dynamic preview's UX), otherwise opens a fresh one. A link click inside a panel
@@ -26,8 +28,10 @@ import * as vscode from 'vscode';
 import { describeTriedOrder, type SqDiscovery } from './discovery';
 import { buildRefGraphMermaid, buildSubtreeMermaid } from './domain/graphDiagrams';
 import {
+  buildDiscussionHtml,
   buildGraphsHtml,
   buildPreviewHtml,
+  type DiscussionOutcome,
   type GraphOutcome,
   renderOutcomeHtml,
   renderWorkflowHtml,
@@ -42,11 +46,12 @@ import {
   describeFailure,
   getGraph,
   getRaw,
+  getShowJson,
   getTree,
   getWorkflowRaw,
   type SqOutcome,
 } from './sqAdapter';
-import type { SqGraphNode, SqTreeNode } from './types';
+import type { SqGraphNode, SqShowJson, SqTreeNode } from './types';
 
 const VIEW_TYPE = 'squadsItemPreview';
 const WORKFLOW_VIEW_TYPE = 'squadsWorkflowPreview';
@@ -60,6 +65,16 @@ function toGraphOutcome<T>(outcome: SqOutcome<T>, build: (data: T) => string): G
     return { mermaidSource: null, message: describeFailure(outcome) };
   }
   return { mermaidSource: build(outcome.data) };
+}
+
+/** Turns a `getShowJson` outcome into the discussion section's content — the parsed comment
+ * list on success, or the same human-readable failure message every other surface shows, on
+ * failure. Mirrors `toGraphOutcome`'s shape. */
+function toDiscussionOutcome(outcome: SqOutcome<SqShowJson>): DiscussionOutcome {
+  if (outcome.kind !== 'success') {
+    return { entries: null, message: describeFailure(outcome) };
+  }
+  return { entries: outcome.data.discussion };
 }
 
 export class ItemPreviewManager {
@@ -154,18 +169,21 @@ export class ItemPreviewManager {
     const resolution = this.discovery.resolve();
     let bodyHtml: string;
     let graphsHtml: string;
+    let discussionHtml: string;
     if (!resolution.ok) {
       const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
       this.notifyError(`Squads: ${message}`);
       bodyHtml = renderOutcomeHtml(id, { kind: 'spawn-error', message });
       const unavailable: GraphOutcome = { mermaidSource: null, message };
       graphsHtml = buildGraphsHtml(unavailable, unavailable);
+      discussionHtml = buildDiscussionHtml({ entries: null, message }, id);
     } else {
       const { invocation } = resolution;
-      const [dossier, tree, graph] = await Promise.all([
+      const [dossier, tree, graph, showJson] = await Promise.all([
         getRaw(this.runner, invocation, this.workspaceRoot, id),
         getTree(this.runner, invocation, this.workspaceRoot, id),
         getGraph(this.runner, invocation, this.workspaceRoot, id),
+        getShowJson(this.runner, invocation, this.workspaceRoot, id),
       ]);
       if (dossier.kind !== 'success') {
         if (dossier.kind === 'spawn-error') {
@@ -174,12 +192,14 @@ export class ItemPreviewManager {
         this.notifyError(`Squads: ${describeFailure(dossier)}`);
       }
       bodyHtml = renderOutcomeHtml(id, dossier);
-      // Tree/graph fetch failures degrade their own section to an inline message rather than
-      // a second notification — the dossier failure above is the one that's actionable.
+      // Tree/graph/discussion fetch failures degrade their own section to an inline message
+      // rather than a second notification — the dossier failure above is the one that's
+      // actionable.
       graphsHtml = buildGraphsHtml(
         toGraphOutcome<readonly SqTreeNode[]>(tree, buildSubtreeMermaid),
         toGraphOutcome<SqGraphNode>(graph, buildRefGraphMermaid),
       );
+      discussionHtml = buildDiscussionHtml(toDiscussionOutcome(showJson), id);
     }
     const nonce = randomUUID();
     const mermaidScriptUri = panel.webview
@@ -190,6 +210,7 @@ export class ItemPreviewManager {
       title: id,
       bodyHtml,
       graphsHtml,
+      discussionHtml,
       nonce,
       mermaidScriptUri,
     });
@@ -224,6 +245,7 @@ export class ItemPreviewManager {
       title: WORKFLOW_TITLE,
       bodyHtml,
       graphsHtml: '',
+      discussionHtml: '',
       nonce,
       mermaidScriptUri,
     });

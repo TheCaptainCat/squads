@@ -1,0 +1,62 @@
+[
+  {
+    "type": "epic",
+    "order": 10.0,
+    "prefix": "EPIC",
+    "reserved": false
+  },
+  {
+    "type": "feature",
+    "order": 20.0,
+    "prefix": "FEAT",
+    "reserved": false
+  },
+  {
+    "type": "task",
+    "order": 30.0,
+    "prefix": "TASK",
+    "reserved": false
+  },
+  {
+    "type": "bug",
+    "order": 40.0,
+    "prefix": "BUG",
+    "reserved": false
+  },
+  {
+    "type": "decision",
+    "order": 50.0,
+    "prefix": "ADR",
+    "reserved": false
+  },
+  {
+    "type": "review",
+    "order": 60.0,
+    "prefix": "REV",
+    "reserved": false
+  },
+  {
+    "type": "guide",
+    "order": 70.0,
+    "prefix": "GUIDE",
+    "reserved": false
+  },
+  {
+    "type": "role",
+    "order": 80.0,
+    "prefix": "ROLE",
+    "reserved": true
+  },
+  {
+    "type": "skill",
+    "order": 90.0,
+    "prefix": "SKILL",
+    "reserved": true
+  },
+  {
+    "type": "operator",
+    "order": 100.0,
+    "prefix": "OP",
+    "reserved": true
+  }
+]

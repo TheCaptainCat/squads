@@ -16,9 +16,11 @@ import {
   NO_FILTER,
 } from './domain/listView';
 import { distinctTypesInTree, treeNodesToDisplay } from './domain/treeMapping';
+import { buildTypeOrderMap, NO_TYPE_ORDER, type TypeOrderMap } from './domain/typeOrder';
 import type { ProcessRunner } from './processRunner';
-import { describeFailure, getList, getTree, type SqOutcome } from './sqAdapter';
+import { describeFailure, getList, getTree, getTypeCatalog, type SqOutcome } from './sqAdapter';
 import { toTreeItem } from './treeItemRendering';
+import type { SqTypeCatalogEntry } from './types';
 
 export interface ViewState {
   readonly filter: ListFilter;
@@ -38,6 +40,13 @@ export const DEFAULT_VIEW_STATE: ViewState = {
 
 export function isFlatViewActive(state: ViewState): boolean {
   return state.filter.type !== null || state.groupByType;
+}
+
+/** Degrade a failed/unreachable type-catalog fetch to `NO_TYPE_ORDER` (F1's graceful fallback)
+ * rather than surfacing it as a tree-breaking error — group-by-type and the type-filter
+ * quick-pick still work, just alphabetically, until the catalog is reachable again. */
+function orderMapFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): TypeOrderMap {
+  return outcome.kind === 'success' ? buildTypeOrderMap(outcome.data) : NO_TYPE_ORDER;
 }
 
 export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNode> {
@@ -105,40 +114,47 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
     }
     const { invocation } = resolution;
     const allArgs = this.state.showClosed ? ['--all'] : [];
+    // Fetched alongside the tree/list payload below (one extra spawn per refresh, cheap next to
+    // the ones already there) rather than cached — a project's spec can change between refreshes.
+    // A failure here degrades gracefully (F1): `orderMapFrom` maps it to `NO_TYPE_ORDER`, which
+    // sorts group-by-type/quick-pick types by plain type name instead of breaking the view.
+    const catalogPromise = getTypeCatalog(this.runner, invocation, this.workspaceRoot);
 
     if (isFlatViewActive(this.state)) {
       // `--all` (only when the show-closed toggle is on) carries closed items alongside open
       // ones, each with its own `is_open` flag, so one fetch is enough either way.
-      const outcome = await getList(this.runner, invocation, this.workspaceRoot, allArgs);
+      const [outcome, catalogOutcome] = await Promise.all([
+        getList(this.runner, invocation, this.workspaceRoot, allArgs),
+        catalogPromise,
+      ]);
       if (outcome.kind !== 'success') {
         this.failFrom(outcome);
         return;
       }
+      const orderMap = orderMapFrom(catalogOutcome);
       this.roots = buildFilteredGroupedView(
         outcome.data,
         this.state.filter,
         this.state.groupByType,
+        orderMap,
       );
-      this.knownItemTypes = distinctTypes(outcome.data);
+      this.knownItemTypes = distinctTypes(outcome.data, orderMap);
       this.changeEmitter.fire(undefined);
       return;
     }
 
     // The tree payload now carries title + is_open on every node, so the hierarchy render is a
     // single `sq tree --json` spawn — no second `sq list` fetch for titles or known types.
-    const treeOutcome = await getTree(
-      this.runner,
-      invocation,
-      this.workspaceRoot,
-      undefined,
-      this.state.showClosed,
-    );
+    const [treeOutcome, catalogOutcome] = await Promise.all([
+      getTree(this.runner, invocation, this.workspaceRoot, undefined, this.state.showClosed),
+      catalogPromise,
+    ]);
     if (treeOutcome.kind !== 'success') {
       this.failFrom(treeOutcome);
       return;
     }
     this.roots = treeNodesToDisplay(treeOutcome.data);
-    this.knownItemTypes = distinctTypesInTree(treeOutcome.data);
+    this.knownItemTypes = distinctTypesInTree(treeOutcome.data, orderMapFrom(catalogOutcome));
     this.changeEmitter.fire(undefined);
   }
 

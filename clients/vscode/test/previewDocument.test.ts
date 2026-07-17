@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildDiscussionHtml,
   buildGraphsHtml,
   buildPreviewHtml,
+  type DiscussionOutcome,
   type GraphOutcome,
   renderOutcomeHtml,
   renderWorkflowHtml,
@@ -14,6 +16,7 @@ const NO_GRAPHS = buildGraphsHtml(
   { mermaidSource: null, message: 'none' },
   { mermaidSource: null, message: 'none' },
 );
+const NO_DISCUSSION = buildDiscussionHtml({ entries: [] });
 
 describe('renderOutcomeHtml', () => {
   it('renders the raw sq show --raw text as HTML on success', () => {
@@ -71,6 +74,7 @@ describe('buildPreviewHtml', () => {
     title: 'TASK-452',
     bodyHtml: '<p>hello</p>',
     graphsHtml: NO_GRAPHS,
+    discussionHtml: NO_DISCUSSION,
     mermaidScriptUri: MERMAID_URI,
     nonce: 'abc123',
   });
@@ -105,11 +109,29 @@ describe('buildPreviewHtml', () => {
     expect(graphsIndex).toBeGreaterThan(articleEnd);
   });
 
+  it('embeds the discussion section after the graph sections', () => {
+    const withDiscussion = buildPreviewHtml({
+      title: 'TASK-452',
+      bodyHtml: '<p>hello</p>',
+      graphsHtml: NO_GRAPHS,
+      discussionHtml: buildDiscussionHtml({
+        entries: [{ author: 'Ada Typescript', ts: '2026-07-17T00:00:00Z', body: 'A comment.' }],
+      }),
+      mermaidScriptUri: MERMAID_URI,
+      nonce: 'abc123',
+    });
+    const lastGraphIndex = withDiscussion.lastIndexOf('Ref Graph');
+    const discussionIndex = withDiscussion.indexOf('A comment.');
+    expect(lastGraphIndex).toBeGreaterThan(-1);
+    expect(discussionIndex).toBeGreaterThan(lastGraphIndex);
+  });
+
   it('escapes the title', () => {
     const withUnsafeTitle = buildPreviewHtml({
       title: '<x>',
       bodyHtml: '',
       graphsHtml: '',
+      discussionHtml: '',
       mermaidScriptUri: MERMAID_URI,
       nonce: 'n',
     });
@@ -175,5 +197,71 @@ describe('buildGraphsHtml', () => {
     expect(html).toContain('sq graph failed: boom');
     expect(html).not.toContain('class="sq-graph-source"');
     expect(html.match(/<details class="sq-graph" open>/g)).toHaveLength(2);
+  });
+});
+
+describe('buildDiscussionHtml', () => {
+  const twoComments: DiscussionOutcome = {
+    entries: [
+      { author: 'Elias Python', ts: '2026-07-16T18:14:07Z', body: '- First comment.' },
+      { author: 'Ada Typescript', ts: '2026-07-16T18:19:50Z', body: '- Second **comment**.' },
+    ],
+  };
+
+  it('renders no section at all when there is no discussion yet (graceful)', () => {
+    expect(buildDiscussionHtml({ entries: [] })).toBe('');
+  });
+
+  it('renders one collapsible <details> section holding every comment', () => {
+    const html = buildDiscussionHtml(twoComments);
+    expect(html.match(/<details class="sq-graph" open>/g)).toHaveLength(1);
+    expect(html).toContain('Discussion (2)');
+  });
+
+  it('renders each comment as an author + ISO-timestamp header, then its markdown body', () => {
+    const html = buildDiscussionHtml(twoComments);
+    expect(html).toContain('Elias Python');
+    expect(html).toContain('2026-07-16T18:14:07Z');
+    expect(html).toContain('Ada Typescript');
+    expect(html).toContain('2026-07-16T18:19:50Z');
+    // Bodies render through the same markdown renderer the dossier body uses.
+    expect(html).toContain('<li>First comment.</li>');
+    expect(html).toContain('<li>Second <strong>comment</strong>.</li>');
+  });
+
+  it('preserves discussion order (oldest first, as sq show --json emits it)', () => {
+    const html = buildDiscussionHtml(twoComments);
+    expect(html.indexOf('Elias Python')).toBeLessThan(html.indexOf('Ada Typescript'));
+  });
+
+  it('escapes the author and timestamp', () => {
+    const html = buildDiscussionHtml({
+      entries: [{ author: '<script>', ts: '2026-01-01T00:00:00Z', body: 'hi' }],
+    });
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).not.toContain('<script>');
+  });
+
+  it('suppresses a self-link when a comment mentions the current item id', () => {
+    const html = buildDiscussionHtml(
+      { entries: [{ author: 'a', ts: '2026-01-01T00:00:00Z', body: 'see TASK-452' }] },
+      'TASK-452',
+    );
+    expect(html).toContain('TASK-452');
+    expect(html).not.toContain('data-item-id="TASK-452"');
+  });
+
+  it('links a different item id mentioned in a comment', () => {
+    const html = buildDiscussionHtml(
+      { entries: [{ author: 'a', ts: '2026-01-01T00:00:00Z', body: 'see TASK-100' }] },
+      'TASK-452',
+    );
+    expect(html).toContain('data-item-id="TASK-100"');
+  });
+
+  it('shows a failure message in place of the section on a failed fetch (never silently blank)', () => {
+    const html = buildDiscussionHtml({ entries: null, message: 'sq show --json failed: boom' });
+    expect(html).toContain('sq show --json failed: boom');
+    expect(html).toContain('<details class="sq-graph" open><summary>Discussion</summary>');
   });
 });

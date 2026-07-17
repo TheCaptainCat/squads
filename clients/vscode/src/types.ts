@@ -35,6 +35,30 @@ export interface SqGraphNode {
   readonly children: readonly SqGraphNode[];
 }
 
+/** One entry of `sq workflow types --json` — the spec's declared type catalog (work types and
+ * the reserved meta types alike), one object per type, already in the spec's resolved order. */
+export interface SqTypeCatalogEntry {
+  readonly type: string;
+  readonly order: number | null;
+  readonly prefix: string;
+  readonly reserved: boolean;
+}
+
+/** One entry of `sq show <id> --json`'s `discussion` array — a single comment: author display
+ * name, ISO timestamp, and markdown body. */
+export interface SqDiscussionEntry {
+  readonly author: string;
+  readonly ts: string;
+  readonly body: string;
+}
+
+/** The `sq show <id> --json` shape this client reads. Hand-trimmed like every other shape here
+ * — only `discussion` (feeding the preview's collapsible comments section) is modeled; every
+ * other key `sq show --json` emits (id, title, body, status, …) is ignored, not rejected. */
+export interface SqShowJson {
+  readonly discussion: readonly SqDiscussionEntry[];
+}
+
 /** One row of `sq list --json`. */
 export interface SqListItem {
   readonly id: string;
