@@ -9,7 +9,9 @@ import tseslint from 'typescript-eslint';
 
 export default defineConfig(
   {
-    ignores: ['out/**', 'node_modules/**', 'test/fixtures/**'],
+    // scripts/** is a plain-CommonJS build helper (vendors the mermaid webview asset), not
+    // part of the tsconfig project this strict type-aware config resolves against.
+    ignores: ['out/**', 'node_modules/**', 'test/fixtures/**', 'media/**', 'scripts/**'],
   },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,

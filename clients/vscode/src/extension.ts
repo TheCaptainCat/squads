@@ -43,7 +43,13 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerTreeDataProvider('squadsTree', treeDataProvider),
   );
 
-  const previewManager = new ItemPreviewManager(nodeProcessRunner, discovery, root, notifyError);
+  const previewManager = new ItemPreviewManager(
+    nodeProcessRunner,
+    discovery,
+    root,
+    notifyError,
+    context.extensionUri,
+  );
 
   registerCommands(
     context,

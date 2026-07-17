@@ -16,7 +16,7 @@ subentities:
   severity: low
 - local_id: F2
   title: 'Hardening: markdown link href has no scheme allowlist'
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F3
   title: Lifecycle (F9) + link interception (F10) verified correct
@@ -27,7 +27,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-17T14:26:29Z'
-updated_at: '2026-07-17T14:29:33Z'
+updated_at: '2026-07-17T14:58:03Z'
 ---
 <!-- sq:body -->
 Independent review of TASK-452 (Ada built it) — the owned WebviewPanel preview backbone replacing the hijacked markdown preview, with navigable item links. Covers REV-448 F9/F10.
@@ -49,7 +49,7 @@ _Add with `sq review 461 add-finding "…" --severity medium`; track with `sq re
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
 | F1 | 🟢 low | Open |  | Security: escaping + CSP are solid — no XSS path found |
-| F2 | 🟢 low | Open |  | Hardening: markdown link href has no scheme allowlist |
+| F2 | 🟢 low | Fixed |  | Hardening: markdown link href has no scheme allowlist |
 | F3 | 🟢 low | Open |  | Lifecycle (F9) + link interception (F10) verified correct |
 | F4 | 🟢 low | Open |  | Dead-code removal, renderer correctness, gate + canary all clean |
 <!-- sq:summary:end -->
@@ -84,7 +84,7 @@ CSP (previewDocument.ts): default-src 'none'; style-src 'nonce-<n>'; script-src 
 ### F2 — Hardening: markdown link href has no scheme allowlist
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
@@ -99,6 +99,8 @@ Suggested (optional, non-blocking) hardening: allowlist the URL scheme in the li
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-07-17T14:57:58Z] Ada Typescript:
+  - Fixed in TASK-453: markdown.ts's renderLink now allowlists http/https/mailto schemes; a bare item-id url routes through the internal sq-item-link mechanism instead; anything else (javascript:/data:/vbscript:/relative/protocol-relative) is dropped, keeping only the escaped visible text. See isSafeLinkUrl + renderLink.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 

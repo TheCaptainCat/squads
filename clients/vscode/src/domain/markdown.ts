@@ -7,8 +7,10 @@
  * lists — a continuation/indented line under a list item is folded into that item's text as a
  * plain run, which is enough for the flat bullet lists item bodies actually contain.
  *
- * Kept `vscode`-free/pure so it's unit-testable with no host. Fenced code blocks (including
- * ```mermaid```) render as plain `<pre><code>` — diagram rendering is a separate, later task.
+ * Kept `vscode`-free/pure so it's unit-testable with no host. Fenced code blocks (including a
+ * body-authored ```mermaid``` one) still render as plain `<pre><code>` — the preview's two
+ * *structured* diagrams (children/subtree, ref graph) are a separate mechanism built from
+ * `sq tree`/`sq graph --json`, not this markdown path (see `domain/graphDiagrams.ts`).
  *
  * Item-ID references (e.g. a task or decision id) found in any plain-text run are turned into
  * `<a class="sq-item-link" data-item-id="...">` anchors the webview's script intercepts — see
@@ -20,6 +22,24 @@
  * spec-driven surface this client reads) — a bare sub-entity local id (no dash) doesn't
  * match, only a real item id does. */
 export const ITEM_ID_PATTERN = /\b[A-Z][A-Z0-9]*-\d+\b/g;
+
+/** Anchored (whole-string) counterpart of `ITEM_ID_PATTERN`, for deciding whether a markdown
+ * link's *url* (not a substring found in prose) is itself a bare item id. */
+const FULL_ITEM_ID_PATTERN = /^[A-Z][A-Z0-9]*-\d+$/;
+
+/** Schemes a rendered `[text](url)` link's `href` is allowed to carry. Defense-in-depth
+ * alongside the webview's CSP: a `javascript:`/`data:`/`vbscript:`/etc. url is dropped rather
+ * than escaped-and-emitted, so the renderer is safe on its own even if the CSP were ever
+ * loosened. */
+const SAFE_LINK_SCHEME = /^(https?|mailto):/i;
+
+/** True when `url` is safe to emit verbatim as an `<a href>` — http(s) or mailto only. A link
+ * whose url is itself a bare item id (e.g. `[see it](WIDGET-42)`) is handled separately,
+ * through the same internal item-link routing every plain-text id reference gets (see
+ * `renderLink`). */
+export function isSafeLinkUrl(url: string): boolean {
+  return SAFE_LINK_SCHEME.test(url.trim());
+}
 
 export function escapeHtml(text: string): string {
   return text
@@ -58,9 +78,28 @@ function renderInlineToken(match: RegExpExecArray, currentId: string | undefined
     return `<em>${linkifyPlainText(italic, currentId)}</em>`;
   }
   if (linkText !== undefined && linkUrl !== undefined) {
-    return `<a href="${escapeHtml(linkUrl)}">${escapeHtml(linkText)}</a>`;
+    return renderLink(linkText, linkUrl, currentId);
   }
   return '';
+}
+
+/** Renders a markdown `[text](url)` link. A url that is itself a bare item id routes through
+ * the same internal `a.sq-item-link` mechanism plain-text id references get (self-links to
+ * `currentId` suppressed the same way); a url on the safe-scheme allowlist becomes a normal
+ * `<a href>`; anything else (an unsafe scheme, a relative path, a protocol-relative url) is
+ * dropped, keeping only the escaped visible text — see `isSafeLinkUrl`. */
+function renderLink(text: string, url: string, currentId: string | undefined): string {
+  const trimmedUrl = url.trim();
+  const escapedText = escapeHtml(text);
+  if (FULL_ITEM_ID_PATTERN.test(trimmedUrl)) {
+    return trimmedUrl === currentId
+      ? escapedText
+      : `<a class="sq-item-link" href="#" data-item-id="${trimmedUrl}">${escapedText}</a>`;
+  }
+  if (isSafeLinkUrl(trimmedUrl)) {
+    return `<a href="${escapeHtml(trimmedUrl)}">${escapedText}</a>`;
+  }
+  return escapedText;
 }
 
 /** Renders one line/run of inline markdown (bold/italic/code/links) to HTML, linkifying item

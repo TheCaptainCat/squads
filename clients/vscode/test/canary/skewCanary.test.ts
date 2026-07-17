@@ -4,9 +4,9 @@
  * The unit layer (test/*.test.ts) validates parsing logic against committed fixture
  * snapshots (test/fixtures/) with no `sq` binary — fast, hermetic, the bulk of the value.
  * This suite is the other half of that guarantee: it runs a REAL `sq` against a scratch
- * squad and checks that the committed fixtures still describe the live shape of the three
- * surfaces the client depends on (ADR-427 #2) — `sq tree --json`, `sq list --json`,
- * `sq show <id> --raw`.
+ * squad and checks that the committed fixtures still describe the live shape of the four
+ * surfaces the client depends on (ADR-427 #2) — `sq tree --json`, `sq graph --json`,
+ * `sq list --json`, `sq show <id> --raw`.
  *
  * It asserts SHAPE (key set / types / structure), never exact values — a squad's actual
  * items, statuses, and prose legitimately vary between runs and machines. If a core-side
@@ -27,8 +27,8 @@ import * as path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { isSqListItem, isSqTreeNode } from '../../src/sqAdapter';
-import type { SqListItem, SqTreeNode } from '../../src/types';
+import { isSqGraphNode, isSqListItem, isSqTreeNode } from '../../src/sqAdapter';
+import type { SqGraphNode, SqListItem, SqTreeNode } from '../../src/types';
 
 interface CreatedItem {
   readonly id: string;
@@ -54,6 +54,17 @@ function fixture(name: string): string {
 function flattenTree(roots: readonly SqTreeNode[]): SqTreeNode[] {
   const out: SqTreeNode[] = [];
   const queue: SqTreeNode[] = [...roots];
+  for (let node = queue.shift(); node !== undefined; node = queue.shift()) {
+    out.push(node);
+    queue.push(...node.children);
+  }
+  return out;
+}
+
+/** Same idea as `flattenTree`, for the single-root `sq graph --json` shape. */
+function flattenGraph(root: SqGraphNode): SqGraphNode[] {
+  const out: SqGraphNode[] = [];
+  const queue: SqGraphNode[] = [root];
   for (let node = queue.shift(); node !== undefined; node = queue.shift()) {
     out.push(node);
     queue.push(...node.children);
@@ -110,6 +121,9 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       featureId,
     ]);
     runSq(['task', taskId.replace(/^TASK-/, ''), 'body', '-m', 'Canary body paragraph.']);
+    // A ref (distinct from the parent/child hierarchy above) so `sq graph` has an edge to
+    // traverse, not just a childless root.
+    runSq(['task', taskId.replace(/^TASK-/, ''), 'ref', 'add', epicId, '--kind', 'related']);
   });
 
   afterAll(() => {
@@ -148,6 +162,41 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       expect(nodes.length).toBeGreaterThan(0);
       for (const node of nodes) {
         expect(isSqTreeNode(node)).toBe(true);
+      }
+    });
+  });
+
+  describe('sq graph --json', () => {
+    it('every live node has the shape the adapter (and the committed fixture) expect', () => {
+      const parsed = JSON.parse(runSq(['graph', taskId, '--json', '--all'])) as unknown;
+      expect(isSqGraphNode(parsed)).toBe(true);
+
+      const nodes = flattenGraph(parsed as SqGraphNode);
+      expect(nodes.length).toBeGreaterThanOrEqual(2); // the task root, plus the epic it refs
+
+      for (const node of nodes) {
+        expect(isSqGraphNode(node)).toBe(true);
+        expect(Object.keys(node)).toEqual(
+          expect.arrayContaining([
+            'id',
+            'type',
+            'status',
+            'priority',
+            'assignee',
+            'edge_kind',
+            'direction',
+            'seen',
+            'children',
+          ]),
+        );
+      }
+    });
+
+    it('the committed fixture still conforms to the shape the adapter accepts', () => {
+      const root = JSON.parse(fixture('graph.json')) as unknown;
+      expect(isSqGraphNode(root)).toBe(true);
+      for (const node of flattenGraph(root as SqGraphNode)) {
+        expect(isSqGraphNode(node)).toBe(true);
       }
     });
   });
