@@ -1,0 +1,36 @@
+# TASK-452 — VS Code: owned WebviewPanel preview with navigable links
+
+- **status:** Ready
+- **assignee:** typescript-dev
+- **parent:** FEAT-449
+- **author:** tech-lead
+- **refs:** ADR-427 (addresses)
+
+Story: US1 (interactive item preview). Covers REV-448 findings F9 and F10. This is the **architectural backbone** for US1 — the graphs task builds on the panel this task establishes.
+
+## Problem
+
+`commands.ts` opens an item via `markdown.showPreview` — VS Code's single *dynamic* preview that follows the active editor, so opening any other markdown file replaces (steals) the item preview (F9). The built-in preview also cannot do item-to-item navigation or middle-click-new-tab (F10).
+
+## Scope
+
+Replace the built-in markdown-preview path (the `showPreview` / `squads:` virtual-doc render for **items**) with a `WebviewPanel` the extension owns — a dedicated tab that is never hijacked by another preview.
+
+- Render the item dossier (from `sq show <id> --raw`) as HTML in the panel. Bundle a markdown renderer as a local asset; the webview is CSP-locked (no remote content).
+- Render item-ID references (parent + refs) as links the webview intercepts (webview → extension `postMessage`): click routes to open that item in the SAME panel; middle-click (or ctrl/cmd-click) opens it in a NEW webview panel.
+- Keep the existing tree wiring and the open-preview command surface working.
+
+No new core surface — parent/refs are already in `sq show --json` / `--raw`.
+
+## Requirements
+
+- Strict TS gate parity (tsc strict + eslint zero-warnings + prettier), matching the Python bar (ADR-427 #3).
+- CSP-locked, self-contained webview (bundled assets, no CDN).
+- Unit-test the id-link extraction and the message-routing/open logic against committed fixtures (no live `sq`).
+- VSIX still packages (`vsce ls`); if a bundled asset is added, `.vscodeignore` ships it.
+
+## Acceptance
+
+- Opening an item shows it in a dedicated owned tab that survives opening other markdown files.
+- Parent/ref IDs render as links; click navigates in place, middle-click opens a new tab.
+- `npm run check` + unit tests green; VSIX packages.

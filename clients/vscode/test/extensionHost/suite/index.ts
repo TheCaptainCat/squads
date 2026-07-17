@@ -15,10 +15,10 @@ export async function run(): Promise<void> {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(extension, `extension ${EXTENSION_ID} is not present in the test host`);
 
-  // Activates for real: registerTreeDataProvider('squadsTree', ...) and
-  // registerTextDocumentContentProvider('squads', ...) both run inside activate() (see
-  // src/extension.ts) and throw if a contribution point is missing or misdeclared — activate()
-  // resolving here is itself proof the tree view and the `squads:` provider registered clean.
+  // Activates for real: registerTreeDataProvider('squadsTree', ...) and registerCommand(...)
+  // both run inside activate() (see src/extension.ts) and throw if a contribution point is
+  // missing or misdeclared — activate() resolving here is itself proof the tree view and the
+  // commands registered clean.
   await extension.activate();
   assert.equal(extension.isActive, true, 'extension did not report active after activate()');
 
@@ -27,10 +27,9 @@ export async function run(): Promise<void> {
   // container contribution had failed to take.
   await vscode.commands.executeCommand('squadsTree.focus');
 
-  // Opening an item preview via the `squads:` provider doesn't throw. provideTextDocumentContent
-  // (src/showDocumentProvider.ts) always resolves to text — an actionable error message when
-  // `sq`/the id can't be resolved, never a rejection — so this exercises the real code path
-  // with no `sq` binary or real squad item required.
-  const document = await vscode.workspace.openTextDocument(vscode.Uri.parse('squads:/SMOKE-0'));
-  assert.equal(document.uri.scheme, 'squads');
+  // Opening an item preview via the owned WebviewPanel doesn't throw. `ItemPreviewManager`'s
+  // render path (src/itemPreviewManager.ts) always resolves to panel content — an actionable
+  // error message when `sq`/the id can't be resolved, never a rejection — so this exercises
+  // the real webview-creation code path with no `sq` binary or real squad item required.
+  await vscode.commands.executeCommand('squads.openItemPreview', 'SMOKE-0');
 }

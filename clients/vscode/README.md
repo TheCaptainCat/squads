@@ -11,13 +11,20 @@ config, and lockfile, entirely disjoint from the Python core's toolchain. Nothin
 `clients/` is read by the Python gate (`pyright`/`ruff`/`pytest`) and vice versa.
 
 Current state: read-only browse. An activity-bar tree (`src/treeDataProvider.ts`) renders the
-squad hierarchy from `sq tree --json`; selecting an item opens its `sq show --raw` dossier in a
-read-only `squads:` markdown preview (`src/showDocumentProvider.ts`); view-title commands filter
-and group the tree by type/open-closed state and refresh it on demand (`src/commands.ts`). The
-`sq` discovery module (`src/discovery.ts`) and `sq --json`/`--raw` adapter (`src/sqAdapter.ts`)
-underpin all three, tested against committed fixtures (`test/fixtures/`) with no `sq` binary
-required — plus an integration skew-canary layer that re-checks those fixtures against a real
-`sq` (see below). Mutating the squad from the editor is a later increment.
+squad hierarchy from `sq tree --json`; selecting an item opens its `sq show --raw` dossier,
+rendered to HTML, in an owned `WebviewPanel` (`src/itemPreviewManager.ts`) — a dedicated tab
+that's never hijacked by opening another markdown file, unlike VS Code's built-in dynamic
+preview. Parent/ref item ids in the dossier render as navigable links: a click opens that item
+in the same panel, a middle-click (or ctrl/cmd-click) opens it in a new one — the webview
+posts a message back to the extension host, which routes it (`src/domain/previewMessages.ts`)
+and re-renders. The markdown -> HTML rendering (`src/domain/markdown.ts`) and the panel's HTML
+document (`src/domain/previewDocument.ts`, strict per-render-nonce CSP, no remote content) are
+vscode-free and unit-tested directly. View-title commands filter and group the tree by
+type/open-closed state and refresh it on demand (`src/commands.ts`). The `sq` discovery module
+(`src/discovery.ts`) and `sq --json`/`--raw` adapter (`src/sqAdapter.ts`) underpin all of this,
+tested against committed fixtures (`test/fixtures/`) with no `sq` binary required — plus an
+integration skew-canary layer that re-checks those fixtures against a real `sq` (see below).
+Mutating the squad from the editor is a later increment.
 
 ## Development
 
@@ -49,7 +56,7 @@ The third test layer this project's architecture calls for — a `@vscode/test-e
 smoke test confirming the extension activates and its core contributions load in a real VS
 Code host — lives under `test/extensionHost/` (`runTest.ts` launches a real Extension
 Development Host; `suite/index.ts` asserts activation, the `squadsTree` view registering,
-and opening an item preview via the `squads:` provider without throwing). It needs a
+and opening an item's owned preview webview without throwing). It needs a
 compiled `out/` build (`npm run test:e2e` compiles first) and a display — headless CI runs
 it under Xvfb (see `.github/workflows/vscode-client.yml`); there's no display in a plain
 dev shell, so run it on a desktop or rely on CI.

@@ -3,7 +3,7 @@ id: EPIC-99
 sequence_id: 99
 type: epic
 title: VS Code extension — browse the squad in the editor
-status: Ready
+status: InProgress
 author: product-owner
 priority: low
 refs:
@@ -16,7 +16,7 @@ description: 'A VS Code extension: a sidebar tree of the squad + items opened in
   markdown preview; consumes the frozen --json surface; browse-first, mutations a
   later increment'
 created_at: '2026-06-14T20:45:06Z'
-updated_at: '2026-07-16T16:02:19Z'
+updated_at: '2026-07-17T11:48:08Z'
 ---
 <!-- sq:body -->
 ## Outcome
