@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.9.0",
-  "counter": 443,
+  "counter": 445,
   "padding": 6,
   "items": {
     "12": {
@@ -16558,7 +16558,7 @@
       "type": "task",
       "title": "Client: consume tree title + is_open, collapse to one sq tree call",
       "slug": "client-consume-tree-title-is-open-collapse-to-one-sq-tree-ca",
-      "status": "Draft",
+      "status": "Done",
       "description": "Rewire extension onto enriched surface; drop title-join + list diff; single sq tree call; recapture fixtures",
       "parent": "FEAT-100",
       "author": "tech-lead",
@@ -16574,7 +16574,7 @@
       "subentities": [],
       "path": "tasks/TASK-000440-client-consume-tree-title-is-open-collapse-to-one-sq-tree-ca.md",
       "created_at": "2026-07-17T07:45:19Z",
-      "updated_at": "2026-07-17T07:45:38Z",
+      "updated_at": "2026-07-17T08:38:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16673,7 +16673,7 @@
         {
           "local_id": "F3",
           "title": "No .vscodeignore: the VSIX will bundle src/, test/ and fixtures",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -16682,11 +16682,62 @@
       ],
       "path": "reviews/REV-000443-phase-c-core-title-is-open-surface-enrichment-release-yml-py.md",
       "created_at": "2026-07-17T07:58:59Z",
-      "updated_at": "2026-07-17T08:02:51Z",
+      "updated_at": "2026-07-17T08:16:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-443"
+    },
+    "444": {
+      "sequence_id": 444,
+      "type": "task",
+      "title": "Bump VS Code client TypeScript to 6.0.3 and @types/node to 26",
+      "slug": "bump-vs-code-client-typescript-to-6-0-3-and-types-node-to-26",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-100",
+      "author": "manager",
+      "assignee": "typescript-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000444-bump-vs-code-client-typescript-to-6-0-3-and-types-node-to-26.md",
+      "created_at": "2026-07-17T08:20:55Z",
+      "updated_at": "2026-07-17T08:38:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-444"
+    },
+    "445": {
+      "sequence_id": 445,
+      "type": "review",
+      "title": "Client TS finale: adopt title/is_open surface + .vscodeignore + TS 6.0.3 bump",
+      "slug": "client-ts-finale-adopt-title-is-open-surface-vscodeignore-ts",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-440:addresses",
+        "TASK-444:addresses"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000445-client-ts-finale-adopt-title-is-open-surface-vscodeignore-ts.md",
+      "created_at": "2026-07-17T08:36:13Z",
+      "updated_at": "2026-07-17T08:38:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-445"
     }
   }
 }

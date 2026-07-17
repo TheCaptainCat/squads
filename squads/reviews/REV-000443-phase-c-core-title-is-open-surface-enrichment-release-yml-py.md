@@ -20,10 +20,10 @@ subentities:
   severity: low
 - local_id: F3
   title: 'No .vscodeignore: the VSIX will bundle src/, test/ and fixtures'
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-07-17T07:58:59Z'
-updated_at: '2026-07-17T08:02:51Z'
+updated_at: '2026-07-17T08:16:58Z'
 ---
 <!-- sq:body -->
 Round-3 review of the Phase C batch: TASK-439 (core title+is_open surface enrichment, Elias — reviewer-gated on additive-only), TASK-433 (release.yml VSIX release asset, Hugo), TASK-442 (Python CI path-scoping, Hugo). Scope: src/squads/_cli/_main.py + touched goldens + CHANGELOG (439); .github/workflows/release.yml (433); .github/workflows/test.yml (442). Concurrent unrelated work ignored.
@@ -55,7 +55,7 @@ _Add with `sq review 443 add-finding "…" --severity medium`; track with `sq re
 | --- | --- | --- | --- | --- |
 | F1 | 🟢 low | Open |  | sq mine --json emits the item shape without the new is_open key |
 | F2 | 🟢 low | Open |  | release.yml pins softprops/action-gh-release to mutable @v2 under contents:write |
-| F3 | 🟢 low | Open |  | No .vscodeignore: the VSIX will bundle src/, test/ and fixtures |
+| F3 | 🟢 low | Fixed |  | No .vscodeignore: the VSIX will bundle src/, test/ and fixtures |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -102,7 +102,7 @@ release.yml runs with 'permissions: contents: write' and uploads the VSIX releas
 ### F3 — No .vscodeignore: the VSIX will bundle src/, test/ and fixtures
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F3:head:end -->
 
@@ -113,6 +113,8 @@ clients/vscode/ has no .vscodeignore, so 'vsce package' will include everything 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-07-17T08:16:49Z] Ada Typescript:
+  - Added clients/vscode/.vscodeignore excluding src/**, test/** (incl. fixtures), toolchain config, package-lock.json, and node_modules/** — VSIX now bundles only out/ + package.json + README + resources; part of TASK-440.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->

@@ -1,9 +1,7 @@
 /**
  * Filter/group logic over `sq list --json` for the flat/filtered/grouped tree view. Open/closed
- * classification is derived from the CLI's own default-vs-`--all` behaviour (default hides closed
- * items; `--all` reveals them) rather than a locally hand-maintained status list — statuses are
- * workflow-spec-driven per project, so no fixed "these are the terminal statuses" table would
- * stay correct everywhere.
+ * classification reads the surface's own spec-driven `is_open` boolean directly — no locally
+ * hand-maintained status list, and no double `sq list` fetch (default vs `--all`) to diff.
  */
 import type { SqListItem } from '../types';
 import { buildTooltip, type DisplayNode, groupDisplayNode, iconForType } from './displayNode';
@@ -23,13 +21,8 @@ export interface ClassifiedListItem extends SqListItem {
   readonly state: OpenClosedState;
 }
 
-/** `openIds` is every id present in the CLI's default (closed-hidden) listing; anything in
- * `items` (the `--all` superset) not in that set is closed. */
-export function classifyListItems(
-  items: readonly SqListItem[],
-  openIds: ReadonlySet<string>,
-): ClassifiedListItem[] {
-  return items.map((item) => ({ ...item, state: openIds.has(item.id) ? 'open' : 'closed' }));
+export function classifyListItems(items: readonly SqListItem[]): ClassifiedListItem[] {
+  return items.map((item) => ({ ...item, state: item.is_open ? 'open' : 'closed' }));
 }
 
 export function excludeReservedTypes(items: readonly SqListItem[]): SqListItem[] {
@@ -117,10 +110,9 @@ export function groupListItems(
 /** End-to-end: exclude reserved types, classify open/closed, filter, then group. */
 export function buildFilteredGroupedView(
   items: readonly SqListItem[],
-  openIds: ReadonlySet<string>,
   filter: ListFilter,
   groupBy: readonly GroupKey[],
 ): DisplayNode[] {
-  const classified = classifyListItems(excludeReservedTypes(items), openIds);
+  const classified = classifyListItems(excludeReservedTypes(items));
   return groupListItems(filterListItems(classified, filter), groupBy);
 }

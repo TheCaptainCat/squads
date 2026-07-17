@@ -3,7 +3,7 @@ id: TASK-440
 sequence_id: 440
 type: task
 title: 'Client: consume tree title + is_open, collapse to one sq tree call'
-status: Draft
+status: Done
 parent: FEAT-100
 author: tech-lead
 assignee: typescript-dev
@@ -14,7 +14,7 @@ refs:
 description: Rewire extension onto enriched surface; drop title-join + list diff;
   single sq tree call; recapture fixtures
 created_at: '2026-07-17T07:45:19Z'
-updated_at: '2026-07-17T07:45:38Z'
+updated_at: '2026-07-17T08:38:54Z'
 ---
 <!-- sq:body -->
 ## Owner
@@ -89,4 +89,12 @@ _Add with `sq task 440 add-subtask "<title>"`; track with `sq task 440 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-17T08:17:45Z] Ada Typescript:
+  - Rewired onto the enriched surface: tree labels now read title directly off sq tree --json nodes (dropped buildTitleLookup + the second sq list --json fetch); flat/grouped view classifies open/closed from is_open (dropped getListSnapshot's --all/default diff, now one sq list --all --json call); hierarchy refresh is a single sq tree --json spawn (known-types for the filter quick-pick now derived by walking the tree via distinctTypesInTree, so no list fetch needed there either).
+  - SqTreeNode gained title/is_open, SqListItem gained is_open; parser validators updated to check both.
+  - Recaptured fixtures from live sq output: tree.json = sq tree EPIC-99 --all --json (11 tasks, mixed open/closed/blocked); list.json = a curated-but-100%-live subset of sq list --all --json (49 items spanning all 7 non-reserved types + role/skill/operator, both is_open states) — not hand-edited, just a real capture trimmed to a representative selection.
+  - Removed dead workaround code: buildTitleLookup, getListSnapshot/ListSnapshot, the openIds-diff classifyListItems signature, and their tests; this incidentally closes REV-438 F1 (redundant open-only list on hierarchy refresh) as noted in the task body.
+  - Also folded in REV-443 F3: added clients/vscode/.vscodeignore (excludes src/**, test/** incl. fixtures, toolchain config, package-lock.json, node_modules/**); marked F3 Fixed on REV-443.
+  - Gate: npm run check + npm test both clean, zero warnings, hygiene guard (no ticket IDs in src) green. Live extension-host verification (tree renders, preview opens) deferred to CI/manual — no VS Code host in this environment.
+  - Leaving InReview (reviewer-gated, not Done) — @reviewer please review.
 <!-- sq:discussion:end -->

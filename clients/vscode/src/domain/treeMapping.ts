@@ -1,28 +1,22 @@
 /**
- * Maps `sq tree --json` (id/type/status/priority/assignee/blocked/children — no title) into
- * `DisplayNode`s. Titles aren't part of the tree surface, so the label falls back to the bare
- * id unless a title lookup (built from a sibling `sq list --json` fetch) supplies one; either
- * way the hierarchy, status, assignee, and blocked-state all come from the tree surface itself.
+ * Maps `sq tree --json` (id/type/title/status/priority/assignee/blocked/is_open/children) into
+ * `DisplayNode`s. The tree payload is now self-sufficient for labels and open/closed state — no
+ * sibling `sq list --json` fetch is needed to join titles by id.
  */
-import type { SqListItem, SqTreeNode } from '../types';
+import type { SqTreeNode } from '../types';
 import { buildTooltip, type DisplayNode, iconForType } from './displayNode';
 import { isReservedType } from './reservedTypes';
-
-export function buildTitleLookup(items: readonly SqListItem[]): ReadonlyMap<string, string> {
-  return new Map(items.map((item) => [item.id, item.title]));
-}
 
 function describeNode(node: SqTreeNode): string {
   const base = `${node.status} · ${node.assignee ?? 'unassigned'}`;
   return node.blocked ? `${base} · blocked` : base;
 }
 
-function mapNode(node: SqTreeNode, titles: ReadonlyMap<string, string>): DisplayNode {
-  const title = titles.get(node.id);
+function mapNode(node: SqTreeNode): DisplayNode {
   return {
     id: node.id,
     itemId: node.id,
-    label: title === undefined ? node.id : `${node.id}  ${title}`,
+    label: `${node.id}  ${node.title}`,
     description: describeNode(node),
     tooltip: buildTooltip({
       id: node.id,
@@ -34,17 +28,25 @@ function mapNode(node: SqTreeNode, titles: ReadonlyMap<string, string>): Display
     }),
     iconId: iconForType(node.type),
     blocked: node.blocked,
-    children: node.children
-      .filter((child) => !isReservedType(child.type))
-      .map((child) => mapNode(child, titles)),
+    children: node.children.filter((child) => !isReservedType(child.type)).map(mapNode),
   };
 }
 
-/** `titles` is optional: an empty lookup degrades gracefully to id-only labels rather than
- * failing the whole tree when the enrichment fetch didn't succeed. */
-export function treeNodesToDisplay(
-  nodes: readonly SqTreeNode[],
-  titles: ReadonlyMap<string, string> = new Map(),
-): DisplayNode[] {
-  return nodes.filter((node) => !isReservedType(node.type)).map((node) => mapNode(node, titles));
+export function treeNodesToDisplay(nodes: readonly SqTreeNode[]): DisplayNode[] {
+  return nodes.filter((node) => !isReservedType(node.type)).map(mapNode);
+}
+
+/** Distinct, sorted, non-reserved item types present anywhere in the tree — feeds the "filter by
+ * type" quick-pick's option list without a second `sq list --json` fetch just for the type
+ * catalog. */
+export function distinctTypesInTree(nodes: readonly SqTreeNode[]): string[] {
+  const types = new Set<string>();
+  const visit = (node: SqTreeNode): void => {
+    if (!isReservedType(node.type)) {
+      types.add(node.type);
+    }
+    node.children.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return [...types].sort((a, b) => a.localeCompare(b));
 }

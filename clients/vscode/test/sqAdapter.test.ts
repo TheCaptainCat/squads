@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { SqInvocation } from '../src/discovery';
 import type { ProcessResult, ProcessRunner } from '../src/processRunner';
-import { describeFailure, getList, getListSnapshot, getRaw, getTree } from '../src/sqAdapter';
+import { describeFailure, getList, getRaw, getTree } from '../src/sqAdapter';
 
 const WORKSPACE_ROOT = '/workspace/example';
 
@@ -198,63 +198,6 @@ describe('getRaw', () => {
     const outcome = await getRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-430');
 
     expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
-  });
-});
-
-describe('getListSnapshot', () => {
-  it('fetches --all then the default listing and classifies every id present in the default as open', async () => {
-    const allItems = JSON.parse(LIST_FIXTURE) as { id: string }[];
-    const defaultItems = allItems.slice(0, 2);
-    const allResponse: ProcessResult = { stdout: LIST_FIXTURE, stderr: '', exitCode: 0 };
-    const defaultResponse: ProcessResult = {
-      stdout: JSON.stringify(defaultItems),
-      stderr: '',
-      exitCode: 0,
-    };
-    let callCount = 0;
-    const runner: ProcessRunner = {
-      run: () => {
-        callCount += 1;
-        return Promise.resolve(callCount === 1 ? allResponse : defaultResponse);
-      },
-    };
-
-    const outcome = await getListSnapshot(runner, VENV_INVOCATION, WORKSPACE_ROOT);
-
-    expect(outcome.kind).toBe('success');
-    if (outcome.kind !== 'success') {
-      throw new Error('expected success');
-    }
-    expect(outcome.data.items).toHaveLength(allItems.length);
-    for (const item of defaultItems) {
-      expect(outcome.data.openIds.has(item.id)).toBe(true);
-    }
-    const closedOnly = allItems.filter((item) => !defaultItems.some((open) => open.id === item.id));
-    for (const item of closedOnly) {
-      expect(outcome.data.openIds.has(item.id)).toBe(false);
-    }
-  });
-
-  it('calls --all first, then the default (unfiltered) listing, in that order', async () => {
-    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
-    await getListSnapshot(runner, VENV_INVOCATION, WORKSPACE_ROOT, ['-t', 'task']);
-
-    expect(calls).toEqual([
-      {
-        command: '/venv/bin/sq',
-        args: ['list', '-t', 'task', '--all', '--json'],
-        cwd: WORKSPACE_ROOT,
-      },
-      { command: '/venv/bin/sq', args: ['list', '-t', 'task', '--json'], cwd: WORKSPACE_ROOT },
-    ]);
-  });
-
-  it('surfaces a failure from the --all call without attempting the second call', async () => {
-    const { runner, calls } = recordingRunner({ stdout: '', stderr: 'boom', exitCode: 1 });
-    const outcome = await getListSnapshot(runner, VENV_INVOCATION, WORKSPACE_ROOT);
-
-    expect(outcome).toEqual({ kind: 'runtime-error', message: 'boom', exitCode: 1 });
-    expect(calls).toHaveLength(1);
   });
 });
 

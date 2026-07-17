@@ -9,10 +9,12 @@
 export interface SqTreeNode {
   readonly id: string;
   readonly type: string;
+  readonly title: string;
   readonly status: string;
   readonly priority: string | null;
   readonly assignee: string | null;
   readonly blocked: boolean;
+  readonly is_open: boolean;
   readonly children: readonly SqTreeNode[];
 }
 
@@ -35,4 +37,5 @@ export interface SqListItem {
   readonly path: string;
   readonly created_at: string;
   readonly updated_at: string;
+  readonly is_open: boolean;
 }

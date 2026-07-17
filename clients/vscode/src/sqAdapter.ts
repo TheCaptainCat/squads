@@ -65,18 +65,32 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
 }
 
+function hasRequiredTreeNodeStrings(node: Record<string, unknown>): boolean {
+  return (
+    typeof node.id === 'string' &&
+    typeof node.type === 'string' &&
+    typeof node.title === 'string' &&
+    typeof node.status === 'string' &&
+    typeof node.blocked === 'boolean' &&
+    typeof node.is_open === 'boolean'
+  );
+}
+
+function hasNullableTreeNodeStrings(node: Record<string, unknown>): boolean {
+  return (
+    (typeof node.priority === 'string' || node.priority === null) &&
+    (typeof node.assignee === 'string' || node.assignee === null)
+  );
+}
+
 function isSqTreeNode(value: unknown): value is SqTreeNode {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
   const node = value as Record<string, unknown>;
   return (
-    typeof node.id === 'string' &&
-    typeof node.type === 'string' &&
-    typeof node.status === 'string' &&
-    (typeof node.priority === 'string' || node.priority === null) &&
-    (typeof node.assignee === 'string' || node.assignee === null) &&
-    typeof node.blocked === 'boolean' &&
+    hasRequiredTreeNodeStrings(node) &&
+    hasNullableTreeNodeStrings(node) &&
     Array.isArray(node.children) &&
     node.children.every(isSqTreeNode)
   );
@@ -91,7 +105,8 @@ function hasRequiredListItemStrings(item: Record<string, unknown>): boolean {
     typeof item.status === 'string' &&
     typeof item.path === 'string' &&
     typeof item.created_at === 'string' &&
-    typeof item.updated_at === 'string'
+    typeof item.updated_at === 'string' &&
+    typeof item.is_open === 'boolean'
   );
 }
 
@@ -173,35 +188,6 @@ export function getList(
     ['list', ...filterArgs, '--json'],
     isSqListItem,
   );
-}
-
-/**
- * `sq list --json` fetched twice — once with `--all` (every item) and once without (the CLI's
- * own default, closed hidden) — so open/closed classification is derived from the CLI's actual
- * behaviour rather than a locally hand-maintained "these statuses are terminal" table (statuses
- * are workflow-spec-driven per project, not a fixed enum).
- */
-export interface ListSnapshot {
-  readonly items: readonly SqListItem[];
-  readonly openIds: ReadonlySet<string>;
-}
-
-export async function getListSnapshot(
-  runner: ProcessRunner,
-  invocation: SqInvocation,
-  workspaceRoot: string,
-  filterArgs: readonly string[] = [],
-): Promise<SqOutcome<ListSnapshot>> {
-  const allOutcome = await getList(runner, invocation, workspaceRoot, [...filterArgs, '--all']);
-  if (allOutcome.kind !== 'success') {
-    return allOutcome;
-  }
-  const openOutcome = await getList(runner, invocation, workspaceRoot, filterArgs);
-  if (openOutcome.kind !== 'success') {
-    return openOutcome;
-  }
-  const openIds = new Set(openOutcome.data.map((item) => item.id));
-  return { kind: 'success', data: { items: allOutcome.data, openIds } };
 }
 
 /** `sq show <id> --raw` — the clean-markdown dossier fed into the read-only preview. Not JSON,

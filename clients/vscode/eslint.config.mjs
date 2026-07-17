@@ -1,3 +1,4 @@
+/// <reference types="node" />
 // ESLint flat config for clients/vscode. Isolated from the Python core's ruff/pyright gate —
 // this file and its toolchain are self-contained under clients/vscode/.
 import js from '@eslint/js';
