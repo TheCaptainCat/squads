@@ -23,6 +23,12 @@ All notable changes to this project are documented here. The format follows
   `sq tree --json` gain an `is_open` boolean (derived from the workflow spec's terminal-status
   set, so a custom vocabulary stays correct with no code change) — additive only, nothing renamed
   or removed.
+- **`sq mine --json` also carries `is_open`.** Brings the assigned-to-me view in line with
+  `sq list --json`/`sq tree --json` — additive only.
+- **Trimmed the agent-facing `squads` skill.** Dropped the seven per-type lifecycle Mermaid
+  diagrams from the skill (agents read it as raw text, so the diagram source was just noise);
+  the compact hierarchy diagram and the one-line-per-type lifecycle table stay. `sq workflow`'s
+  terminal output is unchanged and still shows the full per-type diagrams.
 
 ## [0.9.0] - 2026-07-15
 

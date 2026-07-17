@@ -65,3 +65,14 @@ async def test_teaches_the_comment_scoping_convention_with_one_example_per_suben
     assert "subtask <k> comment" in body
     assert "finding <k> comment" in body
     assert "sq inbox" in body  # the no-gap-when-using-sub-entity-discussions rule
+
+
+async def test_skill_drops_per_type_lifecycle_diagrams_but_keeps_hierarchy_and_table(project):
+    """Agents read the skill as raw text — the ~200-line triplicated per-type
+    ``stateDiagram-v2`` blocks are noise there (mermaid never renders). The small hierarchy
+    ``flowchart TD`` and the one-line lifecycle table stay; ``sq workflow`` keeps the full
+    per-type diagrams (covered separately)."""
+    body = _squads_skill_body(project)
+    assert "stateDiagram-v2" not in body
+    assert "flowchart TD" in body
+    assert "| Prefix | Type | Lifecycle |" in body

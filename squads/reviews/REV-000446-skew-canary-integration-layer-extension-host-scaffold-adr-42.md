@@ -11,15 +11,15 @@ subentities:
 - local_id: F1
   title: Skew canary is path-filtered to clients/vscode/**, so core-only drift isn't
     caught at core-PR time
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F2
   title: Extension-host smoke layer follow-up is noted in README only, not tracked
     as an sq item
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-07-17T09:05:56Z'
-updated_at: '2026-07-17T09:08:32Z'
+updated_at: '2026-07-17T11:38:06Z'
 ---
 <!-- sq:body -->
 Round-5 (final) review of TASK-441 — the ADR-427 #3 integration skew-canary layer (closes REV-438 F2). Scope: clients/vscode/** + the vscode-client.yml canary job.
@@ -56,8 +56,8 @@ _Add with `sq review 446 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Skew canary is path-filtered to clients/vscode/**, so core-only drift isn't caught at core-PR time |
-| F2 | 🟢 low | Open |  | Extension-host smoke layer follow-up is noted in README only, not tracked as an sq item |
+| F1 | 🟢 low | Fixed |  | Skew canary is path-filtered to clients/vscode/**, so core-only drift isn't caught at core-PR time |
+| F2 | 🟢 low | Fixed |  | Extension-host smoke layer follow-up is noted in README only, not tracked as an sq item |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -66,7 +66,7 @@ _Add with `sq review 446 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Skew canary is path-filtered to clients/vscode/**, so core-only drift isn't caught at core-PR time
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F1:head:end -->
 
@@ -77,6 +77,8 @@ The canary job lives in vscode-client.yml, which triggers only on clients/vscode
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-07-17T09:42:17Z] Ada Typescript:
+  - Fixed: added a nightly schedule trigger (cron) to vscode-client.yml. GitHub only applies push/pull_request path filters -- schedule ignores them entirely, so the nightly tick runs the whole workflow regardless of what changed. check/test/e2e opt out on the schedule event (they gate clients/vscode's own dev-time surface, nothing to re-check nightly); canary has no such guard, so it alone runs every night against a real sq, catching core-only --json/--raw drift within at most a day. Chose this over adding src/squads/** to the workflow's own path filters because that would also re-trigger check/test on core-only PRs, contradicting the file's own documented isolation invariant ('a Python-only change never triggers this workflow at all') -- schedule achieves the coverage without touching that guarantee. YAML validated with PyYAML (parses, job/on keys as expected).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -84,7 +86,7 @@ The canary job lives in vscode-client.yml, which triggers only on clients/vscode
 ### F2 — Extension-host smoke layer follow-up is noted in README only, not tracked as an sq item
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
@@ -95,6 +97,8 @@ ADR-427 #3's third layer (a @vscode/test-electron extension-host smoke test) is 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-07-17T09:42:07Z] Ada Typescript:
+  - Fixed: real Extension Development Host smoke test wired (runTest.ts + suite/index.ts), test:e2e npm script, new e2e CI job in vscode-client.yml (xvfb-run, after npm ci + compile, skipped on the nightly schedule tick). Asserts activate()+isActive, squadsTree.focus, and opening a squads: preview doesn't throw. Also fixed an incidental bug found while wiring: package.json main pointed at out/extension.js but tsc emits out/src/extension.js (rootDir '.') -- corrected, else the extension would never load for real. Verified npm run check/test green; ran the compiled script locally and confirmed it gets past all path/module resolution into the real VS Code download step before failing on network/no-display -- actual execution is CI-only.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 <!-- sq:findings:end -->
@@ -102,4 +106,6 @@ ADR-427 #3's third layer (a @vscode/test-electron extension-host smoke test) is 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-17T11:38:06Z] Paul Reviewer:
+  - F1 + F2 both Fixed in the close-out batch (reviewed in REV-447, APPROVE). F1: vscode-client.yml gained a nightly schedule cron that runs only the canary job (check/test/e2e gated off the schedule tick) — core-only surface drift is now caught within a day, the exact mitigation F1 proposed, with no path filter that would pull Python-only PRs into check/test. F2: the extension-host smoke layer is now fully implemented (test/extensionHost/runTest.ts + suite/index.ts: activate, squadsTree.focus, squads: preview open) and wired to npm run test:e2e + an xvfb e2e CI job — no longer a README-only stub.
 <!-- sq:discussion:end -->

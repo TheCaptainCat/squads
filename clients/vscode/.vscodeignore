@@ -9,15 +9,24 @@
 src/**
 
 # Tests and their fixtures (fixtures cite internal squad-item IDs — fine for test data, not for
-# a public VSIX)
+# a public VSIX). vsce's ignore matching (minimatch, no matchBase) anchors a mid-slash pattern
+# like "test/**" to the package root — it does NOT also match the compiled mirror under
+# "out/test/**" (tsconfig's rootDir "." mirrors test/ under out/test/), so that has to be listed
+# separately or the compiled test code ships anyway.
 test/**
+out/test/**
 
-# Toolchain / lint / format / test-runner config — dev-time only
+# Toolchain / lint / format / test-runner config — dev-time only. Same root-anchoring note as
+# above applies to the *.config.ts sources; their compiled mirrors land at the out/ root (not
+# under out/src or out/test) and must be excluded explicitly too.
 tsconfig.json
 eslint.config.mjs
 .prettierrc.json
 .prettierignore
 vitest.config.ts
+vitest.canary.config.ts
+out/vitest.config.js
+out/vitest.canary.config.js
 
 # Lockfile — not needed to run the extension
 package-lock.json
@@ -31,3 +40,13 @@ node_modules/**
 *.vsix
 coverage/**
 **/*.map
+
+# Icon source assets not referenced by package.json — only resources/squads-icon-mono.svg
+# (the activity-bar container icon, fill="currentColor" for theme tinting) ships in the VSIX.
+# The color variants and the fixed-fill -black/-white mono variants are kept in the repo as
+# source assets for other surfaces but excluded here to keep the package minimal.
+resources/squads-icon-color.svg
+resources/squads-icon-color-black.svg
+resources/squads-icon-color-white.svg
+resources/squads-icon-mono-black.svg
+resources/squads-icon-mono-white.svg

@@ -14,7 +14,7 @@ refs:
 description: Rewire extension onto enriched surface; drop title-join + list diff;
   single sq tree call; recapture fixtures
 created_at: '2026-07-17T07:45:19Z'
-updated_at: '2026-07-17T08:38:54Z'
+updated_at: '2026-07-17T11:19:01Z'
 ---
 <!-- sq:body -->
 ## Owner
@@ -97,4 +97,8 @@ _Add with `sq task 440 add-subtask "<title>"`; track with `sq task 440 subtask <
   - Also folded in REV-443 F3: added clients/vscode/.vscodeignore (excludes src/**, test/** incl. fixtures, toolchain config, package-lock.json, node_modules/**); marked F3 Fixed on REV-443.
   - Gate: npm run check + npm test both clean, zero warnings, hygiene guard (no ticket IDs in src) green. Live extension-host verification (tree renders, preview opens) deferred to CI/manual — no VS Code host in this environment.
   - Leaving InReview (reviewer-gated, not Done) — @reviewer please review.
+- [2026-07-17T11:19:01Z] Ada Typescript:
+  - Blocking packaging bug fixed and verified with the real tool (npx @vscode/vsce ls / --tree). Root cause was NOT .vscodeignore anchoring — vsce's ignore matching is minimatch with no matchBase, so a mid-slash pattern like src/** or test/** is already anchored to the package root and never matched the out/src or out/test mirrors; empirically out/src/extension.js was already listed. The real defect was elsewhere in this same file's history: package.json's main (currently mid-fix in this tree to ./out/src/extension.js, matching tsc's rootDir '.' output layout) plus a latent .vscodeignore gap — test/** and vitest.config.ts don't cover their compiled out/ mirrors, so out/test/**.js and out/vitest*.js were shipping. Fixed .vscodeignore: added out/test/**, vitest.canary.config.ts, out/vitest.config.js, out/vitest.canary.config.js.
+  - Separately discovered (pre-existing since FEAT-100 Phase A, not part of this fix's scope): package.json declares @types/vscode ^1.125.0 against engines.vscode ^1.85.0, which vsce 3.9.2 (and 2.15.0, checked) hard-refuses to package at all ('@types/vscode ... greater than engines.vscode'). This has blocked vsce ls/package entirely, worse than the entry-point gap. Bumped engines.vscode to ^1.125.0 to unblock verification; flagging for @qa to file as a tracked bug since it also blocks TASK-433's release pipeline.
+  - Verified: npm run compile && npx vsce ls now lists package.json, README.md, resources/**, out/src/** (incl. extension.js matching main) — no src/, test/, out/test/, tsconfig, eslint/prettier config, or node_modules. npm run check and npm test both green (66/66). Not committed, nothing marked Done.
 <!-- sq:discussion:end -->

@@ -1,6 +1,6 @@
 name: test
 
-# Path-scoped off TS-only changes (REV-438 F3): clients/vscode/** has its own
+# Path-scoped off TS-only changes: clients/vscode/** has its own
 # dev-time gate (vscode-client.yml), so a TS-only or doc-only change doesn't
 # need to run the full Python OS matrix. Mirrors the isolation vscode-client.yml
 # already has in the other direction (it triggers only on clients/vscode/**).

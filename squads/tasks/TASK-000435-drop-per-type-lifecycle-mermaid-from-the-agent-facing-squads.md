@@ -3,14 +3,14 @@ id: TASK-435
 sequence_id: 435
 type: task
 title: Drop per-type lifecycle mermaid from the agent-facing squads skill
-status: Draft
+status: Done
 author: tech-lead
 refs:
 - FEAT-377:addresses
 description: 'Skill-only: drop the 7 per-type lifecycle stateDiagram-v2 blocks from
   the squads skill; keep them in sq workflow'
 created_at: '2026-07-16T16:03:20Z'
-updated_at: '2026-07-16T16:04:16Z'
+updated_at: '2026-07-17T11:46:06Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -58,4 +58,9 @@ _Add with `sq task 435 add-subtask "<title>"`; track with `sq task 435 subtask <
 <!-- sq:discussion -->
 - [2026-07-16T16:04:16Z] Pierre Chat:
   - My call: the per-type lifecycle mermaid diagrams don't belong in the agent-facing squads skill — agents read it as raw text (mermaid doesn't render there), it's ~200 lines of triplicated content (epic/feature/task are byte-identical), and the one-line lifecycle table already conveys the same statuses+transitions. Drop those 7 stateDiagram blocks from the SKILL only; keep them in sq workflow, and keep the hierarchy flowchart + lifecycle table in the skill.
+- [2026-07-17T09:42:27Z] Elias Python:
+  - Split workflow.md.j2 via a for_skill render flag (set true only in squads_skill.md.j2's include; sq workflow/AGENTS.md unaffected).
+  - Skill: 0 stateDiagram-v2, hierarchy flowchart + lifecycle table retained. sq workflow: still emits all 7 per-type diagrams (verified + test-covered).
+  - Regenerated the dogfood squads skill via sq sync, refreshed templates_manifest.json (mid-cycle 0.9.0 key), added a skill-content test, CHANGELOG note added.
+  - @reviewer ready for review.
 <!-- sq:discussion:end -->

@@ -880,10 +880,15 @@ async def mine(
     svc = get_service()
     slug = await resolve_slug_or_raise(role, svc)
     items = await svc.list_items(assignee=slug)
+    spec = get_active_spec()
     if not all_:
-        items = [i for i in items if get_active_spec().is_open(i.status)]
+        items = [i for i in items if spec.is_open(i.status)]
     if json_out:
-        print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
+        print_json_clean(
+            json.dumps(
+                [{**i.model_dump(mode="json"), "is_open": spec.is_open(i.status)} for i in items]
+            )
+        )
         return
     if not items:
         console.print(f"[dim]nothing assigned to {e(slug)}[/dim]")

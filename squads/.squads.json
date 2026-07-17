@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.9.0",
-  "counter": 446,
+  "counter": 447,
   "padding": 6,
   "items": {
     "12": {
@@ -16224,7 +16224,7 @@
       "subentities": [],
       "path": "tasks/TASK-000429-vs-code-sidebar-tree-provider-from-sq-tree-json.md",
       "created_at": "2026-07-16T13:51:28Z",
-      "updated_at": "2026-07-17T07:41:46Z",
+      "updated_at": "2026-07-17T11:23:20Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16328,7 +16328,7 @@
       "subentities": [],
       "path": "tasks/TASK-000433-bundle-vsix-as-a-release-asset-at-the-unified-version.md",
       "created_at": "2026-07-16T13:51:30Z",
-      "updated_at": "2026-07-17T08:02:52Z",
+      "updated_at": "2026-07-17T11:46:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16364,7 +16364,7 @@
       "type": "task",
       "title": "Drop per-type lifecycle mermaid from the agent-facing squads skill",
       "slug": "drop-per-type-lifecycle-mermaid-from-the-agent-facing-squads",
-      "status": "Draft",
+      "status": "Done",
       "description": "Skill-only: drop the 7 per-type lifecycle stateDiagram-v2 blocks from the squads skill; keep them in sq workflow",
       "parent": null,
       "author": "tech-lead",
@@ -16378,7 +16378,7 @@
       "subentities": [],
       "path": "tasks/TASK-000435-drop-per-type-lifecycle-mermaid-from-the-agent-facing-squads.md",
       "created_at": "2026-07-16T16:03:20Z",
-      "updated_at": "2026-07-16T16:04:16Z",
+      "updated_at": "2026-07-17T11:46:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16574,7 +16574,7 @@
       "subentities": [],
       "path": "tasks/TASK-000440-client-consume-tree-title-is-open-collapse-to-one-sq-tree-ca.md",
       "created_at": "2026-07-17T07:45:19Z",
-      "updated_at": "2026-07-17T08:38:54Z",
+      "updated_at": "2026-07-17T11:19:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16655,7 +16655,7 @@
         {
           "local_id": "F1",
           "title": "sq mine --json emits the item shape without the new is_open key",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -16664,7 +16664,7 @@
         {
           "local_id": "F2",
           "title": "release.yml pins softprops/action-gh-release to mutable @v2 under contents:write",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -16682,7 +16682,7 @@
       ],
       "path": "reviews/REV-000443-phase-c-core-title-is-open-surface-enrichment-release-yml-py.md",
       "created_at": "2026-07-17T07:58:59Z",
-      "updated_at": "2026-07-17T08:16:58Z",
+      "updated_at": "2026-07-17T11:38:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16759,7 +16759,7 @@
         {
           "local_id": "F1",
           "title": "Skew canary is path-filtered to clients/vscode/**, so core-only drift isn't caught at core-PR time",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -16768,7 +16768,7 @@
         {
           "local_id": "F2",
           "title": "Extension-host smoke layer follow-up is noted in README only, not tracked as an sq item",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -16777,11 +16777,65 @@
       ],
       "path": "reviews/REV-000446-skew-canary-integration-layer-extension-host-scaffold-adr-42.md",
       "created_at": "2026-07-17T09:05:56Z",
-      "updated_at": "2026-07-17T09:08:32Z",
+      "updated_at": "2026-07-17T11:38:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-446"
+    },
+    "447": {
+      "sequence_id": 447,
+      "type": "review",
+      "title": "Close-out batch: merged publish.yml VSIX release + VSIX packaging + e2e smoke + skill mermaid split",
+      "slug": "close-out-batch-merged-publish-yml-vsix-release-vsix-packagi",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-433:addresses",
+        "TASK-435:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "publish.yml step name still carries an ADR ref missed by the workflow-ref sweep",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "engines.vscode floor raised to ^1.125 to fix the vsce mismatch — wrong knob",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Version guard protects only the VSIX job, not the PyPI publish",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000447-close-out-batch-merged-publish-yml-vsix-release-vsix-packagi.md",
+      "created_at": "2026-07-17T11:35:00Z",
+      "updated_at": "2026-07-17T11:46:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-447"
     }
   }
 }
