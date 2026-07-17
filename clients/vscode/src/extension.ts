@@ -1,12 +1,14 @@
 /**
  * Extension entry point: resolves `sq` for the first workspace folder, then wires up the
- * activity-bar tree, the owned item-preview webview, and the filter/group/refresh commands.
+ * activity-bar work-item tree, the meta/roster view (F12), the owned item-preview webview, and
+ * the filter/group/refresh commands.
  */
 import * as vscode from 'vscode';
 
-import { registerCommands } from './commands';
+import { registerCommands, registerMetaCommands } from './commands';
 import { SqDiscovery } from './discovery';
 import { ItemPreviewManager } from './itemPreviewManager';
+import { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
 import { createNodeDiscoveryEnvironment } from './nodeEnvironment';
 import { nodeProcessRunner } from './processRunner';
 import { SquadsTreeDataProvider } from './treeDataProvider';
@@ -45,6 +47,23 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.createTreeView('squadsTree', { treeDataProvider, showCollapseAll: true }),
   );
 
+  // The meta/roster view (F12): role/skill/operator under 3 fixed buckets, alongside the work
+  // tree as a second collapsible section in the same activity-bar container — not
+  // filterable/groupable, so it gets its own minimal provider rather than reusing the work
+  // tree's filter/group/show-closed state machine.
+  const metaTreeDataProvider = new SquadsMetaTreeDataProvider(
+    nodeProcessRunner,
+    discovery,
+    root,
+    notifyError,
+  );
+  context.subscriptions.push(
+    vscode.window.createTreeView('squadsMeta', {
+      treeDataProvider: metaTreeDataProvider,
+      showCollapseAll: true,
+    }),
+  );
+
   const previewManager = new ItemPreviewManager(
     nodeProcessRunner,
     discovery,
@@ -59,8 +78,10 @@ export function activate(context: vscode.ExtensionContext): void {
     () => treeDataProvider.getKnownTypes(),
     previewManager,
   );
+  registerMetaCommands(context, metaTreeDataProvider);
 
   void treeDataProvider.refresh();
+  void metaTreeDataProvider.refresh();
 }
 
 export function deactivate(): void {

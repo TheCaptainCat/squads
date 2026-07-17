@@ -25,7 +25,12 @@ loaded through the same strict CSP, no CDN. The markdown -> HTML rendering
 (`src/domain/markdown.ts`) and the panel's HTML document (`src/domain/previewDocument.ts`,
 strict per-render-nonce CSP, no remote content) are vscode-free and unit-tested directly.
 View-title commands filter and group the tree by type/open-closed state and refresh it on
-demand (`src/commands.ts`). The `sq` discovery module (`src/discovery.ts`) and
+demand (`src/commands.ts`). A second, independent view in the same activity-bar container —
+"Roster" (`squadsMeta`, `src/metaTreeDataProvider.ts`) — lists the meta/reserved items (role,
+skill, operator) the work tree deliberately excludes, under 3 fixed subfolders: Roles, Skills,
+Operators. It's not filterable/groupable like the work tree, just those 3 buckets refreshed
+together; selecting an entry opens the same owned preview webview as a work item. The `sq`
+discovery module (`src/discovery.ts`) and
 `sq --json`/`--raw` adapter (`src/sqAdapter.ts`) underpin all of this, tested against
 committed fixtures (`test/fixtures/`) with no `sq` binary required — plus an integration
 skew-canary layer that re-checks those fixtures against a real `sq` (see below). Mutating the

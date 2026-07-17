@@ -47,12 +47,5 @@ scripts/**
 coverage/**
 **/*.map
 
-# Icon source assets not referenced by package.json — only resources/squads-icon-mono.svg
-# (the activity-bar container icon, fill="currentColor" for theme tinting) ships in the VSIX.
-# The color variants and the fixed-fill -black/-white mono variants are kept in the repo as
-# source assets for other surfaces but excluded here to keep the package minimal.
-resources/squads-icon-color.svg
-resources/squads-icon-color-black.svg
-resources/squads-icon-color-white.svg
-resources/squads-icon-mono-black.svg
-resources/squads-icon-mono-white.svg
+# resources/ now holds only squads-icon-vscode.svg (the activity-bar container icon,
+# fill="currentColor" for theme tinting) — it ships as-is, nothing to exclude here.

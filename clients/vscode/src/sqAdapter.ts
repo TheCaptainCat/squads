@@ -290,6 +290,17 @@ export function getRaw(
   return runSqRaw(runner, invocation, workspaceRoot, ['show', id, '--raw']);
 }
 
+/** `sq workflow --raw` — the clean-markdown workflow cheatsheet (tables + fenced mermaid, no
+ * Rich terminal chrome) fed into the workflow-cheatsheet panel. Same plain-text shape as
+ * `getRaw`; no item id involved, so there's no argument beyond the invocation. */
+export function getWorkflowRaw(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<string>> {
+  return runSqRaw(runner, invocation, workspaceRoot, ['workflow', '--raw']);
+}
+
 /** `sq graph <id> --json` — the item's ref graph (an ego-centric BFS), feeding the preview's
  * second collapsible mermaid diagram. `--all` includes closed items so the graph isn't
  * silently missing terminal-status refs (e.g. an Accepted decision or a Done task). */

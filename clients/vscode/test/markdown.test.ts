@@ -115,7 +115,7 @@ describe('renderMarkdownToHtml', () => {
     expect(html).toBe('<pre><code>ADR-427</code></pre>');
   });
 
-  it('tags a fenced code block with its language class (mermaid renders as plain code — a later task)', () => {
+  it('tags a fenced code block with its language class (mermaid renders as plain code by default)', () => {
     const html = renderMarkdownToHtml('```mermaid\ngraph TD;\n```');
     expect(html).toBe('<pre><code class="language-mermaid">graph TD;</code></pre>');
   });
@@ -170,5 +170,58 @@ describe('renderMarkdownToHtml', () => {
     const html = renderMarkdownToHtml(fixture('show-raw.txt'));
     expect(html).toContain('Open sq show --raw');
     expect(html).toContain('data-item-id="TASK-430"');
+  });
+});
+
+describe('renderMarkdownToHtml: renderMermaidFences (workflow cheatsheet)', () => {
+  it('renders a mermaid fence as a live-render source/output pair, not plain code', () => {
+    const html = renderMarkdownToHtml('```mermaid\ngraph TD;\n```', undefined, true);
+    expect(html).not.toContain('<code');
+    expect(html).toContain('class="sq-graph-source"');
+    expect(html).toContain('class="sq-graph-output"');
+    expect(html).toContain('graph TD;');
+  });
+
+  it('links each source element to its own output element via data-output-id', () => {
+    const html = renderMarkdownToHtml('```mermaid\ngraph TD;\n```', undefined, true);
+    const sourceMatch = /id="([^"]+)"[^>]*data-output-id="([^"]+)"/.exec(html);
+    if (sourceMatch === null) {
+      throw new Error('expected a source element with data-output-id');
+    }
+    const outputId = sourceMatch[2];
+    if (outputId === undefined) {
+      throw new Error('expected the data-output-id capture group to match');
+    }
+    expect(html).toContain(`id="${outputId}"`);
+  });
+
+  it('gives multiple mermaid fences distinct, non-colliding ids', () => {
+    const html = renderMarkdownToHtml(
+      '```mermaid\ngraph TD;\n```\n\nsome prose\n\n```mermaid\nflowchart LR;\n```',
+      undefined,
+      true,
+    );
+    // Matches only the real `id="..."` attributes (the source `<pre>` and the output `<div>`),
+    // not the `data-output-id="..."` attribute — which carries the same value as the output
+    // element's own id and would otherwise double-count it.
+    const ids = [
+      ...html.matchAll(/(?<!data-output-)id="(sq-mermaid-fence-\d+-(?:source|output))"/g),
+    ].map((match) => match[1]);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBe(4);
+  });
+
+  it('leaves a non-mermaid fence as plain code even with the flag on', () => {
+    const html = renderMarkdownToHtml('```bash\nsq workflow --raw\n```', undefined, true);
+    expect(html).toBe('<pre><code class="language-bash">sq workflow --raw</code></pre>');
+  });
+
+  it('renders the real sq workflow --raw fixture without crashing, with every diagram live', () => {
+    const raw = fixture('workflow-raw.txt');
+    const fenceCount = (raw.match(/```mermaid/g) ?? []).length;
+    const html = renderMarkdownToHtml(raw, undefined, true);
+    expect(fenceCount).toBeGreaterThan(0);
+    expect(html.match(/class="sq-graph-source"/g)).toHaveLength(fenceCount);
+    expect(html).not.toContain('language-mermaid');
   });
 });

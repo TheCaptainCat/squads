@@ -18,6 +18,7 @@ import {
 import { distinctTypesInTree, treeNodesToDisplay } from './domain/treeMapping';
 import type { ProcessRunner } from './processRunner';
 import { describeFailure, getList, getTree, type SqOutcome } from './sqAdapter';
+import { toTreeItem } from './treeItemRendering';
 
 export interface ViewState {
   readonly filter: ListFilter;
@@ -37,43 +38,6 @@ export const DEFAULT_VIEW_STATE: ViewState = {
 
 export function isFlatViewActive(state: ViewState): boolean {
   return state.filter.type !== null || state.groupByType;
-}
-
-function iconForNode(node: DisplayNode): vscode.ThemeIcon {
-  if (node.blocked) {
-    return new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('problemsErrorIcon.foreground'));
-  }
-  if (node.closed) {
-    // Only ever true when the show-closed toggle pulled a closed/terminal item into the
-    // current fetch — dim it so open vs closed reads at a glance without a separate grouping.
-    return new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('disabledForeground'));
-  }
-  return new vscode.ThemeIcon(node.iconId);
-}
-
-function toTreeItem(node: DisplayNode): vscode.TreeItem {
-  const collapsibleState =
-    node.children.length > 0
-      ? vscode.TreeItemCollapsibleState.Collapsed
-      : vscode.TreeItemCollapsibleState.None;
-  const item = new vscode.TreeItem(node.label, collapsibleState);
-  item.id = node.id;
-  if (node.description !== '') {
-    item.description = node.description;
-  }
-  if (node.tooltip !== '') {
-    item.tooltip = node.tooltip;
-  }
-  item.iconPath = iconForNode(node);
-  if (node.itemId !== null) {
-    item.contextValue = 'squadsItem';
-    item.command = {
-      command: 'squads.openItemPreview',
-      title: 'Open in Preview',
-      arguments: [node.itemId],
-    };
-  }
-  return item;
 }
 
 export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNode> {

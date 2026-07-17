@@ -7,10 +7,14 @@
  * lists — a continuation/indented line under a list item is folded into that item's text as a
  * plain run, which is enough for the flat bullet lists item bodies actually contain.
  *
- * Kept `vscode`-free/pure so it's unit-testable with no host. Fenced code blocks (including a
- * body-authored ```mermaid``` one) still render as plain `<pre><code>` — the preview's two
+ * Kept `vscode`-free/pure so it's unit-testable with no host. By default a fenced code block
+ * (including a ```mermaid``` one) renders as plain `<pre><code>` — the item preview's two
  * *structured* diagrams (children/subtree, ref graph) are a separate mechanism built from
- * `sq tree`/`sq graph --json`, not this markdown path (see `domain/graphDiagrams.ts`).
+ * `sq tree`/`sq graph --json`, not this markdown path (see `domain/graphDiagrams.ts`). Passing
+ * `renderMermaidFences: true` opts a render into treating a ```mermaid``` fence as a live
+ * diagram instead — markup compatible with the same client-side renderer those structured
+ * graphs use (see `domain/previewDocument.ts`) — for a document whose own markdown source
+ * carries its diagrams inline (e.g. the workflow cheatsheet) rather than a separate JSON fetch.
  *
  * Item-ID references (e.g. a task or decision id) found in any plain-text run are turned into
  * `<a class="sq-item-link" data-item-id="...">` anchors the webview's script intercepts — see
@@ -242,7 +246,21 @@ interface BlockResult {
   readonly next: number;
 }
 
-function renderFence(lines: readonly string[], start: number): BlockResult {
+/** A live-mermaid fence's source/output ids: derived from its start line so they're unique
+ * within one render pass with no shared/mutable counter state. */
+function mermaidFenceIds(start: number): { sourceId: string; outputId: string } {
+  const line = String(start);
+  return {
+    sourceId: `sq-mermaid-fence-${line}-source`,
+    outputId: `sq-mermaid-fence-${line}-output`,
+  };
+}
+
+function renderFence(
+  lines: readonly string[],
+  start: number,
+  renderMermaidFences: boolean,
+): BlockResult {
   const lang = FENCE_START.exec(lineAt(lines, start))?.[1] ?? '';
   const codeLines: string[] = [];
   let i = start + 1;
@@ -251,9 +269,20 @@ function renderFence(lines: readonly string[], start: number): BlockResult {
     i++;
   }
   i++; // skip the closing fence, or fall off the end if it was never closed
+  const source = codeLines.join('\n');
+  if (renderMermaidFences && lang.toLowerCase() === 'mermaid') {
+    const { sourceId, outputId } = mermaidFenceIds(start);
+    return {
+      html:
+        `<div class="sq-mermaid-block"><pre class="sq-graph-source" id="${sourceId}" ` +
+        `data-output-id="${outputId}" hidden>${escapeHtml(source)}</pre>` +
+        `<div class="sq-graph-output" id="${outputId}">Rendering…</div></div>`,
+      next: i,
+    };
+  }
   const classAttr = lang === '' ? '' : ` class="language-${escapeHtml(lang)}"`;
   return {
-    html: `<pre><code${classAttr}>${escapeHtml(codeLines.join('\n'))}</code></pre>`,
+    html: `<pre><code${classAttr}>${escapeHtml(source)}</code></pre>`,
     next: i,
   };
 }
@@ -273,6 +302,7 @@ function renderBlockquote(
   lines: readonly string[],
   start: number,
   currentId: string | undefined,
+  renderMermaidFences: boolean,
 ): BlockResult {
   const quoteLines: string[] = [];
   let i = start;
@@ -281,7 +311,7 @@ function renderBlockquote(
     i++;
   }
   return {
-    html: `<blockquote>${renderMarkdownToHtml(quoteLines.join('\n'), currentId)}</blockquote>`,
+    html: `<blockquote>${renderMarkdownToHtml(quoteLines.join('\n'), currentId, renderMermaidFences)}</blockquote>`,
     next: i,
   };
 }
@@ -307,10 +337,11 @@ function renderBlock(
   lines: readonly string[],
   i: number,
   currentId: string | undefined,
+  renderMermaidFences: boolean,
 ): BlockResult {
   const line = lineAt(lines, i);
   if (FENCE_START.test(line)) {
-    return renderFence(lines, i);
+    return renderFence(lines, i, renderMermaidFences);
   }
   if (HEADING.test(line)) {
     return renderHeading(lines, i, currentId);
@@ -319,7 +350,7 @@ function renderBlock(
     return { html: '<hr>', next: i + 1 };
   }
   if (BLOCKQUOTE.test(line)) {
-    return renderBlockquote(lines, i, currentId);
+    return renderBlockquote(lines, i, currentId, renderMermaidFences);
   }
   if (isTableStart(lines, i)) {
     return renderTable(lines, i, currentId);
@@ -332,8 +363,14 @@ function renderBlock(
 
 /** Renders a markdown document to a fragment of HTML (no `<html>`/`<body>` wrapper — see
  * `previewDocument.ts` for that). `currentId`, when given, is the id of the item being
- * displayed and is left as plain text rather than a self-link when found in the body. */
-export function renderMarkdownToHtml(markdown: string, currentId?: string): string {
+ * displayed and is left as plain text rather than a self-link when found in the body.
+ * `renderMermaidFences` (default `false`) opts a ```mermaid``` fence into rendering as a live
+ * diagram instead of plain code — see the module doc comment. */
+export function renderMarkdownToHtml(
+  markdown: string,
+  currentId?: string,
+  renderMermaidFences = false,
+): string {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n');
   const out: string[] = [];
   let i = 0;
@@ -343,7 +380,7 @@ export function renderMarkdownToHtml(markdown: string, currentId?: string): stri
       i++;
       continue;
     }
-    const block = renderBlock(lines, i, currentId);
+    const block = renderBlock(lines, i, currentId, renderMermaidFences);
     out.push(block.html);
     i = block.next;
   }

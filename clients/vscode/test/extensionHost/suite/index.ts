@@ -22,10 +22,11 @@ export async function run(): Promise<void> {
   await extension.activate();
   assert.equal(extension.isActive, true, 'extension did not report active after activate()');
 
-  // The squads tree view's core contribution loaded: VS Code auto-generates a `<view>.focus`
-  // command for every contributed view, and executing it would throw if the view/view
-  // container contribution had failed to take.
+  // Both views' core contributions loaded: VS Code auto-generates a `<view>.focus` command for
+  // every contributed view, and executing it would throw if the view/view container
+  // contribution had failed to take. `squadsMeta` is the meta/roster view (F12).
   await vscode.commands.executeCommand('squadsTree.focus');
+  await vscode.commands.executeCommand('squadsMeta.focus');
 
   // Opening an item preview via the owned WebviewPanel doesn't throw. `ItemPreviewManager`'s
   // render path (src/itemPreviewManager.ts) always resolves to panel content — an actionable

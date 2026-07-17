@@ -12,6 +12,12 @@
  * same `routeForMessage`/`routeForTreeSelection` pure logic that's unit-tested in isolation.
  * This module's own vscode wiring (panel creation, message subscription) is exercised by the
  * extension-host smoke test, not a unit test — mirrors `treeDataProvider.ts`'s split.
+ *
+ * Alongside the per-item panel pool, this also owns a single, separate panel for the workflow
+ * cheatsheet (`sq workflow --raw`) — not an item, so it's tracked independently of
+ * `activePanel`/`openFromTree`: opening the cheatsheet never steals the item-preview panel's
+ * slot, and vice versa. It renders the same clean-markdown body through `renderWorkflowHtml`,
+ * which opts into live ```mermaid``` rendering the plain item dossier doesn't.
  */
 import { randomUUID } from 'node:crypto';
 
@@ -24,6 +30,7 @@ import {
   buildPreviewHtml,
   type GraphOutcome,
   renderOutcomeHtml,
+  renderWorkflowHtml,
 } from './domain/previewDocument';
 import {
   parseOpenItemMessage,
@@ -31,10 +38,19 @@ import {
   routeForTreeSelection,
 } from './domain/previewMessages';
 import type { ProcessRunner } from './processRunner';
-import { describeFailure, getGraph, getRaw, getTree, type SqOutcome } from './sqAdapter';
+import {
+  describeFailure,
+  getGraph,
+  getRaw,
+  getTree,
+  getWorkflowRaw,
+  type SqOutcome,
+} from './sqAdapter';
 import type { SqGraphNode, SqTreeNode } from './types';
 
 const VIEW_TYPE = 'squadsItemPreview';
+const WORKFLOW_VIEW_TYPE = 'squadsWorkflowPreview';
+const WORKFLOW_TITLE = 'Squads Workflow Cheatsheet';
 
 /** Turns a fetch outcome into the graph section's content: the built mermaid source on
  * success, or the same human-readable failure message every other surface shows, on failure
@@ -48,6 +64,7 @@ function toGraphOutcome<T>(outcome: SqOutcome<T>, build: (data: T) => string): G
 
 export class ItemPreviewManager {
   private activePanel: vscode.WebviewPanel | undefined;
+  private activeWorkflowPanel: vscode.WebviewPanel | undefined;
 
   constructor(
     private readonly runner: ProcessRunner,
@@ -67,6 +84,35 @@ export class ItemPreviewManager {
       return;
     }
     await this.openNewPanel(id);
+  }
+
+  /** Entry point for the `squads.openWorkflow` view-title command. Reveals the single owned
+   * workflow panel if one is already open (re-fetching so it's current), otherwise opens one —
+   * mirroring `openFromTree`'s reuse-or-create shape but against its own panel slot. */
+  async openWorkflow(): Promise<void> {
+    if (this.activeWorkflowPanel !== undefined) {
+      const panel = this.activeWorkflowPanel;
+      await this.renderWorkflow(panel);
+      panel.reveal();
+      return;
+    }
+    const panel = vscode.window.createWebviewPanel(
+      WORKFLOW_VIEW_TYPE,
+      WORKFLOW_TITLE,
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
+      },
+    );
+    panel.onDidDispose(() => {
+      if (this.activeWorkflowPanel === panel) {
+        this.activeWorkflowPanel = undefined;
+      }
+    });
+    this.activeWorkflowPanel = panel;
+    await this.renderWorkflow(panel);
   }
 
   private async openNewPanel(id: string): Promise<vscode.WebviewPanel> {
@@ -144,6 +190,40 @@ export class ItemPreviewManager {
       title: id,
       bodyHtml,
       graphsHtml,
+      nonce,
+      mermaidScriptUri,
+    });
+  }
+
+  /** Fetches and renders the workflow cheatsheet into the owned workflow panel. No tree/graph
+   * fetch (there's no children/refs graph for a document that isn't an item) — `graphsHtml` is
+   * always empty, and the cheatsheet's own diagrams render inline through `renderWorkflowHtml`. */
+  private async renderWorkflow(panel: vscode.WebviewPanel): Promise<void> {
+    const resolution = this.discovery.resolve();
+    let bodyHtml: string;
+    if (!resolution.ok) {
+      const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
+      this.notifyError(`Squads: ${message}`);
+      bodyHtml = renderWorkflowHtml({ kind: 'spawn-error', message });
+    } else {
+      const { invocation } = resolution;
+      const outcome = await getWorkflowRaw(this.runner, invocation, this.workspaceRoot);
+      if (outcome.kind !== 'success') {
+        if (outcome.kind === 'spawn-error') {
+          this.discovery.invalidate();
+        }
+        this.notifyError(`Squads: ${describeFailure(outcome)}`);
+      }
+      bodyHtml = renderWorkflowHtml(outcome);
+    }
+    const nonce = randomUUID();
+    const mermaidScriptUri = panel.webview
+      .asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'mermaid.min.js'))
+      .toString();
+    panel.webview.html = buildPreviewHtml({
+      title: WORKFLOW_TITLE,
+      bodyHtml,
+      graphsHtml: '',
       nonce,
       mermaidScriptUri,
     });

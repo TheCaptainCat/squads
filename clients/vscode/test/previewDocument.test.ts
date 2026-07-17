@@ -5,6 +5,7 @@ import {
   buildPreviewHtml,
   type GraphOutcome,
   renderOutcomeHtml,
+  renderWorkflowHtml,
 } from '../src/domain/previewDocument';
 import { OPEN_ITEM_COMMAND } from '../src/domain/previewMessages';
 
@@ -31,6 +32,36 @@ describe('renderOutcomeHtml', () => {
       exitCode: 1,
     });
     expect(html).toContain('Squads: unable to load TASK-452');
+    expect(html).toContain('Schema mismatch');
+  });
+});
+
+describe('renderWorkflowHtml', () => {
+  it('renders the raw sq workflow --raw text as HTML on success', () => {
+    const html = renderWorkflowHtml({
+      kind: 'success',
+      data: '## Team workflow\n\nSome prose.',
+    });
+    expect(html).toContain('<h2>');
+    expect(html).toContain('Some prose.');
+  });
+
+  it('renders a fenced mermaid diagram live, not as plain code (unlike the item dossier path)', () => {
+    const html = renderWorkflowHtml({
+      kind: 'success',
+      data: '```mermaid\nflowchart TD\n  A --> B\n```',
+    });
+    expect(html).toContain('class="sq-graph-source"');
+    expect(html).not.toContain('language-mermaid');
+  });
+
+  it('renders an actionable message on failure instead of blank/stale content', () => {
+    const html = renderWorkflowHtml({
+      kind: 'runtime-error',
+      message: 'Schema mismatch: run `sq migrate up`.',
+      exitCode: 1,
+    });
+    expect(html).toContain('Squads: unable to load the workflow cheatsheet');
     expect(html).toContain('Schema mismatch');
   });
 });
@@ -100,6 +131,14 @@ describe('buildPreviewHtml', () => {
     expect(html).toContain("styles[i].setAttribute('nonce', nonce)");
     expect(html).toContain('mermaid.initialize');
   });
+
+  it('renders every .sq-graph-source generically (data-output-id lookup), not a fixed pair', () => {
+    // Regression guard: the render script must scan by class/attribute, not a hardcoded
+    // two-section list, so it also covers however many inline mermaid fences a document's own
+    // markdown carries (e.g. the workflow cheatsheet).
+    expect(html).toContain("querySelectorAll('.sq-graph-source')");
+    expect(html).toContain("getAttribute('data-output-id')");
+  });
 });
 
 describe('buildGraphsHtml', () => {
@@ -117,6 +156,12 @@ describe('buildGraphsHtml', () => {
     const html = buildGraphsHtml(withSource, withSource);
     expect(html).toContain('class="sq-graph-source"');
     expect(html).toContain('hidden>flowchart TD');
+  });
+
+  it('gives each source element a data-output-id pointing at its own output element', () => {
+    const html = buildGraphsHtml(withSource, withSource);
+    expect(html.match(/data-output-id="sq-children-graph"/g)).toHaveLength(1);
+    expect(html.match(/data-output-id="sq-refs-graph"/g)).toHaveLength(1);
   });
 
   it('escapes the embedded mermaid source', () => {
