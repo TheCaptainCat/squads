@@ -6,7 +6,11 @@ name: vscode-client
 # blocks a Python-only change, and a Python-only change never triggers this
 # workflow at all. The reverse holds too: test.yml has no clients/** trigger
 # and is never touched by this file. Cross-language coupling is caught only
-# by the package's own integration skew canary, by design.
+# by the package's own integration skew canary, by design — which is why the
+# `canary` job below is the one place this workflow provisions a real `sq`
+# (via `uv sync` against the repo's own pyproject.toml) rather than treating
+# clients/vscode as a fully Python-free lane; it never touches the Python
+# gate itself (no ruff/pyright/pytest here).
 #
 # Note: path-filtered triggers alone make this workflow not *run* on
 # Python-only changes, but they don't make it a required check. Full
@@ -58,3 +62,33 @@ jobs:
       - run: npm ci
       - name: npm test
         run: npm test
+
+  canary:
+    name: skew canary (real sq vs committed fixtures)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      # Provision a real `sq` for the skew canary — the one place this workflow touches
+      # Python. `working-directory: .` overrides the workflow-level default (clients/vscode)
+      # for just this step, since `uv sync` needs the repo root's pyproject.toml/uv.lock.
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version-file: pyproject.toml
+      - uses: astral-sh/setup-uv@v8.2.0
+      - name: uv sync (provisions sq for the canary)
+        working-directory: .
+        run: uv sync --frozen
+      - name: put the provisioned sq on PATH
+        run: echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+      - name: sanity-check sq resolves from the provisioned venv
+        run: sq --version
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: clients/vscode/package-lock.json
+      - run: npm ci
+      - name: npm run test:canary (sq tree/list/show --raw vs committed fixtures)
+        run: npm run test:canary

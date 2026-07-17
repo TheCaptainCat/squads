@@ -3,7 +3,7 @@ id: TASK-441
 sequence_id: 441
 type: task
 title: 'Client: integration skew-canary CI layer (fixtures vs live sq)'
-status: Draft
+status: Done
 parent: FEAT-100
 author: tech-lead
 assignee: typescript-dev
@@ -14,7 +14,7 @@ refs:
 description: 'ADR-427 #3 skew canary: real sq --json/show --raw vs committed fixtures
   as own npm script, wired into CI lane'
 created_at: '2026-07-17T07:45:20Z'
-updated_at: '2026-07-17T07:45:39Z'
+updated_at: '2026-07-17T09:08:32Z'
 ---
 <!-- sq:body -->
 ## Owner
@@ -91,4 +91,10 @@ _Add with `sq task 441 add-subtask "<title>"`; track with `sq task 441 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-17T08:57:44Z] Ada Typescript:
+  - Skew canary implemented: test/canary/skewCanary.test.ts (own vitest.canary.config.ts, npm run test:canary) runs a real sq against a scratch squad (init+create epic/feature/task+body) and shape-checks sq tree --json / sq list --json / sq show --raw against test/fixtures/*, reusing the adapter's own isSqTreeNode/isSqListItem guards (now exported from src/sqAdapter.ts) rather than a parallel check. Skips cleanly (exit 0) when sq isn't on PATH; verified locally with the repo's uv-provisioned sq (6/6 pass) and by deliberately corrupting a fixture copy to confirm it goes red on drift, then restored it (fixture unchanged in the diff).
+  - CI: new canary job in .github/workflows/vscode-client.yml — uv sync at repo root (the only Python touch in this workflow), puts the provisioned sq on PATH, then npm run test:canary from clients/vscode. check/test jobs untouched; Python CI (test.yml) untouched.
+  - Extension-host smoke (ADR-427 #3 layer 3): added @vscode/test-electron as a devDependency plus a minimal scaffold (test/extensionHost/runTest.ts + suite/index.ts) — not wired into any npm script or CI job (needs headless Xvfb + compiled out/ build). Noted as a follow-up in clients/vscode/README.md.
+  - Gate green: npm run check (0 warnings) + npm test (66/66, unchanged) + npm run test:canary (6/6) all pass. sq check clean.
+  - @reviewer over to you.
 <!-- sq:discussion:end -->

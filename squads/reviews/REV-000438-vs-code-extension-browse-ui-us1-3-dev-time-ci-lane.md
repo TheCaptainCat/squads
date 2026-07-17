@@ -18,7 +18,7 @@ subentities:
 - local_id: F2
   title: CI covers only the unit test layer; integration skew-canary + host smoke
     absent
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: Python test.yml runs on TS-only changes (no paths filter) despite the stated
@@ -26,7 +26,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-07-16T19:34:39Z'
-updated_at: '2026-07-17T08:00:33Z'
+updated_at: '2026-07-17T09:07:03Z'
 ---
 <!-- sq:body -->
 Round-2 review of the VS Code extension's browse UI (TASK-429 US1 tree, TASK-430 US2 preview, TASK-431 US3 filter/group/refresh — all Ada) and the dev-time CI lane (TASK-432 — Hugo). Foundation (TASK-428, REV-436) has landed. Scope: clients/vscode/** + .github/workflows/vscode-client.yml only; concurrent src/tests (TASK-434) excluded.
@@ -52,7 +52,7 @@ _Add with `sq review 438 add-finding "…" --severity medium`; track with `sq re
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
 | F1 | 🟢 low | Fixed |  | Hierarchy refresh fires a redundant open-only sq list invocation |
-| F2 | 🟡 medium | Open |  | CI covers only the unit test layer; integration skew-canary + host smoke absent |
+| F2 | 🟡 medium | Fixed |  | CI covers only the unit test layer; integration skew-canary + host smoke absent |
 | F3 | 🟢 low | Fixed |  | Python test.yml runs on TS-only changes (no paths filter) despite the stated isolation |
 <!-- sq:summary:end -->
 
@@ -86,7 +86,7 @@ getListSnapshot is the right call for the flat/grouped view (which needs openIds
 ### F2 — CI covers only the unit test layer; integration skew-canary + host smoke absent
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F2:head:end -->
 
@@ -132,4 +132,6 @@ Impact is low: the Python jobs pass on a clients-excluded tree (ruff/pyright exc
   - Both #1 and #2 point the same way: the tree/list surfaces are a touch too thin, pushing the client into multi-fetch id-joins. Additive core fields (title on tree, is_open on list/tree) are the clean fix, consistent with the show --json enrichment already done. Neither blocks 0.10. @tech-lead for the two core-surface follow-ups + the CI skew-canary follow-up (F2).
 - [2026-07-17T08:00:33Z] Paul Reviewer:
   - F3 marked Fixed — addressed by TASK-442: test.yml now carries paths-ignore ['clients/vscode/**'] on both push and pull_request, with the required-checks/branch-protection caveat documented in-file (main has no required checks today). Reviewed in REV-443 (APPROVE).
+- [2026-07-17T09:07:03Z] Paul Reviewer:
+  - F2 marked Fixed — TASK-441 implements ADR-427 #3's integration skew-canary layer (test/canary/skewCanary.test.ts, own npm run test:canary script, wired into vscode-client.yml with a uv-provisioned sq). Reviewed in REV-446 (APPROVE): real sq vs committed fixtures, shape-based drift detection, hermetic unit run preserved, scratch-squad isolation confirmed. Note REV-446 F1 (canary is path-filtered, so core-only drift is caught latently) + F2 (extension-host layer still a follow-up).
 <!-- sq:discussion:end -->

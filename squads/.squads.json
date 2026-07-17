@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.9.0",
-  "counter": 445,
+  "counter": 446,
   "padding": 6,
   "items": {
     "12": {
@@ -1533,7 +1533,7 @@
       "type": "feature",
       "title": "Read-only browse: sidebar tree + rendered preview",
       "slug": "read-only-browse-sidebar-tree-rendered-preview",
-      "status": "Ready",
+      "status": "Done",
       "description": "VS Code activity-bar tree from sq tree --json; clicking an item opens sq show --raw (clean markdown) in the markdown preview; filter/group + refresh",
       "parent": "EPIC-99",
       "author": "product-owner",
@@ -1546,7 +1546,7 @@
         {
           "local_id": "US1",
           "title": "Squad hierarchy in VS Code sidebar with status and blocked-state",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -1555,7 +1555,7 @@
         {
           "local_id": "US2",
           "title": "Clicking a tree node opens sq show --raw in markdown preview",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -1564,7 +1564,7 @@
         {
           "local_id": "US3",
           "title": "Filter and group tree by type/state, refresh on demand",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -1573,7 +1573,7 @@
       ],
       "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
       "created_at": "2026-06-14T20:45:15Z",
-      "updated_at": "2026-07-16T16:01:28Z",
+      "updated_at": "2026-07-17T09:09:37Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16503,7 +16503,7 @@
         {
           "local_id": "F2",
           "title": "CI covers only the unit test layer; integration skew-canary + host smoke absent",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -16521,7 +16521,7 @@
       ],
       "path": "reviews/REV-000438-vs-code-extension-browse-ui-us1-3-dev-time-ci-lane.md",
       "created_at": "2026-07-16T19:34:39Z",
-      "updated_at": "2026-07-17T08:00:33Z",
+      "updated_at": "2026-07-17T09:07:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16585,7 +16585,7 @@
       "type": "task",
       "title": "Client: integration skew-canary CI layer (fixtures vs live sq)",
       "slug": "client-integration-skew-canary-ci-layer-fixtures-vs-live-sq",
-      "status": "Draft",
+      "status": "Done",
       "description": "ADR-427 #3 skew canary: real sq --json/show --raw vs committed fixtures as own npm script, wired into CI lane",
       "parent": "FEAT-100",
       "author": "tech-lead",
@@ -16601,7 +16601,7 @@
       "subentities": [],
       "path": "tasks/TASK-000441-client-integration-skew-canary-ci-layer-fixtures-vs-live-sq.md",
       "created_at": "2026-07-17T07:45:20Z",
-      "updated_at": "2026-07-17T07:45:39Z",
+      "updated_at": "2026-07-17T09:08:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16738,6 +16738,50 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-445"
+    },
+    "446": {
+      "sequence_id": 446,
+      "type": "review",
+      "title": "Skew-canary integration layer + extension-host scaffold (ADR-427 #3)",
+      "slug": "skew-canary-integration-layer-extension-host-scaffold-adr-42",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-441:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Skew canary is path-filtered to clients/vscode/**, so core-only drift isn't caught at core-PR time",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Extension-host smoke layer follow-up is noted in README only, not tracked as an sq item",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000446-skew-canary-integration-layer-extension-host-scaffold-adr-42.md",
+      "created_at": "2026-07-17T09:05:56Z",
+      "updated_at": "2026-07-17T09:08:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-446"
     }
   }
 }

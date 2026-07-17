@@ -83,7 +83,11 @@ function hasNullableTreeNodeStrings(node: Record<string, unknown>): boolean {
   );
 }
 
-function isSqTreeNode(value: unknown): value is SqTreeNode {
+/** Shape guard for one `sq tree --json` node (recursive). Exported so the integration
+ * skew-canary test can validate live `sq` output with the exact same predicate the
+ * adapter uses at runtime, rather than a parallel hand-rolled check that could itself
+ * drift from what this module actually accepts. */
+export function isSqTreeNode(value: unknown): value is SqTreeNode {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
@@ -117,7 +121,9 @@ function hasNullableListItemStrings(item: Record<string, unknown>): boolean {
   );
 }
 
-function isSqListItem(value: unknown): value is SqListItem {
+/** Shape guard for one `sq list --json` row. Exported for the same reason as
+ * `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
+export function isSqListItem(value: unknown): value is SqListItem {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
