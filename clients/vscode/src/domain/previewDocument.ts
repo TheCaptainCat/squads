@@ -60,7 +60,10 @@ details.sq-graph summary {
 details.sq-graph .sq-graph-empty {
   color: var(--vscode-descriptionForeground);
 }
-details.sq-graph .sq-graph-output svg {
+.sq-mermaid-block {
+  margin: 1rem 0;
+}
+.sq-graph-output svg {
   max-width: 100%;
   height: auto;
 }
@@ -92,8 +95,11 @@ function clientScript(command: string): string {
 })();`;
 }
 
-/** Renders every `.sq-graph-source` element's mermaid text into its paired output `<div>`,
- * using the mermaid renderer loaded by the preceding `<script src>` tag (global `mermaid`).
+/** Renders every `.sq-graph-source` element's mermaid text into its paired output `<div>`
+ * (found via its `data-output-id` attribute — a generic scan, not a fixed list, so it covers
+ * both the two structured graph sections and however many inline ```mermaid``` fences a
+ * document's own markdown body carries), using the mermaid renderer loaded by the preceding
+ * `<script src>` tag (global `mermaid`).
  *
  * CSP note (kept strict — no `unsafe-inline`/`unsafe-eval` added for this): mermaid's own
  * `render()` builds each diagram by inserting a plain, un-nonced `<style>` tag carrying its
@@ -113,14 +119,11 @@ function mermaidRenderScript(nonce: string): string {
   if (typeof mermaid === 'undefined') { return; }
   mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
   var nonce = '${nonce}';
-  var sections = [
-    { source: '${CHILDREN_GRAPH_SOURCE_ID}', output: '${CHILDREN_GRAPH_OUTPUT_ID}' },
-    { source: '${REFS_GRAPH_SOURCE_ID}', output: '${REFS_GRAPH_OUTPUT_ID}' },
-  ];
-  sections.forEach(function (section, index) {
-    var sourceEl = document.getElementById(section.source);
-    var outputEl = document.getElementById(section.output);
-    if (!sourceEl || !outputEl) { return; }
+  var sources = document.querySelectorAll('.sq-graph-source');
+  sources.forEach(function (sourceEl, index) {
+    var outputId = sourceEl.getAttribute('data-output-id');
+    var outputEl = outputId ? document.getElementById(outputId) : null;
+    if (!outputEl) { return; }
     var text = sourceEl.textContent || '';
     if (!text.trim()) { return; }
     mermaid.render('sq-mermaid-render-' + String(index), text).then(function (result) {
@@ -154,6 +157,19 @@ export function renderOutcomeHtml(id: string, outcome: SqOutcome<string>): strin
   return renderMarkdownToHtml(markdown, id);
 }
 
+/** Renders an `sq workflow --raw` outcome to the HTML fragment shown in the workflow-cheatsheet
+ * panel body. Unlike `renderOutcomeHtml` (an item dossier), this document isn't an item — there
+ * is no id to suppress a self-link on, and its markdown carries its own ```mermaid``` diagrams
+ * inline rather than fetching a separate graph, so it opts into `renderMarkdownToHtml`'s live-
+ * mermaid mode instead of the item preview's plain-code default. */
+export function renderWorkflowHtml(outcome: SqOutcome<string>): string {
+  const markdown =
+    outcome.kind === 'success'
+      ? outcome.data
+      : `# Squads: unable to load the workflow cheatsheet\n\n${outcome.message}`;
+  return renderMarkdownToHtml(markdown, undefined, true);
+}
+
 /** One graph section's content: either mermaid source ready to render, or (on a failed/empty
  * fetch) a plain message shown in its place — the section still appears, never silently
  * dropped. */
@@ -171,13 +187,14 @@ interface GraphSectionSpec {
 
 /** One collapsible `<details>` graph section — native fold/unfold, no client JS needed for
  * that part. When `mermaidSource` is present the hidden `<pre>` holds the escaped diagram
- * source the client script reads via `textContent` (so it comes back out unescaped) and
- * renders into the adjacent output `<div>`; otherwise the message stands in for it. */
+ * source the client script reads via `textContent` (so it comes back out unescaped); its
+ * `data-output-id` points the generic render script (see `mermaidRenderScript`) at the adjacent
+ * output `<div>` it renders into. Otherwise the message stands in for it. */
 function buildGraphSection(spec: GraphSectionSpec): string {
   const inner =
     spec.outcome.mermaidSource === null
       ? `<p class="sq-graph-empty">${escapeHtml(spec.outcome.message ?? 'No data available.')}</p>`
-      : `<pre class="sq-graph-source" id="${spec.sourceId}" hidden>${escapeHtml(spec.outcome.mermaidSource)}</pre><div class="sq-graph-output" id="${spec.outputId}">Rendering…</div>`;
+      : `<pre class="sq-graph-source" id="${spec.sourceId}" data-output-id="${spec.outputId}" hidden>${escapeHtml(spec.outcome.mermaidSource)}</pre><div class="sq-graph-output" id="${spec.outputId}">Rendering…</div>`;
   return `<details class="sq-graph" open><summary>${escapeHtml(spec.title)}</summary>${inner}</details>`;
 }
 

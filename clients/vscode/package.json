@@ -42,7 +42,7 @@
         {
           "id": "squads",
           "title": "Squads",
-          "icon": "resources/squads-icon-mono.svg"
+          "icon": "resources/squads-icon-vscode.svg"
         }
       ]
     },
@@ -51,6 +51,10 @@
         {
           "id": "squadsTree",
           "name": "Work Items"
+        },
+        {
+          "id": "squadsMeta",
+          "name": "Roster"
         }
       ]
     },
@@ -58,6 +62,12 @@
       {
         "command": "squads.refreshTree",
         "title": "Refresh",
+        "category": "Squads",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "squads.refreshMeta",
+        "title": "Refresh Roster",
         "category": "Squads",
         "icon": "$(refresh)"
       },
@@ -82,6 +92,12 @@
         "command": "squads.clearFiltersAndGrouping",
         "title": "Clear Filters and Grouping",
         "category": "Squads"
+      },
+      {
+        "command": "squads.openWorkflow",
+        "title": "Open Workflow Cheatsheet",
+        "category": "Squads",
+        "icon": "$(book)"
       }
     ],
     "menus": {
@@ -104,6 +120,11 @@
           "toggled": "squads.showClosed"
         },
         {
+          "command": "squads.openWorkflow",
+          "when": "view == squadsTree",
+          "group": "navigation@4"
+        },
+        {
           "command": "squads.filterByType",
           "when": "view == squadsTree",
           "group": "1_squads"
@@ -112,6 +133,11 @@
           "command": "squads.clearFiltersAndGrouping",
           "when": "view == squadsTree",
           "group": "1_squads"
+        },
+        {
+          "command": "squads.refreshMeta",
+          "when": "view == squadsMeta",
+          "group": "navigation@1"
         }
       ]
     }

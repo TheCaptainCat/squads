@@ -5,7 +5,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { SqInvocation } from '../src/discovery';
 import type { ProcessResult, ProcessRunner } from '../src/processRunner';
-import { describeFailure, getGraph, getList, getRaw, getTree } from '../src/sqAdapter';
+import {
+  describeFailure,
+  getGraph,
+  getList,
+  getRaw,
+  getTree,
+  getWorkflowRaw,
+} from '../src/sqAdapter';
 
 const WORKSPACE_ROOT = '/workspace/example';
 
@@ -17,6 +24,7 @@ const TREE_FIXTURE = fixture('tree.json');
 const LIST_FIXTURE = fixture('list.json');
 const SHOW_RAW_FIXTURE = fixture('show-raw.txt');
 const GRAPH_FIXTURE = fixture('graph.json');
+const WORKFLOW_RAW_FIXTURE = fixture('workflow-raw.txt');
 
 function stubRunner(result: ProcessResult): ProcessRunner {
   return { run: () => Promise.resolve(result) };
@@ -242,6 +250,38 @@ describe('getRaw', () => {
   it('surfaces a spawn failure without throwing', async () => {
     const runner: ProcessRunner = { run: () => Promise.reject(new Error('ENOENT')) };
     const outcome = await getRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-430');
+
+    expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
+  });
+});
+
+describe('getWorkflowRaw', () => {
+  it('returns the committed sq workflow --raw fixture text verbatim on success', async () => {
+    const runner = stubRunner({ stdout: WORKFLOW_RAW_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getWorkflowRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'success', data: WORKFLOW_RAW_FIXTURE });
+  });
+
+  it('builds argv as "workflow --raw", no item id involved', async () => {
+    const { runner, calls } = recordingRunner({ stdout: 'ignored', stderr: '', exitCode: 0 });
+    await getWorkflowRaw(runner, UV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(calls).toEqual([
+      { command: 'uv', args: ['run', 'sq', 'workflow', '--raw'], cwd: WORKSPACE_ROOT },
+    ]);
+  });
+
+  it('maps a non-zero exit the same way as the other plain-text surface', async () => {
+    const runner = stubRunner({ stdout: '', stderr: 'Schema mismatch', exitCode: 1 });
+    const outcome = await getWorkflowRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'runtime-error', message: 'Schema mismatch', exitCode: 1 });
+  });
+
+  it('surfaces a spawn failure without throwing', async () => {
+    const runner: ProcessRunner = { run: () => Promise.reject(new Error('ENOENT')) };
+    const outcome = await getWorkflowRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT);
 
     expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
   });

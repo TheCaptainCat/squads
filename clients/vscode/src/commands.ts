@@ -1,11 +1,12 @@
 /**
  * View-title/palette commands: refresh, filter by type, the group-by-type and show-closed
- * view-title toggles, clear, and the tree-node-selection command that opens the owned
- * item-preview webview.
+ * view-title toggles, clear, the tree-node-selection command that opens the owned item-preview
+ * webview, and the view-title button that opens the workflow cheatsheet in its own owned panel.
  */
 import * as vscode from 'vscode';
 
 import type { ItemPreviewManager } from './itemPreviewManager';
+import type { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
 import type { SquadsTreeDataProvider } from './treeDataProvider';
 
 const ALL_TYPES_LABEL = 'All types';
@@ -62,6 +63,22 @@ export function registerCommands(
         return;
       }
       await previewManager.openFromTree(itemId);
+    }),
+
+    vscode.commands.registerCommand('squads.openWorkflow', async () => {
+      await previewManager.openWorkflow();
+    }),
+  );
+}
+
+/** The meta/roster view (F12) has no filter/group/show-closed state — just its own refresh. */
+export function registerMetaCommands(
+  context: vscode.ExtensionContext,
+  provider: SquadsMetaTreeDataProvider,
+): void {
+  context.subscriptions.push(
+    vscode.commands.registerCommand('squads.refreshMeta', () => {
+      void provider.refresh();
     }),
   );
 }

@@ -3,7 +3,7 @@ id: TASK-458
 sequence_id: 458
 type: task
 title: 'VS Code: extension icon swap + .vscodeignore cleanup'
-status: Ready
+status: Done
 parent: FEAT-449
 author: tech-lead
 assignee: typescript-dev
@@ -12,7 +12,7 @@ refs:
 description: 'Client: use squads-icon-vscode.svg, delete 6 old variants, fix .vscodeignore
   (US6/F13)'
 created_at: '2026-07-17T13:24:12Z'
-updated_at: '2026-07-17T13:59:49Z'
+updated_at: '2026-07-17T16:05:36Z'
 ---
 <!-- sq:body -->
 Story: US6 (extension icon swap). Covers REV-448 finding F13.
@@ -49,4 +49,6 @@ _Add with `sq task 458 add-subtask "<title>"`; track with `sq task 458 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-17T16:04:21Z] Ada Typescript:
+  - Icon swap done: package.json activity-bar icon -> resources/squads-icon-vscode.svg; deleted the 6 old variants (mono/mono-black/mono-white/color/color-black/color-white); .vscodeignore's now-stale exclusion block removed (nothing left in resources/ to exclude). npm run check + npm test (145/145) + npm run test:canary (8/8) green; sq check clean. vsce ls confirms exactly one resources/ entry: squads-icon-vscode.svg. @reviewer
 <!-- sq:discussion:end -->
