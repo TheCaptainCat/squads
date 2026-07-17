@@ -18,6 +18,23 @@ export interface SqTreeNode {
   readonly children: readonly SqTreeNode[];
 }
 
+/** One node of `sq graph <id> --json` (recursive; the ego-centric ref-graph BFS). The root
+ * node's `edge_kind`/`direction` are always `null`; every other node carries the kind/direction
+ * of the edge that discovered it. `seen: true` marks a node already visited elsewhere in the
+ * traversal (re-emitted so the edge into it still shows, but not re-expanded — `children` is
+ * always empty on a `seen` node). */
+export interface SqGraphNode {
+  readonly id: string;
+  readonly type: string;
+  readonly status: string;
+  readonly priority: string | null;
+  readonly assignee: string | null;
+  readonly edge_kind: string | null;
+  readonly direction: 'in' | 'out' | null;
+  readonly seen: boolean;
+  readonly children: readonly SqGraphNode[];
+}
+
 /** One row of `sq list --json`. */
 export interface SqListItem {
   readonly id: string;

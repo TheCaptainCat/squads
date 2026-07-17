@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { SqInvocation } from '../src/discovery';
 import type { ProcessResult, ProcessRunner } from '../src/processRunner';
-import { describeFailure, getList, getRaw, getTree } from '../src/sqAdapter';
+import { describeFailure, getGraph, getList, getRaw, getTree } from '../src/sqAdapter';
 
 const WORKSPACE_ROOT = '/workspace/example';
 
@@ -16,6 +16,7 @@ function fixture(name: string): string {
 const TREE_FIXTURE = fixture('tree.json');
 const LIST_FIXTURE = fixture('list.json');
 const SHOW_RAW_FIXTURE = fixture('show-raw.txt');
+const GRAPH_FIXTURE = fixture('graph.json');
 
 function stubRunner(result: ProcessResult): ProcessRunner {
   return { run: () => Promise.resolve(result) };
@@ -88,6 +89,51 @@ describe('getList', () => {
     await getList(runner, VENV_INVOCATION, WORKSPACE_ROOT, ['-t', 'task']);
 
     expect(calls[0]?.args).toEqual(['list', '-t', 'task', '--json']);
+  });
+});
+
+describe('getGraph', () => {
+  it('parses a real committed sq graph --json fixture (a single nested object, not an array)', async () => {
+    const runner = stubRunner({ stdout: GRAPH_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getGraph(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'FEAT-449');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.id).toBe('FEAT-449');
+    expect(outcome.data.children[0]?.id).toBe('FEAT-100');
+  });
+
+  it('builds argv as "graph <id> --json --all"', async () => {
+    const { runner, calls } = recordingRunner({ stdout: GRAPH_FIXTURE, stderr: '', exitCode: 0 });
+    await getGraph(runner, UV_INVOCATION, WORKSPACE_ROOT, 'FEAT-449');
+
+    expect(calls).toEqual([
+      {
+        command: 'uv',
+        args: ['run', 'sq', 'graph', 'FEAT-449', '--json', '--all'],
+        cwd: WORKSPACE_ROOT,
+      },
+    ]);
+  });
+
+  it('surfaces well-formed JSON that is an array (not the expected single object) as a parse-error', async () => {
+    const runner = stubRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    const outcome = await getGraph(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'FEAT-449');
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+
+  it('maps a non-zero exit the same way as the other json surfaces', async () => {
+    const runner = stubRunner({ stdout: '', stderr: 'No such item: BOGUS-1', exitCode: 1 });
+    const outcome = await getGraph(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'BOGUS-1');
+
+    expect(outcome).toEqual({
+      kind: 'runtime-error',
+      message: 'No such item: BOGUS-1',
+      exitCode: 1,
+    });
   });
 });
 

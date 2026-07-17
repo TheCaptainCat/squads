@@ -10,7 +10,7 @@
 
 import type { SqInvocation } from './discovery';
 import type { ProcessRunner } from './processRunner';
-import type { SqListItem, SqTreeNode } from './types';
+import type { SqGraphNode, SqListItem, SqTreeNode } from './types';
 
 export type SqOutcome<T> =
   | { readonly kind: 'success'; readonly data: T }
@@ -100,6 +100,39 @@ export function isSqTreeNode(value: unknown): value is SqTreeNode {
   );
 }
 
+function hasRequiredGraphNodeStrings(node: Record<string, unknown>): boolean {
+  return (
+    typeof node.id === 'string' &&
+    typeof node.type === 'string' &&
+    typeof node.status === 'string' &&
+    typeof node.seen === 'boolean'
+  );
+}
+
+function hasNullableGraphNodeFields(node: Record<string, unknown>): boolean {
+  return (
+    (typeof node.priority === 'string' || node.priority === null) &&
+    (typeof node.assignee === 'string' || node.assignee === null) &&
+    (typeof node.edge_kind === 'string' || node.edge_kind === null) &&
+    (node.direction === 'in' || node.direction === 'out' || node.direction === null)
+  );
+}
+
+/** Shape guard for one `sq graph <id> --json` node (recursive). Exported for the same reason
+ * as `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
+export function isSqGraphNode(value: unknown): value is SqGraphNode {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const node = value as Record<string, unknown>;
+  return (
+    hasRequiredGraphNodeStrings(node) &&
+    hasNullableGraphNodeFields(node) &&
+    Array.isArray(node.children) &&
+    node.children.every(isSqGraphNode)
+  );
+}
+
 function hasRequiredListItemStrings(item: Record<string, unknown>): boolean {
   return (
     typeof item.id === 'string' &&
@@ -136,26 +169,22 @@ export function isSqListItem(value: unknown): value is SqListItem {
   );
 }
 
-function parseJsonArray<T>(stdout: string, isItem: (value: unknown) => value is T): SqOutcome<T[]> {
-  let parsed: unknown;
+function parseJson(stdout: string): SqOutcome<unknown> {
   try {
-    parsed = JSON.parse(stdout);
+    return { kind: 'success', data: JSON.parse(stdout) as unknown };
   } catch (error) {
     return { kind: 'parse-error', message: error instanceof Error ? error.message : String(error) };
   }
-  if (!Array.isArray(parsed) || !parsed.every(isItem)) {
-    return { kind: 'parse-error', message: 'sq --json output did not match the expected shape' };
-  }
-  return { kind: 'success', data: parsed };
 }
 
-async function runSqJson<T>(
+/** Runs one `sq` subcommand and returns its raw stdout on a zero exit — the shared plumbing
+ * behind every adapter call (`getRaw`'s plain text and every `--json` parser below). */
+async function runSqRaw(
   runner: ProcessRunner,
   invocation: SqInvocation,
   workspaceRoot: string,
   subcommandArgs: readonly string[],
-  isItem: (value: unknown) => value is T,
-): Promise<SqOutcome<T[]>> {
+): Promise<SqOutcome<string>> {
   const argv = buildArgv(invocation, subcommandArgs);
   let result;
   try {
@@ -166,7 +195,51 @@ async function runSqJson<T>(
   if (result.exitCode !== 0) {
     return classifyNonZeroExit(result.exitCode, result.stderr, [invocation.command, ...argv]);
   }
-  return parseJsonArray(result.stdout, isItem);
+  return { kind: 'success', data: result.stdout };
+}
+
+async function runSqJson<T>(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  subcommandArgs: readonly string[],
+  isItem: (value: unknown) => value is T,
+): Promise<SqOutcome<T[]>> {
+  const raw = await runSqRaw(runner, invocation, workspaceRoot, subcommandArgs);
+  if (raw.kind !== 'success') {
+    return raw;
+  }
+  const parsed = parseJson(raw.data);
+  if (parsed.kind !== 'success') {
+    return parsed;
+  }
+  if (!Array.isArray(parsed.data) || !parsed.data.every(isItem)) {
+    return { kind: 'parse-error', message: 'sq --json output did not match the expected shape' };
+  }
+  return { kind: 'success', data: parsed.data };
+}
+
+/** Same as `runSqJson`, for a `--json` surface that emits a single nested object (`sq graph`)
+ * rather than a top-level array (`sq tree`/`sq list`). */
+async function runSqJsonObject<T>(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  subcommandArgs: readonly string[],
+  isItem: (value: unknown) => value is T,
+): Promise<SqOutcome<T>> {
+  const raw = await runSqRaw(runner, invocation, workspaceRoot, subcommandArgs);
+  if (raw.kind !== 'success') {
+    return raw;
+  }
+  const parsed = parseJson(raw.data);
+  if (parsed.kind !== 'success') {
+    return parsed;
+  }
+  if (!isItem(parsed.data)) {
+    return { kind: 'parse-error', message: 'sq --json output did not match the expected shape' };
+  }
+  return { kind: 'success', data: parsed.data };
 }
 
 /** `sq tree [<root>] --json` — drives the sidebar tree. */
@@ -198,22 +271,29 @@ export function getList(
 
 /** `sq show <id> --raw` — the clean-markdown dossier fed into the read-only preview. Not JSON,
  * so the outcome carries the stdout text directly rather than a parsed shape. */
-export async function getRaw(
+export function getRaw(
   runner: ProcessRunner,
   invocation: SqInvocation,
   workspaceRoot: string,
   id: string,
 ): Promise<SqOutcome<string>> {
-  const args = ['show', id, '--raw'];
-  const argv = buildArgv(invocation, args);
-  let result;
-  try {
-    result = await runner.run(invocation.command, argv, workspaceRoot);
-  } catch (error) {
-    return { kind: 'spawn-error', message: error instanceof Error ? error.message : String(error) };
-  }
-  if (result.exitCode !== 0) {
-    return classifyNonZeroExit(result.exitCode, result.stderr, [invocation.command, ...argv]);
-  }
-  return { kind: 'success', data: result.stdout };
+  return runSqRaw(runner, invocation, workspaceRoot, ['show', id, '--raw']);
+}
+
+/** `sq graph <id> --json` — the item's ref graph (an ego-centric BFS), feeding the preview's
+ * second collapsible mermaid diagram. `--all` includes closed items so the graph isn't
+ * silently missing terminal-status refs (e.g. an Accepted decision or a Done task). */
+export function getGraph(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  id: string,
+): Promise<SqOutcome<SqGraphNode>> {
+  return runSqJsonObject(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['graph', id, '--json', '--all'],
+    isSqGraphNode,
+  );
 }

@@ -2,7 +2,8 @@
  * Owns the item-preview `WebviewPanel` lifecycle: a dedicated tab the
  * extension controls end to end — never hijacked by opening another markdown file (unlike
  * the `markdown.showPreview` path this replaces) — rendering `sq show <id> --raw` as HTML via
- * the vscode-free `domain/markdown` + `domain/previewDocument` helpers.
+ * the vscode-free `domain/markdown` + `domain/previewDocument` helpers, alongside the two
+ * collapsible mermaid graphs (`domain/graphDiagrams`) built from `sq tree`/`sq graph --json`.
  *
  * Navigation: a tree-node selection reuses the single owned panel if one is open (mirroring
  * the old dynamic preview's UX), otherwise opens a fresh one. A link click inside a panel
@@ -17,16 +18,33 @@ import { randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
 
 import { describeTriedOrder, type SqDiscovery } from './discovery';
-import { buildPreviewHtml, renderOutcomeHtml } from './domain/previewDocument';
+import { buildRefGraphMermaid, buildSubtreeMermaid } from './domain/graphDiagrams';
+import {
+  buildGraphsHtml,
+  buildPreviewHtml,
+  type GraphOutcome,
+  renderOutcomeHtml,
+} from './domain/previewDocument';
 import {
   parseOpenItemMessage,
   routeForMessage,
   routeForTreeSelection,
 } from './domain/previewMessages';
 import type { ProcessRunner } from './processRunner';
-import { describeFailure, getRaw } from './sqAdapter';
+import { describeFailure, getGraph, getRaw, getTree, type SqOutcome } from './sqAdapter';
+import type { SqGraphNode, SqTreeNode } from './types';
 
 const VIEW_TYPE = 'squadsItemPreview';
+
+/** Turns a fetch outcome into the graph section's content: the built mermaid source on
+ * success, or the same human-readable failure message every other surface shows, on failure
+ * (never a silent/blank section). */
+function toGraphOutcome<T>(outcome: SqOutcome<T>, build: (data: T) => string): GraphOutcome {
+  if (outcome.kind !== 'success') {
+    return { mermaidSource: null, message: describeFailure(outcome) };
+  }
+  return { mermaidSource: build(outcome.data) };
+}
 
 export class ItemPreviewManager {
   private activePanel: vscode.WebviewPanel | undefined;
@@ -36,6 +54,7 @@ export class ItemPreviewManager {
     private readonly discovery: SqDiscovery,
     private readonly workspaceRoot: string,
     private readonly notifyError: (message: string) => void,
+    private readonly extensionUri: vscode.Uri,
   ) {}
 
   /** Entry point for tree-node selection / the `squads.openItemPreview` command. */
@@ -54,6 +73,9 @@ export class ItemPreviewManager {
     const panel = vscode.window.createWebviewPanel(VIEW_TYPE, id, vscode.ViewColumn.Active, {
       enableScripts: true,
       retainContextWhenHidden: true,
+      // The bundled mermaid renderer (media/mermaid.min.js) is the only local asset this
+      // webview loads — scoped to that one directory, not the whole extension.
+      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
     });
     panel.onDidDispose(() => {
       if (this.activePanel === panel) {
@@ -85,21 +107,45 @@ export class ItemPreviewManager {
   private async render(panel: vscode.WebviewPanel, id: string): Promise<void> {
     const resolution = this.discovery.resolve();
     let bodyHtml: string;
+    let graphsHtml: string;
     if (!resolution.ok) {
       const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
       this.notifyError(`Squads: ${message}`);
       bodyHtml = renderOutcomeHtml(id, { kind: 'spawn-error', message });
+      const unavailable: GraphOutcome = { mermaidSource: null, message };
+      graphsHtml = buildGraphsHtml(unavailable, unavailable);
     } else {
-      const outcome = await getRaw(this.runner, resolution.invocation, this.workspaceRoot, id);
-      if (outcome.kind !== 'success') {
-        if (outcome.kind === 'spawn-error') {
+      const { invocation } = resolution;
+      const [dossier, tree, graph] = await Promise.all([
+        getRaw(this.runner, invocation, this.workspaceRoot, id),
+        getTree(this.runner, invocation, this.workspaceRoot, id),
+        getGraph(this.runner, invocation, this.workspaceRoot, id),
+      ]);
+      if (dossier.kind !== 'success') {
+        if (dossier.kind === 'spawn-error') {
           this.discovery.invalidate();
         }
-        this.notifyError(`Squads: ${describeFailure(outcome)}`);
+        this.notifyError(`Squads: ${describeFailure(dossier)}`);
       }
-      bodyHtml = renderOutcomeHtml(id, outcome);
+      bodyHtml = renderOutcomeHtml(id, dossier);
+      // Tree/graph fetch failures degrade their own section to an inline message rather than
+      // a second notification — the dossier failure above is the one that's actionable.
+      graphsHtml = buildGraphsHtml(
+        toGraphOutcome<readonly SqTreeNode[]>(tree, buildSubtreeMermaid),
+        toGraphOutcome<SqGraphNode>(graph, buildRefGraphMermaid),
+      );
     }
+    const nonce = randomUUID();
+    const mermaidScriptUri = panel.webview
+      .asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'mermaid.min.js'))
+      .toString();
     panel.title = id;
-    panel.webview.html = buildPreviewHtml({ title: id, bodyHtml, nonce: randomUUID() });
+    panel.webview.html = buildPreviewHtml({
+      title: id,
+      bodyHtml,
+      graphsHtml,
+      nonce,
+      mermaidScriptUri,
+    });
   }
 }

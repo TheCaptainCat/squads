@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.9.0",
-  "counter": 461,
+  "counter": 462,
   "padding": 6,
   "items": {
     "12": {
@@ -17142,7 +17142,7 @@
       "type": "task",
       "title": "VS Code: unfoldable mermaid graphs in item preview",
       "slug": "vs-code-unfoldable-mermaid-graphs-in-item-preview",
-      "status": "Ready",
+      "status": "Done",
       "description": "Client: children + refs mermaid graphs in the webview (US1/F11)",
       "parent": "FEAT-449",
       "author": "tech-lead",
@@ -17157,7 +17157,7 @@
       "subentities": [],
       "path": "tasks/TASK-000453-vs-code-unfoldable-mermaid-graphs-in-item-preview.md",
       "created_at": "2026-07-17T13:23:56Z",
-      "updated_at": "2026-07-17T13:59:46Z",
+      "updated_at": "2026-07-17T15:10:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -17381,7 +17381,7 @@
         {
           "local_id": "F2",
           "title": "Hardening: markdown link href has no scheme allowlist",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -17408,11 +17408,73 @@
       ],
       "path": "reviews/REV-000461-task-452-review-owned-webviewpanel-preview-navigable-links.md",
       "created_at": "2026-07-17T14:26:29Z",
-      "updated_at": "2026-07-17T14:29:33Z",
+      "updated_at": "2026-07-17T14:58:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-461"
+    },
+    "462": {
+      "sequence_id": 462,
+      "type": "review",
+      "title": "TASK-453 review: mermaid graphs in preview + F2 link allowlist",
+      "slug": "task-453-review-mermaid-graphs-in-preview-f2-link-allowlist",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-453"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "CSP/mermaid render path is sound but unverified in a live webview host",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "F2 link-scheme allowlist: no bypass found, well-tested",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Graph builders are mermaid-injection-safe and match the core CLI convention",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Packaging clean; vsce large-file warning benign",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000462-task-453-review-mermaid-graphs-in-preview-f2-link-allowlist.md",
+      "created_at": "2026-07-17T15:07:13Z",
+      "updated_at": "2026-07-17T15:10:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-462"
     }
   }
 }

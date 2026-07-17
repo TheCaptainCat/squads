@@ -31,8 +31,14 @@ out/vitest.canary.config.js
 # Lockfile — not needed to run the extension
 package-lock.json
 
-# Dev dependencies — no runtime "dependencies" declared, so none are needed in the VSIX
+# Dev dependencies — no runtime "dependencies" declared, so none are needed in the VSIX.
+# media/mermaid.min.js (vendored by `npm run compile`, see scripts/copy-mermaid.js) is the one
+# exception: a webview asset that ships, generated fresh from node_modules rather than sourced
+# from it directly, so it isn't caught by this exclusion.
 node_modules/**
+
+# The build script that vendors media/mermaid.min.js — dev-time only, not needed at runtime.
+scripts/**
 
 # Misc dev/build artifacts
 .gitignore

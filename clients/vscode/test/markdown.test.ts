@@ -3,7 +3,12 @@ import * as path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { ITEM_ID_PATTERN, linkifyPlainText, renderMarkdownToHtml } from '../src/domain/markdown';
+import {
+  isSafeLinkUrl,
+  ITEM_ID_PATTERN,
+  linkifyPlainText,
+  renderMarkdownToHtml,
+} from '../src/domain/markdown';
 
 function fixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -31,6 +36,63 @@ describe('ITEM_ID_PATTERN / linkifyPlainText', () => {
 
   it('escapes HTML-significant characters', () => {
     expect(linkifyPlainText('<script>&"\'')).toBe('&lt;script&gt;&amp;&quot;&#39;');
+  });
+});
+
+describe('isSafeLinkUrl (REV-461 F2 scheme allowlist)', () => {
+  it('allows http, https, and mailto', () => {
+    expect(isSafeLinkUrl('https://example.com/docs')).toBe(true);
+    expect(isSafeLinkUrl('http://example.com')).toBe(true);
+    expect(isSafeLinkUrl('mailto:a@example.com')).toBe(true);
+  });
+
+  it('is case-insensitive on the scheme', () => {
+    expect(isSafeLinkUrl('HTTPS://example.com')).toBe(true);
+  });
+
+  it('rejects javascript:, data:, vbscript:, and file: urls', () => {
+    expect(isSafeLinkUrl('javascript:evil')).toBe(false);
+    expect(isSafeLinkUrl('data:text/html;base64,PHNjcmlwdD4=')).toBe(false);
+    expect(isSafeLinkUrl('vbscript:evil')).toBe(false);
+    expect(isSafeLinkUrl('file:///etc/passwd')).toBe(false);
+  });
+
+  it('rejects a scheme-less relative or protocol-relative url', () => {
+    expect(isSafeLinkUrl('docs/readme.md')).toBe(false);
+    expect(isSafeLinkUrl('//evil.example.com')).toBe(false);
+  });
+});
+
+describe('renderMarkdownToHtml: link hrefs (REV-461 F2)', () => {
+  it('keeps a safe http(s) link href intact', () => {
+    expect(renderMarkdownToHtml('[docs](https://example.com/docs)')).toBe(
+      '<p><a href="https://example.com/docs">docs</a></p>',
+    );
+  });
+
+  it('keeps a mailto link href intact', () => {
+    expect(renderMarkdownToHtml('[mail me](mailto:a@example.com)')).toBe(
+      '<p><a href="mailto:a@example.com">mail me</a></p>',
+    );
+  });
+
+  it('drops the href for a javascript: url, keeping only the escaped visible text', () => {
+    const html = renderMarkdownToHtml('[x](javascript:evil)');
+    expect(html).toBe('<p>x</p>');
+  });
+
+  it('drops the href for a data: url', () => {
+    const html = renderMarkdownToHtml('[x](data:text/html;base64,PHNjcmlwdD4=)');
+    expect(html).toBe('<p>x</p>');
+  });
+
+  it('routes a link whose url is itself a bare item id through the internal item-link mechanism', () => {
+    const html = renderMarkdownToHtml('[see it](TASK-452)');
+    expect(html).toBe('<p><a class="sq-item-link" href="#" data-item-id="TASK-452">see it</a></p>');
+  });
+
+  it('suppresses the self-link when the link url is the current item id', () => {
+    expect(renderMarkdownToHtml('[self](TASK-452)', 'TASK-452')).toBe('<p>self</p>');
   });
 });
 
