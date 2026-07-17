@@ -4,13 +4,15 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { distinctTypesInTree, treeNodesToDisplay } from '../src/domain/treeMapping';
-import type { SqTreeNode } from '../src/types';
+import { buildTypeOrderMap } from '../src/domain/typeOrder';
+import type { SqTreeNode, SqTypeCatalogEntry } from '../src/types';
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
 }
 
 const TREE_FIXTURE = JSON.parse(readFixture('tree.json')) as SqTreeNode[];
+const TYPE_CATALOG_FIXTURE = JSON.parse(readFixture('type-catalog.json')) as SqTypeCatalogEntry[];
 
 describe('treeNodesToDisplay', () => {
   it('maps the committed sq tree --json fixture into DisplayNodes, preserving hierarchy', () => {
@@ -238,8 +240,39 @@ describe('treeNodesToDisplay', () => {
 });
 
 describe('distinctTypesInTree', () => {
-  it('lists distinct non-reserved types found anywhere in the committed fixture, sorted', () => {
+  it('with no orderMap (the graceful fallback), lists distinct non-reserved types alphabetically', () => {
     expect(distinctTypesInTree(TREE_FIXTURE)).toEqual(['epic', 'feature', 'task']);
+  });
+
+  it('given the type catalog, orders types by spec order rather than alphabetically (F1)', () => {
+    const nodes: SqTreeNode[] = [
+      {
+        id: 'BUG-1',
+        type: 'bug',
+        title: 'Some bug',
+        status: 'Open',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+      {
+        id: 'TASK-1',
+        type: 'task',
+        title: 'Some task',
+        status: 'Ready',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+    ];
+    const orderMap = buildTypeOrderMap(TYPE_CATALOG_FIXTURE);
+
+    // Alphabetically 'bug' < 'task'; spec order puts task(30) before bug(40).
+    expect(distinctTypesInTree(nodes, orderMap)).toEqual(['task', 'bug']);
   });
 
   it('excludes the three reserved meta types even when present at depth', () => {

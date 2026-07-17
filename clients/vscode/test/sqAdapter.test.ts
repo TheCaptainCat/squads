@@ -10,7 +10,9 @@ import {
   getGraph,
   getList,
   getRaw,
+  getShowJson,
   getTree,
+  getTypeCatalog,
   getWorkflowRaw,
 } from '../src/sqAdapter';
 
@@ -25,6 +27,8 @@ const LIST_FIXTURE = fixture('list.json');
 const SHOW_RAW_FIXTURE = fixture('show-raw.txt');
 const GRAPH_FIXTURE = fixture('graph.json');
 const WORKFLOW_RAW_FIXTURE = fixture('workflow-raw.txt');
+const TYPE_CATALOG_FIXTURE = fixture('type-catalog.json');
+const SHOW_JSON_FIXTURE = fixture('show-json.json');
 
 function stubRunner(result: ProcessResult): ProcessRunner {
   return { run: () => Promise.resolve(result) };
@@ -250,6 +254,136 @@ describe('getRaw', () => {
   it('surfaces a spawn failure without throwing', async () => {
     const runner: ProcessRunner = { run: () => Promise.reject(new Error('ENOENT')) };
     const outcome = await getRaw(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-430');
+
+    expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
+  });
+});
+
+describe('getTypeCatalog', () => {
+  it('parses a real committed sq workflow types --json fixture', async () => {
+    const runner = stubRunner({ stdout: TYPE_CATALOG_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data[0]).toEqual({
+      type: 'epic',
+      order: 10,
+      prefix: 'EPIC',
+      reserved: false,
+    });
+    expect(outcome.data.some((entry) => entry.reserved)).toBe(true);
+  });
+
+  it('builds argv as "workflow types --json"', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getTypeCatalog(runner, UV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(calls).toEqual([
+      { command: 'uv', args: ['run', 'sq', 'workflow', 'types', '--json'], cwd: WORKSPACE_ROOT },
+    ]);
+  });
+
+  it('accepts a null order (an un-ordered/custom type)', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([{ type: 'widget', order: null, prefix: 'WID', reserved: false }]),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({
+      kind: 'success',
+      data: [{ type: 'widget', order: null, prefix: 'WID', reserved: false }],
+    });
+  });
+
+  it('maps a non-zero exit the same way as the other json surfaces', async () => {
+    const runner = stubRunner({ stdout: '', stderr: 'boom', exitCode: 1 });
+    const outcome = await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'runtime-error', message: 'boom', exitCode: 1 });
+  });
+
+  it('surfaces well-formed JSON that does not match the expected shape as a parse-error', async () => {
+    const runner = stubRunner({ stdout: '[{"unexpected": true}]', stderr: '', exitCode: 0 });
+    const outcome = await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+});
+
+describe('getShowJson', () => {
+  it('parses a real committed sq show --json fixture down to its discussion array', async () => {
+    const runner = stubRunner({ stdout: SHOW_JSON_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-434');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.discussion.length).toBeGreaterThan(0);
+    expect(outcome.data.discussion[0]).toMatchObject({
+      author: expect.any(String) as string,
+      ts: expect.any(String) as string,
+      body: expect.any(String) as string,
+    });
+  });
+
+  it('ignores every other key sq show --json emits, keeping only discussion', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({ id: 'TASK-1', title: 'x', discussion: [] }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-1');
+
+    expect(outcome).toEqual({
+      kind: 'success',
+      data: { id: 'TASK-1', title: 'x', discussion: [] },
+    });
+  });
+
+  it('builds argv as "show <id> --json"', async () => {
+    const { runner, calls } = recordingRunner({
+      stdout: '{"discussion":[]}',
+      stderr: '',
+      exitCode: 0,
+    });
+    await getShowJson(runner, UV_INVOCATION, WORKSPACE_ROOT, 'TASK-434');
+
+    expect(calls).toEqual([
+      { command: 'uv', args: ['run', 'sq', 'show', 'TASK-434', '--json'], cwd: WORKSPACE_ROOT },
+    ]);
+  });
+
+  it('surfaces well-formed JSON missing/malformed discussion as a parse-error', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({ discussion: [{ author: 'a' }] }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-1');
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+
+  it('maps a non-zero exit the same way as the other json surfaces', async () => {
+    const runner = stubRunner({ stdout: '', stderr: 'No such item: BOGUS-1', exitCode: 1 });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'BOGUS-1');
+
+    expect(outcome).toEqual({
+      kind: 'runtime-error',
+      message: 'No such item: BOGUS-1',
+      exitCode: 1,
+    });
+  });
+
+  it('surfaces a spawn failure without throwing', async () => {
+    const runner: ProcessRunner = { run: () => Promise.reject(new Error('ENOENT')) };
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-434');
 
     expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
   });

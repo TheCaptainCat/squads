@@ -3,7 +3,7 @@ id: FEAT-449
 sequence_id: 449
 type: feature
 title: 'VS Code extension: interactive preview & display refinements'
-status: Draft
+status: Done
 parent: EPIC-99
 author: product-owner
 refs:
@@ -12,24 +12,24 @@ refs:
 subentities:
 - local_id: US1
   title: Interactive item preview (custom webview)
-  status: Todo
+  status: Done
 - local_id: US2
   title: Toolbar & display controls
-  status: Todo
+  status: Done
 - local_id: US3
   title: Meta-items view section
-  status: Todo
+  status: Done
 - local_id: US4
   title: Workflow cheatsheet view
-  status: Todo
+  status: Done
 - local_id: US5
   title: Type-group ordering
-  status: Todo
+  status: Done
 - local_id: US6
   title: Extension icon swap
-  status: Todo
+  status: Done
 created_at: '2026-07-17T13:07:35Z'
-updated_at: '2026-07-17T13:08:57Z'
+updated_at: '2026-07-17T16:35:27Z'
 ---
 <!-- sq:body -->
 The outcome: an interactive, operator-aligned browse experience in VS Code, built on top of FEAT-100's read-only browse increment. This is the next EPIC-99 increment, seeded by REV-448 — the operator's change requests after actually using the shipped extension (findings F1-F13).
@@ -49,12 +49,12 @@ _Add with `sq feature 449 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | Interactive item preview (custom webview) |
-| US2 | Todo |  | Toolbar & display controls |
-| US3 | Todo |  | Meta-items view section |
-| US4 | Todo |  | Workflow cheatsheet view |
-| US5 | Todo |  | Type-group ordering |
-| US6 | Todo |  | Extension icon swap |
+| US1 | Done |  | Interactive item preview (custom webview) |
+| US2 | Done |  | Toolbar & display controls |
+| US3 | Done |  | Meta-items view section |
+| US4 | Done |  | Workflow cheatsheet view |
+| US5 | Done |  | Type-group ordering |
+| US6 | Done |  | Extension icon swap |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -63,7 +63,7 @@ _Add with `sq feature 449 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — Interactive item preview (custom webview)
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -88,7 +88,7 @@ Covers REV-448 findings: F9, F10, F11.
 ### US2 — Toolbar & display controls
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -119,7 +119,7 @@ Covers REV-448 findings: F2, F3, F4, F5, F6, F7.
 ### US3 — Meta-items view section
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -144,7 +144,7 @@ Covers REV-448 finding: F12.
 ### US4 — Workflow cheatsheet view
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
@@ -169,7 +169,7 @@ Covers REV-448 finding: F8.
 ### US5 — Type-group ordering
 
 <!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
@@ -192,7 +192,7 @@ Covers REV-448 finding: F1.
 ### US6 — Extension icon swap
 
 <!-- sq:story:US6:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->

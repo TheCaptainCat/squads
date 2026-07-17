@@ -12,13 +12,16 @@ import {
   matchesFilter,
   NO_FILTER,
 } from '../src/domain/listView';
-import type { SqListItem } from '../src/types';
+import { buildTypeOrderMap } from '../src/domain/typeOrder';
+import type { SqListItem, SqTypeCatalogEntry } from '../src/types';
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
 }
 
 const LIST_FIXTURE = JSON.parse(readFixture('list.json')) as SqListItem[];
+const TYPE_CATALOG_FIXTURE = JSON.parse(readFixture('type-catalog.json')) as SqTypeCatalogEntry[];
+const TYPE_ORDER_MAP = buildTypeOrderMap(TYPE_CATALOG_FIXTURE);
 
 describe('excludeReservedTypes', () => {
   it('drops the three reserved meta types (role/skill/operator) from the committed fixture', () => {
@@ -33,7 +36,7 @@ describe('excludeReservedTypes', () => {
 });
 
 describe('distinctTypes', () => {
-  it('lists distinct non-reserved types, sorted, with no local type catalog hardcoded', () => {
+  it('with no orderMap (the graceful fallback), lists distinct non-reserved types alphabetically', () => {
     expect(distinctTypes(LIST_FIXTURE)).toEqual([
       'bug',
       'decision',
@@ -42,6 +45,18 @@ describe('distinctTypes', () => {
       'guide',
       'review',
       'task',
+    ]);
+  });
+
+  it('given the type catalog, orders types by spec order rather than alphabetically (F1)', () => {
+    expect(distinctTypes(LIST_FIXTURE, TYPE_ORDER_MAP)).toEqual([
+      'epic',
+      'feature',
+      'task',
+      'bug',
+      'decision',
+      'review',
+      'guide',
     ]);
   });
 });
@@ -98,13 +113,20 @@ describe('groupListItems', () => {
     expect(nodes.every((node) => node.itemId !== null && node.children.length === 0)).toBe(true);
   });
 
-  it('groups by type when groupByType is true, buckets sorted by type name', () => {
+  it('with no orderMap (the graceful fallback), groups by type name', () => {
     const nodes = groupListItems(items, true);
 
     expect(nodes.map((node) => node.label)).toEqual(['bug', 'review', 'task']);
     expect(nodes.find((node) => node.label === 'task')?.description).toBe('2 items');
     expect(nodes.find((node) => node.label === 'bug')?.description).toBe('1 item');
     expect(nodes.every((node) => node.itemId === null)).toBe(true);
+  });
+
+  it('given the type catalog, orders groups by spec order rather than type name (F1)', () => {
+    const nodes = groupListItems(items, true, TYPE_ORDER_MAP);
+
+    // Spec order is task(30) < bug(40) < review(60); alphabetical would be bug, review, task.
+    expect(nodes.map((node) => node.label)).toEqual(['task', 'bug', 'review']);
   });
 
   it('sorts leaves within each type bucket by numeric id order too', () => {
@@ -136,6 +158,20 @@ describe('buildFilteredGroupedView (end to end)', () => {
     const nodes = buildFilteredGroupedView(LIST_FIXTURE, NO_FILTER, false);
 
     expect(nodes.every((node) => node.itemId !== null)).toBe(true);
+  });
+
+  it('given the type catalog, renders the committed fixture in spec type order end to end (F1)', () => {
+    const nodes = buildFilteredGroupedView(LIST_FIXTURE, NO_FILTER, true, TYPE_ORDER_MAP);
+
+    expect(nodes.map((node) => node.label)).toEqual([
+      'epic',
+      'feature',
+      'task',
+      'bug',
+      'decision',
+      'review',
+      'guide',
+    ]);
   });
 });
 

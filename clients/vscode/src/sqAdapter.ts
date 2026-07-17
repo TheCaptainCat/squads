@@ -10,7 +10,14 @@
 
 import type { SqInvocation } from './discovery';
 import type { ProcessRunner } from './processRunner';
-import type { SqGraphNode, SqListItem, SqTreeNode } from './types';
+import type {
+  SqDiscussionEntry,
+  SqGraphNode,
+  SqListItem,
+  SqShowJson,
+  SqTreeNode,
+  SqTypeCatalogEntry,
+} from './types';
 
 export type SqOutcome<T> =
   | { readonly kind: 'success'; readonly data: T }
@@ -169,6 +176,44 @@ export function isSqListItem(value: unknown): value is SqListItem {
   );
 }
 
+/** Shape guard for one `sq workflow types --json` entry. Exported for the same reason as
+ * `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
+export function isSqTypeCatalogEntry(value: unknown): value is SqTypeCatalogEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.type === 'string' &&
+    (typeof entry.order === 'number' || entry.order === null) &&
+    typeof entry.prefix === 'string' &&
+    typeof entry.reserved === 'boolean'
+  );
+}
+
+function isSqDiscussionEntry(value: unknown): value is SqDiscussionEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.author === 'string' &&
+    typeof entry.ts === 'string' &&
+    typeof entry.body === 'string'
+  );
+}
+
+/** Shape guard for `sq show <id> --json`. Only checks the one key this client reads
+ * (`discussion`) — every other field `sq show --json` emits is ignored, per `SqShowJson`'s
+ * hand-trimmed contract. */
+export function isSqShowJson(value: unknown): value is SqShowJson {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return Array.isArray(obj.discussion) && obj.discussion.every(isSqDiscussionEntry);
+}
+
 function parseJson(stdout: string): SqOutcome<unknown> {
   try {
     return { kind: 'success', data: JSON.parse(stdout) as unknown };
@@ -290,6 +335,19 @@ export function getRaw(
   return runSqRaw(runner, invocation, workspaceRoot, ['show', id, '--raw']);
 }
 
+/** `sq show <id> --json` — only the structured `discussion` array (author/ts/body per comment)
+ * is consumed, feeding the preview's collapsible discussion section; every other key is ignored
+ * (see `SqShowJson`). Distinct from `getRaw`'s `--raw` dossier text, fetched in parallel with it
+ * by the caller. */
+export function getShowJson(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  id: string,
+): Promise<SqOutcome<SqShowJson>> {
+  return runSqJsonObject(runner, invocation, workspaceRoot, ['show', id, '--json'], isSqShowJson);
+}
+
 /** `sq workflow --raw` — the clean-markdown workflow cheatsheet (tables + fenced mermaid, no
  * Rich terminal chrome) fed into the workflow-cheatsheet panel. Same plain-text shape as
  * `getRaw`; no item id involved, so there's no argument beyond the invocation. */
@@ -299,6 +357,23 @@ export function getWorkflowRaw(
   workspaceRoot: string,
 ): Promise<SqOutcome<string>> {
   return runSqRaw(runner, invocation, workspaceRoot, ['workflow', '--raw']);
+}
+
+/** `sq workflow types --json` — the spec's declared type catalog (name, resolved
+ * order, prefix, reserved flag), already in spec order. Feeds the group-by-type sort and the
+ * type-filter quick-pick order so neither hardcodes a type list or its ordering. */
+export function getTypeCatalog(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<SqTypeCatalogEntry[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['workflow', 'types', '--json'],
+    isSqTypeCatalogEntry,
+  );
 }
 
 /** `sq graph <id> --json` — the item's ref graph (an ego-centric BFS), feeding the preview's

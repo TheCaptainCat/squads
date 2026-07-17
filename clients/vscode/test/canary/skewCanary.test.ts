@@ -4,9 +4,9 @@
  * The unit layer (test/*.test.ts) validates parsing logic against committed fixture
  * snapshots (test/fixtures/) with no `sq` binary — fast, hermetic, the bulk of the value.
  * This suite is the other half of that guarantee: it runs a REAL `sq` against a scratch
- * squad and checks that the committed fixtures still describe the live shape of the four
+ * squad and checks that the committed fixtures still describe the live shape of the
  * surfaces the client depends on (ADR-427 #2) — `sq tree --json`, `sq graph --json`,
- * `sq list --json`, `sq show <id> --raw`.
+ * `sq list --json`, `sq show <id> --raw`, `sq workflow types --json`.
  *
  * It asserts SHAPE (key set / types / structure), never exact values — a squad's actual
  * items, statuses, and prose legitimately vary between runs and machines. If a core-side
@@ -27,8 +27,13 @@ import * as path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { isSqGraphNode, isSqListItem, isSqTreeNode } from '../../src/sqAdapter';
-import type { SqGraphNode, SqListItem, SqTreeNode } from '../../src/types';
+import {
+  isSqGraphNode,
+  isSqListItem,
+  isSqTreeNode,
+  isSqTypeCatalogEntry,
+} from '../../src/sqAdapter';
+import type { SqGraphNode, SqListItem, SqTreeNode, SqTypeCatalogEntry } from '../../src/types';
 
 interface CreatedItem {
   readonly id: string;
@@ -229,6 +234,37 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       expect(rows.length).toBeGreaterThan(0);
       for (const row of rows) {
         expect(isSqListItem(row)).toBe(true);
+      }
+    });
+  });
+
+  describe('sq workflow types --json', () => {
+    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+      const parsed = JSON.parse(runSq(['workflow', 'types', '--json'])) as unknown;
+      expect(Array.isArray(parsed)).toBe(true);
+
+      const entries = parsed as SqTypeCatalogEntry[];
+      // Every declared type, work and reserved alike — at least the bundled defaults
+      // (epic/feature/task/bug/decision/review/guide) plus the 3 reserved meta types.
+      expect(entries.length).toBeGreaterThanOrEqual(10);
+      for (const entry of entries) {
+        expect(isSqTypeCatalogEntry(entry)).toBe(true);
+        expect(Object.keys(entry)).toEqual(
+          expect.arrayContaining(['type', 'order', 'prefix', 'reserved']),
+        );
+      }
+      // Emitted in ascending resolved order, so the client's group-by-type sort can trust it
+      // directly rather than re-deriving anything.
+      const orders = entries.map((entry) => entry.order).filter((order) => order !== null);
+      expect(orders).toEqual([...orders].sort((a, b) => a - b));
+      expect(entries.some((entry) => entry.reserved)).toBe(true);
+    });
+
+    it('the committed fixture still conforms to the shape the adapter accepts', () => {
+      const entries = JSON.parse(fixture('type-catalog.json')) as unknown[];
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(isSqTypeCatalogEntry(entry)).toBe(true);
       }
     });
   });
