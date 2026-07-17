@@ -2,18 +2,22 @@
   {
     "id": "FEAT-2",
     "type": "feature",
+    "title": "User authentication",
     "status": "Draft",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": [
       {
         "id": "TASK-3",
         "type": "task",
+        "title": "Implement login",
         "status": "InProgress",
         "priority": null,
         "assignee": null,
         "blocked": true,
+        "is_open": true,
         "children": []
       }
     ]

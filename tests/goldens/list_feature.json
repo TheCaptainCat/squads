@@ -30,6 +30,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-2"
+    "id": "FEAT-2",
+    "is_open": true
   }
 ]

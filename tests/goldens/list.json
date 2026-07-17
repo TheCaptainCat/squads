@@ -43,7 +43,8 @@
         "sq-memory"
       ]
     },
-    "id": "ROLE-1"
+    "id": "ROLE-1",
+    "is_open": true
   },
   {
     "sequence_id": 2,
@@ -76,7 +77,8 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-2"
+    "id": "FEAT-2",
+    "is_open": true
   },
   {
     "sequence_id": 3,
@@ -111,7 +113,8 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-3"
+    "id": "TASK-3",
+    "is_open": true
   },
   {
     "sequence_id": 4,
@@ -134,7 +137,8 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-4"
+    "id": "BUG-4",
+    "is_open": true
   },
   {
     "sequence_id": 5,
@@ -157,7 +161,8 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-5"
+    "id": "ADR-5",
+    "is_open": true
   },
   {
     "sequence_id": 6,
@@ -190,7 +195,8 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "REV-6"
+    "id": "REV-6",
+    "is_open": true
   },
   {
     "sequence_id": 7,
@@ -213,7 +219,8 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "GUIDE-7"
+    "id": "GUIDE-7",
+    "is_open": true
   },
   {
     "sequence_id": 8,
@@ -241,7 +248,8 @@
       "when_to_use": "",
       "allowed_tools": ""
     },
-    "id": "SKILL-8"
+    "id": "SKILL-8",
+    "is_open": true
   },
   {
     "sequence_id": 9,
@@ -267,6 +275,7 @@
       "slug": "op-alice",
       "full_name": "Alice Tester"
     },
-    "id": "OP-9"
+    "id": "OP-9",
+    "is_open": true
   }
 ]

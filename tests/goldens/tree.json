@@ -2,27 +2,33 @@
   {
     "id": "ROLE-1",
     "type": "role",
+    "title": "Catherine Manager",
     "status": "Active",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": []
   },
   {
     "id": "FEAT-2",
     "type": "feature",
+    "title": "User authentication",
     "status": "Draft",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": [
       {
         "id": "TASK-3",
         "type": "task",
+        "title": "Implement login",
         "status": "InProgress",
         "priority": null,
         "assignee": null,
         "blocked": true,
+        "is_open": true,
         "children": []
       }
     ]
@@ -30,55 +36,67 @@
   {
     "id": "BUG-4",
     "type": "bug",
+    "title": "Login crashes on empty password",
     "status": "Open",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": []
   },
   {
     "id": "ADR-5",
     "type": "decision",
+    "title": "Use JWT for session tokens",
     "status": "Proposed",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": []
   },
   {
     "id": "REV-6",
     "type": "review",
+    "title": "Code review for login",
     "status": "Requested",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": []
   },
   {
     "id": "GUIDE-7",
     "type": "guide",
+    "title": "Python coding guide",
     "status": "Draft",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": []
   },
   {
     "id": "SKILL-8",
     "type": "skill",
+    "title": "golden-skill",
     "status": "Active",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": []
   },
   {
     "id": "OP-9",
     "type": "operator",
+    "title": "Alice Tester",
     "status": "Active",
     "priority": null,
     "assignee": null,
     "blocked": false,
+    "is_open": true,
     "children": []
   }
 ]
