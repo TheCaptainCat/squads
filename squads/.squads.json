@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.9.0",
-  "counter": 462,
+  "counter": 463,
   "padding": 6,
   "items": {
     "12": {
@@ -17168,7 +17168,7 @@
       "type": "task",
       "title": "VS Code: toolbar & display controls",
       "slug": "vs-code-toolbar-display-controls",
-      "status": "Ready",
+      "status": "Done",
       "description": "Client: numeric sort, title-icon toggles, collapse-all, greyed closed items (US2/F2-F7)",
       "parent": "FEAT-449",
       "author": "tech-lead",
@@ -17182,7 +17182,7 @@
       "subentities": [],
       "path": "tasks/TASK-000454-vs-code-toolbar-display-controls.md",
       "created_at": "2026-07-17T13:23:57Z",
-      "updated_at": "2026-07-17T13:59:47Z",
+      "updated_at": "2026-07-17T15:30:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -17475,6 +17475,50 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-462"
+    },
+    "463": {
+      "sequence_id": 463,
+      "type": "review",
+      "title": "VS Code toolbar & display controls (US2/F2-F7)",
+      "slug": "vs-code-toolbar-display-controls-us2-f2-f7",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-454:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Type-filter picker omits closed-only types when show-closed is off",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "clearFiltersAndGrouping intentionally leaves show-closed on",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000463-vs-code-toolbar-display-controls-us2-f2-f7.md",
+      "created_at": "2026-07-17T15:28:30Z",
+      "updated_at": "2026-07-17T15:30:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-463"
     }
   }
 }

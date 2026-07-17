@@ -5,8 +5,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildFilteredGroupedView,
-  type ClassifiedListItem,
-  classifyListItems,
   distinctTypes,
   excludeReservedTypes,
   filterListItems,
@@ -48,35 +46,11 @@ describe('distinctTypes', () => {
   });
 });
 
-describe('classifyListItems', () => {
-  it('marks an item open when its own is_open field is true, closed otherwise', () => {
-    const items: SqListItem[] = [
-      makeItem('TASK-1', 'task', true),
-      makeItem('TASK-2', 'task', false),
-    ];
-    const classified = classifyListItems(items);
-
-    expect(classified.find((item) => item.id === 'TASK-1')?.state).toBe('open');
-    expect(classified.find((item) => item.id === 'TASK-2')?.state).toBe('closed');
-  });
-
-  it('classifies the committed fixture from its own is_open field, with both states present', () => {
-    const classified = classifyListItems(LIST_FIXTURE);
-
-    expect(classified.some((item) => item.state === 'open')).toBe(true);
-    expect(classified.some((item) => item.state === 'closed')).toBe(true);
-    for (const item of classified) {
-      const source = LIST_FIXTURE.find((candidate) => candidate.id === item.id);
-      expect(item.state).toBe(source?.is_open === true ? 'open' : 'closed');
-    }
-  });
-});
-
 describe('matchesFilter / filterListItems', () => {
-  const items: ClassifiedListItem[] = [
-    { ...makeItem('TASK-1', 'task', true), state: 'open' },
-    { ...makeItem('BUG-1', 'bug', false), state: 'closed' },
-    { ...makeItem('TASK-2', 'task', false), state: 'closed' },
+  const items: SqListItem[] = [
+    makeItem('TASK-1', 'task', true),
+    makeItem('BUG-1', 'bug', false),
+    makeItem('TASK-2', 'task', false),
   ];
 
   it('with NO_FILTER, matches everything', () => {
@@ -84,72 +58,84 @@ describe('matchesFilter / filterListItems', () => {
   });
 
   it('filters by type', () => {
-    const filtered = filterListItems(items, { type: 'task', state: null });
+    const filtered = filterListItems(items, { type: 'task' });
     expect(filtered.map((item) => item.id)).toEqual(['TASK-1', 'TASK-2']);
   });
 
-  it('filters by open/closed state', () => {
-    const filtered = filterListItems(items, { type: null, state: 'closed' });
-    expect(filtered.map((item) => item.id)).toEqual(['BUG-1', 'TASK-2']);
-  });
-
-  it('combines type and state filters', () => {
-    const openTask = items.find((item) => item.id === 'TASK-1');
-    expect(openTask).toBeDefined();
-    if (openTask === undefined) {
+  it('matchesFilter is a straight type equality check (no open/closed axis)', () => {
+    const [task] = items;
+    expect(task).toBeDefined();
+    if (task === undefined) {
       return;
     }
-    expect(matchesFilter(openTask, { type: 'task', state: 'open' })).toBe(true);
-    expect(matchesFilter(openTask, { type: 'bug', state: 'open' })).toBe(false);
-    expect(matchesFilter(openTask, { type: 'task', state: 'closed' })).toBe(false);
+    expect(matchesFilter(task, { type: 'task' })).toBe(true);
+    expect(matchesFilter(task, { type: 'bug' })).toBe(false);
+    expect(matchesFilter(task, NO_FILTER)).toBe(true);
   });
 });
 
 describe('groupListItems', () => {
-  const items: ClassifiedListItem[] = [
-    { ...makeItem('TASK-2', 'task', true), state: 'open' },
-    { ...makeItem('TASK-1', 'task', false), state: 'closed' },
-    { ...makeItem('BUG-1', 'bug', true), state: 'open' },
+  // Deliberately out of both id-numeric-order and type-alpha-order, so a passing test can't be
+  // a lucky coincidence of insertion order.
+  const items: SqListItem[] = [
+    makeItem('REV-447', 'review', true),
+    makeItem('TASK-2', 'task', true),
+    makeItem('REV-48', 'review', true),
+    makeItem('TASK-1', 'task', false),
+    makeItem('BUG-1', 'bug', true),
   ];
 
-  it('with no groupBy keys, returns sorted leaves', () => {
-    const nodes = groupListItems(items, []);
-    expect(nodes.map((node) => node.id)).toEqual(['BUG-1', 'TASK-1', 'TASK-2']);
+  it('with groupByType false, returns sorted leaves by numeric id order (no type grouping)', () => {
+    const nodes = groupListItems(items, false);
+
+    expect(nodes.map((node) => node.id)).toEqual([
+      'BUG-1',
+      'REV-48',
+      'REV-447',
+      'TASK-1',
+      'TASK-2',
+    ]);
     expect(nodes.every((node) => node.itemId !== null && node.children.length === 0)).toBe(true);
   });
 
-  it('groups by a single key, sorted by group label, with an item-count description', () => {
-    const nodes = groupListItems(items, ['type']);
+  it('groups by type when groupByType is true, buckets sorted by type name', () => {
+    const nodes = groupListItems(items, true);
 
-    expect(nodes.map((node) => node.label)).toEqual(['bug', 'task']);
+    expect(nodes.map((node) => node.label)).toEqual(['bug', 'review', 'task']);
     expect(nodes.find((node) => node.label === 'task')?.description).toBe('2 items');
     expect(nodes.find((node) => node.label === 'bug')?.description).toBe('1 item');
     expect(nodes.every((node) => node.itemId === null)).toBe(true);
   });
 
-  it('groups by two keys in order, nesting the second level under the first', () => {
-    const nodes = groupListItems(items, ['type', 'state']);
-    const taskGroup = nodes.find((node) => node.label === 'task');
+  it('sorts leaves within each type bucket by numeric id order too', () => {
+    const nodes = groupListItems(items, true);
+    const reviewGroup = nodes.find((node) => node.label === 'review');
 
-    expect(taskGroup?.children.map((child) => child.label)).toEqual(['Closed', 'Open']);
-    expect(taskGroup?.children.find((child) => child.label === 'Open')?.children[0]?.id).toBe(
-      'TASK-2',
-    );
+    expect(reviewGroup?.children.map((child) => child.id)).toEqual(['REV-48', 'REV-447']);
   });
 
-  it('reverses nesting order when state is grouped before type', () => {
-    const nodes = groupListItems(items, ['state', 'type']);
-    expect(nodes.map((node) => node.label)).toEqual(['Closed', 'Open']);
+  it('marks a closed leaf via DisplayNode.closed, derived from the item is_open field', () => {
+    const nodes = groupListItems(items, false);
+
+    expect(nodes.find((node) => node.id === 'TASK-1')?.closed).toBe(true);
+    expect(nodes.find((node) => node.id === 'TASK-2')?.closed).toBe(false);
   });
 });
 
 describe('buildFilteredGroupedView (end to end)', () => {
-  it('excludes reserved types, classifies via is_open, filters, and groups the committed fixture', () => {
-    const nodes = buildFilteredGroupedView(LIST_FIXTURE, { type: 'task', state: null }, ['state']);
+  it('excludes reserved types, filters by type, and groups the committed fixture', () => {
+    const nodes = buildFilteredGroupedView(LIST_FIXTURE, { type: 'task' }, true);
 
     expect(nodes.every((node) => node.itemId === null)).toBe(true);
     const allLeafIds = nodes.flatMap((group) => group.children.map((leaf) => leaf.itemId));
     expect(allLeafIds.every((id) => id !== null)).toBe(true);
+    expect(nodes.every((node) => node.label === 'task')).toBe(true);
+  });
+
+  it('returns sorted leaves directly when groupByType is false', () => {
+    const nodes = buildFilteredGroupedView(LIST_FIXTURE, NO_FILTER, false);
+
+    expect(nodes.every((node) => node.itemId !== null)).toBe(true);
   });
 });
 

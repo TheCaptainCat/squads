@@ -28,6 +28,7 @@ function mapNode(node: SqTreeNode): DisplayNode {
     }),
     iconId: iconForType(node.type),
     blocked: node.blocked,
+    closed: !node.is_open,
     children: node.children.filter((child) => !isReservedType(child.type)).map(mapNode),
   };
 }

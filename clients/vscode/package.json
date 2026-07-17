@@ -67,14 +67,16 @@
         "category": "Squads"
       },
       {
-        "command": "squads.filterByState",
-        "title": "Filter by Open/Closed...",
-        "category": "Squads"
+        "command": "squads.toggleGroupByType",
+        "title": "Group by Type",
+        "category": "Squads",
+        "icon": "$(list-tree)"
       },
       {
-        "command": "squads.groupBy",
-        "title": "Group By...",
-        "category": "Squads"
+        "command": "squads.toggleShowClosed",
+        "title": "Show Closed Items",
+        "category": "Squads",
+        "icon": "$(eye)"
       },
       {
         "command": "squads.clearFiltersAndGrouping",
@@ -87,20 +89,22 @@
         {
           "command": "squads.refreshTree",
           "when": "view == squadsTree",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "squads.toggleGroupByType",
+          "when": "view == squadsTree",
+          "group": "navigation@2",
+          "toggled": "squads.groupByType"
+        },
+        {
+          "command": "squads.toggleShowClosed",
+          "when": "view == squadsTree",
+          "group": "navigation@3",
+          "toggled": "squads.showClosed"
         },
         {
           "command": "squads.filterByType",
-          "when": "view == squadsTree",
-          "group": "1_squads"
-        },
-        {
-          "command": "squads.filterByState",
-          "when": "view == squadsTree",
-          "group": "1_squads"
-        },
-        {
-          "command": "squads.groupBy",
           "when": "view == squadsTree",
           "group": "1_squads"
         },

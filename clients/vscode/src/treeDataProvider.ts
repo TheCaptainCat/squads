@@ -12,7 +12,6 @@ import { type DisplayNode, errorDisplayNode } from './domain/displayNode';
 import {
   buildFilteredGroupedView,
   distinctTypes,
-  type GroupKey,
   type ListFilter,
   NO_FILTER,
 } from './domain/listView';
@@ -22,13 +21,34 @@ import { describeFailure, getList, getTree, type SqOutcome } from './sqAdapter';
 
 export interface ViewState {
   readonly filter: ListFilter;
-  readonly groupBy: readonly GroupKey[];
+  /** Group-by-type view-title toggle (a direct boolean toggle, not a quick-pick selection —
+   * open/closed is no longer a grouping axis alongside it). */
+  readonly groupByType: boolean;
+  /** Show-closed view-title toggle: whether the current fetch includes closed/terminal items,
+   * in both the hierarchy tree and the flat/grouped view. */
+  readonly showClosed: boolean;
 }
 
-export const DEFAULT_VIEW_STATE: ViewState = { filter: NO_FILTER, groupBy: [] };
+export const DEFAULT_VIEW_STATE: ViewState = {
+  filter: NO_FILTER,
+  groupByType: false,
+  showClosed: false,
+};
 
 export function isFlatViewActive(state: ViewState): boolean {
-  return state.filter.type !== null || state.filter.state !== null || state.groupBy.length > 0;
+  return state.filter.type !== null || state.groupByType;
+}
+
+function iconForNode(node: DisplayNode): vscode.ThemeIcon {
+  if (node.blocked) {
+    return new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('problemsErrorIcon.foreground'));
+  }
+  if (node.closed) {
+    // Only ever true when the show-closed toggle pulled a closed/terminal item into the
+    // current fetch — dim it so open vs closed reads at a glance without a separate grouping.
+    return new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('disabledForeground'));
+  }
+  return new vscode.ThemeIcon(node.iconId);
 }
 
 function toTreeItem(node: DisplayNode): vscode.TreeItem {
@@ -44,9 +64,7 @@ function toTreeItem(node: DisplayNode): vscode.TreeItem {
   if (node.tooltip !== '') {
     item.tooltip = node.tooltip;
   }
-  item.iconPath = node.blocked
-    ? new vscode.ThemeIcon(node.iconId, new vscode.ThemeColor('problemsErrorIcon.foreground'))
-    : new vscode.ThemeIcon(node.iconId);
+  item.iconPath = iconForNode(node);
   if (node.itemId !== null) {
     item.contextValue = 'squadsItem';
     item.command = {
@@ -96,13 +114,21 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
     void this.refresh();
   }
 
-  setGroupBy(groupBy: readonly GroupKey[]): void {
-    this.state = { ...this.state, groupBy };
+  /** Flips the group-by-type view-title toggle (F3). */
+  toggleGroupByType(): void {
+    this.state = { ...this.state, groupByType: !this.state.groupByType };
+    void this.refresh();
+  }
+
+  /** Flips the show-closed view-title toggle (F4): whether the next fetch includes
+   * closed/terminal items, in either the hierarchy tree or the flat/grouped view. */
+  toggleShowClosed(): void {
+    this.state = { ...this.state, showClosed: !this.state.showClosed };
     void this.refresh();
   }
 
   clearFilterAndGrouping(): void {
-    this.state = DEFAULT_VIEW_STATE;
+    this.state = { ...this.state, filter: NO_FILTER, groupByType: false };
     void this.refresh();
   }
 
@@ -114,16 +140,21 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
       return;
     }
     const { invocation } = resolution;
+    const allArgs = this.state.showClosed ? ['--all'] : [];
 
     if (isFlatViewActive(this.state)) {
-      // A single `sq list --all --json` carries every item (open + closed) with its own
-      // `is_open` flag, so one fetch is enough for both classification and grouping.
-      const outcome = await getList(this.runner, invocation, this.workspaceRoot, ['--all']);
+      // `--all` (only when the show-closed toggle is on) carries closed items alongside open
+      // ones, each with its own `is_open` flag, so one fetch is enough either way.
+      const outcome = await getList(this.runner, invocation, this.workspaceRoot, allArgs);
       if (outcome.kind !== 'success') {
         this.failFrom(outcome);
         return;
       }
-      this.roots = buildFilteredGroupedView(outcome.data, this.state.filter, this.state.groupBy);
+      this.roots = buildFilteredGroupedView(
+        outcome.data,
+        this.state.filter,
+        this.state.groupByType,
+      );
       this.knownItemTypes = distinctTypes(outcome.data);
       this.changeEmitter.fire(undefined);
       return;
@@ -131,7 +162,13 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
 
     // The tree payload now carries title + is_open on every node, so the hierarchy render is a
     // single `sq tree --json` spawn — no second `sq list` fetch for titles or known types.
-    const treeOutcome = await getTree(this.runner, invocation, this.workspaceRoot);
+    const treeOutcome = await getTree(
+      this.runner,
+      invocation,
+      this.workspaceRoot,
+      undefined,
+      this.state.showClosed,
+    );
     if (treeOutcome.kind !== 'success') {
       this.failFrom(treeOutcome);
       return;
