@@ -25,6 +25,20 @@ export type SqOutcome<T> =
   | { readonly kind: 'parse-error'; readonly message: string }
   | { readonly kind: 'spawn-error'; readonly message: string };
 
+/** Human-readable message for any non-success outcome, for notifications/error nodes. Usage
+ * errors additionally carry the replayable command line so it can be logged/reported. */
+export function describeFailure(outcome: Exclude<SqOutcome<unknown>, { kind: 'success' }>): string {
+  switch (outcome.kind) {
+    case 'usage-error':
+      return `${outcome.message} (command: ${outcome.argv.join(' ')})`;
+    case 'check-error':
+    case 'runtime-error':
+    case 'parse-error':
+    case 'spawn-error':
+      return outcome.message;
+  }
+}
+
 /** Full argv (invocation prefix + subcommand args) `sq` would be run with. */
 export function buildArgv(invocation: SqInvocation, subcommandArgs: readonly string[]): string[] {
   return [...invocation.args, ...subcommandArgs];
@@ -159,4 +173,55 @@ export function getList(
     ['list', ...filterArgs, '--json'],
     isSqListItem,
   );
+}
+
+/**
+ * `sq list --json` fetched twice — once with `--all` (every item) and once without (the CLI's
+ * own default, closed hidden) — so open/closed classification is derived from the CLI's actual
+ * behaviour rather than a locally hand-maintained "these statuses are terminal" table (statuses
+ * are workflow-spec-driven per project, not a fixed enum).
+ */
+export interface ListSnapshot {
+  readonly items: readonly SqListItem[];
+  readonly openIds: ReadonlySet<string>;
+}
+
+export async function getListSnapshot(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  filterArgs: readonly string[] = [],
+): Promise<SqOutcome<ListSnapshot>> {
+  const allOutcome = await getList(runner, invocation, workspaceRoot, [...filterArgs, '--all']);
+  if (allOutcome.kind !== 'success') {
+    return allOutcome;
+  }
+  const openOutcome = await getList(runner, invocation, workspaceRoot, filterArgs);
+  if (openOutcome.kind !== 'success') {
+    return openOutcome;
+  }
+  const openIds = new Set(openOutcome.data.map((item) => item.id));
+  return { kind: 'success', data: { items: allOutcome.data, openIds } };
+}
+
+/** `sq show <id> --raw` — the clean-markdown dossier fed into the read-only preview. Not JSON,
+ * so the outcome carries the stdout text directly rather than a parsed shape. */
+export async function getRaw(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  id: string,
+): Promise<SqOutcome<string>> {
+  const args = ['show', id, '--raw'];
+  const argv = buildArgv(invocation, args);
+  let result;
+  try {
+    result = await runner.run(invocation.command, argv, workspaceRoot);
+  } catch (error) {
+    return { kind: 'spawn-error', message: error instanceof Error ? error.message : String(error) };
+  }
+  if (result.exitCode !== 0) {
+    return classifyNonZeroExit(result.exitCode, result.stderr, [invocation.command, ...argv]);
+  }
+  return { kind: 'success', data: result.stdout };
 }

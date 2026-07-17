@@ -3,7 +3,7 @@ id: TASK-431
 sequence_id: 431
 type: task
 title: Tree filter/group by type and open/closed state, plus refresh command
-status: Draft
+status: Done
 parent: FEAT-100
 author: tech-lead
 assignee: typescript-dev
@@ -11,7 +11,7 @@ refs:
 - ADR-427:addresses
 - TASK-428:depends-on
 created_at: '2026-07-16T13:51:29Z'
-updated_at: '2026-07-16T15:58:28Z'
+updated_at: '2026-07-17T07:41:47Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -58,4 +58,11 @@ _Add with `sq task 431 add-subtask "<title>"`; track with `sq task 431 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-16T18:50:46Z] Ada Typescript:
+  - Filter/group logic in src/domain/listView.ts (vscode-free, unit-tested against the committed list.json fixture): excludeReservedTypes, classifyListItems, filterListItems, groupListItems (recursive, ordered by groupBy keys), buildFilteredGroupedView end-to-end.
+  - Open/closed classification is derived, not hardcoded: adapter.getListSnapshot (src/sqAdapter.ts) fetches 'sq list --json' twice (once with --all, once without) and diffs the ids -- matches the CLI's own default-hides-closed behaviour with no locally-maintained terminal-status table (statuses are workflow-spec-driven per project, confirmed by reading _workflow.py).
+  - Commands + package.json contributions: squads.refreshTree (view/title nav icon), squads.filterByType / squads.filterByState / squads.groupBy (quick-picks, view/title overflow menu), squads.clearFiltersAndGrouping. Setting any filter/grouping switches the same activity-bar tree from hierarchy view to the flat/grouped sq-list-backed view; clearing returns to the hierarchy.
+  - Refresh re-invokes sq for whichever view is active and re-probes discovery on a spawn failure (shared SqDiscovery instance with the tree/preview).
+  - npm run check clean, npm test 67/67 green (listView.test.ts: filter/group/classify unit tests + an end-to-end pass over the committed fixture). Verification honesty: no live extension host in this environment -- verified via unit tests + npm run check + reading treeDataProvider.ts/commands.ts wiring; extension-host smoke test deferred to CI/manual.
+  - @reviewer ready for review.
 <!-- sq:discussion:end -->

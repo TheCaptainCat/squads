@@ -10,10 +10,13 @@ This package is self-contained: its own `package.json`, `tsconfig.json`, ESLint/
 config, and lockfile, entirely disjoint from the Python core's toolchain. Nothing under
 `clients/` is read by the Python gate (`pyright`/`ruff`/`pytest`) and vice versa.
 
-Current state: foundation only — the `sq` discovery module (`src/discovery.ts`) and the
-`sq --json` adapter (`src/sqAdapter.ts`), tested against committed fixtures
-(`test/fixtures/`) with no `sq` binary required. The activity-bar tree, item preview, and
-filter/group commands land in later tasks on top of this foundation.
+Current state: read-only browse. An activity-bar tree (`src/treeDataProvider.ts`) renders the
+squad hierarchy from `sq tree --json`; selecting an item opens its `sq show --raw` dossier in a
+read-only `squads:` markdown preview (`src/showDocumentProvider.ts`); view-title commands filter
+and group the tree by type/open-closed state and refresh it on demand (`src/commands.ts`). The
+`sq` discovery module (`src/discovery.ts`) and `sq --json`/`--raw` adapter (`src/sqAdapter.ts`)
+underpin all three, tested against committed fixtures (`test/fixtures/`) with no `sq` binary
+required. Mutating the squad from the editor is a later increment.
 
 ## Development
 
