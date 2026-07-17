@@ -18,6 +18,11 @@ All notable changes to this project are documented here. The format follows
   `body` (the raw body markdown), a top-level `discussion` (an ordered list of
   `{author, ts, body}`), and a `body` key on each entry of `subentities` — additive only, nothing
   renamed or removed.
+- **`sq tree --json` and `sq list --json` carry more machine-readable state.** Every `sq tree
+  --json` node now includes the item's `title` alongside `id`/`type`; both `sq list --json` and
+  `sq tree --json` gain an `is_open` boolean (derived from the workflow spec's terminal-status
+  set, so a custom vocabulary stays correct with no code change) — additive only, nothing renamed
+  or removed.
 
 ## [0.9.0] - 2026-07-15
 

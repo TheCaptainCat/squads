@@ -23,10 +23,10 @@ subentities:
 - local_id: F3
   title: Python test.yml runs on TS-only changes (no paths filter) despite the stated
     isolation
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-07-16T19:34:39Z'
-updated_at: '2026-07-17T07:41:45Z'
+updated_at: '2026-07-17T08:00:33Z'
 ---
 <!-- sq:body -->
 Round-2 review of the VS Code extension's browse UI (TASK-429 US1 tree, TASK-430 US2 preview, TASK-431 US3 filter/group/refresh — all Ada) and the dev-time CI lane (TASK-432 — Hugo). Foundation (TASK-428, REV-436) has landed. Scope: clients/vscode/** + .github/workflows/vscode-client.yml only; concurrent src/tests (TASK-434) excluded.
@@ -53,7 +53,7 @@ _Add with `sq review 438 add-finding "…" --severity medium`; track with `sq re
 | --- | --- | --- | --- | --- |
 | F1 | 🟢 low | Fixed |  | Hierarchy refresh fires a redundant open-only sq list invocation |
 | F2 | 🟡 medium | Open |  | CI covers only the unit test layer; integration skew-canary + host smoke absent |
-| F3 | 🟢 low | Open |  | Python test.yml runs on TS-only changes (no paths filter) despite the stated isolation |
+| F3 | 🟢 low | Fixed |  | Python test.yml runs on TS-only changes (no paths filter) despite the stated isolation |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -106,7 +106,7 @@ Ruling: acceptable to ship 0.10 without them (the unit layer is the bulk of the 
 ### F3 — Python test.yml runs on TS-only changes (no paths filter) despite the stated isolation
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F3:head:end -->
 
@@ -130,4 +130,6 @@ Impact is low: the Python jobs pass on a clients-excluded tree (ruff/pyright exc
   - Ruling — design call #1 (no title on sq tree --json): YES, the core sq tree --json should gain an additive title field. Exact parity with the just-shipped show --json body/discussion enrichment — a browse client shouldn't reconstruct data the core trivially has, and a title is arguably core to a *tree* surface (a tree of bare ids is barely usable), not enrichment. It's additive (golden tests just grow a key, no break), cheap (title is already in the index), and collapses the default tree render from 2 fetches to 1. For 0.10 Ada's join-by-id workaround is correct and ships fine (degrades gracefully to id-only labels on fetch failure); file the core follow-up for 0.11.
   - Ruling — design call #2 (open/closed via double sq list --all/default diff): the approach is CORRECT and admirably spec-driven — it honors 'statuses are per-project workflow-spec-driven; no hardcoded terminal-status table.' Efficiency is acceptable for 0.10: these are user-initiated refresh/filter actions at typical squad sizes, a couple of short-lived spawns, not a hot path. It doesn't scale elegantly though, and finding F1 (redundant open-only fetch in the hierarchy path) makes it worse. Right long-term fix mirrors #1: an additive authoritative is_open/terminal boolean on sq list --json (and ideally sq tree --json), computed by the CLI from the workflow spec — stays spec-driven (the CLI owns the spec), just moves derivation to the authoritative side and collapses 2 list calls to 1. Accept for 0.10 with a tracked follow-up; fix F1's redundant call now regardless.
   - Both #1 and #2 point the same way: the tree/list surfaces are a touch too thin, pushing the client into multi-fetch id-joins. Additive core fields (title on tree, is_open on list/tree) are the clean fix, consistent with the show --json enrichment already done. Neither blocks 0.10. @tech-lead for the two core-surface follow-ups + the CI skew-canary follow-up (F2).
+- [2026-07-17T08:00:33Z] Paul Reviewer:
+  - F3 marked Fixed — addressed by TASK-442: test.yml now carries paths-ignore ['clients/vscode/**'] on both push and pull_request, with the required-checks/branch-protection caveat documented in-file (main has no required checks today). Reviewed in REV-443 (APPROVE).
 <!-- sq:discussion:end -->

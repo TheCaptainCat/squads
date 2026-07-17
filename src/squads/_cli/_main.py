@@ -404,7 +404,12 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
         items = [i for i in items if get_active_spec().is_open(i.status)]
     items = _sort_by_badge(items, sort, get_active_spec())
     if json_out:
-        print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
+        spec = get_active_spec()
+        print_json_clean(
+            json.dumps(
+                [{**i.model_dump(mode="json"), "is_open": spec.is_open(i.status)} for i in items]
+            )
+        )
         return
     if not items:
         console.print("[dim]no items[/dim]")
@@ -451,8 +456,9 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     serve as path are rendered dimmed).  --depth N limits the tree to N levels from the root.
     ``--badge``/``--min-badge`` work generically for any declared field (see `sq list --help`).
 
-    `--json` emits the subtree (`id/type/status/priority/assignee/blocked` + nested `children`) —
-    the read an orchestrating agent uses to see a feature's state and decide what to do next.
+    `--json` emits the subtree (`id/type/title/status/priority/assignee/blocked/is_open` + nested
+    `children`) — the read an orchestrating agent uses to see a feature's state and decide what to
+    do next.
     """
     svc = get_service()
     spec = get_active_spec()
@@ -499,10 +505,12 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
             return {
                 "id": it.id,
                 "type": it.type,
+                "title": it.title,
                 "status": it.status,
                 "priority": it.priority,
                 "assignee": it.assignee,
                 "blocked": it.id in blocked_ids,
+                "is_open": spec.is_open(it.status),
                 "children": [node(c) for c in _sort_children(tn.children)],
             }
 
