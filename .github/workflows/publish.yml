@@ -1,17 +1,20 @@
 name: publish
 
+# Fires when a GitHub Release is published (publishing also creates the tag).
+# The release already exists when this runs, so the VSIX job attaches its
+# asset to that release directly rather than creating one.
 on:
-  push:
-    tags: ["v*"]
-
-permissions:
-  id-token: write
-  contents: read
+  release:
+    types: [published]
 
 jobs:
   publish:
+    name: publish core to PyPI
     runs-on: ubuntu-latest
     environment: pypi
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v6.0.3
       - uses: actions/setup-python@v6.2.0
@@ -23,3 +26,59 @@ jobs:
         run: python scripts/gen_template_manifest.py
       - run: uv build
       - run: uv publish
+
+  vsix:
+    name: build + attach VSIX release asset
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version-file: pyproject.toml
+      - uses: astral-sh/setup-uv@v8.2.0
+      - run: uv sync --frozen
+
+      - name: read core version (unified version)
+        id: core-version
+        run: |
+          version=$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: version guard - tag must match core version
+        run: |
+          expected="v${{ steps.core-version.outputs.version }}"
+          actual="${{ github.event.release.tag_name }}"
+          if [ "${actual}" != "${expected}" ]; then
+            echo "::error::Release tag '${actual}' does not match core version '${expected}' from pyproject.toml - bump pyproject.toml or fix the tag before this can ship a VSIX."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: clients/vscode/package-lock.json
+
+      - name: install client dependencies
+        working-directory: clients/vscode
+        run: npm ci
+
+      - name: compile
+        working-directory: clients/vscode
+        run: npm run compile
+
+      - name: set client version to the core version
+        working-directory: clients/vscode
+        run: npm version "${{ steps.core-version.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: package VSIX
+        working-directory: clients/vscode
+        run: npx @vscode/vsce package --no-dependencies -o "../../squads-vscode-${{ steps.core-version.outputs.version }}.vsix"
+
+      - name: attach VSIX to the tagged release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" squads-vscode-*.vsix --clobber

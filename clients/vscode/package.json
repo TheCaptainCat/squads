@@ -16,7 +16,7 @@
   "categories": [
     "Other"
   ],
-  "main": "./out/extension.js",
+  "main": "./out/src/extension.js",
   "activationEvents": [],
   "contributes": {
     "configuration": {
@@ -42,7 +42,7 @@
         {
           "id": "squads",
           "title": "Squads",
-          "icon": "resources/activity-bar-icon.svg"
+          "icon": "resources/squads-icon-mono.svg"
         }
       ]
     },
@@ -121,12 +121,13 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:canary": "vitest run --config vitest.canary.config.ts",
+    "test:e2e": "npm run compile && node ./out/test/extensionHost/runTest.js",
     "check": "npm run typecheck && npm run lint && npm run format:check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.1",
-    "@types/vscode": "^1.125.0",
+    "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^3.0.0",
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.1.8",

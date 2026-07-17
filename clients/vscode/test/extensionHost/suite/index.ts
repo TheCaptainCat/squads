@@ -1,13 +1,36 @@
 /**
- * Extension-host smoke suite — run inside a real VS Code Extension Development Host by
- * `@vscode/test-electron`'s `runTests()` (see `../runTest.ts`). Scaffold only: exercising the
- * real "sidebar tree loads, preview opens" flow needs a live squad workspace opened in the
- * host plus headless-display CI wiring that is a tracked follow-up, not implemented here —
- * see the task handoff for the note. `run()` is the entry point `@vscode/test-electron`
- * expects; left empty (a no-op pass) rather than a fake assertion, so it doesn't misreport an
- * untested flow as a passing smoke test.
+ * Extension-host smoke suite — runs inside the real Extension Development Host launched by
+ * `../runTest.ts`. `run()` is the entry point `@vscode/test-electron` expects; no separate
+ * test framework (e.g. Mocha) is pulled in for a single smoke check — an assertion throwing
+ * makes this rejected promise itself the failure signal the host process reports as a
+ * non-zero exit (see `../runTest.ts`'s doc comment for why this only actually executes in CI).
  */
+import * as assert from 'node:assert/strict';
+
+import * as vscode from 'vscode';
+
+const EXTENSION_ID = 'TheCaptainCat.squads-vscode';
+
 export async function run(): Promise<void> {
-  // Follow-up: open a scratch squad workspace in the host, await the `squadsTree` view
-  // populating, select a node, and assert the `squads:` preview document opens with content.
+  const extension = vscode.extensions.getExtension(EXTENSION_ID);
+  assert.ok(extension, `extension ${EXTENSION_ID} is not present in the test host`);
+
+  // Activates for real: registerTreeDataProvider('squadsTree', ...) and
+  // registerTextDocumentContentProvider('squads', ...) both run inside activate() (see
+  // src/extension.ts) and throw if a contribution point is missing or misdeclared — activate()
+  // resolving here is itself proof the tree view and the `squads:` provider registered clean.
+  await extension.activate();
+  assert.equal(extension.isActive, true, 'extension did not report active after activate()');
+
+  // The squads tree view's core contribution loaded: VS Code auto-generates a `<view>.focus`
+  // command for every contributed view, and executing it would throw if the view/view
+  // container contribution had failed to take.
+  await vscode.commands.executeCommand('squadsTree.focus');
+
+  // Opening an item preview via the `squads:` provider doesn't throw. provideTextDocumentContent
+  // (src/showDocumentProvider.ts) always resolves to text — an actionable error message when
+  // `sq`/the id can't be resolved, never a rejection — so this exercises the real code path
+  // with no `sq` binary or real squad item required.
+  const document = await vscode.workspace.openTextDocument(vscode.Uri.parse('squads:/SMOKE-0'));
+  assert.equal(document.uri.scheme, 'squads');
 }

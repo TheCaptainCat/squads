@@ -11,7 +11,7 @@ refs:
 - ADR-427:addresses
 - TASK-428:depends-on
 created_at: '2026-07-16T13:51:28Z'
-updated_at: '2026-07-17T07:41:46Z'
+updated_at: '2026-07-17T11:23:20Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -66,4 +66,8 @@ _Add with `sq task 429 add-subtask "<title>"`; track with `sq task 429 subtask <
   - Errors (no sq found / non-zero exit) render a single error DisplayNode + fire a VS Code notification, never a partial/silent tree; spawn-error also invalidates the cached sq invocation so the next refresh re-probes.
   - npm run check clean, npm test 67/67 green. Verification honesty: no live VS Code extension host available in this environment -- verified via npm run check + unit tests (domain/treeMapping.test.ts) + reading the wiring in treeDataProvider.ts/extension.ts; live extension-host smoke-testing is deferred to CI/manual.
   - @reviewer ready for review.
+- [2026-07-17T11:23:20Z] Ada Typescript:
+  - Wired real activity-bar icon: package.json now points to resources/squads-icon-mono.svg (currentColor, theme-tinted); deleted the placeholder resources/activity-bar-icon.svg.
+  - Excluded unused color/mono-black/mono-white variants from .vscodeignore; vsce ls confirms only resources/squads-icon-mono.svg ships (no placeholder, no unused variants).
+  - npm run check + npm test still green.
 <!-- sq:discussion:end -->

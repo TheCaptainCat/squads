@@ -125,10 +125,14 @@ statuses and transitions.
 {% endif %}
 {% endfor %}
 
+{% if not for_skill | default(false) %}
 {# Per-type stateDiagram-v2, one per non-meta type — the actual transition edges (the table
    above only linearizes them into a readable chain). `lifecycle_states_in_order`/
    `lifecycle_edges` walk the machine deterministically (Lifecycle.states is a frozenset,
-   hash-seed-ordered — unsafe to iterate directly in a byte-stable generated file). #}
+   hash-seed-ordered — unsafe to iterate directly in a byte-stable generated file).
+   Skipped when rendering for the agent-facing squads skill (`for_skill`): agents read the
+   skill as raw text, mermaid doesn't render there, and the one-line lifecycle table above
+   already conveys the same statuses/transitions — `sq workflow` still shows these in full. #}
 {% for item_type, item_spec in spec.items.items() %}
 {% if not item_spec.is_meta %}
 {% set machine = spec.machine_for(item_type) %}
@@ -152,4 +156,5 @@ stateDiagram-v2
 
 {% endif %}
 {% endfor %}
+{% endif %}
 {% include "workflow_static.md.j2" %}

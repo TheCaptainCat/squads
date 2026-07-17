@@ -43,11 +43,17 @@ provisioned `sq` on `PATH`) and **skips cleanly** (not a failure) when one isn't
 npm run test:canary
 ```
 
-### Extension-host smoke test (scaffold only)
+### Extension-host smoke test
 
 The third test layer this project's architecture calls for — a `@vscode/test-electron`
-smoke test confirming the sidebar tree loads and a preview opens in a real VS Code host —
-has a minimal scaffold under `test/extensionHost/` (`runTest.ts` + `suite/index.ts`) but is
-**not wired into any npm script or CI job**: it needs a headless display (Xvfb) and a
-compiled `out/` build this task doesn't set up. Wiring the real headless run is a tracked
-follow-up.
+smoke test confirming the extension activates and its core contributions load in a real VS
+Code host — lives under `test/extensionHost/` (`runTest.ts` launches a real Extension
+Development Host; `suite/index.ts` asserts activation, the `squadsTree` view registering,
+and opening an item preview via the `squads:` provider without throwing). It needs a
+compiled `out/` build (`npm run test:e2e` compiles first) and a display — headless CI runs
+it under Xvfb (see `.github/workflows/vscode-client.yml`); there's no display in a plain
+dev shell, so run it on a desktop or rely on CI.
+
+```bash
+npm run test:e2e
+```

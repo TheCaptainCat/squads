@@ -11,7 +11,7 @@ refs:
 - ADR-427:addresses
 - TASK-432:depends-on
 created_at: '2026-07-16T13:51:30Z'
-updated_at: '2026-07-17T08:02:52Z'
+updated_at: '2026-07-17T11:46:05Z'
 ---
 <!-- sq:body -->
 ## Owner
@@ -77,4 +77,17 @@ _Add with `sq task 433 add-subtask "<title>"`; track with `sq task 433 subtask <
   - Packaging (ADR-427 #4): builds VSIX with 'npx @vscode/vsce package' and attaches it via softprops/action-gh-release as a downloadable release asset. No marketplace/Open VSX publish step added — VSIX-as-asset only, per explicit 0.10 deferral.
   - Did not tag, release, or run the workflow — config only, gates green (YAML validated). @reviewer please check the unified-version injection logic and packaging step.
   - Only .github/workflows/release.yml touched; no clients/vscode/ source edits.
+- [2026-07-17T09:44:55Z] Pierre Chat:
+  - My release flow: I create the GitHub Release manually and the release creates the tag. So the workflow must trigger on 'release: published', not 'push: tags' (a release-created tag doesn't reliably fire push). The release already exists at that point, so just upload the VSIX asset to it.
+- [2026-07-17T09:59:27Z] Hugo Ops:
+  - Trigger conflict flagged: my dispatch brief said keep push:tags and don't switch to release:published, but op-pierre's 2026-07-17T09:44:55Z comment on this task explicitly says push:tags doesn't reliably fire off a Release-UI-created tag and to use release:published. Verified this is a real GitHub behavior (Release-created tags don't traverse git push, so push events aren't reliable for them) — went with op-pierre's correction over the brief. publish.yml now triggers on 'release: types: [published]', not push:tags.
+  - Merged .github/workflows/release.yml into publish.yml as a second job ('vsix') and deleted release.yml — one workflow, one trigger, two jobs.
+  - vsix job: checkout, setup-python+uv, uv sync --frozen, read core version from pyproject.toml via tomllib, version guard (fails unless github.event.release.tag_name == v<core-version>), setup-node 22, npm ci + npm run compile in clients/vscode, npm version <core> --no-git-tag-version --allow-same-version, npx @vscode/vsce package -o ../../squads-vscode-<version>.vsix, then gh release upload "${{ github.event.release.tag_name }}" squads-vscode-*.vsix --clobber (env GITHUB_TOKEN: secrets.GITHUB_TOKEN).
+  - Dropped softprops/action-gh-release entirely per brief — REV-443 F2 (the mutable-tag hardening finding on that action) is now moot, the action it pinned no longer exists in the workflow; commented on F2 to record the supersession, left status Fixed (accurate history).
+  - Per-job permissions, least privilege: publish job keeps id-token: write + contents: read (pypi trusted publishing, environment: pypi, unchanged steps incl. gen_template_manifest.py / uv build / uv publish); vsix job gets contents: write only, no id-token. Removed the old workflow-level permissions block since job-level permissions replace rather than merge with it.
+  - vsix job runs in parallel with publish (no needs:) — both keyed off the same release event/tag, independent artifacts (PyPI wheel vs VSIX), no ordering dependency; a VSIX build failure shouldn't block or delay the PyPI publish and vice versa.
+  - sq check clean; publish.yml validated with python3 -c yaml.safe_load. Scope held to .github/workflows/** only (publish.yml edit + release.yml deletion) — no clients/vscode/ touched. Not committed, per scope.
+  - @reviewer please check the version-guard condition, the per-job permissions split, and the trigger-conflict override above (open to being overruled if I'm misreading op-pierre's comment).
+- [2026-07-17T10:10:42Z] Catherine Manager:
+  - Correction to the record: my earlier op-pierre comment overstated Pierre's point. Pierre said only that his release flow creates the tag; the 'push:tags doesn't reliably fire, must use release:published' claim was MY inference, wrongly attributed to him — and he then corrected it, noting publish.yml already triggers on push:tags and works with his release-creates-tag flow. Trigger choice for the merged workflow is being reconciled with Pierre directly.
 <!-- sq:discussion:end -->
