@@ -1,15 +1,14 @@
 /**
  * Extension entry point: resolves `sq` for the first workspace folder, then wires up the
- * activity-bar tree, the `squads:` read-only preview, and the filter/group/refresh commands.
+ * activity-bar tree, the owned item-preview webview, and the filter/group/refresh commands.
  */
 import * as vscode from 'vscode';
 
 import { registerCommands } from './commands';
 import { SqDiscovery } from './discovery';
-import { SQUADS_SCHEME } from './domain/showPreview';
+import { ItemPreviewManager } from './itemPreviewManager';
 import { createNodeDiscoveryEnvironment } from './nodeEnvironment';
 import { nodeProcessRunner } from './processRunner';
-import { SquadsShowDocumentProvider } from './showDocumentProvider';
 import { SquadsTreeDataProvider } from './treeDataProvider';
 
 function getSquadsConfig(): { sqPath: string; command: readonly string[] } {
@@ -44,17 +43,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerTreeDataProvider('squadsTree', treeDataProvider),
   );
 
-  const showDocumentProvider = new SquadsShowDocumentProvider(
-    nodeProcessRunner,
-    discovery,
-    root,
-    notifyError,
-  );
-  context.subscriptions.push(
-    vscode.workspace.registerTextDocumentContentProvider(SQUADS_SCHEME, showDocumentProvider),
-  );
+  const previewManager = new ItemPreviewManager(nodeProcessRunner, discovery, root, notifyError);
 
-  registerCommands(context, treeDataProvider, () => treeDataProvider.getKnownTypes());
+  registerCommands(
+    context,
+    treeDataProvider,
+    () => treeDataProvider.getKnownTypes(),
+    previewManager,
+  );
 
   void treeDataProvider.refresh();
 }

@@ -37,24 +37,40 @@ workflow_app = typer.Typer(
 # ─── show (default — bare `sq workflow`) ───────────────────────────────────────
 
 
+_RAW_HELP = "Plain markdown output (opt out of Rich markdown render)."
+
+
 @workflow_app.callback()
-def workflow_default(ctx: typer.Context) -> None:
+def workflow_default(
+    ctx: typer.Context,
+    raw: bool = typer.Option(False, "--raw", help=_RAW_HELP),
+) -> None:
     """Print the team workflow cheatsheet when no sub-command is given."""
     if ctx.invoked_subcommand is None:
-        _print_cheatsheet()
+        _print_cheatsheet(raw=raw)
 
 
 @workflow_app.command("show")
-def workflow_show() -> None:
+def workflow_show(raw: bool = typer.Option(False, "--raw", help=_RAW_HELP)) -> None:
     """Print the team workflow cheatsheet (who writes what, how items link)."""
-    _print_cheatsheet()
+    _print_cheatsheet(raw=raw)
 
 
-def _print_cheatsheet() -> None:
+def _print_cheatsheet(*, raw: bool) -> None:
+    """Render the cheatsheet — Rich markdown by default, clean markdown text with ``--raw``.
+
+    ``--raw`` prints the ``workflow.md.j2`` render verbatim (markdown tables + fenced
+    ```mermaid``` blocks, no box-drawing/ANSI), mirroring the ``sq show --raw`` / ``sq docs``
+    precedent: opt out of ``rich.Markdown`` rendering, print the source text as-is.
+    """
     from squads._cli._common import get_active_spec
     from squads._rendering._engine import render
 
-    console.print(Markdown(render("workflow.md.j2", spec=get_active_spec())))
+    content = render("workflow.md.j2", spec=get_active_spec())
+    if raw:
+        console.print(content, markup=False, highlight=False, soft_wrap=True)
+    else:
+        console.print(Markdown(content))
 
 
 # ─── lint ─────────────────────────────────────────────────────────────────────

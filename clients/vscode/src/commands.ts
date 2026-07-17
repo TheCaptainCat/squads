@@ -1,11 +1,11 @@
 /**
  * View-title/palette commands: refresh, filter by type/state, group by, clear, and the
- * tree-node-selection command that opens the `squads:` preview.
+ * tree-node-selection command that opens the owned item-preview webview.
  */
 import * as vscode from 'vscode';
 
 import type { GroupKey, ListFilter, OpenClosedState } from './domain/listView';
-import { buildShowUriString } from './domain/showPreview';
+import type { ItemPreviewManager } from './itemPreviewManager';
 import type { SquadsTreeDataProvider } from './treeDataProvider';
 
 const ALL_TYPES_LABEL = 'All types';
@@ -40,6 +40,7 @@ export function registerCommands(
   context: vscode.ExtensionContext,
   provider: SquadsTreeDataProvider,
   knownTypes: () => readonly string[],
+  previewManager: ItemPreviewManager,
 ): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('squads.refreshTree', () => {
@@ -90,8 +91,7 @@ export function registerCommands(
       if (typeof itemId !== 'string') {
         return;
       }
-      const uri = vscode.Uri.parse(buildShowUriString(itemId));
-      await vscode.commands.executeCommand('markdown.showPreview', uri);
+      await previewManager.openFromTree(itemId);
     }),
   );
 }

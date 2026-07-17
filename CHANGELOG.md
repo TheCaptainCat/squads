@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **`sq workflow --raw` / `sq workflow show --raw` print the cheatsheet as clean markdown.**
+  Same content as the styled view (markdown tables, fenced ```mermaid``` blocks) but printed
+  verbatim instead of through `rich.Markdown` — no box-drawing, no ANSI, so piping it into a
+  markdown viewer renders cleanly. The default (non-`--raw`) styled view is unchanged.
 - **`sq show <id> --raw` is now clean markdown.** It emits a deterministic dossier — an `#`
   title, a bullet list of metadata (status, priority/severity, assignee, parent, author, refs,
   labels), and the body verbatim, with `--comments`/`--full` appending Discussion/sub-entity

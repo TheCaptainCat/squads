@@ -1,7 +1,7 @@
 {
   "schema_version": "0.8",
   "squads_version": "0.9.0",
-  "counter": 447,
+  "counter": 461,
   "padding": 6,
   "items": {
     "12": {
@@ -133,7 +133,7 @@
       "type": "epic",
       "title": "VS Code extension — browse the squad in the editor",
       "slug": "vs-code-extension-browse-the-squad-in-the-editor",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "A VS Code extension: a sidebar tree of the squad + items opened in the markdown preview; consumes the frozen --json surface; browse-first, mutations a later increment",
       "parent": null,
       "author": "product-owner",
@@ -151,7 +151,7 @@
       "subentities": [],
       "path": "epics/EPIC-000099-vs-code-extension-browse-the-squad-in-the-editor.md",
       "created_at": "2026-06-14T20:45:06Z",
-      "updated_at": "2026-07-16T16:02:19Z",
+      "updated_at": "2026-07-17T11:48:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -16836,6 +16836,583 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-447"
+    },
+    "448": {
+      "sequence_id": 448,
+      "type": "review",
+      "title": "VS Code extension alignment: change requests",
+      "slug": "vs-code-extension-alignment-change-requests",
+      "status": "Requested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "EPIC-99",
+        "FEAT-100"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Order type groups by the spec's per-type order field",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Item id sort is lexicographic, not numeric (REV-447 before REV-48)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Group-by-type: make it a view-title icon, not a menu item",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Show-closed: a view-title icon toggle",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Remove group-by-open/closed",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Add a collapse-all button",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Closed items rendered greyed/dimmed in the list",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Title button to open the workflow cheatsheet in the preview",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Item preview gets hijacked (dynamic md preview) — use locked preview or custom webview",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Navigable item links in the preview, middle-click opens a new tab (needs webview)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Unfoldable mermaid graphs in the preview: item children + item refs, separate (needs webview)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Second view section for meta items (role/skill/operator) under 3 fixed subfolders",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Use squads-icon-vscode.svg as the extension icon; delete the other svg variants",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000448-vs-code-extension-alignment-change-requests.md",
+      "created_at": "2026-07-17T12:19:57Z",
+      "updated_at": "2026-07-17T12:54:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-448"
+    },
+    "449": {
+      "sequence_id": 449,
+      "type": "feature",
+      "title": "VS Code extension: interactive preview & display refinements",
+      "slug": "vs-code-extension-interactive-preview-display-refinements",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-99",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-448:addresses",
+        "FEAT-100"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Interactive item preview (custom webview)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Toolbar & display controls",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Meta-items view section",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Workflow cheatsheet view",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Type-group ordering",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Extension icon swap",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000449-vs-code-extension-interactive-preview-display-refinements.md",
+      "created_at": "2026-07-17T13:07:35Z",
+      "updated_at": "2026-07-17T13:08:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-449"
+    },
+    "450": {
+      "sequence_id": 450,
+      "type": "task",
+      "title": "Expose per-type order on a machine surface",
+      "slug": "expose-per-type-order-on-a-machine-surface",
+      "status": "Ready",
+      "description": "Core: additive --json type catalog exposing ItemSpec.order (US5/F1 core half)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000450-expose-per-type-order-on-a-machine-surface.md",
+      "created_at": "2026-07-17T13:23:45Z",
+      "updated_at": "2026-07-17T14:04:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-450"
+    },
+    "451": {
+      "sequence_id": 451,
+      "type": "task",
+      "title": "sq workflow --raw clean-markdown cheatsheet mode",
+      "slug": "sq-workflow-raw-clean-markdown-cheatsheet-mode",
+      "status": "Done",
+      "description": "Core: clean-markdown workflow cheatsheet, no Rich chrome (US4/F8 core half)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000451-sq-workflow-raw-clean-markdown-cheatsheet-mode.md",
+      "created_at": "2026-07-17T13:23:45Z",
+      "updated_at": "2026-07-17T14:14:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-451"
+    },
+    "452": {
+      "sequence_id": 452,
+      "type": "task",
+      "title": "VS Code: owned WebviewPanel preview with navigable links",
+      "slug": "vs-code-owned-webviewpanel-preview-with-navigable-links",
+      "status": "Done",
+      "description": "Client: replace hijacked md-preview with owned WebviewPanel + item-ID links (US1/F9,F10)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000452-vs-code-owned-webviewpanel-preview-with-navigable-links.md",
+      "created_at": "2026-07-17T13:23:56Z",
+      "updated_at": "2026-07-17T14:29:35Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-452"
+    },
+    "453": {
+      "sequence_id": 453,
+      "type": "task",
+      "title": "VS Code: unfoldable mermaid graphs in item preview",
+      "slug": "vs-code-unfoldable-mermaid-graphs-in-item-preview",
+      "status": "Ready",
+      "description": "Client: children + refs mermaid graphs in the webview (US1/F11)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses",
+        "TASK-452:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000453-vs-code-unfoldable-mermaid-graphs-in-item-preview.md",
+      "created_at": "2026-07-17T13:23:56Z",
+      "updated_at": "2026-07-17T13:59:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-453"
+    },
+    "454": {
+      "sequence_id": 454,
+      "type": "task",
+      "title": "VS Code: toolbar & display controls",
+      "slug": "vs-code-toolbar-display-controls",
+      "status": "Ready",
+      "description": "Client: numeric sort, title-icon toggles, collapse-all, greyed closed items (US2/F2-F7)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000454-vs-code-toolbar-display-controls.md",
+      "created_at": "2026-07-17T13:23:57Z",
+      "updated_at": "2026-07-17T13:59:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-454"
+    },
+    "455": {
+      "sequence_id": 455,
+      "type": "task",
+      "title": "VS Code: meta-items view section",
+      "slug": "vs-code-meta-items-view-section",
+      "status": "Ready",
+      "description": "Client: second activity-bar view for role/skill/operator under 3 buckets (US3/F12)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000455-vs-code-meta-items-view-section.md",
+      "created_at": "2026-07-17T13:23:58Z",
+      "updated_at": "2026-07-17T13:59:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-455"
+    },
+    "456": {
+      "sequence_id": 456,
+      "type": "task",
+      "title": "VS Code: workflow cheatsheet title button",
+      "slug": "vs-code-workflow-cheatsheet-title-button",
+      "status": "Ready",
+      "description": "Client: title button opens sq workflow --raw in the preview (US4/F8 client half)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses",
+        "TASK-451:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000456-vs-code-workflow-cheatsheet-title-button.md",
+      "created_at": "2026-07-17T13:24:11Z",
+      "updated_at": "2026-07-17T13:59:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-456"
+    },
+    "457": {
+      "sequence_id": 457,
+      "type": "task",
+      "title": "VS Code: order type groups by spec per-type order",
+      "slug": "vs-code-order-type-groups-by-spec-per-type-order",
+      "status": "Ready",
+      "description": "Client: sort type groups by the exposed per-type order (US5/F1 client half)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses",
+        "TASK-450:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000457-vs-code-order-type-groups-by-spec-per-type-order.md",
+      "created_at": "2026-07-17T13:24:11Z",
+      "updated_at": "2026-07-17T13:59:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-457"
+    },
+    "458": {
+      "sequence_id": 458,
+      "type": "task",
+      "title": "VS Code: extension icon swap + .vscodeignore cleanup",
+      "slug": "vs-code-extension-icon-swap-vscodeignore-cleanup",
+      "status": "Ready",
+      "description": "Client: use squads-icon-vscode.svg, delete 6 old variants, fix .vscodeignore (US6/F13)",
+      "parent": "FEAT-449",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-427:addresses"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000458-vs-code-extension-icon-swap-vscodeignore-cleanup.md",
+      "created_at": "2026-07-17T13:24:12Z",
+      "updated_at": "2026-07-17T13:59:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-458"
+    },
+    "459": {
+      "sequence_id": 459,
+      "type": "decision",
+      "title": "Type catalog machine surface: sq workflow types --json",
+      "slug": "type-catalog-machine-surface-sq-workflow-types-json",
+      "status": "Proposed",
+      "description": "New frozen --json type catalog on a dedicated subcommand (sq workflow types): bare array of {type, order|null, prefix, reserved} in resolved order; additive-superset + golden-frozen; unblocks TASK-450 (REV-448 F1).",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-450",
+        "REV-448",
+        "ADR-427"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000459-type-catalog-machine-surface-sq-workflow-types-json.md",
+      "created_at": "2026-07-17T14:04:05Z",
+      "updated_at": "2026-07-17T14:04:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-459"
+    },
+    "460": {
+      "sequence_id": 460,
+      "type": "review",
+      "title": "sq workflow --raw clean-markdown mode",
+      "slug": "sq-workflow-raw-clean-markdown-mode",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-451"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "FORCE_COLOR clause not exercised by an automated test",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000460-sq-workflow-raw-clean-markdown-mode.md",
+      "created_at": "2026-07-17T14:11:43Z",
+      "updated_at": "2026-07-17T14:29:35Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-460"
+    },
+    "461": {
+      "sequence_id": 461,
+      "type": "review",
+      "title": "TASK-452 review: owned WebviewPanel preview + navigable links",
+      "slug": "task-452-review-owned-webviewpanel-preview-navigable-links",
+      "status": "Approved",
+      "description": "Independent review of TASK-452 (owned webview preview + navigable links); recommend approve, one low hardening finding",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-452"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Security: escaping + CSP are solid — no XSS path found",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Hardening: markdown link href has no scheme allowlist",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Lifecycle (F9) + link interception (F10) verified correct",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Dead-code removal, renderer correctness, gate + canary all clean",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000461-task-452-review-owned-webviewpanel-preview-navigable-links.md",
+      "created_at": "2026-07-17T14:26:29Z",
+      "updated_at": "2026-07-17T14:29:33Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-461"
     }
   }
 }
