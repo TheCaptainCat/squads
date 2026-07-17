@@ -1,0 +1,33 @@
+# Packaging manifest for `vsce package` — everything not covered by defaults ships in the
+# VSIX, so this explicitly excludes dev-time-only content: TS sources (compiled output under
+# out/ ships instead), tests + their fixtures (which carry internal squad-item IDs — legitimate
+# test data, not meant for end users), the toolchain config, and node_modules dev cruft (this
+# package has no runtime "dependencies", only "devDependencies" — nothing under node_modules is
+# needed at runtime).
+
+# TypeScript sources — compiled output under out/ ships instead
+src/**
+
+# Tests and their fixtures (fixtures cite internal squad-item IDs — fine for test data, not for
+# a public VSIX)
+test/**
+
+# Toolchain / lint / format / test-runner config — dev-time only
+tsconfig.json
+eslint.config.mjs
+.prettierrc.json
+.prettierignore
+vitest.config.ts
+
+# Lockfile — not needed to run the extension
+package-lock.json
+
+# Dev dependencies — no runtime "dependencies" declared, so none are needed in the VSIX
+node_modules/**
+
+# Misc dev/build artifacts
+.gitignore
+.vscodeignore
+*.vsix
+coverage/**
+**/*.map

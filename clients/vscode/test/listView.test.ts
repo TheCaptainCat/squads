@@ -36,25 +36,47 @@ describe('excludeReservedTypes', () => {
 
 describe('distinctTypes', () => {
   it('lists distinct non-reserved types, sorted, with no local type catalog hardcoded', () => {
-    expect(distinctTypes(LIST_FIXTURE)).toEqual(['bug', 'decision', 'epic', 'feature', 'task']);
+    expect(distinctTypes(LIST_FIXTURE)).toEqual([
+      'bug',
+      'decision',
+      'epic',
+      'feature',
+      'guide',
+      'review',
+      'task',
+    ]);
   });
 });
 
 describe('classifyListItems', () => {
-  it('marks items present in openIds as open and everything else as closed', () => {
-    const items: SqListItem[] = [makeItem('TASK-1', 'task'), makeItem('TASK-2', 'task')];
-    const classified = classifyListItems(items, new Set(['TASK-1']));
+  it('marks an item open when its own is_open field is true, closed otherwise', () => {
+    const items: SqListItem[] = [
+      makeItem('TASK-1', 'task', true),
+      makeItem('TASK-2', 'task', false),
+    ];
+    const classified = classifyListItems(items);
 
     expect(classified.find((item) => item.id === 'TASK-1')?.state).toBe('open');
     expect(classified.find((item) => item.id === 'TASK-2')?.state).toBe('closed');
+  });
+
+  it('classifies the committed fixture from its own is_open field, with both states present', () => {
+    const classified = classifyListItems(LIST_FIXTURE);
+
+    expect(classified.some((item) => item.state === 'open')).toBe(true);
+    expect(classified.some((item) => item.state === 'closed')).toBe(true);
+    for (const item of classified) {
+      const source = LIST_FIXTURE.find((candidate) => candidate.id === item.id);
+      expect(item.state).toBe(source?.is_open === true ? 'open' : 'closed');
+    }
   });
 });
 
 describe('matchesFilter / filterListItems', () => {
   const items: ClassifiedListItem[] = [
-    { ...makeItem('TASK-1', 'task'), state: 'open' },
-    { ...makeItem('BUG-1', 'bug'), state: 'closed' },
-    { ...makeItem('TASK-2', 'task'), state: 'closed' },
+    { ...makeItem('TASK-1', 'task', true), state: 'open' },
+    { ...makeItem('BUG-1', 'bug', false), state: 'closed' },
+    { ...makeItem('TASK-2', 'task', false), state: 'closed' },
   ];
 
   it('with NO_FILTER, matches everything', () => {
@@ -85,9 +107,9 @@ describe('matchesFilter / filterListItems', () => {
 
 describe('groupListItems', () => {
   const items: ClassifiedListItem[] = [
-    { ...makeItem('TASK-2', 'task'), state: 'open' },
-    { ...makeItem('TASK-1', 'task'), state: 'closed' },
-    { ...makeItem('BUG-1', 'bug'), state: 'open' },
+    { ...makeItem('TASK-2', 'task', true), state: 'open' },
+    { ...makeItem('TASK-1', 'task', false), state: 'closed' },
+    { ...makeItem('BUG-1', 'bug', true), state: 'open' },
   ];
 
   it('with no groupBy keys, returns sorted leaves', () => {
@@ -122,15 +144,8 @@ describe('groupListItems', () => {
 });
 
 describe('buildFilteredGroupedView (end to end)', () => {
-  it('excludes reserved types, classifies, filters, and groups the committed fixture', () => {
-    const openIds = new Set(
-      LIST_FIXTURE.filter((item) => item.type === 'task' && item.status !== 'Done').map(
-        (item) => item.id,
-      ),
-    );
-    const nodes = buildFilteredGroupedView(LIST_FIXTURE, openIds, { type: 'task', state: null }, [
-      'state',
-    ]);
+  it('excludes reserved types, classifies via is_open, filters, and groups the committed fixture', () => {
+    const nodes = buildFilteredGroupedView(LIST_FIXTURE, { type: 'task', state: null }, ['state']);
 
     expect(nodes.every((node) => node.itemId === null)).toBe(true);
     const allLeafIds = nodes.flatMap((group) => group.children.map((leaf) => leaf.itemId));
@@ -138,7 +153,7 @@ describe('buildFilteredGroupedView (end to end)', () => {
   });
 });
 
-function makeItem(id: string, type: string): SqListItem {
+function makeItem(id: string, type: string, isOpen: boolean): SqListItem {
   const sequenceId = Number(id.split('-')[1] ?? '0');
   return {
     id,
@@ -158,5 +173,6 @@ function makeItem(id: string, type: string): SqListItem {
     path: `${type}s/${id}.md`,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
+    is_open: isOpen,
   };
 }

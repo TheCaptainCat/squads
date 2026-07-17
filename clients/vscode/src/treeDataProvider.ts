@@ -16,9 +16,9 @@ import {
   type ListFilter,
   NO_FILTER,
 } from './domain/listView';
-import { buildTitleLookup, treeNodesToDisplay } from './domain/treeMapping';
+import { distinctTypesInTree, treeNodesToDisplay } from './domain/treeMapping';
 import type { ProcessRunner } from './processRunner';
-import { describeFailure, getList, getListSnapshot, getTree, type SqOutcome } from './sqAdapter';
+import { describeFailure, getList, getTree, type SqOutcome } from './sqAdapter';
 
 export interface ViewState {
   readonly filter: ListFilter;
@@ -116,38 +116,28 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
     const { invocation } = resolution;
 
     if (isFlatViewActive(this.state)) {
-      const snapshot = await getListSnapshot(this.runner, invocation, this.workspaceRoot);
-      if (snapshot.kind !== 'success') {
-        this.failFrom(snapshot);
+      // A single `sq list --all --json` carries every item (open + closed) with its own
+      // `is_open` flag, so one fetch is enough for both classification and grouping.
+      const outcome = await getList(this.runner, invocation, this.workspaceRoot, ['--all']);
+      if (outcome.kind !== 'success') {
+        this.failFrom(outcome);
         return;
       }
-      this.roots = buildFilteredGroupedView(
-        snapshot.data.items,
-        snapshot.data.openIds,
-        this.state.filter,
-        this.state.groupBy,
-      );
-      this.knownItemTypes = distinctTypes(snapshot.data.items);
+      this.roots = buildFilteredGroupedView(outcome.data, this.state.filter, this.state.groupBy);
+      this.knownItemTypes = distinctTypes(outcome.data);
       this.changeEmitter.fire(undefined);
       return;
     }
 
-    // Hierarchy render only needs titles + known types (buildTitleLookup / distinctTypes) — no
-    // open/closed classification — so a single `sq list --all` suffices; the double-fetch
-    // getListSnapshot is reserved for the flat/grouped view above, which needs openIds.
-    const [treeOutcome, listOutcome] = await Promise.all([
-      getTree(this.runner, invocation, this.workspaceRoot),
-      getList(this.runner, invocation, this.workspaceRoot, ['--all']),
-    ]);
+    // The tree payload now carries title + is_open on every node, so the hierarchy render is a
+    // single `sq tree --json` spawn — no second `sq list` fetch for titles or known types.
+    const treeOutcome = await getTree(this.runner, invocation, this.workspaceRoot);
     if (treeOutcome.kind !== 'success') {
       this.failFrom(treeOutcome);
       return;
     }
-    const titles = listOutcome.kind === 'success' ? buildTitleLookup(listOutcome.data) : undefined;
-    if (listOutcome.kind === 'success') {
-      this.knownItemTypes = distinctTypes(listOutcome.data);
-    }
-    this.roots = treeNodesToDisplay(treeOutcome.data, titles);
+    this.roots = treeNodesToDisplay(treeOutcome.data);
+    this.knownItemTypes = distinctTypesInTree(treeOutcome.data);
     this.changeEmitter.fire(undefined);
   }
 
