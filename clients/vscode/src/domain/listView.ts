@@ -1,29 +1,19 @@
 /**
  * Filter/group logic over `sq list --json` for the flat/filtered/grouped tree view. Open/closed
- * classification reads the surface's own spec-driven `is_open` boolean directly — no locally
- * hand-maintained status list, and no double `sq list` fetch (default vs `--all`) to diff.
+ * is a show/hide fetch toggle owned by the caller (whether closed items are present in `items`
+ * at all), not a grouping axis or an in-memory classification step here — this module only
+ * type-filters and optionally groups by type.
  */
 import type { SqListItem } from '../types';
 import { buildTooltip, type DisplayNode, groupDisplayNode, iconForType } from './displayNode';
+import { compareIds } from './idOrder';
 import { isReservedType } from './reservedTypes';
-
-export type OpenClosedState = 'open' | 'closed';
-export type GroupKey = 'type' | 'state';
 
 export interface ListFilter {
   readonly type: string | null;
-  readonly state: OpenClosedState | null;
 }
 
-export const NO_FILTER: ListFilter = { type: null, state: null };
-
-export interface ClassifiedListItem extends SqListItem {
-  readonly state: OpenClosedState;
-}
-
-export function classifyListItems(items: readonly SqListItem[]): ClassifiedListItem[] {
-  return items.map((item) => ({ ...item, state: item.is_open ? 'open' : 'closed' }));
-}
+export const NO_FILTER: ListFilter = { type: null };
 
 export function excludeReservedTypes(items: readonly SqListItem[]): SqListItem[] {
   return items.filter((item) => !isReservedType(item.type));
@@ -37,21 +27,15 @@ export function distinctTypes(items: readonly SqListItem[]): string[] {
   );
 }
 
-export function matchesFilter(item: ClassifiedListItem, filter: ListFilter): boolean {
-  if (filter.type !== null && item.type !== filter.type) {
-    return false;
-  }
-  return filter.state === null || item.state === filter.state;
+export function matchesFilter(item: SqListItem, filter: ListFilter): boolean {
+  return filter.type === null || item.type === filter.type;
 }
 
-export function filterListItems(
-  items: readonly ClassifiedListItem[],
-  filter: ListFilter,
-): ClassifiedListItem[] {
+export function filterListItems(items: readonly SqListItem[], filter: ListFilter): SqListItem[] {
   return items.filter((item) => matchesFilter(item, filter));
 }
 
-function itemToLeaf(item: ClassifiedListItem): DisplayNode {
+function itemToLeaf(item: SqListItem): DisplayNode {
   return {
     id: item.id,
     itemId: item.id,
@@ -69,50 +53,50 @@ function itemToLeaf(item: ClassifiedListItem): DisplayNode {
     // `sq list --json` carries no blocked flag (that's a tree-only field, computed from
     // dependency edges); the flat/grouped view doesn't surface blocked-state.
     blocked: false,
+    closed: !item.is_open,
     children: [],
   };
 }
 
-function groupLabel(key: GroupKey, item: ClassifiedListItem): string {
-  return key === 'type' ? item.type : item.state === 'open' ? 'Open' : 'Closed';
-}
-
-function sortedEntries<T>(map: ReadonlyMap<string, T>): [string, T][] {
+function sortedTypeEntries<T>(map: ReadonlyMap<string, T>): [string, T][] {
   return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-/** Recursively partitions `items` by each key in `groupBy`, in order; an empty `groupBy`
- * returns the items themselves as leaves (sorted by id for a stable, deterministic view). */
-export function groupListItems(
-  items: readonly ClassifiedListItem[],
-  groupBy: readonly GroupKey[],
-): DisplayNode[] {
-  const [key, ...restKeys] = groupBy;
-  if (key === undefined) {
-    return [...items].sort((a, b) => a.id.localeCompare(b.id)).map(itemToLeaf);
+/** Items sorted by id using shared numeric collation (a lower sequence number sorts first, never
+ * plain lexicographic), mapped to leaf display nodes. */
+function sortedLeaves(items: readonly SqListItem[]): DisplayNode[] {
+  return [...items].sort((a, b) => compareIds(a.id, b.id)).map(itemToLeaf);
+}
+
+/** Groups `items` by type (one bucket per distinct type, sorted by type name) when
+ * `groupByType`, otherwise returns the items themselves as sorted leaves. There is no
+ * open/closed grouping axis: open/closed is a separate show/hide toggle plus a dimmed visual
+ * treatment applied by the tree-item renderer, not a grouping mode. */
+export function groupListItems(items: readonly SqListItem[], groupByType: boolean): DisplayNode[] {
+  if (!groupByType) {
+    return sortedLeaves(items);
   }
-  const buckets = new Map<string, ClassifiedListItem[]>();
+  const buckets = new Map<string, SqListItem[]>();
   for (const item of items) {
-    const label = groupLabel(key, item);
-    const bucket = buckets.get(label);
+    const bucket = buckets.get(item.type);
     if (bucket === undefined) {
-      buckets.set(label, [item]);
+      buckets.set(item.type, [item]);
     } else {
       bucket.push(item);
     }
   }
-  return sortedEntries(buckets).map(([label, groupItems]) => {
-    const children = groupListItems(groupItems, restKeys);
-    return groupDisplayNode(`group:${key}:${label}`, label, groupItems.length, children);
-  });
+  return sortedTypeEntries(buckets).map(([type, groupItems]) =>
+    groupDisplayNode(`group:type:${type}`, type, groupItems.length, sortedLeaves(groupItems)),
+  );
 }
 
-/** End-to-end: exclude reserved types, classify open/closed, filter, then group. */
+/** End-to-end: exclude reserved types, filter by type, then group by type if requested. Whether
+ * closed items appear in `items` at all is the caller's fetch-time decision (the show-closed
+ * toggle), not something this function classifies or filters. */
 export function buildFilteredGroupedView(
   items: readonly SqListItem[],
   filter: ListFilter,
-  groupBy: readonly GroupKey[],
+  groupByType: boolean,
 ): DisplayNode[] {
-  const classified = classifyListItems(excludeReservedTypes(items));
-  return groupListItems(filterListItems(classified, filter), groupBy);
+  return groupListItems(filterListItems(excludeReservedTypes(items), filter), groupByType);
 }

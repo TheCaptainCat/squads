@@ -39,8 +39,10 @@ export function activate(context: vscode.ExtensionContext): void {
     root,
     notifyError,
   );
+  // `createTreeView` (rather than `registerTreeDataProvider`) is what exposes
+  // `showCollapseAll` — VS Code's native title-bar collapse-all icon, no custom command needed.
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider('squadsTree', treeDataProvider),
+    vscode.window.createTreeView('squadsTree', { treeDataProvider, showCollapseAll: true }),
   );
 
   const previewManager = new ItemPreviewManager(

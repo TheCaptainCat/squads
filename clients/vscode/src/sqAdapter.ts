@@ -242,14 +242,24 @@ async function runSqJsonObject<T>(
   return { kind: 'success', data: parsed.data };
 }
 
-/** `sq tree [<root>] --json` — drives the sidebar tree. */
+/** `sq tree [<root>] --json [--all]` — drives the sidebar tree. `includeClosed` (the
+ * show-closed view-title toggle) appends `--all` so closed/terminal items are fetched too;
+ * omitted (the default), `sq tree` hides them the same way it does from the terminal. */
 export function getTree(
   runner: ProcessRunner,
   invocation: SqInvocation,
   workspaceRoot: string,
   root?: string,
+  includeClosed = false,
 ): Promise<SqOutcome<SqTreeNode[]>> {
-  const args = root === undefined ? ['tree', '--json'] : ['tree', root, '--json'];
+  const args = ['tree'];
+  if (root !== undefined) {
+    args.push(root);
+  }
+  args.push('--json');
+  if (includeClosed) {
+    args.push('--all');
+  }
   return runSqJson(runner, invocation, workspaceRoot, args, isSqTreeNode);
 }
 

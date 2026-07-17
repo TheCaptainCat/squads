@@ -57,6 +57,37 @@ describe('treeNodesToDisplay', () => {
     expect(task?.description).toBe('Done · typescript-dev');
   });
 
+  it('marks a node closed via DisplayNode.closed, derived from the tree payload is_open field', () => {
+    const nodes: SqTreeNode[] = [
+      {
+        id: 'TASK-1',
+        type: 'task',
+        title: 'An open task',
+        status: 'InProgress',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+      {
+        id: 'TASK-2',
+        type: 'task',
+        title: 'A done task',
+        status: 'Done',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: false,
+        children: [],
+      },
+    ];
+    const mapped = treeNodesToDisplay(nodes);
+
+    expect(mapped.find((node) => node.id === 'TASK-1')?.closed).toBe(false);
+    expect(mapped.find((node) => node.id === 'TASK-2')?.closed).toBe(true);
+  });
+
   it('marks blocked nodes distinctly in both the flag and the description', () => {
     const blockedFixture: SqTreeNode[] = [
       {

@@ -18,6 +18,11 @@ export interface DisplayNode {
   /** A codicon id (e.g. `"bug"`); never empty. */
   readonly iconId: string;
   readonly blocked: boolean;
+  /** True for a closed/terminal item — only ever populated when the show-closed toggle pulled
+   * closed items into the current fetch. Drives the dimmed rendering that makes open vs closed
+   * legible at a glance without a separate grouping mode. Always `false` for a synthetic
+   * group/error node. */
+  readonly closed: boolean;
   readonly children: readonly DisplayNode[];
 }
 
@@ -83,6 +88,7 @@ export function groupDisplayNode(
     tooltip: label,
     iconId: GROUP_ICON,
     blocked: false,
+    closed: false,
     children,
   };
 }
@@ -96,6 +102,7 @@ export function errorDisplayNode(message: string): DisplayNode {
     tooltip: message,
     iconId: ERROR_ICON,
     blocked: false,
+    closed: false,
     children: [],
   };
 }
