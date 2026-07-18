@@ -6,40 +6,76 @@
  * fixed order, each present even when empty, with items inside a bucket in numeric id order.
  */
 import type { SqListItem } from '../types';
-import { buildTooltip, type DisplayNode, groupDisplayNode, iconForType } from './displayNode';
+import {
+  type BadgeVocabulary,
+  type FieldBindingsByType,
+  NO_BADGE_VOCABULARY,
+  NO_FIELD_BINDINGS,
+  resolveItemBadges,
+} from './badgeCatalog';
+import { buildTooltip, type DisplayNode, groupDisplayNode, iconForMetaType } from './displayNode';
 import { compareIds } from './idOrder';
 import { META_BUCKETS } from './reservedTypes';
+import { isActiveRole, NO_STATUS_ROLES, type StatusRoleMap } from './statusRole';
 
-function itemToLeaf(item: SqListItem): DisplayNode {
+function itemToLeaf(
+  item: SqListItem,
+  fieldBindings: FieldBindingsByType,
+  badgeVocabulary: BadgeVocabulary,
+  statusRoles: StatusRoleMap,
+): DisplayNode {
   return {
     id: item.id,
     itemId: item.id,
     label: `${item.id}  ${item.title}`,
-    description: `${item.status} · ${item.assignee ?? 'unassigned'}`,
+    // Status alone — assignee is meaningless for meta items (role/skill/operator), unlike the
+    // work tree (`treeMapping`/`listView`), which keeps it.
+    description: item.status,
     tooltip: buildTooltip({
       id: item.id,
       type: item.type,
       status: item.status,
       assignee: item.assignee,
-      priority: item.priority,
+      badges: resolveItemBadges(item.type, item.badges, fieldBindings, badgeVocabulary),
       blocked: false,
     }),
-    iconId: iconForType(item.type),
+    iconId: iconForMetaType(item.type),
     blocked: false,
     closed: !item.is_open,
+    active: isActiveRole(item.status, statusRoles),
     children: [],
   };
 }
 
-function sortedLeaves(items: readonly SqListItem[]): DisplayNode[] {
-  return [...items].sort((a, b) => compareIds(a.id, b.id)).map(itemToLeaf);
+function sortedLeaves(
+  items: readonly SqListItem[],
+  fieldBindings: FieldBindingsByType,
+  badgeVocabulary: BadgeVocabulary,
+  statusRoles: StatusRoleMap,
+): DisplayNode[] {
+  return [...items]
+    .sort((a, b) => compareIds(a.id, b.id))
+    .map((item) => itemToLeaf(item, fieldBindings, badgeVocabulary, statusRoles));
 }
 
 /** Builds the meta/roster view's roots: one group per `META_BUCKETS` entry, in that fixed
- * order, each always present (even with 0 items) and never merged/reordered by content. */
-export function buildMetaView(items: readonly SqListItem[]): DisplayNode[] {
+ * order, each always present (even with 0 items) and never merged/reordered by content.
+ * `fieldBindings`/`badgeVocabulary` (F19) and `statusRoles` (F26) default to the
+ * graceful-fallback empty maps, degrading each leaf's tooltip badges to raw codes / disabling
+ * the active-green highlight rather than breaking the view. */
+export function buildMetaView(
+  items: readonly SqListItem[],
+  fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
+  badgeVocabulary: BadgeVocabulary = NO_BADGE_VOCABULARY,
+  statusRoles: StatusRoleMap = NO_STATUS_ROLES,
+): DisplayNode[] {
   return META_BUCKETS.map(({ type, label }) => {
     const bucketItems = items.filter((item) => item.type === type);
-    return groupDisplayNode(`meta:${type}`, label, bucketItems.length, sortedLeaves(bucketItems));
+    return groupDisplayNode(
+      `meta:${type}`,
+      label,
+      bucketItems.length,
+      sortedLeaves(bucketItems, fieldBindings, badgeVocabulary, statusRoles),
+    );
   });
 }

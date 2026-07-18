@@ -47,5 +47,8 @@ scripts/**
 coverage/**
 **/*.map
 
-# resources/ now holds only squads-icon-vscode.svg (the activity-bar container icon,
-# fill="currentColor" for theme tinting) — it ships as-is, nothing to exclude here.
+# resources/ holds squads-icon-vscode.svg (the activity-bar container icon, currentColor for
+# VS Code's own theme tinting) plus its light/dark webview-tab-icon derivatives
+# (squads-icon-vscode-{light,dark}.svg — explicit stroke colors, since a webview panel's
+# iconPath isn't re-tinted the way a view-container icon is). All ship as-is, nothing to
+# exclude here.

@@ -521,23 +521,28 @@ def resolve_body(messages: list[str] | None, file: str | None) -> str:
 async def build_item_json(svc: Service, it: Item) -> str:
     """The ``show --json`` payload: frontmatter fields plus body/discussion — additive only.
 
-    Adds top-level ``body`` (raw body markdown) and ``discussion`` (ordered
-    ``{author, ts, body}`` list), plus a ``body`` key on each ``subentities`` entry.  Added
-    unconditionally — not gated by ``--comments``/``--full`` — so the existing invariant that
-    ``show --json`` is byte-identical across ``--raw``/``--comments``/``--full`` still holds.
-    Nothing existing is renamed or removed.
+    Adds top-level ``body`` (raw body markdown), ``discussion`` (ordered ``{author, ts,
+    body}`` list), and ``badges`` (the generic per-item badge map, keyed by field
+    code — see :func:`squads._badges.resolve_badges`); plus a ``body`` and ``badges`` key on
+    each ``subentities`` entry (a sub-entity carries fields too, e.g. severity on a finding).
+    Added unconditionally — not gated by ``--comments``/``--full`` — so the existing
+    invariant that ``show --json`` is byte-identical across ``--raw``/``--comments``/
+    ``--full`` still holds. Nothing existing is renamed or removed.
     """
+    spec = get_active_spec()
     payload: dict[str, Any] = json.loads(it.model_dump_json())
     payload["body"] = await svc.read_body(it.id)
     payload["discussion"] = [
         {"author": cmt.author, "ts": cmt.timestamp, "body": cmt.body}
         for cmt in discussion.split_discussion(await svc.read_discussion(it.id))
     ]
-    kind = get_active_spec().item_subentity_kind(it.type)
+    payload["badges"] = badges.resolve_badges(spec, it.type, it.badge_value)
+    kind = spec.item_subentity_kind(it.type)
     if kind:
-        for sub_data in payload["subentities"]:
+        for sub_data, sub in zip(payload["subentities"], it.subentities, strict=True):
             detail = await svc.get_block(it.id, kind, sub_data["local_id"])
             sub_data["body"] = detail.body
+            sub_data["badges"] = badges.resolve_badges(spec, kind, sub.badge_value)
     return json.dumps(payload)
 
 

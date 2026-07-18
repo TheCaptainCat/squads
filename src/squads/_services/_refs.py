@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from squads import _actor as actor
+from squads import _badges as badges
 from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
@@ -140,14 +141,9 @@ def _neighbours(ctx: _TraversalCtx, item: Item) -> list[tuple[str, str, str]]:
 
 
 def _resolve_badges(spec: WorkflowSpec, item: Item) -> dict[str, str]:
-    """Every declared badge field this item's type carries, resolved generically — the
-    type's actual axis (e.g. a custom impact/urgency pair) rather than the fixed ``priority``
-    attribute, which stays null for a type not on the bundled priority field."""
-    return {
-        f.code: value
-        for f in spec.fields_for(item.type)
-        if (value := item.badge_value(f.code)) is not None
-    }
+    """Every declared badge field this item's type carries — the shared generic-badge-map
+    shape (:func:`squads._badges.resolve_badges`), specialized to an ``Item``."""
+    return badges.resolve_badges(spec, item.type, item.badge_value)
 
 
 def _build_graph_node(

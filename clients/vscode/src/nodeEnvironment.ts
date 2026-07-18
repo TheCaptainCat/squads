@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import type { DiscoveryEnvironment } from './discovery';
+import type { SquadDirEnvironment } from './domain/squadDir';
 
 function candidateNames(name: string, platform: NodeJS.Platform): readonly string[] {
   if (platform !== 'win32') {
@@ -38,6 +39,30 @@ export function createNodeDiscoveryEnvironment(): DiscoveryEnvironment {
         }
       }
       return false;
+    },
+  };
+}
+
+/** The real, `node:fs`/`node:path`-backed `SquadDirEnvironment` used at extension runtime
+ * (mirrors `createNodeDiscoveryEnvironment` above). */
+export function createNodeSquadDirEnvironment(): SquadDirEnvironment {
+  return {
+    fileExists(candidate: string): boolean {
+      try {
+        return fs.statSync(candidate).isFile();
+      } catch {
+        return false;
+      }
+    },
+    readFile(candidate: string): string | undefined {
+      try {
+        return fs.readFileSync(candidate, 'utf8');
+      } catch {
+        return undefined;
+      }
+    },
+    dirname(candidate: string): string {
+      return path.dirname(candidate);
     },
   };
 }

@@ -20,6 +20,7 @@ from rich.tree import Tree
 
 import squads._cli._common as common
 from squads import _badges as badges
+from squads._badges import resolve_badges as resolve_item_badges
 from squads._cli import app
 from squads._cli._common import (
     build_item_json,
@@ -407,7 +408,14 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
         spec = get_active_spec()
         print_json_clean(
             json.dumps(
-                [{**i.model_dump(mode="json"), "is_open": spec.is_open(i.status)} for i in items]
+                [
+                    {
+                        **i.model_dump(mode="json"),
+                        "is_open": spec.is_open(i.status),
+                        "badges": resolve_item_badges(spec, i.type, i.badge_value),
+                    }
+                    for i in items
+                ]
             )
         )
         return
@@ -511,6 +519,7 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
                 "assignee": it.assignee,
                 "blocked": it.id in blocked_ids,
                 "is_open": spec.is_open(it.status),
+                "badges": resolve_item_badges(spec, it.type, it.badge_value),
                 "children": [node(c) for c in _sort_children(tn.children)],
             }
 

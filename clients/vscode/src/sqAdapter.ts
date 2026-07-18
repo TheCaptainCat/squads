@@ -11,12 +11,18 @@
 import type { SqInvocation } from './discovery';
 import type { ProcessRunner } from './processRunner';
 import type {
+  SqBadgeMap,
+  SqCollectionBadge,
+  SqCollectionCatalogEntry,
   SqDiscussionEntry,
   SqGraphNode,
   SqListItem,
   SqShowJson,
+  SqStatusCatalogEntry,
+  SqSubEntity,
   SqTreeNode,
   SqTypeCatalogEntry,
+  SqTypeField,
 } from './types';
 
 export type SqOutcome<T> =
@@ -72,6 +78,18 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
 }
 
+/** `badges` is optional on every item-bearing surface — absent (an older `sq`)
+ * is valid, same as present-and-empty; present-and-non-object is not. */
+function isOptionalBadgeMap(value: unknown): value is SqBadgeMap | undefined {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+  return Object.values(value).every((entry) => typeof entry === 'string');
+}
+
 function hasRequiredTreeNodeStrings(node: Record<string, unknown>): boolean {
   return (
     typeof node.id === 'string' &&
@@ -79,7 +97,8 @@ function hasRequiredTreeNodeStrings(node: Record<string, unknown>): boolean {
     typeof node.title === 'string' &&
     typeof node.status === 'string' &&
     typeof node.blocked === 'boolean' &&
-    typeof node.is_open === 'boolean'
+    typeof node.is_open === 'boolean' &&
+    isOptionalBadgeMap(node.badges)
   );
 }
 
@@ -150,7 +169,8 @@ function hasRequiredListItemStrings(item: Record<string, unknown>): boolean {
     typeof item.path === 'string' &&
     typeof item.created_at === 'string' &&
     typeof item.updated_at === 'string' &&
-    typeof item.is_open === 'boolean'
+    typeof item.is_open === 'boolean' &&
+    isOptionalBadgeMap(item.badges)
   );
 }
 
@@ -176,6 +196,24 @@ export function isSqListItem(value: unknown): value is SqListItem {
   );
 }
 
+function isSqTypeField(value: unknown): value is SqTypeField {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const field = value as Record<string, unknown>;
+  return (
+    typeof field.code === 'string' &&
+    typeof field.label === 'string' &&
+    typeof field.collection === 'string'
+  );
+}
+
+/** `fields` is optional the same way `badges` is — an older `sq` omits it,
+ * treated the same as an empty (no field->collection binding known) array. */
+function isOptionalTypeFieldArray(value: unknown): value is readonly SqTypeField[] | undefined {
+  return value === undefined || (Array.isArray(value) && value.every(isSqTypeField));
+}
+
 /** Shape guard for one `sq workflow types --json` entry. Exported for the same reason as
  * `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
 export function isSqTypeCatalogEntry(value: unknown): value is SqTypeCatalogEntry {
@@ -187,7 +225,52 @@ export function isSqTypeCatalogEntry(value: unknown): value is SqTypeCatalogEntr
     typeof entry.type === 'string' &&
     (typeof entry.order === 'number' || entry.order === null) &&
     typeof entry.prefix === 'string' &&
-    typeof entry.reserved === 'boolean'
+    typeof entry.reserved === 'boolean' &&
+    isOptionalTypeFieldArray(entry.fields)
+  );
+}
+
+function isSqCollectionBadge(value: unknown): value is SqCollectionBadge {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const badge = value as Record<string, unknown>;
+  return (
+    typeof badge.code === 'string' &&
+    typeof badge.label === 'string' &&
+    typeof badge.emoji === 'string'
+  );
+}
+
+/** Shape guard for one `sq workflow collections --json` entry . Exported for
+ * the same reason as `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
+export function isSqCollectionCatalogEntry(value: unknown): value is SqCollectionCatalogEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.collection === 'string' &&
+    typeof entry.label === 'string' &&
+    typeof entry.ordered === 'boolean' &&
+    (typeof entry.default === 'string' || entry.default === null) &&
+    Array.isArray(entry.badges) &&
+    entry.badges.every(isSqCollectionBadge)
+  );
+}
+
+/** Shape guard for one `sq workflow statuses --json` entry . Exported for the
+ * same reason as `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
+export function isSqStatusCatalogEntry(value: unknown): value is SqStatusCatalogEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.status === 'string' &&
+    typeof entry.terminal === 'boolean' &&
+    (typeof entry.role === 'string' || entry.role === null) &&
+    (typeof entry.badge === 'string' || entry.badge === null)
   );
 }
 
@@ -203,15 +286,36 @@ function isSqDiscussionEntry(value: unknown): value is SqDiscussionEntry {
   );
 }
 
-/** Shape guard for `sq show <id> --json`. Only checks the one key this client reads
- * (`discussion`) — every other field `sq show --json` emits is ignored, per `SqShowJson`'s
- * hand-trimmed contract. */
+function isSqSubEntity(value: unknown): value is SqSubEntity {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.local_id === 'string' &&
+    typeof entry.title === 'string' &&
+    typeof entry.status === 'string' &&
+    (typeof entry.assignee === 'string' || entry.assignee === null) &&
+    (typeof entry.severity === 'string' || entry.severity === null) &&
+    (typeof entry.story === 'string' || entry.story === null) &&
+    typeof entry.body === 'string'
+  );
+}
+
+/** Shape guard for `sq show <id> --json`. Only checks the two keys this client reads
+ * (`discussion`, `subentities`) — every other field `sq show --json` emits is ignored, per
+ * `SqShowJson`'s hand-trimmed contract. */
 export function isSqShowJson(value: unknown): value is SqShowJson {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
   const obj = value as Record<string, unknown>;
-  return Array.isArray(obj.discussion) && obj.discussion.every(isSqDiscussionEntry);
+  return (
+    Array.isArray(obj.discussion) &&
+    obj.discussion.every(isSqDiscussionEntry) &&
+    Array.isArray(obj.subentities) &&
+    obj.subentities.every(isSqSubEntity)
+  );
 }
 
 function parseJson(stdout: string): SqOutcome<unknown> {
@@ -335,10 +439,11 @@ export function getRaw(
   return runSqRaw(runner, invocation, workspaceRoot, ['show', id, '--raw']);
 }
 
-/** `sq show <id> --json` — only the structured `discussion` array (author/ts/body per comment)
- * is consumed, feeding the preview's collapsible discussion section; every other key is ignored
- * (see `SqShowJson`). Distinct from `getRaw`'s `--raw` dossier text, fetched in parallel with it
- * by the caller. */
+/** `sq show <id> --json` — the structured `discussion` array (author/ts/body per comment) and
+ * `subentities` array (local_id/title/status/assignee/severity/story/body per sub-entity) are
+ * consumed, feeding the preview's collapsible discussion and sub-entities sections respectively;
+ * every other key is ignored (see `SqShowJson`). Distinct from `getRaw`'s `--raw` dossier text,
+ * fetched in parallel with it by the caller. */
 export function getShowJson(
   runner: ProcessRunner,
   invocation: SqInvocation,
@@ -373,6 +478,40 @@ export function getTypeCatalog(
     workspaceRoot,
     ['workflow', 'types', '--json'],
     isSqTypeCatalogEntry,
+  );
+}
+
+/** `sq workflow collections --json` — the spec's declared badge collection
+ * vocabulary (code, label, emoji per badge), so a client renders the real glyph for an item's
+ * `badges` map entries without hardcoding a collection name or emoji set. */
+export function getCollectionsCatalog(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<SqCollectionCatalogEntry[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['workflow', 'collections', '--json'],
+    isSqCollectionCatalogEntry,
+  );
+}
+
+/** `sq workflow statuses --json` — the spec's declared status vocabulary,
+ * including each status's semantic `role` (e.g. `"active"`), so a client styles by the
+ * spec-declared role rather than a hardcoded status name. */
+export function getStatusesCatalog(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<SqStatusCatalogEntry[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['workflow', 'statuses', '--json'],
+    isSqStatusCatalogEntry,
   );
 }
 

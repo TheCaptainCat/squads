@@ -18,7 +18,7 @@ trying to report.
 
 import json
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import typer
 from rich.markdown import Markdown
@@ -37,7 +37,8 @@ workflow_app = typer.Typer(
         "Workflow cheatsheet and spec validation.\n\n"
         "Run `sq workflow` (or `sq workflow show`) for the team cheatsheet. "
         "Run `sq workflow lint` to validate your workflow override spec. "
-        "Run `sq workflow types` for the machine-readable type catalog."
+        "Run `sq workflow types` / `collections` / `statuses` for the machine-readable "
+        "type / badge-collection / status catalogs."
     ),
 )
 
@@ -85,7 +86,25 @@ def _print_cheatsheet(*, raw: bool) -> None:
 
 #: Frozen field set for the ``sq workflow types --json`` catalog. Kept as a module-level
 #: tuple so a test can assert the CLI never drifts from the declared contract.
-TYPE_CATALOG_FIELDS: tuple[str, str, str, str] = ("type", "order", "prefix", "reserved")
+TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
+    "type",
+    "order",
+    "prefix",
+    "reserved",
+    "fields",
+)
+
+#: Frozen field set for each entry of a type-catalog row's ``fields`` array.
+TYPE_FIELD_ENTRY_FIELDS: tuple[str, str, str] = ("code", "label", "collection")
+
+
+def _type_fields(t: str, spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The field->collection bindings declared for type *t* — a client resolves field
+    code -> collection code here, then collection code -> vocabulary via ``sq workflow
+    collections --json``."""
+    return [
+        {"code": f.code, "label": f.label, "collection": f.collection} for f in spec.fields_for(t)
+    ]
 
 
 def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
@@ -94,7 +113,8 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 
     Includes every declared type (work AND reserved: role/skill/operator). ``order`` is
     ``None`` when ``ItemSpec.order`` is unset (``+inf``) — present-but-null, never
-    omitted, so the key set stays stable across every row.
+    omitted, so the key set stays stable across every row. ``fields`` is the type's
+    declared field->collection bindings — ``[]`` for a type with no badge fields.
     """
     types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
     return [
@@ -103,6 +123,7 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "order": None if math.isinf(spec.items[t].order) else spec.items[t].order,
             "prefix": spec.items[t].prefix,
             "reserved": spec.items[t].is_meta,
+            "fields": _type_fields(t, spec),
         }
         for t in types
     ]
@@ -117,9 +138,10 @@ def workflow_types(
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
     declared type (work AND reserved), in ascending resolved ``order`` (type-name
-    string breaks ties): ``{type, order, prefix, reserved}``. ``order`` is ``null``
-    when the type has no explicit order (``+inf``) — present, never omitted, so the
-    key set is stable across every object.
+    string breaks ties): ``{type, order, prefix, reserved, fields}``. ``order`` is ``null``
+    when the type has no explicit order (``+inf``); ``fields`` is the type's declared
+    field->collection bindings (``[{code, label, collection}]``, ``[]`` if none) — present,
+    never omitted, so the key set is stable across every object.
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -139,6 +161,134 @@ def workflow_types(
             "" if row["order"] is None else str(row["order"]),
             e(str(row["prefix"])),
             "yes" if row["reserved"] else "",
+        )
+    console.print(table)
+
+
+# ─── collections ────────────────────────────────────────────────────────────────
+
+#: Frozen field set for the ``sq workflow collections --json`` catalog.
+COLLECTION_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
+    "collection",
+    "label",
+    "ordered",
+    "default",
+    "badges",
+)
+
+#: Frozen field set for each entry of a collection row's ``badges`` array.
+COLLECTION_BADGE_ENTRY_FIELDS: tuple[str, str, str] = ("code", "label", "emoji")
+
+
+def _collection_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The frozen collection-vocabulary rows, ascending collection code — every
+    declared collection's badges once, so a client resolves an item's ``badges`` code (e.g.
+    ``"high"``) to its glyph/label here instead of hardcoding the emoji set."""
+    return [
+        {
+            "collection": code,
+            "label": coll.label,
+            "ordered": coll.ordered,
+            "default": coll.default,
+            "badges": [{"code": b.code, "label": b.label, "emoji": b.emoji} for b in coll.badges],
+        }
+        for code, coll in sorted(spec.collections.items())
+    ]
+
+
+@workflow_app.command("collections")
+@handle_errors
+def workflow_collections(
+    json_out: bool = typer.Option(False, "--json", help="Emit the machine collection catalog."),
+) -> None:
+    """List every declared badge collection in the active workflow spec.
+
+    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
+    declared collection, ascending collection code: ``{collection, label, ordered,
+    default, badges}`` where ``badges`` is ``[{code, label, emoji}]`` in declaration
+    order. Items emit badge *codes* only (``sq tree``/``list``/``show``'s generic
+    ``badges`` map); this catalog is where a client resolves a code to its glyph/label,
+    once per spec instead of duplicated onto every item.
+    """
+    from squads._cli._common import get_active_spec, print_json_clean
+
+    spec = get_active_spec()
+    rows = _collection_catalog(spec)
+
+    if json_out:
+        print_json_clean(json.dumps(rows))
+        return
+
+    table = Table(box=None, pad_edge=False)
+    for col in ("Collection", "Label", "Ordered", "Default", "Badges"):
+        table.add_column(col)
+    for row in rows:
+        row_badges = cast("list[dict[str, str | None]]", row["badges"])
+        badge_list = ", ".join(f"{b['emoji'] or ''} {b['code']}".strip() for b in row_badges)
+        table.add_row(
+            e(str(row["collection"])),
+            e(str(row["label"])),
+            "yes" if row["ordered"] else "",
+            e(str(row["default"])) if row["default"] else "",
+            e(badge_list),
+        )
+    console.print(table)
+
+
+# ─── statuses ────────────────────────────────────────────────────────────────────
+
+#: Frozen field set for the ``sq workflow statuses --json`` catalog.
+STATUS_CATALOG_FIELDS: tuple[str, str, str, str] = ("status", "terminal", "role", "badge")
+
+
+def _status_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The frozen status-vocabulary rows, ascending status name — a client joins
+    an item's ``status`` string to this catalog to read ``terminal``/``role``/``badge``
+    instead of keying on the literal status name (e.g. hardcoding ``status == "InProgress"``
+    to detect "work in flight")."""
+    return [
+        {
+            "status": name,
+            "terminal": st.terminal,
+            "role": st.role,
+            "badge": st.badge,
+        }
+        for name, st in sorted(spec.statuses.items())
+    ]
+
+
+@workflow_app.command("statuses")
+@handle_errors
+def workflow_statuses(
+    json_out: bool = typer.Option(False, "--json", help="Emit the machine status catalog."),
+) -> None:
+    """List every declared status in the active workflow spec.
+
+    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
+    declared status, ascending status name: ``{status, terminal, role, badge}``. ``role``
+    is the semantic-status marker (e.g. ``"active"``, ``"superseded"``) or ``null``;
+    ``badge`` is the declared status emoji or ``null``. Catalog-only: no per-item
+    ``role``/``is_active`` field is added to any item surface — a client joins an item's
+    own ``status`` to this catalog instead.
+    """
+    from squads._cli._common import get_active_spec, print_json_clean
+
+    spec = get_active_spec()
+    rows = _status_catalog(spec)
+
+    if json_out:
+        print_json_clean(json.dumps(rows))
+        return
+
+    table = Table(box=None, pad_edge=False)
+    for col in ("Status", "Terminal", "Role", "Badge"):
+        table.add_column(col)
+    for row in rows:
+        table.add_row(
+            e(str(row["status"])),
+            "yes" if row["terminal"] else "",
+            e(str(row["role"])) if row["role"] else "",
+            e(str(row["badge"])) if row["badge"] else "",
         )
     console.print(table)
 

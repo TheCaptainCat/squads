@@ -3,9 +3,16 @@ import * as path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { buildBadgeVocabulary, buildFieldBindings } from '../src/domain/badgeCatalog';
+import { buildStatusRoleMap } from '../src/domain/statusRole';
 import { distinctTypesInTree, treeNodesToDisplay } from '../src/domain/treeMapping';
 import { buildTypeOrderMap } from '../src/domain/typeOrder';
-import type { SqTreeNode, SqTypeCatalogEntry } from '../src/types';
+import type {
+  SqCollectionCatalogEntry,
+  SqStatusCatalogEntry,
+  SqTreeNode,
+  SqTypeCatalogEntry,
+} from '../src/types';
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -13,6 +20,9 @@ function readFixture(name: string): string {
 
 const TREE_FIXTURE = JSON.parse(readFixture('tree.json')) as SqTreeNode[];
 const TYPE_CATALOG_FIXTURE = JSON.parse(readFixture('type-catalog.json')) as SqTypeCatalogEntry[];
+const STATUSES_CATALOG_FIXTURE = JSON.parse(
+  readFixture('statuses-catalog.json'),
+) as SqStatusCatalogEntry[];
 
 describe('treeNodesToDisplay', () => {
   it('maps the committed sq tree --json fixture into DisplayNodes, preserving hierarchy', () => {
@@ -90,6 +100,75 @@ describe('treeNodesToDisplay', () => {
     expect(mapped.find((node) => node.id === 'TASK-2')?.closed).toBe(true);
   });
 
+  it('marks a node active via DisplayNode.active, joined through the statuses catalog (F26) — never a literal status check', () => {
+    const nodes: SqTreeNode[] = [
+      {
+        id: 'TASK-1',
+        type: 'task',
+        title: 'An in-progress task',
+        status: 'InProgress',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+      {
+        id: 'TASK-2',
+        type: 'task',
+        title: 'A ready (not yet started) task',
+        status: 'Ready',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+      {
+        id: 'TASK-3',
+        type: 'task',
+        title: 'A done task',
+        status: 'Done',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: false,
+        children: [],
+      },
+    ];
+    const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+
+    const mapped = treeNodesToDisplay(nodes, {}, undefined, undefined, statusRoles);
+
+    expect(mapped.find((node) => node.id === 'TASK-1')?.active).toBe(true);
+    // Ready carries no declared role — not active, but also not closed (is_open is true).
+    const ready = mapped.find((node) => node.id === 'TASK-2');
+    expect(ready?.active).toBe(false);
+    expect(ready?.closed).toBe(false);
+    // Done is terminal (closed) and never carries the "active" role (F26/F7's disjoint sets).
+    const done = mapped.find((node) => node.id === 'TASK-3');
+    expect(done?.active).toBe(false);
+    expect(done?.closed).toBe(true);
+  });
+
+  it('with no statusRoles (the graceful fallback), no node is ever marked active', () => {
+    const nodes: SqTreeNode[] = [
+      {
+        id: 'TASK-1',
+        type: 'task',
+        title: 'An in-progress task',
+        status: 'InProgress',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+    ];
+
+    expect(treeNodesToDisplay(nodes)[0]?.active).toBe(false);
+  });
+
   it('marks blocked nodes distinctly in both the flag and the description', () => {
     const blockedFixture: SqTreeNode[] = [
       {
@@ -111,7 +190,7 @@ describe('treeNodesToDisplay', () => {
     expect(node?.tooltip).toContain('Blocked: yes');
   });
 
-  it('includes priority in the tooltip only when present', () => {
+  it('includes a badge in the tooltip only when the item carries it (empty badges map -> no lines)', () => {
     const baseNode: SqTreeNode = {
       id: 'EPIC-1',
       type: 'epic',
@@ -121,13 +200,88 @@ describe('treeNodesToDisplay', () => {
       assignee: null,
       blocked: false,
       is_open: true,
+      badges: { priority: 'high' },
       children: [],
     };
-    const withPriority: SqTreeNode[] = [baseNode];
-    const withoutPriority: SqTreeNode[] = [{ ...baseNode, priority: null }];
+    const withBadge: SqTreeNode[] = [baseNode];
+    const withoutBadge: SqTreeNode[] = [{ ...baseNode, badges: {} }];
 
-    expect(treeNodesToDisplay(withPriority)[0]?.tooltip).toContain('Priority: high');
-    expect(treeNodesToDisplay(withoutPriority)[0]?.tooltip).not.toContain('Priority');
+    expect(treeNodesToDisplay(withBadge)[0]?.tooltip).toContain('priority: high');
+    expect(treeNodesToDisplay(withoutBadge)[0]?.tooltip).not.toContain('priority');
+  });
+
+  it('renders a resolved collection badge (glyph + label), joined through the type/collections catalogs (F19)', () => {
+    const nodes: SqTreeNode[] = [
+      {
+        id: 'BUG-1',
+        type: 'bug',
+        title: 'Some bug',
+        status: 'Open',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        badges: { priority: 'high', severity: 'critical' },
+        children: [],
+      },
+    ];
+    const typeCatalog: SqTypeCatalogEntry[] = [
+      {
+        type: 'bug',
+        order: 40,
+        prefix: 'BUG',
+        reserved: false,
+        fields: [
+          { code: 'priority', label: 'Priority', collection: 'priority' },
+          { code: 'severity', label: 'Severity', collection: 'severity' },
+        ],
+      },
+    ];
+    const collectionsCatalog: SqCollectionCatalogEntry[] = [
+      {
+        collection: 'priority',
+        label: 'Priority',
+        ordered: true,
+        default: null,
+        badges: [{ code: 'high', label: 'High', emoji: '🟠' }],
+      },
+      {
+        collection: 'severity',
+        label: 'Severity',
+        ordered: true,
+        default: 'medium',
+        badges: [{ code: 'critical', label: 'Critical', emoji: '🔴' }],
+      },
+    ];
+    const fieldBindings = buildFieldBindings(typeCatalog);
+    const badgeVocabulary = buildBadgeVocabulary(collectionsCatalog);
+
+    const tooltip = treeNodesToDisplay(nodes, {}, fieldBindings, badgeVocabulary)[0]?.tooltip;
+
+    expect(tooltip).toContain('Priority: 🟠 High');
+    expect(tooltip).toContain('Severity: 🔴 Critical');
+  });
+
+  it('falls back to the raw field/badge code when the catalogs are unavailable (graceful degradation, F1-style)', () => {
+    const nodes: SqTreeNode[] = [
+      {
+        id: 'BUG-1',
+        type: 'bug',
+        title: 'Some bug',
+        status: 'Open',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        badges: { impact: 'urgent' },
+        children: [],
+      },
+    ];
+
+    // No fieldBindings/badgeVocabulary passed — defaults to the graceful-fallback empty maps.
+    const tooltip = treeNodesToDisplay(nodes)[0]?.tooltip;
+
+    expect(tooltip).toContain('impact: urgent');
   });
 
   it('filters out the three reserved meta types (role/skill/operator) at every depth', () => {
@@ -235,6 +389,58 @@ describe('treeNodesToDisplay', () => {
     const mapped = treeNodesToDisplay(nodes);
 
     expect(mapped.find((node) => node.id === 'BUG-1')?.iconId).toBe('bug');
+    expect(mapped.find((node) => node.id === 'CUSTOM-1')?.iconId).toBe('circle-outline');
+  });
+
+  it('layers squads.typeIcons overrides over the bundled defaults (F21)', () => {
+    const nodes: SqTreeNode[] = [
+      {
+        id: 'BUG-1',
+        type: 'bug',
+        title: 'Some bug',
+        status: 'Open',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+      {
+        id: 'CUSTOM-1',
+        type: 'widget',
+        title: 'Some widget',
+        status: 'Open',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+    ];
+
+    const mapped = treeNodesToDisplay(nodes, { bug: 'flame', widget: 'gear' });
+
+    expect(mapped.find((node) => node.id === 'BUG-1')?.iconId).toBe('flame');
+    expect(mapped.find((node) => node.id === 'CUSTOM-1')?.iconId).toBe('gear');
+  });
+
+  it('still falls back to the generic icon for a type absent from both the overrides and the bundled defaults', () => {
+    const nodes: SqTreeNode[] = [
+      {
+        id: 'CUSTOM-1',
+        type: 'widget',
+        title: 'Some widget',
+        status: 'Open',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        is_open: true,
+        children: [],
+      },
+    ];
+
+    const mapped = treeNodesToDisplay(nodes, { bug: 'flame' });
+
     expect(mapped.find((node) => node.id === 'CUSTOM-1')?.iconId).toBe('circle-outline');
   });
 });

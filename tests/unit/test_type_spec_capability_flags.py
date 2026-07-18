@@ -110,9 +110,15 @@ def test_extra_fields_declared_on_guide_and_review_empty_where_undeclared() -> N
     assert spec.item_extra_fields("task") == []
 
 
-def test_superseded_carries_a_role_no_other_bundled_status_carries() -> None:
+def test_exactly_superseded_inprogress_and_active_carry_a_bundled_role() -> None:
+    """Superseded carries the terminal ``"superseded"`` role; InProgress (work-item) and
+    Active (roster) carry the working ``"active"`` role. Every other bundled status carries
+    no role at all."""
     spec = _spec()
-    assert spec.statuses["Superseded"].role == "superseded"
+    expected_roles = {
+        "Superseded": "superseded",
+        "InProgress": "active",
+        "Active": "active",
+    }
     for name, ss in spec.statuses.items():
-        if name != "Superseded":
-            assert ss.role is None
+        assert ss.role == expected_roles.get(name)

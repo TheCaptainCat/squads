@@ -126,6 +126,7 @@ terminal = false
 [statuses.InProgress]
 terminal = false
 badge = "🟡"
+role = "active"
 
 [statuses.InReview]
 terminal = false
@@ -172,6 +173,7 @@ terminal = true
 
 [statuses.Active]
 terminal = false
+role = "active"
 
 [statuses.Archived]
 terminal = true

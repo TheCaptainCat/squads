@@ -4,8 +4,9 @@
  * the `markdown.showPreview` path this replaces) — rendering `sq show <id> --raw` as HTML via
  * the vscode-free `domain/markdown` + `domain/previewDocument` helpers, alongside the two
  * collapsible mermaid graphs (`domain/graphDiagrams`) built from `sq tree`/`sq graph --json`,
- * and the collapsible discussion section built from `sq show <id> --json`'s `discussion` array
- * (`getShowJson`) — all fetched in parallel with the `--raw` dossier text.
+ * and the collapsible sub-entities + discussion sections built from `sq show <id> --json`'s
+ * `subentities`/`discussion` arrays (`getShowJson`) — all fetched in parallel with the `--raw`
+ * dossier text.
  *
  * Navigation: a tree-node selection reuses the single owned panel if one is open (mirroring
  * the old dynamic preview's UX), otherwise opens a fresh one. A link click inside a panel
@@ -31,10 +32,12 @@ import {
   buildDiscussionHtml,
   buildGraphsHtml,
   buildPreviewHtml,
+  buildSubEntitiesHtml,
   type DiscussionOutcome,
   type GraphOutcome,
   renderOutcomeHtml,
   renderWorkflowHtml,
+  type SubEntitiesOutcome,
 } from './domain/previewDocument';
 import {
   parseOpenItemMessage,
@@ -77,9 +80,39 @@ function toDiscussionOutcome(outcome: SqOutcome<SqShowJson>): DiscussionOutcome 
   return { entries: outcome.data.discussion };
 }
 
+/** Turns a `getShowJson` outcome into the sub-entities section's content — the parsed
+ * sub-entity list on success, or the same human-readable failure message every other surface
+ * shows, on failure. Mirrors `toDiscussionOutcome`'s shape (same underlying fetch). */
+function toSubEntitiesOutcome(outcome: SqOutcome<SqShowJson>): SubEntitiesOutcome {
+  if (outcome.kind !== 'success') {
+    return { entities: null, message: describeFailure(outcome) };
+  }
+  return { entities: outcome.data.subentities };
+}
+
+/** The squads icon shown on a webview panel's editor tab (F16). Unlike the activity-bar
+ * container icon (`package.json`'s single `currentColor` SVG, themed via VS Code's own
+ * icon-masking), a webview tab icon is drawn as a plain image with no such re-tinting — so it
+ * needs its own light/dark pair with an explicit stroke color to read against either tab-bar
+ * background (`resources/squads-icon-vscode-{light,dark}.svg`, derived from the activity-bar
+ * source). */
+function panelIconPath(extensionUri: vscode.Uri): {
+  readonly light: vscode.Uri;
+  readonly dark: vscode.Uri;
+} {
+  return {
+    light: vscode.Uri.joinPath(extensionUri, 'resources', 'squads-icon-vscode-light.svg'),
+    dark: vscode.Uri.joinPath(extensionUri, 'resources', 'squads-icon-vscode-dark.svg'),
+  };
+}
+
 export class ItemPreviewManager {
   private activePanel: vscode.WebviewPanel | undefined;
   private activeWorkflowPanel: vscode.WebviewPanel | undefined;
+  // Every currently-open item-preview panel (there may be more than one — middle-click opens a
+  // new tab alongside the reused `activePanel`), mapped to the item id it currently shows. Lets
+  // the `.squads.json` watcher (F17) refresh every open preview, not just the reused one.
+  private readonly openPanels = new Map<vscode.WebviewPanel, string>();
 
   constructor(
     private readonly runner: ProcessRunner,
@@ -121,6 +154,7 @@ export class ItemPreviewManager {
         localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
       },
     );
+    panel.iconPath = panelIconPath(this.extensionUri);
     panel.onDidDispose(() => {
       if (this.activeWorkflowPanel === panel) {
         this.activeWorkflowPanel = undefined;
@@ -138,10 +172,12 @@ export class ItemPreviewManager {
       // webview loads — scoped to that one directory, not the whole extension.
       localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
     });
+    panel.iconPath = panelIconPath(this.extensionUri);
     panel.onDidDispose(() => {
       if (this.activePanel === panel) {
         this.activePanel = undefined;
       }
+      this.openPanels.delete(panel);
     });
     panel.webview.onDidReceiveMessage((raw: unknown) => {
       void this.handleMessage(panel, raw);
@@ -149,6 +185,13 @@ export class ItemPreviewManager {
     this.activePanel = panel;
     await this.render(panel, id);
     return panel;
+  }
+
+  /** Re-renders every currently-open item-preview panel against its current item id. Called by
+   * the `.squads.json` watcher (F17) on an on-disk change — always re-fetches through `sq …
+   * --json`, never reads stale state. */
+  async refreshOpenPreviews(): Promise<void> {
+    await Promise.all([...this.openPanels.entries()].map(([panel, id]) => this.render(panel, id)));
   }
 
   private async handleMessage(panel: vscode.WebviewPanel, raw: unknown): Promise<void> {
@@ -166,16 +209,20 @@ export class ItemPreviewManager {
   }
 
   private async render(panel: vscode.WebviewPanel, id: string): Promise<void> {
+    this.openPanels.set(panel, id);
     const resolution = this.discovery.resolve();
+    let headerHtml: string;
     let bodyHtml: string;
     let graphsHtml: string;
+    let subEntitiesHtml: string;
     let discussionHtml: string;
     if (!resolution.ok) {
       const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
       this.notifyError(`Squads: ${message}`);
-      bodyHtml = renderOutcomeHtml(id, { kind: 'spawn-error', message });
+      ({ headerHtml, bodyHtml } = renderOutcomeHtml(id, { kind: 'spawn-error', message }));
       const unavailable: GraphOutcome = { mermaidSource: null, message };
       graphsHtml = buildGraphsHtml(unavailable, unavailable);
+      subEntitiesHtml = buildSubEntitiesHtml({ entities: null, message }, id);
       discussionHtml = buildDiscussionHtml({ entries: null, message }, id);
     } else {
       const { invocation } = resolution;
@@ -191,14 +238,15 @@ export class ItemPreviewManager {
         }
         this.notifyError(`Squads: ${describeFailure(dossier)}`);
       }
-      bodyHtml = renderOutcomeHtml(id, dossier);
-      // Tree/graph/discussion fetch failures degrade their own section to an inline message
-      // rather than a second notification — the dossier failure above is the one that's
-      // actionable.
+      ({ headerHtml, bodyHtml } = renderOutcomeHtml(id, dossier));
+      // Tree/graph/sub-entities/discussion fetch failures degrade their own section to an
+      // inline message rather than a second notification — the dossier failure above is the
+      // one that's actionable.
       graphsHtml = buildGraphsHtml(
         toGraphOutcome<readonly SqTreeNode[]>(tree, buildSubtreeMermaid),
         toGraphOutcome<SqGraphNode>(graph, buildRefGraphMermaid),
       );
+      subEntitiesHtml = buildSubEntitiesHtml(toSubEntitiesOutcome(showJson), id);
       discussionHtml = buildDiscussionHtml(toDiscussionOutcome(showJson), id);
     }
     const nonce = randomUUID();
@@ -208,8 +256,10 @@ export class ItemPreviewManager {
     panel.title = id;
     panel.webview.html = buildPreviewHtml({
       title: id,
+      headerHtml,
       bodyHtml,
       graphsHtml,
+      subEntitiesHtml,
       discussionHtml,
       nonce,
       mermaidScriptUri,
@@ -243,8 +293,10 @@ export class ItemPreviewManager {
       .toString();
     panel.webview.html = buildPreviewHtml({
       title: WORKFLOW_TITLE,
+      headerHtml: '',
       bodyHtml,
       graphsHtml: '',
+      subEntitiesHtml: '',
       discussionHtml: '',
       nonce,
       mermaidScriptUri,

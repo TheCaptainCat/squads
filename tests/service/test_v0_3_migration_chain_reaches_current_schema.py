@@ -26,7 +26,7 @@ def test_the_v0_3_to_v0_4_migration_runner_is_a_noop() -> None:
 
 
 def test_schema_version_is_the_current_release_schema() -> None:
-    assert SCHEMA_VERSION == "0.8"
+    assert SCHEMA_VERSION == "0.10"
 
 
 async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_current(
@@ -44,8 +44,8 @@ async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_
     svc_03 = Service(paths_03)
 
     applied = await svc_03.run_pending_migrations()
-    assert [a.from_schema for a in applied] == ["0.3", "0.4", "0.5", "0.7"]
-    assert [a.to_schema for a in applied] == ["0.4", "0.5", "0.7", "0.8"]
+    assert [a.from_schema for a in applied] == ["0.3", "0.4", "0.5", "0.7", "0.8"]
+    assert [a.to_schema for a in applied] == ["0.4", "0.5", "0.7", "0.8", "0.10"]
 
     with cfg_path.open("rb") as fh:
         stamped = tomllib.load(fh)

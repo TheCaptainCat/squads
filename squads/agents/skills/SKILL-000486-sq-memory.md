@@ -1,3 +1,20 @@
+---
+id: SKILL-486
+sequence_id: 486
+type: skill
+title: sq-memory
+status: Active
+author: sq-memory
+description: 'Your role''s committed memory notebook and the team bulletin board:
+  check your index at the start of a run, jot one fact per memory, prune what''s stale
+  or wrong, post/clear board notices, and the memory-vs-board boundary. Use whenever
+  you learn something worth remembering, or need to announce something to the whole
+  team.'
+created_at: '2026-07-18T21:49:05Z'
+updated_at: '2026-07-18T21:49:05Z'
+extra:
+  slug: sq-memory
+---
 <!-- sq:body -->
 # sq-memory — your role's memory and the team board
 
@@ -40,14 +57,23 @@ entry at a time. When you're about to jot something down, ask: *is this mine, le
 own work — or is this something the whole team needs to know?* The former is memory; the latter
 belongs somewhere shared, not duplicated per role.
 
+## The summary-vs-body split
+
+`sq memory <role> add "<fact>"` takes the positional argument as the memory's snappy one-line
+**summary** — the `summary:` field, and what `list`/`search` show in the index. It is not the
+place for the whole fact: keep it to a single glance-readable line. The detailed write-up — the
+reasoning, the example, the "why" — goes in the **body**, via `--file` (a path, or `-` for
+stdin). Name the memory's handle explicitly with `--slug` instead of letting it get derived (and
+possibly truncated) from the summary text — a clean, stable slug beats an auto-generated one.
+
 ## Memory command surface
 
 ```
-sq memory <role> list                     # browse the index
-sq memory <role> search <query>           # find by content
-sq memory <role> show <slug>              # read one in full
-sq memory <role> add "<fact>" [--file f]  # jot a new memory
-sq memory <role> forget <slug>            # prune a stale or wrong one
+sq memory <role> list                              # browse the index
+sq memory <role> search <query>                     # find by content
+sq memory <role> show <slug>                        # read one in full
+sq memory <role> add "<summary>" [--file f] [--slug s]  # jot a new memory
+sq memory <role> forget <slug>                      # prune a stale or wrong one
 ```
 
 `<role>` is a positional subject (`sq memory python-dev list`), consistent with `sq inbox <role>` /

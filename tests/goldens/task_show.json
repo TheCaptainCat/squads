@@ -23,7 +23,8 @@
       "severity": null,
       "story": "US1",
       "extra": {},
-      "body": "_Describe this subtask here \u2014 free-form paragraphs or bullet lists._"
+      "body": "_Describe this subtask here \u2014 free-form paragraphs or bullet lists._",
+      "badges": {}
     }
   ],
   "path": "tasks/TASK-000003-implement-login.md",
@@ -40,5 +41,6 @@
       "ts": "2026-06-07T10:00:00Z",
       "body": "- @manager please review the login handler"
     }
-  ]
+  ],
+  "badges": {}
 }

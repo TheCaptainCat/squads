@@ -10,10 +10,24 @@
 import * as vscode from 'vscode';
 
 import { describeTriedOrder, type SqDiscovery } from './discovery';
+import {
+  buildBadgeVocabulary,
+  buildFieldBindings,
+  NO_BADGE_VOCABULARY,
+  NO_FIELD_BINDINGS,
+} from './domain/badgeCatalog';
 import { type DisplayNode, errorDisplayNode } from './domain/displayNode';
 import { buildMetaView } from './domain/metaView';
+import { buildStatusRoleMap, NO_STATUS_ROLES } from './domain/statusRole';
 import type { ProcessRunner } from './processRunner';
-import { describeFailure, getList, type SqOutcome } from './sqAdapter';
+import {
+  describeFailure,
+  getCollectionsCatalog,
+  getList,
+  getStatusesCatalog,
+  getTypeCatalog,
+  type SqOutcome,
+} from './sqAdapter';
 import { toTreeItem } from './treeItemRendering';
 
 export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<DisplayNode> {
@@ -45,12 +59,34 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
       return;
     }
     const { invocation } = resolution;
-    const outcome = await getList(this.runner, invocation, this.workspaceRoot, ['--all']);
+    // Same catalogs the work tree fetches (F19/F26), so the roster's tooltip renders real
+    // collection badges and an Active role/skill/operator gets the same green highlight; a
+    // failed fetch degrades to raw-code badge text / no highlight rather than breaking the view
+    // (`buildFieldBindings`/`buildBadgeVocabulary`/`buildStatusRoleMap` on an empty array is the
+    // same as each graceful-fallback default).
+    const [outcome, catalogOutcome, collectionsOutcome, statusesOutcome] = await Promise.all([
+      getList(this.runner, invocation, this.workspaceRoot, ['--all']),
+      getTypeCatalog(this.runner, invocation, this.workspaceRoot),
+      getCollectionsCatalog(this.runner, invocation, this.workspaceRoot),
+      getStatusesCatalog(this.runner, invocation, this.workspaceRoot),
+    ]);
     if (outcome.kind !== 'success') {
       this.failFrom(outcome);
       return;
     }
-    this.roots = buildMetaView(outcome.data);
+    const fieldBindings =
+      catalogOutcome.kind === 'success'
+        ? buildFieldBindings(catalogOutcome.data)
+        : NO_FIELD_BINDINGS;
+    const badgeVocabulary =
+      collectionsOutcome.kind === 'success'
+        ? buildBadgeVocabulary(collectionsOutcome.data)
+        : NO_BADGE_VOCABULARY;
+    const statusRoles =
+      statusesOutcome.kind === 'success'
+        ? buildStatusRoleMap(statusesOutcome.data)
+        : NO_STATUS_ROLES;
+    this.roots = buildMetaView(outcome.data, fieldBindings, badgeVocabulary, statusRoles);
     this.changeEmitter.fire(undefined);
   }
 

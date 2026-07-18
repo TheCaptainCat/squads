@@ -12,8 +12,9 @@ import {
   matchesFilter,
   NO_FILTER,
 } from '../src/domain/listView';
+import { buildStatusRoleMap } from '../src/domain/statusRole';
 import { buildTypeOrderMap } from '../src/domain/typeOrder';
-import type { SqListItem, SqTypeCatalogEntry } from '../src/types';
+import type { SqListItem, SqStatusCatalogEntry, SqTypeCatalogEntry } from '../src/types';
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -22,6 +23,9 @@ function readFixture(name: string): string {
 const LIST_FIXTURE = JSON.parse(readFixture('list.json')) as SqListItem[];
 const TYPE_CATALOG_FIXTURE = JSON.parse(readFixture('type-catalog.json')) as SqTypeCatalogEntry[];
 const TYPE_ORDER_MAP = buildTypeOrderMap(TYPE_CATALOG_FIXTURE);
+const STATUSES_CATALOG_FIXTURE = JSON.parse(
+  readFixture('statuses-catalog.json'),
+) as SqStatusCatalogEntry[];
 
 describe('excludeReservedTypes', () => {
   it('drops the three reserved meta types (role/skill/operator) from the committed fixture', () => {
@@ -141,6 +145,50 @@ describe('groupListItems', () => {
 
     expect(nodes.find((node) => node.id === 'TASK-1')?.closed).toBe(true);
     expect(nodes.find((node) => node.id === 'TASK-2')?.closed).toBe(false);
+  });
+
+  it('marks a leaf active via DisplayNode.active, joined through the statuses catalog (F26) — never a literal status check', () => {
+    const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const mixedItems: SqListItem[] = [
+      { ...makeItem('TASK-1', 'task', true), status: 'InProgress' },
+      { ...makeItem('TASK-2', 'task', true), status: 'Ready' },
+      { ...makeItem('TASK-3', 'task', false), status: 'Done' },
+    ];
+
+    const nodes = groupListItems(
+      mixedItems,
+      false,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      statusRoles,
+    );
+
+    expect(nodes.find((node) => node.id === 'TASK-1')?.active).toBe(true);
+    const ready = nodes.find((node) => node.id === 'TASK-2');
+    expect(ready?.active).toBe(false);
+    expect(ready?.closed).toBe(false);
+    // Done is closed and never carries the "active" role — the disjoint sets F26/F7 rely on.
+    const done = nodes.find((node) => node.id === 'TASK-3');
+    expect(done?.active).toBe(false);
+    expect(done?.closed).toBe(true);
+  });
+
+  it('with no statusRoles (the graceful fallback), no leaf is ever marked active', () => {
+    const inProgressItem: SqListItem[] = [
+      { ...makeItem('TASK-1', 'task', true), status: 'InProgress' },
+    ];
+
+    expect(groupListItems(inProgressItem, false)[0]?.active).toBe(false);
+  });
+
+  it('layers squads.typeIcons overrides over the bundled per-type icon defaults (F21)', () => {
+    const nodes = groupListItems(items, false, undefined, { task: 'flame' });
+
+    expect(nodes.find((node) => node.id === 'TASK-1')?.iconId).toBe('flame');
+    // A type absent from the overrides still gets its bundled default.
+    expect(nodes.find((node) => node.id === 'BUG-1')?.iconId).toBe('bug');
   });
 });
 

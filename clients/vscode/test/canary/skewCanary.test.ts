@@ -28,12 +28,21 @@ import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  isSqCollectionCatalogEntry,
   isSqGraphNode,
   isSqListItem,
+  isSqStatusCatalogEntry,
   isSqTreeNode,
   isSqTypeCatalogEntry,
 } from '../../src/sqAdapter';
-import type { SqGraphNode, SqListItem, SqTreeNode, SqTypeCatalogEntry } from '../../src/types';
+import type {
+  SqCollectionCatalogEntry,
+  SqGraphNode,
+  SqListItem,
+  SqStatusCatalogEntry,
+  SqTreeNode,
+  SqTypeCatalogEntry,
+} from '../../src/types';
 
 interface CreatedItem {
   readonly id: string;
@@ -155,6 +164,7 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
             'assignee',
             'blocked',
             'is_open',
+            'badges',
             'children',
           ]),
         );
@@ -224,6 +234,7 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
             'path',
             'created_at',
             'updated_at',
+            'badges',
           ]),
         );
       }
@@ -250,7 +261,7 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       for (const entry of entries) {
         expect(isSqTypeCatalogEntry(entry)).toBe(true);
         expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining(['type', 'order', 'prefix', 'reserved']),
+          expect.arrayContaining(['type', 'order', 'prefix', 'reserved', 'fields']),
         );
       }
       // Emitted in ascending resolved order, so the client's group-by-type sort can trust it
@@ -258,6 +269,15 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       const orders = entries.map((entry) => entry.order).filter((order) => order !== null);
       expect(orders).toEqual([...orders].sort((a, b) => a - b));
       expect(entries.some((entry) => entry.reserved)).toBe(true);
+      // The bug type's `fields` binds both its priority and severity codes to a collection
+      // (F19/F20's field->collection join) — a real, non-empty example, not just an empty array.
+      const bug = entries.find((entry) => entry.type === 'bug');
+      expect(bug?.fields).toEqual(
+        expect.arrayContaining([
+          { code: 'priority', label: 'Priority', collection: 'priority' },
+          { code: 'severity', label: 'Severity', collection: 'severity' },
+        ]),
+      );
     });
 
     it('the committed fixture still conforms to the shape the adapter accepts', () => {
@@ -265,6 +285,63 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       expect(entries.length).toBeGreaterThan(0);
       for (const entry of entries) {
         expect(isSqTypeCatalogEntry(entry)).toBe(true);
+      }
+    });
+  });
+
+  describe('sq workflow collections --json', () => {
+    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+      const parsed = JSON.parse(runSq(['workflow', 'collections', '--json'])) as unknown;
+      expect(Array.isArray(parsed)).toBe(true);
+
+      const entries = parsed as SqCollectionCatalogEntry[];
+      // At least the two bundled collections (priority, severity).
+      expect(entries.length).toBeGreaterThanOrEqual(2);
+      for (const entry of entries) {
+        expect(isSqCollectionCatalogEntry(entry)).toBe(true);
+        expect(Object.keys(entry)).toEqual(
+          expect.arrayContaining(['collection', 'label', 'ordered', 'default', 'badges']),
+        );
+        expect(entry.badges.length).toBeGreaterThan(0);
+      }
+      expect(entries.some((entry) => entry.collection === 'priority')).toBe(true);
+      expect(entries.some((entry) => entry.collection === 'severity')).toBe(true);
+    });
+
+    it('the committed fixture still conforms to the shape the adapter accepts', () => {
+      const entries = JSON.parse(fixture('collections-catalog.json')) as unknown[];
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(isSqCollectionCatalogEntry(entry)).toBe(true);
+      }
+    });
+  });
+
+  describe('sq workflow statuses --json', () => {
+    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+      const parsed = JSON.parse(runSq(['workflow', 'statuses', '--json'])) as unknown;
+      expect(Array.isArray(parsed)).toBe(true);
+
+      const entries = parsed as SqStatusCatalogEntry[];
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(isSqStatusCatalogEntry(entry)).toBe(true);
+        expect(Object.keys(entry)).toEqual(
+          expect.arrayContaining(['status', 'terminal', 'role', 'badge']),
+        );
+      }
+      // InProgress carries the "active" semantic role (F26/US9) — the join the client uses to
+      // color "work in flight" items green, never by the literal status name.
+      const inProgress = entries.find((entry) => entry.status === 'InProgress');
+      expect(inProgress?.role).toBe('active');
+      expect(inProgress?.terminal).toBe(false);
+    });
+
+    it('the committed fixture still conforms to the shape the adapter accepts', () => {
+      const entries = JSON.parse(fixture('statuses-catalog.json')) as unknown[];
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(isSqStatusCatalogEntry(entry)).toBe(true);
       }
     });
   });

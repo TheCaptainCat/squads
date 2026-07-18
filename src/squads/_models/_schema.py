@@ -8,7 +8,7 @@ While squads is alpha, the schema version tracks the **alpha release that introd
 ``"0.1"`` for the initial shape, ``"0.2"`` for inline ref kinds) rather than an opaque counter.
 """
 
-SCHEMA_VERSION = "0.8"
+SCHEMA_VERSION = "0.10"
 
 
 def schema_tuple(version: str) -> tuple[int, ...]:

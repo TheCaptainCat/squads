@@ -124,7 +124,11 @@ async def show_memory(
 @common.command
 async def add_memory(
     ctx: typer.Context,
-    fact: str = typer.Argument(..., help="The fact to remember (also the default slug source)."),
+    fact: str = typer.Argument(
+        ...,
+        help="A snappy one-line summary of the memory (also the default slug source); "
+        "put the detailed write-up in --file.",
+    ),
     file: str | None = typer.Option(
         None, "--file", help="Read a longer body from PATH ('-' for stdin)."
     ),

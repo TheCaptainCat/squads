@@ -10,16 +10,33 @@ import { escapeHtml } from './markdown';
 
 /** Mermaid flowchart node identifiers only allow word characters; item ids are always
  * `[A-Z][A-Z0-9]*-\d+`, so folding the hyphen to an underscore is the only sanitizing needed
- * (mirrors the core CLI's own `sq graph --format mermaid` `_safe_id`, `_services/_refs.py`). */
+ * (mirrors the core CLI's own `sq graph --format mermaid` `_safe_id`, `_services/_refs.py`).
+ * Reversible: since an item id has exactly one non-word character (the hyphen), the webview's
+ * post-render click wiring (`previewDocument.ts`'s `mermaidRenderScript`) recovers the original
+ * id straight from a rendered node's id by undoing this same substitution — see F25. */
 function mermaidNodeId(id: string): string {
   return id.replace(/[^A-Za-z0-9_]/g, '_');
 }
 
-/** Wraps `text` as a quoted Mermaid node label. HTML-escaped (Mermaid flowchart labels accept
- * HTML entities) so it can never break out of the quotes or inject markup, regardless of what
- * an item's title/id happens to contain. */
+/** Markdown metacharacters (`` ` ``/`*`/`_`) that would otherwise read as code/emphasis inside
+ * a Mermaid markdown-string label (see `mermaidNodeLabel`) are backslash-escaped so the label
+ * always renders as the literal text; `escapeHtml` handles `<`/`>`/`"`/`&` so the label can
+ * never break out of its own quoting or inject markup, regardless of what an item's title/id
+ * happens to contain. */
+function escapeMermaidMarkdownLabel(text: string): string {
+  return escapeHtml(text).replace(/[`*_]/g, (char) => `\\${char}`);
+}
+
+/** Wraps `text` as a Mermaid *markdown-string* node label — `"` + a backtick-delimited string
+ * + `"` — mermaid's supported mechanism for auto-wrapping a long label onto multiple lines
+ * from real text-metric measurement (`config.flowchart.wrappingWidth`, set alongside
+ * `securityLevel: 'strict'` in `previewDocument.ts`'s `mermaidRenderScript`), unlike a plain
+ * quoted label's single non-wrapping line — a node whose box doesn't grow to fit its own text
+ * crops the label at its edge. `truncate` is a defensive length cap on top of that, not the
+ * wrapping mechanism itself (so a pathologically long title still can't produce an unbounded
+ * node). */
 function mermaidNodeLabel(text: string): string {
-  return `"${escapeHtml(text)}"`;
+  return `"\`${escapeMermaidMarkdownLabel(truncate(text, 120))}\`"`;
 }
 
 /** Edge labels sit inside Mermaid's unquoted `-->|label|` syntax, where a literal `|` would

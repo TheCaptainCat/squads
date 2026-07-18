@@ -1,7 +1,8 @@
 /**
  * Extension entry point: resolves `sq` for the first workspace folder, then wires up the
- * activity-bar work-item tree, the meta/roster view (F12), the owned item-preview webview, and
- * the filter/group/refresh commands.
+ * activity-bar work-item tree, the meta/roster view (F12), the owned item-preview webview, the
+ * filter/group/refresh commands, and the `.squads.json` watcher that auto-refreshes all three
+ * on an on-disk change (F17).
  */
 import * as vscode from 'vscode';
 
@@ -9,8 +10,9 @@ import { registerCommands, registerMetaCommands } from './commands';
 import { SqDiscovery } from './discovery';
 import { ItemPreviewManager } from './itemPreviewManager';
 import { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
-import { createNodeDiscoveryEnvironment } from './nodeEnvironment';
+import { createNodeDiscoveryEnvironment, createNodeSquadDirEnvironment } from './nodeEnvironment';
 import { nodeProcessRunner } from './processRunner';
+import { watchSquadIndex } from './squadWatcher';
 import { SquadsTreeDataProvider } from './treeDataProvider';
 
 function getSquadsConfig(): { sqPath: string; command: readonly string[] } {
@@ -22,10 +24,11 @@ function getSquadsConfig(): { sqPath: string; command: readonly string[] } {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  if (root === undefined) {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (workspaceFolder === undefined) {
     return;
   }
+  const root = workspaceFolder.uri.fsPath;
 
   const env = createNodeDiscoveryEnvironment();
   const notifyError = (message: string): void => {
@@ -82,6 +85,19 @@ export function activate(context: vscode.ExtensionContext): void {
 
   void treeDataProvider.refresh();
   void metaTreeDataProvider.refresh();
+
+  // F17: auto-refresh both tree views + any open item preview when `.squads.json` changes on
+  // disk (an agent runs `sq`, a `git pull`) — no-ops cleanly for a non-local/remote workspace or
+  // when no `.squads.toml` is found.
+  context.subscriptions.push(
+    watchSquadIndex(workspaceFolder, createNodeSquadDirEnvironment(), {
+      onIndexChanged: () => {
+        void treeDataProvider.refresh();
+        void metaTreeDataProvider.refresh();
+        void previewManager.refreshOpenPreviews();
+      },
+    }),
+  );
 }
 
 export function deactivate(): void {

@@ -21,6 +21,7 @@ from squads._migrations import (
     _v0_4_to_v0_5,
     _v0_5_to_v0_7,
     _v0_7_to_v0_8,
+    _v0_8_to_v0_10,
 )
 from squads._paths import SquadPaths
 
@@ -105,5 +106,17 @@ MIGRATIONS: list[Migration] = [
         ),
         run=_wrap_sync(_v0_7_to_v0_8.migrate),
         manual=_v0_7_to_v0_8.MANUAL,
+    ),
+    Migration(
+        version="0.10.0",
+        from_schema="0.8",
+        to_schema="0.10",
+        summary=(
+            "sq-memory becomes a tracked SKILL item: stamp a SKILL-… id onto the legacy "
+            "agents/skills/sq-memory.md and move it to the SKILL-<NNNNNN>-sq-memory.md "
+            "convention filename, like every other bundled skill."
+        ),
+        run=_v0_8_to_v0_10.migrate,
+        manual=_v0_8_to_v0_10.MANUAL,
     ),
 ]

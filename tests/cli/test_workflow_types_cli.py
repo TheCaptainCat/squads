@@ -1,10 +1,12 @@
 """``sq workflow types`` — the type-catalog machine surface.
 
 Default prints a human Rich table; ``--json`` emits the frozen bare-array shape
-(``{type, order, prefix, reserved}``) in ascending resolved order, type-name tiebreak.
-The byte-identical golden is pinned in ``tests/cli/test_json_output_shape.py``
-(``tests/goldens/workflow_types.json``) — this module covers the field-set/model
-contract, the null-order representation, and the human table.
+(``{type, order, prefix, reserved, fields}``) in ascending resolved order, type-name tiebreak.
+``fields`` is the type's declared field->collection bindings, additive to the
+original catalog shape. The byte-identical golden is pinned in
+``tests/cli/test_json_output_shape.py`` (``tests/goldens/workflow_types.json``) — this module
+covers the field-set/model contract, the null-order representation, the ``fields`` binding,
+and the human table.
 """
 
 import json
@@ -14,7 +16,9 @@ import pytest
 
 from squads._cli._workflow_cmd import (
     TYPE_CATALOG_FIELDS,
+    TYPE_FIELD_ENTRY_FIELDS,
     _type_catalog,  # pyright: ignore[reportPrivateUsage]
+    _type_fields,  # pyright: ignore[reportPrivateUsage]
 )
 from squads._workflow import load_workflow_spec
 from squads._workflow._models import ItemSpec, WorkflowSpec
@@ -87,17 +91,46 @@ async def test_json_prefix_matches_the_spec(project, invoke) -> None:
         assert rows[t]["prefix"] == ts.prefix
 
 
+async def test_json_row_fields_matches_the_spec_declared_field_collection_bindings(
+    project, invoke
+) -> None:
+    """The field->collection binding on the type catalog."""
+    result = await invoke(["workflow", "types", "--json"])
+    rows = {r["type"]: r for r in json.loads(result.output)}
+    spec = load_workflow_spec()
+    for t in ("task", "bug", "role"):
+        assert rows[t]["fields"] == [
+            {"code": f.code, "label": f.label, "collection": f.collection}
+            for f in spec.fields_for(t)
+        ]
+    # role is a meta-type — no declared badge fields.
+    assert rows["role"]["fields"] == []
+    # bug declares both priority and severity.
+    assert {f["code"] for f in rows["bug"]["fields"]} == {"priority", "severity"}
+
+
 # ─── field-set / model contract ─────────────────────────────────────────────────
 
 
-def test_frozen_field_set_is_exactly_type_order_prefix_reserved() -> None:
-    assert TYPE_CATALOG_FIELDS == ("type", "order", "prefix", "reserved")
+def test_frozen_field_set_is_exactly_type_order_prefix_reserved_fields() -> None:
+    assert TYPE_CATALOG_FIELDS == ("type", "order", "prefix", "reserved", "fields")
+
+
+def test_frozen_field_entry_field_set_is_exactly_code_label_collection() -> None:
+    assert TYPE_FIELD_ENTRY_FIELDS == ("code", "label", "collection")
 
 
 def test_every_catalog_row_has_exactly_the_frozen_field_set() -> None:
     spec = load_workflow_spec()
     for row in _type_catalog(spec):
         assert set(row.keys()) == set(TYPE_CATALOG_FIELDS)
+
+
+def test_every_field_entry_has_exactly_the_frozen_field_set() -> None:
+    spec = load_workflow_spec()
+    for t in spec.items:
+        for entry in _type_fields(t, spec):
+            assert set(entry.keys()) == set(TYPE_FIELD_ENTRY_FIELDS)
 
 
 def test_order_and_prefix_and_is_meta_are_real_itemspec_fields() -> None:

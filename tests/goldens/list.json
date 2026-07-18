@@ -44,7 +44,8 @@
       ]
     },
     "id": "ROLE-1",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   },
   {
     "sequence_id": 2,
@@ -78,7 +79,8 @@
     "modified_session": null,
     "extra": {},
     "id": "FEAT-2",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   },
   {
     "sequence_id": 3,
@@ -114,7 +116,8 @@
     "modified_session": null,
     "extra": {},
     "id": "TASK-3",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   },
   {
     "sequence_id": 4,
@@ -138,7 +141,8 @@
     "modified_session": null,
     "extra": {},
     "id": "BUG-4",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   },
   {
     "sequence_id": 5,
@@ -162,7 +166,8 @@
     "modified_session": null,
     "extra": {},
     "id": "ADR-5",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   },
   {
     "sequence_id": 6,
@@ -196,7 +201,8 @@
     "modified_session": null,
     "extra": {},
     "id": "REV-6",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   },
   {
     "sequence_id": 7,
@@ -220,7 +226,8 @@
     "modified_session": null,
     "extra": {},
     "id": "GUIDE-7",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   },
   {
     "sequence_id": 8,
@@ -249,7 +256,8 @@
       "allowed_tools": ""
     },
     "id": "SKILL-8",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   },
   {
     "sequence_id": 9,
@@ -276,6 +284,7 @@
       "full_name": "Alice Tester"
     },
     "id": "OP-9",
-    "is_open": true
+    "is_open": true,
+    "badges": {}
   }
 ]
