@@ -65,13 +65,13 @@ describe('buildSubtreeMermaid', () => {
     expect(buildSubtreeMermaid([root])).toBe(
       [
         'flowchart TD',
-        '  TASK_1["TASK-1: Do the thing (Ready)"]',
+        '  TASK_1["`TASK-1: Do the thing (Ready)`"]',
         '  TASK_1 --> TASK_2',
-        '  TASK_2["TASK-2: Sub thing (Done)"]',
+        '  TASK_2["`TASK-2: Sub thing (Done)`"]',
         '  TASK_1 --> TASK_3',
-        '  TASK_3["TASK-3: Blocked thing (Open) [blocked]"]',
+        '  TASK_3["`TASK-3: Blocked thing (Open) [blocked]`"]',
         '  TASK_3 --> TASK_4',
-        '  TASK_4["TASK-4: Leaf (Draft)"]',
+        '  TASK_4["`TASK-4: Leaf (Draft)`"]',
       ].join('\n'),
     );
   });
@@ -87,6 +87,28 @@ describe('buildSubtreeMermaid', () => {
     expect(source).not.toContain('A'.repeat(40));
     expect(source).toContain('&lt;script&gt;');
     expect(source).not.toContain('<script>');
+  });
+
+  it('wraps the label as a Mermaid markdown-string (F24) and escapes markdown metacharacters', () => {
+    const root = treeNode({ id: 'TASK-1', title: 'A `code` and *emphasis* and _underscore_' });
+    const source = buildSubtreeMermaid([root]);
+    // Markdown-string label syntax: a `"` + backtick-delimited string + `"`.
+    expect(source).toContain('TASK_1["`TASK-1: ');
+    expect(source).toContain('`"]');
+    // Every mermaid markdown metacharacter in the title is backslash-escaped so it renders as
+    // literal text rather than emphasis/code formatting.
+    expect(source).toContain('A \\`code\\` and \\*emphasis\\* and \\_underscore\\_');
+  });
+
+  it('hard-caps a pathologically long node label at 120 characters regardless of title truncation', () => {
+    // The title itself is already capped at 40 chars by `subtreeNodeLabel`, but a long status
+    // string still pushes the composed label past a sane bound — `mermaidNodeLabel`'s own
+    // truncate is the backstop, independent of the wrapping mechanism.
+    const root = treeNode({ id: 'TASK-1', title: 'Short', status: 'S'.repeat(200) });
+    const source = buildSubtreeMermaid([root]);
+    const labelMatch = /\["`(.*)`"\]/.exec(source);
+    expect(labelMatch).not.toBeNull();
+    expect(labelMatch?.[1]?.length).toBeLessThanOrEqual(120);
   });
 
   it('produces exactly one node line and (nodeCount - 1) edge lines for a real committed fixture', () => {
@@ -144,9 +166,9 @@ describe('buildRefGraphMermaid', () => {
     expect(buildRefGraphMermaid(root)).toBe(
       [
         'flowchart LR',
-        '  TASK_10["TASK-10 (task): Ready"]',
-        '  TASK_11["TASK-11 (task): Done"]',
-        '  TASK_12["TASK-12 (bug, high): Open"]',
+        '  TASK_10["`TASK-10 (task): Ready`"]',
+        '  TASK_11["`TASK-11 (task): Done`"]',
+        '  TASK_12["`TASK-12 (bug, high): Open`"]',
         '  TASK_10 -->|depends on| TASK_11',
         '  TASK_10 -->|required by| TASK_12',
         '  TASK_12 -->|related| TASK_11',
@@ -175,10 +197,10 @@ describe('buildRefGraphMermaid', () => {
     expect(buildRefGraphMermaid(root)).toBe(
       [
         'flowchart LR',
-        '  FEAT_449["FEAT-449 (feature): Draft"]',
-        '  FEAT_100["FEAT-100 (feature, low): Done"]',
-        '  ADR_427["ADR-427 (decision): Accepted"]',
-        '  REV_448["REV-448 (review): Requested"]',
+        '  FEAT_449["`FEAT-449 (feature): Draft`"]',
+        '  FEAT_100["`FEAT-100 (feature, low): Done`"]',
+        '  ADR_427["`ADR-427 (decision): Accepted`"]',
+        '  REV_448["`REV-448 (review): Requested`"]',
         '  FEAT_100 -->|related| ADR_427',
         '  FEAT_100 -->|related| FEAT_449',
         '  FEAT_100 -->|related| REV_448',

@@ -1,0 +1,140 @@
+[
+  {
+    "status": "Accepted",
+    "terminal": true,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Active",
+    "terminal": false,
+    "role": "active",
+    "badge": null
+  },
+  {
+    "status": "Approved",
+    "terminal": true,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Archived",
+    "terminal": true,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Blocked",
+    "terminal": false,
+    "role": null,
+    "badge": "\ud83d\udd34"
+  },
+  {
+    "status": "Cancelled",
+    "terminal": true,
+    "role": null,
+    "badge": "\u26ab"
+  },
+  {
+    "status": "ChangesRequested",
+    "terminal": false,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Deprecated",
+    "terminal": true,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Done",
+    "terminal": true,
+    "role": null,
+    "badge": "\ud83d\udfe2"
+  },
+  {
+    "status": "Draft",
+    "terminal": false,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Fixed",
+    "terminal": false,
+    "role": null,
+    "badge": "\ud83d\udfe1"
+  },
+  {
+    "status": "InProgress",
+    "terminal": false,
+    "role": "active",
+    "badge": "\ud83d\udfe1"
+  },
+  {
+    "status": "InReview",
+    "terminal": false,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Open",
+    "terminal": false,
+    "role": null,
+    "badge": "\ud83d\udd34"
+  },
+  {
+    "status": "Proposed",
+    "terminal": false,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Published",
+    "terminal": true,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Ready",
+    "terminal": false,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Rejected",
+    "terminal": true,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Requested",
+    "terminal": false,
+    "role": null,
+    "badge": null
+  },
+  {
+    "status": "Superseded",
+    "terminal": true,
+    "role": "superseded",
+    "badge": null
+  },
+  {
+    "status": "Todo",
+    "terminal": false,
+    "role": null,
+    "badge": "\u26aa"
+  },
+  {
+    "status": "Verified",
+    "terminal": true,
+    "role": null,
+    "badge": "\ud83d\udfe2"
+  },
+  {
+    "status": "WontFix",
+    "terminal": true,
+    "role": null,
+    "badge": "\u26ab"
+  }
+]

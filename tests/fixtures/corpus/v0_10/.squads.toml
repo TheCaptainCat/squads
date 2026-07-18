@@ -1,0 +1,6 @@
+# squads project configuration
+schema_version = "0.10"
+squad_dir = "."
+active_backends = ["claude_code"]
+default_role = "manager"
+squads_version = "0.7.0"

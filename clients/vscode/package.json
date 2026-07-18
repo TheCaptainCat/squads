@@ -2,7 +2,7 @@
   "name": "squads-vscode",
   "displayName": "Squads",
   "description": "Browse a squads-managed project's work items from VS Code.",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "publisher": "TheCaptainCat",
   "private": true,
   "license": "MIT",
@@ -34,6 +34,14 @@
           },
           "default": [],
           "description": "Full command + argv prefix used to invoke sq (e.g. [\"uv\", \"run\", \"sq\"]). Ignored when squads.sqPath is set."
+        },
+        "squads.typeIcons": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "Codicon id per item type name (e.g. { \"task\": \"checklist\" }), layered over the bundled defaults: epic -> milestone, feature -> rocket, task -> checklist, bug -> bug, decision -> lightbulb, review -> eye, guide -> book. Types with no match here or in the bundled defaults fall back to a generic icon. Does not affect the fixed role/skill/operator roster icons."
         }
       }
     },

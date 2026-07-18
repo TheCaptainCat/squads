@@ -4,13 +4,17 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { buildMetaView } from '../src/domain/metaView';
-import type { SqListItem } from '../src/types';
+import { buildStatusRoleMap } from '../src/domain/statusRole';
+import type { SqListItem, SqStatusCatalogEntry } from '../src/types';
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
 }
 
 const LIST_FIXTURE = JSON.parse(readFixture('list.json')) as SqListItem[];
+const STATUSES_CATALOG_FIXTURE = JSON.parse(
+  readFixture('statuses-catalog.json'),
+) as SqStatusCatalogEntry[];
 
 describe('buildMetaView', () => {
   it('always returns exactly the 3 fixed buckets, in Roles/Skills/Operators order', () => {
@@ -67,6 +71,51 @@ describe('buildMetaView', () => {
 
     expect(operators?.children.find((child) => child.itemId === 'OP-1')?.closed).toBe(true);
     expect(operators?.children.find((child) => child.itemId === 'OP-2')?.closed).toBe(false);
+  });
+
+  it('marks an active roster item via DisplayNode.active, joined through the statuses catalog (F26) — never a literal status check', () => {
+    const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const items: SqListItem[] = [
+      { ...makeItem('ROLE-1', 'role'), status: 'Active' },
+      { ...makeItem('ROLE-2', 'role'), status: 'Archived', is_open: false },
+    ];
+
+    const [roles] = buildMetaView(items, undefined, undefined, statusRoles);
+
+    expect(roles?.children.find((child) => child.itemId === 'ROLE-1')?.active).toBe(true);
+    const archived = roles?.children.find((child) => child.itemId === 'ROLE-2');
+    expect(archived?.active).toBe(false);
+    expect(archived?.closed).toBe(true);
+  });
+
+  it('with no statusRoles (the graceful fallback), no roster item is ever marked active', () => {
+    const items: SqListItem[] = [{ ...makeItem('ROLE-1', 'role'), status: 'Active' }];
+
+    const [roles] = buildMetaView(items);
+
+    expect(roles?.children[0]?.active).toBe(false);
+  });
+
+  it('shows status alone in the description, with no assignee segment', () => {
+    const items: SqListItem[] = [{ ...makeItem('ROLE-1', 'role'), assignee: 'op-pierre' }];
+
+    const [roles] = buildMetaView(items);
+
+    expect(roles?.children[0]?.description).toBe('Active');
+  });
+
+  it('gives each of the 3 reserved meta types a distinct, non-generic codicon', () => {
+    const items: SqListItem[] = [
+      makeItem('ROLE-1', 'role'),
+      makeItem('SKILL-1', 'skill'),
+      makeItem('OP-1', 'operator'),
+    ];
+
+    const [roles, skills, operators] = buildMetaView(items);
+
+    expect(roles?.children[0]?.iconId).toBe('hubot');
+    expect(skills?.children[0]?.iconId).toBe('mortar-board');
+    expect(operators?.children[0]?.iconId).toBe('account');
   });
 });
 

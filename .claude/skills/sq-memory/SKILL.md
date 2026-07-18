@@ -5,7 +5,7 @@ description: "Your role's committed memory notebook and the team bulletin board:
 
 This is a squads-managed skill. Load and follow its full definition before using it:
 
-@squads/agents/skills/sq-memory.md
+@squads/agents/skills/SKILL-000486-sq-memory.md
 
 Track related work with the `sq` CLI. Never edit the `<!-- sq:* -->` marker lines in managed files.
 

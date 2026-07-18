@@ -117,6 +117,8 @@ def _run_json(runner: CliRunner, args: list[str], expected_exit: int = 0) -> Any
         ("override_list", ["override", "list", "--json"]),
         ("override_diff", ["override", "diff", "items/task.md.j2", "--json"]),
         ("workflow_types", ["workflow", "types", "--json"]),
+        ("workflow_collections", ["workflow", "collections", "--json"]),
+        ("workflow_statuses", ["workflow", "statuses", "--json"]),
     ],
 )
 def test_command_json_output_matches_its_golden_shape(

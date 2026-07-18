@@ -1,0 +1,63 @@
+[
+  {
+    "collection": "priority",
+    "label": "Priority",
+    "ordered": true,
+    "default": null,
+    "badges": [
+      {
+        "code": "urgent",
+        "label": "Urgent",
+        "emoji": "\ud83d\udd34"
+      },
+      {
+        "code": "high",
+        "label": "High",
+        "emoji": "\ud83d\udfe0"
+      },
+      {
+        "code": "medium",
+        "label": "Medium",
+        "emoji": "\ud83d\udfe1"
+      },
+      {
+        "code": "low",
+        "label": "Low",
+        "emoji": "\ud83d\udfe2"
+      }
+    ]
+  },
+  {
+    "collection": "severity",
+    "label": "Severity",
+    "ordered": true,
+    "default": "medium",
+    "badges": [
+      {
+        "code": "critical",
+        "label": "Critical",
+        "emoji": "\ud83d\udd34"
+      },
+      {
+        "code": "high",
+        "label": "High",
+        "emoji": "\ud83d\udfe0"
+      },
+      {
+        "code": "medium",
+        "label": "Medium",
+        "emoji": "\ud83d\udfe1"
+      },
+      {
+        "code": "low",
+        "label": "Low",
+        "emoji": "\ud83d\udfe2"
+      },
+      {
+        "code": "info",
+        "label": "Info",
+        "emoji": "\ud83d\udd35"
+      }
+    ]
+  }
+]

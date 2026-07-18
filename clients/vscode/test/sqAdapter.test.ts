@@ -7,10 +7,12 @@ import type { SqInvocation } from '../src/discovery';
 import type { ProcessResult, ProcessRunner } from '../src/processRunner';
 import {
   describeFailure,
+  getCollectionsCatalog,
   getGraph,
   getList,
   getRaw,
   getShowJson,
+  getStatusesCatalog,
   getTree,
   getTypeCatalog,
   getWorkflowRaw,
@@ -29,6 +31,8 @@ const GRAPH_FIXTURE = fixture('graph.json');
 const WORKFLOW_RAW_FIXTURE = fixture('workflow-raw.txt');
 const TYPE_CATALOG_FIXTURE = fixture('type-catalog.json');
 const SHOW_JSON_FIXTURE = fixture('show-json.json');
+const COLLECTIONS_CATALOG_FIXTURE = fixture('collections-catalog.json');
+const STATUSES_CATALOG_FIXTURE = fixture('statuses-catalog.json');
 
 function stubRunner(result: ProcessResult): ProcessRunner {
   return { run: () => Promise.resolve(result) };
@@ -273,6 +277,7 @@ describe('getTypeCatalog', () => {
       order: 10,
       prefix: 'EPIC',
       reserved: false,
+      fields: [{ code: 'priority', label: 'Priority', collection: 'priority' }],
     });
     expect(outcome.data.some((entry) => entry.reserved)).toBe(true);
   });
@@ -315,6 +320,106 @@ describe('getTypeCatalog', () => {
   });
 });
 
+describe('getCollectionsCatalog', () => {
+  it('parses a real committed sq workflow collections --json fixture', async () => {
+    const runner = stubRunner({ stdout: COLLECTIONS_CATALOG_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getCollectionsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data[0]).toEqual({
+      collection: 'priority',
+      label: 'Priority',
+      ordered: true,
+      default: null,
+      badges: [
+        { code: 'urgent', label: 'Urgent', emoji: '🔴' },
+        { code: 'high', label: 'High', emoji: '🟠' },
+        { code: 'medium', label: 'Medium', emoji: '🟡' },
+        { code: 'low', label: 'Low', emoji: '🟢' },
+      ],
+    });
+  });
+
+  it('builds argv as "workflow collections --json"', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getCollectionsCatalog(runner, UV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(calls).toEqual([
+      {
+        command: 'uv',
+        args: ['run', 'sq', 'workflow', 'collections', '--json'],
+        cwd: WORKSPACE_ROOT,
+      },
+    ]);
+  });
+
+  it('accepts a null default (an unordered/no-default collection)', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        { collection: 'impact', label: 'Impact', ordered: false, default: null, badges: [] },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getCollectionsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({
+      kind: 'success',
+      data: [{ collection: 'impact', label: 'Impact', ordered: false, default: null, badges: [] }],
+    });
+  });
+
+  it('surfaces well-formed JSON that does not match the expected shape as a parse-error', async () => {
+    const runner = stubRunner({ stdout: '[{"unexpected": true}]', stderr: '', exitCode: 0 });
+    const outcome = await getCollectionsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+});
+
+describe('getStatusesCatalog', () => {
+  it('parses a real committed sq workflow statuses --json fixture', async () => {
+    const runner = stubRunner({ stdout: STATUSES_CATALOG_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getStatusesCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.find((entry) => entry.status === 'InProgress')).toEqual({
+      status: 'InProgress',
+      terminal: false,
+      role: 'active',
+      badge: '🟡',
+    });
+    expect(outcome.data.find((entry) => entry.status === 'Done')).toEqual({
+      status: 'Done',
+      terminal: true,
+      role: null,
+      badge: '🟢',
+    });
+  });
+
+  it('builds argv as "workflow statuses --json"', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getStatusesCatalog(runner, UV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(calls).toEqual([
+      { command: 'uv', args: ['run', 'sq', 'workflow', 'statuses', '--json'], cwd: WORKSPACE_ROOT },
+    ]);
+  });
+
+  it('surfaces well-formed JSON that does not match the expected shape as a parse-error', async () => {
+    const runner = stubRunner({ stdout: '[{"unexpected": true}]', stderr: '', exitCode: 0 });
+    const outcome = await getStatusesCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+});
+
 describe('getShowJson', () => {
   it('parses a real committed sq show --json fixture down to its discussion array', async () => {
     const runner = stubRunner({ stdout: SHOW_JSON_FIXTURE, stderr: '', exitCode: 0 });
@@ -330,11 +435,43 @@ describe('getShowJson', () => {
       ts: expect.any(String) as string,
       body: expect.any(String) as string,
     });
+    // The fixture's item happens to have no sub-entities — an empty array is still a valid,
+    // fully-parsed `subentities` key, not an absent one.
+    expect(outcome.data.subentities).toEqual([]);
   });
 
-  it('ignores every other key sq show --json emits, keeping only discussion', async () => {
+  it('parses a populated subentities array (local_id/title/status/assignee/severity/story/body)', async () => {
     const runner = stubRunner({
-      stdout: JSON.stringify({ id: 'TASK-1', title: 'x', discussion: [] }),
+      stdout: JSON.stringify({
+        discussion: [],
+        subentities: [
+          {
+            local_id: 'F15',
+            title: 'A finding',
+            status: 'Open',
+            assignee: null,
+            severity: 'high',
+            story: null,
+            body: 'Body text.',
+          },
+        ],
+      }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'REV-1');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.subentities).toHaveLength(1);
+    expect(outcome.data.subentities[0]).toMatchObject({ local_id: 'F15', severity: 'high' });
+  });
+
+  it('ignores every other key sq show --json emits, keeping only discussion and subentities', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({ id: 'TASK-1', title: 'x', discussion: [], subentities: [] }),
       stderr: '',
       exitCode: 0,
     });
@@ -342,13 +479,13 @@ describe('getShowJson', () => {
 
     expect(outcome).toEqual({
       kind: 'success',
-      data: { id: 'TASK-1', title: 'x', discussion: [] },
+      data: { id: 'TASK-1', title: 'x', discussion: [], subentities: [] },
     });
   });
 
   it('builds argv as "show <id> --json"', async () => {
     const { runner, calls } = recordingRunner({
-      stdout: '{"discussion":[]}',
+      stdout: '{"discussion":[],"subentities":[]}',
       stderr: '',
       exitCode: 0,
     });
@@ -361,7 +498,18 @@ describe('getShowJson', () => {
 
   it('surfaces well-formed JSON missing/malformed discussion as a parse-error', async () => {
     const runner = stubRunner({
-      stdout: JSON.stringify({ discussion: [{ author: 'a' }] }),
+      stdout: JSON.stringify({ discussion: [{ author: 'a' }], subentities: [] }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-1');
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+
+  it('surfaces well-formed JSON missing/malformed subentities as a parse-error', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({ discussion: [], subentities: [{ local_id: 'F1' }] }),
       stderr: '',
       exitCode: 0,
     });

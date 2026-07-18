@@ -5,11 +5,33 @@ sub-entity concerns live here (see :mod:`squads._discussion` for that).
 """
 
 import re
+from collections.abc import Callable
 
 from squads._workflow import WorkflowSpec, bundled_spec
 
 #: Neutral fallback badge for a status/collection that declares none — never crash.
 _DEFAULT_BADGE = "⚪"
+
+
+def resolve_badges(
+    spec: WorkflowSpec, type_or_kind: str, badge_value: Callable[[str], str | None]
+) -> dict[str, str]:
+    """Every declared badge field *type_or_kind* carries, resolved generically — the
+    type/sub-entity-kind's actual axes (e.g. a custom impact/urgency pair) rather than the
+    fixed ``priority``/``severity`` attributes, keyed by field code, non-null values only.
+
+    ``badge_value`` is the entity's own getter (``Item.badge_value`` / ``SubEntity.badge_value``)
+    so this stays agnostic of which model it's resolving for — an item or a sub-entity.
+
+    This is the shape ``sq graph --json`` already ships (``GraphNode.badges``); every other
+    item-bearing ``--json`` surface (``tree``/``list``/``show`` + its ``subentities``) reuses it
+    rather than re-deriving the same map.
+    """
+    return {
+        f.code: value
+        for f in spec.fields_for(type_or_kind)
+        if (value := badge_value(f.code)) is not None
+    }
 
 
 def status_badge(status_value: str, spec: WorkflowSpec | None = None) -> str:

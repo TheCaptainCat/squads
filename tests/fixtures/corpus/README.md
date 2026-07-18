@@ -15,6 +15,8 @@ corpus/
   v0_5/    — schema 0.5: skills are first-class SKILL-prefixed items
   v0_7/    — schema 0.7: unpadded display ids (frontmatter id/refs/parent; filenames stay padded)
   v0_8/    — schema 0.8: bug severity as a top-level key (relocated off extra.severity)
+  v0_10/   — schema 0.10: sq-memory tracked as a SKILL item (no legacy sq-memory.md in this
+             minimal corpus, so this fixture is byte-identical to v0_8 except the schema stamp)
 ```
 
 Each directory contains:

@@ -2,17 +2,18 @@
  * Assembles the full webview HTML document for an item preview: a strict, self-contained
  * CSP (no remote content, no `unsafe-inline` — both the `<style>` and `<script>` tags carry
  * the same per-render nonce), the rendered dossier body, the two collapsible mermaid graph
- * sections, the collapsible discussion/comments section (F14, `buildDiscussionHtml`, built from
- * `sq show <id> --json`'s `discussion` array), and the inline client script that both intercepts
- * clicks on `a.sq-item-link` (posting them back to the extension host) and renders the graphs'
- * mermaid source via the bundled renderer.
+ * sections, the collapsible sub-entities section (F15, `buildSubEntitiesHtml`, built from
+ * `sq show <id> --json`'s `subentities` array), the collapsible discussion/comments section
+ * (F14, `buildDiscussionHtml`, built from the same call's `discussion` array), and the inline
+ * client script that both intercepts clicks on `a.sq-item-link` (posting them back to the
+ * extension host) and renders the graphs' mermaid source via the bundled renderer.
  *
  * Kept `vscode`-free/pure — `nonce` and the mermaid script's webview uri are passed in rather
  * than computed here, so this (and the markdown rendering it wraps) is unit-testable with no
  * host; only `itemPreviewManager.ts` touches the real `vscode.WebviewPanel` API.
  */
 import type { SqOutcome } from '../sqAdapter';
-import type { SqDiscussionEntry } from '../types';
+import type { SqDiscussionEntry, SqSubEntity } from '../types';
 import { escapeHtml, renderMarkdownToHtml } from './markdown';
 import { OPEN_ITEM_COMMAND } from './previewMessages';
 
@@ -69,6 +70,9 @@ details.sq-graph .sq-graph-empty {
   max-width: 100%;
   height: auto;
 }
+.sq-graph-output .node[data-item-id] {
+  cursor: pointer;
+}
 .sq-comment {
   margin: 0.9rem 0;
   padding-top: 0.6rem;
@@ -87,17 +91,45 @@ details.sq-graph .sq-graph-empty {
   font-weight: 600;
   color: var(--vscode-editor-foreground);
 }
+.sq-subentity {
+  margin: 0.9rem 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+.sq-subentity:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.sq-subentity-header {
+  margin-bottom: 0.2rem;
+}
+.sq-subentity-id {
+  font-weight: 600;
+  margin-right: 0.4em;
+}
+.sq-subentity-head {
+  font-size: 0.9em;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 0.3rem;
+}
+.sq-subentity-body summary {
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+}
 `;
 
-/** Delegated click/auxclick handling for `a.sq-item-link`: a plain click (or ctrl/cmd-click)
- * requests same-panel navigation; a middle-click (`auxclick`, button 1) requests a new panel.
- * `%s` is substituted with the shared `OPEN_ITEM_COMMAND` constant so the wire format can
- * never drift from what `previewMessages.ts`'s `parseOpenItemMessage` accepts. */
+/** Delegated click/auxclick handling for both `a.sq-item-link` (dossier/comment/sub-entity
+ * body links) and `g.node[data-item-id]` (a rendered graph node — F25, the attribute stamped
+ * post-render by `mermaidRenderScript`): a plain click (or ctrl/cmd-click) requests same-panel
+ * navigation; a middle-click (`auxclick`, button 1) requests a new panel. Both element kinds
+ * carry the target id in the same `data-item-id` attribute, so one selector/lookup handles
+ * either. `%s` is substituted with the shared `OPEN_ITEM_COMMAND` constant so the wire format
+ * can never drift from what `previewMessages.ts`'s `parseOpenItemMessage` accepts. */
 function clientScript(command: string): string {
   return `(function () {
   const vscode = acquireVsCodeApi();
   function post(event, newTab) {
-    const target = event.target.closest('a.sq-item-link');
+    const target = event.target.closest('a.sq-item-link, g.node[data-item-id]');
     if (!target) { return; }
     event.preventDefault();
     const id = target.getAttribute('data-item-id');
@@ -119,7 +151,9 @@ function clientScript(command: string): string {
  * (found via its `data-output-id` attribute — a generic scan, not a fixed list, so it covers
  * both the two structured graph sections and however many inline ```mermaid``` fences a
  * document's own markdown body carries), using the mermaid renderer loaded by the preceding
- * `<script src>` tag (global `mermaid`).
+ * `<script src>` tag (global `mermaid`). `flowchart.wrappingWidth` pairs with
+ * `graphDiagrams.ts`'s markdown-string node labels (F24) so a long label wraps onto multiple
+ * lines from real text-metric measurement instead of overflowing/cropping at the node's edge.
  *
  * CSP note (kept strict — no `unsafe-inline`/`unsafe-eval` added for this): mermaid's own
  * `render()` builds each diagram by inserting a plain, un-nonced `<style>` tag carrying its
@@ -133,12 +167,25 @@ function clientScript(command: string): string {
  * future mermaid version needs something this can't cover, the documented fallback is a
  * narrowly-scoped `style-src 'unsafe-inline'` (never `script-src`) — flagged for review rather
  * than applied speculatively.
- */
+ *
+ * Node-click wiring (F25): mermaid's `click` directive is disabled under `securityLevel:
+ * 'strict'`, so navigation is wired here instead, after render. Every rendered flowchart node
+ * gets an `id` of the form `<diagramId>-flowchart-<nodeId>-<n>` (`nodeId` being exactly what
+ * `graphDiagrams.ts`'s `mermaidNodeId` produced when building the source) — `nodeId` is
+ * recovered from that id and un-sanitized back to the real item id (undoing `mermaidNodeId`'s
+ * hyphen->underscore fold; an item id has exactly one such character, so this is lossless),
+ * then stamped onto the node as `data-item-id` so `clientScript`'s shared
+ * `a.sq-item-link`/`g.node[data-item-id]` click handling picks it up like any other link. */
 function mermaidRenderScript(nonce: string): string {
   return `(function () {
   if (typeof mermaid === 'undefined') { return; }
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'strict',
+    flowchart: { wrappingWidth: 200 },
+  });
   var nonce = '${nonce}';
+  var nodeIdPattern = /-flowchart-([A-Za-z0-9_]+)-\\d+$/;
   var sources = document.querySelectorAll('.sq-graph-source');
   sources.forEach(function (sourceEl, index) {
     var outputId = sourceEl.getAttribute('data-output-id');
@@ -158,6 +205,12 @@ function mermaidRenderScript(nonce: string): string {
         styles[i].setAttribute('nonce', nonce);
         styles[i].nonce = nonce;
       }
+      var nodes = svgEl.querySelectorAll('.node');
+      for (var j = 0; j < nodes.length; j++) {
+        var match = nodeIdPattern.exec(nodes[j].getAttribute('id') || '');
+        if (!match) { continue; }
+        nodes[j].setAttribute('data-item-id', match[1].replace(/_/g, '-'));
+      }
       outputEl.replaceChildren(document.importNode(svgEl, true));
     }).catch(function () {
       outputEl.textContent = 'Failed to render diagram.';
@@ -166,15 +219,73 @@ function mermaidRenderScript(nonce: string): string {
 })();`;
 }
 
-/** Renders an `sq show <id> --raw` outcome to the HTML fragment shown in the panel body. On
- * failure this returns an actionable message (never blank/stale content) — the caller is
- * still responsible for firing the accompanying VS Code notification. */
-export function renderOutcomeHtml(id: string, outcome: SqOutcome<string>): string {
-  const markdown =
-    outcome.kind === 'success'
-      ? outcome.data
-      : `# Squads: unable to load ${id}\n\n${outcome.message}`;
-  return renderMarkdownToHtml(markdown, id);
+/** A dossier's contiguous metadata bullet block (`- **key:** value` — the `--raw` contract:
+ * title, blank, bullets, blank, body verbatim). Matched only right after the title so a body
+ * paragraph that happens to start with a similar-looking bullet is never mistaken for
+ * metadata. */
+const DOSSIER_METADATA_BULLET = /^- \*\*[\w-]+:\*\* /;
+
+/** The index of the first non-blank line at/after `start`. */
+function skipBlankLines(lines: readonly string[], start: number): number {
+  let i = start;
+  while (i < lines.length && (lines[i] ?? '').trim() === '') {
+    i++;
+  }
+  return i;
+}
+
+/** The index just past the last contiguous metadata-bullet line starting at `start`. */
+function skipMetadataBullets(lines: readonly string[], start: number): number {
+  let i = start;
+  while (i < lines.length && DOSSIER_METADATA_BULLET.test(lines[i] ?? '')) {
+    i++;
+  }
+  return i;
+}
+
+/** Splits a clean `sq show <id> --raw` dossier into its metadata header (title + bullet list)
+ * and the rest — its prose body — so the two can be rendered as separate HTML fragments with
+ * the graph sections injected between them (F23: graphs directly under the metadata header,
+ * above the body). Falls back to an empty header (the whole text treated as body) when the
+ * input doesn't start with the expected title-then-bullets shape — e.g. a synthesized failure
+ * message — rather than guessing past what it can actually detect. */
+export function splitDossierMarkdown(markdown: string): { header: string; body: string } {
+  const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+  if (!(lines[0] ?? '').startsWith('# ')) {
+    return { header: '', body: markdown };
+  }
+  const bulletStart = skipBlankLines(lines, 1);
+  const bulletEnd = skipMetadataBullets(lines, bulletStart);
+  if (bulletEnd === bulletStart) {
+    return { header: '', body: markdown };
+  }
+  const bodyStart = skipBlankLines(lines, bulletEnd);
+  return {
+    header: lines.slice(0, bulletEnd).join('\n'),
+    body: lines.slice(bodyStart).join('\n'),
+  };
+}
+
+/** The dossier split into its two rendered HTML fragments — see `splitDossierMarkdown`. */
+export interface DossierHtml {
+  readonly headerHtml: string;
+  readonly bodyHtml: string;
+}
+
+/** Renders an `sq show <id> --raw` outcome to the two HTML fragments shown in the panel:
+ * the metadata header and the prose body, split by `splitDossierMarkdown` so the caller can
+ * inject the graph sections between them (F23). On failure the message renders entirely as
+ * `bodyHtml` with an empty header (never blank/stale content) — the caller is still
+ * responsible for firing the accompanying VS Code notification. */
+export function renderOutcomeHtml(id: string, outcome: SqOutcome<string>): DossierHtml {
+  if (outcome.kind !== 'success') {
+    return {
+      headerHtml: '',
+      bodyHtml: renderMarkdownToHtml(`# Squads: unable to load ${id}\n\n${outcome.message}`, id),
+    };
+  }
+  const { header, body } = splitDossierMarkdown(outcome.data);
+  return { headerHtml: renderMarkdownToHtml(header, id), bodyHtml: renderMarkdownToHtml(body, id) };
 }
 
 /** Renders an `sq workflow --raw` outcome to the HTML fragment shown in the workflow-cheatsheet
@@ -206,16 +317,18 @@ interface GraphSectionSpec {
 }
 
 /** One collapsible `<details>` graph section — native fold/unfold, no client JS needed for
- * that part. When `mermaidSource` is present the hidden `<pre>` holds the escaped diagram
- * source the client script reads via `textContent` (so it comes back out unescaped); its
- * `data-output-id` points the generic render script (see `mermaidRenderScript`) at the adjacent
- * output `<div>` it renders into. Otherwise the message stands in for it. */
+ * that part. Collapsed by default (F23: no `open` attribute) — a graph is supplementary detail,
+ * not something that should push the dossier body below the fold. When `mermaidSource` is
+ * present the hidden `<pre>` holds the escaped diagram source the client script reads via
+ * `textContent` (so it comes back out unescaped); its `data-output-id` points the generic
+ * render script (see `mermaidRenderScript`) at the adjacent output `<div>` it renders into.
+ * Otherwise the message stands in for it. */
 function buildGraphSection(spec: GraphSectionSpec): string {
   const inner =
     spec.outcome.mermaidSource === null
       ? `<p class="sq-graph-empty">${escapeHtml(spec.outcome.message ?? 'No data available.')}</p>`
       : `<pre class="sq-graph-source" id="${spec.sourceId}" data-output-id="${spec.outputId}" hidden>${escapeHtml(spec.outcome.mermaidSource)}</pre><div class="sq-graph-output" id="${spec.outputId}">Rendering…</div>`;
-  return `<details class="sq-graph" open><summary>${escapeHtml(spec.title)}</summary>${inner}</details>`;
+  return `<details class="sq-graph"><summary>${escapeHtml(spec.title)}</summary>${inner}</details>`;
 }
 
 /** The two graph sections (children/subtree, ref graph), each independently collapsible and
@@ -279,8 +392,79 @@ export function buildDiscussionHtml(outcome: DiscussionOutcome, currentId?: stri
   return `<details class="sq-graph" open><summary>Discussion (${count})</summary>${comments}</details>`;
 }
 
+/** The sub-entities section's content, mirroring `DiscussionOutcome`'s success/failure shape:
+ * the parsed sub-entity list (`sq show <id> --json`'s `subentities` array) on success, or a
+ * plain failure message shown in its place on a failed fetch. A *successful* but empty list
+ * (most items carry no sub-entities) folds away to nothing, same as `buildDiscussionHtml`. */
+export interface SubEntitiesOutcome {
+  readonly entities: readonly SqSubEntity[] | null;
+  readonly message?: string;
+}
+
+/** The head badge line for one sub-entity — status / severity / assignee / story, each field
+ * omitted when absent (`severity`: findings only; `story`: subtasks only). Plain text, not the
+ * spec's rendered badge glyph — this preview head doesn't fetch/join the collections catalog
+ * (`sq workflow collections --json`) the way the tree tooltip does; shows the raw code, same
+ * convention `graphDiagrams.ts` uses for priority. Deliberate; parity with the hover tooltip
+ * is a possible follow-up, not required here. */
+function buildSubEntityHeadLine(entity: SqSubEntity): string {
+  const parts = [`Status: ${escapeHtml(entity.status)}`];
+  if (entity.severity !== null) {
+    parts.push(`Severity: ${escapeHtml(entity.severity)}`);
+  }
+  if (entity.assignee !== null) {
+    parts.push(`Assignee: ${escapeHtml(entity.assignee)}`);
+  }
+  if (entity.story !== null) {
+    parts.push(`Story: ${escapeHtml(entity.story)}`);
+  }
+  return parts.join(' · ');
+}
+
+/** One sub-entity: its local id + title as a header, the head badge line always visible, and
+ * (when it has one) its body as collapsible prose rendered through the same markdown renderer
+ * the dossier body and discussion comments use (mermaid-fences off, `currentId` still
+ * suppresses a self-link) — a blank body renders no `<details>` at all rather than an empty
+ * fold. */
+function buildSubEntityHtml(entity: SqSubEntity, currentId: string | undefined): string {
+  const header =
+    `<div class="sq-subentity-header"><span class="sq-subentity-id">${escapeHtml(entity.local_id)}</span>` +
+    `<span class="sq-subentity-title">${escapeHtml(entity.title)}</span></div>`;
+  const head = `<div class="sq-subentity-head">${buildSubEntityHeadLine(entity)}</div>`;
+  const body =
+    entity.body.trim() === ''
+      ? ''
+      : `<details class="sq-subentity-body"><summary>Body</summary>${renderMarkdownToHtml(entity.body, currentId)}</details>`;
+  return `<div class="sq-subentity">${header}${head}${body}</div>`;
+}
+
+/** The collapsible sub-entities section (F15): a feature's stories, a task's subtasks, a
+ * review's findings — in `sq show <id> --json`'s `subentities` array order. Mirrors
+ * `buildDiscussionHtml`'s failure/empty/populated shape exactly. */
+export function buildSubEntitiesHtml(outcome: SubEntitiesOutcome, currentId?: string): string {
+  if (outcome.entities === null) {
+    return (
+      `<details class="sq-graph" open><summary>Sub-entities</summary>` +
+      `<p class="sq-graph-empty">${escapeHtml(outcome.message ?? 'No data available.')}</p></details>`
+    );
+  }
+  if (outcome.entities.length === 0) {
+    return '';
+  }
+  const entries = outcome.entities
+    .map((entity) => buildSubEntityHtml(entity, currentId))
+    .join('\n');
+  const count = String(outcome.entities.length);
+  return `<details class="sq-graph" open><summary>Sub-entities (${count})</summary>${entries}</details>`;
+}
+
 export interface PreviewDocumentParams {
   readonly title: string;
+  /** The dossier's metadata header fragment (title + bullet list) — rendered above the graph
+   * sections, per F23. Empty when there's no detectable header (e.g. a failure message; see
+   * `splitDossierMarkdown`), in which case the graphs simply sit at the top of `<article>`. */
+  readonly headerHtml: string;
+  /** The dossier's prose-body fragment, rendered below the graph sections. */
   readonly bodyHtml: string;
   readonly nonce: string;
   /** The bundled mermaid renderer's webview uri (`itemPreviewManager.ts` resolves this via
@@ -288,11 +472,15 @@ export interface PreviewDocumentParams {
    * nonce'd `<script src>` tag, same as every other script on this page; no CDN, no
    * `node_modules` shipped, see `scripts/copy-mermaid.js`. */
   readonly mermaidScriptUri: string;
-  /** Pre-rendered `<details>` markup for the two graph sections (`buildGraphsHtml`) — kept
-   * separate from `bodyHtml` (the dossier) both visually and in the DOM. */
+  /** Pre-rendered `<details>` markup for the two graph sections (`buildGraphsHtml`) — F23:
+   * positioned between `headerHtml` and `bodyHtml`, directly under the metadata header and
+   * above the prose body, rather than after it. */
   readonly graphsHtml: string;
+  /** Pre-rendered markup for the sub-entities section (`buildSubEntitiesHtml`, possibly `''` —
+   * no sub-entities), appended after `bodyHtml` and before `discussionHtml`. */
+  readonly subEntitiesHtml: string;
   /** Pre-rendered `<details>` markup for the discussion section (`buildDiscussionHtml`,
-   * possibly `''` — no comments yet), appended after `graphsHtml`. */
+   * possibly `''` — no comments yet), appended after `subEntitiesHtml`. */
   readonly discussionHtml: string;
 }
 
@@ -314,8 +502,10 @@ export function buildPreviewHtml(params: PreviewDocumentParams): string {
 <style nonce="${params.nonce}">${PREVIEW_STYLES}</style>
 </head>
 <body>
-<article>${params.bodyHtml}</article>
+<article>${params.headerHtml}
 ${params.graphsHtml}
+${params.bodyHtml}</article>
+${params.subEntitiesHtml}
 ${params.discussionHtml}
 <script nonce="${params.nonce}" src="${params.mermaidScriptUri}"></script>
 <script nonce="${params.nonce}">${clientScript(OPEN_ITEM_COMMAND)}
