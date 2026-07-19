@@ -3,10 +3,10 @@ id: BUG-213
 sequence_id: 213
 type: bug
 title: Package version duplicated in pyproject and __init__ (bumps half-apply)
-status: Fixed
+status: Verified
 author: op-pierre
 created_at: '2026-06-25T13:34:04Z'
-updated_at: '2026-07-07T13:11:23Z'
+updated_at: '2026-07-19T19:05:18Z'
 ---
 <!-- sq:body -->
 ## Defect
@@ -41,4 +41,6 @@ Discovered live by op-pierre while debugging why `sq graph` failed after the 0.5
   - Side effect discovered: scripts/gen_template_manifest.py text-parses __init__.py for the version and now misreads it — filed as BUG-324, not fixed this pass per release-prep scope; the 0.7.0 manifest entry itself was produced correctly via a manual one-off workaround (see BUG-324 body).
 - [2026-07-07T13:11:23Z] Hugo Ops:
   - Follow-up resolved: the coordinator lifted the release-prep guardrail for this one case and had BUG-324 folded into this fix rather than deferred. scripts/gen_template_manifest.py::_current_version() now reads pyproject.toml's [project].version via tomllib instead of text-scanning this file's old __version__ literal, so the generator and the CI manifest-freshness gate are consistent with the single-sourced version again. BUG-324 is Fixed.
+- [2026-07-19T19:05:18Z] Mara Tester:
+  - src/squads/__init__.py derives __version__ via importlib.metadata.version("squads"), no hardcoded literal remains; confirmed squads.__version__ == importlib.metadata.version('squads') == pyproject's 0.9.0 live.
 <!-- sq:discussion:end -->

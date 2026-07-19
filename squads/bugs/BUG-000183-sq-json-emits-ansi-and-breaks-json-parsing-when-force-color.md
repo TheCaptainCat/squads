@@ -3,13 +3,13 @@ id: BUG-183
 sequence_id: 183
 type: bug
 title: sq --json emits ANSI and breaks JSON parsing when FORCE_COLOR is set
-status: Fixed
+status: Verified
 author: manager
+severity: medium
 refs:
 - FEAT-15
 created_at: '2026-06-24T09:46:27Z'
-updated_at: '2026-06-24T10:12:12Z'
-severity: medium
+updated_at: '2026-07-19T19:05:16Z'
 ---
 <!-- sq:body -->
 ## Symptom
@@ -65,4 +65,6 @@ module-level Console latched forced color at import. Fixed test determinism in `
   - --json paths touched: `_common.py` (print_block), `_create.py` (create + create guide), `_items.py` (show, remove, refs, list-sub-entities), `_main.py` (list, tree, inbox, search, blocked, workload, mine, show, check), `_operator.py` (operator show), `_override.py` (override list, override diff), `_role.py` (role catalog, role show), `_skill.py` (skill show). All 22 `console.print_json()` call sites replaced. The shared `console` object is left unchanged for human output.
   - Regression test: `test_json_output_is_ansi_free_under_force_color` in `tests/test_json_no_ansi.py`. Sets FORCE_COLOR=3 mid-fixture, runs `sq list --json` via CliRunner, asserts (a) output json.loads cleanly and (b) no \\x1b in raw output.
   - Gate: 1026 passed, 1 skipped; pyright 0 errors; ruff check + format clean.
+- [2026-07-19T19:05:16Z] Mara Tester:
+  - print_json_clean present in _cli/_common.py; no console.print_json call sites remain in src/. Original test file was relocated by the FEAT-231 suite rebuild — coverage now lives at tests/cli/test_json_output_is_ansi_free.py (test_json_output_has_no_ansi_escapes_under_forced_color), which passes.
 <!-- sq:discussion:end -->

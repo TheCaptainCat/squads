@@ -4,14 +4,14 @@ sequence_id: 324
 type: bug
 title: gen_template_manifest.py breaks after BUG-213's importlib.metadata version
   fix
-status: Fixed
+status: Verified
 author: devops
 priority: high
 description: The template-manifest generator parses squads/__init__.py as text to
   read __version__; it now returns the literal source line instead of a version string,
   breaking CI's manifest-freshness check and the release write-path.
 created_at: '2026-07-07T13:06:59Z'
-updated_at: '2026-07-07T13:11:17Z'
+updated_at: '2026-07-19T19:05:20Z'
 ---
 <!-- sq:body -->
 ## Defect
@@ -41,4 +41,6 @@ Point the generator at the installed package metadata instead of parsing __init_
 - [2026-07-07T13:11:17Z] Hugo Ops:
   - Folded into the BUG-213 single-sourcing fix: scripts/gen_template_manifest.py::_current_version() now reads [project].version out of pyproject.toml via stdlib tomllib instead of text-scanning src/squads/__init__.py for a __version__ literal. Change scoped to that one function only.
   - Verified: 'python3 scripts/gen_template_manifest.py' regenerates a 0.7.0 entry byte-identical to the one produced by the earlier one-off workaround (no manifest churn), and 'python3 scripts/gen_template_manifest.py --check' now exits 0. The CI manifest-freshness gate (.github/workflows/test.yml) is green again.
+- [2026-07-19T19:05:20Z] Mara Tester:
+  - _current_version() in scripts/gen_template_manifest.py reads pyproject.toml [project].version via tomllib; python3 scripts/gen_template_manifest.py --check exits 0 (manifest v0.9.0 current).
 <!-- sq:discussion:end -->
