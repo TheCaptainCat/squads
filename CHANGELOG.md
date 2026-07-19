@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-19
+
 ### Added
 
 - **`sq workflow types` — a machine-readable type catalog.** New subcommand alongside `sq
@@ -43,6 +45,15 @@ All notable changes to this project are documented here. The format follows
   diagrams from the skill (agents read it as raw text, so the diagram source was just noise);
   the compact hierarchy diagram and the one-line-per-type lifecycle table stay. `sq workflow`'s
   terminal output is unchanged and still shows the full per-type diagrams.
+
+### Migration
+
+**Schema 0.8 → 0.10 — run `sq migrate up`.** The bundled `sq-memory` skill predates the standard
+`SKILL-<NNNNNN>-<slug>.md` naming convention used by every other bundled skill. The runner stamps
+a unique `SKILL-…` id onto the legacy `agents/skills/sq-memory.md` file (if it isn't already
+stamped), renames it to the convention filename, and rewrites its `.claude/` pointer to match,
+then rebuilds the index. One-way and idempotent; a squad that never had the legacy file (or
+already carries the convention-named one) is unaffected. No manual steps are required.
 
 ## [0.9.0] - 2026-07-15
 
