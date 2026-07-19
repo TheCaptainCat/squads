@@ -16,6 +16,7 @@
   "categories": [
     "Other"
   ],
+  "icon": "resources/squads-icon-color.png",
   "main": "./out/src/extension.js",
   "activationEvents": [],
   "contributes": {
