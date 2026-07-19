@@ -47,6 +47,11 @@ scripts/**
 coverage/**
 **/*.map
 
+# The marketplace overview: the publish workflow copies MARKETPLACE.md over README.md
+# right before packaging, so README.md carries this content into the VSIX; the source
+# MARKETPLACE.md itself must not double-ship.
+MARKETPLACE.md
+
 # resources/ holds squads-icon-vscode.svg (the activity-bar container icon, currentColor for
 # VS Code's own theme tinting) plus its light/dark webview-tab-icon derivatives
 # (squads-icon-vscode-{light,dark}.svg — explicit stroke colors, since a webview panel's

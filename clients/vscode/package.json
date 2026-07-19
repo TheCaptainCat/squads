@@ -16,7 +16,7 @@
   "categories": [
     "Other"
   ],
-  "icon": "resources/squads-icon-color.png",
+  "icon": "resources/squads-icon-marketplace.png",
   "main": "./out/src/extension.js",
   "activationEvents": [],
   "contributes": {
@@ -59,11 +59,13 @@
       "squads": [
         {
           "id": "squadsTree",
-          "name": "Work Items"
+          "name": "Work Items",
+          "icon": "resources/squads-icon-vscode.svg"
         },
         {
           "id": "squadsMeta",
-          "name": "Roster"
+          "name": "Roster",
+          "icon": "resources/squads-icon-vscode.svg"
         }
       ]
     },

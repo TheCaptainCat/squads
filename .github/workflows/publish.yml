@@ -74,6 +74,13 @@ jobs:
         working-directory: clients/vscode
         run: npm version "${{ steps.core-version.outputs.version }}" --no-git-tag-version --allow-same-version
 
+      # vsce always ships README.md as the marketplace overview; swap in the
+      # adopter-facing MARKETPLACE.md here (ephemeral CI checkout only — the
+      # committed README.md stays the repo/contributor doc).
+      - name: use marketplace README for the VSIX overview
+        working-directory: clients/vscode
+        run: cp MARKETPLACE.md README.md
+
       - name: package VSIX
         working-directory: clients/vscode
         run: npx @vscode/vsce package --no-dependencies -o "../../squads-vscode-${{ steps.core-version.outputs.version }}.vsix"

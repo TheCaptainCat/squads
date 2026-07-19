@@ -10,31 +10,42 @@ This package is self-contained: its own `package.json`, `tsconfig.json`, ESLint/
 config, and lockfile, entirely disjoint from the Python core's toolchain. Nothing under
 `clients/` is read by the Python gate (`pyright`/`ruff`/`pytest`) and vice versa.
 
-Current state: read-only browse. An activity-bar tree (`src/treeDataProvider.ts`) renders the
-squad hierarchy from `sq tree --json`; selecting an item opens its `sq show --raw` dossier,
-rendered to HTML, in an owned `WebviewPanel` (`src/itemPreviewManager.ts`) — a dedicated tab
-that's never hijacked by opening another markdown file, unlike VS Code's built-in dynamic
-preview. Parent/ref item ids in the dossier render as navigable links: a click opens that item
-in the same panel, a middle-click (or ctrl/cmd-click) opens it in a new one — the webview
-posts a message back to the extension host, which routes it (`src/domain/previewMessages.ts`)
-and re-renders. Below the dossier, two independently collapsible mermaid diagrams
-(`src/domain/graphDiagrams.ts`) render the item's children/subtree (`sq tree <id> --json`) and
-its ref graph (`sq graph <id> --json`); the mermaid renderer is bundled as a local webview
-asset (`media/mermaid.min.js`, vendored by `npm run compile` — see `scripts/copy-mermaid.js`),
-loaded through the same strict CSP, no CDN. The markdown -> HTML rendering
-(`src/domain/markdown.ts`) and the panel's HTML document (`src/domain/previewDocument.ts`,
-strict per-render-nonce CSP, no remote content) are vscode-free and unit-tested directly.
-View-title commands filter and group the tree by type/open-closed state and refresh it on
-demand (`src/commands.ts`). A second, independent view in the same activity-bar container —
-"Roster" (`squadsMeta`, `src/metaTreeDataProvider.ts`) — lists the meta/reserved items (role,
-skill, operator) the work tree deliberately excludes, under 3 fixed subfolders: Roles, Skills,
-Operators. It's not filterable/groupable like the work tree, just those 3 buckets refreshed
-together; selecting an entry opens the same owned preview webview as a work item. The `sq`
-discovery module (`src/discovery.ts`) and
-`sq --json`/`--raw` adapter (`src/sqAdapter.ts`) underpin all of this, tested against
-committed fixtures (`test/fixtures/`) with no `sq` binary required — plus an integration
-skew-canary layer that re-checks those fixtures against a real `sq` (see below). Mutating the
-squad from the editor is a later increment.
+Current state: read-only browse. An activity-bar **Work Items** tree (`src/treeDataProvider.ts`)
+renders the squad hierarchy from `sq tree --json` (or a flat filtered/grouped view when filters
+or grouping is active); selecting an item opens its `sq show --raw` dossier, rendered to HTML,
+in an owned `WebviewPanel` (`src/itemPreviewManager.ts`) — a dedicated tab that's never hijacked
+by opening another markdown file, unlike VS Code's built-in dynamic preview. Parent/ref item ids
+in the dossier render as navigable links: a click opens that item in the same panel, a
+middle-click (or ctrl/cmd-click) opens it in a new one — the webview posts a message back to
+the extension host, which routes it (`src/domain/previewMessages.ts`) and re-renders. Below the
+dossier prose, the panel renders three collapsible sections: **sub-entities** (stories/subtasks/
+findings from `sq show --json`'s `subentities` array, with status/assignee/severity badges),
+**discussion** (comments from `sq show --json`'s `discussion` array, escaped and rendered as
+markdown), and two independently collapsible **mermaid diagrams** (`src/domain/graphDiagrams.ts`)
+showing the item's children/subtree (`sq tree <id> --json`) and its ref graph (`sq graph <id>
+--json`). The mermaid renderer is bundled as a local webview asset (`media/mermaid.min.js`,
+vendored by `npm run compile` — see `scripts/copy-mermaid.js`), loaded through the same strict
+CSP, no CDN. The markdown -> HTML rendering (`src/domain/markdown.ts`) and the panel's HTML
+document (`src/domain/previewDocument.ts`, strict per-render-nonce CSP, no remote content) are
+vscode-free and unit-tested directly. View-title toolbar commands filter by type, toggle
+group-by-type, toggle show-closed items (closed items render dimmed, not grouped), clear all
+filters/grouping, and refresh on demand (`src/commands.ts`); VS Code's native collapse-all icon
+(via `createTreeView`'s `showCollapseAll`) completes the toolbar. A separate view-title button
+opens the workflow cheatsheet (`sq workflow --raw`) in its own owned webview panel, with live
+mermaid rendering. A second, independent activity-bar view — **Roster** (`squadsMeta`,
+`src/metaTreeDataProvider.ts`) — lists the meta/reserved items (roles, skills, operators) the
+work tree deliberately excludes, under 3 fixed subfolders: Roles, Skills, Operators, refreshed
+together on demand or when `.squads.json` changes. It's not filterable/groupable, and selecting
+an entry opens the same owned preview webview as a work item. Item trees and lists render
+**active-role items in green** (the status carries the spec's `"active"` semantic role, joined
+via the statuses catalog), and all items carry a **tooltip** with id/type/status/assignee/badges
+visible on hover. The `sq` discovery module (`src/discovery.ts`) auto-detects how to invoke `sq`
+(explicit config, workspace venv, `uv`, `poetry`, bare PATH) and the `sq --json`/`--raw`
+adapter (`src/sqAdapter.ts`) underpin all of this, tested against committed fixtures
+(`test/fixtures/`) with no `sq` binary required — plus an integration skew-canary layer that
+re-checks those fixtures against a real `sq` (see below). Both views auto-refresh when
+`.squads.json` changes on disk (F17, via `src/squadWatcher.ts`). Mutating the squad from the
+editor is a later increment.
 
 ## Development
 
