@@ -30,6 +30,7 @@ jobs:
   vsix:
     name: build + attach VSIX release asset
     runs-on: ubuntu-latest
+    environment: vscode.marketplace
     permissions:
       contents: write
     steps:
@@ -84,6 +85,16 @@ jobs:
       - name: package VSIX
         working-directory: clients/vscode
         run: npx @vscode/vsce package --no-dependencies -o "../../squads-vscode-${{ steps.core-version.outputs.version }}.vsix"
+
+      # Publish the just-built VSIX (which carries the swapped marketplace README) to the
+      # VS Code Marketplace. Gated on the VSCE_PAT secret so the release still succeeds and
+      # attaches the VSIX below even before the token/publisher are configured.
+      - name: publish to the VS Code Marketplace
+        working-directory: clients/vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        if: ${{ env.VSCE_PAT != '' }}
+        run: npx @vscode/vsce publish --packagePath "../../squads-vscode-${{ steps.core-version.outputs.version }}.vsix"
 
       - name: attach VSIX to the tagged release
         env:
