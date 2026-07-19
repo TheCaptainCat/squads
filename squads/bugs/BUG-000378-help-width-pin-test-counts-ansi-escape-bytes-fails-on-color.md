@@ -3,10 +3,10 @@ id: BUG-378
 sequence_id: 378
 type: bug
 title: Help width-pin test counts ANSI escape bytes, fails on color-forcing CI
-status: Fixed
+status: Verified
 author: qa
 created_at: '2026-07-15T21:34:25Z'
-updated_at: '2026-07-15T21:35:16Z'
+updated_at: '2026-07-19T19:05:21Z'
 ---
 <!-- sq:body -->
 `tests/cli/test_help_text_width_is_pinned.py` failed on all 3 CI OSes:
@@ -33,4 +33,6 @@ tests; also consolidated the pre-existing local ANSI-stripping regex in
 <!-- sq:discussion -->
 - [2026-07-15T21:35:16Z] Mara Tester:
   - Fixed: added strip_ansi() to tests/_helpers.py; used it in tests/cli/test_help_text_width_is_pinned.py; consolidated the duplicate regex in tests/integration/test_renumber_cli.py to use it too.
+- [2026-07-19T19:05:21Z] Mara Tester:
+  - strip_ansi() present in tests/_helpers.py, used in both test_help_text_width_is_pinned.py and test_renumber_cli.py; both files pass (6 passed).
 <!-- sq:discussion:end -->
