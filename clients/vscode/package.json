@@ -3,7 +3,8 @@
   "displayName": "Squads",
   "description": "Browse a squads-managed project's work items from VS Code.",
   "version": "0.10.0",
-  "publisher": "TheCaptainCat",
+  "publisher": "pierre-chat",
+  "author": "Pierre Chat",
   "private": true,
   "license": "MIT",
   "repository": {

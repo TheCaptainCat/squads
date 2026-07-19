@@ -9,7 +9,7 @@ import * as assert from 'node:assert/strict';
 
 import * as vscode from 'vscode';
 
-const EXTENSION_ID = 'TheCaptainCat.squads-vscode';
+const EXTENSION_ID = 'pierre-chat.squads-vscode';
 
 export async function run(): Promise<void> {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
