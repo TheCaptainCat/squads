@@ -21,7 +21,9 @@ import * as path from 'node:path';
 import { runTests } from '@vscode/test-electron';
 
 async function main(): Promise<void> {
-  const extensionDevelopmentPath = path.resolve(__dirname, '../..');
+  // Compiled to out/test/extensionHost/runTest.js, so the package root (where package.json
+  // lives) is three levels up, not two — out/test/extensionHost -> out/test -> out -> root.
+  const extensionDevelopmentPath = path.resolve(__dirname, '../../..');
   const extensionTestsPath = path.resolve(__dirname, './suite/index');
 
   // A throwaway empty folder to open as the host's workspace: activate() no-ops with no
