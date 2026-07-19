@@ -3,12 +3,12 @@ id: EPIC-38
 sequence_id: 38
 type: epic
 title: CLI frontend
-status: Draft
+status: Done
 author: product-owner
 description: 'The daily terminal experience of sq: complete and rendered reading,
   graph navigation, and the ergonomics of driving a squad from the command line'
 created_at: '2026-06-11T07:57:10Z'
-updated_at: '2026-06-11T07:57:11Z'
+updated_at: '2026-07-19T19:34:46Z'
 ---
 <!-- sq:body -->
 ## Outcome

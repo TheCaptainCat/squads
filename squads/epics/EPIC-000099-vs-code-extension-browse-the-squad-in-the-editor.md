@@ -3,7 +3,7 @@ id: EPIC-99
 sequence_id: 99
 type: epic
 title: VS Code extension — browse the squad in the editor
-status: InProgress
+status: Done
 author: product-owner
 priority: low
 refs:
@@ -16,7 +16,7 @@ description: 'A VS Code extension: a sidebar tree of the squad + items opened in
   markdown preview; consumes the frozen --json surface; browse-first, mutations a
   later increment'
 created_at: '2026-06-14T20:45:06Z'
-updated_at: '2026-07-17T11:48:08Z'
+updated_at: '2026-07-19T19:33:00Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -50,4 +50,6 @@ rendered preview) first, then the first mutation increment.
 <!-- sq:discussion -->
 - [2026-07-16T13:37:42Z] Pierre Chat:
   - Greenlit for 0.10: ship FEAT-100 (read-only browse) only; mutations deferred. New typescript-dev role (Ada) will build it. Architect to record a cross-language client ADR before tasks are cut.
+- [2026-07-19T19:33:00Z] Catherine Manager:
+  - Closed: both features (FEAT-449, FEAT-471) and all child tasks Done; the VS Code extension alignment work is complete. Tidying the board ahead of the 0.10 cut.
 <!-- sq:discussion:end -->
