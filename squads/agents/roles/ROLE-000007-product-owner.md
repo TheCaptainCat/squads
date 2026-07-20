@@ -26,6 +26,7 @@ extra:
   skills:
   - squads
   - greeting
+  - sq-memory
   - sq-epic
   - sq-feature
   agreements: []
@@ -51,6 +52,7 @@ Represent the user: capture requirements as features and user stories, prioritis
 Use these skills for the item types you manage (see each for role-specific guidance):
 - `squads`
 - `greeting`
+- `sq-memory`
 - `sq-epic`
 - `sq-feature`
 

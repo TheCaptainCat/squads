@@ -3,4 +3,4 @@ schema_version = "0.11"
 squad_dir = "squads"
 active_backends = ["claude_code"]
 default_role = "manager"
-squads_version = "0.10.0"
+squads_version = "0.11.0"

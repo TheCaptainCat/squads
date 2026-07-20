@@ -27,6 +27,7 @@ extra:
   skills:
   - squads
   - greeting
+  - sq-memory
   - sq-epic
   - sq-decision
   - sq-guide
@@ -54,6 +55,7 @@ Own the system's shape: design coherent solutions, record decisions as ADRs, and
 Use these skills for the item types you manage (see each for role-specific guidance):
 - `squads`
 - `greeting`
+- `sq-memory`
 - `sq-epic`
 - `sq-decision`
 - `sq-guide`

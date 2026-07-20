@@ -6,15 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Migration
+## [0.11.0] - 2026-07-20
 
-**Schema 0.10 → 0.11 — run `sq migrate up`.** A schema-stamp-only gate: no frontmatter shape
-changed, so the runner touches no files. It exists to hard-stop a pre-0.11 client with a clear
-"run `sq migrate up`" before it can meet a ref kind it doesn't recognise yet. Every existing
-skill (bundled or custom) and any role-scoping edge is left exactly as it was — this migration
-only advances the schema stamp.
+### Added
 
-## [0.10.1] - 2026-07-20
+- **Custom skills can carry an authored, persistent body.** `sq skill body` sets (or `--append`s
+  to) a custom skill's body text, and it survives sync/regen/repair untouched — bundled/system
+  skills are unaffected and keep generating from their template as before.
+- **Skills can be scoped to specific roles.** `sq skill link-role`/`unlink-role` link a skill to a
+  role so that role's agents preload it (alongside the bundled skills every role already gets),
+  resyncing that role's generated files immediately. A skill can be scoped to as many roles as
+  needed, or none.
 
 ### Fixed
 
@@ -31,6 +33,28 @@ only advances the schema stamp.
   writes into a project — the bundled skills and the CLAUDE.md/AGENTS.md managed sections — has
   been tightened for length with no loss of guidance; a fresh `sq init`/`sq sync` now produces
   leaner generated files.
+
+### VS Code extension
+
+- **The work-item tree keeps its expansion across refresh.** Auto-refreshing on a `.squads.json`
+  change used to collapse every expanded node; expanded nodes now stay expanded across a
+  refresh.
+- **The item preview preserves scroll position.** Refreshing the same item's preview (e.g. after
+  an edit) holds the scroll position instead of jumping back to the top; navigating to a
+  *different* item still resets to the top as expected.
+- **`@mentions` in the preview link to the role sheet.** A `@<slug>` mention in a body or comment
+  now renders as a link that opens that role's sheet, with a hover preview of the role's details.
+- **Back/forward navigation.** Each preview panel gained a sticky toolbar with back/forward
+  arrows (plus a truncated title label) for moving through the items you've viewed in that
+  panel, the way a browser does.
+
+### Migration
+
+**Schema 0.10 → 0.11 — run `sq migrate up`.** A schema-stamp-only gate: no frontmatter shape
+changed, so the runner touches no files. It exists to hard-stop a pre-0.11 client with a clear
+"run `sq migrate up`" before it can meet a ref kind it doesn't recognise yet. Every existing
+skill (bundled or custom) and any role-scoping edge is left exactly as it was — this migration
+only advances the schema stamp.
 
 ## [0.10.0] - 2026-07-19
 

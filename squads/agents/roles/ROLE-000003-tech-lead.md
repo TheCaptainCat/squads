@@ -32,6 +32,7 @@ extra:
   skills:
   - squads
   - greeting
+  - sq-memory
   - sq-epic
   - sq-feature
   - sq-task
@@ -64,6 +65,7 @@ Turn features into well-scoped tasks, sequence the work, and unblock the team.
 Use these skills for the item types you manage (see each for role-specific guidance):
 - `squads`
 - `greeting`
+- `sq-memory`
 - `sq-epic`
 - `sq-feature`
 - `sq-task`

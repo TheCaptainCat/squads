@@ -28,6 +28,7 @@ extra:
   skills:
   - squads
   - greeting
+  - sq-memory
   - sq-task
   - sq-bug
   - sq-review
@@ -52,6 +53,7 @@ Implement assigned tasks in Python, following the project's guides, with tests.
 Use these skills for the item types you manage (see each for role-specific guidance):
 - `squads`
 - `greeting`
+- `sq-memory`
 - `sq-task`
 - `sq-bug`
 - `sq-review`

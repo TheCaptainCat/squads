@@ -27,7 +27,7 @@
     "workflow.md.j2": "496ffc9a992336255c6bd09dee7b3f5e97216ef9cd91ba11a7f607c83bd2182a",
     "workflow_static.md.j2": "9b9543454a90bd3acee6b6ce9d20dc8b0f1cef7f3afa88453e410a7e89854a5c"
   },
-  "0.10.1": {
+  "0.11.0": {
     "agents/greeting_skill.md.j2": "04065493b33b436ffd0c80e9d3adb7e2fa91a7e5183b70a1d9f5e3f61107bba9",
     "agents/item_skill.md.j2": "219ca41406e5b0199b012c9fdeab7354993bd95e7deb0f1d03a81318cd45cc68",
     "agents/memory_skill.md.j2": "ec731119bab2d76b996491d829a445d0d737b6ddabde166d348862690b4d8d35",
