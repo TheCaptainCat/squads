@@ -174,3 +174,17 @@ export function errorDisplayNode(message: string): DisplayNode {
     children: [],
   };
 }
+
+/** Every `id` present anywhere in `nodes` (roots, groups, and leaves alike), walked
+ * recursively. Feeds `ExpansionTracker.prune` so a tracked-expanded id that no longer appears
+ * in the freshly fetched tree (a deleted item, a group that emptied out) gets forgotten
+ * instead of accumulating forever across a long session's refreshes. */
+export function collectNodeIds(nodes: readonly DisplayNode[]): Set<string> {
+  const ids = new Set<string>();
+  const visit = (node: DisplayNode): void => {
+    ids.add(node.id);
+    node.children.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return ids;
+}

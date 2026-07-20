@@ -32,11 +32,24 @@ function iconForNode(node: DisplayNode): vscode.ThemeIcon {
   );
 }
 
-export function toTreeItem(node: DisplayNode): vscode.TreeItem {
+/**
+ * `isExpanded` reports whether a node's id is currently tracked as expanded (an
+ * `ExpansionTracker`, kept by the caller's provider) — a leafless node renders `Collapsed` by
+ * default and `Expanded` only for a tracked id, so a previously-expanded node stays open across
+ * a refresh instead of folding back to its default collapsed state. Defaults to "never
+ * expanded" so callers that don't track expansion (there are none left, but keeps this function
+ * usable standalone) get the old always-collapsed behavior.
+ */
+export function toTreeItem(
+  node: DisplayNode,
+  isExpanded: (id: string) => boolean = () => false,
+): vscode.TreeItem {
   const collapsibleState =
-    node.children.length > 0
-      ? vscode.TreeItemCollapsibleState.Collapsed
-      : vscode.TreeItemCollapsibleState.None;
+    node.children.length === 0
+      ? vscode.TreeItemCollapsibleState.None
+      : isExpanded(node.id)
+        ? vscode.TreeItemCollapsibleState.Expanded
+        : vscode.TreeItemCollapsibleState.Collapsed;
   const item = new vscode.TreeItem(node.label, collapsibleState);
   item.id = node.id;
   if (node.description !== '') {

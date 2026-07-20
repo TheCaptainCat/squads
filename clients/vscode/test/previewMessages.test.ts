@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  NAVIGATE_HISTORY_COMMAND,
   OPEN_ITEM_COMMAND,
+  parseNavigateHistoryMessage,
   parseOpenItemMessage,
   routeForMessage,
   routeForTreeSelection,
@@ -65,5 +67,41 @@ describe('routeForTreeSelection', () => {
 
   it('opens a new panel when none is open yet', () => {
     expect(routeForTreeSelection(false)).toBe('new-panel');
+  });
+});
+
+describe('parseNavigateHistoryMessage', () => {
+  it('parses a well-formed back message', () => {
+    const message = parseNavigateHistoryMessage({
+      command: NAVIGATE_HISTORY_COMMAND,
+      direction: 'back',
+    });
+    expect(message).toEqual({ command: 'navigateHistory', direction: 'back' });
+  });
+
+  it('parses a well-formed forward message', () => {
+    const message = parseNavigateHistoryMessage({
+      command: NAVIGATE_HISTORY_COMMAND,
+      direction: 'forward',
+    });
+    expect(message).toEqual({ command: 'navigateHistory', direction: 'forward' });
+  });
+
+  it('rejects null/undefined/non-object payloads', () => {
+    expect(parseNavigateHistoryMessage(null)).toBeNull();
+    expect(parseNavigateHistoryMessage(undefined)).toBeNull();
+    expect(parseNavigateHistoryMessage('navigateHistory')).toBeNull();
+    expect(parseNavigateHistoryMessage({})).toBeNull();
+  });
+
+  it('rejects a wrong command discriminator', () => {
+    expect(parseNavigateHistoryMessage({ command: 'somethingElse', direction: 'back' })).toBeNull();
+  });
+
+  it('rejects a missing or invalid direction', () => {
+    expect(parseNavigateHistoryMessage({ command: NAVIGATE_HISTORY_COMMAND })).toBeNull();
+    expect(
+      parseNavigateHistoryMessage({ command: NAVIGATE_HISTORY_COMMAND, direction: 'sideways' }),
+    ).toBeNull();
   });
 });

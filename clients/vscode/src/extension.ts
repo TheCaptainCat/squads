@@ -45,9 +45,24 @@ export function activate(context: vscode.ExtensionContext): void {
     notifyError,
   );
   // `createTreeView` (rather than `registerTreeDataProvider`) is what exposes
-  // `showCollapseAll` — VS Code's native title-bar collapse-all icon, no custom command needed.
+  // `showCollapseAll` — VS Code's native title-bar collapse-all icon, no custom command needed
+  // — and gives us the `TreeView` handle its expand/collapse events are read from below.
+  const treeView = vscode.window.createTreeView('squadsTree', {
+    treeDataProvider,
+    showCollapseAll: true,
+  });
   context.subscriptions.push(
-    vscode.window.createTreeView('squadsTree', { treeDataProvider, showCollapseAll: true }),
+    treeView,
+    // A full-root refresh (e.g. the `.squads.json` watcher below) doesn't preserve
+    // expand/collapse state on its own even with a stable `item.id` — the provider has to
+    // track it itself and re-render tracked ids `Expanded` (`treeDataProvider.setExpanded`,
+    // `ExpansionTracker`).
+    treeView.onDidExpandElement((event) => {
+      treeDataProvider.setExpanded(event.element.id, true);
+    }),
+    treeView.onDidCollapseElement((event) => {
+      treeDataProvider.setExpanded(event.element.id, false);
+    }),
   );
 
   // The meta/roster view (F12): role/skill/operator under 3 fixed buckets, alongside the work
@@ -60,10 +75,17 @@ export function activate(context: vscode.ExtensionContext): void {
     root,
     notifyError,
   );
+  const metaTreeView = vscode.window.createTreeView('squadsMeta', {
+    treeDataProvider: metaTreeDataProvider,
+    showCollapseAll: true,
+  });
   context.subscriptions.push(
-    vscode.window.createTreeView('squadsMeta', {
-      treeDataProvider: metaTreeDataProvider,
-      showCollapseAll: true,
+    metaTreeView,
+    metaTreeView.onDidExpandElement((event) => {
+      metaTreeDataProvider.setExpanded(event.element.id, true);
+    }),
+    metaTreeView.onDidCollapseElement((event) => {
+      metaTreeDataProvider.setExpanded(event.element.id, false);
     }),
   );
 

@@ -33,4 +33,18 @@ export async function run(): Promise<void> {
   // error message when `sq`/the id can't be resolved, never a rejection — so this exercises
   // the real webview-creation code path with no `sq` binary or real squad item required.
   await vscode.commands.executeCommand('squads.openItemPreview', 'SMOKE-0');
+
+  // Back/forward wiring: on a freshly opened panel with a single history entry, both are
+  // inert — the manager's `goBack`/`goForward` no-op rather than throw (see
+  // `ItemPreviewManager.stepHistory`). Reusing the same panel for a second id pushes a new
+  // history entry, so back/forward round-trip between the two ids without throwing either.
+  // The `squads.previewCanGoBack`/`previewCanGoForward` context keys (and the resulting
+  // title-bar button enablement) aren't readable from an extension's own test code — VS Code
+  // exposes no API to query a `setContext` key back out — so that half of the wiring is
+  // reason-verified from `src/itemPreviewManager.ts`'s `recomputeContextKeys`, not asserted here.
+  await vscode.commands.executeCommand('squads.previewBack');
+  await vscode.commands.executeCommand('squads.previewForward');
+  await vscode.commands.executeCommand('squads.openItemPreview', 'SMOKE-1');
+  await vscode.commands.executeCommand('squads.previewBack');
+  await vscode.commands.executeCommand('squads.previewForward');
 }

@@ -1,7 +1,12 @@
 /**
  * View-title/palette commands: refresh, filter by type, the group-by-type and show-closed
  * view-title toggles, clear, the tree-node-selection command that opens the owned item-preview
- * webview, and the view-title button that opens the workflow cheatsheet in its own owned panel.
+ * webview, the view-title button that opens the workflow cheatsheet in its own owned panel, and
+ * the preview panel's back/forward navigation commands. These two are a secondary path to the
+ * primary in-content toolbar rendered inside the preview HTML itself (see
+ * `itemPreviewManager.ts`'s module doc comment for why) — reachable via the `alt+left`/
+ * `alt+right` keybindings `package.json` scopes to the item-preview panel, and the Command
+ * Palette.
  */
 import * as vscode from 'vscode';
 
@@ -67,6 +72,14 @@ export function registerCommands(
 
     vscode.commands.registerCommand('squads.openWorkflow', async () => {
       await previewManager.openWorkflow();
+    }),
+
+    vscode.commands.registerCommand('squads.previewBack', async () => {
+      await previewManager.goBack();
+    }),
+
+    vscode.commands.registerCommand('squads.previewForward', async () => {
+      await previewManager.goForward();
     }),
   );
 }

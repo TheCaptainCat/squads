@@ -7,8 +7,35 @@ import {
   isSafeLinkUrl,
   ITEM_ID_PATTERN,
   linkifyPlainText,
+  MENTION_PATTERN,
   renderMarkdownToHtml,
 } from '../src/domain/markdown';
+import { buildRoleDirectory } from '../src/domain/roleDirectory';
+import type { SqListItem } from '../src/types';
+
+function makeRole(overrides: Partial<SqListItem> = {}): SqListItem {
+  return {
+    id: 'ROLE-1',
+    sequence_id: 1,
+    type: 'role',
+    title: 'Catherine Manager',
+    slug: 'manager',
+    status: 'Active',
+    description: 'Runs the work loop.',
+    parent: null,
+    author: 'manager',
+    assignee: null,
+    priority: null,
+    severity: null,
+    labels: [],
+    refs: [],
+    path: 'agents/roles/ROLE-000001-manager.md',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    is_open: true,
+    ...overrides,
+  };
+}
 
 function fixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -36,6 +63,70 @@ describe('ITEM_ID_PATTERN / linkifyPlainText', () => {
 
   it('escapes HTML-significant characters', () => {
     expect(linkifyPlainText('<script>&"\'')).toBe('&lt;script&gt;&amp;&quot;&#39;');
+  });
+});
+
+describe('MENTION_PATTERN / linkifyPlainText role mentions', () => {
+  const roles = buildRoleDirectory([
+    makeRole(),
+    makeRole({ id: 'ROLE-3', slug: 'tech-lead', title: 'Olivia Lead', description: '' }),
+  ]);
+
+  it('matches a lowercase, hyphenated slug after an @', () => {
+    expect('@manager and @tech-lead'.match(MENTION_PATTERN)).toEqual(['@manager', '@tech-lead']);
+  });
+
+  it('leaves an @slug as plain text when no roles directory is given', () => {
+    const html = linkifyPlainText('ping @manager please');
+    expect(html).toContain('@manager');
+    expect(html).not.toContain('data-item-id');
+  });
+
+  it('leaves an @slug as plain text when it does not resolve in the given directory', () => {
+    const html = linkifyPlainText('ping @nobody please', undefined, roles);
+    expect(html).toContain('@nobody');
+    expect(html).not.toContain('data-item-id');
+  });
+
+  it('links a resolved @slug to its role item id, with a hover title', () => {
+    const html = linkifyPlainText('ping @manager please', undefined, roles);
+    expect(html).toContain(
+      '<a class="sq-item-link" href="#" data-item-id="ROLE-1" title="Catherine Manager (manager) — Runs the work loop.">@manager</a>',
+    );
+  });
+
+  it('links a second resolved slug with no mission text in its hover', () => {
+    const html = linkifyPlainText('cc @tech-lead', undefined, roles);
+    expect(html).toContain(
+      '<a class="sq-item-link" href="#" data-item-id="ROLE-3" title="Olivia Lead (tech-lead)">@tech-lead</a>',
+    );
+  });
+
+  it('linkifies both an item id and a role mention in the same run', () => {
+    const html = linkifyPlainText('@manager see TASK-452', undefined, roles);
+    expect(html).toContain('data-item-id="ROLE-1"');
+    expect(html).toContain('data-item-id="TASK-452"');
+  });
+});
+
+describe('renderMarkdownToHtml: role mentions threaded through inline rendering', () => {
+  const roles = buildRoleDirectory([makeRole()]);
+
+  it('links a role mention found in a plain paragraph', () => {
+    const html = renderMarkdownToHtml('cc @manager for review', undefined, false, roles);
+    expect(html).toContain('data-item-id="ROLE-1"');
+  });
+
+  it('links a role mention nested inside bold text', () => {
+    const html = renderMarkdownToHtml('**cc @manager**', undefined, false, roles);
+    expect(html).toContain('<strong>');
+    expect(html).toContain('data-item-id="ROLE-1"');
+  });
+
+  it('does not linkify a mention when roles is omitted', () => {
+    const html = renderMarkdownToHtml('cc @manager for review');
+    expect(html).toContain('@manager');
+    expect(html).not.toContain('data-item-id="ROLE-1"');
   });
 });
 

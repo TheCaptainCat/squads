@@ -14,7 +14,13 @@ import {
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
 } from './domain/badgeCatalog';
-import { type DisplayNode, errorDisplayNode, type TypeIconOverrides } from './domain/displayNode';
+import {
+  collectNodeIds,
+  type DisplayNode,
+  errorDisplayNode,
+  type TypeIconOverrides,
+} from './domain/displayNode';
+import { ExpansionTracker } from './domain/expansionTracker';
 import {
   buildFilteredGroupedView,
   distinctTypes,
@@ -98,6 +104,10 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
   private roots: DisplayNode[] = [];
   private state: ViewState = DEFAULT_VIEW_STATE;
   private knownItemTypes: readonly string[] = [];
+  // Fed by the `TreeView.onDidExpandElement`/`onDidCollapseElement` subscriptions wired in
+  // `extension.ts` (`setExpanded`) — see `ExpansionTracker`'s doc comment for why this is
+  // needed despite `toTreeItem` already carrying a stable `item.id`.
+  private readonly expansion = new ExpansionTracker();
 
   constructor(
     private readonly runner: ProcessRunner,
@@ -107,7 +117,14 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
   ) {}
 
   getTreeItem(node: DisplayNode): vscode.TreeItem {
-    return toTreeItem(node);
+    return toTreeItem(node, (id) => this.expansion.isExpanded(id));
+  }
+
+  /** Wired to the owning `TreeView`'s expand/collapse events in `extension.ts` (there's no
+   * provider-owned `TreeView` handle here — `createTreeView` is called by the extension entry
+   * point, which is what exposes `showCollapseAll`). */
+  setExpanded(id: string, expanded: boolean): void {
+    this.expansion.setExpanded(id, expanded);
   }
 
   getChildren(node?: DisplayNode): DisplayNode[] {
@@ -191,6 +208,7 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
         statusRolesFrom(statusesOutcome),
       );
       this.knownItemTypes = distinctTypes(outcome.data, orderMap);
+      this.expansion.prune(collectNodeIds(this.roots));
       this.changeEmitter.fire(undefined);
       return;
     }
@@ -215,6 +233,7 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
       statusRolesFrom(statusesOutcome),
     );
     this.knownItemTypes = distinctTypesInTree(treeOutcome.data, orderMapFrom(catalogOutcome));
+    this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);
   }
 

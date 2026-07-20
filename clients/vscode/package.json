@@ -110,6 +110,30 @@
         "title": "Open Workflow Cheatsheet",
         "category": "Squads",
         "icon": "$(book)"
+      },
+      {
+        "command": "squads.previewBack",
+        "title": "Back",
+        "category": "Squads",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "squads.previewForward",
+        "title": "Forward",
+        "category": "Squads",
+        "icon": "$(arrow-right)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "squads.previewBack",
+        "key": "alt+left",
+        "when": "activeWebviewPanelId == squadsItemPreview"
+      },
+      {
+        "command": "squads.previewForward",
+        "key": "alt+right",
+        "when": "activeWebviewPanelId == squadsItemPreview"
       }
     ],
     "menus": {

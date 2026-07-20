@@ -11,7 +11,30 @@ export default defineConfig(
   {
     // scripts/** is a plain-CommonJS build helper (vendors the mermaid webview asset), not
     // part of the tsconfig project this strict type-aware config resolves against.
-    ignores: ['out/**', 'node_modules/**', 'test/fixtures/**', 'media/**', 'scripts/**'],
+    //
+    // .vscode-test/** and coverage/** are the two *downloaded/generated* trees `.gitignore`
+    // already excludes from version control (`npm run test:e2e` pulls a full VS Code + Electron
+    // build into `.vscode-test/` — several hundred MB of bundled JS and ambient `.d.ts` files,
+    // e.g. the full `vscode.d.ts` API surface — and a future coverage run would populate
+    // `coverage/`). Neither is `node_modules/**` or `out/**`, so ESLint's own file walk doesn't
+    // skip them for free, and *this* is what actually blows the type-aware `projectService`'s
+    // heap: left unignored, `eslint .` hands it hundreds of large/foreign files that aren't
+    // part of `tsconfig.json`'s `include` — each one forces the language service to spin up an
+    // ad hoc program (or scan for one) well outside anything this config is meant to check, on
+    // top of megabyte-scale `.d.ts` parses. Once present on disk (e.g. after running
+    // `test:e2e` once) it stays until manually removed, so this reproduces on an otherwise
+    // clean tree — a config gap, not a fundamental heap limit (raising `--max-old-space-size`
+    // alone does not fix it). CI's `check` job never runs `test:e2e` first, so it never has
+    // `.vscode-test/` on disk and was never hitting this.
+    ignores: [
+      'out/**',
+      'node_modules/**',
+      'test/fixtures/**',
+      'media/**',
+      'scripts/**',
+      '.vscode-test/**',
+      'coverage/**',
+    ],
   },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,

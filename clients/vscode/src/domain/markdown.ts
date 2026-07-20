@@ -19,7 +19,15 @@
  * Item-ID references (e.g. a task or decision id) found in any plain-text run are turned into
  * `<a class="sq-item-link" data-item-id="...">` anchors the webview's script intercepts — see
  * `previewDocument.ts`. `currentId`, when given, is left as plain text (no self-link).
+ *
+ * A `@<slug>` role mention (e.g. `@manager`, `@tech-lead`) gets the same anchor treatment when
+ * `roles` (a `RoleDirectory`, threaded alongside `currentId` through every render function below)
+ * resolves it to a known role — the anchor's `data-item-id` carries the role item's id (so the
+ * existing click->navigate path opens the role's sheet with no new message type needed) and its
+ * `title` attribute carries the hover text. A slug that doesn't resolve (no `roles` given, or not
+ * found in it) is left as plain text — never a dead/broken link.
  */
+import type { RoleDirectory } from './roleDirectory';
 
 /** Matches a formatted item id: an uppercase-letter-led prefix, a dash, then a run of digits.
  * Deliberately generic/spec-agnostic (no hardcoded type-prefix list, matching every other
@@ -30,6 +38,12 @@ export const ITEM_ID_PATTERN = /\b[A-Z][A-Z0-9]*-\d+\b/g;
 /** Anchored (whole-string) counterpart of `ITEM_ID_PATTERN`, for deciding whether a markdown
  * link's *url* (not a substring found in prose) is itself a bare item id. */
 const FULL_ITEM_ID_PATTERN = /^[A-Z][A-Z0-9]*-\d+$/;
+
+/** Matches a `@<slug>` role mention: `@` then a lowercase-letter-led run of lowercase
+ * letters/digits/hyphens (a role slug's actual shape, e.g. `manager`, `tech-lead`). Generic/
+ * spec-agnostic like `ITEM_ID_PATTERN` — no hardcoded role list here; whether a given match
+ * resolves to a real role is `roles` (a `RoleDirectory`)'s job, at replace time. */
+export const MENTION_PATTERN = /@([a-z][a-z0-9-]*)\b/g;
 
 /** Schemes a rendered `[text](url)` link's `href` is allowed to carry. Defense-in-depth
  * alongside the webview's CSP: a `javascript:`/`data:`/`vbscript:`/etc. url is dropped rather
@@ -54,13 +68,26 @@ export function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
-/** Escapes `text` then wraps every item-id token in a navigable-link anchor, save for
- * `currentId` (the item already open in this panel), which is left as plain escaped text. */
-export function linkifyPlainText(text: string, currentId?: string): string {
+/** Escapes `text`, wraps every item-id token in a navigable-link anchor (save for `currentId`,
+ * the item already open in this panel, left as plain escaped text), then — when `roles` is
+ * given — does the same for every `@<slug>` role mention that resolves in it (an unresolved
+ * slug is left as plain escaped text, same as any other prose). */
+export function linkifyPlainText(text: string, currentId?: string, roles?: RoleDirectory): string {
   const escaped = escapeHtml(text);
-  return escaped.replace(ITEM_ID_PATTERN, (id) =>
+  const withItemLinks = escaped.replace(ITEM_ID_PATTERN, (id) =>
     id === currentId ? id : `<a class="sq-item-link" href="#" data-item-id="${id}">${id}</a>`,
   );
+  if (roles === undefined || roles.size === 0) {
+    return withItemLinks;
+  }
+  return withItemLinks.replace(MENTION_PATTERN, (full: string, slug: string) => {
+    const mention = roles.get(slug);
+    if (mention === undefined) {
+      return full;
+    }
+    const title = escapeHtml(mention.hoverText);
+    return `<a class="sq-item-link" href="#" data-item-id="${mention.id}" title="${title}">@${slug}</a>`;
+  });
 }
 
 const INLINE_TOKEN =
@@ -68,18 +95,22 @@ const INLINE_TOKEN =
 
 /** Renders one matched inline token (code/bold/italic/link) to HTML. Split out of
  * `renderInline` to keep that function's cyclomatic complexity low. */
-function renderInlineToken(match: RegExpExecArray, currentId: string | undefined): string {
+function renderInlineToken(
+  match: RegExpExecArray,
+  currentId: string | undefined,
+  roles: RoleDirectory | undefined,
+): string {
   const [, code, boldStar, boldUnderscore, emStar, emUnderscore, linkText, linkUrl] = match;
   if (code !== undefined) {
     return `<code>${escapeHtml(code)}</code>`;
   }
   const bold = boldStar ?? boldUnderscore;
   if (bold !== undefined) {
-    return `<strong>${linkifyPlainText(bold, currentId)}</strong>`;
+    return `<strong>${linkifyPlainText(bold, currentId, roles)}</strong>`;
   }
   const italic = emStar ?? emUnderscore;
   if (italic !== undefined) {
-    return `<em>${linkifyPlainText(italic, currentId)}</em>`;
+    return `<em>${linkifyPlainText(italic, currentId, roles)}</em>`;
   }
   if (linkText !== undefined && linkUrl !== undefined) {
     return renderLink(linkText, linkUrl, currentId);
@@ -107,19 +138,20 @@ function renderLink(text: string, url: string, currentId: string | undefined): s
 }
 
 /** Renders one line/run of inline markdown (bold/italic/code/links) to HTML, linkifying item
- * ids in every plain-text segment along the way. */
-export function renderInline(raw: string, currentId?: string): string {
+ * ids (and, when `roles` resolves them, `@<slug>` role mentions) in every plain-text segment
+ * along the way. */
+export function renderInline(raw: string, currentId?: string, roles?: RoleDirectory): string {
   const regex = new RegExp(INLINE_TOKEN.source, 'g');
   let result = '';
   let lastIndex = 0;
   let match = regex.exec(raw);
   while (match !== null) {
-    result += linkifyPlainText(raw.slice(lastIndex, match.index), currentId);
-    result += renderInlineToken(match, currentId);
+    result += linkifyPlainText(raw.slice(lastIndex, match.index), currentId, roles);
+    result += renderInlineToken(match, currentId, roles);
     lastIndex = regex.lastIndex;
     match = regex.exec(raw);
   }
-  result += linkifyPlainText(raw.slice(lastIndex), currentId);
+  result += linkifyPlainText(raw.slice(lastIndex), currentId, roles);
   return result;
 }
 
@@ -169,6 +201,7 @@ function renderTable(
   lines: readonly string[],
   start: number,
   currentId: string | undefined,
+  roles: RoleDirectory | undefined,
 ): { html: string; next: number } {
   const header = splitTableRow(lineAt(lines, start));
   const rows: string[][] = [];
@@ -177,11 +210,11 @@ function renderTable(
     rows.push(splitTableRow(lineAt(lines, i)));
     i++;
   }
-  const thead = `<thead><tr>${header.map((cell) => `<th>${renderInline(cell, currentId)}</th>`).join('')}</tr></thead>`;
+  const thead = `<thead><tr>${header.map((cell) => `<th>${renderInline(cell, currentId, roles)}</th>`).join('')}</tr></thead>`;
   const tbody = `<tbody>${rows
     .map(
       (row) =>
-        `<tr>${row.map((cell) => `<td>${renderInline(cell, currentId)}</td>`).join('')}</tr>`,
+        `<tr>${row.map((cell) => `<td>${renderInline(cell, currentId, roles)}</td>`).join('')}</tr>`,
     )
     .join('')}</tbody>`;
   return { html: `<table>${thead}${tbody}</table>`, next: i };
@@ -229,6 +262,7 @@ function renderList(
   lines: readonly string[],
   start: number,
   currentId: string | undefined,
+  roles: RoleDirectory | undefined,
 ): { html: string; next: number } {
   const firstMatch = LIST_MARKER.exec(lineAt(lines, start));
   const ordered = firstMatch !== null && /^\d+\.$/.test(firstMatch[1] ?? '');
@@ -236,7 +270,7 @@ function renderList(
 
   const tag = ordered ? 'ol' : 'ul';
   const itemsHtml = items
-    .map((raw) => `<li>${renderInline(raw.join(' '), currentId)}</li>`)
+    .map((raw) => `<li>${renderInline(raw.join(' '), currentId, roles)}</li>`)
     .join('');
   return { html: `<${tag}>${itemsHtml}</${tag}>`, next };
 }
@@ -291,11 +325,15 @@ function renderHeading(
   lines: readonly string[],
   start: number,
   currentId: string | undefined,
+  roles: RoleDirectory | undefined,
 ): BlockResult {
   const match = HEADING.exec(lineAt(lines, start));
   const level = String(match?.[1]?.length ?? 1);
   const text = match?.[2] ?? '';
-  return { html: `<h${level}>${renderInline(text, currentId)}</h${level}>`, next: start + 1 };
+  return {
+    html: `<h${level}>${renderInline(text, currentId, roles)}</h${level}>`,
+    next: start + 1,
+  };
 }
 
 function renderBlockquote(
@@ -303,6 +341,7 @@ function renderBlockquote(
   start: number,
   currentId: string | undefined,
   renderMermaidFences: boolean,
+  roles: RoleDirectory | undefined,
 ): BlockResult {
   const quoteLines: string[] = [];
   let i = start;
@@ -311,7 +350,7 @@ function renderBlockquote(
     i++;
   }
   return {
-    html: `<blockquote>${renderMarkdownToHtml(quoteLines.join('\n'), currentId, renderMermaidFences)}</blockquote>`,
+    html: `<blockquote>${renderMarkdownToHtml(quoteLines.join('\n'), currentId, renderMermaidFences, roles)}</blockquote>`,
     next: i,
   };
 }
@@ -320,6 +359,7 @@ function renderParagraph(
   lines: readonly string[],
   start: number,
   currentId: string | undefined,
+  roles: RoleDirectory | undefined,
 ): BlockResult {
   // The first line is consumed unconditionally (guaranteeing progress even when it matches
   // the `|`-based approximation `startsNewBlock` uses for tables but isn't a real table
@@ -330,7 +370,7 @@ function renderParagraph(
     paraLines.push(lineAt(lines, i).trim());
     i++;
   }
-  return { html: `<p>${renderInline(paraLines.join(' '), currentId)}</p>`, next: i };
+  return { html: `<p>${renderInline(paraLines.join(' '), currentId, roles)}</p>`, next: i };
 }
 
 function renderBlock(
@@ -338,38 +378,42 @@ function renderBlock(
   i: number,
   currentId: string | undefined,
   renderMermaidFences: boolean,
+  roles: RoleDirectory | undefined,
 ): BlockResult {
   const line = lineAt(lines, i);
   if (FENCE_START.test(line)) {
     return renderFence(lines, i, renderMermaidFences);
   }
   if (HEADING.test(line)) {
-    return renderHeading(lines, i, currentId);
+    return renderHeading(lines, i, currentId, roles);
   }
   if (HR.test(line)) {
     return { html: '<hr>', next: i + 1 };
   }
   if (BLOCKQUOTE.test(line)) {
-    return renderBlockquote(lines, i, currentId, renderMermaidFences);
+    return renderBlockquote(lines, i, currentId, renderMermaidFences, roles);
   }
   if (isTableStart(lines, i)) {
-    return renderTable(lines, i, currentId);
+    return renderTable(lines, i, currentId, roles);
   }
   if (LIST_MARKER.test(line)) {
-    return renderList(lines, i, currentId);
+    return renderList(lines, i, currentId, roles);
   }
-  return renderParagraph(lines, i, currentId);
+  return renderParagraph(lines, i, currentId, roles);
 }
 
 /** Renders a markdown document to a fragment of HTML (no `<html>`/`<body>` wrapper — see
  * `previewDocument.ts` for that). `currentId`, when given, is the id of the item being
  * displayed and is left as plain text rather than a self-link when found in the body.
  * `renderMermaidFences` (default `false`) opts a ```mermaid``` fence into rendering as a live
- * diagram instead of plain code — see the module doc comment. */
+ * diagram instead of plain code — see the module doc comment. `roles`, when given, resolves
+ * `@<slug>` role mentions to their role item's link + hover text (see the module doc comment
+ * and `domain/roleDirectory.ts`); omitted, every `@slug` is left as plain text. */
 export function renderMarkdownToHtml(
   markdown: string,
   currentId?: string,
   renderMermaidFences = false,
+  roles?: RoleDirectory,
 ): string {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n');
   const out: string[] = [];
@@ -380,7 +424,7 @@ export function renderMarkdownToHtml(
       i++;
       continue;
     }
-    const block = renderBlock(lines, i, currentId, renderMermaidFences);
+    const block = renderBlock(lines, i, currentId, renderMermaidFences, roles);
     out.push(block.html);
     i = block.next;
   }

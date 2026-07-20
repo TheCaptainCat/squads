@@ -16,7 +16,8 @@ import {
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
 } from './domain/badgeCatalog';
-import { type DisplayNode, errorDisplayNode } from './domain/displayNode';
+import { collectNodeIds, type DisplayNode, errorDisplayNode } from './domain/displayNode';
+import { ExpansionTracker } from './domain/expansionTracker';
 import { buildMetaView } from './domain/metaView';
 import { buildStatusRoleMap, NO_STATUS_ROLES } from './domain/statusRole';
 import type { ProcessRunner } from './processRunner';
@@ -35,6 +36,9 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
   readonly onDidChangeTreeData = this.changeEmitter.event;
 
   private roots: DisplayNode[] = [];
+  // See `treeDataProvider.ts`'s matching field: a full-root refresh (this view's only kind)
+  // does not preserve expand/collapse state on its own, even with a stable `item.id`.
+  private readonly expansion = new ExpansionTracker();
 
   constructor(
     private readonly runner: ProcessRunner,
@@ -44,7 +48,12 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
   ) {}
 
   getTreeItem(node: DisplayNode): vscode.TreeItem {
-    return toTreeItem(node);
+    return toTreeItem(node, (id) => this.expansion.isExpanded(id));
+  }
+
+  /** Wired to the owning `TreeView`'s expand/collapse events in `extension.ts`. */
+  setExpanded(id: string, expanded: boolean): void {
+    this.expansion.setExpanded(id, expanded);
   }
 
   getChildren(node?: DisplayNode): DisplayNode[] {
@@ -87,6 +96,7 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
         ? buildStatusRoleMap(statusesOutcome.data)
         : NO_STATUS_ROLES;
     this.roots = buildMetaView(outcome.data, fieldBindings, badgeVocabulary, statusRoles);
+    this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);
   }
 

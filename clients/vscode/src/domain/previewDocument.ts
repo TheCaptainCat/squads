@@ -15,7 +15,16 @@
 import type { SqOutcome } from '../sqAdapter';
 import type { SqDiscussionEntry, SqSubEntity } from '../types';
 import { escapeHtml, renderMarkdownToHtml } from './markdown';
-import { OPEN_ITEM_COMMAND } from './previewMessages';
+import {
+  NAVIGATE_HISTORY_COMMAND,
+  OPEN_ITEM_COMMAND,
+  UPDATE_CONTENT_COMMAND,
+} from './previewMessages';
+import type { RoleDirectory } from './roleDirectory';
+
+const ARTICLE_MOUNT_ID = 'sq-article';
+const SUBENTITIES_MOUNT_ID = 'sq-subentities';
+const DISCUSSION_MOUNT_ID = 'sq-discussion';
 
 const CHILDREN_GRAPH_SOURCE_ID = 'sq-children-graph-source';
 const CHILDREN_GRAPH_OUTPUT_ID = 'sq-children-graph';
@@ -116,17 +125,100 @@ details.sq-graph .sq-graph-empty {
   cursor: pointer;
   color: var(--vscode-descriptionForeground);
 }
+/* fixed, not sticky: this document renders inside a nested webview iframe whose own scrolling
+   doesn't carry sticky positioning along in practice (verified empirically -- a sticky element
+   here scrolls off-screen with the rest of the content instead of pinning), so the toolbar is
+   pinned directly against the iframe's own viewport instead. .sq-nav-toolbar-spacer (emitted
+   right after it -- see buildHistoryToolbarHtml) reserves the same height in the normal flow so
+   fixed positioning doesn't pull it out of the layout and let content render underneath it. */
+.sq-nav-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  background: var(--vscode-editor-background);
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.sq-nav-toolbar-spacer {
+  height: 2.75rem;
+}
+.sq-nav-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.sq-nav-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.sq-nav-button {
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--vscode-foreground);
+  background: var(--vscode-button-secondaryBackground, transparent);
+  border: 1px solid var(--vscode-panel-border, transparent);
+  border-radius: 4px;
+  width: 1.8rem;
+  height: 1.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.sq-nav-button:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground, var(--vscode-toolbar-hoverBackground));
+}
+.sq-nav-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 `;
 
 /** Delegated click/auxclick handling for both `a.sq-item-link` (dossier/comment/sub-entity
- * body links) and `g.node[data-item-id]` (a rendered graph node — F25, the attribute stamped
- * post-render by `mermaidRenderScript`): a plain click (or ctrl/cmd-click) requests same-panel
- * navigation; a middle-click (`auxclick`, button 1) requests a new panel. Both element kinds
- * carry the target id in the same `data-item-id` attribute, so one selector/lookup handles
- * either. `%s` is substituted with the shared `OPEN_ITEM_COMMAND` constant so the wire format
- * can never drift from what `previewMessages.ts`'s `parseOpenItemMessage` accepts. */
-function clientScript(command: string): string {
+ * body links — including a resolved `@<slug>` role mention, which carries the role item's id
+ * in the same attribute) and `g.node[data-item-id]` (a rendered graph node — F25, the attribute
+ * stamped post-render by `mermaidRenderScript`): a plain click (or ctrl/cmd-click) requests
+ * same-panel navigation; a middle-click (`auxclick`, button 1) requests a new panel. Both
+ * element kinds carry the target id in the same `data-item-id` attribute, so one selector/lookup
+ * handles either — no new message type needed for a role mention. `openCommand` is substituted
+ * with the shared `OPEN_ITEM_COMMAND` constant so the wire format can never drift from what
+ * `previewMessages.ts`'s `parseOpenItemMessage` accepts.
+ *
+ * Also delegates clicks on the in-content back/forward toolbar (`[data-sq-nav]`, built by
+ * `buildHistoryToolbarHtml`) to `navCommand` (`NAVIGATE_HISTORY_COMMAND`) — checked *before* the
+ * link/graph-node handling above since it's a disjoint element kind. A `disabled` button (the
+ * end of history — `buildHistoryToolbarHtml` never renders one enabled past that point) doesn't
+ * dispatch a click at all in a Chromium webview, but the handler still re-checks `.disabled`
+ * defensively rather than relying solely on that platform behavior.
+ *
+ * Also listens for the host's `updateCommand` message (`UpdateContentMessage`) — a same-item
+ * refresh's replacement HTML for the three stable mount points — and patches them in place via
+ * `innerHTML` rather than navigating, then re-runs the mermaid render pass
+ * (`window.__sqRenderMermaid`, defined by `mermaidRenderScript`) over whatever new
+ * `.sq-graph-source` elements just landed. Patching in place (as opposed to reassigning
+ * `panel.webview.html`, which reloads the page) is what preserves the reader's scroll
+ * position for that path — nothing here calls `scrollTo` for a patch, deliberately: the page
+ * never navigates, so the browser's own scroll position is simply never disturbed.
+ *
+ * Every *fresh* load of this document (a genuine navigation — `itemPreviewManager.ts`'s
+ * `'reload'` mode: a new panel, or reusing the panel for a different item) explicitly resets to
+ * the top on parse — a real `window.scrollTo(0, 0)` rather than counting on a browser's default
+ * fresh-document scroll position, since VS Code's webview host doesn't document that guarantee. */
+function clientScript(openCommand: string, updateCommand: string, navCommand: string): string {
   return `(function () {
+  window.scrollTo(0, 0);
   const vscode = acquireVsCodeApi();
   function post(event, newTab) {
     const target = event.target.closest('a.sq-item-link, g.node[data-item-id]');
@@ -134,15 +226,30 @@ function clientScript(command: string): string {
     event.preventDefault();
     const id = target.getAttribute('data-item-id');
     if (!id) { return; }
-    vscode.postMessage({ command: '${command}', id: id, newTab: newTab });
+    vscode.postMessage({ command: '${openCommand}', id: id, newTab: newTab });
   }
   document.addEventListener('click', function (event) {
     if (event.button !== 0) { return; }
+    const navTarget = event.target.closest('[data-sq-nav]');
+    if (navTarget) {
+      if (navTarget.disabled) { return; }
+      event.preventDefault();
+      vscode.postMessage({ command: '${navCommand}', direction: navTarget.getAttribute('data-sq-nav') });
+      return;
+    }
     post(event, event.ctrlKey || event.metaKey);
   });
   document.addEventListener('auxclick', function (event) {
     if (event.button !== 1) { return; }
     post(event, true);
+  });
+  window.addEventListener('message', function (event) {
+    const message = event.data;
+    if (!message || message.command !== '${updateCommand}') { return; }
+    document.getElementById('${ARTICLE_MOUNT_ID}').innerHTML = message.articleHtml;
+    document.getElementById('${SUBENTITIES_MOUNT_ID}').innerHTML = message.subEntitiesHtml;
+    document.getElementById('${DISCUSSION_MOUNT_ID}').innerHTML = message.discussionHtml;
+    if (typeof window.__sqRenderMermaid === 'function') { window.__sqRenderMermaid(); }
   });
 })();`;
 }
@@ -175,47 +282,58 @@ function clientScript(command: string): string {
  * recovered from that id and un-sanitized back to the real item id (undoing `mermaidNodeId`'s
  * hyphen->underscore fold; an item id has exactly one such character, so this is lossless),
  * then stamped onto the node as `data-item-id` so `clientScript`'s shared
- * `a.sq-item-link`/`g.node[data-item-id]` click handling picks it up like any other link. */
+ * `a.sq-item-link`/`g.node[data-item-id]` click handling picks it up like any other link.
+ *
+ * Exposed as `window.__sqRenderMermaid` (rather than a run-once IIFE) so `clientScript`'s
+ * `updateCommand` handler can re-invoke it after a same-item refresh patches in fresh
+ * `.sq-graph-source` elements — the render-id counter (`callSeq`) lives in the enclosing closure
+ * so it keeps counting up across every call, not just the initial one, guaranteeing every
+ * `mermaid.render` invocation for the life of the page gets its own id. */
 function mermaidRenderScript(nonce: string): string {
   return `(function () {
-  if (typeof mermaid === 'undefined') { return; }
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: 'strict',
-    flowchart: { wrappingWidth: 200 },
-  });
-  var nonce = '${nonce}';
-  var nodeIdPattern = /-flowchart-([A-Za-z0-9_]+)-\\d+$/;
-  var sources = document.querySelectorAll('.sq-graph-source');
-  sources.forEach(function (sourceEl, index) {
-    var outputId = sourceEl.getAttribute('data-output-id');
-    var outputEl = outputId ? document.getElementById(outputId) : null;
-    if (!outputEl) { return; }
-    var text = sourceEl.textContent || '';
-    if (!text.trim()) { return; }
-    mermaid.render('sq-mermaid-render-' + String(index), text).then(function (result) {
-      var parsed = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
-      var svgEl = parsed.documentElement;
-      if (!svgEl || svgEl.nodeName === 'parsererror') {
-        outputEl.textContent = 'Failed to render diagram.';
-        return;
-      }
-      var styles = svgEl.querySelectorAll('style');
-      for (var i = 0; i < styles.length; i++) {
-        styles[i].setAttribute('nonce', nonce);
-        styles[i].nonce = nonce;
-      }
-      var nodes = svgEl.querySelectorAll('.node');
-      for (var j = 0; j < nodes.length; j++) {
-        var match = nodeIdPattern.exec(nodes[j].getAttribute('id') || '');
-        if (!match) { continue; }
-        nodes[j].setAttribute('data-item-id', match[1].replace(/_/g, '-'));
-      }
-      outputEl.replaceChildren(document.importNode(svgEl, true));
-    }).catch(function () {
-      outputEl.textContent = 'Failed to render diagram.';
+  var callSeq = 0;
+  window.__sqRenderMermaid = function () {
+    if (typeof mermaid === 'undefined') { return; }
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      flowchart: { wrappingWidth: 200 },
     });
-  });
+    var nonce = '${nonce}';
+    var nodeIdPattern = /-flowchart-([A-Za-z0-9_]+)-\\d+$/;
+    var sources = document.querySelectorAll('.sq-graph-source');
+    sources.forEach(function (sourceEl) {
+      var outputId = sourceEl.getAttribute('data-output-id');
+      var outputEl = outputId ? document.getElementById(outputId) : null;
+      if (!outputEl) { return; }
+      var text = sourceEl.textContent || '';
+      if (!text.trim()) { return; }
+      var renderId = 'sq-mermaid-render-' + String(callSeq++);
+      mermaid.render(renderId, text).then(function (result) {
+        var parsed = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
+        var svgEl = parsed.documentElement;
+        if (!svgEl || svgEl.nodeName === 'parsererror') {
+          outputEl.textContent = 'Failed to render diagram.';
+          return;
+        }
+        var styles = svgEl.querySelectorAll('style');
+        for (var i = 0; i < styles.length; i++) {
+          styles[i].setAttribute('nonce', nonce);
+          styles[i].nonce = nonce;
+        }
+        var nodes = svgEl.querySelectorAll('.node');
+        for (var j = 0; j < nodes.length; j++) {
+          var match = nodeIdPattern.exec(nodes[j].getAttribute('id') || '');
+          if (!match) { continue; }
+          nodes[j].setAttribute('data-item-id', match[1].replace(/_/g, '-'));
+        }
+        outputEl.replaceChildren(document.importNode(svgEl, true));
+      }).catch(function () {
+        outputEl.textContent = 'Failed to render diagram.';
+      });
+    });
+  };
+  window.__sqRenderMermaid();
 })();`;
 }
 
@@ -266,26 +384,60 @@ export function splitDossierMarkdown(markdown: string): { header: string; body: 
   };
 }
 
-/** The dossier split into its two rendered HTML fragments — see `splitDossierMarkdown`. */
+/** The plain-text title line a `splitDossierMarkdown` header fragment starts with, for the
+ * sticky in-content toolbar's compact title slot (`buildHistoryToolbarHtml`) — a *copy*, not a
+ * move: the heading stays right where it always was in `headerHtml` too (rendered as a full,
+ * never-truncated `<h1>` in the body), since a title truncated down to the toolbar's width would
+ * otherwise be the reader's only complete view of it. Plain text out (the toolbar escapes it,
+ * and also uses it verbatim as a hover-tooltip `title=` attribute so even the ellipsis'd copy is
+ * inspectable), not HTML. Falls back to an empty string when `header` doesn't start with an H1
+ * — `renderOutcomeHtml` covers that case with the item id instead, same as it always showed
+ * *something* identifying for a header-less dossier. */
+function extractTitleLine(header: string): string {
+  if (!header.startsWith('# ')) {
+    return '';
+  }
+  const newlineIndex = header.indexOf('\n');
+  return newlineIndex === -1 ? header.slice(2) : header.slice(2, newlineIndex);
+}
+
+/** The dossier split into its rendered pieces — see `splitDossierMarkdown`. `titleText` is a
+ * plain-text *copy* of the heading (for the in-content toolbar's compact title slot,
+ * `buildHistoryToolbarHtml`) — `headerHtml` still carries the full heading too, unchanged. */
 export interface DossierHtml {
+  readonly titleText: string;
   readonly headerHtml: string;
   readonly bodyHtml: string;
 }
 
-/** Renders an `sq show <id> --raw` outcome to the two HTML fragments shown in the panel:
- * the metadata header and the prose body, split by `splitDossierMarkdown` so the caller can
- * inject the graph sections between them (F23). On failure the message renders entirely as
- * `bodyHtml` with an empty header (never blank/stale content) — the caller is still
- * responsible for firing the accompanying VS Code notification. */
-export function renderOutcomeHtml(id: string, outcome: SqOutcome<string>): DossierHtml {
+/** Renders an `sq show <id> --raw` outcome to the HTML/text fragments shown in the panel: the
+ * metadata header fragment (title + bullet list, full and untruncated) and the prose body, split
+ * by `splitDossierMarkdown` so the caller can inject the graph sections between them (F23) —
+ * plus `titleText`, a plain-text copy of just the heading for the sticky toolbar's compact title
+ * slot above both (see `extractTitleLine`). On failure the message renders entirely as
+ * `bodyHtml` with an empty header and `id` itself as the title (never blank/stale content) — the
+ * caller is still responsible for firing the accompanying VS Code notification. `roles`, when
+ * given, resolves `@<slug>` mentions found in the dossier body the same way the discussion/
+ * sub-entity sections do (see `domain/roleDirectory.ts`). */
+export function renderOutcomeHtml(
+  id: string,
+  outcome: SqOutcome<string>,
+  roles?: RoleDirectory,
+): DossierHtml {
   if (outcome.kind !== 'success') {
     return {
+      titleText: id,
       headerHtml: '',
       bodyHtml: renderMarkdownToHtml(`# Squads: unable to load ${id}\n\n${outcome.message}`, id),
     };
   }
   const { header, body } = splitDossierMarkdown(outcome.data);
-  return { headerHtml: renderMarkdownToHtml(header, id), bodyHtml: renderMarkdownToHtml(body, id) };
+  const titleText = extractTitleLine(header);
+  return {
+    titleText: titleText === '' ? id : titleText,
+    headerHtml: renderMarkdownToHtml(header, id),
+    bodyHtml: renderMarkdownToHtml(body, id, false, roles),
+  };
 }
 
 /** Renders an `sq workflow --raw` outcome to the HTML fragment shown in the workflow-cheatsheet
@@ -362,22 +514,33 @@ export interface DiscussionOutcome {
 }
 
 /** One comment: an author + ISO-timestamp header, then its body rendered through the same
- * markdown renderer the dossier body uses (so item-id references inside a comment linkify the
- * same way, and `currentId` still suppresses a self-link). */
-function buildCommentHtml(entry: SqDiscussionEntry, currentId: string | undefined): string {
+ * markdown renderer the dossier body uses (so item-id references — and, when `roles` resolves
+ * them, `@<slug>` role mentions — inside a comment linkify the same way, and `currentId` still
+ * suppresses a self-link). */
+function buildCommentHtml(
+  entry: SqDiscussionEntry,
+  currentId: string | undefined,
+  roles: RoleDirectory | undefined,
+): string {
   return (
     `<div class="sq-comment"><div class="sq-comment-header">` +
     `<span class="sq-comment-author">${escapeHtml(entry.author)}</span> ` +
     `<span class="sq-comment-ts">${escapeHtml(entry.ts)}</span></div>` +
-    `<div class="sq-comment-body">${renderMarkdownToHtml(entry.body, currentId)}</div></div>`
+    `<div class="sq-comment-body">${renderMarkdownToHtml(entry.body, currentId, false, roles)}</div></div>`
   );
 }
 
 /** The collapsible discussion/comments section (F14), appended after the dossier body and the
  * graph sections. A failed fetch degrades to an inline failure message inside the same
  * `<details>` shell the graph sections use (consistent styling, never silently blank); a
- * successful fetch with no comments yet renders no section at all — nothing to fold open. */
-export function buildDiscussionHtml(outcome: DiscussionOutcome, currentId?: string): string {
+ * successful fetch with no comments yet renders no section at all — nothing to fold open.
+ * `roles`, when given, resolves `@<slug>` role mentions found in a comment's body (see
+ * `domain/roleDirectory.ts`). */
+export function buildDiscussionHtml(
+  outcome: DiscussionOutcome,
+  currentId?: string,
+  roles?: RoleDirectory,
+): string {
   if (outcome.entries === null) {
     return (
       `<details class="sq-graph" open><summary>Discussion</summary>` +
@@ -387,7 +550,9 @@ export function buildDiscussionHtml(outcome: DiscussionOutcome, currentId?: stri
   if (outcome.entries.length === 0) {
     return '';
   }
-  const comments = outcome.entries.map((entry) => buildCommentHtml(entry, currentId)).join('\n');
+  const comments = outcome.entries
+    .map((entry) => buildCommentHtml(entry, currentId, roles))
+    .join('\n');
   const count = String(outcome.entries.length);
   return `<details class="sq-graph" open><summary>Discussion (${count})</summary>${comments}</details>`;
 }
@@ -424,9 +589,13 @@ function buildSubEntityHeadLine(entity: SqSubEntity): string {
 /** One sub-entity: its local id + title as a header, the head badge line always visible, and
  * (when it has one) its body as collapsible prose rendered through the same markdown renderer
  * the dossier body and discussion comments use (mermaid-fences off, `currentId` still
- * suppresses a self-link) — a blank body renders no `<details>` at all rather than an empty
- * fold. */
-function buildSubEntityHtml(entity: SqSubEntity, currentId: string | undefined): string {
+ * suppresses a self-link, `roles` resolves any `@<slug>` mention the same way) — a blank body
+ * renders no `<details>` at all rather than an empty fold. */
+function buildSubEntityHtml(
+  entity: SqSubEntity,
+  currentId: string | undefined,
+  roles: RoleDirectory | undefined,
+): string {
   const header =
     `<div class="sq-subentity-header"><span class="sq-subentity-id">${escapeHtml(entity.local_id)}</span>` +
     `<span class="sq-subentity-title">${escapeHtml(entity.title)}</span></div>`;
@@ -434,14 +603,19 @@ function buildSubEntityHtml(entity: SqSubEntity, currentId: string | undefined):
   const body =
     entity.body.trim() === ''
       ? ''
-      : `<details class="sq-subentity-body"><summary>Body</summary>${renderMarkdownToHtml(entity.body, currentId)}</details>`;
+      : `<details class="sq-subentity-body"><summary>Body</summary>${renderMarkdownToHtml(entity.body, currentId, false, roles)}</details>`;
   return `<div class="sq-subentity">${header}${head}${body}</div>`;
 }
 
 /** The collapsible sub-entities section (F15): a feature's stories, a task's subtasks, a
  * review's findings — in `sq show <id> --json`'s `subentities` array order. Mirrors
- * `buildDiscussionHtml`'s failure/empty/populated shape exactly. */
-export function buildSubEntitiesHtml(outcome: SubEntitiesOutcome, currentId?: string): string {
+ * `buildDiscussionHtml`'s failure/empty/populated shape exactly, including the `roles`
+ * pass-through for `@<slug>` mentions in a sub-entity's body. */
+export function buildSubEntitiesHtml(
+  outcome: SubEntitiesOutcome,
+  currentId?: string,
+  roles?: RoleDirectory,
+): string {
   if (outcome.entities === null) {
     return (
       `<details class="sq-graph" open><summary>Sub-entities</summary>` +
@@ -452,17 +626,58 @@ export function buildSubEntitiesHtml(outcome: SubEntitiesOutcome, currentId?: st
     return '';
   }
   const entries = outcome.entities
-    .map((entity) => buildSubEntityHtml(entity, currentId))
+    .map((entity) => buildSubEntityHtml(entity, currentId, roles))
     .join('\n');
   const count = String(outcome.entities.length);
   return `<details class="sq-graph" open><summary>Sub-entities (${count})</summary>${entries}</details>`;
 }
 
+/** The in-content back/forward toolbar: VS Code's `editor/title/navigation` menu
+ * doesn't reliably surface inline buttons for a plain `createWebviewPanel` panel — confirmed by
+ * screenshot in the extension dev host, not just by reading the docs — so this rendered-in-page
+ * toolbar is the primary back/forward control (the `alt+left`/`alt+right` keybindings remain a
+ * secondary path to the same commands). A real `disabled` attribute at either end of history, so
+ * the browser itself dims and inert-s the button — no separate CSS-only "looks disabled" state
+ * to keep in sync. `itemPreviewManager.ts`'s `render` recomputes `canGoBack`/`canGoForward` from
+ * the panel's current `PreviewHistory` on every render (both `'reload'` and `'patch'`), so this
+ * never goes stale relative to the history it reflects.
+ *
+ * Doubles as the item's title bar (`titleText` — `renderOutcomeHtml`'s extracted heading, or
+ * the item id as a fallback): pinned to the top of the preview's own viewport as the reader
+ * scrolls (`position: fixed` in `PREVIEW_STYLES`'s `.sq-nav-toolbar` rule — see that rule's
+ * comment for why `fixed`, not `sticky`), reading `title … ←  →`, title on the left (truncating
+ * with an ellipsis rather than shoving the buttons off — `.sq-nav-title`'s `text-overflow`), nav
+ * on the right. The buttons are plain arrow glyphs, not text — `title`/`aria-label` still carry
+ * "Back"/"Forward" for the hover tooltip and screen readers, so the control stays discoverable
+ * without a text label competing for the toolbar's limited width. The trailing
+ * `.sq-nav-toolbar-spacer` reserves the fixed bar's height in the normal document flow, so the
+ * graphs/body/etc. that follow don't render underneath it. */
+export function buildHistoryToolbarHtml(
+  titleText: string,
+  canGoBack: boolean,
+  canGoForward: boolean,
+): string {
+  const back = `<button type="button" class="sq-nav-button" data-sq-nav="back"${canGoBack ? '' : ' disabled'} title="Back" aria-label="Back">&#8592;</button>`;
+  const forward = `<button type="button" class="sq-nav-button" data-sq-nav="forward"${canGoForward ? '' : ' disabled'} title="Forward" aria-label="Forward">&#8594;</button>`;
+  const escapedTitle = escapeHtml(titleText);
+  const title = `<span class="sq-nav-title" title="${escapedTitle}">${escapedTitle}</span>`;
+  return (
+    `<div class="sq-nav-toolbar">${title}<div class="sq-nav-buttons">${back}${forward}</div></div>` +
+    `<div class="sq-nav-toolbar-spacer"></div>`
+  );
+}
+
 export interface PreviewDocumentParams {
   readonly title: string;
-  /** The dossier's metadata header fragment (title + bullet list) — rendered above the graph
-   * sections, per F23. Empty when there's no detectable header (e.g. a failure message; see
-   * `splitDossierMarkdown`), in which case the graphs simply sit at the top of `<article>`. */
+  /** Pre-rendered markup for the in-content back/forward toolbar (`buildHistoryToolbarHtml`),
+   * positioned above everything else in `<article>` — `''` for a document with no navigation
+   * history (the workflow cheatsheet panel, which isn't an item). */
+  readonly toolbarHtml: string;
+  /** The dossier's metadata header fragment (title + bullet list, full and untruncated — a
+   * plain-text *copy* of just the heading also appears in `toolbarHtml`'s compact title slot,
+   * see `renderOutcomeHtml`) — rendered above the graph sections, per F23. Empty when there's no
+   * detectable header (e.g. a failure message; see `splitDossierMarkdown`), in which case the
+   * graphs simply sit at the top of `<article>`. */
   readonly headerHtml: string;
   /** The dossier's prose-body fragment, rendered below the graph sections. */
   readonly bodyHtml: string;
@@ -484,7 +699,26 @@ export interface PreviewDocumentParams {
   readonly discussionHtml: string;
 }
 
-/** The complete `<!DOCTYPE html>` document set as the panel's `webview.html`. */
+/** The `<article>` mount point's inner HTML — the back/forward toolbar, then header + graphs +
+ * body, in F23's fixed order (toolbar first). Shared by `buildPreviewHtml` (a fresh
+ * load) and `itemPreviewManager.ts`'s same-item-refresh `UpdateContentMessage` (a DOM patch) so
+ * the two are always byte-identical: a refresh never shows different content than a fresh load
+ * of the same dossier would — including the toolbar's enabled/disabled state, since the caller
+ * recomputes `toolbarHtml` from the current history on every render, patch included. */
+export function buildArticleHtml(
+  toolbarHtml: string,
+  headerHtml: string,
+  graphsHtml: string,
+  bodyHtml: string,
+): string {
+  return `${toolbarHtml}\n${headerHtml}\n${graphsHtml}\n${bodyHtml}`;
+}
+
+/** The complete `<!DOCTYPE html>` document set as the panel's `webview.html`. The three mount
+ * points (`#sq-article`, `#sq-subentities`, `#sq-discussion`) are what `clientScript`'s
+ * `updateCommand` handler patches on a same-item refresh — stable ids so that path never has to
+ * touch anything outside them (the `<head>`, the CSP, the loaded scripts, all untouched, since
+ * the page itself never reloads for that path). */
 export function buildPreviewHtml(params: PreviewDocumentParams): string {
   const csp = [
     "default-src 'none'",
@@ -502,13 +736,11 @@ export function buildPreviewHtml(params: PreviewDocumentParams): string {
 <style nonce="${params.nonce}">${PREVIEW_STYLES}</style>
 </head>
 <body>
-<article>${params.headerHtml}
-${params.graphsHtml}
-${params.bodyHtml}</article>
-${params.subEntitiesHtml}
-${params.discussionHtml}
+<article id="${ARTICLE_MOUNT_ID}">${buildArticleHtml(params.toolbarHtml, params.headerHtml, params.graphsHtml, params.bodyHtml)}</article>
+<div id="${SUBENTITIES_MOUNT_ID}">${params.subEntitiesHtml}</div>
+<div id="${DISCUSSION_MOUNT_ID}">${params.discussionHtml}</div>
 <script nonce="${params.nonce}" src="${params.mermaidScriptUri}"></script>
-<script nonce="${params.nonce}">${clientScript(OPEN_ITEM_COMMAND)}
+<script nonce="${params.nonce}">${clientScript(OPEN_ITEM_COMMAND, UPDATE_CONTENT_COMMAND, NAVIGATE_HISTORY_COMMAND)}
 ${mermaidRenderScript(params.nonce)}</script>
 </body>
 </html>`;

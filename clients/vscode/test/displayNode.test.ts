@@ -1,6 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildTooltip, emphasisForNode } from '../src/domain/displayNode';
+import {
+  buildTooltip,
+  collectNodeIds,
+  type DisplayNode,
+  emphasisForNode,
+  groupDisplayNode,
+} from '../src/domain/displayNode';
+
+function leaf(id: string): DisplayNode {
+  return {
+    id,
+    itemId: id,
+    label: id,
+    description: '',
+    tooltip: '',
+    iconId: 'circle-outline',
+    blocked: false,
+    closed: false,
+    active: false,
+    children: [],
+  };
+}
 
 describe('emphasisForNode', () => {
   it('is "none" when blocked/closed/active are all false', () => {
@@ -52,5 +73,30 @@ describe('buildTooltip', () => {
       blocked: false,
     });
     expect(tooltip).toContain('Assignee: unassigned');
+  });
+});
+
+describe('collectNodeIds', () => {
+  it('collects a single root leaf with no children', () => {
+    expect(collectNodeIds([leaf('node-1')])).toEqual(new Set(['node-1']));
+  });
+
+  it('walks nested children, collecting every id at every depth', () => {
+    const child = leaf('node-2');
+    const grandchild = leaf('node-3');
+    const withChildren: DisplayNode = { ...child, children: [grandchild] };
+    const root: DisplayNode = { ...leaf('node-1'), children: [withChildren] };
+
+    expect(collectNodeIds([root])).toEqual(new Set(['node-1', 'node-2', 'node-3']));
+  });
+
+  it('collects group node ids alongside their leaves (the flat/grouped and meta views)', () => {
+    const group = groupDisplayNode('group:type:task', 'task', 1, [leaf('node-1')]);
+
+    expect(collectNodeIds([group])).toEqual(new Set(['group:type:task', 'node-1']));
+  });
+
+  it('returns an empty set for an empty tree', () => {
+    expect(collectNodeIds([])).toEqual(new Set());
   });
 });
