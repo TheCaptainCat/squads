@@ -87,6 +87,24 @@ Short and single-letter aliases for the item-type commands provide input sugar f
 
 ---
 
+## Inspecting the workflow spec
+
+`sq workflow` and its subcommands print the team-workflow cheatsheet and inspect the active workflow
+specification:
+
+```bash
+sq workflow                    # print the team-workflow cheatsheet (who writes what, how items link)
+sq workflow show               # same (explicit version)
+sq workflow types              # list every declared item type in the active spec (machine-readable table)
+sq workflow collections        # list every declared badge collection (priority, severity, or custom)
+sq workflow statuses           # list every declared status in the active spec
+sq workflow lint               # validate the workflow override spec — collect all errors; exit 0 if OK
+```
+
+All commands accept `--raw` to opt out of Rich markdown rendering.
+
+---
+
 ## Status lifecycles
 
 Every item type has its own state machine. `sq status <ID> <Status>` only allows a transition the

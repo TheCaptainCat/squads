@@ -23,7 +23,7 @@ this tutorial we'll drive `sq` directly.
 
 ```bash
 sq create epic "Authentication platform"
-# → created EPIC-000009 → squads/epics/EPIC-000009-authentication-platform.md
+# → created EPIC-9 → squads/epics/EPIC-000009-authentication-platform.md
 ```
 
 (Your numbers differ — the global counter already spent IDs on the bundled roles.)
@@ -35,7 +35,7 @@ through `sq body` — never by hand-editing the file. The fresh epic looks like:
 
 ```markdown
 ---
-id: EPIC-000009
+id: EPIC-9
 type: epic
 status: Draft
 ...
@@ -69,7 +69,7 @@ command.
 ## 2. A feature with user stories (product owner)
 
 ```bash
-sq create feature "Login" --parent EPIC-000009
+sq create feature "Login" --parent EPIC-9
 sq feature 10 body -m "## Summary" -m "Email + password login with lockout."   # set the body
 sq feature 10 add-story "As a user, I want to log in so that I can access my account"
 sq feature 10 add-story "As an admin, I want to lock accounts after 5 failed tries"
@@ -89,7 +89,7 @@ You write the prose via `-m`/`--file`; `sq` keeps the structure.
 A task's parent is the feature; each subtask maps to one user story:
 
 ```bash
-sq create task "Validate credentials" --parent FEAT-000010 -m "Verify hash; lock after 5 fails."
+sq create task "Validate credentials" --parent FEAT-10 -m "Verify hash; lock after 5 fails."
 sq task 11 add-subtask "Check password hash" --story US1 -m "Use the stored argon2 hash."
 sq task 11 add-subtask "Lock after 5 failures" --story US2
 ```
@@ -110,7 +110,7 @@ real slug like `architect`, or `operator`.)
 
 ```bash
 sq create bug "Lockout counter resets on refresh"
-sq task 11 ref add BUG-000012 --kind fixes
+sq task 11 ref add BUG-12 --kind fixes
 sq bug 12 refs --in        # the bug shows the task that fixes it (computed)
 ```
 

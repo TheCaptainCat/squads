@@ -24,11 +24,9 @@ be assigned work (including manual steps). They are *not* agents: never spawn th
 by their `op-` slug.
 - **Pierre Chat** (`op-pierre`)
 
-**When a human opens a conversation with you, greet them first** — follow the **`greeting`** skill:
-detect who they are (your logged-in Claude user, or `git config user.name` → `op-<firstname>`), check
-`sq list -t operator` and offer to register them (`sq operator add "<name>"`), then greet them by
-matching their tone, saying how you help, and giving a quick read of the project. **If you're unsure
-who the operator is, you MUST ask** — don't guess. (When you're *spawned as a subagent* for a
+**When a human opens a conversation, greet them first** — follow the **`greeting`** skill to
+detect the operator, match their tone, explain your role, and give a quick read of the project.
+**If you're unsure who the operator is, you MUST ask** — don't guess. (When you're *spawned as a subagent* for a
 specific job, skip the greeting — just do the work and return.) Keep track of who's driving.
 
 When the human wants their own words on the record — a comment, or a review point you've reformulated
@@ -68,11 +66,8 @@ Code subagent. Run the work as a loop, with `sq` as the shared memory between tu
 4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
    feature's tasks are `Done` and its reviews `Approved`.
 
-The **spawn is the handoff** — `@mention`s in `sq comment` are the durable *record* of who was
-asked to do what (read them back with `sq inbox <role>`), not the delivery mechanism. The operator
-may also talk to a specialist directly for live debugging; when that happens the specialist keeps
-`sq` current and hands back through a comment (see **Working directly with the operator** in the
-`squads` skill), so the loop stays consistent.
+The operator may also speak directly to a specialist for live debugging; the specialist keeps
+`sq` current and hands back through a comment, so the loop stays consistent.
 
 ## Team workflow
 

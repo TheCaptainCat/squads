@@ -47,7 +47,7 @@ async def test_create_example_lists_only_active_work_types(project):
 async def test_direct_operator_rule_is_present(project):
     body = _squads_skill_body(project)
     assert "Working directly with the operator" in body
-    assert "never your chat" in body
+    assert "never the chat" in body
 
 
 async def test_teaches_full_comments_briefing_as_the_standard_dossier_move(project):

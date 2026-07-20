@@ -1,43 +1,33 @@
 # sq-memory — your role's memory and the team board
 
-Your role has its own committed notebook of small facts you've learned while working on this
-project — things worth remembering before a run that don't belong in a formal doc: a timing
-quirk, a gotcha, a convention someone corrected you on. It's **yours** (`squads/agents/memory/
-<role>/`, one folder per role) and it's committed to the repo, so it survives across sessions,
-checkouts, and machines.
+Your role has a committed memory: small facts you've learned while working on this project —
+timing quirks, gotchas, conventions. It's yours (`squads/agents/memory/<role>/`) and survives
+across sessions.
 
 ## Check it at the start of a run
 
-Before you start, run `sq memory <role> list` to see your role's memory index — one line per
-memory, slug plus a short description — the same way you'd skim a note left for yourself. Index in,
-content on recall — if a line looks relevant, pull the full entry with `sq memory <role> show
-<slug>` before you act on it. An empty pool lists nothing, which is fine — it just means you
-haven't written anything down yet.
+Before you start, run `sq memory <role> list` to browse your role's memory index — one line per
+memory, slug + description. If a line looks relevant, pull the full entry with `sq memory <role> show
+<slug>` before acting on it.
 
 ## One fact per memory
 
-Each memory should hold exactly **one** small, self-contained fact — not a running log, not a
-grab-bag of loosely related notes. If you learn two things, that's two memories. Small and
-specific beats long and general: a good memory reads in one glance from the index line alone, and
-its full body still fits in a few lines. When you catch yourself writing "and also…" inside a
-memory, split it.
+Each memory holds **one** small fact, not a running log. Learn two things? That's two memories.
+If you catch yourself writing "and also," split it. A good memory reads in one glance and its
+body fits in a few lines.
 
 ## Prune what's stale or wrong
 
-Memory rots if it's write-only. When you notice an entry that's out of date, superseded, or was
-simply wrong, remove it with `sq memory <role> forget <slug>` rather than leaving it to mislead the
-next run — a smaller, trustworthy pool beats a large, stale one. Forgetting is a real deletion (the
-history stays in git), not something that happens as a side effect of reading.
+Memory rots if it's write-only. Remove entries that are out of date, wrong, or superseded using
+`sq memory <role> forget <slug>` — a smaller trustworthy pool beats a large stale one. Forgetting
+deletes the entry (history stays in git).
 
 ## The memory-vs-board boundary
 
-Memory is **personal and learned** — something you individually picked up while doing the work,
-scoped to your own role's pool. It is not the place for facts that are **cross-cutting or apply to
-the whole team** — a project-wide convention, an announcement everyone needs to see. Knowledge like
-that belongs on a shared, team-wide surface instead of being copy-pasted into every role's pool one
-entry at a time. When you're about to jot something down, ask: *is this mine, learned from doing my
-own work — or is this something the whole team needs to know?* The former is memory; the latter
-belongs somewhere shared, not duplicated per role.
+Memory is **personal and learned** — something you discovered doing the work on your role. The
+**board is shared** — for project-wide conventions or team announcements that belong on one
+surface, not in every role's pool. When deciding what to write: is this mine (learned), or the
+team's (shared)? Personal facts go to memory; shared announcements go to the board.
 
 ## The summary-vs-body split
 

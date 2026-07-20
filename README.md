@@ -163,7 +163,7 @@ Contributing: **[CONTRIBUTING.md](CONTRIBUTING.md)** · contributors: **[CONTRIB
 **Setup**
 - `sq init [--squad-dir squads] [--backend claude_code] [--roles all|core|minimal|<slugs>] [--no-claude] [--force]`
 - `sq adopt [--squad-dir squads] [--backend] [--roles] [--no-claude]` — bring an *existing* project under sq management (non-destructive; imports existing items). See [docs/adoption.md](docs/adoption.md).
-- `sq workflow` — print the team-workflow cheatsheet
+- `sq workflow [show|types|collections|statuses|lint]` — print the team-workflow cheatsheet (`show`), list types / badge collections / statuses in the spec, or validate workflow overrides
 - `sq sync` — regenerate tool-owned managed files to the current version
 - `--dir PATH` (global) — operate on the squad folder at PATH instead of walking up to `.squads.toml`
 - `--at WHEN` (global) — forge timestamps (ISO 8601, UTC) for this command, to preserve history when migrating

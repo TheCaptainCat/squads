@@ -1,7 +1,7 @@
 {
   "schema_version": "0.10",
   "squads_version": "0.9.0",
-  "counter": 486,
+  "counter": 489,
   "padding": 6,
   "items": {
     "12": {
@@ -18306,6 +18306,214 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-10"
+    },
+    "487": {
+      "sequence_id": 487,
+      "type": "review",
+      "title": "User-facing docs review for 0.10.1",
+      "slug": "user-facing-docs-review-for-0-10-1",
+      "status": "Requested",
+      "description": "",
+      "parent": null,
+      "author": "tech-writer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Tutorial shows padded IDs in CLI output when they should be unpadded (0.10.0 display format)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Recipes doc shows padded IDs in copy-paste examples when they should be unpadded",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Adoption guide shows padded IDs in migration examples when they should be unpadded",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Missing documentation for sq workflow collections and sq workflow statuses subcommands",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "README command reference lacks sq workflow subcommands added in 0.10.0",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000487-user-facing-docs-review-for-0-10-1.md",
+      "created_at": "2026-07-20T07:30:55Z",
+      "updated_at": "2026-07-20T07:45:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-487"
+    },
+    "488": {
+      "sequence_id": 488,
+      "type": "review",
+      "title": "Generated agent-facing content: concision pass for 0.10.1",
+      "slug": "generated-agent-facing-content-concision-pass-for-0-10-1",
+      "status": "Requested",
+      "description": "",
+      "parent": null,
+      "author": "tech-writer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Redundant repetition of 'memory vs shared' distinction in memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Overexplained 'One fact per memory' section with restatement in memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Over-detailed preamble in 'Working directly with operator' section of squads_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Redundant preamble in 'Finding things across the board' section of squads_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Redundant expanded greeting instructions in claude_section.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Redundant explanation after orchestration loop steps in claude_section.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Overexplained intro paragraph in memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Padding in 'Check it at the start of a run' section of memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Slightly redundant phrasing in 'Prune what's stale' section of memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Redundant final paragraph in squads_skill.md.j2 'Common commands' section",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000488-generated-agent-facing-content-concision-pass-for-0-10-1.md",
+      "created_at": "2026-07-20T07:35:13Z",
+      "updated_at": "2026-07-20T07:47:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-488"
+    },
+    "489": {
+      "sequence_id": 489,
+      "type": "review",
+      "title": "Consolidation review: REV-488 concision cuts",
+      "slug": "consolidation-review-rev-488-concision-cuts",
+      "status": "Requested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-488:addresses"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000489-consolidation-review-rev-488-concision-cuts.md",
+      "created_at": "2026-07-20T07:51:54Z",
+      "updated_at": "2026-07-20T07:52:21Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-489"
     }
   }
 }

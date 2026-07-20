@@ -55,14 +55,11 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
 
 ## Working directly with the operator
 
-The operator sometimes talks to you directly — not through the manager — for live work or
-debugging. The rest of the team only ever sees `sq`, **never your chat**, so this is exactly when
-to stay disciplined:
+The operator sometimes talks to you directly — for live work or debugging. The team only sees
+`sq`, never the chat, so stay disciplined:
 
-- **Anchor to an item.** Confirm which item you're working on — read it with
-  `sq <type> <n> show --full --comments` so you see the body, sub-entities, and any decisions
-  captured in discussion comments. If the work is genuinely new, create the right item first so
-  it's tracked.
+- **Anchor to an item.** Confirm the item with `sq <type> <n> show --full --comments` (body +
+  sub-entities + discussion). Create the item first if it's genuinely new.
 - **Keep status honest.** Move it to `InProgress` when you start; don't leave it stale.
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
   -m "…"` summarising what changed — that's how the manager's loop (and the next agent) picks up
@@ -94,10 +91,8 @@ work to a person with `--assignee op-<slug>`, and attribute their words with `--
 
 ## Finding things across the board
 
-Reach for `sq search "<text>"` when you're steering or scoping — hunting the prior decision behind
-something, checking whether a topic is already tracked, or gauging how stale a thread has gone.
-It's a query verb, not a routine boot step: don't run it as part of every handoff, just when you
-need to find something you don't already have the ID for.
+Use `sq search "<text>"` when you need to hunt a prior decision or check whether a topic is
+already tracked — not as a routine boot step.
 
 - It scans **everything**: titles, summaries, bodies, discussion comments, and sub-entity prose
   (story/subtask/finding blocks) — case-insensitive substring match.
@@ -132,8 +127,5 @@ sq docs [internals|workflow|migration|...]                      # read the full 
 
 Closed items (Done/Cancelled/…) drop out of `sq list`/`sq tree` by default — pass `--all` or an
 explicit `--status` to see them.{% if _priority.field %} Set importance with `--{{ _priority.field.code }} {{ _priority.values | join('|') }}`.{% endif +%}
-
-**Coordinating a larger piece of work?** Delegate by spawning the specialist as a subagent and let
-`sq` carry the state between turns — see the **Orchestration loop** in `CLAUDE.md`.
 
 Run `sq --help`, `sq <type> --help`, or `sq <type> <n> --help` for the full surface.

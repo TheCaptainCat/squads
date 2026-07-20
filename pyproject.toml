@@ -1,6 +1,6 @@
 [project]
 name = "squads"
-version = "0.10.0"
+version = "0.10.1"
 description = "The coordination layer for a team of AI agents working on one codebase: stable JIRA-like IDs, roles & skills, a status lifecycle, and handoffs in predictable markdown."
 readme = "README.md"
 requires-python = ">=3.14"

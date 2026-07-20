@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-07-20
+
+### Fixed
+
+- **Doc examples now show real ID display.** README and the `docs/` guides had leftover
+  zero-padded example IDs (`TASK-000008`, `FEAT-000002`, …) from before IDs display unpadded;
+  every CLI example now matches what `sq` actually prints (`TASK-8`, `FEAT-2`, …).
+
+### Changed
+
+- **`sq workflow`'s subcommands are documented.** README and `docs/workflow.md` now list
+  `sq workflow show|types|collections|statuses|lint` alongside the cheatsheet, instead of only
+  the bare `sq workflow` form.
+- **Generated skills and managed sections are more concise.** The agent-facing content `sq sync`
+  writes into a project — the bundled skills and the CLAUDE.md/AGENTS.md managed sections — has
+  been tightened for length with no loss of guidance; a fresh `sq init`/`sq sync` now produces
+  leaner generated files.
+
 ## [0.10.0] - 2026-07-19
 
 ### Added

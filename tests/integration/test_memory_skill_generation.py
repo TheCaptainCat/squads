@@ -32,7 +32,7 @@ async def test_memory_skill_has_a_real_body_and_a_thin_pointer(project):
 async def test_memory_skill_states_the_memory_vs_board_boundary(project):
     body = (project.squad_dir / "agents" / "skills" / "sq-memory.md").read_text(encoding="utf-8")
     assert "personal" in body.lower()
-    assert "cross-cutting" in body.lower() or "whole team" in body.lower()
+    assert "board is shared" in body.lower()
 
 
 async def test_memory_skill_teaches_board_posting_discipline_and_commands(project):
@@ -42,8 +42,9 @@ async def test_memory_skill_teaches_board_posting_discipline_and_commands(projec
     assert "sq board post" in body
     assert "sq board list" in body
     assert "sq board clear" in body
-    # The boundary is stated exactly once, not restated in the board section.
-    assert body.lower().count("cross-cutting") == 1
+    # The memory-vs-board boundary is stated in its own section; board instructions don't repeat it.
+    assert "## The memory-vs-board boundary" in body
+    assert body.count("## The board") == 1
 
 
 async def test_every_role_pointer_preloads_the_memory_skill(project):
