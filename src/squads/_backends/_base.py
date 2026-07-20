@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
+from squads._interactions import skills_for_role
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
@@ -47,6 +48,12 @@ class BackendContext:
     # Empty dict on first-write paths (pre-seeding); skill_paths.get(slug) returns
     # None in that case and the backend falls back to the slug-named temporary path.
     skill_paths: dict[str, Path]
+    # Role slug → resolved preload-skill list (system membership unioned with data-driven
+    # `scopes` ref edges).  Populated by the service (refresh_managed()/sync()) from the
+    # index, same layering rationale as skill_paths: backends read it here rather than
+    # resolving scope edges themselves.  Absent entries fall back to the pure
+    # `interactions.skills_for_role` in :meth:`resolved_skills_for` — see that method.
+    role_skills: dict[str, list[str]]
     # Active workflow spec — supplied by the Service so backends can enumerate custom types.
     # ``None`` means use only built-in types (backward-compatible default for callers that
     # don't supply a spec, e.g. backend conformance tests).
@@ -56,10 +63,12 @@ class BackendContext:
         self,
         paths: SquadPaths,
         skill_paths: dict[str, Path] | None = None,
+        role_skills: dict[str, list[str]] | None = None,
         spec: WorkflowSpec | None = None,
     ) -> None:
         self.paths = paths
         self.skill_paths = skill_paths if skill_paths is not None else {}
+        self.role_skills = role_skills if role_skills is not None else {}
         self.spec = spec
 
     @property
@@ -77,6 +86,18 @@ class BackendContext:
     def root_relative(self, item: Item) -> str:
         """Root-relative path to an item's markdown file (for backend-owned file references)."""
         return self.rel(self.paths.abspath(item.path))
+
+    def resolved_skills_for(self, slug: str) -> list[str]:
+        """A role's resolved preload-skill list: ``role_skills[slug]`` when populated, else the
+        pure system-membership fallback.
+
+        The single read path every backend uses instead of calling
+        ``interactions.skills_for_role`` directly, so a data-driven ``scopes`` edge reaches
+        every backend uniformly once the service populates ``role_skills`` — never only one.
+        """
+        if slug in self.role_skills:
+            return self.role_skills[slug]
+        return skills_for_role(slug)
 
 
 class AgentBackend(ABC):

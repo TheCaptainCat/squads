@@ -38,7 +38,6 @@ from squads._models._item import (
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
-from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
@@ -124,16 +123,24 @@ class MaintenanceMixin(ServiceCore):
         ctx = self._ctx
         for backend in backends:
             await backend.ensure_scaffold(ctx)
+        # Recompute every role's resolved preload-skill set (system membership + scope
+        # edges) once, up front — shared by the pointer/entry ctx below and the extra.skills
+        # cache write, so a full sync is the single recomputation point for both surfaces.
+        role_skills = await self._role_skills_map()
+        role_ctx = BackendContext(paths=self.paths, spec=self.spec, role_skills=role_skills)
         for it in await self.list_items(item_type=META_ROLE):
             await self._refresh_catalog_extra(it)
+            await self._refresh_role_skills_extra(it, role_skills)
             for backend in backends:
-                await backend.generate_role_entry(ctx, it, RoleDef.from_extra(it.extra))
+                await backend.generate_role_entry(role_ctx, it, RoleDef.from_extra(it.extra))
             await self._regen_role_body(it)
         for it in await self.list_items(item_type=META_SKILL):
             for backend in backends:
                 await backend.generate_skill_entry(ctx, it)
         skill_map = await self._skill_paths()
-        ctx_with_skills = BackendContext(paths=self.paths, skill_paths=skill_map, spec=self.spec)
+        ctx_with_skills = BackendContext(
+            paths=self.paths, skill_paths=skill_map, role_skills=role_skills, spec=self.spec
+        )
         roster = await self.roster()
         ops = await self.operators()
         for backend in backends:
@@ -167,23 +174,6 @@ class MaintenanceMixin(ServiceCore):
                 changed = True
         if changed:
             await update_frontmatter(item_file(self.paths, item), item)
-
-    async def _regen_role_body(self, item: Item) -> None:
-        """Re-render the role template's body section into the existing role item file.
-
-        Keeps the discussion region intact — only the ``<!-- sq:body -->`` region is touched.
-        The frontmatter is not modified; no index transaction is needed (no metadata change).
-        """
-        rendered = render(
-            "agents/role.md.j2", item=item, description=item.description, extra=item.extra
-        )
-        new_body_inner = sections.get_section(rendered, markers.BODY)
-        if new_body_inner is None:
-            return
-        path = self.paths.abspath(item.path)
-        existing = await _aio.read_text(path)
-        updated = sections.replace_section(existing, markers.BODY, new_body_inner)
-        await _aio.write_text(path, updated)
 
     async def _stamp_version(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"squads_version": version})

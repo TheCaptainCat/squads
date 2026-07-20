@@ -26,6 +26,8 @@ extra:
   skills:
   - squads
   - greeting
+  - sq-memory
+  - releasing-squads
   agreements: []
   can_spawn: false
 ---
@@ -49,6 +51,8 @@ Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.
 Use these skills for the item types you manage (see each for role-specific guidance):
 - `squads`
 - `greeting`
+- `sq-memory`
+- `releasing-squads`
 
 ## Working agreements
 

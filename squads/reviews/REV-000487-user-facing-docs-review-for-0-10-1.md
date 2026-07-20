@@ -3,7 +3,7 @@ id: REV-487
 sequence_id: 487
 type: review
 title: User-facing docs review for 0.10.1
-status: Requested
+status: Approved
 author: tech-writer
 subentities:
 - local_id: F1
@@ -30,7 +30,7 @@ subentities:
   status: Fixed
   severity: medium
 created_at: '2026-07-20T07:30:55Z'
-updated_at: '2026-07-20T07:45:46Z'
+updated_at: '2026-07-20T08:26:22Z'
 ---
 <!-- sq:body -->
 ## Scope

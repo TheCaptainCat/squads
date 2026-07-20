@@ -3,5 +3,9 @@
 **Role:** {{ role_title }}
 
 **Mission:** {{ mission }}
+{% if skills %}
+
+**Skills:** {% for s in skills %}`{{ s }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
 
 **Squad file:** `{{ squad_path }}`

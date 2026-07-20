@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Migration
+
+**Schema 0.10 → 0.11 — run `sq migrate up`.** A schema-stamp-only gate: no frontmatter shape
+changed, so the runner touches no files. It exists to hard-stop a pre-0.11 client with a clear
+"run `sq migrate up`" before it can meet a ref kind it doesn't recognise yet. Every existing
+skill (bundled or custom) and any role-scoping edge is left exactly as it was — this migration
+only advances the schema stamp.
+
 ## [0.10.1] - 2026-07-20
 
 ### Fixed

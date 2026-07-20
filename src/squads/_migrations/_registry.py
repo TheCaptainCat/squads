@@ -22,6 +22,7 @@ from squads._migrations import (
     _v0_5_to_v0_7,
     _v0_7_to_v0_8,
     _v0_8_to_v0_10,
+    _v0_10_to_v0_11,
 )
 from squads._paths import SquadPaths
 
@@ -118,5 +119,16 @@ MIGRATIONS: list[Migration] = [
         ),
         run=_v0_8_to_v0_10.migrate,
         manual=_v0_8_to_v0_10.MANUAL,
+    ),
+    Migration(
+        version="0.11.0",
+        from_schema="0.10",
+        to_schema="0.11",
+        summary=(
+            "Schema-stamp-only gate for the new `scopes` ref kind (custom-skill role scoping); "
+            "no frontmatter shape change, no file rewrite."
+        ),
+        run=_wrap_sync(_v0_10_to_v0_11.migrate),
+        manual=_v0_10_to_v0_11.MANUAL,
     ),
 ]

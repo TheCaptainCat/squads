@@ -17,6 +17,9 @@ corpus/
   v0_8/    — schema 0.8: bug severity as a top-level key (relocated off extra.severity)
   v0_10/   — schema 0.10: sq-memory tracked as a SKILL item (no legacy sq-memory.md in this
              minimal corpus, so this fixture is byte-identical to v0_8 except the schema stamp)
+  v0_11/   — schema 0.11: schema-stamp-only gate for the `scopes` ref kind (custom-skill role
+             scoping); byte-identical to v0_10 except the schema stamp, since no frontmatter
+             shape changed
 ```
 
 Each directory contains:

@@ -31,6 +31,8 @@ extra:
   skills:
   - squads
   - greeting
+  - sq-memory
+  - releasing-squads
   agreements: []
   can_spawn: true
 ---
@@ -56,6 +58,8 @@ Be the operator's first point of contact and run the work loop: understand the i
 Use these skills for the item types you manage (see each for role-specific guidance):
 - `squads`
 - `greeting`
+- `sq-memory`
+- `releasing-squads`
 
 ## Working agreements
 

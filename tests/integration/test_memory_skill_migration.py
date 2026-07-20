@@ -22,8 +22,10 @@ async def _make_pre_seed_squad(tmp_path, monkeypatch):
     return result.paths
 
 
-async def test_schema_version_is_bumped_to_0_10():
-    assert SCHEMA_VERSION == "0.10"
+async def test_schema_version_is_at_least_0_10():
+    from squads._models._schema import schema_tuple
+
+    assert schema_tuple(SCHEMA_VERSION) >= schema_tuple("0.10")
 
 
 async def test_migration_stamps_sq_memory_with_an_id_and_convention_filename(

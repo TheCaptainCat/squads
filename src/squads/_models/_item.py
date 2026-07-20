@@ -73,9 +73,11 @@ def prefix_from_id(item_id: str) -> str:
     return prefix if sep else ""
 
 
-#: The closed vocabulary of ref kinds — exhaustive, no custom-kind escape hatch.
+#: The closed vocabulary of ref kinds — exhaustive, no custom-kind escape hatch (extensible only
+#: by a reviewed addition, e.g. ``scopes``, never an ad-hoc/typo kind).
 #: Consumers: blocks/depends-on → sq blocked; fixes/addresses → sq check
-#: task rules; supersedes → decision checks; the rest → navigation.
+#: task rules; supersedes → decision checks; scopes → role skill-preload resolution
+#: (a skill's forward edge to a role, inverted by the resolver); the rest → navigation.
 VALID_REF_KINDS: frozenset[str] = frozenset(
     {
         "related",
@@ -86,6 +88,7 @@ VALID_REF_KINDS: frozenset[str] = frozenset(
         "addresses",
         "supersedes",
         "duplicates",
+        "scopes",
     }
 )
 

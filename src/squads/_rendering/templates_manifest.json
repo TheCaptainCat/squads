@@ -36,7 +36,7 @@
     "agents/skill.md.j2": "3d9780f63e59e1b3ce07256e236c63015e78fb43be1e094e01501b27802c5358",
     "agents/squads_skill.md.j2": "f985ffc0909ad397ffcf6cc2c145401e666dbab641f0f963f9db9a79cc230c8d",
     "agents_md/agents_section.md.j2": "41961d35dfc2971e3583ebe5720a9ba395a615c9afc72f693a573c3455b5ce26",
-    "agents_md/role_entry.md.j2": "1f05b89116be3fc46f7aa83ed8c89013c6d6089dd179fb412c07328e8de6a61e",
+    "agents_md/role_entry.md.j2": "9f46db32af97ade9d120c39e9e6746cfdafdb4744e7f47765327675587d4dcd1",
     "agents_md/skill_entry.md.j2": "a4c6b30998a20a2267415bc01cb98270fc7266b6ea2cea249f67ebd2b12bac5c",
     "claude/claude_section.md.j2": "fbe422540b3489738487f7a53413d93c489c0d1475c8688ec37003b03f60df5e",
     "claude/pointer_agent.md.j2": "bded15d74b77552dc91e54b565e687d3cb6bc39f496f09dd45197333f6a7e96e",

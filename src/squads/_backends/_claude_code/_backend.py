@@ -305,7 +305,7 @@ class ClaudeCodeBackend(AgentBackend):
                 model=normalize_model(role.model),
                 color=role.color,
                 squad_path=ctx.root_relative(item),
-                skills=interactions.skills_for_role(role.slug),
+                skills=ctx.resolved_skills_for(role.slug),
                 can_spawn=role.can_spawn,
             ),
         )

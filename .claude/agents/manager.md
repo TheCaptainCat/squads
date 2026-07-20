@@ -7,6 +7,7 @@ skills:
   - squads
   - greeting
   - sq-memory
+  - releasing-squads
 ---
 
 You are **Catherine Manager**, the manager on this project.

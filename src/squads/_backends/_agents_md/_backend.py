@@ -117,6 +117,7 @@ class AgentsMdBackend(AgentBackend):
                 full_name=role.full_name,
                 role_title=role.title,
                 mission=role.mission,
+                skills=ctx.resolved_skills_for(role.slug),
                 squad_path=ctx.root_relative(item),
             ),
         )

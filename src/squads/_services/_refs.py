@@ -9,6 +9,7 @@ from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
+from squads._models._extras import ExtraKey as X
 from squads._models._item import (
     DEFAULT_KIND,
     VALID_REF_KINDS,
@@ -21,6 +22,7 @@ from squads._models._item import (
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._services._results import GraphNode
+from squads._workflow import META_ROLE
 from squads._workflow._models import WorkflowSpec
 
 # ---------------------------------------------------------------------------
@@ -346,6 +348,55 @@ class RefsMixin(ServiceCore):
                 src.id,
                 {"remove": to_id},
             )
+        return src
+
+    async def link_role(self, skill_id: str, role_id: str) -> Item:
+        """Scope a skill to a role: write the ``role_id:scopes`` forward edge and immediately
+        resync that role's pointer + body (the sanctioned path — a raw ``ref add … --kind
+        scopes`` writes the same edge but skips the resync).
+
+        Idempotent: linking a role that is already scoped just re-writes the same edge
+        (``add_ref``'s own target dedup) and re-runs the (no-op) resync.
+        """
+        role = await self.get(role_id)
+        if role.type != META_ROLE:
+            raise SquadsError(f"{role_id} is a {role.type}; link-role targets a role")
+        updated = await self.add_ref(skill_id, role_id, kind="scopes")
+        await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
+        return updated
+
+    async def unlink_role(self, skill_id: str, role_id: str) -> Item:
+        """Remove a skill's ``scopes`` edge to a role and immediately resync that role's
+        pointer + body. Only the ``scopes`` edge to *role_id* is removed — any other kind of
+        edge between the two items is left alone.
+
+        Idempotent: unlinking a role that was never scoped is a clean no-op (the resync still
+        runs, but recomputes the same already-current state).
+        """
+        role = await self.get(role_id)
+        if role.type != META_ROLE:
+            raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
+        role_prefix = effective_prefix(role.prefix)
+        role_seq = role.sequence_id
+        async with self.store.transaction() as db:
+            src = require_item(db, skill_id)
+            src.refs = [
+                r
+                for r in src.refs
+                if not (
+                    split_ref(r)[1] == "scopes"
+                    and ref_id_matches(split_ref(r)[0], role_prefix, role_seq)
+                )
+            ]
+            src.updated_at = clock.now()
+            src.modified_session, _ = actor.current_session()
+            await update_frontmatter(item_file(self.paths, src), src)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "ref",
+                src.id,
+                {"remove": role_id, "kind": "scopes"},
+            )
+        await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
         return src
 
     async def refs_out(self, item_id: str) -> list[tuple[str, str]]:

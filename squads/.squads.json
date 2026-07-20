@@ -1,7 +1,7 @@
 {
-  "schema_version": "0.10",
-  "squads_version": "0.9.0",
-  "counter": 489,
+  "schema_version": "0.11",
+  "squads_version": "0.10.1",
+  "counter": 510,
   "padding": 6,
   "items": {
     "12": {
@@ -3873,6 +3873,78 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-471"
+    },
+    "491": {
+      "sequence_id": 491,
+      "type": "feature",
+      "title": "Custom skills: authored bodies + role scoping",
+      "slug": "custom-skills-authored-bodies-role-scoping",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-490:addresses",
+        "ADR-492:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a squad author, I want to write and edit a custom skill's body so my team has a real, persistent runbook",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As a squad author, I want custom skills distinguished from bundled ones",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As a squad author, I want to scope a custom skill to one or more roles so exactly those agents preload it",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As a squad author, I want role pointers to stay current when I link or unlink a skill without a manual full resync",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As a squad author upgrading a squad, I want existing skills preserved unchanged",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000491-custom-skills-authored-bodies-role-scoping.md",
+      "created_at": "2026-07-20T08:41:10Z",
+      "updated_at": "2026-07-20T12:33:20Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-491"
     },
     "42": {
       "sequence_id": 42,
@@ -11627,6 +11699,198 @@
       "extra": {},
       "id": "TASK-484"
     },
+    "493": {
+      "sequence_id": 493,
+      "type": "task",
+      "title": "Authored, persisted custom-skill body",
+      "slug": "authored-persisted-custom-skill-body",
+      "status": "Done",
+      "description": "sq skill body verb + relaxed set_body meta-guard for custom skills; system-vs-custom label",
+      "parent": "FEAT-491",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-492:implements",
+        "BUG-490:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Author and persist a custom skill body",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Distinguish custom from system skills; reject system body edits",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000493-authored-persisted-custom-skill-body.md",
+      "created_at": "2026-07-20T08:59:18Z",
+      "updated_at": "2026-07-20T09:25:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-493"
+    },
+    "494": {
+      "sequence_id": 494,
+      "type": "task",
+      "title": "scopes ref kind + role-skill preload resolver",
+      "slug": "scopes-ref-kind-role-skill-preload-resolver",
+      "status": "Done",
+      "description": "Add scopes ref kind; service resolver unions system membership + inverted scopes edges into both role artifacts",
+      "parent": "FEAT-491",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-492:implements",
+        "BUG-490:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Resolve a role's preload set from system membership + scopes edges",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000494-scopes-ref-kind-role-skill-preload-resolver.md",
+      "created_at": "2026-07-20T08:59:18Z",
+      "updated_at": "2026-07-20T09:56:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-494"
+    },
+    "495": {
+      "sequence_id": 495,
+      "type": "task",
+      "title": "link-role / unlink-role verbs + partial-sync hook",
+      "slug": "link-role-unlink-role-verbs-partial-sync-hook",
+      "status": "Done",
+      "description": "Dedicated scope verbs that write/remove the edge and re-sync only the affected role pointer(s)+body",
+      "parent": "FEAT-491",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-492:implements",
+        "BUG-490:fixes",
+        "TASK-494:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "link-role / unlink-role verbs scope a skill to roles",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Partial-sync hook keeps affected role pointers current",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000495-link-role-unlink-role-verbs-partial-sync-hook.md",
+      "created_at": "2026-07-20T08:59:19Z",
+      "updated_at": "2026-07-20T10:23:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-495"
+    },
+    "496": {
+      "sequence_id": 496,
+      "type": "task",
+      "title": "Schema 0.10 to 0.11 no-op stamp migration",
+      "slug": "schema-0-10-to-0-11-no-op-stamp-migration",
+      "status": "Done",
+      "description": "Bump SCHEMA_VERSION, add mechanical no-op runner + registry entry, CHANGELOG; verify clean upgrade + repair round-trip",
+      "parent": "FEAT-491",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-492:implements",
+        "BUG-490:fixes",
+        "TASK-494:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Upgrade preserves existing skills and scoping",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000496-schema-0-10-to-0-11-no-op-stamp-migration.md",
+      "created_at": "2026-07-20T08:59:20Z",
+      "updated_at": "2026-07-20T10:48:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-496"
+    },
+    "497": {
+      "sequence_id": 497,
+      "type": "task",
+      "title": "Dogfood: author the release-process skill scoped to manager/devops/tech-writer",
+      "slug": "dogfood-author-the-release-process-skill-scoped-to-manager-d",
+      "status": "Done",
+      "description": "End-to-end validation of the capability; runbook content supplied by manager",
+      "parent": "FEAT-491",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-492:implements",
+        "BUG-490:fixes",
+        "TASK-493:depends-on",
+        "TASK-495:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000497-dogfood-author-the-release-process-skill-scoped-to-manager-d.md",
+      "created_at": "2026-07-20T08:59:21Z",
+      "updated_at": "2026-07-20T12:32:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-497"
+    },
     "11": {
       "sequence_id": 11,
       "type": "bug",
@@ -12112,6 +12376,52 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-414"
+    },
+    "490": {
+      "sequence_id": 490,
+      "type": "bug",
+      "title": "Custom skills can't carry authored content or be scoped to specific roles",
+      "slug": "custom-skills-can-t-carry-authored-content-or-be-scoped-to-s",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000490-custom-skills-can-t-carry-authored-content-or-be-scoped-to-s.md",
+      "created_at": "2026-07-20T08:24:46Z",
+      "updated_at": "2026-07-20T12:33:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-490"
+    },
+    "499": {
+      "sequence_id": 499,
+      "type": "bug",
+      "title": "VS Code extension tree collapses all expanded nodes on refresh",
+      "slug": "vs-code-extension-tree-collapses-all-expanded-nodes-on-refre",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000499-vs-code-extension-tree-collapses-all-expanded-nodes-on-refre.md",
+      "created_at": "2026-07-20T09:50:38Z",
+      "updated_at": "2026-07-20T12:23:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-499"
     },
     "49": {
       "sequence_id": 49,
@@ -13299,6 +13609,31 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-474"
+    },
+    "492": {
+      "sequence_id": 492,
+      "type": "decision",
+      "title": "Custom skills: authored bodies and role scoping",
+      "slug": "custom-skills-authored-bodies-and-role-scoping",
+      "status": "Accepted",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-490:addresses"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000492-custom-skills-authored-bodies-and-role-scoping.md",
+      "created_at": "2026-07-20T08:47:15Z",
+      "updated_at": "2026-07-20T08:56:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-492"
     },
     "48": {
       "sequence_id": 48,
@@ -17529,6 +17864,309 @@
       "extra": {},
       "id": "REV-485"
     },
+    "487": {
+      "sequence_id": 487,
+      "type": "review",
+      "title": "User-facing docs review for 0.10.1",
+      "slug": "user-facing-docs-review-for-0-10-1",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "tech-writer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Tutorial shows padded IDs in CLI output when they should be unpadded (0.10.0 display format)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Recipes doc shows padded IDs in copy-paste examples when they should be unpadded",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Adoption guide shows padded IDs in migration examples when they should be unpadded",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Missing documentation for sq workflow collections and sq workflow statuses subcommands",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "README command reference lacks sq workflow subcommands added in 0.10.0",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000487-user-facing-docs-review-for-0-10-1.md",
+      "created_at": "2026-07-20T07:30:55Z",
+      "updated_at": "2026-07-20T08:26:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-487"
+    },
+    "488": {
+      "sequence_id": 488,
+      "type": "review",
+      "title": "Generated agent-facing content: concision pass for 0.10.1",
+      "slug": "generated-agent-facing-content-concision-pass-for-0-10-1",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "tech-writer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Redundant repetition of 'memory vs shared' distinction in memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Overexplained 'One fact per memory' section with restatement in memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Over-detailed preamble in 'Working directly with operator' section of squads_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Redundant preamble in 'Finding things across the board' section of squads_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Redundant expanded greeting instructions in claude_section.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Redundant explanation after orchestration loop steps in claude_section.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Overexplained intro paragraph in memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Padding in 'Check it at the start of a run' section of memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Slightly redundant phrasing in 'Prune what's stale' section of memory_skill.md.j2",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Redundant final paragraph in squads_skill.md.j2 'Common commands' section",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000488-generated-agent-facing-content-concision-pass-for-0-10-1.md",
+      "created_at": "2026-07-20T07:35:13Z",
+      "updated_at": "2026-07-20T08:26:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-488"
+    },
+    "489": {
+      "sequence_id": 489,
+      "type": "review",
+      "title": "Consolidation review: REV-488 concision cuts",
+      "slug": "consolidation-review-rev-488-concision-cuts",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-488:addresses"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000489-consolidation-review-rev-488-concision-cuts.md",
+      "created_at": "2026-07-20T07:51:54Z",
+      "updated_at": "2026-07-20T08:26:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-489"
+    },
+    "498": {
+      "sequence_id": 498,
+      "type": "review",
+      "title": "TASK-493: authored custom-skill body",
+      "slug": "task-493-authored-custom-skill-body",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-493:addresses"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000498-task-493-authored-custom-skill-body.md",
+      "created_at": "2026-07-20T09:23:23Z",
+      "updated_at": "2026-07-20T09:24:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-498"
+    },
+    "500": {
+      "sequence_id": 500,
+      "type": "review",
+      "title": "TASK-494: scopes kind + role-skill resolver",
+      "slug": "task-494-scopes-kind-role-skill-resolver",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-494:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Resolver re-loads the index O(roles) times per sync",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000500-task-494-scopes-kind-role-skill-resolver.md",
+      "created_at": "2026-07-20T09:51:08Z",
+      "updated_at": "2026-07-20T12:30:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-500"
+    },
+    "501": {
+      "sequence_id": 501,
+      "type": "review",
+      "title": "TASK-495: link/unlink verbs + partial-sync hook",
+      "slug": "task-495-link-unlink-verbs-partial-sync-hook",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-495:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Test gap: multi-role scoping + unlink selectivity unproven",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000501-task-495-link-unlink-verbs-partial-sync-hook.md",
+      "created_at": "2026-07-20T10:16:06Z",
+      "updated_at": "2026-07-20T10:22:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-501"
+    },
     "79": {
       "sequence_id": 79,
       "type": "guide",
@@ -18307,195 +18945,58 @@
       },
       "id": "OP-10"
     },
-    "487": {
-      "sequence_id": 487,
-      "type": "review",
-      "title": "User-facing docs review for 0.10.1",
-      "slug": "user-facing-docs-review-for-0-10-1",
-      "status": "Requested",
+    "502": {
+      "sequence_id": 502,
+      "type": "bug",
+      "title": "VS Code webview preview loses scroll on refresh and doesn't reset to top on navigation",
+      "slug": "vs-code-webview-preview-loses-scroll-on-refresh-and-doesn-t",
+      "status": "Verified",
       "description": "",
       "parent": null,
-      "author": "tech-writer",
+      "author": "manager",
       "assignee": null,
       "priority": null,
       "severity": null,
       "labels": [],
       "refs": [],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "Tutorial shows padded IDs in CLI output when they should be unpadded (0.10.0 display format)",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F2",
-          "title": "Recipes doc shows padded IDs in copy-paste examples when they should be unpadded",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F3",
-          "title": "Adoption guide shows padded IDs in migration examples when they should be unpadded",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F4",
-          "title": "Missing documentation for sq workflow collections and sq workflow statuses subcommands",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F5",
-          "title": "README command reference lacks sq workflow subcommands added in 0.10.0",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        }
-      ],
-      "path": "reviews/REV-000487-user-facing-docs-review-for-0-10-1.md",
-      "created_at": "2026-07-20T07:30:55Z",
-      "updated_at": "2026-07-20T07:45:46Z",
+      "subentities": [],
+      "path": "bugs/BUG-000502-vs-code-webview-preview-loses-scroll-on-refresh-and-doesn-t.md",
+      "created_at": "2026-07-20T10:38:17Z",
+      "updated_at": "2026-07-20T12:23:42Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
-      "id": "REV-487"
+      "id": "BUG-502"
     },
-    "488": {
-      "sequence_id": 488,
-      "type": "review",
-      "title": "Generated agent-facing content: concision pass for 0.10.1",
-      "slug": "generated-agent-facing-content-concision-pass-for-0-10-1",
-      "status": "Requested",
+    "503": {
+      "sequence_id": 503,
+      "type": "bug",
+      "title": "VS Code webview: @<slug> mentions should link to the role sheet with hover details",
+      "slug": "vs-code-webview-slug-mentions-should-link-to-the-role-sheet",
+      "status": "Verified",
       "description": "",
       "parent": null,
-      "author": "tech-writer",
+      "author": "manager",
       "assignee": null,
       "priority": null,
       "severity": null,
       "labels": [],
       "refs": [],
-      "subentities": [
-        {
-          "local_id": "F1",
-          "title": "Redundant repetition of 'memory vs shared' distinction in memory_skill.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F2",
-          "title": "Overexplained 'One fact per memory' section with restatement in memory_skill.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F3",
-          "title": "Over-detailed preamble in 'Working directly with operator' section of squads_skill.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F4",
-          "title": "Redundant preamble in 'Finding things across the board' section of squads_skill.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F5",
-          "title": "Redundant expanded greeting instructions in claude_section.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F6",
-          "title": "Redundant explanation after orchestration loop steps in claude_section.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F7",
-          "title": "Overexplained intro paragraph in memory_skill.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F8",
-          "title": "Padding in 'Check it at the start of a run' section of memory_skill.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F9",
-          "title": "Slightly redundant phrasing in 'Prune what's stale' section of memory_skill.md.j2",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "F10",
-          "title": "Redundant final paragraph in squads_skill.md.j2 'Common commands' section",
-          "status": "Fixed",
-          "assignee": null,
-          "severity": "medium",
-          "story": null,
-          "extra": {}
-        }
-      ],
-      "path": "reviews/REV-000488-generated-agent-facing-content-concision-pass-for-0-10-1.md",
-      "created_at": "2026-07-20T07:35:13Z",
-      "updated_at": "2026-07-20T07:47:45Z",
+      "subentities": [],
+      "path": "bugs/BUG-000503-vs-code-webview-slug-mentions-should-link-to-the-role-sheet.md",
+      "created_at": "2026-07-20T10:38:18Z",
+      "updated_at": "2026-07-20T12:23:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
-      "id": "REV-488"
+      "id": "BUG-503"
     },
-    "489": {
-      "sequence_id": 489,
+    "504": {
+      "sequence_id": 504,
       "type": "review",
-      "title": "Consolidation review: REV-488 concision cuts",
-      "slug": "consolidation-review-rev-488-concision-cuts",
-      "status": "Requested",
+      "title": "TASK-496: schema 0.11 bump + no-op migration",
+      "slug": "task-496-schema-0-11-bump-no-op-migration",
+      "status": "Approved",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -18504,16 +19005,205 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-488:addresses"
+        "TASK-496:addresses"
       ],
       "subentities": [],
-      "path": "reviews/REV-000489-consolidation-review-rev-488-concision-cuts.md",
-      "created_at": "2026-07-20T07:51:54Z",
-      "updated_at": "2026-07-20T07:52:21Z",
+      "path": "reviews/REV-000504-task-496-schema-0-11-bump-no-op-migration.md",
+      "created_at": "2026-07-20T10:47:06Z",
+      "updated_at": "2026-07-20T10:47:42Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
-      "id": "REV-489"
+      "id": "REV-504"
+    },
+    "505": {
+      "sequence_id": 505,
+      "type": "bug",
+      "title": "npm run check (eslint) OOMs locally — can't lint the VS Code extension",
+      "slug": "npm-run-check-eslint-ooms-locally-can-t-lint-the-vs-code-ext",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000505-npm-run-check-eslint-ooms-locally-can-t-lint-the-vs-code-ext.md",
+      "created_at": "2026-07-20T10:59:20Z",
+      "updated_at": "2026-07-20T12:23:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-505"
+    },
+    "506": {
+      "sequence_id": 506,
+      "type": "feature",
+      "title": "Preview back/forward navigation",
+      "slug": "preview-back-forward-navigation",
+      "status": "Done",
+      "description": "",
+      "parent": "EPIC-99",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a user browsing linked items in the preview, I want back/forward navigation so I can retrace my steps",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As a user navigating the preview, I want discoverable back/forward controls",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000506-preview-back-forward-navigation.md",
+      "created_at": "2026-07-20T12:24:04Z",
+      "updated_at": "2026-07-20T14:12:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-506"
+    },
+    "507": {
+      "sequence_id": 507,
+      "type": "task",
+      "title": "Preview panel back/forward navigation history",
+      "slug": "preview-panel-back-forward-navigation-history",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-506",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "History stack: back/forward + forward-stack truncation",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Discoverable controls: title-bar buttons, keybinding, inert at ends",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000507-preview-panel-back-forward-navigation-history.md",
+      "created_at": "2026-07-20T12:26:12Z",
+      "updated_at": "2026-07-20T12:41:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-507"
+    },
+    "508": {
+      "sequence_id": 508,
+      "type": "skill",
+      "title": "Releasing squads",
+      "slug": "releasing-squads",
+      "status": "Active",
+      "description": "The team's runbook for cutting a squads release: gates, prep, and drafting the release (the operator publishes).",
+      "parent": null,
+      "author": "releasing-squads",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ROLE-1:scopes",
+        "ROLE-6:scopes",
+        "ROLE-8:scopes"
+      ],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000508-releasing-squads.md",
+      "created_at": "2026-07-20T12:32:09Z",
+      "updated_at": "2026-07-20T12:32:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {
+        "slug": "releasing-squads",
+        "description": "The team's runbook for cutting a squads release: gates, prep, and drafting the release (the operator publishes).",
+        "when_to_use": "When preparing or cutting a squads release.",
+        "allowed_tools": ""
+      },
+      "id": "SKILL-508"
+    },
+    "509": {
+      "sequence_id": 509,
+      "type": "review",
+      "title": "TASK-507: preview back/forward navigation",
+      "slug": "task-507-preview-back-forward-navigation",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-507:addresses"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000509-task-507-preview-back-forward-navigation.md",
+      "created_at": "2026-07-20T12:39:17Z",
+      "updated_at": "2026-07-20T12:40:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-509"
+    },
+    "510": {
+      "sequence_id": 510,
+      "type": "bug",
+      "title": "Preview back/forward title-bar buttons don't render (Alt+arrows work)",
+      "slug": "preview-back-forward-title-bar-buttons-don-t-render-alt-arro",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-506"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000510-preview-back-forward-title-bar-buttons-don-t-render-alt-arro.md",
+      "created_at": "2026-07-20T12:50:49Z",
+      "updated_at": "2026-07-20T13:36:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-510"
     }
   }
 }

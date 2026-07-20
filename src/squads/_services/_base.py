@@ -25,15 +25,17 @@ from squads._interactions import (
     allowed_create_types,
     in_lane_owner,
     is_lane_exempt,
+    skills_for_role,
 )
-from squads._itemfile import write_new
+from squads._itemfile import update_frontmatter, write_new
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import VALID_REF_KINDS, Item, split_ref
+from squads._models._item import VALID_REF_KINDS, Item, effective_prefix, ref_id_matches, split_ref
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, set_active_squad_dir
+from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role
 from squads._services._results import CreateResult, TreeNode
 from squads._util import slugify
@@ -683,10 +685,135 @@ class ServiceCore:
             if X.SLUG in it.extra
         }
 
+    def _resolve_role_skills(self, slug: str, role: Item | None, db: SquadsDB) -> list[str]:
+        """Pure (no I/O) core of the resolver: *db* and *role* are already loaded by the caller.
+
+        Starts from ``interactions.skills_for_role(slug)`` (index-blind, always-on skills +
+        the role's item-type skills), then unions in every custom skill carrying a forward
+        ``ROLE-n:scopes`` edge to this role — found by inverting refs (``SquadsDB.backrefs``,
+        kind-agnostic, so filtered here to the ``scopes`` kind) and mapping to slugs. Deduped,
+        system-first then scoped skills in lexical order, so the result is stable and — with
+        no scope edges anywhere — byte-identical to the pure function's own output.
+        """
+        system = skills_for_role(slug)
+        if role is None:
+            return system
+        role_prefix = effective_prefix(role.prefix)
+        seen = set(system)
+        scoped: set[str] = set()
+        for candidate_id in db.backrefs(role.id):
+            skill = db.get(candidate_id)
+            if skill is None or skill.type != META_SKILL:
+                continue
+            for r in skill.refs:
+                rid, kind = split_ref(r)
+                if kind == "scopes" and ref_id_matches(rid, role_prefix, role.sequence_id):
+                    scoped.add(skill.extra.get(X.SLUG, skill.slug))
+                    break
+        return [*system, *sorted(s for s in scoped if s not in seen)]
+
+    async def resolved_skills_for_role(self, slug: str) -> list[str]:
+        """A role's full preload-skill set — standalone entry point (e.g. the link/unlink
+        partial-sync hook), one index load. See :meth:`_resolve_role_skills` for the algorithm;
+        bulk callers over every role should use :meth:`_role_skills_map` instead, which loads
+        the index once for the whole roster rather than once per role.
+        """
+        db = await self.store.load()
+        role = next(
+            (
+                it
+                for it in db.items.values()
+                if it.type == META_ROLE and it.extra.get(X.SLUG) == slug
+            ),
+            None,
+        )
+        return self._resolve_role_skills(slug, role, db)
+
+    async def _role_skills_map(self) -> dict[str, list[str]]:
+        """Slug → resolved preload-skill list for every role — the ``BackendContext.role_skills``
+        field.  Companion to :meth:`_skill_paths`: loads the index ONCE and resolves every
+        role's list from that single snapshot (mirrors ``_skill_paths``'s single-load shape),
+        rather than re-parsing the index per role via :meth:`resolved_skills_for_role`.
+        """
+        db = await self.store.load()
+        return {
+            it.extra[X.SLUG]: self._resolve_role_skills(it.extra[X.SLUG], it, db)
+            for it in db.items.values()
+            if it.type == META_ROLE and X.SLUG in it.extra
+        }
+
     async def refresh_managed(self) -> None:
         skill_map = await self._skill_paths()
-        ctx = BackendContext(paths=self.paths, skill_paths=skill_map, spec=self.spec)
+        role_skills = await self._role_skills_map()
+        ctx = BackendContext(
+            paths=self.paths, skill_paths=skill_map, role_skills=role_skills, spec=self.spec
+        )
         roster = await self.roster()
         ops = await self.operators()
         for backend in self._backends():
             await backend.write_managed(ctx, roster, ops)
+
+    async def _refresh_role_skills_extra(
+        self, item: Item, role_skills: dict[str, list[str]]
+    ) -> None:
+        """Persist the resolver's output into the role item's ``extra.skills`` cache.
+
+        A pure, re-derivable cache — recomputed from system membership plus ``scopes`` ref
+        edges, never hand-authored — so ``repair`` needs no new logic. The role body's
+        ``## Skills`` section renders straight from ``item.extra`` (see
+        :meth:`_regen_role_body`), so this write is what keeps the body in sync with the
+        resolved list; the pointer YAML gets the same list via ``BackendContext.role_skills``.
+        Shared by the full ``sync()`` sweep and the link/unlink partial-sync hook
+        (:meth:`_resync_role_skills`) — both recompute the same way, just over a different
+        set of roles.
+
+        Always writes when a resolved list is available for this slug — *not* gated on
+        comparing against ``item.extra``'s already-loaded value. That cached value came from
+        the rebuildable ``.squads.json`` index, which this call never updates (only the ``.md``
+        frontmatter is written, per invariant #1); comparing against it would go stale the
+        moment two resyncs of the same role happen without an index-refreshing event in
+        between (e.g. link then unlink), silently skipping the second write.
+        """
+        slug = item.extra.get(X.SLUG, item.slug)
+        resolved = role_skills.get(slug)
+        if resolved is None:
+            return
+        item.extra[X.SKILLS] = resolved
+        await update_frontmatter(item_file(self.paths, item), item)
+
+    async def _regen_role_body(self, item: Item) -> None:
+        """Re-render the role template's body section into the existing role item file.
+
+        Keeps the discussion region intact — only the ``<!-- sq:body -->`` region is touched.
+        The frontmatter is not modified; no index transaction is needed (no metadata change).
+        """
+        rendered = render(
+            "agents/role.md.j2", item=item, description=item.description, extra=item.extra
+        )
+        new_body_inner = sections.get_section(rendered, markers.BODY)
+        if new_body_inner is None:
+            return
+        path = self.paths.abspath(item.path)
+        existing = await _aio.read_text(path)
+        updated = sections.replace_section(existing, markers.BODY, new_body_inner)
+        await _aio.write_text(path, updated)
+
+    async def _resync_role_skills(self, slug: str) -> None:
+        """Partial-sync hook: recompute and rewrite ONE role's pointer + body ``## Skills``.
+
+        The supported incremental path for the ``sq skill link-role``/``unlink-role`` verbs —
+        mirrors the per-role steps a full :meth:`sync` runs (the ``extra.skills`` cache, the
+        backend pointer entry, the body's ``## Skills`` region) but scoped to a single role;
+        every other role's pointer/body is left byte-untouched. A full
+        ``sq sync`` remains the authoritative recomputation for the whole roster — this is an
+        optimization on top of it, never the only path.
+        """
+        role = await self._role_item(slug)
+        if role is None:
+            return  # nothing to resync — caller already validated the role exists
+        resolved = await self.resolved_skills_for_role(slug)
+        await self._refresh_role_skills_extra(role, {slug: resolved})
+        role_ctx = BackendContext(paths=self.paths, spec=self.spec, role_skills={slug: resolved})
+        for backend in self._backends():
+            await backend.generate_role_entry(role_ctx, role, RoleDef.from_extra(role.extra))
+        await self._regen_role_body(role)

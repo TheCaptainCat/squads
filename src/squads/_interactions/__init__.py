@@ -335,6 +335,16 @@ def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
     )
 
 
+def is_system_skill(slug: str, spec: WorkflowSpec) -> bool:
+    """Whether *slug* names a template-owned skill (bundled or a per-type ``sq-<type>``).
+
+    A pure function of the slug and the active spec — derived, not stored, so a project
+    that renames/drops a type re-derives cleanly. Any SKILL slug outside this union is
+    author-defined ("custom").
+    """
+    return slug in bundled_skill_slugs() or slug in custom_skill_slugs(spec)
+
+
 # ---------------------------------------------------------------------------
 # Role -> type authoring prose
 #

@@ -1,13 +1,16 @@
 """`sq skill …` — manage agent skills (add/show/regen/rm/refs).
 
 Grammar:
-  sq skill add <name> [options]      — create a skill item + pointer
-  sq skill <slug|id|n> show          — show a skill's metadata panel
-  sq skill <slug|id|n> refs          — show forward refs and backrefs
-  sq skill <slug|id|n> ref add <id>  — add a forward reference
-  sq skill <slug|id|n> ref rm <id>   — remove a forward reference
-  sq skill <slug|id|n> regen         — regenerate the Claude pointer
-  sq skill <slug|id|n> rm [--purge]  — remove the skill item
+  sq skill add <name> [options]        — create a skill item + pointer
+  sq skill <slug|id|n> show             — show a skill's metadata panel
+  sq skill <slug|id|n> body -m "…"      — set/append a custom skill's body
+  sq skill <slug|id|n> refs             — show forward refs and backrefs
+  sq skill <slug|id|n> ref add <id>     — add a forward reference
+  sq skill <slug|id|n> ref rm <id>      — remove a forward reference
+  sq skill <slug|id|n> link-role <role> — scope the skill to a role (+ resync that role)
+  sq skill <slug|id|n> unlink-role <role> — remove that scope (+ resync that role)
+  sq skill <slug|id|n> regen            — regenerate the Claude pointer
+  sq skill <slug|id|n> rm [--purge]     — remove the skill item
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (SKILL-1) → bare number → exact slug
@@ -29,8 +32,10 @@ from squads._cli._common import (
     print_json_clean,
     render_body_text,
     resolve_agent_addr,
+    resolve_body,
     resolve_item_id_any,
 )
+from squads._interactions import is_system_skill
 from squads._models._extras import ExtraKey as X
 from squads._models._item import DEFAULT_KIND, split_ref
 
@@ -97,25 +102,30 @@ async def skill_show(
     item_id: str = ctx.obj["id"]
     svc = get_service()
     it = await svc.get(item_id)
+    slug = it.extra.get(X.SLUG, it.slug)
+    system = is_system_skill(slug, svc.spec)
     if json_out:
         print_json_clean(
             json.dumps(
                 {
                     "id": it.id,
-                    "slug": it.extra.get(X.SLUG, it.slug),
+                    "slug": slug,
                     "title": it.title,
                     "status": it.status,
                     "description": it.extra.get(X.DESCRIPTION, ""),
                     "when_to_use": it.extra.get(X.WHEN_TO_USE, ""),
                     "allowed_tools": it.extra.get(X.ALLOWED_TOOLS, ""),
                     "path": it.path,
+                    "system": system,
                 }
             )
         )
         return
+    kind_label = "system (template-owned)" if system else "custom (authored)"
     rows = [
         f"[bold]{it.id}[/bold] {e(it.title)}",
-        f"[bold]slug:[/bold] {it.extra.get(X.SLUG, it.slug)}",
+        f"[bold]slug:[/bold] {slug}",
+        f"[bold]kind:[/bold] {kind_label}",
         f"[bold]status:[/bold] {it.status}",
         f"[bold]file:[/bold] {it.path}",
     ]
@@ -128,6 +138,21 @@ async def skill_show(
         raw=raw,
         empty_hint="(empty — run `sq sync` to regenerate the skill definition)",
     )
+
+
+@_addr.command("body")
+@common.command
+async def skill_body(
+    ctx: typer.Context,
+    message: list[str] = typer.Option(None, "-m", "--message", help="Body paragraph."),
+    file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
+    append: bool = typer.Option(False, "--append", help="Append instead of replacing."),
+) -> None:
+    """Set (or --append to) a custom skill's body (rejected for system/bundled skills)."""
+    item_id: str = ctx.obj["id"]
+    svc = get_service()
+    await svc.set_body(item_id, resolve_body(message or None, file), append=append)
+    console.print(f"{item_id}: body {'appended' if append else 'set'}")
 
 
 @_addr.command("refs")
@@ -195,6 +220,37 @@ async def skill_ref_rm(
 
 
 _addr.add_typer(_ref_app, name="ref")
+
+
+@_addr.command("link-role")
+@common.command
+async def skill_link_role(
+    ctx: typer.Context, role: str = typer.Argument(..., help="Role slug, ID, or number.")
+) -> None:
+    """Scope this skill to ROLE and resync that role's pointer + body immediately.
+
+    The sanctioned way to preload a skill on a role — unlike a raw `ref add … --kind
+    scopes`, which writes the same edge but leaves the role's pointer stale until the
+    next `sq sync`.
+    """
+    item_id: str = ctx.obj["id"]
+    svc = get_service()
+    role_id = await resolve_agent_addr(role, "role", svc)
+    await svc.link_role(item_id, role_id)
+    console.print(f"{item_id} scoped to {role_id} (role resynced)")
+
+
+@_addr.command("unlink-role")
+@common.command
+async def skill_unlink_role(
+    ctx: typer.Context, role: str = typer.Argument(..., help="Role slug, ID, or number.")
+) -> None:
+    """Remove this skill's scope to ROLE and resync that role's pointer + body immediately."""
+    item_id: str = ctx.obj["id"]
+    svc = get_service()
+    role_id = await resolve_agent_addr(role, "role", svc)
+    await svc.unlink_role(item_id, role_id)
+    console.print(f"{item_id} unscoped from {role_id} (role resynced)")
 
 
 @_addr.command("regen")

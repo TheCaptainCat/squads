@@ -8,6 +8,7 @@ skills:
   - squads
   - greeting
   - sq-memory
+  - releasing-squads
 ---
 
 You are **Hugo Ops**, the DevOps engineer on this project.

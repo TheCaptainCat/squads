@@ -3,7 +3,12 @@
 (``custom_item_skill_commands`` — the standard verb set, embedding the type's own name).
 """
 
-from squads._interactions import custom_item_skill_commands, custom_skill_slugs
+from squads._interactions import (
+    bundled_skill_slugs,
+    custom_item_skill_commands,
+    custom_skill_slugs,
+    is_system_skill,
+)
 from squads._workflow import load_workflow_spec
 from squads._workflow._models import ItemSpec, Lifecycle, WorkflowSpec
 
@@ -40,6 +45,18 @@ def test_custom_skill_slugs_returns_only_custom_non_meta_types_in_lexical_order(
     assert slugs == sorted(slugs)
     assert slugs.index("sq-alpha") < slugs.index("sq-zebra")
     assert "sq-role" not in slugs and "sq-skill" not in slugs and "sq-operator" not in slugs
+
+
+def test_is_system_skill_is_true_for_every_bundled_and_custom_type_slug() -> None:
+    spec = _spec_with(zebra=ItemSpec(prefix="ZEB", folder="zebras", lifecycle="triage"))
+    for slug in bundled_skill_slugs():
+        assert is_system_skill(slug, spec)
+    for slug in custom_skill_slugs(spec):
+        assert is_system_skill(slug, spec)
+
+
+def test_is_system_skill_is_false_for_an_author_defined_slug() -> None:
+    assert not is_system_skill("release-runbook", load_workflow_spec())
 
 
 def test_custom_item_skill_commands_has_the_standard_verbs_naming_the_type() -> None:

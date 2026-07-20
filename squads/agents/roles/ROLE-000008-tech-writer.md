@@ -25,7 +25,9 @@ extra:
   skills:
   - squads
   - greeting
+  - sq-memory
   - sq-guide
+  - releasing-squads
   agreements: []
   can_spawn: false
 ---
@@ -48,7 +50,9 @@ Make the work understandable: write and maintain clear documentation and guides.
 Use these skills for the item types you manage (see each for role-specific guidance):
 - `squads`
 - `greeting`
+- `sq-memory`
 - `sq-guide`
+- `releasing-squads`
 
 ## Working agreements
 
