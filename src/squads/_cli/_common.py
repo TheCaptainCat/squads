@@ -556,7 +556,7 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
         try:
             return fn(*args, **kwargs)
         except SquadsError as exc:
-            err_console.print(f"[red]error:[/red] {exc}")
+            err_console.print(f"[red]error:[/red] {e(exc)}")
             raise typer.Exit(1) from exc
 
     return wrapper
@@ -575,7 +575,7 @@ def command[**P](fn: Callable[P, Awaitable[None]]) -> Callable[P, None]:
         try:
             anyio.run(functools.partial(fn, *args, **kwargs))
         except SquadsError as exc:
-            err_console.print(f"[red]error:[/red] {exc}")
+            err_console.print(f"[red]error:[/red] {e(exc)}")
             raise typer.Exit(1) from exc
 
     return wrapper
