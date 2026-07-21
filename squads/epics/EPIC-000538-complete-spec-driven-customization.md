@@ -14,7 +14,7 @@ description: Make the work-item vocabulary fully overridable (drop/rename/re-pre
   + extend overrides to the playbook, via one shared merge engine (deep-merge · active
   · splat-refs).
 created_at: '2026-07-21T15:11:25Z'
-updated_at: '2026-07-21T20:08:03Z'
+updated_at: '2026-07-21T20:51:37Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -74,17 +74,16 @@ Scope notes:
 - Name the field `category`, not `type` — which collides with the item type's own name.
 - The axis does **not** by itself enable renaming a roster type: `category` says "this is
   roster", not "this is the operator one" — role/skill/operator are still dispatched by
-  literal name (`META_OPERATOR == "operator"`, ~15 sites). Full roster rename needs a
-  separate name-independent `meta_kind` marker + consumer de-naming (open, below).
+  literal name (`META_OPERATOR == "operator"`, ~15 sites). Per ADR-541 the roster category
+  is locked off the override surface entirely — no add, deactivate, field-merge, or
+  rename — so a separate `meta_kind` de-naming marker is moot, not needed.
 
 Settled: `guide` is a **record**; `review` is **work**.
 
-Open questions for the ADR:
-
-- Can adopters add new roster-category types, or is roster capped to the three?
-- Roster override granularity: non-identity field-merge (lifecycle/alias/label/folder)
-  vs full rename/re-prefix (the latter needs `meta_kind` de-naming).
-- May an override reassign a built-in type's category, or are built-in assignments fixed?
+These questions (roster capped vs extensible, roster override granularity, category
+reassignment) are settled in ADR-541: roster is locked (no add/deactivate/field-merge/
+rename), and a built-in may be reassigned between `work` and `records` (never into or
+out of `roster`).
 
 ## The design (settled)
 
@@ -96,8 +95,8 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
   unless a splat-ref is used; tables recurse per-key.
 - **Deselect via active.** An `active` = `list[str]` at each section's top level
   (`items`/`statuses`/`lifecycles`/`collections`/`subentity_kinds`) drops built-ins.
-  Replace-wholesale semantics (the point is to shrink); meta-types can never be dropped
-  (`is_meta` floor).
+  Replace-wholesale semantics (the point is to shrink); the roster category is locked off
+  the override surface, so a `category = roster` type can never be dropped.
 - **Splat-refs.** A safe, eval-free path-reference splice — written `$(*path)` — to
   append to a bundled list without restating it: `do = ["$(*self)", "…"]`. Resolves against the
   **bundled base only** (no cycles, order-independent). `$(self)`/`$(*self)` targets the
@@ -123,6 +122,11 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
   validated at create/update *and* in `sq check`. This closes a live gap: `parents = []`
   for `decision`/`guide` is declared today but silently unenforced (5 ADRs currently hold
   parents while `sq check` reports clean).
+- **Category reassignment between `work` and `records`** — an override may move a built-in
+  type across the two non-roster categories (e.g. `review` to `records`, `guide` to `work`);
+  roster membership stays fixed both directions. A reassignment that leaves the spec
+  internally inconsistent (e.g. a type moved to `records` while still declaring a parent)
+  fails Plane-1 load validation and hard-stops (ADR-541).
 - **A `records` group in both UI clients** — enabled by exposing each type's `category` in
   the `sq workflow types --json` catalog both clients already fetch, so neither re-derives
   the taxonomy (single-sourced). Concrete work differs per client: the **TUI** switches its
@@ -142,12 +146,11 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
     parent/sub-entity rules, prefix/folder maps, backend pointer files — iterates the
     **active/merged** spec, never a hardcoded built-in name. A dropped type just doesn't
     appear; nothing orphans or crashes.
-- **Roster types can never be deactivated.** sq structurally requires a role/skill/operator
-  type to exist, so the `active` floor forbids dropping any `category = roster` type
-  (`SquadsError`). This is the one type-axis floor; every non-roster type is droppable.
-  Whether roster types may additionally be *renamed/re-prefixed* (vs only non-identity
-  field-merge) is an open ADR question tied to de-naming roster identity — deliberately
-  **not** "frozen absolutely", which an earlier draft over-asserted.
+- **The roster category is locked off the override surface.** sq structurally requires a
+  role/skill/operator type to exist and binds them by literal name, so no override may add,
+  deactivate, field-merge, or rename/re-prefix a `category = roster` type — any such override
+  is refused (`SquadsError`). This is the one type-axis floor; every non-roster type is
+  droppable, renamable, and re-prefixable as ordinary spec vocabulary (ADR-541).
 
 ## Acceptance (epic-level)
 
@@ -158,30 +161,41 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
 - **Dropping any droppable built-in** leaves sq fully functional (skills, `sq check`,
   rendering, backends) — or is refused with a clean error naming what still references it.
   No consumer traceback under any drop.
-- **Deactivating any `roster`-category type fails closed** (role/skill/operator can't be
-  dropped). Rename/re-prefix of roster types is gated on the ADR's `meta_kind` decision.
+- **Any override touching a `roster`-category type fails closed** — role/skill/operator can
+  be neither dropped, nor renamed/re-prefixed, nor field-merged; the roster category is
+  locked off the override surface entirely (ADR-541).
 - **Records take no parent, enforced.** Creating or updating a `records`-category item
   (decision/PRD/guide) with a parent fails closed, and `sq check` flags any that exist —
   unlike today, where `parents = []` on decisions/guides is silently unenforced.
 - **The category catalog is closed.** A type may declare only a hard-coded category; an
   override that invents a category, or attempts to redefine one, fails closed. There is no
   override path that creates or modifies a category.
+- **A built-in may be reassigned between `work` and `records`** (never into or out of
+  `roster`); a reassignment that leaves the spec inconsistent — e.g. a `records`-reassigned
+  type that still declares a parent — fails Plane-1 load validation and hard-stops.
 - Appending one playbook bullet takes **one line** (`$(*self)` + the addition), not a
   restated list — and bundled improvements still flow through.
 - With no override present, behaviour is **byte-identical** to today.
 
 ## Dependencies / relationships
 
-- Rides the statelessness seam (per-squad resolution, no new import-time singletons) —
-  the current `_PLAYBOOK_SPEC`/`_BUNDLED_SPEC` module-level singletons are exactly what
-  that work removes.
+- Rides the statelessness seam FEAT-533 establishes (per-request spec, no import-time
+  mutable singletons): EPIC-538 builds its own active-playbook threading on that pattern.
+  `_PLAYBOOK_SPEC`/`_BUNDLED_SPEC` stay in place as the bundled code defaults — FEAT-533
+  removes the *mutable* `_active_spec`/`_active_dir`, not these.
 - Extends the existing `.overrides/` subsystem (workflow/roles/templates).
 - **Coordinates with ADR-320 / FEAT-321 (the contract/PRD type):** the PRD is born into the
-  `architecture` category, so the category taxonomy must be settled alongside that type.
-- **Foundational ADR (architect) required first.** The `category` axis + per-category
-  behavioural contract is an architecture decision that everything else here keys off
-  (the merge, the `active` floor, the consumer audit) — it should be pinned in an ADR
-  before the features are built.
+  `records` category, so the category taxonomy must be settled alongside that type.
+- **Foundational ADR: ADR-541.** The `category` axis + per-category behavioural contract —
+  the merge, the `active` floor, the consumer audit — is pinned in ADR-541; features here
+  are cut against that decision.
+- **Plane-1/Plane-2 split with EPIC-540.** The Plane-1 load-time spec-validity checks
+  introduced here — category-catalog membership, roster-locked, `active`-deselect
+  referential safety — are this epic's foundation. Validator-catalog membership (every name
+  in a type's `validators` list resolves to a known validator) is EPIC-540's load-time check,
+  and the item-conformance validator catalog itself (Plane 2 — the create/update gate + `sq
+  check` report) is entirely EPIC-540's scope. Keeping this boundary explicit at cut time
+  avoids a rule falling between the two epics.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -197,4 +211,6 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
   - Category naming + rules: call the third category 'records' (not architecture); guide is a record, review is work. Records take no parent — records relate via refs, not hierarchy — and this must be enforced at create/update AND in sq check (today parents=[] on decision/guide is unenforced: 5 ADRs hold parents while sq check is clean). Both the TUI and VS Code extension trees need a Records group; migrate the 5 parented ADRs to related refs.
 - [2026-07-21T20:08:03Z] Pierre Chat:
   - Sequencing (op-pierre): statelessness first — land FEAT-533 (removes the _PLAYBOOK_SPEC/_active_spec singletons) before cutting EPIC-538/540 features onto the per-request seam. ADR-541 and ADR-534 held at Proposed for now (not accepted yet); feature-cutting waits on that acceptance.
+- [2026-07-21T20:51:37Z] Nina Product:
+  - Refreshed body: dropped the resolved open-questions section, corrected the statelessness/records/roster-lock framing, and added the work<->records reassignment outcome + explicit Plane-1/Plane-2 split with EPIC-540 — all aligned to ADR-541. Status unchanged (Draft).
 <!-- sq:discussion:end -->

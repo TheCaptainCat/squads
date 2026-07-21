@@ -20093,7 +20093,7 @@
         },
         {
           "local_id": "US2",
-          "title": "Request-scoped ambient context (clock, actor, active spec, active dir)",
+          "title": "Request-scoped context primitive + clock/actor seam",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -20117,11 +20117,20 @@
           "severity": null,
           "story": null,
           "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Active-spec / active-dir seam onto the request context",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
         }
       ],
       "path": "features/FEAT-000533-statelessness-one-process-many-squads-per-request-context.md",
       "created_at": "2026-07-21T12:37:58Z",
-      "updated_at": "2026-07-21T20:08:04Z",
+      "updated_at": "2026-07-21T20:52:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20132,7 +20141,7 @@
       "type": "decision",
       "title": "No module-level mutable state: per-request context, caches are code",
       "slug": "no-module-level-mutable-state-per-request-context-caches-are",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "Generalize ADR-249 to all ambient request/squad state: no module-level mutable state, context resolved per request and threaded; caches hold code/definitions, never squad data; a long-lived process is observably identical to N fresh processes.",
       "parent": null,
       "author": "architect",
@@ -20151,7 +20160,7 @@
       "subentities": [],
       "path": "adrs/ADR-000534-no-module-level-mutable-state-per-request-context-caches-are.md",
       "created_at": "2026-07-21T12:44:46Z",
-      "updated_at": "2026-07-21T12:47:22Z",
+      "updated_at": "2026-07-21T20:55:42Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20339,7 +20348,7 @@
       "subentities": [],
       "path": "epics/EPIC-000538-complete-spec-driven-customization.md",
       "created_at": "2026-07-21T15:11:25Z",
-      "updated_at": "2026-07-21T20:08:03Z",
+      "updated_at": "2026-07-21T20:51:37Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20410,12 +20419,13 @@
       "labels": [],
       "refs": [
         "EPIC-538",
-        "EPIC-540"
+        "EPIC-540",
+        "ADR-320"
       ],
       "subentities": [],
       "path": "adrs/ADR-000541-type-categories-pluggable-validators-closed-catalog-open-ass.md",
       "created_at": "2026-07-21T16:26:15Z",
-      "updated_at": "2026-07-21T18:18:41Z",
+      "updated_at": "2026-07-21T20:53:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
