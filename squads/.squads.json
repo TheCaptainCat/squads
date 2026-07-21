@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 511,
+  "counter": 512,
   "padding": 6,
   "items": {
     "12": {
@@ -19227,6 +19227,29 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-511"
+    },
+    "512": {
+      "sequence_id": 512,
+      "type": "bug",
+      "title": "PyPI publish job has no tag-vs-version guard like the VSIX job does",
+      "slug": "pypi-publish-job-has-no-tag-vs-version-guard-like-the-vsix-j",
+      "status": "Verified",
+      "description": "publish.yml's PyPI job can publish on a tag/version mismatch with no guard",
+      "parent": null,
+      "author": "manager",
+      "assignee": "devops",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000512-pypi-publish-job-has-no-tag-vs-version-guard-like-the-vsix-j.md",
+      "created_at": "2026-07-21T08:44:01Z",
+      "updated_at": "2026-07-21T08:45:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-512"
     }
   }
 }
