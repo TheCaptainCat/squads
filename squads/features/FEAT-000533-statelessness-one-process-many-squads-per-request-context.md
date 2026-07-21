@@ -18,7 +18,7 @@ subentities:
   title: Static-state inventory and enforcement guard
   status: Todo
 - local_id: US2
-  title: Request-scoped ambient context (clock, actor, active spec, active dir)
+  title: Request-scoped context primitive + clock/actor seam
   status: Todo
 - local_id: US3
   title: Per-request squad resolution from the client cwd
@@ -26,8 +26,11 @@ subentities:
 - local_id: US4
   title: Code-vs-data cache boundary and concurrency-isolation acceptance
   status: Todo
+- local_id: US5
+  title: Active-spec / active-dir seam onto the request context
+  status: Todo
 created_at: '2026-07-21T12:37:58Z'
-updated_at: '2026-07-21T20:08:04Z'
+updated_at: '2026-07-21T20:52:59Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -161,9 +164,10 @@ _Add with `sq feature 533 add-story "As a <role>, I want … so that …"`; trac
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
 | US1 | Todo |  | Static-state inventory and enforcement guard |
-| US2 | Todo |  | Request-scoped ambient context (clock, actor, active spec, active dir) |
+| US2 | Todo |  | Request-scoped context primitive + clock/actor seam |
 | US3 | Todo |  | Per-request squad resolution from the client cwd |
 | US4 | Todo |  | Code-vs-data cache boundary and concurrency-isolation acceptance |
+| US5 | Todo |  | Active-spec / active-dir seam onto the request context |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -176,9 +180,46 @@ _Add with `sq feature 533 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-Produce the definitive triage of every module-level binding in the engine, classified data (must become per-request) vs code/definition (may stay), covering at least: _clock._override; _actor._override/_session_id/_parent_session_id; _cli/_common._active_spec/_active_dir; the _paths cwd default; _backends/_registry (_REGISTRY/_loaded + import-time register()); _workflow._BUNDLED_SPEC and its free-function shims; _roles/_catalog, _interactions._PLAYBOOK_SPEC, _cli create/root bundled specs; _rendering/_engine._env_cache.
+Produce the definitive triage of every module-level binding in the engine, classified **data**
+(must become per-request) vs **code/definition** (may stay), covering at least: `_clock._override`;
+`_actor._override`/`_session_id`/`_parent_session_id`; `_cli/_common._active_spec`/`_active_dir`;
+the `_paths` cwd default; `_backends/_registry` (`_REGISTRY`/`_loaded` + import-time `register()`);
+`_workflow._BUNDLED_SPEC` and its derived constants/shims; `_roles/_catalog`,
+`_interactions._PLAYBOOK_SPEC`, `_cli` create/root bundled specs; `_rendering/_engine._env_cache`;
+`_overrides/_manifest._manifest_cache`.
 
-Deliver a durable guard: a meta test (and/or lint) that fails when new module-level mutable state or a new mutable import-time side-effect is introduced in the engine, plus a short documented triage rule so the classification does not rot. The guard, not the one-time sweep, is the lasting output.
+**Workflow-constant reach is audit-only in this feature.** A grep confirms zero production
+(`src/`) caller reaches the module-level free-function shims (`workflow.can_transition()`,
+`is_open`, `parent_allowed`, …) or the derived constants (`WORKFLOWS`/`SUBENTITY_WORKFLOWS`/
+`ALLOWED_PARENTS`/`TERMINAL`) — only the golden-lock tests reference them, and the service layer
+already routes through `Service.spec`/`get_active_spec()`. So the deliverable here is to **confirm
+no production caller reaches the bundled workflow constants as if they were the active spec
+(audit-only)** — not a code reroute. The customization-exposed reroute (routing customized-spec
+consumers off `WORKFLOWS`/`ALLOWED_PARENTS`/`TERMINAL`/`_PLAYBOOK_SPEC` so a customized squad's
+own vocabulary is honoured) is a *consumer audit* handed to EPIC-538, not part of this story.
+
+**Durable guard — pin the mechanism.** An AST meta-test that scans the engine modules for two
+constructs at module scope: (a) top-level assignments binding a mutable type (`dict`/`list`/`set`
+literal or constructor), and (b) `global` statements. It checks every hit against an explicit
+allowlist of the sanctioned **code** caches, which are the only module-level mutable bindings we
+accept:
+
+- `_backends/_registry.py`: `_REGISTRY`, `_loaded`
+- `_workflow/__init__.py`: `_BUNDLED_SPEC` + the derived `WORKFLOWS`, `SUBENTITY_WORKFLOWS`,
+  `ALLOWED_PARENTS`, `TERMINAL`
+- `_rendering/_engine.py`: `_env_cache`
+- `_roles/_catalog.py`: `_CATALOG`, `_BY_SLUG`
+- `_interactions/__init__.py`: `_PLAYBOOK_SPEC`
+- `_cli/_create.py`: `_create_spec`
+- `_cli/__init__.py`: `_spec`, `_STATIC_TYPES`
+- `_overrides/_manifest.py`: `_manifest_cache`
+
+The assertion: **no NEW module-level mutable binding exists outside that allowlist.** Adding a
+convenient module global later fails the build until it is either moved to the request-scoped
+context or (if genuinely a code/definition cache) added to the allowlist with a justification.
+Ship a short documented triage rule (data → per-request context; code/definition → module level,
+allowlisted) alongside the test so the classification does not rot. The guard, not the one-time
+sweep, is the lasting output.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -188,16 +229,43 @@ Deliver a durable guard: a meta test (and/or lint) that fails when new module-le
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — Request-scoped ambient context (clock, actor, active spec, active dir)
+### US2 — Request-scoped context primitive + clock/actor seam
 
 <!-- sq:story:US2:head -->
 **Status:** ⚪ Todo
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
-Replace the four ambient 'set once at the CLI root callback, cleared by try/finally' module globals with a single request-scoped context, following the ContextVar precedent already in _rendering/_engine.py: clock override (--at / frozen time), actor identity + session lineage (_actor), the active spec (_common._active_spec), and the active squad dir (_common._active_dir).
+Introduce the request-scoped **context primitive** — the single object that carries per-request
+ambient state — following the `ContextVar` precedent already proven in `_rendering/_engine.py`
+(`_active_squad_dir`). Migrate the two purely-ambient seams onto it in this story:
 
-The CLI edge stays the single place that seeds the context per invocation; the frozen-time test fixture rebinds the context, not a bare module global, so tests (and concurrent requests) no longer share it. Acceptance: two logically concurrent contexts with different --at/actor/spec do not observe each other's values.
+- **Clock override** — `_clock._override` (the `--at` forge and the frozen-time test seam), today
+  a plain module global read by `clock.now()`.
+- **Actor identity + session lineage** — `_actor._override` and `_session_id`/`_parent_session_id`,
+  the attribution path seeded once at the root callback.
+
+**The conftest migration is real work, not a rename.** `tests/conftest.py::frozen_time`
+monkeypatches `clock.now` directly (`monkeypatch.setattr(clock, "now", lambda: fixed)`) — it does
+**not** go through `_clock._override`/`set_now`. Once time lives in the request-scoped context,
+`frozen_time` must rebind *the context*, and the leak-guard fixtures (`_reset_clock_override`,
+`_reset_actor`, `_reset_session_seed`) that currently reset module globals have to be reworked to
+reset/rebind the context instead. Budget for genuinely rewiring these fixtures.
+
+**Extensibility is a requirement of the primitive.** The context must be open to more fields
+without a redesign: EPIC-538 will later fold the playbook spec (and other customization vocab)
+into this same context. Design the container so adding a field is additive.
+
+**Undecided design point — for the architect (flag, do not decide here).** ADR-534 sanctions both
+a `ContextVar` at the CLI/ambient edge *and* explicit parameter/attribute threading below it, but
+does not pick the context's concrete shape. The open question the architect should settle before
+build: is the request-scoped context **one `ContextVar` holding a single context object** at the
+CLI edge, **N separate `ContextVar`s** (one per ambient value), or **folded into `Service`** (the
+ADR-249 threaded-attribute shape)? This choice governs both this story and the active-spec/
+active-dir sibling story, so it wants deciding once, up front.
+
+Acceptance: two logically concurrent contexts with different `--at`/actor/session values do not
+observe each other's values; a single one-shot CLI invocation behaves exactly as today.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -243,6 +311,47 @@ Acceptance test: a long-lived process serving N interleaved requests across ≥2
 <!-- sq:story:US4:discussion -->
 <!-- sq:story:US4:discussion:end -->
 <!-- sq:story:US4:end -->
+
+<!-- sq:story:US5 -->
+### US5 — Active-spec / active-dir seam onto the request context
+
+<!-- sq:story:US5:head -->
+**Status:** ⚪ Todo
+<!-- sq:story:US5:head:end -->
+
+<!-- sq:story:US5:body -->
+The second half of the former oversized US2 (its sibling is the context-primitive + clock/actor
+story): move the two remaining CLI-edge ambient globals onto the **same request-scoped context**
+primitive that sibling story builds.
+
+- **`_cli/_common._active_spec`** — the active (possibly customized) squad `WorkflowSpec`, set by
+  `set_active_spec()` and read everywhere via `get_active_spec()`. This is the larger of the two:
+  ~15 `get_active_spec()` consumer call sites across the CLI helpers (`_common`, `_items`,
+  `_create`, `_workflow_cmd`, `_main`) plus `_workflow/__init__` and the lazy-dispatch path in
+  `_cli/__init__::_CustomTypeGroup` reach for it. Each must read the spec off the context rather
+  than a module global. The `_CustomTypeGroup`/`_CustomCreateGroup` reach-in
+  (`common._active_spec`) and their `_custom_cmd_cache` ClassVars are part of the surface.
+- **`_cli/_common._active_dir`** — the resolved squad folder from `--dir`, set once by the root
+  callback and read by `get_service()`, `version_notice()`, `require_current_schema()`.
+
+The CLI edge (`main_callback` in `_cli/__init__.py`) stays the **single place** that seeds the
+context per invocation — `set_active_dir` / `_bind_active_spec` become "seed the context", not
+"assign a module global". The context's concrete shape is the architect design point flagged on
+the sibling story; this story consumes whatever that decision produces.
+
+Note the fallback contract must survive: `get_active_spec()` returns the bundled spec when nothing
+is bound yet (parse-time validators, outside a squad), and `_bind_active_spec` fails soft to the
+bundled spec on any resolution error — both behaviours are preserved against the context.
+
+Acceptance: two logically concurrent contexts resolving two differently-customized squads each see
+their own spec and dir; neither observes the other's, and a one-shot CLI invocation is unchanged.
+<!-- sq:story:US5:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US5:discussion -->
+<!-- sq:story:US5:discussion:end -->
+<!-- sq:story:US5:end -->
 <!-- sq:stories:end -->
 
 ## Discussion
@@ -255,4 +364,10 @@ Acceptance test: a long-lived process serving N interleaved requests across ≥2
   - ADR recommendation: yes — the invariant 'no module-level mutable state; squad/request context is resolved per request and threaded, never a process singleton; caches may hold code/definitions but never squad data' is a standing rule, and rules belong in an ADR, not just a feature body (features are history, ADRs impose rules). It would formalize the data-vs-code triage as a durable constraint the enforcement guard (US1) checks against. Recommend a companion ADR; not creating it here — Pierre's call.
 - [2026-07-21T20:08:03Z] Pierre Chat:
   - Sequenced as Phase 1 ahead of the spec-customization epics (EPIC-538 rides this seam). See EPIC-538 for the full sequencing note.
+- [2026-07-21T20:52:59Z] Olivia Lead:
+  - Refined the stories for clean, one-task-sized decomposition (still Draft — no tasks, not Ready).
+  - Split the oversized US2 into US2 (request-scoped context primitive + clock/actor seam, incl. the real conftest rework — frozen_time monkeypatches clock.now directly, not _override, so it's a genuine fixture migration) and US5 (active-spec/active-dir seam onto the same context). Both flag the context primitive must stay extensible so EPIC-538 can fold the playbook spec into it.
+  - Narrowed US1's workflow-shim work to audit-only: grep confirms zero src callers reach the module free functions (workflow.can_transition() etc.) or the derived WORKFLOWS/ALLOWED_PARENTS/TERMINAL constants — only golden-lock tests do, and the service layer already routes through Service.spec. The customization-exposed reroute (honouring a customized squad's own vocab) is handed to EPIC-538's consumer audit, not this feature.
+  - Pinned US1's guard mechanism: an AST meta-test scanning engine modules for module-scope mutable-type assignments (dict/list/set) or global statements, checked against an explicit allowlist of the sanctioned code caches (_REGISTRY/_loaded; _BUNDLED_SPEC + derived WORKFLOWS/SUBENTITY_WORKFLOWS/ALLOWED_PARENTS/TERMINAL; _env_cache; _CATALOG/_BY_SLUG; _PLAYBOOK_SPEC; _create_spec; _spec/_STATIC_TYPES; _manifest_cache). Asserts: no NEW module-level mutable binding outside the allowlist.
+  - Flagged the one open design point for @architect on US2: whether the request-scoped context is a single ContextVar at the CLI edge, N ContextVars, or folded into Service (ADR-534 sanctions ContextVar-at-edge and threading below it, but doesn't pick the shape). Flagged, not decided — wants settling once before build since it governs US2 and US5.
 <!-- sq:discussion:end -->

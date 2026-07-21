@@ -3,7 +3,7 @@ id: ADR-534
 sequence_id: 534
 type: decision
 title: 'No module-level mutable state: per-request context, caches are code'
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - FEAT-533:addresses
@@ -16,7 +16,7 @@ description: 'Generalize ADR-249 to all ambient request/squad state: no module-l
   mutable state, context resolved per request and threaded; caches hold code/definitions,
   never squad data; a long-lived process is observably identical to N fresh processes.'
 created_at: '2026-07-21T12:44:46Z'
-updated_at: '2026-07-21T12:47:22Z'
+updated_at: '2026-07-21T20:55:42Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -135,4 +135,6 @@ cannot change observable behavior.
 - [2026-07-21T12:47:22Z] Robert Architect:
   - Generalizes ADR-249's narrow workflow-spec de-globalization to all ambient request/squad state (clock, actor+session, active spec, active/resolved dir, client cwd), pins the code-vs-data cache boundary FEAT-533 US1's guard enforces, and states the 'long-lived process ≡ N fresh processes' invariant (derived from ADR-71). Constrains FEAT-533. Origin of the ask: operator op-pierre.
   - Ref-kind note: intended relation to ADR-249 is 'refines/generalizes', but 'refines' isn't a valid kind (valid: duplicates, fixes, implements, related, scopes, supersedes). Did NOT use 'supersedes' — the adr lifecycle is Proposed→Accepted→Superseded, so a supersedes edge implies ADR-249 should move to Superseded, which is wrong: 249 is Accepted and implemented (FEAT-250) and stays in force as the first/reference instance. Recorded as 'related' + the refine/generalize relationship stated explicitly in the body (matches the ADR-282→ADR-104 'refines' precedent). Flag if you'd prefer the supersedes edge.
+- [2026-07-21T20:55:42Z] Pierre Chat:
+  - Accepted. Gap review found ADR-534 accept-ready (sound rules, clean reconciliation with ADR-249/71/77/153); the three inventory nits — _overrides/_manifest.py::_manifest_cache, the 2nd backend's import-time register(), and _cli/_main.py::_is_tty — are all CODE and flow to FEAT-533 US1's guard allowlist, not blockers.
 <!-- sq:discussion:end -->
