@@ -12,7 +12,7 @@ refs:
 description: 'An sq ui command opening a TUI: navigate the tree, read items with tabs
   for stories/body/discussion; browse-first, mutations a later increment'
 created_at: '2026-06-10T15:15:37Z'
-updated_at: '2026-07-21T09:10:41Z'
+updated_at: '2026-07-21T11:26:52Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -41,4 +41,6 @@ navigation, the item reader with tabs, then the first mutation increment.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-21T11:26:52Z] Pierre Chat:
+  - Test layer: the sq ui tests get their own tests/tui/ layer (Textual Pilot harness fits none of unit/service/cli/integration), registered properly in tests/CONVENTIONS.md + the meta ticket-ID scanner — not folded into tests/cli/.
 <!-- sq:discussion:end -->
