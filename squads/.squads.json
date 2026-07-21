@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 512,
+  "counter": 516,
   "padding": 6,
   "items": {
     "12": {
@@ -35,7 +35,7 @@
       "type": "epic",
       "title": "sq ui — a terminal UI for browsing the squad",
       "slug": "sq-ui-a-terminal-ui-for-browsing-the-squad",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "An sq ui command opening a TUI: navigate the tree, read items with tabs for stories/body/discussion; browse-first, mutations a later increment",
       "parent": null,
       "author": "product-owner",
@@ -50,7 +50,7 @@
       "subentities": [],
       "path": "epics/EPIC-000028-sq-ui-a-terminal-ui-for-browsing-the-squad.md",
       "created_at": "2026-06-10T15:15:37Z",
-      "updated_at": "2026-06-11T07:40:17Z",
+      "updated_at": "2026-07-21T09:10:41Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -19250,6 +19250,169 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-512"
+    },
+    "513": {
+      "sequence_id": 513,
+      "type": "feature",
+      "title": "sq ui shell + tree navigation",
+      "slug": "sq-ui-shell-tree-navigation",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-28",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-15:depends-on",
+        "FEAT-19:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Launch and quit cleanly",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Tree matches sq tree at launch",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Navigate siblings, into children, back to parent",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000513-sq-ui-shell-tree-navigation.md",
+      "created_at": "2026-07-21T09:11:23Z",
+      "updated_at": "2026-07-21T09:12:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-513"
+    },
+    "514": {
+      "sequence_id": 514,
+      "type": "feature",
+      "title": "Item reader panel: body, sub-entities, discussion tabs",
+      "slug": "item-reader-panel-body-sub-entities-discussion-tabs",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-28",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-15:depends-on",
+        "FEAT-19:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Selecting a node shows its detail",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Body renders as markdown",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Sub-entities and discussion as tabs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Status/priority/assignee at a glance",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000514-item-reader-panel-body-sub-entities-discussion-tabs.md",
+      "created_at": "2026-07-21T09:11:26Z",
+      "updated_at": "2026-07-21T09:12:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-514"
+    },
+    "515": {
+      "sequence_id": 515,
+      "type": "feature",
+      "title": "First mutation increment: transition/comment/assign from the TUI",
+      "slug": "first-mutation-increment-transition-comment-assign-from-the",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-28",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "features/FEAT-000515-first-mutation-increment-transition-comment-assign-from-the.md",
+      "created_at": "2026-07-21T09:11:27Z",
+      "updated_at": "2026-07-21T09:12:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-515"
+    },
+    "516": {
+      "sequence_id": 516,
+      "type": "decision",
+      "title": "Architecture for the sq ui TUI (increment 1: browse-first)",
+      "slug": "architecture-for-the-sq-ui-tui-increment-1-browse-first",
+      "status": "Accepted",
+      "description": "",
+      "parent": "EPIC-28",
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "adrs/ADR-000516-architecture-for-the-sq-ui-tui-increment-1-browse-first.md",
+      "created_at": "2026-07-21T09:12:54Z",
+      "updated_at": "2026-07-21T09:14:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-516"
     }
   }
 }
