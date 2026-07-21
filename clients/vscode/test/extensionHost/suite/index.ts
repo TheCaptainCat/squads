@@ -47,4 +47,10 @@ export async function run(): Promise<void> {
   await vscode.commands.executeCommand('squads.openItemPreview', 'SMOKE-1');
   await vscode.commands.executeCommand('squads.previewBack');
   await vscode.commands.executeCommand('squads.previewForward');
+
+  // The search QuickPick registers and opens without throwing (SearchQuickPickController.open,
+  // src/searchQuickPick.ts) — closed immediately via the built-in command so the smoke run
+  // doesn't leave it lingering on screen.
+  await vscode.commands.executeCommand('squads.search');
+  await vscode.commands.executeCommand('workbench.action.closeQuickOpen');
 }

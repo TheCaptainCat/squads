@@ -125,6 +125,27 @@ export interface SqShowJson {
   readonly subentities: readonly SqSubEntity[];
 }
 
+/** One matched region within a `sq search --json` hit: `region` is the compact, machine-stable
+ * locator (`"title"`, `"body"`, `"discussion#<n>"`, a sub-entity's `"<kind>:<local_id>"`, …),
+ * `location` is the same thing spelled out for humans, and `snippet` is in-context text around
+ * the match — see `sq search --help` for the full region-naming contract. */
+export interface SqSearchHitRegion {
+  readonly region: string;
+  readonly location: string;
+  readonly snippet: string;
+}
+
+/** One row of `sq search <text> --json` — an item matching the query, with every region it
+ * matched in (`hits`, possibly more than one per item; never absent, though it may be empty
+ * in principle). */
+export interface SqSearchHit {
+  readonly id: string;
+  readonly title: string;
+  readonly type: string;
+  readonly status: string;
+  readonly hits: readonly SqSearchHitRegion[];
+}
+
 /** One row of `sq list --json`. */
 export interface SqListItem {
   readonly id: string;

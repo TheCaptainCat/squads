@@ -12,6 +12,7 @@ import { ItemPreviewManager } from './itemPreviewManager';
 import { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
 import { createNodeDiscoveryEnvironment, createNodeSquadDirEnvironment } from './nodeEnvironment';
 import { nodeProcessRunner } from './processRunner';
+import { SearchQuickPickController } from './searchQuickPick';
 import { watchSquadIndex } from './squadWatcher';
 import { SquadsTreeDataProvider } from './treeDataProvider';
 
@@ -102,11 +103,20 @@ export function activate(context: vscode.ExtensionContext): void {
     context.extensionUri,
   );
 
+  const searchQuickPick = new SearchQuickPickController(
+    nodeProcessRunner,
+    discovery,
+    root,
+    notifyError,
+    previewManager,
+  );
+
   registerCommands(
     context,
     treeDataProvider,
     () => treeDataProvider.getKnownTypes(),
     previewManager,
+    searchQuickPick,
   );
   registerMetaCommands(context, metaTreeDataProvider);
 

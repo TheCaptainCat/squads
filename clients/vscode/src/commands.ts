@@ -12,6 +12,7 @@ import * as vscode from 'vscode';
 
 import type { ItemPreviewManager } from './itemPreviewManager';
 import type { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
+import type { SearchQuickPickController } from './searchQuickPick';
 import type { SquadsTreeDataProvider } from './treeDataProvider';
 
 const ALL_TYPES_LABEL = 'All types';
@@ -27,6 +28,7 @@ export function registerCommands(
   provider: SquadsTreeDataProvider,
   knownTypes: () => readonly string[],
   previewManager: ItemPreviewManager,
+  searchQuickPick: SearchQuickPickController,
 ): void {
   // The title-bar toggle icons render pressed/unpressed from these context keys; seed them from
   // the provider's initial state so a fresh window starts in sync.
@@ -80,6 +82,10 @@ export function registerCommands(
 
     vscode.commands.registerCommand('squads.previewForward', async () => {
       await previewManager.goForward();
+    }),
+
+    vscode.commands.registerCommand('squads.search', () => {
+      searchQuickPick.open();
     }),
   );
 }
