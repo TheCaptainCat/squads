@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 516,
+  "counter": 521,
   "padding": 6,
   "items": {
     "12": {
@@ -50,7 +50,7 @@
       "subentities": [],
       "path": "epics/EPIC-000028-sq-ui-a-terminal-ui-for-browsing-the-squad.md",
       "created_at": "2026-06-10T15:15:37Z",
-      "updated_at": "2026-07-21T09:10:41Z",
+      "updated_at": "2026-07-21T11:26:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -19413,6 +19413,205 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-516"
+    },
+    "517": {
+      "sequence_id": 517,
+      "type": "task",
+      "title": "TUI packaging, _tui scaffold, and sq ui command wiring",
+      "slug": "tui-packaging-tui-scaffold-and-sq-ui-command-wiring",
+      "status": "InReview",
+      "description": "",
+      "parent": "FEAT-513",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Launchable, cleanly-quitting sq ui shell + missing-extra guard",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000517-tui-packaging-tui-scaffold-and-sq-ui-command-wiring.md",
+      "created_at": "2026-07-21T09:18:48Z",
+      "updated_at": "2026-07-21T11:26:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-517"
+    },
+    "518": {
+      "sequence_id": 518,
+      "type": "task",
+      "title": "Tree pane: populate from Service + keyboard navigation",
+      "slug": "tree-pane-populate-from-service-keyboard-navigation",
+      "status": "InReview",
+      "description": "",
+      "parent": "FEAT-513",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-517:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Populate tree from svc.tree_view matching sq tree",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Keyboard navigation with visible selection indicator",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000518-tree-pane-populate-from-service-keyboard-navigation.md",
+      "created_at": "2026-07-21T09:18:49Z",
+      "updated_at": "2026-07-21T10:01:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-518"
+    },
+    "519": {
+      "sequence_id": 519,
+      "type": "task",
+      "title": "Reader panel: selection wiring, glance header, body-as-Markdown tab",
+      "slug": "reader-panel-selection-wiring-glance-header-body-as-markdown",
+      "status": "InReview",
+      "description": "",
+      "parent": "FEAT-514",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-518:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Tree selection loads item into reader panel",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Body-as-Markdown tab",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "At-a-glance status/priority/assignee header",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000519-reader-panel-selection-wiring-glance-header-body-as-markdown.md",
+      "created_at": "2026-07-21T09:18:54Z",
+      "updated_at": "2026-07-21T10:01:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-519"
+    },
+    "520": {
+      "sequence_id": 520,
+      "type": "task",
+      "title": "Reader panel: sub-entities and discussion tabs with empty states",
+      "slug": "reader-panel-sub-entities-and-discussion-tabs-with-empty-sta",
+      "status": "InReview",
+      "description": "",
+      "parent": "FEAT-514",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-519:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Sub-entities tab with empty state",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Discussion tab with empty state",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000520-reader-panel-sub-entities-and-discussion-tabs-with-empty-sta.md",
+      "created_at": "2026-07-21T09:18:54Z",
+      "updated_at": "2026-07-21T10:02:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-520"
+    },
+    "521": {
+      "sequence_id": 521,
+      "type": "task",
+      "title": "Repo-wide comment sweep: strip over-commenting in code and config",
+      "slug": "repo-wide-comment-sweep-strip-over-commenting-in-code-and-co",
+      "status": "Draft",
+      "description": "Complete tour of every code/config comment; remove ID refs, verbose narration, and restate-the-obvious comments",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-237"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000521-repo-wide-comment-sweep-strip-over-commenting-in-code-and-co.md",
+      "created_at": "2026-07-21T09:35:58Z",
+      "updated_at": "2026-07-21T09:35:58Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-521"
     }
   }
 }
