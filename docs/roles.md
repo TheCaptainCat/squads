@@ -60,6 +60,20 @@ sq role regen ROLE-000002    # re-render its pointer from the item
 sq role rm ROLE-000002 [--purge]
 ```
 
+### Custom non-dev roles
+
+Beyond the bundled roster and stack-specific developers, you can define a wholly custom, non-dev
+role — e.g. a `security-analyst` or `incident-commander` — that isn't in the bundled catalog.
+Start one with `sq override scaffold --new <slug>` (see [overrides.md](overrides.md) § "Role
+overrides merge by field"), fill in the essentials it stubs, then activate it exactly like a
+bundled role:
+
+```bash
+sq override scaffold --new security-analyst
+$EDITOR .overrides/roles/security-analyst.toml
+sq role activate security-analyst
+```
+
 ## Operators (humans)
 
 Roles are AI agents; **operators are the people**. Register a human so work can be assigned to

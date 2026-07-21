@@ -15,6 +15,7 @@ the scaffold/scan/diff/update/check lifecycle commands themselves, exactly as it
 `template`/`role`.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -28,6 +29,7 @@ from squads._overrides._service import (
     DiffResult,
     check_override_issues,
     diff_override,
+    scaffold_new_role,
     scaffold_role,
     scaffold_template,
     scaffold_workflow,
@@ -35,6 +37,7 @@ from squads._overrides._service import (
     update_stamp,
 )
 from squads._overrides._stamp import read_template_stamp, read_toml_stamp, stamp_toml_file
+from squads._roles._resolver import resolve_role
 from squads._services import _service as service
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
@@ -132,6 +135,80 @@ class TestScaffold:
         dest.write_text("# old content\n", encoding="utf-8")
         scaffold_role(squad_dir, slug="architect", force=True)
         assert read_toml_stamp(dest.read_text(encoding="utf-8")) is not None
+
+    @pytest.mark.parametrize("bad_slug", ["../escape", "/abs/escape", "", "   ", "a/b", "a\\b"])
+    async def test_rejects_an_unsafe_slug(self, project, bad_slug) -> None:
+        with pytest.raises(SquadsError, match="role slug"):
+            scaffold_role(project.squad_dir, slug=bad_slug)
+
+    async def test_a_valid_slug_writes_inside_overrides_roles(self, project) -> None:
+        squad_dir = project.squad_dir
+        dest = scaffold_role(squad_dir, slug="architect")
+        assert dest.resolve().is_relative_to((squad_dir / ".overrides" / "roles").resolve())
+
+
+class TestScaffoldNewRole:
+    """``scaffold_new_role`` — the brand-new (non-bundled) custom role slug path."""
+
+    async def test_writes_stamped_toml_with_essentials_active_and_advanced_commented(
+        self, project
+    ) -> None:
+        dest = scaffold_new_role(project.squad_dir, slug="security-analyst")
+        text = dest.read_text(encoding="utf-8")
+        assert dest == project.squad_dir / ".overrides" / "roles" / "security-analyst.toml"
+        assert read_toml_stamp(text) == __version__
+        for field in ("full_name", "title", "description", "mission"):
+            assert f"\n{field} = " in f"\n{text}"
+        for field in ("responsibilities", "agreements", "model", "color", "can_spawn"):
+            assert f"\n# {field}" in text or f"\n# {field} =" in text
+
+    async def test_refuses_to_clobber_without_force_and_overwrites_with_it(self, project) -> None:
+        squad_dir = project.squad_dir
+        dest = scaffold_new_role(squad_dir, slug="incident-commander")
+        with pytest.raises(SquadsError, match="already exists"):
+            scaffold_new_role(squad_dir, slug="incident-commander")
+
+        dest.write_text("stale content\n", encoding="utf-8")
+        scaffold_new_role(squad_dir, slug="incident-commander", force=True)
+        assert "stale content" not in dest.read_text(encoding="utf-8")
+
+    async def test_rejects_a_bundled_slug_and_points_at_role_flag(self, project) -> None:
+        with pytest.raises(SquadsError, match="use `sq override scaffold --role"):
+            scaffold_new_role(project.squad_dir, slug="architect")
+
+    @pytest.mark.parametrize("bad_slug", ["../escape", "/abs/escape", "", "   ", "a/b", "a\\b"])
+    async def test_rejects_an_unsafe_slug(self, project, bad_slug) -> None:
+        with pytest.raises(SquadsError, match="role slug"):
+            scaffold_new_role(project.squad_dir, slug=bad_slug)
+
+    async def test_a_valid_slug_writes_inside_overrides_roles(self, project) -> None:
+        squad_dir = project.squad_dir
+        dest = scaffold_new_role(squad_dir, slug="security-analyst")
+        assert dest.resolve().is_relative_to((squad_dir / ".overrides" / "roles").resolve())
+
+    async def test_can_spawn_flag_emits_an_active_true_instead_of_commented(self, project) -> None:
+        dest = scaffold_new_role(project.squad_dir, slug="orchestrator", can_spawn=True)
+        text = dest.read_text(encoding="utf-8")
+        assert "can_spawn = true" in text
+        assert "# can_spawn" not in text
+
+    async def test_filled_scaffold_parses_and_resolves_to_a_valid_roledef(self, project) -> None:
+        squad_dir = project.squad_dir
+        dest = scaffold_new_role(squad_dir, slug="security-analyst")
+        text = dest.read_text(encoding="utf-8")
+        filled = re.sub(
+            r'^(full_name|title|description|mission) = ".*"$',
+            lambda m: f'{m.group(1)} = "filled {m.group(1)}"',
+            text,
+            flags=re.MULTILINE,
+        )
+        dest.write_text(filled, encoding="utf-8")
+
+        r = resolve_role("security-analyst", squad_dir)
+        assert r.slug == "security-analyst"
+        assert r.full_name == "filled full_name"
+        assert r.title == "filled title"
+        assert r.can_spawn is False
 
 
 class TestWorkflowOverride:

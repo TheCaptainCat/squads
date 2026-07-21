@@ -3,6 +3,7 @@
 The four subcommands are the complete override-management surface:
 
 - ``sq override scaffold <name>`` — copy a bundled template into ``.overrides/`` with stamp.
+- ``sq override scaffold --new <slug>`` — start a brand-new, non-bundled role TOML.
 - ``sq override list``            — show all overrides with kind, base, and state.
 - ``sq override diff [<name>]``   — two-delta view (Δ-mine + Δ-upgrade) for drifted overrides.
 - ``sq override update [<name>]`` — re-stamp after a hand-merge; body untouched.
@@ -22,6 +23,7 @@ from squads._overrides._service import (
     STATE_DRIFTED,
     DiffResult,
     diff_override,
+    scaffold_new_role,
     scaffold_role,
     scaffold_template,
     scaffold_workflow,
@@ -52,6 +54,20 @@ def scaffold(
     role: str | None = typer.Option(
         None, "--role", help="Role slug to scaffold a TOML override for (e.g. architect)."
     ),
+    new: str | None = typer.Option(
+        None,
+        "--new",
+        help=(
+            "Slug for a brand-new, non-bundled role (e.g. security-analyst). "
+            "Writes a starter TOML with the essentials stubbed; "
+            "use --role instead to override a bundled role."
+        ),
+    ),
+    can_spawn: bool = typer.Option(
+        False,
+        "--can-spawn",
+        help="With --new: emit 'can_spawn = true' as an active key instead of commented.",
+    ),
     workflow: bool = typer.Option(
         False, "--workflow", help="Scaffold the workflow spec override (.overrides/workflow.toml)."
     ),
@@ -65,12 +81,28 @@ def scaffold(
     This is the only command that writes override bodies.  After scaffolding, edit the
     file directly to customise it, then verify with ``sq override diff``.
 
+    Custom non-dev role: ``sq override scaffold --new <slug>`` starts a wholly new role
+    that isn't in the bundled catalog (e.g. ``security-analyst``, ``incident-commander``).
+    Fill in the stubbed essentials, then ``sq role activate <slug>`` to create it.
+
     Workflow override (additive-only): ``sq override scaffold workflow`` or
     ``sq override scaffold --workflow`` creates ``.overrides/workflow.toml`` with a
     stamp and a commented worked example (e.g. an ``incident`` type with its lifecycle).
     """
     svc = get_service()
     squad_dir = svc.paths.squad_dir
+
+    if role is not None and new is not None:
+        raise typer.BadParameter("--role and --new are mutually exclusive")
+
+    if new is not None:
+        dest = scaffold_new_role(squad_dir, slug=new, force=force, can_spawn=can_spawn)
+        console.print(
+            f"[green]scaffolded[/green] new role override: [bold]{e(str(dest))}[/bold]\n"
+            f"Edit [cyan]{e(str(dest))}[/cyan] to fill in the stubbed essentials, then activate "
+            f"with [cyan]sq role activate {e(new)}[/cyan]."
+        )
+        return
 
     if role is not None:
         dest = scaffold_role(squad_dir, slug=role, force=force)

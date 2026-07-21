@@ -77,6 +77,11 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     for r in PREDEFINED:
         table.add_row(r.slug, r.full_name, r.title, "✓" if r.is_default else "")
     console.print(table)
+    console.print(
+        "\n[dim]Need a wholly custom non-dev role (not in this catalog)? "
+        "Run [cyan]sq override scaffold --new <slug>[/cyan], fill in the essentials, "
+        "then [cyan]sq role activate <slug>[/cyan].[/dim]"
+    )
 
 
 # --------------------------------------------------------------------------- activate
@@ -90,7 +95,12 @@ async def activate_role(
         None, "--name", help="Full name for this agent (overrides bundled default)."
     ),
 ) -> None:
-    """Activate a bundled role: create its tracked item and Claude pointer."""
+    """Activate a role: create its tracked item and Claude pointer.
+
+    ``<slug>`` may be a bundled role (see ``sq role catalog``) or a custom non-dev role defined
+    under ``.overrides/roles/<slug>.toml`` — scaffold one with ``sq override scaffold --new
+    <slug>``, fill in the essentials, then activate it here.
+    """
     svc = get_service()
     item = await svc.activate_role(slug, name=name)
     await svc.refresh_managed()
