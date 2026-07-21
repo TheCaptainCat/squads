@@ -1,12 +1,12 @@
 # tests/ — authoring conventions
 
-**Status: finalized (FEAT-231, Phase 4).** This document governs `tests/unit/`, `tests/service/`,
-`tests/cli/`, `tests/integration/` — the four behavioral layers — plus the orthogonal
-`tests/meta/` repo-self-test category (see §1). Together they are the sole test tree, authored
+**Status: finalized (FEAT-231, Phase 4; `tests/tui/` added for EPIC-28).** This document governs
+`tests/unit/`, `tests/service/`, `tests/cli/`, `tests/integration/`, `tests/tui/` — the five
+behavioral layers — plus the orthogonal `tests/meta/` repo-self-test category (see §1). Together they are the sole test tree, authored
 per these rules in Phase 2 and verified for parity in Phase 3. The old flat `tests/test_*.py`
 suite predated this document and was retired wholesale in Phase 3, not edited to comply.
 
-## 1. The four layers
+## 1. The layers
 
 Each test lives in exactly one layer, chosen by what it needs to exercise its claim — not by
 which file happened to already test something nearby.
@@ -17,6 +17,7 @@ which file happened to already test something nearby.
 | `tests/service/` | The `Service` facade + `IndexStore` — real filesystem, no CLI | `svc` (and `project`, which `svc` depends on) | Return values **and** on-disk frontmatter/index state |
 | `tests/cli/` | The public command surface, via `CliRunner` | `project`, `runner` (or `invoke` for async tests) | Exit code, stdout/stderr text, `--json` shape, generated files |
 | `tests/integration/` | Multi-step workflows and migration round-trips — explicitly cross-layer | Composites of the above | End-to-end behaviour a single layer can't observe alone (e.g. init → migrate → no dangling pointers) |
+| `tests/tui/` | The `sq ui` terminal app, driven by Textual's headless `Pilot` (`App.run_test()`); needs the `tui` extra, so every module opens with `pytest.importorskip("textual")` | `svc`/`project` (the app reads through the in-process `Service`) | Rendered widget tree + interaction outcomes (tree/reader content, key-driven navigation, tab/empty states) |
 | `tests/meta/` | Repo/package self-tests: ticket-ID hygiene scan, the bundled-docs registry, ships-in-wheel packaging, template-manifest freshness | No — reads static repo/package assets | The repository or built package itself, not `squads` runtime behaviour |
 
 `tests/meta/` is **not** a fifth behavioral layer — it's an orthogonal category for tests that
@@ -30,12 +31,15 @@ behavior-shaped tests only.
 layer's fixture set can express alone (a migration round-trip, an init-then-sync-then-migrate
 sequence, a backend's full scaffold→write→remove lifecycle).
 
-### Adding a fifth layer
+### Adding another layer
 
-Don't. If a new kind of test doesn't fit unit/service/cli/integration, it's a sign the claim needs
-decomposing into pieces that do, not a sign the taxonomy needs to grow. If a genuine new layer
-becomes unavoidable, it needs its own row in this table (scope + fixture contract) and a note in
-the feature/task that added it — not a silent new top-level directory.
+Rare and deliberate. Default to *no* new layer: if a new kind of test seems not to fit
+unit/service/cli/integration, it's usually a sign the claim needs decomposing into pieces that do,
+not a sign the taxonomy needs to grow. `tests/tui/` earned its place only because Textual's
+`Pilot` harness (and the `tui` extra it needs) fits none of the others — and it was added the one
+sanctioned way: a row in the table above (scope + fixture contract), this note, and registration
+in the meta ticket-ID scanner's roots. A further layer needs the same three things — never a
+silent new top-level directory.
 
 ## 2. The four pillars
 

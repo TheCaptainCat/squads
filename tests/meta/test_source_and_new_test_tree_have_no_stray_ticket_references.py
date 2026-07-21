@@ -43,6 +43,7 @@ _NAME_AND_DOCSTRING_ROOTS: tuple[str, ...] = (
     "tests/service",
     "tests/cli",
     "tests/integration",
+    "tests/tui",
     "tests/meta",
 )
 
