@@ -3,7 +3,7 @@
 from rich.markup import escape as e
 from rich.table import Table
 from textual.app import ComposeResult
-from textual.containers import Vertical
+from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Markdown, Static, TabbedContent, TabPane
 
 from squads import _badges as badges
@@ -16,6 +16,17 @@ _EMPTY = "[dim](none)[/dim]"
 
 
 class ReaderPanel(Vertical):
+    # TabbedContent/TabPane default to height:auto, so a tab's content only ever grows to fit
+    # itself instead of filling the panel — its VerticalScroll child then never scrolls either.
+    DEFAULT_CSS = """
+    ReaderPanel TabbedContent {
+        height: 1fr;
+    }
+    ReaderPanel TabPane {
+        height: 1fr;
+    }
+    """
+
     def __init__(self, svc: Service, *, id: str | None = None) -> None:
         super().__init__(id=id)
         self._svc = svc
@@ -23,11 +34,11 @@ class ReaderPanel(Vertical):
     def compose(self) -> ComposeResult:
         yield Static(id="glance-header")
         with TabbedContent(id="reader-tabs"):
-            with TabPane("Body", id="tab-body"):
+            with TabPane("Body", id="tab-body"), VerticalScroll(id="body-scroll"):
                 yield Markdown(id="body-view")
-            with TabPane("Sub-entities", id="tab-subentities"):
+            with TabPane("Sub-entities", id="tab-subentities"), VerticalScroll(id="sub-scroll"):
                 yield Static(id="subentities-view")
-            with TabPane("Discussion", id="tab-discussion"):
+            with TabPane("Discussion", id="tab-discussion"), VerticalScroll(id="disc-scroll"):
                 yield Static(id="discussion-view")
 
     async def load(self, item_id: str) -> None:

@@ -11,6 +11,7 @@ pytest.importorskip("textual")
 
 from rich.console import Console
 from rich.table import Table
+from textual.containers import VerticalScroll
 from textual.widgets import Markdown, Static, TabbedContent, Tabs, Tree
 from textual.widgets._markdown import (  # pyright: ignore[reportPrivateImportUsage]
     MarkdownH1,
@@ -123,6 +124,7 @@ async def test_reader_header_shows_status_priority_and_assignee_gracefully(svc):
         tree.cursor_line = node.line
         await pilot.pause()
         header = app.query_one("#glance-header", Static)
+        assert "Draft" in _text(header.content)
         assert "High" in _text(header.content)
         assert "manager" in _text(header.content)
 
@@ -151,6 +153,28 @@ async def test_body_tab_renders_markdown_blocks_and_an_empty_state_for_a_blank_b
         tree.cursor_line = blank_node.line
         await pilot.pause()
         assert "no body yet" in body._markdown  # pyright: ignore[reportPrivateUsage]
+
+
+async def test_body_tab_scrolls_to_reach_content_below_the_fold(svc):
+    tall_body = "\n\n".join(f"Paragraph {i}" for i in range(200))
+    tall = (await svc.create("feature", "Tall", body=tall_body)).item
+
+    app = SquadsApp(svc)
+    async with app.run_test(size=(80, 24)) as pilot:
+        await pilot.pause()
+        tree = app.query_one(Tree)
+        node = next(n for n in tree.root.children if n.data == tall.id)
+        tree.cursor_line = node.line
+        await pilot.pause()
+
+        scroll = app.query_one("#body-scroll", VerticalScroll)
+        assert scroll.max_scroll_y > 0
+
+        scroll.focus()
+        await pilot.pause()
+        await pilot.press("end")
+        await pilot.pause()
+        assert scroll.scroll_y == scroll.max_scroll_y
 
 
 async def test_subentities_tab_lists_rows_and_shows_empty_states(svc):
