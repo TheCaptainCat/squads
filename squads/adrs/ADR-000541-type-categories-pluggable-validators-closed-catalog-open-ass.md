@@ -3,14 +3,14 @@ id: ADR-541
 sequence_id: 541
 type: decision
 title: 'Type categories + pluggable validators: closed catalog, open assignment'
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - EPIC-538
 - EPIC-540
 - ADR-320
 created_at: '2026-07-21T16:26:15Z'
-updated_at: '2026-07-21T20:53:25Z'
+updated_at: '2026-07-21T21:17:19Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -335,4 +335,6 @@ obey a well-formed spec?* is Plane 2 (gate + report).
   - B6: enumerated all three category bundles completely (common core + records/work/roster additions) and assigned the cross-cutting checks (no_status_banner, dangling_ref, ref_kind_valid, item_status_valid, agent_registered) to the per-item common core — distinct from the squad-global class.
   - Nit: stated the type validators list is extend-only (category bundle = floor); no active-style per-validator deselect (contrast active's deselect for whole types/statuses); category reassignment is the lever, not deselection.
   - sq check clean; status left Proposed for the operator's accept decision.
+- [2026-07-21T21:17:19Z] Pierre Chat:
+  - Accepted as revised, including epic's explicit no_parent (epic-as-root). Rationale confirmed: category and parent-rules are orthogonal axes — category 'work' gives epic its burn-down behavior, and root-ness is a per-type no_parent validator addition composed on top (empty parents stays 'any' for byte-identical bug/review; 'no parent' is spelled explicitly). Declared now, enforced when EPIC-540/538 build the validator engine; surfaces as a Plane-2 migration warning, not a load brick. Records no_parent + the 5-ADR parent→related migration land together so sq check stays clean.
 <!-- sq:discussion:end -->

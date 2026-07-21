@@ -4,6 +4,7 @@ Provides:
 - :func:`scan_overrides` — enumerate every present override with kind, stamp, and state.
 - :func:`scaffold_template` — copy a bundled template into ``.overrides/templates/`` with stamp.
 - :func:`scaffold_role` — copy a bundled role (empty TOML) into ``.overrides/roles/`` with stamp.
+- :func:`scaffold_new_role` — start a brand-new, non-bundled role TOML with essentials stubbed.
 - :func:`scaffold_workflow` — create ``.overrides/workflow.toml`` with stamp + commented example.
 - :func:`diff_override` — produce the two-delta comparison (Δ-mine + Δ-upgrade) for one override.
 - :func:`update_stamp` — re-stamp one or all structurally-valid overrides to the current version.
@@ -41,8 +42,11 @@ from squads._overrides._stamp import (
     write_template_stamp,
 )
 from squads._rendering._engine import invalidate_squad_dir
+from squads._roles._catalog import PREDEFINED
 from squads._sections import find_markers
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
+
+_BUNDLED_ROLE_SLUGS: frozenset[str] = frozenset(r.slug for r in PREDEFINED)
 
 # ─── Override state ────────────────────────────────────────────────────────────
 
@@ -268,6 +272,34 @@ def scaffold_template(squad_dir: Path, template_name: str, *, force: bool = Fals
     return dest
 
 
+# ─── role slug safety ──────────────────────────────────────────────────────────
+
+
+def _validate_role_slug(squad_dir: Path, slug: str) -> Path:
+    """Validate *slug* is safe as a ``.overrides/roles/<slug>.toml`` filename component.
+
+    Rejects an empty/whitespace slug, or one containing a path separator, a leading dot, or a
+    ``..`` traversal segment. As a backstop (mirroring ``_paths.SquadPaths.abspath``'s traversal
+    guard), also rejects a slug whose resolved destination would land outside
+    ``.overrides/roles/`` — catching anything the syntax checks above didn't anticipate.
+
+    Returns the (unresolved) destination path on success; raises :class:`SquadsError` otherwise.
+    """
+    if not slug.strip():
+        raise SquadsError("role slug must not be empty or whitespace")
+    if "/" in slug or "\\" in slug or ".." in slug or slug.startswith("."):
+        raise SquadsError(
+            f"invalid role slug {slug!r}: must not contain a path separator, '..', "
+            "or start with '.'"
+        )
+
+    role_dir = _role_overrides_dir(squad_dir)
+    dest = role_dir / f"{slug}.toml"
+    if not dest.resolve().is_relative_to(role_dir.resolve()):
+        raise SquadsError(f"invalid role slug {slug!r}: escapes .overrides/roles/")
+    return dest
+
+
 # ─── scaffold_role ─────────────────────────────────────────────────────────────
 
 
@@ -275,9 +307,9 @@ def scaffold_role(squad_dir: Path, slug: str, *, force: bool = False) -> Path:
     """Create ``.overrides/roles/<slug>.toml`` with the stamp comment.
 
     The TOML starts empty (only the stamp) — teams add fields they want to override.
-    Raises :class:`SquadsError` if the file exists and ``--force`` is not set.
+    Raises :class:`SquadsError` if *slug* is unsafe, or the file exists and ``--force`` is not set.
     """
-    dest = _role_overrides_dir(squad_dir) / f"{slug}.toml"
+    dest = _validate_role_slug(squad_dir, slug)
     if dest.exists() and not force:
         raise SquadsError(f".overrides/roles/{slug}.toml already exists; use --force to overwrite")
 
@@ -285,6 +317,68 @@ def scaffold_role(squad_dir: Path, slug: str, *, force: bool = False) -> Path:
     stamp_line = f"# squads:override-base:{__version__}\n"
     desc = f"# Role override for '{slug}'. Add fields to override (e.g. full_name, model).\n"
     dest.write_text(stamp_line + desc, encoding="utf-8")
+    return dest
+
+
+# ─── scaffold_new_role ─────────────────────────────────────────────────────────
+
+#: Starter body for a brand-new (non-bundled) custom role — essentials active, advanced commented.
+_NEW_ROLE_SCAFFOLD_TPL = """\
+# Role override for '{slug}' — defines a brand-new custom role (not in the bundled catalog).
+#
+# Fill in the essentials below, then activate it with: sq role activate {slug}
+# See docs/roles.md and docs/overrides.md for the full field reference.
+
+full_name = "TODO: full name (e.g. \\"Sam Security\\")"
+title = "TODO: one-line title (e.g. \\"security analyst\\")"
+description = "TODO: one-line description for the Claude pointer frontmatter"
+mission = "TODO: what this role is responsible for accomplishing"
+
+# Advanced fields (optional) — uncomment and edit to set:
+# responsibilities = ["First responsibility", "Second responsibility"]
+# agreements = ["A team agreement this role follows"]
+# model = "sonnet"  # sonnet | opus | haiku | inherit (omit to inherit the project default)
+# color = "teal"
+{can_spawn_line}
+"""
+
+_CAN_SPAWN_COMMENTED = (
+    "# can_spawn = false  # true grants this role the ability to spawn/orchestrate subagents"
+)
+_CAN_SPAWN_ACTIVE = (
+    "can_spawn = true  # grants this role the ability to spawn/orchestrate subagents"
+)
+
+
+def scaffold_new_role(
+    squad_dir: Path, slug: str, *, force: bool = False, can_spawn: bool = False
+) -> Path:
+    """Create ``.overrides/roles/<slug>.toml`` defining a wholly new, non-bundled role.
+
+    *slug* must not collide with a bundled role (use :func:`scaffold_role` / ``--role`` for that).
+    The essential fields the resolver requires for a new-slug role (``full_name``, ``title``,
+    ``description``, ``mission``) are pre-stubbed as active keys with fill-in placeholders;
+    the advanced fields (``responsibilities``, ``agreements``, ``model``, ``color``, ``can_spawn``)
+    are included commented out. Pass ``can_spawn=True`` to emit ``can_spawn = true`` active instead.
+
+    Raises :class:`SquadsError` if *slug* is unsafe or a bundled role, or the file exists without
+    ``--force``.
+    """
+    dest = _validate_role_slug(squad_dir, slug)
+    if slug in _BUNDLED_ROLE_SLUGS:
+        raise SquadsError(
+            f"{slug!r} is a bundled role; use `sq override scaffold --role {slug}` to override it "
+            "(--new is for a brand-new, non-bundled role slug)"
+        )
+
+    if dest.exists() and not force:
+        raise SquadsError(f".overrides/roles/{slug}.toml already exists; use --force to overwrite")
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    stamp_line = f"# squads:override-base:{__version__}\n"
+    can_spawn_line = _CAN_SPAWN_ACTIVE if can_spawn else _CAN_SPAWN_COMMENTED
+    body = _NEW_ROLE_SCAFFOLD_TPL.format(slug=slug, can_spawn_line=can_spawn_line)
+    dest.write_text(stamp_line + body, encoding="utf-8")
     return dest
 
 

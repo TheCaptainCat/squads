@@ -3,7 +3,7 @@ id: FEAT-543
 sequence_id: 543
 type: feature
 title: Custom non-dev role scaffolding & discoverability
-status: Draft
+status: InReview
 parent: EPIC-538
 author: product-owner
 subentities:
@@ -17,7 +17,7 @@ subentities:
   title: Surface custom-role discoverability in catalog/help/docs
   status: Todo
 created_at: '2026-07-21T20:43:26Z'
-updated_at: '2026-07-21T20:44:19Z'
+updated_at: '2026-07-21T21:30:13Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -164,4 +164,11 @@ Confirm/harden the existing 'sq role activate <slug>' path for a hand-edited net
   - 2. Field scope = essentials + edit for the rest: scaffold pre-stubs full_name/title/description/mission and includes responsibilities/agreements/model/color as commented lines to fill in by hand. Command itself stays simple, no flag per field.
   - 3. Spawn = opt-in via flag: can_spawn may be granted to a custom role via can_spawn = true in the TOML and/or a scaffold flag, opt-in, no forced warning. (Tension with ADR-155's capability-attenuation stance is noted for the architect, but the policy is opt-in and allowed.)
   - 4. Home = feature under EPIC-538.
+- [2026-07-21T21:29:11Z] Mara Tester:
+  - 2026-07-21 acceptance verification: all 4 acceptance criteria PASS, tested behaviorally in a throwaway squad.
+  - 1) scaffold --new writes stamped .overrides/roles/<slug>.toml (essentials active, advanced commented); clobber refused w/o --force, --force overwrites; bundled slug rejected pointing at --role; unsafe slugs ('../x', abs path, '', whitespace, '..\x', '.hidden') all rejected exit 1 with nothing written outside .overrides/roles/ -- confirmed REV-547 F1 fix independently.
+  - 2) Filled TOML + sq role activate <slug> creates the ROLE item + .claude/ pointer carrying custom fields (not bundled fallback) -- verified via role show/--json.
+  - 3) can_spawn: false by default (pointer has disallowedTools: Agent); can_spawn=true via TOML and via --can-spawn scaffold flag both honored (show --json can_spawn:true, pointer omits the Agent denial).
+  - 4) sq role catalog prints the scaffold-new/activate hint, --json shape unchanged (bundled roles only, no custom roles even after activating two); sq role activate --help mentions custom non-dev roles + scaffold pointer; docs/overrides.md and docs/roles.md both lead with scaffold --new.
+  - Moved REV-547 F1/F2 to Verified. Recommend TASK-544/545/546 -> Done; leaving that transition to the manager.
 <!-- sq:discussion:end -->

@@ -57,6 +57,59 @@ async def test_scaffold_role_creates_a_stamped_toml(project, invoke) -> None:
     assert (project.squad_dir / ".overrides" / "roles" / "architect.toml").exists()
 
 
+async def test_scaffold_new_creates_a_stamped_toml_and_reports_the_path(project, invoke) -> None:
+    r = await invoke(["override", "scaffold", "--new", "security-analyst"])
+    assert r.exit_code == 0, r.output
+    dest = project.squad_dir / ".overrides" / "roles" / "security-analyst.toml"
+    assert dest.exists()
+    assert "security-analyst.toml" in r.output
+    assert "sq role activate security-analyst" in r.output.replace("\n", " ")
+
+    clobber = await invoke(["override", "scaffold", "--new", "security-analyst"])
+    assert clobber.exit_code == 1
+
+    forced = await invoke(["override", "scaffold", "--new", "security-analyst", "--force"])
+    assert forced.exit_code == 0, forced.output
+
+
+async def test_scaffold_new_on_a_bundled_slug_errors_and_points_at_role(project, invoke) -> None:
+    r = await invoke(["override", "scaffold", "--new", "architect"])
+    assert r.exit_code == 1
+    assert "--role" in r.output
+
+
+async def test_scaffold_new_and_role_are_mutually_exclusive(project, invoke) -> None:
+    r = await invoke(["override", "scaffold", "--role", "architect", "--new", "security-analyst"])
+    assert r.exit_code != 0
+
+
+@pytest.mark.parametrize("bad_slug", ["../../pwned", "/tmp/x", ""])
+async def test_scaffold_new_rejects_a_traversal_or_empty_slug(project, invoke, bad_slug) -> None:
+    r = await invoke(["override", "scaffold", "--new", bad_slug])
+    assert r.exit_code == 1, r.output
+    escaped = project.squad_dir.parent / "pwned"
+    assert not escaped.exists()
+    assert not (project.squad_dir / ".overrides" / "roles" / ".toml").exists()
+
+
+@pytest.mark.parametrize("bad_slug", ["../../pwned", "/tmp/x", ""])
+async def test_scaffold_role_rejects_a_traversal_or_empty_slug(project, invoke, bad_slug) -> None:
+    r = await invoke(["override", "scaffold", "--role", bad_slug])
+    assert r.exit_code == 1, r.output
+    escaped = project.squad_dir.parent / "pwned"
+    assert not escaped.exists()
+    assert not (project.squad_dir / ".overrides" / "roles" / ".toml").exists()
+
+
+async def test_scaffold_new_with_can_spawn_emits_an_active_true_key(project, invoke) -> None:
+    r = await invoke(["override", "scaffold", "--new", "orchestrator", "--can-spawn"])
+    assert r.exit_code == 0, r.output
+    text = (project.squad_dir / ".overrides" / "roles" / "orchestrator.toml").read_text(
+        encoding="utf-8"
+    )
+    assert "can_spawn = true" in text
+
+
 async def test_scaffold_with_no_name_and_no_role_exits_nonzero(project, invoke) -> None:
     assert (await invoke(["override", "scaffold"])).exit_code != 0
 

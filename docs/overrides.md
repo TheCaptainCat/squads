@@ -127,7 +127,15 @@ model = "opus"
 # title, mission, responsibilities, etc. inherit from the bundled architect
 ```
 
-A brand-new role slug (one not in the bundle) defines a role wholly from the TOML:
+A brand-new role slug (one not in the bundle) defines a wholly custom, non-dev role — e.g. a
+`security-analyst` or `compliance-officer` — from the TOML. Start it with:
+
+```bash
+sq override scaffold --new compliance-officer
+```
+
+This writes `.overrides/roles/compliance-officer.toml` with the essential fields stubbed and the
+advanced fields present as commented-out lines to uncomment and fill in:
 
 ```toml
 # .overrides/roles/compliance-officer.toml
@@ -137,7 +145,11 @@ description = "Ensures all code meets compliance requirements."
 mission = "Keep the team on the right side of policy."
 responsibilities = ["Review all PRs for policy violations", "Maintain the compliance handbook"]
 model = "opus"
+# can_spawn = true   # opt this role into spawning/orchestrating subagents (default: false)
 ```
+
+Then `sq role activate compliance-officer` creates the role the same way it does for a bundled
+slug. See [roles.md](roles.md) for the activation flow.
 
 ---
 
@@ -407,17 +419,27 @@ sq override scaffold items/task.md.j2
 sq override scaffold agents/role.md.j2
 sq override scaffold subentities/story.md.j2
 
-# Copy a role TOML override
+# Copy a role TOML override (a bundled role, to change its name/model/etc.)
 sq override scaffold --role architect
-sq override scaffold --role custom-role    # scaffold a new role (doesn't exist in the bundle)
+
+# Start a wholly custom, non-dev role that isn't in the bundled catalog
+sq override scaffold --new security-analyst
+sq override scaffold --new security-analyst --can-spawn   # opt it into spawning subagents
 
 # Overwrite an existing override
 sq override scaffold items/task.md.j2 --force
 ```
 
 **What it does:**
-- Copies the named bundled template (or an empty template stub for a new role) into `.overrides/`.
-- Stamps the copy with `<!-- squads:override-base:<current-squads-version> -->`.
+- `--role <slug>` copies the named bundled role into `.overrides/roles/` as an (initially empty)
+  TOML stub to override fields on.
+- `--new <slug>` starts a **brand-new, non-bundled** role: the essential fields (`full_name`,
+  `title`, `description`, `mission`) are stubbed as active keys, the advanced fields
+  (`responsibilities`, `agreements`, `model`, `color`, `can_spawn`) are included commented out.
+  Refuses a slug that's already a bundled role — use `--role` for that. Follow up with `sq role
+  activate <slug>` once you've filled it in.
+- Template names copy the named bundled template into `.overrides/templates/`.
+- Every scaffolded file is stamped with `<!-- squads:override-base:<current-squads-version> -->`.
 - Refuses to clobber an existing override unless you pass `--force`.
 
 **This is the only command that writes override bodies.** After scaffolding, you edit the file by
@@ -644,13 +666,14 @@ sync` to regenerate the pointer and CLAUDE.md section.
 
 ### Define a custom role
 
-You want a compliance-officer role that isn't in the bundled catalog. Scaffold a new role:
+You want a compliance-officer role that isn't in the bundled catalog. Scaffold it:
 
 ```bash
-sq override scaffold --role compliance-officer
+sq override scaffold --new compliance-officer
 ```
 
-Edit `.overrides/roles/compliance-officer.toml` to define it fully:
+This writes `.overrides/roles/compliance-officer.toml` with the essentials stubbed. Fill them in
+(and uncomment any advanced fields you want):
 
 ```toml
 full_name = "Compliance Officer"
@@ -662,7 +685,6 @@ responsibilities = [
   "Maintain the compliance handbook",
 ]
 model = "opus"
-is_default = false
 ```
 
 Run `sq role activate compliance-officer` to add it to your active roster, then `sq sync` to
