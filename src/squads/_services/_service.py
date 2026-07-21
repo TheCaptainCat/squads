@@ -167,7 +167,7 @@ async def adopt(
     return AdoptResult(paths=sp, imported=len(repair_result.db.items), roles=created)
 
 
-def open_service(dir_override: str | None = None) -> Service:
+def open_service(dir_override: str | None = None, *, client_cwd: Path | None = None) -> Service:
     """Resolve the active squad, load (and activate) its workflow spec, return a Service.
 
     If the squad has a workflow override under ``<squad_dir>/.overrides/workflow.toml``
@@ -184,6 +184,11 @@ def open_service(dir_override: str | None = None) -> Service:
 
     ``sq workflow lint`` bypasses this by calling ``lint_workflow_spec`` directly —
     it reports the same errors in collect mode without going through ``open_service``.
+
+    ``client_cwd`` threads straight to :func:`squads._paths.resolve` — the requesting
+    client's working directory (``None`` falls back to the process cwd, one-shot CLI's
+    only case). This function stays a pure, explicit-input call; the CLI edge is what
+    reads the ambient request context and passes its ``client_cwd`` in.
     """
     from squads._errors import SquadsError
     from squads._workflow._loader import (
@@ -192,7 +197,7 @@ def open_service(dir_override: str | None = None) -> Service:
         validate_against_index_fail_closed,
     )
 
-    sp = resolve(dir_override)
+    sp = resolve(dir_override, client_cwd=client_cwd)
 
     override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
     if not override_path.is_file():

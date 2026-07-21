@@ -308,12 +308,13 @@ def workflow_lint() -> None:
     This command intentionally does NOT go through ``open_service``, so it can
     diagnose a spec that would cause normal commands to hard-stop.
     """
-    import squads._cli._common as common
+    from squads._context import get_context
     from squads._paths import resolve
     from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, lint_workflow_spec
 
+    ctx = get_context()
     try:
-        sp = resolve(common._active_dir)  # pyright: ignore[reportPrivateUsage]
+        sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
     except SquadsError as exc:
         console.print(f"[red]error[/red]: {e(str(exc))}")
         raise typer.Exit(1) from exc

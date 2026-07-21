@@ -3,13 +3,13 @@ id: TASK-552
 sequence_id: 552
 type: task
 title: Active-spec / active-dir seam onto RequestContext
-status: Draft
+status: Done
 parent: FEAT-533
 author: tech-lead
 description: 'US5: move _active_spec/_active_dir onto the context; ~15 get_active_spec
   sites read off it'
 created_at: '2026-07-21T21:33:15Z'
-updated_at: '2026-07-21T21:35:46Z'
+updated_at: '2026-07-21T22:35:56Z'
 ---
 <!-- sq:body -->
 Implements FEAT-533 **US5**. The second CLI-edge seam onto the **same** `RequestContext` primitive
@@ -91,4 +91,6 @@ _Add with `sq task 552 add-subtask "<title>"`; track with `sq task 552 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-21T22:26:54Z] Elias Python:
+  - Moved active_spec/active_dir onto RequestContext (get_active_spec/set_active_spec/set_active_dir unchanged), collapsed main_callback into one bind_context(RequestContext(...)) per invocation, fixed the common._active_spec/_active_dir reportPrivateUsage reach-ins (_CustomTypeGroup, _workflow_cmd, sq check) to read get_context() directly, reworded the stale clock comment (F1) and closed the F2 hybrid-reset gap; pyright/ruff/targeted pytest (unit+service+cli, ~1650 tests) all green.
 <!-- sq:discussion:end -->

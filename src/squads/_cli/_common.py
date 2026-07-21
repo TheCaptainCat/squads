@@ -15,9 +15,10 @@ from rich.markdown import Markdown
 from rich.markup import escape
 from rich.panel import Panel
 
-from squads import __version__, _clock
+from squads import __version__
 from squads import _badges as badges
 from squads import _discussion as discussion
+from squads._context import get_context, rebind
 from squads._errors import SquadsError
 from squads._models._item import (
     DEFAULT_KIND,
@@ -49,51 +50,24 @@ def print_json_clean(s: str) -> None:
     print(json.dumps(json.loads(s), indent=2))
 
 
-# The active squad folder from the global --dir option, set once by the root callback.
-_active_dir: str | None = None
+# The active squad folder and per-invocation WorkflowSpec are ambient RequestContext fields
+# (squads._context) now, not module globals — set once per invocation by the root callback's
+# single bind_context(RequestContext(...)) call. These setters/getter keep their public
+# names/signatures so the ~15 call sites below and in tests are unaffected by the move.
 
 
 def set_active_dir(value: str | None) -> None:
-    global _active_dir
-    _active_dir = value
-
-
-# The per-invocation WorkflowSpec, resolved once by the root callback after the squad is
-# located.  Falls back to the bundled spec when no squad can be resolved (e.g. outside a
-# squad, or before the callback fires for parse-time validators).
-_active_spec: WorkflowSpec | None = None
+    rebind(active_dir=value)
 
 
 def set_active_spec(spec: WorkflowSpec | None) -> None:
-    global _active_spec
-    _active_spec = spec
+    rebind(active_spec=spec)
 
 
 def get_active_spec() -> WorkflowSpec:
     """Return the per-invocation spec, or the bundled spec if none has been bound yet."""
-    return _active_spec if _active_spec is not None else bundled_spec()
-
-
-def apply_timestamp(at: str | None) -> None:
-    """Honour the global ``--at`` option: forge `clock.now()` for this invocation.
-
-    Absent ``--at`` this is a no-op — it leaves the ambient ``RequestContext.clock_override``
-    untouched rather than force-clearing it. A fresh process (or a fresh per-request context)
-    already starts with no override, so there is nothing to clear there; leaving it alone is
-    what lets a test's frozen wall clock (the `frozen_time` fixture, itself a `clock_override`
-    rebind) survive several sequential CLI invocations in one process, the same way a real
-    system clock would survive several real one-shot processes.
-    """
-    if at is None:
-        return
-    try:
-        _clock.set_now(_clock.parse_iso(at))
-    except ValueError:
-        err_console.print(
-            f"[red]error:[/red] invalid --at timestamp {at!r} "
-            "(use ISO 8601, e.g. 2024-01-15 or 2024-01-15T09:30:00Z)"
-        )
-        raise typer.Exit(2) from None
+    active = get_context().active_spec
+    return active if active is not None else bundled_spec()
 
 
 def e(value: object) -> str:
@@ -554,7 +528,8 @@ async def build_item_json(svc: Service, it: Item) -> str:
 
 
 def get_service() -> Service:
-    return open_service(_active_dir)
+    ctx = get_context()
+    return open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
 
 
 def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
@@ -599,7 +574,7 @@ def version_tuple(version: str) -> tuple[int, ...]:
 def version_notice() -> None:
     """Print a non-fatal notice if the installed squads is newer than the managed files."""
     try:
-        sp = resolve(_active_dir)
+        sp = resolve(get_context().active_dir, client_cwd=get_context().client_cwd)
     except SquadsError:
         return  # not initialized yet (e.g. before `sq init`)
     recorded = sp.config.squads_version
@@ -618,7 +593,7 @@ def require_current_schema(subcommand: str | None) -> None:
     if subcommand in (None, "migrate") or "--help" in sys.argv or "-h" in sys.argv:
         return
     try:
-        sp = resolve(_active_dir)
+        sp = resolve(get_context().active_dir, client_cwd=get_context().client_cwd)
     except SquadsError:
         return  # not initialized yet — nothing to gate
     disk = sp.config.schema_version

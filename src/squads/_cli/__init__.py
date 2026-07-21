@@ -2,6 +2,7 @@
 
 import io
 import sys
+from datetime import datetime
 from typing import Any, ClassVar
 
 import typer
@@ -12,6 +13,8 @@ import typer.main
 from squads import __version__
 from squads import _actor as actor
 from squads._cli import _common as common
+from squads._context import RequestContext
+from squads._workflow._models import WorkflowSpec
 
 # The generated output (workflow cheatsheet, tables, panels) contains → • — and box-drawing
 # characters. On a legacy Windows console (cp1252) Rich would crash encoding them, so force UTF-8.
@@ -61,6 +64,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         Always returns a ``WorkflowSpec`` (never raises).
         """
         try:
+            from squads._context import get_context
             from squads._workflow import bundled_spec
             from squads._workflow._loader import (
                 WORKFLOW_OVERRIDE_FILENAME,
@@ -69,7 +73,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
             )
 
             # If the per-invocation spec is already bound (i.e. callback has run), use it.
-            active = common._active_spec  # pyright: ignore[reportPrivateUsage]
+            active = get_context().active_spec
             if active is not None:
                 return active
 
@@ -82,7 +86,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
             # Resolve the spec for the given dir (same logic as _bind_active_spec).
             from squads._paths import resolve
 
-            sp = resolve(dir_override)
+            sp = resolve(dir_override, client_cwd=get_context().client_cwd)
             override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
             if not override_path.is_file():
                 return bundled_spec()
@@ -205,14 +209,15 @@ def _version_cb(value: bool):
         raise typer.Exit()
 
 
-def _bind_active_spec(dir_override: str | None) -> None:
-    """Resolve the WorkflowSpec for this invocation and store it in common._active_spec.
+def _bind_active_spec(dir_override: str | None) -> WorkflowSpec | None:
+    """Resolve the WorkflowSpec for this invocation (does not bind it — the caller does, as
+    part of the single per-invocation ``RequestContext``).
 
-    Called once per invocation from the root callback, before subcommand arg parsing.
     Resolves and merges the squad-level workflow override (if present) exactly as
     ``open_service`` does, so parse_type/parse_status and display helpers all see the
-    same spec.  Errors are suppressed and the bundled spec is the fallback — this lets
-    ``sq`` outside a squad still work.
+    same spec.  Fails soft to the bundled spec on any resolution error (outside a squad,
+    invalid override) — returns ``None`` only when resolution itself raised, which
+    ``get_active_spec()`` also treats as "use the bundled spec".
     """
     try:
         from squads._paths import resolve
@@ -226,15 +231,40 @@ def _bind_active_spec(dir_override: str | None) -> None:
         sp = resolve(dir_override)
         override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
         if not override_path.is_file():
-            common.set_active_spec(bundled_spec())
-            return
+            return bundled_spec()
 
         merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
         validate_against_index_fail_closed(merged_spec, sp.squad_dir)
-        common.set_active_spec(merged_spec)
     except Exception:  # pylint: disable=broad-except
         # Outside a squad, invalid override, etc. — fall back to bundled spec.
-        common.set_active_spec(None)
+        return None
+    else:
+        return merged_spec
+
+
+def _resolve_clock_override(at: str | None, prior: RequestContext) -> datetime | None:
+    """Resolve the clock override for this invocation.
+
+    ``--at`` forges the given timestamp. Absent it, the *ambient* value carries forward
+    unchanged rather than being force-cleared: a fresh process already starts with no
+    override, so one-shot CLI use is unaffected either way, but this is what lets a
+    forged/frozen clock (the test suite's ``frozen_time`` fixture, or a future daemon
+    session) survive several invocations in one process without repeating ``--at`` on
+    every one of them — the actor/session/spec/dir fields below ARE force-reset every
+    invocation; the clock is the one field this edge deliberately inherits.
+    """
+    if at is None:
+        return prior.clock_override
+    from squads import _clock
+
+    try:
+        return _clock.parse_iso(at)
+    except ValueError:
+        common.err_console.print(
+            f"[red]error:[/red] invalid --at timestamp {at!r} "
+            "(use ISO 8601, e.g. 2024-01-15 or 2024-01-15T09:30:00Z)"
+        )
+        raise typer.Exit(2) from None
 
 
 @app.callback()
@@ -256,22 +286,27 @@ def main_callback(
         False, "--version", callback=_version_cb, is_eager=True, help="Show version and exit."
     ),
 ):
-    common.set_active_dir(dir)
-    common.apply_timestamp(at)
-    # Resolve and bind the WorkflowSpec for this invocation so that parse_type / parse_status
-    # and display helpers use the same spec as the Service.  Mirrors the _active_dir mechanism.
-    # Safe to call even outside a squad — errors are suppressed; bundled spec is the fallback.
-    _bind_active_spec(dir)
-    # Set the ambient actor to "system" for this invocation; commands that know the
-    # acting identity (e.g. `comment --as`, `create --author`) may override this via
-    # actor.set_actor() before the mutation.  This unconditional re-set at callback start
-    # is what prevents actor state from leaking across invocations — the same mechanism
-    # apply_timestamp uses for the clock (no try/finally needed).
-    actor.set_actor("system")
-    # Seed the optional session pair from env vars.  Read once here so every
-    # subsequent mutation in this invocation picks up the same pair via current_session().
-    # Session fields are env-only — NOT settable by any later CLI flag.
-    actor.seed_session(from_env=True)
+    from pathlib import Path
+
+    from squads._context import bind_context, get_context
+
+    # The CLI edge: bind ONE fresh RequestContext per invocation, assembled from this
+    # invocation's inputs (--dir/--at) plus the ambient values that carry forward
+    # (see _resolve_clock_override). Not a hybrid of separate set_*() mutations against
+    # whatever the previous invocation left behind — every field is freshly computed here.
+    prior = get_context()
+    session_id, parent_session_id = actor.session_from_env()
+    bind_context(
+        RequestContext(
+            clock_override=_resolve_clock_override(at, prior),
+            actor_override="system",
+            session_id=session_id,
+            parent_session_id=parent_session_id,
+            active_spec=_bind_active_spec(dir),
+            active_dir=dir,
+            client_cwd=Path.cwd(),
+        )
+    )
     common.require_current_schema(ctx.invoked_subcommand)
     common.version_notice()
 

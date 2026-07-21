@@ -56,49 +56,29 @@ def anyio_backend():
 
 @pytest.fixture(autouse=True)
 def _reset_context():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
-    """Ensure the ambient `RequestContext` (forged time, actor, session lineage) never leaks
-    between tests. One fixture replaces the three former per-field leak-guards
-    (`_reset_clock_override`/`_reset_actor`/`_reset_session_seed`) now that all three live in
-    one `RequestContext` object instead of three separate module globals — the single-object
-    payoff of the chosen context shape.
+    """Ensure the ambient `RequestContext` (forged time, actor, session lineage, active
+    spec/dir, client cwd) never leaks between tests. One fixture for the whole object —
+    now that every ambient value lives in this one `RequestContext`, resetting it wholesale
+    is resetting all of them at once, replacing what used to be several per-field leak-guards.
 
     Reset at both ends: before, so a prior test's leftover state never reaches this test's own
     fixture setup (e.g. `project`, which calls `service.init()` directly and so never
     re-seeds the session itself the way a real CLI invocation's root callback would); after,
     as the usual backstop.
 
-    `_active_spec`/`_active_dir` (`_cli/_common`) are NOT part of `RequestContext` yet — their
-    reset stays in `_reset_active_spec` below until they move onto the context too.
-    """
-    bind_context(RequestContext())
-    yield
-    bind_context(RequestContext())
-
-
-@pytest.fixture(autouse=True)
-def _reset_active_spec():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
-    """Ensure a test's per-invocation CLI globals never leak (same leak-guard class as the actor/
-    clock resets above): `_active_spec`/`_active_dir` in `_cli/_common` are the CLI's per-invocation
-    spec/dir handles, a known process-global compromise (TASK-000253), set by the root callback
-    and never restored — a test that invokes the CLI against a custom-override squad must not leave
-    that spec bound for the next test's invocation.
-
     Also clears the two lazy-dispatch custom-command caches (`_CustomTypeGroup._custom_cmd_cache`
     in `_cli/__init__.py`, `_CustomCreateGroup._custom_cmd_cache` in `_cli/_create.py`) — both are
     process-global `ClassVar` dicts keyed by canonical type name that a real `sq <custom-type>` /
     `sq create <custom-type>` invocation populates permanently for the process. A prior test's
     custom type (e.g. "incident") otherwise stays cached and short-circuits a later test that
-    monkey-patches the build function to assert on error propagation — the same class of leak as
-    `_active_spec`, just one layer deeper. `test_custom_type_cli.py`/`test_custom_type_create.py`
-    already had a local, partial version of this reset; this makes it a global backstop.
+    monkey-patches the build function to assert on error propagation.
     """
+    bind_context(RequestContext())
     yield
+    bind_context(RequestContext())
     from squads._cli import _CustomTypeGroup  # pyright: ignore[reportPrivateUsage]
-    from squads._cli._common import set_active_dir, set_active_spec
     from squads._cli._create import _CustomCreateGroup  # pyright: ignore[reportPrivateUsage]
 
-    set_active_spec(None)
-    set_active_dir(None)
     _CustomTypeGroup._custom_cmd_cache.clear()  # pyright: ignore[reportPrivateUsage]
     _CustomCreateGroup._custom_cmd_cache.clear()  # pyright: ignore[reportPrivateUsage]
 

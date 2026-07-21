@@ -41,6 +41,19 @@ def current_actor() -> str:
     return "system"
 
 
+def session_from_env() -> tuple[str | None, str | None]:
+    """Read the ``(session_id, parent_session_id)`` pair from the env vars (or ``(None, None)``).
+
+    A pure lookup — shared by :func:`seed_session`'s ``from_env=True`` path and the CLI root
+    callback, which folds the pair straight into its single ``RequestContext`` bind rather
+    than seeding it via a separate rebind.
+    """
+    return (
+        os.environ.get("SQUADS_SESSION_ID") or None,
+        os.environ.get("SQUADS_PARENT_SESSION_ID") or None,
+    )
+
+
 def seed_session(
     session_id: str | None = None,
     parent_session_id: str | None = None,
@@ -49,8 +62,7 @@ def seed_session(
 ) -> None:
     """Seed the ambient session pair for this invocation.
 
-    Called **once** from the CLI root callback (``main_callback``).  With
-    ``from_env=True`` the values are read from ``SQUADS_SESSION_ID`` /
+    With ``from_env=True`` the values are read from ``SQUADS_SESSION_ID`` /
     ``SQUADS_PARENT_SESSION_ID``; otherwise the caller may pass explicit values
     (used in tests to simulate env-set ids without actually setting env vars).
 
@@ -61,8 +73,7 @@ def seed_session(
     between invocations / tests.
     """
     if from_env:
-        session_id = os.environ.get("SQUADS_SESSION_ID") or None
-        parent_session_id = os.environ.get("SQUADS_PARENT_SESSION_ID") or None
+        session_id, parent_session_id = session_from_env()
     else:
         session_id = session_id or None
         parent_session_id = parent_session_id or None
