@@ -3,7 +3,7 @@ id: TASK-518
 sequence_id: 518
 type: task
 title: 'Tree pane: populate from Service + keyboard navigation'
-status: InReview
+status: Done
 parent: FEAT-513
 author: tech-lead
 refs:
@@ -18,7 +18,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-07-21T09:18:49Z'
-updated_at: '2026-07-21T10:01:34Z'
+updated_at: '2026-07-21T12:05:08Z'
 ---
 <!-- sq:body -->
 ## Scope

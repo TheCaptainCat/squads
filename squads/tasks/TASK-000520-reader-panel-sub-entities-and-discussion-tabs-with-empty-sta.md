@@ -3,7 +3,7 @@ id: TASK-520
 sequence_id: 520
 type: task
 title: 'Reader panel: sub-entities and discussion tabs with empty states'
-status: InReview
+status: Done
 parent: FEAT-514
 author: tech-lead
 refs:
@@ -18,7 +18,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-07-21T09:18:54Z'
-updated_at: '2026-07-21T10:02:07Z'
+updated_at: '2026-07-21T12:05:13Z'
 ---
 <!-- sq:body -->
 ## Scope

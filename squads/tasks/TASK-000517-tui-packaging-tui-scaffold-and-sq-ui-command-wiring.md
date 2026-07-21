@@ -3,7 +3,7 @@ id: TASK-517
 sequence_id: 517
 type: task
 title: TUI packaging, _tui scaffold, and sq ui command wiring
-status: InReview
+status: Done
 parent: FEAT-513
 author: tech-lead
 assignee: python-dev
@@ -13,7 +13,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-07-21T09:18:48Z'
-updated_at: '2026-07-21T11:26:57Z'
+updated_at: '2026-07-21T12:05:06Z'
 ---
 <!-- sq:body -->
 ## Scope
