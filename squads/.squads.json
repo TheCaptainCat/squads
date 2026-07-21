@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 555,
+  "counter": 556,
   "padding": 6,
   "items": {
     "12": {
@@ -20736,7 +20736,7 @@
       "type": "task",
       "title": "Active-spec / active-dir seam onto RequestContext",
       "slug": "active-spec-active-dir-seam-onto-requestcontext",
-      "status": "Draft",
+      "status": "Done",
       "description": "US5: move _active_spec/_active_dir onto the context; ~15 get_active_spec sites read off it",
       "parent": "FEAT-533",
       "author": "tech-lead",
@@ -20748,7 +20748,7 @@
       "subentities": [],
       "path": "tasks/TASK-000552-active-spec-active-dir-seam-onto-requestcontext.md",
       "created_at": "2026-07-21T21:33:15Z",
-      "updated_at": "2026-07-21T21:35:46Z",
+      "updated_at": "2026-07-21T22:35:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20759,7 +20759,7 @@
       "type": "task",
       "title": "Per-request squad resolution from client cwd",
       "slug": "per-request-squad-resolution-from-client-cwd",
-      "status": "Draft",
+      "status": "Done",
       "description": "US3: client cwd is an explicit resolution input, not Path.cwd() read from the process",
       "parent": "FEAT-533",
       "author": "tech-lead",
@@ -20771,7 +20771,7 @@
       "subentities": [],
       "path": "tasks/TASK-000553-per-request-squad-resolution-from-client-cwd.md",
       "created_at": "2026-07-21T21:33:16Z",
-      "updated_at": "2026-07-21T21:35:46Z",
+      "updated_at": "2026-07-21T22:35:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20820,7 +20820,7 @@
         {
           "local_id": "F1",
           "title": "Stale main_callback comment: clock no longer force-reset at edge",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -20829,7 +20829,7 @@
         {
           "local_id": "F2",
           "title": "CLI edge not yet fresh-context-per-request (clock leak pre-US5)",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -20847,11 +20847,46 @@
       ],
       "path": "reviews/REV-000555-review-of-feat-533-increment-a-request-context-seam.md",
       "created_at": "2026-07-21T22:04:28Z",
-      "updated_at": "2026-07-21T22:06:09Z",
+      "updated_at": "2026-07-21T22:35:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-555"
+    },
+    "556": {
+      "sequence_id": 556,
+      "type": "review",
+      "title": "Review of FEAT-533 Increment B1: edge consolidation + cwd seam",
+      "slug": "review-of-feat-533-increment-b1-edge-consolidation-cwd-seam",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-533"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "_bind_active_spec does not thread client_cwd; diverges from the other spec-resolution path",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000556-review-of-feat-533-increment-b1-edge-consolidation-cwd-seam.md",
+      "created_at": "2026-07-21T22:33:52Z",
+      "updated_at": "2026-07-21T22:34:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-556"
     }
   }
 }

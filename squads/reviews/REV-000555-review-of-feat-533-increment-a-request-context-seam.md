@@ -10,18 +10,18 @@ refs:
 subentities:
 - local_id: F1
   title: 'Stale main_callback comment: clock no longer force-reset at edge'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F2
   title: CLI edge not yet fresh-context-per-request (clock leak pre-US5)
-  status: Open
+  status: Verified
   severity: low
 - local_id: F3
   title: TASK-548 code-cache allowlist not exhaustive for TASK-549 guard
   status: Open
   severity: low
 created_at: '2026-07-21T22:04:28Z'
-updated_at: '2026-07-21T22:06:09Z'
+updated_at: '2026-07-21T22:35:58Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-533 Increment A — the request-scoped context seam (TASK-548 static-state audit, TASK-550 RequestContext primitive + clock/actor migration, TASK-551 conftest fixture rework). Verdict: APPROVE WITH NITS. The seam is correct, isolation-safe, and behavior-preserving for one-shot CLI use. The one deliberate production change — apply_timestamp's no-op on absent --at — is correct and necessary (it is what lets frozen_time's clock_override rebind survive a CliRunner.invoke's root callback; a fresh process/context starts at None so single-shot is byte-identical to before, and per ADR-534/ADR-77 clearing between requests is the fresh-context's job, not this call's). All findings are Low: two documentation/forward-looking notes on the CLI edge, one audit-completeness gap feeding the not-yet-built TASK-549 guard. No code correctness defect.
@@ -36,8 +36,8 @@ _Add with `sq review 555 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Stale main_callback comment: clock no longer force-reset at edge |
-| F2 | 🟢 low | Open |  | CLI edge not yet fresh-context-per-request (clock leak pre-US5) |
+| F1 | 🟢 low | Verified |  | Stale main_callback comment: clock no longer force-reset at edge |
+| F2 | 🟢 low | Verified |  | CLI edge not yet fresh-context-per-request (clock leak pre-US5) |
 | F3 | 🟢 low | Open |  | TASK-548 code-cache allowlist not exhaustive for TASK-549 guard |
 <!-- sq:summary:end -->
 
@@ -47,7 +47,7 @@ _Add with `sq review 555 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Stale main_callback comment: clock no longer force-reset at edge
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F1:head:end -->
 
@@ -62,6 +62,8 @@ Recommendation: update the comment to say the actor/session force-reset is a bel
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-07-21T22:27:08Z] Elias Python:
+  - Reworded in TASK-552: the belt-and-suspenders actor/session force-reset vs. the clock's deliberate carry-forward are now called out explicitly in _cli/__init__.py's _resolve_clock_override docstring/comment.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -69,7 +71,7 @@ Recommendation: update the comment to say the actor/session force-reset is a bel
 ### F2 — CLI edge not yet fresh-context-per-request (clock leak pre-US5)
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
@@ -84,6 +86,8 @@ Recommendation: none for this increment — single-shot is correct. Flagging so 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-07-21T22:27:09Z] Elias Python:
+  - Resolved by TASK-552: main_callback now assembles one bind_context(RequestContext(...)) per invocation (clock/actor/session/spec/dir/client_cwd all freshly computed), closing the pre-US5 hybrid-reset gap this finding flagged.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 

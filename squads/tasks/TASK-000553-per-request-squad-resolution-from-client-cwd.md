@@ -3,13 +3,13 @@ id: TASK-553
 sequence_id: 553
 type: task
 title: Per-request squad resolution from client cwd
-status: Draft
+status: Done
 parent: FEAT-533
 author: tech-lead
 description: 'US3: client cwd is an explicit resolution input, not Path.cwd() read
   from the process'
 created_at: '2026-07-21T21:33:16Z'
-updated_at: '2026-07-21T21:35:46Z'
+updated_at: '2026-07-21T22:35:57Z'
 ---
 <!-- sq:body -->
 Implements FEAT-533 **US3**. Rides the `RequestContext` primitive (TASK-550). ADR-534 rule 1 +
@@ -69,4 +69,6 @@ _Add with `sq task 553 add-subtask "<title>"`; track with `sq task 553 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-21T22:26:59Z] Elias Python:
+  - Added RequestContext.client_cwd + resolve()'s client_cwd param (falls back to Path.cwd() when unset); open_service/get_service thread it through; main_callback seeds client_cwd=Path.cwd() into the same single bind_context() call from TASK-552. Added service-level tests for independent per-request cwd resolution + concurrent-task isolation; pyright/ruff/targeted pytest all green.
 <!-- sq:discussion:end -->

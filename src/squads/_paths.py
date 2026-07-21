@@ -104,8 +104,22 @@ class SquadPaths:
         )
 
 
-def resolve(dir_override: str | None = None, *, require_init: bool = True) -> SquadPaths:
-    """Resolve the active squad. ``require_init=False`` is used by ``init`` itself."""
+def resolve(
+    dir_override: str | None = None,
+    *,
+    require_init: bool = True,
+    client_cwd: Path | None = None,
+) -> SquadPaths:
+    """Resolve the active squad. ``require_init=False`` is used by ``init`` itself.
+
+    ``client_cwd`` is the resolution base for the ``.squads.toml`` walk-up and the
+    not-initialized default-root branch below — the requesting *client's* working
+    directory, not necessarily this process's. Defaults to ``Path.cwd()`` when omitted,
+    so one-shot CLI use is unchanged (the client cwd IS the process cwd there); a caller
+    resolving on behalf of a specific request (the CLI edge, today; a future server
+    handler) passes its own client cwd explicitly instead. Irrelevant when
+    ``dir_override`` is given — ``--dir`` never touches any cwd.
+    """
     if dir_override:
         squad_dir = Path(dir_override).resolve()
         root = squad_dir.parent
@@ -117,13 +131,14 @@ def resolve(dir_override: str | None = None, *, require_init: bool = True) -> Sq
         )
         return SquadPaths(root=root, squad_dir=squad_dir, config=config)
 
-    config_path = find_config()
+    base = client_cwd or Path.cwd()
+    config_path = find_config(base)
     if config_path is None:
         if require_init:
             raise NotInitializedError(
                 "no .squads.toml found in this or any parent directory — run `sq init`"
             )
-        root = Path.cwd().resolve()
+        root = base.resolve()
         config = SquadsConfig()
         return SquadPaths(root=root, squad_dir=root / config.squad_dir, config=config)
 

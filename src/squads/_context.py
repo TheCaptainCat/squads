@@ -25,6 +25,15 @@ sites or existing fields.
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # _context sits below _clock/_actor (both import it); _workflow._models sits above them
+    # (its model_validator lazily imports _models._item, which imports _clock) — a real runtime
+    # import here would cycle back to this module mid-init. Type-only, per the project's
+    # documented cycle-break convention.
+    from squads._workflow._models import WorkflowSpec
 
 
 @dataclass(frozen=True)
@@ -35,6 +44,9 @@ class RequestContext:
     actor_override: str | None = None
     session_id: str | None = None
     parent_session_id: str | None = None
+    active_spec: WorkflowSpec | None = None
+    active_dir: str | None = None
+    client_cwd: Path | None = None
 
 
 _DEFAULT_CONTEXT = RequestContext()

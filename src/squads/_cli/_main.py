@@ -1233,6 +1233,7 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     workflow lint`") and continues running all other checks (marker scan, dangling
     links, etc.) using the bundled default spec so they are not suppressed.
     """
+    from squads._context import get_context
     from squads._paths import resolve
     from squads._services._results import CheckIssue
     from squads._workflow import bundled_spec
@@ -1240,7 +1241,8 @@ async def check(json_out: bool = typer.Option(False, "--json")):
 
     # --- Step 1: probe the workflow spec without going through the normal open_service
     # hard-stop.  This lets sq check degrade gracefully when the spec is invalid (AC #4).
-    sp = resolve(common._active_dir)  # pyright: ignore[reportPrivateUsage]
+    ctx = get_context()
+    sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
     workflow_issues: list[CheckIssue] = []
     lint_findings = lint_workflow_spec(sp.squad_dir)
     if any(f[0] == "error" for f in lint_findings):
