@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 542,
+  "counter": 543,
   "padding": 6,
   "items": {
     "12": {
@@ -20464,6 +20464,57 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-542"
+    },
+    "543": {
+      "sequence_id": 543,
+      "type": "feature",
+      "title": "Custom non-dev role scaffolding & discoverability",
+      "slug": "custom-non-dev-role-scaffolding-discoverability",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-538",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Scaffold a net-new custom role slug",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Activate a custom role end-to-end, incl. can_spawn opt-in",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Surface custom-role discoverability in catalog/help/docs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000543-custom-non-dev-role-scaffolding-discoverability.md",
+      "created_at": "2026-07-21T20:43:26Z",
+      "updated_at": "2026-07-21T20:44:19Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-543"
     }
   }
 }
