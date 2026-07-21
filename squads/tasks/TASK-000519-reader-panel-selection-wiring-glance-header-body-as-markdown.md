@@ -3,7 +3,7 @@ id: TASK-519
 sequence_id: 519
 type: task
 title: 'Reader panel: selection wiring, glance header, body-as-Markdown tab'
-status: InReview
+status: Done
 parent: FEAT-514
 author: tech-lead
 refs:
@@ -22,7 +22,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-07-21T09:18:54Z'
-updated_at: '2026-07-21T10:01:51Z'
+updated_at: '2026-07-21T12:05:12Z'
 ---
 <!-- sq:body -->
 ## Scope
