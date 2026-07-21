@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 524,
+  "counter": 527,
   "padding": 6,
   "items": {
     "12": {
@@ -19718,6 +19718,151 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-524"
+    },
+    "525": {
+      "sequence_id": 525,
+      "type": "feature",
+      "title": "Filter/sort popup over the browse tree",
+      "slug": "filter-sort-popup-over-the-browse-tree",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-28",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Open/dismiss the filter+sort popup by keyboard",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Set filters and apply, tree updates keeping ancestors as context",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Show-closed toggle reveals and hides terminal items",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Choose sibling sort order, clear/reset filters, see active-filter indicator",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000525-filter-sort-popup-over-the-browse-tree.md",
+      "created_at": "2026-07-21T12:14:41Z",
+      "updated_at": "2026-07-21T12:15:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-525"
+    },
+    "526": {
+      "sequence_id": 526,
+      "type": "feature",
+      "title": "Full-text search page",
+      "slug": "full-text-search-page",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-28",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Open the search page and enter a query",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Narrow results by item type and/or status",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Select a result to open it in the reader",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Empty-query and no-results states, escape back to browse",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000526-full-text-search-page.md",
+      "created_at": "2026-07-21T12:14:45Z",
+      "updated_at": "2026-07-21T12:16:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-526"
+    },
+    "527": {
+      "sequence_id": 527,
+      "type": "decision",
+      "title": "TUI screen & modal navigation model for sq ui (filter + search)",
+      "slug": "tui-screen-modal-navigation-model-for-sq-ui-filter-search",
+      "status": "Accepted",
+      "description": "",
+      "parent": "EPIC-28",
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-516"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000527-tui-screen-modal-navigation-model-for-sq-ui-filter-search.md",
+      "created_at": "2026-07-21T12:16:25Z",
+      "updated_at": "2026-07-21T12:18:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-527"
     }
   }
 }
