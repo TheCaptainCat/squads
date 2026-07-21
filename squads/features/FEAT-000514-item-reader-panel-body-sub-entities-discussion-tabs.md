@@ -3,7 +3,7 @@ id: FEAT-514
 sequence_id: 514
 type: feature
 title: 'Item reader panel: body, sub-entities, discussion tabs'
-status: InReview
+status: Done
 parent: EPIC-28
 author: product-owner
 priority: medium
@@ -24,7 +24,7 @@ subentities:
   title: Status/priority/assignee at a glance
   status: Todo
 created_at: '2026-07-21T09:11:26Z'
-updated_at: '2026-07-21T12:05:30Z'
+updated_at: '2026-07-21T14:38:05Z'
 ---
 <!-- sq:body -->
 ## Capability

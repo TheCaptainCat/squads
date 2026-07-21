@@ -3,7 +3,7 @@ id: FEAT-525
 sequence_id: 525
 type: feature
 title: Filter/sort popup over the browse tree
-status: Draft
+status: Done
 parent: EPIC-28
 author: product-owner
 priority: medium
@@ -21,7 +21,7 @@ subentities:
   title: Choose sibling sort order, clear/reset filters, see active-filter indicator
   status: Todo
 created_at: '2026-07-21T12:14:41Z'
-updated_at: '2026-07-21T12:15:46Z'
+updated_at: '2026-07-21T14:38:09Z'
 ---
 <!-- sq:body -->
 ## Capability

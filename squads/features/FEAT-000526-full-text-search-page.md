@@ -3,7 +3,7 @@ id: FEAT-526
 sequence_id: 526
 type: feature
 title: Full-text search page
-status: Draft
+status: Done
 parent: EPIC-28
 author: product-owner
 priority: medium
@@ -21,7 +21,7 @@ subentities:
   title: Empty-query and no-results states, escape back to browse
   status: Todo
 created_at: '2026-07-21T12:14:45Z'
-updated_at: '2026-07-21T12:16:09Z'
+updated_at: '2026-07-21T14:38:13Z'
 ---
 <!-- sq:body -->
 ## Capability

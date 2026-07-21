@@ -9,18 +9,12 @@ author: architect
 refs:
 - ADR-214:addresses
 - FEAT-210:addresses
-description: 'Assessment ADR (Draft): de-globalize the workflow-spec singleton into
-  a Service-owned/threaded context per ADR-214 §1. Go/no-go for Pierre.'
+description: De-globalize the workflow-spec singleton into a Service-owned and threaded
+  context, per ADR-214 §1.
 created_at: '2026-06-30T09:47:54Z'
-updated_at: '2026-06-30T09:54:38Z'
+updated_at: '2026-07-21T12:48:59Z'
 ---
 <!-- sq:body -->
-> **STATUS: Draft / assessment.** This ADR is an architectural assessment for Pierre's go/no-go.
-> Drafting is not a greenlight to implement (project norm: drafting ≠ implementation). No production
-> code is to change on the strength of this draft. It executes the destination already pinned by
-> **ADR-214 §1** ("F3+ threads a per-`Service` spec instance"); on acceptance it would supersede
-> ADR-214 §1's threading clause.
-
 ## Context
 
 FEAT-209 (F3, shipped) introduced a **process-global workflow-spec singleton** in
@@ -260,8 +254,6 @@ subcommand parse, or relocating type/status validation from the Typer parser int
 - If A: are we comfortable deleting the `_reset_workflow_spec` autouse fixture and rewriting the 7
   singleton-touching test files in the same feature? (It's a net correctness win but it is churn on
   the EPIC-206 safety net — coordinate with the deferred test-suite rebuild.)
-
-**This ADR is Draft. No implementation, no tasks, until Pierre greenlights.**
 <!-- sq:body:end -->
 
 ## Discussion
