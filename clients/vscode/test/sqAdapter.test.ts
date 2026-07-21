@@ -11,11 +11,13 @@ import {
   getGraph,
   getList,
   getRaw,
+  getSearch,
   getShowJson,
   getStatusesCatalog,
   getTree,
   getTypeCatalog,
   getWorkflowRaw,
+  isSqSearchHit,
 } from '../src/sqAdapter';
 
 const WORKSPACE_ROOT = '/workspace/example';
@@ -33,6 +35,7 @@ const TYPE_CATALOG_FIXTURE = fixture('type-catalog.json');
 const SHOW_JSON_FIXTURE = fixture('show-json.json');
 const COLLECTIONS_CATALOG_FIXTURE = fixture('collections-catalog.json');
 const STATUSES_CATALOG_FIXTURE = fixture('statuses-catalog.json');
+const SEARCH_FIXTURE = fixture('search.json');
 
 function stubRunner(result: ProcessResult): ProcessRunner {
   return { run: () => Promise.resolve(result) };
@@ -105,6 +108,137 @@ describe('getList', () => {
     await getList(runner, VENV_INVOCATION, WORKSPACE_ROOT, ['-t', 'task']);
 
     expect(calls[0]?.args).toEqual(['list', '-t', 'task', '--json']);
+  });
+});
+
+describe('getSearch', () => {
+  it('parses a real committed sq search --json fixture', async () => {
+    const runner = stubRunner({ stdout: SEARCH_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getSearch(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'login');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data).toHaveLength(3);
+    expect(outcome.data[0]).toEqual({
+      id: 'FEAT-2',
+      title: 'User authentication',
+      type: 'feature',
+      status: 'Draft',
+      hits: [{ region: 'description', location: 'description', snippet: 'Login and logout flows' }],
+    });
+    // A hit can carry more than one matched region (title, a sub-entity, a discussion comment).
+    expect(outcome.data[1]?.hits).toHaveLength(3);
+  });
+
+  it('a zero-match query is a success with an empty array, not an error', async () => {
+    const runner = stubRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    const outcome = await getSearch(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'no-such-text');
+
+    expect(outcome).toEqual({ kind: 'success', data: [] });
+  });
+
+  it('builds argv as "search <text> --json" with no filter args', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getSearch(runner, UV_INVOCATION, WORKSPACE_ROOT, 'login');
+
+    expect(calls).toEqual([
+      { command: 'uv', args: ['run', 'sq', 'search', 'login', '--json'], cwd: WORKSPACE_ROOT },
+    ]);
+  });
+
+  it('appends filter args between the query text and --json', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getSearch(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'login', [
+      '--type',
+      'task',
+      '--status',
+      'InProgress',
+    ]);
+
+    expect(calls[0]?.args).toEqual([
+      'search',
+      'login',
+      '--type',
+      'task',
+      '--status',
+      'InProgress',
+      '--json',
+    ]);
+  });
+
+  it('surfaces well-formed JSON that does not match the expected shape as a parse-error', async () => {
+    const runner = stubRunner({ stdout: '[{"unexpected": true}]', stderr: '', exitCode: 0 });
+    const outcome = await getSearch(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'login');
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+
+  it('maps a non-zero exit the same way as the other json surfaces', async () => {
+    const runner = stubRunner({
+      stdout: '',
+      stderr: 'search needs a non-empty query',
+      exitCode: 1,
+    });
+    const outcome = await getSearch(runner, VENV_INVOCATION, WORKSPACE_ROOT, '');
+
+    expect(outcome).toEqual({
+      kind: 'runtime-error',
+      message: 'search needs a non-empty query',
+      exitCode: 1,
+    });
+  });
+
+  it('surfaces a spawn failure without throwing', async () => {
+    const runner: ProcessRunner = { run: () => Promise.reject(new Error('ENOENT')) };
+    const outcome = await getSearch(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'login');
+
+    expect(outcome).toEqual({ kind: 'spawn-error', message: 'ENOENT' });
+  });
+});
+
+describe('isSqSearchHit', () => {
+  it('accepts a valid hit, including one with an empty hits array', () => {
+    expect(
+      isSqSearchHit({ id: 'TASK-1', title: 'x', type: 'task', status: 'Open', hits: [] }),
+    ).toBe(true);
+    expect(
+      isSqSearchHit({
+        id: 'TASK-1',
+        title: 'x',
+        type: 'task',
+        status: 'Open',
+        hits: [{ region: 'title', location: 'title', snippet: 'x' }],
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects a hit missing a required field', () => {
+    expect(isSqSearchHit({ title: 'x', type: 'task', status: 'Open', hits: [] })).toBe(false);
+  });
+
+  it('rejects a non-array hits field', () => {
+    expect(
+      isSqSearchHit({ id: 'TASK-1', title: 'x', type: 'task', status: 'Open', hits: {} }),
+    ).toBe(false);
+  });
+
+  it('rejects a hits entry with a non-string snippet', () => {
+    expect(
+      isSqSearchHit({
+        id: 'TASK-1',
+        title: 'x',
+        type: 'task',
+        status: 'Open',
+        hits: [{ region: 'title', location: 'title', snippet: 7 }],
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects a non-object value', () => {
+    expect(isSqSearchHit(null)).toBe(false);
+    expect(isSqSearchHit('nope')).toBe(false);
   });
 });
 

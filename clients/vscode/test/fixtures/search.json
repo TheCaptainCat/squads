@@ -1,0 +1,51 @@
+[
+  {
+    "id": "FEAT-2",
+    "title": "User authentication",
+    "type": "feature",
+    "status": "Draft",
+    "hits": [
+      {
+        "region": "description",
+        "location": "description",
+        "snippet": "Login and logout flows"
+      }
+    ]
+  },
+  {
+    "id": "TASK-3",
+    "title": "Implement login",
+    "type": "task",
+    "status": "InProgress",
+    "hits": [
+      {
+        "region": "title",
+        "location": "title",
+        "snippet": "Implement login"
+      },
+      {
+        "region": "subtask:ST1",
+        "location": "subtask:ST1",
+        "snippet": "### ST1 — Write login handler"
+      },
+      {
+        "region": "discussion#1",
+        "location": "discussion — comment 1 (Catherine Manager, 2026-06-07T10:00:00Z)",
+        "snippet": "[2026-06-07T10:00:00Z] Catherine Manager: - @manager please review the login handler"
+      }
+    ]
+  },
+  {
+    "id": "BUG-4",
+    "title": "Login crashes on empty password",
+    "type": "bug",
+    "status": "Open",
+    "hits": [
+      {
+        "region": "title",
+        "location": "title",
+        "snippet": "Login crashes on empty password"
+      }
+    ]
+  }
+]

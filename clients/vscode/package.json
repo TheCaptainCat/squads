@@ -122,6 +122,11 @@
         "title": "Forward",
         "category": "Squads",
         "icon": "$(arrow-right)"
+      },
+      {
+        "command": "squads.search",
+        "title": "Search...",
+        "category": "Squads"
       }
     ],
     "keybindings": [
@@ -134,6 +139,11 @@
         "command": "squads.previewForward",
         "key": "alt+right",
         "when": "activeWebviewPanelId == squadsItemPreview"
+      },
+      {
+        "command": "squads.search",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
       }
     ],
     "menus": {

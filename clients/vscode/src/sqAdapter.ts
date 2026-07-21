@@ -17,6 +17,8 @@ import type {
   SqDiscussionEntry,
   SqGraphNode,
   SqListItem,
+  SqSearchHit,
+  SqSearchHitRegion,
   SqShowJson,
   SqStatusCatalogEntry,
   SqSubEntity,
@@ -193,6 +195,35 @@ export function isSqListItem(value: unknown): value is SqListItem {
     hasNullableListItemStrings(item) &&
     isStringArray(item.labels) &&
     isStringArray(item.refs)
+  );
+}
+
+function isSqSearchHitRegion(value: unknown): value is SqSearchHitRegion {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const region = value as Record<string, unknown>;
+  return (
+    typeof region.region === 'string' &&
+    typeof region.location === 'string' &&
+    typeof region.snippet === 'string'
+  );
+}
+
+/** Shape guard for one `sq search <text> --json` row. Exported for the same reason as
+ * `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
+export function isSqSearchHit(value: unknown): value is SqSearchHit {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const hit = value as Record<string, unknown>;
+  return (
+    typeof hit.id === 'string' &&
+    typeof hit.title === 'string' &&
+    typeof hit.type === 'string' &&
+    typeof hit.status === 'string' &&
+    Array.isArray(hit.hits) &&
+    hit.hits.every(isSqSearchHitRegion)
   );
 }
 
@@ -425,6 +456,29 @@ export function getList(
     workspaceRoot,
     ['list', ...filterArgs, '--json'],
     isSqListItem,
+  );
+}
+
+/** `sq search <text> --json [--type/--status …]` — the full-text search QuickPick's only data
+ * source (read-only consumer of the same engine the TUI search page uses; no new search
+ * capability lives here). `filterArgs` is appended between `text` and `--json` so a caller can
+ * layer `--type <type>`/`--status <status>` through unchanged, AND-composed with the query text
+ * exactly as `sq search` composes them server-side — this adapter never re-matches or
+ * post-filters the rows it gets back. A zero-match query is a success with an empty array, not
+ * an error. */
+export function getSearch(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  text: string,
+  filterArgs: readonly string[] = [],
+): Promise<SqOutcome<SqSearchHit[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['search', text, ...filterArgs, '--json'],
+    isSqSearchHit,
   );
 }
 
