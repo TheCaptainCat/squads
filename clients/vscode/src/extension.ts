@@ -37,12 +37,16 @@ export function activate(context: vscode.ExtensionContext): void {
   // Shared so a discovered-then-vanished `sq` invalidated by either surface (tree or preview)
   // is re-probed for both, rather than each caching its own stale answer independently.
   const discovery = new SqDiscovery(root, getSquadsConfig, env);
+  // Shared with `watchSquadIndex` below: both need the same pure `.squads.toml` walk-up, one to
+  // detect the no-squad empty state, the other to know what to watch.
+  const squadDirEnv = createNodeSquadDirEnvironment();
 
   const treeDataProvider = new SquadsTreeDataProvider(
     nodeProcessRunner,
     discovery,
     root,
     notifyError,
+    squadDirEnv,
   );
   // `createTreeView` (rather than `registerTreeDataProvider`) is what exposes
   // `showCollapseAll` — VS Code's native title-bar collapse-all icon, no custom command needed
@@ -74,6 +78,7 @@ export function activate(context: vscode.ExtensionContext): void {
     discovery,
     root,
     notifyError,
+    squadDirEnv,
   );
   const metaTreeView = vscode.window.createTreeView('squadsMeta', {
     treeDataProvider: metaTreeDataProvider,
@@ -112,7 +117,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // disk (an agent runs `sq`, a `git pull`) — no-ops cleanly for a non-local/remote workspace or
   // when no `.squads.toml` is found.
   context.subscriptions.push(
-    watchSquadIndex(workspaceFolder, createNodeSquadDirEnvironment(), {
+    watchSquadIndex(workspaceFolder, squadDirEnv, {
       onIndexChanged: () => {
         void treeDataProvider.refresh();
         void metaTreeDataProvider.refresh();

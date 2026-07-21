@@ -65,6 +65,7 @@ const ICON_BY_TYPE: Readonly<Record<string, string>> = {
 const DEFAULT_ICON = 'circle-outline';
 const GROUP_ICON = 'folder';
 const ERROR_ICON = 'error';
+const EMPTY_STATE_ICON = 'info';
 
 /** A user-configured `squads.typeIcons` map: type name -> codicon id, layered over the
  * bundled `ICON_BY_TYPE` defaults (F21). Keeps icons spec-agnostic/client-side with no core
@@ -168,6 +169,24 @@ export function errorDisplayNode(message: string): DisplayNode {
     description: message,
     tooltip: message,
     iconId: ERROR_ICON,
+    blocked: false,
+    closed: false,
+    active: false,
+    children: [],
+  };
+}
+
+/** A calm, non-error placeholder root — distinct from `errorDisplayNode`: a workspace with no
+ * `.squads.toml` is the normal case for any non-squads folder, not a failure, so it gets a plain
+ * informational label/icon rather than the red error styling. */
+export function emptyStateDisplayNode(message: string): DisplayNode {
+  return {
+    id: '__squads_empty__',
+    itemId: null,
+    label: message,
+    description: '',
+    tooltip: message,
+    iconId: EMPTY_STATE_ICON,
     blocked: false,
     closed: false,
     active: false,

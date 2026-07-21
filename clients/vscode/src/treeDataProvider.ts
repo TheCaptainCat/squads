@@ -17,6 +17,7 @@ import {
 import {
   collectNodeIds,
   type DisplayNode,
+  emptyStateDisplayNode,
   errorDisplayNode,
   type TypeIconOverrides,
 } from './domain/displayNode';
@@ -27,6 +28,7 @@ import {
   type ListFilter,
   NO_FILTER,
 } from './domain/listView';
+import { resolveSquadDir, type SquadDirEnvironment } from './domain/squadDir';
 import { buildStatusRoleMap, NO_STATUS_ROLES, type StatusRoleMap } from './domain/statusRole';
 import { distinctTypesInTree, treeNodesToDisplay } from './domain/treeMapping';
 import { buildTypeOrderMap, NO_TYPE_ORDER, type TypeOrderMap } from './domain/typeOrder';
@@ -114,6 +116,7 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
     private readonly discovery: SqDiscovery,
     private readonly workspaceRoot: string,
     private readonly notifyError: (message: string) => void,
+    private readonly squadDirEnv: SquadDirEnvironment,
   ) {}
 
   getTreeItem(node: DisplayNode): vscode.TreeItem {
@@ -165,6 +168,14 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
   }
 
   async refresh(): Promise<void> {
+    // A workspace with no `.squads.toml` is the normal case for any non-squads folder, not a
+    // failure — detect it up front with the same pure walk-up `squadWatcher.ts` uses, and render
+    // a calm empty state instead of spawning `sq` (which would exit 1 and read as an error).
+    if (resolveSquadDir(this.workspaceRoot, this.squadDirEnv) === undefined) {
+      this.roots = [emptyStateDisplayNode('No squad detected here')];
+      this.changeEmitter.fire(undefined);
+      return;
+    }
     const resolution = this.discovery.resolve();
     if (!resolution.ok) {
       const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;

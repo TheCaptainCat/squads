@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 510,
+  "counter": 511,
   "padding": 6,
   "items": {
     "12": {
@@ -19204,6 +19204,29 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-510"
+    },
+    "511": {
+      "sequence_id": 511,
+      "type": "bug",
+      "title": "VS Code panel errors on a non-squads folder instead of showing an empty state",
+      "slug": "vs-code-panel-errors-on-a-non-squads-folder-instead-of-showi",
+      "status": "Verified",
+      "description": "Opening the Squads panel outside a squad shows an error node + error toast",
+      "parent": null,
+      "author": "manager",
+      "assignee": "typescript-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000511-vs-code-panel-errors-on-a-non-squads-folder-instead-of-showi.md",
+      "created_at": "2026-07-21T08:08:29Z",
+      "updated_at": "2026-07-21T08:13:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-511"
     }
   }
 }

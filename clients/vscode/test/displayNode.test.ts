@@ -5,6 +5,8 @@ import {
   collectNodeIds,
   type DisplayNode,
   emphasisForNode,
+  emptyStateDisplayNode,
+  errorDisplayNode,
   groupDisplayNode,
 } from '../src/domain/displayNode';
 
@@ -73,6 +75,30 @@ describe('buildTooltip', () => {
       blocked: false,
     });
     expect(tooltip).toContain('Assignee: unassigned');
+  });
+});
+
+describe('emptyStateDisplayNode', () => {
+  it('renders the message as a plain, non-error label', () => {
+    const node = emptyStateDisplayNode('No squad detected here');
+    expect(node.label).toBe('No squad detected here');
+    expect(node.description).toBe('');
+    expect(node.tooltip).toBe('No squad detected here');
+    expect(node.children).toEqual([]);
+  });
+
+  it('carries none of the emphasis flags — no error/blocked/closed styling', () => {
+    const node = emptyStateDisplayNode('No squad detected here');
+    expect(node.blocked).toBe(false);
+    expect(node.closed).toBe(false);
+    expect(node.active).toBe(false);
+  });
+
+  it('uses a distinct icon and id from errorDisplayNode, so the two never collide or share styling', () => {
+    const empty = emptyStateDisplayNode('No squad detected here');
+    const error = errorDisplayNode('boom');
+    expect(empty.iconId).not.toBe(error.iconId);
+    expect(empty.id).not.toBe(error.id);
   });
 });
 

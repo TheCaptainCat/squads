@@ -2,7 +2,7 @@
   {
     "name": "items/task.md.j2",
     "kind": "template",
-    "base_version": "0.11.0",
+    "base_version": "0.11.1",
     "state": "current"
   }
 ]

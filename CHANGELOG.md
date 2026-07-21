@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-07-21
+
+### Fixed
+
+- **The VS Code extension no longer shows an error in a non-squads workspace.** Opening the Squads
+  panel (or the Roster view) in a folder that has no squad now renders a calm "No squad detected
+  here" placeholder instead of a red error node and an error notification — the normal case for any
+  non-squads folder is no longer treated as a failure.
+
 ## [0.11.0] - 2026-07-20
 
 ### Added

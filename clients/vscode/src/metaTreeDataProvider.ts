@@ -16,9 +16,15 @@ import {
   NO_BADGE_VOCABULARY,
   NO_FIELD_BINDINGS,
 } from './domain/badgeCatalog';
-import { collectNodeIds, type DisplayNode, errorDisplayNode } from './domain/displayNode';
+import {
+  collectNodeIds,
+  type DisplayNode,
+  emptyStateDisplayNode,
+  errorDisplayNode,
+} from './domain/displayNode';
 import { ExpansionTracker } from './domain/expansionTracker';
 import { buildMetaView } from './domain/metaView';
+import { resolveSquadDir, type SquadDirEnvironment } from './domain/squadDir';
 import { buildStatusRoleMap, NO_STATUS_ROLES } from './domain/statusRole';
 import type { ProcessRunner } from './processRunner';
 import {
@@ -45,6 +51,7 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
     private readonly discovery: SqDiscovery,
     private readonly workspaceRoot: string,
     private readonly notifyError: (message: string) => void,
+    private readonly squadDirEnv: SquadDirEnvironment,
   ) {}
 
   getTreeItem(node: DisplayNode): vscode.TreeItem {
@@ -61,6 +68,12 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
   }
 
   async refresh(): Promise<void> {
+    // Same no-squad short-circuit as `treeDataProvider.ts` — see its comment.
+    if (resolveSquadDir(this.workspaceRoot, this.squadDirEnv) === undefined) {
+      this.roots = [emptyStateDisplayNode('No squad detected here')];
+      this.changeEmitter.fire(undefined);
+      return;
+    }
     const resolution = this.discovery.resolve();
     if (!resolution.ok) {
       const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
