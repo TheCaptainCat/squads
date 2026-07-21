@@ -217,11 +217,73 @@ describe('renderMarkdownToHtml', () => {
     expect(html).not.toContain('data-item-id');
   });
 
+  it('still renders plain bold and italic runs', () => {
+    expect(renderMarkdownToHtml('**bold** and *em*')).toBe(
+      '<p><strong>bold</strong> and <em>em</em></p>',
+    );
+  });
+
+  it('renders a code span containing an asterisk as literal code, not emphasis', () => {
+    const html = renderMarkdownToHtml('a `x*y` b');
+    expect(html).toBe('<p>a <code>x*y</code> b</p>');
+  });
+
+  it('leaves a later unpaired backtick as plain text instead of swallowing the rest as code', () => {
+    const html = renderMarkdownToHtml('Run `git status` then check config` for typos.');
+    expect(html).toBe('<p>Run <code>git status</code> then check config` for typos.</p>');
+  });
+
+  it('renders a bold run wrapping a code span whose content has an asterisk', () => {
+    const html = renderMarkdownToHtml('**`x*y`**');
+    expect(html).toBe('<p><strong><code>x*y</code></strong></p>');
+  });
+
+  it('renders a bold list item whose leading code span contains an asterisk', () => {
+    const html = renderMarkdownToHtml(
+      '- **`$(*path)` splat-refs** — a safe, eval-free path-reference splice',
+    );
+    expect(html).toBe(
+      '<ul><li><strong><code>$(*path)</code> splat-refs</strong> — a safe, eval-free path-reference splice</li></ul>',
+    );
+  });
+
+  it('renders an underscore-emphasis run wrapping a code span with an underscore inside', () => {
+    const html = renderMarkdownToHtml('__`a_b`__');
+    expect(html).toBe('<p><strong><code>a_b</code></strong></p>');
+  });
+
+  it('escapes HTML-significant characters inside a code span exactly once', () => {
+    const html = renderMarkdownToHtml('`<b>&"`');
+    expect(html).toBe('<p><code>&lt;b&gt;&amp;&quot;</code></p>');
+  });
+
+  it('keeps multiple code spans on one line distinct and in order', () => {
+    const html = renderMarkdownToHtml('`a` and `b`');
+    expect(html).toBe('<p><code>a</code> and <code>b</code></p>');
+  });
+
+  it('does not let a placeholder index bleed into an immediately following prose digit', () => {
+    const html = renderMarkdownToHtml('a `x`5 b');
+    expect(html).toBe('<p>a <code>x</code>5 b</p>');
+  });
+
   it('renders a GFM-style pipe table', () => {
     const html = renderMarkdownToHtml('| A | B |\n| --- | --- |\n| 1 | 2 |');
     expect(html).toBe(
       '<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>',
     );
+  });
+
+  it('renders a code span inside a table cell', () => {
+    const html = renderMarkdownToHtml('| A | B |\n| --- | --- |\n| `x*y` | 2 |');
+    expect(html).toBe(
+      '<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td><code>x*y</code></td><td>2</td></tr></tbody></table>',
+    );
+  });
+
+  it('renders a code span inside a heading, scoping its span index to that call', () => {
+    const html = renderMarkdownToHtml('# `a` and `b`');
+    expect(html).toBe('<h1><code>a</code> and <code>b</code></h1>');
   });
 
   it('renders a blockquote', () => {

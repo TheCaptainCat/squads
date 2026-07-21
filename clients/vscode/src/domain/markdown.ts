@@ -90,20 +90,59 @@ export function linkifyPlainText(text: string, currentId?: string, roles?: RoleD
   });
 }
 
-const INLINE_TOKEN =
-  /`([^`]+)`|\*\*([^*\n]+)\*\*|__([^_\n]+)__|\*([^*\n]+)\*|_([^_\n]+)_|\[([^\]]+)\]\(([^)\s]+)\)/g;
+/** Matches a single-backtick code span (content: no backtick, no newline). Deliberately the
+ * same simple single-delimiter shape the renderer always supported (no double-backtick escape
+ * for a literal backtick in the content) — extending that is out of this fix's scope. */
+const CODE_SPAN_TOKEN = /`([^`\n]+)`/g;
 
-/** Renders one matched inline token (code/bold/italic/link) to HTML. Split out of
- * `renderInline` to keep that function's cyclomatic complexity low. */
+/** CommonMark gives code spans precedence over emphasis: `` **`a*b`** `` is bold wrapping a
+ * literal code span, not two spurious emphasis runs fighting over the `*` inside the span. A
+ * single combined regex can't express that (alternation only breaks ties at the same start
+ * index — it can't stop an emphasis match that starts *before* a code span from winning), so
+ * code spans are carved out of the raw text first, into an opaque placeholder no other inline
+ * rule can match into, and stitched back in as literal `<code>` HTML after emphasis/link
+ * matching runs on what's left. See `restoreCodeSpans`. */
+const CODE_SPAN_PLACEHOLDER = '\uE000';
+
+interface CodeSpanExtraction {
+  readonly text: string;
+  readonly spans: readonly string[];
+}
+
+function extractCodeSpans(raw: string): CodeSpanExtraction {
+  const spans: string[] = [];
+  // A real body can't legitimately contain this PUA char; stripping it makes "the placeholder
+  // is never confused with body content" unconditional rather than just an assumption.
+  const sanitized = raw.replaceAll(CODE_SPAN_PLACEHOLDER, '');
+  const text = sanitized.replace(CODE_SPAN_TOKEN, (_match, code: string) => {
+    spans.push(`<code>${escapeHtml(code)}</code>`);
+    return `${CODE_SPAN_PLACEHOLDER}${String(spans.length - 1)}${CODE_SPAN_PLACEHOLDER}`;
+  });
+  return { text, spans };
+}
+
+/** Swaps each code-span placeholder back for its rendered `<code>` HTML, once emphasis/link
+ * matching (which treats the placeholder as opaque plain text) has run. */
+function restoreCodeSpans(html: string, spans: readonly string[]): string {
+  if (spans.length === 0) {
+    return html;
+  }
+  const placeholder = new RegExp(`${CODE_SPAN_PLACEHOLDER}(\\d+)${CODE_SPAN_PLACEHOLDER}`, 'g');
+  return html.replace(placeholder, (_match, index: string) => spans[Number(index)] ?? '');
+}
+
+const INLINE_TOKEN =
+  /\*\*([^*\n]+)\*\*|__([^_\n]+)__|\*([^*\n]+)\*|_([^_\n]+)_|\[([^\]]+)\]\(([^)\s]+)\)/g;
+
+/** Renders one matched inline token (bold/italic/link) to HTML. Split out of `renderInline` to
+ * keep that function's cyclomatic complexity low. Code spans are handled separately, before
+ * this runs — see `extractCodeSpans`. */
 function renderInlineToken(
   match: RegExpExecArray,
   currentId: string | undefined,
   roles: RoleDirectory | undefined,
 ): string {
-  const [, code, boldStar, boldUnderscore, emStar, emUnderscore, linkText, linkUrl] = match;
-  if (code !== undefined) {
-    return `<code>${escapeHtml(code)}</code>`;
-  }
+  const [, boldStar, boldUnderscore, emStar, emUnderscore, linkText, linkUrl] = match;
   const bold = boldStar ?? boldUnderscore;
   if (bold !== undefined) {
     return `<strong>${linkifyPlainText(bold, currentId, roles)}</strong>`;
@@ -139,20 +178,22 @@ function renderLink(text: string, url: string, currentId: string | undefined): s
 
 /** Renders one line/run of inline markdown (bold/italic/code/links) to HTML, linkifying item
  * ids (and, when `roles` resolves them, `@<slug>` role mentions) in every plain-text segment
- * along the way. */
+ * along the way. Code spans are extracted first so they bind tighter than emphasis, per
+ * CommonMark — see `extractCodeSpans`. */
 export function renderInline(raw: string, currentId?: string, roles?: RoleDirectory): string {
+  const { text, spans } = extractCodeSpans(raw);
   const regex = new RegExp(INLINE_TOKEN.source, 'g');
   let result = '';
   let lastIndex = 0;
-  let match = regex.exec(raw);
+  let match = regex.exec(text);
   while (match !== null) {
-    result += linkifyPlainText(raw.slice(lastIndex, match.index), currentId, roles);
+    result += linkifyPlainText(text.slice(lastIndex, match.index), currentId, roles);
     result += renderInlineToken(match, currentId, roles);
     lastIndex = regex.lastIndex;
-    match = regex.exec(raw);
+    match = regex.exec(text);
   }
-  result += linkifyPlainText(raw.slice(lastIndex), currentId, roles);
-  return result;
+  result += linkifyPlainText(text.slice(lastIndex), currentId, roles);
+  return restoreCodeSpans(result, spans);
 }
 
 const FENCE_START = /^```(\w*)\s*$/;
