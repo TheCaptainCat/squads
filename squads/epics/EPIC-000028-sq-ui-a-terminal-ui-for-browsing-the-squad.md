@@ -3,7 +3,7 @@ id: EPIC-28
 sequence_id: 28
 type: epic
 title: sq ui — a terminal UI for browsing the squad
-status: Draft
+status: InProgress
 author: product-owner
 priority: low
 refs:
@@ -12,7 +12,7 @@ refs:
 description: 'An sq ui command opening a TUI: navigate the tree, read items with tabs
   for stories/body/discussion; browse-first, mutations a later increment'
 created_at: '2026-06-10T15:15:37Z'
-updated_at: '2026-06-11T07:40:17Z'
+updated_at: '2026-07-21T09:10:41Z'
 ---
 <!-- sq:body -->
 ## Outcome
