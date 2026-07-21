@@ -1,23 +1,25 @@
 """Single source of 'now'.
 
-Tests freeze it by monkeypatching ``now``. The ``--at`` CLI option freezes it for one invocation
-via :func:`set_now`, so a migration (human- or LLM-driven) can forge historical timestamps.
+The frozen-time test fixture and the ``--at`` CLI option both freeze it for one
+request via :func:`set_now`, so a migration (human- or LLM-driven) can forge historical
+timestamps. The override lives in the ambient :class:`~squads._context.RequestContext`
+(per request), not a module global — see :mod:`squads._context` for why.
 """
 
 from datetime import UTC, datetime
 
-_override: datetime | None = None
+from squads._context import get_context, rebind
 
 
 def set_now(dt: datetime | None) -> None:
     """Force :func:`now` to return ``dt`` (or clear the override with ``None``)."""
-    global _override
-    _override = dt
+    rebind(clock_override=dt)
 
 
 def now() -> datetime:
-    if _override is not None:
-        return _override
+    override = get_context().clock_override
+    if override is not None:
+        return override
     return datetime.now(UTC).replace(microsecond=0)
 
 

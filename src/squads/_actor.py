@@ -1,8 +1,10 @@
 """Ambient per-invocation actor identity.
 
-Mirrors :mod:`squads._clock`: one module-global override, set once at the CLI
-root callback (from ``--as`` / ``--author`` or the invoking agent's slug) and
-cleared by a ``try/finally`` so it never leaks between invocations or tests.
+Mirrors :mod:`squads._clock`: one ambient override, set once at the CLI root
+callback (from ``--as`` / ``--author`` or the invoking agent's slug). The
+override lives in the ambient :class:`~squads._context.RequestContext` (per
+request), not a module global — see :mod:`squads._context` for why — so it
+never leaks between requests without needing a ``try/finally``.
 
 Default: ``"system"`` — the machine itself, when no human or agent set a slug.
 
@@ -23,24 +25,19 @@ forensic visibility of declared lineage.
 
 import os
 
-_override: str | None = None
-
-# Session fields are seeded ONCE at the CLI root callback from env vars.
-# They are NOT settable by --as/--author or any later CLI flag.
-_session_id: str | None = None
-_parent_session_id: str | None = None
+from squads._context import get_context, rebind
 
 
 def set_actor(slug: str | None) -> None:
     """Force :func:`current_actor` to return *slug*, or clear the override with ``None``."""
-    global _override
-    _override = slug
+    rebind(actor_override=slug)
 
 
 def current_actor() -> str:
     """Return the ambient actor slug for this invocation (default: ``"system"``)."""
-    if _override is not None:
-        return _override
+    override = get_context().actor_override
+    if override is not None:
+        return override
     return "system"
 
 
@@ -63,13 +60,13 @@ def seed_session(
     Pass both arguments as ``None`` (the default) to clear the session state
     between invocations / tests.
     """
-    global _session_id, _parent_session_id
     if from_env:
-        _session_id = os.environ.get("SQUADS_SESSION_ID") or None
-        _parent_session_id = os.environ.get("SQUADS_PARENT_SESSION_ID") or None
+        session_id = os.environ.get("SQUADS_SESSION_ID") or None
+        parent_session_id = os.environ.get("SQUADS_PARENT_SESSION_ID") or None
     else:
-        _session_id = session_id or None
-        _parent_session_id = parent_session_id or None
+        session_id = session_id or None
+        parent_session_id = parent_session_id or None
+    rebind(session_id=session_id, parent_session_id=parent_session_id)
 
 
 def current_session() -> tuple[str | None, str | None]:
@@ -81,4 +78,5 @@ def current_session() -> tuple[str | None, str | None]:
     **Untrusted / best-effort:** these values are self-declarations from the
     invocation environment; squads cannot verify them.
     """
-    return _session_id, _parent_session_id
+    ctx = get_context()
+    return ctx.session_id, ctx.parent_session_id
