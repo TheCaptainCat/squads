@@ -3,13 +3,13 @@ id: TASK-549
 sequence_id: 549
 type: task
 title: AST guard for module-level mutable state + triage rule
-status: Draft
+status: Done
 parent: FEAT-533
 author: tech-lead
 description: 'US1: meta-test failing the build on new module-scope mutable bindings
   outside the allowlist'
 created_at: '2026-07-21T21:33:13Z'
-updated_at: '2026-07-21T21:35:43Z'
+updated_at: '2026-07-21T23:17:37Z'
 ---
 <!-- sq:body -->
 Implements FEAT-533 **US1** (guard half). The durable, lasting output of the feature — a guard,
@@ -92,4 +92,8 @@ _Add with `sq task 549 add-subtask "<title>"`; track with `sq task 549 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-21T22:52:12Z] Elias Python:
+  - Shipped tests/meta/test_no_unallowlisted_module_level_mutable_state.py: walks src/squads with ast, flags module-scope dict/list/set literals+ctors+comprehensions and global statements, asserts hits are a subset of an exhaustive ALLOWLIST (resolves REV-555 F3 — added BUNDLES, PLAYBOOK, SKILL_DESCRIPTIONS, CREATE_LANES, EXTRA_FIELDS, MIGRATIONS, and the two __all__ hits the prior enumeration missed) and that no allowlist entry is stale. Triage rule + single-RequestContext convention documented in the module docstring, cross-referencing _context.py. Green on the current tree; a planted _leak dict and a planted global stmt are both proven caught.
+- [2026-07-21T23:08:58Z] Elias Python:
+  - Addressed REV-557: F1 — detector now also flags module-scope calls to defaultdict/OrderedDict/Counter/deque (bare or qualified), not just dict/list/set; added synthetic-plant tests for both. F4 — refactored the walk+diff into _scan_root_for_hits/_missing_against, reused by new synthetic-tree tests that redden the real assertion path (not just the detector function), covering dict-literal, defaultdict-factory, and qualified-OrderedDict-factory leaks. Guard confirmed green in-tree.
 <!-- sq:discussion:end -->

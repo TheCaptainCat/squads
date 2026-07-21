@@ -3,13 +3,13 @@ id: TASK-554
 sequence_id: 554
 type: task
 title: Cache boundary + env_cache eviction + concurrency acceptance
-status: Draft
+status: Done
 parent: FEAT-533
 author: tech-lead
 description: 'US4: prove code-vs-data cache line; bound the Jinja env cache; N-request
   multi-squad isolation test'
 created_at: '2026-07-21T21:33:16Z'
-updated_at: '2026-07-21T21:35:47Z'
+updated_at: '2026-07-21T23:17:38Z'
 ---
 <!-- sq:body -->
 Implements FEAT-533 **US4**. The acceptance capstone — comes last. ADR-534 rules 2 and 3.
@@ -80,4 +80,8 @@ _Add with `sq task 554 add-subtask "<title>"`; track with `sq task 554 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-21T22:52:04Z] Elias Python:
+  - Bounded the Jinja _env_cache with LRU eviction (src/squads/_rendering/_engine.py, cap 16, plain dict reused so it stays on the TASK-549 allowlist unchanged), added the stateless-backend guard test, and the N-request multi-squad concurrency-isolation acceptance test (bind_context per asyncio task; write-then-read-back for A, never observed by a concurrent B request). Also fixed REV-556 F1 (_bind_active_spec now threads client_cwd). pyright/ruff/format clean; full suite not run by me (main loop's gate) but targeted subset green.
+- [2026-07-21T23:09:03Z] Elias Python:
+  - Addressed REV-557: F2 — reworded the acceptance test's docstring/comments to stop overclaiming (cross-squad emptiness is structural separation, not a race resolved); kept the genuine concurrent ambient-isolation proof; added test_a_same_squad_concurrent_reader_sees_the_write_the_moment_it_commits, a genuine intra-squad concurrent read-after-commit (writer+reader as concurrent tasks, same squad). F3 — documented _env_cache's pop/del as not thread-safe, safe only under the pinned single-event-loop model, with a note that a thread-pool server must add a lock first (chose documentation over a lock, matching the project's existing single-thread-model precedent in IndexStore).
 <!-- sq:discussion:end -->

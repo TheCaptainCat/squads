@@ -10,9 +10,10 @@ Templates in ``<squad_dir>/.overrides/templates/`` shadow bundled templates by n
 template resolves to the bundled package default.  When no squad dir is active the bundled loader
 is used directly — identical behaviour to the previous single-loader setup.
 
-The function is idempotent for the same squad dir (the Environment is cached per-path); switching
-squad dirs replaces the active one.  Call ``set_active_squad_dir(None)`` to revert to the
-bundled-only loader (used by tests that want isolation).
+The function is idempotent for the same squad dir (the Environment is cached per-path, LRU-bounded
+so a long-lived process serving many distinct squads doesn't retain an Environment per squad
+forever); switching squad dirs replaces the active one.  Call ``set_active_squad_dir(None)`` to
+revert to the bundled-only loader (used by tests that want isolation).
 """
 
 import re
@@ -36,7 +37,23 @@ _MERMAID_UNSAFE_RE = re.compile(r"[^A-Za-z0-9_]")
 # The active squad directory for this logical call stack. None means bundled-only.
 _active_squad_dir: ContextVar[Path | None] = ContextVar("_active_squad_dir", default=None)
 
-# Per-squad-dir Environment cache. None is the bundled-only environment.
+#: Cap on distinct squad dirs (+ the bundled-only ``None`` key) kept warm at once. A CODE
+#: cache (compiled templates), so unbounded growth is a resource leak, not a correctness bug —
+#: bound it so a long-lived multi-squad process doesn't retain an Environment (and its
+#: per-squad override loader) for every squad it has ever touched.
+_ENV_CACHE_MAX_SIZE = 16
+
+# Per-squad-dir Environment cache, LRU-bounded at _ENV_CACHE_MAX_SIZE. None is the
+# bundled-only environment. A plain dict (not OrderedDict) is enough: a dict's insertion
+# order already gives LRU semantics as long as a hit is re-inserted (pop + set) to move it
+# to the most-recently-used end — see _env() below.
+#
+# NOT thread-safe: _env()'s pop+reinsert (hit) and insert+del (evicting miss) are each two
+# steps against this shared dict with no lock. Safe today only because the project's async
+# model is pinned to one event loop / one OS thread (anyio_backend="asyncio", no `await`
+# inside _env() to interleave on) — the same single-thread assumption IndexStore's Layer 2
+# `_proc_mutex` documents. A future thread-pool-backed server calling render() from multiple
+# OS threads MUST add a lock around _env() before that model change lands.
 _env_cache: dict[Path | None, Environment] = {}
 
 
@@ -89,11 +106,23 @@ def _make_env(squad_dir: Path | None) -> Environment:
 
 
 def _env() -> Environment:
-    """Return the Environment for the currently-active squad dir (or bundled-only)."""
+    """Return the Environment for the currently-active squad dir (or bundled-only).
+
+    LRU-bounded at :data:`_ENV_CACHE_MAX_SIZE`: a hit is moved to the most-recently-used
+    end (pop + re-insert — relies on dict insertion order); a miss that would push the
+    cache past the cap evicts the least-recently-used entry first.
+    """
     squad_dir = _active_squad_dir.get()
-    if squad_dir not in _env_cache:
-        _env_cache[squad_dir] = _make_env(squad_dir)
-    return _env_cache[squad_dir]
+    if squad_dir in _env_cache:
+        env = _env_cache.pop(squad_dir)
+        _env_cache[squad_dir] = env
+        return env
+    env = _make_env(squad_dir)
+    _env_cache[squad_dir] = env
+    if len(_env_cache) > _ENV_CACHE_MAX_SIZE:
+        oldest = next(iter(_env_cache))
+        del _env_cache[oldest]
+    return env
 
 
 def set_active_squad_dir(squad_dir: Path | None) -> None:
