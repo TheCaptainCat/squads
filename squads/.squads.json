@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 556,
+  "counter": 557,
   "padding": 6,
   "items": {
     "12": {
@@ -20068,7 +20068,7 @@
       "type": "feature",
       "title": "Statelessness: one process, many squads, per-request context",
       "slug": "statelessness-one-process-many-squads-per-request-context",
-      "status": "Draft",
+      "status": "InReview",
       "description": "Make a long-lived sq process able to host multiple squads concurrently by resolving all squad-specific context per request and holding nothing mutable at module level",
       "parent": "EPIC-31",
       "author": "architect",
@@ -20130,7 +20130,7 @@
       ],
       "path": "features/FEAT-000533-statelessness-one-process-many-squads-per-request-context.md",
       "created_at": "2026-07-21T12:37:58Z",
-      "updated_at": "2026-07-21T20:58:23Z",
+      "updated_at": "2026-07-21T23:17:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20667,7 +20667,7 @@
       "type": "task",
       "title": "AST guard for module-level mutable state + triage rule",
       "slug": "ast-guard-for-module-level-mutable-state-triage-rule",
-      "status": "Draft",
+      "status": "Done",
       "description": "US1: meta-test failing the build on new module-scope mutable bindings outside the allowlist",
       "parent": "FEAT-533",
       "author": "tech-lead",
@@ -20679,7 +20679,7 @@
       "subentities": [],
       "path": "tasks/TASK-000549-ast-guard-for-module-level-mutable-state-triage-rule.md",
       "created_at": "2026-07-21T21:33:13Z",
-      "updated_at": "2026-07-21T21:35:43Z",
+      "updated_at": "2026-07-21T23:17:37Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20782,7 +20782,7 @@
       "type": "task",
       "title": "Cache boundary + env_cache eviction + concurrency acceptance",
       "slug": "cache-boundary-env-cache-eviction-concurrency-acceptance",
-      "status": "Draft",
+      "status": "Done",
       "description": "US4: prove code-vs-data cache line; bound the Jinja env cache; N-request multi-squad isolation test",
       "parent": "FEAT-533",
       "author": "tech-lead",
@@ -20794,7 +20794,7 @@
       "subentities": [],
       "path": "tasks/TASK-000554-cache-boundary-env-cache-eviction-concurrency-acceptance.md",
       "created_at": "2026-07-21T21:33:16Z",
-      "updated_at": "2026-07-21T21:35:47Z",
+      "updated_at": "2026-07-21T23:17:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20873,7 +20873,7 @@
         {
           "local_id": "F1",
           "title": "_bind_active_spec does not thread client_cwd; diverges from the other spec-resolution path",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -20882,11 +20882,73 @@
       ],
       "path": "reviews/REV-000556-review-of-feat-533-increment-b1-edge-consolidation-cwd-seam.md",
       "created_at": "2026-07-21T22:33:52Z",
-      "updated_at": "2026-07-21T22:34:40Z",
+      "updated_at": "2026-07-21T23:11:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-556"
+    },
+    "557": {
+      "sequence_id": 557,
+      "type": "review",
+      "title": "Review of FEAT-533 Increment B2: cache boundary, concurrency acceptance, AST guard",
+      "slug": "review-of-feat-533-increment-b2-cache-boundary-concurrency-a",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-533"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "AST guard blind to non-literal mutable caches (OrderedDict/defaultdict/helper) mutated in place",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Acceptance test's uncommitted-write / cross-squad-DATA isolation claims exceed what it exercises",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "env_cache LRU dict mutations are not thread-safe (safe only under the single-thread asyncio model)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Plant tests prove the detector function, not the wired guard's file-walk + allowlist diff",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000557-review-of-feat-533-increment-b2-cache-boundary-concurrency-a.md",
+      "created_at": "2026-07-21T23:00:37Z",
+      "updated_at": "2026-07-21T23:11:36Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-557"
     }
   }
 }

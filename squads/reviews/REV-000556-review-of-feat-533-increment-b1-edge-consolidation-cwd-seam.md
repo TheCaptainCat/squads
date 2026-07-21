@@ -11,10 +11,10 @@ subentities:
 - local_id: F1
   title: _bind_active_spec does not thread client_cwd; diverges from the other spec-resolution
     path
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-07-21T22:33:52Z'
-updated_at: '2026-07-21T22:34:40Z'
+updated_at: '2026-07-21T23:11:38Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-533 Increment B1 — TASK-552 (active-spec/active-dir onto RequestContext + single-bind CLI edge consolidation) and TASK-553 (per-request cwd resolution). Reviewer did not author the code.
@@ -37,7 +37,7 @@ _Add with `sq review 556 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | _bind_active_spec does not thread client_cwd; diverges from the other spec-resolution path |
+| F1 | 🟢 low | Verified |  | _bind_active_spec does not thread client_cwd; diverges from the other spec-resolution path |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -46,7 +46,7 @@ _Add with `sq review 556 add-finding "…" --severity medium`; track with `sq re
 ### F1 — _bind_active_spec does not thread client_cwd; diverges from the other spec-resolution path
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F1:head:end -->
 

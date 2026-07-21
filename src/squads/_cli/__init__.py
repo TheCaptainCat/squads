@@ -3,6 +3,7 @@
 import io
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any, ClassVar
 
 import typer
@@ -209,7 +210,7 @@ def _version_cb(value: bool):
         raise typer.Exit()
 
 
-def _bind_active_spec(dir_override: str | None) -> WorkflowSpec | None:
+def _bind_active_spec(dir_override: str | None, client_cwd: Path) -> WorkflowSpec | None:
     """Resolve the WorkflowSpec for this invocation (does not bind it — the caller does, as
     part of the single per-invocation ``RequestContext``).
 
@@ -218,6 +219,11 @@ def _bind_active_spec(dir_override: str | None) -> WorkflowSpec | None:
     same spec.  Fails soft to the bundled spec on any resolution error (outside a squad,
     invalid override) — returns ``None`` only when resolution itself raised, which
     ``get_active_spec()`` also treats as "use the bundled spec".
+
+    ``client_cwd`` is threaded straight into ``resolve()`` — the same value the sibling
+    ``_CustomTypeGroup._resolve_spec_for_ctx`` path uses (``get_context().client_cwd``) —
+    so both spec-resolution paths agree on their resolution base rather than one of them
+    silently falling back to ``resolve()``'s own ``Path.cwd()`` default.
     """
     try:
         from squads._paths import resolve
@@ -228,7 +234,7 @@ def _bind_active_spec(dir_override: str | None) -> WorkflowSpec | None:
             validate_against_index_fail_closed,
         )
 
-        sp = resolve(dir_override)
+        sp = resolve(dir_override, client_cwd=client_cwd)
         override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
         if not override_path.is_file():
             return bundled_spec()
@@ -286,8 +292,6 @@ def main_callback(
         False, "--version", callback=_version_cb, is_eager=True, help="Show version and exit."
     ),
 ):
-    from pathlib import Path
-
     from squads._context import bind_context, get_context
 
     # The CLI edge: bind ONE fresh RequestContext per invocation, assembled from this
@@ -296,15 +300,16 @@ def main_callback(
     # whatever the previous invocation left behind — every field is freshly computed here.
     prior = get_context()
     session_id, parent_session_id = actor.session_from_env()
+    client_cwd = Path.cwd()
     bind_context(
         RequestContext(
             clock_override=_resolve_clock_override(at, prior),
             actor_override="system",
             session_id=session_id,
             parent_session_id=parent_session_id,
-            active_spec=_bind_active_spec(dir),
+            active_spec=_bind_active_spec(dir, client_cwd),
             active_dir=dir,
-            client_cwd=Path.cwd(),
+            client_cwd=client_cwd,
         )
     )
     common.require_current_schema(ctx.invoked_subcommand)

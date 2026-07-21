@@ -3,7 +3,7 @@ id: FEAT-533
 sequence_id: 533
 type: feature
 title: 'Statelessness: one process, many squads, per-request context'
-status: Draft
+status: InReview
 parent: EPIC-31
 author: architect
 refs:
@@ -30,7 +30,7 @@ subentities:
   title: Active-spec / active-dir seam onto the request context
   status: Todo
 created_at: '2026-07-21T12:37:58Z'
-updated_at: '2026-07-21T20:58:23Z'
+updated_at: '2026-07-21T23:17:39Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -380,4 +380,12 @@ their own spec and dir; neither observes the other's, and a one-shot CLI invocat
   - Boundary rule for the dev: the ContextVar is SEEDED/REBOUND only at the CLI edge (main_callback replaces its four seed calls — set_active_dir/apply_timestamp/set_actor/seed_session — with one bind_context(RequestContext(...))), by a server request handler, and by test fixtures. It is READ only through the accessor free-functions above. No code below open_service reads the ContextVar directly. Suggested home: a new _context.py holding RequestContext + the single ContextVar + bind/get; _clock and _actor keep their public function names (now reading the context), so their ~all call sites are untouched.
   - conftest migration (US2, real work): frozen_time rebinds the context's clock field (not monkeypatch clock.now); _reset_clock_override/_reset_actor/_reset_session_seed collapse into one context-reset/rebind fixture.
   - ADR? No — feature-level implementation decision. ADR-534 already pins the standing rule (no module-level mutable state; ContextVar-at-edge + threading-below; caches are code) and explicitly sanctions this pattern; choosing 'one object vs N vars' is the concrete container shape within it, not a new durable constraint. Capture the 'single RequestContext object, not per-value vars' convention in US1's documented triage rule so it doesn't rot; no new ADR needed.
+- [2026-07-21T23:16:57Z] Mara Tester:
+  - Verified acceptance: US1 AST guard (tests/meta/test_no_unallowlisted_module_level_mutable_state.py) green, wired-guard plant tests catch dict/list/set literals AND defaultdict/OrderedDict/Counter/deque factories (REV-557 F1 fix confirmed).
+  - US2/US5: RequestContext (src/squads/_context.py) is the single ContextVar carrying clock/actor/session/spec/dir/client_cwd, seeded once at main_callback; grep confirms no module globals remain in _clock.py/_actor.py/_cli/_common.py for these.
+  - US3: tests/service/test_client_cwd_independent_resolution.py green; confirmed live via CLI with --dir against two throwaway squads in one shell -- independent results, nothing remembered.
+  - US4: tests/service/test_multi_squad_concurrent_request_isolation.py green, includes the REV-557 F2 fix (genuine same-squad concurrent read-after-commit test, not just cross-squad separation).
+  - Gates: pyright 0 errors, ruff check + format clean, full suite green (uv run pytest, all workers), sq check clean on this repo.
+  - One-shot CLI regression smoke (fresh throwaway squads): --at backdating works (created_at forged correctly), invalid --at still exits non-zero with a clear error, --as op-slug/--author attribution correct, sq check clean, sq tree --json valid JSON with zero ANSI bytes, two --dir squads resolve independently in one shell. No behavior change found.
+  - Recommend: TASK-549 and TASK-554 -> Done; FEAT-533 -> InReview for operator acceptance.
 <!-- sq:discussion:end -->
