@@ -34,7 +34,7 @@ jobs:
         with:
           python-version-file: pyproject.toml
       - uses: astral-sh/setup-uv@v8.2.0
-      - run: uv sync --frozen
+      - run: uv sync --frozen --all-extras
       - name: ruff check
         run: uv run ruff check .
       - name: ruff format
@@ -56,6 +56,6 @@ jobs:
         with:
           python-version-file: pyproject.toml
       - uses: astral-sh/setup-uv@v8.2.0
-      - run: uv sync --frozen
+      - run: uv sync --frozen --all-extras
       - name: pytest
         run: uv run pytest
