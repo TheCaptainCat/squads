@@ -3,7 +3,7 @@ id: FEAT-513
 sequence_id: 513
 type: feature
 title: sq ui shell + tree navigation
-status: InReview
+status: Done
 parent: EPIC-28
 author: product-owner
 priority: medium
@@ -21,7 +21,7 @@ subentities:
   title: Navigate siblings, into children, back to parent
   status: Todo
 created_at: '2026-07-21T09:11:23Z'
-updated_at: '2026-07-21T12:05:21Z'
+updated_at: '2026-07-21T14:38:02Z'
 ---
 <!-- sq:body -->
 ## Capability

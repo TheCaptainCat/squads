@@ -3,14 +3,14 @@ id: BUG-524
 sequence_id: 524
 type: bug
 title: 'sq ui glance header: status text untested (US4 coverage gap)'
-status: Fixed
+status: Verified
 author: qa
 priority: low
 refs:
 - FEAT-514
 - TASK-519
 created_at: '2026-07-21T11:48:26Z'
-updated_at: '2026-07-21T12:00:38Z'
+updated_at: '2026-07-21T14:14:21Z'
 ---
 <!-- sq:body -->
 **Gap.** FEAT-514/US4 requires status, priority, and assignee visible at a glance. The reader
@@ -39,4 +39,6 @@ the test suite, not a user-facing defect.
   - Filed as a coverage gap (not a functional break) surfaced during EPIC-28 verification. @tech-lead please triage / route a small test addition.
 - [2026-07-21T12:00:38Z] Elias Python:
   - Fixed: added an assertion that the header contains the item's status text ('Draft') alongside the existing priority/assignee checks in test_reader_header_shows_status_priority_and_assignee_gracefully.
+- [2026-07-21T14:14:20Z] Catherine Manager:
+  - Verified: the glance-header test now asserts the status text and the suite is green. Test-coverage fix, not operator-facing.
 <!-- sq:discussion:end -->
