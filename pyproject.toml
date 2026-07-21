@@ -32,6 +32,9 @@ dependencies = [
     "anyio>=4",
 ]
 
+[project.optional-dependencies]
+tui = ["textual>=0.16.0"]
+
 [project.scripts]
 squads = "squads._cli:main"
 sq = "squads._cli:main"
