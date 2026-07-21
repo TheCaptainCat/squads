@@ -22,6 +22,22 @@ jobs:
           python-version-file: pyproject.toml
       - uses: astral-sh/setup-uv@v8.2.0
       - run: uv sync --frozen
+
+      - name: read core version (unified version)
+        id: core-version
+        run: |
+          version=$(uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: version guard - tag must match core version
+        run: |
+          expected="v${{ steps.core-version.outputs.version }}"
+          actual="${{ github.event.release.tag_name }}"
+          if [ "${actual}" != "${expected}" ]; then
+            echo "::error::Release tag '${actual}' does not match core version '${expected}' from pyproject.toml - bump pyproject.toml or fix the tag before this can publish to PyPI."
+            exit 1
+          fi
+
       - name: regenerate template manifest
         run: python scripts/gen_template_manifest.py
       - run: uv build
