@@ -57,6 +57,34 @@ async def test_ui_reports_a_clean_error_when_the_tui_extra_is_missing(project, m
     assert "Traceback" not in result.output
 
 
+async def test_ui_does_not_mask_a_nested_first_party_module_not_found_error(
+    project, monkeypatch, runner
+):
+    real_import = builtins.__import__
+
+    def _broken_first_party_import(
+        name: str,
+        globals: Mapping[str, object] | None = None,
+        locals: Mapping[str, object] | None = None,
+        fromlist: Sequence[str] = (),
+        level: int = 0,
+    ) -> ModuleType:
+        if name == "squads._tui._app":
+            raise ModuleNotFoundError("No module named 'squads._tui._nonexistent'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _broken_first_party_import)
+    for name in list(sys.modules):
+        if name.startswith("squads._tui"):
+            monkeypatch.delitem(sys.modules, name, raising=False)
+
+    result = runner.invoke(app, ["ui"])
+
+    assert "pip install squads[tui]" not in result.output
+    assert isinstance(result.exception, ModuleNotFoundError)
+    assert "squads._tui._nonexistent" in str(result.exception)
+
+
 async def test_ui_hands_the_resolved_service_to_the_app_and_calls_its_blocking_run(
     project, monkeypatch, runner
 ):

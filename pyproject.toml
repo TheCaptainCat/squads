@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-tui = ["textual>=0.16.0"]
+tui = ["textual>=0.29.0"]
 
 [project.scripts]
 squads = "squads._cli:main"

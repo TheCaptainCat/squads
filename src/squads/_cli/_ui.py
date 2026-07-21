@@ -11,10 +11,12 @@ def ui() -> None:
     """Launch the sq ui terminal browser."""
     svc = get_service()
     try:
-        from squads._tui._app import SquadsApp
+        import textual  # noqa: F401  # pyright: ignore[reportUnusedImport]
     except ModuleNotFoundError as exc:
         raise SquadsError(
             "the sq ui terminal UI needs the optional 'tui' extra — "
             "install it with `pip install squads[tui]`"
         ) from exc
+    from squads._tui._app import SquadsApp
+
     SquadsApp(svc).run()
