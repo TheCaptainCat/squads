@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 541,
+  "counter": 542,
   "padding": 6,
   "items": {
     "12": {
@@ -20121,7 +20121,7 @@
       ],
       "path": "features/FEAT-000533-statelessness-one-process-many-squads-per-request-context.md",
       "created_at": "2026-07-21T12:37:58Z",
-      "updated_at": "2026-07-21T12:39:50Z",
+      "updated_at": "2026-07-21T20:08:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20339,7 +20339,7 @@
       "subentities": [],
       "path": "epics/EPIC-000538-complete-spec-driven-customization.md",
       "created_at": "2026-07-21T15:11:25Z",
-      "updated_at": "2026-07-21T15:56:24Z",
+      "updated_at": "2026-07-21T20:08:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20350,11 +20350,11 @@
       "type": "bug",
       "title": "VS Code extension mis-renders valid CommonMark in item bodies",
       "slug": "vs-code-extension-mis-renders-valid-commonmark-in-item-bodie",
-      "status": "Open",
+      "status": "Fixed",
       "description": "Extension body renderer mangles valid CommonMark: bold-wrapped inline code and a '*' inside a code span break out, unbalance emphasis, and the code span runs on.",
       "parent": null,
       "author": "op-pierre",
-      "assignee": null,
+      "assignee": "typescript-dev",
       "priority": "medium",
       "severity": null,
       "labels": [],
@@ -20364,7 +20364,7 @@
       "subentities": [],
       "path": "bugs/BUG-000539-vs-code-extension-mis-renders-valid-commonmark-in-item-bodie.md",
       "created_at": "2026-07-21T15:24:45Z",
-      "updated_at": "2026-07-21T15:25:10Z",
+      "updated_at": "2026-07-21T20:24:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20420,6 +20420,50 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-541"
+    },
+    "542": {
+      "sequence_id": 542,
+      "type": "review",
+      "title": "Review of BUG-539 CommonMark render fix",
+      "slug": "review-of-bug-539-commonmark-render-fix",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-539"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Pre-existing sentinel char in body is not neutralized before extraction",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Test gaps: multi-span index, escaping inside code span, digit-adjacency, table/heading",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000542-review-of-bug-539-commonmark-render-fix.md",
+      "created_at": "2026-07-21T20:20:14Z",
+      "updated_at": "2026-07-21T20:24:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-542"
     }
   }
 }

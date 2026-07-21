@@ -14,7 +14,7 @@ description: Make the work-item vocabulary fully overridable (drop/rename/re-pre
   + extend overrides to the playbook, via one shared merge engine (deep-merge · active
   · splat-refs).
 created_at: '2026-07-21T15:11:25Z'
-updated_at: '2026-07-21T15:56:24Z'
+updated_at: '2026-07-21T20:08:03Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -195,4 +195,6 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
   - Constraint: the category catalog is hard-coded in squads — closed set, fixed semantics, not part of the override surface. Adopters cannot create/rename/redefine a category; a custom type only picks one of the fixed categories to inherit its behaviour.
 - [2026-07-21T15:48:49Z] Pierre Chat:
   - Category naming + rules: call the third category 'records' (not architecture); guide is a record, review is work. Records take no parent — records relate via refs, not hierarchy — and this must be enforced at create/update AND in sq check (today parents=[] on decision/guide is unenforced: 5 ADRs hold parents while sq check is clean). Both the TUI and VS Code extension trees need a Records group; migrate the 5 parented ADRs to related refs.
+- [2026-07-21T20:08:03Z] Pierre Chat:
+  - Sequencing (op-pierre): statelessness first — land FEAT-533 (removes the _PLAYBOOK_SPEC/_active_spec singletons) before cutting EPIC-538/540 features onto the per-request seam. ADR-541 and ADR-534 held at Proposed for now (not accepted yet); feature-cutting waits on that acceptance.
 <!-- sq:discussion:end -->

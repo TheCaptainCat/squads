@@ -27,7 +27,7 @@ subentities:
   title: Code-vs-data cache boundary and concurrency-isolation acceptance
   status: Todo
 created_at: '2026-07-21T12:37:58Z'
-updated_at: '2026-07-21T12:39:50Z'
+updated_at: '2026-07-21T20:08:04Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -253,4 +253,6 @@ Acceptance test: a long-lived process serving N interleaved requests across ≥2
   - Origin of the ask: operator op-pierre.
 - [2026-07-21T12:39:50Z] Robert Architect:
   - ADR recommendation: yes — the invariant 'no module-level mutable state; squad/request context is resolved per request and threaded, never a process singleton; caches may hold code/definitions but never squad data' is a standing rule, and rules belong in an ADR, not just a feature body (features are history, ADRs impose rules). It would formalize the data-vs-code triage as a durable constraint the enforcement guard (US1) checks against. Recommend a companion ADR; not creating it here — Pierre's call.
+- [2026-07-21T20:08:03Z] Pierre Chat:
+  - Sequenced as Phase 1 ahead of the spec-customization epics (EPIC-538 rides this seam). See EPIC-538 for the full sequencing note.
 <!-- sq:discussion:end -->
