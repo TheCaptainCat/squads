@@ -10,16 +10,16 @@ for _color_var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
     os.environ.pop(_color_var, None)
 
 from collections.abc import Callable  # noqa: E402
+from dataclasses import replace  # noqa: E402
 from datetime import UTC, datetime  # noqa: E402
 from typing import Any  # noqa: E402
 
 import pytest  # noqa: E402
 from typer.testing import CliRunner  # noqa: E402
 
-from squads import _actor as actor  # noqa: E402
 from squads import _aio  # noqa: E402
-from squads import _clock as clock  # noqa: E402
 from squads._cli import app  # noqa: E402
+from squads._context import RequestContext, bind_context, get_context  # noqa: E402
 from squads._rendering._engine import (  # noqa: E402
     _env_cache,  # pyright: ignore[reportPrivateUsage]
     set_active_squad_dir,
@@ -55,32 +55,24 @@ def anyio_backend():
 
 
 @pytest.fixture(autouse=True)
-def _reset_clock_override():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
-    """Ensure a forged `--at` timestamp from one test never leaks into the next."""
-    yield
-    clock.set_now(None)
+def _reset_context():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
+    """Ensure the ambient `RequestContext` (forged time, actor, session lineage) never leaks
+    between tests. One fixture replaces the three former per-field leak-guards
+    (`_reset_clock_override`/`_reset_actor`/`_reset_session_seed`) now that all three live in
+    one `RequestContext` object instead of three separate module globals — the single-object
+    payoff of the chosen context shape.
 
-
-@pytest.fixture(autouse=True)
-def _reset_actor():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
-    """Ensure the ambient actor never leaks between tests (mirrors the clock reset)."""
-    yield
-    actor.set_actor(None)
-
-
-@pytest.fixture(autouse=True)
-def _reset_session_seed():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
-    """Ensure the ambient session pair (`_actor.seed_session`) never leaks between tests —
-    same leak-guard class as `_reset_actor`/`_reset_clock_override`, just the session-lineage
-    half of `_actor`'s module-global state. A test that seeds a session (explicitly, or via a
-    real CLI invocation with `SQUADS_SESSION_ID` set) must not leave it seeded for the next
-    test's own fixtures — in particular `project`, which calls `service.init()` directly and
-    so never re-seeds the session itself the way a real CLI invocation's root callback would.
     Reset at both ends: before, so a prior test's leftover state never reaches this test's own
-    fixture setup (which runs before the test body); after, as the usual backstop."""
-    actor.seed_session(None, None)
+    fixture setup (e.g. `project`, which calls `service.init()` directly and so never
+    re-seeds the session itself the way a real CLI invocation's root callback would); after,
+    as the usual backstop.
+
+    `_active_spec`/`_active_dir` (`_cli/_common`) are NOT part of `RequestContext` yet — their
+    reset stays in `_reset_active_spec` below until they move onto the context too.
+    """
+    bind_context(RequestContext())
     yield
-    actor.seed_session(None, None)
+    bind_context(RequestContext())
 
 
 @pytest.fixture(autouse=True)
@@ -144,10 +136,16 @@ def _neutralize_forced_color(monkeypatch):  # pyright: ignore[reportUnusedFuncti
 
 
 @pytest.fixture
-def frozen_time(monkeypatch):
+def frozen_time():
+    """Freeze `clock.now()` for this test by rebinding the ambient context's clock field
+    (rather than monkeypatching `clock.now` itself), so the frozen time is visible through
+    the same seam a real `--at` invocation uses and propagates across `invoke`/`run_in_thread`
+    the same way. Restores the prior context after."""
     fixed = datetime(2026, 6, 7, 10, 0, 0, tzinfo=UTC)
-    monkeypatch.setattr(clock, "now", lambda: fixed)
-    return fixed
+    prior = get_context()
+    bind_context(replace(prior, clock_override=fixed))
+    yield fixed
+    bind_context(prior)
 
 
 @pytest.fixture

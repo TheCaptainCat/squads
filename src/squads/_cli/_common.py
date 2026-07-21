@@ -75,9 +75,16 @@ def get_active_spec() -> WorkflowSpec:
 
 
 def apply_timestamp(at: str | None) -> None:
-    """Honour the global ``--at`` option: forge `clock.now()` for this invocation (or clear it)."""
+    """Honour the global ``--at`` option: forge `clock.now()` for this invocation.
+
+    Absent ``--at`` this is a no-op — it leaves the ambient ``RequestContext.clock_override``
+    untouched rather than force-clearing it. A fresh process (or a fresh per-request context)
+    already starts with no override, so there is nothing to clear there; leaving it alone is
+    what lets a test's frozen wall clock (the `frozen_time` fixture, itself a `clock_override`
+    rebind) survive several sequential CLI invocations in one process, the same way a real
+    system clock would survive several real one-shot processes.
+    """
     if at is None:
-        _clock.set_now(None)
         return
     try:
         _clock.set_now(_clock.parse_iso(at))
