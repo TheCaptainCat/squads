@@ -37,6 +37,7 @@ from typing import Any
 
 from squads._errors import SquadsError
 from squads._workflow._models import (
+    META_TYPES,
     Badge,
     Collection,
     Field,
@@ -110,6 +111,28 @@ def _load_bundled_spec() -> WorkflowSpec:
 # Bundled-path parsers — status keys stay plain str (no enum coercion; the loaded spec
 # is the sole status vocabulary, same as the type axis).
 # ---------------------------------------------------------------------------
+
+
+def _pop_legacy_is_meta(name: str, data: dict[str, Any]) -> dict[str, Any]:
+    """One-release read-compat shim, per the accepted back-compat policy: translate a
+    deprecated ``is_meta`` key before ``model_validate`` sees it, so ``ItemSpec``'s
+    ``extra="forbid"`` stays intact.
+
+    ``is_meta`` absent or ``false`` is a no-op (``category`` falls to its ``"work"`` default).
+    ``is_meta = true`` on a type outside the closed, locked roster set is refused — roster
+    membership isn't adopter-declarable. Dropped at 1.0 (see CHANGELOG).
+    """
+    if "is_meta" not in data:
+        return data
+    data = dict(data)
+    legacy = data.pop("is_meta")
+    if legacy and name not in META_TYPES:
+        raise SquadsError(
+            f"item spec {name!r}: 'is_meta' is deprecated in favour of 'category' — "
+            f"roster is locked to {sorted(META_TYPES)}, so a custom type cannot set "
+            f"is_meta = true. Declare 'category' instead (defaults to 'work')."
+        )
+    return data
 
 
 def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
@@ -207,6 +230,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     alias_to_type: dict[str, str] = {}
 
     for name, data in raw.get("items", {}).items():
+        data = _pop_legacy_is_meta(name, data)
         # parents stays a list of plain strings; cross-refs are checked in WorkflowSpec._validate.
         parents: list[str] = list(data.get("parents", []))
         ref_rules_raw: list[dict[str, Any]] = data.get("ref_rules", [])
@@ -284,6 +308,7 @@ def _parse_lifecycle_str(name: str, data: dict[str, Any]) -> Lifecycle:
 
 def _parse_item_spec_str(name: str, data: dict[str, Any]) -> ItemSpec:
     """Parse an ItemSpec for a custom override (parent type names stay as plain strings)."""
+    data = _pop_legacy_is_meta(name, data)
     parents: list[str] = data.get("parents", [])
     ref_rules_raw: list[dict[str, Any]] = data.get("ref_rules", [])
     ref_rules = _parse_ref_rules(ref_rules_raw, f"override items.{name}")

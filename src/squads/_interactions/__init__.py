@@ -307,7 +307,7 @@ def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
     return sorted(
         custom_item_skill_name(ctype)
         for ctype in spec.items
-        if ctype not in PLAYBOOK and not spec.items[ctype].is_meta
+        if ctype not in PLAYBOOK and spec.items[ctype].category != "roster"
     )
 
 

@@ -6,7 +6,7 @@ the three meta-types (``META_TYPES``) plus their agent-lifecycle statuses
 (``_RESERVED_FLOOR`` — ``Draft``/``Active``/``Archived``); every other type or status is
 ordinary spec vocabulary a project may drop, rename, or reorder.
 
-The capability flags declared here (``is_meta``, ``subentity_kind``, ``parent_required``,
+The capability flags declared here (``category``, ``subentity_kind``, ``parent_required``,
 ``ref_rules``, ``StatusSpec.role``) are additive; ``SubentityKindSpec.completion`` is
 consumed by the sub-entity/finding done-toggle (``_services/_subentities.py``). They are
 encoded in ``default_workflow.toml``.
@@ -20,6 +20,7 @@ closed-set ``Priority``/``Severity`` enums.
 import math
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -239,9 +240,13 @@ class ItemSpec(BaseModel):
     # Capability flags (additive; not yet consumed by engine)
     # ------------------------------------------------------------------
 
-    is_meta: bool = False
-    """True for the meta-types (role/skill/operator): not a work type, no work lifecycle,
-    slug-keyed identity, retype-ineligible, self-author bypass for bootstrap."""
+    category: Literal["roster", "work", "records"] = "work"
+    """The type's behavioural bundle, per the accepted category/validator decision: ``roster``
+    (role/skill/operator — not a work type, no work lifecycle, slug-keyed identity,
+    retype-ineligible, self-author bypass for bootstrap; locked off the override surface),
+    ``work`` (burn-down items), or ``records`` (durable references). The ``Literal`` itself
+    rejects any value outside the closed catalog at construction — the Plane-1
+    category-catalog-membership check."""
 
     subentity_kind: str | None = None
     """The kind of sub-entity this type hosts: ``"story"`` | ``"subtask"`` | ``"finding"``
@@ -803,12 +808,12 @@ class WorkflowSpec(BaseModel):
     # ------------------------------------------------------------------ capability-flag accessors
 
     def work_types(self) -> frozenset[str]:
-        """Types that are units of work (not meta-types: role/skill/operator)."""
-        return frozenset(t for t, ts in self.items.items() if not ts.is_meta)
+        """Non-roster types: work + records — every type whose category isn't roster."""
+        return frozenset(t for t, ts in self.items.items() if ts.category != "roster")
 
-    def item_is_meta(self, item_type: str) -> bool:
-        """True for the meta-types: role, skill, operator."""
-        return self.items[item_type].is_meta
+    def item_is_roster(self, item_type: str) -> bool:
+        """True when *item_type*'s category is roster (role, skill, operator)."""
+        return self.items[item_type].category == "roster"
 
     def item_subentity_kind(self, item_type: str) -> str | None:
         """The sub-entity kind this type hosts, or None.
@@ -937,17 +942,18 @@ class WorkflowSpec(BaseModel):
         _check_completion_status(self.subentity_kinds, self.lifecycles, errors)
 
         # Reserved-vocab floor — the spec must declare the three meta-types, each with
-        # is_meta=true. This is the ONLY type-axis floor: every other type
+        # category = "roster". This is the ONLY type-axis floor: every other type
         # (built-in or custom) is ordinary spec vocabulary that may be omitted, renamed, or
-        # re-prefixed. A missing meta-type OR one declared without is_meta=true fails closed.
+        # re-prefixed. A missing meta-type OR one declared without category = "roster" fails
+        # closed.
         spec_types = set(self.items)
         missing_meta = META_TYPES - spec_types
         if missing_meta:
             errors.append(f"spec missing required meta-types: {sorted(missing_meta)}")
         errors.extend(
-            f"meta-type {t!r} must declare is_meta = true"
+            f"meta-type {t!r} must declare category = 'roster'"
             for t in sorted(META_TYPES & spec_types)
-            if not self.items[t].is_meta
+            if self.items[t].category != "roster"
         )
 
         # Reserved-vocab subset — spec must include the *structural floor* statuses: the

@@ -77,7 +77,7 @@ The operator may also speak directly to a specialist for live debugging; the spe
    workflow.md.j2's Team workflow section) — never a hardcoded type name, so a dropped/renamed
    built-in type degrades gracefully instead of crashing. #}
 {% for item_type, item_spec in spec.items.items() %}
-{% if not item_spec.is_meta %}
+{% if item_spec.category != "roster" %}
 {% set owner = authoring_owner(item_type) %}
 {% if owner %}
 {% set parent = spec.item_parent_required(item_type) %}
@@ -89,7 +89,7 @@ The operator may also speak directly to a specialist for live debugging; the spe
 {% endfor %}
 {% set parents_required = [] %}
 {% for item_type, item_spec in spec.items.items() %}
-{% if not item_spec.is_meta and spec.item_parent_required(item_type) %}
+{% if item_spec.category != "roster" and spec.item_parent_required(item_type) %}
 {% set _ = parents_required.append(item_type) %}
 {% endif %}
 {% endfor %}

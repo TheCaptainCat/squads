@@ -133,13 +133,13 @@ def test_every_field_entry_has_exactly_the_frozen_field_set() -> None:
             assert set(entry.keys()) == set(TYPE_FIELD_ENTRY_FIELDS)
 
 
-def test_order_and_prefix_and_is_meta_are_real_itemspec_fields() -> None:
+def test_order_and_prefix_and_category_are_real_itemspec_fields() -> None:
     """The catalog's ``order``/``prefix`` are read verbatim off ``ItemSpec``, and
-    ``reserved`` mirrors ``ItemSpec.is_meta`` — guards against a stray field name that
-    doesn't actually trace back to the model."""
+    ``reserved`` mirrors ``ItemSpec.category == "roster"`` — guards against a stray field
+    name that doesn't actually trace back to the model."""
     assert "order" in ItemSpec.model_fields
     assert "prefix" in ItemSpec.model_fields
-    assert "is_meta" in ItemSpec.model_fields
+    assert "category" in ItemSpec.model_fields
 
 
 # ─── null-order representation (unordered/custom type) ─────────────────────────

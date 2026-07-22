@@ -138,8 +138,10 @@ def build_item_app(item_type: str, spec: WorkflowSpec | None = None) -> typer.Ty
     # by-name-bound minimum, not a spec lookup).
     from squads._workflow import META_TYPES
 
-    is_meta = spec.item_is_meta(item_type) if item_type in spec.items else item_type in META_TYPES
-    if not is_meta:
+    is_roster = (
+        spec.item_is_roster(item_type) if item_type in spec.items else item_type in META_TYPES
+    )
+    if not is_roster:
         _cmd_retype(item, spec)
         _cmd_remove(item)
     return item

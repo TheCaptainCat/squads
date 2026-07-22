@@ -37,6 +37,6 @@ def populate_tree(tree: Tree[str], nodes: list[TreeNode], spec: WorkflowSpec) ->
     work_root = tree.root.add(Text(_WORK_GROUP, style="bold"), None, expand=True)
     roster_root = tree.root.add(Text(_ROSTER_GROUP, style="bold"), None, expand=True)
     for node in nodes:
-        group = roster_root if spec.item_is_meta(node.item.type) else work_root
+        group = roster_root if spec.item_is_roster(node.item.type) else work_root
         _attach(group, node)
     tree.root.expand()

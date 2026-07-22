@@ -129,15 +129,22 @@ def test_custom_type_cannot_shadow_a_reserved_folder() -> None:
 def test_work_types_excludes_meta_types_and_includes_every_builtin_work_type() -> None:
     spec = bundled_spec()
     wt = spec.work_types()
-    assert wt == {t for t in spec.items if not spec.item_is_meta(t)}
+    assert wt == {t for t in spec.items if not spec.item_is_roster(t)}
     for mt in META_TYPES:
         assert mt not in wt
 
 
+def test_work_types_matches_category_derived_expectation() -> None:
+    """Independent of ``item_is_roster``: ``work_types()`` is exactly the non-``roster``-category
+    set (work + records)."""
+    spec = bundled_spec()
+    assert spec.work_types() == {t for t, ts in spec.items.items() if ts.category != "roster"}
+
+
 def test_work_types_includes_a_custom_work_type_but_not_a_custom_meta_type() -> None:
     base = bundled_spec()
-    incident = ItemSpec(prefix="INC", folder="incidents", lifecycle="work", is_meta=False)
-    agent = ItemSpec(prefix="AGENT", folder="agents/custom", lifecycle="work", is_meta=True)
+    incident = ItemSpec(prefix="INC", folder="incidents", lifecycle="work", category="work")
+    agent = ItemSpec(prefix="AGENT", folder="agents/custom", lifecycle="work", category="roster")
     new_items = {**base.items, "incident": incident, "custom-agent": agent}
     new_prefix_to_type = {**base.prefix_to_type, "INC": "incident", "AGENT": "custom-agent"}
     spec = WorkflowSpec.model_validate(

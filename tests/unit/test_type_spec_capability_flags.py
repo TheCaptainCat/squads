@@ -1,5 +1,5 @@
 """TypeSpec/StatusSpec capability-flag reification — the generic replacement for the
-hardcoded per-type checks the old enum suite used to need: ``is_meta`` is true only for
+hardcoded per-type checks the old enum suite used to need: ``category`` is ``"roster"`` only for
 role/skill/operator; ``subentity_kind`` degrades to ``None`` (not KeyError) for an
 undeclared type; ``parent_required`` is set only where declared (task); ``ref_rules`` is
 populated only for task (fixes/addresses) and decision (supersedes), empty elsewhere, and
@@ -20,12 +20,12 @@ def _spec() -> WorkflowSpec:
     return load_workflow_spec()
 
 
-def test_is_meta_is_true_only_for_role_skill_and_operator() -> None:
+def test_category_is_roster_only_for_role_skill_and_operator() -> None:
     spec = _spec()
     for t in _META_TYPES:
-        assert spec.items[t].is_meta is True
+        assert spec.items[t].category == "roster"
     for t in _WORK_TYPES:
-        assert spec.items[t].is_meta is False
+        assert spec.items[t].category != "roster"
 
 
 def test_subentity_kind_is_set_only_where_declared() -> None:
@@ -69,10 +69,14 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
     custom = WorkflowSpec.model_validate(
         {
             "items": {
-                "role": ItemSpec(prefix="ROLE", folder="roles", lifecycle="agent", is_meta=True),
-                "skill": ItemSpec(prefix="SKILL", folder="skills", lifecycle="agent", is_meta=True),
+                "role": ItemSpec(
+                    prefix="ROLE", folder="roles", lifecycle="agent", category="roster"
+                ),
+                "skill": ItemSpec(
+                    prefix="SKILL", folder="skills", lifecycle="agent", category="roster"
+                ),
                 "operator": ItemSpec(
-                    prefix="OP", folder="operators", lifecycle="agent", is_meta=True
+                    prefix="OP", folder="operators", lifecycle="agent", category="roster"
                 ),
                 "feat": ItemSpec(prefix="FEAT", folder="feats", lifecycle="work"),
                 "chore": ItemSpec(

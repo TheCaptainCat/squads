@@ -200,7 +200,7 @@ class _CustomCreateGroup(typer.core.TyperGroup):
                     canonical = resolved
                 else:
                     return None
-            if spec.item_is_meta(canonical):
+            if spec.item_is_roster(canonical):
                 return None
         except Exception:  # pylint: disable=broad-except
             # Spec resolution failed — degrade gracefully.

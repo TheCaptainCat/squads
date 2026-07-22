@@ -43,6 +43,7 @@ from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
+from squads._services._validators import ValidatorEngine
 from squads._workflow import META_ROLE, META_SKILL, STATUS_ACTIVE
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
@@ -891,6 +892,9 @@ class MaintenanceMixin(ServiceCore):
         issues += self._check_backends()
         # Advisory title-length audit across all sub-entities.
         issues += self._check_subentity_title_lengths(index)
+        # Validator-engine scaffold: empty catalog in Phase A, contributes nothing — the
+        # hardcoded _check_* calls above remain the sole source of output.
+        issues += ValidatorEngine(spec=self.spec).report(index, on_disk)
         return issues
 
     def _check_backends(self) -> list[CheckIssue]:
@@ -978,7 +982,7 @@ class MaintenanceMixin(ServiceCore):
     ) -> list[CheckIssue]:
         issues: list[CheckIssue] = []
         registered = {
-            r.extra.get(X.SLUG) for r in index.items.values() if self.spec.item_is_meta(r.type)
+            r.extra.get(X.SLUG) for r in index.items.values() if self.spec.item_is_roster(r.type)
         }
         for item in index.items.values():
             iid = item.id

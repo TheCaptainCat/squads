@@ -122,7 +122,7 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "type": t,
             "order": None if math.isinf(spec.items[t].order) else spec.items[t].order,
             "prefix": spec.items[t].prefix,
-            "reserved": spec.items[t].is_meta,
+            "reserved": spec.items[t].category == "roster",
             "fields": _type_fields(t, spec),
         }
         for t in types
