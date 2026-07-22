@@ -72,6 +72,12 @@ def _validate_refusals(
             "Clear or move all sub-entities first, then retype."
         )
     if item_parent:
+        # Deliberately overlaps the `parent_in` validator the later `ValidatorEngine.gate()`
+        # call runs on the prospective item (same `spec.parent_allowed(new_type, ...)` verdict)
+        # — kept because this branch has the old_id/current-parent context to raise the more
+        # actionable retype-specific message; the gate's own message is the generic per-item
+        # one shared with create/update and would be a worse error here. Not re-encoded logic:
+        # same predicate, message-quality duplication only.
         parent_item = db.get(item_parent)
         if parent_item is not None and not spec.parent_allowed(new_type, parent_item.type):
             raise SquadsError(

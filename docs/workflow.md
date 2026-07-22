@@ -272,24 +272,71 @@ Lifecycles are identified by name. You may reference a built-in lifecycle (e.g. 
 #### Statuses
 
 A status is a valid state in a lifecycle. Each status definition must specify:
-- `terminal` — boolean indicating whether items at this status are considered "done" (terminal statuses do not appear in `sq inbox`)
+- `role` — the name of a status role (from the role catalog) that governs this status's
+  terminal/hidden/color attributes. Squads derives terminal-ness, visibility, and color from
+  the role. See **Status roles** (below) for the full catalog.
 
 Optional:
 - `badge` — emoji displayed in sub-entity roll-up tables (used only for sub-entities)
-- `role` — special marker for specific statuses (used only for ADRs; e.g. `role = "superseded"`)
 
 ```toml
 [statuses.Triage]
-terminal = false
+role = "attention"
 
 [statuses.Mitigating]
-terminal = false
+role = "active"
 
 [statuses.Resolved]
-terminal = true
+role = "done"
 ```
 
 All statuses you define in a custom lifecycle must be declared in the `[statuses.*]` section.
+
+#### Status roles: terminal/hidden/color governance
+
+Every status references a **role**, which is a catalog entry governing three attributes:
+
+- **`settled`** — boolean; `true` means the status is terminal (work is done; hidden from `sq inbox`
+  by default).
+- **`hidden`** — boolean; `true` means the status is hidden from default list views (show only with
+  `--all` flag).
+- **`color`** — semantic color intent for display (positive/danger/warning/muted/neutral/info).
+  This is mapped to concrete, theme-aware colors across clients.
+
+Squads ships with a bundled role catalog. In your override, you can reference built-in roles or
+define new ones. Every status must declare a role; if omitted, it defaults to `pending`.
+
+**Bundled roles:**
+
+| Role | `settled` | `hidden` | `color` | Typical use |
+|------|-----------|----------|---------|------------|
+| `pending` | `false` | `false` | `neutral` | Draft, Proposed, Requested — awaiting action |
+| `active` | `false` | `false` | `positive` | InProgress, InReview, ChangesRequested — actively being worked |
+| `attention` | `false` | `false` | `danger` | Open issues, failing tests, urgent needs |
+| `blocked` | `false` | `false` | `danger` | Blocked — stopped by a dependency |
+| `in_force` | `true` | `false` | `info` | Accepted, Published — in effect, terminal but shown |
+| `done` | `true` | `true` | `positive` | Done, Verified, Approved — complete and hidden by default |
+| `retired` | `true` | `true` | `muted` | Cancelled, Deprecated, Rejected — terminal and hidden |
+| `superseded` | `true` | `true` | `muted` | Superseded — replaced by a newer item, terminal and hidden |
+
+**Defining a custom role:**
+
+```toml
+[roles.in_queue]
+settled = false
+hidden = false
+color = "warning"
+
+[statuses.Queued]
+role = "in_queue"
+```
+
+**Viewing the role catalog:**
+
+```bash
+sq workflow roles           # list all available roles in your spec
+sq workflow roles --json    # machine-readable output
+```
 
 #### Item types
 
@@ -299,6 +346,9 @@ An item type declaration specifies how a custom type appears in `sq` and which l
 - `lifecycle` — the lifecycle name (built-in or custom) governing transitions
 
 Optional:
+- `category` — the item's category: `"work"` (default, for task-like items that flow through
+  a lifecycle) or `"records"` (for durable reference items like ADRs or guides). See
+  **Records-category item types** (below) for details.
 - `parents` — list of allowed parent item types (e.g. `["epic"]`); empty list means unconstrained
 - `aliases` — list of short command aliases (e.g. `["inc"]` allows `sq inc <n>` as shorthand for `sq incident <n>`)
 
@@ -308,6 +358,41 @@ prefix = "INC"
 folder = "incidents"
 lifecycle = "incident"
 ```
+
+#### Records-category item types
+
+Squads recognizes two item categories:
+
+- **`"work"`** (default) — ephemeral items flowing towards completion: epics, features, tasks,
+  bugs, reviews. Work items can be parents/children in a hierarchy, appear in `sq inbox`, and
+  are tracked as effort.
+- **`"records"`** — durable reference documents: decisions/ADRs, guides, contracts, standards,
+  postmortems. Records have no parents, no hierarchy, and exist for reference, not active tracking.
+
+The bundled `decision` and `guide` types are both records. When you define a custom records type,
+squads treats it like a decision: it takes no parent, lives in its own folder, and never appears
+in `sq inbox` (it's always available for reference, not active work).
+
+**When to use records category:**
+
+Use `category = "records"` for items that are:
+- **Durable** — meant to last and be maintained, not disposable work
+- **Free-standing** — no parent or child relationships
+- **Reference material** — RFC, postmortem, runbook, SLA, policy, etc.
+
+**Example: custom postmortem type**
+
+```toml
+[items.postmortem]
+prefix = "PM"
+folder = "postmortems"
+category = "records"
+lifecycle = "guide"              # reuse the guide lifecycle or define your own
+```
+
+This creates items like `PM-1`, `PM-2`, etc., stored in `squads/postmortems/`. Records never
+have parents, so the `parents` field is ignored for records-category types. Use `sq list -t postmortem`
+to view all postmortems (they're shown at all times, unlike work items filtered by `sq inbox`).
 
 #### Collections
 
@@ -390,9 +475,21 @@ If there are errors, `sq workflow lint` prints each one with context and a fix h
 
 ### Worked example: incident type
 
-Here's a complete, runnable example of adding an `incident` item type with a three-state lifecycle:
+Here's a complete, runnable example of adding an `incident` item type with a three-state lifecycle
+and custom statuses with roles:
 
 ```toml
+# Define custom roles for the incident lifecycle
+[roles.triage_needed]
+settled = false
+hidden = false
+color = "danger"
+
+[roles.in_mitigation]
+settled = false
+hidden = false
+color = "warning"
+
 # Define the incident lifecycle
 [lifecycles.incident]
 initial = "Triage"
@@ -402,17 +499,17 @@ Triage = ["Mitigating", "Resolved"]
 Mitigating = ["Resolved", "Triage"]
 Resolved = ["Triage"]
 
-# Define custom statuses for the lifecycle
+# Define custom statuses for the lifecycle with roles
 [statuses.Triage]
-terminal = false
+role = "triage_needed"
 
 [statuses.Mitigating]
-terminal = false
+role = "in_mitigation"
 
 [statuses.Resolved]
-terminal = true
+role = "done"              # reuse the bundled "done" role for terminal status
 
-# Declare the incident type
+# Declare the incident type (work category by default)
 [items.incident]
 prefix = "INC"
 folder = "incidents"

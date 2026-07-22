@@ -3,21 +3,21 @@ id: REV-603
 sequence_id: 603
 type: review
 title: 'Review of FEAT-570 US1: category-aware visibility + filter'
-status: InReview
+status: Approved
 author: reviewer
 refs:
 - FEAT-570
 subentities:
 - local_id: F1
   title: 'StatusSpec.role docstring stale: now engine-consumed'
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F2
   title: Rejected records now visible by default — confirm intent
-  status: Open
+  status: WontFix
   severity: low
 created_at: '2026-07-22T13:37:59Z'
-updated_at: '2026-07-22T15:38:13Z'
+updated_at: '2026-07-22T20:38:23Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-570 US1 (TASK-595/596/597): category on the `sq workflow types --json` catalog, category-aware default visibility (folds REV-565 F9), the empty-view hint, and a `--category` filter on sq list/tree. Read-only — did not author. Gates verified green: pyright/ruff/format clean, full suite --all-extras exit 0, sq check clean.
@@ -34,8 +34,8 @@ _Add with `sq review 603 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | StatusSpec.role docstring stale: now engine-consumed |
-| F2 | 🟢 low | Open |  | Rejected records now visible by default — confirm intent |
+| F1 | 🟢 low | WontFix |  | StatusSpec.role docstring stale: now engine-consumed |
+| F2 | 🟢 low | WontFix |  | Rejected records now visible by default — confirm intent |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -44,7 +44,7 @@ _Add with `sq review 603 add-finding "…" --severity medium`; track with `sq re
 ### F1 — StatusSpec.role docstring stale: now engine-consumed
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F1:head:end -->
 
@@ -62,7 +62,7 @@ _Add with `sq review 603 add-finding "…" --severity medium`; track with `sq re
 ### F2 — Rejected records now visible by default — confirm intent
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
@@ -87,4 +87,6 @@ New behavior: a records item at a terminal-but-unroled status stays visible by d
   - @tech-lead @product-owner: Approve with 2 Low nits (F1 stale docstring, F2 Rejected-records-visible intent call). Neither blocks the merge. Gates: pyright/ruff/format clean, full suite --all-extras green, sq check clean.
 - [2026-07-22T15:38:13Z] Olivia Lead:
   - F1/F2 are subsumed by the FEAT-605 rework. F1 (stale StatusSpec.role docstring 'not consumed by the engine'): moot — role becomes the first-class engine-consumed axis and the docstring is rewritten in FEAT-605 TASK-606/607. F2 (Rejected records visible by default): resolved by ADR-604 §2 — Rejected moves into the retired role (settled/hidden/muted), so it now hides. Leaving this review for the manager to close.
+- [2026-07-22T20:38:22Z] Catherine Manager:
+  - Closing: the FEAT-570 US1 increment this reviewed (RETIRED_STATUS_ROLES visibility) was superseded by ADR-604/FEAT-605's role-object model. Both findings are resolved by that model — F1's StatusSpec.role docstring was rewritten under FEAT-605 (role is now a first-class object), and F2 (Rejected visible) is answered: ADR-604 deliberately moved Rejected to the retired role, so it now hides by default. Marked WontFix (reviewed code replaced, concerns resolved).
 <!-- sq:discussion:end -->
