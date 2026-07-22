@@ -8,12 +8,34 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`sq ui` — a terminal UI for browsing the squad.** A new `sq ui` command opens a
+  keyboard-navigable TUI: a Work/Roster tree for finding items, a reader panel with
+  body/sub-entities/discussion tabs for reading one in full, a filter/sort popup for
+  narrowing the tree, and a full-text search page that opens a result straight into the
+  reader. Ships behind the optional `tui` extra (`pip install squads[tui]`).
+- **VS Code: full-text search.** A new search QuickPick searches item bodies and
+  discussions, narrowed by a single type or status, with a result opening straight into
+  the preview.
+- **Custom, non-dev roles.** `sq override scaffold --new <slug>` starts a wholly new role
+  that isn't in the bundled catalog (e.g. `security-analyst`, `incident-commander`) with
+  the essentials stubbed in; `sq role activate <slug>` turns it into a tracked role with
+  its own Claude pointer. Pass `--can-spawn` to let the role spawn other agents.
 - **Type category axis + a pluggable-validator dispatch engine (foundation only).** Every
   item type now declares a `category` (`roster` / `work` / `records`) in place of the old
   `is_meta` flag, and a validator dispatch engine is wired into `sq check` and create/update.
   This first phase changes no behavior — the engine runs an empty validator set, and `sq
   check` output is unchanged — it only lands the foundation a later phase builds real,
   per-category checks on top of.
+
+### Fixed
+
+- **VS Code: bold text wrapping inline code no longer breaks rendering.** The body/comment
+  renderer now gives code spans CommonMark's precedence over emphasis, so a bold-wrapped
+  code span no longer breaks out partway through on an asterisk inside the code.
+- **Search snippets no longer drop a match found deep in a long line.** A hit's returned
+  snippet now windows around the actual match offset instead of always truncating from the
+  start of the line, so `sq search`, the `sq ui` search page, and the VS Code QuickPick all
+  show the matched text instead of clipping it out.
 
 ### Deprecated
 
