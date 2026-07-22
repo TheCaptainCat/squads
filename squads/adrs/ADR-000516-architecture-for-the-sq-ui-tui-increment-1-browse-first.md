@@ -4,10 +4,11 @@ sequence_id: 516
 type: decision
 title: 'Architecture for the sq ui TUI (increment 1: browse-first)'
 status: Accepted
-parent: EPIC-28
 author: architect
+refs:
+- EPIC-28
 created_at: '2026-07-21T09:12:54Z'
-updated_at: '2026-07-21T09:14:56Z'
+updated_at: '2026-07-22T11:53:18Z'
 ---
 <!-- sq:body -->
 # Context

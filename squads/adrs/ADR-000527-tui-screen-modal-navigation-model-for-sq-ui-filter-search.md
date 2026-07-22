@@ -4,12 +4,12 @@ sequence_id: 527
 type: decision
 title: TUI screen & modal navigation model for sq ui (filter + search)
 status: Accepted
-parent: EPIC-28
 author: architect
 refs:
 - ADR-516
+- EPIC-28
 created_at: '2026-07-21T12:16:25Z'
-updated_at: '2026-07-21T12:18:39Z'
+updated_at: '2026-07-22T11:53:19Z'
 ---
 <!-- sq:body -->
 # Context

@@ -3,7 +3,7 @@ id: FEAT-568
 sequence_id: 568
 type: feature
 title: 'Validator catalog: seed checks + category/type assignment'
-status: InReview
+status: Done
 parent: EPIC-540
 author: product-owner
 priority: medium
@@ -18,7 +18,7 @@ subentities:
   title: category bundles + per-type validators + the two new enforcements
   status: Todo
 created_at: '2026-07-22T08:38:35Z'
-updated_at: '2026-07-22T11:46:34Z'
+updated_at: '2026-07-22T11:51:26Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -151,4 +151,6 @@ Wire category default bundles, type-level extend-only validators list, records/e
   - (2) Gating — valid create/update/comment/reparent all succeed. Newly-gated invalid case confirmed: 'sq task N update --status Approved --force' (Approved invalid for work lifecycle) aborts with a clean SquadsError, exit 1, no traceback, file left unchanged (was previously only a check-report warning per REV-585 F1). Author/assignee: a skill slug is rejected at both create --author and update --assignee ('not a registered agent' / 'unknown slug'); role and operator slugs accepted.
   - (3) Assignment surface + Plane-1 — scaffolded .overrides/workflow.toml with a new work-category type assigning validators = ["no_parent"]: loads fine, sq workflow lint OK, and the engine actually enforces it live (create without parent OK, create --parent rejected: 'incident takes no parent'). Adding a bogus name (validators = ["no_parent", "bogus_check"]) fails closed cleanly: sq workflow lint reports the exact diagnostic + exit 1, sq list also fails closed at spec load with the same message, no traceback.
   - All 3 areas PASS. Full fast suite green (0 failures), ruff clean, pyright clean on every file this phase touched (305 pre-existing textual/TUI import errors are unrelated env noise, not in touched files). Recommend TASK-581/582/583 -> Done and FEAT-568 -> InReview. Did not transition items or commit (read-only verification).
+- [2026-07-22T11:51:26Z] Catherine Manager:
+  - Accepted to Done per op-pierre's standing delegation (reviewed + verified, non-visual): validator catalog, REV-585 approved, QA-verified.
 <!-- sq:discussion:end -->
