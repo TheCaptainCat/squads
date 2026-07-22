@@ -31,11 +31,13 @@ def _spec_dict(base: WorkflowSpec, items: dict[str, ItemSpec]) -> dict[str, obje
     }
 
 
-def test_bundled_spec_declares_no_validators_additions_anywhere() -> None:
-    """Additive over the bundled spec: every built-in type keeps an empty ``validators`` list
-    (the two deliberate new enforcements — records/epic ``no_parent`` — are a separate task)."""
+def test_bundled_spec_declares_epics_no_parent_addition_only() -> None:
+    """``epic`` is the one built-in type with a ``validators`` addition — its own ``no_parent``,
+    enforcing the work-root constraint (``records``' ``no_parent`` comes from the category
+    bundle instead, not a per-type addition)."""
     spec = bundled_spec()
-    assert all(ts.validators == [] for ts in spec.items.values())
+    assert spec.items["epic"].validators == ["no_parent"]
+    assert all(ts.validators == [] for t, ts in spec.items.items() if t != "epic")
 
 
 def test_an_unknown_validator_name_fails_closed_at_load() -> None:
@@ -79,13 +81,13 @@ def test_a_bare_catalog_name_addition_is_accepted() -> None:
 
 
 def test_the_engine_actually_runs_a_types_own_validators_addition() -> None:
-    """Proves the assignment surface reaches the engine, not just the spec model: a type's
-    ``validators`` addition (``no_parent`` on ``decision``, not in the bundled ``records``
+    """Proves the assignment surface reaches the engine, not just the spec model: a ``work``
+    type's own ``validators`` addition (``no_parent`` on ``bug`` — not in the ``work`` category
     bundle) fires in both ``report()`` and ``gate()`` for a parented instance of that type."""
     base = bundled_spec()
     items = {
         **base.items,
-        "decision": base.items["decision"].model_copy(update={"validators": ["no_parent"]}),
+        "bug": base.items["bug"].model_copy(update={"validators": ["no_parent"]}),
     }
     spec = WorkflowSpec.model_validate(_spec_dict(base, items))
 
@@ -100,24 +102,24 @@ def test_the_engine_actually_runs_a_types_own_validators_addition() -> None:
         created_at=_NOW,
         updated_at=_NOW,
     )
-    adr = Item(
+    bug = Item(
         sequence_id=2,
-        type="decision",
-        prefix="ADR",
-        title="d",
-        slug="d",
-        status="Proposed",
+        type="bug",
+        prefix="BUG",
+        title="b",
+        slug="b",
+        status="Open",
         parent=parent.id,
-        path="adrs/ADR-000002-d.md",
+        path="bugs/BUG-000002-b.md",
         created_at=_NOW,
         updated_at=_NOW,
     )
     db = SquadsDB(counter=2)
     db.add(parent)
-    db.add(adr)
+    db.add(bug)
 
     engine = ValidatorEngine(spec=spec, squad_global={})
     issues = engine.report(db, {})
-    assert any(i.item == adr.id and "no parent" in i.message for i in issues)
+    assert any(i.item == bug.id and "no parent" in i.message for i in issues)
     with pytest.raises(SquadsError, match="no parent"):
-        engine.gate(adr, db)
+        engine.gate(bug, db)

@@ -10,9 +10,10 @@ owning only the ``category`` field itself, the closed validator-NAME registries
 checks that read them.
 
 The engine is now the **sole** source of both ``sq check``'s per-item/squad-global issues and
-the create/update fail-closed gate — :data:`COMMON_CORE`/:data:`CATEGORY_BUNDLES` are populated
-(``no_parent`` on ``records``/``epic`` is withheld to a later, migration-sequenced task) and the
-hardcoded ``_check_*`` methods that used to compute this are retired from ``_maintenance.py``.
+the create/update fail-closed gate — :data:`COMMON_CORE`/:data:`CATEGORY_BUNDLES` are populated,
+including ``no_parent`` on the ``records`` bundle and as ``epic``'s own ``validators`` addition,
+and the hardcoded ``_check_*`` methods that used to compute this are retired from
+``_maintenance.py``.
 ``gate()`` only aborts on an **error**-level issue — a warn-level one (``agent_registered``,
 ``no_status_banner``, …) is advisory everywhere, mirroring ``sq check``'s own error-only exit
 code; it is never a create/update blocker.
@@ -143,8 +144,8 @@ def _parent_in(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _no_parent(ctx: ValidatorContext) -> list[CheckIssue]:
-    """Forbids any parent at all — the explicit opt-in a ``parent_in`` empty allowlist never
-    spells (see the architect's pin on the feature). Not yet selected by any bundle."""
+    """Forbids any parent at all — the explicit opt-in that an empty ``parent_in`` allowlist
+    deliberately does not imply. Selected by the ``records`` bundle and by ``epic``."""
     item = ctx.item
     if item.parent:
         return [CheckIssue("error", item.id, f"{item.type} takes no parent (got {item.parent})")]
@@ -332,8 +333,7 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
 
 #: The closed per-item validator catalog — a CODE/definition constant, immutable and shared
 #: across every request (fine under the ``_context.py`` CODE-vs-REQUEST split: it varies by
-#: neither request nor squad). Every ``VALIDATOR_NAMES`` member resolves here (asserted below);
-#: no bundle selects any of them yet — that's the routing task.
+#: neither request nor squad). Every ``VALIDATOR_NAMES`` member resolves here (asserted below).
 CATALOG: dict[str, Validator] = {
     "parent_in": _parent_in,
     "no_parent": _no_parent,
@@ -441,9 +441,9 @@ COMMON_CORE: tuple[str, ...] = (
 )
 
 #: Per-category default per-item validator-name bundle (per the accepted decision: "a category
-#: supplies a default validator bundle"). Neither ``records``' ``no_parent`` nor ``epic``'s own
-#: addition is wired yet — the two deliberate new enforcements are a separate, sequenced task
-#: (coordinated with the ADR-migration feature so this repo's own ``sq check`` stays clean).
+#: supplies a default validator bundle"). ``records`` carries ``no_parent`` here; ``epic`` gets
+#: its own ``no_parent`` as a per-type ``validators`` addition in the spec (``work``'s bundle
+#: parent check is vacuous for it, so this is a pure AND-compose tightening, not a conflict).
 CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
     "roster": (),
     "work": (
@@ -453,7 +453,7 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
         "subentity_title_max",
         "subtask_story_mapping",
     ),
-    "records": ("supersedes_incoming",),
+    "records": ("no_parent", "supersedes_incoming"),
 }
 
 
@@ -468,15 +468,14 @@ def effective_validator_names(
     bundle + its own additions (the "extend-only floor" — a type may add to a bundle, never
     subtract from it).
 
-    *extra* stands in for the per-type ``ItemSpec.validators`` field (the assignment-surface
-    task); until then every caller passes none, so today every type's effective set is exactly
-    ``common_core + category_bundles[category]`` (both empty, so always ``()``).
+    *extra* is the per-type ``ItemSpec.validators`` field (the assignment surface) —
+    ``_run_per_item`` passes the item's own list; every other caller defaults to none.
 
     Parameterised on *common_core*/*category_bundles* — not hardcoded to the module
-    constants — so a caller (or a test) can exercise the composition against a stub bundle
-    before the routing task populates the real one. *category_bundles* defaults to ``None``
-    (resolved to the module-level :data:`CATEGORY_BUNDLES` below) rather than binding the
-    mutable dict itself as a parameter default.
+    constants — so a caller (or a test) can exercise the composition against a stub bundle.
+    *category_bundles* defaults to ``None`` (resolved to the module-level
+    :data:`CATEGORY_BUNDLES` below) rather than binding the mutable dict itself as a parameter
+    default.
     """
     bundles = category_bundles if category_bundles is not None else CATEGORY_BUNDLES
     return common_core + bundles.get(category, ()) + extra

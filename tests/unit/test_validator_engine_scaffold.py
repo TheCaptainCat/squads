@@ -54,8 +54,6 @@ def test_catalogs_implement_exactly_the_declared_name_registries() -> None:
 
 
 def test_common_core_and_category_bundles_are_populated() -> None:
-    """``no_parent`` on ``records``/``epic`` is deliberately withheld — a separate,
-    migration-sequenced task."""
     assert set(COMMON_CORE) == {
         "item_status_valid",
         "dangling_ref",
@@ -65,7 +63,7 @@ def test_common_core_and_category_bundles_are_populated() -> None:
     }
     assert set(CATEGORY_BUNDLES) == {"roster", "work", "records"}
     assert CATEGORY_BUNDLES["roster"] == ()
-    assert "no_parent" not in CATEGORY_BUNDLES["records"]
+    assert "no_parent" in CATEGORY_BUNDLES["records"]
     assert "parent_in" in CATEGORY_BUNDLES["work"]
     assert "no_parent" not in CATEGORY_BUNDLES["work"]
 
