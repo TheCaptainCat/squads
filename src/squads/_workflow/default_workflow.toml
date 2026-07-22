@@ -1,5 +1,5 @@
 # squads default workflow specification
-# Encodes the vocabulary byte-for-byte, including capability flags (is_meta,
+# Encodes the vocabulary byte-for-byte, including capability flags (category,
 # subentity_kind, parent_required, ref_rules) and StatusSpec.role.
 # Loaded and validated by load_workflow_spec() in _loader.py.
 # DO NOT edit without updating the golden-lock test in tests/test_workflow_spec.py.
@@ -247,7 +247,7 @@ lifecycle = "work"
 parents = []
 aliases = ["e"]
 order = 10
-is_meta = false
+category = "work"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None (no sub-entities)
@@ -260,7 +260,7 @@ lifecycle = "work"
 parents = ["epic"]
 aliases = ["feat", "f"]
 order = 20
-is_meta = false
+category = "work"
 subentity_kind = "story"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
@@ -273,7 +273,7 @@ lifecycle = "work"
 parents = ["feature"]
 aliases = ["t"]
 order = 30
-is_meta = false
+category = "work"
 subentity_kind = "subtask"
 parent_required = "feature"
 ref_rules = [
@@ -289,7 +289,7 @@ lifecycle = "bug"
 parents = []
 aliases = ["b"]
 order = 40
-is_meta = false
+category = "work"
 ref_rules = []
 fields = [
   { code = "priority", label = "Priority", collection = "priority" },
@@ -305,7 +305,7 @@ lifecycle = "adr"
 parents = []
 aliases = ["dec", "d"]
 order = 50
-is_meta = false
+category = "records"
 ref_rules = [{ kind = "supersedes", hint = "" }]
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None
@@ -318,7 +318,7 @@ lifecycle = "review"
 parents = []
 aliases = ["rev", "r"]
 order = 60
-is_meta = false
+category = "work"
 subentity_kind = "finding"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
@@ -332,7 +332,7 @@ lifecycle = "guide"
 parents = []
 aliases = ["g"]
 order = 70
-is_meta = false
+category = "records"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 extra_fields = ["tags"]
@@ -346,7 +346,7 @@ lifecycle = "agent"
 parents = []
 aliases = []
 order = 80
-is_meta = true
+category = "roster"
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
@@ -358,7 +358,7 @@ lifecycle = "agent"
 parents = []
 aliases = []
 order = 90
-is_meta = true
+category = "roster"
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
@@ -370,7 +370,7 @@ lifecycle = "agent"
 parents = []
 aliases = []
 order = 100
-is_meta = true
+category = "roster"
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None

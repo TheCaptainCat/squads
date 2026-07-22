@@ -131,7 +131,7 @@ class RosterMixin(ServiceCore):
         """Open/closed/total work-item counts per assignee (busiest first; unassigned last)."""
         counts: dict[str | None, list[int]] = {}
         for it in await self.list_items():
-            if self.spec.item_is_meta(it.type):
+            if self.spec.item_is_roster(it.type):
                 continue
             bucket = counts.setdefault(it.assignee, [0, 0])
             bucket[0 if self.spec.is_open(it.status) else 1] += 1

@@ -193,3 +193,71 @@ fields = [
     )
     with pytest.raises(SquadsError, match="duplicate field code 'impact'"):
         load_workflow_spec(squad_dir=tmp_path)
+
+
+# --------------------------------------------------------------------------- legacy is_meta shim
+
+
+def test_override_type_with_is_meta_false_loads_and_resolves_to_work_category(
+    tmp_path: Path,
+) -> None:
+    _write_override(
+        tmp_path,
+        """
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "work"
+is_meta = false
+""",
+    )
+    spec = load_workflow_spec(squad_dir=tmp_path)
+    assert spec.items["incident"].category == "work"
+
+
+def test_override_type_omitting_is_meta_also_resolves_to_work_category(tmp_path: Path) -> None:
+    _write_override(
+        tmp_path,
+        """
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "work"
+""",
+    )
+    spec = load_workflow_spec(squad_dir=tmp_path)
+    assert spec.items["incident"].category == "work"
+
+
+def test_override_type_with_is_meta_true_fails_closed_naming_category_and_roster(
+    tmp_path: Path,
+) -> None:
+    _write_override(
+        tmp_path,
+        """
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "work"
+is_meta = true
+""",
+    )
+    with pytest.raises(SquadsError, match="category") as exc_info:
+        load_workflow_spec(squad_dir=tmp_path)
+    assert "roster" in str(exc_info.value)
+
+
+def test_an_unrelated_unknown_key_still_fails_via_extra_forbid(tmp_path: Path) -> None:
+    """The shim pops only ``is_meta`` — any other unknown key still hard-fails."""
+    _write_override(
+        tmp_path,
+        """
+[items.incident]
+prefix = "INC"
+folder = "incidents"
+lifecycle = "work"
+not_a_real_key = true
+""",
+    )
+    with pytest.raises(SquadsError):
+        load_workflow_spec(squad_dir=tmp_path)

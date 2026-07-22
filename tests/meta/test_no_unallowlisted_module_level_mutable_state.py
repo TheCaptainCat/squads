@@ -119,6 +119,13 @@ ALLOWLIST: dict[str, frozenset[str]] = {
     "src/squads/_migrations/_meta_compat.py": frozenset(
         {"_LOCAL_ID_PREFIX"}  # frozen pre-migration kind -> local-id-prefix snapshot
     ),
+    "src/squads/_services/_validators.py": frozenset(
+        {
+            "CATALOG",  # closed per-item validator catalog — definition-time, empty in Phase A
+            "SQUAD_GLOBAL_CATALOG",  # closed squad-global validator registry, same status
+            "CATEGORY_BUNDLES",  # fixed category -> default-bundle lookup table
+        }
+    ),
 }
 
 # ---------------------------------------------------------------------------------- the scan

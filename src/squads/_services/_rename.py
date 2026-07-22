@@ -35,7 +35,7 @@ def _validate_rename_types(spec: WorkflowSpec, old_type: str, new_type: str) -> 
     for t in (old_type, new_type):
         if t not in spec.items:
             raise SquadsError(f"{t!r} is not declared in the active spec")
-        if spec.item_is_meta(t):
+        if spec.item_is_roster(t):
             raise SquadsError(
                 f"{t!r} is a reserved meta-type (role/skill/operator) and cannot be renamed"
             )
@@ -67,7 +67,7 @@ def _validate_rename_status(spec: WorkflowSpec, item_type: str, new_status: str)
     member of that type's own lifecycle states."""
     if item_type not in spec.items:
         raise SquadsError(f"{item_type!r} is not declared in the active spec")
-    if spec.item_is_meta(item_type):
+    if spec.item_is_roster(item_type):
         raise SquadsError(
             f"{item_type!r} is a reserved meta-type (role/skill/operator); "
             "its status cannot be bulk-renamed"

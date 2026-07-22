@@ -98,4 +98,4 @@ def test_the_bundled_spec_still_loads_cleanly_with_all_capability_flags_present(
     spec = load_workflow_spec()
     assert spec is not None
     assert spec.items["task"].parent_required == "feature"
-    assert spec.items["role"].is_meta is True
+    assert spec.items["role"].category == "roster"

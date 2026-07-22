@@ -4,7 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.12.0]
+
+### Added
+
+- **Type category axis + a pluggable-validator dispatch engine (foundation only).** Every
+  item type now declares a `category` (`roster` / `work` / `records`) in place of the old
+  `is_meta` flag, and a validator dispatch engine is wired into `sq check` and create/update.
+  This first phase changes no behavior — the engine runs an empty validator set, and `sq
+  check` output is unchanged — it only lands the foundation a later phase builds real,
+  per-category checks on top of.
+
+### Deprecated
+
+- **Workflow-override `is_meta` key.** Superseded by `category` (`"roster"` / `"work"` /
+  `"records"`) on an item type spec. A project override still carrying `is_meta` loads
+  transparently for now (`false`/absent resolves to the `category` default; `true` on a
+  non-roster type is rejected, since roster is closed to `role`/`skill`/`operator`). The
+  compatibility shim is removed at 1.0 — migrate to `category`.
 
 ## [0.11.1] - 2026-07-21
 

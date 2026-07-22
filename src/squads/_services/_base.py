@@ -38,6 +38,7 @@ from squads._rendering._engine import render, set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role
 from squads._services._results import CreateResult, TreeNode
+from squads._services._validators import ValidatorEngine
 from squads._util import slugify
 from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL, bundled_spec
 from squads._workflow._models import WorkflowSpec
@@ -293,7 +294,7 @@ class ServiceCore:
         ``has_template`` check so user-supplied overrides in
         ``.overrides/templates/items/<type>.md.j2`` are still honoured.
         """
-        if self.spec.item_is_meta(item_type):
+        if self.spec.item_is_roster(item_type):
             return f"agents/{item_type}.md.j2"
         per_type = f"items/{item_type}.md.j2"
         from squads._rendering._engine import has_template
@@ -395,6 +396,8 @@ class ServiceCore:
                 rendered = sections.replace_section(rendered, markers.BODY, body)
             await write_new(self.paths.abspath(squad_rel), item, rendered)
             db.add(item)
+            # Validator-engine scaffold: empty catalog in Phase A, a no-op.
+            ValidatorEngine(spec=self.spec).gate(item, db)
             # Advisory lane check, keyed on the declared author slug. Exempt before lookup.
             # Service must NOT print — warning rides back in the result.
             # Only laned item types (those in LANED_TYPES) participate in the lane domain;
@@ -560,10 +563,10 @@ class ServiceCore:
         """A slug that can author/be-assigned work: a registered role agent or a human operator.
 
         Skills are meta-types but NOT participants — only role and operator are.
-        ``item_is_meta(t) and t != META_SKILL`` expresses the same set.
+        ``item_is_roster(t) and t != META_SKILL`` expresses the same set.
         """
         return any(
-            self.spec.item_is_meta(it.type)
+            self.spec.item_is_roster(it.type)
             and it.type != META_SKILL
             and it.extra.get(X.SLUG) == slug
             for it in db.items.values()
@@ -571,7 +574,7 @@ class ServiceCore:
 
     def _check_author(self, db: SquadsDB, item_type: str, author: str, slug: str) -> None:
         # a meta-type (role/skill/operator) definition may self-author (bootstrap)
-        if self.spec.item_is_meta(item_type) and author == slug:
+        if self.spec.item_is_roster(item_type) and author == slug:
             return
         if not self._is_participant(db, author):
             raise SquadsError(

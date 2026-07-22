@@ -41,10 +41,14 @@ def _build_spec(
     behaviour under test (transition-target vocab / reachable-terminal) can fail."""
     statuses = {**_FLOOR_STATUSES, **extra_statuses}
     items_map = {
-        "task": ItemSpec(prefix="TASK", folder="tasks", lifecycle="work", is_meta=False),
-        "role": ItemSpec(prefix="ROLE", folder="agents/roles", lifecycle="agent", is_meta=True),
-        "skill": ItemSpec(prefix="SKILL", folder="agents/skills", lifecycle="agent", is_meta=True),
-        "operator": ItemSpec(prefix="OP", folder="operators", lifecycle="agent", is_meta=True),
+        "task": ItemSpec(prefix="TASK", folder="tasks", lifecycle="work", category="work"),
+        "role": ItemSpec(
+            prefix="ROLE", folder="agents/roles", lifecycle="agent", category="roster"
+        ),
+        "skill": ItemSpec(
+            prefix="SKILL", folder="agents/skills", lifecycle="agent", category="roster"
+        ),
+        "operator": ItemSpec(prefix="OP", folder="operators", lifecycle="agent", category="roster"),
     }
     return WorkflowSpec.model_validate(
         {

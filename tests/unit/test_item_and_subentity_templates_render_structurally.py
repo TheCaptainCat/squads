@@ -45,7 +45,9 @@ def test_every_builtin_type_template_renders_the_required_markers_and_heading(
     spec = bundled_spec()
     it = _item(item_type, spec)
     template_path = (
-        f"agents/{item_type}.md.j2" if spec.item_is_meta(item_type) else f"items/{item_type}.md.j2"
+        f"agents/{item_type}.md.j2"
+        if spec.item_is_roster(item_type)
+        else f"items/{item_type}.md.j2"
     )
     out = render(template_path, item=it, description="", extra=it.extra, spec=spec)
     assert "<!-- sq:body -->" in out and "<!-- sq:body:end -->" in out

@@ -10,7 +10,7 @@ refs:
 - EPIC-540
 - ADR-320
 created_at: '2026-07-21T16:26:15Z'
-updated_at: '2026-07-21T21:17:19Z'
+updated_at: '2026-07-22T09:26:20Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -315,6 +315,33 @@ obey a well-formed spec?* is Plane 2 (gate + report).
   and EPIC-538 speaks of an "architecture category" — both predate the records/work split and should
   be reworded to "`records` category" when next touched. ADR-541 is the authority for the taxonomy;
   the `related` ref to ADR-320 records the link.
+
+## Adopter back-compat: spec-vocab renames
+
+Renaming or removing a spec-vocabulary key — the first instance being `is_meta` → `category` on
+`ItemSpec` — is a **spec-format change, not a frontmatter-schema change**. Such a key is a
+type-level property read from the workflow spec at load time; it is never written to item
+frontmatter, the rebuildable index, or `.squads.toml`. A spec-vocab rename therefore carries **no
+`SCHEMA_VERSION` bump and no `sq migrate` data migration** — nothing in item data derives from it to
+migrate. `SCHEMA_VERSION` governs the on-disk frontmatter/index shape; spec-format provenance is
+tracked on its own axis by the `squads:override-base:<version>` stamp.
+
+The adopter-facing cost is confined to a project override that still writes the old key (the bundled
+spec is regenerated). The standing policy for any such rename:
+
+- **One-release read-compat shim in the loader.** The spec loader accepts the deprecated key for one
+  release and translates it to the new field before model validation, so the `extra="forbid"`
+  contract stays intact. For `is_meta`: a value of `false`, or the key absent, resolves to the
+  `category` default (`work`); `is_meta = true` on a non-roster type is refused with a clean
+  `SquadsError` naming `category` and the roster-locked floor, since a roster type is never
+  adopter-declarable.
+- **The deprecation is documented in the CHANGELOG / upgrade notes** for the release that introduces
+  the rename, so an adopter carrying the old key in an override gets the one-line migration.
+- **The shim is dropped at 1.0.** Past that, a deprecated spec-vocab key is an unknown key and fails
+  closed via `extra="forbid"`, the same as any other malformed override.
+
+This keeps a vocabulary rename a soft, one-release deprecation for adopters rather than a hard break,
+while holding the line that behaviour and vocabulary each live on their own versioning axis.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -337,4 +364,6 @@ obey a well-formed spec?* is Plane 2 (gate + report).
   - sq check clean; status left Proposed for the operator's accept decision.
 - [2026-07-21T21:17:19Z] Pierre Chat:
   - Accepted as revised, including epic's explicit no_parent (epic-as-root). Rationale confirmed: category and parent-rules are orthogonal axes — category 'work' gives epic its burn-down behavior, and root-ness is a per-type no_parent validator addition composed on top (empty parents stays 'any' for byte-identical bug/review; 'no parent' is spelled explicitly). Declared now, enforced when EPIC-540/538 build the validator engine; surfaces as a Plane-2 migration warning, not a load brick. Records no_parent + the 5-ADR parent→related migration land together so sq check stays clean.
+- [2026-07-22T09:26:20Z] Robert Architect:
+  - [amendment — 2026-07-22] Added a body section "Adopter back-compat: spec-vocab renames" per op-pierre's authorization (relayed via the coordinator). Additive policy consistent with the accepted decision — status unchanged. Captures: a spec-vocab key rename (first instance is_meta→category) is a spec-format change, not a frontmatter-schema bump (no SCHEMA_VERSION change, no data migration); a deprecated key gets a one-release read-compat shim in the loader (is_meta false/absent → category default work; true on a non-roster type → clean SquadsError); the deprecation is documented in the CHANGELOG/upgrade notes; the shim is dropped at 1.0. Stated at the standing-policy altitude for spec-vocab renames generally, with is_meta→category as the first instance.
 <!-- sq:discussion:end -->

@@ -154,9 +154,9 @@ def work_types() -> frozenset[str]:
     return _BUNDLED_SPEC.work_types()
 
 
-def item_is_meta(item_type: str) -> bool:
-    """True for role/skill/operator — the meta (non-work) types."""
-    return _BUNDLED_SPEC.item_is_meta(item_type)
+def item_is_roster(item_type: str) -> bool:
+    """True when *item_type*'s category is roster (role, skill, operator)."""
+    return _BUNDLED_SPEC.item_is_roster(item_type)
 
 
 def item_subentity_kind(item_type: str) -> str | None:
@@ -208,7 +208,7 @@ __all__ = [
     "can_transition",
     "initial_status",
     "is_open",
-    "item_is_meta",
+    "item_is_roster",
     "item_parent_required",
     "item_ref_rules",
     "item_subentity_kind",

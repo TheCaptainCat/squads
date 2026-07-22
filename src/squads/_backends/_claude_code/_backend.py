@@ -266,7 +266,7 @@ class ClaudeCodeBackend(AgentBackend):
         # from PLAYBOOK falls back here, whether or not it happens to be a bundled type.
         if ctx.spec is not None:
             for ctype, ctype_spec in ctx.spec.items.items():
-                if ctype in interactions.PLAYBOOK or ctype_spec.is_meta:
+                if ctype in interactions.PLAYBOOK or ctype_spec.category == "roster":
                     continue
                 machine = ctx.spec.machine_for(ctype)
                 lifecycle_str = linearize_lifecycle(machine)
