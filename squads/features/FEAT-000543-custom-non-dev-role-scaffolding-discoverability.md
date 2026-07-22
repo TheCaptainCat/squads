@@ -3,7 +3,7 @@ id: FEAT-543
 sequence_id: 543
 type: feature
 title: Custom non-dev role scaffolding & discoverability
-status: InReview
+status: Done
 parent: EPIC-538
 author: product-owner
 subentities:
@@ -17,7 +17,7 @@ subentities:
   title: Surface custom-role discoverability in catalog/help/docs
   status: Todo
 created_at: '2026-07-21T20:43:26Z'
-updated_at: '2026-07-21T21:30:13Z'
+updated_at: '2026-07-22T08:50:26Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -171,4 +171,6 @@ Confirm/harden the existing 'sq role activate <slug>' path for a hand-edited net
   - 3) can_spawn: false by default (pointer has disallowedTools: Agent); can_spawn=true via TOML and via --can-spawn scaffold flag both honored (show --json can_spawn:true, pointer omits the Agent denial).
   - 4) sq role catalog prints the scaffold-new/activate hint, --json shape unchanged (bundled roles only, no custom roles even after activating two); sq role activate --help mentions custom non-dev roles + scaffold pointer; docs/overrides.md and docs/roles.md both lead with scaffold --new.
   - Moved REV-547 F1/F2 to Verified. Recommend TASK-544/545/546 -> Done; leaving that transition to the manager.
+- [2026-07-22T08:50:26Z] Pierre Chat:
+  - Accepted. Reviewed + QA-verified overnight (REV-547 approved, path-traversal fix verified); custom non-dev role scaffolding delivered. Closing to Done.
 <!-- sq:discussion:end -->
