@@ -3,7 +3,7 @@ id: REV-547
 sequence_id: 547
 type: review
 title: Review of FEAT-543 custom-role scaffolding
-status: Requested
+status: Approved
 author: reviewer
 refs:
 - FEAT-543
@@ -18,7 +18,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-07-21T21:19:26Z'
-updated_at: '2026-07-21T21:29:01Z'
+updated_at: '2026-07-22T14:03:22Z'
 ---
 <!-- sq:body -->
 Independent review of the FEAT-543 ergonomics layer (scaffold_new_role + sq override scaffold --new/--can-spawn, catalog/help/docs discoverability). Engine (resolver new-slug path, activate, can_spawn plumbing) pre-existed and is out of scope.
