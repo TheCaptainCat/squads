@@ -15,6 +15,8 @@ from squads._services._results import SearchHit, SearchResult
 from squads._workflow import WorkflowSpec
 
 _SNIPPET_WIDTH = 160
+_SNIPPET_LEAD = 40
+"""Chars of left context kept before the match once the window has to shift off column 0."""
 
 
 def _frontmatter_end_line(text: str) -> int:
@@ -93,9 +95,12 @@ def _classify_line(regions: list[_Region], line_no: int) -> _Region | None:
     return min(containing, key=lambda r: r.end - r.start) if containing else None
 
 
-def _windowed_snippet(lines: list[str], line_no: int) -> str:
+def _windowed_snippet(lines: list[str], line_no: int, needle: str) -> str:
     """In-context text around ``line_no``: itself plus a neighbor on each side, marker lines
-    dropped, collapsed to one line and capped at :data:`_SNIPPET_WIDTH` characters."""
+    dropped, collapsed to one line and capped at :data:`_SNIPPET_WIDTH` characters.
+
+    Windowed around the first occurrence of ``needle`` (case-insensitive) so a match deep in a
+    long line stays inside the returned snippet instead of being truncated out."""
     idx = line_no - 1
     window = [
         s
@@ -103,9 +108,18 @@ def _windowed_snippet(lines: list[str], line_no: int) -> str:
         if (s := lines[i].strip()) and not s.startswith("<!--")
     ]
     text = " / ".join(window) if window else lines[idx].strip()
-    if len(text) > _SNIPPET_WIDTH:
-        text = text[: _SNIPPET_WIDTH - 1].rstrip() + "…"
-    return text
+    if len(text) <= _SNIPPET_WIDTH:
+        return text
+    match_idx = text.lower().find(needle.lower()) if needle else -1
+    if match_idx == -1 or match_idx + len(needle) <= _SNIPPET_WIDTH:
+        return text[: _SNIPPET_WIDTH - 1].rstrip() + "…"
+    start = max(0, match_idx - _SNIPPET_LEAD)
+    end = min(len(text), start + _SNIPPET_WIDTH)
+    start = max(0, end - _SNIPPET_WIDTH)
+    snippet = text[start:end].strip()
+    prefix = "…" if start > 0 else ""
+    suffix = "…" if end < len(text) else ""
+    return f"{prefix}{snippet}{suffix}"
 
 
 def _comment_at_or_before(
@@ -120,12 +134,12 @@ def _comment_at_or_before(
     return found
 
 
-def _hit_for_line(regions: list[_Region], lines: list[str], line_no: int) -> SearchHit:
+def _hit_for_line(regions: list[_Region], lines: list[str], line_no: int, needle: str) -> SearchHit:
     """Build the :class:`SearchHit` for a matched line, resolving its region/location/snippet."""
     region = _classify_line(regions, line_no)
     if region is None:
         return SearchHit(
-            region="other", location="other", snippet=_windowed_snippet(lines, line_no)
+            region="other", location="other", snippet=_windowed_snippet(lines, line_no, needle)
         )
     if region.comment_headers:
         hit_comment = _comment_at_or_before(region.comment_headers, line_no)
@@ -138,7 +152,7 @@ def _hit_for_line(regions: list[_Region], lines: list[str], line_no: int) -> Sea
     return SearchHit(
         region=region.region,
         location=region.region,
-        snippet=_windowed_snippet(lines, line_no),
+        snippet=_windowed_snippet(lines, line_no, needle),
     )
 
 
@@ -253,7 +267,7 @@ class CollabMixin(ServiceCore):
                 for line_no in range(_frontmatter_end_line(full_text) + 1, len(lines) + 1):
                     raw = lines[line_no - 1]
                     if raw.strip() and needle in raw.lower():
-                        hits.append(_hit_for_line(regions, lines, line_no))
+                        hits.append(_hit_for_line(regions, lines, line_no, needle))
             if hits:
                 out.append(SearchResult(item=item, hits=hits))
         return out
