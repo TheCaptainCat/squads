@@ -82,8 +82,8 @@ markers = [
 line-length = 100
 target-version = "py314"
 src = ["src", "tests"]
-# clients/ is a self-contained TypeScript/Node package (ADR-427 #1) with its own gate;
-# a stray .ts/node_modules there must never fail a Python run.
+# clients/ is a self-contained TypeScript/Node package with its own gate; a stray
+# .ts/node_modules there must never fail a Python run.
 extend-exclude = ["clients"]
 
 [tool.ruff.lint]
@@ -117,7 +117,7 @@ max-args = 8
 [tool.pyright]
 include = ["src", "tests"]
 # Belt-and-suspenders alongside `include` above: clients/ is a self-contained TypeScript/Node
-# package (ADR-427 #1) with its own gate; a stray .ts/node_modules there must never fail pyright.
+# package with its own gate; a stray .ts/node_modules there must never fail pyright.
 exclude = ["clients"]
 pythonVersion = "3.14"
 typeCheckingMode = "strict"

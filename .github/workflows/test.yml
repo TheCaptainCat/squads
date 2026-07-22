@@ -1,20 +1,12 @@
 name: test
 
-# Path-scoped off TS-only changes: clients/vscode/** has its own
-# dev-time gate (vscode-client.yml), so a TS-only or doc-only change doesn't
-# need to run the full Python OS matrix. Mirrors the isolation vscode-client.yml
-# already has in the other direction (it triggers only on clients/vscode/**).
+# Path-scoped off TS-only changes: clients/vscode/** has its own dev-time gate
+# (vscode-client.yml), so a TS-only or doc-only change skips the full Python OS matrix.
 #
-# Branch-protection caveat (checked at the time this filter was added: `main`
-# currently has NO required status checks configured, so this is safe today).
-# If `test.yml`'s jobs are ever made *required* checks on `main`, a
-# paths-ignore-skipped run leaves those required checks stuck "pending" and
-# blocks merge of TS-only PRs (GitHub required-checks semantics: a required
-# check that never runs never reports success). Before adding branch
-# protection that requires these jobs, either (a) don't mark them required,
-# or (b) add an always-running "gate passed" aggregation job (not
-# path-filtered) that the branch protection requires instead, which
-# short-circuits to success when the Python jobs were skipped.
+# Caveat: `main` has no required status checks today, so this is safe. If these jobs
+# are ever made *required*, a paths-ignore-skipped run leaves them stuck "pending"
+# forever and blocks merge — either don't mark them required, or add an always-running
+# aggregation job (not path-filtered) for branch protection to require instead.
 on:
   push:
     branches: [main]

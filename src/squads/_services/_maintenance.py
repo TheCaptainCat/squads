@@ -304,9 +304,9 @@ class MaintenanceMixin(ServiceCore):
 
         Mirrors :meth:`seed_bundled_skills` but operates on custom types declared in the
         active spec (beyond the built-in types).  SKILL ids are allocated in
-        the same lexical-by-slug order as :func:`bundled_skill_slugs`, satisfying AC#6 (no
+        the same lexical-by-slug order as :func:`bundled_skill_slugs`, so there's no
         SKILL-id churn for existing bundled skills — custom slugs sort independently into the
-        full sorted slug space).
+        full sorted slug space.
 
         Called from :meth:`sync` so custom skills are seeded whenever the squad is synced
         (not at init, which only knows about bundled types).

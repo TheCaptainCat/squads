@@ -52,7 +52,7 @@ async def test_a_technical_task_links_a_bug_via_the_fixes_ref_kind(svc):
 
 async def test_subtask_story_records_and_validates_against_the_parent_features_user_stories(svc):
     feat = (await svc.create("feature", "Login")).item
-    await svc.add_story(feat.id, "reset password")  # US1
+    await svc.add_story(feat.id, "reset password")
     task = (await svc.create("task", "Tokens", parent=feat.id)).item
     res = await svc.add_subtask(task.id, "Validate expiry", story="US1")
     (sub,) = await svc.list_subtasks(task.id)
@@ -75,7 +75,7 @@ async def test_subtask_story_requires_a_feature_parent_to_be_meaningful_at_all(s
 
 async def test_check_flags_a_subtask_story_reference_that_has_gone_dangling(svc):
     feat = (await svc.create("feature", "Login")).item
-    await svc.add_story(feat.id, "reset")  # US1
+    await svc.add_story(feat.id, "reset")
     task = (await svc.create("task", "Tokens", parent=feat.id)).item
     await svc.add_subtask(task.id, "ok", story="US1")
     path = svc.paths.abspath((await svc.get(task.id)).path)

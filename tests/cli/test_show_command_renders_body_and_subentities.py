@@ -106,7 +106,7 @@ async def test_a_typed_command_rejects_a_full_id_with_the_wrong_type_prefix(
 ) -> None:
     """``sq <type> <n> show`` resolves ``<n>`` via ``resolve_item_id_typed`` — distinct from
     root ``sq show``'s type-less ``resolve_item_id_any`` (tested just above)."""
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
+    await invoke(["create", "feature", "F", "--author", "manager"])
     r = await invoke(["task", "FEAT-000002", "show"])
     assert r.exit_code != 0
     assert "FEAT-2" in r.output and "not a task" in r.output

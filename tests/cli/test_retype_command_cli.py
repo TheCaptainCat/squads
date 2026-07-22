@@ -20,7 +20,7 @@ async def test_retype_to_an_undeclared_type_is_rejected(project, invoke) -> None
 async def test_retype_reports_status_carried_when_the_target_status_exists(project, invoke) -> None:
     """feature -> epic: both share the generic work lifecycle's states, so the same status
     name carries over unchanged."""
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
+    await invoke(["create", "feature", "F", "--author", "manager"])
     r = await invoke(["feature", "2", "retype", "epic"])
     assert r.exit_code == 0, r.output
     assert "EPIC-2" in r.output
@@ -32,7 +32,7 @@ async def test_retype_reports_status_reset_when_the_target_uses_a_different_life
 ) -> None:
     """task -> bug: distinct lifecycles, so the status can't carry and is reset to the
     target type's initial status instead."""
-    await invoke(["create", "task", "T", "--author", "manager"])  # TASK-2
+    await invoke(["create", "task", "T", "--author", "manager"])
     r = await invoke(["task", "2", "retype", "bug"])
     assert r.exit_code == 0, r.output
     assert "BUG-2" in r.output
@@ -42,8 +42,8 @@ async def test_retype_reports_status_reset_when_the_target_uses_a_different_life
 async def test_retype_names_the_new_id_and_the_number_of_files_with_rewritten_refs(
     project, invoke
 ) -> None:
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
-    await invoke(["create", "task", "T", "--author", "manager", "--ref", "FEAT-2"])  # TASK-3
+    await invoke(["create", "feature", "F", "--author", "manager"])
+    await invoke(["create", "task", "T", "--author", "manager", "--ref", "FEAT-2"])
 
     r = await invoke(["feature", "2", "retype", "epic"])
     assert r.exit_code == 0, r.output

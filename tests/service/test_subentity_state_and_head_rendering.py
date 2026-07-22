@@ -13,7 +13,7 @@ pytestmark = pytest.mark.anyio
 
 async def test_subentity_state_lives_in_frontmatter_not_body_markers(svc):
     feat = (await svc.create("feature", "Login")).item
-    await svc.add_story(feat.id, "Reset password")  # US1
+    await svc.add_story(feat.id, "Reset password")
     task = (await svc.create("task", "Auth", parent=feat.id)).item
     await svc.add_subtask(task.id, "Validate", story="US1")
     await svc.set_subtask_status(task.id, "ST1", "InProgress")
@@ -53,7 +53,7 @@ async def test_assignee_render_reassign_and_clear_updates_the_head_badge_not_fro
 
 async def test_status_transition_and_story_link_rerender_the_head_badge(svc):
     feat = (await svc.create("feature", "Login")).item
-    await svc.add_story(feat.id, "As a user, I want to reset my password")  # US1
+    await svc.add_story(feat.id, "As a user, I want to reset my password")
     task = (await svc.create("task", "Auth", parent=feat.id)).item
 
     await svc.add_subtask(task.id, "Validate", story="US1")
@@ -94,8 +94,8 @@ async def test_update_subtask_title_rerenders_heading_and_summary_preserving_bod
 
 async def test_update_subtask_story_remap_validates_and_clears(svc):
     feat = (await svc.create("feature", "Login")).item
-    await svc.add_story(feat.id, "Reset password")  # US1
-    await svc.add_story(feat.id, "Lockout policy")  # US2
+    await svc.add_story(feat.id, "Reset password")
+    await svc.add_story(feat.id, "Lockout policy")
     task = (await svc.create("task", "Auth", parent=feat.id)).item
     await svc.add_subtask(task.id, "Validate", story="US1")
 

@@ -18,8 +18,8 @@ async def test_refs_with_no_outgoing_edges_prints_a_clean_none_message(project, 
 
 
 async def test_ref_rm_removes_a_previously_added_forward_reference(project, invoke) -> None:
-    await invoke(["create", "task", "A", "--author", "manager"])  # TASK-2
-    await invoke(["create", "task", "B", "--author", "manager"])  # TASK-3
+    await invoke(["create", "task", "A", "--author", "manager"])
+    await invoke(["create", "task", "B", "--author", "manager"])
     await invoke(["task", "2", "ref", "add", "TASK-3", "--kind", "related"])
     assert "TASK-3" in (await invoke(["task", "2", "refs"])).output
 
@@ -31,8 +31,8 @@ async def test_ref_rm_removes_a_previously_added_forward_reference(project, invo
 async def test_remove_requires_confirmation_supports_json_and_severs_refs_with_force(
     project, invoke
 ) -> None:
-    await invoke(["create", "task", "A", "--author", "manager"])  # TASK-2
-    await invoke(["create", "task", "B", "--author", "manager"])  # TASK-3
+    await invoke(["create", "task", "A", "--author", "manager"])
+    await invoke(["create", "task", "B", "--author", "manager"])
     await invoke(["task", "3", "ref", "add", "TASK-2", "--kind", "related"])  # B -> A
 
     aborted = await invoke(["task", "2", "remove"], input="n\n")
@@ -51,8 +51,8 @@ async def test_remove_requires_confirmation_supports_json_and_severs_refs_with_f
 async def test_remove_plain_output_names_the_removed_id_and_the_severed_referrers(
     project, invoke
 ) -> None:
-    await invoke(["create", "task", "A", "--author", "manager"])  # TASK-2
-    await invoke(["create", "task", "B", "--author", "manager"])  # TASK-3
+    await invoke(["create", "task", "A", "--author", "manager"])
+    await invoke(["create", "task", "B", "--author", "manager"])
     await invoke(["task", "3", "ref", "add", "TASK-2", "--kind", "related"])  # B -> A
 
     r = await invoke(["task", "2", "remove", "--yes", "--force"])

@@ -37,7 +37,7 @@ async def test_subtask_done_raises_for_an_unknown_local_id(svc):
 
 async def test_set_story_status_delegates_to_the_generic_block_status_setter(svc):
     feat = (await svc.create("feature", "f")).item
-    await svc.add_story(feat.id, "reset password")  # US1
+    await svc.add_story(feat.id, "reset password")
     await svc.set_story_status(feat.id, "US1", "InProgress")
     assert (await svc.list_stories(feat.id))[0].status == "InProgress"
 

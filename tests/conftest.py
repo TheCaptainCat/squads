@@ -85,7 +85,7 @@ def _reset_context():  # pyright: ignore[reportUnusedFunction]  # autouse: pytes
 
 @pytest.fixture(autouse=True)
 def _reset_engine_state():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
-    """Reset rendering engine module-state between tests (REV-000093 F1).
+    """Reset rendering engine module-state between tests.
 
     ServiceCore.__init__ calls set_active_squad_dir() and never restores it, so a test that
     constructs a service leaves that squad dir active for later tests that call bare render()
@@ -132,7 +132,7 @@ def frozen_time():
 async def project(tmp_path, monkeypatch, frozen_time):
     """A freshly-initialized squad in a temp dir; cwd is set to it.
 
-    Skill seeding (FEAT-000178) is intentionally skipped here so existing tests are not
+    Skill seeding is intentionally skipped here so existing tests are not
     disrupted by the global-counter shift that seeding causes.  Tests that specifically
     exercise skill seeding use a dedicated ``project_with_skills`` fixture or call
     ``svc.seed_bundled_skills()`` directly.

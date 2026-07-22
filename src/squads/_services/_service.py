@@ -201,16 +201,16 @@ def open_service(dir_override: str | None = None, *, client_cwd: Path | None = N
 
     override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
     if not override_path.is_file():
-        # F3 fast-path: no override → use the already-validated bundled singleton.
+        # Fast path: no override → use the already-validated bundled singleton.
         return Service(sp, spec=bundled_spec())
 
-    # Override present: load, merge, validate, then AC#5 cross-check.
+    # Override present: load, merge, validate, then cross-check.
     try:
         merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
     except SquadsError as exc:
         raise SquadsError(f"{exc} — run `sq workflow lint` to see details") from exc
 
-    # AC#5: cross-check the merged spec against the live index — raises if any item's
+    # Cross-check the merged spec against the live index — raises if any item's
     # type or status is not declared by the new spec.
     validate_against_index_fail_closed(merged_spec, sp.squad_dir)
 

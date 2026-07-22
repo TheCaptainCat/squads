@@ -37,7 +37,7 @@ async def test_comment_marker_in_any_message_position_rejects_and_leaves_file_un
 
 async def test_subentity_targeted_comment_with_marker_rejected(svc):
     feat = (await svc.create("feature", "f")).item
-    await svc.add_story(feat.id, "A story")  # US1
+    await svc.add_story(feat.id, "A story")
     with pytest.raises(SquadsError, match="marker"):
         await svc.comment(feat.id, [f"inject {_MARKER_TAG}"], as_slug="product-owner", story="US1")
 

@@ -33,14 +33,14 @@ async def test_inbox_accepts_the_at_prefix(svc):
 
 async def test_inbox_surfaces_a_mention_in_story_subtask_and_finding_discussion(svc):
     feat = (await svc.create("feature", "Login feature")).item
-    await svc.add_story(feat.id, "Password reset")  # US1
+    await svc.add_story(feat.id, "Password reset")
     await svc.comment(
         feat.id, ["@qa please verify acceptance"], as_slug="product-owner", story="US1"
     )
     assert feat.id in {it.id for it, _ in await svc.inbox("qa")}
 
     task = (await svc.create("task", "Implement reset")).item
-    await svc.add_subtask(task.id, "Wire endpoint")  # ST1
+    await svc.add_subtask(task.id, "Wire endpoint")
     await svc.comment(task.id, ["@reviewer look at this subtask"], as_slug="manager", subtask="ST1")
     assert task.id in {it.id for it, _ in await svc.inbox("reviewer")}
 

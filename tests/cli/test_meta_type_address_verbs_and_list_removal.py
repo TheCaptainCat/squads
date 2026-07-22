@@ -65,7 +65,7 @@ async def test_role_rm_resolves_by_bare_number(project, invoke):
 
 
 async def test_role_regen_on_a_wrong_type_token_is_a_clean_error(project, invoke):
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
+    await invoke(["create", "feature", "F", "--author", "manager"])
 
     result = await invoke(["role", "2", "regen"])
     assert result.exit_code == 1

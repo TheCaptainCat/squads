@@ -103,14 +103,9 @@ GREETING_SKILL = "greeting"
 #: Always-loaded skill for the memory workflow + curation discipline (cross-role, not per-type).
 MEMORY_SKILL = "sq-memory"
 
-# ---------------------------------------------------------------------------
-# Skill description registry — single source of truth
-#
-# Every bundled skill's description lives here exactly once.  Both the backend
-# (write_managed / _write_item_skills) and the seeding/migration code read from
-# this map when they set the description on the SKILL item and the .claude
-# pointer.  Nothing else should hard-code these strings.
-# ---------------------------------------------------------------------------
+# Skill description registry — single source of truth. Both the backend (write_managed /
+# _write_item_skills) and the seeding/migration code read from this map; nothing else should
+# hard-code these strings.
 
 #: Slug → one-line description for each bundled skill.
 SKILL_DESCRIPTIONS: dict[str, str] = {
@@ -155,34 +150,15 @@ def is_dev_slug(slug: str) -> bool:
     return slug.endswith("-dev")
 
 
-# ---------------------------------------------------------------------------
-# Advisory sub-entity title threshold
-#
-# Titles above this limit trigger an advisory warn-and-proceed message on all three
-# add-* entry points (add-finding, add-subtask, add-story).  Titles at or below this
-# value are silent.  Single source of truth — not .squads.toml-configurable; revisit
-# only on demand.
-# ---------------------------------------------------------------------------
-
-#: Advisory threshold for sub-entity titles (characters).
-#: Titles > 120 trigger a warn-and-proceed advisory; titles ≤ 120 are silent.
+#: Advisory threshold (characters) for sub-entity titles on add-finding/add-subtask/add-story:
+#: above it, a warn-and-proceed message fires. Not .squads.toml-configurable; revisit on demand.
 TITLE_ADVISORY_MAX: int = 120
 
-# ---------------------------------------------------------------------------
-# Advisory create-lane derivation
-#
-# The lane is derived from PLAYBOOK using a declarative CREATE_LANES map that is
-# co-located here and asserted-equal-to-the-playbook prose in the mandatory
-# table-pinning test (tests/test_lane_derivation.py).  This is a deliberate
-# fallback: prose-scanning was considered but the "sq create <type>" author verb
-# is not always in the item type's own playbook section (e.g. reviewer's
-# "sq create review" appears in the task playbook's reviewer guide, not in the
-# review playbook's reviewer guide).  The declarative map is one source, still
-# in this module, still test-locked to the playbook.
-#
-# ADD a new entry here when a playbook edit makes a role an in-lane author of a
-# new type; the table-pinning test will fail if the two diverge.
-# ---------------------------------------------------------------------------
+# Declarative CREATE_LANES map, not prose-scanned from PLAYBOOK: the "sq create <type>" verb
+# isn't always in that type's own playbook section (e.g. reviewer's "sq create review" lives
+# in the task playbook's reviewer guide). Table-pinning test (tests/test_lane_derivation.py)
+# fails if this map and the playbook prose diverge — add an entry here when a playbook edit
+# makes a role an in-lane author of a new type.
 
 #: Declarative create-lane map: role slug → set of item type names it is in-lane to author.
 #: ``DEV`` sentinel covers all ``<tech>-dev`` slugs → empty lane (devs have no sq create verbs).
@@ -345,23 +321,13 @@ def is_system_skill(slug: str, spec: WorkflowSpec) -> bool:
     return slug in bundled_skill_slugs() or slug in custom_skill_slugs(spec)
 
 
-# ---------------------------------------------------------------------------
-# Role -> type authoring prose
+# Role -> type authoring prose: the "who authors what" cheatsheet (workflow.md.j2) renders
+# from CREATE_LANES + the role catalog (title lookup) + the WorkflowSpec (prefix, parent
+# chain, sub-entity kind) — so a project-added custom type is surfaced generically.
 #
-# The "who authors what" cheatsheet narrative (workflow.md.j2) renders from
-# CREATE_LANES (the single declarative source, table-pinned to the playbook) +
-# the bundled role catalog (title lookup) + the WorkflowSpec (type prefix,
-# parent chain, sub-entity kind).  This keeps the bundled-team prose
-# byte-identical to the lane table while a project that adds a custom type
-# sees its own type surfaced generically wherever the spec drives the text
-# (prefixes, parent chain, sub-entity verbs).
-#
-# NOTE: CREATE_LANES itself is a fixed bundled-role map — there is no override
-# mechanism yet for *custom roles* authoring *custom types* (only custom types
-# via .overrides/workflow.toml exist today; custom roles are not a spec
-# concept). A custom type with no lane owner simply gets no authoring bullet
-# here (see custom_item_skill_commands for its generic command surface).
-# ---------------------------------------------------------------------------
+# CREATE_LANES is a fixed bundled-role map with no override mechanism for custom roles
+# authoring custom types; a custom type with no lane owner just gets no authoring bullet
+# (see custom_item_skill_commands for its generic command surface).
 
 
 def authoring_owner(item_type: str) -> tuple[str, str] | None:

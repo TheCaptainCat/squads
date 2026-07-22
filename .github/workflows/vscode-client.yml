@@ -1,38 +1,15 @@
 name: vscode-client
 
-# Dev-time TS gate for clients/vscode: kept on a separate
-# workflow, keyed on clients/vscode/** path filters, so it is independent of
-# and non-gating for the Python core's CI (test.yml) — a red job here never
-# blocks a Python-only change, and a Python-only change never triggers this
-# workflow at all. The reverse holds too: test.yml has no clients/** trigger
-# and is never touched by this file. Cross-language coupling is caught only
-# by the package's own integration skew canary, by design — which is why the
-# `canary` job below is the one place this workflow provisions a real `sq`
-# (via `uv sync` against the repo's own pyproject.toml) rather than treating
-# clients/vscode as a fully Python-free lane; it never touches the Python
-# gate itself (no ruff/pyright/pytest here).
+# Dev-time TS gate for clients/vscode, path-filtered so it's independent of and
+# non-gating for the Python core's CI (test.yml) in both directions. That mutual
+# isolation is only as strong as the path filters, though — no branch-protection
+# required-checks config lives in this repo to enforce it.
 #
-# Note: path-filtered triggers alone make this workflow not *run* on
-# Python-only changes, but they don't make it a required check. Full
-# non-gating enforcement (this job required on clients/vscode/** PRs, the
-# Python job required on Python-only PRs, neither blocking the other) also
-# needs branch-protection / required-status-checks configuration in the
-# GitHub repo settings — that's outside this repo's files and hasn't been
-# configured here.
-#
-# Coverage caveat closed: the push/pull_request triggers below are still
-# path-filtered to clients/vscode/**, so a core-only PR that drifts the `sq
-# --json`/`--raw` surface doesn't fire the skew canary at PR time (the
-# isolation is by design — see above). `schedule` isn't gated by `paths` at
-# all (GitHub only applies path filters to push/pull_request), so the
-# nightly cron below runs the whole workflow regardless of what changed —
-# `check`/`test` opt out of that tick (they gate clients/vscode's own
-# dev-time surface; nothing to catch nightly with no clients/vscode diff),
-# leaving only `canary`, which re-checks the committed fixtures against a
-# real `sq` every night. Core-only drift is caught within at most a day
-# instead of latently on the next clients/vscode-touching PR, with no new
-# path filter on this workflow's main triggers (which would otherwise pull
-# Python-only PRs back into running `check`/`test` too).
+# `schedule` ignores `paths` entirely (GitHub only path-filters push/pull_request),
+# so the nightly cron runs this whole workflow regardless of what changed. `check`/
+# `test`/`e2e` opt out of that tick (nothing to catch with no clients/vscode diff);
+# `canary` doesn't, so it catches core `sq --json`/`--raw` drift within a day rather
+# than waiting on the next clients/vscode-touching PR.
 
 on:
   push:
@@ -44,7 +21,7 @@ on:
     paths:
       - "clients/vscode/**"
   schedule:
-    - cron: "17 3 * * *" # nightly skew-canary run, see the coverage-caveat note above
+    - cron: "17 3 * * *" # nightly skew-canary run, see the note above
 
 defaults:
   run:
@@ -108,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     # No `if:` here (unlike check/test/e2e above): this job runs both on the existing
     # clients/vscode/**-filtered push/pull_request triggers AND on every nightly `schedule`
-    # tick regardless of what changed — see the coverage-caveat note above `on:` (closes F1).
+    # tick regardless of what changed — see the note above `on:`.
     steps:
       - uses: actions/checkout@v6.0.3
 

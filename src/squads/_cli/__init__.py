@@ -115,7 +115,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         """Built-in commands first, then custom work types from the resolved spec.
 
         For a non-custom squad the resolved spec IS the bundled spec, so the output is
-        byte-identical to today (AC#7).  Custom types appear after the built-in set,
+        byte-identical to today.  Custom types appear after the built-in set,
         sorted alphabetically for determinism.
         """
         base: list[str] = super().list_commands(ctx)
@@ -370,7 +370,7 @@ app.add_typer(
 # hidden aliases so every alias routes to the identical command tree.
 #
 # The bundled spec is the source of truth for the STATIC (import-time) registration loop —
-# this gives byte-identical --help output for non-custom squads (AC#7).  Types added later by
+# this gives byte-identical --help output for non-custom squads.  Types added later by
 # a project's own .overrides/workflow.toml (not present in the bundled spec at import time,
 # so impossible to register statically) are handled lazily by _CustomTypeGroup.get_command,
 # which fires AFTER --dir is resolved and the active spec is bound.

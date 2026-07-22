@@ -46,9 +46,9 @@ async def test_clear_assignee_unassigns_a_previously_assigned_subtask(project, i
 
 
 async def test_update_rejects_story_and_no_story_together(project, invoke) -> None:
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
-    await invoke(["feature", "2", "add-story", "reset password"])  # US1
-    await invoke(["create", "task", "T", "--author", "manager", "--parent", "FEAT-2"])  # TASK-3
+    await invoke(["create", "feature", "F", "--author", "manager"])
+    await invoke(["feature", "2", "add-story", "reset password"])
+    await invoke(["create", "task", "T", "--author", "manager", "--parent", "FEAT-2"])
     await invoke(["task", "3", "add-subtask", "Validate expiry", "--story", "US1"])
 
     r = await invoke(["task", "3", "subtask", "1", "update", "--story", "US1", "--no-story"])
@@ -57,9 +57,9 @@ async def test_update_rejects_story_and_no_story_together(project, invoke) -> No
 
 
 async def test_no_story_clears_the_stored_story_mapping(project, invoke) -> None:
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
-    await invoke(["feature", "2", "add-story", "reset password"])  # US1
-    await invoke(["create", "task", "T", "--author", "manager", "--parent", "FEAT-2"])  # TASK-3
+    await invoke(["create", "feature", "F", "--author", "manager"])
+    await invoke(["feature", "2", "add-story", "reset password"])
+    await invoke(["create", "task", "T", "--author", "manager", "--parent", "FEAT-2"])
     await invoke(["task", "3", "add-subtask", "Validate expiry", "--story", "US1"])
 
     r = await invoke(["task", "3", "subtask", "1", "update", "--no-story"])
@@ -75,7 +75,7 @@ async def test_no_story_clears_the_stored_story_mapping(project, invoke) -> None
 async def test_finding_update_sets_the_severity_and_a_title_only_call_leaves_it_untouched(
     project, invoke
 ) -> None:
-    await invoke(["create", "review", "R", "--author", "manager"])  # REV-2
+    await invoke(["create", "review", "R", "--author", "manager"])
     await invoke(["review", "2", "add-finding", "Off-by-one", "--severity", "low"])
 
     r = await invoke(["review", "2", "finding", "1", "update", "--severity", "high"])

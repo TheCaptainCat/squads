@@ -37,7 +37,7 @@ EXPECTED_BUILTIN_STATUS_BADGES: dict[str, str] = {
 #: Built-in type -> ID prefix, mirroring the bundled ``default_workflow.toml`` exactly.
 #:
 #: Test-only (no production analogue): production resolves this from the loaded
-#: ``WorkflowSpec`` alone (ADR-322 — the ``ItemType`` enum + reserved prefix map it used to
+#: ``WorkflowSpec`` alone (the ``ItemType`` enum + reserved prefix map it used to
 #: read this from are deleted). Tests that need a literal prefix — constructing an ``Item``
 #: directly, or calling ``SquadsDB.allocate_id``/``format_id`` with an explicit prefix — use
 #: this shared dict instead of each hardcoding their own copy.
@@ -75,14 +75,14 @@ BUILTIN_TYPES: tuple[str, ...] = tuple(BUILTIN_PREFIX)
 #: The 7 work-item types — excludes the 3 meta-types (role/skill/operator).
 WORK_TYPES: tuple[str, ...] = ("epic", "feature", "task", "bug", "decision", "review", "guide")
 
-#: The 3 meta-types the engine binds by name (ADR-322 §2).
+#: The 3 meta-types the engine binds by name.
 META_TYPES: tuple[str, ...] = ("role", "skill", "operator")
 
 #: All 23 built-in status names across every lifecycle (work/adr/review/bug/guide/agent +
 #: sub-entity/finding), mirroring the bundled ``default_workflow.toml`` exactly.
 #:
 #: Test-only (no production analogue): production resolves the status vocabulary from the
-#: loaded ``WorkflowSpec`` alone (ADR-322 — the ``Status`` enum this used to enumerate is
+#: loaded ``WorkflowSpec`` alone (the ``Status`` enum this used to enumerate is
 #: deleted). Tests that need "every built-in status" (golden-lock set equality, terminal/
 #: badge iteration) use this shared tuple instead of each hardcoding its own copy.
 BUILTIN_STATUSES: tuple[str, ...] = (
@@ -118,12 +118,11 @@ BUILTIN_STATUSES: tuple[str, ...] = (
     "WontFix",
 )
 
-#: The agent-lifecycle statuses — the only status-axis floor (ADR-322 §5).
+#: The agent-lifecycle statuses — the only status-axis floor.
 FLOOR_STATUSES: tuple[str, ...] = ("Draft", "Active", "Archived")
 
-#: The sub-entity/finding statuses that left the floor and became ordinary spec vocabulary
-#: (ADR-322 §5) — bound by machine role (start state / per-kind completion target) instead
-#: of by name.
+#: The sub-entity/finding statuses that left the floor and became ordinary spec vocabulary —
+#: bound by machine role (start state / per-kind completion target) instead of by name.
 FORMER_FLOOR_STATUSES: tuple[str, ...] = (
     "Todo",
     "InProgress",

@@ -45,11 +45,11 @@ async def test_check_flags_a_subtask_story_mapping_once_its_task_is_unlinked_fro
     svc,
 ):
     feat = (await svc.create("feature", "f")).item
-    await svc.add_story(feat.id, "login")  # US1
+    await svc.add_story(feat.id, "login")
     task = (await svc.create("task", "t", parent=feat.id)).item
     await svc.add_subtask(task.id, "impl", story="US1")
 
-    await svc.unlink(task.id)  # breaks the spine: the subtask still points at US1
+    await svc.unlink(task.id)  # breaks the spine: the subtask still points at a story id
 
     issues = await svc.check()
     errors = [i for i in issues if i.level == "error" and i.item == task.id]
