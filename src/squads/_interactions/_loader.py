@@ -31,9 +31,9 @@ def load_playbook(catalog: RoleCatalogSpec, spec: WorkflowSpec | None = None) ->
 
     Takes the already-loaded ``RoleCatalogSpec`` as the slug authority for cross-spec
     referential integrity, and a ``WorkflowSpec`` (the bundled spec by default) as the
-    type authority: every one of *spec*'s ``work_types()`` must have a playbook entry,
-    and no entry may name anything else (meta type or unknown name). This replaces the
-    the old per-name-enum coercion and the hardcoded ``_WORK_TYPES``/``_META_TYPES``
+    type authority: every one of *spec*'s ``non_roster_types()`` must have a playbook entry,
+    and no entry may name anything else (a roster type or unknown name). This replaces the
+    the old per-name-enum coercion and the hardcoded ``_WORK_TYPES``/``_ROSTER_TYPES``
     floors — the loaded ``WorkflowSpec`` is now the sole authority on which types exist.
     Called once at module level in ``__init__.py`` to build the singleton. Raises
     ``SquadsError`` on any violation.
@@ -103,22 +103,24 @@ def _check_slugs(
 def _check_coverage(
     types: dict[str, ItemPlaybookSpec], spec: WorkflowSpec, errors: list[str]
 ) -> None:
-    """Every non-meta work type in *spec* needs a playbook entry; nothing else may have one.
+    """Every non-roster type in *spec* needs a playbook entry; nothing else may have one.
 
-    Replaces the fixed ``_WORK_TYPES``/``_META_TYPES`` floors: *spec* (the loaded
-    ``WorkflowSpec``) is the sole authority on which types exist and which are meta, so
+    Replaces the fixed ``_WORK_TYPES``/``_ROSTER_TYPES`` floors: *spec* (the loaded
+    ``WorkflowSpec``) is the sole authority on which types exist and which are roster, so
     bundled-playbook coverage tracks whatever the bundled workflow spec declares instead
     of a hand-maintained duplicate list.
     """
-    work_types = spec.work_types()
+    creatable_types = spec.non_roster_types()
     errors.extend(
-        f"missing required work-type entry: {wt!r}" for wt in sorted(work_types) if wt not in types
+        f"missing required work-type entry: {wt!r}"
+        for wt in sorted(creatable_types)
+        if wt not in types
     )
     errors.extend(
-        f"types.{name}: not a declared non-meta work type in the workflow spec "
+        f"types.{name}: not a declared non-roster type in the workflow spec "
         "(role/skill/operator are managed separately; unknown type names are rejected)"
         for name in types
-        if name not in work_types
+        if name not in creatable_types
     )
 
 

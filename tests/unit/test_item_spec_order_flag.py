@@ -38,5 +38,5 @@ def test_a_fractional_custom_order_lands_between_two_bundled_types_with_no_renum
             "subentity_kinds": base.subentity_kinds,
         }
     )
-    ordered = sorted(spec.work_types(), key=lambda t: (spec.items[t].order, t))
+    ordered = sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t))
     assert ordered.index("task") < ordered.index("incident") < ordered.index("bug")

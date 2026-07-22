@@ -6,7 +6,7 @@ from rich.table import Table
 import squads._cli._common as common
 from squads._cli._common import console, e, get_service
 from squads._models._extras import ExtraKey as X
-from squads._workflow import META_ROLE
+from squads._workflow import ROSTER_ROLE
 
 dev_app = typer.Typer(no_args_is_help=True, help="Manage stack-specific developer roles.")
 
@@ -34,7 +34,7 @@ async def dev_add(
 async def dev_list():
     """List the activated developer roles."""
     svc = get_service()
-    devs = [it for it in await svc.list_items(item_type=META_ROLE) if it.extra.get(X.IS_DEV)]
+    devs = [it for it in await svc.list_items(item_type=ROSTER_ROLE) if it.extra.get(X.IS_DEV)]
     if not devs:
         console.print("[dim]no developers (try `sq dev add --tech <t>`)[/dim]")
         return

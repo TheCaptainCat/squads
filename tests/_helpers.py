@@ -72,11 +72,11 @@ BUILTIN_FOLDER: dict[str, str] = {
 #: All 10 built-in type names, in the same order as :data:`BUILTIN_PREFIX`.
 BUILTIN_TYPES: tuple[str, ...] = tuple(BUILTIN_PREFIX)
 
-#: The 7 work-item types — excludes the 3 meta-types (role/skill/operator).
+#: The 7 work-item types — excludes the 3 roster types (role/skill/operator).
 WORK_TYPES: tuple[str, ...] = ("epic", "feature", "task", "bug", "decision", "review", "guide")
 
-#: The 3 meta-types the engine binds by name.
-META_TYPES: tuple[str, ...] = ("role", "skill", "operator")
+#: The 3 roster types the engine binds by name.
+ROSTER_TYPES: tuple[str, ...] = ("role", "skill", "operator")
 
 #: All 23 built-in status names across every lifecycle (work/adr/review/bug/guide/agent +
 #: sub-entity/finding), mirroring the bundled ``default_workflow.toml`` exactly.

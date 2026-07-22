@@ -10,10 +10,10 @@ owned by ``Service`` and threaded explicitly through call sites.
 
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import (
-    META_OPERATOR,
-    META_ROLE,
-    META_SKILL,
-    META_TYPES,
+    ROSTER_OPERATOR,
+    ROSTER_ROLE,
+    ROSTER_SKILL,
+    ROSTER_TYPES,
     STATUS_ACTIVE,
     STATUS_ARCHIVED,
     STATUS_DRAFT,
@@ -149,9 +149,9 @@ def subentity_can_transition(kind: str, src: str, dst: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def work_types() -> frozenset[str]:
-    """Non-meta types: the units of work."""
-    return _BUNDLED_SPEC.work_types()
+def non_roster_types() -> frozenset[str]:
+    """Creatable/trackable types: work + records — every type whose category isn't roster."""
+    return _BUNDLED_SPEC.non_roster_types()
 
 
 def item_is_roster(item_type: str) -> bool:
@@ -185,10 +185,10 @@ def status_role(status: str) -> str | None:
 
 __all__ = [
     "ALLOWED_PARENTS",
-    "META_OPERATOR",
-    "META_ROLE",
-    "META_SKILL",
-    "META_TYPES",
+    "ROSTER_OPERATOR",
+    "ROSTER_ROLE",
+    "ROSTER_SKILL",
+    "ROSTER_TYPES",
     "STATUS_ACTIVE",
     "STATUS_ARCHIVED",
     "STATUS_DRAFT",
@@ -214,6 +214,7 @@ __all__ = [
     "item_subentity_kind",
     "linearize_lifecycle",
     "load_workflow_spec",
+    "non_roster_types",
     "parent_allowed",
     "parent_hint",
     "status_role",
@@ -221,6 +222,5 @@ __all__ = [
     "subentity_completion",
     "subentity_initial",
     "subentity_workflow",
-    "work_types",
     "workflow_for",
 ]

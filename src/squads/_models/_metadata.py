@@ -9,8 +9,8 @@ badge field (``Item.severity``); ``ItemsMixin._apply_extra`` routes ``--set seve
 directly (validated against the spec's ``severity`` collection), a frozen per-axis shim until a
 follow-up generalizes ``--set`` over every declared field.
 
-Role/skill entries stay keyed by their literal type name below — both are reserved meta-types
-(``WorkflowSpec.META_TYPES``), bound by name elsewhere in the engine already, so hardcoding them
+Role/skill entries stay keyed by their literal type name below — both are reserved roster types
+(``WorkflowSpec.ROSTER_TYPES``), bound by name elsewhere in the engine already, so hardcoding them
 here doesn't create a new rename hazard. Every ordinary work type (guide/review's tags/target_ref)
 instead advertises its generic keys via the spec (``ItemSpec.extra_fields`` /
 ``WorkflowSpec.item_extra_fields``) — callers pass the resolved keys in, so a renamed guide/review
@@ -46,7 +46,7 @@ _ROLE_FIELDS: tuple[Field, ...] = (
     Field(X.TECH),  # only meaningful for dev roles, harmless elsewhere
 )
 
-#: Settable ``extra`` fields for the two reserved meta-types. Keyed by str so callers with a
+#: Settable ``extra`` fields for the two reserved roster types. Keyed by str so callers with a
 #: widened Item.type (str) can look up without casting.
 EXTRA_FIELDS: dict[str, tuple[Field, ...]] = {
     "role": _ROLE_FIELDS,
@@ -67,7 +67,7 @@ GLOBAL_FIELDS = frozenset(
 
 
 def settable(item_type: str, extra_keys: Iterable[str] = ()) -> dict[str, Field]:
-    """Settable ``extra`` fields for *item_type*: its reserved meta-type fields (if any) plus
+    """Settable ``extra`` fields for *item_type*: its reserved roster-type fields (if any) plus
     the caller-resolved generic keys (``spec.item_extra_fields(item_type)`` for a work type)."""
     result = {f.key: f for f in EXTRA_FIELDS.get(item_type, ())}
     result.update({k: _GENERIC_FIELDS[k] for k in extra_keys if k in _GENERIC_FIELDS})

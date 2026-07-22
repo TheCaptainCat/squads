@@ -37,7 +37,7 @@ _AGENT_LIFECYCLE = Lifecycle(
 def _build_spec(
     *, extra_statuses: dict[str, StatusSpec], work_lifecycle: Lifecycle
 ) -> WorkflowSpec:
-    """A minimal-but-complete spec (floor: the three meta-types + one work type) so only the
+    """A minimal-but-complete spec (floor: the three roster types + one work type) so only the
     behaviour under test (transition-target vocab / reachable-terminal) can fail."""
     statuses = {**_FLOOR_STATUSES, **extra_statuses}
     items_map = {

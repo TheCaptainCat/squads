@@ -98,8 +98,9 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         else:
             return merged
 
-    def _custom_work_types_for_ctx(self, ctx: Any) -> frozenset[str]:
-        """Return the set of custom work type names from the resolved spec.
+    def _custom_non_roster_types_for_ctx(self, ctx: Any) -> frozenset[str]:
+        """Return the set of custom creatable/trackable (non-roster) type names from the
+        resolved spec.
 
         "Custom" here means "not already registered by the static import-time loop"
         (``_STATIC_TYPES``) — i.e. anything a project's own workflow override adds on top
@@ -107,19 +108,19 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         """
         try:
             spec = self._resolve_spec_for_ctx(ctx)
-            return frozenset(t for t in spec.work_types() if t not in _STATIC_TYPES)
+            return frozenset(t for t in spec.non_roster_types() if t not in _STATIC_TYPES)
         except Exception:  # pylint: disable=broad-except
             return frozenset()
 
     def list_commands(self, ctx: Any) -> list[str]:
-        """Built-in commands first, then custom work types from the resolved spec.
+        """Built-in commands first, then custom non-roster types from the resolved spec.
 
         For a non-custom squad the resolved spec IS the bundled spec, so the output is
         byte-identical to today.  Custom types appear after the built-in set,
         sorted alphabetically for determinism.
         """
         base: list[str] = super().list_commands(ctx)
-        custom = sorted(self._custom_work_types_for_ctx(ctx))
+        custom = sorted(self._custom_non_roster_types_for_ctx(ctx))
         # Custom types are never in the built-in set, so no dedup is needed.
         return base + custom
 
@@ -132,8 +133,8 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         # Spec-resolution region: decide whether cmd_name is a known custom type or alias.
         # Errors here (invalid spec, path resolution failures, etc.) are swallowed so that
         # `sq --help` always degrades gracefully.  The only valid outcome of this block is
-        # either (a) `canonical` resolved to a declared custom work type, or (b) return None
-        # to let Click emit "No such command".
+        # either (a) `canonical` resolved to a declared custom non-roster type, or (b) return
+        # None to let Click emit "No such command".
         try:
             from squads._cli._items import build_item_app
 
@@ -147,10 +148,10 @@ class _CustomTypeGroup(typer.core.TyperGroup):
             # Resolve the canonical type name: check direct type name first, then
             # spec's alias_to_type map (covers custom aliases like "inc" → "incident").
             canonical = cmd_name
-            if cmd_name not in spec.work_types():
+            if cmd_name not in spec.non_roster_types():
                 # Check if it's an alias for a custom type.
                 resolved = spec.alias_to_type.get(cmd_name)
-                if resolved is not None and resolved in spec.work_types():
+                if resolved is not None and resolved in spec.non_roster_types():
                     canonical = resolved
                 else:
                     # Not a custom type or alias — fall through to Click's "No such command" error.
@@ -380,7 +381,7 @@ _spec = bundled_spec()
 # of default_workflow.toml's own [items.*] table order — so neither a reshuffle of the
 # bundled TOML nor a project override can silently reorder `sq --help`. A type that omits
 # `order` defaults to +inf (see ItemSpec.order) and sorts after every bundled type.
-_STATIC_TYPES: list[str] = sorted(_spec.work_types(), key=lambda t: (_spec.items[t].order, t))
+_STATIC_TYPES: list[str] = sorted(_spec.non_roster_types(), key=lambda t: (_spec.items[t].order, t))
 
 for _type_str in _STATIC_TYPES:
     _type_app = _items.build_item_app(_type_str)

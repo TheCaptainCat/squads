@@ -29,7 +29,7 @@ def _all_badge_fields(spec: WorkflowSpec) -> list[Field]:
     """Every declared badge field, deduplicated by code across every work type — spec-generic,
     not hard-coded to `priority`."""
     seen: dict[str, Field] = {}
-    for item_type in sorted(spec.work_types()):
+    for item_type in sorted(spec.non_roster_types()):
         for f in spec.fields_for(item_type):
             seen.setdefault(f.code, f)
     return list(seen.values())
@@ -88,7 +88,7 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
         seed_field = next((f for f in self._badge_fields if f.code == seed_code), None)
 
         self._type_select: Select[str] = Select(
-            [(t, t) for t in sorted(spec.work_types())],
+            [(t, t) for t in sorted(spec.non_roster_types())],
             id="filter-type",
             value=state.filter.item_type or Select.NULL,
         )

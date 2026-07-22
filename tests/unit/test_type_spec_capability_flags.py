@@ -12,7 +12,7 @@ other bundled status carries.
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ItemSpec, Lifecycle, RefRule, StatusSpec, WorkflowSpec
 
-_META_TYPES = ("role", "skill", "operator")
+_ROSTER_TYPES = ("role", "skill", "operator")
 _WORK_TYPES = ("epic", "feature", "task", "bug", "decision", "review", "guide")
 
 
@@ -22,7 +22,7 @@ def _spec() -> WorkflowSpec:
 
 def test_category_is_roster_only_for_role_skill_and_operator() -> None:
     spec = _spec()
-    for t in _META_TYPES:
+    for t in _ROSTER_TYPES:
         assert spec.items[t].category == "roster"
     for t in _WORK_TYPES:
         assert spec.items[t].category != "roster"
@@ -33,7 +33,7 @@ def test_subentity_kind_is_set_only_where_declared() -> None:
     assert spec.items["feature"].subentity_kind == "story"
     assert spec.items["task"].subentity_kind == "subtask"
     assert spec.items["review"].subentity_kind == "finding"
-    for t in ("epic", "bug", "decision", "guide", *_META_TYPES):
+    for t in ("epic", "bug", "decision", "guide", *_ROSTER_TYPES):
         assert spec.items[t].subentity_kind is None
 
 
@@ -44,7 +44,7 @@ def test_item_subentity_kind_degrades_to_none_for_an_undeclared_type() -> None:
 def test_parent_required_is_set_only_on_task() -> None:
     spec = _spec()
     assert spec.items["task"].parent_required == "feature"
-    for t in ("epic", "feature", "bug", "decision", "review", "guide", *_META_TYPES):
+    for t in ("epic", "feature", "bug", "decision", "review", "guide", *_ROSTER_TYPES):
         assert spec.items[t].parent_required is None
 
 
@@ -52,7 +52,7 @@ def test_ref_rules_populated_only_for_task_and_decision() -> None:
     spec = _spec()
     assert {r.kind for r in spec.items["task"].ref_rules} >= {"fixes", "addresses"}
     assert {r.kind for r in spec.items["decision"].ref_rules} >= {"supersedes"}
-    for t in ("epic", "feature", "bug", "review", "guide", *_META_TYPES):
+    for t in ("epic", "feature", "bug", "review", "guide", *_ROSTER_TYPES):
         assert spec.items[t].ref_rules == []
 
 

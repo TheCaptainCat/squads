@@ -1,5 +1,5 @@
 """The advisory create-lane warning: CreateResult.lane_warning is set for an out-of-lane
-create, None for an in-lane one, manager/op-* are exempt, non-laned meta types (role/skill/
+create, None for an in-lane one, manager/op-* are exempt, non-laned roster types (role/skill/
 operator) never carry the warning, and status mutations never trigger the check (create-time
 only). The lane table itself lives in tests/unit/test_create_lane_derivation.py.
 """

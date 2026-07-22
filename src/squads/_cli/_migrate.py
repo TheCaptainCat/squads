@@ -125,7 +125,7 @@ async def migrate_rename_type(
 ):
     """Bulk-rename every OLD_TYPE item to NEW_TYPE (same semantics, new prefix/folder).
 
-    Both types must already be declared, non-meta work types in the active spec — this
+    Both types must already be declared, non-roster types in the active spec — this
     call never declares NEW_TYPE. Run `sq check` after to verify integrity.
     """
     svc = get_service()

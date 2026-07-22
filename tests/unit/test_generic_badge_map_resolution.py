@@ -22,7 +22,7 @@ def test_omits_a_declared_field_whose_value_is_none() -> None:
 
 def test_a_type_with_no_declared_fields_resolves_to_an_empty_map() -> None:
     spec = bundled_spec()
-    # role is a meta-type: no badge fields declared.
+    # role is a roster type: no badge fields declared.
     assert resolve_badges(spec, "role", lambda _code: "whatever") == {}
 
 

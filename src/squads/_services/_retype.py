@@ -41,7 +41,7 @@ def _container_heading(spec: WorkflowSpec, kind: str) -> str:
 
 def _validate_work_types(spec: WorkflowSpec, old_type: str, new_type: str, old_id: str) -> None:
     """Raise if either type is not a work type, or they are the same."""
-    wt = spec.work_types()
+    wt = spec.non_roster_types()
     if old_type not in wt:
         raise SquadsError(
             f"{old_id} is a {old_type}; only work items can be retyped ({', '.join(sorted(wt))})"
@@ -113,7 +113,8 @@ class RetypeMixin(ServiceCore):
     async def retype(self, item_id: str, new_type: str) -> RetypeResult:
         """Reclassify *item_id* to *new_type* in place.
 
-        - Both the current type and *new_type* must be non-meta work types (``spec.work_types()``).
+        - Both the current type and *new_type* must be non-roster types
+          (``spec.non_roster_types()``).
         - Refuses (actionable :class:`~squads._errors.SquadsError`) when the item has
           sub-entities, when the existing parent would be invalid for the new type, or when
           any current child would become invalid under the new type.

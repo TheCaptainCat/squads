@@ -69,7 +69,7 @@ class SearchScreen(Screen[None]):
         self._svc = svc
         self._query = Input(placeholder=_PROMPT, id="search-query")
         self._type_select: Select[str] = Select(
-            [(t, t) for t in sorted(svc.spec.work_types())], id="search-type"
+            [(t, t) for t in sorted(svc.spec.non_roster_types())], id="search-type"
         )
         self._status_select: Select[str] = Select(
             [(s, s) for s in sorted(svc.spec.statuses)], id="search-status-filter"

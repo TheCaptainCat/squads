@@ -331,25 +331,25 @@ async def test_rename_type_and_rename_status_each_write_a_reflog_line_and_a_comm
     assert "renamed" in text and "TICKET-" in text
 
 
-# --------------------------------------------------------------------------- reserved meta-types
+# --------------------------------------------------------------------------- reserved roster types
 
 
-@pytest.mark.parametrize("meta_type", ["role", "skill", "operator"])
-async def test_rename_type_rejects_a_reserved_meta_type(
-    project: SquadPaths, invoke, meta_type: str
+@pytest.mark.parametrize("roster_type", ["role", "skill", "operator"])
+async def test_rename_type_rejects_a_reserved_roster_type(
+    project: SquadPaths, invoke, roster_type: str
 ) -> None:
-    result = await invoke(["migrate", "rename-type", meta_type, "task"])
+    result = await invoke(["migrate", "rename-type", roster_type, "task"])
     assert result.exit_code != 0
-    assert "reserved meta-type" in result.output
+    assert "reserved roster type" in result.output
 
 
-@pytest.mark.parametrize("meta_type", ["role", "skill", "operator"])
-async def test_rename_status_rejects_a_reserved_meta_type(
-    project: SquadPaths, invoke, meta_type: str
+@pytest.mark.parametrize("roster_type", ["role", "skill", "operator"])
+async def test_rename_status_rejects_a_reserved_roster_type(
+    project: SquadPaths, invoke, roster_type: str
 ) -> None:
-    result = await invoke(["migrate", "rename-status", meta_type, "Draft", "Ready"])
+    result = await invoke(["migrate", "rename-status", roster_type, "Draft", "Ready"])
     assert result.exit_code != 0
-    assert "reserved meta-type" in result.output
+    assert "reserved roster type" in result.output
 
 
 # --------------------------------------------------------------------------- no schema drift

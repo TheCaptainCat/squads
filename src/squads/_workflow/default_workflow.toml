@@ -234,7 +234,7 @@ badges = [
 # `order` is the explicit CLI registration/display order (ascending; type name breaks
 # ties) — a float, deliberately spaced by 10 so a future type can be inserted between
 # two existing ones (even fractionally, e.g. 25.5 between task and bug) without
-# renumbering everything. Work types keep today's logical sequence; meta types
+# renumbering everything. Work types keep today's logical sequence; roster types
 # (role/skill/operator) come after them for completeness, though they register via
 # their own dedicated subcommands rather than this ordering. A type that omits
 # `order` defaults to +inf (ItemSpec.order) — sorts after every value declared here.

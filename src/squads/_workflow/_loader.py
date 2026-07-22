@@ -37,7 +37,7 @@ from typing import Any
 
 from squads._errors import SquadsError
 from squads._workflow._models import (
-    META_TYPES,
+    ROSTER_TYPES,
     Badge,
     Collection,
     Field,
@@ -126,10 +126,10 @@ def _pop_legacy_is_meta(name: str, data: dict[str, Any]) -> dict[str, Any]:
         return data
     data = dict(data)
     legacy = data.pop("is_meta")
-    if legacy and name not in META_TYPES:
+    if legacy and name not in ROSTER_TYPES:
         raise SquadsError(
             f"item spec {name!r}: 'is_meta' is deprecated in favour of 'category' — "
-            f"roster is locked to {sorted(META_TYPES)}, so a custom type cannot set "
+            f"roster is locked to {sorted(ROSTER_TYPES)}, so a custom type cannot set "
             f"is_meta = true. Declare 'category' instead (defaults to 'work')."
         )
     return data

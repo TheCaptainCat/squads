@@ -1,11 +1,11 @@
-"""The type/status floor is exactly the three meta-types plus Draft/Active/Archived — everything
+"""The type/status floor is exactly the three roster types plus Draft/Active/Archived — everything
 else (the 7 work types, the sub-entity/finding statuses) is ordinary, droppable spec vocabulary.
 A custom type also cannot shadow a reserved prefix or folder.
 """
 
 import pytest
 
-from _helpers import FLOOR_STATUSES, FORMER_FLOOR_STATUSES, META_TYPES, WORK_TYPES
+from _helpers import FLOOR_STATUSES, FORMER_FLOOR_STATUSES, ROSTER_TYPES, WORK_TYPES
 from squads._errors import SquadsError
 from squads._workflow import bundled_spec
 from squads._workflow._models import ItemSpec, WorkflowSpec
@@ -53,15 +53,15 @@ def _spec_without_status(drop_status: str) -> dict[str, object]:
 # --------------------------------------------------------------------------- type floor
 
 
-@pytest.mark.parametrize("meta_type", sorted(META_TYPES))
-def test_spec_missing_a_meta_type_fails_closed(meta_type: str) -> None:
-    with pytest.raises(SquadsError, match="spec missing required meta-types"):
-        WorkflowSpec.model_validate(_spec_without_type(meta_type))
+@pytest.mark.parametrize("roster_type", sorted(ROSTER_TYPES))
+def test_spec_missing_a_roster_type_fails_closed(roster_type: str) -> None:
+    with pytest.raises(SquadsError, match="spec missing required roster types"):
+        WorkflowSpec.model_validate(_spec_without_type(roster_type))
 
 
 @pytest.mark.parametrize("work_type", sorted(WORK_TYPES))
 def test_spec_missing_a_work_type_loads_successfully(work_type: str) -> None:
-    """Only the three meta-types are floor-enforced; every work type is droppable."""
+    """Only the three roster types are floor-enforced; every work type is droppable."""
     WorkflowSpec.model_validate(_spec_without_type(work_type))  # must not raise
 
 
@@ -123,25 +123,25 @@ def test_custom_type_cannot_shadow_a_reserved_folder() -> None:
         )
 
 
-# --------------------------------------------------------------------------- work_types()
+# --------------------------------------------------------------------------- non_roster_types()
 
 
-def test_work_types_excludes_meta_types_and_includes_every_builtin_work_type() -> None:
+def test_non_roster_types_excludes_roster_types_and_includes_every_builtin_work_type() -> None:
     spec = bundled_spec()
-    wt = spec.work_types()
-    assert wt == {t for t in spec.items if not spec.item_is_roster(t)}
-    for mt in META_TYPES:
-        assert mt not in wt
+    nrt = spec.non_roster_types()
+    assert nrt == {t for t in spec.items if not spec.item_is_roster(t)}
+    for rt in ROSTER_TYPES:
+        assert rt not in nrt
 
 
-def test_work_types_matches_category_derived_expectation() -> None:
-    """Independent of ``item_is_roster``: ``work_types()`` is exactly the non-``roster``-category
-    set (work + records)."""
+def test_non_roster_types_matches_category_derived_expectation() -> None:
+    """Independent of ``item_is_roster``: ``non_roster_types()`` is exactly the
+    non-``roster``-category set (work + records)."""
     spec = bundled_spec()
-    assert spec.work_types() == {t for t, ts in spec.items.items() if ts.category != "roster"}
+    assert spec.non_roster_types() == {t for t, ts in spec.items.items() if ts.category != "roster"}
 
 
-def test_work_types_includes_a_custom_work_type_but_not_a_custom_meta_type() -> None:
+def test_non_roster_types_includes_a_custom_work_type_but_not_a_custom_roster_type() -> None:
     base = bundled_spec()
     incident = ItemSpec(prefix="INC", folder="incidents", lifecycle="work", category="work")
     agent = ItemSpec(prefix="AGENT", folder="agents/custom", lifecycle="work", category="roster")
@@ -158,20 +158,20 @@ def test_work_types_includes_a_custom_work_type_but_not_a_custom_meta_type() -> 
             "subentity_kinds": base.subentity_kinds,
         }
     )
-    wt = spec.work_types()
-    assert "incident" in wt
-    assert "custom-agent" not in wt
+    nrt = spec.non_roster_types()
+    assert "incident" in nrt
+    assert "custom-agent" not in nrt
 
 
-def test_the_module_level_work_types_free_function_matches_the_bundled_specs_own_method() -> None:
-    """``squads._workflow.work_types()`` — a package-level convenience wrapper over the
-    bundled singleton's own ``work_types()`` method, proven above."""
-    from squads._workflow import work_types
+def test_module_level_non_roster_types_matches_the_bundled_specs_own_method() -> None:
+    """``squads._workflow.non_roster_types()`` — a package-level convenience wrapper over the
+    bundled singleton's own ``non_roster_types()`` method, proven above."""
+    from squads._workflow import non_roster_types
 
     spec = bundled_spec()
-    assert work_types() == spec.work_types()
-    for mt in META_TYPES:
-        assert mt not in work_types()
+    assert non_roster_types() == spec.non_roster_types()
+    for rt in ROSTER_TYPES:
+        assert rt not in non_roster_types()
 
 
 # --------------------------------------------------------------------------- graceful degradation

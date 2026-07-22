@@ -19,7 +19,7 @@ def test_authoring_owner_resolves_the_lane_owning_role_per_type() -> None:
 
 def test_authoring_owner_returns_none_for_an_unknown_or_ownerless_type() -> None:
     assert authoring_owner("no-such-type") is None
-    assert authoring_owner("role") is None  # meta type
+    assert authoring_owner("role") is None  # roster type
     assert authoring_owner("incident") is None  # a hypothetical custom type, absent from lanes
 
 

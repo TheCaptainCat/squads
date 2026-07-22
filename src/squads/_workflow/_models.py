@@ -2,7 +2,7 @@
 
 The loaded spec is the sole vocabulary authority for both axes: TOML type keys AND status
 keys stay plain ``str`` (no enum coercion, no closed set). The reserved surface is exactly
-the three meta-types (``META_TYPES``) plus their agent-lifecycle statuses
+the three roster types (``ROSTER_TYPES``) plus their agent-lifecycle statuses
 (``_RESERVED_FLOOR`` — ``Draft``/``Active``/``Archived``); every other type or status is
 ordinary spec vocabulary a project may drop, rename, or reorder.
 
@@ -24,17 +24,17 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-#: The three meta-types the engine binds by literal name — the irreducible
+#: The three roster types the engine binds by literal name — the irreducible
 #: structural minimum: the roster, the backends (which write role/skill files), and the
 #: agent lifecycle genuinely reference these by name. NOT a closed type vocabulary — every
 #: other type (built-in or custom) is ordinary, droppable/renamable spec vocabulary.
-META_ROLE = "role"
-META_SKILL = "skill"
-META_OPERATOR = "operator"
-META_TYPES: frozenset[str] = frozenset({META_ROLE, META_SKILL, META_OPERATOR})
+ROSTER_ROLE = "role"
+ROSTER_SKILL = "skill"
+ROSTER_OPERATOR = "operator"
+ROSTER_TYPES: frozenset[str] = frozenset({ROSTER_ROLE, ROSTER_SKILL, ROSTER_OPERATOR})
 
 #: The agent-lifecycle statuses the engine binds by literal name — the same irreducible
-#: minimum on the status axis as ``META_TYPES`` is on the type axis: a meta-type must be
+#: minimum on the status axis as ``ROSTER_TYPES`` is on the type axis: a roster type must be
 #: creatable (``Draft``), activatable (``Active``), and archivable (``Archived``), which is
 #: structural. Every other status — work-item, sub-entity, and finding alike — is ordinary
 #: spec vocabulary bound by role in its state machine, never by name.
@@ -250,7 +250,7 @@ class ItemSpec(BaseModel):
     """Vocabulary for one item type: prefix, folder, lifecycle, parents, aliases.
 
     Capability flags are additive and default to the ``False``/``None`` values
-    that represent the common case (non-meta work item with no special spine).
+    that represent the common case (a non-roster work item with no special spine).
     They are not yet consumed by the engine.
     """
 
@@ -285,7 +285,7 @@ class ItemSpec(BaseModel):
 
     subentity_kind: str | None = None
     """The kind of sub-entity this type hosts: ``"story"`` | ``"subtask"`` | ``"finding"``
-    or ``None`` for types that have no sub-entities (epic/bug/decision/guide/meta-types)."""
+    or ``None`` for types that have no sub-entities (epic/bug/decision/guide/roster types)."""
 
     parent_required: str | None = None
     """The required parent type expressed as a string (e.g. ``"feature"`` for task).
@@ -865,8 +865,10 @@ class WorkflowSpec(BaseModel):
 
     # ------------------------------------------------------------------ capability-flag accessors
 
-    def work_types(self) -> frozenset[str]:
-        """Non-roster types: work + records — every type whose category isn't roster."""
+    def non_roster_types(self) -> frozenset[str]:
+        """Creatable/trackable types: work + records — every type whose category isn't
+        roster. For sites that need one category exactly, use ``item_is_roster``/the
+        type's own ``category`` field instead of this lump."""
         return frozenset(t for t, ts in self.items.items() if ts.category != "roster")
 
     def item_is_roster(self, item_type: str) -> bool:
@@ -1002,18 +1004,18 @@ class WorkflowSpec(BaseModel):
         # Each declared sub-entity kind's completion names a reachable, non-initial status.
         _check_completion_status(self.subentity_kinds, self.lifecycles, errors)
 
-        # Reserved-vocab floor — the spec must declare the three meta-types, each with
+        # Reserved-vocab floor — the spec must declare the three roster types, each with
         # category = "roster". This is the ONLY type-axis floor: every other type
         # (built-in or custom) is ordinary spec vocabulary that may be omitted, renamed, or
-        # re-prefixed. A missing meta-type OR one declared without category = "roster" fails
+        # re-prefixed. A missing roster type OR one declared without category = "roster" fails
         # closed.
         spec_types = set(self.items)
-        missing_meta = META_TYPES - spec_types
-        if missing_meta:
-            errors.append(f"spec missing required meta-types: {sorted(missing_meta)}")
+        missing_roster = ROSTER_TYPES - spec_types
+        if missing_roster:
+            errors.append(f"spec missing required roster types: {sorted(missing_roster)}")
         errors.extend(
-            f"meta-type {t!r} must declare category = 'roster'"
-            for t in sorted(META_TYPES & spec_types)
+            f"roster type {t!r} must declare category = 'roster'"
+            for t in sorted(ROSTER_TYPES & spec_types)
             if self.items[t].category != "roster"
         )
 

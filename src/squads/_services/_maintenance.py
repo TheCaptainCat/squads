@@ -39,7 +39,7 @@ from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
 from squads._services._validators import ValidatorEngine
-from squads._workflow import META_ROLE, META_SKILL, STATUS_ACTIVE
+from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, STATUS_ACTIVE
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` — every type (built-in or custom) resolves from the spec.
@@ -101,13 +101,13 @@ class MaintenanceMixin(ServiceCore):
         # cache write, so a full sync is the single recomputation point for both surfaces.
         role_skills = await self._role_skills_map()
         role_ctx = BackendContext(paths=self.paths, spec=self.spec, role_skills=role_skills)
-        for it in await self.list_items(item_type=META_ROLE):
+        for it in await self.list_items(item_type=ROSTER_ROLE):
             await self._refresh_catalog_extra(it)
             await self._refresh_role_skills_extra(it, role_skills)
             for backend in backends:
                 await backend.generate_role_entry(role_ctx, it, RoleDef.from_extra(it.extra))
             await self._regen_role_body(it)
-        for it in await self.list_items(item_type=META_SKILL):
+        for it in await self.list_items(item_type=ROSTER_SKILL):
             for backend in backends:
                 await backend.generate_skill_entry(ctx, it)
         skill_map = await self._skill_paths()
@@ -193,8 +193,8 @@ class MaintenanceMixin(ServiceCore):
         """Stamp SKILL-… ids onto the bundled managed skill body files (idempotent).
 
         Called by ``sq init`` after ``refresh_managed()`` has written the skill body files.
-        Each bundled skill receives a full ``Item`` of the ``skill`` meta-type with the
-        meta-type profile (status ``Active``, no sub-entities), allocated through
+        Each bundled skill receives a full ``Item`` of the ``skill`` roster type with the
+        roster-type profile (status ``Active``, no sub-entities), allocated through
         ``IndexStore.transaction()`` in lexical-by-slug order.
 
         Files are written with the convention-correct name
@@ -209,8 +209,8 @@ class MaintenanceMixin(ServiceCore):
         """
         now = clock.now()
         seeded: list[Item] = []
-        skill_prefix = prefix_for(META_SKILL, self.spec)
-        skills_folder = self.paths.squad_dir / self.spec.items[META_SKILL].folder
+        skill_prefix = prefix_for(ROSTER_SKILL, self.spec)
+        skills_folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
         for slug in bundled_skill_slugs():
             desc = skill_description(slug)
 
@@ -228,15 +228,15 @@ class MaintenanceMixin(ServiceCore):
             # Allocate a new SKILL id through the single global counter.
             sid, _psid = actor.current_session()
             async with self.store.transaction() as db:
-                item_id = db.allocate_id(META_SKILL, prefix=skill_prefix)
+                item_id = db.allocate_id(ROSTER_SKILL, prefix=skill_prefix)
                 # Convention-correct filename from the allocated id.
                 seq = number_for_id(item_id)
                 # Padded filename stem — deliberately NOT the displayed item.id.
                 new_name = f"{skill_prefix}-{seq:0{db.padding}d}-{slug}.md"
-                squad_rel = self.paths.squad_relative(META_SKILL, new_name, spec=self.spec)
+                squad_rel = self.paths.squad_relative(ROSTER_SKILL, new_name, spec=self.spec)
                 item = Item(
                     sequence_id=db.counter,
-                    type=META_SKILL,
+                    type=ROSTER_SKILL,
                     prefix=skill_prefix,
                     title=slug,
                     slug=slug,
@@ -258,7 +258,7 @@ class MaintenanceMixin(ServiceCore):
                 self.store._log(  # pyright: ignore[reportPrivateUsage]
                     "create",
                     item_id,
-                    {"title": slug, "type": META_SKILL, "status": STATUS_ACTIVE},
+                    {"title": slug, "type": ROSTER_SKILL, "status": STATUS_ACTIVE},
                 )
             # Remove the legacy slug-named file now that convention file is written.
             await _aio.path_unlink(legacy_path)
@@ -286,8 +286,8 @@ class MaintenanceMixin(ServiceCore):
         """
         now = clock.now()
         seeded: list[Item] = []
-        skill_prefix = prefix_for(META_SKILL, self.spec)
-        skills_folder = self.paths.squad_dir / self.spec.items[META_SKILL].folder
+        skill_prefix = prefix_for(ROSTER_SKILL, self.spec)
+        skills_folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
         for slug in custom_skill_slugs(self.spec):
             desc = custom_item_skill_description(slug.removeprefix("sq-"))
 
@@ -305,14 +305,14 @@ class MaintenanceMixin(ServiceCore):
             # Allocate a new SKILL id through the single global counter.
             sid, _psid = actor.current_session()
             async with self.store.transaction() as db:
-                item_id = db.allocate_id(META_SKILL, prefix=skill_prefix)
+                item_id = db.allocate_id(ROSTER_SKILL, prefix=skill_prefix)
                 seq = number_for_id(item_id)
                 # Padded filename stem — deliberately NOT the displayed item.id.
                 new_name = f"{skill_prefix}-{seq:0{db.padding}d}-{slug}.md"
-                squad_rel = self.paths.squad_relative(META_SKILL, new_name, spec=self.spec)
+                squad_rel = self.paths.squad_relative(ROSTER_SKILL, new_name, spec=self.spec)
                 item = Item(
                     sequence_id=db.counter,
-                    type=META_SKILL,
+                    type=ROSTER_SKILL,
                     prefix=skill_prefix,
                     title=slug,
                     slug=slug,
@@ -333,7 +333,7 @@ class MaintenanceMixin(ServiceCore):
                 self.store._log(  # pyright: ignore[reportPrivateUsage]
                     "create",
                     item_id,
-                    {"title": slug, "type": META_SKILL, "status": STATUS_ACTIVE},
+                    {"title": slug, "type": ROSTER_SKILL, "status": STATUS_ACTIVE},
                 )
             # Remove the legacy slug-named file now that convention file is written.
             await _aio.path_unlink(legacy_path)
@@ -366,7 +366,7 @@ class MaintenanceMixin(ServiceCore):
             if not folder.is_dir():
                 continue
             prefix = ts.prefix
-            if item_type == META_SKILL:
+            if item_type == ROSTER_SKILL:
                 # Convention files follow SKILL-*.md (post-migration / fresh init).
                 # Also include legacy <slug>.md files so pre-migration squads can still be
                 # repaired/checked (they will be silently skipped by callers that require an id).
@@ -885,7 +885,7 @@ class MaintenanceMixin(ServiceCore):
         issues: list[CheckIssue] = []
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]] = {}
         bodies: dict[int, str] = {}
-        skill_prefix = prefix_for(META_SKILL, self.spec) + "-"
+        skill_prefix = prefix_for(ROSTER_SKILL, self.spec) + "-"
         for item_type, md in self._iter_item_files():
             text = await _aio.read_text(md)
             issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
@@ -894,7 +894,7 @@ class MaintenanceMixin(ServiceCore):
             if not fid:
                 # Slug-named skill body files (e.g. squads.md) are pre-migration: skip silently.
                 # Only ID-prefixed files that are missing an id are a real error.
-                if item_type == META_SKILL and not md.name.startswith(skill_prefix):
+                if item_type == ROSTER_SKILL and not md.name.startswith(skill_prefix):
                     continue
                 issues.append(CheckIssue("error", md.name, "file has no `id` in frontmatter"))
                 continue
