@@ -1,6 +1,5 @@
 """Whole-squad maintenance: sync managed files, repair/renumber the index, check, migrate."""
 
-import re
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from pathlib import Path
@@ -9,14 +8,12 @@ from typing import Any
 from squads import __version__, _aio
 from squads import _actor as actor
 from squads import _clock as clock
-from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._backends._base import BackendContext
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
 from squads._interactions import (
-    TITLE_ADVISORY_MAX,
     bundled_skill_slugs,
     custom_item_skill_description,
     custom_skill_slugs,
@@ -30,10 +27,8 @@ from squads._models._index import SquadsDB
 from squads._models._item import (
     DEFAULT_ID_PADDING,
     DISPLAY_ID_PADDING,
-    VALID_REF_KINDS,
     Item,
     format_item_id,
-    split_ref,
 )
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
@@ -49,29 +44,6 @@ from squads._workflow import META_ROLE, META_SKILL, STATUS_ACTIVE
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` — every type (built-in or custom) resolves from the spec.
 type _FileRec = tuple[str, Path, str, str, int]
-
-# A leading status/lifecycle banner: "STATUS:" / "**STATUS…**" opening a line, or a
-# hand-written "## Status" / "### Status" heading. Anchored so it only matches at the very
-# start of the text being checked — never a bare keyword found anywhere in the middle.
-_STATUS_BANNER_RE = re.compile(r"^\*{0,2}status\*{0,2}\s*:", re.IGNORECASE)
-_STATUS_HEADING_RE = re.compile(r"^#{2,3}\s*status\s*:?\s*$", re.IGNORECASE)
-
-
-def _opens_with_status_banner(text: str | None) -> bool:
-    """True when *text* opens with a self-declared status/lifecycle banner.
-
-    Only the leading line is examined — a whole-text keyword grep would also catch a body
-    discussing lifecycle as a *topic* ("the Draft→Ready transition"), a cross-reference to
-    another item's status ("blocks TASK-x until it lands"), or the word inside a fenced code
-    example. None of those open the text, so anchoring here keeps the detector silent on them.
-    """
-    if not text:
-        return False
-    stripped = text.strip()
-    if not stripped:
-        return False
-    first_line = stripped.splitlines()[0].strip()
-    return bool(_STATUS_BANNER_RE.match(first_line) or _STATUS_HEADING_RE.match(first_line))
 
 
 def _marker_issues(text: str) -> list[str]:
@@ -872,62 +844,39 @@ class MaintenanceMixin(ServiceCore):
 
     # ------------------------------------------------------------------ check
     async def check(self) -> list[CheckIssue]:
+        """Every reported issue now comes from exactly two sources: the residue that isn't a
+        catalog validator (marker/no-id scan, frontmatter/index drift, the two override
+        checks) and :class:`ValidatorEngine` — the per-item + squad-global catalog, the sole
+        source for everything else `sq check` used to compute via hardcoded ``_check_*``
+        methods.
+        """
         from squads._overrides._service import check_override_issues
 
         index = await self.store.load()
-        issues, on_disk = await self._scan_for_check()
-        issues += self._check_reconciliation(index, on_disk)
+        issues, on_disk, bodies = await self._scan_for_check()
         issues += self._check_items(index, on_disk)
-        issues += self._check_subtask_stories(index)
-        issues += self._check_subentity_status(index)
-        issues += self._check_decisions(index)
-        issues += await self._check_unwritten_subentity_bodies(index, on_disk)
-        issues += await self._check_status_banners(index, on_disk)
         # Two override checks — version-drift warn + missing-marker error.
         issues += [
             CheckIssue(level, item, msg)
             for level, item, msg in check_override_issues(self.paths.squad_dir)
         ]
-        # Verify each active backend's managed files are present.
-        issues += self._check_backends()
-        # Advisory title-length audit across all sub-entities.
-        issues += self._check_subentity_title_lengths(index)
-        # Validator-engine scaffold: empty catalog in Phase A, contributes nothing — the
-        # hardcoded _check_* calls above remain the sole source of output.
-        issues += ValidatorEngine(spec=self.spec).report(index, on_disk)
-        return issues
-
-    def _check_backends(self) -> list[CheckIssue]:
-        """For each active (deduped) backend, verify its managed files exist on disk.
-
-        Empty ``active_backends = []`` → nothing to check (sq-only squad is clean).
-        Deactivated backends are not probed.
-        """
-        ctx = self._ctx
-        issues: list[CheckIssue] = []
-        for backend in self._backends():
-            for rel_path in backend.managed_paths(ctx):
-                full = ctx.root / rel_path
-                if not full.exists():
-                    issues.append(
-                        CheckIssue(
-                            "error",
-                            rel_path,
-                            f"managed file missing — run `sq sync` (backend: {backend.name})",
-                        )
-                    )
+        issues += ValidatorEngine(spec=self.spec, paths=self.paths).report(
+            index, on_disk, bodies=bodies
+        )
         return issues
 
     async def _scan_for_check(
         self,
-    ) -> tuple[list[CheckIssue], dict[int, tuple[str, Path, dict[str, Any]]]]:
-        """Scan every item file for marker issues and frontmatter.
+    ) -> tuple[list[CheckIssue], dict[int, tuple[str, Path, dict[str, Any]]], dict[int, str]]:
+        """Scan every item file for marker issues, frontmatter, and raw body text.
 
-        Returns ``(issues, on_disk)`` where ``on_disk`` is keyed by the item's **sequence
-        number** (int) so reconciliation comparisons are width-tolerant — frontmatter ``id``
-        fields keep their old width after ``sq migrate repad`` while the index reports the
-        new width.  The stored tuple is ``(fid, path, frontmatter_data)`` so error messages
-        can still name the original frontmatter ID.
+        Returns ``(issues, on_disk, bodies)``. ``on_disk``/``bodies`` are keyed by the item's
+        **sequence number** (int) so reconciliation comparisons are width-tolerant —
+        frontmatter ``id`` fields keep their old width after ``sq migrate repad`` while the
+        index reports the new width. ``on_disk``'s stored tuple is ``(fid, path,
+        frontmatter_data)`` so error messages can still name the original frontmatter ID;
+        ``bodies`` is the file's full raw text, read once here and threaded straight into
+        :meth:`ValidatorEngine.report` so no validator re-reads the file itself.
 
         Skill files with no ``id`` in their frontmatter are silently skipped (pre-migration
         body files that have not yet been stamped as SKILL items).  Only ID-prefixed skill
@@ -935,6 +884,7 @@ class MaintenanceMixin(ServiceCore):
         """
         issues: list[CheckIssue] = []
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]] = {}
+        bodies: dict[int, str] = {}
         skill_prefix = prefix_for(META_SKILL, self.spec) + "-"
         for item_type, md in self._iter_item_files():
             text = await _aio.read_text(md)
@@ -950,259 +900,23 @@ class MaintenanceMixin(ServiceCore):
                 continue
             seq = number_for_id(fid)
             on_disk[seq] = (fid, md, data)
-        return issues, on_disk
-
-    @staticmethod
-    def _check_reconciliation(
-        index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
-    ) -> list[CheckIssue]:
-        """Reconcile index items against on-disk files, comparing by sequence number.
-
-        Using sequence numbers (not full-ID strings) makes the comparison width-tolerant:
-        frontmatter ``id`` fields keep their old padding after ``sq migrate repad``, but the
-        index reports the current-padding ID — both sides map to the same integer sequence.
-        """
-        index_seqs = {it.sequence_id for it in index.items.values()}
-        issues = [
-            CheckIssue("error", fid, "on disk but not in index (run `sq repair`)")
-            for seq, (fid, _md, _data) in on_disk.items()
-            if seq not in index_seqs
-        ]
-        issues += [
-            CheckIssue("error", it.id, "in index but no markdown file found")
-            for it in index.items.values()
-            if it.sequence_id not in on_disk
-        ]
-        return issues
+            bodies[seq] = text
+        return issues, on_disk, bodies
 
     def _check_items(
         self,
         index: SquadsDB,
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
     ) -> list[CheckIssue]:
+        """Residual frontmatter/index **drift** check — not a catalog validator (see
+        ``_drift_issues``). Status/parent/ref/agent-registration membership moved to the
+        engine's ``item_status_valid``/``parent_in``/``no_parent``/``dangling_ref``/
+        ``ref_kind_valid``/``agent_registered``.
+        """
         issues: list[CheckIssue] = []
-        registered = {
-            r.extra.get(X.SLUG) for r in index.items.values() if self.spec.item_is_roster(r.type)
-        }
         for item in index.items.values():
-            iid = item.id
-            if item.status not in self.spec.workflow_for(item.type).states:
-                issues.append(
-                    CheckIssue("error", iid, f"status {item.status!r} invalid for {item.type}")
-                )
-            parent = index.get(item.parent) if item.parent else None
-            if item.parent and parent is None:
-                issues.append(CheckIssue("error", iid, f"dangling parent {item.parent}"))
-            elif parent is not None and not self.spec.parent_allowed(item.type, parent.type):
-                msg = f"{self.spec.parent_hint(item.type)} (got {parent.type})"
-                issues.append(CheckIssue("error", iid, msg))
-            for r in item.refs:
-                rid, kind = split_ref(r)
-                if index.get(rid) is None:
-                    issues.append(CheckIssue("warn", iid, f"dangling ref {rid}"))
-                if kind not in VALID_REF_KINDS:
-                    issues.append(
-                        CheckIssue("warn", iid, f"unknown ref kind {kind!r} on edge → {rid}")
-                    )
-            for field in ("author", "assignee"):
-                slug = getattr(item, field)
-                if slug and slug not in registered:
-                    issues.append(
-                        CheckIssue(
-                            "warn", iid, f"{field} {slug!r} is not a registered agent or operator"
-                        )
-                    )
             # Lookup by sequence number: frontmatter id width may differ from item.id after repad.
             disk_entry = on_disk.get(item.sequence_id)
             if disk_entry is not None:
-                issues += _drift_issues(iid, item, disk_entry[2])
-        return issues
-
-    def _check_subtask_stories(self, index: SquadsDB) -> list[CheckIssue]:
-        issues: list[CheckIssue] = []
-        for item in index.items.values():
-            kind = self.spec.item_subentity_kind(item.type)
-            if kind != "subtask":
-                continue
-            refs = [(s.local_id, s.story) for s in item.subentities if s.story]
-            if not refs:
-                continue
-            parent = index.get(item.parent) if item.parent else None
-            required_parent = self.spec.item_parent_required(item.type)
-            host = required_parent or "parent"
-            story_kind = self.spec.item_subentity_kind(host) or "story"
-            if parent is None or (required_parent is not None and parent.type != required_parent):
-                issues.append(
-                    CheckIssue(
-                        "error",
-                        item.id,
-                        f"{kind} maps to a {story_kind} but the {item.type} has no {host} parent",
-                    )
-                )
-                continue
-            known = {s.local_id for s in parent.subentities}
-            issues += [
-                CheckIssue("error", item.id, f"{kind} {stn} → {us} missing from {parent.id}")
-                for stn, us in refs
-                if us not in known
-            ]
-        return issues
-
-    def _check_subentity_status(self, index: SquadsDB) -> list[CheckIssue]:
-        issues: list[CheckIssue] = []
-        for item in index.items.values():
-            # Routed through the ACTIVE resolved spec (not the bundled-only SUBENTITY_KIND
-            # constant) so a project override that renames/drops a type's subentity_kind is
-            # reflected here too — a dropped/renamed type cleanly loses this check instead of
-            # silently keeping (or silently missing) it.
-            kind = self.spec.item_subentity_kind(item.type)
-            if kind is None:
-                continue
-            valid = self.spec.subentity_workflow(kind).states
-            issues += [
-                CheckIssue("error", item.id, f"{kind} {s.local_id} has invalid status {s.status!r}")
-                for s in item.subentities
-                if s.status not in valid
-            ]
-        return issues
-
-    def _check_decisions(self, index: SquadsDB) -> list[CheckIssue]:
-        """Warn on Superseded decisions with no incoming ``supersedes`` edge.
-
-        The ``supersedes`` target is stored as a ref string with whatever width it had when it
-        was written — sequence-number comparison makes it width-tolerant after a repad.
-        """
-        issues: list[CheckIssue] = []
-        # Collect sequence numbers of items that have an incoming supersedes edge.
-        has_incoming_supersedes: set[int] = set()
-        for it in index.items.values():
-            for r in it.refs:
-                rid, kind = split_ref(r)
-                if kind == "supersedes":
-                    has_incoming_supersedes.add(number_for_id(rid))
-        for item in index.items.values():
-            # Only types that declare a "supersedes" ref rule need the check.
-            if not any(rr.kind == "supersedes" for rr in self.spec.item_ref_rules(item.type)):
-                continue
-            if (
-                self.spec.status_role(item.status) == "superseded"
-                and item.sequence_id not in has_incoming_supersedes
-            ):
-                issues.append(
-                    CheckIssue(
-                        "warn",
-                        item.id,
-                        f"status is {item.status} but no incoming supersedes edge found",
-                    )
-                )
-        return issues
-
-    async def _check_unwritten_subentity_bodies(
-        self,
-        index: SquadsDB,
-        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
-    ) -> list[CheckIssue]:
-        """Advisory: flag any sub-entity whose stored body is still the kind's placeholder.
-
-        Sub-entity body prose lives in the item file's ``:body`` marker region, not in the
-        index/frontmatter, so — unlike the sibling index-only ``_check_*`` helpers — this one
-        reads each sub-entity-bearing item's file text (reusing the path already resolved by
-        :meth:`_scan_for_check`'s ``on_disk`` scan, keyed by sequence number). Exact-equality
-        only: a body that has started to diverge from the placeholder, even by a single
-        character, is treated as written and never flagged.
-
-        Warn-level (advisory, non-blocking) — mirrors :meth:`_check_subentity_title_lengths`;
-        no Draft→Ready gate is added.
-        """
-        issues: list[CheckIssue] = []
-        for item in index.items.values():
-            kind = self.spec.item_subentity_kind(item.type)
-            if kind is None or not item.subentities:
-                continue
-            entry = on_disk.get(item.sequence_id)
-            if entry is None:
-                continue
-            text = await _aio.read_text(entry[1])
-            placeholder = discussion.body_placeholder(kind, self.spec)
-            for sub in item.subentities:
-                body = sections.get_section(text, discussion.body_tag(kind, sub.local_id))
-                if body is not None and body.strip() == placeholder:
-                    issues.append(
-                        CheckIssue(
-                            "warn",
-                            item.id,
-                            f"{sub.local_id} body is unwritten (still the placeholder stub)",
-                        )
-                    )
-        return issues
-
-    async def _check_status_banners(
-        self,
-        index: SquadsDB,
-        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
-    ) -> list[CheckIssue]:
-        """Advisory: flag an item whose body or description opens with a status banner.
-
-        Mirrors :meth:`_check_unwritten_subentity_bodies`: body prose lives in the item file's
-        ``:body`` marker region, not the index, so this reads the on-disk text (already scanned
-        into ``on_disk``, keyed by sequence number) via ``sections.get_section`` — which returns
-        only that one region, so the discussion section is never in scope. ``description`` comes
-        straight from the index. Detection is anchored to the leading line only (see
-        :func:`_opens_with_status_banner`), so it stays false-positive-averse by design.
-
-        Warn-level (advisory, non-blocking) — mirrors :meth:`_check_subentity_title_lengths`: a
-        self-declared lifecycle state is a maintenance smell (it can drift from the real
-        frontmatter status), not a structural error worth blocking on.
-        """
-        issues: list[CheckIssue] = []
-        for item in index.items.values():
-            entry = on_disk.get(item.sequence_id)
-            body = None
-            if entry is not None:
-                text = await _aio.read_text(entry[1])
-                body = sections.get_section(text, markers.BODY)
-            if _opens_with_status_banner(body):
-                issues.append(
-                    CheckIssue(
-                        "warn",
-                        item.id,
-                        "body opens with a status/lifecycle banner"
-                        " — move state to frontmatter or a dated discussion comment",
-                    )
-                )
-            elif _opens_with_status_banner(item.description):
-                issues.append(
-                    CheckIssue(
-                        "warn",
-                        item.id,
-                        "description opens with a status/lifecycle banner"
-                        " — move state to frontmatter or a dated discussion comment",
-                    )
-                )
-        return issues
-
-    def _check_subentity_title_lengths(self, index: SquadsDB) -> list[CheckIssue]:
-        """Advisory: flag sub-entity titles longer than TITLE_ADVISORY_MAX chars.
-
-        Read-only — does not mutate any item. Each over-long title emits a warn-level
-        CheckIssue (advisory only; does not affect the exit code). Fires strictly above
-        the threshold (> 120); titles at or below 120 are silent.
-        """
-        issues: list[CheckIssue] = []
-        for item in index.items.values():
-            kind = self.spec.item_subentity_kind(item.type)
-            if kind is None:
-                continue
-            issues.extend(
-                CheckIssue(
-                    "warn",
-                    item.id,
-                    f"advisory: {kind} {sub.local_id} title is {len(sub.title)} chars"
-                    f" (threshold: {TITLE_ADVISORY_MAX})"
-                    " — a sub-entity title is a one-line handle;"
-                    " put the detail in the body",
-                )
-                for sub in item.subentities
-                if len(sub.title) > TITLE_ADVISORY_MAX
-            )
+                issues += _drift_issues(item.id, item, disk_entry[2])
         return issues

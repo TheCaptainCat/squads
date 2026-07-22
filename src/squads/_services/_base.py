@@ -396,7 +396,8 @@ class ServiceCore:
                 rendered = sections.replace_section(rendered, markers.BODY, body)
             await write_new(self.paths.abspath(squad_rel), item, rendered)
             db.add(item)
-            # Validator-engine scaffold: empty catalog in Phase A, a no-op.
+            # Fail-closed on the new item's first error-level catalog violation (parent
+            # type-eligibility, item status validity, …) — the same engine `sq check` reports.
             ValidatorEngine(spec=self.spec).gate(item, db)
             # Advisory lane check, keyed on the declared author slug. Exempt before lookup.
             # Service must NOT print — warning rides back in the result.
@@ -553,17 +554,26 @@ class ServiceCore:
         return result
 
     def _check_parent(self, db: SquadsDB, child_type: str, parent_id: str) -> None:
-        parent = db.get(parent_id)
-        if parent is None:
+        """Existence-only pre-check: a genuinely missing parent id is caught here, before the
+        item enters the transaction, so it stays ``ItemNotFoundError`` (a distinct type/message
+        from the engine's ``dangling parent`` report text). Parent-*type* eligibility is the
+        catalog's ``parent_in``/``no_parent`` — enforced by the ``ValidatorEngine.gate()`` call
+        every create/update/link site makes right after, not duplicated here.
+        """
+        del child_type
+        if db.get(parent_id) is None:
             raise ItemNotFoundError(f"parent {parent_id!r} does not exist")
-        if not self.spec.parent_allowed(child_type, parent.type):
-            raise SquadsError(f"{self.spec.parent_hint(child_type)} (got {parent.type})")
 
     def _is_participant(self, db: SquadsDB, slug: str) -> bool:
         """A slug that can author/be-assigned work: a registered role agent or a human operator.
 
-        Skills are meta-types but NOT participants — only role and operator are.
-        ``item_is_roster(t) and t != META_SKILL`` expresses the same set.
+        Skills are meta-types but NOT participants — only role and operator are. This is
+        deliberately **not** the catalog's ``agent_registered`` validator: that one is
+        warn-level (report-only, matching today's ``sq check`` output) and, unlike this
+        stricter create/update gate, treats any roster type — including a skill's slug — as
+        registered. Retiring this in favour of the catalog would silently start accepting a
+        skill as an author at create/update time; kept separate on purpose (flagged on the
+        routing task's handoff).
         """
         return any(
             self.spec.item_is_roster(it.type)

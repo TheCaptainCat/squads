@@ -94,7 +94,8 @@ class ItemsMixin(ServiceCore):
             self._apply_extra(item, set_extra, unset_extra)
             item.updated_at = clock.now()
             item.modified_session, _ = actor.current_session()
-            # Validator-engine scaffold: empty catalog in Phase A, a no-op.
+            # Fail-closed on the updated item's first error-level catalog violation — the
+            # same engine `sq check` reports (a warn-level catalog issue never aborts here).
             ValidatorEngine(spec=self.spec).gate(item, db)
             await update_frontmatter(item_file(self.paths, item), item)
             self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
@@ -184,6 +185,10 @@ class ItemsMixin(ServiceCore):
             child.parent = parent_id
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
+            # Fail-closed on the reparented child's first error-level catalog violation
+            # (parent type-eligibility, in particular) — the same engine every other
+            # create/update site gates through.
+            ValidatorEngine(spec=self.spec).gate(child, db)
             await update_frontmatter(item_file(self.paths, child), child)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "link",

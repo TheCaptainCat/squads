@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 580,
+  "counter": 585,
   "padding": 6,
   "items": {
     "12": {
@@ -21401,7 +21401,7 @@
       "type": "feature",
       "title": "Validator catalog: seed checks + category/type assignment",
       "slug": "validator-catalog-seed-checks-category-type-assignment",
-      "status": "Draft",
+      "status": "InReview",
       "description": "",
       "parent": "EPIC-540",
       "author": "product-owner",
@@ -21435,7 +21435,7 @@
       ],
       "path": "features/FEAT-000568-validator-catalog-seed-checks-category-type-assignment.md",
       "created_at": "2026-07-22T08:38:35Z",
-      "updated_at": "2026-07-22T08:39:09Z",
+      "updated_at": "2026-07-22T11:46:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -21897,6 +21897,147 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-580"
+    },
+    "581": {
+      "sequence_id": 581,
+      "type": "task",
+      "title": "Lift seed validators into the closed catalog (per-item + squad-global)",
+      "slug": "lift-seed-validators-into-the-closed-catalog-per-item-squad",
+      "status": "Done",
+      "description": "Name today's _check_* logic as closed-catalog validators (verbatim); catalog defined + unit-tested, engine still no-op",
+      "parent": "FEAT-568",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-567",
+        "ADR-541"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000581-lift-seed-validators-into-the-closed-catalog-per-item-squad.md",
+      "created_at": "2026-07-22T10:32:51Z",
+      "updated_at": "2026-07-22T11:46:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-581"
+    },
+    "582": {
+      "sequence_id": 582,
+      "type": "task",
+      "title": "Route sq check + create/update gate through the validator engine",
+      "slug": "route-sq-check-create-update-gate-through-the-validator-engi",
+      "status": "Done",
+      "description": "Wire common core + category bundles, retire the _check_* / hardcoded gate; engine is the sole source, byte-identical",
+      "parent": "FEAT-568",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-541",
+        "TASK-581:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000582-route-sq-check-create-update-gate-through-the-validator-engi.md",
+      "created_at": "2026-07-22T10:33:01Z",
+      "updated_at": "2026-07-22T11:46:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-582"
+    },
+    "583": {
+      "sequence_id": 583,
+      "type": "task",
+      "title": "ItemSpec.validators assignment surface + Plane-1 load validation",
+      "slug": "itemspec-validators-assignment-surface-plane-1-load-validati",
+      "status": "Done",
+      "description": "Extend-only per-type validators list + load-time catalog-membership / well-formed parent_in checks",
+      "parent": "FEAT-568",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-541",
+        "TASK-581:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000583-itemspec-validators-assignment-surface-plane-1-load-validati.md",
+      "created_at": "2026-07-22T10:33:01Z",
+      "updated_at": "2026-07-22T11:46:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-583"
+    },
+    "584": {
+      "sequence_id": 584,
+      "type": "task",
+      "title": "Enforce records + epic no_parent defaults (coordinate FEAT-572)",
+      "slug": "enforce-records-epic-no-parent-defaults-coordinate-feat-572",
+      "status": "Draft",
+      "description": "Turn on the two new no_parent enforcements; must land with-or-after the 5-parented-ADR migration",
+      "parent": "FEAT-568",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-541",
+        "TASK-582:depends-on",
+        "TASK-583:depends-on",
+        "FEAT-572:depends-on"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000584-enforce-records-epic-no-parent-defaults-coordinate-feat-572.md",
+      "created_at": "2026-07-22T10:33:02Z",
+      "updated_at": "2026-07-22T10:33:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-584"
+    },
+    "585": {
+      "sequence_id": 585,
+      "type": "review",
+      "title": "Review of FEAT-568 Phase B: validator catalog",
+      "slug": "review-of-feat-568-phase-b-validator-catalog",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-568"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "create/update/reparent gate now runs the full per-item error-level set",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000585-review-of-feat-568-phase-b-validator-catalog.md",
+      "created_at": "2026-07-22T11:33:31Z",
+      "updated_at": "2026-07-22T11:46:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-585"
     }
   }
 }

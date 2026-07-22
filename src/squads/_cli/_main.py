@@ -1213,6 +1213,27 @@ async def show_any(
     await print_item(svc, it, raw=raw, comments=comments, full=full)
 
 
+def _check_issue_sort_key(issue: Any) -> tuple[int, int, int, str]:
+    """Deterministic total order for `sq check` output (report mode only — `gate()`'s
+    abort-on-first-violation is unaffected). Squad-global/no-item issues (an unresolvable
+    `item` — a filename, ``""``, or ``"workflow"``) form a fixed leading block; item-attached
+    issues then sort by sequence number, error before warn, then message. Stable: any
+    remaining tie keeps its original relative order.
+    """
+    from squads._errors import InvalidIdError
+    from squads._paths import number_for_id
+
+    seq: int | None = None
+    if issue.item:
+        try:
+            seq = number_for_id(issue.item)
+        except InvalidIdError:
+            seq = None
+    has_item = 0 if seq is None else 1
+    level_rank = 0 if issue.level == "error" else 1
+    return (has_item, seq or 0, level_rank, issue.message)
+
+
 @app.command()
 @common.command
 async def check(json_out: bool = typer.Option(False, "--json")):
@@ -1220,6 +1241,10 @@ async def check(json_out: bool = typer.Option(False, "--json")):
 
     Exit codes: 0 = clean (or warnings only), 3 = one or more error-level issues found.
     See `sq docs faq` for the full exit-code table.
+
+    Output (console and ``--json`` alike) is sorted into a deterministic total order —
+    squad-global issues first, then by item, error before warn, then message — so it is
+    diffable/stable across runs; see :func:`_check_issue_sort_key`.
 
     When the workflow override spec is invalid (pure-spec error or index cross-check
     failure), ``sq check`` degrades gracefully.  It captures the
@@ -1257,7 +1282,9 @@ async def check(json_out: bool = typer.Option(False, "--json")):
 
         svc = Service(sp, spec=bundled_spec())
 
-    issues: list[CheckIssue] = list(workflow_issues) + list(await svc.check())
+    issues: list[CheckIssue] = sorted(
+        list(workflow_issues) + list(await svc.check()), key=_check_issue_sort_key
+    )
 
     if json_out:
         print_json_clean(

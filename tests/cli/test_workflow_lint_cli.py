@@ -39,6 +39,24 @@ async def test_lint_exits_1_with_error_text_on_an_invalid_override(project, invo
     assert "error" in result.output.lower()
 
 
+async def test_lint_exits_1_on_an_unknown_validators_entry(project, invoke) -> None:
+    """The Plane-1 catalog-membership check for ``ItemSpec.validators`` reaches the CLI (proven
+    on a new custom type — the override is additive-only, so an existing built-in can't be
+    redefined just to carry the bad entry)."""
+    _write_override(
+        project,
+        '[items.chore]\nprefix = "CHORE"\nfolder = "chores"\nlifecycle = "work"\n'
+        'validators = ["not-a-real-validator"]\n',
+    )
+    result = await invoke(["workflow", "lint"])
+    assert result.exit_code == 1
+    # The Rich error table wraps the message across cells/lines, so match the two words
+    # separately rather than as one adjacent substring.
+    lowered = result.output.lower()
+    assert "unknown" in lowered
+    assert "validator" in lowered
+
+
 async def test_bare_workflow_command_still_prints_the_cheatsheet(project, invoke) -> None:
     result = await invoke(["workflow"])
     assert result.exit_code == 0

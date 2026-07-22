@@ -42,6 +42,7 @@ runs all four on pushes/PRs to `main`.
 - **Escape dynamic console output** with `_cli._common.e()` (Rich treats `[...]` as markup).
 - **No `from __future__ import annotations`** (Python 3.14 / PEP 649); keep the import graph
   **acyclic** — if a future edge would create a cycle, use `if TYPE_CHECKING:` + a string annotation.
+- **Type aliases use the PEP-695 `type` statement** (`type X = …`), not bare assignment.
 - **Comments stay terse.** Default to no comment; keep a single short line only where something is
   genuinely non-obvious (a gotcha, an invariant, a "this looks wrong but…"). No ticket/ADR IDs in
   code or config comments — the linkage lives in the tracked item, not the source.
