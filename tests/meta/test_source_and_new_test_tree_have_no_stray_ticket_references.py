@@ -2,24 +2,27 @@
 …) must never leak into ``src/`` or ``docs/`` (full file text — production code and shipped
 docs have no legitimate reason to cite a real backlog number) other than the designated
 illustrative-walkthrough docs, which cite fictional self-consistent ids by design. It must
-also never appear in a new-suite test file's own *name* or *docstring* (a test's assertion
-*data* legitimately manufactures items and asserts on rendered ids or local sub-entity ids —
-that's the feature under test, not a citation, so plain assertion data is deliberately left
-alone; only the identifier/documentation surface is scanned). Placeholder shapes and
-incidental substrings never match either way.
+also never appear in a test file's own *name* or *docstring* (a test's assertion *data*
+legitimately manufactures items and asserts on rendered ids or local sub-entity ids — that's
+the feature under test, not a citation, so plain assertion data is deliberately left alone;
+only the identifier/documentation surface is scanned), nor in a `#` comment anywhere under
+``src/`` or ``tests/`` (comments, unlike assertion-data strings, never have a legitimate reason
+to cite a real backlog number either — this is a ``tokenize``-based scan, so it can walk
+``tests/`` too without ever touching a string literal). Placeholder shapes and incidental
+substrings never match any of the three scans.
 
 This is the new-suite's own permanent home for the invariant the pre-rebuild
-``tests/test_squad_ref_hygiene.py`` protects for ``src/``+``docs/`` (that file also
-allowlists all of ``tests/`` wholesale, since the old flat suite predates this rule and is
-retired wholesale in Phase 3 rather than fixed up). This scan is scoped narrower on purpose:
-it must never walk the old flat ``tests/test_*.py`` files (several intentionally carry a
-ticket-ID in their own filename, a known legacy violation Phase 3 deletes) or this suite's
-own governance docs (``tests/CONVENTIONS.md``, which legitimately cites this rebuild's own
-ticket and row numbers by design).
+``tests/test_squad_ref_hygiene.py`` protected for ``src/``+``docs/`` (that file also
+allowlisted all of ``tests/`` wholesale, since the old flat suite predated this rule; it and
+the flat suite are gone now, so the identifier/docstring scan below is no longer scoped to a
+subset of ``tests/`` either — the old flat filename violations it was carved around no longer
+exist).
 """
 
 import ast
+import io
 import re
+import tokenize
 from pathlib import Path
 
 import pytest
@@ -36,16 +39,9 @@ _ALLOWED_DOC_FILES: frozenset[str] = frozenset(
     {"docs/tutorial.md", "docs/recipes.md", "docs/adoption.md"}
 )
 
-#: Identifier/docstring-only scan — these dirs are test *data* generators (rendered ids,
-#: local sub-entity ids) legitimately appear in assertions, so only names/docs are checked.
-_NAME_AND_DOCSTRING_ROOTS: tuple[str, ...] = (
-    "tests/unit",
-    "tests/service",
-    "tests/cli",
-    "tests/integration",
-    "tests/tui",
-    "tests/meta",
-)
+#: Identifier/docstring-only scan — the whole tree is a test *data* generator (rendered ids,
+#: local sub-entity ids) legitimately appearing in assertions, so only names/docs are checked.
+_NAME_AND_DOCSTRING_ROOTS: tuple[str, ...] = ("tests",)
 
 #: (path, matched token) pairs allowlisted because the docstring documents a *synthetic*
 #: fixture-seeded id for the reader's benefit, not a real backlog citation — analogous to the
@@ -131,6 +127,46 @@ def _name_and_docstring_violations(root: Path) -> list[tuple[str, str]]:
     return violations
 
 
+#: Comment-token scan roots — every ``.py`` file's actual ``#`` comments (via ``tokenize``,
+#: never a string literal) across both ``src/`` and the whole ``tests/`` tree. This is the
+#: precise complement to the full-text scan above: full-text can't tell a `#` comment from a
+#: legitimate assertion-data string literal, so it only walks src/+docs/; this one tokenizes
+#: instead, so it can safely walk tests/ too without flagging a manufactured item id.
+_COMMENT_SCAN_ROOTS: tuple[str, ...] = ("src", "tests")
+
+
+def _comment_tokens(path: Path) -> list[tokenize.TokenInfo]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):  # fmt: skip
+        return []
+    try:
+        return [
+            tok
+            for tok in tokenize.generate_tokens(io.StringIO(text).readline)
+            if tok.type == tokenize.COMMENT
+        ]
+    except (tokenize.TokenError, SyntaxError, IndentationError):  # fmt: skip
+        return []
+
+
+def _comment_violations(root: Path) -> list[tuple[str, int, str]]:
+    violations: list[tuple[str, int, str]] = []
+    for rel_root in _COMMENT_SCAN_ROOTS:
+        base = root / rel_root
+        if not base.is_dir():
+            continue
+        for path in base.rglob("*.py"):
+            if "__pycache__" in path.parts:
+                continue
+            rel = path.relative_to(root).as_posix()
+            for tok in _comment_tokens(path):
+                match = REFERENCE_PATTERN.search(tok.string)
+                if match:
+                    violations.append((rel, tok.start[0], match.group(0)))
+    return violations
+
+
 def test_source_and_docs_have_no_stray_ticket_references_anywhere_in_their_text() -> None:
     violations = _full_text_violations(_repo_root())
     detail = "\n".join(f"  {path}:{lineno}: {matched!r}" for path, lineno, matched in violations)
@@ -141,6 +177,12 @@ def test_the_new_test_tree_has_no_ticket_reference_in_a_filename_or_docstring() 
     violations = _name_and_docstring_violations(_repo_root())
     detail = "\n".join(f"  {path}: {matched!r}" for path, matched in violations)
     assert not violations, f"ticket-ID reference(s) found in the new test tree:\n{detail}"
+
+
+def test_no_ticket_reference_appears_in_a_comment_under_src_or_tests() -> None:
+    violations = _comment_violations(_repo_root())
+    detail = "\n".join(f"  {path}:{lineno}: {matched!r}" for path, lineno, matched in violations)
+    assert not violations, f"ticket-ID reference(s) found in a `#` comment:\n{detail}"
 
 
 def test_the_pattern_ignores_placeholder_shapes_and_incidental_substrings() -> None:
@@ -169,6 +211,27 @@ def test_the_full_text_scan_never_flags_a_designated_illustrative_walkthrough_do
     walkthrough.write_text("Create EPIC-1, then FEAT-2 underneath it.\n", encoding="utf-8")
 
     assert _full_text_violations(tmp_path) == []
+
+
+def test_the_comment_scan_would_catch_a_planted_reference_in_a_tests_inline_comment(
+    tmp_path: Path,
+) -> None:
+    planted = tmp_path / "tests" / "cli" / "test_example.py"
+    planted.parent.mkdir(parents=True)
+    planted.write_text("def test_x() -> None:\n    x = 1  # see FEAT-999\n", encoding="utf-8")
+
+    violations = _comment_violations(tmp_path)
+    assert violations == [("tests/cli/test_example.py", 2, "FEAT-9")]
+
+
+def test_the_comment_scan_never_flags_a_legitimate_assertion_data_string_literal(
+    tmp_path: Path,
+) -> None:
+    planted = tmp_path / "tests" / "cli" / "test_example.py"
+    planted.parent.mkdir(parents=True)
+    planted.write_text('def test_x() -> None:\n    assert "FEAT-2" == "FEAT-2"\n', encoding="utf-8")
+
+    assert _comment_violations(tmp_path) == []
 
 
 def test_the_identifier_scan_would_catch_a_reference_in_a_docstring_but_not_in_assertion_data(

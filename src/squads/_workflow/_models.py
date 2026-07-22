@@ -620,13 +620,10 @@ def _check_field_collections(
                     )
 
 
-# Canonical priority order for well-known exception/side states.
-# States that appear together in the side-state list are sorted by this priority
-# (lower = earlier in the output), ensuring the output matches the established
-# convention regardless of the order they happen to be discovered in BFS
-# (e.g. Blocked before Cancelled in work-item lifecycles, WontFix first in bug).
-# States not in this table retain their relative BFS-discovery order by sorting
-# after all explicitly-ranked states via the fallback rank (len(_SIDE_PRIORITY)).
+# Canonical priority order for well-known exception/side states: states appearing together
+# in the side-state list sort by this (lower = earlier), regardless of BFS discovery order
+# (e.g. Blocked before Cancelled). States absent here keep BFS order via the fallback rank
+# (len(_SIDE_PRIORITY)).
 _SIDE_PRIORITY: dict[str, int] = {
     "WontFix": 0,
     "Blocked": 1,
@@ -953,17 +950,13 @@ class WorkflowSpec(BaseModel):
             if not self.items[t].is_meta
         )
 
-        # Reserved-vocab subset — spec must include the *structural floor* statuses.
-        #
-        # The floor is narrowed to exactly the agent lifecycle (Draft/Active/Archived —
-        # module-level ``_RESERVED_FLOOR``, mirroring ``META_TYPES`` on the type axis): the
-        # only statuses the engine references by literal name. Every other status —
-        # work-item, sub-entity, and finding alike — is ordinary spec vocabulary that a
-        # custom spec may omit, rename, or reorder; sub-entity/finding lifecycles bind by
-        # machine role instead (start state on create, ``completion`` flag on the
-        # done-toggle — see ``_check_completion_status``), so no name literal is required
-        # there. A dropped status still referenced by a declared lifecycle's initial/
-        # transitions is caught by the check above, not by this floor.
+        # Reserved-vocab subset — spec must include the *structural floor* statuses: the
+        # agent lifecycle (Draft/Active/Archived, module-level ``_RESERVED_FLOOR``), the only
+        # statuses the engine references by literal name. Every other status is ordinary spec
+        # vocabulary a custom spec may omit/rename/reorder; sub-entity/finding lifecycles bind
+        # by machine role instead (see ``_check_completion_status``). A dropped status still
+        # referenced by a declared lifecycle's initial/transitions is caught by the transition
+        # check above, not by this floor.
         spec_statuses = set(self.statuses)
         missing_statuses = _RESERVED_FLOOR - spec_statuses
         if missing_statuses:

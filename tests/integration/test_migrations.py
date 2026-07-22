@@ -90,7 +90,7 @@ async def _devolve_to_v0_2(svc, item_id: str, kind: str) -> None:
 async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_the_head(svc):
     await svc.add_dev("python", name="Grace Hopper")
     feat = (await svc.create("feature", "Login")).item
-    await svc.add_story(feat.id, "As a user, I want to reset my password")  # US1
+    await svc.add_story(feat.id, "As a user, I want to reset my password")
     task = (await svc.create("task", "Auth", parent=feat.id)).item
     await svc.add_subtask(task.id, "Validate", story="US1", assignee="python-dev")
     rev = (await svc.create("review", "r")).item

@@ -146,8 +146,8 @@ async def test_alias_resolves_identically_through_a_mutating_comment(project, in
 
 
 async def test_alias_resolves_identically_through_ref_add(project, invoke) -> None:
-    await invoke(["create", "bug", "The bug", "--author", "manager"])  # BUG-2
-    await invoke(["create", "task", "Fix the bug", "--author", "manager"])  # TASK-3
+    await invoke(["create", "bug", "The bug", "--author", "manager"])
+    await invoke(["create", "task", "Fix the bug", "--author", "manager"])
     r = await invoke(["t", "3", "ref", "add", "BUG-000002", "--kind", "fixes"])
     assert r.exit_code == 0, r.output
     shown = await invoke(["t", "3", "show"])
@@ -156,7 +156,7 @@ async def test_alias_resolves_identically_through_ref_add(project, invoke) -> No
 
 
 async def test_alias_resolves_identically_through_a_status_change(project, invoke) -> None:
-    await invoke(["create", "decision", "Use sqlite", "--author", "manager"])  # ADR-2
+    await invoke(["create", "decision", "Use sqlite", "--author", "manager"])
     r = await invoke(["dec", "2", "status", "Accepted"])
     assert r.exit_code == 0, r.output
     shown = await invoke(["d", "2", "show"])

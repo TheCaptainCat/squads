@@ -262,7 +262,7 @@ class ClaudeCodeBackend(AgentBackend):
             )
 
         # Types with no PLAYBOOK entry — thin skill with auto-derived lifecycle + standard
-        # command list (F4). This is the sole "custom vs built-in" line now: any type absent
+        # command list. This is the sole "custom vs built-in" line now: any type absent
         # from PLAYBOOK falls back here, whether or not it happens to be a bundled type.
         if ctx.spec is not None:
             for ctype, ctype_spec in ctx.spec.items.items():

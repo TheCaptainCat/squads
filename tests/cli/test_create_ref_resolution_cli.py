@@ -11,7 +11,7 @@ pytestmark = pytest.mark.anyio
 async def test_ref_accepts_a_bare_number_and_errors_cleanly_on_an_unknown_one(
     project, invoke
 ) -> None:
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
+    await invoke(["create", "feature", "F", "--author", "manager"])
 
     ok = await invoke(["create", "task", "T", "--author", "manager", "--ref", "2"])
     assert ok.exit_code == 0, ok.output
@@ -24,7 +24,7 @@ async def test_ref_accepts_a_bare_number_and_errors_cleanly_on_an_unknown_one(
 async def test_ref_with_an_explicit_kind_is_validated_and_a_bare_id_defaults_to_related(
     project, invoke
 ) -> None:
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
+    await invoke(["create", "feature", "F", "--author", "manager"])
 
     bad_kind = await invoke(
         ["create", "task", "T-bad", "--author", "manager", "--ref", "FEAT-2:banana"]

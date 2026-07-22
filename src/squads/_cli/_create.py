@@ -165,7 +165,7 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         """Built-in commands first, then custom work types alphabetically.
 
         For a non-custom squad the custom set is empty, so this is byte-identical
-        to the previous implementation (AC#7/#8).
+        to the previous implementation.
         """
         base: list[str] = super().list_commands(ctx)
         custom = sorted(self._custom_work_types())
@@ -301,7 +301,7 @@ for _t in _CREATABLE:
 # Register hidden aliases for the _CREATABLE types so `sq create feat TITLE` dispatches
 # identically to `sq create feature TITLE`.  Aliases come from the bundled spec (the single
 # source of truth, same as the resource-group loop in _cli/__init__.py).  Hidden = not shown
-# in --help, preserving byte-identical output (AC#7/#8).
+# in --help, preserving byte-identical output.
 for _t in _CREATABLE:
     for _alias in _create_spec.items[_t].aliases:
         create_app.command(_alias, hidden=True)(_make(_t))

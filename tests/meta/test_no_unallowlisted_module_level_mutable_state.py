@@ -243,7 +243,7 @@ def test_the_allowlist_has_no_stale_entry() -> None:
     assert not stale, f"allowlist entries with no corresponding module-level binding: {stale}"
 
 
-# ------------------------------------------------------------- wired-guard plant tests (F4)
+# ------------------------------------------------------------- wired-guard plant tests
 # These exercise the SAME file-walk (`_scan_root_for_hits`) + allowlist-diff (`_missing_against`)
 # the real assertion above runs — not just the bare detector function — against a synthetic
 # tree, so a leak reddens the actual guard path automatically, with no manual edit-then-revert.

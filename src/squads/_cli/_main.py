@@ -110,13 +110,7 @@ def _build_badge_filters(
     return badges, badge_min
 
 
-# ---------------------------------------------------------------------------
-# TTY detection — injectable for testing.
-# The default implementation delegates to sys.stdin.isatty().
-# Tests can replace this with a monkeypatched callable that returns True/False.
-# ---------------------------------------------------------------------------
-
-
+# TTY detection — injectable for testing (monkeypatch this callable).
 def _default_is_tty() -> bool:
     return sys.stdin.isatty()
 
@@ -1252,7 +1246,7 @@ async def check(json_out: bool = typer.Option(False, "--json")):
 
     # --- Step 2: try to open the service normally (uses open_service which passes the
     # override spec to Service explicitly).  If the spec is invalid *and* the index
-    # cross-check fails (AC#5), open_service raises.  In that case fall back to the
+    # cross-check fails, open_service raises.  In that case fall back to the
     # bundled spec so the remaining checks can still run.
     try:
         svc = get_service()

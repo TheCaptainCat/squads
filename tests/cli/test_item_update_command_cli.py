@@ -13,8 +13,8 @@ async def test_update_sets_the_author_and_the_parent_then_clears_the_parent(
     project, invoke
 ) -> None:
     await invoke(["role", "activate", "reviewer"])  # ROLE-2
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-3
-    await invoke(["create", "task", "T", "--author", "manager"])  # TASK-4
+    await invoke(["create", "feature", "F", "--author", "manager"])
+    await invoke(["create", "task", "T", "--author", "manager"])
 
     bad_author = await invoke(["task", "4", "update", "--author", "ghost"])
     assert bad_author.exit_code == 1
@@ -35,8 +35,8 @@ async def test_update_sets_the_author_and_the_parent_then_clears_the_parent(
 
 
 async def test_update_rejects_parent_and_no_parent_together(project, invoke) -> None:
-    await invoke(["create", "feature", "F", "--author", "manager"])  # FEAT-2
-    await invoke(["create", "task", "T", "--author", "manager"])  # TASK-3
+    await invoke(["create", "feature", "F", "--author", "manager"])
+    await invoke(["create", "task", "T", "--author", "manager"])
 
     clash = await invoke(["task", "3", "update", "--parent", "FEAT-2", "--no-parent"])
     assert clash.exit_code == 1

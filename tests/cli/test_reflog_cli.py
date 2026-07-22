@@ -21,7 +21,7 @@ GOLDENS_DIR = Path(__file__).parents[1] / "goldens"
 
 
 async def _seed(invoke) -> None:
-    await invoke(["create", "task", "CLI test task", "--author", "manager"])  # TASK-000002
+    await invoke(["create", "task", "CLI test task", "--author", "manager"])
     await invoke(["task", "2", "status", "InProgress"])
     await invoke(["task", "2", "comment", "--as", "manager", "-m", "A comment"])
 
