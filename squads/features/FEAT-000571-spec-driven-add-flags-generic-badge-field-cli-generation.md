@@ -3,7 +3,7 @@ id: FEAT-571
 sequence_id: 571
 type: feature
 title: 'Spec-driven add-* flags: generic badge/field CLI generation'
-status: Draft
+status: Done
 parent: EPIC-538
 author: product-owner
 priority: low
@@ -11,7 +11,7 @@ refs:
 - FEAT-567
 - REV-565
 created_at: '2026-07-22T08:39:38Z'
-updated_at: '2026-07-22T08:40:53Z'
+updated_at: '2026-07-22T18:23:01Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -86,4 +86,6 @@ _Add with `sq feature 571 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-22T18:23:01Z] Catherine Manager:
+  - FEAT-571 Done: --status inline across add-finding/add-story/add-subtask, scope-validated against each kind's own lifecycle (the generic per-field --flag derivation already existed). Reviewed REV-618 (Approved, cross-lifecycle rejection verified); full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

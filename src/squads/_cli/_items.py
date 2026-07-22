@@ -529,8 +529,9 @@ def _resolve_add_fields(
 
 def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     """Register ``add-<kind>``: base flags + one ``--<field-code>`` option per declared field
-    + ``--story`` iff the kind maps to a parent story — built dynamically from the resolved
-    ``SubentityKindSpec``. Replaces the three hand-written per-kind ``_register_add`` closures."""
+    + ``--story`` iff the kind maps to a parent story + ``--status`` to seed a non-initial
+    status at creation — built dynamically from the resolved ``SubentityKindSpec``. Replaces
+    the three hand-written per-kind ``_register_add`` closures."""
     ks = spec.subentity_kinds[kind]
     fields = spec.fields_for(kind)
 
@@ -560,6 +561,12 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             "assignee",
             inspect.Parameter.KEYWORD_ONLY,
             default=typer.Option(None, "--assignee"),
+            annotation=str | None,
+        ),
+        inspect.Parameter(
+            "status",
+            inspect.Parameter.KEYWORD_ONLY,
+            default=typer.Option(None, "--status", help="Seed a non-initial status."),
             annotation=str | None,
         ),
         inspect.Parameter(
@@ -593,6 +600,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         # kind declares maps_parent_story — a bounded built-in, not per-kind.
         normalized_story = resolve_local_id(story, "story") if story else None
         field_values = _resolve_add_fields(svc, kind, spec, fields, kwargs)
+        status = _kw_str(kwargs, "status")
         message = _kw_list(kwargs, "message")
         file = _kw_str(kwargs, "file")
         res = await svc.add_block(
@@ -602,6 +610,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             story=normalized_story,
             fields=field_values or None,
             assignee=validated_assignee,
+            status=parse_status(status) if status else None,
             body=resolve_body_optional(message or None, file),
         )
         print_block(_id(ctx), res, _kw_bool(kwargs, "json_out"))

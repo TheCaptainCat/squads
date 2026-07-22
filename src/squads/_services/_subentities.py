@@ -48,9 +48,12 @@ class SubentitiesMixin(ServiceCore):
         title: str = "",
         *,
         assignee: str | None = None,
+        status: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
-        return await self.add_block(feature_id, "story", title, assignee=assignee, body=body)
+        return await self.add_block(
+            feature_id, "story", title, assignee=assignee, status=status, body=body
+        )
 
     async def add_subtask(
         self,
@@ -59,10 +62,11 @@ class SubentitiesMixin(ServiceCore):
         *,
         story: str | None = None,
         assignee: str | None = None,
+        status: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
         return await self.add_block(
-            task_id, "subtask", title, story=story, assignee=assignee, body=body
+            task_id, "subtask", title, story=story, assignee=assignee, status=status, body=body
         )
 
     async def add_finding(
@@ -72,6 +76,7 @@ class SubentitiesMixin(ServiceCore):
         *,
         severity: str | None = None,
         assignee: str | None = None,
+        status: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
         resolved_severity = (
@@ -83,6 +88,7 @@ class SubentitiesMixin(ServiceCore):
             title,
             fields={"severity": resolved_severity},
             assignee=assignee,
+            status=status,
             body=body,
         )
 
@@ -102,12 +108,14 @@ class SubentitiesMixin(ServiceCore):
         story: str | None = None,
         fields: dict[str, str] | None = None,
         assignee: str | None = None,
+        status: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
         container = self.subentity_container[kind]
         reject_markers(title, "title")
         if body is not None:
             reject_markers(body)
+        initial_status = self._resolve_add_status(kind, status)
         async with self.store.transaction() as db:
             item = self._require_parent(db, item_id, kind)
             self._check_assignee(db, assignee)
@@ -122,7 +130,7 @@ class SubentitiesMixin(ServiceCore):
             sub = SubEntity(
                 local_id=local_id,
                 title=title,
-                status=self.spec.subentity_initial(kind),
+                status=initial_status,
                 assignee=assignee,
                 story=story,
             )
@@ -293,6 +301,21 @@ class SubentitiesMixin(ServiceCore):
                     "status": [old_status, sub.status],
                 },
             )
+
+    def _resolve_add_status(self, kind: str, status: str | None) -> str:
+        """The status a fresh *kind* sub-entity is seeded with: the kind's own initial state
+        when *status* is omitted (unchanged behaviour), else *status* itself — provided it
+        names one of that kind's OWN lifecycle states (creation seeds, it does not transition
+        from a prior state, so this is a membership check, not ``can_transition``). Scoped to
+        the kind's machine, not the spec's global status set, so a status that only exists on
+        a different kind's lifecycle is rejected."""
+        if status is None:
+            return self.spec.subentity_initial(kind)
+        valid = self.spec.subentity_workflow(kind).states
+        if status not in valid:
+            choices = ", ".join(sorted(valid))
+            raise SquadsError(f"{status!r} is not a valid {kind} status (one of: {choices})")
+        return status
 
     def _apply_subentity_status(
         self, kind: str, sub: SubEntity, status: str, *, force: bool

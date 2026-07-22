@@ -2,7 +2,9 @@
 the nested ``<kind> <n> show/update/body/comment`` subgroup — is built generically from the
 resolved ``SubentityKindSpec``, with zero code change (mirrors the ADR's own "incident declares
 an action kind" example). A declared non-severity field is settable/round-trips exactly like the
-item badge axis (SubEntity.extra, not a severity-only slot).
+item badge axis (SubEntity.extra, not a severity-only slot). ``add-<kind> --status`` follows the
+same generic derivation and is validated against the custom kind's own declared lifecycle, not
+the spec's whole status vocabulary.
 """
 
 import json
@@ -167,6 +169,44 @@ async def test_add_list_and_mutation_verbs_all_work_with_no_code_change(project,
 
     full = await invoke(["incident", inc_num, "show", "--full"])
     assert full.exit_code == 0 and "AC1" in full.output
+
+
+async def test_add_action_status_flag_seeds_a_non_initial_status_of_the_custom_lifecycle(
+    project, invoke
+) -> None:
+    _write_overrides(project.squad_dir)
+
+    created = await invoke(["create", "incident", "Outage", "--author", "manager"])
+    inc_num = _num(_created_id(created.output))
+
+    added = await invoke(
+        ["incident", inc_num, "add-action", "Restart service", "--status", "InProgress"]
+    )
+    assert added.exit_code == 0, added.output
+
+    listed_json = await invoke(["incident", inc_num, "actions", "--json"])
+    assert json.loads(listed_json.output)[0]["status"] == "InProgress"
+
+
+async def test_add_action_status_flag_rejects_a_status_outside_the_custom_lifecycle(
+    project, invoke
+) -> None:
+    _write_overrides(project.squad_dir)
+
+    created = await invoke(["create", "incident", "Outage", "--author", "manager"])
+    inc_num = _num(_created_id(created.output))
+
+    # "Blocked" is a valid status elsewhere in the spec but not a state of the "action"
+    # lifecycle (Open/InProgress/Done) — must be rejected, scoped to the custom kind.
+    added = await invoke(
+        ["incident", inc_num, "add-action", "Restart service", "--status", "Blocked"]
+    )
+    assert added.exit_code == 1
+    assert "Traceback" not in added.output
+    assert "Blocked" in added.output
+
+    listed_json = await invoke(["incident", inc_num, "actions", "--json"])
+    assert json.loads(listed_json.output) == []
 
 
 async def test_a_declared_non_severity_field_is_settable_and_round_trips(project, invoke) -> None:
