@@ -11,7 +11,9 @@
  * treats the same as `{}` (no badges to render), never a parse failure. */
 export type SqBadgeMap = Readonly<Record<string, string>>;
 
-/** One node of `sq tree <root> --json` (recursive; `children` may be empty). */
+/** One node of `sq tree <root> --json` (recursive; `children` may be empty). Open/closed and
+ * default visibility are no longer carried per-node — a client joins `status` through the
+ * statuses catalog's `role` to the roles catalog (`domain/statusRole.ts`) instead. */
 export interface SqTreeNode {
   readonly id: string;
   readonly type: string;
@@ -20,7 +22,6 @@ export interface SqTreeNode {
   readonly priority: string | null;
   readonly assignee: string | null;
   readonly blocked: boolean;
-  readonly is_open: boolean;
   readonly badges?: SqBadgeMap;
   readonly children: readonly SqTreeNode[];
 }
@@ -42,7 +43,7 @@ export interface SqGraphNode {
   readonly children: readonly SqGraphNode[];
 }
 
-/** One entry of a type's `fields` array on `sq workflow types --json` : the
+/** One entry of a type's `fields` array on `sq workflow types --json`: the
  * field code an item's `badges` map may carry for this type, its display label, and the
  * collection code it's bound to (bundled fields coincide with their collection, e.g. field
  * `priority` -> collection `priority`; a relabeled/custom field need not). */
@@ -54,13 +55,16 @@ export interface SqTypeField {
 
 /** One entry of `sq workflow types --json` — the spec's declared type catalog (work types and
  * the reserved meta types alike), one object per type, already in the spec's resolved order.
- * `fields` is optional the same way `SqBadgeMap` is: an older `sq` simply
- * omits it, treated the same as an empty array (no field->collection binding known). */
+ * `category` is the type's declared axis (`"work"` / `"records"` / `"roster"`) — the single
+ * client-side source of which browse view a type belongs in (`domain/typeCategory.ts`), never a
+ * hardcoded type-name list. `fields` is optional the same way `SqBadgeMap` is: an older `sq`
+ * simply omits it, treated the same as an empty array (no field->collection binding known). */
 export interface SqTypeCatalogEntry {
   readonly type: string;
   readonly order: number | null;
   readonly prefix: string;
   readonly reserved: boolean;
+  readonly category: string;
   readonly fields?: readonly SqTypeField[];
 }
 
@@ -83,14 +87,31 @@ export interface SqCollectionCatalogEntry {
 }
 
 /** One entry of `sq workflow statuses --json` — the spec's declared status
- * vocabulary, one object per status. `role` is the spec-declared semantic-status marker (e.g.
- * `"active"`, `"superseded"`) a client joins an item's `status` string against to style
- * generically — never by the literal status name. */
+ * vocabulary, one object per status. `role` is the name of the status's declared semantic role
+ * (e.g. `"active"`, `"superseded"`) — a reference into the separate `sq workflow roles --json`
+ * catalog (`SqRoleCatalogEntry`), not a behaviour in itself. A client joins an item's `status`
+ * string through this catalog's `role`, then that name through the roles catalog, to resolve
+ * settled/hidden/colour — never by the literal status name, and no `terminal`/`is_open` field
+ * survives on either surface (both are derived client-side from the referenced role's
+ * `settled`). */
 export interface SqStatusCatalogEntry {
   readonly status: string;
-  readonly terminal: boolean;
   readonly role: string | null;
   readonly badge: string | null;
+}
+
+/** One entry of `sq workflow roles --json` — the spec's declared role catalog: the
+ * first-class object a status's `role` field names. `settled` is the old `terminal` concept
+ * (a resting/end state); `hidden` is whether the role is excluded from the default (non-`--all`)
+ * view; `color` is a semantic colour-intent from a closed vocabulary
+ * (`positive`/`danger`/`warning`/`muted`/`neutral`/`info`) — a client maps it to its own theme
+ * (see `domain/statusRole.ts`), falling back to `"neutral"` for any intent it doesn't recognize
+ * so a future/custom intent never breaks rendering. */
+export interface SqRoleCatalogEntry {
+  readonly role: string;
+  readonly settled: boolean;
+  readonly hidden: boolean;
+  readonly color: string;
 }
 
 /** One entry of `sq show <id> --json`'s `discussion` array — a single comment: author display
@@ -146,7 +167,8 @@ export interface SqSearchHit {
   readonly hits: readonly SqSearchHitRegion[];
 }
 
-/** One row of `sq list --json`. */
+/** One row of `sq list --json`. Open/closed is no longer carried per-row — see `SqTreeNode`'s
+ * doc comment: a client re-derives it from `status` through the statuses/roles catalog join. */
 export interface SqListItem {
   readonly id: string;
   readonly sequence_id: number;
@@ -165,6 +187,5 @@ export interface SqListItem {
   readonly path: string;
   readonly created_at: string;
   readonly updated_at: string;
-  readonly is_open: boolean;
   readonly badges?: SqBadgeMap;
 }

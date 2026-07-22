@@ -12,9 +12,14 @@ import {
   matchesFilter,
   NO_FILTER,
 } from '../src/domain/listView';
-import { buildStatusRoleMap } from '../src/domain/statusRole';
+import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
 import { buildTypeOrderMap } from '../src/domain/typeOrder';
-import type { SqListItem, SqStatusCatalogEntry, SqTypeCatalogEntry } from '../src/types';
+import type {
+  SqListItem,
+  SqRoleCatalogEntry,
+  SqStatusCatalogEntry,
+  SqTypeCatalogEntry,
+} from '../src/types';
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -26,6 +31,7 @@ const TYPE_ORDER_MAP = buildTypeOrderMap(TYPE_CATALOG_FIXTURE);
 const STATUSES_CATALOG_FIXTURE = JSON.parse(
   readFixture('statuses-catalog.json'),
 ) as SqStatusCatalogEntry[];
+const ROLES_CATALOG_FIXTURE = JSON.parse(readFixture('roles-catalog.json')) as SqRoleCatalogEntry[];
 
 describe('excludeReservedTypes', () => {
   it('drops the three reserved meta types (role/skill/operator) from the committed fixture', () => {
@@ -67,9 +73,9 @@ describe('distinctTypes', () => {
 
 describe('matchesFilter / filterListItems', () => {
   const items: SqListItem[] = [
-    makeItem('TASK-1', 'task', true),
-    makeItem('BUG-1', 'bug', false),
-    makeItem('TASK-2', 'task', false),
+    makeItem('TASK-1', 'task'),
+    makeItem('BUG-1', 'bug'),
+    makeItem('TASK-2', 'task'),
   ];
 
   it('with NO_FILTER, matches everything', () => {
@@ -97,11 +103,11 @@ describe('groupListItems', () => {
   // Deliberately out of both id-numeric-order and type-alpha-order, so a passing test can't be
   // a lucky coincidence of insertion order.
   const items: SqListItem[] = [
-    makeItem('REV-447', 'review', true),
-    makeItem('TASK-2', 'task', true),
-    makeItem('REV-48', 'review', true),
-    makeItem('TASK-1', 'task', false),
-    makeItem('BUG-1', 'bug', true),
+    makeItem('REV-447', 'review'),
+    makeItem('TASK-2', 'task'),
+    makeItem('REV-48', 'review'),
+    makeItem('TASK-1', 'task'),
+    makeItem('BUG-1', 'bug'),
   ];
 
   it('with groupByType false, returns sorted leaves by numeric id order (no type grouping)', () => {
@@ -140,19 +146,14 @@ describe('groupListItems', () => {
     expect(reviewGroup?.children.map((child) => child.id)).toEqual(['REV-48', 'REV-447']);
   });
 
-  it('marks a closed leaf via DisplayNode.closed, derived from the item is_open field', () => {
-    const nodes = groupListItems(items, false);
-
-    expect(nodes.find((node) => node.id === 'TASK-1')?.closed).toBe(true);
-    expect(nodes.find((node) => node.id === 'TASK-2')?.closed).toBe(false);
-  });
-
-  it('marks a leaf active via DisplayNode.active, joined through the statuses catalog (F26) — never a literal status check', () => {
+  it('marks a closed/hidden/coloured leaf via the statuses/roles catalog join, never a literal status check', () => {
     const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
     const mixedItems: SqListItem[] = [
-      { ...makeItem('TASK-1', 'task', true), status: 'InProgress' },
-      { ...makeItem('TASK-2', 'task', true), status: 'Ready' },
-      { ...makeItem('TASK-3', 'task', false), status: 'Done' },
+      { ...makeItem('TASK-1', 'task'), status: 'InProgress' },
+      { ...makeItem('TASK-2', 'task'), status: 'Ready' },
+      { ...makeItem('TASK-3', 'task'), status: 'Done' },
+      { ...makeItem('ADR-1', 'decision'), status: 'Accepted' },
     ];
 
     const nodes = groupListItems(
@@ -163,24 +164,38 @@ describe('groupListItems', () => {
       undefined,
       undefined,
       statusRoles,
+      roleCatalog,
     );
 
-    expect(nodes.find((node) => node.id === 'TASK-1')?.active).toBe(true);
+    // InProgress ("active" role): not settled, not hidden, positive colour.
+    const inProgress = nodes.find((node) => node.id === 'TASK-1');
+    expect(inProgress?.closed).toBe(false);
+    expect(inProgress?.hidden).toBe(false);
+    expect(inProgress?.colorIntent).toBe('positive');
+
+    // Ready ("pending" role): not settled, not hidden, no distinct colour.
     const ready = nodes.find((node) => node.id === 'TASK-2');
-    expect(ready?.active).toBe(false);
     expect(ready?.closed).toBe(false);
-    // Done is closed and never carries the "active" role — the disjoint sets F26/F7 rely on.
+    expect(ready?.hidden).toBe(false);
+
+    // Done ("done" role): settled AND hidden.
     const done = nodes.find((node) => node.id === 'TASK-3');
-    expect(done?.active).toBe(false);
     expect(done?.closed).toBe(true);
+    expect(done?.hidden).toBe(true);
+
+    // Accepted ("in_force" role): settled but NOT hidden — not greyed out like finished work.
+    const accepted = nodes.find((node) => node.id === 'ADR-1');
+    expect(accepted?.closed).toBe(true);
+    expect(accepted?.hidden).toBe(false);
+    expect(accepted?.colorIntent).toBe('info');
   });
 
-  it('with no statusRoles (the graceful fallback), no leaf is ever marked active', () => {
-    const inProgressItem: SqListItem[] = [
-      { ...makeItem('TASK-1', 'task', true), status: 'InProgress' },
-    ];
+  it('with no statusRoles/roleCatalog (the graceful fallback), no leaf is ever hidden or coloured', () => {
+    const inProgressItem: SqListItem[] = [{ ...makeItem('TASK-1', 'task'), status: 'InProgress' }];
 
-    expect(groupListItems(inProgressItem, false)[0]?.active).toBe(false);
+    const [node] = groupListItems(inProgressItem, false);
+    expect(node?.hidden).toBe(false);
+    expect(node?.colorIntent).toBeNull();
   });
 
   it('layers squads.typeIcons overrides over the bundled per-type icon defaults (F21)', () => {
@@ -209,7 +224,9 @@ describe('buildFilteredGroupedView (end to end)', () => {
   });
 
   it('given the type catalog, renders the committed fixture in spec type order end to end (F1)', () => {
-    const nodes = buildFilteredGroupedView(LIST_FIXTURE, NO_FILTER, true, TYPE_ORDER_MAP);
+    const nodes = buildFilteredGroupedView(LIST_FIXTURE, NO_FILTER, true, {
+      orderMap: TYPE_ORDER_MAP,
+    });
 
     expect(nodes.map((node) => node.label)).toEqual([
       'epic',
@@ -223,7 +240,7 @@ describe('buildFilteredGroupedView (end to end)', () => {
   });
 });
 
-function makeItem(id: string, type: string, isOpen: boolean): SqListItem {
+function makeItem(id: string, type: string): SqListItem {
   const sequenceId = Number(id.split('-')[1] ?? '0');
   return {
     id,
@@ -243,6 +260,5 @@ function makeItem(id: string, type: string, isOpen: boolean): SqListItem {
     path: `${type}s/${id}.md`,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
-    is_open: isOpen,
   };
 }

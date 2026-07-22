@@ -4,11 +4,12 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { buildBadgeVocabulary, buildFieldBindings } from '../src/domain/badgeCatalog';
-import { buildStatusRoleMap } from '../src/domain/statusRole';
+import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
 import { distinctTypesInTree, treeNodesToDisplay } from '../src/domain/treeMapping';
 import { buildTypeOrderMap } from '../src/domain/typeOrder';
 import type {
   SqCollectionCatalogEntry,
+  SqRoleCatalogEntry,
   SqStatusCatalogEntry,
   SqTreeNode,
   SqTypeCatalogEntry,
@@ -23,6 +24,7 @@ const TYPE_CATALOG_FIXTURE = JSON.parse(readFixture('type-catalog.json')) as SqT
 const STATUSES_CATALOG_FIXTURE = JSON.parse(
   readFixture('statuses-catalog.json'),
 ) as SqStatusCatalogEntry[];
+const ROLES_CATALOG_FIXTURE = JSON.parse(readFixture('roles-catalog.json')) as SqRoleCatalogEntry[];
 
 describe('treeNodesToDisplay', () => {
   it('maps the committed sq tree --json fixture into DisplayNodes, preserving hierarchy', () => {
@@ -69,38 +71,7 @@ describe('treeNodesToDisplay', () => {
     expect(task?.description).toBe('Done · typescript-dev');
   });
 
-  it('marks a node closed via DisplayNode.closed, derived from the tree payload is_open field', () => {
-    const nodes: SqTreeNode[] = [
-      {
-        id: 'TASK-1',
-        type: 'task',
-        title: 'An open task',
-        status: 'InProgress',
-        priority: null,
-        assignee: null,
-        blocked: false,
-        is_open: true,
-        children: [],
-      },
-      {
-        id: 'TASK-2',
-        type: 'task',
-        title: 'A done task',
-        status: 'Done',
-        priority: null,
-        assignee: null,
-        blocked: false,
-        is_open: false,
-        children: [],
-      },
-    ];
-    const mapped = treeNodesToDisplay(nodes);
-
-    expect(mapped.find((node) => node.id === 'TASK-1')?.closed).toBe(false);
-    expect(mapped.find((node) => node.id === 'TASK-2')?.closed).toBe(true);
-  });
-
-  it('marks a node active via DisplayNode.active, joined through the statuses catalog (F26) — never a literal status check', () => {
+  it('marks a node closed/hidden/coloured via the statuses/roles catalog join, never a literal status check', () => {
     const nodes: SqTreeNode[] = [
       {
         id: 'TASK-1',
@@ -110,7 +81,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
       {
@@ -121,7 +91,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
       {
@@ -132,26 +101,50 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: false,
+        children: [],
+      },
+      {
+        id: 'ADR-1',
+        type: 'decision',
+        title: 'An accepted decision',
+        status: 'Accepted',
+        priority: null,
+        assignee: null,
+        blocked: false,
         children: [],
       },
     ];
     const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
 
-    const mapped = treeNodesToDisplay(nodes, {}, undefined, undefined, statusRoles);
+    const mapped = treeNodesToDisplay(nodes, {}, undefined, undefined, statusRoles, roleCatalog);
 
-    expect(mapped.find((node) => node.id === 'TASK-1')?.active).toBe(true);
-    // Ready carries no declared role — not active, but also not closed (is_open is true).
+    // InProgress ("active" role): not settled, not hidden, positive colour.
+    const inProgress = mapped.find((node) => node.id === 'TASK-1');
+    expect(inProgress?.closed).toBe(false);
+    expect(inProgress?.hidden).toBe(false);
+    expect(inProgress?.colorIntent).toBe('positive');
+
+    // Ready ("pending" role): not settled, not hidden, no distinct colour.
     const ready = mapped.find((node) => node.id === 'TASK-2');
-    expect(ready?.active).toBe(false);
     expect(ready?.closed).toBe(false);
-    // Done is terminal (closed) and never carries the "active" role (F26/F7's disjoint sets).
+    expect(ready?.hidden).toBe(false);
+    expect(ready?.colorIntent).toBe('neutral');
+
+    // Done ("done" role): settled AND hidden — the dimmed/greyed-out finished-work case.
     const done = mapped.find((node) => node.id === 'TASK-3');
-    expect(done?.active).toBe(false);
     expect(done?.closed).toBe(true);
+    expect(done?.hidden).toBe(true);
+
+    // Accepted ("in_force" role): settled but NOT hidden — shows in its own colour rather than
+    // greyed out like finished work.
+    const accepted = mapped.find((node) => node.id === 'ADR-1');
+    expect(accepted?.closed).toBe(true);
+    expect(accepted?.hidden).toBe(false);
+    expect(accepted?.colorIntent).toBe('info');
   });
 
-  it('with no statusRoles (the graceful fallback), no node is ever marked active', () => {
+  it('with no statusRoles/roleCatalog (the graceful fallback), no node is ever hidden or coloured', () => {
     const nodes: SqTreeNode[] = [
       {
         id: 'TASK-1',
@@ -161,12 +154,14 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
     ];
 
-    expect(treeNodesToDisplay(nodes)[0]?.active).toBe(false);
+    const [node] = treeNodesToDisplay(nodes);
+    expect(node?.closed).toBe(false);
+    expect(node?.hidden).toBe(false);
+    expect(node?.colorIntent).toBeNull();
   });
 
   it('marks blocked nodes distinctly in both the flag and the description', () => {
@@ -179,7 +174,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: true,
-        is_open: true,
         children: [],
       },
     ];
@@ -199,7 +193,6 @@ describe('treeNodesToDisplay', () => {
       priority: 'high',
       assignee: null,
       blocked: false,
-      is_open: true,
       badges: { priority: 'high' },
       children: [],
     };
@@ -220,7 +213,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         badges: { priority: 'high', severity: 'critical' },
         children: [],
       },
@@ -231,6 +223,7 @@ describe('treeNodesToDisplay', () => {
         order: 40,
         prefix: 'BUG',
         reserved: false,
+        category: 'work',
         fields: [
           { code: 'priority', label: 'Priority', collection: 'priority' },
           { code: 'severity', label: 'Severity', collection: 'severity' },
@@ -272,7 +265,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         badges: { impact: 'urgent' },
         children: [],
       },
@@ -294,7 +286,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
       {
@@ -305,7 +296,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
       {
@@ -316,7 +306,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
       {
@@ -327,7 +316,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [
           {
             id: 'ROLE-2',
@@ -337,7 +325,6 @@ describe('treeNodesToDisplay', () => {
             priority: null,
             assignee: null,
             blocked: false,
-            is_open: true,
             children: [],
           },
           {
@@ -348,7 +335,6 @@ describe('treeNodesToDisplay', () => {
             priority: null,
             assignee: null,
             blocked: false,
-            is_open: true,
             children: [],
           },
         ],
@@ -371,7 +357,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
       {
@@ -382,7 +367,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
     ];
@@ -402,7 +386,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
       {
@@ -413,7 +396,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
     ];
@@ -434,7 +416,6 @@ describe('treeNodesToDisplay', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
     ];
@@ -460,7 +441,6 @@ describe('distinctTypesInTree', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
       {
@@ -471,7 +451,6 @@ describe('distinctTypesInTree', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [],
       },
     ];
@@ -491,7 +470,6 @@ describe('distinctTypesInTree', () => {
         priority: null,
         assignee: null,
         blocked: false,
-        is_open: true,
         children: [
           {
             id: 'ROLE-2',
@@ -501,7 +479,6 @@ describe('distinctTypesInTree', () => {
             priority: null,
             assignee: null,
             blocked: false,
-            is_open: true,
             children: [],
           },
           {
@@ -512,7 +489,6 @@ describe('distinctTypesInTree', () => {
             priority: null,
             assignee: null,
             blocked: false,
-            is_open: true,
             children: [],
           },
         ],

@@ -42,8 +42,7 @@
       "agreements": [],
       "can_spawn": true
     },
-    "id": "ROLE-1",
-    "is_open": true
+    "id": "ROLE-1"
   },
   {
     "sequence_id": 2,
@@ -90,8 +89,7 @@
       "agreements": [],
       "can_spawn": false
     },
-    "id": "ROLE-2",
-    "is_open": true
+    "id": "ROLE-2"
   },
   {
     "sequence_id": 10,
@@ -117,8 +115,7 @@
       "slug": "op-pierre",
       "full_name": "Pierre Chat"
     },
-    "id": "OP-10",
-    "is_open": true
+    "id": "OP-10"
   },
   {
     "sequence_id": 11,
@@ -141,8 +138,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-11",
-    "is_open": false
+    "id": "BUG-11"
   },
   {
     "sequence_id": 12,
@@ -168,8 +164,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "EPIC-12",
-    "is_open": false
+    "id": "EPIC-12"
   },
   {
     "sequence_id": 13,
@@ -220,8 +215,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-13",
-    "is_open": false
+    "id": "FEAT-13"
   },
   {
     "sequence_id": 14,
@@ -281,8 +275,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-14",
-    "is_open": false
+    "id": "FEAT-14"
   },
   {
     "sequence_id": 15,
@@ -333,8 +326,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-15",
-    "is_open": false
+    "id": "FEAT-15"
   },
   {
     "sequence_id": 16,
@@ -376,8 +368,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-16",
-    "is_open": false
+    "id": "FEAT-16"
   },
   {
     "sequence_id": 21,
@@ -402,8 +393,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-21",
-    "is_open": false
+    "id": "BUG-21"
   },
   {
     "sequence_id": 22,
@@ -429,8 +419,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-22",
-    "is_open": false
+    "id": "BUG-22"
   },
   {
     "sequence_id": 25,
@@ -455,8 +444,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-25",
-    "is_open": false
+    "id": "BUG-25"
   },
   {
     "sequence_id": 28,
@@ -482,8 +470,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "EPIC-28",
-    "is_open": true
+    "id": "EPIC-28"
   },
   {
     "sequence_id": 29,
@@ -509,8 +496,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "EPIC-29",
-    "is_open": true
+    "id": "EPIC-29"
   },
   {
     "sequence_id": 31,
@@ -533,8 +519,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "EPIC-31",
-    "is_open": true
+    "id": "EPIC-31"
   },
   {
     "sequence_id": 32,
@@ -589,8 +574,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-32",
-    "is_open": true
+    "id": "FEAT-32"
   },
   {
     "sequence_id": 33,
@@ -644,8 +628,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-33",
-    "is_open": true
+    "id": "FEAT-33"
   },
   {
     "sequence_id": 38,
@@ -668,8 +651,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "EPIC-38",
-    "is_open": true
+    "id": "EPIC-38"
   },
   {
     "sequence_id": 42,
@@ -731,8 +713,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-42",
-    "is_open": false
+    "id": "TASK-42"
   },
   {
     "sequence_id": 43,
@@ -794,8 +775,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-43",
-    "is_open": false
+    "id": "TASK-43"
   },
   {
     "sequence_id": 44,
@@ -821,8 +801,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-44",
-    "is_open": false
+    "id": "TASK-44"
   },
   {
     "sequence_id": 45,
@@ -845,8 +824,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-45",
-    "is_open": false
+    "id": "TASK-45"
   },
   {
     "sequence_id": 48,
@@ -908,8 +886,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "REV-48",
-    "is_open": false
+    "id": "REV-48"
   },
   {
     "sequence_id": 49,
@@ -937,8 +914,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-49",
-    "is_open": false
+    "id": "ADR-49"
   },
   {
     "sequence_id": 52,
@@ -973,8 +949,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "REV-52",
-    "is_open": false
+    "id": "REV-52"
   },
   {
     "sequence_id": 61,
@@ -1027,8 +1002,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "REV-61",
-    "is_open": false
+    "id": "REV-61"
   },
   {
     "sequence_id": 67,
@@ -1144,8 +1118,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "REV-67",
-    "is_open": false
+    "id": "REV-67"
   },
   {
     "sequence_id": 71,
@@ -1170,8 +1143,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-71",
-    "is_open": false
+    "id": "ADR-71"
   },
   {
     "sequence_id": 72,
@@ -1197,8 +1169,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-72",
-    "is_open": false
+    "id": "ADR-72"
   },
   {
     "sequence_id": 73,
@@ -1223,8 +1194,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-73",
-    "is_open": false
+    "id": "ADR-73"
   },
   {
     "sequence_id": 79,
@@ -1262,8 +1232,7 @@
         "architecture"
       ]
     },
-    "id": "GUIDE-79",
-    "is_open": false
+    "id": "GUIDE-79"
   },
   {
     "sequence_id": 100,
@@ -1314,8 +1283,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-100",
-    "is_open": true
+    "id": "FEAT-100"
   },
   {
     "sequence_id": 123,
@@ -1359,8 +1327,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "FEAT-123",
-    "is_open": true
+    "id": "FEAT-123"
   },
   {
     "sequence_id": 179,
@@ -1386,8 +1353,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-179",
-    "is_open": true
+    "id": "ADR-179"
   },
   {
     "sequence_id": 180,
@@ -1413,8 +1379,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-180",
-    "is_open": true
+    "id": "ADR-180"
   },
   {
     "sequence_id": 183,
@@ -1439,8 +1404,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-183",
-    "is_open": true
+    "id": "BUG-183"
   },
   {
     "sequence_id": 192,
@@ -1465,8 +1429,7 @@
     "extra": {
       "slug": "greeting"
     },
-    "id": "SKILL-192",
-    "is_open": true
+    "id": "SKILL-192"
   },
   {
     "sequence_id": 193,
@@ -1491,8 +1454,7 @@
     "extra": {
       "slug": "sq-bug"
     },
-    "id": "SKILL-193",
-    "is_open": true
+    "id": "SKILL-193"
   },
   {
     "sequence_id": 206,
@@ -1517,8 +1479,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "EPIC-206",
-    "is_open": false
+    "id": "EPIC-206"
   },
   {
     "sequence_id": 213,
@@ -1541,8 +1502,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-213",
-    "is_open": true
+    "id": "BUG-213"
   },
   {
     "sequence_id": 247,
@@ -1565,8 +1525,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-247",
-    "is_open": true
+    "id": "TASK-247"
   },
   {
     "sequence_id": 280,
@@ -1591,8 +1550,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "EPIC-280",
-    "is_open": false
+    "id": "EPIC-280"
   },
   {
     "sequence_id": 316,
@@ -1615,8 +1573,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "EPIC-316",
-    "is_open": false
+    "id": "EPIC-316"
   },
   {
     "sequence_id": 320,
@@ -1639,8 +1596,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "ADR-320",
-    "is_open": true
+    "id": "ADR-320"
   },
   {
     "sequence_id": 324,
@@ -1663,8 +1619,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-324",
-    "is_open": true
+    "id": "BUG-324"
   },
   {
     "sequence_id": 378,
@@ -1687,8 +1642,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "BUG-378",
-    "is_open": true
+    "id": "BUG-378"
   },
   {
     "sequence_id": 435,
@@ -1713,8 +1667,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-435",
-    "is_open": true
+    "id": "TASK-435"
   },
   {
     "sequence_id": 440,
@@ -1741,8 +1694,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-440",
-    "is_open": true
+    "id": "TASK-440"
   },
   {
     "sequence_id": 441,
@@ -1769,7 +1721,6 @@
     "created_session": null,
     "modified_session": null,
     "extra": {},
-    "id": "TASK-441",
-    "is_open": true
+    "id": "TASK-441"
   }
 ]

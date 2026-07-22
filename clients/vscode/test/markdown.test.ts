@@ -32,7 +32,6 @@ function makeRole(overrides: Partial<SqListItem> = {}): SqListItem {
     path: 'agents/roles/ROLE-000001-manager.md',
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
-    is_open: true,
     ...overrides,
   };
 }

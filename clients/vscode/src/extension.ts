@@ -1,17 +1,18 @@
 /**
  * Extension entry point: resolves `sq` for the first workspace folder, then wires up the
- * activity-bar work-item tree, the meta/roster view (F12), the owned item-preview webview, the
- * filter/group/refresh commands, and the `.squads.json` watcher that auto-refreshes all three
- * on an on-disk change (F17).
+ * activity-bar work-item tree, the meta/roster view (F12), the records view, the
+ * owned item-preview webview, the filter/group/refresh commands, and the `.squads.json` watcher
+ * that auto-refreshes all three tree views on an on-disk change (F17).
  */
 import * as vscode from 'vscode';
 
-import { registerCommands, registerMetaCommands } from './commands';
+import { registerCommands, registerMetaCommands, registerRecordsCommands } from './commands';
 import { SqDiscovery } from './discovery';
 import { ItemPreviewManager } from './itemPreviewManager';
 import { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
 import { createNodeDiscoveryEnvironment, createNodeSquadDirEnvironment } from './nodeEnvironment';
 import { nodeProcessRunner } from './processRunner';
+import { SquadsRecordsTreeDataProvider } from './recordsTreeDataProvider';
 import { SearchQuickPickController } from './searchQuickPick';
 import { watchSquadIndex } from './squadWatcher';
 import { SquadsTreeDataProvider } from './treeDataProvider';
@@ -95,6 +96,32 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
+  // The records view: declared `records`-category types (decision/guide, plus any
+  // custom records type) under one bucket per type — the complement of the work tree's now-wider
+  // reserved-type exclusion, alongside it and the roster view as a third collapsible section in
+  // the same activity-bar container. Same minimal shape as the roster view: not
+  // filterable/groupable, its own provider.
+  const recordsTreeDataProvider = new SquadsRecordsTreeDataProvider(
+    nodeProcessRunner,
+    discovery,
+    root,
+    notifyError,
+    squadDirEnv,
+  );
+  const recordsTreeView = vscode.window.createTreeView('squadsRecords', {
+    treeDataProvider: recordsTreeDataProvider,
+    showCollapseAll: true,
+  });
+  context.subscriptions.push(
+    recordsTreeView,
+    recordsTreeView.onDidExpandElement((event) => {
+      recordsTreeDataProvider.setExpanded(event.element.id, true);
+    }),
+    recordsTreeView.onDidCollapseElement((event) => {
+      recordsTreeDataProvider.setExpanded(event.element.id, false);
+    }),
+  );
+
   const previewManager = new ItemPreviewManager(
     nodeProcessRunner,
     discovery,
@@ -119,11 +146,13 @@ export function activate(context: vscode.ExtensionContext): void {
     searchQuickPick,
   );
   registerMetaCommands(context, metaTreeDataProvider);
+  registerRecordsCommands(context, recordsTreeDataProvider);
 
   void treeDataProvider.refresh();
   void metaTreeDataProvider.refresh();
+  void recordsTreeDataProvider.refresh();
 
-  // F17: auto-refresh both tree views + any open item preview when `.squads.json` changes on
+  // F17: auto-refresh all three tree views + any open item preview when `.squads.json` changes on
   // disk (an agent runs `sq`, a `git pull`) — no-ops cleanly for a non-local/remote workspace or
   // when no `.squads.toml` is found.
   context.subscriptions.push(
@@ -131,6 +160,7 @@ export function activate(context: vscode.ExtensionContext): void {
       onIndexChanged: () => {
         void treeDataProvider.refresh();
         void metaTreeDataProvider.refresh();
+        void recordsTreeDataProvider.refresh();
         void previewManager.refreshOpenPreviews();
       },
     }),

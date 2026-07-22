@@ -8,17 +8,22 @@ import * as vscode from 'vscode';
 import { type DisplayNode, emphasisForNode, type NodeEmphasis } from './domain/displayNode';
 
 /** ThemeColor id per `emphasisForNode` outcome (`'none'` excluded — the default icon color, no
- * override). The precedence itself (blocked > closed > active) lives in the vscode-free,
- * unit-tested `emphasisForNode`; this is just the presentation mapping. */
+ * override). The precedence itself (blocked > hidden > colour) lives in the vscode-free,
+ * unit-tested `emphasisForNode`; this is just the presentation mapping (the spec
+ * declares a semantic colour *intent*, never a concrete colour — each client picks its own). */
 const THEME_COLOR_BY_EMPHASIS: Readonly<Record<Exclude<NodeEmphasis, 'none'>, string>> = {
   blocked: 'problemsErrorIcon.foreground',
-  // Only ever true when the show-closed toggle (work tree) or a terminal roster status (meta
-  // view) pulled a closed/terminal item into the current fetch — dim it so open vs closed
-  // reads at a glance without a separate grouping.
-  closed: 'disabledForeground',
-  // "Work in flight" (F26): the item's status carries the spec-declared "active" role, joined
-  // through the statuses catalog by the mapping layer — never a literal status-name check here.
-  active: 'charts.green',
+  // Only ever true when the show-closed toggle (work tree) or the roster's `--all` fetch pulled
+  // an item whose role is `hidden` into view — dim it so open vs closed/put-away reads at a
+  // glance without a separate grouping. Deliberately decoupled from `settled`/`closed`: a
+  // settled-but-visible role (e.g. `in_force` — Accepted/Published) is NOT hidden, so it renders
+  // in its own `info` colour below instead of greyed out like finished work.
+  hidden: 'disabledForeground',
+  positive: 'charts.green',
+  danger: 'charts.red',
+  warning: 'charts.yellow',
+  muted: 'disabledForeground',
+  info: 'charts.blue',
 };
 
 function iconForNode(node: DisplayNode): vscode.ThemeIcon {

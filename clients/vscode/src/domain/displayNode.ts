@@ -6,6 +6,7 @@
  * VS Code host.
  */
 import type { ResolvedBadge } from './badgeCatalog';
+import type { ColorIntent } from './statusRole';
 
 export interface DisplayNode {
   /** Stable identity vscode's TreeView keys on. Real items use their sq id; synthetic group/error
@@ -19,36 +20,42 @@ export interface DisplayNode {
   /** A codicon id (e.g. `"bug"`); never empty. */
   readonly iconId: string;
   readonly blocked: boolean;
-  /** True for a closed/terminal item — only ever populated when the show-closed toggle pulled
-   * closed items into the current fetch. Drives the dimmed rendering that makes open vs closed
-   * legible at a glance without a separate grouping mode. Always `false` for a synthetic
-   * group/error node. */
+  /** True for a settled (resting/end-state) item — the item's status's role has `settled: true`
+   * (the old `terminal`/`is_open` concept), joined through the statuses/roles catalogs.
+   * Informational only: it does NOT by itself drive dimmed rendering — see `hidden` — because a
+   * settled role may still be meant to show in its own colour (e.g. an Accepted decision: settled
+   * but not hidden). Always `false` for a synthetic group/error node. */
   readonly closed: boolean;
-  /** True when the item's status carries the spec-declared `"active"` semantic role ("work in
-   * flight" — F26), joined through the statuses catalog, never a literal status-name check.
-   * Disjoint with `closed` by construction (a terminal status is never role `"active"`).
-   * Drives the green highlight. Always `false` for a synthetic group/error node. */
-  readonly active: boolean;
+  /** True when the item's status's role is `hidden` (excluded from the default, non-`--all`
+   * view) — the field that actually drives the dimmed/muted rendering, decoupled from `closed`
+   * so a settled-but-visible role (e.g. `in_force`: Accepted/Published) renders in its own colour
+   * rather than greyed out like finished work. Always `false` for a synthetic group/error node. */
+  readonly hidden: boolean;
+  /** The item's status's role's colour intent, or `null` when no role resolved (an unrecognized
+   * status, or a graceful catalog-fetch-failed fallback) — drives the coloured highlight when
+   * neither `blocked` nor `hidden` applies. Always `null` for a synthetic group/error node. */
+  readonly colorIntent: ColorIntent | null;
   readonly children: readonly DisplayNode[];
 }
 
-/** The visual emphasis a `TreeItem` should render for a node's `blocked`/`closed`/`active`
- * flags, in priority order — kept as a pure, vscode-free function so the precedence itself
- * (and the F26 claim that `closed` and `active` never both apply) is unit-testable without a
- * VS Code host; `treeItemRendering.ts` only turns the result into a `vscode.ThemeColor` id. */
-export type NodeEmphasis = 'blocked' | 'closed' | 'active' | 'none';
+/** The visual emphasis a `TreeItem` should render for a node's `blocked`/`hidden`/`colorIntent`,
+ * in priority order — kept as a pure, vscode-free function so the precedence is unit-testable
+ * without a VS Code host; `treeItemRendering.ts` only turns the result into a `vscode.ThemeColor`
+ * id. A `colorIntent` of `"neutral"` renders the same as no intent at all (`'none'`) — neutral is
+ * the default appearance, not a distinct colour. */
+export type NodeEmphasis = 'blocked' | 'hidden' | Exclude<ColorIntent, 'neutral'> | 'none';
 
 export function emphasisForNode(
-  node: Pick<DisplayNode, 'blocked' | 'closed' | 'active'>,
+  node: Pick<DisplayNode, 'blocked' | 'hidden' | 'colorIntent'>,
 ): NodeEmphasis {
   if (node.blocked) {
     return 'blocked';
   }
-  if (node.closed) {
-    return 'closed';
+  if (node.hidden) {
+    return 'hidden';
   }
-  if (node.active) {
-    return 'active';
+  if (node.colorIntent !== null && node.colorIntent !== 'neutral') {
+    return node.colorIntent;
   }
   return 'none';
 }
@@ -156,7 +163,8 @@ export function groupDisplayNode(
     iconId: GROUP_ICON,
     blocked: false,
     closed: false,
-    active: false,
+    hidden: false,
+    colorIntent: null,
     children,
   };
 }
@@ -171,7 +179,8 @@ export function errorDisplayNode(message: string): DisplayNode {
     iconId: ERROR_ICON,
     blocked: false,
     closed: false,
-    active: false,
+    hidden: false,
+    colorIntent: null,
     children: [],
   };
 }
@@ -189,7 +198,8 @@ export function emptyStateDisplayNode(message: string): DisplayNode {
     iconId: EMPTY_STATE_ICON,
     blocked: false,
     closed: false,
-    active: false,
+    hidden: false,
+    colorIntent: null,
     children: [],
   };
 }

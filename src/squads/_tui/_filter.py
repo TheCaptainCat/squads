@@ -15,6 +15,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, Switch
 from textual.widgets.select import NoSelection
 
+from squads._workflow import CATEGORIES
 from squads._workflow._models import Field, WorkflowSpec
 
 if TYPE_CHECKING:
@@ -97,6 +98,11 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
             id="filter-status",
             value=state.filter.status or Select.NULL,
         )
+        self._category_select: Select[str] = Select(
+            [(c.capitalize(), c) for c in CATEGORIES],
+            id="filter-category",
+            value=state.filter.category or Select.NULL,
+        )
         self._assignee_input = Input(value=state.filter.assignee or "", id="filter-assignee")
         self._label_input = Input(value=state.filter.label or "", id="filter-label")
 
@@ -129,6 +135,8 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
             yield self._type_select
             yield Label("Status")
             yield self._status_select
+            yield Label("Category")
+            yield self._category_select
             yield Label("Assignee")
             yield self._assignee_input
             yield Label("Label")
@@ -173,6 +181,7 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
     def _reset_widgets(self) -> None:
         self._type_select.value = Select.NULL
         self._status_select.value = Select.NULL
+        self._category_select.value = Select.NULL
         self._assignee_input.value = ""
         self._label_input.value = ""
         if self._badge_code_select is not None and self._badge_value_select is not None:
@@ -184,6 +193,7 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
     def _build_state(self) -> BrowseState:
         item_type = _selected(self._type_select)
         status = _selected(self._status_select)
+        category = _selected(self._category_select)
         assignee = self._assignee_input.value.strip() or None
         label = self._label_input.value.strip() or None
         badges: tuple[tuple[str, str], ...] = ()
@@ -196,9 +206,11 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
             self._state.filter,
             item_type=item_type,
             status=status,
+            category=category,
             assignee=assignee,
             label=label,
             badges=badges,
+            spec=self._spec,
         )
 
         sort_value = _selected(self._sort_select) or _SORT_SEQUENCE

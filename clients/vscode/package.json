@@ -67,6 +67,11 @@
           "id": "squadsMeta",
           "name": "Roster",
           "icon": "resources/squads-icon-vscode.svg"
+        },
+        {
+          "id": "squadsRecords",
+          "name": "Records",
+          "icon": "resources/squads-icon-vscode.svg"
         }
       ]
     },
@@ -80,6 +85,12 @@
       {
         "command": "squads.refreshMeta",
         "title": "Refresh Roster",
+        "category": "Squads",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "squads.refreshRecords",
+        "title": "Refresh Records",
         "category": "Squads",
         "icon": "$(refresh)"
       },
@@ -183,6 +194,11 @@
         {
           "command": "squads.refreshMeta",
           "when": "view == squadsMeta",
+          "group": "navigation@1"
+        },
+        {
+          "command": "squads.refreshRecords",
+          "when": "view == squadsRecords",
           "group": "navigation@1"
         }
       ]

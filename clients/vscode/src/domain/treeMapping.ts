@@ -1,7 +1,8 @@
 /**
- * Maps `sq tree --json` (id/type/title/status/priority/assignee/blocked/is_open/badges/children)
- * into `DisplayNode`s. The tree payload is now self-sufficient for labels and open/closed state
- * — no sibling `sq list --json` fetch is needed to join titles by id.
+ * Maps `sq tree --json` (id/type/title/status/priority/assignee/blocked/badges/children) into
+ * `DisplayNode`s. Open/closed/colour state  is derived by joining each node's `status`
+ * through the statuses/roles catalogs (`domain/statusRole.ts`) — `sq tree` itself carries no
+ * per-node open/closed field any more.
  */
 import type { SqTreeNode } from '../types';
 import {
@@ -13,7 +14,14 @@ import {
 } from './badgeCatalog';
 import { buildTooltip, type DisplayNode, iconForType, type TypeIconOverrides } from './displayNode';
 import { isReservedType } from './reservedTypes';
-import { isActiveRole, NO_STATUS_ROLES, type StatusRoleMap } from './statusRole';
+import {
+  NO_ROLES,
+  NO_STATUS_ROLES,
+  resolveRole,
+  type RoleCatalogMap,
+  type StatusRoleMap,
+} from './statusRole';
+import { NO_CATEGORIES, type TypeCategoryMap } from './typeCategory';
 import { NO_TYPE_ORDER, sortTypesByOrder, type TypeOrderMap } from './typeOrder';
 
 function describeNode(node: SqTreeNode): string {
@@ -27,7 +35,10 @@ function mapNode(
   fieldBindings: FieldBindingsByType,
   badgeVocabulary: BadgeVocabulary,
   statusRoles: StatusRoleMap,
+  roleCatalog: RoleCatalogMap,
+  categoryMap: TypeCategoryMap,
 ): DisplayNode {
+  const role = resolveRole(node.status, statusRoles, roleCatalog);
   return {
     id: node.id,
     itemId: node.id,
@@ -43,29 +54,53 @@ function mapNode(
     }),
     iconId: iconForType(node.type, iconOverrides),
     blocked: node.blocked,
-    closed: !node.is_open,
-    active: isActiveRole(node.status, statusRoles),
+    closed: role?.settled ?? false,
+    hidden: role?.hidden ?? false,
+    colorIntent: role?.color ?? null,
     children: node.children
-      .filter((child) => !isReservedType(child.type))
-      .map((child) => mapNode(child, iconOverrides, fieldBindings, badgeVocabulary, statusRoles)),
+      .filter((child) => !isReservedType(child.type, categoryMap))
+      .map((child) =>
+        mapNode(
+          child,
+          iconOverrides,
+          fieldBindings,
+          badgeVocabulary,
+          statusRoles,
+          roleCatalog,
+          categoryMap,
+        ),
+      ),
   };
 }
 
 /** `iconOverrides` (the `squads.typeIcons` setting, F21) defaults to none, layered over the
  * bundled per-type icon defaults for every node in the tree. `fieldBindings`/`badgeVocabulary`
- * (F19) and `statusRoles` (F26) default to the graceful-fallback empty maps, degrading the
- * tooltip's badge rendering to raw codes / disabling the active-green highlight rather than
- * breaking the tree when a catalog fetch failed. */
+ * (F19), `statusRoles`/`roleCatalog` , and `categoryMap`  default to the
+ * graceful-fallback empty maps, degrading the tooltip's badge rendering to raw codes / disabling
+ * the colour highlight / falling back to roster-only exclusion rather than breaking the tree when
+ * a catalog fetch failed. */
 export function treeNodesToDisplay(
   nodes: readonly SqTreeNode[],
   iconOverrides: TypeIconOverrides = {},
   fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
   badgeVocabulary: BadgeVocabulary = NO_BADGE_VOCABULARY,
   statusRoles: StatusRoleMap = NO_STATUS_ROLES,
+  roleCatalog: RoleCatalogMap = NO_ROLES,
+  categoryMap: TypeCategoryMap = NO_CATEGORIES,
 ): DisplayNode[] {
   return nodes
-    .filter((node) => !isReservedType(node.type))
-    .map((node) => mapNode(node, iconOverrides, fieldBindings, badgeVocabulary, statusRoles));
+    .filter((node) => !isReservedType(node.type, categoryMap))
+    .map((node) =>
+      mapNode(
+        node,
+        iconOverrides,
+        fieldBindings,
+        badgeVocabulary,
+        statusRoles,
+        roleCatalog,
+        categoryMap,
+      ),
+    );
 }
 
 /** Distinct, non-reserved item types present anywhere in the tree, ordered by the spec's
@@ -75,10 +110,11 @@ export function treeNodesToDisplay(
 export function distinctTypesInTree(
   nodes: readonly SqTreeNode[],
   orderMap: TypeOrderMap = NO_TYPE_ORDER,
+  categoryMap: TypeCategoryMap = NO_CATEGORIES,
 ): string[] {
   const types = new Set<string>();
   const visit = (node: SqTreeNode): void => {
-    if (!isReservedType(node.type)) {
+    if (!isReservedType(node.type, categoryMap)) {
       types.add(node.type);
     }
     node.children.forEach(visit);

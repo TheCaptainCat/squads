@@ -12,6 +12,7 @@ import * as vscode from 'vscode';
 
 import type { ItemPreviewManager } from './itemPreviewManager';
 import type { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
+import type { SquadsRecordsTreeDataProvider } from './recordsTreeDataProvider';
 import type { SearchQuickPickController } from './searchQuickPick';
 import type { SquadsTreeDataProvider } from './treeDataProvider';
 
@@ -97,6 +98,19 @@ export function registerMetaCommands(
 ): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('squads.refreshMeta', () => {
+      void provider.refresh();
+    }),
+  );
+}
+
+/** The records view has the same shape as the meta/roster view — no
+ * filter/group/show-closed state, just its own refresh. */
+export function registerRecordsCommands(
+  context: vscode.ExtensionContext,
+  provider: SquadsRecordsTreeDataProvider,
+): void {
+  context.subscriptions.push(
+    vscode.commands.registerCommand('squads.refreshRecords', () => {
       void provider.refresh();
     }),
   );

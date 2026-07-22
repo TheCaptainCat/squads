@@ -17,6 +17,7 @@ import type {
   SqDiscussionEntry,
   SqGraphNode,
   SqListItem,
+  SqRoleCatalogEntry,
   SqSearchHit,
   SqSearchHitRegion,
   SqShowJson,
@@ -99,7 +100,6 @@ function hasRequiredTreeNodeStrings(node: Record<string, unknown>): boolean {
     typeof node.title === 'string' &&
     typeof node.status === 'string' &&
     typeof node.blocked === 'boolean' &&
-    typeof node.is_open === 'boolean' &&
     isOptionalBadgeMap(node.badges)
   );
 }
@@ -171,7 +171,6 @@ function hasRequiredListItemStrings(item: Record<string, unknown>): boolean {
     typeof item.path === 'string' &&
     typeof item.created_at === 'string' &&
     typeof item.updated_at === 'string' &&
-    typeof item.is_open === 'boolean' &&
     isOptionalBadgeMap(item.badges)
   );
 }
@@ -257,6 +256,7 @@ export function isSqTypeCatalogEntry(value: unknown): value is SqTypeCatalogEntr
     (typeof entry.order === 'number' || entry.order === null) &&
     typeof entry.prefix === 'string' &&
     typeof entry.reserved === 'boolean' &&
+    typeof entry.category === 'string' &&
     isOptionalTypeFieldArray(entry.fields)
   );
 }
@@ -299,9 +299,23 @@ export function isSqStatusCatalogEntry(value: unknown): value is SqStatusCatalog
   const entry = value as Record<string, unknown>;
   return (
     typeof entry.status === 'string' &&
-    typeof entry.terminal === 'boolean' &&
     (typeof entry.role === 'string' || entry.role === null) &&
     (typeof entry.badge === 'string' || entry.badge === null)
+  );
+}
+
+/** Shape guard for one `sq workflow roles --json` entry . Exported for the same reason
+ * as `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
+export function isSqRoleCatalogEntry(value: unknown): value is SqRoleCatalogEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.role === 'string' &&
+    typeof entry.settled === 'boolean' &&
+    typeof entry.hidden === 'boolean' &&
+    typeof entry.color === 'string'
   );
 }
 
@@ -519,8 +533,10 @@ export function getWorkflowRaw(
 }
 
 /** `sq workflow types --json` — the spec's declared type catalog (name, resolved
- * order, prefix, reserved flag), already in spec order. Feeds the group-by-type sort and the
- * type-filter quick-pick order so neither hardcodes a type list or its ordering. */
+ * order, prefix, reserved flag, category), already in spec order. Feeds the group-by-type sort
+ * and the type-filter quick-pick order so neither hardcodes a type list or its ordering, and
+ * `domain/typeCategory.ts`'s category map so the records view / work-tree exclusion never
+ * hardcodes a records-type list either. */
 export function getTypeCatalog(
   runner: ProcessRunner,
   invocation: SqInvocation,
@@ -566,6 +582,25 @@ export function getStatusesCatalog(
     workspaceRoot,
     ['workflow', 'statuses', '--json'],
     isSqStatusCatalogEntry,
+  );
+}
+
+/** `sq workflow roles --json` — the spec's declared role catalog: one row per role,
+ * carrying the `settled`/`hidden`/`color` a status's `role` reference resolves to. Joined with
+ * `getStatusesCatalog` (status -> role name -> this catalog's role object) by
+ * `domain/statusRole.ts`; neither `terminal` nor `is_open` survives on any surface — both are
+ * derived client-side from the resolved role's `settled`. */
+export function getRolesCatalog(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<SqRoleCatalogEntry[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['workflow', 'roles', '--json'],
+    isSqRoleCatalogEntry,
   );
 }
 

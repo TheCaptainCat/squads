@@ -3,12 +3,13 @@ id: TASK-599
 sequence_id: 599
 type: task
 title: 'TUI: add a category dimension to the filter popup'
-status: Draft
+status: InReview
 parent: FEAT-570
 author: tech-lead
+assignee: python-dev
 priority: medium
 created_at: '2026-07-22T13:00:56Z'
-updated_at: '2026-07-22T15:38:29Z'
+updated_at: '2026-07-22T17:26:36Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US2 (TUI filter popup). Add a category dimension to the filter/sort popup so a browsing user can narrow to roster/work/records. Depends on US1 (TASK-597 `ItemFilter.category`) and pairs with TASK-598.
@@ -46,4 +47,9 @@ _Add with `sq task 599 add-subtask "<title>"`; track with `sq task 599 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-22T17:26:35Z] Elias Python:
+  - Added a Category Select to _tui/_filter.py::FilterScreen alongside Type/Status/Assignee/Label — options built from the closed CATEGORIES catalog (squads._workflow), not spec vocabulary. Seeded from state.filter.category, set (with spec=self._spec so ItemFilter.matches can resolve it, matching how list_items always threads spec) in _build_state(), cleared to Select.NULL in _reset_widgets(). Popup only builds the filter; matching stays in ItemFilter/the service.
+  - Test: tests/tui/test_filter_screen.py::test_applying_a_category_filter_round_trips_into_browse_state (apply narrows the tree to Records, reopen re-seeds the select, Clear+Apply resets to None).
+  - How to see it: uv run sq ui, press f to open the filter popup — a new Category dropdown (Roster/Work/Records) sits under Status; selecting Records and Apply narrows the tree to records-category items.
+  - Gates: pyright/ruff check/ruff format --all-extras clean; targeted uv run --all-extras pytest tests/tui -q (44 passed); sq check clean. Leaving InReview for the operator dev-host visual pass.
 <!-- sq:discussion:end -->

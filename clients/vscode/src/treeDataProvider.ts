@@ -29,21 +29,35 @@ import {
   NO_FILTER,
 } from './domain/listView';
 import { resolveSquadDir, type SquadDirEnvironment } from './domain/squadDir';
-import { buildStatusRoleMap, NO_STATUS_ROLES, type StatusRoleMap } from './domain/statusRole';
+import {
+  buildRoleCatalogMap,
+  buildStatusRoleMap,
+  NO_ROLES,
+  NO_STATUS_ROLES,
+  type RoleCatalogMap,
+  type StatusRoleMap,
+} from './domain/statusRole';
 import { distinctTypesInTree, treeNodesToDisplay } from './domain/treeMapping';
+import { buildCategoryMap, NO_CATEGORIES, type TypeCategoryMap } from './domain/typeCategory';
 import { buildTypeOrderMap, NO_TYPE_ORDER, type TypeOrderMap } from './domain/typeOrder';
 import type { ProcessRunner } from './processRunner';
 import {
   describeFailure,
   getCollectionsCatalog,
   getList,
+  getRolesCatalog,
   getStatusesCatalog,
   getTree,
   getTypeCatalog,
   type SqOutcome,
 } from './sqAdapter';
 import { toTreeItem } from './treeItemRendering';
-import type { SqCollectionCatalogEntry, SqStatusCatalogEntry, SqTypeCatalogEntry } from './types';
+import type {
+  SqCollectionCatalogEntry,
+  SqRoleCatalogEntry,
+  SqStatusCatalogEntry,
+  SqTypeCatalogEntry,
+} from './types';
 
 export interface ViewState {
   readonly filter: ListFilter;
@@ -72,6 +86,13 @@ function orderMapFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): TypeOr
   return outcome.kind === 'success' ? buildTypeOrderMap(outcome.data) : NO_TYPE_ORDER;
 }
 
+/** Same graceful-degrade shape as `orderMapFrom`, for the type catalog's `category` field:
+ * a failed fetch falls back to `NO_CATEGORIES`, which degrades the records
+ * exclusion to roster-only (see `isReservedType`) rather than dropping every item. */
+function categoryMapFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): TypeCategoryMap {
+  return outcome.kind === 'success' ? buildCategoryMap(outcome.data) : NO_CATEGORIES;
+}
+
 /** Same graceful-degrade shape as `orderMapFrom`, for the type catalog's field->collection
  * bindings (F19): a failed fetch falls back to raw-code tooltip badges rather
  * than a broken view. */
@@ -85,17 +106,24 @@ function badgeVocabularyFrom(outcome: SqOutcome<readonly SqCollectionCatalogEntr
   return outcome.kind === 'success' ? buildBadgeVocabulary(outcome.data) : NO_BADGE_VOCABULARY;
 }
 
-/** Same graceful-degrade shape as `orderMapFrom`, for the statuses catalog's status->role join
- * (F26): a failed fetch disables the active-green highlight rather than breaking the view. */
+/** Same graceful-degrade shape as `orderMapFrom`, for the statuses catalog's status->role name
+ * join: a failed fetch disables the colour highlight rather than breaking the view. */
 function statusRolesFrom(outcome: SqOutcome<readonly SqStatusCatalogEntry[]>): StatusRoleMap {
   return outcome.kind === 'success' ? buildStatusRoleMap(outcome.data) : NO_STATUS_ROLES;
+}
+
+/** Same graceful-degrade shape as `orderMapFrom`, for the roles catalog: a failed
+ * fetch disables the settled/hidden/colour derivation rather than breaking the view. */
+function roleCatalogFrom(outcome: SqOutcome<readonly SqRoleCatalogEntry[]>): RoleCatalogMap {
+  return outcome.kind === 'success' ? buildRoleCatalogMap(outcome.data) : NO_ROLES;
 }
 
 /** The `squads.typeIcons` setting (F21): a user type-name -> codicon-id map, layered over the
  * bundled `ICON_BY_TYPE` defaults in `domain/displayNode.ts::iconForType`. Read fresh on every
  * refresh so an edit to the setting takes effect on the next refresh, same as `getSquadsConfig`
- * in `extension.ts`. */
-function getTypeIconOverrides(): TypeIconOverrides {
+ * in `extension.ts`. Exported so `recordsTreeDataProvider.ts` (the other `iconForType`-based
+ * view) reads the exact same setting rather than a second hardcoded lookup. */
+export function getTypeIconOverrides(): TypeIconOverrides {
   return vscode.workspace.getConfiguration('squads').get<Record<string, string>>('typeIcons', {});
 }
 
@@ -184,66 +212,83 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
     }
     const { invocation } = resolution;
     const allArgs = this.state.showClosed ? ['--all'] : [];
-    // Fetched alongside the tree/list payload below (three extra spawns per refresh, cheap
+    // Fetched alongside the tree/list payload below (four extra spawns per refresh, cheap
     // next to the ones already there) rather than cached — a project's spec can change between
-    // refreshes. A failure in any degrades gracefully (F1/F19/F26): `orderMapFrom` /
-    // `fieldBindingsFrom` / `badgeVocabularyFrom` / `statusRolesFrom` fall back to plain-name
-    // sort / raw-code tooltip badges / no active-green highlight instead of breaking the view.
+    // refreshes. A failure in any degrades gracefully: `orderMapFrom` / `categoryMapFrom` /
+    // `fieldBindingsFrom` / `badgeVocabularyFrom` / `statusRolesFrom` / `roleCatalogFrom` fall
+    // back to plain-name sort / roster-only exclusion / raw-code tooltip badges / no colour
+    // highlight instead of breaking the view.
     const catalogPromise = getTypeCatalog(this.runner, invocation, this.workspaceRoot);
     const collectionsPromise = getCollectionsCatalog(this.runner, invocation, this.workspaceRoot);
     const statusesPromise = getStatusesCatalog(this.runner, invocation, this.workspaceRoot);
+    const rolesPromise = getRolesCatalog(this.runner, invocation, this.workspaceRoot);
     const iconOverrides = getTypeIconOverrides();
 
     if (isFlatViewActive(this.state)) {
       // `--all` (only when the show-closed toggle is on) carries closed items alongside open
-      // ones, each with its own `is_open` flag, so one fetch is enough either way.
-      const [outcome, catalogOutcome, collectionsOutcome, statusesOutcome] = await Promise.all([
-        getList(this.runner, invocation, this.workspaceRoot, allArgs),
-        catalogPromise,
-        collectionsPromise,
-        statusesPromise,
-      ]);
+      // ones; open/closed is now re-derived per row from the statuses/roles catalog join, so
+      // one fetch is still enough either way.
+      const [outcome, catalogOutcome, collectionsOutcome, statusesOutcome, rolesOutcome] =
+        await Promise.all([
+          getList(this.runner, invocation, this.workspaceRoot, allArgs),
+          catalogPromise,
+          collectionsPromise,
+          statusesPromise,
+          rolesPromise,
+        ]);
       if (outcome.kind !== 'success') {
         this.failFrom(outcome);
         return;
       }
       const orderMap = orderMapFrom(catalogOutcome);
+      const categoryMap = categoryMapFrom(catalogOutcome);
       this.roots = buildFilteredGroupedView(
         outcome.data,
         this.state.filter,
         this.state.groupByType,
-        orderMap,
-        iconOverrides,
-        fieldBindingsFrom(catalogOutcome),
-        badgeVocabularyFrom(collectionsOutcome),
-        statusRolesFrom(statusesOutcome),
+        {
+          orderMap,
+          iconOverrides,
+          fieldBindings: fieldBindingsFrom(catalogOutcome),
+          badgeVocabulary: badgeVocabularyFrom(collectionsOutcome),
+          statusRoles: statusRolesFrom(statusesOutcome),
+          roleCatalog: roleCatalogFrom(rolesOutcome),
+          categoryMap,
+        },
       );
-      this.knownItemTypes = distinctTypes(outcome.data, orderMap);
+      this.knownItemTypes = distinctTypes(outcome.data, orderMap, categoryMap);
       this.expansion.prune(collectNodeIds(this.roots));
       this.changeEmitter.fire(undefined);
       return;
     }
 
-    // The tree payload now carries title + is_open on every node, so the hierarchy render is a
-    // single `sq tree --json` spawn — no second `sq list` fetch for titles or known types.
-    const [treeOutcome, catalogOutcome, collectionsOutcome, statusesOutcome] = await Promise.all([
-      getTree(this.runner, invocation, this.workspaceRoot, undefined, this.state.showClosed),
-      catalogPromise,
-      collectionsPromise,
-      statusesPromise,
-    ]);
+    // The tree payload carries title on every node (open/closed is re-derived from the
+    // statuses/roles catalog join), so the hierarchy render is a single `sq tree --json` spawn —
+    // no second `sq list` fetch for titles or known types.
+    const [treeOutcome, catalogOutcome, collectionsOutcome, statusesOutcome, rolesOutcome] =
+      await Promise.all([
+        getTree(this.runner, invocation, this.workspaceRoot, undefined, this.state.showClosed),
+        catalogPromise,
+        collectionsPromise,
+        statusesPromise,
+        rolesPromise,
+      ]);
     if (treeOutcome.kind !== 'success') {
       this.failFrom(treeOutcome);
       return;
     }
+    const treeOrderMap = orderMapFrom(catalogOutcome);
+    const treeCategoryMap = categoryMapFrom(catalogOutcome);
     this.roots = treeNodesToDisplay(
       treeOutcome.data,
       iconOverrides,
       fieldBindingsFrom(catalogOutcome),
       badgeVocabularyFrom(collectionsOutcome),
       statusRolesFrom(statusesOutcome),
+      roleCatalogFrom(rolesOutcome),
+      treeCategoryMap,
     );
-    this.knownItemTypes = distinctTypesInTree(treeOutcome.data, orderMapFrom(catalogOutcome));
+    this.knownItemTypes = distinctTypesInTree(treeOutcome.data, treeOrderMap, treeCategoryMap);
     this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);
   }

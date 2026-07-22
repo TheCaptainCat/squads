@@ -17,7 +17,6 @@ function treeNode(overrides: Partial<SqTreeNode> & { id: string; title: string }
     priority: null,
     assignee: null,
     blocked: false,
-    is_open: true,
     children: [],
     ...overrides,
   };

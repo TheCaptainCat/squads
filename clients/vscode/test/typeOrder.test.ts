@@ -35,9 +35,9 @@ describe('buildTypeOrderMap / sortTypesByOrder', () => {
 
   it('sorts an un-ordered (null) type last, after every ordered type', () => {
     const orderMap = buildTypeOrderMap([
-      { type: 'task', order: 30, prefix: 'TASK', reserved: false },
-      { type: 'widget', order: null, prefix: 'WID', reserved: false },
-      { type: 'epic', order: 10, prefix: 'EPIC', reserved: false },
+      { type: 'task', order: 30, prefix: 'TASK', reserved: false, category: 'work' },
+      { type: 'widget', order: null, prefix: 'WID', reserved: false, category: 'work' },
+      { type: 'epic', order: 10, prefix: 'EPIC', reserved: false, category: 'work' },
     ]);
 
     expect(sortTypesByOrder(['widget', 'task', 'epic'], orderMap)).toEqual([
@@ -49,8 +49,8 @@ describe('buildTypeOrderMap / sortTypesByOrder', () => {
 
   it('breaks a tie between two un-ordered types by type name', () => {
     const orderMap = buildTypeOrderMap([
-      { type: 'zeta', order: null, prefix: 'Z', reserved: false },
-      { type: 'alpha', order: null, prefix: 'A', reserved: false },
+      { type: 'zeta', order: null, prefix: 'Z', reserved: false, category: 'work' },
+      { type: 'alpha', order: null, prefix: 'A', reserved: false, category: 'work' },
     ]);
 
     expect(sortTypesByOrder(['zeta', 'alpha'], orderMap)).toEqual(['alpha', 'zeta']);
@@ -58,8 +58,8 @@ describe('buildTypeOrderMap / sortTypesByOrder', () => {
 
   it('breaks a tie between two equally-ordered types by type name', () => {
     const orderMap = buildTypeOrderMap([
-      { type: 'zeta', order: 10, prefix: 'Z', reserved: false },
-      { type: 'alpha', order: 10, prefix: 'A', reserved: false },
+      { type: 'zeta', order: 10, prefix: 'Z', reserved: false, category: 'work' },
+      { type: 'alpha', order: 10, prefix: 'A', reserved: false, category: 'work' },
     ]);
 
     expect(sortTypesByOrder(['zeta', 'alpha'], orderMap)).toEqual(['alpha', 'zeta']);
@@ -67,7 +67,7 @@ describe('buildTypeOrderMap / sortTypesByOrder', () => {
 
   it('treats a type entirely absent from the map the same as an explicit null order', () => {
     const orderMap = buildTypeOrderMap([
-      { type: 'task', order: 30, prefix: 'TASK', reserved: false },
+      { type: 'task', order: 30, prefix: 'TASK', reserved: false, category: 'work' },
     ]);
 
     expect(sortTypesByOrder(['unknown', 'task'], orderMap)).toEqual(['task', 'unknown']);

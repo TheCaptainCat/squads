@@ -132,6 +132,14 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "CATEGORY_BUNDLES",  # fixed category -> default-bundle lookup table
         }
     ),
+    "src/squads/_tui/_tree.py": frozenset(
+        {
+            "_ROLE_STYLES",  # closed intent->Textual-style lookup table — immutable-by-
+            # convention CODE constant, same shape as INTENT_COLORS above
+            "_GROUP_LABELS",  # fixed category->root-label lookup table — immutable-by-
+            # convention CODE constant
+        }
+    ),
 }
 
 # ---------------------------------------------------------------------------------- the scan

@@ -20,35 +20,49 @@ function leaf(id: string): DisplayNode {
     iconId: 'circle-outline',
     blocked: false,
     closed: false,
-    active: false,
+    hidden: false,
+    colorIntent: null,
     children: [],
   };
 }
 
 describe('emphasisForNode', () => {
-  it('is "none" when blocked/closed/active are all false', () => {
-    expect(emphasisForNode({ blocked: false, closed: false, active: false })).toBe('none');
+  it('is "none" when blocked/hidden are false and colorIntent is null', () => {
+    expect(emphasisForNode({ blocked: false, hidden: false, colorIntent: null })).toBe('none');
   });
 
-  it('is "active" (green) when only active is true', () => {
-    expect(emphasisForNode({ blocked: false, closed: false, active: true })).toBe('active');
+  it('is "none" when colorIntent resolves to "neutral" — the default appearance, not a distinct colour', () => {
+    expect(emphasisForNode({ blocked: false, hidden: false, colorIntent: 'neutral' })).toBe('none');
   });
 
-  it('is "closed" (dimmed) when only closed is true', () => {
-    expect(emphasisForNode({ blocked: false, closed: true, active: false })).toBe('closed');
+  it('is the resolved colour intent when only colorIntent is set (non-neutral)', () => {
+    expect(emphasisForNode({ blocked: false, hidden: false, colorIntent: 'positive' })).toBe(
+      'positive',
+    );
+    expect(emphasisForNode({ blocked: false, hidden: false, colorIntent: 'info' })).toBe('info');
+  });
+
+  it('is "hidden" (dimmed) when only hidden is true', () => {
+    expect(emphasisForNode({ blocked: false, hidden: true, colorIntent: null })).toBe('hidden');
   });
 
   it('is "blocked" (red) when only blocked is true', () => {
-    expect(emphasisForNode({ blocked: true, closed: false, active: false })).toBe('blocked');
+    expect(emphasisForNode({ blocked: true, hidden: false, colorIntent: null })).toBe('blocked');
   });
 
-  it('closed wins over active when somehow both are set (F26/F7 disjoint-in-practice, but the precedence still resolves deterministically)', () => {
-    expect(emphasisForNode({ blocked: false, closed: true, active: true })).toBe('closed');
+  it('hidden wins over a colour intent when somehow both are set — a settled-AND-hidden role (e.g. "done") still just dims', () => {
+    expect(emphasisForNode({ blocked: false, hidden: true, colorIntent: 'positive' })).toBe(
+      'hidden',
+    );
   });
 
-  it('blocked wins over both closed and active — the highest-priority emphasis', () => {
-    expect(emphasisForNode({ blocked: true, closed: true, active: true })).toBe('blocked');
-    expect(emphasisForNode({ blocked: true, closed: false, active: true })).toBe('blocked');
+  it('blocked wins over both hidden and colour — the highest-priority emphasis', () => {
+    expect(emphasisForNode({ blocked: true, hidden: true, colorIntent: 'positive' })).toBe(
+      'blocked',
+    );
+    expect(emphasisForNode({ blocked: true, hidden: false, colorIntent: 'danger' })).toBe(
+      'blocked',
+    );
   });
 });
 
@@ -87,11 +101,12 @@ describe('emptyStateDisplayNode', () => {
     expect(node.children).toEqual([]);
   });
 
-  it('carries none of the emphasis flags — no error/blocked/closed styling', () => {
+  it('carries none of the emphasis flags — no error/blocked/hidden/colour styling', () => {
     const node = emptyStateDisplayNode('No squad detected here');
     expect(node.blocked).toBe(false);
     expect(node.closed).toBe(false);
-    expect(node.active).toBe(false);
+    expect(node.hidden).toBe(false);
+    expect(node.colorIntent).toBeNull();
   });
 
   it('uses a distinct icon and id from errorDisplayNode, so the two never collide or share styling', () => {
