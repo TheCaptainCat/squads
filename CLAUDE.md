@@ -267,6 +267,15 @@ Code subagent. Run the work as a loop, with `sq` as the shared memory between tu
    anything is now blocked.
 4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
    feature's tasks are `Done` and its reviews `Approved`.
+5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, run
+   one final subagent pass that *reads* the new delivered text — item/sub-entity bodies, code
+   comments and docstrings, CHANGELOG, docs — for internal build-process references that seeped in:
+   phase / round / wave / increment language, "this pass", "the reviewer's finding", "withheld
+   until a later phase", "as discussed above", and the like. This is the judgment-level residue the
+   auto-grep hygiene gate (which only catches ticket-IDs) cannot see. Delivered text must describe
+   the thing, not narrate how it was built — strip what the pass finds. (Historical discussion
+   comments recording state-at-a-point-in-time are exempt — the discussion is an append-only log;
+   this targets the durable body/comment/doc/code prose that outlives the build.)
 
 The operator may also speak directly to a specialist for live debugging; the specialist keeps
 `sq` current and hands back through a comment, so the loop stays consistent.
