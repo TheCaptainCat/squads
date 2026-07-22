@@ -3,12 +3,12 @@ id: TASK-592
 sequence_id: 592
 type: task
 title: Category-generic create for a custom records-category type
-status: Draft
+status: Done
 parent: FEAT-569
 author: tech-lead
 priority: high
 created_at: '2026-07-22T13:00:50Z'
-updated_at: '2026-07-22T13:03:32Z'
+updated_at: '2026-07-22T17:16:02Z'
 ---
 <!-- sq:body -->
 Implements FEAT-569 (records-category create path). Make `sq create` fully spec-driven for a project-declared custom `category = "records"` type — no records-name special-casing anywhere in the create path.
@@ -40,4 +40,8 @@ _Add with `sq task 592 add-subtask "<title>"`; track with `sq task 592 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-22T17:07:38Z] Elias Python:
+  - Already fully generic — no code change. Confirmed: `sq create <records-type>` already reaches `_CREATABLE`/dynamic `_CustomCreateGroup` path via `spec.non_roster_types()`; `no_parent` fires through the single `ValidatorEngine.gate()` call in `_services/_base.py::create` (no second hardcoded check found). Bundled create output byte-identical (targeted create/list/decision-guide tests green). guide's --tech/--tag stays field-based, untouched.
+  - Coverage: existing tests/service/test_records_epic_no_parent_enforcement.py already proves decision/guide no_parent at create+link; TASK-594's new override-spec test (tests/integration/test_custom_records_category_type_end_to_end.py) is the definitive zero-code-change proof for a brand-new records type.
+  - Gates: pyright/ruff clean; targeted pytest green; sq check clean.
 <!-- sq:discussion:end -->
