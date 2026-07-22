@@ -3,7 +3,7 @@ id: FEAT-569
 sequence_id: 569
 type: feature
 title: 'Custom work-item types: records category create/retype/list'
-status: Draft
+status: Done
 parent: EPIC-538
 author: product-owner
 priority: high
@@ -11,7 +11,7 @@ refs:
 - FEAT-567
 - FEAT-573
 created_at: '2026-07-22T08:39:16Z'
-updated_at: '2026-07-22T08:39:49Z'
+updated_at: '2026-07-22T17:16:08Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -76,4 +76,6 @@ _Add with `sq feature 569 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-22T17:16:07Z] Catherine Manager:
+  - FEAT-569 Done: custom records-category types are fully spec-driven — create/retype/list category-generic, retype work<->records with no_parent gated through the shared ValidatorEngine, end-to-end override-spec proof. Reviewed REV-614 (Approved, gate-ordering independently verified); full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

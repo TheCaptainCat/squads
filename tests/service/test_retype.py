@@ -98,16 +98,16 @@ async def test_retype_leaves_check_and_repair_clean(svc):
 # --------------------------------------------------------------------------- refusals
 
 
-async def test_retype_refuses_a_non_work_meta_type_as_source(svc):
-    with pytest.raises(SquadsError, match="only work items can be retyped"):
+async def test_retype_refuses_a_roster_type_as_source(svc):
+    with pytest.raises(SquadsError, match="only work/records items can be retyped"):
         await svc.retype("ROLE-000001", "task")
 
 
-@pytest.mark.parametrize("meta_type", ["role", "skill", "operator"])
-async def test_retype_refuses_a_meta_type_as_target(svc, meta_type):
+@pytest.mark.parametrize("roster_type", ["role", "skill", "operator"])
+async def test_retype_refuses_a_roster_type_as_target(svc, roster_type):
     task = (await svc.create("task", "t")).item
-    with pytest.raises(SquadsError, match="target must be a work type"):
-        await svc.retype(task.id, meta_type)
+    with pytest.raises(SquadsError, match="target must be a work or records type"):
+        await svc.retype(task.id, roster_type)
 
 
 async def test_retype_refuses_a_no_op_retype_to_the_same_type(svc):
@@ -136,3 +136,34 @@ async def test_retype_refuses_when_a_child_would_become_invalid(svc):
     await svc.create("task", "t", parent=feat.id)  # requires a feature parent
     with pytest.raises(SquadsError, match="child item"):
         await svc.retype(feat.id, "bug")
+
+
+# --------------------------------------------------------------------------- work <-> records
+
+
+async def test_retype_from_a_work_type_to_a_records_type_succeeds_when_unparented(svc):
+    task = (await svc.create("task", "t")).item
+
+    res = await svc.retype(task.id, "decision")
+
+    assert res.item.id.startswith("ADR-")
+    new_path = svc.paths.abspath(res.item.path)
+    assert new_path.exists() and "adrs" in str(new_path)
+
+
+async def test_retype_from_a_records_type_to_a_work_type_succeeds_when_unparented(svc):
+    decision = (await svc.create("decision", "d")).item
+
+    res = await svc.retype(decision.id, "task")
+
+    assert res.item.id.startswith("TASK-")
+    new_path = svc.paths.abspath(res.item.path)
+    assert new_path.exists() and "tasks" in str(new_path)
+
+
+async def test_retype_refuses_a_parented_item_into_a_no_parent_records_type(svc):
+    feat = (await svc.create("feature", "f")).item
+    task = (await svc.create("task", "t", parent=feat.id)).item
+
+    with pytest.raises(SquadsError, match="takes no parent"):
+        await svc.retype(task.id, "decision")

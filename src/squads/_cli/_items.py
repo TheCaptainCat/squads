@@ -283,7 +283,7 @@ def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
             ...,
             metavar="NEW-TYPE",
             help=(
-                f"Target work-item type: {targets}. "
+                f"Target type (non-roster: work or records): {targets}. "
                 "The item number is preserved; only the ID prefix flips."
             ),
         ),

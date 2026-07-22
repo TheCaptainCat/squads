@@ -49,3 +49,20 @@ async def test_retype_names_the_new_id_and_the_number_of_files_with_rewritten_re
     assert r.exit_code == 0, r.output
     assert "EPIC-2" in r.output
     assert "rewritten refs in 1 file" in r.output
+
+
+async def test_retype_a_work_type_to_a_records_type_succeeds(project, invoke) -> None:
+    await invoke(["create", "task", "T", "--author", "manager"])
+    r = await invoke(["task", "2", "retype", "decision"])
+    assert r.exit_code == 0, r.output
+    assert "ADR-2" in r.output
+
+
+async def test_retype_a_parented_item_to_a_no_parent_records_type_is_rejected(
+    project, invoke
+) -> None:
+    await invoke(["create", "feature", "F", "--author", "manager"])
+    await invoke(["create", "task", "T", "--author", "manager", "--parent", "FEAT-2"])
+    r = await invoke(["task", "3", "retype", "decision"])
+    assert r.exit_code == 1
+    assert "takes no parent" in r.output

@@ -21,6 +21,7 @@ from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore, subentity_container_map, subentity_kind_map
 from squads._services._results import RetypeResult
+from squads._services._validators import ValidatorEngine
 from squads._workflow._models import WorkflowSpec
 
 # Bundled sub-entity container headings — an explicit lookup because "User Stories" isn't
@@ -40,15 +41,17 @@ def _container_heading(spec: WorkflowSpec, kind: str) -> str:
 
 
 def _validate_work_types(spec: WorkflowSpec, old_type: str, new_type: str, old_id: str) -> None:
-    """Raise if either type is not a work type, or they are the same."""
+    """Raise if either type is not a non-roster (work or records) type, or they are the same."""
     wt = spec.non_roster_types()
     if old_type not in wt:
         raise SquadsError(
-            f"{old_id} is a {old_type}; only work items can be retyped ({', '.join(sorted(wt))})"
+            f"{old_id} is a {old_type}; only work/records items can be retyped "
+            f"({', '.join(sorted(wt))})"
         )
     if new_type not in wt:
         raise SquadsError(
-            f"cannot retype to {new_type!r}; target must be a work type ({', '.join(sorted(wt))})"
+            f"cannot retype to {new_type!r}; target must be a work or records type "
+            f"({', '.join(sorted(wt))})"
         )
     if new_type == old_type:
         raise SquadsError(f"{old_id} is already of type {old_type}")
@@ -116,8 +119,11 @@ class RetypeMixin(ServiceCore):
         - Both the current type and *new_type* must be non-roster types
           (``spec.non_roster_types()``).
         - Refuses (actionable :class:`~squads._errors.SquadsError`) when the item has
-          sub-entities, when the existing parent would be invalid for the new type, or when
-          any current child would become invalid under the new type.
+          sub-entities, when the existing parent would be invalid for the new type, when any
+          current child would become invalid under the new type, or when the new type's own
+          category rules (e.g. the records bundle's ``no_parent``) reject the item as it would
+          look post-change — enforced by the same
+          :class:`~squads._services._validators.ValidatorEngine` gate create/update use.
         - Status is carried when old and new share the same :class:`~squads._workflow.Workflow`
           object **and** the current status is a valid state of the new workflow; otherwise the
           status is reset to the new type's initial status.
@@ -136,7 +142,23 @@ class RetypeMixin(ServiceCore):
             _validate_work_types(self.spec, old_type, new_type, old_id)
             _validate_refusals(self.spec, db, old_id, new_type, item.parent, bool(item.subentities))
 
-            status_reset, _ = _carry_or_reset_status(self.spec, old_type, new_type, old_status)
+            status_reset, new_status = _carry_or_reset_status(
+                self.spec, old_type, new_type, old_status
+            )
+
+            # Post-change conformance: gate the item as it would look right after the retype
+            # (new type/status/prefix, same parent) through the same per-item validator engine
+            # create/update use — so a category rule like the records bundle's `no_parent`
+            # fails closed here, before any file is touched, rather than being re-encoded as a
+            # bespoke retype-only check.
+            prospective = item.model_copy(
+                update={
+                    "type": new_type,
+                    "status": new_status,
+                    "prefix": prefix_for(new_type, self.spec),
+                }
+            )
+            ValidatorEngine(spec=self.spec).gate(prospective, db)
 
             new_path = await _apply_type_change(
                 self.paths, self.spec, db, item, new_type, carry_status=not status_reset
