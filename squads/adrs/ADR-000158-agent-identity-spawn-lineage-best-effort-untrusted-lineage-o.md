@@ -5,20 +5,20 @@ type: decision
 title: 'Agent identity & spawn lineage: best-effort, untrusted lineage observability
   (squads records env, never spawns)'
 status: Accepted
-parent: EPIC-121
 author: architect
 priority: medium
 refs:
 - FEAT-125:implements
 - ADR-155
 - FEAT-24
+- EPIC-121
 description: squads reads optional SQUADS_SESSION_ID/PARENT from its own invocation
   env if present and records them additively (reflog + frontmatter, back-compat);
   it never mints, spawns, or injects (it is never in the spawn path). Guarantee is
   best-effort, untrusted, observability-only — not verified identity; lane enforcement
   on it is advisory.
 created_at: '2026-06-22T07:44:10Z'
-updated_at: '2026-07-06T12:37:01Z'
+updated_at: '2026-07-22T11:53:22Z'
 ---
 <!-- sq:body -->
 ## Context

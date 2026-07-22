@@ -3,7 +3,7 @@ id: FEAT-567
 sequence_id: 567
 type: feature
 title: Category axis + pluggable-validator dispatch engine
-status: InReview
+status: Done
 parent: EPIC-538
 author: product-owner
 priority: high
@@ -18,7 +18,7 @@ subentities:
   title: validator dispatch engine (report + abort modes)
   status: Todo
 created_at: '2026-07-22T08:37:44Z'
-updated_at: '2026-07-22T10:25:31Z'
+updated_at: '2026-07-22T11:51:25Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -164,4 +164,6 @@ One engine over a per-type validator set, run in sq check report mode and create
   - (a) BUNDLED TOML — regenerated, fine. The is_meta=… lines in default_workflow.toml become category='roster|work|records' per ADR-541's settled assignments. Give ItemSpec.category a default of 'work' so types that omit it (and the common case) load unchanged. No adopter impact from the bundled file itself.
   - (b) ADOPTER OVERRIDE COMPAT — YES, but narrow, and handled with a read-compat shim (not a version bump). Overrides are additive-only today, so is_meta can only appear on a CUSTOM type an adopter added; is_meta=false is the default so writing it is redundant, and is_meta=true on a custom type was never really supported (roster is closed/locked). With ItemSpec extra='forbid', a lingering is_meta key would become a hard SquadsError on load after the rename. Approach: a transitional read-compat shim in the loader's item parser (_parse_item_spec_str + the bundled item loop) — POP a legacy is_meta before model_validate (keeps extra='forbid' intact); false/absent → let category fall to its 'work' default; true on a non-roster type → clean SquadsError pointing at category + the roster-locked rule. Document the deprecation in the release CHANGELOG/upgrade notes; plan to drop the shim at 1.0. Note there is NO stamped bundled-workflow copy in adopter repos (workflow overrides carry only deltas, unlike templates with their hash manifest), so there is no drift-manifest angle to migrate.
   - ADR-541 amendment? The three design calls (D1-D3) and points (a)/(c) need NO amendment — they're the code-boundary calls ADR-541 delegates and are recorded here at feature level. The ONE durable-contract item ADR-541 does not pin is the adopter BACK-COMPAT POLICY for the deprecated is_meta key — i.e. that we ship a deprecation shim rather than hard-break, and drop it at 1.0. If the operator wants that policy on the durable record, I recommend a one-paragraph ADR-541 amendment stating it. Proposing only — I will not author the amendment without Pierre's go. Everything else stays feature-level. FEAT-567 stays Draft.
+- [2026-07-22T11:51:25Z] Catherine Manager:
+  - Accepted to Done per op-pierre's standing delegation (reviewed + verified, non-visual): category axis + validator engine scaffold, REV-580 approved, byte-identical sq check.
 <!-- sq:discussion:end -->

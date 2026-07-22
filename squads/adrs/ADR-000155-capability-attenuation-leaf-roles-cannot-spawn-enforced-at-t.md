@@ -4,16 +4,16 @@ sequence_id: 155
 type: decision
 title: 'Capability attenuation: leaf roles cannot spawn; enforced at the backend'
 status: Accepted
-parent: EPIC-121
 author: architect
 priority: high
 refs:
 - FEAT-122
 - BUG-152:fixes
+- EPIC-121
 description: Spawn authority reserved to manager+tech-lead via per-role tool lists;
   identity-aware profiles gated on FEAT-000125
 created_at: '2026-06-21T21:40:15Z'
-updated_at: '2026-07-06T12:37:00Z'
+updated_at: '2026-07-22T11:53:20Z'
 ---
 <!-- sq:body -->
 ## Context

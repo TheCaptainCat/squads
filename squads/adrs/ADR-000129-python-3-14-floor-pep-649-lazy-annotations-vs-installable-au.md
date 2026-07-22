@@ -4,13 +4,12 @@ sequence_id: 129
 type: decision
 title: 'Python >= 3.14 floor: PEP 649 lazy annotations vs installable audience'
 status: Accepted
-parent: FEAT-17
 author: architect
 refs:
 - FEAT-13
 - FEAT-17
 created_at: '2026-06-15T12:10:13Z'
-updated_at: '2026-07-06T12:36:59Z'
+updated_at: '2026-07-22T11:53:23Z'
 ---
 <!-- sq:body -->
 ## Context
