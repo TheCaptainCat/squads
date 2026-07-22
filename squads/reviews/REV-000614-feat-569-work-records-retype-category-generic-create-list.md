@@ -8,14 +8,14 @@ author: reviewer
 subentities:
 - local_id: F1
   title: Parent self-check in _validate_refusals now overlaps the gate
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F2
   title: Retype now fails closed on a dangling parent (contract change)
-  status: Open
+  status: WontFix
   severity: low
 created_at: '2026-07-22T17:13:04Z'
-updated_at: '2026-07-22T17:16:01Z'
+updated_at: '2026-07-22T20:38:24Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-569 (TASK-592/593/594): making create/retype/list honour a type's category generically so a custom records-category type is fully spec-driven. Scope = uncommitted diff on src/tests + the new integration test.
@@ -32,8 +32,8 @@ _Add with `sq review 614 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Parent self-check in _validate_refusals now overlaps the gate |
-| F2 | 🟢 low | Open |  | Retype now fails closed on a dangling parent (contract change) |
+| F1 | 🟢 low | WontFix |  | Parent self-check in _validate_refusals now overlaps the gate |
+| F2 | 🟢 low | WontFix |  | Retype now fails closed on a dangling parent (contract change) |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -42,7 +42,7 @@ _Add with `sq review 614 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Parent self-check in _validate_refusals now overlaps the gate
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F1:head:end -->
 
@@ -53,6 +53,8 @@ _retype.py::_validate_refusals (lines 74-82) still checks spec.parent_allowed(ne
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-07-22T20:05:56Z] Operator:
+  - Left the own-parent branch in _validate_refusals: removing it would shift that refusal's message to ValidatorEngine.gate's generic per-item message (loses old_id/current-parent context + the retype-specific hint), which fails the 'same or better message' bar. Consolidated via comment only (_retype.py:74-80) documenting the intentional overlap with gate's parent_in check and why it stays; sub-entity and invalid-children checks untouched. Behaviour/messages unchanged; targeted retype + tests/meta gates green.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -60,7 +62,7 @@ _retype.py::_validate_refusals (lines 74-82) still checks spec.parent_allowed(ne
 ### F2 — Retype now fails closed on a dangling parent (contract change)
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
@@ -84,4 +86,8 @@ The gate at line 161 runs parent_in/no_parent on the prospective item. parent_in
   - Gate: pyright 0 errors, ruff check + format clean, no SCHEMA_VERSION bump. Targeted pytest green: test_retype.py + test_retype_command_cli.py + the new integration test (29 passed) and create/no_parent/records selection (35 passed).
 - [2026-07-22T17:16:01Z] Catherine Manager:
   - Manager independent verification: read _retype.py directly — ValidatorEngine.gate(prospective, db) at :161 runs before the first mutation (_apply_type_change :163); prospective faithfully mirrors the written item (status via _carry_or_reset_status, prefix via prefix_for, parent/refs preserved). Gate-ordering + fidelity confirmed; refusal leaves file/index/edges/reflog untouched. F1 (own-parent check redundancy) left Open as a future consolidation cleanup; F2 (dangling-parent now fails closed) is an intended improvement, sq check already errors on dangling parents. Self-approval heuristic warning noted and dismissed: the reviewer was an independently-spawned party, distinct from the build lineage.
+- [2026-07-22T20:07:08Z] Catherine Manager:
+  - Attribution correction: the WontFix on F1 and its rationale (prior comment auto-attributed to Operator for lack of an --as flag) is an engineering decision by the dev, endorsed by me as manager — NOT a call by op-pierre. Rationale stands: removing the own-parent branch would downgrade the retype error to the gate's generic per-item message, losing the old_id/current-parent/'remove the parent first' context; the overlap is intentional message-quality duplication, now documented in _retype.py. F1 verified WontFix.
+- [2026-07-22T20:38:24Z] Catherine Manager:
+  - F2 WontFix: retype now failing closed on a dangling parent is the intended, correct behaviour — a dangling parent is already an sq check error, and refusing to retype onto an invalid parent state is an improvement, not a regression. No change wanted.
 <!-- sq:discussion:end -->

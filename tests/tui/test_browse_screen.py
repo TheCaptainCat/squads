@@ -3,12 +3,16 @@ reader panel (selection wiring, at-a-glance header, body/sub-entities/discussion
 their empty states).
 """
 
+import time
+from collections.abc import Callable
+
 import pytest
 
 pytest.importorskip("textual")
 
 from textual.containers import VerticalScroll
 from textual.content import Content
+from textual.pilot import Pilot
 from textual.widgets import Markdown, Static, TabbedContent, Tabs, Tree
 from textual.widgets._markdown import (  # pyright: ignore[reportPrivateImportUsage]
     MarkdownH1,
@@ -47,6 +51,25 @@ def _text(content: object) -> str:
         return content.plain
     assert isinstance(content, str)
     return content
+
+
+async def _wait_until(
+    pilot: Pilot[None], predicate: Callable[[], bool], *, max_wait: float = 5.0
+) -> None:
+    """Poll *predicate* via repeated `pilot.pause()`s until it holds, instead of trusting a
+    single pause.
+
+    `Markdown.update()` hands its parse off to a thread-pool executor; a lone `pilot.pause()`
+    only waits until the process *looks* CPU-idle, which under parallel test load can fire
+    before that executor thread has even been scheduled — so the widget's content (and the
+    scroll container's derived size) isn't settled yet. Polling the real postcondition makes
+    the wait deterministic regardless of scheduling.
+    """
+    deadline = time.monotonic() + max_wait
+    while not predicate():
+        if time.monotonic() >= deadline:
+            raise AssertionError(f"condition not met within {max_wait}s: {predicate!r}")
+        await pilot.pause()
 
 
 async def test_launching_and_quitting_leaves_no_running_app(svc):
@@ -155,14 +178,15 @@ async def test_selecting_a_node_loads_its_detail_and_reselection_refreshes_it(sv
         node1 = _find(tree.root, feat1.id)
         node2 = _find(tree.root, feat2.id)
 
-        tree.cursor_line = node1.line
-        await pilot.pause()
         body = app.screen.query_one("#body-view", Markdown)
-        assert "First body" in body._markdown  # pyright: ignore[reportPrivateUsage]
+
+        # Same executor-backed-parse race as the scroll test above: poll for the settled
+        # body instead of trusting a single pause.
+        tree.cursor_line = node1.line
+        await _wait_until(pilot, lambda: "First body" in body._markdown)  # pyright: ignore[reportPrivateUsage]
 
         tree.cursor_line = node2.line
-        await pilot.pause()
-        assert "Second body" in body._markdown  # pyright: ignore[reportPrivateUsage]
+        await _wait_until(pilot, lambda: "Second body" in body._markdown)  # pyright: ignore[reportPrivateUsage]
 
 
 async def test_reader_header_shows_status_priority_and_assignee_gracefully(svc):
@@ -223,13 +247,12 @@ async def test_body_tab_scrolls_to_reach_content_below_the_fold(svc):
         await pilot.pause()
 
         scroll = app.screen.query_one("#body-scroll", VerticalScroll)
-        assert scroll.max_scroll_y > 0
+        await _wait_until(pilot, lambda: scroll.max_scroll_y > 0)
 
         scroll.focus()
         await pilot.pause()
         await pilot.press("end")
-        await pilot.pause()
-        assert scroll.scroll_y == scroll.max_scroll_y
+        await _wait_until(pilot, lambda: scroll.scroll_y == scroll.max_scroll_y)
 
 
 async def test_subentities_tab_shows_each_blocks_head_and_body_with_empty_states(svc):

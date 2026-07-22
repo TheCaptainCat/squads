@@ -199,8 +199,57 @@ Required fields:
 - `lifecycle` — the lifecycle name (built-in or custom) governing the type's state machine
 
 Optional:
+- `category` — the item's category: `"work"` (default) or `"records"`. See **Custom records-category
+  item types** (below) for details.
 - `parents` — list of allowed parent item types; empty or omitted means no hierarchy constraint
 - `aliases` — list of short command aliases (e.g., `["inc"]` allows `sq inc <n>` as shorthand)
+
+#### Custom records-category item types
+
+Squads distinguishes two item categories:
+
+- **Work items** (`category = "work"`, the default) — ephemeral; flow through a lifecycle towards completion
+  (epic, feature, task, bug, review). Work items can be children in a hierarchy and map to effort.
+- **Records** (`category = "records"`) — durable reference documents; authored once, maintained indefinitely
+  (decisions/ADRs, guides, contracts, standards, postmortems, etc.). Records have no parents and no hierarchy.
+
+The bundled `decision` (ADR) and `guide` types are both records. When you define a custom records-category
+type, squads treats it like a decision or guide: it takes no parent, nests in its own folder, and never
+appears in `sq inbox` by default (it's for reference, not work tracking).
+
+**When to use records category:**
+
+Use records for any item that is:
+- A **durable reference** meant to last and be maintained (not a disposable work item)
+- **Free-standing** (no parent or children)
+- **Not part of a hierarchy** (e.g., a postmortem, runbook, RFC, ADR, etc.)
+
+**Declaring a custom records type:**
+
+```toml
+[items.postmortem]
+prefix = "PM"
+folder = "postmortems"
+category = "records"          # mark it as a records-type, not work
+lifecycle = "guide"           # reuse the guide lifecycle or define your own
+```
+
+This creates a `postmortem` type with:
+- IDs like `PM-1`, `PM-2`, etc.
+- Storage in `squads/postmortems/`
+- The same lifecycle as guides (Draft → Published → Deprecated)
+- No parent constraints (records never have parents)
+
+After defining it, you can:
+
+```bash
+sq create postmortem "API outage on 2026-07-22" --status Draft
+sq postmortem 1 body --file postmortem-incident.md
+sq postmortem 1 status Published
+sq list -t postmortem    # list all postmortems (shown at all times)
+```
+
+**Records never appear in `sq inbox` by default;** they're indexed for reference, not active work tracking.
 
 #### Statuses: custom state labels
 
@@ -208,22 +257,26 @@ Define new statuses (e.g., states for your custom incident lifecycle):
 
 ```toml
 [statuses.Triage]
-terminal = false
+role = "attention"
 
 [statuses.Mitigating]
-terminal = false
+role = "active"
 
 [statuses.Resolved]
-terminal = true
+role = "done"
 ```
 
 Required fields:
-- `terminal` — boolean; `true` if this status is terminal (items at terminal statuses are
-  "done" and hidden from `sq inbox` by default)
+- `role` — the name of a status role (from the role catalog) that governs this status's
+  terminal/hidden/color attributes. See **Status roles** (below) for the full role catalog and
+  how to define custom roles.
 
 Optional:
 - `badge` — emoji or short symbol displayed in sub-entity roll-up tables (used only for sub-entities)
-- `role` — special marker for specific statuses (used only for ADRs; e.g., `role = "superseded"`)
+
+The `role` field replaces the earlier `terminal` boolean — squads now derives terminal status from
+the referenced role's `settled` attribute. If you omit `role`, a status defaults to the `pending`
+role (non-terminal, shown by default, neutral color).
 
 #### Lifecycles: custom state machines
 
@@ -276,6 +329,70 @@ Required fields:
 
 Each badge's `code` is the identifier used in commands (e.g., `sq task <n> update --impact medium`).
 Ordered collections support `--min-` filters (e.g., `sq list --min-impact high`).
+
+#### Status roles: terminal/hidden/color attributes
+
+A **role** is a catalog entry that defines how a status displays and behaves. When you declare a
+status with `role = "rolename"`, squads uses that role's attributes to determine:
+
+- **`settled`** — whether the status is terminal (done). Terminal statuses are treated as
+  "complete" and hidden from `sq inbox` by default.
+- **`hidden`** — whether the status is hidden from default list views (shown only with `--all` flag).
+- **`color`** — a semantic color intent for display across the CLI and clients (positive/danger/warning/muted/neutral/info).
+
+Squads ships with eight bundled roles covering common patterns. You can reference them in your
+statuses, or define custom roles in your override:
+
+```toml
+[roles.my_custom_role]
+settled = false          # not terminal
+hidden = false           # shown by default
+color = "warning"        # semantic intent for rendering
+
+[statuses.MyStatus]
+role = "my_custom_role"
+```
+
+**Bundled role reference:**
+
+| Role | `settled` | `hidden` | `color` | Use case |
+|------|-----------|----------|---------|----------|
+| `pending` | `false` | `false` | `neutral` | Draft, proposed, requested (awaiting work) |
+| `active` | `false` | `false` | `positive` | In progress, under review, being addressed |
+| `attention` | `false` | `false` | `danger` | Blocked, failing, or needs urgent attention |
+| `blocked` | `false` | `false` | `danger` | Explicitly blocked and waiting |
+| `in_force` | `true` | `false` | `info` | Accepted, published, or in effect (terminal, shown) |
+| `done` | `true` | `true` | `positive` | Complete or verified (terminal, hidden by default) |
+| `retired` | `true` | `true` | `muted` | Superseded, deprecated, or cancelled (terminal, hidden) |
+| `superseded` | `true` | `true` | `muted` | Replaced by a newer decision (terminal, hidden) |
+
+**Color semantics:**
+
+The `color` field carries semantic intent, not a concrete hex value. Squads maps each color
+across clients (CLI, VS Code extension, etc.) to concrete, theme-aware colors. The palette is
+closed — you may only use these names: `positive`, `danger`, `warning`, `muted`, `neutral`, `info`.
+
+**Defining a custom role:**
+
+```toml
+[roles.awaiting_merge]
+settled = false
+hidden = false
+color = "warning"
+
+[statuses.WaitingForMerge]
+role = "awaiting_merge"
+```
+
+Then use `role = "awaiting_merge"` in any status to reference it. A status that doesn't specify a
+`role` defaults to the `pending` role, so it's always safe to omit the field for simple cases.
+
+**Viewing the role catalog:**
+
+```bash
+sq workflow roles           # list all available roles
+sq workflow roles --json    # machine-readable format
+```
 
 See [workflow.md](workflow.md) § "Project workflow overrides" for a worked example.
 
