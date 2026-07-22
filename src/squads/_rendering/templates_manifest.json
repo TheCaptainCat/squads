@@ -94,7 +94,7 @@
     "agents_md/agents_section.md.j2": "41961d35dfc2971e3583ebe5720a9ba395a615c9afc72f693a573c3455b5ce26",
     "agents_md/role_entry.md.j2": "9f46db32af97ade9d120c39e9e6746cfdafdb4744e7f47765327675587d4dcd1",
     "agents_md/skill_entry.md.j2": "a4c6b30998a20a2267415bc01cb98270fc7266b6ea2cea249f67ebd2b12bac5c",
-    "claude/claude_section.md.j2": "0ee4d763e8016c8e1febdce96c177aac16ad4fed0fe0e1f2296464fe979ee647",
+    "claude/claude_section.md.j2": "cb8ee54d7e0619ca9c30fb9af7549f687912b58ef2283af09fe0a327ba5b4fac",
     "claude/pointer_agent.md.j2": "bded15d74b77552dc91e54b565e687d3cb6bc39f496f09dd45197333f6a7e96e",
     "claude/pointer_skill.md.j2": "db7ff35a779517d39244d6be5a48a942096e4eea8ea12a280abdc1a4219c89e2",
     "items/_default.md.j2": "d4b39440e7da5e65fb913a33788545a9d9238786ae8a929e9513134e6ede98a3",
