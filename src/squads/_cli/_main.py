@@ -16,6 +16,7 @@ from typing import Any
 import typer
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 from rich.tree import Tree
 
 import squads._cli._common as common
@@ -37,6 +38,7 @@ from squads._cli._common import (
     print_json_clean,
     resolve_item_id_any,
     resolve_slug_or_raise,
+    status_text,
 )
 from squads._errors import SquadsError
 from squads._models._config import CONFIG_FILENAME
@@ -174,8 +176,12 @@ def _parse_name_flags(raw: list[str]) -> dict[str, str]:
     return result
 
 
-def _item_table(items: list[Item]) -> Table:
-    """The shared item table (shared by `list`, `search`, `mine`) — escape all dynamic strings."""
+def _item_table(items: list[Item], spec: WorkflowSpec) -> Table:
+    """The shared item table (shared by `list`, `search`, `mine`) — escape all dynamic strings.
+
+    The Status cell is coloured by the status's role intent (``status_text``) — join
+    status -> role -> colour, per client, never a hardcoded status-name check.
+    """
     table = Table(box=None, pad_edge=False)
     for col in ("ID", "Type", "Status", "Priority", "Title", "Parent", "Assignee"):
         table.add_column(col)
@@ -183,7 +189,7 @@ def _item_table(items: list[Item]) -> Table:
         table.add_row(
             it.id,
             it.type,
-            it.status,
+            status_text(it.status, spec),
             e(_field_badge(it.type, "priority", it.priority)) if it.priority else "",
             e(it.title),
             it.parent or "",
@@ -421,6 +427,7 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     rather than a hand-written per-axis pair.
     """
     svc = get_service()
+    spec = get_active_spec()
     validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
     resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
     badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
@@ -436,19 +443,16 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     )
     hidden_count = 0
     if not (all_ or status):
-        spec = get_active_spec()
         visible = [i for i in items if not spec.hidden_by_default(i.type, i.status)]
         hidden_count = len(items) - len(visible)
         items = visible
-    items = _sort_by_badge(items, sort, get_active_spec())
+    items = _sort_by_badge(items, sort, spec)
     if json_out:
-        spec = get_active_spec()
         print_json_clean(
             json.dumps(
                 [
                     {
                         **i.model_dump(mode="json"),
-                        "is_open": spec.is_open(i.status),
                         "badges": resolve_item_badges(spec, i.type, i.badge_value),
                     }
                     for i in items
@@ -459,7 +463,7 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     if not items:
         _print_empty_or_hidden_hint(hidden_count)
         return
-    console.print(_item_table(items))
+    console.print(_item_table(items, spec))
 
 
 @app.command()
@@ -509,9 +513,10 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     N levels from the root. ``--badge``/``--min-badge`` work generically for any declared
     field (see `sq list --help`).
 
-    `--json` emits the subtree (`id/type/title/status/priority/assignee/blocked/is_open` + nested
+    `--json` emits the subtree (`id/type/title/status/priority/assignee/blocked` + nested
     `children`) — the read an orchestrating agent uses to see a feature's state and decide what to
-    do next.
+    do next. Join `status` to `sq workflow statuses --json` / `sq workflow roles --json` for
+    open/settled-ness instead of a per-node field.
     """
     svc = get_service()
     spec = get_active_spec()
@@ -567,7 +572,6 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
                 "priority": it.priority,
                 "assignee": it.assignee,
                 "blocked": it.id in blocked_ids,
-                "is_open": spec.is_open(it.status),
                 "badges": resolve_item_badges(spec, it.type, it.badge_value),
                 "children": [node(c) for c in _sort_children(tn.children)],
             }
@@ -575,13 +579,16 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
         print_json_clean(json.dumps([node(n) for n in _sort_children(nodes)]))
         return
 
-    def _label(it: Item, path_only: bool) -> str:
+    def _label(it: Item, path_only: bool) -> Text:
         badge = _field_badge(it.type, "priority", it.priority, spec) if it.priority else ""
         prio = f"{e(badge)} · " if badge else ""
-        base = f"[bold]{it.id}[/bold] {prio}{e(it.title)} [dim]({it.status})[/dim]"
+        text = Text.from_markup(f"[bold]{it.id}[/bold] {prio}{e(it.title)} ")
+        text.append("(", style="dim")
+        text.append_text(status_text(it.status, spec))
+        text.append(")", style="dim")
         if path_only:
-            return f"[dim]{base}[/dim]"
-        return base
+            text.stylize("dim")
+        return text
 
     def _attach(parent: Tree, tn: TreeNode) -> None:
         branch = parent.add(_label(tn.item, tn.path_only))
@@ -946,16 +953,12 @@ async def mine(
     if not all_:
         items = [i for i in items if spec.is_open(i.status)]
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [{**i.model_dump(mode="json"), "is_open": spec.is_open(i.status)} for i in items]
-            )
-        )
+        print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
         return
     if not items:
         console.print(f"[dim]nothing assigned to {e(slug)}[/dim]")
         return
-    console.print(_item_table(items))
+    console.print(_item_table(items, spec))
 
 
 @app.command()

@@ -7,7 +7,6 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "is_open": true,
     "badges": {},
     "children": []
   },
@@ -19,7 +18,6 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "is_open": true,
     "badges": {},
     "children": [
       {
@@ -30,7 +28,6 @@
         "priority": null,
         "assignee": null,
         "blocked": true,
-        "is_open": true,
         "badges": {},
         "children": []
       }
@@ -44,7 +41,6 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "is_open": true,
     "badges": {},
     "children": []
   },
@@ -56,7 +52,6 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "is_open": true,
     "badges": {},
     "children": []
   },
@@ -68,7 +63,6 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "is_open": true,
     "badges": {},
     "children": []
   },
@@ -80,7 +74,6 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "is_open": true,
     "badges": {},
     "children": []
   },
@@ -92,7 +85,6 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "is_open": true,
     "badges": {},
     "children": []
   },
@@ -104,7 +96,6 @@
     "priority": null,
     "assignee": null,
     "blocked": false,
-    "is_open": true,
     "badges": {},
     "children": []
   }

@@ -3,7 +3,7 @@ id: FEAT-605
 sequence_id: 605
 type: feature
 title: 'Status role as a first-class object: colour + visibility axis'
-status: InProgress
+status: Done
 parent: EPIC-538
 author: product-owner
 refs:
@@ -17,9 +17,9 @@ subentities:
   status: Done
 - local_id: US3
   title: CLI colour rendering + is_open drop across list/tree/mine/workload/cheatsheet
-  status: Todo
+  status: Done
 created_at: '2026-07-22T15:29:57Z'
-updated_at: '2026-07-22T16:37:19Z'
+updated_at: '2026-07-22T16:57:05Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -101,7 +101,7 @@ _Add with `sq feature 605 add-story "As a <role>, I want … so that …"`; trac
 | --- | --- | --- | --- |
 | US1 | Done |  | Role-object model, derivation, Plane-1 validation |
 | US2 | Done |  | sq workflow roles --json + statuses catalog change + goldens |
-| US3 | Todo |  | CLI colour rendering + is_open drop across list/tree/mine/workload/cheatsheet |
+| US3 | Done |  | CLI colour rendering + is_open drop across list/tree/mine/workload/cheatsheet |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -152,7 +152,7 @@ Goldens: regenerate workflow_statuses.json (drop terminal, populate role); add a
 ### US3 — CLI colour rendering + is_open drop across list/tree/mine/workload/cheatsheet
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -175,4 +175,6 @@ Service-level open/closed reads (_roster bucket, _refs blocker traversal + RefCo
 <!-- sq:discussion -->
 - [2026-07-22T15:37:46Z] Olivia Lead:
   - Task breakdown (execution order = sequence order): US1 TASK-606 (role catalog + regen spec) -> 607 (drop terminal, derive from role) -> 608 (Plane-1 validation) -> 609 (service reads); US2 TASK-610 (roles --json + goldens); US3 TASK-611 (CLI colour + is_open drop). TASK-606/607 (the role model + derivation) MUST land before FEAT-570's US1 rework — FEAT-570 consumes role.hidden/role.color from this trunk. Implemented from the current dirty tree in one coherent change: superseded RETIRED_STATUS_ROLES + the hidden_by_default category-branch are replaced by the role catalog; the orthogonal survivors (CATEGORIES, --category filter, --json category, empty-view hint) are carried forward and land with FEAT-605.
+- [2026-07-22T16:57:04Z] Catherine Manager:
+  - FEAT-605 complete: ADR-604 role-object model landed across two reviewed+verified increments (REV-612/613, both Approved), full suite green. CLI status colour is live (positive=green, in_force/Accepted=cyan, danger=red, muted=grey, neutral=default) — accepted to Done under the standing non-visual delegation; palette is adjustable if the operator wants a different intent→colour on eyeball. Note: the is_open --json drop requires FEAT-570 US3 (VS Code client migration) to ship in the same 0.12 release.
 <!-- sq:discussion:end -->
