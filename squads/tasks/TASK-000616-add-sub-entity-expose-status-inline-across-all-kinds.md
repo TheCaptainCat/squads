@@ -11,7 +11,7 @@ refs:
 - REV-565
 description: Inline --status on add-finding/story/subtask, at parity with update
 created_at: '2026-07-22T18:05:31Z'
-updated_at: '2026-07-22T18:22:57Z'
+updated_at: '2026-07-22T18:44:16Z'
 ---
 <!-- sq:body -->
 Expose `--status` inline on the generic `add-<kind>` command builder so
@@ -27,7 +27,7 @@ follow-up `update`.
 - The per-field flag derivation is already generic and spec-driven: the add
   builder appends one `--<field-code>` option per `spec.fields_for(kind)` entry,
   validated through the shared badge path (`resolve_collection` +
-  `parse_badge_code`). `add-finding --severity` rides this; `--severity` behaviour
+  `parse_badge_code`). `add-finding --severity` uses this path; `--severity` behaviour
   must stay byte-identical. No new field-flag mechanism is needed.
 
 ## Scope
@@ -60,9 +60,9 @@ follow-up `update`.
 
 ## Gate reminder
 - If you add any module-level constant (e.g. a lookup dict/set), run the
-  `tests/meta` suite in your gate — the module-mutable-state guard has tripped
-  twice this batch on new module-scope lookups. Prefer a local/derived value or
-  add the exact name to the guard's allowlist with a one-line reason.
+  `tests/meta` suite in your gate — the module-mutable-state guard fails the build
+  on any new module-scope mutable lookup. Prefer a local/derived value or add the
+  exact name to the guard's allowlist with a one-line reason.
 - Full gate `uv run --all-extras pyright && ... ruff ...`; run the suite once to a
   file. No ticket IDs in code or test names; no lifecycle prose in any body.
 <!-- sq:body:end -->

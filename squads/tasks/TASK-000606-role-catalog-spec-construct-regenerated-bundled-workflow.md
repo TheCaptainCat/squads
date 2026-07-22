@@ -10,10 +10,10 @@ priority: high
 refs:
 - ADR-604
 created_at: '2026-07-22T15:37:18Z'
-updated_at: '2026-07-22T16:37:11Z'
+updated_at: '2026-07-22T18:42:47Z'
 ---
 <!-- sq:body -->
-Implements FEAT-605 US1 (trunk). Introduce the role catalog as a first-class spec construct and regenerate the bundled workflow. Land this FIRST — every other FEAT-605 task and FEAT-570's rework depend on the model existing.
+Implements FEAT-605 US1. Introduce the role catalog as a first-class spec construct and regenerate the bundled workflow — the model the rest of FEAT-605 and FEAT-570's rework depend on.
 
 ## Scope
 - New `RoleSpec` model in `_workflow/_models.py`: `settled: bool`, `hidden: bool = False`, `color: str` (validated against the closed intent palette in US1c).
@@ -29,9 +29,6 @@ Implements FEAT-605 US1 (trunk). Introduce the role catalog as a first-class spe
   - `retired` (muted, settled, hidden): Cancelled, Rejected, Deprecated, WontFix, Archived
   - `superseded` (muted, settled, hidden): Superseded
 - Remove every per-status `terminal = …` line from the bundled spec (the field itself is dropped in US1b).
-
-## Disposition of the uncommitted tree (superseded work)
-This spec regeneration REPLACES the interim `role = "retired"` lines added to `default_workflow.toml` in the prior session — those become the full role catalog above, and `retired` now also covers Rejected/WontFix/Archived per the ADR. The `RETIRED_STATUS_ROLES` frozenset and its category-branch consumer are removed in US1b, not here.
 
 ## Acceptance
 - `[roles.<name>]` parses into `WorkflowSpec.roles`; every bundled status resolves to a declared role.

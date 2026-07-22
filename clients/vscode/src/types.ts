@@ -12,7 +12,7 @@
 export type SqBadgeMap = Readonly<Record<string, string>>;
 
 /** One node of `sq tree <root> --json` (recursive; `children` may be empty). Open/closed and
- * default visibility are no longer carried per-node — a client joins `status` through the
+ * default visibility are not carried per-node — a client joins `status` through the
  * statuses catalog's `role` to the roles catalog (`domain/statusRole.ts`) instead. */
 export interface SqTreeNode {
   readonly id: string;
@@ -167,7 +167,7 @@ export interface SqSearchHit {
   readonly hits: readonly SqSearchHitRegion[];
 }
 
-/** One row of `sq list --json`. Open/closed is no longer carried per-row — see `SqTreeNode`'s
+/** One row of `sq list --json`. Open/closed is not carried per-row — see `SqTreeNode`'s
  * doc comment: a client re-derives it from `status` through the statuses/roles catalog join. */
 export interface SqListItem {
   readonly id: string;

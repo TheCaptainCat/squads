@@ -11,26 +11,24 @@ refs:
 - FEAT-567
 - REV-565
 created_at: '2026-07-22T08:39:38Z'
-updated_at: '2026-07-22T18:23:01Z'
+updated_at: '2026-07-22T18:40:12Z'
 ---
 <!-- sq:body -->
 ## Capability
 
 Make the `add-*` sub-entity command builder (`add-finding`/`add-story`/`add-subtask`)
 generate its `--flags` **dynamically from the active spec's badge/field
-collections**, instead of hardcoding `--severity`/`--status` for whichever
-sub-entity kinds happen to have needed them so far. Folds in REV-565 F14.
+collections**, instead of hardcoding `--severity`/`--status` per sub-entity kind.
 
-## Why (folds REV-565 F14)
+## Why
 
-F14 (Open, low): `add-finding`/`add-story`/`add-subtask` accept a title + body +
-`--assignee`/`--story`, but not a full set of metadata flags inline — setting a
-non-default status (or other badge field) needs a follow-up `update --force`.
-Since the 0.11.1 field report, `add-finding` gained `--severity` inline, but that
-was added as a **hardcoded, single-kind fix** — it doesn't generalize to a custom
-spec that defines different/renamed badge collections (severity/status/priority
-are spec vocabulary per ADR-323's badge-collections model, not fixed CLI
-constants). This feature is the generic fix: derive the flag set from the spec.
+`add-finding`/`add-story`/`add-subtask` accept a title + body + `--assignee`/`--story`,
+but not a full set of metadata flags inline — setting a non-default status (or other
+badge field) needs a follow-up `update --force`. Where a flag like `add-finding
+--severity` was available inline, it was wired per-kind and did not generalize to a
+custom spec that defines different/renamed badge collections (severity/status/priority
+are spec vocabulary per ADR-323's badge-collections model, not fixed CLI constants).
+This feature derives the flag set from the spec instead.
 
 ## Scope
 
@@ -39,15 +37,12 @@ constants). This feature is the generic fix: derive the flag set from the spec.
   already lets a spec relabel/rename severity/status/priority) and generates one
   `--<field>` flag per collection that applies to that kind — generic, not a
   hardcoded `--severity`/`--status` pair.
-- `--status` becomes available inline (closing the remaining explicit gap F14
-  calls out), alongside whatever other badge fields the spec declares for that
-  sub-entity kind.
+- `--status` becomes available inline, alongside whatever other badge fields the
+  spec declares for that sub-entity kind.
 - A provided value is validated against the same badge vocabulary `update` already
   enforces — no new validation path, just an earlier entry point.
-- Verify parity across all three sub-entity kinds (`add-finding`/`add-story`/
-  `add-subtask`) — F14's reviewer note flagged severity as already inline for
-  findings only; this feature makes the mechanism generic across all three
-  and across custom specs.
+- Parity across all three sub-entity kinds (`add-finding`/`add-story`/`add-subtask`):
+  the mechanism is generic across all three and across custom specs.
 
 ## Acceptance
 
@@ -60,17 +55,12 @@ constants). This feature is the generic fix: derive the flag set from the spec.
 - `sq check` clean; existing invocations without the new flags behave exactly as
   before (additive, no breaking change to existing scripts).
 
-## Dependencies / ordering
+## Dependencies
 
-- **Depends on FEAT-567 (Phase A)** loosely — this feature reads the spec's badge
-  *field* collections (ADR-323 model), not the `category` axis directly, but is
-  scoped into this Phase C batch per the tech-lead's cut; no hard blocking
-  dependency on FEAT-567's engine, only on the shared spec object it also touches.
-- **Phase C, parallelizable** against the other EPIC-538 Phase C features.
-- Note: this does **not** address REV-565 F10 (unwritten-body stub warning) — that
-  finding is triaged separately (Pierre: "add-finding/story/subtask take a body
-  via stdin/file/inline; placeholder only when absent") and is not in this cut.
-- Cross-ref: REV-565 F14 (folded in here).
+- Reads the spec's badge *field* collections (ADR-323 model), sharing the same
+  spec object FEAT-567 touches; no hard dependency on FEAT-567's engine.
+- Out of scope: the unwritten-body stub warning — a sub-entity takes a body via
+  stdin/file/inline, and a placeholder is used only when absent.
 <!-- sq:body:end -->
 
 ## User Stories
