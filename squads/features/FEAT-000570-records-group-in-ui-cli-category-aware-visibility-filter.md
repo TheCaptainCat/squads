@@ -22,35 +22,34 @@ subentities:
   title: 'VS Code extension: dedicated records view'
   status: InProgress
 created_at: '2026-07-22T08:39:37Z'
-updated_at: '2026-07-22T18:00:30Z'
+updated_at: '2026-07-22T18:43:26Z'
 ---
 <!-- sq:body -->
 ## Capability
 
 Give both UI clients (the TUI and the VS Code extension) a `records` group, and
-fold in REV-565 F9: a live-reference record (e.g. an Accepted decision) doesn't
-disappear from the default view the way finished work correctly does.
+ensure a live-reference record (e.g. an Accepted decision) doesn't disappear from
+the default view the way finished work correctly does.
 
-## Why (folds REV-565 F9)
+## Why
 
-F9 (Open, medium): after migrating a mostly-completed history, `sq tree`/`sq list`
-look nearly empty by default — features `Done`, ADRs `Accepted`, bugs `Verified`
-are all hidden unless `--all`. Reasonable for finished *work*, but an `Accepted`
-decision is the **standing record**, not finished work — hiding the entire
-decision log by default is surprising, not merely terse. This is exactly what the
-`records` category disambiguates: default visibility for a status is per-role,
-and a records-category item's settled statuses carry a role that stays visible
-while genuinely retired.
+After migrating a mostly-completed history, `sq tree`/`sq list` look nearly empty
+by default — features `Done`, ADRs `Accepted`, bugs `Verified` are all hidden
+unless `--all`. Reasonable for finished *work*, but an `Accepted` decision is the
+**standing record**, not finished work — hiding the entire decision log by default
+is surprising, not merely terse. This is exactly what the `records` category
+disambiguates: default visibility for a status is per-role, and a records-category
+item's settled statuses carry a role that stays visible while genuinely retired.
 
 ## Scope
 
 - `sq workflow types --json` exposes each type's `category` in the catalog both
   clients already fetch (single-sourced taxonomy, no client re-derives it) — this
   is the wire-level enabler both UI changes below build on.
-- **Default visibility is consumed from `role.hidden`** (delivered by the status
-  role-object work): a status's role already carries whether it's hidden from the
-  default (non-`--all`) view, so a records-category item in a settled-but-visible
-  role (e.g. `Accepted`, `Published`) stays shown, while a settled-and-hidden role
+- **Default visibility is consumed from `role.hidden`** (from the status role model,
+  FEAT-605): a status's role already carries whether it's hidden from the default
+  (non-`--all`) view, so a records-category item in a settled-but-visible role
+  (e.g. `Accepted`, `Published`) stays shown, while a settled-and-hidden role
   (e.g. `Superseded`, `Deprecated`, `Cancelled`) hides it — no category-specific
   visibility rule is derived here. `work`-category terminal-hiding
   (Done/Verified/Cancelled) is the same mechanism, unchanged in effect.
@@ -78,13 +77,11 @@ while genuinely retired.
   VS Code client.
 - `sq check` clean; existing `work`/`roster` visibility behaviour unchanged.
 
-## Dependencies / ordering
+## Dependencies
 
-- **Depends on FEAT-605** for the role-object model that drives default
-  visibility and status colour.
-- **Depends on FEAT-567 (Phase A)** for the `category` axis on the wire catalog.
-- **Phase C, parallelizable** against the other EPIC-538 Phase C features.
-- Cross-ref: REV-565 F9 (folded in here).
+- Depends on FEAT-605 for the role-object model that drives default visibility and
+  status colour.
+- Depends on FEAT-567 for the `category` axis on the wire catalog.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -109,7 +106,7 @@ _Add with `sq feature 570 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-sq list/tree default visibility is consumed from role.hidden (trunk-provided by FEAT-605), not re-derived here — a records-category item's settled statuses stay visible while genuinely retired ones hide.
+sq list/tree default visibility is consumed from role.hidden (from the FEAT-605 role model), not re-derived here — a records-category item's settled statuses stay visible while genuinely retired ones hide.
 
 Empty-view hint when hidden-role items are excluded from the default view.
 
@@ -132,7 +129,7 @@ sq list --category roster|work|records flag; wire category onto sq workflow type
 <!-- sq:story:US2:body -->
 Switch the browse tree's grouping from is_meta to category; add the records root alongside work/roster; wire the filter popup's category dimension.
 
-Rides FEAT-605: join status to role and render row colour from role.color (intent to Textual attribute, neutral fallback).
+Render row colour from the status role (FEAT-605): join status to role and map role.color intent to a Textual attribute, with a neutral fallback.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -151,7 +148,7 @@ Rides FEAT-605: join status to role and render row colour from role.color (inten
 <!-- sq:story:US3:body -->
 New records provider mirroring domain/metaView.ts's separation from the work tree; category filter in the QuickPick/tree.
 
-Rides FEAT-605: fetch the roles catalog, join status to role, and render role.color (ThemeColor with neutral fallback) in place of the removed is_open/terminal fields.
+Render status colour from the role catalog (FEAT-605): fetch the roles catalog, join status to role, and render role.color (ThemeColor with neutral fallback) in place of the removed is_open/terminal fields.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

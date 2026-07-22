@@ -25,6 +25,25 @@ All notable changes to this project are documented here. The format follows
   and create/update gating run off a single pluggable validator catalog. A project can
   assign catalog validators to a type in `.overrides/workflow.toml` (a `validators` list),
   extending what `sq check` and the create/update gate enforce for that type.
+- **Custom records-category types.** An adopter can define their own durable-reference item
+  type — its own prefix, folder, and lifecycle — alongside the bundled decision/guide/contract
+  types; `sq create`/`retype`/`list` treat it the same as any built-in records type. Records
+  types take no parent.
+- **Status roles.** A status's lifecycle behaviour — whether it's a resting/settled state,
+  whether it's hidden from the default view, and its display colour — now comes from a named
+  role declared in the workflow spec, instead of separate flags on each status. Roles are open
+  vocabulary (define your own); colour is a fixed semantic palette (positive/danger/warning/
+  muted/neutral/info). New `sq workflow roles --json` lists the catalog, and `sq list` / `tree`
+  / `mine` / `workload` now render every status in its role's colour — so a settled-but-live
+  record (e.g. an Accepted decision) stays visible and coloured instead of disappearing the
+  way finished work does.
+- **A Records group in the clients.** The terminal UI's browse tree and the VS Code extension
+  both gained a dedicated Records group/view, and a `--category roster|work|records` filter is
+  now available everywhere item lists can be filtered. Statuses render in their role's colour
+  in both clients.
+- **`add-finding`/`add-story`/`add-subtask` accept `--status`.** Set a non-default status at
+  creation time (validated against that sub-entity kind's own lifecycle), alongside the
+  existing spec-derived per-field flags.
 
 ### Changed
 
@@ -35,6 +54,10 @@ All notable changes to this project are documented here. The format follows
   item invariants `sq check` reports (valid status for the type, parent eligibility,
   sub-entity rules), rejecting a mutation that would leave an item invalid instead of only
   flagging it after the fact.
+- **`--json` no longer carries `terminal`/`is_open`.** The `sq workflow statuses --json`
+  catalog no longer carries `terminal`, and item `--json` payloads no longer carry `is_open` —
+  both are now derived from the status's role (`sq workflow roles --json`). A machine
+  surface consuming either field should switch to resolving the status's role instead.
 
 ### Fixed
 

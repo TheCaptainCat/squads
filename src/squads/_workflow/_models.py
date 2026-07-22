@@ -340,9 +340,9 @@ class RoleSpec(BaseModel):
     """A first-class status ROLE object — the sole explicit status axis.
 
     A status references one role by name (``StatusSpec.role``); the role object carries the
-    behaviour a status used to spread across ``terminal``/``is_open``/a category branch:
+    behaviour that governs how a status is treated:
 
-    - ``settled`` — is this a resting/end state (the old ``terminal``)?
+    - ``settled`` — is this a resting/end state?
     - ``hidden`` — hidden from the default (non-``--all``) view?
     - ``color`` — a semantic colour intent (one client-agnostic vocabulary word, not a
       concrete colour); must be a member of ``COLOR_INTENTS`` (Plane-1, enforced at load).

@@ -9,10 +9,10 @@ author: tech-lead
 assignee: typescript-dev
 priority: medium
 created_at: '2026-07-22T13:00:57Z'
-updated_at: '2026-07-22T17:48:04Z'
+updated_at: '2026-07-22T18:42:39Z'
 ---
 <!-- sq:body -->
-Implements FEAT-570 US3 (VS Code plumbing). Wire `category` into the extension's type-catalog consumption and use it to exclude records-category types from the work tree (they move to their own view in TASK-601). Depends on US1 (TASK-595 exposes `category` on `sq workflow types --json`). Build this before TASK-601/602.
+Implements FEAT-570 US3 (VS Code plumbing). Wire `category` into the extension's type-catalog consumption and use it to exclude records-category types from the work tree (they move to their own view in TASK-601). Depends on US1 (TASK-595 exposes `category` on `sq workflow types --json`).
 
 ## VISUAL — requires operator dev-host visual acceptance
 Changes what appears in the work tree. Lands **InReview**; operator (Pierre) verifies on the Windows `code` CLI dev-host (recompile + `--disable-extensions`) before Done. Handoff must say what to check.
@@ -32,8 +32,8 @@ Changes what appears in the work tree. Lands **InReview**; operator (Pierre) ver
 ## Gates
 Extension: its own `npm run` compile + lint + tests (see `clients/vscode`). Repo Python gates unaffected. Leave `sq check` clean.
 
-## Rides FEAT-605 (role catalog migration)
-Alongside the category map, migrate the type/status wiring off the removed is_open/terminal fields: add a roles-catalog fetch + guard (from sq workflow roles --json), and drop the removed SqTypeCatalogEntry.terminal / node is_open shape guards. The category map and the role join are separate client-side sources (type->category, status->role). Depends on FEAT-605 US2.
+## Role catalog migration
+Alongside the category map, migrate the type/status wiring off the removed is_open/terminal fields: add a roles-catalog fetch + guard (from sq workflow roles --json), and drop the removed SqTypeCatalogEntry.terminal / node is_open shape guards. The category map and the role join are separate client-side sources (type->category, status->role). Depends on FEAT-605.
 <!-- sq:body:end -->
 
 ## Subtasks

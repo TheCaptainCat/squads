@@ -3,8 +3,8 @@ list``/``sq tree``, keyed purely on the referenced role's ``hidden`` flag (no ca
 the role object alone encodes the intended presence). For work/roster items this happens to
 match ``is_open``'s inverse, because none of their reachable statuses carry the ``in_force``
 role — the one role where ``settled`` and ``hidden`` diverge (a resting record that still
-shows). ``Rejected`` now carries the ``retired`` role (settled + hidden) — a deliberate change:
-a rejected decision hides by default where it used to stay visible.
+shows). ``Rejected`` carries the ``retired`` role (settled + hidden), so a rejected decision
+hides by default.
 """
 
 from squads._workflow import bundled_spec
@@ -43,16 +43,16 @@ def test_records_category_hides_on_a_retired_or_superseded_role() -> None:
     assert spec.hidden_by_default("guide", "Deprecated") is True
 
 
-def test_rejected_now_carries_the_retired_role_and_hides_by_default() -> None:
-    """A deliberate change: Rejected moved into the ``retired`` role (settled + hidden), so a
-    rejected decision now hides by default where it used to stay visible with no role."""
+def test_rejected_carries_the_retired_role_and_hides_by_default() -> None:
+    """Rejected carries the ``retired`` role (settled + hidden), so a rejected decision hides
+    by default."""
     spec = bundled_spec()
     assert spec.statuses["Rejected"].role == "retired"
     assert spec.hidden_by_default("decision", "Rejected") is True
 
 
 def test_hidden_by_default_is_independent_of_item_type() -> None:
-    """``hidden_by_default`` is purely role-derived — it no longer consults ``item_type`` at
+    """``hidden_by_default`` is purely role-derived — it does not consult ``item_type`` at
     all, so it returns the same answer for a given status regardless of which type asks."""
     spec = bundled_spec()
     for s in spec.statuses:
@@ -63,8 +63,8 @@ def test_hidden_by_default_is_independent_of_item_type() -> None:
 def test_hidden_by_default_matches_is_open_inverse_except_for_the_in_force_role() -> None:
     """``hidden_by_default(t, s) == not is_open(s)`` for every status EXCEPT the one role where
     settled and hidden diverge — ``in_force`` (``Accepted``/``Published``): a resting record
-    that stays visible. That single split is exactly what the role object expresses that a
-    bare ``terminal`` flag could not."""
+    that stays visible. That single split — settled yet still shown — is exactly what the role
+    object expresses."""
     spec = bundled_spec()
     for s in spec.statuses:
         if spec.status_role(s) == "in_force":

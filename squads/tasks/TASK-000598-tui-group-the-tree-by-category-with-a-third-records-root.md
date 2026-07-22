@@ -9,7 +9,7 @@ author: tech-lead
 assignee: python-dev
 priority: medium
 created_at: '2026-07-22T13:00:55Z'
-updated_at: '2026-07-22T17:26:28Z'
+updated_at: '2026-07-22T18:42:35Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US2 (TUI records root). Switch the browse tree's grouping from the roster/not-roster boolean to `category`, adding a third `records` root alongside Work and Roster. Depends on US1 (TASK-595 category on the wire / spec accessor).
@@ -31,8 +31,8 @@ This changes rendered TUI layout. It lands **InReview**, not auto-accepted: the 
 ## Gates
 `uv run --all-extras pyright && uv run --all-extras ruff check . && uv run --all-extras ruff format --check . && uv run --all-extras pytest` (the `tui` extra MUST be present for the TUI tests). Leave `sq check` clean.
 
-## Rides FEAT-605 (role colour)
-On top of the category grouping above, render each tree row's colour from its status role: join status -> role via the roles catalog (FEAT-605 US2) and map role.color intent to a Textual attribute, with a neutral fallback for an unrecognised intent. Depends on FEAT-605 US1/US2 landing first.
+## Role colour
+Alongside the category grouping above, render each tree row's colour from its status role: join status -> role via the roles catalog and map role.color intent to a Textual attribute, with a neutral fallback for an unrecognised intent. Depends on FEAT-605.
 <!-- sq:body:end -->
 
 ## Subtasks
