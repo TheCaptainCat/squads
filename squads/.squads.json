@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 565,
+  "counter": 576,
   "padding": 6,
   "items": {
     "12": {
@@ -20068,7 +20068,7 @@
       "type": "feature",
       "title": "Statelessness: one process, many squads, per-request context",
       "slug": "statelessness-one-process-many-squads-per-request-context",
-      "status": "InReview",
+      "status": "Done",
       "description": "Make a long-lived sq process able to host multiple squads concurrently by resolving all squad-specific context per request and holding nothing mutable at module level",
       "parent": "EPIC-31",
       "author": "architect",
@@ -20130,7 +20130,7 @@
       ],
       "path": "features/FEAT-000533-statelessness-one-process-many-squads-per-request-context.md",
       "created_at": "2026-07-21T12:37:58Z",
-      "updated_at": "2026-07-21T23:17:39Z",
+      "updated_at": "2026-07-22T08:50:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20480,7 +20480,7 @@
       "type": "feature",
       "title": "Custom non-dev role scaffolding & discoverability",
       "slug": "custom-non-dev-role-scaffolding-discoverability",
-      "status": "InReview",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-538",
       "author": "product-owner",
@@ -20520,7 +20520,7 @@
       ],
       "path": "features/FEAT-000543-custom-non-dev-role-scaffolding-discoverability.md",
       "created_at": "2026-07-21T20:43:26Z",
-      "updated_at": "2026-07-21T21:30:13Z",
+      "updated_at": "2026-07-22T08:50:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -21187,7 +21187,7 @@
         {
           "local_id": "F1",
           "title": "Global IDs break dense cross-refs; no alias / preferred-ID on import",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -21277,7 +21277,7 @@
         {
           "local_id": "F11",
           "title": "Sub-entity title-length advisory fires easily on migrated data",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -21286,7 +21286,7 @@
         {
           "local_id": "F12",
           "title": "Per-invocation process overhead",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -21322,11 +21322,468 @@
       ],
       "path": "reviews/REV-000565-nabudoc-migration-field-report-adoption-friction-docs-drift.md",
       "created_at": "2026-07-22T07:54:46Z",
-      "updated_at": "2026-07-22T07:57:35Z",
+      "updated_at": "2026-07-22T08:24:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-565"
+    },
+    "566": {
+      "sequence_id": 566,
+      "type": "feature",
+      "title": "Generic link feature between items",
+      "slug": "generic-link-feature-between-items",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-31",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "features/FEAT-000566-generic-link-feature-between-items.md",
+      "created_at": "2026-07-22T08:35:54Z",
+      "updated_at": "2026-07-22T08:35:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-566"
+    },
+    "567": {
+      "sequence_id": 567,
+      "type": "feature",
+      "title": "Category axis + pluggable-validator dispatch engine",
+      "slug": "category-axis-pluggable-validator-dispatch-engine",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-538",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "EPIC-540",
+        "ADR-541"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "category axis on ItemSpec, replacing is_meta",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "validator dispatch engine (report + abort modes)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000567-category-axis-pluggable-validator-dispatch-engine.md",
+      "created_at": "2026-07-22T08:37:44Z",
+      "updated_at": "2026-07-22T08:38:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-567"
+    },
+    "568": {
+      "sequence_id": 568,
+      "type": "feature",
+      "title": "Validator catalog: seed checks + category/type assignment",
+      "slug": "validator-catalog-seed-checks-category-type-assignment",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-540",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-567",
+        "ADR-541"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "lift seed catalog verbatim from today's _check_* methods",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "category bundles + per-type validators + the two new enforcements",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000568-validator-catalog-seed-checks-category-type-assignment.md",
+      "created_at": "2026-07-22T08:38:35Z",
+      "updated_at": "2026-07-22T08:39:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-568"
+    },
+    "569": {
+      "sequence_id": 569,
+      "type": "feature",
+      "title": "Custom work-item types: records category create/retype/list",
+      "slug": "custom-work-item-types-records-category-create-retype-list",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-538",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-567",
+        "FEAT-573"
+      ],
+      "subentities": [],
+      "path": "features/FEAT-000569-custom-work-item-types-records-category-create-retype-list.md",
+      "created_at": "2026-07-22T08:39:16Z",
+      "updated_at": "2026-07-22T08:39:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-569"
+    },
+    "570": {
+      "sequence_id": 570,
+      "type": "feature",
+      "title": "Records group in UI/CLI: category-aware visibility + filter",
+      "slug": "records-group-in-ui-cli-category-aware-visibility-filter",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-538",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-567",
+        "REV-565"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "category-aware default visibility + empty-view hint + --category filter",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "TUI: records as a third tree root",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "VS Code extension: dedicated records view",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000570-records-group-in-ui-cli-category-aware-visibility-filter.md",
+      "created_at": "2026-07-22T08:39:37Z",
+      "updated_at": "2026-07-22T08:40:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-570"
+    },
+    "571": {
+      "sequence_id": 571,
+      "type": "feature",
+      "title": "Spec-driven add-* flags: generic badge/field CLI generation",
+      "slug": "spec-driven-add-flags-generic-badge-field-cli-generation",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-538",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-567",
+        "REV-565"
+      ],
+      "subentities": [],
+      "path": "features/FEAT-000571-spec-driven-add-flags-generic-badge-field-cli-generation.md",
+      "created_at": "2026-07-22T08:39:38Z",
+      "updated_at": "2026-07-22T08:40:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-571"
+    },
+    "572": {
+      "sequence_id": 572,
+      "type": "feature",
+      "title": "Migrate 5 parented ADRs to related refs",
+      "slug": "migrate-5-parented-adrs-to-related-refs",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-538",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-541",
+        "FEAT-568"
+      ],
+      "subentities": [],
+      "path": "features/FEAT-000572-migrate-5-parented-adrs-to-related-refs.md",
+      "created_at": "2026-07-22T08:39:39Z",
+      "updated_at": "2026-07-22T08:41:14Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-572"
+    },
+    "573": {
+      "sequence_id": 573,
+      "type": "feature",
+      "title": "Consumer audit: is_meta sites reclassified to category",
+      "slug": "consumer-audit-is-meta-sites-reclassified-to-category",
+      "status": "Draft",
+      "description": "",
+      "parent": "EPIC-538",
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-567",
+        "FEAT-533"
+      ],
+      "subentities": [],
+      "path": "features/FEAT-000573-consumer-audit-is-meta-sites-reclassified-to-category.md",
+      "created_at": "2026-07-22T08:39:40Z",
+      "updated_at": "2026-07-22T08:41:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-573"
+    },
+    "574": {
+      "sequence_id": 574,
+      "type": "feature",
+      "title": "Docs accuracy + drift guard for CLI verbs",
+      "slug": "docs-accuracy-drift-guard-for-cli-verbs",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-565"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Fix role-catalog/add-story/add-subtask verb drift in docs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Refresh stale override-base version examples in docs/overrides.md",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Cross-link the custom-role path for non-code/designer roles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Add a docs command-test that shells documented verbs against the live CLI",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000574-docs-accuracy-drift-guard-for-cli-verbs.md",
+      "created_at": "2026-07-22T08:40:00Z",
+      "updated_at": "2026-07-22T08:40:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-574"
+    },
+    "575": {
+      "sequence_id": 575,
+      "type": "feature",
+      "title": "CLI surface completeness: roles, operators, sub-entities, comments",
+      "slug": "cli-surface-completeness-roles-operators-sub-entities-commen",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-565"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Add sq role list (active roster, active/inactive marker)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Add sq operator list (+ --json)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Add guarded remove for finding/story/subtask sub-entities",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Add sq <type> <n> comments read-back verb (+ --json)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Lock in add-finding/add-story/add-subtask body-input parity",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000575-cli-surface-completeness-roles-operators-sub-entities-commen.md",
+      "created_at": "2026-07-22T08:41:07Z",
+      "updated_at": "2026-07-22T08:41:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-575"
+    },
+    "576": {
+      "sequence_id": 576,
+      "type": "feature",
+      "title": "Adoption ergonomics: orphan warnings + bulk event import",
+      "slug": "adoption-ergonomics-orphan-warnings-bulk-event-import",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-565"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Orphan-pointer warning on init/adopt",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Document the pre-existing CLAUDE.md/.claude adoption runbook",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Scope sq import bulk-event-import (draft-for-later)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000576-adoption-ergonomics-orphan-warnings-bulk-event-import.md",
+      "created_at": "2026-07-22T08:41:51Z",
+      "updated_at": "2026-07-22T08:42:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-576"
     }
   }
 }

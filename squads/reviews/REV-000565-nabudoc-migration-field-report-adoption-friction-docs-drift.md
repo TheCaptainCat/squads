@@ -12,7 +12,7 @@ refs:
 subentities:
 - local_id: F1
   title: Global IDs break dense cross-refs; no alias / preferred-ID on import
-  status: Open
+  status: WontFix
   severity: high
 - local_id: F2
   title: History replay is one-timestamp-per-invocation; no bulk event import
@@ -52,11 +52,11 @@ subentities:
   severity: low
 - local_id: F11
   title: Sub-entity title-length advisory fires easily on migrated data
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F12
   title: Per-invocation process overhead
-  status: Open
+  status: WontFix
   severity: low
 - local_id: F13
   title: Sub-entities cannot be deleted (no remove for finding/story/subtask)
@@ -71,7 +71,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-22T07:54:46Z'
-updated_at: '2026-07-22T07:57:35Z'
+updated_at: '2026-07-22T08:24:28Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -120,7 +120,7 @@ _Add with `sq review 565 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Open |  | Global IDs break dense cross-refs; no alias / preferred-ID on import |
+| F1 | 🟠 high | WontFix |  | Global IDs break dense cross-refs; no alias / preferred-ID on import |
 | F2 | 🟠 high | Open |  | History replay is one-timestamp-per-invocation; no bulk event import |
 | F3 | 🟡 medium | Open |  | Docs drift: sq role list / --available do not exist (it is role catalog) |
 | F4 | 🟡 medium | Open |  | Docs drift + CLI gap: no verb to enumerate operators |
@@ -130,8 +130,8 @@ _Add with `sq review 565 add-finding "…" --severity medium`; track with `sq re
 | F8 | 🟡 medium | Open |  | init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified |
 | F9 | 🟡 medium | Open |  | Closed items (incl. Accepted decisions) hidden from default list/tree |
 | F10 | 🟢 low | Open |  | add-* leaves an unwritten-body stub that sq check warns on |
-| F11 | 🟢 low | Open |  | Sub-entity title-length advisory fires easily on migrated data |
-| F12 | 🟢 low | Open |  | Per-invocation process overhead |
+| F11 | 🟢 low | WontFix |  | Sub-entity title-length advisory fires easily on migrated data |
+| F12 | 🟢 low | WontFix |  | Per-invocation process overhead |
 | F13 | 🟡 medium | Open |  | Sub-entities cannot be deleted (no remove for finding/story/subtask) |
 | F14 | 🟢 low | Open |  | add-* cannot take --severity/--status inline (two-step for full metadata) |
 | F15 | 🟢 low | Open |  | No read-back verb for an item's discussion/comments |
@@ -143,7 +143,7 @@ _Add with `sq review 565 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Global IDs break dense cross-refs; no alias / preferred-ID on import
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟠 High
 <!-- sq:finding:F1:head:end -->
 
@@ -429,7 +429,7 @@ Related: §7.2 (F14) — the metadata two-step compounds this.
 ### F11 — Sub-entity title-length advisory fires easily on migrated data
 
 <!-- sq:finding:F11:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F11:head:end -->
 
@@ -454,7 +454,7 @@ title/body rather than a per-item advisory, or relax the advisory for imported i
 ### F12 — Per-invocation process overhead
 
 <!-- sq:finding:F12:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟢 Low
 <!-- sq:finding:F12:head:end -->
 
@@ -563,4 +563,21 @@ surface and aid scripting/verification.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-22T08:24:25Z] Pierre Chat:
+  - Triage of all 15 findings (fix / won't-fix + how):
+    - F1 WON'T FIX — prefer a generic *link* feature (design later) over alias/preferred-ID import.
+    - F2 DEFER — draft an 'sq import' bulk-event-import command as a feature, for later.
+    - F3 FIX — add a real 'sq role list' verb (active/inactive marker) + fix docs.
+    - F4 FIX — add 'sq operator list' verb (+ --json) + fix docs.
+    - F5 FIX — correct add-story/add-subtask verb docs + a docs command-test (also covers F3).
+    - F6 FIX — refresh stale override-base version examples + guard against version drift.
+    - F7 RESOLVED via FEAT-543 — no bundled designer role; document the custom-role (.overrides/roles) path for non-code roles.
+    - F8 FIX — init/adopt orphan-warning (list non-generated pointers) + 'adopting into an existing CLAUDE.md/.claude' runbook.
+    - F9 FIX — category-aware visibility: records stay visible while final, hide when cancelled/superseded; + empty-view hint; + a category filter on all filterable surfaces (rides EPIC-538 category axis).
+    - F10 FIX — add-finding/story/subtask take a body via stdin/file/inline; placeholder only when absent.
+    - F11 WON'T FIX — keep the >120-char title advisory (truncate title, full text in body).
+    - F12 FOLD — no separate item; covered by F2 (bulk import) + FEAT-533 (daemon).
+    - F13 FIX — add a guarded 'remove' (--yes) for finding/story/subtask.
+    - F14 FIX — make the add-* command builder dynamically generate the spec's badge/field --flags (generic, not hardcoded --severity/--status).
+    - F15 FIX — add a dedicated 'sq <type> <n> comments' read-back verb (+ --json).
 <!-- sq:discussion:end -->

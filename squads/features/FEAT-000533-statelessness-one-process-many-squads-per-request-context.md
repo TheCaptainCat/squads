@@ -3,7 +3,7 @@ id: FEAT-533
 sequence_id: 533
 type: feature
 title: 'Statelessness: one process, many squads, per-request context'
-status: InReview
+status: Done
 parent: EPIC-31
 author: architect
 refs:
@@ -30,7 +30,7 @@ subentities:
   title: Active-spec / active-dir seam onto the request context
   status: Todo
 created_at: '2026-07-21T12:37:58Z'
-updated_at: '2026-07-21T23:17:39Z'
+updated_at: '2026-07-22T08:50:28Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -388,4 +388,6 @@ their own spec and dir; neither observes the other's, and a one-shot CLI invocat
   - Gates: pyright 0 errors, ruff check + format clean, full suite green (uv run pytest, all workers), sq check clean on this repo.
   - One-shot CLI regression smoke (fresh throwaway squads): --at backdating works (created_at forged correctly), invalid --at still exits non-zero with a clear error, --as op-slug/--author attribution correct, sq check clean, sq tree --json valid JSON with zero ANSI bytes, two --dir squads resolve independently in one shell. No behavior change found.
   - Recommend: TASK-549 and TASK-554 -> Done; FEAT-533 -> InReview for operator acceptance.
+- [2026-07-22T08:50:28Z] Pierre Chat:
+  - Accepted. Statelessness precondition delivered across A/B1/B2 (per-request RequestContext, cwd seam, concurrency-isolation proof, module-mutable-state guard); 3 reviews approved, US1-US5 QA-verified, full suite green. Closing to Done.
 <!-- sq:discussion:end -->
