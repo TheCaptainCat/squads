@@ -6,7 +6,8 @@
  * This suite is the other half of that guarantee: it runs a REAL `sq` against a scratch
  * squad and checks that the committed fixtures still describe the live shape of the
  * surfaces the client depends on (ADR-427 #2) — `sq tree --json`, `sq graph --json`,
- * `sq list --json`, `sq show <id> --raw`, `sq workflow types --json`.
+ * `sq list --json`, `sq show <id> --raw`, `sq workflow types --json`,
+ * `sq workflow statuses --json`, `sq workflow roles --json`.
  *
  * It asserts SHAPE (key set / types / structure), never exact values — a squad's actual
  * items, statuses, and prose legitimately vary between runs and machines. If a core-side
@@ -31,6 +32,7 @@ import {
   isSqCollectionCatalogEntry,
   isSqGraphNode,
   isSqListItem,
+  isSqRoleCatalogEntry,
   isSqStatusCatalogEntry,
   isSqTreeNode,
   isSqTypeCatalogEntry,
@@ -39,6 +41,7 @@ import type {
   SqCollectionCatalogEntry,
   SqGraphNode,
   SqListItem,
+  SqRoleCatalogEntry,
   SqStatusCatalogEntry,
   SqTreeNode,
   SqTypeCatalogEntry,
@@ -163,11 +166,13 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
             'priority',
             'assignee',
             'blocked',
-            'is_open',
             'badges',
             'children',
           ]),
         );
+        // `is_open` no longer exists on any surface — a client re-derives it from the
+        // referenced role's `settled`, joined through the statuses/roles catalogs.
+        expect(node).not.toHaveProperty('is_open');
       }
     });
 
@@ -228,7 +233,6 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
         expect(Object.keys(row)).toEqual(
           expect.arrayContaining([
             'id',
-            'is_open',
             'labels',
             'refs',
             'path',
@@ -237,6 +241,8 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
             'badges',
           ]),
         );
+        // See the `sq tree --json` case above — same removal, same reason.
+        expect(row).not.toHaveProperty('is_open');
       }
     });
 
@@ -261,7 +267,7 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       for (const entry of entries) {
         expect(isSqTypeCatalogEntry(entry)).toBe(true);
         expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining(['type', 'order', 'prefix', 'reserved', 'fields']),
+          expect.arrayContaining(['type', 'order', 'prefix', 'reserved', 'category', 'fields']),
         );
       }
       // Emitted in ascending resolved order, so the client's group-by-type sort can trust it
@@ -269,6 +275,12 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       const orders = entries.map((entry) => entry.order).filter((order) => order !== null);
       expect(orders).toEqual([...orders].sort((a, b) => a - b));
       expect(entries.some((entry) => entry.reserved)).toBe(true);
+      // Every reserved type is `roster`-category; a work type not otherwise
+      // records-category (e.g. `task`) is `work` — the join `domain/typeCategory.ts` relies on.
+      expect(entries.find((entry) => entry.type === 'task')?.category).toBe('work');
+      expect(
+        entries.filter((entry) => entry.reserved).every((entry) => entry.category === 'roster'),
+      ).toBe(true);
       // The bug type's `fields` binds both its priority and severity codes to a collection
       // (F19/F20's field->collection join) — a real, non-empty example, not just an empty array.
       const bug = entries.find((entry) => entry.type === 'bug');
@@ -326,15 +338,15 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       expect(entries.length).toBeGreaterThan(0);
       for (const entry of entries) {
         expect(isSqStatusCatalogEntry(entry)).toBe(true);
-        expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining(['status', 'terminal', 'role', 'badge']),
-        );
+        expect(Object.keys(entry)).toEqual(expect.arrayContaining(['status', 'role', 'badge']));
+        // `terminal` no longer exists — a client re-derives it from the referenced
+        // role's `settled` via `sq workflow roles --json`.
+        expect(entry).not.toHaveProperty('terminal');
       }
-      // InProgress carries the "active" semantic role (F26/US9) — the join the client uses to
-      // color "work in flight" items green, never by the literal status name.
+      // InProgress carries the "active" semantic role — the join the client uses to color "work
+      // in flight" items, never by the literal status name.
       const inProgress = entries.find((entry) => entry.status === 'InProgress');
       expect(inProgress?.role).toBe('active');
-      expect(inProgress?.terminal).toBe(false);
     });
 
     it('the committed fixture still conforms to the shape the adapter accepts', () => {
@@ -342,6 +354,40 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       expect(entries.length).toBeGreaterThan(0);
       for (const entry of entries) {
         expect(isSqStatusCatalogEntry(entry)).toBe(true);
+      }
+    });
+  });
+
+  describe('sq workflow roles --json', () => {
+    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+      const parsed = JSON.parse(runSq(['workflow', 'roles', '--json'])) as unknown;
+      expect(Array.isArray(parsed)).toBe(true);
+
+      const entries = parsed as SqRoleCatalogEntry[];
+      // At least the 8 bundled roles.
+      expect(entries.length).toBeGreaterThanOrEqual(8);
+      for (const entry of entries) {
+        expect(isSqRoleCatalogEntry(entry)).toBe(true);
+        expect(Object.keys(entry)).toEqual(
+          expect.arrayContaining(['role', 'settled', 'hidden', 'color']),
+        );
+      }
+      // "active" (work in flight): not settled, not hidden, a positive colour intent — the join
+      // the client uses to colour "work in flight" items, never by the literal status name.
+      const active = entries.find((entry) => entry.role === 'active');
+      expect(active).toEqual({ role: 'active', settled: false, hidden: false, color: 'positive' });
+      // "in_force" (a settled record that stays visible, e.g. Accepted/Published) is the
+      // case distinguishing it from "done" (settled AND hidden).
+      const inForce = entries.find((entry) => entry.role === 'in_force');
+      expect(inForce?.settled).toBe(true);
+      expect(inForce?.hidden).toBe(false);
+    });
+
+    it('the committed fixture still conforms to the shape the adapter accepts', () => {
+      const entries = JSON.parse(fixture('roles-catalog.json')) as unknown[];
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(isSqRoleCatalogEntry(entry)).toBe(true);
       }
     });
   });

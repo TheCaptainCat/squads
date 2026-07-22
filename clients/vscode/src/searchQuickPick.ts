@@ -45,6 +45,10 @@ const PLACEHOLDER_IDLE = 'Type to search…';
 const TITLE_IDLE = 'Squads Search';
 const CLEAR_TYPE_LABEL = 'All types';
 const CLEAR_STATUS_LABEL = 'All statuses';
+const CLEAR_CATEGORY_LABEL = 'All categories';
+/** The fixed three-member category vocabulary  — unlike type/status, this is not
+ * fetched from a catalog: `roster`/`work`/`records` is the whole, closed axis. */
+const CATEGORIES: readonly string[] = ['roster', 'work', 'records'];
 
 interface SearchQuickPickItem extends vscode.QuickPickItem {
   readonly itemId: string;
@@ -70,9 +74,13 @@ const STATUS_FILTER_BUTTON: vscode.QuickInputButton = {
   iconPath: new vscode.ThemeIcon('symbol-enum'),
   tooltip: 'Filter by status',
 };
+const CATEGORY_FILTER_BUTTON: vscode.QuickInputButton = {
+  iconPath: new vscode.ThemeIcon('list-tree'),
+  tooltip: 'Filter by category',
+};
 
 /** Reflects the active narrowing in the picker's title so it's never invisible state — "Squads
- * Search" when neither is set. */
+ * Search" when none is set. */
 function describeNarrowing(narrowing: SearchNarrowing): string {
   const parts: string[] = [];
   if (narrowing.type !== null) {
@@ -80,6 +88,9 @@ function describeNarrowing(narrowing: SearchNarrowing): string {
   }
   if (narrowing.status !== null) {
     parts.push(`status: ${narrowing.status}`);
+  }
+  if (narrowing.category !== null) {
+    parts.push(`category: ${narrowing.category}`);
   }
   return parts.length === 0 ? TITLE_IDLE : `${TITLE_IDLE} — ${parts.join(', ')}`;
 }
@@ -106,7 +117,7 @@ export class SearchQuickPickController {
     quickPick.placeholder = PLACEHOLDER_IDLE;
     quickPick.matchOnDescription = true;
     quickPick.matchOnDetail = true;
-    quickPick.buttons = [TYPE_FILTER_BUTTON, STATUS_FILTER_BUTTON];
+    quickPick.buttons = [TYPE_FILTER_BUTTON, STATUS_FILTER_BUTTON, CATEGORY_FILTER_BUTTON];
     quickPick.items = [];
 
     const searchRunner = new SearchRunner<SqOutcome<SqSearchHit[]>>(
@@ -155,6 +166,8 @@ export class SearchQuickPickController {
         void this.pickType(quickPick, searchRunner);
       } else if (button === STATUS_FILTER_BUTTON) {
         void this.pickStatus(quickPick, searchRunner);
+      } else if (button === CATEGORY_FILTER_BUTTON) {
+        void this.pickCategory(quickPick, searchRunner);
       }
     });
     quickPick.onDidHide(() => {
@@ -222,6 +235,26 @@ export class SearchQuickPickController {
       return;
     }
     this.narrowing = { ...this.narrowing, status: picked === CLEAR_STATUS_LABEL ? null : picked };
+    this.applyNarrowing(quickPick, searchRunner);
+  }
+
+  /** Category narrowing — same shape as `pickType`/`pickStatus`, but sourced from the fixed
+   * three-member `roster`/`work`/`records` vocabulary rather than a fetched catalog (there is
+   * nothing to degrade gracefully here: the axis is closed and never spec-customized). */
+  private async pickCategory(
+    quickPick: vscode.QuickPick<SearchQuickPickItem>,
+    searchRunner: SearchRunner<SqOutcome<SqSearchHit[]>>,
+  ): Promise<void> {
+    const picked = await vscode.window.showQuickPick([CLEAR_CATEGORY_LABEL, ...CATEGORIES], {
+      placeHolder: 'Filter search results by category',
+    });
+    if (picked === undefined) {
+      return;
+    }
+    this.narrowing = {
+      ...this.narrowing,
+      category: picked === CLEAR_CATEGORY_LABEL ? null : picked,
+    };
     this.applyNarrowing(quickPick, searchRunner);
   }
 

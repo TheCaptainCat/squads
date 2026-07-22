@@ -20,7 +20,7 @@ _BRACKETY = "has a [/dim] stray closing tag, a [Note] callout, and [bold]nested[
 
 
 def _find(root: TreeNode[str], item_id: str) -> TreeNode[str]:
-    """Find *item_id* anywhere under *root* — items nest under the Work/Roster groups."""
+    """Find *item_id* anywhere under *root* — items nest under the category groups."""
     nodes = [root]
     while nodes:
         node = nodes.pop()

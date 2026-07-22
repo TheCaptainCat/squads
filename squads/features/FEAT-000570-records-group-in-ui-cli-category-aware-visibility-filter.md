@@ -3,7 +3,7 @@ id: FEAT-570
 sequence_id: 570
 type: feature
 title: 'Records group in UI/CLI: category-aware visibility + filter'
-status: Draft
+status: InReview
 parent: EPIC-538
 author: product-owner
 priority: medium
@@ -14,15 +14,15 @@ refs:
 subentities:
 - local_id: US1
   title: category-aware default visibility + empty-view hint + --category filter
-  status: Todo
+  status: Done
 - local_id: US2
   title: 'TUI: records as a third tree root'
-  status: Todo
+  status: InProgress
 - local_id: US3
   title: 'VS Code extension: dedicated records view'
-  status: Todo
+  status: InProgress
 created_at: '2026-07-22T08:39:37Z'
-updated_at: '2026-07-22T15:31:01Z'
+updated_at: '2026-07-22T18:00:30Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -94,9 +94,9 @@ _Add with `sq feature 570 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | category-aware default visibility + empty-view hint + --category filter |
-| US2 | Todo |  | TUI: records as a third tree root |
-| US3 | Todo |  | VS Code extension: dedicated records view |
+| US1 | Done |  | category-aware default visibility + empty-view hint + --category filter |
+| US2 | InProgress |  | TUI: records as a third tree root |
+| US3 | InProgress |  | VS Code extension: dedicated records view |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -105,7 +105,7 @@ _Add with `sq feature 570 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — category-aware default visibility + empty-view hint + --category filter
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -126,7 +126,7 @@ sq list --category roster|work|records flag; wire category onto sq workflow type
 ### US2 — TUI: records as a third tree root
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟡 In Progress
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -145,7 +145,7 @@ Rides FEAT-605: join status to role and render row colour from role.color (inten
 ### US3 — VS Code extension: dedicated records view
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟡 In Progress
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->

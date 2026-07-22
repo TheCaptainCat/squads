@@ -11,6 +11,7 @@ import {
   getGraph,
   getList,
   getRaw,
+  getRolesCatalog,
   getSearch,
   getShowJson,
   getStatusesCatalog,
@@ -35,6 +36,7 @@ const TYPE_CATALOG_FIXTURE = fixture('type-catalog.json');
 const SHOW_JSON_FIXTURE = fixture('show-json.json');
 const COLLECTIONS_CATALOG_FIXTURE = fixture('collections-catalog.json');
 const STATUSES_CATALOG_FIXTURE = fixture('statuses-catalog.json');
+const ROLES_CATALOG_FIXTURE = fixture('roles-catalog.json');
 const SEARCH_FIXTURE = fixture('search.json');
 
 function stubRunner(result: ProcessResult): ProcessRunner {
@@ -411,6 +413,7 @@ describe('getTypeCatalog', () => {
       order: 10,
       prefix: 'EPIC',
       reserved: false,
+      category: 'work',
       fields: [{ code: 'priority', label: 'Priority', collection: 'priority' }],
     });
     expect(outcome.data.some((entry) => entry.reserved)).toBe(true);
@@ -427,7 +430,9 @@ describe('getTypeCatalog', () => {
 
   it('accepts a null order (an un-ordered/custom type)', async () => {
     const runner = stubRunner({
-      stdout: JSON.stringify([{ type: 'widget', order: null, prefix: 'WID', reserved: false }]),
+      stdout: JSON.stringify([
+        { type: 'widget', order: null, prefix: 'WID', reserved: false, category: 'work' },
+      ]),
       stderr: '',
       exitCode: 0,
     });
@@ -435,8 +440,19 @@ describe('getTypeCatalog', () => {
 
     expect(outcome).toEqual({
       kind: 'success',
-      data: [{ type: 'widget', order: null, prefix: 'WID', reserved: false }],
+      data: [{ type: 'widget', order: null, prefix: 'WID', reserved: false, category: 'work' }],
     });
+  });
+
+  it('rejects an entry missing the required category field', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([{ type: 'widget', order: null, prefix: 'WID', reserved: false }]),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('parse-error');
   });
 
   it('maps a non-zero exit the same way as the other json surfaces', async () => {
@@ -525,14 +541,12 @@ describe('getStatusesCatalog', () => {
     }
     expect(outcome.data.find((entry) => entry.status === 'InProgress')).toEqual({
       status: 'InProgress',
-      terminal: false,
       role: 'active',
       badge: '🟡',
     });
     expect(outcome.data.find((entry) => entry.status === 'Done')).toEqual({
       status: 'Done',
-      terminal: true,
-      role: null,
+      role: 'done',
       badge: '🟢',
     });
   });
@@ -549,6 +563,46 @@ describe('getStatusesCatalog', () => {
   it('surfaces well-formed JSON that does not match the expected shape as a parse-error', async () => {
     const runner = stubRunner({ stdout: '[{"unexpected": true}]', stderr: '', exitCode: 0 });
     const outcome = await getStatusesCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+});
+
+describe('getRolesCatalog', () => {
+  it('parses a real committed sq workflow roles --json fixture', async () => {
+    const runner = stubRunner({ stdout: ROLES_CATALOG_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getRolesCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.find((entry) => entry.role === 'active')).toEqual({
+      role: 'active',
+      settled: false,
+      hidden: false,
+      color: 'positive',
+    });
+    expect(outcome.data.find((entry) => entry.role === 'done')).toEqual({
+      role: 'done',
+      settled: true,
+      hidden: true,
+      color: 'positive',
+    });
+  });
+
+  it('builds argv as "workflow roles --json"', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getRolesCatalog(runner, UV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(calls).toEqual([
+      { command: 'uv', args: ['run', 'sq', 'workflow', 'roles', '--json'], cwd: WORKSPACE_ROOT },
+    ]);
+  });
+
+  it('surfaces well-formed JSON that does not match the expected shape as a parse-error', async () => {
+    const runner = stubRunner({ stdout: '[{"unexpected": true}]', stderr: '', exitCode: 0 });
+    const outcome = await getRolesCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
 
     expect(outcome.kind).toBe('parse-error');
   });

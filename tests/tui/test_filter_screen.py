@@ -6,7 +6,7 @@ import pytest
 
 pytest.importorskip("textual")
 
-from textual.widgets import Button
+from textual.widgets import Button, Select
 
 from squads._tui._app import SquadsApp
 from squads._tui._browse import BrowseScreen
@@ -190,6 +190,42 @@ async def test_clear_resets_the_popup_and_applying_reproduces_the_default_view(s
         await pilot.pause()
 
         assert browse.state.is_default()
+
+
+async def test_applying_a_category_filter_round_trips_into_browse_state(svc):
+    await svc.create("feature", "Alpha")
+    decision = (await svc.create("decision", "Use widgets")).item
+
+    app = SquadsApp(svc)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        browse = app.screen
+        assert isinstance(browse, BrowseScreen)
+
+        await pilot.press("f")
+        await pilot.pause()
+        popup = app.screen
+        assert isinstance(popup, FilterScreen)
+        popup._category_select.value = "records"  # pyright: ignore[reportPrivateUsage]
+        popup.query_one("#apply", Button).press()
+        await pilot.pause()
+
+        assert browse.state.filter.category == "records"
+        ids = _all_ids(browse)
+        assert decision.id in ids
+
+        await pilot.press("f")
+        await pilot.pause()
+        reopened = app.screen
+        assert isinstance(reopened, FilterScreen)
+        assert reopened._category_select.value == "records"  # pyright: ignore[reportPrivateUsage]
+
+        reopened.query_one("#clear", Button).press()
+        await pilot.pause()
+        assert reopened._category_select.value is Select.NULL  # pyright: ignore[reportPrivateUsage]
+        reopened.query_one("#apply", Button).press()
+        await pilot.pause()
+        assert browse.state.filter.category is None
 
 
 async def test_active_filter_indicator_shows_only_while_filtered(svc):

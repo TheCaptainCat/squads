@@ -1,119 +1,129 @@
 [
-  {
-    "type": "epic",
-    "order": 10.0,
-    "prefix": "EPIC",
-    "reserved": false,
-    "fields": [
-      {
-        "code": "priority",
-        "label": "Priority",
-        "collection": "priority"
-      }
-    ]
-  },
-  {
-    "type": "feature",
-    "order": 20.0,
-    "prefix": "FEAT",
-    "reserved": false,
-    "fields": [
-      {
-        "code": "priority",
-        "label": "Priority",
-        "collection": "priority"
-      }
-    ]
-  },
-  {
-    "type": "task",
-    "order": 30.0,
-    "prefix": "TASK",
-    "reserved": false,
-    "fields": [
-      {
-        "code": "priority",
-        "label": "Priority",
-        "collection": "priority"
-      }
-    ]
-  },
-  {
-    "type": "bug",
-    "order": 40.0,
-    "prefix": "BUG",
-    "reserved": false,
-    "fields": [
-      {
-        "code": "priority",
-        "label": "Priority",
-        "collection": "priority"
-      },
-      {
-        "code": "severity",
-        "label": "Severity",
-        "collection": "severity"
-      }
-    ]
-  },
-  {
-    "type": "decision",
-    "order": 50.0,
-    "prefix": "ADR",
-    "reserved": false,
-    "fields": [
-      {
-        "code": "priority",
-        "label": "Priority",
-        "collection": "priority"
-      }
-    ]
-  },
-  {
-    "type": "review",
-    "order": 60.0,
-    "prefix": "REV",
-    "reserved": false,
-    "fields": [
-      {
-        "code": "priority",
-        "label": "Priority",
-        "collection": "priority"
-      }
-    ]
-  },
-  {
-    "type": "guide",
-    "order": 70.0,
-    "prefix": "GUIDE",
-    "reserved": false,
-    "fields": [
-      {
-        "code": "priority",
-        "label": "Priority",
-        "collection": "priority"
-      }
-    ]
-  },
-  {
-    "type": "role",
-    "order": 80.0,
-    "prefix": "ROLE",
-    "reserved": true,
-    "fields": []
-  },
-  {
-    "type": "skill",
-    "order": 90.0,
-    "prefix": "SKILL",
-    "reserved": true,
-    "fields": []
-  },
-  {
-    "type": "operator",
-    "order": 100.0,
-    "prefix": "OP",
-    "reserved": true,
-    "fields": []
-  }
+    {
+        "type": "epic",
+        "order": 10.0,
+        "prefix": "EPIC",
+        "reserved": false,
+        "category": "work",
+        "fields": [
+            {
+                "code": "priority",
+                "label": "Priority",
+                "collection": "priority"
+            }
+        ]
+    },
+    {
+        "type": "feature",
+        "order": 20.0,
+        "prefix": "FEAT",
+        "reserved": false,
+        "category": "work",
+        "fields": [
+            {
+                "code": "priority",
+                "label": "Priority",
+                "collection": "priority"
+            }
+        ]
+    },
+    {
+        "type": "task",
+        "order": 30.0,
+        "prefix": "TASK",
+        "reserved": false,
+        "category": "work",
+        "fields": [
+            {
+                "code": "priority",
+                "label": "Priority",
+                "collection": "priority"
+            }
+        ]
+    },
+    {
+        "type": "bug",
+        "order": 40.0,
+        "prefix": "BUG",
+        "reserved": false,
+        "category": "work",
+        "fields": [
+            {
+                "code": "priority",
+                "label": "Priority",
+                "collection": "priority"
+            },
+            {
+                "code": "severity",
+                "label": "Severity",
+                "collection": "severity"
+            }
+        ]
+    },
+    {
+        "type": "decision",
+        "order": 50.0,
+        "prefix": "ADR",
+        "reserved": false,
+        "category": "records",
+        "fields": [
+            {
+                "code": "priority",
+                "label": "Priority",
+                "collection": "priority"
+            }
+        ]
+    },
+    {
+        "type": "review",
+        "order": 60.0,
+        "prefix": "REV",
+        "reserved": false,
+        "category": "work",
+        "fields": [
+            {
+                "code": "priority",
+                "label": "Priority",
+                "collection": "priority"
+            }
+        ]
+    },
+    {
+        "type": "guide",
+        "order": 70.0,
+        "prefix": "GUIDE",
+        "reserved": false,
+        "category": "records",
+        "fields": [
+            {
+                "code": "priority",
+                "label": "Priority",
+                "collection": "priority"
+            }
+        ]
+    },
+    {
+        "type": "role",
+        "order": 80.0,
+        "prefix": "ROLE",
+        "reserved": true,
+        "category": "roster",
+        "fields": []
+    },
+    {
+        "type": "skill",
+        "order": 90.0,
+        "prefix": "SKILL",
+        "reserved": true,
+        "category": "roster",
+        "fields": []
+    },
+    {
+        "type": "operator",
+        "order": 100.0,
+        "prefix": "OP",
+        "reserved": true,
+        "category": "roster",
+        "fields": []
+    }
 ]

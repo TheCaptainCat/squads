@@ -29,7 +29,7 @@ def _ids(node: TreeNode[str]) -> set[str]:
 
 
 def _find(root: TreeNode[str], item_id: str) -> TreeNode[str]:
-    """Find *item_id* anywhere under *root* — items now nest under the Work/Roster groups."""
+    """Find *item_id* anywhere under *root* — items now nest under the category groups."""
     for node in _ids_with_nodes(root):
         if node.data == item_id:
             return node
@@ -69,30 +69,50 @@ async def test_tree_matches_the_service_tree_view_structure(svc):
         assert _ids(tree.root) >= {epic.id, feat.id, task.id}
 
         expected_roots = {n.item.id for n in await svc.tree_view()}
-        work_group, roster_group = tree.root.children
-        actual_roots = {c.data for c in work_group.children} | {
-            c.data for c in roster_group.children
-        }
+        work_group, records_group, roster_group = tree.root.children
+        actual_roots = (
+            {c.data for c in work_group.children}
+            | {c.data for c in records_group.children}
+            | {c.data for c in roster_group.children}
+        )
         assert actual_roots == expected_roots
 
 
-async def test_tree_splits_top_level_into_work_and_roster_groups(svc):
+async def test_tree_splits_top_level_into_work_records_and_roster_groups(svc):
     epic = (await svc.create("epic", "Epic")).item
     feat = (await svc.create("feature", "Feature")).item
+    decision = (await svc.create("decision", "Use widgets")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
         await pilot.pause()
         tree = app.screen.query_one(Tree)
-        assert [str(n.label) for n in tree.root.children] == ["Work", "Roster"]
+        assert [str(n.label) for n in tree.root.children] == ["Work", "Records", "Roster"]
 
-        work_group, roster_group = tree.root.children
+        work_group, records_group, roster_group = tree.root.children
         work_ids = {c.data for c in work_group.children}
+        records_ids = {c.data for c in records_group.children}
         roster_ids = {c.data for c in roster_group.children}
 
         assert {epic.id, feat.id} <= work_ids
+        assert records_ids == {decision.id}
         assert roster_ids == {"ROLE-1"}  # the "minimal" fixture's only registered role
         assert work_ids.isdisjoint(roster_ids)
+        assert records_ids.isdisjoint(work_ids | roster_ids)
+
+
+async def test_empty_records_root_renders_without_error(svc):
+    await svc.create("feature", "Feature")
+
+    app = SquadsApp(svc)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        tree = app.screen.query_one(Tree)
+        work_group, records_group, roster_group = tree.root.children
+        assert str(records_group.label) == "Records"
+        assert list(records_group.children) == []
+        assert work_group.children  # sanity: the other roots are populated
+        assert roster_group.children
 
 
 async def test_keyboard_moves_between_siblings_into_children_and_back_to_parent(svc):

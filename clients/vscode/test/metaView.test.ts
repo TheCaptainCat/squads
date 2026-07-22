@@ -4,8 +4,8 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { buildMetaView } from '../src/domain/metaView';
-import { buildStatusRoleMap } from '../src/domain/statusRole';
-import type { SqListItem, SqStatusCatalogEntry } from '../src/types';
+import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
+import type { SqListItem, SqRoleCatalogEntry, SqStatusCatalogEntry } from '../src/types';
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -15,6 +15,7 @@ const LIST_FIXTURE = JSON.parse(readFixture('list.json')) as SqListItem[];
 const STATUSES_CATALOG_FIXTURE = JSON.parse(
   readFixture('statuses-catalog.json'),
 ) as SqStatusCatalogEntry[];
+const ROLES_CATALOG_FIXTURE = JSON.parse(readFixture('roles-catalog.json')) as SqRoleCatalogEntry[];
 
 describe('buildMetaView', () => {
   it('always returns exactly the 3 fixed buckets, in Roles/Skills/Operators order', () => {
@@ -61,39 +62,35 @@ describe('buildMetaView', () => {
     expect(nodes.map((node) => node.description)).toEqual(['0 items', '0 items', '0 items']);
   });
 
-  it('marks a closed meta item via DisplayNode.closed, derived from is_open', () => {
-    const items: SqListItem[] = [
-      { ...makeItem('OP-1', 'operator'), is_open: false },
-      { ...makeItem('OP-2', 'operator'), is_open: true },
-    ];
-
-    const [, , operators] = buildMetaView(items);
-
-    expect(operators?.children.find((child) => child.itemId === 'OP-1')?.closed).toBe(true);
-    expect(operators?.children.find((child) => child.itemId === 'OP-2')?.closed).toBe(false);
-  });
-
-  it('marks an active roster item via DisplayNode.active, joined through the statuses catalog (F26) — never a literal status check', () => {
+  it('marks a closed/hidden/coloured meta item via the statuses/roles catalog join', () => {
     const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
     const items: SqListItem[] = [
       { ...makeItem('ROLE-1', 'role'), status: 'Active' },
-      { ...makeItem('ROLE-2', 'role'), status: 'Archived', is_open: false },
+      { ...makeItem('ROLE-2', 'role'), status: 'Archived' },
     ];
 
-    const [roles] = buildMetaView(items, undefined, undefined, statusRoles);
+    const [roles] = buildMetaView(items, undefined, undefined, statusRoles, roleCatalog);
 
-    expect(roles?.children.find((child) => child.itemId === 'ROLE-1')?.active).toBe(true);
+    // Active ("active" role): not settled, not hidden, positive colour.
+    const active = roles?.children.find((child) => child.itemId === 'ROLE-1');
+    expect(active?.closed).toBe(false);
+    expect(active?.hidden).toBe(false);
+    expect(active?.colorIntent).toBe('positive');
+
+    // Archived ("retired" role): settled AND hidden.
     const archived = roles?.children.find((child) => child.itemId === 'ROLE-2');
-    expect(archived?.active).toBe(false);
     expect(archived?.closed).toBe(true);
+    expect(archived?.hidden).toBe(true);
   });
 
-  it('with no statusRoles (the graceful fallback), no roster item is ever marked active', () => {
+  it('with no statusRoles/roleCatalog (the graceful fallback), no roster item is ever hidden or coloured', () => {
     const items: SqListItem[] = [{ ...makeItem('ROLE-1', 'role'), status: 'Active' }];
 
     const [roles] = buildMetaView(items);
 
-    expect(roles?.children[0]?.active).toBe(false);
+    expect(roles?.children[0]?.hidden).toBe(false);
+    expect(roles?.children[0]?.colorIntent).toBeNull();
   });
 
   it('shows status alone in the description, with no assignee segment', () => {
@@ -139,6 +136,5 @@ function makeItem(id: string, type: string): SqListItem {
     path: `${type}s/${id}.md`,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
-    is_open: true,
   };
 }

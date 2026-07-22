@@ -3,12 +3,12 @@ id: TASK-595
 sequence_id: 595
 type: task
 title: Expose type category on sq workflow types --json catalog
-status: InReview
+status: Done
 parent: FEAT-570
 author: tech-lead
 priority: high
 created_at: '2026-07-22T13:00:53Z'
-updated_at: '2026-07-22T15:38:03Z'
+updated_at: '2026-07-22T17:17:59Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US1 — the wire enabler. Expose each type's `category` on the `sq workflow types --json` catalog so both UI clients read the roster/work/records split from one source instead of re-deriving it. Build this FIRST: TASK-598..602 (TUI + VS Code) consume it.
@@ -44,4 +44,6 @@ _Add with `sq task 595 add-subtask "<title>"`; track with `sq task 595 subtask <
   - Added category to sq workflow types --json catalog (_workflow_cmd.py: TYPE_CATALOG_FIELDS, _type_catalog, human Category column) + updated contract test, golden, and human-table test. Gates green (pyright/ruff/tests).
 - [2026-07-22T15:38:03Z] Olivia Lead:
   - Carried by FEAT-605: this work (category on sq workflow types --json) is ADR-604-compatible and orthogonal to the role-object change. The FEAT-605 implementer keeps this code as-is; it lands with FEAT-605 from the current tree. Status left InReview for the manager to reconcile once FEAT-605 lands.
+- [2026-07-22T17:17:57Z] Catherine Manager:
+  - Landed with FEAT-605 (category on sq workflow types --json survived the trunk absorption; verified in REV-612 + exercised by FEAT-569's end-to-end test). Closing.
 <!-- sq:discussion:end -->
