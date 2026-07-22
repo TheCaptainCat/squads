@@ -71,6 +71,57 @@ async def test_search_result_carries_item_type_and_status(svc):
     assert results[0].item.status == "InProgress"
 
 
+async def test_search_snippet_keeps_a_match_near_the_start_of_a_long_line_unchanged(svc):
+    task = (await svc.create("task", "Long line term at the start")).item
+    filler = "x" * 200
+    await svc.set_body(task.id, f"marigold {filler}")
+
+    results = await svc.search("marigold")
+    snippet = results[0].hits[0].snippet
+    assert snippet.startswith("marigold")
+    assert not snippet.startswith("…")
+
+
+async def test_search_snippet_windows_around_a_match_past_the_old_cap(svc):
+    task = (await svc.create("task", "Long line term past the old cap")).item
+    filler = "x" * 180
+    await svc.set_body(task.id, f"{filler} unicornberry appears here")
+
+    results = await svc.search("unicornberry")
+    snippet = results[0].hits[0].snippet
+    assert "unicornberry" in snippet
+    assert snippet.startswith("…")
+
+
+async def test_search_snippet_windows_around_a_match_near_the_end_of_a_long_line(svc):
+    task = (await svc.create("task", "Long line term near the end")).item
+    filler = "x" * 300
+    await svc.set_body(task.id, f"{filler} tangerine")
+
+    results = await svc.search("tangerine")
+    snippet = results[0].hits[0].snippet
+    assert snippet.endswith("tangerine")
+    assert snippet.startswith("…")
+
+
+async def test_search_snippet_windows_on_the_first_of_multiple_matches(svc):
+    task = (await svc.create("task", "Repeated term across a long line")).item
+    filler = "x" * 180
+    await svc.set_body(task.id, f"papaya {filler} papaya")
+
+    results = await svc.search("papaya")
+    snippet = results[0].hits[0].snippet
+    assert snippet.startswith("papaya")
+
+
+async def test_search_snippet_leaves_a_short_line_unwindowed(svc):
+    task = (await svc.create("task", "Short line term")).item
+    await svc.set_body(task.id, "a quince falls")
+
+    results = await svc.search("quince")
+    assert results[0].hits[0].snippet == "a quince falls"
+
+
 async def test_mine_view_returns_exactly_the_items_assigned_to_that_slug(svc):
     """The 'mine' view filters strictly by assignee: an item assigned to slug A is returned,
     an item assigned to a different slug B is not — a positive assertion, not just that the

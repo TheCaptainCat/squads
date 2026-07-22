@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 564,
+  "counter": 565,
   "padding": 6,
   "items": {
     "12": {
@@ -21100,7 +21100,7 @@
       "type": "bug",
       "title": "Search snippet windowing can truncate the matched term out",
       "slug": "search-snippet-windowing-can-truncate-the-matched-term-out",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -21115,7 +21115,7 @@
       "subentities": [],
       "path": "bugs/BUG-000563-search-snippet-windowing-can-truncate-the-matched-term-out.md",
       "created_at": "2026-07-21T23:53:46Z",
-      "updated_at": "2026-07-21T23:54:37Z",
+      "updated_at": "2026-07-22T08:00:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -21164,6 +21164,169 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-564"
+    },
+    "565": {
+      "sequence_id": 565,
+      "type": "review",
+      "title": "Nabudoc migration field report: adoption friction, docs drift, design gaps",
+      "slug": "nabudoc-migration-field-report-adoption-friction-docs-drift",
+      "status": "Requested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-543",
+        "EPIC-538",
+        "FEAT-533"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Global IDs break dense cross-refs; no alias / preferred-ID on import",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "History replay is one-timestamp-per-invocation; no bulk event import",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Docs drift: sq role list / --available do not exist (it is role catalog)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Docs drift + CLI gap: no verb to enumerate operators",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Docs drift: story add / subtask add — actual verbs are add-story / add-subtask",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Docs: stale override-base version examples",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "No bundled designer/UX role; dev add requires a coding --tech",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Closed items (incl. Accepted decisions) hidden from default list/tree",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "add-* leaves an unwritten-body stub that sq check warns on",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Sub-entity title-length advisory fires easily on migrated data",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Per-invocation process overhead",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Sub-entities cannot be deleted (no remove for finding/story/subtask)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "add-* cannot take --severity/--status inline (two-step for full metadata)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "No read-back verb for an item's discussion/comments",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000565-nabudoc-migration-field-report-adoption-friction-docs-drift.md",
+      "created_at": "2026-07-22T07:54:46Z",
+      "updated_at": "2026-07-22T07:57:35Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-565"
     }
   }
 }
