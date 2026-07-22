@@ -10,15 +10,15 @@ refs:
 subentities:
 - local_id: F1
   title: Pre-existing sentinel char in body is not neutralized before extraction
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F2
   title: 'Test gaps: multi-span index, escaping inside code span, digit-adjacency,
     table/heading'
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-07-21T20:20:14Z'
-updated_at: '2026-07-21T20:24:26Z'
+updated_at: '2026-07-22T14:03:25Z'
 ---
 <!-- sq:body -->
 Independent code review of the uncommitted BUG-539 fix (base = HEAD): `clients/vscode/src/domain/markdown.ts` + `test/markdown.test.ts`.
@@ -51,8 +51,8 @@ _Add with `sq review 542 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Pre-existing sentinel char in body is not neutralized before extraction |
-| F2 | 🟢 low | Fixed |  | Test gaps: multi-span index, escaping inside code span, digit-adjacency, table/heading |
+| F1 | 🟢 low | Verified |  | Pre-existing sentinel char in body is not neutralized before extraction |
+| F2 | 🟢 low | Verified |  | Test gaps: multi-span index, escaping inside code span, digit-adjacency, table/heading |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -61,7 +61,7 @@ _Add with `sq review 542 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Pre-existing sentinel char in body is not neutralized before extraction
 
 <!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F1:head:end -->
 
@@ -88,7 +88,7 @@ Positive note: the double-delimiter design is otherwise sound. Because the index
 ### F2 — Test gaps: multi-span index, escaping inside code span, digit-adjacency, table/heading
 
 <!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F2:head:end -->
 
