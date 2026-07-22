@@ -1,4 +1,4 @@
-"""The meta-type (`role`/`skill`/`operator`) item-first address grammar, beyond the `show`
+"""The roster-type (`role`/`skill`/`operator`) item-first address grammar, beyond the `show`
 happy path already homed at tests/cli/test_role_activate_with_override_cli.py and
 tests/service/test_operator_lifecycle.py: the mutating `regen`/`rm` verbs resolve an address
 by bare number, full ID, or slug exactly like `show` does; a wrong-type token is a clean

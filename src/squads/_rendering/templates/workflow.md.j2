@@ -126,7 +126,7 @@ statuses and transitions.
 {% endfor %}
 
 {% if not for_skill | default(false) %}
-{# Per-type stateDiagram-v2, one per non-meta type — the actual transition edges (the table
+{# Per-type stateDiagram-v2, one per non-roster type — the actual transition edges (the table
    above only linearizes them into a readable chain). `lifecycle_states_in_order`/
    `lifecycle_edges` walk the machine deterministically (Lifecycle.states is a frozenset,
    hash-seed-ordered — unsafe to iterate directly in a byte-stable generated file).

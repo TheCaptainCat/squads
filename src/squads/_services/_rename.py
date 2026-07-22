@@ -31,13 +31,13 @@ from squads._workflow._models import WorkflowSpec
 
 
 def _validate_rename_types(spec: WorkflowSpec, old_type: str, new_type: str) -> None:
-    """Raise unless both types are declared, non-meta work types, and distinct."""
+    """Raise unless both types are declared, non-roster types, and distinct."""
     for t in (old_type, new_type):
         if t not in spec.items:
             raise SquadsError(f"{t!r} is not declared in the active spec")
         if spec.item_is_roster(t):
             raise SquadsError(
-                f"{t!r} is a reserved meta-type (role/skill/operator) and cannot be renamed"
+                f"{t!r} is a reserved roster type (role/skill/operator) and cannot be renamed"
             )
     if old_type == new_type:
         raise SquadsError(f"cannot rename {old_type!r} to itself")
@@ -63,13 +63,13 @@ def _validate_no_invalid_children(
 
 
 def _validate_rename_status(spec: WorkflowSpec, item_type: str, new_status: str) -> None:
-    """Raise unless *item_type* is a declared, non-meta work type and *new_status* is a
+    """Raise unless *item_type* is a declared, non-roster type and *new_status* is a
     member of that type's own lifecycle states."""
     if item_type not in spec.items:
         raise SquadsError(f"{item_type!r} is not declared in the active spec")
     if spec.item_is_roster(item_type):
         raise SquadsError(
-            f"{item_type!r} is a reserved meta-type (role/skill/operator); "
+            f"{item_type!r} is a reserved roster type (role/skill/operator); "
             "its status cannot be bulk-renamed"
         )
     states = spec.workflow_for(item_type).states
@@ -112,8 +112,8 @@ class RenameMixin(ServiceCore):
     async def rename_type(self, old_type: str, new_type: str) -> RenameResult:
         """Bulk-move every item of *old_type* to *new_type* in one transaction.
 
-        - Both types must be declared, non-meta work types (``spec.work_types()``); *new_type*
-          must already exist in the active spec — this call never declares it.
+        - Both types must be declared, non-roster types (``spec.non_roster_types()``);
+          *new_type* must already exist in the active spec — this call never declares it.
         - Refuses (actionable :class:`~squads._errors.SquadsError`) when any live child of a
           renamed item would become invalid under *new_type*.
         - Sub-entities carry over unchanged and status always carries over (``carry_status=True``
@@ -200,7 +200,7 @@ class RenameMixin(ServiceCore):
         vocabulary shared across many lifecycles, so this only validates and touches
         *item_type*'s own machine and items — never a spec-wide status rename.
 
-        - *item_type* must be a declared, non-meta work type.
+        - *item_type* must be a declared, non-roster type.
         - *new_status* must be a member of ``spec.workflow_for(item_type).states`` — a valid
           state, not a valid ``can_transition`` edge (this is a relabel, not a workflow move).
           Terminal/open classification and any completion badge are inherited from whatever

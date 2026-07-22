@@ -110,7 +110,7 @@ already tracked — not as a routine boot step.
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: {{ spec.work_types() | reject('eq', 'task') | sort | join('|') }}
+sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: {{ spec.non_roster_types() | reject('eq', 'task') | sort | join('|') }}
 #   --author is required and must be a registered agent (your own role slug)
 sq task 3 show --full --comments                                # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress                                     # transition (validated per type)

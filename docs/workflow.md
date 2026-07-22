@@ -458,7 +458,7 @@ type or status poorly and want to rename it across your squad's **existing items
 on-demand **data migration commands**:
 
 - **`sq migrate rename-type OLD_TYPE NEW_TYPE`** — bulk-rename every item of type `OLD_TYPE` to
-  `NEW_TYPE`. Both types must already exist in the active spec (as non-meta work types). The command
+  `NEW_TYPE`. Both types must already exist in the active spec (as non-roster types). The command
   rewrites every affected item's ID, folder, and all references (parent, refs, inline mentions) to
   use the new prefix and location. Logged to the reflog; run `sq check` after.
 

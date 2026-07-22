@@ -25,7 +25,7 @@ from squads._services._results import AdoptResult, InitResult
 from squads._services._retype import RetypeMixin
 from squads._services._roster import RosterMixin
 from squads._services._subentities import SubentitiesMixin
-from squads._workflow import META_ROLE, bundled_spec
+from squads._workflow import ROSTER_ROLE, bundled_spec
 
 
 class Service(
@@ -154,7 +154,7 @@ async def adopt(
     # Import any existing squads-native .md files (sets counter from them).
     repair_result = await svc.repair()
     existing_roles = {
-        it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type == META_ROLE
+        it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type == ROSTER_ROLE
     }
 
     if not no_claude:

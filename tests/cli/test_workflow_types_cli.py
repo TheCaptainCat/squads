@@ -103,7 +103,7 @@ async def test_json_row_fields_matches_the_spec_declared_field_collection_bindin
             {"code": f.code, "label": f.label, "collection": f.collection}
             for f in spec.fields_for(t)
         ]
-    # role is a meta-type — no declared badge fields.
+    # role is a roster type — no declared badge fields.
     assert rows["role"]["fields"] == []
     # bug declares both priority and severity.
     assert {f["code"] for f in rows["bug"]["fields"]} == {"priority", "severity"}

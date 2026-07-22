@@ -3,7 +3,7 @@ id: FEAT-573
 sequence_id: 573
 type: feature
 title: 'Consumer audit: is_meta sites reclassified to category'
-status: Draft
+status: Done
 parent: EPIC-538
 author: product-owner
 priority: medium
@@ -11,7 +11,7 @@ refs:
 - FEAT-567
 - FEAT-533
 created_at: '2026-07-22T08:39:40Z'
-updated_at: '2026-07-22T09:47:53Z'
+updated_at: '2026-07-22T12:54:12Z'
 ---
 <!-- sq:body -->
 ## Capability

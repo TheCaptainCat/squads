@@ -136,9 +136,11 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   Runner modules are **private** — never `python -m`; only through `sq migrate`.
 - **Strict typing** — `pyright` runs in strict mode and `ruff` (E/F/I/UP/B/W + C901/SIM/PERF/PTH/RUF/TRY/PLR0911-15,
   max-complexity 12, max-args 8, TRY003 ignored) must stay clean:
-  `uv run pyright && uv run ruff check . && uv run ruff format --check .`. Annotate bare `dict`/
-  `list` (e.g. `dict[str, Any]`); Typer's `Option/Argument` call-defaults are why `B008` is
-  ignored under `_cli/`.
+  `uv run --all-extras pyright && uv run --all-extras ruff check . && uv run --all-extras ruff format --check .`.
+  `--all-extras` is required on each — a bare `uv run` prunes the optional `tui` extra
+  (`textual`), and pyright then reports hundreds of false import errors under `_tui/`. Annotate
+  bare `dict`/`list` (e.g. `dict[str, Any]`); Typer's `Option/Argument` call-defaults are why
+  `B008` is ignored under `_cli/`.
 
 ## Testing
 

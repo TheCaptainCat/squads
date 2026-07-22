@@ -147,8 +147,8 @@ class _CustomCreateGroup(typer.core.TyperGroup):
 
     _custom_cmd_cache: ClassVar[dict[str, _click.Command]] = {}
 
-    def _custom_work_types(self) -> frozenset[str]:
-        """Return custom work type names from the resolved spec.
+    def _custom_non_roster_types(self) -> frozenset[str]:
+        """Return custom creatable/trackable (non-roster) type names from the resolved spec.
 
         "Custom" here means "not already registered by the static import-time loop"
         (``_STATIC_CREATE_TYPES``) — i.e. anything a project's own workflow override adds
@@ -157,18 +157,18 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         """
         try:
             spec = common.get_active_spec()
-            return frozenset(t for t in spec.work_types() if t not in _STATIC_CREATE_TYPES)
+            return frozenset(t for t in spec.non_roster_types() if t not in _STATIC_CREATE_TYPES)
         except Exception:  # pylint: disable=broad-except
             return frozenset()
 
     def list_commands(self, ctx: Any) -> list[str]:
-        """Built-in commands first, then custom work types alphabetically.
+        """Built-in commands first, then custom non-roster types alphabetically.
 
         For a non-custom squad the custom set is empty, so this is byte-identical
         to the previous implementation.
         """
         base: list[str] = super().list_commands(ctx)
-        custom = sorted(self._custom_work_types())
+        custom = sorted(self._custom_non_roster_types())
         return base + custom
 
     def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
@@ -177,11 +177,11 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         if cmd is not None:
             return cmd
 
-        # Spec-resolution region: decide whether cmd_name is a known custom work type or alias.
-        # Errors here (invalid spec, missing active spec, etc.) are swallowed so that
-        # `sq create --help` always degrades gracefully.  The only valid outcome is either
-        # (a) cmd_name confirmed (or resolved via alias) as a declared custom work type, or
-        # (b) return None so Click emits "No such command".
+        # Spec-resolution region: decide whether cmd_name is a known custom non-roster type
+        # or alias. Errors here (invalid spec, missing active spec, etc.) are swallowed so
+        # that `sq create --help` always degrades gracefully. The only valid outcome is
+        # either (a) cmd_name confirmed (or resolved via alias) as a declared custom
+        # non-roster type, or (b) return None so Click emits "No such command".
         try:
             if cmd_name in _STATIC_CREATE_TYPES:
                 return None
@@ -190,11 +190,11 @@ class _CustomCreateGroup(typer.core.TyperGroup):
 
             # Resolve alias → canonical for custom types (mirrors _CustomTypeGroup.get_command).
             canonical = cmd_name
-            if cmd_name not in spec.work_types():
+            if cmd_name not in spec.non_roster_types():
                 resolved = spec.alias_to_type.get(cmd_name)
                 if (
                     resolved is not None
-                    and resolved in spec.work_types()
+                    and resolved in spec.non_roster_types()
                     and resolved not in _STATIC_CREATE_TYPES
                 ):
                     canonical = resolved
@@ -225,12 +225,12 @@ create_app = typer.Typer(
 # mirroring the resource-group loop in _cli/__init__.py: one generic `_make` per creatable
 # work type, ordered by each type's explicit ItemSpec.order (ascending, type name breaking
 # ties) — no hand-maintained type tuple. `guide` is excluded — it gets its own command below
-# with extra --tech/--tag options; role/skill/operator are meta-types with their own
+# with extra --tech/--tag options; role/skill/operator are roster types with their own
 # dedicated commands, never `sq create`.
 _create_spec = bundled_spec()
 _CREATABLE: tuple[str, ...] = tuple(
     t
-    for t in sorted(_create_spec.work_types(), key=lambda t: (_create_spec.items[t].order, t))
+    for t in sorted(_create_spec.non_roster_types(), key=lambda t: (_create_spec.items[t].order, t))
     if t != "guide"
 )
 

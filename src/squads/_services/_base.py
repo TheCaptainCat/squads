@@ -40,7 +40,7 @@ from squads._roles._resolver import resolve_role
 from squads._services._results import CreateResult, TreeNode
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
-from squads._workflow import META_OPERATOR, META_ROLE, META_SKILL, bundled_spec
+from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 
@@ -567,7 +567,7 @@ class ServiceCore:
     def _is_participant(self, db: SquadsDB, slug: str) -> bool:
         """A slug that can author/be-assigned work: a registered role agent or a human operator.
 
-        Skills are meta-types but NOT participants — only role and operator are. This is
+        Skills are roster types but NOT participants — only role and operator are. This is
         deliberately **not** the catalog's ``agent_registered`` validator: that one is
         warn-level (report-only, matching today's ``sq check`` output) and, unlike this
         stricter create/update gate, treats any roster type — including a skill's slug — as
@@ -577,13 +577,13 @@ class ServiceCore:
         """
         return any(
             self.spec.item_is_roster(it.type)
-            and it.type != META_SKILL
+            and it.type != ROSTER_SKILL
             and it.extra.get(X.SLUG) == slug
             for it in db.items.values()
         )
 
     def _check_author(self, db: SquadsDB, item_type: str, author: str, slug: str) -> None:
-        # a meta-type (role/skill/operator) definition may self-author (bootstrap)
+        # a roster type (role/skill/operator) definition may self-author (bootstrap)
         if self.spec.item_is_roster(item_type) and author == slug:
             return
         if not self._is_participant(db, author):
@@ -622,7 +622,7 @@ class ServiceCore:
     # ------------------------------------------------------------------ role / skill lookups
     async def _role_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type == META_ROLE and it.extra.get(X.SLUG) == slug:
+            if it.type == ROSTER_ROLE and it.extra.get(X.SLUG) == slug:
                 return it
         return None
 
@@ -643,13 +643,13 @@ class ServiceCore:
 
     async def _skill_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type == META_SKILL and it.extra.get(X.SLUG, it.slug) == slug:
+            if it.type == ROSTER_SKILL and it.extra.get(X.SLUG, it.slug) == slug:
                 return it
         return None
 
     async def _operator_item(self, slug: str) -> Item | None:
         for it in (await self.store.load()).items.values():
-            if it.type == META_OPERATOR and it.extra.get(X.SLUG) == slug:
+            if it.type == ROSTER_OPERATOR and it.extra.get(X.SLUG) == slug:
                 return it
         return None
 
@@ -673,7 +673,7 @@ class ServiceCore:
                 title=it.extra.get(X.TITLE, it.title),
                 is_default=it.extra.get(X.IS_DEFAULT, False),
             )
-            for it in await self.list_items(item_type=META_ROLE)
+            for it in await self.list_items(item_type=ROSTER_ROLE)
         ]
 
     async def operators(self) -> list[OperatorView]:
@@ -682,7 +682,7 @@ class ServiceCore:
                 slug=it.extra.get(X.SLUG, it.slug),
                 full_name=it.extra.get(X.FULL_NAME, it.title),
             )
-            for it in await self.list_items(item_type=META_OPERATOR)
+            for it in await self.list_items(item_type=ROSTER_OPERATOR)
         ]
 
     async def _skill_paths(self) -> dict[str, Path]:
@@ -691,7 +691,7 @@ class ServiceCore:
         Backends receive this via BackendContext so they never need to load the
         index themselves (layering invariant: _backends must not import _index).
         """
-        skill_items = await self.list_items(item_type=META_SKILL)
+        skill_items = await self.list_items(item_type=ROSTER_SKILL)
         return {
             it.extra[X.SLUG]: self.paths.abspath(it.path)
             for it in skill_items
@@ -716,7 +716,7 @@ class ServiceCore:
         scoped: set[str] = set()
         for candidate_id in db.backrefs(role.id):
             skill = db.get(candidate_id)
-            if skill is None or skill.type != META_SKILL:
+            if skill is None or skill.type != ROSTER_SKILL:
                 continue
             for r in skill.refs:
                 rid, kind = split_ref(r)
@@ -736,7 +736,7 @@ class ServiceCore:
             (
                 it
                 for it in db.items.values()
-                if it.type == META_ROLE and it.extra.get(X.SLUG) == slug
+                if it.type == ROSTER_ROLE and it.extra.get(X.SLUG) == slug
             ),
             None,
         )
@@ -752,7 +752,7 @@ class ServiceCore:
         return {
             it.extra[X.SLUG]: self._resolve_role_skills(it.extra[X.SLUG], it, db)
             for it in db.items.values()
-            if it.type == META_ROLE and X.SLUG in it.extra
+            if it.type == ROSTER_ROLE and X.SLUG in it.extra
         }
 
     async def refresh_managed(self) -> None:

@@ -1,5 +1,5 @@
 """The pure pieces behind a custom type's auto-generated thin skill: which types get one
-(``custom_skill_slugs`` — custom, non-meta only, lexical order) and what it says
+(``custom_skill_slugs`` — custom, non-roster only, lexical order) and what it says
 (``custom_item_skill_commands`` — the standard verb set, embedding the type's own name).
 """
 

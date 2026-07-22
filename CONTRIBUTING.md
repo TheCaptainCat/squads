@@ -46,6 +46,9 @@ runs all four on pushes/PRs to `main`.
 - **Comments stay terse.** Default to no comment; keep a single short line only where something is
   genuinely non-obvious (a gotcha, an invariant, a "this looks wrong but…"). No ticket/ADR IDs in
   code or config comments — the linkage lives in the tracked item, not the source.
+- **No "meta" for the roster-type concept.** Say "roster" / "roster category" / "roster type"
+  (role/skill/operator), never "meta-type(s)". The legacy body-stored sub-entity `:meta` marker
+  region is an unrelated, still-current concept — that one keeps its name.
 
 ## How to add things
 

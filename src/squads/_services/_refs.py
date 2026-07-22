@@ -22,7 +22,7 @@ from squads._models._item import (
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._services._results import GraphNode
-from squads._workflow import META_ROLE
+from squads._workflow import ROSTER_ROLE
 from squads._workflow._models import WorkflowSpec
 
 # ---------------------------------------------------------------------------
@@ -359,7 +359,7 @@ class RefsMixin(ServiceCore):
         (``add_ref``'s own target dedup) and re-runs the (no-op) resync.
         """
         role = await self.get(role_id)
-        if role.type != META_ROLE:
+        if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; link-role targets a role")
         updated = await self.add_ref(skill_id, role_id, kind="scopes")
         await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
@@ -374,7 +374,7 @@ class RefsMixin(ServiceCore):
         runs, but recomputes the same already-current state).
         """
         role = await self.get(role_id)
-        if role.type != META_ROLE:
+        if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
         role_prefix = effective_prefix(role.prefix)
         role_seq = role.sequence_id

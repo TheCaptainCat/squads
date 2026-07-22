@@ -134,7 +134,5 @@ def test_load_workflow_spec_with_no_squad_dir_matches_the_bundled_singleton() ->
 
 def test_every_builtin_work_type_declares_at_least_one_alias() -> None:
     spec = bundled_spec()
-    alias_less = [
-        t for t in spec.work_types() if not spec.item_is_roster(t) and not spec.items[t].aliases
-    ]
+    alias_less = [t for t in spec.non_roster_types() if not spec.items[t].aliases]
     assert not alias_less

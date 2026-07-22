@@ -16,7 +16,7 @@ sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
 {% endfor %}
 Valid targets: {% for item_type in retype_targets %}`{{ item_type }}`{% if not loop.last %}, {% endif %}{% endfor %}.
 
-{# Same-workflow example: group non-meta types by their declared lifecycle name, rather than
+{# Same-workflow example: group non-roster types by their declared lifecycle name, rather than
    naming specific bundled types — a custom spec may share/split workflows differently. #}
 {% set lifecycle_groups = [] %}
 {% for item_type, item_spec in spec.items.items() %}

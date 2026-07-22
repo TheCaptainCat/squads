@@ -132,14 +132,14 @@ def build_item_app(item_type: str, spec: WorkflowSpec | None = None) -> typer.Ty
     if subentity_kind is not None:
         _register_subentity(item, subentity_kind, spec)
 
-    # retype/remove: available for all non-meta work types (spec-derived).
+    # retype/remove: available for all non-roster types (spec-derived).
     # For types unknown to the spec (pre-callback edge case), fall back to checking
-    # against the three meta-type names directly (the irreducible,
+    # against the three roster-type names directly (the irreducible,
     # by-name-bound minimum, not a spec lookup).
-    from squads._workflow import META_TYPES
+    from squads._workflow import ROSTER_TYPES
 
     is_roster = (
-        spec.item_is_roster(item_type) if item_type in spec.items else item_type in META_TYPES
+        spec.item_is_roster(item_type) if item_type in spec.items else item_type in ROSTER_TYPES
     )
     if not is_roster:
         _cmd_retype(item, spec)
@@ -273,7 +273,7 @@ def _cmd_comment(item: typer.Typer) -> None:
 
 
 def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
-    targets = "|".join(sorted(spec.work_types(), key=lambda t: (spec.items[t].order, t)))
+    targets = "|".join(sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)))
 
     @item.command("retype")
     @common.command
@@ -295,7 +295,7 @@ def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
         parent links, and prose mentions are rewritten to the new ID.
         """
         target = parse_type(new_type)
-        wt = common.get_active_spec().work_types()
+        wt = common.get_active_spec().non_roster_types()
         if target not in wt:
             work = ", ".join(sorted(wt))
             raise SquadsError(f"cannot retype to {new_type!r}; valid targets: {work}")
