@@ -248,10 +248,11 @@ parents = []
 aliases = ["e"]
 order = 10
 category = "work"
+validators = ["no_parent"]
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None (no sub-entities)
-# parent_required absent → None (unconstrained)
+# parent_required absent → None (unconstrained; no_parent enforces epic as root)
 
 [items.feature]
 prefix = "FEAT"

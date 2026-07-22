@@ -3,9 +3,10 @@ id: TASK-584
 sequence_id: 584
 type: task
 title: Enforce records + epic no_parent defaults (coordinate FEAT-572)
-status: Draft
+status: Done
 parent: FEAT-568
 author: tech-lead
+assignee: python-dev
 refs:
 - ADR-541
 - TASK-582:depends-on
@@ -14,7 +15,7 @@ refs:
 description: Turn on the two new no_parent enforcements; must land with-or-after the
   5-parented-ADR migration
 created_at: '2026-07-22T10:33:02Z'
-updated_at: '2026-07-22T10:33:12Z'
+updated_at: '2026-07-22T12:13:23Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -66,4 +67,6 @@ _Add with `sq task 584 add-subtask "<title>"`; track with `sq task 584 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-22T12:03:13Z] Elias Python:
+  - Wired no_parent into CATEGORY_BUNDLES[records] and epic's validators addition in default_workflow.toml; sq check stays clean (exit 0), 10 new enforcement tests + full unit/service/cli/meta suite green, pyright/ruff/format clean.
 <!-- sq:discussion:end -->

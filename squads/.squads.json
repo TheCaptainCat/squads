@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 586,
+  "counter": 587,
   "padding": 6,
   "items": {
     "12": {
@@ -21986,11 +21986,11 @@
       "type": "task",
       "title": "Enforce records + epic no_parent defaults (coordinate FEAT-572)",
       "slug": "enforce-records-epic-no-parent-defaults-coordinate-feat-572",
-      "status": "Draft",
+      "status": "Done",
       "description": "Turn on the two new no_parent enforcements; must land with-or-after the 5-parented-ADR migration",
       "parent": "FEAT-568",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": null,
       "severity": null,
       "labels": [],
@@ -22003,7 +22003,7 @@
       "subentities": [],
       "path": "tasks/TASK-000584-enforce-records-epic-no-parent-defaults-coordinate-feat-572.md",
       "created_at": "2026-07-22T10:33:02Z",
-      "updated_at": "2026-07-22T10:33:12Z",
+      "updated_at": "2026-07-22T12:13:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22066,6 +22066,68 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-586"
+    },
+    "587": {
+      "sequence_id": 587,
+      "type": "review",
+      "title": "Review of TASK-584: records + epic no_parent enforcement",
+      "slug": "review-of-task-584-records-epic-no-parent-enforcement",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-568"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Correct wiring, no over-reach",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "sq check clean on this repo",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Enforcement genuine (tests not tautological)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Stale _no_parent function docstring",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000587-review-of-task-584-records-epic-no-parent-enforcement.md",
+      "created_at": "2026-07-22T12:10:14Z",
+      "updated_at": "2026-07-22T12:13:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-587"
     }
   }
 }
