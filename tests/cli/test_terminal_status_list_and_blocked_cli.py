@@ -1,6 +1,10 @@
-"""``sq list``/``sq blocked`` honor Accepted/Published as terminal on the real CLI surface: an
-Accepted decision or Published guide is hidden from the default list, visible with --all, still
-found by search, and no longer counted as a blocker.
+"""``sq list``/``sq blocked`` on the real CLI surface, for both terminal-status categories:
+
+- ``decision``/``guide`` are ``records``-category — Accepted/Published is final-but-live, so the
+  item stays visible in the default list (category-aware visibility: a durable record doesn't
+  vanish from view the moment it's finalized). Both remain searchable regardless.
+- Accepted still unblocks a dependent task (``blocked`` counts by ``is_open``, unaffected by the
+  default-visibility rule).
 """
 
 import pytest
@@ -8,26 +12,22 @@ import pytest
 pytestmark = pytest.mark.anyio
 
 
-async def test_cli_accepted_decision_hidden_then_visible_and_searchable(project, invoke):
+async def test_cli_accepted_decision_stays_visible_by_default_and_searchable(project, invoke):
     await invoke(["create", "decision", "Use Redis", "--author", "manager"])
     await invoke(["decision", "2", "status", "Accepted"])
 
     default = await invoke(["list", "--type", "decision"])
-    assert "ADR-2" not in default.output
-    with_all = await invoke(["list", "--type", "decision", "--all"])
-    assert "ADR-2" in with_all.output
+    assert "ADR-2" in default.output
     found = await invoke(["search", "Redis"])
     assert "ADR-2" in found.output
 
 
-async def test_cli_published_guide_hidden_then_visible_and_searchable(project, invoke):
+async def test_cli_published_guide_stays_visible_by_default_and_searchable(project, invoke):
     await invoke(["create", "guide", "Ops runbook", "--author", "manager"])
     await invoke(["guide", "2", "status", "Published"])
 
     default = await invoke(["list", "--type", "guide"])
-    assert "GUIDE-2" not in default.output
-    with_all = await invoke(["list", "--type", "guide", "--all"])
-    assert "GUIDE-2" in with_all.output
+    assert "GUIDE-2" in default.output
     found = await invoke(["search", "runbook"])
     assert "GUIDE-2" in found.output
 

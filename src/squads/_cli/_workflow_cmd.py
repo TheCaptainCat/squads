@@ -37,8 +37,8 @@ workflow_app = typer.Typer(
         "Workflow cheatsheet and spec validation.\n\n"
         "Run `sq workflow` (or `sq workflow show`) for the team cheatsheet. "
         "Run `sq workflow lint` to validate your workflow override spec. "
-        "Run `sq workflow types` / `collections` / `statuses` for the machine-readable "
-        "type / badge-collection / status catalogs."
+        "Run `sq workflow types` / `collections` / `statuses` / `roles` for the "
+        "machine-readable type / badge-collection / status / role catalogs."
     ),
 )
 
@@ -86,11 +86,12 @@ def _print_cheatsheet(*, raw: bool) -> None:
 
 #: Frozen field set for the ``sq workflow types --json`` catalog. Kept as a module-level
 #: tuple so a test can assert the CLI never drifts from the declared contract.
-TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
+TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str] = (
     "type",
     "order",
     "prefix",
     "reserved",
+    "category",
     "fields",
 )
 
@@ -113,8 +114,11 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 
     Includes every declared type (work AND reserved: role/skill/operator). ``order`` is
     ``None`` when ``ItemSpec.order`` is unset (``+inf``) — present-but-null, never
-    omitted, so the key set stays stable across every row. ``fields`` is the type's
-    declared field->collection bindings — ``[]`` for a type with no badge fields.
+    omitted, so the key set stays stable across every row. ``category`` is the type's
+    declared ``roster``/``work``/``records`` axis (the same taxonomy ``reserved``
+    already summarizes as a boolean) — a client reads it here instead of re-deriving the
+    split from ``reserved`` or a hardcoded type list. ``fields`` is the type's declared
+    field->collection bindings — ``[]`` for a type with no badge fields.
     """
     types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
     return [
@@ -123,6 +127,7 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "order": None if math.isinf(spec.items[t].order) else spec.items[t].order,
             "prefix": spec.items[t].prefix,
             "reserved": spec.items[t].category == "roster",
+            "category": spec.items[t].category,
             "fields": _type_fields(t, spec),
         }
         for t in types
@@ -138,10 +143,12 @@ def workflow_types(
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
     declared type (work AND reserved), in ascending resolved ``order`` (type-name
-    string breaks ties): ``{type, order, prefix, reserved, fields}``. ``order`` is ``null``
-    when the type has no explicit order (``+inf``); ``fields`` is the type's declared
-    field->collection bindings (``[{code, label, collection}]``, ``[]`` if none) — present,
-    never omitted, so the key set is stable across every object.
+    string breaks ties): ``{type, order, prefix, reserved, category, fields}``. ``order``
+    is ``null`` when the type has no explicit order (``+inf``); ``category`` is one of
+    ``roster``/``work``/``records`` (``reserved`` is exactly ``category == "roster"``);
+    ``fields`` is the type's declared field->collection bindings
+    (``[{code, label, collection}]``, ``[]`` if none) — present, never omitted, so the
+    key set is stable across every object.
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -153,7 +160,7 @@ def workflow_types(
         return
 
     table = Table(box=None, pad_edge=False)
-    for col in ("Type", "Order", "Prefix", "Reserved"):
+    for col in ("Type", "Order", "Prefix", "Reserved", "Category"):
         table.add_column(col)
     for row in rows:
         table.add_row(
@@ -161,6 +168,7 @@ def workflow_types(
             "" if row["order"] is None else str(row["order"]),
             e(str(row["prefix"])),
             "yes" if row["reserved"] else "",
+            e(str(row["category"])),
         )
     console.print(table)
 
@@ -238,18 +246,19 @@ def workflow_collections(
 # ─── statuses ────────────────────────────────────────────────────────────────────
 
 #: Frozen field set for the ``sq workflow statuses --json`` catalog.
-STATUS_CATALOG_FIELDS: tuple[str, str, str, str] = ("status", "terminal", "role", "badge")
+STATUS_CATALOG_FIELDS: tuple[str, str, str] = ("status", "role", "badge")
 
 
 def _status_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     """The frozen status-vocabulary rows, ascending status name — a client joins
-    an item's ``status`` string to this catalog to read ``terminal``/``role``/``badge``
-    instead of keying on the literal status name (e.g. hardcoding ``status == "InProgress"``
-    to detect "work in flight")."""
+    an item's ``status`` string to this catalog to read ``role``/``badge`` instead of keying
+    on the literal status name (e.g. hardcoding ``status == "InProgress"`` to detect "work in
+    flight"). ``role`` is the sole status axis — join ``sq workflow roles --json`` to resolve
+    it to ``{settled, hidden, color}``; ``terminal``/``is_open`` are not exposed here, they are
+    ``role.settled``/``not role.settled`` on that catalog."""
     return [
         {
             "status": name,
-            "terminal": st.terminal,
             "role": st.role,
             "badge": st.badge,
         }
@@ -265,11 +274,11 @@ def workflow_statuses(
     """List every declared status in the active workflow spec.
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared status, ascending status name: ``{status, terminal, role, badge}``. ``role``
-    is the semantic-status marker (e.g. ``"active"``, ``"superseded"``) or ``null``;
-    ``badge`` is the declared status emoji or ``null``. Catalog-only: no per-item
-    ``role``/``is_active`` field is added to any item surface — a client joins an item's
-    own ``status`` to this catalog instead.
+    declared status, ascending status name: ``{status, role, badge}``. ``role`` is the
+    reference into the role catalog (``sq workflow roles --json``) — join it to resolve
+    ``settled``/``hidden``/``color``; ``badge`` is the declared status emoji or ``null``.
+    Catalog-only: no per-item ``role``/``is_active`` field is added to any item surface — a
+    client joins an item's own ``status`` to this catalog instead.
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -281,14 +290,71 @@ def workflow_statuses(
         return
 
     table = Table(box=None, pad_edge=False)
-    for col in ("Status", "Terminal", "Role", "Badge"):
+    for col in ("Status", "Role", "Badge"):
         table.add_column(col)
     for row in rows:
         table.add_row(
             e(str(row["status"])),
-            "yes" if row["terminal"] else "",
             e(str(row["role"])) if row["role"] else "",
             e(str(row["badge"])) if row["badge"] else "",
+        )
+    console.print(table)
+
+
+# ─── roles ───────────────────────────────────────────────────────────────────────
+
+#: Frozen field set for the ``sq workflow roles --json`` catalog.
+ROLE_CATALOG_FIELDS: tuple[str, str, str, str] = ("role", "settled", "hidden", "color")
+
+
+def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The frozen role-catalog rows, ascending role name — a client joins a status's ``role``
+    (from ``sq workflow statuses --json``) to this catalog to resolve ``settled``/``hidden``/
+    ``color`` instead of hardcoding any role name or deriving it from category."""
+    return [
+        {
+            "role": name,
+            "settled": r.settled,
+            "hidden": r.hidden,
+            "color": r.color,
+        }
+        for name, r in sorted(spec.roles.items())
+    ]
+
+
+@workflow_app.command("roles")
+@handle_errors
+def workflow_roles(
+    json_out: bool = typer.Option(False, "--json", help="Emit the machine role catalog."),
+) -> None:
+    """List every declared role in the active workflow spec.
+
+    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
+    declared role, ascending role name: ``{role, settled, hidden, color}``. ``settled`` is
+    the old ``terminal`` (a resting/end state); ``hidden`` is default-visibility; ``color``
+    is a semantic colour intent from the closed palette (``positive``/``danger``/``warning``/
+    ``muted``/``neutral``/``info``) — each client maps it to a concrete colour, with a
+    neutral fallback for an intent it doesn't recognise. A status references one role by name
+    (``sq workflow statuses --json``'s ``role`` field); join the two to resolve behaviour.
+    """
+    from squads._cli._common import get_active_spec, print_json_clean
+
+    spec = get_active_spec()
+    rows = _role_catalog(spec)
+
+    if json_out:
+        print_json_clean(json.dumps(rows))
+        return
+
+    table = Table(box=None, pad_edge=False)
+    for col in ("Role", "Settled", "Hidden", "Color"):
+        table.add_column(col)
+    for row in rows:
+        table.add_row(
+            e(str(row["role"])),
+            "yes" if row["settled"] else "",
+            "yes" if row["hidden"] else "",
+            e(str(row["color"])),
         )
     console.print(table)
 

@@ -1,9 +1,11 @@
 """``sq workflow types`` — the type-catalog machine surface.
 
 Default prints a human Rich table; ``--json`` emits the frozen bare-array shape
-(``{type, order, prefix, reserved, fields}``) in ascending resolved order, type-name tiebreak.
-``fields`` is the type's declared field->collection bindings, additive to the
-original catalog shape. The byte-identical golden is pinned in
+(``{type, order, prefix, reserved, category, fields}``) in ascending resolved order,
+type-name tiebreak. ``category`` is the type's declared roster/work/records axis
+(``reserved`` is exactly ``category == "roster"``); ``fields`` is the type's declared
+field->collection bindings. Both clients read the category split from here instead of
+re-deriving it. The byte-identical golden is pinned in
 ``tests/cli/test_json_output_shape.py`` (``tests/goldens/workflow_types.json``) — this module
 covers the field-set/model contract, the null-order representation, the ``fields`` binding,
 and the human table.
@@ -32,7 +34,7 @@ pytestmark = pytest.mark.anyio
 async def test_default_output_is_a_human_table_with_every_declared_type(project, invoke) -> None:
     result = await invoke(["workflow", "types"])
     assert result.exit_code == 0
-    for col in ("Type", "Order", "Prefix", "Reserved"):
+    for col in ("Type", "Order", "Prefix", "Reserved", "Category"):
         assert col in result.output
     for t in (
         "epic",
@@ -91,6 +93,27 @@ async def test_json_prefix_matches_the_spec(project, invoke) -> None:
         assert rows[t]["prefix"] == ts.prefix
 
 
+async def test_json_category_matches_the_bundled_taxonomy(project, invoke) -> None:
+    result = await invoke(["workflow", "types", "--json"])
+    rows = {r["type"]: r for r in json.loads(result.output)}
+    expected = {
+        "epic": "work",
+        "feature": "work",
+        "task": "work",
+        "bug": "work",
+        "decision": "records",
+        "review": "work",
+        "guide": "records",
+        "role": "roster",
+        "skill": "roster",
+        "operator": "roster",
+    }
+    for t, category in expected.items():
+        assert rows[t]["category"] == category
+    for row in rows.values():
+        assert row["reserved"] == (row["category"] == "roster")
+
+
 async def test_json_row_fields_matches_the_spec_declared_field_collection_bindings(
     project, invoke
 ) -> None:
@@ -112,8 +135,8 @@ async def test_json_row_fields_matches_the_spec_declared_field_collection_bindin
 # ─── field-set / model contract ─────────────────────────────────────────────────
 
 
-def test_frozen_field_set_is_exactly_type_order_prefix_reserved_fields() -> None:
-    assert TYPE_CATALOG_FIELDS == ("type", "order", "prefix", "reserved", "fields")
+def test_frozen_field_set_is_exactly_type_order_prefix_reserved_category_fields() -> None:
+    assert TYPE_CATALOG_FIELDS == ("type", "order", "prefix", "reserved", "category", "fields")
 
 
 def test_frozen_field_entry_field_set_is_exactly_code_label_collection() -> None:
@@ -158,6 +181,7 @@ def _spec_with_unordered_custom_type() -> WorkflowSpec:
             "alias_to_type": base.alias_to_type,
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
+            "roles": base.roles,
         }
     )
 

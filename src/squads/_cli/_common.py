@@ -33,7 +33,7 @@ from squads._models._subentity import SubEntity
 from squads._paths import resolve
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
-from squads._workflow import bundled_spec
+from squads._workflow import CATEGORIES, bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 console = Console()
@@ -849,6 +849,20 @@ def parse_status(value: str) -> str:
             return s
     choices = ", ".join(sorted(_spec.statuses))
     raise SquadsError(f"unknown status {value!r} (one of: {choices})") from None
+
+
+def parse_category(value: str) -> str:
+    """Validate *value* against the fixed roster/work/records category catalog.
+
+    The category axis is a closed, code-level catalog (``squads._workflow.CATEGORIES``) —
+    not spec vocabulary — so this validates against that constant, never the active spec's
+    declared types.
+    """
+    normalised = value.strip().lower()
+    if normalised in CATEGORIES:
+        return normalised
+    choices = ", ".join(CATEGORIES)
+    raise SquadsError(f"unknown category {value!r} (one of: {choices})") from None
 
 
 def parse_badge_code(collection_code: str, value: str, spec: WorkflowSpec | None = None) -> str:

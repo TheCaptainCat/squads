@@ -20,9 +20,8 @@ pytestmark = pytest.mark.anyio
 
 _INCIDENT_V1 = """
 [statuses.Triage]
-terminal = false
 [statuses.Resolved]
-terminal = true
+role = "done"
 
 [lifecycles.incident_lc]
 initial = "Triage"
@@ -40,9 +39,8 @@ lifecycle = "incident_lc"
 # structurally valid on its own, but a live incident item is still sitting at status "Triage".
 _INCIDENT_V2_DROPS_TRIAGE = """
 [statuses.Triage2]
-terminal = false
 [statuses.Resolved]
-terminal = true
+role = "done"
 
 [lifecycles.incident_lc]
 initial = "Triage2"

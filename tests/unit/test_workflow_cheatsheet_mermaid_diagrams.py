@@ -61,6 +61,7 @@ def _renamed_task_spec() -> WorkflowSpec:
             "alias_to_type": alias_to_type,
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
+            "roles": base.roles,
         }
     )
 
@@ -106,6 +107,7 @@ def test_a_custom_lifecycle_renders_every_transition_and_terminal_marker() -> No
             "alias_to_type": {**base.alias_to_type, "inc": "incident"},
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
+            "roles": base.roles,
         }
     )
     rendered = render("workflow.md.j2", spec=spec)

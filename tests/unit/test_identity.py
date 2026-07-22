@@ -116,14 +116,15 @@ def test_workflows_constant_is_never_mutated_by_constructing_a_custom_spec():
             },
             "statuses": {
                 **bundled.statuses,
-                "Open2": StatusSpec(terminal=False),
-                "Done2": StatusSpec(terminal=True),
+                "Open2": StatusSpec(role="pending"),
+                "Done2": StatusSpec(role="done"),
             },
             "lifecycles": {**bundled.lifecycles, "custom_probe": custom_lc},
             "prefix_to_type": {**bundled.prefix_to_type, "PRB": "probe"},
             "alias_to_type": dict(bundled.alias_to_type),
             "collections": dict(bundled.collections),
             "subentity_kinds": dict(bundled.subentity_kinds),
+            "roles": dict(bundled.roles),
         }
     )
 
@@ -140,10 +141,9 @@ def test_two_squads_custom_and_bundled_specs_are_independent_objects(tmp_path):
     (override_dir / "workflow.toml").write_text(
         """
 [statuses.SquadAStatus]
-terminal = false
 
 [statuses.SquadADone]
-terminal = true
+role = "done"
 
 [lifecycles.squad_a_lc]
 initial = "SquadAStatus"

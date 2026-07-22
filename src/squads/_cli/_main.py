@@ -30,6 +30,7 @@ from squads._cli._common import (
     get_service,
     handle_errors,
     parse_badge_code,
+    parse_category,
     parse_status,
     parse_type,
     print_item,
@@ -46,6 +47,7 @@ from squads._roles._catalog import resolve_roles
 from squads._services._base import ItemFilter
 from squads._services._refs import graph_to_dot, graph_to_mermaid
 from squads._services._results import GraphNode, ReflogEntry, TreeNode
+from squads._services._service import Service
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
 from squads._workflow._models import WorkflowSpec
@@ -94,6 +96,32 @@ def _sort_by_badge(items: list[Item], sort: str | None, spec: WorkflowSpec) -> l
     if sort is None:
         return items
     return sorted(items, key=lambda it: _badge_rank(it, sort, spec))
+
+
+def _print_empty_or_hidden_hint(hidden_count: int) -> None:
+    """Print the closed-count hint when the default filter hid items down to an empty view,
+    else the plain empty-view message — shared by ``list``/``tree`` so an empty board never
+    looks broken without saying why."""
+    if hidden_count:
+        console.print(f"[dim]{hidden_count} closed items hidden — use --all[/dim]")
+    else:
+        console.print("[dim]no items[/dim]")
+
+
+async def _tree_hidden_count(svc: Service, item_filter: ItemFilter, spec: WorkflowSpec) -> int:
+    """Count of items dropped purely by the default category-aware visibility gate, scoped
+    to ``item_filter``'s other dimensions (type/status/assignee/category/badges) — the same
+    quantity ``sq list`` reports, computed independently of ``tree_view``'s own candidate
+    filtering so the CLI can report it without changing that method's signature."""
+    pre_visibility = await svc.list_items(
+        item_type=item_filter.item_type,
+        status=item_filter.status,
+        assignee=item_filter.assignee,
+        category=item_filter.category,
+        badges=dict(item_filter.badges) or None,
+        badge_min=dict(item_filter.badge_min) or None,
+    )
+    return sum(1 for i in pre_visibility if spec.hidden_by_default(i.type, i.status))
 
 
 def _build_badge_filters(
@@ -351,6 +379,9 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     parent: str | None = typer.Option(None, "--parent"),
     label: str | None = typer.Option(None, "--label"),
     assignee: str | None = typer.Option(None, "--assignee"),
+    category: str | None = typer.Option(
+        None, "--category", help="Narrow to one category: roster, work, or records."
+    ),
     priority: str | None = typer.Option(
         None,
         "--priority",
@@ -375,12 +406,19 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """List items in a table (closed items are hidden unless --all or --status is given).
+    """List items in a table.
 
-    ``--priority``/``--min-priority`` are dedicated sugar for the bundled axis; ``--badge``/
-    ``--min-badge CODE=VALUE`` (repeatable) work generically for any field a spec declares —
-    including a project's own custom axis — deriving filter/threshold semantics from
-    ``fields_for()`` rather than a hand-written per-axis pair.
+    Closed items are hidden unless ``--all`` or ``--status`` is given — category-aware: a
+    ``work``/``roster`` item hides on a terminal status; a ``records`` item (e.g. a decision)
+    stays visible while final-but-live (``Accepted``, ``Published``) and hides only once
+    retired (``Superseded``, ``Deprecated``, ``Cancelled``). When hiding empties the view, a
+    dim hint reports how many were hidden instead of a bare "no items".
+
+    ``--category`` narrows to one of the fixed roster/work/records axis. ``--priority``/
+    ``--min-priority`` are dedicated sugar for the bundled axis; ``--badge``/``--min-badge
+    CODE=VALUE`` (repeatable) work generically for any field a spec declares — including a
+    project's own custom axis — deriving filter/threshold semantics from ``fields_for()``
+    rather than a hand-written per-axis pair.
     """
     svc = get_service()
     validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
@@ -392,11 +430,16 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
         parent=resolved_parent,
         label=label,
         assignee=validated_assignee,
+        category=parse_category(category) if category else None,
         badges=badges or None,
         badge_min=badge_min or None,
     )
+    hidden_count = 0
     if not (all_ or status):
-        items = [i for i in items if get_active_spec().is_open(i.status)]
+        spec = get_active_spec()
+        visible = [i for i in items if not spec.hidden_by_default(i.type, i.status)]
+        hidden_count = len(items) - len(visible)
+        items = visible
     items = _sort_by_badge(items, sort, get_active_spec())
     if json_out:
         spec = get_active_spec()
@@ -414,7 +457,7 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
         )
         return
     if not items:
-        console.print("[dim]no items[/dim]")
+        _print_empty_or_hidden_hint(hidden_count)
         return
     console.print(_item_table(items))
 
@@ -426,6 +469,9 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     type: str | None = typer.Option(None, "--type", "-t"),
     status: str | None = typer.Option(None, "--status", "-s"),
     assignee: str | None = typer.Option(None, "--assignee"),
+    category: str | None = typer.Option(
+        None, "--category", help="Narrow to one category: roster, work, or records."
+    ),
     priority: str | None = typer.Option(
         None,
         "--priority",
@@ -451,12 +497,17 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
     json_out: bool = typer.Option(False, "--json", help="Emit the nested subtree as JSON."),
 ):
-    """Show the item hierarchy (closed items are hidden unless --all or --status is given).
+    """Show the item hierarchy.
 
-    Filters (--type, --status, --assignee, --priority) narrow the tree to matching nodes;
-    ancestor paths are always preserved so every match shows in context (ancestors that only
-    serve as path are rendered dimmed).  --depth N limits the tree to N levels from the root.
-    ``--badge``/``--min-badge`` work generically for any declared field (see `sq list --help`).
+    Closed items are hidden unless ``--all`` or ``--status`` is given — category-aware, the
+    same rule ``sq list`` applies (see its help for the work/records distinction). When
+    hiding empties the view, a dim hint reports how many were hidden instead of a bare tree.
+
+    Filters (--type, --status, --assignee, --category, --priority) narrow the tree to
+    matching nodes; ancestor paths are always preserved so every match shows in context
+    (ancestors that only serve as path are rendered dimmed).  --depth N limits the tree to
+    N levels from the root. ``--badge``/``--min-badge`` work generically for any declared
+    field (see `sq list --help`).
 
     `--json` emits the subtree (`id/type/title/status/priority/assignee/blocked/is_open` + nested
     `children`) — the read an orchestrating agent uses to see a feature's state and decide what to
@@ -469,10 +520,11 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     if root_id is not None:
         resolved_root = await resolve_item_id_any(root_id, svc)
     validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+    parsed_category = parse_category(category) if category else None
 
     # Mirror list's closed-item gate exactly:
     #   --status filter (or --all) reveals matching closed items;
-    #   --priority / --assignee / --type alone do NOT widen to closed.
+    #   --priority / --assignee / --type / --category alone do NOT widen to closed.
     include_closed = bool(all_ or status)
 
     badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
@@ -481,10 +533,13 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
         item_type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
         assignee=validated_assignee,
+        category=parsed_category,
         badges=tuple(badges.items()),
         badge_min=tuple(badge_min.items()),
         spec=spec,
     )
+
+    hidden_count = 0 if include_closed else await _tree_hidden_count(svc, item_filter, spec)
 
     nodes = await svc.tree_view(
         resolved_root,
@@ -532,6 +587,10 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
         branch = parent.add(_label(tn.item, tn.path_only))
         for child in _sort_children(tn.children):
             _attach(branch, child)
+
+    if not nodes:
+        _print_empty_or_hidden_hint(hidden_count)
+        return
 
     rich_tree = Tree("squad")
     for n in _sort_children(nodes):

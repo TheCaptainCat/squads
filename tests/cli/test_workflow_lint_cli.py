@@ -22,7 +22,7 @@ async def test_lint_exits_0_with_ok_when_no_override_exists(project, invoke) -> 
 
 
 async def test_lint_exits_0_with_ok_on_a_valid_override(project, invoke) -> None:
-    _write_override(project, "[statuses.ExtraLintStatus]\nterminal = false\n")
+    _write_override(project, "[statuses.ExtraLintStatus]\n")
     result = await invoke(["workflow", "lint"])
     assert result.exit_code == 0
     assert "OK" in result.output

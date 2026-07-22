@@ -8,7 +8,7 @@ parent: FEAT-570
 author: tech-lead
 priority: medium
 created_at: '2026-07-22T13:00:56Z'
-updated_at: '2026-07-22T13:03:37Z'
+updated_at: '2026-07-22T15:38:29Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US2 (TUI filter popup). Add a category dimension to the filter/sort popup so a browsing user can narrow to roster/work/records. Depends on US1 (TASK-597 `ItemFilter.category`) and pairs with TASK-598.
@@ -28,6 +28,9 @@ Adds a new control to a rendered modal. Lands **InReview**; operator (Pierre) ve
 
 ## Gates
 `uv run --all-extras pyright && uv run --all-extras ruff check . && uv run --all-extras ruff format --check . && uv run --all-extras pytest` (the `tui` extra MUST be present). Leave `sq check` clean.
+
+## Rides FEAT-605 (role colour)
+No colour work in the popup itself, but keep the category Select consistent with the role-coloured rows the tree now renders (FEAT-605). No is_open/terminal reads remain — the popup only builds ItemFilter.
 <!-- sq:body:end -->
 
 ## Subtasks

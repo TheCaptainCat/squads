@@ -10,7 +10,14 @@ other bundled status carries.
 """
 
 from squads._workflow._loader import load_workflow_spec
-from squads._workflow._models import ItemSpec, Lifecycle, RefRule, StatusSpec, WorkflowSpec
+from squads._workflow._models import (
+    ItemSpec,
+    Lifecycle,
+    RefRule,
+    RoleSpec,
+    StatusSpec,
+    WorkflowSpec,
+)
 
 _ROSTER_TYPES = ("role", "skill", "operator")
 _WORK_TYPES = ("epic", "feature", "task", "bug", "decision", "review", "guide")
@@ -88,10 +95,10 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
                 ),
             },
             "statuses": {
-                "Draft": StatusSpec(terminal=False),
-                "Active": StatusSpec(terminal=False),
-                "Archived": StatusSpec(terminal=True),
-                "Done": StatusSpec(terminal=True),
+                "Draft": StatusSpec(),
+                "Active": StatusSpec(),
+                "Archived": StatusSpec(role="done"),
+                "Done": StatusSpec(role="done"),
             },
             "lifecycles": {
                 "agent": Lifecycle(
@@ -101,6 +108,10 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
             },
             "prefix_to_type": {},
             "alias_to_type": {},
+            "roles": {
+                "pending": RoleSpec(settled=False, hidden=False, color="neutral"),
+                "done": RoleSpec(settled=True, hidden=True, color="positive"),
+            },
         }
     )
     hint = custom.parent_hint("chore")
@@ -114,15 +125,30 @@ def test_extra_fields_declared_on_guide_and_review_empty_where_undeclared() -> N
     assert spec.item_extra_fields("task") == []
 
 
-def test_exactly_superseded_inprogress_and_active_carry_a_bundled_role() -> None:
-    """Superseded carries the terminal ``"superseded"`` role; InProgress (work-item) and
-    Active (roster) carry the working ``"active"`` role. Every other bundled status carries
-    no role at all."""
+def test_every_bundled_status_carries_a_declared_role() -> None:
+    """Every bundled status names one of the eight declared roles — role is the sole status
+    axis; a spot-check of the catalog assignment for the statuses that carry the most
+    semantically distinct roles (settled records vs. hidden-done vs. retired vs. the two
+    working/attention roles)."""
     spec = _spec()
     expected_roles = {
-        "Superseded": "superseded",
+        "Draft": "pending",
         "InProgress": "active",
         "Active": "active",
+        "Open": "attention",
+        "Blocked": "blocked",
+        "Accepted": "in_force",
+        "Published": "in_force",
+        "Done": "done",
+        "Verified": "done",
+        "Approved": "done",
+        "Superseded": "superseded",
+        "Rejected": "retired",
+        "Deprecated": "retired",
+        "Cancelled": "retired",
+        "WontFix": "retired",
+        "Archived": "retired",
     }
-    for name, ss in spec.statuses.items():
-        assert ss.role == expected_roles.get(name)
+    for name, expected in expected_roles.items():
+        assert spec.statuses[name].role == expected
+    assert all(ss.role is not None for ss in spec.statuses.values())

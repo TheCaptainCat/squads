@@ -34,6 +34,7 @@ def _spec_without_type(drop_type: str) -> dict[str, object]:
         "alias_to_type": base.alias_to_type,
         "collections": base.collections,
         "subentity_kinds": base.subentity_kinds,
+        "roles": base.roles,
     }
 
 
@@ -47,6 +48,7 @@ def _spec_without_status(drop_status: str) -> dict[str, object]:
         "alias_to_type": base.alias_to_type,
         "collections": base.collections,
         "subentity_kinds": base.subentity_kinds,
+        "roles": base.roles,
     }
 
 
@@ -103,6 +105,7 @@ def test_custom_type_cannot_shadow_a_reserved_prefix() -> None:
                 "lifecycles": base.lifecycles,
                 "prefix_to_type": base.prefix_to_type,
                 "alias_to_type": base.alias_to_type,
+                "roles": base.roles,
             }
         )
 
@@ -119,6 +122,7 @@ def test_custom_type_cannot_shadow_a_reserved_folder() -> None:
                 "lifecycles": base.lifecycles,
                 "prefix_to_type": new_prefix_to_type,
                 "alias_to_type": base.alias_to_type,
+                "roles": base.roles,
             }
         )
 
@@ -156,6 +160,7 @@ def test_non_roster_types_includes_a_custom_work_type_but_not_a_custom_roster_ty
             "alias_to_type": base.alias_to_type,
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
+            "roles": base.roles,
         }
     )
     nrt = spec.non_roster_types()

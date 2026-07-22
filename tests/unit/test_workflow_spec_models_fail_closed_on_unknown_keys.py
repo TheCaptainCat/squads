@@ -30,7 +30,7 @@ def test_item_spec_rejects_an_unknown_key() -> None:
 
 def test_status_spec_rejects_an_unknown_key() -> None:
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        StatusSpec.model_validate({"terminal": False, "rogue_key": True})
+        StatusSpec.model_validate({"role": "pending", "rogue_key": True})
 
 
 def test_ref_rule_rejects_an_unknown_key() -> None:
@@ -48,6 +48,7 @@ def test_workflow_spec_rejects_an_unknown_top_level_key() -> None:
                 "lifecycles": dict(spec.lifecycles),
                 "prefix_to_type": dict(spec.prefix_to_type),
                 "alias_to_type": dict(spec.alias_to_type),
+                "roles": dict(spec.roles),
                 "totally_bogus": "should_fail",
             }
         )

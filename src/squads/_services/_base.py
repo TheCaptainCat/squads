@@ -92,6 +92,11 @@ class ItemFilter:
     parent: str | None = None
     label: str | None = None
     assignee: str | None = None
+    #: Category filter (``roster``/``work``/``records``) — matches when the item's type
+    #: declares this category. Needs ``spec`` to resolve (graceful no-match without it,
+    #: mirroring ``badge_min``); the value itself is validated at the CLI edge against the
+    #: fixed category catalog (``squads._workflow.CATEGORIES``), not here.
+    category: str | None = None
     #: Exact badge-field filters, keyed by field CODE (e.g. ``priority``, or a project's own
     #: custom axis) — generic over ``fields_for()``, not a hand-written priority-only param.
     badges: tuple[tuple[str, str], ...] = ()
@@ -99,7 +104,8 @@ class ItemFilter:
     #: Resolving "at least as high as" needs the field's declared collection, so this variant
     #: is only usable when ``spec`` is set.
     badge_min: tuple[tuple[str, str], ...] = ()
-    #: The active spec — needed only to resolve ``badge_min`` rank; ``None`` disables it.
+    #: The active spec — needed only to resolve ``badge_min`` rank and ``category``;
+    #: ``None`` disables both.
     spec: WorkflowSpec | None = None
 
     def matches(self, it: Item) -> bool:
@@ -110,12 +116,21 @@ class ItemFilter:
             and (not self.parent or it.parent == self.parent)
             and (not self.label or self.label in it.labels)
             and (not self.assignee or it.assignee == self.assignee)
+            and (not self.category or self._category_of(it) == self.category)
         )
         if not base:
             return False
         if any(it.badge_value(code) != want for code, want in self.badges):
             return False
         return all(self._meets_min(it, code, min_code) for code, min_code in self.badge_min)
+
+    def _category_of(self, it: Item) -> str | None:
+        """The declared category of *it*'s type, or ``None`` when unresolvable (no active
+        spec, or the type is not declared in it) — a graceful non-match, never a crash."""
+        if self.spec is None:
+            return None
+        ts = self.spec.items.get(it.type)
+        return ts.category if ts else None
 
     def _meets_min(self, it: Item, code: str, min_code: str) -> bool:
         """True when *it*'s badge for *code* ranks at least as high as *min_code* (lower
@@ -140,6 +155,7 @@ class ItemFilter:
                 self.parent,
                 self.label,
                 self.assignee,
+                self.category,
                 self.badges,
                 self.badge_min,
             )
@@ -450,11 +466,14 @@ class ServiceCore:
         parent: str | None = None,
         label: str | None = None,
         assignee: str | None = None,
+        category: str | None = None,
         badges: dict[str, str] | None = None,
         badge_min: dict[str, str] | None = None,
     ) -> list[Item]:
         """List items matching every given filter dimension.
 
+        ``category`` narrows to one of the fixed ``roster``/``work``/``records`` axis
+        (validated at the CLI edge — unvalidated here, matching ``item_type``/``status``).
         ``badges``/``badge_min`` are keyed by badge field CODE (e.g. ``"priority"``, or a
         project's own custom axis) — generic over ``fields_for()``, not a dedicated param
         per axis. ``badge_min`` only matches ordered collections
@@ -466,6 +485,7 @@ class ServiceCore:
             parent=parent,
             label=label,
             assignee=assignee,
+            category=category,
             badges=tuple((badges or {}).items()),
             badge_min=tuple((badge_min or {}).items()),
             spec=self.spec,
@@ -505,11 +525,13 @@ class ServiceCore:
         db = await self.store.load()
         all_items_list = list(db.items.values())
 
-        # Step 1: candidate set
+        # Step 1: candidate set — default visibility keyed on the status's role (settled +
+        # hidden work/roster items drop out; an in-force record like Accepted/Published stays
+        # visible; see WorkflowSpec.hidden_by_default).
         candidates: list[Item] = (
             all_items_list
             if include_closed
-            else [i for i in all_items_list if self.spec.is_open(i.status)]
+            else [i for i in all_items_list if not self.spec.hidden_by_default(i.type, i.status)]
         )
 
         # Step 2: build maps

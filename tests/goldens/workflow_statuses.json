@@ -1,140 +1,117 @@
 [
   {
     "status": "Accepted",
-    "terminal": true,
-    "role": null,
+    "role": "in_force",
     "badge": null
   },
   {
     "status": "Active",
-    "terminal": false,
     "role": "active",
     "badge": null
   },
   {
     "status": "Approved",
-    "terminal": true,
-    "role": null,
+    "role": "done",
     "badge": null
   },
   {
     "status": "Archived",
-    "terminal": true,
-    "role": null,
+    "role": "retired",
     "badge": null
   },
   {
     "status": "Blocked",
-    "terminal": false,
-    "role": null,
+    "role": "blocked",
     "badge": "\ud83d\udd34"
   },
   {
     "status": "Cancelled",
-    "terminal": true,
-    "role": null,
+    "role": "retired",
     "badge": "\u26ab"
   },
   {
     "status": "ChangesRequested",
-    "terminal": false,
-    "role": null,
+    "role": "active",
     "badge": null
   },
   {
     "status": "Deprecated",
-    "terminal": true,
-    "role": null,
+    "role": "retired",
     "badge": null
   },
   {
     "status": "Done",
-    "terminal": true,
-    "role": null,
+    "role": "done",
     "badge": "\ud83d\udfe2"
   },
   {
     "status": "Draft",
-    "terminal": false,
-    "role": null,
+    "role": "pending",
     "badge": null
   },
   {
     "status": "Fixed",
-    "terminal": false,
-    "role": null,
+    "role": "active",
     "badge": "\ud83d\udfe1"
   },
   {
     "status": "InProgress",
-    "terminal": false,
     "role": "active",
     "badge": "\ud83d\udfe1"
   },
   {
     "status": "InReview",
-    "terminal": false,
-    "role": null,
+    "role": "active",
     "badge": null
   },
   {
     "status": "Open",
-    "terminal": false,
-    "role": null,
+    "role": "attention",
     "badge": "\ud83d\udd34"
   },
   {
     "status": "Proposed",
-    "terminal": false,
-    "role": null,
+    "role": "pending",
     "badge": null
   },
   {
     "status": "Published",
-    "terminal": true,
-    "role": null,
+    "role": "in_force",
     "badge": null
   },
   {
     "status": "Ready",
-    "terminal": false,
-    "role": null,
+    "role": "pending",
     "badge": null
   },
   {
     "status": "Rejected",
-    "terminal": true,
-    "role": null,
+    "role": "retired",
     "badge": null
   },
   {
     "status": "Requested",
-    "terminal": false,
-    "role": null,
+    "role": "pending",
     "badge": null
   },
   {
     "status": "Superseded",
-    "terminal": true,
     "role": "superseded",
     "badge": null
   },
   {
     "status": "Todo",
-    "terminal": false,
-    "role": null,
+    "role": "pending",
     "badge": "\u26aa"
   },
   {
     "status": "Verified",
-    "terminal": true,
-    "role": null,
+    "role": "done",
     "badge": "\ud83d\udfe2"
   },
   {
     "status": "WontFix",
-    "terminal": true,
-    "role": null,
+    "role": "retired",
     "badge": "\u26ab"
   }
 ]

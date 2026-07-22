@@ -21,7 +21,6 @@ async def test_exits_1_on_an_off_vocabulary_transition_target(project, invoke):
         project.squad_dir,
         """
 [statuses.Triage]
-terminal = false
 
 [lifecycles.incident_lc]
 initial = "Triage"
@@ -44,9 +43,7 @@ async def test_exits_1_when_a_custom_lifecycle_can_never_reach_a_terminal_state(
         project.squad_dir,
         """
 [statuses.Triage]
-terminal = false
 [statuses.Mitigating]
-terminal = false
 
 [lifecycles.incident_lc]
 initial = "Triage"
@@ -75,9 +72,8 @@ async def test_exits_0_on_a_valid_custom_override_and_on_the_bundled_spec_with_n
         project.squad_dir,
         """
 [statuses.Triage]
-terminal = false
 [statuses.Resolved]
-terminal = true
+role = "done"
 
 [lifecycles.incident_lc]
 initial = "Triage"

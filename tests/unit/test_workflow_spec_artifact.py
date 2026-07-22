@@ -46,6 +46,7 @@ def test_a_cycle_in_the_type_parent_graph_raises(parent_map: dict[str, list[str]
                 "alias_to_type": dict(bundled.alias_to_type),
                 "collections": dict(bundled.collections),
                 "subentity_kinds": dict(bundled.subentity_kinds),
+                "roles": dict(bundled.roles),
             }
         )
 
@@ -71,14 +72,15 @@ def test_workflows_dict_is_a_stable_immutable_bundled_snapshot() -> None:
             },
             "statuses": {
                 **bundled.statuses,
-                "Open2": StatusSpec(terminal=False),
-                "Done2": StatusSpec(terminal=True),
+                "Open2": StatusSpec(role="pending"),
+                "Done2": StatusSpec(role="done"),
             },
             "lifecycles": {**bundled.lifecycles, "custom_probe": _extra_lifecycle()},
             "prefix_to_type": {**bundled.prefix_to_type, "PRB": "probe"},
             "alias_to_type": dict(bundled.alias_to_type),
             "collections": dict(bundled.collections),
             "subentity_kinds": dict(bundled.subentity_kinds),
+            "roles": dict(bundled.roles),
         }
     )
 
@@ -94,9 +96,8 @@ def test_two_squads_overridden_specs_are_independent(tmp_path: Path) -> None:
     (override_dir / "workflow.toml").write_text(
         """
 [statuses.SquadAStatus]
-terminal = false
 [statuses.SquadADone]
-terminal = true
+role = "done"
 
 [lifecycles.squad_a_lc]
 initial = "SquadAStatus"

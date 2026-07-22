@@ -10,6 +10,7 @@ priority: medium
 refs:
 - FEAT-567
 - REV-565
+- FEAT-605:depends-on
 subentities:
 - local_id: US1
   title: category-aware default visibility + empty-view hint + --category filter
@@ -21,46 +22,51 @@ subentities:
   title: 'VS Code extension: dedicated records view'
   status: Todo
 created_at: '2026-07-22T08:39:37Z'
-updated_at: '2026-07-22T08:40:24Z'
+updated_at: '2026-07-22T15:31:01Z'
 ---
 <!-- sq:body -->
 ## Capability
 
-Give both UI clients (the TUI and the VS Code extension) a `records` group, and fold
-in REV-565 F9: category-aware default visibility so a live-reference record (e.g. an
-Accepted decision) doesn't disappear from the default view the way finished work
-correctly does.
+Give both UI clients (the TUI and the VS Code extension) a `records` group, and
+fold in REV-565 F9: a live-reference record (e.g. an Accepted decision) doesn't
+disappear from the default view the way finished work correctly does.
 
 ## Why (folds REV-565 F9)
 
 F9 (Open, medium): after migrating a mostly-completed history, `sq tree`/`sq list`
-look nearly empty by default — features `Done`, ADRs `Accepted`, bugs `Verified` are
-all hidden unless `--all`. Reasonable for finished *work*, but an `Accepted` decision
-is the **standing record**, not finished work — hiding the entire decision log by
-default is surprising, not merely terse. This is exactly what the `records` category
-disambiguates: hide-when-terminal is a `work`-category default, not a `records` one.
+look nearly empty by default — features `Done`, ADRs `Accepted`, bugs `Verified`
+are all hidden unless `--all`. Reasonable for finished *work*, but an `Accepted`
+decision is the **standing record**, not finished work — hiding the entire
+decision log by default is surprising, not merely terse. This is exactly what the
+`records` category disambiguates: default visibility for a status is per-role,
+and a records-category item's settled statuses carry a role that stays visible
+while genuinely retired.
 
 ## Scope
 
 - `sq workflow types --json` exposes each type's `category` in the catalog both
-  clients already fetch (single-sourced taxonomy, no client re-derives it) — this is
-  the wire-level enabler both UI changes below build on.
-- **Default visibility becomes category-aware**: a `records`-category item stays
-  visible in the default (non-`--all`) view while it is in a *final-but-live* status
-  (e.g. `Accepted`, `Published`) — hidden only once genuinely retired (`Superseded`,
-  `Deprecated`, `Cancelled`). `work`-category terminal-hiding (Done/Verified/Cancelled)
-  is unchanged. Applies to both `sq list`/`sq tree` and the two UI clients.
+  clients already fetch (single-sourced taxonomy, no client re-derives it) — this
+  is the wire-level enabler both UI changes below build on.
+- **Default visibility is consumed from `role.hidden`** (delivered by the status
+  role-object work): a status's role already carries whether it's hidden from the
+  default (non-`--all`) view, so a records-category item in a settled-but-visible
+  role (e.g. `Accepted`, `Published`) stays shown, while a settled-and-hidden role
+  (e.g. `Superseded`, `Deprecated`, `Cancelled`) hides it — no category-specific
+  visibility rule is derived here. `work`-category terminal-hiding
+  (Done/Verified/Cancelled) is the same mechanism, unchanged in effect.
 - **Empty-view hint**: when a default view is empty (or looks sparse) because
-  terminal work items are hidden, print/render a hint ("N closed items hidden — use
-  --all") rather than silently looking broken.
+  hidden-role items are excluded, print/render a hint ("N closed items hidden —
+  use --all") rather than silently looking broken.
 - **A category filter on every filterable surface**: `sq list --category
   roster|work|records`, the TUI filter/sort popup (FEAT-525), and the VS Code
   QuickPick/tree filtering all gain a category dimension alongside today's
   type/status/priority filters.
 - **TUI**: the one tree switches its grouping from the `is_meta` boolean to
-  `category` — a third root (`records`) alongside `work`/`roster`.
+  `category` — a third root (`records`) alongside `work`/`roster`. Rows also pick
+  up role-colour rendering (below).
 - **VS Code extension**: a dedicated records view/provider, mirroring how roster
-  already has its own provider (`domain/metaView.ts`) separate from the work tree.
+  already has its own provider (`domain/metaView.ts`) separate from the work tree,
+  plus role-colour rendering (below).
 
 ## Acceptance
 
@@ -74,6 +80,8 @@ disambiguates: hide-when-terminal is a `work`-category default, not a `records` 
 
 ## Dependencies / ordering
 
+- **Depends on FEAT-605** for the role-object model that drives default
+  visibility and status colour.
 - **Depends on FEAT-567 (Phase A)** for the `category` axis on the wire catalog.
 - **Phase C, parallelizable** against the other EPIC-538 Phase C features.
 - Cross-ref: REV-565 F9 (folded in here).
@@ -101,7 +109,11 @@ _Add with `sq feature 570 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
-sq list/tree hide-when-terminal becomes category-aware (records hide only when retired); empty-view hint; sq list --category flag; wire category onto sq workflow types --json.
+sq list/tree default visibility is consumed from role.hidden (trunk-provided by FEAT-605), not re-derived here — a records-category item's settled statuses stay visible while genuinely retired ones hide.
+
+Empty-view hint when hidden-role items are excluded from the default view.
+
+sq list --category roster|work|records flag; wire category onto sq workflow types --json.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -119,6 +131,8 @@ sq list/tree hide-when-terminal becomes category-aware (records hide only when r
 
 <!-- sq:story:US2:body -->
 Switch the browse tree's grouping from is_meta to category; add the records root alongside work/roster; wire the filter popup's category dimension.
+
+Rides FEAT-605: join status to role and render row colour from role.color (intent to Textual attribute, neutral fallback).
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -136,6 +150,8 @@ Switch the browse tree's grouping from is_meta to category; add the records root
 
 <!-- sq:story:US3:body -->
 New records provider mirroring domain/metaView.ts's separation from the work tree; category filter in the QuickPick/tree.
+
+Rides FEAT-605: fetch the roles catalog, join status to role, and render role.color (ThemeColor with neutral fallback) in place of the removed is_open/terminal fields.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion

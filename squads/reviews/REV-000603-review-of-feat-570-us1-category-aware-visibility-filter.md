@@ -17,7 +17,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-22T13:37:59Z'
-updated_at: '2026-07-22T13:38:52Z'
+updated_at: '2026-07-22T15:38:13Z'
 ---
 <!-- sq:body -->
 Independent review of FEAT-570 US1 (TASK-595/596/597): category on the `sq workflow types --json` catalog, category-aware default visibility (folds REV-565 F9), the empty-view hint, and a `--category` filter on sq list/tree. Read-only — did not author. Gates verified green: pyright/ruff/format clean, full suite --all-extras exit 0, sq check clean.
@@ -85,4 +85,6 @@ New behavior: a records item at a terminal-but-unroled status stays visible by d
   - Byte-identical verdict (priority focus 2): CONFIRMED. hidden_by_default(t,s) == not is_open(s) for work/roster, proven exhaustively over every declared type x status (test_hidden_by_default_matches_is_open_inverse...). Records path correct: Accepted/Published/Proposed now visible (the F9 fix), Superseded/Deprecated hidden.
   - The two 'fixed' terminal-status tests (focus 3): legitimately encoded the OLD hide-everything-terminal behavior (the F9 symptom); new assertions are correct, and the blocked-unaffected test (is_open) is unchanged — not masking a regression.
   - @tech-lead @product-owner: Approve with 2 Low nits (F1 stale docstring, F2 Rejected-records-visible intent call). Neither blocks the merge. Gates: pyright/ruff/format clean, full suite --all-extras green, sq check clean.
+- [2026-07-22T15:38:13Z] Olivia Lead:
+  - F1/F2 are subsumed by the FEAT-605 rework. F1 (stale StatusSpec.role docstring 'not consumed by the engine'): moot — role becomes the first-class engine-consumed axis and the docstring is rewritten in FEAT-605 TASK-606/607. F2 (Rejected records visible by default): resolved by ADR-604 §2 — Rejected moves into the retired role (settled/hidden/muted), so it now hides. Leaving this review for the manager to close.
 <!-- sq:discussion:end -->

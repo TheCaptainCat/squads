@@ -119,6 +119,7 @@ def _run_json(runner: CliRunner, args: list[str], expected_exit: int = 0) -> Any
         ("workflow_types", ["workflow", "types", "--json"]),
         ("workflow_collections", ["workflow", "collections", "--json"]),
         ("workflow_statuses", ["workflow", "statuses", "--json"]),
+        ("workflow_roles", ["workflow", "roles", "--json"]),
     ],
 )
 def test_command_json_output_matches_its_golden_shape(

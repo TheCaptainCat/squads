@@ -59,6 +59,7 @@ def test_a_custom_type_with_a_subentity_kind_appears_in_the_generic_summary_line
             "alias_to_type": {**base.alias_to_type, "inc": "incident"},
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
+            "roles": base.roles,
         }
     )
     rendered = render("workflow.md.j2", spec=spec)

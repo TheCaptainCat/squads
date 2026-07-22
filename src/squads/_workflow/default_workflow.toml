@@ -7,6 +7,11 @@
 # [collections.*] + the `fields` lists below are the badge vocabulary — the bundled
 # priority/severity collections/fields ARE the runtime vocabulary now (no more Priority/Severity
 # enums); "does type/kind X carry field Y" is a fields_for(X) lookup.
+#
+# [roles.*] is the role catalog — the sole explicit status axis. Every status below names one
+# role via `role`; the role object carries `settled`/`hidden`/`color` (terminal/is_open/default-
+# visibility are all derived from the referenced role, never stored per-status). `badge` stays
+# its own independent per-status field.
 
 # ---------------------------------------------------------------------------
 # Named lifecycle state machines — item lifecycles and sub-entity lifecycles
@@ -108,95 +113,140 @@ Verified = []
 WontFix = ["Open"]
 
 # ---------------------------------------------------------------------------
-# Statuses (terminal flag + optional sub-entity badge)
-# terminal mirrors today's TERMINAL frozenset exactly. badge is declared for the 9
-# sub-entity statuses only; other statuses render the graceful default when their badge is
-# looked up. The done-toggle target per sub-entity kind lives on
-# subentity_kinds.<kind>.completion below, not here — "Fixed" being non-terminal (it's
-# also the pending-verification bug item status) has no bearing on it being the finding
-# kind's completion target; the two concepts are independent by design.
+# Roles — the role catalog. Eight bundled roles; every status below names exactly one.
+# `settled` is the old `terminal`; `hidden` is default-visibility; `color` is a semantic
+# colour intent from the closed palette (positive/danger/warning/muted/neutral/info),
+# mapped to a concrete colour per client (not here). `warning` is unused by the bundled
+# defaults — reserved for adopters.
+# ---------------------------------------------------------------------------
+
+[roles.pending]
+settled = false
+hidden = false
+color = "neutral"
+
+[roles.active]
+settled = false
+hidden = false
+color = "positive"
+
+[roles.attention]
+settled = false
+hidden = false
+color = "danger"
+
+[roles.blocked]
+settled = false
+hidden = false
+color = "danger"
+
+[roles.in_force]
+settled = true
+hidden = false
+color = "info"
+
+[roles.done]
+settled = true
+hidden = true
+color = "positive"
+
+[roles.retired]
+settled = true
+hidden = true
+color = "muted"
+
+[roles.superseded]
+settled = true
+hidden = true
+color = "muted"
+
+# ---------------------------------------------------------------------------
+# Statuses (role reference + optional sub-entity badge)
+# Every status names one of the roles above. badge is declared for the 9 sub-entity statuses
+# only; other statuses render the graceful default when their badge is looked up. The
+# done-toggle target per sub-entity kind lives on subentity_kinds.<kind>.completion below, not
+# here — "Fixed" carrying the non-settled "active" role (it's also the pending-verification bug
+# item status) has no bearing on it being the finding kind's completion target; the two concepts
+# are independent by design.
 # ---------------------------------------------------------------------------
 
 [statuses.Draft]
-terminal = false
+role = "pending"
 
 [statuses.Ready]
-terminal = false
+role = "pending"
 
 [statuses.InProgress]
-terminal = false
 badge = "🟡"
 role = "active"
 
 [statuses.InReview]
-terminal = false
+role = "active"
 
 [statuses.Done]
-terminal = true
 badge = "🟢"
+role = "done"
 
 [statuses.Blocked]
-terminal = false
 badge = "🔴"
+role = "blocked"
 
 [statuses.Cancelled]
-terminal = true
 badge = "⚫"
+role = "retired"
 
 [statuses.Proposed]
-terminal = false
+role = "pending"
 
 [statuses.Accepted]
-terminal = true
+role = "in_force"
 
 [statuses.Superseded]
-terminal = true
 role = "superseded"
 
 [statuses.Rejected]
-terminal = true
+role = "retired"
 
 [statuses.Deprecated]
-terminal = true
+role = "retired"
 
 [statuses.Requested]
-terminal = false
+role = "pending"
 
 [statuses.ChangesRequested]
-terminal = false
+role = "active"
 
 [statuses.Approved]
-terminal = true
+role = "done"
 
 [statuses.Published]
-terminal = true
+role = "in_force"
 
 [statuses.Active]
-terminal = false
 role = "active"
 
 [statuses.Archived]
-terminal = true
+role = "retired"
 
 [statuses.Todo]
-terminal = false
 badge = "⚪"
+role = "pending"
 
 [statuses.Open]
-terminal = false
 badge = "🔴"
+role = "attention"
 
 [statuses.Fixed]
-terminal = false
 badge = "🟡"
+role = "active"
 
 [statuses.Verified]
-terminal = true
 badge = "🟢"
+role = "done"
 
 [statuses.WontFix]
-terminal = true
 badge = "⚫"
+role = "retired"
 
 # ---------------------------------------------------------------------------
 # Collections — reusable badge libraries. priority/severity are the sole vocabulary for
