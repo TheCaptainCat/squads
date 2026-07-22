@@ -43,6 +43,41 @@ STATUS_ACTIVE = "Active"
 STATUS_ARCHIVED = "Archived"
 _RESERVED_FLOOR: frozenset[str] = frozenset({STATUS_DRAFT, STATUS_ACTIVE, STATUS_ARCHIVED})
 
+#: The closed per-item validator NAME catalog — the vocabulary half of the pluggable-validator
+#: decision. Behaviour (the actual check functions) lives high, in
+#: ``_services/_validators.py::CATALOG``, which asserts ``set(CATALOG) == VALIDATOR_NAMES`` at
+#: import time so impl can never drift from this declared contract. Living here (not in
+#: ``_services``) lets ``WorkflowSpec._validate``'s Plane-1 catalog-membership check read the
+#: valid names without ``_workflow`` importing up into ``_services`` (an inverted, cyclic edge).
+VALIDATOR_NAMES: frozenset[str] = frozenset(
+    {
+        "parent_in",
+        "no_parent",
+        "item_status_valid",
+        "dangling_ref",
+        "ref_kind_valid",
+        "agent_registered",
+        "subtask_story_mapping",
+        "subentity_status_valid",
+        "subentity_body_written",
+        "subentity_title_max",
+        "no_status_banner",
+        "supersedes_incoming",
+    }
+)
+
+#: The closed squad-global validator NAME catalog (``_services/_validators.py::
+#: SQUAD_GLOBAL_CATALOG``) — whole-squad checks that run once per ``sq check``/gate
+#: invocation, independent of any type's ``category``.
+SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset({"index_reconciled", "backend_reconciled"})
+
+#: Validator names that legitimately carry a ``:<param>`` suffix in documentary/seed-catalog
+#: shorthand — the one case where the threshold isn't already a structured spec field
+#: (``subentity_title_max``'s threshold is the ``TITLE_ADVISORY_MAX`` module constant). Every
+#: other catalog name is bare; a spec's ``validators`` list itself only ever names bare
+#: entries (the ``:<n>`` suffix is not spec-declared — see the architect's pin on parent_in).
+PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset({"subentity_title_max"})
+
 # ---------------------------------------------------------------------------
 # Workflow dataclass — the thin shim over Lifecycle
 # ---------------------------------------------------------------------------
@@ -269,6 +304,13 @@ class ItemSpec(BaseModel):
     ``sq update --set`` — spec-declared identity so a renamed work type (e.g. guide->doc)
     keeps its settable fields instead of losing them to a hardcoded literal type name. The
     value kind (str/list/bool) per key is fixed in ``_models/_metadata.py``, not declared here."""
+
+    validators: list[str] = []
+    """Per-type additions to the category's default validator bundle (the pluggable-validator
+    decision's assignment surface) — bare catalog names, **extend-only** over the bundle: a
+    type may add a validator, never deselect a category default. Resolved at call time via
+    ``_services._validators.effective_validator_names(category, extra=validators)``; every
+    entry must name a member of ``VALIDATOR_NAMES`` (Plane-1, enforced below)."""
 
 
 class StatusSpec(BaseModel):
@@ -514,6 +556,22 @@ def _check_item_refs(
                     f"duplicate alias {alias!r}: used by {seen_aliases[alias]!r} and {t!r}"
                 )
             seen_aliases[alias] = t
+
+
+def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) -> None:
+    """Plane-1 catalog-membership check for each type's ``validators`` list: an unknown name
+    fails closed. Param-aware — split on ``:``, the bare name must be a declared catalog
+    member, and a ``:<param>`` suffix is only well-formed on a name in
+    ``PARAMETERIZED_VALIDATOR_NAMES`` (today, only ``subentity_title_max``; the assignment
+    surface otherwise lists bare names — see the architect's pin on ``parent_in``).
+    """
+    for t, ts in items.items():
+        for entry in ts.validators:
+            bare, sep, _param = entry.partition(":")
+            if bare not in VALIDATOR_NAMES:
+                errors.append(f"item {t!r}: validators entry {entry!r} names an unknown validator")
+            elif sep and bare not in PARAMETERIZED_VALIDATOR_NAMES:
+                errors.append(f"item {t!r}: validator {bare!r} takes no param (got {entry!r})")
 
 
 #: Field codes exempt from the reserved-key check below because this exact schema models
@@ -925,6 +983,9 @@ class WorkflowSpec(BaseModel):
 
         # ItemSpec cross-refs + uniqueness.
         _check_item_refs(self.items, all_lifecycle_names, all_types, errors)
+
+        # Validator-catalog-membership check for each type's `validators` assignment list.
+        _check_validators_assignment(self.items, errors)
 
         # Parent-cycle detection in the type-parent graph.
         _check_parent_cycles(self.items, errors)

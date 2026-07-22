@@ -1,8 +1,9 @@
-"""The validator-engine scaffold (Phase A of the accepted category/validator decision): the
-``Validator``/``ValidatorContext`` shape, the empty closed catalog, and ``report``/``gate``
-behaving as a pure no-op over it. The composition mechanism (common core + category bundle +
-per-type additions) is proven against a stub bundle, independent of the (currently empty)
-production catalog — a later phase populates it for real.
+"""The validator-engine dispatch plumbing, now fully wired: ``report``/``gate`` run the real
+``COMMON_CORE``/``CATEGORY_BUNDLES`` selection over the real ``CATALOG``, and ``squad_global``
+defaults to the real ``SQUAD_GLOBAL_CATALOG``. The composition mechanism itself (common core +
+category bundle + per-type additions) is also proven against a stub bundle, independent of the
+production tables. Per-validator parity against the legacy ``_check_*`` methods, and the
+end-to-end byte-identical-set proof, live in the service-level tests.
 """
 
 from datetime import UTC, datetime
@@ -21,11 +22,14 @@ from squads._services._validators import (
     effective_validator_names,
 )
 from squads._workflow import bundled_spec
+from squads._workflow._models import SQUAD_GLOBAL_VALIDATOR_NAMES, VALIDATOR_NAMES
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 
-def _make_item(seq: int, item_type: str) -> Item:
+def _make_item(
+    seq: int, item_type: str, *, status: str = "Draft", author: str | None = None
+) -> Item:
     prefix = BUILTIN_PREFIX[item_type]
     return Item(
         sequence_id=seq,
@@ -33,55 +37,90 @@ def _make_item(seq: int, item_type: str) -> Item:
         prefix=prefix,
         title=f"item {seq}",
         slug=f"item-{seq}",
-        status="Draft",
+        status=status,
+        author=author,
         path=f"{BUILTIN_FOLDER[item_type]}/{prefix}-{seq:06d}-item-{seq}.md",
         created_at=_NOW,
         updated_at=_NOW,
     )
 
 
-# --------------------------------------------------------------------------- Phase A: no-ops
+# --------------------------------------------------------------------------- catalog/bundle shape
 
 
-def test_catalogs_are_empty_in_phase_a() -> None:
-    assert CATALOG == {}
-    assert SQUAD_GLOBAL_CATALOG == {}
-    assert COMMON_CORE == ()
+def test_catalogs_implement_exactly_the_declared_name_registries() -> None:
+    assert set(CATALOG) == VALIDATOR_NAMES
+    assert set(SQUAD_GLOBAL_CATALOG) == SQUAD_GLOBAL_VALIDATOR_NAMES
+
+
+def test_common_core_and_category_bundles_are_populated() -> None:
+    """``no_parent`` on ``records``/``epic`` is deliberately withheld — a separate,
+    migration-sequenced task."""
+    assert set(COMMON_CORE) == {
+        "item_status_valid",
+        "dangling_ref",
+        "ref_kind_valid",
+        "no_status_banner",
+        "agent_registered",
+    }
     assert set(CATEGORY_BUNDLES) == {"roster", "work", "records"}
-    assert all(bundle == () for bundle in CATEGORY_BUNDLES.values())
+    assert CATEGORY_BUNDLES["roster"] == ()
+    assert "no_parent" not in CATEGORY_BUNDLES["records"]
+    assert "parent_in" in CATEGORY_BUNDLES["work"]
+    assert "no_parent" not in CATEGORY_BUNDLES["work"]
 
 
-def test_report_over_the_empty_catalog_returns_no_issues() -> None:
+# --------------------------------------------------------------------------- report/gate, wired
+
+
+def test_report_runs_the_real_bundles_over_a_clean_item() -> None:
+    """Squad-global excluded here (needs ``paths`` — see the dedicated test below); this one
+    isolates the real per-item common-core + category-bundle selection."""
     spec = bundled_spec()
     db = SquadsDB(counter=1)
     db.add(_make_item(1, "task"))
-    engine = ValidatorEngine(spec=spec)
+    engine = ValidatorEngine(spec=spec, squad_global={})
     assert engine.report(db, {}) == []
 
 
-def test_gate_over_the_empty_catalog_does_not_raise() -> None:
+def test_gate_does_not_raise_for_a_clean_item() -> None:
     spec = bundled_spec()
     db = SquadsDB(counter=1)
-    item = _make_item(1, "decision")
+    item = _make_item(1, "decision", status="Proposed")
+    db.add(item)
     engine = ValidatorEngine(spec=spec)
     engine.gate(item, db)  # must not raise
 
 
-def test_gate_is_a_no_op_regardless_of_item_type() -> None:
-    """Every bundled category (roster/work/records) resolves to an empty effective set."""
+def test_gate_raises_on_an_error_level_violation() -> None:
+    from squads._errors import SquadsError
+
     spec = bundled_spec()
-    engine = ValidatorEngine(spec=spec)
     db = SquadsDB(counter=1)
-    for item_type in ("role", "task", "decision"):
-        engine.gate(_make_item(1, item_type), db)  # must not raise for any category
+    item = _make_item(1, "decision", status="NotAStatus")
+    engine = ValidatorEngine(spec=spec)
+    try:
+        engine.gate(item, db)
+    except SquadsError as e:
+        assert "invalid for decision" in str(e)
+    else:
+        raise AssertionError("expected a SquadsError")
+
+
+def test_gate_never_raises_on_a_warn_only_violation() -> None:
+    """``agent_registered`` is warn-level — an unregistered author never aborts the gate."""
+    spec = bundled_spec()
+    db = SquadsDB(counter=1)
+    item = _make_item(1, "task", author="nobody", status="Draft")
+    engine = ValidatorEngine(spec=spec)
+    engine.gate(item, db)  # must not raise
 
 
 # --------------------------------------------------------------------------- composition shape
 
 
 def test_effective_validator_names_composes_common_core_and_category_bundle() -> None:
-    """Proven against a stub bundle (not the real, still-empty production one) — the shape a
-    real Phase B catalog will exercise unmodified."""
+    """Proven against a stub bundle (not production) — the shape a real catalog exercises."""
     stub_core = ("dangling_ref",)
     stub_bundles = {"roster": (), "work": ("no_status_banner",), "records": ("no_parent",)}
 
@@ -97,7 +136,8 @@ def test_effective_validator_names_composes_common_core_and_category_bundle() ->
 
 
 def test_effective_validator_names_appends_extra_additions_after_the_bundle() -> None:
-    """Stands in for a future per-type ``validators`` field — extend-only, appended last."""
+    """Stands in for the per-type ``validators`` field (the assignment-surface task) —
+    extend-only, appended last."""
     names = effective_validator_names(
         "work",
         common_core=(),
@@ -107,40 +147,41 @@ def test_effective_validator_names_appends_extra_additions_after_the_bundle() ->
     assert names == ("a", "b", "c")
 
 
-def test_effective_validator_names_defaults_to_the_real_empty_production_tables() -> None:
-    """With no stub override, every category resolves to () today — the honest Phase A shape."""
+def test_effective_validator_names_matches_the_real_production_tables() -> None:
     for category in ("roster", "work", "records"):
-        assert effective_validator_names(category) == ()
+        assert effective_validator_names(category) == COMMON_CORE + CATEGORY_BUNDLES[category]
 
 
 def test_engine_uses_a_stub_catalog_to_prove_dispatch_runs_a_named_validator() -> None:
-    """The dispatch plumbing itself (catalog lookup -> call -> collect issues) works today;
-    only the production catalog is empty. A stub catalog + bundle proves the wiring."""
+    """The dispatch plumbing itself (catalog lookup -> call -> collect issues), proven with a
+    stub name/bundle so it's independent of whatever the real catalog/bundles contain."""
     spec = bundled_spec()
 
     def _always_flags(ctx: ValidatorContext) -> list[CheckIssue]:
         return [CheckIssue("warn", ctx.item.id, "stub violation")]
 
     engine = ValidatorEngine(spec=spec, catalog={"stub": _always_flags})
-    # Patch the module-level bundle resolution via the engine's own per-item runner is not
-    # exposed publicly; instead prove the catalog is consulted through effective_validator_names
-    # directly, matching what _run_per_item does internally.
-    names = effective_validator_names("work", category_bundles={"work": ("stub",)})
+    names = effective_validator_names("work", common_core=(), category_bundles={"work": ("stub",)})
     ctx = ValidatorContext(item=_make_item(1, "task"), spec=spec)
     issues = [issue for name in names for issue in engine.catalog[name](ctx)]
     assert issues == [CheckIssue("warn", "TASK-1", "stub violation")]
 
 
-def test_squad_global_validators_run_once_in_report_never_in_gate() -> None:
+def test_squad_global_validators_run_once_in_report_never_in_gate(tmp_path) -> None:
+    from squads._models._config import SquadsConfig
+    from squads._paths import SquadPaths
+    from squads._services._validators import SquadGlobalContext
+
     calls: list[str] = []
 
-    def _global_check(index: SquadsDB) -> list[CheckIssue]:
+    def _global_check(ctx: SquadGlobalContext) -> list[CheckIssue]:
         calls.append("ran")
         return [CheckIssue("error", "", "squad-global stub issue")]
 
     spec = bundled_spec()
     db = SquadsDB(counter=1)
-    engine = ValidatorEngine(spec=spec, squad_global={"stub_global": _global_check})
+    paths = SquadPaths(root=tmp_path, squad_dir=tmp_path, config=SquadsConfig())
+    engine = ValidatorEngine(spec=spec, paths=paths, squad_global={"stub_global": _global_check})
 
     issues = engine.report(db, {})
     assert issues == [CheckIssue("error", "", "squad-global stub issue")]
@@ -148,3 +189,24 @@ def test_squad_global_validators_run_once_in_report_never_in_gate() -> None:
 
     engine.gate(_make_item(1, "task"), db)
     assert calls == ["ran"]  # gate() never invokes squad-global validators
+
+
+def test_squad_global_defaults_to_the_real_catalog() -> None:
+    engine = ValidatorEngine(spec=bundled_spec())
+    assert engine.squad_global == SQUAD_GLOBAL_CATALOG
+
+
+def test_report_requires_paths_only_when_squad_global_is_non_empty() -> None:
+    """A bare ``ValidatorEngine(spec=...)`` now defaults ``squad_global`` to the real
+    catalog, so calling ``report()`` with no ``paths`` fails closed instead of silently
+    skipping the squad-global class."""
+    from squads._errors import SquadsError
+
+    engine = ValidatorEngine(spec=bundled_spec())
+    db = SquadsDB(counter=1)
+    try:
+        engine.report(db, {})
+    except SquadsError as e:
+        assert "paths" in str(e)
+    else:
+        raise AssertionError("expected a SquadsError")

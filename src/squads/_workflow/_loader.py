@@ -550,7 +550,7 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
 # ---------------------------------------------------------------------------
 
 #: A lint finding: (level, location, message, fix_hint)
-LintFinding = tuple[str, str, str, str]
+type LintFinding = tuple[str, str, str, str]
 
 
 def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:

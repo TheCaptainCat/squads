@@ -20,12 +20,21 @@ All notable changes to this project are documented here. The format follows
   that isn't in the bundled catalog (e.g. `security-analyst`, `incident-commander`) with
   the essentials stubbed in; `sq role activate <slug>` turns it into a tracked role with
   its own Claude pointer. Pass `--can-spawn` to let the role spawn other agents.
-- **Type category axis + a pluggable-validator dispatch engine (foundation only).** Every
-  item type now declares a `category` (`roster` / `work` / `records`) in place of the old
-  `is_meta` flag, and a validator dispatch engine is wired into `sq check` and create/update.
-  This first phase changes no behavior — the engine runs an empty validator set, and `sq
-  check` output is unchanged — it only lands the foundation a later phase builds real,
-  per-category checks on top of.
+- **Type category axis + pluggable validators.** Every item type now declares a `category`
+  (`roster` / `work` / `records`) in place of the old `is_meta` flag, and both `sq check`
+  and create/update gating run off a single pluggable validator catalog. A project can
+  assign catalog validators to a type in `.overrides/workflow.toml` (a `validators` list),
+  extending what `sq check` and the create/update gate enforce for that type.
+
+### Changed
+
+- **`sq check` output is deterministically sorted.** Issues are emitted in a stable order
+  (squad-wide issues first, then by item, then severity, then message) across runs and in
+  `--json` — the set of issues is unchanged, only the ordering is now deterministic.
+- **Create, update, and reparent are validated fail-closed.** These now enforce the same
+  item invariants `sq check` reports (valid status for the type, parent eligibility,
+  sub-entity rules), rejecting a mutation that would leave an item invalid instead of only
+  flagging it after the fact.
 
 ### Fixed
 
