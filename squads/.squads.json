@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.10.1",
-  "counter": 612,
+  "counter": 613,
   "padding": 6,
   "items": {
     "12": {
@@ -22577,7 +22577,7 @@
       "type": "feature",
       "title": "Status role as a first-class object: colour + visibility axis",
       "slug": "status-role-as-a-first-class-object-colour-visibility-axis",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-538",
       "author": "product-owner",
@@ -22610,7 +22610,7 @@
         {
           "local_id": "US3",
           "title": "CLI colour rendering + is_open drop across list/tree/mine/workload/cheatsheet",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -22619,7 +22619,7 @@
       ],
       "path": "features/FEAT-000605-status-role-as-a-first-class-object-colour-visibility-axis.md",
       "created_at": "2026-07-22T15:29:57Z",
-      "updated_at": "2026-07-22T16:37:19Z",
+      "updated_at": "2026-07-22T16:57:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22755,7 +22755,7 @@
       "type": "task",
       "title": "CLI role-colour rendering + is_open drop across list/tree/mine/workload",
       "slug": "cli-role-colour-rendering-is-open-drop-across-list-tree-mine",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-605",
       "author": "tech-lead",
@@ -22769,7 +22769,7 @@
       "subentities": [],
       "path": "tasks/TASK-000611-cli-role-colour-rendering-is-open-drop-across-list-tree-mine.md",
       "created_at": "2026-07-22T15:37:25Z",
-      "updated_at": "2026-07-22T15:37:25Z",
+      "updated_at": "2026-07-22T16:57:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22807,6 +22807,31 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-612"
+    },
+    "613": {
+      "sequence_id": 613,
+      "type": "review",
+      "title": "FEAT-605 increment 2 (TASK-611): CLI status colour + is_open --json drop",
+      "slug": "feat-605-increment-2-task-611-cli-status-colour-is-open-json",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-611:addresses"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000613-feat-605-increment-2-task-611-cli-status-colour-is-open-json.md",
+      "created_at": "2026-07-22T16:55:32Z",
+      "updated_at": "2026-07-22T16:56:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-613"
     }
   }
 }

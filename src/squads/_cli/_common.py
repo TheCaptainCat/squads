@@ -14,6 +14,7 @@ from rich.console import Console, Group, RenderableType
 from rich.markdown import Markdown
 from rich.markup import escape
 from rich.panel import Panel
+from rich.text import Text
 
 from squads import __version__
 from squads import _badges as badges
@@ -73,6 +74,39 @@ def get_active_spec() -> WorkflowSpec:
 def e(value: object) -> str:
     """Escape a dynamic string so Rich does not interpret ``[...]`` as markup."""
     return escape(str(value))
+
+
+#: Concrete `rich` colour per semantic colour intent (the closed palette declared as
+#: ``squads._workflow._models.COLOR_INTENTS``) — the CLI's own per-client rendering of the
+#: role's colour axis: colour is single-sourced as an intent in the spec, mapped to a
+#: concrete colour per client. A total map over the palette plus a ``"neutral"`` (no colour)
+#: entry that also serves as the fallback for any intent this build doesn't recognise.
+INTENT_COLORS: dict[str, str] = {
+    "positive": "green",
+    "danger": "red",
+    "warning": "yellow",
+    "info": "cyan",
+    "muted": "bright_black",
+    "neutral": "",
+}
+
+
+def status_style(status: str, spec: WorkflowSpec) -> str:
+    """The concrete `rich` style for *status* — joins ``status -> role_for(status).color ->
+    INTENT_COLORS``. An intent absent from the map (a future/custom colour word this build
+    doesn't know) falls back to the neutral (uncoloured) style rather than raising."""
+    intent = spec.role_for(status).color
+    return INTENT_COLORS.get(intent, INTENT_COLORS["neutral"])
+
+
+def status_text(status: str, spec: WorkflowSpec) -> Text:
+    """A ``Text`` renderable for *status*, coloured by its role's colour intent.
+
+    Applies the style via Rich's ``style=`` parameter rather than interpolating
+    ``[colour]...[/]`` markup around the string — the same escaping discipline as :func:`e`,
+    so colouring a status never opens a markup-injection path.
+    """
+    return Text(status, style=status_style(status, spec))
 
 
 def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:

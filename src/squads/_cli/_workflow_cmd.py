@@ -24,7 +24,7 @@ import typer
 from rich.markdown import Markdown
 from rich.table import Table
 
-from squads._cli._common import console, e, handle_errors
+from squads._cli._common import console, e, handle_errors, status_text
 from squads._errors import SquadsError
 
 if TYPE_CHECKING:
@@ -293,8 +293,9 @@ def workflow_statuses(
     for col in ("Status", "Role", "Badge"):
         table.add_column(col)
     for row in rows:
+        status = str(row["status"])
         table.add_row(
-            e(str(row["status"])),
+            status_text(status, spec),
             e(str(row["role"])) if row["role"] else "",
             e(str(row["badge"])) if row["badge"] else "",
         )
