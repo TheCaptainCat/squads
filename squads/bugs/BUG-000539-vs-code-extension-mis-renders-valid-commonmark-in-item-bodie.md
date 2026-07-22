@@ -3,7 +3,7 @@ id: BUG-539
 sequence_id: 539
 type: bug
 title: VS Code extension mis-renders valid CommonMark in item bodies
-status: Fixed
+status: Verified
 author: op-pierre
 assignee: typescript-dev
 priority: medium
@@ -13,7 +13,7 @@ description: 'Extension body renderer mangles valid CommonMark: bold-wrapped inl
   code and a ''*'' inside a code span break out, unbalance emphasis, and the code
   span runs on.'
 created_at: '2026-07-21T15:24:45Z'
-updated_at: '2026-07-21T20:24:26Z'
+updated_at: '2026-07-22T09:10:18Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -66,4 +66,6 @@ code spans first. Fix should route body rendering through a CommonMark-compliant
   - Fixed: renderInline in clients/vscode/src/domain/markdown.ts now extracts code spans (extractCodeSpans/restoreCodeSpans) into an opaque placeholder before running the emphasis/link regex, giving code-span precedence over emphasis per CommonMark, then restores them as <code> HTML — no library added. Added 4 regression tests in clients/vscode/test/markdown.test.ts (bold-wrapped code span with *, bare code span with *, unpaired trailing backtick, plain bold/italic still working). Gates green in clients/vscode: typecheck, lint (0 warnings), format:check, vitest (321/321 incl. new tests).
 - [2026-07-21T20:24:26Z] Ada Typescript:
   - Addressed REV-542 F1/F2: extractCodeSpans now strips any pre-existing U+E000 sentinel from raw before extraction (unconditional guarantee, one-liner + comment). Added 6 pin tests: underscore-emphasis wrapping a code span, escaping-inside-code-span (locks no-double-unescape/no-XSS), multi-span ordering, placeholder/digit-adjacency, code span in a table cell, code span in a heading (per-call index scoping). Gates green in clients/vscode: typecheck, lint --max-warnings 0, format:check, vitest 327/327 (was 321, +6).
+- [2026-07-22T09:10:17Z] Pierre Chat:
+  - Verified on dev-host visual pass: bold-wrapped inline code with an asterisk (e.g. `$(*path)` splat-refs) renders correctly — no collapsed emphasis, no run-on code block. Closing.
 <!-- sq:discussion:end -->
