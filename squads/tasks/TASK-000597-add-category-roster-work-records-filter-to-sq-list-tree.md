@@ -8,7 +8,7 @@ parent: FEAT-570
 author: tech-lead
 priority: medium
 created_at: '2026-07-22T13:00:54Z'
-updated_at: '2026-07-22T13:28:33Z'
+updated_at: '2026-07-22T15:38:04Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US1. Add a `--category roster|work|records` filter dimension alongside today's type/status/priority filters.
@@ -42,4 +42,6 @@ _Add with `sq task 597 add-subtask "<title>"`; track with `sq task 597 subtask <
 <!-- sq:discussion -->
 - [2026-07-22T13:28:33Z] Elias Python:
   - Added --category roster|work|records to sq list/sq tree, threaded through ItemFilter.category (spec-resolved, graceful no-match without a spec) and Service.list_items; category catalog (_workflow.CATEGORIES) derived from ItemSpec's own Literal, not hand-duplicated; parse_category validates with a clean SquadsError. Composes (AND) with existing filters. Gates green; sq check clean.
+- [2026-07-22T15:38:04Z] Olivia Lead:
+  - Carried by FEAT-605: this work (--category roster|work|records filter + CATEGORIES catalog) is ADR-604-compatible and orthogonal to the role-object change. The FEAT-605 implementer keeps this code as-is; it lands with FEAT-605 from the current tree. Status left InReview for the manager to reconcile once FEAT-605 lands.
 <!-- sq:discussion:end -->

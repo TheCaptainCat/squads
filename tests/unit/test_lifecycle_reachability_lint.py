@@ -12,21 +12,25 @@ import pytest
 from squads._errors import SquadsError
 from squads._workflow import load_workflow_spec
 from squads._workflow._loader import lint_workflow_spec
-from squads._workflow._models import ItemSpec, Lifecycle, StatusSpec, WorkflowSpec
+from squads._workflow._models import ItemSpec, Lifecycle, RoleSpec, StatusSpec, WorkflowSpec
 
+_ROLES: dict[str, RoleSpec] = {
+    "pending": RoleSpec(settled=False, hidden=False, color="neutral"),
+    "done": RoleSpec(settled=True, hidden=True, color="positive"),
+}
 _FLOOR_STATUSES: dict[str, StatusSpec] = {
-    "Draft": StatusSpec(terminal=False),
-    "Active": StatusSpec(terminal=False),
-    "Archived": StatusSpec(terminal=True),
-    "Todo": StatusSpec(terminal=False),
-    "InProgress": StatusSpec(terminal=False),
-    "Blocked": StatusSpec(terminal=False),
-    "Done": StatusSpec(terminal=True),
-    "Cancelled": StatusSpec(terminal=True),
-    "Open": StatusSpec(terminal=False),
-    "Fixed": StatusSpec(terminal=True),
-    "Verified": StatusSpec(terminal=True),
-    "WontFix": StatusSpec(terminal=True),
+    "Draft": StatusSpec(role="pending"),
+    "Active": StatusSpec(role="pending"),
+    "Archived": StatusSpec(role="done"),
+    "Todo": StatusSpec(role="pending"),
+    "InProgress": StatusSpec(role="pending"),
+    "Blocked": StatusSpec(role="pending"),
+    "Done": StatusSpec(role="done"),
+    "Cancelled": StatusSpec(role="done"),
+    "Open": StatusSpec(role="pending"),
+    "Fixed": StatusSpec(role="done"),
+    "Verified": StatusSpec(role="done"),
+    "WontFix": StatusSpec(role="done"),
 }
 _AGENT_LIFECYCLE = Lifecycle(
     initial="Draft",
@@ -38,7 +42,7 @@ def _build_spec(
     *, extra_statuses: dict[str, StatusSpec], work_lifecycle: Lifecycle
 ) -> WorkflowSpec:
     """A minimal-but-complete spec (floor: the three roster types + one work type) so only the
-    behaviour under test (transition-target vocab / reachable-terminal) can fail."""
+    behaviour under test (transition-target vocab / reachable-settled) can fail."""
     statuses = {**_FLOOR_STATUSES, **extra_statuses}
     items_map = {
         "task": ItemSpec(prefix="TASK", folder="tasks", lifecycle="work", category="work"),
@@ -57,6 +61,7 @@ def _build_spec(
             "lifecycles": {"work": work_lifecycle, "agent": _AGENT_LIFECYCLE},
             "prefix_to_type": {ts.prefix: name for name, ts in items_map.items()},
             "alias_to_type": {},
+            "roles": _ROLES,
         }
     )
 
@@ -80,7 +85,7 @@ def test_no_reachable_terminal_fails_closed_and_reports_the_reachable_set() -> N
     with pytest.raises(SquadsError) as exc_info:
         _build_spec(extra_statuses={}, work_lifecycle=stuck)
     msg = str(exc_info.value)
-    assert "no terminal status reachable from initial 'Draft'" in msg
+    assert "no status with a settled role reachable from initial 'Draft'" in msg
     assert "reachable:" in msg
     assert "'Draft'" in msg and "'InProgress'" in msg and "'Blocked'" in msg
 
@@ -97,7 +102,7 @@ def test_a_terminal_reachable_only_via_a_side_branch_is_accepted_not_a_false_pos
         },
     )
     spec = _build_spec(extra_statuses={}, work_lifecycle=branching)
-    assert spec.statuses["Done"].terminal is True
+    assert "Done" in spec.terminal_set()
 
 
 def test_the_bundled_default_spec_lints_clean() -> None:
@@ -111,8 +116,8 @@ def test_the_bundled_default_spec_lints_clean() -> None:
                 if nxt not in reachable:
                     reachable.add(nxt)
                     queue.append(nxt)
-        assert any(spec.statuses[s].terminal for s in reachable), (
-            f"lifecycle {name!r} has no reachable terminal in the bundled spec"
+        assert any(s in spec.terminal_set() for s in reachable), (
+            f"lifecycle {name!r} has no reachable settled status in the bundled spec"
         )
 
 
@@ -129,7 +134,6 @@ def test_lint_reports_an_off_vocabulary_transition_target_with_location_and_fix_
         tmp_path,
         """
 [statuses.Triage]
-terminal = false
 
 [lifecycles.incident_lc]
 initial = "Triage"
@@ -154,9 +158,7 @@ def test_lint_reports_a_lifecycle_with_no_reachable_terminal(tmp_path) -> None:
         tmp_path,
         """
 [statuses.Triage]
-terminal = false
 [statuses.Mitigating]
-terminal = false
 
 [lifecycles.incident_lc]
 initial = "Triage"
@@ -172,7 +174,8 @@ lifecycle = "incident_lc"
     )
     errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
     assert any(
-        "incident_lc" in msg and "no terminal status reachable" in msg for _, _, msg, _ in errors
+        "incident_lc" in msg and "no status with a settled role reachable" in msg
+        for _, _, msg, _ in errors
     )
 
 
@@ -181,9 +184,8 @@ def test_lint_is_clean_for_a_valid_custom_lifecycle_and_for_no_override_at_all(t
         tmp_path,
         """
 [statuses.Triage]
-terminal = false
 [statuses.Resolved]
-terminal = true
+role = "done"
 
 [lifecycles.incident_lc]
 initial = "Triage"

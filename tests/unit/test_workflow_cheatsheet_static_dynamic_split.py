@@ -33,6 +33,7 @@ def _spec_with_incident() -> WorkflowSpec:
             "alias_to_type": {**base.alias_to_type, "inc": "incident"},
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
+            "roles": base.roles,
         }
     )
 

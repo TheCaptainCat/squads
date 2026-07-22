@@ -39,7 +39,6 @@ Done = []
 WontFix = ["Open"]
 
 [statuses.Triaged]
-terminal = false
 
 [items.incident]
 prefix = "INC"
@@ -79,7 +78,7 @@ lifecycle = "work"
             '[items.task]\nprefix = "TSK"\nfolder = "tasks"\nlifecycle = "work"\n',
             "may not redefine built-in type 'task'",
         ),
-        ("[statuses.Done]\nterminal = false\n", "may not redefine built-in status 'Done'"),
+        ("[statuses.Done]\n", "may not redefine built-in status 'Done'"),
         (
             '[lifecycles.work]\ninitial = "Draft"\n[lifecycles.work.transitions]\nDraft = []\n',
             "may not redefine built-in lifecycle 'work'",
@@ -95,7 +94,7 @@ def test_redefining_a_builtin_raises(tmp_path: Path, toml: str, match: str) -> N
 def test_typo_key_in_override_raises_via_extra_forbid(tmp_path: Path) -> None:
     _write_override(
         tmp_path,
-        '[statuses.CustomStatus]\nterminal = false\nbogus_key = "should_fail"\n',
+        '[statuses.CustomStatus]\nbogus_key = "should_fail"\n',
     )
     with pytest.raises(SquadsError):
         load_workflow_spec(squad_dir=tmp_path)
@@ -113,7 +112,6 @@ def test_malformed_toml_raises_naming_the_override_file(tmp_path: Path) -> None:
         (
             """
 [statuses.CustomOpen]
-terminal = false
 
 [lifecycles.custom_lc]
 initial = "CustomOpen"
@@ -130,7 +128,6 @@ lifecycle = "custom_lc"
         (
             """
 [statuses.FolderOpen]
-terminal = false
 
 [lifecycles.folder_lc]
 initial = "FolderOpen"

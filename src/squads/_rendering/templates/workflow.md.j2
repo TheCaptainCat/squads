@@ -148,7 +148,7 @@ stateDiagram-v2
     {{ src | mermaid_id }} --> {{ dst | mermaid_id }}
 {% endfor %}
 {% for status in lifecycle_states_in_order(machine) %}
-{% if spec.statuses[status].terminal %}
+{% if not spec.is_open(status) %}
     {{ status | mermaid_id }} --> [*]
 {% endif %}
 {% endfor %}

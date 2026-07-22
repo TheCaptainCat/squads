@@ -24,9 +24,8 @@ def test_lint_with_a_valid_override_reports_no_errors(tmp_path: Path) -> None:
         tmp_path,
         """
 [statuses.Triage]
-terminal = false
 [statuses.Resolved]
-terminal = true
+role = "done"
 
 [lifecycles.incident_lc]
 initial = "Triage"

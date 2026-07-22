@@ -10,6 +10,7 @@ owned by ``Service`` and threaded explicitly through call sites.
 
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import (
+    CATEGORIES,
     ROSTER_OPERATOR,
     ROSTER_ROLE,
     ROSTER_SKILL,
@@ -20,6 +21,7 @@ from squads._workflow._models import (
     ItemSpec,
     Lifecycle,
     RefRule,
+    RoleSpec,
     StatusSpec,
     Workflow,
     WorkflowSpec,
@@ -107,6 +109,12 @@ def is_open(status: str) -> bool:
     return _BUNDLED_SPEC.is_open(status)
 
 
+def hidden_by_default(item_type: str, status: str) -> bool:
+    """True when an item of *item_type* carrying *status* is hidden from the default
+    (non-``--all``) ``sq list``/``sq tree`` view — see ``WorkflowSpec.hidden_by_default``."""
+    return _BUNDLED_SPEC.hidden_by_default(item_type, status)
+
+
 def parent_allowed(child: str, parent: str) -> bool:
     return _BUNDLED_SPEC.parent_allowed(child, parent)
 
@@ -185,6 +193,7 @@ def status_role(status: str) -> str | None:
 
 __all__ = [
     "ALLOWED_PARENTS",
+    "CATEGORIES",
     "ROSTER_OPERATOR",
     "ROSTER_ROLE",
     "ROSTER_SKILL",
@@ -198,6 +207,7 @@ __all__ = [
     "ItemSpec",
     "Lifecycle",
     "RefRule",
+    "RoleSpec",
     "StateMachine",
     "StatusSpec",
     "TypeSpec",
@@ -206,6 +216,7 @@ __all__ = [
     "active_spec",
     "bundled_spec",
     "can_transition",
+    "hidden_by_default",
     "initial_status",
     "is_open",
     "item_is_roster",

@@ -23,6 +23,7 @@ def _spec_dict(
         "alias_to_type": dict(base.alias_to_type),
         "collections": dict(base.collections),
         "subentity_kinds": subentity_kinds,
+        "roles": dict(base.roles),
     }
 
 

@@ -37,6 +37,7 @@ def _rebuild(spec: WorkflowSpec, **overrides: object) -> WorkflowSpec:
         "alias_to_type": spec.alias_to_type,
         "collections": spec.collections,
         "subentity_kinds": spec.subentity_kinds,
+        "roles": spec.roles,
         **overrides,
     }
     return WorkflowSpec.model_validate(payload)
@@ -229,7 +230,7 @@ def test_loader_field_parse_error_names_the_owning_type() -> None:
 
     raw = {
         "lifecycles": {"work": {"initial": "Draft", "transitions": {"Draft": []}}},
-        "statuses": {"Draft": {"terminal": True}},
+        "statuses": {"Draft": {}},
         "items": {
             "task": {
                 "prefix": "TASK",

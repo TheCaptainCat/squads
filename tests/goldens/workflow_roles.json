@@ -1,0 +1,50 @@
+[
+  {
+    "role": "active",
+    "settled": false,
+    "hidden": false,
+    "color": "positive"
+  },
+  {
+    "role": "attention",
+    "settled": false,
+    "hidden": false,
+    "color": "danger"
+  },
+  {
+    "role": "blocked",
+    "settled": false,
+    "hidden": false,
+    "color": "danger"
+  },
+  {
+    "role": "done",
+    "settled": true,
+    "hidden": true,
+    "color": "positive"
+  },
+  {
+    "role": "in_force",
+    "settled": true,
+    "hidden": false,
+    "color": "info"
+  },
+  {
+    "role": "pending",
+    "settled": false,
+    "hidden": false,
+    "color": "neutral"
+  },
+  {
+    "role": "retired",
+    "settled": true,
+    "hidden": true,
+    "color": "muted"
+  },
+  {
+    "role": "superseded",
+    "settled": true,
+    "hidden": true,
+    "color": "muted"
+  }
+]

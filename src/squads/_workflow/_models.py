@@ -7,9 +7,12 @@ the three roster types (``ROSTER_TYPES``) plus their agent-lifecycle statuses
 ordinary spec vocabulary a project may drop, rename, or reorder.
 
 The capability flags declared here (``category``, ``subentity_kind``, ``parent_required``,
-``ref_rules``, ``StatusSpec.role``) are additive; ``SubentityKindSpec.completion`` is
-consumed by the sub-entity/finding done-toggle (``_services/_subentities.py``). They are
-encoded in ``default_workflow.toml``.
+``ref_rules``) are additive; ``SubentityKindSpec.completion`` is consumed by the sub-entity/
+finding done-toggle (``_services/_subentities.py``). ``StatusSpec.role`` is the sole explicit
+status axis — a reference into the ``RoleSpec`` catalog (``WorkflowSpec.roles``) that carries
+``settled``/``hidden``/``color``; ``is_open``/``terminal_set``/``hidden_by_default`` are all
+derived from the referenced role, never stored directly. They are encoded in
+``default_workflow.toml``.
 
 ``Badge``/``Collection``/``Field`` are the badge-vocabulary schema: ``ItemSpec.fields`` /
 ``SubentityKindSpec.fields`` bind a type or sub-entity kind to a reusable ``Collection`` of
@@ -20,7 +23,7 @@ closed-set ``Priority``/``Severity`` enums.
 import math
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -70,6 +73,18 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
 #: SQUAD_GLOBAL_CATALOG``) — whole-squad checks that run once per ``sq check``/gate
 #: invocation, independent of any type's ``category``.
 SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset({"index_reconciled", "backend_reconciled"})
+
+#: The fallback role name a status with no declared ``role`` resolves to — neutral/live/shown,
+#: so a custom status is fail-safe-visible until its author assigns one.
+FALLBACK_ROLE_NAME = "pending"
+
+#: The closed semantic colour-intent palette a role's ``color`` must be a member of (Plane-1,
+#: enforced in ``WorkflowSpec._validate``). Roles themselves are an OPEN vocabulary — an adopter
+#: may declare custom roles — but colour intent is closed so every client (CLI/TUI/VS Code) can
+#: map any role to a concrete colour with a neutral fallback for one it doesn't recognise.
+COLOR_INTENTS: frozenset[str] = frozenset(
+    {"positive", "danger", "warning", "muted", "neutral", "info"}
+)
 
 #: Validator names that legitimately carry a ``:<param>`` suffix in documentary/seed-catalog
 #: shorthand — the one case where the threshold isn't already a structured spec field
@@ -313,23 +328,50 @@ class ItemSpec(BaseModel):
     entry must name a member of ``VALIDATOR_NAMES`` (Plane-1, enforced below)."""
 
 
-class StatusSpec(BaseModel):
-    """Terminal flag + optional sub-entity badge for one status name."""
+#: The fixed, closed three-member category catalog — read off ``ItemSpec.category``'s own
+#: ``Literal`` annotation (single-sourced) rather than a hand-duplicated tuple, so a caller
+#: validating a ``--category`` value (or enumerating the axis for a filter/help text) never
+#: drifts from the type actually declared above. Not spec vocabulary: an adopter cannot add,
+#: rename, or remove a category — the catalog is closed, only its per-type assignment is open.
+CATEGORIES: tuple[str, ...] = get_args(ItemSpec.model_fields["category"].annotation)
+
+
+class RoleSpec(BaseModel):
+    """A first-class status ROLE object — the sole explicit status axis.
+
+    A status references one role by name (``StatusSpec.role``); the role object carries the
+    behaviour a status used to spread across ``terminal``/``is_open``/a category branch:
+
+    - ``settled`` — is this a resting/end state (the old ``terminal``)?
+    - ``hidden`` — hidden from the default (non-``--all``) view?
+    - ``color`` — a semantic colour intent (one client-agnostic vocabulary word, not a
+      concrete colour); must be a member of ``COLOR_INTENTS`` (Plane-1, enforced at load).
+
+    Roles are an OPEN vocabulary (an adopter may declare custom roles); colour intent is a
+    CLOSED palette so every client can render any role safely with a neutral fallback.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    terminal: bool
+    settled: bool
+    hidden: bool = False
+    color: str
+
+
+class StatusSpec(BaseModel):
+    """A role reference + optional sub-entity badge for one status name.
+
+    ``role`` names an entry in ``WorkflowSpec.roles`` — the single source for this status's
+    settled/hidden/colour behaviour (``terminal``/``is_open`` are derived, never stored here).
+    An absent role resolves to the bundled ``FALLBACK_ROLE_NAME`` ("pending") role, so a custom
+    status is fail-safe-visible until its author assigns one. ``badge`` stays independent — the
+    sub-entity glyph is orthogonal to the role's colour/settled/hidden behaviour.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     badge: str | None = None
-
-    # ------------------------------------------------------------------
-    # Semantic-status role marker (additive; not yet consumed)
-    # ------------------------------------------------------------------
-
     role: str | None = None
-    """Semantic-status role marker for engine rules that key on a specific status.
-    Currently used to identify ``Superseded`` (``role="superseded"``).
-    Future rules add a new role name here rather than a new flag column.
-    Not yet consumed by the engine."""
 
 
 # ---------------------------------------------------------------------------
@@ -378,18 +420,30 @@ def _check_reachability(
         )
 
 
-def _check_reachable_terminal(
+def _status_settled(
+    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
+) -> bool:
+    """Whether *status* resolves to a settled role — an absent ``role`` falls back to
+    ``FALLBACK_ROLE_NAME``; an unresolvable role name (should already be caught by
+    ``_check_role_references``) is treated as not-settled rather than raising here."""
+    spec = statuses.get(status)
+    role_name = (spec.role if spec else None) or FALLBACK_ROLE_NAME
+    role = roles.get(role_name)
+    return bool(role and role.settled)
+
+
+def _check_reachable_settled(
     lifecycles: dict[str, Lifecycle],
     statuses: dict[str, StatusSpec],
+    roles: dict[str, RoleSpec],
     errors: list[str],
 ) -> None:
-    """Every lifecycle must be able to reach at least one terminal state.
+    """Every lifecycle must be able to reach at least one status whose role is settled.
 
-    BFS from ``initial`` over the transition graph; if none of the reachable
-    states is marked ``terminal`` in the status spec, the machine can never
-    close (breaking ``sq blocked``, the default closed-item filter, and inbox
-    suppression for any item stuck on it).  Fails closed with the offending
-    lifecycle name so ``sq workflow lint`` can point the author at the fix.
+    BFS from ``initial`` over the transition graph; if none of the reachable states resolves
+    to a settled role, the machine can never close (breaking ``sq blocked``, the default
+    closed-item filter, and inbox suppression for any item stuck on it).  Fails closed with the
+    offending lifecycle name so ``sq workflow lint`` can point the author at the fix.
     """
     for name, m in lifecycles.items():
         reachable: set[str] = {m.initial}
@@ -400,11 +454,34 @@ def _check_reachable_terminal(
                 if nxt not in reachable:
                     reachable.add(nxt)
                     queue.append(nxt)
-        if not any(statuses.get(s, StatusSpec(terminal=False)).terminal for s in reachable):
+        if not any(_status_settled(s, statuses, roles) for s in reachable):
             errors.append(
-                f"lifecycle {name!r}: no terminal status reachable from initial "
+                f"lifecycle {name!r}: no status with a settled role reachable from initial "
                 f"{m.initial!r} (reachable: {sorted(reachable)}) — items on this "
-                f"lifecycle could never close; add a transition to a terminal status"
+                f"lifecycle could never close; add a transition to a status with a settled role"
+            )
+
+
+def _check_role_references(
+    statuses: dict[str, StatusSpec],
+    roles: dict[str, RoleSpec],
+    errors: list[str],
+) -> None:
+    """Plane-1 role-catalog checks: every explicit ``status.role`` must name a declared role,
+    every declared role's ``color`` must be a member of the closed intent palette, and the
+    fallback role (``FALLBACK_ROLE_NAME``) a role-less status resolves to must itself be
+    declared — ``role_for``'s fallback lookup otherwise ``KeyError``s instead of failing
+    closed at load."""
+    if FALLBACK_ROLE_NAME not in roles:
+        errors.append(f"role catalog: the fallback role {FALLBACK_ROLE_NAME!r} must be declared")
+    for name, spec in statuses.items():
+        if spec.role is not None and spec.role not in roles:
+            errors.append(f"status {name!r}: role {spec.role!r} not declared in roles")
+    for name, role in roles.items():
+        if role.color not in COLOR_INTENTS:
+            errors.append(
+                f"role {name!r}: color {role.color!r} not in the closed intent palette "
+                f"{sorted(COLOR_INTENTS)}"
             )
 
 
@@ -824,6 +901,9 @@ class WorkflowSpec(BaseModel):
     #: Per-sub-entity-kind declarations (machine binding, CLI/storage vocabulary, and
     #: field bindings), keyed by kind name.
     subentity_kinds: dict[str, SubentityKindSpec] = {}
+    #: The role catalog, keyed by role name — the sole explicit status axis (settled/hidden/
+    #: color live here; a status merely references one by name via ``StatusSpec.role``).
+    roles: dict[str, RoleSpec] = {}
 
     # ------------------------------------------------------------------ convenience accessors
 
@@ -836,15 +916,36 @@ class WorkflowSpec(BaseModel):
     def can_transition(self, item_type: str, src: str, dst: str) -> bool:
         return self.machine_for(item_type).can_transition(src, dst)
 
+    def role_for(self, status: str) -> RoleSpec:
+        """The resolved role object for *status* — an absent ``StatusSpec.role`` falls back to
+        ``FALLBACK_ROLE_NAME`` ("pending"). The single derivation site every settled/hidden/
+        colour read routes through; ``_validate`` guarantees both that every explicit role
+        reference resolves AND that the fallback role itself is declared, so this lookup
+        never ``KeyError``s on a validated spec."""
+        role_name = self.statuses[status].role or FALLBACK_ROLE_NAME
+        return self.roles[role_name]
+
     def is_open(self, status: str) -> bool:
-        return not self.statuses[status].terminal
+        return not self.role_for(status).settled
+
+    def hidden_by_default(self, item_type: str, status: str) -> bool:
+        """True when an item of *item_type* carrying *status* is hidden from the default
+        (non-``--all``) ``sq list``/``sq tree`` view.
+
+        Purely role-derived — ``role_for(status).hidden`` — no category branch: the role
+        object alone encodes whether an item at this status stays visible. A ``done`` role
+        (e.g. ``Done``, ``Verified``) hides; an ``in_force`` role (e.g. ``Accepted``,
+        ``Published``) is settled but stays visible — that split is what a single role object
+        expresses that a bare ``terminal`` flag could not.
+        """
+        return self.role_for(status).hidden
 
     def parent_allowed(self, child: str, parent: str) -> bool:
         parents = self.items[child].parents
         return len(parents) == 0 or parent in parents
 
     def terminal_set(self) -> frozenset[str]:
-        return frozenset(s for s, spec in self.statuses.items() if spec.terminal)
+        return frozenset(s for s in self.statuses if self.role_for(s).settled)
 
     def status_badge(self, status: str) -> str | None:
         spec = self.statuses.get(status)
@@ -969,19 +1070,15 @@ class WorkflowSpec(BaseModel):
         # Lifecycle initial/transition statuses exist.
         _check_lifecycle_statuses(self.lifecycles, all_statuses, errors)
 
-        # Terminal statuses in the status set (always true by construction;
-        # belt-and-braces check in case models are constructed programmatically).
-        errors.extend(
-            f"terminal status {s!r} not in status set"
-            for s, spec in self.statuses.items()
-            if spec.terminal and s not in all_statuses
-        )
+        # Role-catalog checks: every status.role names a declared role; every role.color is
+        # in the closed intent palette.
+        _check_role_references(self.statuses, self.roles, errors)
 
         # Reachability.
         _check_reachability(self.lifecycles, errors)
 
-        # Every lifecycle must be able to reach a terminal status.
-        _check_reachable_terminal(self.lifecycles, self.statuses, errors)
+        # Every lifecycle must be able to reach a status with a settled role.
+        _check_reachable_settled(self.lifecycles, self.statuses, self.roles, errors)
 
         # ItemSpec cross-refs + uniqueness.
         _check_item_refs(self.items, all_lifecycle_names, all_types, errors)

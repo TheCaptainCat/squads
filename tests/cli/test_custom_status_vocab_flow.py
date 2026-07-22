@@ -15,11 +15,9 @@ pytestmark = pytest.mark.anyio
 
 _INCIDENT_OVERRIDE = """
 [statuses.Triage]
-terminal = false
 [statuses.Mitigating]
-terminal = false
 [statuses.Resolved]
-terminal = true
+role = "done"
 
 [lifecycles.incident_lc]
 initial = "Triage"

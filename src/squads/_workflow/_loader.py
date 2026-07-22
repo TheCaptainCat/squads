@@ -44,6 +44,7 @@ from squads._workflow._models import (
     ItemSpec,
     Lifecycle,
     RefRule,
+    RoleSpec,
     StatusSpec,
     SubentityKindSpec,
     WorkflowSpec,
@@ -198,6 +199,14 @@ def _parse_collection(code: str, data: dict[str, Any]) -> Collection:
         raise SquadsError(f"Invalid collection {code!r}: {exc}") from exc
 
 
+def _parse_role(code: str, data: dict[str, Any]) -> RoleSpec:
+    """Parse one ``[roles.<code>]`` table into a ``RoleSpec`` (``extra="forbid"`` fires here)."""
+    try:
+        return RoleSpec.model_validate(data)
+    except Exception as exc:
+        raise SquadsError(f"Invalid role {code!r}: {exc}") from exc
+
+
 def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
     """Parse one ``[subentity_kinds.<kind>]`` table (its ``fields`` list is pre-coerced)."""
     fields = _parse_fields(data.get("fields", []), f"subentity_kinds.{kind}")
@@ -264,6 +273,11 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         for kind, data in raw.get("subentity_kinds", {}).items()
     }
 
+    # --- roles (the role catalog: settled/hidden/color per role name) ---
+    roles: dict[str, RoleSpec] = {
+        code: _parse_role(code, data) for code, data in raw.get("roles", {}).items()
+    }
+
     # WorkflowSpec construction triggers the model_validator (pydantic v2).
     # Route through model_validate so extra="forbid" fires at construction.
     try:
@@ -276,6 +290,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
                 "subentity_kinds": subentity_kinds,
                 "prefix_to_type": prefix_to_type,
                 "alias_to_type": alias_to_type,
+                "roles": roles,
             }
         )
     except SquadsError:
@@ -362,6 +377,7 @@ def _collect_additive_conflicts(
     builtin_types: frozenset[str] = frozenset(bundled.items)
     builtin_collections: frozenset[str] = frozenset(bundled.collections)
     builtin_subentity_kinds: frozenset[str] = frozenset(bundled.subentity_kinds)
+    builtin_roles: frozenset[str] = frozenset(bundled.roles)
 
     lc_conflicts = [
         f"workflow override may not redefine built-in lifecycle {name!r} "
@@ -398,7 +414,16 @@ def _collect_additive_conflicts(
         for name in raw.get("subentity_kinds", {})
         if name in builtin_subentity_kinds
     ]
-    return lc_conflicts + st_conflicts + it_conflicts + coll_conflicts + sek_conflicts
+    role_conflicts = [
+        f"workflow override may not redefine built-in role {name!r} "
+        f"(additive-only; you may add new roles but not change built-ins) "
+        f"— {override_path}"
+        for name in raw.get("roles", {})
+        if name in builtin_roles
+    ]
+    return (
+        lc_conflicts + st_conflicts + it_conflicts + coll_conflicts + sek_conflicts + role_conflicts
+    )
 
 
 def _merge_additive_section(
@@ -443,6 +468,7 @@ def _merge_override(
     builtin_types: frozenset[str] = frozenset(bundled.items)
     builtin_collections: frozenset[str] = frozenset(bundled.collections)
     builtin_subentity_kinds: frozenset[str] = frozenset(bundled.subentity_kinds)
+    builtin_roles: frozenset[str] = frozenset(bundled.roles)
 
     # Start with copies of bundled maps (WorkflowSpec is frozen; we build new dicts).
     merged_lifecycles: dict[str, Lifecycle] = dict(bundled.lifecycles)
@@ -450,6 +476,7 @@ def _merge_override(
     merged_items: dict[str, ItemSpec] = dict(bundled.items)
     merged_collections: dict[str, Collection] = dict(bundled.collections)
     merged_subentity_kinds: dict[str, SubentityKindSpec] = dict(bundled.subentity_kinds)
+    merged_roles: dict[str, RoleSpec] = dict(bundled.roles)
 
     _merge_additive_section(
         merged_lifecycles, raw.get("lifecycles", {}), builtin_lifecycles, _parse_lifecycle_str
@@ -467,6 +494,7 @@ def _merge_override(
         builtin_subentity_kinds,
         _parse_subentity_kind,
     )
+    _merge_additive_section(merged_roles, raw.get("roles", {}), builtin_roles, _parse_role)
 
     # Rebuild derived reverse indexes over the MERGED set.
     prefix_to_type: dict[str, str] = {ts.prefix: t for t, ts in merged_items.items()}
@@ -487,6 +515,7 @@ def _merge_override(
                 "alias_to_type": alias_to_type,
                 "collections": merged_collections,
                 "subentity_kinds": merged_subentity_kinds,
+                "roles": merged_roles,
             }
         )
     except SquadsError:

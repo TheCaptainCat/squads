@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from squads._models._item import Item
 from squads._services._base import ItemFilter
+from squads._workflow import bundled_spec
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -67,3 +68,35 @@ def test_matches_is_the_and_of_every_set_dimension():
     assert ItemFilter(item_type="task", badges=(("priority", "high"),)).matches(item) is True
     assert ItemFilter(item_type="task", badges=(("priority", "low"),)).matches(item) is False
     assert ItemFilter(item_type="feature", badges=(("priority", "high"),)).matches(item) is False
+
+
+def test_is_empty_false_with_category_set():
+    assert ItemFilter(category="work").is_empty() is False
+
+
+def test_matches_category_resolves_via_the_spec():
+    spec = bundled_spec()
+    task, decision, role = _item("task"), _item("decision"), _item("role")
+    assert ItemFilter(category="work", spec=spec).matches(task) is True
+    assert ItemFilter(category="work", spec=spec).matches(decision) is False
+    assert ItemFilter(category="records", spec=spec).matches(decision) is True
+    assert ItemFilter(category="roster", spec=spec).matches(role) is True
+    assert ItemFilter(category="roster", spec=spec).matches(task) is False
+
+
+def test_matches_category_without_a_spec_is_a_graceful_non_match():
+    """No spec to resolve the type's category from — never a crash, just no match."""
+    item = _item("task")
+    assert ItemFilter(category="work").matches(item) is False
+
+
+def test_matches_category_composes_with_other_dimensions():
+    spec = bundled_spec()
+    item = _item("task", priority="high")
+    assert (
+        ItemFilter(category="work", badges=(("priority", "high"),), spec=spec).matches(item) is True
+    )
+    assert (
+        ItemFilter(category="records", badges=(("priority", "high"),), spec=spec).matches(item)
+        is False
+    )

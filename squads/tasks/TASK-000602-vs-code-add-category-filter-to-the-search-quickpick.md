@@ -8,7 +8,7 @@ parent: FEAT-570
 author: tech-lead
 priority: medium
 created_at: '2026-07-22T13:00:58Z'
-updated_at: '2026-07-22T13:03:39Z'
+updated_at: '2026-07-22T15:38:32Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US3 (VS Code QuickPick filter). Add a category dimension to the search QuickPick filtering, alongside the existing type/status narrowing. Depends on TASK-600 (category plumbing).
@@ -28,6 +28,9 @@ Adds a filter control to the QuickPick UX. Lands **InReview**; operator (Pierre)
 
 ## Gates
 Extension: its own compile + lint + tests. Leave `sq check` clean.
+
+## Rides FEAT-605 (role colour)
+QuickPick result rows pick up role.color -> ThemeColor rendering (neutral fallback) via the roles-catalog join, consistent with the tree/records views; no is_open/terminal reads remain. Depends on FEAT-605 US2.
 <!-- sq:body:end -->
 
 ## Subtasks

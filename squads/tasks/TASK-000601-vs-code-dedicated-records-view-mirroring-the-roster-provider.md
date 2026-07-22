@@ -8,7 +8,7 @@ parent: FEAT-570
 author: tech-lead
 priority: medium
 created_at: '2026-07-22T13:00:57Z'
-updated_at: '2026-07-22T13:03:39Z'
+updated_at: '2026-07-22T15:38:31Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US3 (VS Code records view). Add a dedicated records view/provider, mirroring how the roster already has its own provider separate from the work tree. Depends on TASK-600 (category plumbing + work-tree exclusion).
@@ -28,6 +28,9 @@ New activity-bar view. Lands **InReview**; operator (Pierre) verifies on the Win
 
 ## Gates
 Extension: its own compile + lint + tests. Leave `sq check` clean.
+
+## Rides FEAT-605 (role colour)
+The records view's closed/dim styling is keyed on the item's role (role.settled for closed, role.hidden for dim) joined via the roles catalog, and row colour maps role.color intent -> vscode.ThemeColor with a neutral fallback — replacing the removed is_open/terminal reads. Depends on FEAT-605 US2/US3.
 <!-- sq:body:end -->
 
 ## Subtasks
