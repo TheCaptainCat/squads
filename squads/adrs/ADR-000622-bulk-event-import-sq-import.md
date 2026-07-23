@@ -3,7 +3,7 @@ id: ADR-622
 sequence_id: 622
 type: decision
 title: Bulk event import (sq import)
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - REV-565
@@ -11,7 +11,7 @@ description: A JSONL event-import command that replays a project's history in on
   process, with per-event timestamps and attribution, to replace hundreds of per-mutation
   sq calls.
 created_at: '2026-07-23T07:56:31Z'
-updated_at: '2026-07-23T07:56:55Z'
+updated_at: '2026-07-23T13:02:47Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -205,4 +205,6 @@ importer that could drift from the interactive behavior.
   - Adjacent adoption recommendations from the same field report (for tech-lead scoping — kept here, not spun into separate ADRs).
   - F8 (init/adopt into a pre-existing non-squads project): don't design a new ADR — scope a detect-and-warn enhancement to init/adopt. (a) When the target CLAUDE.md exists with no squads markers but real content, still insert the managed region but emit a prominent warning naming the file: the hand-written operating model may contradict the managed block and needs manual reconciliation; consider placing the managed region at the TOP so authoritative instructions lead. Never auto-delete hand-written prose. (b) Scan .claude/agents (and skills) for pointer files squads did NOT generate this run (no managed marker / not in roster) and list them as candidate orphans with exact paths — warn only, no auto-delete (a backend nuking files it doesn't own crosses the ownership boundary and risks real user content). Add a documented 'adopting into an existing CLAUDE.md/.claude' runbook. Only the managed-block-placement rule (top vs bottom) is contract-worthy enough to consider an ADR line; the rest is a scoped task.
   - F7 (bundled designer/ux role vs dev add for non-code specialties): recommend loosening 'dev add' over bundling a role. FEAT-543 already ships custom non-dev role scaffolding via .overrides/roles, so the capability exists — the friction is being forced to hand-write a .toml override. Add 'sq dev add --tech ux --kind design' (a --kind/non-code path) that scaffolds the same role through the ergonomic verb without asserting a coding stack. Do NOT bundle a designer/ux role: the bundled set is a deliberately small canonical core, and bundling one specialty invites bundling every one (data/SRE/security/…); spec-driven customization (EPIC-538) plus FEAT-543 is the sanctioned extension path. Optionally ship a documented ux example in docs rather than an always-on role.
+- [2026-07-23T13:02:46Z] Pierre Chat:
+  - Accepted: bulk event import (sq import) design is sound — validate-first pre-pass narrows apply failures to I/O only, per-event at/as via the RequestContext seam, client-handle addressing, file-order-authoritative, fresh IDs from the global counter in one transaction, import gated through ValidatorEngine + board-debt surfaced as warnings. Deferrals (idempotent/resumable re-import, source-ID preservation, sq export) accepted for v1 with their schema flags. One v1 rough edge accepted: a rare mid-flush I/O crash leaves partial .md that repair folds in and can't be safely re-run without idempotency — FEAT-576 to ship a short post-failure recovery note in the adopt docs.
 <!-- sq:discussion:end -->

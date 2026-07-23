@@ -2,7 +2,8 @@
 id: REV-565
 sequence_id: 565
 type: review
-title: 'Adopter-project migration field report: adoption friction, docs drift, design gaps'
+title: 'Adopter-project migration field report: adoption friction, docs drift, design
+  gaps'
 status: Requested
 author: reviewer
 refs:
@@ -36,7 +37,7 @@ subentities:
   severity: low
 - local_id: F7
   title: No bundled designer/UX role; dev add requires a coding --tech
-  status: Open
+  status: WontFix
   severity: medium
 - local_id: F8
   title: init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified
@@ -71,7 +72,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-22T07:54:46Z'
-updated_at: '2026-07-23T07:48:05Z'
+updated_at: '2026-07-23T13:22:21Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -126,7 +127,7 @@ _Add with `sq review 565 add-finding "…" --severity medium`; track with `sq re
 | F4 | 🟡 medium | Open |  | Docs drift + CLI gap: no verb to enumerate operators |
 | F5 | 🟡 medium | Open |  | Docs drift: story add / subtask add — actual verbs are add-story / add-subtask |
 | F6 | 🟢 low | Open |  | Docs: stale override-base version examples |
-| F7 | 🟡 medium | Open |  | No bundled designer/UX role; dev add requires a coding --tech |
+| F7 | 🟡 medium | WontFix |  | No bundled designer/UX role; dev add requires a coding --tech |
 | F8 | 🟡 medium | Open |  | init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified |
 | F9 | 🟡 medium | Verified |  | Closed items (incl. Accepted decisions) hidden from default list/tree |
 | F10 | 🟢 low | Open |  | add-* leaves an unwritten-body stub that sq check warns on |
@@ -310,7 +311,7 @@ signal an old release.
 ### F7 — No bundled designer/UX role; dev add requires a coding --tech
 
 <!-- sq:finding:F7:head -->
-**Status:** 🔴 Open
+**Status:** ⚫ Wont Fix
 **Severity:** 🟡 Medium
 <!-- sq:finding:F7:head:end -->
 
@@ -582,4 +583,6 @@ surface and aid scripting/verification.
     - F15 FIX — add a dedicated 'sq <type> <n> comments' read-back verb (+ --json).
 - [2026-07-23T07:48:05Z] Catherine Manager:
   - F9 and F14 resolved by the 0.12 batch: F9 (Accepted/closed records hidden) by the FEAT-605 role model + FEAT-570 records-category visibility (an in_force status like Accepted stays shown, not hidden like finished work); F14 (add-* inline metadata flags) by FEAT-571 (--status inline on add-finding/story/subtask; the generic per-field --<code> flags incl. --severity already existed). Both Verified.
+- [2026-07-23T13:22:21Z] Pierre Chat:
+  - F7 resolved by FEAT-543: a designer is a custom NON-DEV role (sq override scaffold --new <slug> + sq role activate), not a dev — no bundled designer role and no dev-add-kind path needed. Now that fully custom roles exist, the designer doesn't have to be a dev at all. Docs pointer to the custom-role path already landed in FEAT-574.
 <!-- sq:discussion:end -->

@@ -10,24 +10,24 @@ refs:
 subentities:
 - local_id: US1
   title: Add sq role list (active roster, active/inactive marker)
-  status: Todo
+  status: Done
 - local_id: US2
   title: Add sq operator list (+ --json)
-  status: Todo
+  status: Done
 - local_id: US3
   title: Add guarded remove for finding/story/subtask sub-entities
-  status: Todo
+  status: Done
 - local_id: US4
   title: Add sq <type> <n> comments read-back verb (+ --json)
-  status: Todo
+  status: Done
 - local_id: US5
   title: Lock in add-finding/add-story/add-subtask body-input parity
-  status: Todo
+  status: Done
 - local_id: US6
   title: Bundled designer/UX role (shape TBD — architect)
-  status: Todo
+  status: Cancelled
 created_at: '2026-07-22T08:41:07Z'
-updated_at: '2026-07-23T08:40:50Z'
+updated_at: '2026-07-23T13:22:28Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -102,12 +102,12 @@ _Add with `sq feature 575 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | Add sq role list (active roster, active/inactive marker) |
-| US2 | Todo |  | Add sq operator list (+ --json) |
-| US3 | Todo |  | Add guarded remove for finding/story/subtask sub-entities |
-| US4 | Todo |  | Add sq <type> <n> comments read-back verb (+ --json) |
-| US5 | Todo |  | Lock in add-finding/add-story/add-subtask body-input parity |
-| US6 | Todo |  | Bundled designer/UX role (shape TBD — architect) |
+| US1 | Done |  | Add sq role list (active roster, active/inactive marker) |
+| US2 | Done |  | Add sq operator list (+ --json) |
+| US3 | Done |  | Add guarded remove for finding/story/subtask sub-entities |
+| US4 | Done |  | Add sq <type> <n> comments read-back verb (+ --json) |
+| US5 | Done |  | Lock in add-finding/add-story/add-subtask body-input parity |
+| US6 | Cancelled |  | Bundled designer/UX role (shape TBD — architect) |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -116,7 +116,7 @@ _Add with `sq feature 575 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — Add sq role list (active roster, active/inactive marker)
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -133,7 +133,7 @@ New verb distinct from sq role catalog; lists activated roles with a marker colu
 ### US2 — Add sq operator list (+ --json)
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -150,7 +150,7 @@ Enumerate registered operators; currently only add/show/rm exist (F4).
 ### US3 — Add guarded remove for finding/story/subtask sub-entities
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -167,7 +167,7 @@ Parity with parent-item remove: hard-delete + --yes confirmation (F13).
 ### US4 — Add sq <type> <n> comments read-back verb (+ --json)
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
@@ -184,7 +184,7 @@ List an item's discussion without going through full show --json (F15).
 ### US5 — Lock in add-finding/add-story/add-subtask body-input parity
 
 <!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
@@ -201,7 +201,7 @@ Verify --file/-/-m already satisfy the non-stub path uniformly across all three 
 ### US6 — Bundled designer/UX role (shape TBD — architect)
 
 <!-- sq:story:US6:head -->
-**Status:** ⚪ Todo
+**Status:** ⚫ Cancelled
 <!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->
@@ -211,6 +211,8 @@ F7: no bundled designer/UX role today; dev add requires a coding --tech. Track t
 #### Discussion
 
 <!-- sq:story:US6:discussion -->
+- [2026-07-23T13:22:23Z] Catherine Manager:
+  - Cancelled: F7 (designer/UX role) is resolved by FEAT-543's custom non-dev roles + the FEAT-574 docs pointer — no bundled role or dev-add path to build.
 <!-- sq:story:US6:discussion:end -->
 <!-- sq:story:US6:end -->
 <!-- sq:stories:end -->

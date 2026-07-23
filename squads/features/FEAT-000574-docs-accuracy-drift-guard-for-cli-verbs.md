@@ -11,18 +11,18 @@ refs:
 subentities:
 - local_id: US1
   title: Fix role-catalog/add-story/add-subtask verb drift in docs
-  status: Todo
+  status: Done
 - local_id: US2
   title: Refresh stale override-base version examples in docs/overrides.md
-  status: Todo
+  status: Done
 - local_id: US3
   title: Cross-link the custom-role path for non-code/designer roles
-  status: Todo
+  status: Done
 - local_id: US4
   title: Add a docs command-test that shells documented verbs against the live CLI
-  status: Todo
+  status: Done
 created_at: '2026-07-22T08:40:00Z'
-updated_at: '2026-07-23T09:50:20Z'
+updated_at: '2026-07-23T13:22:32Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -86,10 +86,10 @@ _Add with `sq feature 574 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | Fix role-catalog/add-story/add-subtask verb drift in docs |
-| US2 | Todo |  | Refresh stale override-base version examples in docs/overrides.md |
-| US3 | Todo |  | Cross-link the custom-role path for non-code/designer roles |
-| US4 | Todo |  | Add a docs command-test that shells documented verbs against the live CLI |
+| US1 | Done |  | Fix role-catalog/add-story/add-subtask verb drift in docs |
+| US2 | Done |  | Refresh stale override-base version examples in docs/overrides.md |
+| US3 | Done |  | Cross-link the custom-role path for non-code/designer roles |
+| US4 | Done |  | Add a docs command-test that shells documented verbs against the live CLI |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -98,7 +98,7 @@ _Add with `sq feature 574 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — Fix role-catalog/add-story/add-subtask verb drift in docs
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -115,7 +115,7 @@ Correct docs/roles.md, docs/recipes.md, docs/agents.md, docs/adoption.md, docs/t
 ### US2 — Refresh stale override-base version examples in docs/overrides.md
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -132,7 +132,7 @@ Replace the 0.4.2-era example strings so they don't read as an old release; pref
 ### US3 — Cross-link the custom-role path for non-code/designer roles
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -149,7 +149,7 @@ Add a short pointer in docs/roles.md or docs/agents.md to the .overrides/roles/<
 ### US4 — Add a docs command-test that shells documented verbs against the live CLI
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
