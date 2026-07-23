@@ -7,6 +7,7 @@ status: Draft
 author: product-owner
 refs:
 - REV-565
+- FEAT-575:depends-on
 subentities:
 - local_id: US1
   title: Fix role-catalog/add-story/add-subtask verb drift in docs
@@ -21,7 +22,7 @@ subentities:
   title: Add a docs command-test that shells documented verbs against the live CLI
   status: Todo
 created_at: '2026-07-22T08:40:00Z'
-updated_at: '2026-07-22T08:40:55Z'
+updated_at: '2026-07-23T07:54:03Z'
 ---
 <!-- sq:body -->
 ## Capability

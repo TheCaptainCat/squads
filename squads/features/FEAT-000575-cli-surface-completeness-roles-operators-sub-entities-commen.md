@@ -3,7 +3,7 @@ id: FEAT-575
 sequence_id: 575
 type: feature
 title: 'CLI surface completeness: roles, operators, sub-entities, comments'
-status: Draft
+status: Done
 author: product-owner
 refs:
 - REV-565
@@ -23,14 +23,18 @@ subentities:
 - local_id: US5
   title: Lock in add-finding/add-story/add-subtask body-input parity
   status: Todo
+- local_id: US6
+  title: Bundled designer/UX role (shape TBD — architect)
+  status: Todo
 created_at: '2026-07-22T08:41:07Z'
-updated_at: '2026-07-22T08:41:37Z'
+updated_at: '2026-07-23T08:40:50Z'
 ---
 <!-- sq:body -->
 ## Capability
 
-Round out five CLI surface gaps surfaced by the same adopter migration, closing
-the enumerate/read-back/delete holes that forced workarounds:
+Round out five real CLI surface gaps surfaced by the same adopter migration,
+closing the enumerate/read-back/delete holes that forced workarounds, plus
+track one open design question:
 
 - `sq role list`: a real verb listing the **active** roster (distinct from `sq
   role catalog`, which lists the bundled-but-not-necessarily-active catalog),
@@ -50,6 +54,10 @@ the enumerate/read-back/delete holes that forced workarounds:
   warning fires **only** when no body was supplied at all (already the
   observed behavior; this story is the regression-test/parity-lock-in, not
   new mechanism).
+- A bundled designer/UX role is a related but separate open question (no
+  bundled role today; `dev add` requires a coding `--tech`). Tracked as a
+  placeholder story only — its exact shape (bundled role vs. `dev add --tech
+  ux --kind design`) is the architect's call, not scoped here.
 
 **Note on `docs/stability.md`:** that doc currently states standalone
 `role list`/`skill list`/`operator list` were **removed pre-1.0** in favor of
@@ -82,6 +90,9 @@ edges you have to route around."
 - `docs/stability.md`'s "standalone list commands removed" claim is updated to
   match the new reality (not left contradicting the shipped CLI).
 - `sq check` stays clean; existing sub-entity/comment/list tests keep passing.
+- The designer/UX-role story stays a tracked placeholder until the architect's
+  recommendation lands; not implemented as part of this feature's other five
+  stories.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -96,6 +107,7 @@ _Add with `sq feature 575 add-story "As a <role>, I want … so that …"`; trac
 | US3 | Todo |  | Add guarded remove for finding/story/subtask sub-entities |
 | US4 | Todo |  | Add sq <type> <n> comments read-back verb (+ --json) |
 | US5 | Todo |  | Lock in add-finding/add-story/add-subtask body-input parity |
+| US6 | Todo |  | Bundled designer/UX role (shape TBD — architect) |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -184,9 +196,28 @@ Verify --file/-/-m already satisfy the non-stub path uniformly across all three 
 <!-- sq:story:US5:discussion -->
 <!-- sq:story:US5:discussion:end -->
 <!-- sq:story:US5:end -->
+
+<!-- sq:story:US6 -->
+### US6 — Bundled designer/UX role (shape TBD — architect)
+
+<!-- sq:story:US6:head -->
+**Status:** ⚪ Todo
+<!-- sq:story:US6:head:end -->
+
+<!-- sq:story:US6:body -->
+F7: no bundled designer/UX role today; dev add requires a coding --tech. Track the gap here; exact shape (bundled role vs. dev add --tech ux --kind design) is the architect's call — don't build ahead of that decision.
+<!-- sq:story:US6:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US6:discussion -->
+<!-- sq:story:US6:discussion:end -->
+<!-- sq:story:US6:end -->
 <!-- sq:stories:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-23T08:40:50Z] Catherine Manager:
+  - FEAT-575 Done: sq role list, sq operator list, sq <type> <n> comments, add-* body parity, and a guarded sub-entity remove (marker-safe remove_section + atomic remove_block with dangling-story refusal). Reviewed REV-632 (Approved; remove correctness + store._log + json fidelity verified, F1/F2 nits fixed). Full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

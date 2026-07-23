@@ -173,8 +173,10 @@ role catalog (shows slug, name, title, default). The deprecated `sq role list --
 **Slug resolution:** for `role show`/`regen`/`rm`, slug is a valid address form in addition to full
 ID and bare number.
 
-**Standalone list commands removed:** `sq role list`, `sq skill list`, `sq operator list` are
-removed pre-1.0 in favour of `sq list -t <type>`.
+**Active-roster list commands:** `sq role list` lists the activated role roster — an
+active/inactive marker per row, distinct from the bundled `sq role catalog` — and `sq operator
+list` enumerates registered operators; both take `--json`. `sq skill list` has no dedicated verb;
+use `sq list -t skill` for skills.
 
 ### Type-command aliases
 
@@ -263,8 +265,9 @@ renamed or retyped within a major version. The frozen surface includes:
 
 - Commands: `list`, `tree`, `inbox`, `search`, `blocked`, `workload`, `mine`, `show`, `refs`,
   `create`, `check`, plus sub-entity list commands (`sq task <n> subtasks --json`, etc.)
-- The catalog viewers: `role catalog`, `skill list -t skill`, `operator list -t operator` (all
-  with `--json`)
+- The catalog and roster viewers: `role catalog`, `role list`, `operator list` (all with
+  `--json`); skills are listed via the generic `list -t skill` (already covered above), not a
+  standalone `skill list`
 - Commands that stay table-only: `repair`, `docs`, `workflow`, `override list`, `override diff`
 
 Each shape has a pinned golden-file test (see `tests/` in the repo). Between major versions, new

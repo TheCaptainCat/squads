@@ -2,6 +2,7 @@
 
 from squads import _actor as actor
 from squads import _clock as clock
+from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
@@ -275,6 +276,12 @@ class ItemsMixin(ServiceCore):
         item = await self.get(item_id)
         text = await _aio.read_text(item_file(self.paths, item))
         return (sections.get_section(text, markers.DISCUSSION) or "").strip("\n")
+
+    async def comments(self, item_id: str) -> list[discussion.Comment]:
+        """The item's top-level discussion, parsed into timestamped entries (for the dedicated
+        ``sq <type> <n> comments`` read-back verb) — composes :meth:`read_discussion` +
+        :func:`discussion.split_discussion` so CLI callers never re-parse the region themselves."""
+        return discussion.split_discussion(await self.read_discussion(item_id))
 
     async def remove_item(self, item_id: str, *, purge: bool = False) -> Item:
         """Remove an agent-type item (role/skill/operator) from the index.

@@ -128,6 +128,12 @@ class RosterMixin(ServiceCore):
     async def list_operators(self) -> list[Item]:
         return await self.list_items(item_type=ROSTER_OPERATOR)
 
+    async def list_roles(self) -> list[Item]:
+        """The active roster — activated ``ROLE`` items — distinct from ``sq role catalog``
+        (the bundled-but-not-necessarily-active catalog, which reads from ``PREDEFINED`` and
+        has no notion of a live item at all)."""
+        return await self.list_items(item_type=ROSTER_ROLE)
+
     async def workload(self) -> list[WorkloadRow]:
         """Open/closed/total work-item counts per assignee (busiest first; unassigned last)."""
         counts: dict[str | None, list[int]] = {}

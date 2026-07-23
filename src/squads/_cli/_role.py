@@ -36,6 +36,7 @@ from squads._interactions import allowed_create_types
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_role
+from squads._workflow import STATUS_ACTIVE
 
 role_app = typer.Typer(
     no_args_is_help=True,
@@ -43,7 +44,7 @@ role_app = typer.Typer(
     epilog=(
         "Address a role:  sq role <slug|id|n> show|regen|rm\n"
         "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm\n"
-        "Note: a slug matching a group verb (catalog, activate) is unaddressable by slug; "
+        "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
     cls=AddressDispatchGroup,
@@ -82,6 +83,44 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
         "Run [cyan]sq override scaffold --new <slug>[/cyan], fill in the essentials, "
         "then [cyan]sq role activate <slug>[/cyan].[/dim]"
     )
+
+
+# --------------------------------------------------------------------------- list
+
+
+@role_app.command("list")
+@common.command
+async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
+    """List the active roster — activated roles, distinct from the bundled `role catalog`."""
+    svc = get_service()
+    roles = await svc.list_roles()
+    if json_out:
+        print_json_clean(
+            json.dumps(
+                [
+                    {
+                        "id": r.id,
+                        "slug": r.extra.get(X.SLUG, r.slug),
+                        "full_name": r.extra.get(X.FULL_NAME, r.title),
+                        "title": r.extra.get(X.TITLE, ""),
+                        "status": r.status,
+                    }
+                    for r in roles
+                ]
+            )
+        )
+        return
+    table = Table(box=None, pad_edge=False)
+    for col in ("Slug", "Name", "Title", "Active"):
+        table.add_column(col)
+    for r in roles:
+        table.add_row(
+            e(r.extra.get(X.SLUG, r.slug)),
+            e(r.extra.get(X.FULL_NAME, r.title)),
+            e(r.extra.get(X.TITLE, "")),
+            "✓" if r.status == STATUS_ACTIVE else "",
+        )
+    console.print(table)
 
 
 # --------------------------------------------------------------------------- activate

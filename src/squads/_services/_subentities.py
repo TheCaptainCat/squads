@@ -417,6 +417,66 @@ class SubentitiesMixin(ServiceCore):
 
         await self._locked_section_edit(parent_id, mutate)
 
+    async def remove_block(self, parent_id: str, kind: str, local_id: str) -> None:
+        """Hard-delete a story/subtask/finding sub-entity: drop it from ``item.subentities``,
+        excise its whole body/head/discussion span marker-safely (:func:`sections.remove_section`
+        on the block's own tag removes the nested regions too — they all live between its open
+        and matching ``:end`` marker), and re-render the parent's roll-up ``:summary`` table.
+
+        Mirrors ``remove_work_item``'s hard-delete contract (guard/confirmation lives at the CLI
+        edge): atomic within one ``store.transaction()``, reflog'd, and the freed local id is
+        never reissued to a *different* future sub-entity added later in the same run — see the
+        note on :func:`discussion.next_local_id` for the one case that isn't fully covered.
+
+        **Dangling story map:** removing a ``story`` refuses (``SquadsError``) while any subtask
+        in a child task still maps to it — findings/subtasks have no such inbound mapping, so the
+        check is scoped to ``kind == "story"`` (a bounded built-in, like the mapping itself).
+        """
+        container = self.subentity_container[kind]
+        async with self.store.transaction() as db:
+            item = self._require_parent(db, parent_id, kind)
+            sub = self._find(item, kind, local_id)
+            if kind == "story":
+                dependents = self._dependent_subtasks(db, item, local_id)
+                if dependents:
+                    listed = ", ".join(f"{task.id} {s.local_id}" for task, s in dependents)
+                    raise SquadsError(
+                        f"cannot remove {local_id}: subtasks still map to it: {listed}. "
+                        "Remap (--story) or remove those subtasks first."
+                    )
+            item.subentities = [s for s in item.subentities if s.local_id != local_id]
+            item.updated_at = clock.now()
+            path = item_file(self.paths, item)
+            text = await _aio.read_text(path)
+            text = sections.remove_section(text, f"{kind}:{local_id}")
+            text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
+            text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
+            await _aio.write_text(path, text)
+            self.store._log(  # pyright: ignore[reportPrivateUsage]
+                "subentity",
+                item.id,
+                {
+                    "op": "remove",
+                    "kind": kind,
+                    "local_id": local_id,
+                    "title": sub.title,
+                    "status": sub.status,
+                },
+            )
+
+    def _dependent_subtasks(
+        self, db: SquadsDB, feature: Item, story_local_id: str
+    ) -> list[tuple[Item, SubEntity]]:
+        """``(task, subtask)`` pairs, across *feature*'s child tasks, still mapped to
+        *story_local_id* — the guard :meth:`remove_block` applies before dropping a story."""
+        deps: list[tuple[Item, SubEntity]] = []
+        for child_id in db.children(feature.id):
+            child = db.get(child_id)
+            if child is None:
+                continue
+            deps.extend((child, s) for s in child.subentities if s.story == story_local_id)
+        return deps
+
     async def get_block(self, parent_id: str, kind: str, local_id: str) -> SubentityDetail:
         item = await self.get(parent_id)
         self._check_type(item, kind)
