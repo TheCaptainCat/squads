@@ -81,8 +81,9 @@ recording a human's own words (a comment, or a review point you reformulated) at
 
 - **`sq` owns the whole `.md` file** — frontmatter, markers, and every region. You author the content
   through commands, not your editor.
-- **Never hand-edit a `.md` file.** Set bodies with `sq body` / `sq <kind> body`, comment with
-  `sq comment`, change state with `sq update`/`status`. `sq check` flags broken markers.
+- **Never hand-edit a `.md` file.** Set bodies with `sq <type> <n> body` / `sq <type> <n> <kind> <k>
+  body`, comment with `sq <type> <n> comment`, change state with `sq <type> <n> status`/`update`.
+  `sq check` flags broken markers.
 - **The `.md` frontmatter is the source of truth** — don't hand-edit `id`/`status`/`parent`; use the
   commands so the index stays in sync.
 - **Reference items by ID** (`TASK-<n>`, `GUIDE-<n>`) in prose and comments so developers and

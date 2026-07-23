@@ -53,24 +53,24 @@ dotnet` → *Elias Dotnet*); the slug is always `<tech>-dev`. Every developer ma
 
 ```bash
 sq role list                 # active roles
-sq role list --available     # the bundled catalog
-sq role show architect       # a bundled role's definition
+sq role catalog              # the bundled catalog
+sq role architect show       # a bundled role's definition
 sq role activate qa          # add a role later (creates its item + Claude pointer)
-sq role regen ROLE-000002    # re-render its pointer from the item
-sq role rm ROLE-000002 [--purge]
+sq role ROLE-000002 regen    # re-render its pointer from the item
+sq role ROLE-000002 rm [--purge]
 ```
 
 ### Custom non-dev roles
 
 Beyond the bundled roster and stack-specific developers, you can define a wholly custom, non-dev
-role — e.g. a `security-analyst` or `incident-commander` — that isn't in the bundled catalog.
-Start one with `sq override scaffold --new <slug>` (see [overrides.md](overrides.md) § "Role
-overrides merge by field"), fill in the essentials it stubs, then activate it exactly like a
-bundled role:
+role — e.g. a designer/UX role, a `security-analyst`, or an `incident-commander` — that isn't in the
+bundled catalog. Start one with `sq override scaffold --new <slug>`, fill in the essentials it
+stubs, then activate it exactly like a bundled role. Worked example (a `compliance-officer` role):
+[overrides.md § "Define a custom role"](overrides.md#define-a-custom-role).
 
 ```bash
 sq override scaffold --new security-analyst
-$EDITOR .overrides/roles/security-analyst.toml
+$EDITOR squads/.overrides/roles/security-analyst.toml
 sq role activate security-analyst
 ```
 
@@ -83,7 +83,7 @@ handed to someone else on the repo:
 ```bash
 sq operator add "Pierre Chat"   # slug derived as op-pierre (override with --slug)
 sq operator list
-sq operator rm OP-000002 [--purge]
+sq operator OP-000002 rm [--purge]
 ```
 
 Operators are first-class participants, but **not** agents: they're never spawned as subagents,

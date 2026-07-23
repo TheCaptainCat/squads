@@ -48,7 +48,7 @@ squads records **two** independent version numbers (in `.squads.toml` and `.squa
 | Field | Meaning | Bumped when |
 |-------|---------|-------------|
 | `squads_version` | Package version that last wrote the managed files. Informational. | Every `sq init` / `sq sync` / `sq repair` / `sq migrate up`. |
-| `schema_version` | The **durable-format contract** (currently **`"0.2"`**, `_models/_schema.py`). While alpha it tracks the release that introduced the schema. | Only when the on-disk frontmatter / markers / layout change incompatibly. |
+| `schema_version` | The **durable-format contract** (see `_models/_schema.py` for the current value, or `sq migrate help` for the full changelog). While alpha it tracks the release that introduced the schema. | Only when the on-disk frontmatter / markers / layout change incompatibly. |
 
 `squads_version` drives a **non-fatal** notice (`version_notice`): *"squads X detected … run `sq
 sync`"* — about regenerating tool-owned files, not data. `schema_version` is the **hard gate**
@@ -81,10 +81,10 @@ defines compatibility:
 
 ---
 
-## Status today
+## Migration history (early schema evolution)
 
-`schema_version` is **`"0.3"`**. `sq migrate up` runs every pending step in order and restamps the
-config:
+`sq migrate up` runs every pending step in order and restamps the config. The two earliest
+migrations, in detail:
 
 - **0.1 → 0.2** (`_migrations/_v0_1_to_v0_2.py`): folds `extra.ref_kinds` into inline `ID:kind` refs;
   upgrades subtask/story headings (`[ ]`/`[x]` checkboxes, `(→ USn)` suffixes) into the sq-owned
@@ -103,3 +103,6 @@ config:
 
 (`store.load()` reads `.squads.json` as-is and does **not** fold the item shape — which is why the
 gate routes you through `sq migrate up` instead of letting a half-read index drift.)
+
+Every migration since, release by release, is in the live changelog — run `sq migrate help` for
+the index and `sq migrate chlog vFROM..vTO` for any given range's manual steps.

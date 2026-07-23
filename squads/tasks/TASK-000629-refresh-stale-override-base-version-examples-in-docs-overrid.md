@@ -3,12 +3,12 @@ id: TASK-629
 sequence_id: 629
 type: task
 title: Refresh stale override-base version examples in docs/overrides.md
-status: Draft
+status: Done
 parent: FEAT-574
 author: tech-lead
 description: 'US2: replace 0.4.2-era example strings; prefer version-agnostic phrasing'
 created_at: '2026-07-23T08:03:50Z'
-updated_at: '2026-07-23T08:03:50Z'
+updated_at: '2026-07-23T09:50:15Z'
 ---
 <!-- sq:body -->
 Implements FEAT-574 **US2**. Refresh the stale `override-base` version example strings
@@ -62,4 +62,7 @@ _Add with `sq task 629 add-subtask "<title>"`; track with `sq task 629 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-23T09:28:39Z] Elias Python:
+  - Replaced the stale 0.4.2/0.4.3 override-base examples in docs/overrides.md with the <version> placeholder form (mirrors stability.md's existing convention), for both the provenance-stamp comment and the sq check drift-warning example.
+  - Also caught and fixed the same class of drift the guard's secondary check targets: docs/migration.md claimed schema_version is currently "0.2" in one place and "0.3" in another (both stale -- it's 0.11); replaced with a pointer to _models/_schema.py / sq migrate help instead of a number that goes stale again.
 <!-- sq:discussion:end -->

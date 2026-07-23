@@ -31,7 +31,7 @@ sq create epic "Authentication platform"
 ### The pattern: `sq` scaffolds, **you set the body with a command**
 
 This is the heart of squads. `sq create` writes a *skeleton* with a placeholder body; you fill it
-through `sq body` — never by hand-editing the file. The fresh epic looks like:
+through `sq <type> <n> body` — never by hand-editing the file. The fresh epic looks like:
 
 ```markdown
 ---
@@ -63,7 +63,7 @@ sq epic 9 show                          # read the summary + body back
 
 `sq` owns the whole file — **never touch the `<!-- sq:* -->` markers or the frontmatter**. `--desc`
 sets only the short one-line *summary* (shown in `sq list`), not the body. Every
-`create`/`story add`/`subtask add` below follows the same flow: scaffold, then set the body via a
+`create`/`add-story`/`add-subtask` below follows the same flow: scaffold, then set the body via a
 command.
 
 ## 2. A feature with user stories (product owner)

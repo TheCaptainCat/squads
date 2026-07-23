@@ -11,23 +11,30 @@ A backend implements the `AgentBackend` ABC (`squads._backends._base`):
 ```python
 class AgentBackend(ABC):
     name: str
-    def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]: ...
-    def write_managed(self, ctx: BackendContext, roster: list[RoleView]) -> list[Artifact]: ...
-    def generate_role_pointer(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact: ...
-    def generate_skill_pointer(self, ctx: BackendContext, item: Item) -> Artifact: ...
-    def remove_artifacts(self, ctx: BackendContext, item: Item) -> None: ...
+    async def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]: ...
+    async def write_managed(
+        self, ctx: BackendContext, roster: list[RoleView], operators: list[OperatorView]
+    ) -> list[Artifact]: ...
+    async def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact: ...
+    async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact: ...
+    async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None: ...
+    def managed_paths(self, ctx: BackendContext) -> list[str]: ...
 ```
 
 - **`ensure_scaffold`** — create the tool's directories and base config (idempotent; never clobber
   user content). Claude Code makes `.claude/{agents,skills}` and merges `settings.json`.
 - **`write_managed`** — (re)write the version/roster-dependent files: the general skill, the
   per-item-type skills, and any "project guidance" doc. Called by `init`/`adopt`/`sync`.
-- **`generate_role_pointer`** / **`generate_skill_pointer`** — emit the per-role / per-skill files.
+- **`generate_role_entry`** / **`generate_skill_entry`** — emit the per-role / per-skill entry (a
+  file or a section, depending on the backend).
 - **`remove_artifacts`** — delete the files for a removed role/skill.
+- **`managed_paths`** — the root-relative paths this backend owns, read-only, for `sq check` to
+  verify scaffolding is present (a presence check, not a currency/drift check).
 
-`BackendContext` carries the resolved `SquadPaths`, the squads `version`, and helpers:
+`BackendContext` carries the resolved `SquadPaths` and helpers (each backend computes its own
+`.claude/`-equivalent directory internally — there's no shared `claude_dir` on `SquadPaths`):
 
-- `ctx.paths` — `claude_dir`, `squad_dir`, `root`, …
+- `ctx.paths` — `squad_dir`, `root`, …
 - `ctx.rel(path)` — project-root-relative, forward-slash path (for references and `Artifact` paths)
 - `ctx.root_relative(item)` — the same for an item's markdown file
 
@@ -58,7 +65,7 @@ Backends self-register. To add, say, a `cursor` backend:
 
    class CursorBackend(AgentBackend):
        name = "cursor"
-       def ensure_scaffold(self, ctx): ...
+       async def ensure_scaffold(self, ctx): ...
        # … implement the rest …
    ```
    ```python
@@ -70,7 +77,8 @@ Backends self-register. To add, say, a `cursor` backend:
 2. Make `get_backend` discover it. Today `_registry.get_backend` imports the built-in
    `_claude_code` package for its registration side-effect; add an import for your package the same
    way (or generalize discovery if you add several).
-3. Select it: `sq init --backend cursor` (stored as `default_backend` in `.squads.toml`).
+3. Select it: `sq init --backend cursor` (stored in `active_backends` in `.squads.toml`;
+   `--backend` is repeatable to run several backends side by side).
 
 ## Contract notes
 

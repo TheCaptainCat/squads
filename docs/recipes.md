@@ -108,8 +108,8 @@ custom badge collections — via `.overrides/workflow.toml`; see [workflow.md](w
 
 ```bash
 sq --at 2024-02-10 create task "Old migration task" --parent FEAT-2
-sq --at 2024-02-12 status TASK-20 InProgress
-sq --at 2024-02-15T17:00:00Z comment TASK-20 --as reviewer -m "shipped"
+sq --at 2024-02-12 task 20 status InProgress
+sq --at 2024-02-15T17:00:00Z task 20 comment --as reviewer -m "shipped"
 ```
 
 Full migration guide: [adoption.md](adoption.md).
