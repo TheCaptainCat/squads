@@ -228,6 +228,76 @@ class SearchResult:
     hits: list[SearchHit]
 
 
+@dataclass(frozen=True)
+class ImportIssue:
+    """One validate-first pre-pass problem (bulk import): a line number plus a
+    human message. The pre-pass collects every one of these across the whole file — it never
+    stops at the first."""
+
+    line: int
+    message: str
+
+
+@dataclass
+class ImportOpCount:
+    """Per-op-name event counts, in first-seen order (``dict`` insertion order is stable) —
+    what both ``--dry-run`` and the real apply report alongside the handle plan."""
+
+    counts: dict[str, int] = field(default_factory=lambda: dict[str, int]())
+
+    def bump(self, op: str) -> None:
+        self.counts[op] = self.counts.get(op, 0) + 1
+
+
+@dataclass
+class ImportPlan:
+    """The validate-first pre-pass result: what a bulk import checks before writing anything.
+
+    Writes nothing — ``handle_to_id``/``handle_to_sub`` is the *projected* allocation plan (a
+    simulated counter bump, never the real one); ``issues`` is the ordered, line-numbered error
+    list. ``ok`` (no issues) is what gates whether apply may proceed; a non-empty ``issues`` is
+    exactly what ``--dry-run`` (a later task) prints instead of applying.
+    """
+
+    op_counts: ImportOpCount
+    handle_to_id: dict[str, str]
+    handle_to_sub: dict[str, tuple[str, str]]
+    issues: list[ImportIssue] = field(default_factory=list[ImportIssue])
+
+    @property
+    def ok(self) -> bool:
+        return not self.issues
+
+
+@dataclass
+class ImportApplyResult:
+    """The real-apply outcome of a bulk import's single-transaction apply pass.
+
+    ``warnings`` surfaces board-debt the same catalog ``sq check`` reports (unwritten
+    sub-entity bodies, over-long titles, …) — apply does not bypass the gate, so these ride
+    back for the CLI/``--json`` task to render rather than being silently imported.
+    """
+
+    op_counts: ImportOpCount
+    handle_to_id: dict[str, str]
+    handle_to_sub: dict[str, tuple[str, str]]
+    created_ids: list[str] = field(default_factory=list[str])
+    warnings: list[str] = field(default_factory=list[str])
+
+
+@dataclass
+class ImportResult:
+    """The top-level result of :meth:`~squads._services._import.ImportMixin.import_events`.
+
+    ``plan`` is always populated (the pre-pass always runs first). ``applied`` is ``None``
+    whenever the pre-pass found any issue, or the caller asked for ``dry_run`` — either way,
+    nothing was written.
+    """
+
+    plan: ImportPlan
+    applied: ImportApplyResult | None = None
+
+
 @dataclass
 class ReflogEntry:
     """One parsed reflog line, surfaced by ``sq reflog``.

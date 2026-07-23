@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from squads import _actor as actor
 from squads import _badges as badges
@@ -10,6 +11,7 @@ from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models._extras import ExtraKey as X
+from squads._models._index import SquadsDB
 from squads._models._item import (
     DEFAULT_KIND,
     VALID_REF_KINDS,
@@ -297,32 +299,55 @@ def graph_to_mermaid(root: GraphNode) -> str:
 
 class RefsMixin(ServiceCore):
     async def add_ref(self, from_id: str, to_id: str, *, kind: str = DEFAULT_KIND) -> Item:
+        """Opens its own transaction, then delegates to :meth:`_add_ref_core` — the bulk
+        importer calls that core directly (its own transaction is already open)."""
+        async with self.store.transaction() as db:
+            return await self._add_ref_core(db, from_id, to_id, kind=kind)
+
+    def _add_ref_model(
+        self,
+        db: SquadsDB,
+        from_id: str,
+        to_id: str,
+        *,
+        kind: str = DEFAULT_KIND,
+        now: datetime | None = None,
+    ) -> Item:
+        """The PURE half of a ref-add: no file I/O.
+
+        Shared by :meth:`_add_ref_core` (the interactive/apply path) and the bulk importer's
+        pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``.
+        """
         if from_id == to_id:
             raise SquadsError("an item cannot reference itself")
         if kind not in VALID_REF_KINDS:
             valid = ", ".join(sorted(VALID_REF_KINDS))
             raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
-        async with self.store.transaction() as db:
-            src = require_item(db, from_id)
-            tgt = require_item(db, to_id)
-            # The kind rides with the edge; re-adding an existing edge updates its kind.
-            # Dedup by (prefix, seq) so old-width stored refs ("PREFIX-000007") are replaced
-            # when re-adding across a repad boundary where to_id is "PREFIX-0000007" — file
-            # contents are never rewritten, so widths diverge.
-            tgt_prefix = effective_prefix(tgt.prefix)
-            tgt_seq = tgt.sequence_id
-            src.refs = [
-                r for r in src.refs if not ref_id_matches(split_ref(r)[0], tgt_prefix, tgt_seq)
-            ]
-            src.refs.append(make_ref(to_id, kind))
-            src.updated_at = clock.now()
-            src.modified_session, _ = actor.current_session()
-            await update_frontmatter(item_file(self.paths, src), src)
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
-                "ref",
-                src.id,
-                {"add": to_id, "kind": kind},
-            )
+        src = require_item(db, from_id)
+        tgt = require_item(db, to_id)
+        # The kind rides with the edge; re-adding an existing edge updates its kind.
+        # Dedup by (prefix, seq) so old-width stored refs ("PREFIX-000007") are replaced
+        # when re-adding across a repad boundary where to_id is "PREFIX-0000007" — file
+        # contents are never rewritten, so widths diverge.
+        tgt_prefix = effective_prefix(tgt.prefix)
+        tgt_seq = tgt.sequence_id
+        src.refs = [r for r in src.refs if not ref_id_matches(split_ref(r)[0], tgt_prefix, tgt_seq)]
+        src.refs.append(make_ref(to_id, kind))
+        src.updated_at = now if now is not None else clock.now()
+        src.modified_session, _ = actor.current_session()
+        return src
+
+    async def _add_ref_core(
+        self, db: SquadsDB, from_id: str, to_id: str, *, kind: str = DEFAULT_KIND
+    ) -> Item:
+        """The ref-add mutation core: takes an already-open transaction's ``db``."""
+        src = self._add_ref_model(db, from_id, to_id, kind=kind)
+        await update_frontmatter(item_file(self.paths, src), src)
+        self.store._log(  # pyright: ignore[reportPrivateUsage]
+            "ref",
+            src.id,
+            {"add": to_id, "kind": kind},
+        )
         return src
 
     async def rm_ref(self, from_id: str, to_id: str) -> Item:

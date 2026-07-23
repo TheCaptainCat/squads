@@ -130,11 +130,22 @@ def _validate_item_vocab(db: SquadsDB, spec: WorkflowSpec) -> None:
 
 @dataclass
 class _ReflogOp:
-    """A reflog entry buffered during a transaction, flushed after the commit."""
+    """A reflog entry buffered during a transaction, flushed after the commit.
+
+    ``ts``/``actor``/``session_id``/``parent_session_id`` are captured from the ambient
+    context at the moment :meth:`IndexStore._log` is called (buffer time), NOT re-read at
+    flush time — a single transaction may buffer several ops under different ambient actor/
+    clock bindings (bulk import rebinds per event while holding one open transaction), so
+    each op must carry its own snapshot rather than sharing one taken after the last rebind.
+    """
 
     op: str
     target: str
     delta: dict[str, Any]
+    ts: str
+    actor: str
+    session_id: str | None
+    parent_session_id: str | None
 
 
 @dataclass
@@ -145,9 +156,29 @@ class _TransactionCtx:
     db: SquadsDB
     reflog_ops: list[_ReflogOp] = field(default_factory=list[_ReflogOp])
 
-    def log(self, op: str, target: str, delta: dict[str, Any]) -> None:
-        """Buffer one reflog entry for post-commit append."""
-        self.reflog_ops.append(_ReflogOp(op=op, target=target, delta=delta))
+    def log(
+        self,
+        op: str,
+        target: str,
+        delta: dict[str, Any],
+        *,
+        ts: str,
+        actor: str,
+        session_id: str | None,
+        parent_session_id: str | None,
+    ) -> None:
+        """Buffer one reflog entry for post-commit append, with its own actor/clock snapshot."""
+        self.reflog_ops.append(
+            _ReflogOp(
+                op=op,
+                target=target,
+                delta=delta,
+                ts=ts,
+                actor=actor,
+                session_id=session_id,
+                parent_session_id=parent_session_id,
+            )
+        )
 
 
 class IndexStore:
@@ -254,8 +285,6 @@ class IndexStore:
         holding all locks, strictly after commit. A failed append only warns; it never
         rolls back the committed mutation. If the body raises, nothing is written.
         """
-        from squads import _actor as actor
-        from squads import _clock as clock
         from squads._index._reflog import append_line, reflog_path
 
         ctx = _TransactionCtx(db=await self.load())
@@ -275,23 +304,22 @@ class IndexStore:
 
                     # Reflog append: strictly after os.replace, inside all locks. Guarded
                     # so any error degrades to a warning — never surfaces from an
-                    # already-committed mutation (never-raise contract).
+                    # already-committed mutation (never-raise contract). Each entry replays
+                    # its OWN buffer-time ts/actor/session snapshot (see ``_ReflogOp``) —
+                    # not one snapshot shared across every buffered op.
                     if ctx.reflog_ops:
                         try:
                             rpath = reflog_path(self.index_path.parent)
-                            ts = clock.iso(clock.now())
-                            act = actor.current_actor()
-                            sid, psid = actor.current_session()
                             for entry in ctx.reflog_ops:
                                 await append_line(
                                     rpath,
-                                    ts=ts,
-                                    actor=act,
+                                    ts=entry.ts,
+                                    actor=entry.actor,
                                     op=entry.op,
                                     target=entry.target,
                                     delta=entry.delta,
-                                    session_id=sid,
-                                    parent_session_id=psid,
+                                    session_id=entry.session_id,
+                                    parent_session_id=entry.parent_session_id,
                                 )
                         except Exception as exc:  # never fail a committed mutation
                             print(
@@ -306,10 +334,28 @@ class IndexStore:
 
     def _log(self, op: str, target: str, delta: dict[str, Any]) -> None:
         """Buffer a reflog entry on the active transaction context (no-op outside one), so the
-        op is captured where the change is known and emitted after the commit."""
+        op is captured where the change is known and emitted after the commit.
+
+        Snapshots the ambient actor/clock/session **now** (buffer time) rather than leaving
+        that to the post-commit flush — see ``_ReflogOp`` for why a single transaction can't
+        share one snapshot across every buffered op (bulk import rebinds actor/clock per event
+        while the whole apply stays inside one transaction).
+        """
         ctx: _TransactionCtx | None = getattr(self, "_current_ctx", None)
         if ctx is not None:
-            ctx.log(op, target, delta)
+            from squads import _actor as actor
+            from squads import _clock as clock
+
+            sid, psid = actor.current_session()
+            ctx.log(
+                op,
+                target,
+                delta,
+                ts=clock.iso(clock.now()),
+                actor=actor.current_actor(),
+                session_id=sid,
+                parent_session_id=psid,
+            )
 
     async def overwrite(self, db: SquadsDB) -> None:
         """Replace the whole index under the three-layer lock (used by ``sq repair``), with the

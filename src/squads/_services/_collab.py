@@ -9,6 +9,7 @@ from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
+from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import SearchHit, SearchResult
@@ -168,13 +169,42 @@ class CollabMixin(ServiceCore):
         finding: str | None = None,
         sub: tuple[str, str] | None = None,
     ) -> Item:
+        """Opens its own transaction, then delegates to :meth:`_comment_core` — the bulk
+        importer calls that core directly (its own transaction is already open)."""
+        async with self.store.transaction() as db:
+            return await self._comment_core(
+                db,
+                item_id,
+                messages,
+                as_slug=as_slug,
+                story=story,
+                subtask=subtask,
+                finding=finding,
+                sub=sub,
+            )
+
+    async def _comment_core(
+        self,
+        db: SquadsDB,
+        item_id: str,
+        messages: list[str],
+        *,
+        as_slug: str = "operator",
+        story: str | None = None,
+        subtask: str | None = None,
+        finding: str | None = None,
+        sub: tuple[str, str] | None = None,
+    ) -> Item:
+        """The comment mutation core: takes an already-open transaction's ``db`` (so the author
+        display name resolves against in-memory state, not a fresh disk load — see
+        :meth:`~squads._services._base.ServiceCore._author_of`)."""
         if not messages:
             raise SquadsError("a comment needs at least one -m message")
         for msg in messages:
             reject_markers(msg, "comment message")
         tag = self._discussion_tag(story, subtask, finding, sub)
         entry = discussion.format_comment(
-            clock.iso(clock.now()), await self.author(as_slug), messages
+            clock.iso(clock.now()), self._author_of(db, as_slug), messages
         )
 
         def mutate(text: str, _item: Item) -> str:
@@ -189,7 +219,7 @@ class CollabMixin(ServiceCore):
             )
             return sections.append_to_section(text, tag, entry)
 
-        return await self._locked_section_edit(item_id, mutate)
+        return await self._section_edit_core(db, item_id, mutate)
 
     @staticmethod
     def _discussion_tag(
