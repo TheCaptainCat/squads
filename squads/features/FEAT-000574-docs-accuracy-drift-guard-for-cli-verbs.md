@@ -56,7 +56,7 @@ Concretely:
 
 ## Why
 
-Adopter field report REV-565 (Nabudoc migration, squads 0.11.1) hit three
+Adopter field report REV-565 (adopter-project migration, squads 0.11.1) hit three
 separate doc/CLI mismatches while following the shipped docs verbatim: `sq role
 list --available` and `story add`/`subtask add` don't exist, and the
 override-base example version reads as stale. Each individually is a low-medium

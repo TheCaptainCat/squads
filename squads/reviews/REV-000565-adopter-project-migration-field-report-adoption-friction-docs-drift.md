@@ -2,7 +2,7 @@
 id: REV-565
 sequence_id: 565
 type: review
-title: 'Nabudoc migration field report: adoption friction, docs drift, design gaps'
+title: 'Adopter-project migration field report: adoption friction, docs drift, design gaps'
 status: Requested
 author: reviewer
 refs:
@@ -76,7 +76,7 @@ updated_at: '2026-07-23T07:48:05Z'
 <!-- sq:body -->
 ## Scope
 
-Field report from the **first real external adoption** of squads (the "Nabudoc" project,
+Field report from the **first real external adoption** of squads (an adopter project,
 squads **0.11.1**): a Claude session converted a home-made role/workflow corpus into a squad and
 logged every friction point, docs drift, and design surprise. This is adopter feedback about
 **squads the product**, not a code-diff review of a specific change.
