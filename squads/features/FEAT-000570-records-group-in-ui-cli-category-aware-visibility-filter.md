@@ -3,7 +3,7 @@ id: FEAT-570
 sequence_id: 570
 type: feature
 title: 'Records group in UI/CLI: category-aware visibility + filter'
-status: InReview
+status: Done
 parent: EPIC-538
 author: product-owner
 priority: medium
@@ -22,7 +22,7 @@ subentities:
   title: 'VS Code extension: dedicated records view'
   status: InProgress
 created_at: '2026-07-22T08:39:37Z'
-updated_at: '2026-07-22T18:43:26Z'
+updated_at: '2026-07-23T07:09:27Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -161,4 +161,6 @@ Render status colour from the role catalog (FEAT-605): fetch the roles catalog, 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-23T07:09:26Z] Pierre Chat:
+  - Dev-host visual pass done — happy with the Records view, the work-tree exclusion, and role-colored statuses (Accepted shows in its own colour, not greyed). Accepting. Follow-up noted: the Roster section has no filters yet — do that later.
 <!-- sq:discussion:end -->

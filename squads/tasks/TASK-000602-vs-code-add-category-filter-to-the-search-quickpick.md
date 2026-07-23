@@ -3,13 +3,13 @@ id: TASK-602
 sequence_id: 602
 type: task
 title: 'VS Code: add category filter to the search QuickPick'
-status: InReview
+status: Done
 parent: FEAT-570
 author: tech-lead
 assignee: typescript-dev
 priority: medium
 created_at: '2026-07-22T13:00:58Z'
-updated_at: '2026-07-22T18:42:44Z'
+updated_at: '2026-07-23T07:09:25Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US3 (VS Code QuickPick filter). Add a category dimension to the search QuickPick filtering, alongside the existing type/status narrowing. Depends on TASK-600 (category plumbing).
