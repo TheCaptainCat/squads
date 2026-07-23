@@ -16,6 +16,7 @@ from squads._paths import SquadPaths, load_config, resolve
 from squads._roles._catalog import RoleDef, resolve_roles
 from squads._services._board import BoardMixin
 from squads._services._collab import CollabMixin
+from squads._services._import import ImportMixin
 from squads._services._items import ItemsMixin
 from squads._services._maintenance import MaintenanceMixin
 from squads._services._memory import MemoryMixin
@@ -29,6 +30,7 @@ from squads._workflow import ROSTER_ROLE, bundled_spec
 
 
 class Service(
+    ImportMixin,
     ItemsMixin,
     CollabMixin,
     SubentitiesMixin,

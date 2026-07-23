@@ -1,5 +1,8 @@
 """Item lifecycle: status transitions, edits, links, regen, removal."""
 
+from collections.abc import Callable
+from datetime import datetime
+
 from squads import _actor as actor
 from squads import _clock as clock
 from squads import _discussion as discussion
@@ -24,18 +27,44 @@ from squads._workflow._models import Field
 
 class ItemsMixin(ServiceCore):
     async def set_status(self, item_id: str, status: str, *, force: bool = False) -> Item:
+        """Opens its own transaction, then delegates to :meth:`_set_status_core` — the bulk
+        importer calls that core directly (its own transaction is already open)."""
         async with self.store.transaction() as db:
-            item = require_item(db, item_id)
-            old_status = item.status
-            self._apply_status(item, status, force=force)
-            item.updated_at = clock.now()
-            item.modified_session, _ = actor.current_session()
-            await update_frontmatter(item_file(self.paths, item), item)
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
-                "status",
-                item.id,
-                {"status": [old_status, item.status]},
-            )
+            return await self._set_status_core(db, item_id, status, force=force)
+
+    def _set_status_model(
+        self,
+        db: SquadsDB,
+        item_id: str,
+        status: str,
+        *,
+        force: bool = False,
+        now: datetime | None = None,
+    ) -> tuple[Item, str]:
+        """The PURE half of a status transition: no file I/O. Returns ``(item, old_status)``.
+
+        Shared by :meth:`_set_status_core` (the interactive/apply path) and the bulk importer's
+        pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
+        to simulate the transition using the exact same workflow gate the real path runs.
+        """
+        item = require_item(db, item_id)
+        old_status = item.status
+        self._apply_status(item, status, force=force)
+        item.updated_at = now if now is not None else clock.now()
+        item.modified_session, _ = actor.current_session()
+        return item, old_status
+
+    async def _set_status_core(
+        self, db: SquadsDB, item_id: str, status: str, *, force: bool = False
+    ) -> Item:
+        """The status-transition mutation core: takes an already-open transaction's ``db``."""
+        item, old_status = self._set_status_model(db, item_id, status, force=force)
+        await update_frontmatter(item_file(self.paths, item), item)
+        self.store._log(  # pyright: ignore[reportPrivateUsage]
+            "status",
+            item.id,
+            {"status": [old_status, item.status]},
+        )
         return item
 
     async def update(  # noqa: PLR0913 — the one metadata entry point
@@ -57,51 +86,148 @@ class ItemsMixin(ServiceCore):
         set_extra: dict[str, str] | None = None,
         unset_extra: list[str] | None = None,
     ) -> Item:
+        """Opens its own transaction, then delegates to :meth:`_update_core` — the bulk
+        importer calls that core directly (its own transaction is already open). The
+        post-transaction pointer regen (roster items only) stays here, outside the core: it is
+        its own I/O concern, not part of the index mutation."""
         async with self.store.transaction() as db:
-            item = require_item(db, item_id)
-            delta: dict[str, object] = {}
-            if title is not None and title != item.title:
-                delta["title"] = [item.title, title]
-                self._rename(db, item, title)
-            if description is not None:
-                delta["description"] = description
-                item.description = description
-            if assignee is not None:
-                self._check_assignee(db, assignee or None)
-                delta["assignee"] = assignee or None
-                item.assignee = assignee or None
-            if clear_priority:
-                delta["priority"] = None
-                item.priority = None
-            elif priority is not None:
-                delta["priority"] = priority
-                item.priority = priority
-            if author is not None:
-                self._check_author(db, item.type, author, item.slug)
-                delta["author"] = author
-                item.author = author
-            if status is not None:
-                old_st = item.status
-                self._apply_status(item, status, force=force)
-                delta["status"] = [old_st, item.status]
-            if clear_parent:
-                delta["parent"] = None
-                item.parent = None
-            elif parent is not None:
-                self._check_parent(db, item.type, parent)
-                delta["parent"] = parent
-                item.parent = parent
-            self._apply_labels(item, add_labels, rm_labels)
-            self._apply_extra(item, set_extra, unset_extra)
-            item.updated_at = clock.now()
-            item.modified_session, _ = actor.current_session()
-            # Fail-closed on the updated item's first error-level catalog violation — the
-            # same engine `sq check` reports (a warn-level catalog issue never aborts here).
-            ValidatorEngine(spec=self.spec).gate(item, db)
-            await update_frontmatter(item_file(self.paths, item), item)
-            self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
+            item = await self._update_core(
+                db,
+                item_id,
+                title=title,
+                description=description,
+                assignee=assignee,
+                priority=priority,
+                clear_priority=clear_priority,
+                add_labels=add_labels,
+                rm_labels=rm_labels,
+                author=author,
+                status=status,
+                force=force,
+                parent=parent,
+                clear_parent=clear_parent,
+                set_extra=set_extra,
+                unset_extra=unset_extra,
+            )
         if self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
             await self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
+        return item
+
+    def _update_model(  # noqa: PLR0913 — mirrors `update`'s own keyword surface
+        self,
+        db: SquadsDB,
+        item_id: str,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        assignee: str | None = None,
+        priority: str | None = None,
+        clear_priority: bool = False,
+        add_labels: list[str] | None = None,
+        rm_labels: list[str] | None = None,
+        author: str | None = None,
+        status: str | None = None,
+        force: bool = False,
+        parent: str | None = None,
+        clear_parent: bool = False,
+        set_extra: dict[str, str] | None = None,
+        unset_extra: list[str] | None = None,
+        now: datetime | None = None,
+    ) -> tuple[Item, dict[str, object]]:
+        """The PURE half of a metadata update: no file I/O. Returns ``(item, delta)``.
+
+        Shared by :meth:`_update_core` (the interactive/apply path) and the bulk importer's
+        pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
+        to simulate the update using the exact same checks + catalog gate the real path runs.
+        """
+        item = require_item(db, item_id)
+        delta: dict[str, object] = {}
+        if title is not None and title != item.title:
+            delta["title"] = [item.title, title]
+            self._rename(db, item, title)
+        if description is not None:
+            delta["description"] = description
+            item.description = description
+        if assignee is not None:
+            self._check_assignee(db, assignee or None)
+            delta["assignee"] = assignee or None
+            item.assignee = assignee or None
+        if clear_priority:
+            delta["priority"] = None
+            item.priority = None
+        elif priority is not None:
+            delta["priority"] = priority
+            item.priority = priority
+        if author is not None:
+            self._check_author(db, item.type, author, item.slug)
+            delta["author"] = author
+            item.author = author
+        if status is not None:
+            old_st = item.status
+            self._apply_status(item, status, force=force)
+            delta["status"] = [old_st, item.status]
+        if clear_parent:
+            delta["parent"] = None
+            item.parent = None
+        elif parent is not None:
+            self._check_parent(db, item.type, parent)
+            delta["parent"] = parent
+            item.parent = parent
+        self._apply_labels(item, add_labels, rm_labels)
+        self._apply_extra(item, set_extra, unset_extra)
+        item.updated_at = now if now is not None else clock.now()
+        item.modified_session, _ = actor.current_session()
+        # Fail-closed on the updated item's first error-level catalog violation — the
+        # same engine `sq check` reports (a warn-level catalog issue never aborts here).
+        ValidatorEngine(spec=self.spec).gate(item, db)
+        return item, delta
+
+    async def _update_core(  # noqa: PLR0913 — mirrors `update`'s own keyword surface
+        self,
+        db: SquadsDB,
+        item_id: str,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        assignee: str | None = None,
+        priority: str | None = None,
+        clear_priority: bool = False,
+        add_labels: list[str] | None = None,
+        rm_labels: list[str] | None = None,
+        author: str | None = None,
+        status: str | None = None,
+        force: bool = False,
+        parent: str | None = None,
+        clear_parent: bool = False,
+        set_extra: dict[str, str] | None = None,
+        unset_extra: list[str] | None = None,
+    ) -> Item:
+        """The metadata-update mutation core: takes an already-open transaction's ``db``.
+
+        Does NOT run the roster pointer regen — that stays in :meth:`update`, since it is its
+        own I/O concern outside the index transaction (the bulk importer runs its own regen
+        pass, if any, after the whole apply commits).
+        """
+        item, delta = self._update_model(
+            db,
+            item_id,
+            title=title,
+            description=description,
+            assignee=assignee,
+            priority=priority,
+            clear_priority=clear_priority,
+            add_labels=add_labels,
+            rm_labels=rm_labels,
+            author=author,
+            status=status,
+            force=force,
+            parent=parent,
+            clear_parent=clear_parent,
+            set_extra=set_extra,
+            unset_extra=unset_extra,
+        )
+        await update_frontmatter(item_file(self.paths, item), item)
+        self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
         return item
 
     @staticmethod
@@ -227,15 +353,10 @@ class ItemsMixin(ServiceCore):
             raise SquadsError(f"{item_id} is a {item.type}; only roles/skills have entries")
         return item
 
-    async def set_body(self, item_id: str, body: str, *, append: bool = False) -> Item:
-        """Set (or ``--append`` to) an item's top-level ``:body`` region — no manual editing.
-
-        The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
-        summary. Role bodies are generated from their fields, so they're rejected here — and so
-        is a system (template-owned) skill's body, since ``sq sync`` regenerates it. A *custom*
-        (author-defined) skill is the one roster-type exception: its body is authored content with
-        no regeneration path, so it's admitted.
-        """
+    def _body_mutate(self, item_id: str, body: str, *, append: bool) -> Callable[[str, Item], str]:
+        """Build the ``mutate(text, item)`` closure :meth:`set_body` applies via the shared
+        section-edit core — factored out so the bulk importer's ``body`` op can drive the exact
+        same logic through :meth:`~squads._services._base.ServiceCore._section_edit_core`."""
         reject_markers(body)
 
         def mutate(text: str, item: Item) -> str:
@@ -259,6 +380,18 @@ class ItemsMixin(ServiceCore):
             self.store._log("body", item.id, {})  # pyright: ignore[reportPrivateUsage]
             return sections.replace_section(text, markers.BODY, new_body)
 
+        return mutate
+
+    async def set_body(self, item_id: str, body: str, *, append: bool = False) -> Item:
+        """Set (or ``--append`` to) an item's top-level ``:body`` region — no manual editing.
+
+        The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
+        summary. Role bodies are generated from their fields, so they're rejected here — and so
+        is a system (template-owned) skill's body, since ``sq sync`` regenerates it. A *custom*
+        (author-defined) skill is the one roster-type exception: its body is authored content with
+        no regeneration path, so it's admitted.
+        """
+        mutate = self._body_mutate(item_id, body, append=append)
         return await self._locked_section_edit(item_id, mutate)
 
     async def read_body(self, item_id: str) -> str:

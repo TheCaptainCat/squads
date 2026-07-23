@@ -8,6 +8,7 @@ only ever call core methods + their own.
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -354,7 +355,70 @@ class ServiceCore:
         status: str | None = None,
         slug: str | None = None,
         body: str | None = None,
+        fields: dict[str, str] | None = None,
     ) -> CreateResult:
+        """Create an item — opens its own transaction, then delegates to :meth:`_create_core`.
+
+        The bulk-importer calls :meth:`_create_core` directly (its own single transaction is
+        already open), so this wrapper stays a thin two-liner and the mutation logic lives in
+        exactly one place.
+        """
+        async with self.store.transaction() as db:
+            return await self._create_core(
+                db,
+                item_type,
+                title,
+                description=description,
+                parent=parent,
+                author=author,
+                labels=labels,
+                refs=refs,
+                assignee=assignee,
+                priority=priority,
+                extra=extra,
+                status=status,
+                slug=slug,
+                body=body,
+                fields=fields,
+            )
+
+    def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
+        self,
+        db: SquadsDB,
+        item_type: str,
+        title: str,
+        *,
+        description: str = "",
+        parent: str | None = None,
+        author: str | None = None,
+        labels: list[str] | None = None,
+        refs: list[str] | None = None,
+        assignee: str | None = None,
+        priority: str | None = None,
+        extra: dict[str, Any] | None = None,
+        status: str | None = None,
+        slug: str | None = None,
+        body: str | None = None,
+        fields: dict[str, str] | None = None,
+        now: datetime | None = None,
+    ) -> tuple[Item, str | None]:
+        """The PURE half of create: every check, the id allocation, and the ``Item`` itself —
+        no file I/O. Returns ``(item, lane_warning)``.
+
+        Shared by :meth:`_create_core` (the interactive/apply path, which renders + writes the
+        file around this) and the bulk importer's validate-first pre-pass (which calls this
+        directly against a throwaway, never-persisted ``db`` copy to *simulate* a create —
+        including the id allocation, invariant #2's "simulate only" contract — with the exact
+        same checks the real path runs, rather than a parallel hand-duplicated validator).
+
+        ``now`` lets the pre-pass supply the event's own forged ``at`` explicitly instead of
+        reading the ambient clock — the apply path leaves it ``None`` and rides the ambient
+        clock the per-event ``RequestContext`` rebind already set.
+
+        ``fields`` is a generic badge-code map (e.g. ``{"priority": "high", "severity": "…"}``)
+        applied via :meth:`~squads._models._item.Item.set_badge_value` after the dedicated
+        ``priority`` kwarg — additive, so a code also present in ``fields`` simply wins.
+        """
         item_type = str(item_type)  # coerce StrEnum members to plain str
         slug = slug or slugify(title)
         author = author or self.paths.config.default_role
@@ -364,93 +428,142 @@ class ServiceCore:
                 if kind not in VALID_REF_KINDS:
                     valid = ", ".join(sorted(VALID_REF_KINDS))
                     raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
-        now = clock.now()
-        async with self.store.transaction() as db:
-            if parent:
-                self._check_parent(db, item_type, parent)
-            self._check_author(db, item_type, author, slug)
-            self._check_assignee(db, assignee)
-            # Resolve the prefix from the spec before allocation so both the filename and
-            # Item.id agree on the correct prefix.
-            resolved_prefix = prefix_for(item_type, self.spec)
-            # item_id is the padded filename stem (SquadsDB.allocate_id formats at db.padding);
-            # deliberately NOT the same width as the displayed Item.id.
-            item_id = db.allocate_id(item_type, prefix=resolved_prefix)
-            filename = f"{item_id}-{slug}.md"
-            squad_rel = self.paths.squad_relative(item_type, filename, spec=self.spec)
-            sid, _psid = actor.current_session()
-            item = Item(
-                sequence_id=db.counter,
-                type=str(item_type),
-                prefix=resolved_prefix,
-                title=title,
-                slug=slug,
-                status=str(status) if status is not None else self.spec.initial_status(item_type),
-                description=description,
-                parent=parent,
-                author=author,
-                assignee=assignee,
-                priority=priority,
-                labels=labels or [],
-                refs=refs or [],
-                path=squad_rel,
-                created_at=now,
-                updated_at=now,
-                created_session=sid,
-                modified_session=sid,
-                extra=extra or {},
+        if body is not None:
+            reject_markers(body)
+        effective_now = now if now is not None else clock.now()
+        if parent:
+            self._check_parent(db, item_type, parent)
+        self._check_author(db, item_type, author, slug)
+        self._check_assignee(db, assignee)
+        # Resolve the prefix from the spec before allocation so both the filename and
+        # Item.id agree on the correct prefix.
+        resolved_prefix = prefix_for(item_type, self.spec)
+        # item_id is the padded filename stem (SquadsDB.allocate_id formats at db.padding);
+        # deliberately NOT the same width as the displayed Item.id.
+        item_id = db.allocate_id(item_type, prefix=resolved_prefix)
+        filename = f"{item_id}-{slug}.md"
+        squad_rel = self.paths.squad_relative(item_type, filename, spec=self.spec)
+        sid, _psid = actor.current_session()
+        item = Item(
+            sequence_id=db.counter,
+            type=str(item_type),
+            prefix=resolved_prefix,
+            title=title,
+            slug=slug,
+            status=str(status) if status is not None else self.spec.initial_status(item_type),
+            description=description,
+            parent=parent,
+            author=author,
+            assignee=assignee,
+            priority=priority,
+            labels=labels or [],
+            refs=refs or [],
+            path=squad_rel,
+            created_at=effective_now,
+            updated_at=effective_now,
+            created_session=sid,
+            modified_session=sid,
+            extra=extra or {},
+        )
+        for code, value in (fields or {}).items():
+            item.set_badge_value(code, value)
+        db.add(item)
+        # Fail-closed on the new item's first error-level catalog violation (parent
+        # type-eligibility, item status validity, …) — the same engine `sq check` reports.
+        ValidatorEngine(spec=self.spec).gate(item, db)
+        # Advisory lane check, keyed on the declared author slug. Exempt before lookup.
+        # Service must NOT print — warning rides back in the result.
+        # Only laned item types (those in LANED_TYPES) participate in the lane domain;
+        # internal artifact types (role, skill, operator) are never lane-checked.
+        lane_warning: str | None = None
+        if (
+            item_type in LANED_TYPES
+            and not is_lane_exempt(author)
+            and item_type not in allowed_create_types(author)
+        ):
+            owners = in_lane_owner(item_type)
+            owner_str = (
+                ", ".join(f"'{s}'" for s in sorted(owners)) if owners else "no defined owner"
             )
-            rendered = render(
-                self._template_for(item_type),
-                item=item,
-                description=description,
-                extra=item.extra,
-                spec=self.spec,
+            lane_warning = (
+                f"advisory: '{author}' is not the in-lane author for '{item_type}' items"
+                f" (expected: {owner_str})."
+                " Lane checks are best-effort and advisory — proceeding."
             )
-            if body is not None:
-                reject_markers(body)
-                rendered = sections.replace_section(rendered, markers.BODY, body)
-            await write_new(self.paths.abspath(squad_rel), item, rendered)
-            db.add(item)
-            # Fail-closed on the new item's first error-level catalog violation (parent
-            # type-eligibility, item status validity, …) — the same engine `sq check` reports.
-            ValidatorEngine(spec=self.spec).gate(item, db)
-            # Advisory lane check, keyed on the declared author slug. Exempt before lookup.
-            # Service must NOT print — warning rides back in the result.
-            # Only laned item types (those in LANED_TYPES) participate in the lane domain;
-            # internal artifact types (role, skill, operator) are never lane-checked.
-            lane_warning: str | None = None
-            if (
-                item_type in LANED_TYPES
-                and not is_lane_exempt(author)
-                and item_type not in allowed_create_types(author)
-            ):
-                owners = in_lane_owner(item_type)
-                owner_str = (
-                    ", ".join(f"'{s}'" for s in sorted(owners)) if owners else "no defined owner"
-                )
-                lane_warning = (
-                    f"advisory: '{author}' is not the in-lane author for '{item_type}' items"
-                    f" (expected: {owner_str})."
-                    " Lane checks are best-effort and advisory — proceeding."
-                )
-            log_delta: dict[str, object] = {
-                "title": item.title,
+        return item, lane_warning
+
+    async def _create_core(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
+        self,
+        db: SquadsDB,
+        item_type: str,
+        title: str,
+        *,
+        description: str = "",
+        parent: str | None = None,
+        author: str | None = None,
+        labels: list[str] | None = None,
+        refs: list[str] | None = None,
+        assignee: str | None = None,
+        priority: str | None = None,
+        extra: dict[str, Any] | None = None,
+        status: str | None = None,
+        slug: str | None = None,
+        body: str | None = None,
+        fields: dict[str, str] | None = None,
+    ) -> CreateResult:
+        """The create mutation core: takes an already-open transaction's ``db``, runs
+        :meth:`_create_model`, then renders + writes the file and logs the reflog op.
+
+        Shared by the interactive :meth:`create` (which opens its own transaction) and the
+        bulk importer (which calls this directly inside its one open transaction — the
+        store's file lock is not reentrant, so the importer cannot call :meth:`create` itself).
+        """
+        item, lane_warning = self._create_model(
+            db,
+            item_type,
+            title,
+            description=description,
+            parent=parent,
+            author=author,
+            labels=labels,
+            refs=refs,
+            assignee=assignee,
+            priority=priority,
+            extra=extra,
+            status=status,
+            slug=slug,
+            body=body,
+            fields=fields,
+        )
+        item_type = item.type
+        rendered = render(
+            self._template_for(item_type),
+            item=item,
+            description=item.description,
+            extra=item.extra,
+            spec=self.spec,
+        )
+        if body is not None:
+            rendered = sections.replace_section(rendered, markers.BODY, body)
+        squad_rel = item.path
+        await write_new(self.paths.abspath(squad_rel), item, rendered)
+        log_delta: dict[str, object] = {
+            "title": item.title,
+            "type": item_type,
+            "status": item.status,
+        }
+        if lane_warning is not None:
+            log_delta["lane_warning"] = {
+                "advisory": True,
+                "actor": item.author,
+                "expected": sorted(in_lane_owner(item_type)),
                 "type": item_type,
-                "status": item.status,
             }
-            if lane_warning is not None:
-                log_delta["lane_warning"] = {
-                    "advisory": True,
-                    "actor": author,
-                    "expected": sorted(in_lane_owner(item_type)),
-                    "type": item_type,
-                }
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
-                "create",
-                item.id,
-                log_delta,
-            )
+        self.store._log(  # pyright: ignore[reportPrivateUsage]
+            "create",
+            item.id,
+            log_delta,
+        )
         return CreateResult(
             item=item, path=self.paths.abspath(squad_rel), lane_warning=lane_warning
         )
@@ -624,21 +737,30 @@ class ServiceCore:
     async def _locked_section_edit(self, item_id: str, mutate: Callable[[str, Item], str]) -> Item:
         """Edit an item's prose under the index lock, atomically with the ``updated_at`` bump.
 
-        ``mutate(text, item)`` returns the new file text (sync callable — may raise to abort
-        before any write). The whole read → mutate → write happens within one ``transaction()``,
-        so concurrent ``sq`` processes (e.g. parallel subagents commenting on the same item)
-        can't lose each other's edits.
+        Opens its own transaction, then delegates to :meth:`_section_edit_core` — the
+        bulk importer calls that core directly (its own transaction is already open).
         """
         async with self.store.transaction() as db:
-            it = require_item(db, item_id)
-            path = item_file(self.paths, it)
-            text = await _aio.read_text(path)
-            new_text = mutate(text, it)
-            it.updated_at = clock.now()
-            it.modified_session, _ = actor.current_session()
-            await _aio.write_text(
-                path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict())
-            )
+            return await self._section_edit_core(db, item_id, mutate)
+
+    async def _section_edit_core(
+        self, db: SquadsDB, item_id: str, mutate: Callable[[str, Item], str]
+    ) -> Item:
+        """The section-edit mutation core: takes an already-open transaction's ``db``.
+
+        ``mutate(text, item)`` returns the new file text (sync callable — may raise to abort
+        before any write). Shared by :meth:`_locked_section_edit` (body/comment/sub-body's
+        common core) and the bulk importer.
+        """
+        it = require_item(db, item_id)
+        path = item_file(self.paths, it)
+        text = await _aio.read_text(path)
+        new_text = mutate(text, it)
+        it.updated_at = clock.now()
+        it.modified_session, _ = actor.current_session()
+        await _aio.write_text(
+            path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict())
+        )
         return it
 
     # ------------------------------------------------------------------ role / skill lookups
@@ -675,17 +797,35 @@ class ServiceCore:
                 return it
         return None
 
-    async def author(self, slug: str) -> str:
-        """Display (full) name for a participant slug; falls back to the slug if unknown."""
+    def _author_of(self, db: SquadsDB, slug: str) -> str:
+        """Display (full) name for a participant slug, resolved against an already-loaded
+        *db* — the pure core :meth:`author` wraps with its own fresh load.
+
+        Reading from a caller-supplied ``db`` (rather than re-loading from disk) matters
+        inside the bulk importer's one open transaction: an earlier event in the same run may
+        have just created the role/operator this slug names, and that item is only visible in
+        the in-memory ``db``, not yet on disk.
+        """
         if slug == "operator":
             return "Operator"
-        participant = await self._role_item(slug) or await self._operator_item(slug)
+        participant = next(
+            (
+                it
+                for it in db.items.values()
+                if it.type in (ROSTER_ROLE, ROSTER_OPERATOR) and it.extra.get(X.SLUG) == slug
+            ),
+            None,
+        )
         if participant is not None:
             return participant.extra.get(X.FULL_NAME, slug)
         try:
             return resolve_role(slug, self.paths.squad_dir).full_name
         except SquadsError:
             return slug
+
+    async def author(self, slug: str) -> str:
+        """Display (full) name for a participant slug; falls back to the slug if unknown."""
+        return self._author_of(await self.store.load(), slug)
 
     async def roster(self) -> list[RoleView]:
         return [
