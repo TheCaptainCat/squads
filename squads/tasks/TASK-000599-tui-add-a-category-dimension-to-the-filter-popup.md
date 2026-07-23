@@ -3,13 +3,13 @@ id: TASK-599
 sequence_id: 599
 type: task
 title: 'TUI: add a category dimension to the filter popup'
-status: InReview
+status: Done
 parent: FEAT-570
 author: tech-lead
 assignee: python-dev
 priority: medium
 created_at: '2026-07-22T13:00:56Z'
-updated_at: '2026-07-22T18:42:37Z'
+updated_at: '2026-07-23T07:09:23Z'
 ---
 <!-- sq:body -->
 Implements FEAT-570 US2 (TUI filter popup). Add a category dimension to the filter/sort popup so a browsing user can narrow to roster/work/records. Depends on US1 (TASK-597 `ItemFilter.category`) and pairs with TASK-598.
