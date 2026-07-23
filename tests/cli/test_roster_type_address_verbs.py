@@ -2,8 +2,10 @@
 happy path already homed at tests/cli/test_role_activate_with_override_cli.py and
 tests/service/test_operator_lifecycle.py: the mutating `regen`/`rm` verbs resolve an address
 by bare number, full ID, or slug exactly like `show` does; a wrong-type token is a clean
-`SquadsError`, never a traceback; and the literal (unaddressable) token `list` falls through
-to the same clean unknown-address error rather than leaking the internal `_addr` subgroup name.
+`SquadsError`, never a traceback. `role`/`operator` now have a real `list` group verb (see
+tests/cli/test_role_list_command_cli.py / tests/cli/test_operator_list_command_cli.py); `skill`
+does not, so the literal (unaddressable) token `list` still falls through to the same clean
+unknown-address error there, rather than leaking the internal `_addr` subgroup name.
 """
 
 import pytest
@@ -11,20 +13,18 @@ import pytest
 pytestmark = pytest.mark.anyio
 
 
-# --------------------------------------------------------------------------- list-removed
+# --------------------------------------------------------------------------- list dispatch
 
 
-async def test_role_list_falls_through_to_a_clean_unknown_address_error(project, invoke):
+async def test_role_list_is_the_real_group_verb_not_an_address_fallthrough(project, invoke):
     result = await invoke(["role", "list"])
-    assert result.exit_code == 1
-    assert "list" in result.output
+    assert result.exit_code == 0, result.output
     assert "_addr" not in result.output
     assert "Traceback" not in result.output
 
+    # an unrecognized option on the real `list` command is a clean Typer usage error.
     available = await invoke(["role", "list", "--available"])
-    assert available.exit_code == 1
-    assert "list" in available.output
-    assert "_addr" not in available.output
+    assert available.exit_code != 0
     assert "Traceback" not in available.output
 
 
@@ -36,10 +36,9 @@ async def test_skill_list_falls_through_to_a_clean_unknown_address_error(project
     assert "Traceback" not in result.output
 
 
-async def test_operator_list_falls_through_to_a_clean_unknown_address_error(project, invoke):
+async def test_operator_list_is_the_real_group_verb_not_an_address_fallthrough(project, invoke):
     result = await invoke(["operator", "list"])
-    assert result.exit_code == 1
-    assert "list" in result.output
+    assert result.exit_code == 0, result.output
     assert "_addr" not in result.output
     assert "Traceback" not in result.output
 

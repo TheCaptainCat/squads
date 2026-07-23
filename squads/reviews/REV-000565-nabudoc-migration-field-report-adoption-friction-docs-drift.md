@@ -44,7 +44,7 @@ subentities:
   severity: medium
 - local_id: F9
   title: Closed items (incl. Accepted decisions) hidden from default list/tree
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F10
   title: add-* leaves an unwritten-body stub that sq check warns on
@@ -64,14 +64,14 @@ subentities:
   severity: medium
 - local_id: F14
   title: add-* cannot take --severity/--status inline (two-step for full metadata)
-  status: Open
+  status: Verified
   severity: low
 - local_id: F15
   title: No read-back verb for an item's discussion/comments
   status: Open
   severity: low
 created_at: '2026-07-22T07:54:46Z'
-updated_at: '2026-07-22T08:24:28Z'
+updated_at: '2026-07-23T07:48:05Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -128,12 +128,12 @@ _Add with `sq review 565 add-finding "…" --severity medium`; track with `sq re
 | F6 | 🟢 low | Open |  | Docs: stale override-base version examples |
 | F7 | 🟡 medium | Open |  | No bundled designer/UX role; dev add requires a coding --tech |
 | F8 | 🟡 medium | Open |  | init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified |
-| F9 | 🟡 medium | Open |  | Closed items (incl. Accepted decisions) hidden from default list/tree |
+| F9 | 🟡 medium | Verified |  | Closed items (incl. Accepted decisions) hidden from default list/tree |
 | F10 | 🟢 low | Open |  | add-* leaves an unwritten-body stub that sq check warns on |
 | F11 | 🟢 low | WontFix |  | Sub-entity title-length advisory fires easily on migrated data |
 | F12 | 🟢 low | WontFix |  | Per-invocation process overhead |
 | F13 | 🟡 medium | Open |  | Sub-entities cannot be deleted (no remove for finding/story/subtask) |
-| F14 | 🟢 low | Open |  | add-* cannot take --severity/--status inline (two-step for full metadata) |
+| F14 | 🟢 low | Verified |  | add-* cannot take --severity/--status inline (two-step for full metadata) |
 | F15 | 🟢 low | Open |  | No read-back verb for an item's discussion/comments |
 <!-- sq:summary:end -->
 
@@ -375,7 +375,7 @@ generate (candidate orphans).
 ### F9 — Closed items (incl. Accepted decisions) hidden from default list/tree
 
 <!-- sq:finding:F9:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟡 Medium
 <!-- sq:finding:F9:head:end -->
 
@@ -506,7 +506,7 @@ mistakes are correctable.
 ### F14 — add-* cannot take --severity/--status inline (two-step for full metadata)
 
 <!-- sq:finding:F14:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F14:head:end -->
 
@@ -580,4 +580,6 @@ surface and aid scripting/verification.
     - F13 FIX — add a guarded 'remove' (--yes) for finding/story/subtask.
     - F14 FIX — make the add-* command builder dynamically generate the spec's badge/field --flags (generic, not hardcoded --severity/--status).
     - F15 FIX — add a dedicated 'sq <type> <n> comments' read-back verb (+ --json).
+- [2026-07-23T07:48:05Z] Catherine Manager:
+  - F9 and F14 resolved by the 0.12 batch: F9 (Accepted/closed records hidden) by the FEAT-605 role model + FEAT-570 records-category visibility (an in_force status like Accepted stays shown, not hidden like finished work); F14 (add-* inline metadata flags) by FEAT-571 (--status inline on add-finding/story/subtask; the generic per-field --<code> flags incl. --severity already existed). Both Verified.
 <!-- sq:discussion:end -->

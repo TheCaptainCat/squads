@@ -161,6 +161,19 @@ def _render_comments_styled(comments: list[discussion.Comment]) -> None:
         console.print(Panel(Markdown(cmt.body), title=title, expand=False))
 
 
+def print_comments(comments: list[discussion.Comment]) -> None:
+    """Render a comment list the same way `show --comments` does (styled panes on a TTY, plain
+    delimited text when piped/NO_COLOR) — for the dedicated `comments` read-back verb, or an
+    empty-discussion "no comments" line rather than an error."""
+    if not comments:
+        console.print("[dim](no comments)[/dim]")
+        return
+    if _is_styled():
+        _render_comments_styled(comments)
+    else:
+        _render_comments_plain(comments)
+
+
 def _build_item_panel_rows(it: Item) -> list[str]:
     """Build the metadata rows for the item's info panel."""
     rows = [

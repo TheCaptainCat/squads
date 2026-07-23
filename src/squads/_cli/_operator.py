@@ -16,6 +16,7 @@ from typing import ClassVar
 
 import typer
 from rich.panel import Panel
+from rich.table import Table
 
 import squads._cli._common as common
 from squads._cli._common import (
@@ -40,7 +41,7 @@ operator_app = typer.Typer(
     epilog=(
         "Address an operator:  sq operator <slug|id|n> show|rm\n"
         "Examples:  sq operator op-pierre show   sq operator 2 rm\n"
-        "Note: a slug matching a group verb (add) is unaddressable by slug; "
+        "Note: a slug matching a group verb (add, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
     cls=_OperatorDispatchGroup,
@@ -62,6 +63,43 @@ async def operator_add(
         f"registered [bold]{e(item.extra.get(X.FULL_NAME, item.title))}[/bold] "
         f"(`{item.extra.get(X.SLUG)}`) {item.id}"
     )
+
+
+# --------------------------------------------------------------------------- list
+
+
+@operator_app.command("list")
+@common.command
+async def operator_list(json_out: bool = typer.Option(False, "--json")) -> None:
+    """List the registered human operators."""
+    svc = get_service()
+    operators = await svc.list_operators()
+    if json_out:
+        print_json_clean(
+            json.dumps(
+                [
+                    {
+                        "id": op.id,
+                        "slug": op.extra.get(X.SLUG, op.slug),
+                        "full_name": op.extra.get(X.FULL_NAME, op.title),
+                        "status": op.status,
+                    }
+                    for op in operators
+                ]
+            )
+        )
+        return
+    table = Table(box=None, pad_edge=False)
+    for col in ("Slug", "Name", "ID", "Status"):
+        table.add_column(col)
+    for op in operators:
+        table.add_row(
+            e(op.extra.get(X.SLUG, op.slug)),
+            e(op.extra.get(X.FULL_NAME, op.title)),
+            op.id,
+            e(op.status),
+        )
+    console.print(table)
 
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)

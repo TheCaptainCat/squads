@@ -82,6 +82,31 @@ def replace_section(text: str, tag: str, new_inner: str) -> str:
     return text[: oi + len(o)] + new_inner + text[ci:]
 
 
+def remove_section(text: str, tag: str) -> str:
+    """Excise a whole section: its open marker through the matching close marker, inclusive.
+
+    The complement to :func:`replace_section` — drops a scaffolded region wholesale (e.g. a
+    removed sub-entity block, whose nested ``:head``/``:body``/``:discussion`` sub-regions live
+    between the same open/close pair) rather than editing its inner content. Also absorbs a
+    single blank separator line immediately above the block, if present — every scaffolded block
+    owns the blank line *before* it (see ``templates/subentities/block.md.j2``), so without this
+    a removed middle block would leave a doubled blank line behind. Raises ``KeyError`` if the
+    section isn't present (mirrors :func:`get_section`/:func:`replace_section`).
+    """
+    o, c = markers.open_marker(tag), markers.close_marker(tag)
+    oi = text.find(o)
+    ci = text.find(c, oi + len(o)) if oi != -1 else -1
+    if oi == -1 or ci == -1:
+        raise KeyError(f"section {tag!r} not found")
+    start = text.rfind("\n", 0, oi) + 1
+    if text[:start].endswith("\n\n"):
+        start -= 1  # absorb the blank line this block owns
+    end = ci + len(c)
+    if text[end : end + 1] == "\n":
+        end += 1
+    return text[:start] + text[end:]
+
+
 def region_lines(text: str, tag: str) -> tuple[int, int] | None:
     """1-based line numbers of a section's open and close marker lines, or None."""
     o, c = markers.open_marker(tag), markers.close_marker(tag)

@@ -123,6 +123,7 @@ def build_item_app(item_type: str, spec: WorkflowSpec | None = None) -> typer.Ty
     _cmd_status(item)
     _cmd_body(item)
     _cmd_comment(item)
+    _cmd_comments(item)
     _cmd_refs(item)
 
     # Sub-entity surface: entirely spec-driven — a type hosts a kind (built-in or a
@@ -270,6 +271,23 @@ def _cmd_comment(item: typer.Typer) -> None:
         actor.set_actor(slug)
         await svc.comment(_id(ctx), message, as_slug=slug)
         console.print(f"commented on {_id(ctx)} as {slug}")
+
+
+def _cmd_comments(item: typer.Typer) -> None:
+    @item.command("comments")
+    @common.command
+    async def comments(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")):
+        """Read back the item's top-level discussion (the dedicated, machine-readable verb —
+        `show --comments` renders the same discussion inline alongside the rest of the item)."""
+        cmt_list = await get_service().comments(_id(ctx))
+        if json_out:
+            print_json_clean(
+                json.dumps(
+                    [{"author": c.author, "ts": c.timestamp, "body": c.body} for c in cmt_list]
+                )
+            )
+            return
+        common.print_comments(cmt_list)
 
 
 def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
@@ -772,3 +790,25 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         actor.set_actor(slug)
         await svc.comment(pid, message, as_slug=slug, sub=(kind, lid))
         console.print(f"commented on {pid} {lid} as {slug}")
+
+    @sub.command("remove")
+    @common.command
+    async def s_remove(
+        ctx: typer.Context,
+        yes: bool = typer.Option(False, "--yes", help="Skip the interactive confirmation prompt."),
+        json_out: bool = typer.Option(False, "--json"),
+    ):
+        """Hard-delete this sub-entity: drop it from the parent and excise its body/discussion.
+
+        Removing a `story` refuses while any subtask still maps to it (remap or remove those
+        first). The freed local id is a sanctioned gap the same way a removed item's sequence
+        number is — see `sq <type> <n> remove`.
+        """
+        pid, lid = ids(ctx)
+        if not yes:
+            typer.confirm(f"Remove {kind} {lid} from {pid}? This cannot be undone.", abort=True)
+        await get_service().remove_block(pid, kind, lid)
+        if json_out:
+            print_json_clean(json.dumps({"removed": f"{kind} {lid}"}))
+            return
+        console.print(f"removed {kind} {lid} from {pid}")
