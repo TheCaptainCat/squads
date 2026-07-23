@@ -53,7 +53,7 @@ task should be spun up from it without a fresh go-ahead.
 
 ## Why
 
-REV-565 (Nabudoc migration, squads 0.11.1): a pre-existing hand-written
+REV-565 (adopter-project migration, squads 0.11.1): a pre-existing hand-written
 CLAUDE.md/.claude corpus produced silent overwrites (slug-matching pointers)
 and silent orphans (non-matching ones) with no warning either way, requiring
 manual cleanup after the fact — `adopt` is documented "non-destructive" but

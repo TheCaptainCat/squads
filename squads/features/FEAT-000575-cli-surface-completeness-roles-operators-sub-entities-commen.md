@@ -69,7 +69,7 @@ verb.
 
 ## Why
 
-REV-565 (Nabudoc migration field report) hit each of these as either a real
+REV-565 (adopter-project migration field report) hit each of these as either a real
 gap forcing a workaround (`show --json` + manual array indexing for comments;
 no way to delete a spurious finding created during rework; no way to enumerate
 operators at all) or a place where the docs described a command that plain
