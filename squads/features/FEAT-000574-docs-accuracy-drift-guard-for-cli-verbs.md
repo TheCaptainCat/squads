@@ -3,7 +3,7 @@ id: FEAT-574
 sequence_id: 574
 type: feature
 title: Docs accuracy + drift guard for CLI verbs
-status: Draft
+status: Done
 author: product-owner
 refs:
 - REV-565
@@ -22,7 +22,7 @@ subentities:
   title: Add a docs command-test that shells documented verbs against the live CLI
   status: Todo
 created_at: '2026-07-22T08:40:00Z'
-updated_at: '2026-07-23T07:54:03Z'
+updated_at: '2026-07-23T09:50:20Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -166,4 +166,6 @@ Mechanical guard: extract/assert the sq invocations shown in the docs and fail t
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-23T09:50:20Z] Catherine Manager:
+  - FEAT-574 Done: fixed doc drift across 12 docs/*.md (verb/address word-order, --tech, removed create --status/role update, override paths, stale ABC sample + schema_version claims) and added a structural drift guard that walks the Typer tree and now validates leaf options/positionals too, so documented-but-nonexistent verbs AND flags fail the build. Reviewed REV-633 (Approved; corrections verified against live CLI, guard proven non-vacuous, F1 leaf-option gap fixed). Full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

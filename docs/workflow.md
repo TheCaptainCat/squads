@@ -2,8 +2,8 @@
 
 The process squads coordinates has two layers: **who creates and links what** (the team workflow)
 and **how each item moves through its states** (the status lifecycle). `sq workflow` prints a short
-version of the first; this is the full reference. The rules are enforced — at `create`/`link`/`status`
-time and by `sq check`.
+version of the first; this is the full reference. The rules are enforced — at `create`/`ref add`/
+`status` time and by `sq check`.
 
 ---
 
@@ -107,8 +107,8 @@ All commands accept `--raw` to opt out of Rich markdown rendering.
 
 ## Status lifecycles
 
-Every item type has its own state machine. `sq status <ID> <Status>` only allows a transition the
-machine permits; `--force` overrides. New items start at the machine's initial state.
+Every item type has its own state machine. `sq <type> <n> status <Status>` only allows a transition
+the machine permits; `--force` overrides. New items start at the machine's initial state.
 
 ```
 work items (epic · feature · task · bug)
@@ -137,7 +137,7 @@ role · skill     Draft ──▶ Active ⇄ Archived
 (non-terminal) items.
 
 > Status is stored in the `.md` frontmatter *and* mirrored in the index. The dated discussion
-> entries (`sq comment`) are what record the *history* of a transition — see
+> entries (`sq <type> <n> comment`) are what record the *history* of a transition — see
 > [adoption.md](adoption.md) for replaying that history with `--at`.
 
 ## Sub-entities: subtasks, user stories, findings
@@ -171,7 +171,7 @@ findings. Transitions are validated by the sub-entity machines; `--force` overri
 Every mutating `sq` command appends one JSON line to `squads/.reflog.jsonl` — an append-only
 **operation log**. The reflog is **advisory**: the index
 (`.squads.json`) and the markdown files remain the source of truth. `sq repair`, `sq check`, and
-`sq load` never read it.
+every other read path never consult it.
 
 ### Line shape
 
@@ -197,8 +197,7 @@ Each line is a JSON object with these fields:
 | `comment` | `sq <type> <n> comment …` |
 | `subentity` | add-subtask / add-story / add-finding / sub-entity update/body |
 | `ref` | `sq <type> <n> ref add|rm …` |
-| `link` | `sq link` / `sq unlink` |
-| `remove` | `sq remove …` |
+| `remove` | `sq <type> <n> remove …` |
 | `retype` | `sq <type> <n> retype …` |
 | `repair` | `sq repair` |
 | `migrate` | `sq migrate up` / `sq migrate repad` |
@@ -516,14 +515,14 @@ folder = "incidents"
 lifecycle = "incident"
 ```
 
-Once the override is defined and validated with `sq workflow lint`, the custom type is registered in the workflow spec and can be queried:
+Once the override is defined and validated with `sq workflow lint`, the custom type gets the full
+`sq <type> <n> …` surface, exactly like a bundled type:
 
 ```bash
-# List all incidents (returns empty until items are created)
-sq list -t incident
+sq create incident "Auth outage" --author manager   # → INC-1
+sq list -t incident                                 # list all incidents
+sq incident 1 show                                  # addressed show/update/status/body/comment/…
 ```
-
-**Note:** Creating and managing items of custom types is supported in a future release. For now, you can define the spec, validate it with `sq workflow lint`, inspect it with `sq override diff workflow`, and list items with `sq list -t <customtype>`.
 
 ### Checking the override state
 

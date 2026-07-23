@@ -165,8 +165,8 @@ updated_at: '2026-06-07T10:00:00Z'
   (`sq:` + alnum start) so documentation like `` `<!-- sq:* -->` `` in prose isn't mistaken for a real
   marker.
 - **Who writes what:** `sq` owns the whole file — frontmatter, markers, and every region. The agent
-  authors content through commands (`sq body` / `sq <kind> body` for bodies, `sq comment` for
-  discussion), never by editing the `.md` directly.
+  authors content through commands (`sq <type> <n> body` / `sq <type> <n> <kind> <k> body` for
+  bodies, `sq <type> <n> comment` for discussion), never by editing the `.md` directly.
 - **`_itemfile.py`** maps `Item` ↔ file: `write_new` emits frontmatter + the rendered body;
   `update_frontmatter` rewrites *only* the frontmatter (body preserved verbatim); `read_frontmatter`
   parses it back for `repair`/`check`. `Item.to_frontmatter_dict()` / `from_frontmatter()` are the
@@ -214,8 +214,8 @@ read/build helpers now live only in `_migrations/_meta_compat.py`.
   are the three roster types (`role`/`skill`/`operator`, `category = "roster"`); every work type is
   ordinary, droppable/renamable spec vocabulary.
 - **`Status`** is one enum of all values; `WORKFLOWS[type]` is a small per-type state machine
-  (`initial`, `transitions`). `can_transition(type, src, dst)` gates `sq status` (`--force`
-  overrides); a new item starts at the machine's initial state.
+  (`initial`, `transitions`). `can_transition(type, src, dst)` gates `sq <type> <n> status`
+  (`--force` overrides); a new item starts at the machine's initial state.
 - **`TERMINAL` / `is_open`** scope the inbox to live work.
 - **`ALLOWED_PARENTS` / `parent_allowed` / `parent_hint`** encode the hierarchy rules used below.
 
@@ -232,7 +232,7 @@ reference: **[workflow.md](workflow.md)**.
   `addresses`, `implements`, …). `split_ref`/`make_ref` in `_models/_item.py` parse and format them.
   **Backrefs are never stored** — `refs_in` / `SquadsDB.backrefs` compute them by inverting the
   forward edges (matching on the ID part) at query time. So a task fixing a bug does
-  `sq ref add TASK BUG --kind fixes`; the bug shows the backref on demand.
+  `sq task <n> ref add <bug> --kind fixes`; the bug shows the backref on demand.
 
 ```
  stored   (forward) :  TASK-<n>.refs = ["BUG-<m>:fixes"]
@@ -247,10 +247,10 @@ reference: **[workflow.md](workflow.md)**.
 
 ### Discussion, @mentions, inbox
 
-`sq comment` appends a timestamped entry — `- [ISO] <Full Name>:` + one sub-item per `-m` — under
-the right discussion anchor (top-level, or a story/subtask's). `@role` mentions in the text feed
-`sq inbox <role>`, which scans open items for `@role` and surfaces the matching lines. The author is
-resolved from `--as <slug>` → the role's full name.
+`sq <type> <n> comment` appends a timestamped entry — `- [ISO] <Full Name>:` + one sub-item per
+`-m` — under the right discussion anchor (top-level, or a story/subtask's). `@role` mentions in
+the text feed `sq inbox <role>`, which scans open items for `@role` and surfaces the matching
+lines. The author is resolved from `--as <slug>` → the role's full name.
 
 ---
 

@@ -4,7 +4,8 @@ Your squad may want to customize how squads renders items, roles, or backend art
 task template to match your team's style, or different names for roles. **Overrides** are how you
 do that without forking the entire squads package.
 
-Overrides live under `.overrides/`, a directory in your squad folder that mirrors the bundled
+Overrides live under `squads/.overrides/` (`squads/` is your squad folder — its name is
+`squads` by default, configurable via `.squads.toml`), a directory that mirrors the bundled
 template structure. You own and maintain them; squads detects when an upgrade changes the bundled
 originals and warns you to reconcile. The [`sq override`](#the-sq-override-command-group) command
 group handles the full authoring + upgrade workflow.
@@ -18,7 +19,7 @@ group handles the full authoring + upgrade workflow.
 sq override scaffold items/task.md.j2
 
 # Edit it
-$EDITOR .overrides/templates/items/task.md.j2
+$EDITOR squads/.overrides/templates/items/task.md.j2
 
 # Check for drift warnings
 sq check
@@ -28,7 +29,7 @@ sq check
 sq override diff items/task.md.j2
 
 # Merge manually (the diffs show what you customised and what the upgrade added)
-$EDITOR .overrides/templates/items/task.md.j2
+$EDITOR squads/.overrides/templates/items/task.md.j2
 
 # Tell squads you're done reconciling
 sq override update items/task.md.j2
@@ -134,7 +135,7 @@ A brand-new role slug (one not in the bundle) defines a wholly custom, non-dev r
 sq override scaffold --new compliance-officer
 ```
 
-This writes `.overrides/roles/compliance-officer.toml` with the essential fields stubbed and the
+This writes `squads/.overrides/roles/compliance-officer.toml` with the essential fields stubbed and the
 advanced fields present as commented-out lines to uncomment and fill in:
 
 ```toml
@@ -169,7 +170,7 @@ To scaffold a starter override file:
 sq override scaffold workflow
 ```
 
-This creates `.overrides/workflow.toml` in your squad directory with a commented-out worked example.
+This creates `squads/.overrides/workflow.toml` with a commented-out worked example.
 Edit this file to add your custom types, statuses, lifecycles, and collections.
 
 ### Format and sections
@@ -243,7 +244,7 @@ This creates a `postmortem` type with:
 After defining it, you can:
 
 ```bash
-sq create postmortem "API outage on 2026-07-22" --status Draft
+sq create postmortem "API outage" --author architect   # → PM-1, starts Draft
 sq postmortem 1 body --file postmortem-incident.md
 sq postmortem 1 status Published
 sq list -t postmortem    # list all postmortems (shown at all times)
@@ -409,11 +410,12 @@ new role field. We **detect and warn you** about this drift; you **merge by hand
 When you scaffold an override (via `sq override scaffold`), the file carries a **provenance stamp**:
 
 ```
-<!-- squads:override-base:0.4.2 -->
+<!-- squads:override-base:<version> -->
 ```
 
-This is an HTML comment, inert to rendering. It records: "This override was branched from squads
-0.4.2." When you later upgrade squads and run `sq check`, it compares:
+This is an HTML comment, inert to rendering. It records the version you scaffolded at — "this
+override was branched from squads `<version>`." When you later upgrade squads and run `sq check`,
+it compares:
 
 - Your override's `override-base` stamp against the current `squads_version`.
 - The bundled template at your override's `override-base` version against the bundled template
@@ -424,12 +426,12 @@ If the bundled original **changed** between those versions, `sq check` warns:
 
 ```
 .overrides/templates/items/task.md.j2: override may be stale — bundled task.md.j2 changed since
-v0.4.2; run `sq override diff items/task.md.j2`, merge, then `sq override update items/task.md.j2`
+v<version>; run `sq override diff items/task.md.j2`, merge, then `sq override update items/task.md.j2`
 ```
 
 **Important:** squads only warns if the bundled original **actually changed**. If you scaffold an
-override at v0.4.2 and upgrade to v0.4.3, but the bundled task template didn't change, there is no
-warning. The stamp alone is never a problem.
+override at the version you're on and later upgrade, but the bundled task template didn't change in
+between, there is no warning. The stamp alone is never a problem.
 
 **Structural errors:**
 Independently, `sq check` detects if an override is **missing a required marker region** (the
@@ -485,7 +487,7 @@ Edit `.overrides/templates/items/task.md.j2` (or the override you're reconciling
 upgrade's changes into your version while keeping your customisations:
 
 ```bash
-$EDITOR .overrides/templates/items/task.md.j2
+$EDITOR squads/.overrides/templates/items/task.md.j2
 ```
 
 This is not automated; you own the merge. The goal is to keep your edits (from Δ-mine) while
@@ -697,7 +699,7 @@ When you activate a new role or add a developer, you can provide a name then:
 sq role activate architect --name "Chief Designer"
 
 # Add a Python developer with a custom name
-sq dev add python --name "Pythonista"
+sq dev add --tech python --name "Pythonista"
 ```
 
 Omit the name and the role falls back to its bundled or pooled default.
@@ -711,13 +713,9 @@ downstream reads from there:
 - The **agent pointer files** in `.claude/` (e.g., `.claude/agents/architect.md`).
 - The rendered **role body** in `squads/agents/roles/ROLE-*.md`.
 
-If you want to rename a role later, edit the ROLE item:
-
-```bash
-sq role 002 update --extra full_name="New Name"
-# or
-sq sync                  # to regenerate from the current frontmatter
-```
+If you want to rename a role later, use the same role-override mechanism — see
+["Override a role's name and model"](#override-a-roles-name-and-model) below — then run
+`sq sync` to regenerate the pointer and `CLAUDE.md` section from it.
 
 ### Slug immutability
 
@@ -789,7 +787,7 @@ You want a compliance-officer role that isn't in the bundled catalog. Scaffold i
 sq override scaffold --new compliance-officer
 ```
 
-This writes `.overrides/roles/compliance-officer.toml` with the essentials stubbed. Fill them in
+This writes `squads/.overrides/roles/compliance-officer.toml` with the essentials stubbed. Fill them in
 (and uncomment any advanced fields you want):
 
 ```toml
@@ -809,10 +807,12 @@ generate the pointer and listing.
 
 ### Upgrade overrides after a squads release
 
-You upgraded squads and `sq check` warns that two overrides drifted. Review them:
+You upgraded squads and `sq check` warns that two overrides drifted. Review each one (one name per
+invocation, or omit the name to diff every drifted override at once):
 
 ```bash
-sq override diff items/task.md.j2 items/bug.md.j2
+sq override diff items/task.md.j2
+sq override diff items/bug.md.j2
 ```
 
 The output shows Δ-mine (your customisations) and Δ-upgrade (what the release changed) for each.
@@ -820,13 +820,14 @@ You see that the bug template gained a new `<!-- sq:acceptance -->` marker. Merg
 override by hand:
 
 ```bash
-$EDITOR .overrides/templates/items/bug.md.j2
+$EDITOR squads/.overrides/templates/items/bug.md.j2
 ```
 
 Then re-stamp both:
 
 ```bash
-sq override update items/task.md.j2 items/bug.md.j2
+sq override update items/task.md.j2
+sq override update items/bug.md.j2
 ```
 
 Or just:
@@ -845,7 +846,7 @@ sq check
 
 ## Constraints and design
 
-**Overrides are user-owned.** They live under `.overrides/` in your squad folder, not inside the
+**Overrides are user-owned.** They live under `squads/.overrides/`, not inside the
 squads package. You author and maintain them; squads detects when the bundled originals change and
 warns you to reconcile. We never auto-rewrite an override — merging upgrades is always manual.
 

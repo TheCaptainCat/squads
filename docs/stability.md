@@ -100,7 +100,7 @@ or command behaviour.
 
 The line schema (frozen field set):
 
-- `v` — schema version (currently coupled to the index `SCHEMA_VERSION` at 0.3); whether to decouple is open
+- `v` — schema version (currently coupled to the index `SCHEMA_VERSION`); whether to decouple is open
 - `ts` — ISO-8601 timestamp with Z suffix
 - `actor` — who made the change (slug or operator ID)
 - `op` — operation name (closed vocabulary: create, status, update, comment, ref, subentity,

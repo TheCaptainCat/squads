@@ -3,13 +3,13 @@ id: TASK-628
 sequence_id: 628
 type: task
 title: Fix role-catalog/add-story/add-subtask verb drift in docs
-status: Draft
+status: Done
 parent: FEAT-574
 author: tech-lead
 description: 'US1: correct non-existent verbs in roles/recipes/agents/adoption/tutorial
   docs (after 575)'
 created_at: '2026-07-23T08:03:50Z'
-updated_at: '2026-07-23T08:03:50Z'
+updated_at: '2026-07-23T09:50:15Z'
 ---
 <!-- sq:body -->
 Implements FEAT-574 **US1**. Correct the CLI-verb drift in the shipped docs so every
@@ -69,4 +69,9 @@ _Add with `sq task 628 add-subtask "<title>"`; track with `sq task 628 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-23T09:28:30Z] Elias Python:
+  - Fixed CLI-verb drift across docs/roles.md, recipes.md, agents.md, adoption.md, tutorial.md, workflow.md, faq.md, internals.md, migration.md, stability.md, backends.md, overrides.md.
+  - role list --available -> role catalog; story add/subtask add -> add-story/add-subtask; every bare sq body/comment/update/status/ref-add mention -> the addressed sq <type> <n> <verb> form.
+  - Deeper bugs the same sweep turned up and fixed: sq role show <slug> / sq role regen|rm <id> had the address/verb word order backwards (real grammar is sq role <addr> show|regen|rm, confirmed against stability.md's own item-first spec and live CLI); same for sq operator rm; sq dev add <tech> needs --tech, not positional; sq override diff/update take one NAME, not several; sq create <type> has no --status flag; sq role update doesn't exist (there's no in-place rename verb -- pointed at the existing role-TOML-override + sq sync path instead); every vim .overrides/... path was missing the squads/ prefix (the real squad-dir-relative location) across overrides.md and roles.md; backends.md's AgentBackend ABC sample was stale (generate_role_pointer/generate_skill_pointer -> generate_role_entry/generate_skill_entry, missing managed_paths, non-async, missing the operators param, default_backend -> active_backends).
+  - Verified every fix against the live sq --help tree and, for the custom-type/override-path claims, a real scratch squad.
 <!-- sq:discussion:end -->

@@ -23,7 +23,7 @@ have no parent.
 ### "<type> cannot move <X> → <Y>"
 Each type has a status machine (see [workflow.md](workflow.md)). The transition you asked for isn't
 allowed from the current state. Move through the valid path, or override with
-`sq status <ID> <Y> --force` if you really mean it.
+`sq <type> <n> status <Y> --force` if you really mean it.
 
 ### "subtask STn → USn missing from FEAT-…"
 A subtask references a user story that doesn't exist in the task's parent feature. Add the story
@@ -36,9 +36,10 @@ You upgraded squads; the project's tool-owned files (the `squads`/`sq-<type>` sk
 It never touches your authored content.
 
 ### Can I edit the markdown by hand?
-No — the `.md` files are fully sq-managed. Set an item's body with `sq body <ID>` and a sub-entity's
-with `sq story|subtask|finding body <ID> <LID>` (both take `-m` paragraphs or `--file`); comment with
-`sq comment`; change metadata with `sq update`. Read anything back with `sq show` / `sq <kind> show`.
+No — the `.md` files are fully sq-managed. Set an item's body with `sq <type> <n> body` and a
+sub-entity's with `sq <type> <n> <kind> <k> body` (both take `-m` paragraphs or `--file`); comment
+with `sq <type> <n> comment`; change metadata with `sq <type> <n> update`. Read anything back with
+`sq show <n>` (any type) or `sq <type> <n> show`.
 Don't edit the markers or frontmatter by hand — use the commands so the
 index stays in sync. `sq check` catches violations; `sq repair` rebuilds the index from frontmatter.
 

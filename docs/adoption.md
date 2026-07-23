@@ -5,13 +5,13 @@ squads-shaped folder, or just a pile of issue/spec markdown you want to migrate 
 the original dates**.
 
 The key tool for history is the global **`--at <when>`** option: every time-based command
-(`create`, `status`, `update`, `comment`, `story`/`subtask`, `ref`, `link`, …) records its
-timestamps from `--at` instead of the wall clock. A human or an LLM driving the migration can
+(`create`, `status`, `update`, `body`, `comment`, `add-story`/`add-subtask`, `ref add`, …) records
+its timestamps from `--at` instead of the wall clock. A human or an LLM driving the migration can
 therefore forge the historical dates so the imported history looks real.
 
-```
+```bash
 sq --at 2024-01-15            create task "Fix login"      # created_at = that date
-sq --at 2024-01-15T09:30:00Z  status TASK-2 InProgress
+sq --at 2024-01-15T09:30:00Z  task 2 status InProgress
 ```
 `--at` accepts an ISO-8601 date or datetime (a bare date is midnight; naïve values are UTC). It is
 a **global** option, so it goes *before* the subcommand and applies to that one invocation.
@@ -50,27 +50,27 @@ For each legacy artifact (an old ticket, spec, ADR, …):
    sq --at 2024-01-15 create feature "User authentication" --parent EPIC-1
    # → created FEAT-7 → squads/features/FEAT-7-user-authentication.md
    ```
-2. **Move the legacy content into the body** with `sq body` (`--file` is easiest for existing prose);
-   for features, scaffold the user stories; for tasks, the subtasks:
+2. **Move the legacy content into the body** with `sq <type> <n> body` (`--file` is easiest for
+   existing prose); for features, scaffold the user stories; for tasks, the subtasks:
    ```bash
-   sq --at 2024-01-15 body FEAT-7 --file legacy-feature.md
-   sq --at 2024-01-15 story add FEAT-7 "As a user, I want to log in" -m "Acceptance: …"
-   sq --at 2024-01-16 subtask add TASK-8 "Validate token" --story US1
+   sq --at 2024-01-15 feature 7 body --file legacy-feature.md
+   sq --at 2024-01-15 feature 7 add-story "As a user, I want to log in" -m "Acceptance: …"
+   sq --at 2024-01-16 task 8 add-subtask "Validate token" --story US1
    ```
 3. **Replay the status history** in order, each at its real date:
    ```bash
-   sq --at 2024-01-16 status TASK-8 InProgress
-   sq --at 2024-01-20 status TASK-8 Done
+   sq --at 2024-01-16 task 8 status InProgress
+   sq --at 2024-01-20 task 8 status Done
    ```
    (Only the final status persists in the index; the dated discussion entries below are what give
    you the timeline.)
 4. **Re-create comments / hand-offs** as dated discussion entries, attributed to the right agent:
    ```bash
-   sq --at 2024-01-17T14:00:00Z comment TASK-8 --as reviewer -m "LGTM, ship it"
+   sq --at 2024-01-17T14:00:00Z task 8 comment --as reviewer -m "LGTM, ship it"
    ```
 5. **Re-link relationships** (parent, bug/review refs):
    ```bash
-   sq --at 2024-01-15 ref add TASK-8 BUG-9 --kind fixes
+   sq --at 2024-01-15 task 8 ref add BUG-9 --kind fixes
    ```
 
 Work in chronological order so each `updated_at` reflects the last real activity.

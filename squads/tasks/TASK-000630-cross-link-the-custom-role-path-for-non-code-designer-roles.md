@@ -3,13 +3,13 @@ id: TASK-630
 sequence_id: 630
 type: task
 title: Cross-link the custom-role path for non-code/designer roles
-status: Draft
+status: Done
 parent: FEAT-574
 author: tech-lead
 description: 'US3: pointer from roles/agents docs to the .overrides/roles + role activate
   walkthrough'
 created_at: '2026-07-23T08:03:51Z'
-updated_at: '2026-07-23T08:03:51Z'
+updated_at: '2026-07-23T09:50:16Z'
 ---
 <!-- sq:body -->
 Implements FEAT-574 **US3**. Cross-link the custom-role path for a role that isn't a
@@ -61,4 +61,7 @@ _Add with `sq task 630 add-subtask "<title>"`; track with `sq task 630 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-23T09:28:48Z] Elias Python:
+  - docs/roles.md already had a 'Custom non-dev roles' section pointing at the override path -- fixed its broken cross-link (it cited a nonexistent overrides.md heading, 'Role overrides merge by field', which is bold lead-in prose under Precedence rule, not its own anchor) to point at the real worked example, 'Define a custom role' (the compliance-officer walkthrough), and mentioned a designer/UX role as an example use case per the task.
+  - Cross-link only, no new mechanism; the future sq dev add --kind path is not mentioned.
 <!-- sq:discussion:end -->
