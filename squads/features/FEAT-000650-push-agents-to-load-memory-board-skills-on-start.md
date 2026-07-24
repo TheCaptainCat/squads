@@ -3,17 +3,17 @@ id: FEAT-650
 sequence_id: 650
 type: feature
 title: Push agents to load memory/board/skills on start
-status: Draft
+status: Done
 author: product-owner
 subentities:
 - local_id: US1
   title: 'All agents: memory+board load-on-start guidance'
-  status: Todo
+  status: Done
 - local_id: US2
   title: 'Manager: load squads skill on start and after compaction'
-  status: Todo
+  status: Done
 created_at: '2026-07-24T12:50:08Z'
-updated_at: '2026-07-24T12:51:05Z'
+updated_at: '2026-07-24T13:49:42Z'
 ---
 <!-- sq:body -->
 Right now good guidance (per-role memory, the team board, the squads/sq-memory skills) exists but nothing pushes an agent to load it by default. A spawned subagent boots with its role+skills preloaded, but a main-loop coordinator (e.g. the manager) must consciously invoke skills — and no instruction does that, so correct guidance can sit inside a skill that's never loaded.
@@ -32,8 +32,8 @@ _Add with `sq feature 650 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | All agents: memory+board load-on-start guidance |
-| US2 | Todo |  | Manager: load squads skill on start and after compaction |
+| US1 | Done |  | All agents: memory+board load-on-start guidance |
+| US2 | Done |  | Manager: load squads skill on start and after compaction |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -42,7 +42,7 @@ _Add with `sq feature 650 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — All agents: memory+board load-on-start guidance
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -59,7 +59,7 @@ Add the memory+board load-on-start instruction to CLAUDE.md's managed-region tem
 ### US2 — Manager: load squads skill on start and after compaction
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
