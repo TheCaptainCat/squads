@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 644,
+  "counter": 645,
   "padding": 6,
   "items": {
     "12": {
@@ -23385,7 +23385,7 @@
       "subentities": [],
       "path": "agents/skills/SKILL-000508-releasing-squads.md",
       "created_at": "2026-07-20T12:32:09Z",
-      "updated_at": "2026-07-20T12:32:12Z",
+      "updated_at": "2026-07-24T08:51:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {
@@ -23704,6 +23704,31 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-644"
+    },
+    "645": {
+      "sequence_id": 645,
+      "type": "bug",
+      "title": "CI-surfaced TUI async-render race in test_bracket_content_renders_safely.py",
+      "slug": "ci-surfaced-tui-async-render-race-in-test-bracket-content-re",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-620"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000645-ci-surfaced-tui-async-render-race-in-test-bracket-content-re.md",
+      "created_at": "2026-07-24T09:01:29Z",
+      "updated_at": "2026-07-24T09:19:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-645"
     }
   }
 }

@@ -14,6 +14,8 @@ from squads._tui._app import SquadsApp
 from squads._tui._browse import BrowseScreen
 from squads._tui._search import SearchScreen, _HitItem  # pyright: ignore[reportPrivateUsage]
 
+from ._helpers import wait_until
+
 pytestmark = pytest.mark.anyio
 
 _BRACKETY = "has a [/dim] stray closing tag, a [Note] callout, and [bold]nested[/bold] markup"
@@ -53,10 +55,9 @@ async def test_a_discussion_comment_with_brackets_renders_without_crashing(svc):
         assert isinstance(browse, BrowseScreen)
         node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
         browse._tree.cursor_line = node.line  # pyright: ignore[reportPrivateUsage]
-        await pilot.pause()
 
         disc_view = browse.query_one("#discussion-view", Markdown)
-        assert _BRACKETY in disc_view._markdown  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: _BRACKETY in disc_view._markdown)  # pyright: ignore[reportPrivateUsage]
 
 
 async def test_a_glance_assignee_with_brackets_renders_without_crashing(svc, monkeypatch):
@@ -79,10 +80,9 @@ async def test_a_glance_assignee_with_brackets_renders_without_crashing(svc, mon
         assert isinstance(browse, BrowseScreen)
         node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
         browse._tree.cursor_line = node.line  # pyright: ignore[reportPrivateUsage]
-        await pilot.pause()
 
         header = browse.query_one("#glance-header", Static)
-        assert _BRACKETY in str(header.content)
+        await wait_until(pilot, lambda: _BRACKETY in str(header.content))
 
 
 async def test_a_sub_entity_body_with_brackets_renders_without_crashing(svc):
@@ -97,10 +97,9 @@ async def test_a_sub_entity_body_with_brackets_renders_without_crashing(svc):
         assert isinstance(browse, BrowseScreen)
         node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
         browse._tree.cursor_line = node.line  # pyright: ignore[reportPrivateUsage]
-        await pilot.pause()
 
         sub_view = browse.query_one("#subentities-view", Markdown)
-        assert _BRACKETY in sub_view._markdown  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: _BRACKETY in sub_view._markdown)  # pyright: ignore[reportPrivateUsage]
 
 
 async def test_a_search_snippet_with_brackets_renders_without_crashing(svc):
@@ -116,10 +115,13 @@ async def test_a_search_snippet_with_brackets_renders_without_crashing(svc):
 
         search._query.value = "needle-xyz"  # pyright: ignore[reportPrivateUsage]
         await pilot.press("enter")
-        await pilot.pause()
 
         results = search.query_one(ListView)
-        hits = [c for c in results.children if isinstance(c, _HitItem)]
-        assert len(hits) == 1
+
+        def _hits() -> list[_HitItem]:
+            return [c for c in results.children if isinstance(c, _HitItem)]
+
+        await wait_until(pilot, lambda: len(_hits()) == 1)
+        hits = _hits()
         row_static = hits[0].query_one(Static)
         assert _BRACKETY in str(row_static.content)
