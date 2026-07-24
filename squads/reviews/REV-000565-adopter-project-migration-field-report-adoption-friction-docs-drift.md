@@ -4,7 +4,7 @@ sequence_id: 565
 type: review
 title: 'Adopter-project migration field report: adoption friction, docs drift, design
   gaps'
-status: Requested
+status: Approved
 author: reviewer
 refs:
 - FEAT-543
@@ -17,23 +17,23 @@ subentities:
   severity: high
 - local_id: F2
   title: History replay is one-timestamp-per-invocation; no bulk event import
-  status: Open
+  status: Verified
   severity: high
 - local_id: F3
   title: 'Docs drift: sq role list / --available do not exist (it is role catalog)'
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F4
   title: 'Docs drift + CLI gap: no verb to enumerate operators'
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F5
   title: 'Docs drift: story add / subtask add — actual verbs are add-story / add-subtask'
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F6
   title: 'Docs: stale override-base version examples'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F7
   title: No bundled designer/UX role; dev add requires a coding --tech
@@ -41,7 +41,7 @@ subentities:
   severity: medium
 - local_id: F8
   title: init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F9
   title: Closed items (incl. Accepted decisions) hidden from default list/tree
@@ -49,7 +49,7 @@ subentities:
   severity: medium
 - local_id: F10
   title: add-* leaves an unwritten-body stub that sq check warns on
-  status: Open
+  status: Verified
   severity: low
 - local_id: F11
   title: Sub-entity title-length advisory fires easily on migrated data
@@ -61,7 +61,7 @@ subentities:
   severity: low
 - local_id: F13
   title: Sub-entities cannot be deleted (no remove for finding/story/subtask)
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F14
   title: add-* cannot take --severity/--status inline (two-step for full metadata)
@@ -69,10 +69,10 @@ subentities:
   severity: low
 - local_id: F15
   title: No read-back verb for an item's discussion/comments
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-07-22T07:54:46Z'
-updated_at: '2026-07-23T13:22:21Z'
+updated_at: '2026-07-24T07:50:44Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -122,20 +122,20 @@ _Add with `sq review 565 add-finding "…" --severity medium`; track with `sq re
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
 | F1 | 🟠 high | WontFix |  | Global IDs break dense cross-refs; no alias / preferred-ID on import |
-| F2 | 🟠 high | Open |  | History replay is one-timestamp-per-invocation; no bulk event import |
-| F3 | 🟡 medium | Open |  | Docs drift: sq role list / --available do not exist (it is role catalog) |
-| F4 | 🟡 medium | Open |  | Docs drift + CLI gap: no verb to enumerate operators |
-| F5 | 🟡 medium | Open |  | Docs drift: story add / subtask add — actual verbs are add-story / add-subtask |
-| F6 | 🟢 low | Open |  | Docs: stale override-base version examples |
+| F2 | 🟠 high | Verified |  | History replay is one-timestamp-per-invocation; no bulk event import |
+| F3 | 🟡 medium | Verified |  | Docs drift: sq role list / --available do not exist (it is role catalog) |
+| F4 | 🟡 medium | Verified |  | Docs drift + CLI gap: no verb to enumerate operators |
+| F5 | 🟡 medium | Verified |  | Docs drift: story add / subtask add — actual verbs are add-story / add-subtask |
+| F6 | 🟢 low | Verified |  | Docs: stale override-base version examples |
 | F7 | 🟡 medium | WontFix |  | No bundled designer/UX role; dev add requires a coding --tech |
-| F8 | 🟡 medium | Open |  | init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified |
+| F8 | 🟡 medium | Verified |  | init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified |
 | F9 | 🟡 medium | Verified |  | Closed items (incl. Accepted decisions) hidden from default list/tree |
-| F10 | 🟢 low | Open |  | add-* leaves an unwritten-body stub that sq check warns on |
+| F10 | 🟢 low | Verified |  | add-* leaves an unwritten-body stub that sq check warns on |
 | F11 | 🟢 low | WontFix |  | Sub-entity title-length advisory fires easily on migrated data |
 | F12 | 🟢 low | WontFix |  | Per-invocation process overhead |
-| F13 | 🟡 medium | Open |  | Sub-entities cannot be deleted (no remove for finding/story/subtask) |
+| F13 | 🟡 medium | Verified |  | Sub-entities cannot be deleted (no remove for finding/story/subtask) |
 | F14 | 🟢 low | Verified |  | add-* cannot take --severity/--status inline (two-step for full metadata) |
-| F15 | 🟢 low | Open |  | No read-back verb for an item's discussion/comments |
+| F15 | 🟢 low | Verified |  | No read-back verb for an item's discussion/comments |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -183,7 +183,7 @@ few commands.
 ### F2 — History replay is one-timestamp-per-invocation; no bulk event import
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟠 High
 <!-- sq:finding:F2:head:end -->
 
@@ -210,7 +210,7 @@ driver" into "emit a file", and collapses hundreds of process spawns into one.
 ### F3 — Docs drift: sq role list / --available do not exist (it is role catalog)
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟡 Medium
 <!-- sq:finding:F3:head:end -->
 
@@ -236,7 +236,7 @@ active/available roster is `sq role catalog` (but catalog has no active/inactive
 ### F4 — Docs drift + CLI gap: no verb to enumerate operators
 
 <!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟡 Medium
 <!-- sq:finding:F4:head:end -->
 
@@ -262,7 +262,7 @@ would close the gap and make the docs true.
 ### F5 — Docs drift: story add / subtask add — actual verbs are add-story / add-subtask
 
 <!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟡 Medium
 <!-- sq:finding:F5:head:end -->
 
@@ -287,7 +287,7 @@ Report §3.3 — docs drift, verified against 0.11.1.
 ### F6 — Docs: stale override-base version examples
 
 <!-- sq:finding:F6:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F6:head:end -->
 
@@ -342,7 +342,7 @@ specialty without a hand-written override.
 ### F8 — init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified
 
 <!-- sq:finding:F8:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟡 Medium
 <!-- sq:finding:F8:head:end -->
 
@@ -402,7 +402,7 @@ add a hint in empty `sq list`/`sq tree` output ("N closed items hidden — use `
 ### F10 — add-* leaves an unwritten-body stub that sq check warns on
 
 <!-- sq:finding:F10:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F10:head:end -->
 
@@ -480,7 +480,7 @@ migration-perf motivation for that direction; the actual fix is the bulk-import 
 ### F13 — Sub-entities cannot be deleted (no remove for finding/story/subtask)
 
 <!-- sq:finding:F13:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟡 Medium
 <!-- sq:finding:F13:head:end -->
 
@@ -539,7 +539,7 @@ Verify parity across `add-story`/`add-subtask` before scoping a fix.
 ### F15 — No read-back verb for an item's discussion/comments
 
 <!-- sq:finding:F15:head -->
-**Status:** 🔴 Open
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F15:head:end -->
 
@@ -585,4 +585,6 @@ surface and aid scripting/verification.
   - F9 and F14 resolved by the 0.12 batch: F9 (Accepted/closed records hidden) by the FEAT-605 role model + FEAT-570 records-category visibility (an in_force status like Accepted stays shown, not hidden like finished work); F14 (add-* inline metadata flags) by FEAT-571 (--status inline on add-finding/story/subtask; the generic per-field --<code> flags incl. --severity already existed). Both Verified.
 - [2026-07-23T13:22:21Z] Pierre Chat:
   - F7 resolved by FEAT-543: a designer is a custom NON-DEV role (sq override scaffold --new <slug> + sq role activate), not a dev — no bundled designer role and no dev-add-kind path needed. Now that fully custom roles exist, the designer doesn't have to be a dev at all. Docs pointer to the custom-role path already landed in FEAT-574.
+- [2026-07-24T07:50:42Z] Catherine Manager:
+  - All findings now terminal — the adopter-project field report is fully triaged and addressed. Resolved by committed features: F2 import + F8 adopt (FEAT-576); F3/F5/F6 docs drift + F4 docs (FEAT-574) with the F4 operators verb + F3 role list, F10 body parity, F13 sub-entity remove, F15 comments read-back (FEAT-575); F9 records visibility (FEAT-570), F14 add-* --status (FEAT-571). WontFix: F1 (generic links → FEAT-566 shell), F7 (designer = custom role via FEAT-543), F11/F12 (advisory/process-overhead, by design). Closing the review.
 <!-- sq:discussion:end -->
