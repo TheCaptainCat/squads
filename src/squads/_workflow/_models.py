@@ -261,6 +261,22 @@ class SubentityKindSpec(BaseModel):
     fields: list[Field] = []
 
 
+class LabelSpec(BaseModel):
+    """Optional per-type display-label overrides: four independently-optional,
+    named forms — ``singular``/``plural``/``singular_lower``/``plural_lower``. Each omitted
+    form falls back to a value computed from the type-name string (``label_for`` in
+    ``_models/_vocab.py`` — the sole fallback authority); a regular type needs no ``labels``
+    table at all, an acronym/irregular type pins only the forms derivation gets wrong (e.g. an
+    acronym's ``*_lower`` forms must stay capitalized, never a lowercased ``singular``)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    singular: str | None = None
+    plural: str | None = None
+    singular_lower: str | None = None
+    plural_lower: str | None = None
+
+
 class ItemSpec(BaseModel):
     """Vocabulary for one item type: prefix, folder, lifecycle, parents, aliases.
 
@@ -276,6 +292,10 @@ class ItemSpec(BaseModel):
     lifecycle: str
     parents: list[str] = []
     aliases: list[str] = []
+
+    labels: LabelSpec | None = None
+    """Optional display-label overrides; resolved via ``label_for`` in
+    ``_models/_vocab.py``, never read directly by consumers."""
 
     order: float = math.inf
     """Explicit ascending registration/display order; the type-name string breaks ties.

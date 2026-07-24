@@ -17,6 +17,7 @@ from squads._backends._claude_code._frontmatter import normalize_model, oneline
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
+from squads._models._vocab import label_for
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
 from squads._workflow import ROSTER_SKILL, linearize_lifecycle
@@ -253,7 +254,7 @@ class ClaudeCodeBackend(AgentBackend):
             name = interactions.item_skill_name(item_type)
             body = render(
                 "agents/item_skill.md.j2",
-                title=item_type.capitalize(),
+                title=label_for(item_type, "singular", spec),
                 type=item_type,
                 overview=pb.overview,
                 lifecycle=lifecycle_str,
@@ -281,7 +282,7 @@ class ClaudeCodeBackend(AgentBackend):
                 name = interactions.custom_item_skill_name(ctype)
                 body = render(
                     "agents/item_skill.md.j2",
-                    title=ctype.capitalize(),
+                    title=label_for(ctype, "singular", ctx.spec),
                     type=ctype,
                     overview="",
                     lifecycle=lifecycle_str,
