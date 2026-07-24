@@ -3,7 +3,7 @@ id: FEAT-576
 sequence_id: 576
 type: feature
 title: 'Adoption ergonomics: orphan warnings + bulk event import'
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - REV-565
@@ -14,7 +14,7 @@ subentities:
   status: Done
 - local_id: US2
   title: Document the pre-existing CLAUDE.md/.claude adoption runbook
-  status: Todo
+  status: Done
 - local_id: US3
   title: 'Import event model: schema, validate-first pre-pass, handles'
   status: Done
@@ -29,9 +29,9 @@ subentities:
   status: Done
 - local_id: US7
   title: 'Adopter docs: recovering from a failed import'
-  status: Todo
+  status: Done
 created_at: '2026-07-22T08:41:51Z'
-updated_at: '2026-07-24T07:42:46Z'
+updated_at: '2026-07-24T07:49:29Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -66,12 +66,12 @@ _Add with `sq feature 576 add-story "As a <role>, I want … so that …"`; trac
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
 | US1 | Done |  | Orphan-pointer warning on init/adopt |
-| US2 | Todo |  | Document the pre-existing CLAUDE.md/.claude adoption runbook |
+| US2 | Done |  | Document the pre-existing CLAUDE.md/.claude adoption runbook |
 | US3 | Done |  | Import event model: schema, validate-first pre-pass, handles |
 | US4 | Done |  | Warn when a managed CLAUDE.md region meets pre-existing content |
 | US5 | Done |  | Import apply: single transaction, per-event clock/actor, reflog |
 | US6 | Done |  | `sq import` CLI: --dry-run, --json, --at/--as |
-| US7 | Todo |  | Adopter docs: recovering from a failed import |
+| US7 | Done |  | Adopter docs: recovering from a failed import |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -97,7 +97,7 @@ List pre-existing `.claude` agent-pointer files AND skill files this run did not
 ### US2 — Document the pre-existing CLAUDE.md/.claude adoption runbook
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -182,7 +182,7 @@ Top-level `sq import <file>` (`-` reads JSONL from stdin) per ADR-622 v1: `--dry
 ### US7 — Adopter docs: recovering from a failed import
 
 <!-- sq:story:US7:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US7:head:end -->
 
 <!-- sq:story:US7:body -->
@@ -199,4 +199,6 @@ ADR-622's one flagged rough edge: a mid-apply crash (rare I/O failure after the 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-24T07:49:29Z] Catherine Manager:
+  - FEAT-576 Done: adoption ergonomics complete. Import (ADR-622): sq import JSONL engine (validate-first pre-pass + single-transaction apply, per-event at/as, client handles) + the sq import CLI (--dry-run/--json/--at/--as). Adopt: orphan-pointer + pre-existing-CLAUDE.md warnings (warn-only, non-destructive). Docs: adoption runbook + import-recovery note. Reviewed REV-641 (engine) + REV-643 (surfaces), both Approved. Full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-640
 sequence_id: 640
 type: task
 title: 'Docs: recovering from a failed import'
-status: Draft
+status: Done
 parent: FEAT-576
 author: tech-lead
 refs:
@@ -11,7 +11,7 @@ refs:
 description: 'Adopter-facing recovery note: mid-apply I/O crash then repair reconciles;
   re-running duplicates (v1 no idempotency), recover manually, no blind retry.'
 created_at: '2026-07-23T13:29:39Z'
-updated_at: '2026-07-23T13:33:47Z'
+updated_at: '2026-07-24T07:49:25Z'
 ---
 <!-- sq:body -->
 Adopter-facing documentation for the one rough edge ADR-622 flags: recovering from a mid-apply crash. Depends on the `sq import` CLI being documented (this note extends the same import section).
@@ -49,4 +49,6 @@ _Add with `sq task 640 add-subtask "<title>"`; track with `sq task 640 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-24T07:46:50Z] Theo Writer:
+  - Documented import recovery: validate-first pre-pass writes nothing on errors (fix and re-run); rare mid-apply I/O crash can leave partial writes (run sq repair to reconcile); no idempotency yet (don't blind-retry — duplicate items). Added section 3 'Bulk import from JSONL' to docs/adoption.md with validation/recovery steps and --dry-run guard.
 <!-- sq:discussion:end -->

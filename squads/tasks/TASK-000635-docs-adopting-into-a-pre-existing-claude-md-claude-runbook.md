@@ -3,13 +3,13 @@ id: TASK-635
 sequence_id: 635
 type: task
 title: 'Docs: adopting into a pre-existing CLAUDE.md/.claude runbook'
-status: Draft
+status: Done
 parent: FEAT-576
 author: tech-lead
 description: 'Adopter-facing runbook: what a run overwrites, what it leaves as a candidate
   orphan, how to reconcile a hand-written CLAUDE.md with the managed block.'
 created_at: '2026-07-23T13:29:35Z'
-updated_at: '2026-07-23T13:32:44Z'
+updated_at: '2026-07-24T07:49:24Z'
 ---
 <!-- sq:body -->
 Adopter-facing runbook for adopting squads into a project that already has a hand-written `CLAUDE.md` and/or `.claude` directory. Depends on the orphan-warning and CLAUDE.md-contradiction behaviours being built (this doc describes what an adopter sees and does).
@@ -46,4 +46,6 @@ _Add with `sq task 635 add-subtask "<title>"`; track with `sq task 635 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-24T07:46:48Z] Theo Writer:
+  - Documented pre-existing CLAUDE.md/.claude collision handling: managed section inserted at top (with warning), orphan files listed and left untouched, reconciliation steps provided. Added subsection 'Pre-existing CLAUDE.md and .claude files' to docs/adoption.md.
 <!-- sq:discussion:end -->
