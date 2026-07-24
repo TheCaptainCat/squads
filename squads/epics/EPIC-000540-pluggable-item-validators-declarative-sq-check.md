@@ -3,7 +3,7 @@ id: EPIC-540
 sequence_id: 540
 type: epic
 title: Pluggable item validators (declarative sq check)
-status: Draft
+status: Done
 author: product-owner
 priority: medium
 refs:
@@ -12,7 +12,7 @@ description: Turn sq check + create/update gating into a declarative, pluggable 
   catalog; parent_required becomes one validator; category defaults are validator
   bundles.
 created_at: '2026-07-21T15:56:09Z'
-updated_at: '2026-07-21T15:56:27Z'
+updated_at: '2026-07-24T07:55:03Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -92,4 +92,6 @@ The existing `_check_*` methods become the initial named validators, e.g.:
 <!-- sq:discussion -->
 - [2026-07-21T15:56:27Z] Pierre Chat:
   - Split out from the EPIC-538 discussion: generalize parent_required into a pluggable, closed-catalog validator framework powering sq check + create/update gating. Sibling to EPIC-538 (its records-no-parent enforcement is the first customer, built as the no_parent validator). Category axis + validator model to be pinned together in one foundational ADR before features are cut.
+- [2026-07-24T07:55:02Z] Catherine Manager:
+  - Reconciled to Done — the pluggable-validator model shipped: FEAT-567 (ValidatorEngine dispatch) + FEAT-568 (named-validator catalog). Every sq check rule is a named catalog validator (same issues as before), effective set = category defaults + per-type additions with a closed catalog failing closed, create/update + sq check share one engine (no duplicated rule logic), and adopter-supplied validator code is rejected (catalog-by-name only). Acceptance met.
 <!-- sq:discussion:end -->
