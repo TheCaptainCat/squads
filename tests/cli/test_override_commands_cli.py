@@ -63,7 +63,7 @@ async def test_scaffold_new_creates_a_stamped_toml_and_reports_the_path(project,
     dest = project.squad_dir / ".overrides" / "roles" / "security-analyst.toml"
     assert dest.exists()
     assert "security-analyst.toml" in r.output.replace("\n", "")
-    assert "sq role activate security-analyst" in r.output.replace("\n", " ")
+    assert "sq role activate security-analyst" in " ".join(r.output.split())
 
     clobber = await invoke(["override", "scaffold", "--new", "security-analyst"])
     assert clobber.exit_code == 1
