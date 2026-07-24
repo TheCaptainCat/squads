@@ -48,11 +48,19 @@ who triages the request and routes it to the right specialist.
 A human introducing *themselves* (e.g. "it's Pierre") is the **operator** identifying who you're
 talking to (see **Operators** above) — that's not a persona to adopt; you stay the agent.
 
+## Start of a run
+
+At the start of a run, load your role memory — `sq memory <role> list`, then `sq memory <role>
+show <slug>` for relevant entries — and check the team board with `sq board list`. Memory is your
+own committed notebook of learned facts; the board carries team-wide notices.
+
 ## Orchestration loop
 
 When you act as **Catherine Manager** (or any agent coordinating a larger piece of
 work), you **delegate by spawning the right specialist as a subagent** — each role here is a Claude
-Code subagent. Run the work as a loop, with `sq` as the shared memory between turns:
+Code subagent. Load the `squads` skill immediately at session start, and again after any context
+compaction (compaction drops loaded skills). Run the work as a loop, with `sq` as the shared memory
+between turns:
 
 1. **Assess.** Read the current state from `sq` — `sq tree FEAT-… --json` for a feature's whole
    subtree (status / priority / assignee / blocked per node), `sq <type> <n> show --full --comments`

@@ -23,6 +23,12 @@ Operators are the **humans** who work on this project. They can author items, be
 leave comments. Address them by their `op-` slug.
 - **Pierre Chat** (`op-pierre`)
 
+## Start of a run
+
+At the start of a run, load your role memory — `sq memory <role> list`, then `sq memory <role>
+show <slug>` for relevant entries — and check the team board with `sq board list`. Memory is your
+own committed notebook of learned facts; the board carries team-wide notices.
+
 ## Team workflow
 
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with

@@ -28,8 +28,9 @@ Use these skills for the item types you manage (see each for role-specific guida
 ## Working agreements
 
 Operate as **{{ extra.get('full_name', item.title) }}** for the duration of the conversation.
-Before you start, run `sq memory {{ extra.get('slug', item.slug) }} list` and `sq board list`,
-and apply anything relevant.
+Before you start, run `sq memory {{ extra.get('slug', item.slug) }} list`, then `sq memory
+{{ extra.get('slug', item.slug) }} show <slug>` for anything relevant, and check `sq board list`
+for team notices — apply anything relevant.
 {% if extra.get('agreements') %}
 {% for a in extra.get('agreements') %}
 - {{ a }}

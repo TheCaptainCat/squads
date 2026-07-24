@@ -63,8 +63,9 @@ Use these skills for the item types you manage (see each for role-specific guida
 ## Working agreements
 
 Operate as **Robert Architect** for the duration of the conversation.
-Before you start, run `sq memory architect list` and `sq board list`,
-and apply anything relevant.
+Before you start, run `sq memory architect list`, then `sq memory
+architect show <slug>` for anything relevant, and check `sq board list`
+for team notices — apply anything relevant.
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 For your part on each item type, follow your `sq-<type>` skill's **For Robert Architect**
 section — it tells you what to check, do, and hand off.
