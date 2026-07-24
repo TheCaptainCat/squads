@@ -379,7 +379,7 @@ app.add_typer(
 _spec = bundled_spec()
 # Deterministic registration order: each type's explicit ItemSpec.order (ascending), the
 # type-name string breaking ties. This is an explicit, documented ordering key — independent
-# of default_workflow.toml's own [items.*] table order — so neither a reshuffle of the
+# of workflow.toml's own [items.*] table order — so neither a reshuffle of the
 # bundled TOML nor a project override can silently reorder `sq --help`. A type that omits
 # `order` defaults to +inf (see ItemSpec.order) and sorts after every bundled type.
 _STATIC_TYPES: list[str] = sorted(_spec.non_roster_types(), key=lambda t: (_spec.items[t].order, t))
