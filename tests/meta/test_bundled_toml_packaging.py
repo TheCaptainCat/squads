@@ -1,6 +1,6 @@
 """Bundled TOML assets ship as package data: accessible via importlib.resources and present
 in the built wheel. One parametrized test over the asset list — covers the playbook, role
-catalog, and default-workflow TOMLs — rather than a near-duplicate test per asset.
+catalog, and workflow TOMLs — rather than a near-duplicate test per asset.
 """
 
 import shutil
@@ -14,9 +14,9 @@ import pytest
 #: (package, resource filename, a byte snippet expected inside it) — add an asset here
 #: rather than writing a new near-identical test function.
 _ASSETS: list[tuple[str, str, bytes]] = [
-    ("squads._interactions", "playbook.toml", b"[types.task]"),
-    ("squads._roles", "roles.toml", b"manager"),
-    ("squads._workflow", "default_workflow.toml", b"[lifecycles.work]"),
+    ("squads._bundled", "playbook.toml", b"[types.task]"),
+    ("squads._bundled", "roles.toml", b"manager"),
+    ("squads._bundled", "workflow.toml", b"[lifecycles.work]"),
 ]
 
 

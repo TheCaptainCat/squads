@@ -1,4 +1,4 @@
-"""``default_workflow.toml`` declares ``role = "active"`` on the two working states —
+"""``workflow.toml`` declares ``role = "active"`` on the two working states —
 ``InProgress`` (work-item lifecycle) and ``Active`` (roster/agent lifecycle) — a non-settled,
 shown role, distinct from ``Superseded``'s settled ``"superseded"`` role.
 """

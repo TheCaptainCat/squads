@@ -1,7 +1,8 @@
 """Load and validate the bundled role catalog.
 
-``load_role_catalog()`` is the single entry point.  It reads ``roles.toml`` via
-``importlib.resources`` (offline, no filesystem assumption), parses with stdlib
+``load_role_catalog()`` is the single entry point.  It reads ``roles.toml``
+from the ``squads._bundled`` package via ``importlib.resources`` (offline, no
+filesystem assumption), parses with stdlib
 ``tomllib``, constructs the pydantic models, runs fail-closed validation, and
 returns a ``RoleCatalogSpec``.  A corrupt or invalid catalog raises
 ``SquadsError``.
@@ -24,7 +25,7 @@ def load_role_catalog() -> RoleCatalogSpec:
     Raises ``SquadsError`` on any violation.
     """
     try:
-        pkg = importlib.resources.files("squads._roles")
+        pkg = importlib.resources.files("squads._bundled")
         toml_bytes = (pkg / "roles.toml").read_bytes()
     except Exception as exc:
         raise SquadsError(f"Failed to read bundled roles.toml: {exc}") from exc

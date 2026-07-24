@@ -12,7 +12,7 @@ finding done-toggle (``_services/_subentities.py``). ``StatusSpec.role`` is the 
 status axis — a reference into the ``RoleSpec`` catalog (``WorkflowSpec.roles``) that carries
 ``settled``/``hidden``/``color``; ``is_open``/``terminal_set``/``hidden_by_default`` are all
 derived from the referenced role, never stored directly. They are encoded in
-``default_workflow.toml``.
+``workflow.toml``.
 
 ``Badge``/``Collection``/``Field`` are the badge-vocabulary schema: ``ItemSpec.fields`` /
 ``SubentityKindSpec.fields`` bind a type or sub-entity kind to a reusable ``Collection`` of

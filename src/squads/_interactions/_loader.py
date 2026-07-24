@@ -1,8 +1,8 @@
 """Load and validate the bundled playbook spec.
 
-``load_playbook(catalog)`` is the single entry point.  It reads
-``playbook.toml`` via ``importlib.resources`` (offline, no filesystem
-assumption), parses with stdlib ``tomllib``, constructs the pydantic models,
+``load_playbook(catalog)`` is the single entry point.  It reads ``playbook.toml``
+from the ``squads._bundled`` package via ``importlib.resources`` (offline, no
+filesystem assumption), parses with stdlib ``tomllib``, constructs the pydantic models,
 runs fail-closed validation against the already-loaded role catalog and the
 loaded ``WorkflowSpec``, and returns a ``PlaybookSpec``.  A corrupt or invalid
 playbook raises ``SquadsError``.
@@ -41,7 +41,7 @@ def load_playbook(catalog: RoleCatalogSpec, spec: WorkflowSpec | None = None) ->
     if spec is None:
         spec = bundled_spec()
     try:
-        pkg = importlib.resources.files("squads._interactions")
+        pkg = importlib.resources.files("squads._bundled")
         toml_bytes = (pkg / "playbook.toml").read_bytes()
     except Exception as exc:
         raise SquadsError(f"Failed to read bundled playbook.toml: {exc}") from exc

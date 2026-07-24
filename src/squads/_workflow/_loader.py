@@ -1,11 +1,12 @@
 """Load and validate the bundled default workflow spec.
 
-``load_workflow_spec()`` is the single entry point.  It reads
-``default_workflow.toml`` via ``importlib.resources`` (offline, no filesystem
-assumption), parses with stdlib ``tomllib`` (both item type keys and status keys stay
-plain ``str`` — neither vocabulary enum survives), builds the derived reverse indexes,
-and runs ``WorkflowSpec.validate()`` (the pydantic ``model_validator``).  A corrupt or
-invalid bundled spec raises ``SquadsError`` — fail closed.
+``load_workflow_spec()`` is the single entry point.  It reads ``workflow.toml``
+from the ``squads._bundled`` package via ``importlib.resources`` (offline, no
+filesystem assumption), parses with stdlib ``tomllib`` (both item type keys and
+status keys stay plain ``str`` — neither vocabulary enum survives), builds the
+derived reverse indexes, and runs ``WorkflowSpec.validate()`` (the pydantic
+``model_validator``).  A corrupt or invalid bundled spec raises ``SquadsError``
+— fail closed.
 
 The loader routes through ``model_validate(...)`` for each spec model so
 ``extra="forbid"`` fires at parse time, not just at pydantic construction,
@@ -93,17 +94,17 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
 
 
 def _load_bundled_spec() -> WorkflowSpec:
-    """Read, parse, coerce, and validate the bundled ``default_workflow.toml``."""
+    """Read, parse, coerce, and validate the bundled ``workflow.toml``."""
     try:
-        pkg = importlib.resources.files("squads._workflow")
-        toml_bytes = (pkg / "default_workflow.toml").read_bytes()
+        pkg = importlib.resources.files("squads._bundled")
+        toml_bytes = (pkg / "workflow.toml").read_bytes()
     except Exception as exc:
-        raise SquadsError(f"Failed to read bundled default_workflow.toml: {exc}") from exc
+        raise SquadsError(f"Failed to read bundled workflow.toml: {exc}") from exc
 
     try:
         raw: dict[str, Any] = tomllib.loads(toml_bytes.decode())
     except tomllib.TOMLDecodeError as exc:
-        raise SquadsError(f"Malformed bundled default_workflow.toml: {exc}") from exc
+        raise SquadsError(f"Malformed bundled workflow.toml: {exc}") from exc
 
     return _build_spec(raw)
 

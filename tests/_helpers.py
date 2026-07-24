@@ -34,7 +34,7 @@ EXPECTED_BUILTIN_STATUS_BADGES: dict[str, str] = {
     "WontFix": "⚫",
 }
 
-#: Built-in type -> ID prefix, mirroring the bundled ``default_workflow.toml`` exactly.
+#: Built-in type -> ID prefix, mirroring the bundled ``workflow.toml`` exactly.
 #:
 #: Test-only (no production analogue): production resolves this from the loaded
 #: ``WorkflowSpec`` alone (the ``ItemType`` enum + reserved prefix map it used to
@@ -54,7 +54,7 @@ BUILTIN_PREFIX: dict[str, str] = {
     "operator": "OP",
 }
 
-#: Built-in type -> squad-folder-relative subfolder, mirroring ``default_workflow.toml``.
+#: Built-in type -> squad-folder-relative subfolder, mirroring ``workflow.toml``.
 #: Test-only — see :data:`BUILTIN_PREFIX`.
 BUILTIN_FOLDER: dict[str, str] = {
     "epic": "epics",
@@ -79,7 +79,7 @@ WORK_TYPES: tuple[str, ...] = ("epic", "feature", "task", "bug", "decision", "re
 ROSTER_TYPES: tuple[str, ...] = ("role", "skill", "operator")
 
 #: All 23 built-in status names across every lifecycle (work/adr/review/bug/guide/agent +
-#: sub-entity/finding), mirroring the bundled ``default_workflow.toml`` exactly.
+#: sub-entity/finding), mirroring the bundled ``workflow.toml`` exactly.
 #:
 #: Test-only (no production analogue): production resolves the status vocabulary from the
 #: loaded ``WorkflowSpec`` alone (the ``Status`` enum this used to enumerate is
