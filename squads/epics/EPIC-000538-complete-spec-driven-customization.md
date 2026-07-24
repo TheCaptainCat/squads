@@ -3,7 +3,7 @@ id: EPIC-538
 sequence_id: 538
 type: epic
 title: Complete spec-driven customization
-status: Draft
+status: Done
 author: product-owner
 priority: high
 refs:
@@ -14,7 +14,7 @@ description: Make the work-item vocabulary fully overridable (drop/rename/re-pre
   + extend overrides to the playbook, via one shared merge engine (deep-merge · active
   · splat-refs).
 created_at: '2026-07-21T15:11:25Z'
-updated_at: '2026-07-21T20:51:37Z'
+updated_at: '2026-07-24T07:55:01Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -213,4 +213,6 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
   - Sequencing (op-pierre): statelessness first — land FEAT-533 (removes the _PLAYBOOK_SPEC/_active_spec singletons) before cutting EPIC-538/540 features onto the per-request seam. ADR-541 and ADR-534 held at Proposed for now (not accepted yet); feature-cutting waits on that acceptance.
 - [2026-07-21T20:51:37Z] Nina Product:
   - Refreshed body: dropped the resolved open-questions section, corrected the statelessness/records/roster-lock framing, and added the work<->records reassignment outcome + explicit Plane-1/Plane-2 split with EPIC-540 — all aligned to ADR-541. Status unchanged (Draft).
+- [2026-07-24T07:55:01Z] Catherine Manager:
+  - Reconciled to Done — all children Done and epic acceptance met: work-item types drop/rename/re-prefix with only role/skill/operator reserved (FEAT-567/573), the category catalog is closed and roster fails closed off the override surface (ADR-541/FEAT-567), records take no parent enforced (FEAT-568/572), custom records types + work<->records reassignment (FEAT-569), records UI/visibility (FEAT-570), spec-driven add-* flags (FEAT-571), custom non-dev roles (FEAT-543), and the status role-object model (FEAT-605). Spec-driven customization complete.
 <!-- sq:discussion:end -->
