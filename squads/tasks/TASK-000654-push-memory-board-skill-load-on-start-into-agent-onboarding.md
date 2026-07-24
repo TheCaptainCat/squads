@@ -3,20 +3,20 @@ id: TASK-654
 sequence_id: 654
 type: task
 title: Push memory/board/skill load-on-start into agent onboarding surfaces
-status: Draft
+status: Done
 parent: FEAT-650
 author: tech-lead
 subentities:
 - local_id: ST1
   title: 'All agents: memory+board load-on-start in CLAUDE.md/AGENTS.md + role sheet'
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: 'Manager: load squads skill on start + after compaction'
-  status: Todo
+  status: Done
   story: US2
 created_at: '2026-07-24T13:06:23Z'
-updated_at: '2026-07-24T13:07:30Z'
+updated_at: '2026-07-24T13:49:22Z'
 ---
 <!-- sq:body -->
 Push the load-on-start practice into the agent-facing onboarding surfaces so every agent — and the main-loop coordinator, which boots without auto-loaded skills — reads it by default.
@@ -51,8 +51,8 @@ _Add with `sq task 654 add-subtask "<title>"`; track with `sq task 654 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | All agents: memory+board load-on-start in CLAUDE.md/AGENTS.md + role sheet | US1 |
-| ST2 | Todo |  | Manager: load squads skill on start + after compaction | US2 |
+| ST1 | Done |  | All agents: memory+board load-on-start in CLAUDE.md/AGENTS.md + role sheet | US1 |
+| ST2 | Done |  | Manager: load squads skill on start + after compaction | US2 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -61,12 +61,12 @@ _Add with `sq task 654 add-subtask "<title>"`; track with `sq task 654 subtask <
 ### ST1 — All agents: memory+board load-on-start in CLAUDE.md/AGENTS.md + role sheet
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US1 — All agents: memory+board load-on-start guidance
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-Add explicit start-of-run guidance to the shared agent-facing surfaces: the CLAUDE.md managed-region template (src/squads/_rendering/templates/claude/claude_section.md.j2), the AGENTS.md equivalent (.../agents_md/agents_section.md.j2), and the role-sheet template (.../agents/role.md.j2). Guidance: at the start of a run, load your role memory (`sq memory <role> list`, then `show` the relevant entries) and check the team board (`sq board list`). Durable text goes in the .j2 templates — rendered CLAUDE.md/role sheets are clobbered by sq sync. Regenerate + update the template manifest and golden fixtures.
+Added memory+board load-on-start to CLAUDE.md/AGENTS.md managed regions (new Start of a run section) and refined role.md.j2's existing line to also mention sq memory show <slug>.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -79,12 +79,12 @@ Add explicit start-of-run guidance to the shared agent-facing surfaces: the CLAU
 ### ST2 — Manager: load squads skill on start + after compaction
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US2 — Manager: load squads skill on start and after compaction
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-Add manager-specific guidance that the manager loads the `squads` skill immediately at session start AND again after a context compaction (compaction drops loaded skills). Home: the CLAUDE.md/AGENTS.md managed region where the orchestration-loop/greeting guidance lives, or the greeting skill SKILL-000192 — implementer confirms the right home. Same regeneration/manifest/golden upkeep as ST1 if a managed template is touched.
+Added skill-load-on-start-and-after-compaction line to the Orchestration loop section of claude_section.md.j2 (read unconditionally every session, unlike a skill).
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -97,4 +97,11 @@ Add manager-specific guidance that the manager loads the `squads` skill immediat
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-24T13:39:42Z] Elias Python:
+  - ST1: added a terse 'Start of a run' section (memory list/show + board list) to claude_section.md.j2 and agents_section.md.j2; refined role.md.j2's existing memory/board line to also mention 'sq memory <slug> show <slug>'.
+  - ST2: added the squads-skill-load-on-start-and-after-compaction line to the Orchestration loop section of claude_section.md.j2 (chosen home: it's read unconditionally every session, unlike a skill, which is what makes the after-compaction reminder work).
+  - Regenerated templates_manifest.json + goldens (claude_md_section.txt, agents_md_section.txt); verified fresh sq init + sq sync render the new lines in CLAUDE.md, AGENTS.md, and role sheets. pyright/ruff/format clean; touched test files green. sq sync'd this repo's own squad; sq check clean.
+  - @reviewer ready for review.
+- [2026-07-24T13:49:17Z] Paul Reviewer:
+  - Verified: CLAUDE.md/AGENTS.md 'Start of a run' + orchestration-loop skill-load line + role-sheet memory/board line; ST2 correctly placed in the always-loaded CLAUDE.md (survives compaction). Manifest + goldens regenerated; fresh-init render confirmed; full suite green.
 <!-- sq:discussion:end -->
