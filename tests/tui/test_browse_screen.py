@@ -3,16 +3,12 @@ reader panel (selection wiring, at-a-glance header, body/sub-entities/discussion
 their empty states).
 """
 
-import time
-from collections.abc import Callable
-
 import pytest
 
 pytest.importorskip("textual")
 
 from textual.containers import VerticalScroll
 from textual.content import Content
-from textual.pilot import Pilot
 from textual.widgets import Markdown, Static, TabbedContent, Tabs, Tree
 from textual.widgets._markdown import (  # pyright: ignore[reportPrivateImportUsage]
     MarkdownH1,
@@ -21,6 +17,8 @@ from textual.widgets._markdown import (  # pyright: ignore[reportPrivateImportUs
 from textual.widgets.tree import TreeNode
 
 from squads._tui._app import SquadsApp
+
+from ._helpers import wait_until
 
 pytestmark = pytest.mark.anyio
 
@@ -51,25 +49,6 @@ def _text(content: object) -> str:
         return content.plain
     assert isinstance(content, str)
     return content
-
-
-async def _wait_until(
-    pilot: Pilot[None], predicate: Callable[[], bool], *, max_wait: float = 5.0
-) -> None:
-    """Poll *predicate* via repeated `pilot.pause()`s until it holds, instead of trusting a
-    single pause.
-
-    `Markdown.update()` hands its parse off to a thread-pool executor; a lone `pilot.pause()`
-    only waits until the process *looks* CPU-idle, which under parallel test load can fire
-    before that executor thread has even been scheduled — so the widget's content (and the
-    scroll container's derived size) isn't settled yet. Polling the real postcondition makes
-    the wait deterministic regardless of scheduling.
-    """
-    deadline = time.monotonic() + max_wait
-    while not predicate():
-        if time.monotonic() >= deadline:
-            raise AssertionError(f"condition not met within {max_wait}s: {predicate!r}")
-        await pilot.pause()
 
 
 async def test_launching_and_quitting_leaves_no_running_app(svc):
@@ -183,10 +162,10 @@ async def test_selecting_a_node_loads_its_detail_and_reselection_refreshes_it(sv
         # Same executor-backed-parse race as the scroll test above: poll for the settled
         # body instead of trusting a single pause.
         tree.cursor_line = node1.line
-        await _wait_until(pilot, lambda: "First body" in body._markdown)  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "First body" in body._markdown)  # pyright: ignore[reportPrivateUsage]
 
         tree.cursor_line = node2.line
-        await _wait_until(pilot, lambda: "Second body" in body._markdown)  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "Second body" in body._markdown)  # pyright: ignore[reportPrivateUsage]
 
 
 async def test_reader_header_shows_status_priority_and_assignee_gracefully(svc):
@@ -201,16 +180,14 @@ async def test_reader_header_shows_status_priority_and_assignee_gracefully(svc):
         tree = app.screen.query_one(Tree)
         node = _find(tree.root, with_priority.id)
         tree.cursor_line = node.line
-        await pilot.pause()
         header = app.screen.query_one("#glance-header", Static)
+        await wait_until(pilot, lambda: "manager" in _text(header.content))
         assert "Draft" in _text(header.content)
         assert "High" in _text(header.content)
-        assert "manager" in _text(header.content)
 
         bare_node = _find(tree.root, bare.id)
         tree.cursor_line = bare_node.line
-        await pilot.pause()
-        assert "unassigned" in _text(header.content)
+        await wait_until(pilot, lambda: "unassigned" in _text(header.content))
 
 
 async def test_body_tab_renders_markdown_blocks_and_an_empty_state_for_a_blank_body(svc):
@@ -225,13 +202,12 @@ async def test_body_tab_renders_markdown_blocks_and_an_empty_state_for_a_blank_b
         tree.cursor_line = node.line
         await pilot.pause()
         body = app.screen.query_one("#body-view", Markdown)
-        assert any(isinstance(w, MarkdownH1) for w in body.children)
+        await wait_until(pilot, lambda: any(isinstance(w, MarkdownH1) for w in body.children))
         assert any(isinstance(w, MarkdownParagraph) for w in body.children)
 
         blank_node = _find(tree.root, blank.id)
         tree.cursor_line = blank_node.line
-        await pilot.pause()
-        assert "no body yet" in body._markdown  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "no body yet" in body._markdown)  # pyright: ignore[reportPrivateUsage]
 
 
 async def test_body_tab_scrolls_to_reach_content_below_the_fold(svc):
@@ -247,12 +223,12 @@ async def test_body_tab_scrolls_to_reach_content_below_the_fold(svc):
         await pilot.pause()
 
         scroll = app.screen.query_one("#body-scroll", VerticalScroll)
-        await _wait_until(pilot, lambda: scroll.max_scroll_y > 0)
+        await wait_until(pilot, lambda: scroll.max_scroll_y > 0)
 
         scroll.focus()
         await pilot.pause()
         await pilot.press("end")
-        await _wait_until(pilot, lambda: scroll.scroll_y == scroll.max_scroll_y)
+        await wait_until(pilot, lambda: scroll.scroll_y == scroll.max_scroll_y)
 
 
 async def test_subentities_tab_shows_each_blocks_head_and_body_with_empty_states(svc):
@@ -269,23 +245,20 @@ async def test_subentities_tab_shows_each_blocks_head_and_body_with_empty_states
 
         node = _find(tree.root, feat.id)
         tree.cursor_line = node.line
-        await pilot.pause()
         sub_view = app.screen.query_one("#subentities-view", Markdown)
+        await wait_until(pilot, lambda: "Some story prose." in sub_view._markdown)  # pyright: ignore[reportPrivateUsage]
         source = sub_view._markdown  # pyright: ignore[reportPrivateUsage]
         assert "US1" in source
         assert "Login" in source
         assert "manager" in source
-        assert "Some story prose." in source
 
         empty_node = _find(tree.root, feat_empty.id)
         tree.cursor_line = empty_node.line
-        await pilot.pause()
-        assert sub_view._markdown == "*(none)*"  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: sub_view._markdown == "*(none)*")  # pyright: ignore[reportPrivateUsage]
 
         role_node = _find(tree.root, role.id)
         tree.cursor_line = role_node.line
-        await pilot.pause()
-        assert sub_view._markdown == "*(none)*"  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: sub_view._markdown == "*(none)*")  # pyright: ignore[reportPrivateUsage]
 
 
 async def test_discussion_tab_renders_markdown_ordered_comments_and_empty_state(svc):
@@ -301,8 +274,8 @@ async def test_discussion_tab_renders_markdown_ordered_comments_and_empty_state(
 
         node = _find(tree.root, feat.id)
         tree.cursor_line = node.line
-        await pilot.pause()
         disc_view = app.screen.query_one("#discussion-view", Markdown)
+        await wait_until(pilot, lambda: "second" in disc_view._markdown)  # pyright: ignore[reportPrivateUsage]
         source = disc_view._markdown  # pyright: ignore[reportPrivateUsage]
         assert source.index("first") < source.index("second")
         assert await svc.author("manager") in source
@@ -310,8 +283,7 @@ async def test_discussion_tab_renders_markdown_ordered_comments_and_empty_state(
 
         quiet_node = _find(tree.root, quiet.id)
         tree.cursor_line = quiet_node.line
-        await pilot.pause()
-        assert disc_view._markdown == "*(none)*"  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: disc_view._markdown == "*(none)*")  # pyright: ignore[reportPrivateUsage]
 
 
 async def test_reader_tabs_are_switchable_by_keyboard(svc):

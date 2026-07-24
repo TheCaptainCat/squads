@@ -19,6 +19,8 @@ from squads._tui._search import (
     _HitItem,  # pyright: ignore[reportPrivateUsage]
 )
 
+from ._helpers import wait_until
+
 pytestmark = pytest.mark.anyio
 
 
@@ -67,12 +69,14 @@ async def test_submitting_a_query_lists_hits_with_id_type_title_and_snippets(svc
 
         search._query.value = "oauth"  # pyright: ignore[reportPrivateUsage]
         await pilot.press("enter")
-        await pilot.pause()
 
         results = search.query_one(ListView)
-        hits = [c for c in results.children if isinstance(c, _HitItem)]
-        assert len(hits) == 1
-        assert hits[0].item_id == feat.id
+
+        def _hits() -> list[_HitItem]:
+            return [c for c in results.children if isinstance(c, _HitItem)]
+
+        await wait_until(pilot, lambda: len(_hits()) == 1)
+        assert _hits()[0].item_id == feat.id
 
 
 async def test_blank_query_shows_the_prompt_state_without_calling_search(svc, monkeypatch):
@@ -114,8 +118,8 @@ async def test_a_query_with_no_matches_shows_a_clean_no_results_state(svc):
 
         search._query.value = "no-such-needle-xyz"  # pyright: ignore[reportPrivateUsage]
         await pilot.press("enter")
-        await pilot.pause()
 
+        await wait_until(pilot, lambda: not search.query_one(ListView).loading)
         assert "no results" in _status_text(search).lower()
         assert len(search.query_one(ListView).children) == 0
 
@@ -160,9 +164,7 @@ async def test_a_searching_state_is_shown_while_the_worker_runs(svc, monkeypatch
         assert "search" in _status_text(search).lower()
 
         gate.set()
-        await pilot.pause()
-        await pilot.pause()
-        assert not search.query_one(ListView).loading
+        await wait_until(pilot, lambda: not search.query_one(ListView).loading)
 
 
 async def test_escape_returns_to_browse_with_the_tree_position_intact(svc):
@@ -214,17 +216,18 @@ async def test_type_and_status_narrowing_are_forwarded_to_svc_search(svc, monkey
 
         search._query.value = "oauth"  # pyright: ignore[reportPrivateUsage]
         await pilot.press("enter")
-        await pilot.pause()
-        assert calls[-1] == ("oauth", None, None)
+        await wait_until(pilot, lambda: bool(calls) and calls[-1] == ("oauth", None, None))
 
         search._type_select.value = "task"  # pyright: ignore[reportPrivateUsage]
-        await pilot.pause()
-        assert calls[-1] == ("oauth", "task", None)
+        await wait_until(pilot, lambda: calls[-1] == ("oauth", "task", None))
 
         results = search.query_one(ListView)
-        hits = [c for c in results.children if isinstance(c, _HitItem)]
-        assert {h.item_id for h in hits} == {task.id}
-        assert feat.id not in {h.item_id for h in hits}
+
+        def _hits() -> set[str]:
+            return {c.item_id for c in results.children if isinstance(c, _HitItem)}
+
+        await wait_until(pilot, lambda: _hits() == {task.id})
+        assert feat.id not in _hits()
 
 
 async def test_selecting_a_hit_pushes_a_reader_screen_without_moving_browse_selection(svc):
@@ -248,11 +251,14 @@ async def test_selecting_a_hit_pushes_a_reader_screen_without_moving_browse_sele
 
         search._query.value = "oauth"  # pyright: ignore[reportPrivateUsage]
         await pilot.press("enter")
-        await pilot.pause()
 
         results = search.query_one(ListView)
-        hits = [c for c in results.children if isinstance(c, _HitItem)]
-        assert {h.item_id for h in hits} == {feat.id, closed.id}  # closed hit still found
+
+        def _hits() -> list[_HitItem]:
+            return [c for c in results.children if isinstance(c, _HitItem)]
+
+        await wait_until(pilot, lambda: {h.item_id for h in _hits()} == {feat.id, closed.id})
+        hits = _hits()  # closed hit still found
 
         closed_hit = next(h for h in hits if h.item_id == closed.id)
         results.index = list(results.children).index(closed_hit)
