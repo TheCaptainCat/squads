@@ -101,14 +101,16 @@ async def init(
     role_defs: list[RoleDef] = resolve_roles(roles_spec) if roles_spec else []
     created = [await svc.activate_role(r.slug, name=effective_names.get(r.slug)) for r in role_defs]
 
+    warnings: list[str] = []
     if not no_claude:
-        await svc.refresh_managed()
+        warnings += await svc.refresh_managed()
         # After refresh_managed has written the skill body files (with sq:body markers),
         # stamp each managed skill as a first-class SKILL item in lexical-by-slug order.
         if not _skip_skill_seed:
             await svc.seed_bundled_skills()
+        warnings += await svc.candidate_orphans()
 
-    return InitResult(paths=sp, roles=created)
+    return InitResult(paths=sp, roles=created, warnings=warnings)
 
 
 async def adopt(
@@ -163,10 +165,14 @@ async def adopt(
         await svc.scaffold_backend()
     role_defs: list[RoleDef] = resolve_roles(roles_spec) if roles_spec else []
     created = [await svc.activate_role(r.slug) for r in role_defs if r.slug not in existing_roles]
+    warnings: list[str] = []
     if not no_claude:
-        await svc.refresh_managed()
+        warnings += await svc.refresh_managed()
+        warnings += await svc.candidate_orphans()
 
-    return AdoptResult(paths=sp, imported=len(repair_result.db.items), roles=created)
+    return AdoptResult(
+        paths=sp, imported=len(repair_result.db.items), roles=created, warnings=warnings
+    )
 
 
 def open_service(dir_override: str | None = None, *, client_cwd: Path | None = None) -> Service:

@@ -19,6 +19,10 @@ class Artifact:
     path: str
     kind: str  # backend-specific category, e.g. agent | skill | config | index
     backend: str
+    # Set when writing this artifact surfaced something WARN-only the caller should print —
+    # e.g. "inserted the managed region into pre-existing hand-written content". Never gates
+    # anything; ``None`` (the common case) means "nothing to report".
+    warning: str | None = None
 
 
 @dataclass(frozen=True)
@@ -145,6 +149,23 @@ class AgentBackend(ABC):
     @abstractmethod
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         """Delete the backend entry/entries for an item."""
+
+    @abstractmethod
+    async def candidate_orphans(
+        self, ctx: BackendContext, roster: list[RoleView], skill_slugs: set[str]
+    ) -> list[str]:
+        """Root-relative paths of on-disk agent-pointer/skill files this backend does NOT
+        currently manage — present on disk but naming no slug in *roster* and no slug in
+        *skill_slugs* (the full known-skill vocabulary: every SKILL item plus every
+        system/per-type skill the spec implies, regardless of whether this particular run
+        happened to rewrite it).
+
+        WARN-only candidates for the caller (``sq init``/``sq adopt``) to report. Read-only:
+        must never delete, move, or rewrite anything; a slug match is NOT reported even when
+        this exact invocation didn't literally touch that file (e.g. `adopt` only regenerates
+        a NEWLY activated role's pointer), because a matching slug is still squads-managed
+        territory, not an orphan.
+        """
 
     @abstractmethod
     def managed_paths(self, ctx: BackendContext) -> list[str]:

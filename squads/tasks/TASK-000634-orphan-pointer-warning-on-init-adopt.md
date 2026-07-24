@@ -3,13 +3,13 @@ id: TASK-634
 sequence_id: 634
 type: task
 title: Orphan-pointer warning on init/adopt
-status: Draft
+status: Done
 parent: FEAT-576
 author: tech-lead
 description: WARN-only listing of pre-existing .claude agent pointers + skill files
   this run did not generate; never delete (crosses backend ownership boundary).
 created_at: '2026-07-23T13:29:34Z'
-updated_at: '2026-07-23T13:32:43Z'
+updated_at: '2026-07-24T07:42:43Z'
 ---
 <!-- sq:body -->
 On `init`/`adopt`, warn about pre-existing `.claude` agent-pointer files and skill files that this run did not generate/manage — candidate orphans. WARN-only: never delete them (deleting crosses the backend's ownership boundary — squads owns only what it generates).
@@ -53,4 +53,7 @@ _Add with `sq task 634 add-subtask "<title>"`; track with `sq task 634 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-24T07:33:44Z] Elias Python:
+  - Landed: AgentBackend gets a new candidate_orphans(ctx, roster, skill_slugs) ABC method (implemented in both claude_code and agents_md backends) that enumerates on-disk agent-pointer/skill files and reports any whose slug matches no active role and no known skill (SKILL items + bundled/custom-type system skills) — WARN-only, read-only, never deletes/moves/rewrites. Service.candidate_orphans() resolves the roster/skill vocab and calls every active backend; init/adopt call it and surface results on InitResult/AdoptResult.warnings, printed by the CLI. A slug match is never flagged even if this exact run didn't literally rewrite that file (e.g. adopt only regenerates newly-activated roles) — matching a real role/skill is still squads-managed territory, not an orphan.
+  - Tests: tests/integration/test_backend_scaffold_warnings.py (non-matching pointer flagged + untouched, slug-matched pointer overwritten, orphan skill dir, fresh init has no warnings, --no-claude skips the scan entirely, CLI smoke on adopt). Gates green, tests/meta green, sq check clean.
 <!-- sq:discussion:end -->

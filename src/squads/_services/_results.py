@@ -122,6 +122,11 @@ class SubentityDetail:
 class InitResult:
     paths: SquadPaths
     roles: list[Item]
+    # WARN-only board-debt-shaped notices from the backend scaffold/managed-write pass — a
+    # pre-existing CLAUDE.md/AGENTS.md with unmanaged content, or a candidate orphan
+    # pointer/skill file this run did not generate. Never gates the run; the CLI only prints
+    # these.
+    warnings: list[str] = field(default_factory=list[str])
 
 
 @dataclass
@@ -129,6 +134,7 @@ class AdoptResult:
     paths: SquadPaths
     imported: int  # items found on disk and indexed
     roles: list[Item]  # roles newly activated
+    warnings: list[str] = field(default_factory=list[str])
 
 
 @dataclass(frozen=True)
