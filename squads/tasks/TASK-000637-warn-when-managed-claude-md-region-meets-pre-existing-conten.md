@@ -3,14 +3,14 @@ id: TASK-637
 sequence_id: 637
 type: task
 title: Warn when managed CLAUDE.md region meets pre-existing content
-status: Draft
+status: Done
 parent: FEAT-576
 author: tech-lead
 description: Insert the managed region into a CLAUDE.md with real non-managed content
   anyway but warn of possible contradiction; lead with the managed block. Backend-neutral
   in the shared wrapper.
 created_at: '2026-07-23T13:29:37Z'
-updated_at: '2026-07-23T13:32:47Z'
+updated_at: '2026-07-24T07:42:44Z'
 ---
 <!-- sq:body -->
 When `init`/`adopt` inserts the squads-managed region into a `CLAUDE.md` (or `AGENTS.md`) that already holds real hand-written content but no squads markers, insert it anyway — but WARN that the pre-existing operating model may contradict the managed instructions.
@@ -51,4 +51,7 @@ _Add with `sq task 637 add-subtask "<title>"`; track with `sq task 637 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-24T07:33:45Z] Elias Python:
+  - Landed: _backends/_managed_region.inject() now returns a bool — True iff it inserted the managed block into a pre-existing file with real hand-written content and no squads markers yet (in that case it prepends the block above the existing content instead of appending, so the authoritative section reads first); an already-existing file with markers or a from-scratch file both return False and behave as before. _claude_md.inject / _agents_md/_managed.inject propagate the bool; both backends' write_managed attach a warning string to the CLAUDE.md/AGENTS.md Artifact when True (Artifact gained an optional warning field). Service.refresh_managed() collects these into a list[str], surfaced on InitResult/AdoptResult.warnings for the CLI to print — insertion is never refused, hand-written content is never touched.
+  - Tests: tests/integration/test_backend_scaffold_warnings.py covers both backends — pre-existing content warns + leads with the block + preserves the hand-written text, a second sync over an already-managed file warns only once and never moves the block, a missing file is created with no warning. CLI smoke on init. Gates green, tests/meta green, sq check clean.
 <!-- sq:discussion:end -->

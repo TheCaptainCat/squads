@@ -24,6 +24,8 @@ from squads._index._store import IndexStore
 from squads._interactions import (
     LANED_TYPES,
     allowed_create_types,
+    bundled_skill_slugs,
+    custom_skill_slugs,
     in_lane_owner,
     is_lane_exempt,
     skills_for_role,
@@ -917,7 +919,13 @@ class ServiceCore:
             if it.type == ROSTER_ROLE and X.SLUG in it.extra
         }
 
-    async def refresh_managed(self) -> None:
+    async def refresh_managed(self) -> list[str]:
+        """(Re)write every active backend's roster/version-dependent files.
+
+        Returns any WARN-only notices the writes surfaced (e.g. a pre-existing hand-written
+        CLAUDE.md/AGENTS.md contradiction warning) — never gates the run, just bubbles up for
+        the caller (``init``/``adopt``) to report.
+        """
         skill_map = await self._skill_paths()
         role_skills = await self._role_skills_map()
         ctx = BackendContext(
@@ -925,8 +933,30 @@ class ServiceCore:
         )
         roster = await self.roster()
         ops = await self.operators()
+        warnings: list[str] = []
         for backend in self._backends():
-            await backend.write_managed(ctx, roster, ops)
+            artifacts = await backend.write_managed(ctx, roster, ops)
+            warnings += [a.warning for a in artifacts if a.warning]
+        return warnings
+
+    async def candidate_orphans(self) -> list[str]:
+        """WARN-only candidate-orphan pointer/skill files across every active backend —
+        present on disk but managed by none of them. Never deletes anything; the caller
+        only reports these for the adopter to reconcile by hand.
+        """
+        skill_map = await self._skill_paths()
+        skill_slugs = (
+            set(skill_map) | set(bundled_skill_slugs()) | set(custom_skill_slugs(self.spec))
+        )
+        roster = await self.roster()
+        ctx = self._ctx
+        orphans: list[str] = []
+        for backend in self._backends():
+            orphans += await backend.candidate_orphans(ctx, roster, skill_slugs)
+        return [
+            f"candidate orphan (not managed by this squad, never auto-deleted): {p}"
+            for p in orphans
+        ]
 
     async def _refresh_role_skills_extra(
         self, item: Item, role_skills: dict[str, list[str]]

@@ -104,8 +104,16 @@ class ClaudeCodeBackend(AgentBackend):
             default_role_slug=default.slug if default else "manager",
             spec=spec,
         )
-        await claude_md.inject(ctx.root / _CLAUDE_MD, section)
-        artifacts.append(Artifact(ctx.rel(ctx.root / _CLAUDE_MD), "claude_md", self.name))
+        claude_md_path = ctx.root / _CLAUDE_MD
+        contradiction = await claude_md.inject(claude_md_path, section)
+        warning = (
+            f"{ctx.rel(claude_md_path)} had pre-existing hand-written content with no squads "
+            "markers; the managed section was inserted at the top — review it for possible "
+            "contradiction with that content."
+            if contradiction
+            else None
+        )
+        artifacts.append(Artifact(ctx.rel(claude_md_path), "claude_md", self.name, warning=warning))
         artifacts.extend(await self._write_item_skills(ctx, roster))
         return artifacts
 
@@ -336,6 +344,30 @@ class ClaudeCodeBackend(AgentBackend):
                 await _aio.to_thread(lambda: shutil.rmtree(skill_dir))
         else:
             await _aio.path_unlink(cdir / _AGENTS / f"{slug}.md", missing_ok=True)
+
+    async def candidate_orphans(
+        self, ctx: BackendContext, roster: list[RoleView], skill_slugs: set[str]
+    ) -> list[str]:
+        """Every ``.claude/agents/*.md`` and ``.claude/skills/<name>/`` on disk whose slug
+        matches no active role/skill — see the ABC docstring for the exact semantics."""
+        known_roles = {r.slug for r in roster}
+        cdir = ctx.root / _CLAUDE_DIR
+        orphans: list[str] = []
+
+        agents_dir = cdir / _AGENTS
+        if await _aio.path_exists(agents_dir):
+            paths = await _aio.to_thread(lambda: sorted(agents_dir.glob("*.md")))
+            orphans += [ctx.rel(p) for p in paths if p.stem not in known_roles]
+
+        skills_dir = cdir / _SKILLS
+        if await _aio.path_exists(skills_dir):
+            entries = await _aio.to_thread(lambda: sorted(skills_dir.iterdir()))
+            orphans += [
+                ctx.rel(p / _SKILL_FILE)
+                for p in entries
+                if p.is_dir() and p.name not in skill_slugs
+            ]
+        return orphans
 
     def managed_paths(self, ctx: BackendContext) -> list[str]:
         """Root-relative paths owned by this backend (present-only check; read-only)."""

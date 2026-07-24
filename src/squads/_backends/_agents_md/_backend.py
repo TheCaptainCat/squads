@@ -95,8 +95,15 @@ class AgentsMdBackend(AgentBackend):
             spec=spec,
         )
         agents_md = ctx.root / _AGENTS_MD
-        await managed.inject(agents_md, section)
-        return [Artifact(ctx.rel(agents_md), "config", self.name)]
+        contradiction = await managed.inject(agents_md, section)
+        warning = (
+            f"{ctx.rel(agents_md)} had pre-existing hand-written content with no squads "
+            "markers; the managed section was inserted at the top — review it for possible "
+            "contradiction with that content."
+            if contradiction
+            else None
+        )
+        return [Artifact(ctx.rel(agents_md), "config", self.name, warning=warning)]
 
     # ------------------------------------------------------------------ entries
 
@@ -152,6 +159,26 @@ class AgentsMdBackend(AgentBackend):
             await _aio.path_unlink(
                 ctx.root / _STAGING_DIR / _ROLES_DIR / f"{slug}.md", missing_ok=True
             )
+
+    async def candidate_orphans(
+        self, ctx: BackendContext, roster: list[RoleView], skill_slugs: set[str]
+    ) -> list[str]:
+        """Every ``.agents_md/roles/*.md``/``.agents_md/skills/*.md`` staging file on disk
+        whose slug matches no active role/skill — see the ABC docstring for the semantics."""
+        known_roles = {r.slug for r in roster}
+        staging = ctx.root / _STAGING_DIR
+        orphans: list[str] = []
+
+        roles_dir = staging / _ROLES_DIR
+        if await _aio.path_exists(roles_dir):
+            paths = await _aio.to_thread(lambda: sorted(roles_dir.glob("*.md")))
+            orphans += [ctx.rel(p) for p in paths if p.stem not in known_roles]
+
+        skills_dir = staging / _SKILLS_DIR
+        if await _aio.path_exists(skills_dir):
+            paths = await _aio.to_thread(lambda: sorted(skills_dir.glob("*.md")))
+            orphans += [ctx.rel(p) for p in paths if p.stem not in skill_slugs]
+        return orphans
 
     def managed_paths(self, ctx: BackendContext) -> list[str]:
         """Root-relative paths owned by this backend (present-only check; read-only)."""

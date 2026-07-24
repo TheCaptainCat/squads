@@ -218,6 +218,14 @@ def _parse_backend_option(raw: list[str]) -> list[str]:
     return [] if has_none else raw
 
 
+def _print_scaffold_warnings(warnings: list[str]) -> None:
+    """Print `init`/`adopt`'s WARN-only backend notices (a candidate orphan pointer/skill
+    file, or a pre-existing hand-written CLAUDE.md/AGENTS.md) — advisory only, never gates
+    the run."""
+    for warning in warnings:
+        console.print(f"[yellow]warning:[/yellow] {e(warning)}")
+
+
 @app.command()
 @common.command
 async def init(
@@ -333,6 +341,7 @@ async def init(
     else:
         lines.append("[bold]agent backends:[/bold] (none)")
     console.print(Panel("\n".join(lines), title="squads initialized", expand=False))
+    _print_scaffold_warnings(result.warnings)
     console.print(
         "Next: [cyan]sq create --help[/cyan] to see your item types · [cyan]sq list[/cyan]"
         " · [cyan]sq role catalog[/cyan]"
@@ -371,6 +380,7 @@ async def adopt(
         f"[bold]roles activated:[/bold] {new_roles}",
     ]
     console.print(Panel("\n".join(lines), title="squads adopted", expand=False))
+    _print_scaffold_warnings(result.warnings)
     console.print(
         "Migrate legacy docs with [cyan]sq --at <date> create …[/cyan] to preserve history; "
         "then [cyan]sq check[/cyan]."

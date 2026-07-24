@@ -11,7 +11,7 @@ refs:
 subentities:
 - local_id: US1
   title: Orphan-pointer warning on init/adopt
-  status: Todo
+  status: Done
 - local_id: US2
   title: Document the pre-existing CLAUDE.md/.claude adoption runbook
   status: Todo
@@ -20,18 +20,18 @@ subentities:
   status: Done
 - local_id: US4
   title: Warn when a managed CLAUDE.md region meets pre-existing content
-  status: Todo
+  status: Done
 - local_id: US5
   title: 'Import apply: single transaction, per-event clock/actor, reflog'
   status: Done
 - local_id: US6
   title: '`sq import` CLI: --dry-run, --json, --at/--as'
-  status: Todo
+  status: Done
 - local_id: US7
   title: 'Adopter docs: recovering from a failed import'
   status: Todo
 created_at: '2026-07-22T08:41:51Z'
-updated_at: '2026-07-23T14:51:06Z'
+updated_at: '2026-07-24T07:42:46Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -65,12 +65,12 @@ _Add with `sq feature 576 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | Orphan-pointer warning on init/adopt |
+| US1 | Done |  | Orphan-pointer warning on init/adopt |
 | US2 | Todo |  | Document the pre-existing CLAUDE.md/.claude adoption runbook |
 | US3 | Done |  | Import event model: schema, validate-first pre-pass, handles |
-| US4 | Todo |  | Warn when a managed CLAUDE.md region meets pre-existing content |
+| US4 | Done |  | Warn when a managed CLAUDE.md region meets pre-existing content |
 | US5 | Done |  | Import apply: single transaction, per-event clock/actor, reflog |
-| US6 | Todo |  | `sq import` CLI: --dry-run, --json, --at/--as |
+| US6 | Done |  | `sq import` CLI: --dry-run, --json, --at/--as |
 | US7 | Todo |  | Adopter docs: recovering from a failed import |
 <!-- sq:summary:end -->
 
@@ -80,7 +80,7 @@ _Add with `sq feature 576 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — Orphan-pointer warning on init/adopt
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -131,7 +131,7 @@ Per ADR-622 v1: the JSONL event model (common `op`/`at`/`as` fields inherited ac
 ### US4 — Warn when a managed CLAUDE.md region meets pre-existing content
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
@@ -165,7 +165,7 @@ Per ADR-622 v1: once the pre-pass is fully clean, apply inside one `IndexStore.t
 ### US6 — `sq import` CLI: --dry-run, --json, --at/--as
 
 <!-- sq:story:US6:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->

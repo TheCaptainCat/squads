@@ -332,6 +332,7 @@ from squads._cli import (  # noqa: E402
     _skill,
     _workflow_cmd,
 )
+from squads._cli import _import as _import  # noqa: E402
 from squads._cli import _main as _main  # noqa: E402
 from squads._cli import _ui as _ui  # noqa: E402
 from squads._workflow import bundled_spec  # noqa: E402

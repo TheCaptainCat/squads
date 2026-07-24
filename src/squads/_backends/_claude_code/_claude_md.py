@@ -17,6 +17,10 @@ def wrap(section_body: str) -> str:
     return managed.wrap(section_body)
 
 
-async def inject(claude_md: Path, section_body: str) -> None:
-    """Insert or replace the managed section, preserving everything else in the file."""
-    await managed.inject(claude_md, section_body, missing_header="# Project guidance\n\n")
+async def inject(claude_md: Path, section_body: str) -> bool:
+    """Insert or replace the managed section, preserving everything else in the file.
+
+    Returns whether the block was inserted into pre-existing hand-written content (no
+    markers yet) — see :func:`squads._backends._managed_region.inject`.
+    """
+    return await managed.inject(claude_md, section_body, missing_header="# Project guidance\n\n")
