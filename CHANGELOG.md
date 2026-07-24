@@ -41,9 +41,29 @@ All notable changes to this project are documented here. The format follows
   both gained a dedicated Records group/view, and a `--category roster|work|records` filter is
   now available everywhere item lists can be filtered. Statuses render in their role's colour
   in both clients.
-- **`add-finding`/`add-story`/`add-subtask` accept `--status`.** Set a non-default status at
-  creation time (validated against that sub-entity kind's own lifecycle), alongside the
-  existing spec-derived per-field flags.
+- **`add-finding`/`add-story`/`add-subtask` accept `--status`, and take their body the same
+  way.** Set a non-default status at creation time (validated against that sub-entity kind's
+  own lifecycle); all three now accept the body via `-m`, `--file`, or stdin, matching item
+  creation.
+- **`sq role list` / `sq operator list`.** List the active roster's roles, or the registered
+  operators, each with an active/inactive marker (`--json` supported for both).
+- **`sq <type> <n> comments`.** A focused read-back of just an item's discussion, without
+  pulling the full dossier (`--json` supported).
+- **Remove a sub-entity.** A story, subtask, or finding can now be removed with a `--yes`
+  confirmation; removing a story still mapped by a subtask is refused, so a subtask is never
+  left pointing at nothing.
+- **`sq import <file>` — bulk event import.** Replay a JSONL event stream — one mutation per
+  line (create, status change, body, comment, ref, add-story/add-subtask/add-finding,
+  sub-entity update, assign, and more), each carrying its own timestamp and acting actor — in
+  a single pass, so migrating an existing project's history is one file instead of hundreds
+  of individual commands. Validation runs up front and collects every error before
+  anything is written, so a clean file applies atomically; `--dry-run` prints the plan without
+  writing, and `-` reads the stream from stdin.
+- **Adoption warnings on `init`/`sync`.** Adopting into a project that already has a
+  hand-written `CLAUDE.md` inserts the managed block and warns that the surrounding
+  hand-written content may now contradict it — nothing is deleted. Pre-existing `.claude/`
+  pointer or skill files that squads didn't generate are listed as candidate orphans
+  (warn-only, never removed).
 
 ### Changed
 
