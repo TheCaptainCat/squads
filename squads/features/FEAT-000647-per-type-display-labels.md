@@ -14,8 +14,11 @@ subentities:
 - local_id: US2
   title: Retarget display-name consumers through the resolver
   status: Done
+- local_id: US3
+  title: Clients render per-type display labels
+  status: Todo
 created_at: '2026-07-24T11:47:44Z'
-updated_at: '2026-07-24T12:47:24Z'
+updated_at: '2026-07-24T12:57:20Z'
 ---
 <!-- sq:body -->
 Adopters can declare a human-readable display name per item type, so clients render "Decisions"/"ADRs" instead of the bare lowercase type key, with acronym types kept correctly capitalized.
@@ -36,6 +39,7 @@ _Add with `sq feature 647 add-story "As a <role>, I want … so that …"`; trac
 | --- | --- | --- | --- |
 | US1 | Done |  | Labels schema field + label_for resolver |
 | US2 | Done |  | Retarget display-name consumers through the resolver |
+| US3 | Todo |  | Clients render per-type display labels |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -73,6 +77,23 @@ Replace ad-hoc .capitalize()/.title() type-name display derivations (Claude Code
 <!-- sq:story:US2:discussion -->
 <!-- sq:story:US2:discussion:end -->
 <!-- sq:story:US2:end -->
+
+<!-- sq:story:US3 -->
+### US3 — Clients render per-type display labels
+
+<!-- sq:story:US3:head -->
+**Status:** ⚪ Todo
+<!-- sq:story:US3:head:end -->
+
+<!-- sq:story:US3:body -->
+Resolved display labels are exposed on the sq JSON surface and clients render them: the Records tree shows pretty per-type names instead of the raw lowercase type key, matching the Roster tree's pretty Roles/Skills.
+<!-- sq:story:US3:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US3:discussion -->
+<!-- sq:story:US3:discussion:end -->
+<!-- sq:story:US3:end -->
 <!-- sq:stories:end -->
 
 ## Discussion
