@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 645,
+  "counter": 649,
   "padding": 6,
   "items": {
     "12": {
@@ -23729,6 +23729,161 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-645"
+    },
+    "646": {
+      "sequence_id": 646,
+      "type": "decision",
+      "title": "Adopter-facing display labels per item type",
+      "slug": "adopter-facing-display-labels-per-item-type",
+      "status": "Accepted",
+      "description": "Optional per-type labels table (four independent named forms, derivation fallback) + a label_for resolver so clients render pretty type names; acronym-safe, additive, no schema bump.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "adrs/ADR-000646-adopter-facing-display-labels-per-item-type.md",
+      "created_at": "2026-07-24T11:41:24Z",
+      "updated_at": "2026-07-24T11:43:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-646"
+    },
+    "647": {
+      "sequence_id": 647,
+      "type": "feature",
+      "title": "Per-type display labels",
+      "slug": "per-type-display-labels",
+      "status": "InProgress",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-646:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Labels schema field + label_for resolver",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Retarget display-name consumers through the resolver",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000647-per-type-display-labels.md",
+      "created_at": "2026-07-24T11:47:44Z",
+      "updated_at": "2026-07-24T12:47:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-647"
+    },
+    "648": {
+      "sequence_id": 648,
+      "type": "task",
+      "title": "Per-type display labels: LabelSpec + label_for resolver",
+      "slug": "per-type-display-labels-labelspec-label-for-resolver",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-647",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-646:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add LabelSpec + ItemSpec.labels and the label_for resolver",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Retarget ad-hoc type-name display derivations through label_for",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000648-per-type-display-labels-labelspec-label-for-resolver.md",
+      "created_at": "2026-07-24T11:50:40Z",
+      "updated_at": "2026-07-24T12:47:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-648"
+    },
+    "649": {
+      "sequence_id": 649,
+      "type": "review",
+      "title": "Per-type display labels: LabelSpec + label_for resolver",
+      "slug": "per-type-display-labels-labelspec-label-for-resolver",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-648"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "LabelForm is a bare alias, not PEP-695 type",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Empty-string pin fallback is untested",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000649-per-type-display-labels-labelspec-label-for-resolver.md",
+      "created_at": "2026-07-24T12:23:04Z",
+      "updated_at": "2026-07-24T12:47:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-649"
     }
   }
 }
