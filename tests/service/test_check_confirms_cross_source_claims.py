@@ -14,6 +14,7 @@ import pytest
 from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
+from squads._index._store import IndexStore
 from squads._itemfile import read_frontmatter
 from squads._models._item import Item
 from squads._services._results import CheckIssue
@@ -164,6 +165,41 @@ async def test_durable_status_drift_is_reported(svc):
     issues = await svc.check()
     hit = next(i for i in issues if "status drift" in i.message and i.item == task.id)
     assert hit.level == "warn"
+
+
+async def test_durable_drift_survives_a_stale_index_path_from_an_interrupted_rename(
+    svc, monkeypatch
+):
+    """An interrupted title-changing update leaves the file at its new path and the index
+    still holding the old one -- the confirm round must re-observe wherever the sequence
+    number actually lives, not only where the (stale) index path points, or a real, durable
+    drift is silently dropped instead of reported.
+    """
+    task = (await svc.create("task", "original title")).item
+
+    real_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+
+    async def _boom(self, db):
+        raise OSError("simulated crash during the index commit")
+
+    monkeypatch.setattr(IndexStore, "_atomic_write", _boom)
+    try:
+        with pytest.raises(OSError):
+            await svc.update(task.id, title="renamed mid crash", status="InProgress", force=True)
+    finally:
+        monkeypatch.setattr(IndexStore, "_atomic_write", real_atomic_write)
+
+    # The rename and the frontmatter write both landed; the index commit never did -- the
+    # index still has the old path and the old status.
+    reloaded = await svc.get(task.id)
+    assert reloaded.path == task.path
+    assert reloaded.status == "Draft"
+    assert not svc.paths.abspath(task.path).exists()
+
+    issues = await svc.check()
+    assert any("status drift" in i.message and i.item == task.id for i in issues), (
+        f"a durable drift must survive a stale index path, got: {issues}"
+    )
 
 
 async def test_durable_orphan_file_is_reported(svc):
