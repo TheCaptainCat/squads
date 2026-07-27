@@ -3,7 +3,7 @@ id: TASK-672
 sequence_id: 672
 type: task
 title: Refuse an index-derived frontmatter rewrite over an unrepaired skew
-status: InProgress
+status: InReview
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -14,18 +14,18 @@ description: 'Fail-closed detection: compare on-disk frontmatter against the ind
 subentities:
 - local_id: ST1
   title: Compare and refuse on the mutation path
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Skip and report a drifted roster item in sync
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Tests for both failure directions across every path
-  status: Todo
+  status: Done
 - local_id: ST4
   title: 'Pre-flight the batch: import, bulk retype, rename-status'
-  status: Todo
+  status: Done
 created_at: '2026-07-27T16:13:19Z'
-updated_at: '2026-07-27T20:42:45Z'
+updated_at: '2026-07-27T21:47:29Z'
 ---
 <!-- sq:body -->
 Close the conditional half of ADR-663 §1's guarantee: a write refuses, loudly, rather than silently
@@ -198,10 +198,10 @@ _Add with `sq task 672 add-subtask "<title>"`; track with `sq task 672 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Compare and refuse on the mutation path |  |
-| ST2 | Todo |  | Skip and report a drifted roster item in sync |  |
-| ST3 | Todo |  | Tests for both failure directions across every path |  |
-| ST4 | Todo |  | Pre-flight the batch: import, bulk retype, rename-status |  |
+| ST1 | Done |  | Compare and refuse on the mutation path |  |
+| ST2 | Done |  | Skip and report a drifted roster item in sync |  |
+| ST3 | Done |  | Tests for both failure directions across every path |  |
+| ST4 | Done |  | Pre-flight the batch: import, bulk retype, rename-status |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -210,7 +210,7 @@ _Add with `sq task 672 add-subtask "<title>"`; track with `sq task 672 subtask <
 ### ST1 — Compare and refuse on the mutation path
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -275,7 +275,7 @@ Acceptance:
 ### ST2 — Skip and report a drifted roster item in sync
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -322,7 +322,7 @@ Acceptance:
 ### ST3 — Tests for both failure directions across every path
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
@@ -395,7 +395,7 @@ Acceptance:
 ### ST4 — Pre-flight the batch: import, bulk retype, rename-status
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->

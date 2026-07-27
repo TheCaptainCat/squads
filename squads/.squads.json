@@ -24883,7 +24883,7 @@
       "type": "task",
       "title": "Refuse an index-derived frontmatter rewrite over an unrepaired skew",
       "slug": "refuse-an-index-derived-frontmatter-rewrite-over-an-unrepair",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Fail-closed detection: compare on-disk frontmatter against the index-derived item before rewriting, and refuse with a sq repair pointer instead of silently reverting the skew.",
       "parent": null,
       "author": "tech-lead",
@@ -24899,7 +24899,7 @@
         {
           "local_id": "ST1",
           "title": "Compare and refuse on the mutation path",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24908,7 +24908,7 @@
         {
           "local_id": "ST2",
           "title": "Skip and report a drifted roster item in sync",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24917,7 +24917,7 @@
         {
           "local_id": "ST3",
           "title": "Tests for both failure directions across every path",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24926,7 +24926,7 @@
         {
           "local_id": "ST4",
           "title": "Pre-flight the batch: import, bulk retype, rename-status",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24935,7 +24935,7 @@
       ],
       "path": "tasks/TASK-000672-refuse-an-index-derived-frontmatter-rewrite-over-an-unrepair.md",
       "created_at": "2026-07-27T16:13:19Z",
-      "updated_at": "2026-07-27T20:42:45Z",
+      "updated_at": "2026-07-27T21:47:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
