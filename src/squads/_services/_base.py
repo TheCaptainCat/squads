@@ -30,7 +30,7 @@ from squads._interactions import (
     is_lane_exempt,
     skills_for_role,
 )
-from squads._itemfile import update_frontmatter, write_new
+from squads._itemfile import update_frontmatter, write_new, write_text
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
@@ -760,9 +760,7 @@ class ServiceCore:
         new_text = mutate(text, it)
         it.updated_at = clock.now()
         it.modified_session, _ = actor.current_session()
-        await _aio.write_text(
-            path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict())
-        )
+        await write_text(path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict()))
         return it
 
     # ------------------------------------------------------------------ role / skill lookups
@@ -1001,7 +999,7 @@ class ServiceCore:
         path = self.paths.abspath(item.path)
         existing = await _aio.read_text(path)
         updated = sections.replace_section(existing, markers.BODY, new_body_inner)
-        await _aio.write_text(path, updated)
+        await write_text(path, updated)
 
     async def _resync_role_skills(self, slug: str) -> None:
         """Partial-sync hook: recompute and rewrite ONE role's pointer + body ``## Skills``.

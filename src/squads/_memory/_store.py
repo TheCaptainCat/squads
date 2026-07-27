@@ -119,7 +119,7 @@ async def add(
     )
     text = join_frontmatter(entry.to_frontmatter_dict(), entry.body)
     await _aio.mkdir(folder, parents=True, exist_ok=True)
-    await _aio.write_text(folder / f"{slug}.md", text)
+    await _aio.atomic_write_text(folder / f"{slug}.md", text)
     return entry
 
 

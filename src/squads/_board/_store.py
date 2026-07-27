@@ -114,7 +114,7 @@ async def post(
 
     file_text = join_frontmatter(notice.to_frontmatter_dict(), notice.body)
     await _aio.mkdir(folder, parents=True, exist_ok=True)
-    await _aio.write_text(folder / f"{notice_id}.md", file_text)
+    await _aio.atomic_write_text(folder / f"{notice_id}.md", file_text)
     return notice
 
 

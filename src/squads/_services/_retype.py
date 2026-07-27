@@ -13,7 +13,7 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
-from squads._itemfile import rewrite_ids, update_frontmatter
+from squads._itemfile import rewrite_ids, update_frontmatter, write_text
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, format_item_id, make_ref, split_ref
@@ -270,7 +270,7 @@ async def _ensure_subentity_container(spec: WorkflowSpec, new_type: str, path: P
     text = await _aio.read_text(path)
     heading = _container_heading(spec, kind)
     text = discussion.ensure_container(text, heading, container_tag)
-    await _aio.write_text(path, text)
+    await write_text(path, text)
 
 
 def _resync_edges(db: SquadsDB, remap: dict[str, str], *, exclude: set[int]) -> None:
@@ -313,4 +313,4 @@ async def _append_retype_comment(
     text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
         text = sections.append_to_section(text, markers.DISCUSSION, entry)
-        await _aio.write_text(path, text)
+        await write_text(path, text)
