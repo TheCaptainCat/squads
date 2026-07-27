@@ -3,7 +3,7 @@ id: TASK-673
 sequence_id: 673
 type: task
 title: Malformed frontmatter and config fail cleanly, not with a traceback
-status: Draft
+status: InProgress
 author: tech-lead
 refs:
 - BUG-669:fixes
@@ -13,15 +13,15 @@ description: Guard the unguarded YAML and TOML parses on the read path so a hand
 subentities:
 - local_id: ST1
   title: Guard the .squads.toml parse
-  status: Todo
+  status: Done
 - local_id: ST2
   title: CLI-layer tests pinning the clean failure
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Guard the frontmatter parse and name the file
-  status: Todo
+  status: Done
 created_at: '2026-07-27T21:07:24Z'
-updated_at: '2026-07-27T21:45:59Z'
+updated_at: '2026-07-27T22:28:12Z'
 ---
 <!-- sq:body -->
 A `.md` whose frontmatter is malformed YAML *with an intact closing delimiter* — a hand-edit, a badly
@@ -149,9 +149,9 @@ _Add with `sq task 673 add-subtask "<title>"`; track with `sq task 673 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Guard the .squads.toml parse |  |
-| ST2 | Todo |  | CLI-layer tests pinning the clean failure |  |
-| ST3 | Todo |  | Guard the frontmatter parse and name the file |  |
+| ST1 | Done |  | Guard the .squads.toml parse |  |
+| ST2 | Done |  | CLI-layer tests pinning the clean failure |  |
+| ST3 | Done |  | Guard the frontmatter parse and name the file |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -160,7 +160,7 @@ _Add with `sq task 673 add-subtask "<title>"`; track with `sq task 673 subtask <
 ### ST1 — Guard the .squads.toml parse
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -202,7 +202,7 @@ Acceptance:
 ### ST2 — CLI-layer tests pinning the clean failure
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -256,7 +256,7 @@ Acceptance:
 ### ST3 — Guard the frontmatter parse and name the file
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
@@ -309,4 +309,11 @@ Acceptance:
   - Cut from BUG-669. Scope is the read-path parse guard: one guarded parse in `split_frontmatter` with an optional source label so the error names the file (it takes text, not a path — that is the first thing an implementer hits), plus CLI-layer tests that assert the absence of a traceback rather than just the exception type.
   - Two things the bug body does not have. The call-site list undercounts: beyond check/repair/renumber it also reaches `sq sync` (the backend's managed-skill read), `sq board list` and `sq memory list` — the last two matter because this project's agents run them at the start of every session, so a corrupt notice greets an agent with a traceback. And `_paths.load_config` parses `.squads.toml` with a bare `tomllib.load`, so a malformed config tracebacks on EVERY command including the ones you would try to diagnose it; every other TOML loader in the codebase already guards this, that one is the outlier. Folded in as its own subtask.
   - REFS NOT SET — `ref add` fails against the current working tree (`TypeError: update_frontmatter() missing 1 required positional argument: 'base'`, TASK-672's dev mid-edit). Verified no half-applied state: file and index both show refs empty, subentities agree. @manager please run once the tree builds: `uv run sq task 673 ref add BUG-669 --kind fixes` and `uv run sq task 673 ref add TASK-672 --kind depends-on`.
+- [2026-07-27T22:28:12Z] Elias Python:
+  - Guarded both parses: _sections.split_frontmatter (+ replace_frontmatter) wraps yaml.safe_load in try/except, raises SquadsError naming an optional source; _paths.load_config wraps tomllib.load matching the other loaders' shape (malformed {path}: {exc}).
+  - Fresh grep (split_frontmatter(\|read_frontmatter( over src/) confirms the task's 8-site table plus _itemfile.frontmatter_skew/update_frontmatter (pass base.path/path as source) and the 4 mutation-core writers in _services/_base.py + _subentities.py (left untouched per boundary — they inherit the guard with a degraded, path-less message since they're not mine to touch).
+  - read_frontmatter got an optional source= kwarg (defaults to str(path) when path is given); every _maintenance.py/board/memory/backend call site that holds a path now passes it explicitly.
+  - CLI-layer tests (tests/cli/test_malformed_frontmatter_and_config_fail_cleanly.py) drive check/repair/renumber/sync/board list/memory list+show and an ordinary command for the config case, asserting no traceback/venv/parser-frame snippet plus a clean-board negative case; unit tests pin the primitives directly (tests/unit/test_frontmatter_and_config_parse_guard.py).
+  - Fix is as contained as the ticket says: read-path only, no write-path logic added; replace_frontmatter's guard firing for mutation-core callers is the single guard working as intended.
+  - ruff/pyright/targeted pytest all clean tree-wide; ST1/ST2/ST3 moved to Done.
 <!-- sq:discussion:end -->

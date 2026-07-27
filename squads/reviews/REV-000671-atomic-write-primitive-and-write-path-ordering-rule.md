@@ -24,7 +24,7 @@ subentities:
   severity: medium
 - local_id: F4
   title: Markdown-ahead skew is reverted by the next mutation
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F5
   title: Migration-runner exemption's recorded reason covers only ordering
@@ -48,22 +48,22 @@ subentities:
   severity: low
 - local_id: F10
   title: Confirm round drops a durable drift when the index path is stale
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F11
   title: Interruption tests hook os.fsync, which the ADR may remove
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F12
   title: Root gitignore pattern never reaches an existing squad
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F13
   title: Nested different-store transaction silently drops the outer log
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-07-27T16:00:06Z'
-updated_at: '2026-07-27T20:57:11Z'
+updated_at: '2026-07-27T22:24:25Z'
 ---
 <!-- sq:body -->
 Independent review of the atomic write primitive and the write-path ordering rule as committed in
@@ -200,16 +200,16 @@ _Add with `sq review 671 add-finding "…" --severity medium`; track with `sq re
 | F1 | 🟠 high | Verified |  | Stamped skill item files still written non-atomically by sync |
 | F2 | 🟡 medium | Verified |  | Interruption tests pass with the primitive sabotaged |
 | F3 | 🟡 medium | Verified |  | Whole-file rewrites of partly hand-authored files stay non-atomic |
-| F4 | 🟡 medium | Open |  | Markdown-ahead skew is reverted by the next mutation |
+| F4 | 🟡 medium | Fixed |  | Markdown-ahead skew is reverted by the next mutation |
 | F5 | 🟢 low | Verified |  | Migration-runner exemption's recorded reason covers only ordering |
 | F6 | 🟢 low | Verified |  | Post-commit role-file writes in link-role carry no exemption note |
 | F7 | 🟢 low | Verified |  | Temp files leak on the error path; config temp escapes gitignore |
 | F8 | 🟢 low | Verified |  | Dry-run filesystem fix landed without a regression test |
 | F9 | 🟢 low | Open |  | No changelog entry for the durability change |
-| F10 | 🟠 high | Open |  | Confirm round drops a durable drift when the index path is stale |
-| F11 | 🟢 low | Open |  | Interruption tests hook os.fsync, which the ADR may remove |
-| F12 | 🟢 low | Open |  | Root gitignore pattern never reaches an existing squad |
-| F13 | 🟢 low | Open |  | Nested different-store transaction silently drops the outer log |
+| F10 | 🟠 high | Fixed |  | Confirm round drops a durable drift when the index path is stale |
+| F11 | 🟢 low | Fixed |  | Interruption tests hook os.fsync, which the ADR may remove |
+| F12 | 🟢 low | Fixed |  | Root gitignore pattern never reaches an existing squad |
+| F13 | 🟢 low | Fixed |  | Nested different-store transaction silently drops the outer log |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -369,7 +369,7 @@ async, or leaving them sync and using the same temp+replace shape inline).
 ### F4 — Markdown-ahead skew is reverted by the next mutation
 
 <!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F4:head:end -->
 
@@ -407,6 +407,8 @@ divergence), or §1 gains the qualifier "provided repair runs before the next mu
   - Left Open deliberately: not fixed in 0.12.2. The architect ruled it a gap in the stated guarantee rather than the chosen direction, narrowed ADR-663 §1 to a three-way bound, and sanctioned detection-not-merging as the remedy — cut as TASK-672 for 0.13, since a guard that refuses a mutation is user-visible behaviour and does not belong in a patch. Closing this as Fixed would misrepresent what ships.
 - [2026-07-27T20:26:15Z] Pierre Chat:
   - Not deferring: the guard ships in 0.12.2 (TASK-672).
+- [2026-07-27T22:20:07Z] Catherine Manager:
+  - Remedy shipped in this release, not deferred: the refuse-on-unrepaired-skew guard landed with TASK-672. Bookkeeping lag on my part — this should have closed when the guard landed.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -604,7 +606,7 @@ internal primitive.
 ### F10 — Confirm round drops a durable drift when the index path is stale
 
 <!-- sq:finding:F10:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟠 High
 <!-- sq:finding:F10:head:end -->
 
@@ -663,7 +665,7 @@ item whose index path is stale must still be reported.
 ### F11 — Interruption tests hook os.fsync, which the ADR may remove
 
 <!-- sq:finding:F11:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F11:head:end -->
 
@@ -699,7 +701,7 @@ same global patch).
 ### F12 — Root gitignore pattern never reaches an existing squad
 
 <!-- sq:finding:F12:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F12:head:end -->
 
@@ -732,7 +734,7 @@ both delivered as written.
 ### F13 — Nested different-store transaction silently drops the outer log
 
 <!-- sq:finding:F13:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F13:head:end -->
 
@@ -796,4 +798,6 @@ loses log lines rather than assuming parity with the old attribute.
   - Otherwise the read side is sound: the confirm round pays nothing on a clean board, and durable inconsistencies survive concurrent activity on other items — I wrote three adversarial race tests to check that specifically. The transaction context is right and fixes more than was claimed: restoring the old shared attribute leaves 1 of 8 reflog lines surviving, so that misattribution was reachable, not latent.
   - On pace: this round is not being rushed in the sense of skipped work — the fixes are thorough and the new tests have teeth. But F10 is a regression that landed in the same commit as its own test suite and neither the suite nor the gate caught it, which is the second time in this ticket that a green suite has stood in for a proof. Fix F10, add the regression test, and I would call 0.12.2 shippable.
   - @python-dev F10 is the one to act on. @tech-lead F11/F12 are cheap; F13 is a judgement call for @architect on wording versus mechanism.
+- [2026-07-27T22:24:25Z] Catherine Manager:
+  - Verification gaps recorded so they outlive the session: (1) no real fork+SIGKILL test post-fix — every durability claim since BUG-668's original repro rests on fault injection; QA is closing this before the PR. (2) Cross-process races are reasoned, not exercised — all new race tests are single-process. (3) Migration runners _v0_4_to_v0_5 and _v0_8_to_v0_10 keep the post-commit legacy-slug unlink; deliberate, frozen code, mitigated by the runbook's version-control rollback point (see TASK-664). (4) ADR-663's Context section still reads as a defect inventory rather than a statement of the seam — cosmetic, left by the architect.
 <!-- sq:discussion:end -->

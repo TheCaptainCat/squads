@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 673,
+  "counter": 675,
   "padding": 6,
   "items": {
     "12": {
@@ -24619,7 +24619,7 @@
       "type": "task",
       "title": "Write the durability rule where implementers read it",
       "slug": "write-the-durability-rule-where-implementers-read-it",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "The skew-direction rule and atomic-write contract in the store/item-file docstrings and the invariants list, plus one atomic-write primitive instead of two.",
       "parent": null,
       "author": "tech-lead",
@@ -24636,7 +24636,7 @@
         {
           "local_id": "ST1",
           "title": "State the rule in the store and item-file docstrings",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24645,7 +24645,7 @@
         {
           "local_id": "ST2",
           "title": "Fold the index writer onto the shared primitive, or record why not",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24654,7 +24654,7 @@
       ],
       "path": "tasks/TASK-000667-write-the-durability-rule-where-implementers-read-it.md",
       "created_at": "2026-07-27T14:22:56Z",
-      "updated_at": "2026-07-27T14:25:37Z",
+      "updated_at": "2026-07-27T22:25:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24690,7 +24690,7 @@
       "type": "bug",
       "title": "sq check/repair crash with raw YAMLError on intact-but-invalid frontmatter",
       "slug": "sq-check-repair-crash-with-raw-yamlerror-on-intact-but-inval",
-      "status": "Open",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -24704,7 +24704,7 @@
       "subentities": [],
       "path": "bugs/BUG-000669-sq-check-repair-crash-with-raw-yamlerror-on-intact-but-inval.md",
       "created_at": "2026-07-27T14:56:34Z",
-      "updated_at": "2026-07-27T14:56:44Z",
+      "updated_at": "2026-07-27T22:14:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24782,7 +24782,7 @@
         {
           "local_id": "F4",
           "title": "Markdown-ahead skew is reverted by the next mutation",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -24836,7 +24836,7 @@
         {
           "local_id": "F10",
           "title": "Confirm round drops a durable drift when the index path is stale",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -24845,7 +24845,7 @@
         {
           "local_id": "F11",
           "title": "Interruption tests hook os.fsync, which the ADR may remove",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24854,7 +24854,7 @@
         {
           "local_id": "F12",
           "title": "Root gitignore pattern never reaches an existing squad",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24863,7 +24863,7 @@
         {
           "local_id": "F13",
           "title": "Nested different-store transaction silently drops the outer log",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24872,7 +24872,7 @@
       ],
       "path": "reviews/REV-000671-atomic-write-primitive-and-write-path-ordering-rule.md",
       "created_at": "2026-07-27T16:00:06Z",
-      "updated_at": "2026-07-27T20:57:11Z",
+      "updated_at": "2026-07-27T22:24:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24946,7 +24946,7 @@
       "type": "task",
       "title": "Malformed frontmatter and config fail cleanly, not with a traceback",
       "slug": "malformed-frontmatter-and-config-fail-cleanly-not-with-a-tra",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "Guard the unguarded YAML and TOML parses on the read path so a hand-edited or merge-broken file produces a clean error naming it, instead of a raw traceback.",
       "parent": null,
       "author": "tech-lead",
@@ -24962,7 +24962,7 @@
         {
           "local_id": "ST1",
           "title": "Guard the .squads.toml parse",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24971,7 +24971,7 @@
         {
           "local_id": "ST2",
           "title": "CLI-layer tests pinning the clean failure",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24980,7 +24980,7 @@
         {
           "local_id": "ST3",
           "title": "Guard the frontmatter parse and name the file",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24989,11 +24989,81 @@
       ],
       "path": "tasks/TASK-000673-malformed-frontmatter-and-config-fail-cleanly-not-with-a-tra.md",
       "created_at": "2026-07-27T21:07:24Z",
-      "updated_at": "2026-07-27T21:45:59Z",
+      "updated_at": "2026-07-27T22:28:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "TASK-673"
+    },
+    "674": {
+      "sequence_id": 674,
+      "type": "task",
+      "title": "sq check reports an unreadable file and completes the scan",
+      "slug": "sq-check-reports-an-unreadable-file-and-completes-the-scan",
+      "status": "Draft",
+      "description": "Report a corrupt item file as a per-file issue and keep scanning, without inventing a phantom reconciliation error; repair and renumber keep aborting.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-673:depends-on",
+        "ADR-663:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Third scan state and the reconciliation predicates",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Tests that the scan continued and no phantom appeared",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000674-sq-check-reports-an-unreadable-file-and-completes-the-scan.md",
+      "created_at": "2026-07-27T22:26:00Z",
+      "updated_at": "2026-07-27T22:26:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-674"
+    },
+    "675": {
+      "sequence_id": 675,
+      "type": "bug",
+      "title": "Invalid UTF-8 in squad data crashes with a raw traceback",
+      "slug": "invalid-utf-8-in-squad-data-crashes-with-a-raw-traceback",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": "high",
+      "labels": [],
+      "refs": [
+        "BUG-669"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000675-invalid-utf-8-in-squad-data-crashes-with-a-raw-traceback.md",
+      "created_at": "2026-07-27T22:27:38Z",
+      "updated_at": "2026-07-27T22:27:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-675"
     }
   }
 }
