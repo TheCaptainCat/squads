@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 669,
+  "counter": 670,
   "padding": 6,
   "items": {
     "12": {
@@ -24429,7 +24429,8 @@
       "refs": [
         "ADR-663:implements",
         "BUG-656:fixes",
-        "BUG-668:fixes"
+        "BUG-668:fixes",
+        "BUG-670:fixes"
       ],
       "subentities": [
         {
@@ -24489,7 +24490,7 @@
       ],
       "path": "tasks/TASK-000664-atomic-markdown-writes-and-markdown-ahead-ordering-in-the-wr.md",
       "created_at": "2026-07-27T14:22:46Z",
-      "updated_at": "2026-07-27T14:52:28Z",
+      "updated_at": "2026-07-27T15:32:22Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24708,6 +24709,29 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-669"
+    },
+    "670": {
+      "sequence_id": 670,
+      "type": "bug",
+      "title": "sq import --dry-run could rename real item files on disk",
+      "slug": "sq-import-dry-run-could-rename-real-item-files-on-disk",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000670-sq-import-dry-run-could-rename-real-item-files-on-disk.md",
+      "created_at": "2026-07-27T15:31:48Z",
+      "updated_at": "2026-07-27T15:32:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-670"
     }
   }
 }
