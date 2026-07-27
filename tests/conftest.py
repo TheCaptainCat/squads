@@ -9,12 +9,15 @@ import os
 for _color_var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
     os.environ.pop(_color_var, None)
 
+import functools  # noqa: E402
 from collections.abc import Callable  # noqa: E402
 from dataclasses import replace  # noqa: E402
 from datetime import UTC, datetime  # noqa: E402
 from typing import Any  # noqa: E402
 
 import pytest  # noqa: E402
+import typer.main  # noqa: E402
+import typer.testing  # noqa: E402
 from typer.testing import CliRunner  # noqa: E402
 
 from squads import _aio  # noqa: E402
@@ -25,6 +28,26 @@ from squads._rendering._engine import (  # noqa: E402
     set_active_squad_dir,
 )
 from squads._services import _service as service  # noqa: E402
+
+# Memoise the Typer→Click conversion: `CliRunner.invoke()` rebuilds the whole command tree on
+# every call (~90ms here, ~2000 invocations), a test-harness cost a real `sq` run pays once.
+# Keyed on the completion env var, which typer reads at build time to shape --show-completion.
+_original_get_command = typer.main.get_command
+
+
+@functools.cache
+def _build_command(app_obj, _shell_detection_flag):  # 2nd arg is a cache key, not read here
+    return _original_get_command(app_obj)
+
+
+def _cached_get_command(app_obj):
+    return _build_command(app_obj, os.environ.get("_TYPER_COMPLETE_TEST_DISABLE_SHELL_DETECTION"))
+
+
+typer.main.get_command = _cached_get_command
+# typer.testing binds its own alias at import, so patching typer.main alone misses invoke().
+_typer_testing: Any = typer.testing
+_typer_testing._get_command = _cached_get_command
 
 
 def pytest_addoption(parser):
