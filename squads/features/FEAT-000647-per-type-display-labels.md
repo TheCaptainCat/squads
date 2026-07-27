@@ -3,7 +3,7 @@ id: FEAT-647
 sequence_id: 647
 type: feature
 title: Per-type display labels
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - ADR-646:addresses
@@ -16,12 +16,12 @@ subentities:
   status: Done
 - local_id: US3
   title: Clients render per-type display labels
-  status: InProgress
+  status: Done
 - local_id: US4
   title: sq ui renders per-type display labels
   status: Done
 created_at: '2026-07-24T11:47:44Z'
-updated_at: '2026-07-27T08:05:04Z'
+updated_at: '2026-07-27T08:32:01Z'
 ---
 <!-- sq:body -->
 Adopters can declare a human-readable display name per item type, so clients render "Decisions"/"ADRs" instead of the bare lowercase type key, with acronym types kept correctly capitalized.
@@ -42,7 +42,7 @@ _Add with `sq feature 647 add-story "As a <role>, I want … so that …"`; trac
 | --- | --- | --- | --- |
 | US1 | Done |  | Labels schema field + label_for resolver |
 | US2 | Done |  | Retarget display-name consumers through the resolver |
-| US3 | InProgress |  | Clients render per-type display labels |
+| US3 | Done |  | Clients render per-type display labels |
 | US4 | Done |  | sq ui renders per-type display labels |
 <!-- sq:summary:end -->
 
@@ -86,7 +86,7 @@ Replace ad-hoc .capitalize()/.title() type-name display derivations (Claude Code
 ### US3 — Clients render per-type display labels
 
 <!-- sq:story:US3:head -->
-**Status:** 🟡 In Progress
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->

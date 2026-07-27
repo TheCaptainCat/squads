@@ -29,6 +29,7 @@ import {
   type StatusRoleMap,
 } from './statusRole';
 import { NO_CATEGORIES, type TypeCategoryMap } from './typeCategory';
+import { NO_LABELS, pluralLabel, type TypeLabelMap } from './typeLabels';
 import {
   compareTypesByOrder,
   NO_TYPE_ORDER,
@@ -128,23 +129,44 @@ function sortedLeaves(
     );
 }
 
+/** The catalog-derived rendering inputs to `groupListItems`, bundled into one options object
+ * (rather than 6 trailing parameters) to stay under the project's max-params bar — same
+ * rationale as `FilteredGroupedViewOptions` below, which wraps this shape plus `categoryMap`.
+ * Every field defaults to its own graceful-fallback empty value. */
+export interface GroupListItemsOptions {
+  readonly orderMap?: TypeOrderMap;
+  readonly iconOverrides?: TypeIconOverrides;
+  readonly fieldBindings?: FieldBindingsByType;
+  readonly badgeVocabulary?: BadgeVocabulary;
+  readonly statusRoles?: StatusRoleMap;
+  readonly roleCatalog?: RoleCatalogMap;
+  /** Resolves each group-by-type bucket header to its spec-driven plural label
+   * (`domain/typeLabels.ts`) — defaults to `NO_LABELS`, which falls back to the raw type
+   * string. */
+  readonly labelMap?: TypeLabelMap;
+}
+
 /** Groups `items` by type (one bucket per distinct type, ordered by the spec's per-type `order`
  * — F1, `orderMap` defaults to `NO_TYPE_ORDER` which degrades gracefully to a type-name sort)
  * when `groupByType`, otherwise returns the items themselves as sorted leaves. There is no
  * open/closed grouping axis: open/closed is a separate show/hide toggle plus a dimmed visual
- * treatment applied by the tree-item renderer, not a grouping mode. `iconOverrides` (the
- * `squads.typeIcons` setting, F21) defaults to none. `fieldBindings`/`badgeVocabulary` (F19) and
- * `statusRoles`/`roleCatalog`  default to the graceful-fallback empty maps. */
+ * treatment applied by the tree-item renderer, not a grouping mode. `options` (icons/badges/
+ * status-role/labels, F19/F21) defaults every field to its own graceful-fallback empty value
+ * when omitted. */
 export function groupListItems(
   items: readonly SqListItem[],
   groupByType: boolean,
-  orderMap: TypeOrderMap = NO_TYPE_ORDER,
-  iconOverrides: TypeIconOverrides = {},
-  fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
-  badgeVocabulary: BadgeVocabulary = NO_BADGE_VOCABULARY,
-  statusRoles: StatusRoleMap = NO_STATUS_ROLES,
-  roleCatalog: RoleCatalogMap = NO_ROLES,
+  options: GroupListItemsOptions = {},
 ): DisplayNode[] {
+  const {
+    orderMap = NO_TYPE_ORDER,
+    iconOverrides = {},
+    fieldBindings = NO_FIELD_BINDINGS,
+    badgeVocabulary = NO_BADGE_VOCABULARY,
+    statusRoles = NO_STATUS_ROLES,
+    roleCatalog = NO_ROLES,
+    labelMap = NO_LABELS,
+  } = options;
   if (!groupByType) {
     return sortedLeaves(
       items,
@@ -167,7 +189,7 @@ export function groupListItems(
   return sortedTypeEntries(buckets, orderMap).map(([type, groupItems]) =>
     groupDisplayNode(
       `group:type:${type}`,
-      type,
+      pluralLabel(type, labelMap),
       groupItems.length,
       sortedLeaves(
         groupItems,
@@ -181,17 +203,11 @@ export function groupListItems(
   );
 }
 
-/** The catalog-derived inputs `buildFilteredGroupedView` threads through to `groupListItems` —
- * bundled into one options object (rather than 7 trailing parameters) to stay under the
- * project's max-params bar. Every field defaults to its own graceful-fallback empty value, same
- * as the un-bundled parameters on `groupListItems`/`treeNodesToDisplay`. */
-export interface FilteredGroupedViewOptions {
-  readonly orderMap?: TypeOrderMap;
-  readonly iconOverrides?: TypeIconOverrides;
-  readonly fieldBindings?: FieldBindingsByType;
-  readonly badgeVocabulary?: BadgeVocabulary;
-  readonly statusRoles?: StatusRoleMap;
-  readonly roleCatalog?: RoleCatalogMap;
+/** The catalog-derived inputs `buildFilteredGroupedView` threads through to `groupListItems` and
+ * its own `excludeReservedTypes` call — `GroupListItemsOptions` plus `categoryMap` (which decides
+ * exclusion, not just a bucket's rendering). Every field defaults to its own graceful-fallback
+ * empty value, same as the un-bundled parameters on `groupListItems`/`treeNodesToDisplay`. */
+export interface FilteredGroupedViewOptions extends GroupListItemsOptions {
   readonly categoryMap?: TypeCategoryMap;
 }
 
@@ -206,23 +222,10 @@ export function buildFilteredGroupedView(
   groupByType: boolean,
   options: FilteredGroupedViewOptions = {},
 ): DisplayNode[] {
-  const {
-    orderMap = NO_TYPE_ORDER,
-    iconOverrides = {},
-    fieldBindings = NO_FIELD_BINDINGS,
-    badgeVocabulary = NO_BADGE_VOCABULARY,
-    statusRoles = NO_STATUS_ROLES,
-    roleCatalog = NO_ROLES,
-    categoryMap = NO_CATEGORIES,
-  } = options;
+  const { categoryMap = NO_CATEGORIES, ...groupOptions } = options;
   return groupListItems(
     filterListItems(excludeReservedTypes(items, categoryMap), filter),
     groupByType,
-    orderMap,
-    iconOverrides,
-    fieldBindings,
-    badgeVocabulary,
-    statusRoles,
-    roleCatalog,
+    groupOptions,
   );
 }

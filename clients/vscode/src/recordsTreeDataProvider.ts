@@ -32,6 +32,7 @@ import {
   NO_STATUS_ROLES,
 } from './domain/statusRole';
 import { buildCategoryMap, NO_CATEGORIES } from './domain/typeCategory';
+import { buildTypeLabelMap, NO_LABELS } from './domain/typeLabels';
 import { buildTypeOrderMap, NO_TYPE_ORDER } from './domain/typeOrder';
 import type { ProcessRunner } from './processRunner';
 import {
@@ -109,6 +110,8 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
       catalogOutcome.kind === 'success' ? buildCategoryMap(catalogOutcome.data) : NO_CATEGORIES;
     const orderMap =
       catalogOutcome.kind === 'success' ? buildTypeOrderMap(catalogOutcome.data) : NO_TYPE_ORDER;
+    const labelMap =
+      catalogOutcome.kind === 'success' ? buildTypeLabelMap(catalogOutcome.data) : NO_LABELS;
     const fieldBindings =
       catalogOutcome.kind === 'success'
         ? buildFieldBindings(catalogOutcome.data)
@@ -123,16 +126,14 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
         : NO_STATUS_ROLES;
     const roleCatalog =
       rolesOutcome.kind === 'success' ? buildRoleCatalogMap(rolesOutcome.data) : NO_ROLES;
-    this.roots = buildRecordsView(
-      outcome.data,
-      categoryMap,
-      orderMap,
-      getTypeIconOverrides(),
+    this.roots = buildRecordsView(outcome.data, categoryMap, orderMap, {
+      iconOverrides: getTypeIconOverrides(),
       fieldBindings,
       badgeVocabulary,
       statusRoles,
       roleCatalog,
-    );
+      labelMap,
+    });
     this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);
   }

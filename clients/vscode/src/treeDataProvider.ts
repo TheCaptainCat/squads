@@ -39,6 +39,7 @@ import {
 } from './domain/statusRole';
 import { distinctTypesInTree, treeNodesToDisplay } from './domain/treeMapping';
 import { buildCategoryMap, NO_CATEGORIES, type TypeCategoryMap } from './domain/typeCategory';
+import { buildTypeLabelMap, NO_LABELS, type TypeLabelMap } from './domain/typeLabels';
 import { buildTypeOrderMap, NO_TYPE_ORDER, type TypeOrderMap } from './domain/typeOrder';
 import type { ProcessRunner } from './processRunner';
 import {
@@ -91,6 +92,14 @@ function orderMapFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): TypeOr
  * exclusion to roster-only (see `isReservedType`) rather than dropping every item. */
 function categoryMapFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): TypeCategoryMap {
   return outcome.kind === 'success' ? buildCategoryMap(outcome.data) : NO_CATEGORIES;
+}
+
+/** Same graceful-degrade shape as `orderMapFrom`, for the type catalog's `labels` object: a
+ * failed fetch (or an older `sq` with no `labels` field) falls back to `NO_LABELS`, which
+ * degrades the group-by-type header to the raw type string (`domain/typeLabels.ts::pluralLabel`)
+ * rather than a broken view. */
+function labelMapFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): TypeLabelMap {
+  return outcome.kind === 'success' ? buildTypeLabelMap(outcome.data) : NO_LABELS;
 }
 
 /** Same graceful-degrade shape as `orderMapFrom`, for the type catalog's field->collection
@@ -215,9 +224,10 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
     // Fetched alongside the tree/list payload below (four extra spawns per refresh, cheap
     // next to the ones already there) rather than cached — a project's spec can change between
     // refreshes. A failure in any degrades gracefully: `orderMapFrom` / `categoryMapFrom` /
-    // `fieldBindingsFrom` / `badgeVocabularyFrom` / `statusRolesFrom` / `roleCatalogFrom` fall
-    // back to plain-name sort / roster-only exclusion / raw-code tooltip badges / no colour
-    // highlight instead of breaking the view.
+    // `labelMapFrom` / `fieldBindingsFrom` / `badgeVocabularyFrom` / `statusRolesFrom` /
+    // `roleCatalogFrom` fall back to plain-name sort / roster-only exclusion / the raw type
+    // string as its own header / raw-code tooltip badges / no colour highlight instead of
+    // breaking the view.
     const catalogPromise = getTypeCatalog(this.runner, invocation, this.workspaceRoot);
     const collectionsPromise = getCollectionsCatalog(this.runner, invocation, this.workspaceRoot);
     const statusesPromise = getStatusesCatalog(this.runner, invocation, this.workspaceRoot);
@@ -254,6 +264,7 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
           statusRoles: statusRolesFrom(statusesOutcome),
           roleCatalog: roleCatalogFrom(rolesOutcome),
           categoryMap,
+          labelMap: labelMapFrom(catalogOutcome),
         },
       );
       this.knownItemTypes = distinctTypes(outcome.data, orderMap, categoryMap);

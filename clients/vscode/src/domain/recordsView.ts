@@ -33,6 +33,7 @@ import {
   type StatusRoleMap,
 } from './statusRole';
 import { NO_CATEGORIES, recordsTypes, type TypeCategoryMap } from './typeCategory';
+import { NO_LABELS, pluralLabel, type TypeLabelMap } from './typeLabels';
 import { NO_TYPE_ORDER, sortTypesByOrder, type TypeOrderMap } from './typeOrder';
 
 function itemToLeaf(
@@ -83,31 +84,50 @@ function sortedLeaves(
     );
 }
 
+/** The rendering-only trailing inputs to `buildRecordsView`, bundled into one options object
+ * (rather than 6 trailing parameters) to stay under the project's max-params bar — same
+ * rationale as `domain/listView.ts::FilteredGroupedViewOptions`. `categoryMap`/`orderMap` stay
+ * positional: they decide which buckets exist at all, not just how a bucket renders. Every
+ * field defaults to its own graceful-fallback empty value. */
+export interface RecordsViewOptions {
+  readonly iconOverrides?: TypeIconOverrides;
+  readonly fieldBindings?: FieldBindingsByType;
+  readonly badgeVocabulary?: BadgeVocabulary;
+  readonly statusRoles?: StatusRoleMap;
+  readonly roleCatalog?: RoleCatalogMap;
+  /** Resolves each bucket's header to its spec-driven plural label (`domain/typeLabels.ts`) —
+   * defaults to `NO_LABELS`, which falls back to the raw type string. */
+  readonly labelMap?: TypeLabelMap;
+}
+
 /** Builds the records view's roots: one group per declared `records`-category type
  * (`domain/typeCategory.ts::recordsTypes`, ordered by the spec's per-type `order` — `orderMap`
  * defaults to `NO_TYPE_ORDER`, degrading to type-name order), each always present (even with 0
  * items). When `categoryMap` is empty (the type-catalog fetch failed or hasn't completed), there
  * is no way to know which types are records, so this returns no buckets at all rather than
  * guessing at a hardcoded list — the same "can't tell yet" default `isReservedType` uses to keep
- * those same rows in the work tree meanwhile. `iconOverrides` (F21) defaults to none;
- * `fieldBindings`/`badgeVocabulary` (F19) and `statusRoles`/`roleCatalog`  default to
- * the graceful-fallback empty maps. */
+ * those same rows in the work tree meanwhile. `options` (icons/badges/status-role/labels)
+ * defaults every field to its own graceful-fallback empty value when omitted. */
 export function buildRecordsView(
   items: readonly SqListItem[],
   categoryMap: TypeCategoryMap = NO_CATEGORIES,
   orderMap: TypeOrderMap = NO_TYPE_ORDER,
-  iconOverrides: TypeIconOverrides = {},
-  fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
-  badgeVocabulary: BadgeVocabulary = NO_BADGE_VOCABULARY,
-  statusRoles: StatusRoleMap = NO_STATUS_ROLES,
-  roleCatalog: RoleCatalogMap = NO_ROLES,
+  options: RecordsViewOptions = {},
 ): DisplayNode[] {
+  const {
+    iconOverrides = {},
+    fieldBindings = NO_FIELD_BINDINGS,
+    badgeVocabulary = NO_BADGE_VOCABULARY,
+    statusRoles = NO_STATUS_ROLES,
+    roleCatalog = NO_ROLES,
+    labelMap = NO_LABELS,
+  } = options;
   const types = sortTypesByOrder(recordsTypes(categoryMap), orderMap);
   return types.map((type) => {
     const bucketItems = items.filter((item) => item.type === type);
     return groupDisplayNode(
       `records:${type}`,
-      type,
+      pluralLabel(type, labelMap),
       bucketItems.length,
       sortedLeaves(
         bucketItems,

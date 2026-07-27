@@ -26,6 +26,7 @@ import type {
   SqTreeNode,
   SqTypeCatalogEntry,
   SqTypeField,
+  SqTypeLabels,
 } from './types';
 
 export type SqOutcome<T> =
@@ -244,6 +245,24 @@ function isOptionalTypeFieldArray(value: unknown): value is readonly SqTypeField
   return value === undefined || (Array.isArray(value) && value.every(isSqTypeField));
 }
 
+/** `labels` is optional the same way `fields` is — an older `sq` omits it, treated the same as
+ * "no resolved labels known" (`domain/typeLabels.ts` falls back to the raw type string). */
+function isOptionalTypeLabels(value: unknown): value is SqTypeLabels | undefined {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const labels = value as Record<string, unknown>;
+  return (
+    typeof labels.singular === 'string' &&
+    typeof labels.plural === 'string' &&
+    typeof labels.singular_lower === 'string' &&
+    typeof labels.plural_lower === 'string'
+  );
+}
+
 /** Shape guard for one `sq workflow types --json` entry. Exported for the same reason as
  * `isSqTreeNode` — the skew canary reuses the real adapter predicate. */
 export function isSqTypeCatalogEntry(value: unknown): value is SqTypeCatalogEntry {
@@ -257,7 +276,8 @@ export function isSqTypeCatalogEntry(value: unknown): value is SqTypeCatalogEntr
     typeof entry.prefix === 'string' &&
     typeof entry.reserved === 'boolean' &&
     typeof entry.category === 'string' &&
-    isOptionalTypeFieldArray(entry.fields)
+    isOptionalTypeFieldArray(entry.fields) &&
+    isOptionalTypeLabels(entry.labels)
   );
 }
 

@@ -11,7 +11,13 @@
         "label": "Priority",
         "collection": "priority"
       }
-    ]
+    ],
+    "labels": {
+      "singular": "Epic",
+      "plural": "Epics",
+      "singular_lower": "epic",
+      "plural_lower": "epics"
+    }
   },
   {
     "type": "feature",
@@ -25,7 +31,13 @@
         "label": "Priority",
         "collection": "priority"
       }
-    ]
+    ],
+    "labels": {
+      "singular": "Feature",
+      "plural": "Features",
+      "singular_lower": "feature",
+      "plural_lower": "features"
+    }
   },
   {
     "type": "task",
@@ -39,7 +51,13 @@
         "label": "Priority",
         "collection": "priority"
       }
-    ]
+    ],
+    "labels": {
+      "singular": "Task",
+      "plural": "Tasks",
+      "singular_lower": "task",
+      "plural_lower": "tasks"
+    }
   },
   {
     "type": "bug",
@@ -58,7 +76,13 @@
         "label": "Severity",
         "collection": "severity"
       }
-    ]
+    ],
+    "labels": {
+      "singular": "Bug",
+      "plural": "Bugs",
+      "singular_lower": "bug",
+      "plural_lower": "bugs"
+    }
   },
   {
     "type": "decision",
@@ -72,7 +96,13 @@
         "label": "Priority",
         "collection": "priority"
       }
-    ]
+    ],
+    "labels": {
+      "singular": "Decision",
+      "plural": "Decisions",
+      "singular_lower": "decision",
+      "plural_lower": "decisions"
+    }
   },
   {
     "type": "review",
@@ -86,7 +116,13 @@
         "label": "Priority",
         "collection": "priority"
       }
-    ]
+    ],
+    "labels": {
+      "singular": "Review",
+      "plural": "Reviews",
+      "singular_lower": "review",
+      "plural_lower": "reviews"
+    }
   },
   {
     "type": "guide",
@@ -100,7 +136,13 @@
         "label": "Priority",
         "collection": "priority"
       }
-    ]
+    ],
+    "labels": {
+      "singular": "Guide",
+      "plural": "Guides",
+      "singular_lower": "guide",
+      "plural_lower": "guides"
+    }
   },
   {
     "type": "role",
@@ -108,7 +150,13 @@
     "prefix": "ROLE",
     "reserved": true,
     "category": "roster",
-    "fields": []
+    "fields": [],
+    "labels": {
+      "singular": "Role",
+      "plural": "Roles",
+      "singular_lower": "role",
+      "plural_lower": "roles"
+    }
   },
   {
     "type": "skill",
@@ -116,7 +164,13 @@
     "prefix": "SKILL",
     "reserved": true,
     "category": "roster",
-    "fields": []
+    "fields": [],
+    "labels": {
+      "singular": "Skill",
+      "plural": "Skills",
+      "singular_lower": "skill",
+      "plural_lower": "skills"
+    }
   },
   {
     "type": "operator",
@@ -124,6 +178,12 @@
     "prefix": "OP",
     "reserved": true,
     "category": "roster",
-    "fields": []
+    "fields": [],
+    "labels": {
+      "singular": "Operator",
+      "plural": "Operators",
+      "singular_lower": "operator",
+      "plural_lower": "operators"
+    }
   }
 ]

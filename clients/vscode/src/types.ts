@@ -53,12 +53,24 @@ export interface SqTypeField {
   readonly collection: string;
 }
 
+/** A type's resolved display labels (`sq workflow types --json`'s `labels` object): singular
+ * and plural, each in title case and lowercase. Pin-else-derive on the core side — a project
+ * that doesn't relabel a type still gets these derived from the raw type name. */
+export interface SqTypeLabels {
+  readonly singular: string;
+  readonly plural: string;
+  readonly singular_lower: string;
+  readonly plural_lower: string;
+}
+
 /** One entry of `sq workflow types --json` — the spec's declared type catalog (work types and
  * the reserved meta types alike), one object per type, already in the spec's resolved order.
  * `category` is the type's declared axis (`"work"` / `"records"` / `"roster"`) — the single
  * client-side source of which browse view a type belongs in (`domain/typeCategory.ts`), never a
  * hardcoded type-name list. `fields` is optional the same way `SqBadgeMap` is: an older `sq`
- * simply omits it, treated the same as an empty array (no field->collection binding known). */
+ * simply omits it, treated the same as an empty array (no field->collection binding known).
+ * `labels` is optional the same way: an older `sq` omits it, and callers fall back to the raw
+ * `type` string (`domain/typeLabels.ts`). */
 export interface SqTypeCatalogEntry {
   readonly type: string;
   readonly order: number | null;
@@ -66,6 +78,7 @@ export interface SqTypeCatalogEntry {
   readonly reserved: boolean;
   readonly category: string;
   readonly fields?: readonly SqTypeField[];
+  readonly labels?: SqTypeLabels;
 }
 
 /** One badge of a collection's vocabulary on `sq workflow collections --json`: its stable code

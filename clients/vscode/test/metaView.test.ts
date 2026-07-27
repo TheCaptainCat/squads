@@ -5,24 +5,45 @@ import { describe, expect, it } from 'vitest';
 
 import { buildMetaView } from '../src/domain/metaView';
 import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
-import type { SqListItem, SqRoleCatalogEntry, SqStatusCatalogEntry } from '../src/types';
+import { buildTypeLabelMap } from '../src/domain/typeLabels';
+import type {
+  SqListItem,
+  SqRoleCatalogEntry,
+  SqStatusCatalogEntry,
+  SqTypeCatalogEntry,
+} from '../src/types';
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
 }
 
 const LIST_FIXTURE = JSON.parse(readFixture('list.json')) as SqListItem[];
+const TYPE_CATALOG_FIXTURE = JSON.parse(readFixture('type-catalog.json')) as SqTypeCatalogEntry[];
+const LABEL_MAP = buildTypeLabelMap(TYPE_CATALOG_FIXTURE);
 const STATUSES_CATALOG_FIXTURE = JSON.parse(
   readFixture('statuses-catalog.json'),
 ) as SqStatusCatalogEntry[];
 const ROLES_CATALOG_FIXTURE = JSON.parse(readFixture('roles-catalog.json')) as SqRoleCatalogEntry[];
 
 describe('buildMetaView', () => {
-  it('always returns exactly the 3 fixed buckets, in Roles/Skills/Operators order', () => {
-    const nodes = buildMetaView(LIST_FIXTURE);
+  it('always returns exactly the 3 fixed buckets, in Roles/Skills/Operators order, with labels resolved from the catalog (matching the previously hard-coded literals)', () => {
+    const nodes = buildMetaView(
+      LIST_FIXTURE,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      LABEL_MAP,
+    );
 
     expect(nodes.map((node) => node.label)).toEqual(['Roles', 'Skills', 'Operators']);
     expect(nodes.every((node) => node.itemId === null)).toBe(true);
+  });
+
+  it('with no labelMap (the graceful fallback), falls back to the raw type string, same as every other tree', () => {
+    const nodes = buildMetaView(LIST_FIXTURE);
+
+    expect(nodes.map((node) => node.label)).toEqual(['role', 'skill', 'operator']);
   });
 
   it('buckets each reserved type into its matching folder, from the committed fixture', () => {
@@ -55,7 +76,7 @@ describe('buildMetaView', () => {
   });
 
   it('still emits all 3 buckets, empty, when no meta items are present', () => {
-    const nodes = buildMetaView([]);
+    const nodes = buildMetaView([], undefined, undefined, undefined, undefined, LABEL_MAP);
 
     expect(nodes.map((node) => node.label)).toEqual(['Roles', 'Skills', 'Operators']);
     expect(nodes.every((node) => node.children.length === 0)).toBe(true);

@@ -31,6 +31,7 @@ import {
   NO_ROLES,
   NO_STATUS_ROLES,
 } from './domain/statusRole';
+import { buildTypeLabelMap, NO_LABELS } from './domain/typeLabels';
 import type { ProcessRunner } from './processRunner';
 import {
   describeFailure,
@@ -87,11 +88,13 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
       return;
     }
     const { invocation } = resolution;
-    // Same catalogs the work tree fetches (the badge and status-role catalogs), so the roster's tooltip renders real
-    // collection badges and an Active role/skill/operator gets the same colour highlight; a
-    // failed fetch degrades to raw-code badge text / no highlight rather than breaking the view
-    // (`buildFieldBindings`/`buildBadgeVocabulary`/`buildStatusRoleMap`/`buildRoleCatalogMap` on
-    // an empty array is the same as each graceful-fallback default).
+    // Same catalogs the work tree fetches (the badge, status-role, and type catalogs), so the
+    // roster's tooltip renders real collection badges, an Active role/skill/operator gets the
+    // same colour highlight, and each bucket header resolves its spec-driven plural label
+    // instead of a hardcoded literal; a failed fetch degrades to raw-code badge text / no
+    // highlight / the raw type string as its own header rather than breaking the view
+    // (`buildFieldBindings`/`buildBadgeVocabulary`/`buildStatusRoleMap`/`buildRoleCatalogMap`/
+    // `buildTypeLabelMap` on an empty array is the same as each graceful-fallback default).
     const [outcome, catalogOutcome, collectionsOutcome, statusesOutcome, rolesOutcome] =
       await Promise.all([
         getList(this.runner, invocation, this.workspaceRoot, ['--all']),
@@ -118,12 +121,15 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
         : NO_STATUS_ROLES;
     const roleCatalog =
       rolesOutcome.kind === 'success' ? buildRoleCatalogMap(rolesOutcome.data) : NO_ROLES;
+    const labelMap =
+      catalogOutcome.kind === 'success' ? buildTypeLabelMap(catalogOutcome.data) : NO_LABELS;
     this.roots = buildMetaView(
       outcome.data,
       fieldBindings,
       badgeVocabulary,
       statusRoles,
       roleCatalog,
+      labelMap,
     );
     this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);

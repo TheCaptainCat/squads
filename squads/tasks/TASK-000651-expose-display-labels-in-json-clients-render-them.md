@@ -3,7 +3,7 @@ id: TASK-651
 sequence_id: 651
 type: task
 title: Expose display labels in JSON + clients render them
-status: InReview
+status: Done
 parent: FEAT-647
 author: tech-lead
 refs:
@@ -26,7 +26,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-07-24T12:55:56Z'
-updated_at: '2026-07-24T14:23:36Z'
+updated_at: '2026-07-27T08:32:00Z'
 ---
 <!-- sq:body -->
 Completes FEAT-647: the display labels + resolver exist (label_for/labels_for in _models/_vocab.py, TASK-648 Done), but no --json surface exposes them, so the VS Code trees render the raw lowercase type instead of pretty names. Expose the labels in JSON, then STANDARDIZE the extension's per-type group headers onto one spec-driven source across all three trees.
