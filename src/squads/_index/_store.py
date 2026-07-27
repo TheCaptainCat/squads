@@ -22,6 +22,7 @@ import os
 import sys
 import threading
 from collections.abc import AsyncGenerator
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -181,6 +182,50 @@ class _TransactionCtx:
         )
 
 
+@dataclass
+class _ActiveTransaction:
+    """The ambient binding for one in-flight ``transaction()`` call: which ``IndexStore``
+    instance opened it, plus its buffered :class:`_TransactionCtx`.
+
+    Bound in the module-level ``_active_transaction`` ``ContextVar`` below — never a
+    ``self.foo`` instance attribute — so the binding is task-local, present only while
+    *this* store holds all three locks.
+    """
+
+    store: IndexStore
+    ctx: _TransactionCtx
+
+
+# Task-local active-transaction handle. ContextVars are process-wide but task-local, so —
+# unlike the instance attribute this replaces — a binding made by store A
+# is visible to code running on the same task against store B (two squads in one process,
+# e.g. a long-lived server). ``_transaction_ctx_for`` below closes that gap by checking
+# ownership; nothing else reads this ContextVar directly. Follows the
+# ``_rendering/_engine.py::_active_squad_dir`` precedent: one module-level ContextVar for
+# one concern, not a field folded onto the general-purpose ``RequestContext`` — a
+# transaction context is shorter-lived than a request and engine-internal, not an ambient
+# request *input*.
+_active_transaction: ContextVar[_ActiveTransaction | None] = ContextVar(
+    "_active_transaction", default=None
+)
+
+
+def _transaction_ctx_for(store: IndexStore) -> _TransactionCtx | None:
+    """Return *store*'s active transaction context, or ``None`` if it has none open.
+
+    Ignores an ambient binding owned by a *different* ``IndexStore`` instance. Identity
+    is the store instance, not its resolved index path: two ``IndexStore``s can
+    legitimately point at the same squad directory in one process (``sq repair``, tests),
+    and instance identity is the faithful translation of the per-instance attribute this
+    replaces — a store with no open transaction of its own stays the silent no-op it is
+    today, rather than being routed into an unrelated store's buffer and committed there.
+    """
+    active = _active_transaction.get()
+    if active is None or active.store is not store:
+        return None
+    return active.ctx
+
+
 class IndexStore:
     def __init__(
         self,
@@ -281,14 +326,19 @@ class IndexStore:
         leak (inner ``finally`` no-ops, outer releases the proc-mutex, the ``async with``
         releases the per-loop lock).
 
+        The active-transaction context (read by ``_log``) is bound to the
+        ``_active_transaction`` ``ContextVar`` only once Layer 3 is held and the in-lock
+        load below has produced it — never before any lock is taken — and is
+        always unbound (restoring whatever was bound before, if anything) in the same
+        ``finally`` that releases Layer 3, including when an exception escapes the body or
+        the transaction is cancelled.
+
         After the ``os.replace`` commits, buffered reflog ops are appended while still
         holding all locks, strictly after commit. A failed append only warns; it never
         rolls back the committed mutation. If the body raises, nothing is written.
         """
         from squads._index._reflog import append_line, reflog_path
 
-        ctx = _TransactionCtx(db=await self.load())
-        self._current_ctx: _TransactionCtx | None = ctx  # type: ignore[attr-defined]
         # Layer 1 first — serialises concurrent coroutines on this event loop.
         async with self._loop_lock():
             # Layer 2 — acquire proc-mutex on a worker thread (off the event loop).
@@ -297,8 +347,12 @@ class IndexStore:
                 # Layer 3 — acquire file lock on a worker thread, inside the proc-mutex.
                 # filelock.Timeout propagates here unchanged; inner finally is a no-op.
                 await _aio.to_thread(self._lock.acquire)
+                token = None
                 try:
-                    ctx.db = await self.load()
+                    # The one and only load: this is also the context transaction()
+                    # publishes, so there is no separate pre-lock load to discard.
+                    ctx = _TransactionCtx(db=await self.load())
+                    token = _active_transaction.set(_ActiveTransaction(store=self, ctx=ctx))
                     yield ctx.db
                     await self._atomic_write(ctx.db)
 
@@ -327,8 +381,11 @@ class IndexStore:
                                 file=sys.stderr,
                             )
                 finally:
+                    # Restore (not clear) the ambient binding before releasing Layer 3, so
+                    # a sibling/nested transaction's binding on this task is never clobbered.
+                    if token is not None:
+                        _active_transaction.reset(token)
                     await _aio.to_thread(self._lock.release)  # Layer 3 released first
-                    self._current_ctx = None  # type: ignore[attr-defined]
             finally:
                 await _aio.to_thread(self._proc_mutex.release)  # Layer 2; Layer 1 by async-with
 
@@ -341,7 +398,7 @@ class IndexStore:
         share one snapshot across every buffered op (bulk import rebinds actor/clock per event
         while the whole apply stays inside one transaction).
         """
-        ctx: _TransactionCtx | None = getattr(self, "_current_ctx", None)
+        ctx = _transaction_ctx_for(self)
         if ctx is not None:
             from squads import _actor as actor
             from squads import _clock as clock
