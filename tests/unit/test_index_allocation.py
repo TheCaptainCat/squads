@@ -6,6 +6,7 @@ store's own file/lock plumbing is exactly what's under test here.
 """
 
 import json
+import pathlib
 
 import pytest
 
@@ -69,6 +70,53 @@ async def test_allocate_id_raises_a_named_recovery_hint_at_capacity(tmp_path):
             db.allocate_id("task")
 
     assert (await store.load()).counter == 10**6 - 1  # never advanced
+
+
+def test_sync_bootstrap_write_roundtrips_and_leaves_no_temp_file(tmp_path):
+    """`create_empty`'s sync writer (used with no event loop running) round-trips valid JSON
+    and leaves no `*.tmp` sibling, same as the async transaction path already proves."""
+    path = tmp_path / ".squads.json"
+    store = IndexStore(path, tmp_path / ".squads.json.lock")
+
+    store.create_empty("0.1.0")
+
+    SquadsDB.model_validate_json(path.read_text(encoding="utf-8"))  # validates cleanly
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
+async def test_a_failure_between_the_temp_write_and_the_replace_leaves_the_index_intact(
+    tmp_path, monkeypatch
+):
+    """A crash in the window the atomic-write primitive exists to make harmless -- after the
+    temp file is fully written, before the rename -- leaves the previous index bytes exactly,
+    on both the sync bootstrap writer and the async transaction writer. Both funnel through
+    the same shared primitive, so one test doubles as coverage of that delegation."""
+    path = tmp_path / ".squads.json"
+    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    store.create_empty("0.1.0")
+    previous_bytes = path.read_text(encoding="utf-8")
+
+    def _raise(self, target):
+        raise OSError("simulated crash after the temp write, before the replace")
+
+    monkeypatch.setattr(pathlib.Path, "replace", _raise)
+
+    with pytest.raises(OSError, match="simulated crash"):
+        async with store.transaction() as db:
+            db.allocate_id("bug")
+
+    monkeypatch.undo()
+
+    assert path.read_text(encoding="utf-8") == previous_bytes
+    assert list(tmp_path.glob("*.tmp")) == []  # no permanent litter from the failed write
+
+    monkeypatch.setattr(pathlib.Path, "replace", _raise)
+    with pytest.raises(OSError, match="simulated crash"):
+        store.create_empty("0.1.0")
+    monkeypatch.undo()
+
+    assert path.read_text(encoding="utf-8") == previous_bytes
+    assert list(tmp_path.glob("*.tmp")) == []
 
 
 def test_format_id_degrades_to_the_unresolved_sentinel_without_a_prefix():

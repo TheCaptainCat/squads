@@ -94,6 +94,9 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
    rule (#5/#6 above cover *what* is generated; this covers *saying so* in the file itself, so an
    agent editing it in-session doesn't lose the edit unknowingly). Generated files remain
    regenerable/never-migrated; this only makes that fact visible in place.
+8. **Markdown is never behind the index.** Within a transaction, every markdown write happens
+   before it returns; the index commit is always last. See the full skew-direction rule (and its
+   exemptions) in `_index/_store.py`'s module docstring.
 
 ## Conventions / gotchas
 

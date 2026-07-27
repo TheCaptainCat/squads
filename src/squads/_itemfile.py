@@ -15,6 +15,12 @@ returns; the index commit (``IndexStore``'s own atomic replace) is always the tr
 last write. A markdown write may never run after the commit — a killed process must always
 leave the markdown ahead of (or equal to) the index, never behind, so ``sq repair`` can
 converge on the file's state.
+
+A transaction that writes several markdown files this way is still not atomic *across* those
+files — there is no cross-file barrier, only the per-file one above. That is fine: each file is
+durable, on its own, before the index commits, so the skew a crash between two of them leaves
+is the same one-sided, repair-safe shape as a single-file write, just with more files on the
+ahead side.
 """
 
 import re
@@ -28,12 +34,24 @@ from squads._models._item import Item
 from squads._sections import join_frontmatter, replace_frontmatter, split_frontmatter
 
 
-def read_frontmatter(path: Path | None = None, *, text: str | None = None) -> dict[str, Any]:
+def read_frontmatter(
+    path: Path | None = None, *, text: str | None = None, source: str | None = None
+) -> dict[str, Any]:
+    """Parse frontmatter from *path* or already-read *text*.
+
+    The offending file's name reaches a malformed-YAML error via *source* (defaults to
+    *path* when given, e.g. by a caller that already read the text itself but still holds
+    the path it came from).
+    """
     if text is None:
         if path is None:
             raise ValueError("read_frontmatter requires a path or text")
         text = path.read_text(encoding="utf-8")
-    return split_frontmatter(text)[0]
+    return split_frontmatter(text, source=source if source is not None else _label(path))[0]
+
+
+def _label(path: Path | None) -> str | None:
+    return str(path) if path is not None else None
 
 
 def _without_extra_keys(data: dict[str, Any], keys: frozenset[str]) -> dict[str, Any]:
@@ -90,7 +108,7 @@ def frontmatter_skew(
     sources of truth for that key — so it is
     named here explicitly rather than silently folded into the general round trip.
     """
-    disk_data, _ = split_frontmatter(text)
+    disk_data, _ = split_frontmatter(text, source=base.path)
     disk_dict = Item.from_frontmatter(disk_data, path=base.path).to_frontmatter_dict()
     base_dict = base.to_frontmatter_dict()
     disk_dict = _without_extra_keys(disk_dict, ignore_extra_keys)
@@ -153,7 +171,9 @@ async def update_frontmatter(
     """
     text = await _aio.read_text(path)
     ensure_no_skew(text, base, ignore_extra_keys=ignore_extra_keys)
-    await _aio.atomic_write_text(path, replace_frontmatter(text, item.to_frontmatter_dict()))
+    await _aio.atomic_write_text(
+        path, replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
+    )
 
 
 async def write_text(path: Path, text: str) -> None:

@@ -52,10 +52,12 @@ def atomic_replace_sync(path: Path, text: str) -> None:
     ``os.fsync``, then ``os.replace`` onto *path*, with no gap between the fsync and the replace.
 
     Exposed (not underscored) because a handful of call sites are sync end to end — e.g. the
-    override stamp writers, which touch adopter-authored files from a sync CLI command chain —
-    and must not have to go async just to reach this shape. :func:`atomic_write_text` is this
-    same core, run on a worker thread for the async mutation path; keep both in sync with each
-    other rather than letting a second copy of the temp+fsync+replace shape drift.
+    override stamp writers, which touch adopter-authored files from a sync CLI command chain,
+    and ``IndexStore._atomic_write_sync``, the no-event-loop bootstrap path — and must not have
+    to go async just to reach this shape. :func:`atomic_write_text` is this same core, run on a
+    worker thread for the async mutation path; both the index and every item ``.md`` write
+    funnel through one of these two, so there is exactly one place the temp+fsync+replace shape
+    is written down.
     """
     tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
@@ -76,7 +78,8 @@ def atomic_replace_sync(path: Path, text: str) -> None:
 async def atomic_write_text(path: Path, text: str) -> None:
     """Atomically replace *path* with *text* — the async wrapper over :func:`atomic_replace_sync`,
     run inside ONE thread hop so no coroutine can interleave between the durability barrier and
-    the rename. Mirrors the shape ``IndexStore._atomic_write`` already uses for the index.
+    the rename. ``IndexStore._atomic_write`` delegates to this for the index commit; every item
+    ``.md`` write goes through it too (via ``_itemfile.py``) — one primitive, not two.
 
     Contract: after this returns, *path* holds either the complete new text or its complete
     previous bytes — **never** a prefix of either. Does not create parent directories (callers
