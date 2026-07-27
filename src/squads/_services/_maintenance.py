@@ -19,7 +19,7 @@ from squads._interactions import (
     custom_skill_slugs,
     skill_description,
 )
-from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter
+from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter, write_text
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
@@ -150,11 +150,11 @@ class MaintenanceMixin(ServiceCore):
 
     async def _stamp_version(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"squads_version": version})
-        await _aio.write_text(self.paths.config_path, cfg.to_toml())
+        await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml())
 
     async def _stamp_schema(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"schema_version": version})
-        await _aio.write_text(self.paths.config_path, cfg.to_toml())
+        await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml())
 
     # ------------------------------------------------------------------ migrations
     async def run_pending_migrations(self) -> list[Migration]:
@@ -253,18 +253,23 @@ class MaintenanceMixin(ServiceCore):
                 # Stamp frontmatter and write to the convention-named file.
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 convention_path = skills_folder / new_name
-                await _aio.write_text(convention_path, stamped)
+                await write_text(convention_path, stamped)
+                # Remove the legacy slug-named file inside the SAME transaction: the item's
+                # own convention-named file is already written above, so this costs nothing
+                # and keeps the skew one-sided (a crash here leaves the legacy file gone and
+                # the index not-yet-committed — markdown ahead, exactly the sanctioned skew —
+                # rather than a permanent orphan the idempotent-skip logic can never revisit).
+                await _aio.path_unlink(legacy_path)
                 db.add(item)
                 self.store._log(  # pyright: ignore[reportPrivateUsage]
                     "create",
                     item_id,
                     {"title": slug, "type": ROSTER_SKILL, "status": STATUS_ACTIVE},
                 )
-            # Remove the legacy slug-named file now that convention file is written.
-            await _aio.path_unlink(legacy_path)
             # Rewrite each backend's .claude pointer to reference the convention-named body.
             # write_managed ran before seeding and wrote the pointer to the old slug path;
-            # generate_skill_entry rewrites it to item.path (= SKILL-NNNNNN-slug.md).
+            # generate_skill_entry rewrites it to item.path (= SKILL-NNNNNN-slug.md). Stays
+            # outside the transaction: a backend pointer is a regenerable artifact.
             ctx = self._ctx
             for backend in self._backends():
                 await backend.generate_skill_entry(ctx, item)
@@ -328,15 +333,16 @@ class MaintenanceMixin(ServiceCore):
                 )
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 convention_path = skills_folder / new_name
-                await _aio.write_text(convention_path, stamped)
+                await write_text(convention_path, stamped)
+                # See seed_bundled_skills for why the legacy unlink moves inside the
+                # transaction, alongside the write it now always follows.
+                await _aio.path_unlink(legacy_path)
                 db.add(item)
                 self.store._log(  # pyright: ignore[reportPrivateUsage]
                     "create",
                     item_id,
                     {"title": slug, "type": ROSTER_SKILL, "status": STATUS_ACTIVE},
                 )
-            # Remove the legacy slug-named file now that convention file is written.
-            await _aio.path_unlink(legacy_path)
             # Rewrite each backend's .claude pointer to the convention-named body.
             ctx = self._ctx
             for backend in self._backends():
@@ -635,7 +641,7 @@ class MaintenanceMixin(ServiceCore):
             fm, _ = sections.split_frontmatter(text)
             if fm:
                 fm["sequence_id"] = number_for_id(new_id)
-                await _aio.write_text(new_path, sections.replace_frontmatter(text, fm))
+                await write_text(new_path, sections.replace_frontmatter(text, fm))
 
     async def _renumber(self) -> dict[str, str]:
         """Resolve duplicate global ID numbers from a merge: reassign + rewrite references."""

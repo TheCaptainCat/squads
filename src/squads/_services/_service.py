@@ -83,7 +83,7 @@ async def init(
         squads_version=__version__,
         init_names=effective_names,
     )
-    await _aio.write_text(config_path, config.to_toml())
+    await _aio.atomic_write_text(config_path, config.to_toml())
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
@@ -140,7 +140,7 @@ async def adopt(
             default_role="manager",
             squads_version=__version__,
         )
-        await _aio.write_text(config_path, config.to_toml())
+        await _aio.atomic_write_text(config_path, config.to_toml())
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
