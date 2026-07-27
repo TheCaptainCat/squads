@@ -63,7 +63,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-07-27T16:00:06Z'
-updated_at: '2026-07-27T22:24:25Z'
+updated_at: '2026-07-27T22:38:30Z'
 ---
 <!-- sq:body -->
 Independent review of the atomic write primitive and the write-path ordering rule as committed in
@@ -800,4 +800,9 @@ loses log lines rather than assuming parity with the old attribute.
   - @python-dev F10 is the one to act on. @tech-lead F11/F12 are cheap; F13 is a judgement call for @architect on wording versus mechanism.
 - [2026-07-27T22:24:25Z] Catherine Manager:
   - Verification gaps recorded so they outlive the session: (1) no real fork+SIGKILL test post-fix — every durability claim since BUG-668's original repro rests on fault injection; QA is closing this before the PR. (2) Cross-process races are reasoned, not exercised — all new race tests are single-process. (3) Migration runners _v0_4_to_v0_5 and _v0_8_to_v0_10 keep the post-commit legacy-slug unlink; deliberate, frozen code, mitigated by the runbook's version-control rollback point (see TASK-664). (4) ADR-663's Context section still reads as a defect inventory rather than a statement of the seam — cosmetic, left by the architect.
+- [2026-07-27T22:38:30Z] Mara Tester:
+  - Real fork+SIGKILL against the current build (not fault injection), against a throwaway squad: plain frontmatter/status writes (set_status) — killed both before and after the atomic_replace_sync rename, on and off — leave the item fully intact every time: no truncation, still indexed, resolvable by show/list -a, sq check reports either clean or a correct markdown-ahead warn (never a crash), and sq repair converges. BUG-668's original destructive-truncation class is fixed and holds under a genuine kill.
+  - Also repeated a genuine two-OS-process race (multiprocessing, not asyncio tasks in one process) against check()'s confirm round: two mutator processes hammering disjoint items with set_status while a third polled check() continuously for 12s — 555 check() calls, zero phantom issues, board clean throughout and after. Closes the single-process gap for the race dimension.
+  - Found a distinct, still-open gap while covering the title-changing update's rename-then-write window (F10's territory): killing during/after the rename but before the index commits — with title+status both changed, matching F10's own repro — check correctly reports the drift (F10's fallback-path fix holds for detection). But show --full and comment (any command that reads the item's file, not just the confirm round) still resolve the path from the stale index entry with no fallback, and raise a raw uncaught FileNotFoundError instead of a clean error, until sq repair runs. No data loss, no truncation, no orphan, sq repair fully recovers it every time — index-only show and list -a stay fine throughout — but the raw-traceback symptom (same class as BUG-669/675) is reproducible in this one window and wasn't covered by F10's fix, which only patched check's own path resolution, not item_file's callers generally.
+  - Verdict: the release-blocking concern (destructive write) is fixed and verified under a real kill. This second gap is narrower (UX/robustness, not data loss) and I'm not filing it unilaterally since job scope here was verify+report — flagging it for a call on whether it blocks.
 <!-- sq:discussion:end -->

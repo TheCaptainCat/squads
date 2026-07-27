@@ -3,7 +3,7 @@ id: TASK-667
 sequence_id: 667
 type: task
 title: Write the durability rule where implementers read it
-status: InProgress
+status: InReview
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -19,7 +19,7 @@ subentities:
   title: Fold the index writer onto the shared primitive, or record why not
   status: Done
 created_at: '2026-07-27T14:22:56Z'
-updated_at: '2026-07-27T22:25:49Z'
+updated_at: '2026-07-27T22:29:59Z'
 ---
 <!-- sq:body -->
 ADR-663's rule is only worth what its weakest call site is, and the ADR names where it has to
