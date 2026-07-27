@@ -6,26 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.12.2]
 
+### Fixed
+
+- **`sq import --dry-run` no longer mutates files on disk.** A dry-run pre-pass now performs zero filesystem writes — files that would be renamed or edited stay untouched, and only the operation plan is printed.
+
 ### Changed
 
-- **`sq check` no longer reports phantom drift or reconciliation errors — and no longer
-  fails — while another process is mutating the board.** A status/parent mismatch, a file
-  found on disk but missing from the index, or an index entry with no file on disk are now
-  confirmed with one fresh re-read before being reported, so a mutation that lands while
-  `check` is scanning resolves quietly instead of surfacing a false warning or a false error
-  exit code. A confirmed drift now also names which side is ahead when that can be determined.
-- **`sq` refuses to overwrite an item whose file and index disagree.** If an interrupted
-  mutation left an item's file ahead of the index, the next mutation of that item now refuses
-  with a `sq repair` pointer instead of silently reverting the surviving value; running
-  `sq repair` clears the block and both the interrupted change and the new one land. `sq sync`
-  responds differently for a drifted role or skill: it leaves that item's file untouched, names
-  it, and still regenerates everything else.
-- **A file `sq` can't read now reports a clear error instead of a stack trace.** A squad-data
-  file containing bytes that aren't valid UTF-8 — an item, a board notice, a memory entry, or
-  `.squads.toml` itself — now fails with a message naming the file, on every command that
-  reads it. Separately, an item whose file has moved out from under the index (an interrupted
-  rename or retype) now reports a clear error naming the item and pointing at `sq repair`,
-  instead of failing with a stack trace.
+- **`sq check` no longer reports phantom drift or reconciliation errors while another process is mutating the board — and no longer fails with an error exit.** The check now confirms any claim that compares the on-disk files against the index with a fresh re-read before reporting it, so a mutation that lands while `check` is scanning the board resolves quietly instead of surfacing a false warning or false hard-error exit code.
+
+- **An interrupted mutation leaves a repairable skew instead of a truncated file.** If a process dies mid-operation, the markdown files keep their newer values while the index lags behind. A next mutation of that item refuses with a clear `sq repair` pointer instead of silently reverting the change, and `sq sync` leaves drifted roles or skills untouched rather than overwriting them — both preserving the interrupted state.
+
+  **The cost of this guarantee, stated plainly: that item is not mutable until you run `sq repair`.** Running repair clears the block and promotes the interrupted mutation's values into the index. The block is per-item; nothing spreads.
+
+- **Unreadable files and stale item paths now report a clear error instead of a traceback.** A squad-data file that contains bytes that are not valid UTF-8 — an item, a board notice, a memory entry, or `.squads.toml` itself — now fails with a message naming the file instead of a raw Python traceback, on every command that reads it: `sq check`, `sq repair`, `sq renumber`, `sq sync`, `sq board list`, and `sq memory list`. Separately, an item whose file has moved out from under the index (a stale path from an interrupted rename or retype) now reports a clear error naming the item and pointing at `sq repair`, instead of failing with a traceback when you try to read it.
 
 ## [0.12.1]
 
