@@ -41,7 +41,16 @@ actual GitHub publish. Never `git tag` or publish yourself.
 - `git fetch --tags` first — local tags go stale and mislead "what's released / next version".
 - **CHANGELOG.md**: move `[Unreleased]` into the new version section, Keep-a-Changelog style. Make
   sure it covers *everything* in the release — late-landing features are easy to miss.
-- Bump `version` in `pyproject.toml`.
+- Bump `version` in `pyproject.toml`, then `uv sync` so `__version__` picks it up.
+- **Bump the VS Code extension in lockstep** — set `clients/vscode/package.json`'s `version` to the
+  same release version. The Marketplace VSIX publishes off *that* field, so a forgotten bump means the
+  extension changes never ship (0.12.0 left it at the prior version; 0.12.1 had to catch it up).
+- **Re-stamp version-embedding goldens** after the bump: `UPDATE_GOLDENS=1 uv run --all-extras pytest
+  tests/cli/test_json_output_shape.py -q -n0` — the `override_list`/`override_diff` goldens bake in
+  `__version__`, so the suite fails on them until regenerated; diff to confirm the change is version-only.
+- **`sq sync` — cleanup, before the PR.** Re-stamps this repo's own managed files to the new version
+  (the `.squads.toml` `squads_version`, and any generated CLAUDE.md/role-sheet stamps). Do it here in
+  prep so the stamp bump rides *in* the release PR, never as a post-merge cleanup.
 - **Template-manifest gotcha**: dev-time regens dirty the *last released* entry (the script keys by
   `__version__`). Restore it from its tag first —
   `git checkout vX.Y.Z -- src/squads/_rendering/templates_manifest.json` — then bump the version and
