@@ -129,7 +129,7 @@ async def read(paths: SquadPaths, role_slug: str, slug: str) -> MemoryEntry:
     if not await _aio.path_exists(path):
         raise MemoryNotFoundError(f"no memory {slug!r} for role {role_slug!r}")
     text = await _aio.read_text(path)
-    frontmatter, body = split_frontmatter(text)
+    frontmatter, body = split_frontmatter(text, source=str(path))
     return MemoryEntry.from_frontmatter(slug, frontmatter, body.strip("\n"))
 
 
@@ -139,7 +139,7 @@ async def list_entries(paths: SquadPaths, role_slug: str) -> list[MemoryEntry]:
     out: list[MemoryEntry] = []
     for path in await _content_files(folder):
         text = await _aio.read_text(path)
-        frontmatter, body = split_frontmatter(text)
+        frontmatter, body = split_frontmatter(text, source=str(path))
         out.append(MemoryEntry.from_frontmatter(path.stem, frontmatter, body.strip("\n")))
     return out
 

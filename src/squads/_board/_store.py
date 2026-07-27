@@ -123,7 +123,7 @@ async def _all_notices(paths: SquadPaths) -> list[BoardNotice]:
     out: list[BoardNotice] = []
     for path in await _content_files(board_folder(paths)):
         text = await _aio.read_text(path)
-        frontmatter, body = split_frontmatter(text)
+        frontmatter, body = split_frontmatter(text, source=str(path))
         out.append(BoardNotice.from_frontmatter(path.stem, frontmatter, body.strip("\n")))
     return out
 
