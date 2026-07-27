@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 675,
+  "counter": 677,
   "padding": 6,
   "items": {
     "12": {
@@ -8645,7 +8645,7 @@
       "type": "task",
       "title": "Eliminate pre-existing reportPrivateUsage suppressions across service mixins",
       "slug": "eliminate-pre-existing-reportprivateusage-suppressions-acros",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "Tech-debt: replace 29 cross-module private reach-ins in src/ with public APIs/accessors",
       "parent": null,
       "author": "tech-lead",
@@ -8661,8 +8661,8 @@
         {
           "local_id": "ST1",
           "title": "Public store logging API and its 23 call sites",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -8670,8 +8670,8 @@
         {
           "local_id": "ST2",
           "title": "Roster accessor, shared type-change helpers, full-ID predicate",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -8679,8 +8679,8 @@
         {
           "local_id": "ST3",
           "title": "Prove the suppressions are gone and hold the gate",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -8688,7 +8688,7 @@
       ],
       "path": "tasks/TASK-000247-eliminate-pre-existing-reportprivateusage-suppressions-acros.md",
       "created_at": "2026-06-30T08:51:11Z",
-      "updated_at": "2026-07-27T15:12:11Z",
+      "updated_at": "2026-07-27T22:43:37Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24619,7 +24619,7 @@
       "type": "task",
       "title": "Write the durability rule where implementers read it",
       "slug": "write-the-durability-rule-where-implementers-read-it",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "The skew-direction rule and atomic-write contract in the store/item-file docstrings and the invariants list, plus one atomic-write primitive instead of two.",
       "parent": null,
       "author": "tech-lead",
@@ -24654,7 +24654,7 @@
       ],
       "path": "tasks/TASK-000667-write-the-durability-rule-where-implementers-read-it.md",
       "created_at": "2026-07-27T14:22:56Z",
-      "updated_at": "2026-07-27T22:25:49Z",
+      "updated_at": "2026-07-27T22:29:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24690,7 +24690,7 @@
       "type": "bug",
       "title": "sq check/repair crash with raw YAMLError on intact-but-invalid frontmatter",
       "slug": "sq-check-repair-crash-with-raw-yamlerror-on-intact-but-inval",
-      "status": "InProgress",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -24704,7 +24704,7 @@
       "subentities": [],
       "path": "bugs/BUG-000669-sq-check-repair-crash-with-raw-yamlerror-on-intact-but-inval.md",
       "created_at": "2026-07-27T14:56:34Z",
-      "updated_at": "2026-07-27T22:14:07Z",
+      "updated_at": "2026-07-27T22:30:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24872,7 +24872,7 @@
       ],
       "path": "reviews/REV-000671-atomic-write-primitive-and-write-path-ordering-rule.md",
       "created_at": "2026-07-27T16:00:06Z",
-      "updated_at": "2026-07-27T22:24:25Z",
+      "updated_at": "2026-07-27T22:38:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24946,7 +24946,7 @@
       "type": "task",
       "title": "Malformed frontmatter and config fail cleanly, not with a traceback",
       "slug": "malformed-frontmatter-and-config-fail-cleanly-not-with-a-tra",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Guard the unguarded YAML and TOML parses on the read path so a hand-edited or merge-broken file produces a clean error naming it, instead of a raw traceback.",
       "parent": null,
       "author": "tech-lead",
@@ -24989,7 +24989,7 @@
       ],
       "path": "tasks/TASK-000673-malformed-frontmatter-and-config-fail-cleanly-not-with-a-tra.md",
       "created_at": "2026-07-27T21:07:24Z",
-      "updated_at": "2026-07-27T22:28:12Z",
+      "updated_at": "2026-07-27T22:30:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25064,6 +25064,85 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-675"
+    },
+    "676": {
+      "sequence_id": 676,
+      "type": "bug",
+      "title": "Interrupted rename: item-file reads crash raw, not clean",
+      "slug": "interrupted-rename-item-file-reads-crash-raw-not-clean",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": "medium",
+      "labels": [],
+      "refs": [
+        "BUG-675"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000676-interrupted-rename-item-file-reads-crash-raw-not-clean.md",
+      "created_at": "2026-07-27T22:40:47Z",
+      "updated_at": "2026-07-27T22:40:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-676"
+    },
+    "677": {
+      "sequence_id": 677,
+      "type": "task",
+      "title": "Undecodable files and stale item paths fail cleanly",
+      "slug": "undecodable-files-and-stale-item-paths-fail-cleanly",
+      "status": "Draft",
+      "description": "Guard the UTF-8 decode in the shared read helper and the config reader, and convert the interrupted-rename FileNotFoundError at the item-read seam — without breaking the two callers that use it as control flow.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-675:fixes",
+        "BUG-676:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Decode guard in the read helper and the config reader",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Stale-path guard at the item-read seam",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "CLI-layer tests and the two control-flow regressions",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000677-undecodable-files-and-stale-item-paths-fail-cleanly.md",
+      "created_at": "2026-07-27T22:44:54Z",
+      "updated_at": "2026-07-27T22:45:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-677"
     }
   }
 }
