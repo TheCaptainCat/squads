@@ -3,13 +3,13 @@ id: BUG-676
 sequence_id: 676
 type: bug
 title: 'Interrupted rename: item-file reads crash raw, not clean'
-status: Open
+status: InProgress
 author: qa
 severity: medium
 refs:
 - BUG-675
 created_at: '2026-07-27T22:40:47Z'
-updated_at: '2026-07-27T22:40:56Z'
+updated_at: '2026-07-27T23:07:26Z'
 ---
 <!-- sq:body -->
 ## Symptom
@@ -95,4 +95,6 @@ Two honest shapes, not a design decision made here:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-27T23:07:26Z] Catherine Manager:
+  - Correction to this bug's own scope, verified against HEAD before the fix: plain 'sq show' was NOT unaffected. _print_item_content in _cli/_common.py calls read_body unconditionally, so plain show read the file and crashed raw in this scenario too — the fix covers it. Only 'sq list -a' is genuinely index-only here.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-677
 sequence_id: 677
 type: task
 title: Undecodable files and stale item paths fail cleanly
-status: Draft
+status: InProgress
 author: tech-lead
 refs:
 - BUG-675:fixes
@@ -22,7 +22,7 @@ subentities:
   title: CLI-layer tests and the two control-flow regressions
   status: Todo
 created_at: '2026-07-27T22:44:54Z'
-updated_at: '2026-07-27T22:45:17Z'
+updated_at: '2026-07-27T22:46:29Z'
 ---
 <!-- sq:body -->
 Two read-path defects that still produce raw tracebacks after the parse guards landed. Same family,
@@ -324,4 +324,8 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-27T22:45:41Z] Olivia Lead:
+  - Cut for BUG-675 + BUG-676 as one pass — same read-path family, same functions. Fail-clean is carried with QA's reasoning against the re-resolve fallback (only check can afford it; every other caller would need a bespoke directory scan for a state one command away; and re-resolving hides the only signal that a mutation was interrupted).
+  - IMPORTANT design correction, found by grep rather than from the bug bodies: the not-found guard must NOT go in _aio.read_text. Three call sites already depend on FileNotFoundError as control flow — _services/_maintenance.py's confirm round catches it twice (falling back to the path the scan found, which exists for exactly BUG-676's state), and _services/_import.py's pre-pass catches it to defer the claim to sq check. A blanket conversion in the shared helper makes sq check crash on the very interrupted-rename board this task is meant to make friendly. The decode guard IS safe there (nothing catches UnicodeDecodeError); the not-found guard goes at the item-read seam in the service layer. Also note item_file is a pure path builder and never raises — 'at or below item_file' is not a place that exists.
+  - Two more: an undecodable .squads.json would bypass IndexStore.load's ValidationError-only catch and lose the 'corrupt index — run sq repair' remedy, so that wording must be preserved for the decode case; and a blanket 'run sq repair' hint is wrong advice for a missing .squads.toml, override template or backend artifact, so the pointer belongs only where the read is known to be an item read. Both are in the body, and the two control-flow callers are pinned by regression tests in ST3.
 <!-- sq:discussion:end -->
