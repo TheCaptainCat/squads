@@ -2,6 +2,19 @@
 
 The ``.md`` frontmatter is the durable source of truth; ``sq`` rewrites only the frontmatter
 (and marker sections), never the agent-authored body.
+
+**Atomic by construction.** Every writer here (``write_new``, ``update_frontmatter``,
+``write_text``, ``rewrite_ids``) goes through :func:`squads._aio.atomic_write_text` — temp file
++ fsync + ``os.replace`` in one thread hop — so a process killed mid-write leaves the file
+complete-or-previous, never a truncated prefix. This is the *only* place a mutation core should
+reach for; a bare ``_aio.write_text`` on an item ``.md`` reintroduces the truncation hazard.
+
+**Ordering rule this module's callers must keep.** Within a transaction, every write to an
+item's markdown — via this module's functions — happens inside the transaction body, before it
+returns; the index commit (``IndexStore``'s own atomic replace) is always the transaction's
+last write. A markdown write may never run after the commit — a killed process must always
+leave the markdown ahead of (or equal to) the index, never behind, so ``sq repair`` can
+converge on the file's state.
 """
 
 import re
@@ -26,13 +39,25 @@ async def write_new(path: Path, item: Item, rendered_body: str) -> None:
     """Create a brand-new item file: frontmatter + the rendered (templated) body."""
     text = join_frontmatter(item.to_frontmatter_dict(), rendered_body)
     await _aio.mkdir(path.parent, parents=True, exist_ok=True)
-    await _aio.write_text(path, text)
+    await _aio.atomic_write_text(path, text)
 
 
 async def update_frontmatter(path: Path, item: Item) -> None:
     """Rewrite the frontmatter from the item; body is preserved verbatim."""
     text = await _aio.read_text(path)
-    await _aio.write_text(path, replace_frontmatter(text, item.to_frontmatter_dict()))
+    await _aio.atomic_write_text(path, replace_frontmatter(text, item.to_frontmatter_dict()))
+
+
+async def write_text(path: Path, text: str) -> None:
+    """Atomically overwrite an *existing* item file with fully-formed new text.
+
+    The item-file layer's general-purpose exit for callers that have already built the whole
+    new file contents themselves (a section edit, a sub-entity block rewrite, a retype's
+    frontmatter+body rewrite, …) rather than growing a bespoke ``_aio.atomic_write_text`` import
+    at each such call site — so every write of an item ``.md`` funnels through this module and
+    "the item-file layer exposes only the atomic primitive" stays structurally true.
+    """
+    await _aio.atomic_write_text(path, text)
 
 
 async def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
@@ -48,6 +73,6 @@ async def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path
         for old, new in remap.items():
             new_text = re.sub(rf"\b{re.escape(old)}\b", new, new_text)
         if new_text != text:
-            await _aio.write_text(path, new_text)
+            await _aio.atomic_write_text(path, new_text)
             touched.append(path)
     return touched

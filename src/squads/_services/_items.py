@@ -2,8 +2,10 @@
 
 from collections.abc import Callable
 from datetime import datetime
+from pathlib import Path
 
 from squads import _actor as actor
+from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
@@ -133,18 +135,22 @@ class ItemsMixin(ServiceCore):
         set_extra: dict[str, str] | None = None,
         unset_extra: list[str] | None = None,
         now: datetime | None = None,
-    ) -> tuple[Item, dict[str, object]]:
-        """The PURE half of a metadata update: no file I/O. Returns ``(item, delta)``.
+    ) -> tuple[Item, dict[str, object], tuple[Path, Path] | None]:
+        """The PURE half of a metadata update: no file I/O. Returns ``(item, delta, rename)``.
 
-        Shared by :meth:`_update_core` (the interactive/apply path) and the bulk importer's
-        pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
-        to simulate the update using the exact same checks + catalog gate the real path runs.
+        ``rename`` is ``(old_path, new_path)`` when the title change requires moving the file
+        on disk, else ``None`` — the physical move is a separate I/O step the caller
+        (:meth:`_update_core`) performs, kept out of this pure half so the bulk importer's
+        pre-pass (which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
+        to simulate the update using the exact same checks + catalog gate the real path runs)
+        never touches the real filesystem.
         """
         item = require_item(db, item_id)
         delta: dict[str, object] = {}
+        rename_paths: tuple[Path, Path] | None = None
         if title is not None and title != item.title:
             delta["title"] = [item.title, title]
-            self._rename(db, item, title)
+            rename_paths = self._rename(db, item, title)
         if description is not None:
             delta["description"] = description
             item.description = description
@@ -180,7 +186,7 @@ class ItemsMixin(ServiceCore):
         # Fail-closed on the updated item's first error-level catalog violation — the
         # same engine `sq check` reports (a warn-level catalog issue never aborts here).
         ValidatorEngine(spec=self.spec).gate(item, db)
-        return item, delta
+        return item, delta, rename_paths
 
     async def _update_core(  # noqa: PLR0913 — mirrors `update`'s own keyword surface
         self,
@@ -208,7 +214,7 @@ class ItemsMixin(ServiceCore):
         own I/O concern outside the index transaction (the bulk importer runs its own regen
         pass, if any, after the whole apply commits).
         """
-        item, delta = self._update_model(
+        item, delta, rename_paths = self._update_model(
             db,
             item_id,
             title=title,
@@ -226,6 +232,10 @@ class ItemsMixin(ServiceCore):
             set_extra=set_extra,
             unset_extra=unset_extra,
         )
+        if rename_paths is not None:
+            old_path, new_path = rename_paths
+            if old_path != new_path and await _aio.path_exists(old_path):
+                await _aio.path_rename(old_path, new_path)
         await update_frontmatter(item_file(self.paths, item), item)
         self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
         return item
@@ -290,7 +300,13 @@ class ItemsMixin(ServiceCore):
             )
         item.status = status
 
-    def _rename(self, db: SquadsDB, item: Item, new_title: str) -> None:
+    def _rename(self, db: SquadsDB, item: Item, new_title: str) -> tuple[Path, Path]:
+        """Pure half of a title rename: computes the new slug/path and mutates *item*'s
+        title/slug/path fields — no file I/O (see :meth:`_update_model`'s docstring for why).
+
+        Returns ``(old_path, new_path)``; the caller (:meth:`_update_core`) performs the actual
+        file move through the ``_aio`` helpers.
+        """
         new_slug = slugify(new_title)
         old_path = item_file(self.paths, item)
         # Filename stem must stay padded even though item.id is unpadded — format it
@@ -298,11 +314,10 @@ class ItemsMixin(ServiceCore):
         new_stem = format_item_id(item.prefix, item.sequence_id, db.padding)
         new_rel = self.paths.squad_relative(item.type, f"{new_stem}-{new_slug}.md", spec=self.spec)
         new_path = self.paths.abspath(new_rel)
-        if old_path.exists() and old_path != new_path:
-            old_path.rename(new_path)
         item.title = new_title
         item.slug = new_slug
         item.path = new_rel
+        return old_path, new_path
 
     async def link(self, child_id: str, parent_id: str) -> Item:
         async with self.store.transaction() as db:
@@ -396,16 +411,12 @@ class ItemsMixin(ServiceCore):
 
     async def read_body(self, item_id: str) -> str:
         """The item's top-level ``:body`` region content (for ``sq show``) — read on a thread."""
-        from squads import _aio
-
         item = await self.get(item_id)
         text = await _aio.read_text(item_file(self.paths, item))
         return (sections.get_section(text, markers.BODY) or "").strip("\n")
 
     async def read_discussion(self, item_id: str) -> str:
         """The item's top-level ``:discussion`` region content (for ``sq show --comments``)."""
-        from squads import _aio
-
         item = await self.get(item_id)
         text = await _aio.read_text(item_file(self.paths, item))
         return (sections.get_section(text, markers.DISCUSSION) or "").strip("\n")
@@ -426,12 +437,17 @@ class ItemsMixin(ServiceCore):
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
             del db.items[item.sequence_id]
+            # Unlink BEFORE the index commit (same direction as remove_work_item): a crash here
+            # leaves the file gone with the index still referencing it, which `sq repair` heals
+            # by dropping the orphan entry. Unlinking after the commit (the previous shape) is
+            # the lossy direction — a crash there leaves the index without the entry and the
+            # file still on disk, which `sq repair` re-indexes, resurrecting the removed item.
+            if purge:
+                await _aio.path_unlink(item_file(self.paths, item), missing_ok=True)
         if self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
             ctx = self._ctx
             for backend in self._backends():
                 await backend.remove_artifacts(ctx, item)
-        if purge:
-            item_file(self.paths, item).unlink(missing_ok=True)
         return item
 
     async def remove_work_item(
@@ -510,7 +526,7 @@ class ItemsMixin(ServiceCore):
             # a crash here leaves the file gone with the index still referencing it —
             # sq repair drops the orphan entry.  The reverse (index-gone / file-survives)
             # would let sq repair resurrect the removed item.
-            path.unlink(missing_ok=True)
+            await _aio.path_unlink(path, missing_ok=True)
             del db.items[item.sequence_id]
             # counter is intentionally NOT modified — the gap is sanctioned.
 
