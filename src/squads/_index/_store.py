@@ -14,11 +14,54 @@ The single global counter and all item metadata live here. Every mutation goes t
 Lock order is always Layer 1 → 2 → 3; release reverse. Every acquire is in ``try/finally`` so
 nothing leaks on exception/cancellation/``filelock.Timeout``. Commits are atomic ``os.replace``
 so concurrent ``sq`` invocations never corrupt the file or collide on IDs.
+
+**Skew direction: markdown is always ahead of or equal to the index, never behind.** Within a
+transaction, every write to an item's markdown — create, frontmatter update, marker-section
+edit, rename/move, unlink — happens inside the transaction body, before it returns. This
+module's ``os.replace`` (:meth:`IndexStore._atomic_write`) is always the transaction's *last*
+write to squad data; nothing that mutates an item ``.md`` may run after it commits. A process
+killed mid-transaction can therefore only ever leave the markdown newer than the index, in
+every direction of change:
+
+| interrupted op | surviving state | ``sq repair`` outcome |
+|---|---|---|
+| create | file exists, not indexed | indexes it; the high-water mark keeps the number unique |
+| update | file has the new value, index has the old one | adopts the file's value |
+| remove | file gone, index still has the entry | drops the orphan entry, reporting it as missing |
+| retype/rename | file at the new path/id, index at the old | re-indexes from the new path |
+
+Each of those heals losslessly, because repair derives the index *from* the markdown — a
+markdown-ahead skew is simply its input, not a special case it has to detect. The inverse skew
+is forbidden rather than merely discouraged: an index ahead of the markdown would let repair
+**silently revert** a committed mutation or resurrect a removed item, and a loud, repairable
+inconsistency beats a quiet rollback every time.
+
+Exempt from this ordering, because neither has a mirrored value in the index for the two sides
+to disagree about: regenerable artifacts (backend pointer files, managed regions in
+``CLAUDE.md``/``AGENTS.md``, ``.claude/`` output) may be written after the commit, since
+``sq sync`` reproduces them from nothing; and the reflog, deliberately appended after
+``os.replace`` under a never-raise contract (see :meth:`IndexStore.transaction`) because it is
+an append-only log, not source of truth. Compliance is the ordering itself, not any particular
+syntax for reaching it: a board-wide reshaping pass that owns every file and finishes by
+rebuilding the index outright (``repad``, ``renumber``) complies by ending in that rebuild
+rather than by nesting hundreds of renames inside one transaction. That is a separate question
+from whether an index-derived frontmatter *rewrite* may overwrite a value still only on disk —
+the guard for that lives at the item-file write seam (see
+:func:`squads._itemfile.ensure_no_skew`) and does not reach either of them, since neither
+sources a value from the index in the first place.
+
+**Failure model.** In model: process death — ``SIGKILL``/``SIGTERM``, a harness timeout or
+background-stop, an OOM kill, a container stop, or an exception escaping a transaction body,
+all treated as one event class. Writes already accepted by the kernel survive it, so program
+order alone is enough to order durability events. Out of model: a host crash or power loss,
+where ordering would additionally need an ``fsync`` of every file *and* its parent directory at
+each step, and even then the skew could only be bounded, not removed, without a journal.
+``sq repair`` remains the recovery path there too; it makes no promise about which side is
+ahead.
 """
 
 import asyncio
 import contextlib
-import os
 import sys
 import threading
 from collections.abc import AsyncGenerator
@@ -348,7 +391,13 @@ class IndexStore:
 
         After the ``os.replace`` commits, buffered reflog ops are appended while still
         holding all locks, strictly after commit. A failed append only warns; it never
-        rolls back the committed mutation. If the body raises, nothing is written.
+        rolls back the committed mutation.
+
+        If the body raises, nothing is written *to the index* — the raise propagates before
+        ``_atomic_write`` is ever reached. Markdown writes the body already made stand; that is
+        not a partial rollback failing to finish its job, it is the module docstring's
+        skew-direction rule doing exactly what it is for: the crash leaves markdown ahead of
+        the index, the one direction ``sq repair`` heals losslessly.
         """
         from squads._index._reflog import append_line, reflog_path
 
@@ -443,43 +492,17 @@ class IndexStore:
 
     # ------------------------------------------------------------------ internals
     def _atomic_write_sync(self, db: SquadsDB) -> None:
-        """Sync atomic write — for ``create_empty`` (bootstrap, single-process path)."""
-        tmp = self.index_path.with_suffix(f".json.{os.getpid()}.{threading.get_ident()}.tmp")
-        try:
-            # fsync the write handle — Windows raises OSError [Errno 9] on a read-only handle.
-            with tmp.open("w", encoding="utf-8") as fh:
-                fh.write(db.to_json() + "\n")
-                fh.flush()
-                os.fsync(fh.fileno())
-            tmp.replace(self.index_path)
-        except BaseException:
-            # An exception escaping the write is in-model (process death is not, and can't
-            # run this handler regardless) — clean up the temp sibling before re-raising.
-            # Mirrors `_aio.atomic_replace_sync`'s shape; keep both identical.
-            tmp.unlink(missing_ok=True)
-            raise
+        """Sync atomic write — for ``create_empty`` (bootstrap, single-process path).
+
+        Delegates to :func:`squads._aio.atomic_replace_sync`, the shared temp+fsync+
+        ``os.replace`` primitive markdown writes use too — the index's own JSON serialization
+        stays here; the primitive never learns about :class:`SquadsDB`.
+        """
+        _aio.atomic_replace_sync(self.index_path, db.to_json() + "\n")
 
     async def _atomic_write(self, db: SquadsDB) -> None:
-        """Async atomic write: tmp-open/write/fsync/replace runs as ONE thread hop.
-
-        No ``await`` between ``os.fsync`` and ``tmp.replace`` — they share one sync closure so
-        no coroutine interleaves between the durability barrier and the rename.
+        """Async atomic write: delegates to :func:`squads._aio.atomic_write_text`, which runs
+        the whole tmp-open/write/fsync/replace sequence as one thread hop, with no ``await``
+        between the fsync and the rename.
         """
-        index_path = self.index_path
-        json_text = db.to_json() + "\n"
-
-        def _write_and_replace() -> None:
-            # thread id in the tmp name so concurrent callers never collide on the temp path.
-            tmp = index_path.with_suffix(f".json.{os.getpid()}.{threading.get_ident()}.tmp")
-            try:
-                with tmp.open("w", encoding="utf-8") as fh:
-                    fh.write(json_text)
-                    fh.flush()
-                    os.fsync(fh.fileno())
-                tmp.replace(index_path)
-            except BaseException:
-                # Mirrors `_aio.atomic_replace_sync`'s cleanup shape; keep both identical.
-                tmp.unlink(missing_ok=True)
-                raise
-
-        await _aio.to_thread(_write_and_replace)
+        await _aio.atomic_write_text(self.index_path, db.to_json() + "\n")

@@ -222,6 +222,12 @@ class ItemsMixin(ServiceCore):
         Does NOT run the roster pointer regen — that stays in :meth:`update`, since it is its
         own I/O concern outside the index transaction (the bulk importer runs its own regen
         pass, if any, after the whole apply commits).
+
+        A title change shares retype's rename-then-write shape below: the file moves to its
+        new path, then its frontmatter is rewritten there — see
+        :func:`squads._services._retype._apply_type_change` for the crash window that opens
+        between those two steps and why it is the expected, repairable outcome rather than a
+        defect. A title-less update never renames, so it stays readable at one path throughout.
         """
         item, delta, rename_paths, base = self._update_model(
             db,

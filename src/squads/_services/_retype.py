@@ -252,6 +252,15 @@ async def _apply_type_change(
     one item, ``rename_type()``'s pre-flight for a batch) has already confirmed it matches
     disk before any file was moved; :func:`~squads._itemfile.update_frontmatter` below checks
     again at the new path, which is safe/redundant rather than a second real divergence.
+
+    Rename-then-write, not write-then-rename: the file moves to its new path first, and only
+    then is its frontmatter rewritten there. A crash in that window leaves the item at its new
+    path with its old frontmatter while the index — not yet committed either — still names the
+    old path, so a reader resolving the item from the index looks for a file that has already
+    moved: ``show``/``get`` hard-fail with ``FileNotFoundError`` until ``sq repair`` re-indexes
+    from the file's new location. This is rougher than a non-renaming write, which stays
+    readable at its one unchanging path throughout, but it is still the skew-direction rule's
+    permitted markdown-ahead outcome for a retype/rename, not a violation of it.
     """
     old_path = item_file(paths, item)
     if not carry_status:
