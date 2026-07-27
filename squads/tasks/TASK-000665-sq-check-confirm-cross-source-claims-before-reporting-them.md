@@ -3,7 +3,7 @@ id: TASK-665
 sequence_id: 665
 type: task
 title: 'sq check: confirm cross-source claims before reporting them'
-status: InProgress
+status: InReview
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -29,7 +29,7 @@ subentities:
   status: Done
   assignee: python-dev
 created_at: '2026-07-27T14:22:53Z'
-updated_at: '2026-07-27T20:34:07Z'
+updated_at: '2026-07-27T20:36:20Z'
 ---
 <!-- sq:body -->
 Implements ADR-663 §3. `sq check` stays lock-free; a cross-source claim becomes a *candidate*

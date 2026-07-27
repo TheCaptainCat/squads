@@ -3,7 +3,7 @@ id: TASK-664
 sequence_id: 664
 type: task
 title: Atomic markdown writes and markdown-ahead ordering in the write path
-status: InProgress
+status: InReview
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -18,7 +18,7 @@ subentities:
   status: Done
 - local_id: ST2
   title: Route every squad-data write through the primitive
-  status: InProgress
+  status: Done
 - local_id: ST3
   title: Board notices and memory entries onto the primitive
   status: Done
@@ -27,12 +27,12 @@ subentities:
   status: Done
 - local_id: ST5
   title: Repair-convergence tests and the changelog line
-  status: InProgress
+  status: Done
 - local_id: ST6
   title: Route the sync filesystem calls on the mutation path through _aio
   status: Done
 created_at: '2026-07-27T14:22:46Z'
-updated_at: '2026-07-27T16:05:11Z'
+updated_at: '2026-07-27T20:36:23Z'
 ---
 <!-- sq:body -->
 Implements the write side of ADR-663: §1 (skew direction — markdown ahead or equal, index
@@ -171,10 +171,10 @@ _Add with `sq task 664 add-subtask "<title>"`; track with `sq task 664 subtask <
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
 | ST1 | Done |  | Atomic replace primitive for squad-data writes |  |
-| ST2 | InProgress |  | Route every squad-data write through the primitive |  |
+| ST2 | Done |  | Route every squad-data write through the primitive |  |
 | ST3 | Done |  | Board notices and memory entries onto the primitive |  |
 | ST4 | Done |  | Ordering audit across mutation cores; fix the violating sites |  |
-| ST5 | InProgress |  | Repair-convergence tests and the changelog line |  |
+| ST5 | Done |  | Repair-convergence tests and the changelog line |  |
 | ST6 | Done |  | Route the sync filesystem calls on the mutation path through _aio |  |
 <!-- sq:summary:end -->
 
@@ -222,7 +222,7 @@ Acceptance:
 ### ST2 — Route every squad-data write through the primitive
 
 <!-- sq:subtask:ST2:head -->
-**Status:** 🟡 In Progress
+**Status:** 🟢 Done
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -350,7 +350,7 @@ Acceptance:
 ### ST5 — Repair-convergence tests and the changelog line
 
 <!-- sq:subtask:ST5:head -->
-**Status:** 🟡 In Progress
+**Status:** 🟢 Done
 <!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->

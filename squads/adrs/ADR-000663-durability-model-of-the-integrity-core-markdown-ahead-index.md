@@ -15,7 +15,7 @@ description: Markdown is always ahead or equal and the index commits last; every
   .md write is an atomic replace; sq check stays lock-free and confirms cross-source
   claims; the active transaction is task-local and store-scoped.
 created_at: '2026-07-27T14:02:48Z'
-updated_at: '2026-07-27T16:17:32Z'
+updated_at: '2026-07-27T21:11:43Z'
 ---
 <!-- sq:body -->
 # Context
@@ -99,26 +99,53 @@ markdown-ahead skew is not a special case it has to detect — it is simply the 
 raising the counter in memory when it trails the max sequence on disk closes the one remaining hole
 (a lost counter bump cannot cause ID reuse even before repair runs).
 
-**The healing is conditional, and the condition is an event, not a deadline.** Repair must run before
-anything next rewrites that item's frontmatter from index-derived state, and nothing enforces that: a
-mutation core loads the item from the index, applies its delta, and rewrites the whole frontmatter
-block, so an unrepaired skew is replaced by index-derived values plus the delta — silently, and with
-nothing left on disk for repair to detect afterwards. For roster items `sq sync`'s regen rewrites
-frontmatter the same way. So an interrupted mutation guarantees:
+The inverse skew is the lossy one, which is why it is forbidden rather than merely discouraged: an
+index ahead of the markdown makes `sq repair` **silently revert** a committed mutation, or resurrect
+a removed item. A loud, repairable inconsistency is strictly better than a quiet rollback.
+
+Compliance is the skew direction, not the syntax. Doing the markdown work inside the transaction body
+is how an ordinary mutation achieves it. Board-wide reshaping ops that own every file and finish by
+rebuilding the index outright (`repad`, `renumber`) comply by ending in that rebuild, and must not be
+restructured to nest hundreds of renames inside one transaction — that would hold the write lock for
+the whole pass and cannot compose with a rebuild that replaces the index wholesale anyway.
+
+**Exempt from the rule:**
+
+- **Regenerable artifacts** — backend pointer files, managed regions in `CLAUDE.md`/`AGENTS.md`,
+  `.claude/` output. They hold no state, are reproduced by `sq sync`, and may be written after the
+  commit (as `update`'s pointer regen already does). Exempt from *ordering* only: nothing in the index
+  mirrors them, so there is no skew to direct — §2 still governs how each one is written.
+- **The reflog** — an append-only observability log, deliberately appended after `os.replace` under
+  a never-raise contract. It is not source of truth and must stay where it is.
+- **Re-derivable regions of an item `.md` the committing transaction did not mirror into the index** —
+  the resolved-skill cache in a role's frontmatter and the generated `## Skills` region of its body,
+  refreshed after the commit that changed a *skill*'s refs. This is the permitted skew, not the
+  absence of one: the transaction never wrote these derived values to the index, so neither crash
+  direction is index-ahead, and `sq sync` re-derives them from the ref graph, so the worst case is a
+  stale cache. A post-commit item-`.md` write must meet both halves — a derived value the transaction
+  did not mirror, and reproducible by `sq sync`.
+
+**The healing has a condition, and the condition is enforced rather than assumed.** Repair must run
+before anything next rewrites that item's frontmatter from index-derived state — a mutation core loads
+the item from the index, applies its delta, and rewrites the whole frontmatter block, and `sq sync`'s
+roster regen does the same. Unguarded, that silently replaces the surviving values and leaves nothing
+on disk for repair to detect afterwards, so every such path is guarded. An interrupted mutation
+therefore guarantees:
 
 - **Unconditionally** — no truncated or partial file, and the item is never dropped from the board.
   Body content (prose, discussion, sub-entity bodies, markers) is never at risk here at all: a
   frontmatter rewrite preserves body bytes verbatim.
-- **Until the next such write of that same file** — the interrupted mutation's frontmatter fields,
-  sub-entity state included, since that lives in frontmatter. `sq check` names the item as confirmed
-  drift (§3) and `sq repair` promotes those values into the index for good.
-- **Not** that an unrepaired skew survives continued use of that item. The loss is per-item; nothing
-  spreads to other items.
+- **Until `sq repair` runs** — the interrupted mutation's frontmatter fields, sub-entity state
+  included, since that lives in frontmatter. Nothing overwrites them silently: a path that would
+  rewrite them from index-derived state refuses, or skips and reports. `sq check` names the item as
+  confirmed drift (§3), and repair promotes the surviving values into the index for good.
+- **At a stated cost** — that item is not mutable until repair runs. A drifted item blocks its own
+  mutations, loudly, with a one-command remedy. The block is per-item; nothing spreads.
 
-The obligation this puts on the user is real and not a formality: `check`, then `repair`, then
-continue. Closing it is a later change, deliberately not part of this decision, and it is fail-closed
-detection rather than a merge: merging on write would invent per-field precedence, and would apply
-values the workflow gate never validated (a transition is checked against the index-loaded item).
+The obligation on the user is real and not a formality: `check`, then `repair`, then continue. The
+guard that enforces it is part of this decision, and it is fail-closed detection rather than a merge:
+merging on write would invent per-field precedence, and would apply values the workflow gate never
+validated (a transition is checked against the index-loaded item).
 
 **What the guard compares.** Not §3's drift predicate. That predicate is a board-wide advisory over
 hundreds of items, deliberately narrow (`status`, `parent`) for cheap, high-signal reporting; a guard
@@ -134,12 +161,18 @@ item, so any inequality is evidence of a real skew rather than a heuristic.
 
 Two consequences for whoever builds it. The base is captured in the pure half of a core, before the
 delta is applied; deriving it from a reflog delta instead would tie the guard to a structure designed
-for logging, not for describing a write. And the by-design divergences are a **category, not a list**:
-they are the corrections `load()` applies in memory and lets reach disk on the next write — the
-legacy-severity relocation, id width after a `repad`. Where such a correction can be applied to the
-on-disk side before comparing, normalize rather than exclude: an excluded field is a permanent blind
-spot, a normalized one still catches a real skew. Any future in-memory correction at load time is
-registered here in the same change that introduces it, or it silently becomes a false refusal.
+for logging, not for describing a write. And the by-design divergences are a **category, not a list**,
+spanning both sides of the comparison: the index side corrects at load (the legacy-severity
+relocation, the counter and width fixups), and the file side corrects at parse (the pre-0.2
+`extra.ref_kinds` map folded into inline `"ID:kind"` refs). Normalize rather than exclude — an excluded
+field is a permanent blind spot, a normalized one still catches a real skew — and normalize once,
+structurally, by putting both sides through the same serializer: compare
+`Item.from_frontmatter(disk).to_frontmatter_dict()` against the base's `to_frontmatter_dict()`.
+Measured against the model, that collapses all three named divergences — legacy `extra.severity`,
+`extra.ref_kinds`, and a padded id, which is recomputed from prefix and sequence number — along with
+key order and absent-versus-`None`. A future correction that does *not* collapse through the
+round-trip is registered explicitly, on whichever side it lives, in the same change that introduces
+it; otherwise it becomes a false refusal.
 
 **The roster regen path** — `sq sync` rewriting a role's or skill's frontmatter from the index — shares
 the loss but not the response: it leaves the drifted item's file untouched, names it in the output with
@@ -152,30 +185,26 @@ defers only regeneration, which is stale-cache territory rather than loss. The e
 sync did what it is for, and the drifted item already has a dedicated reporter in `sq check`, which
 fails on it. A verify/strict mode is where a non-zero exit for stale generated state would belong.
 
-The inverse skew is the lossy one, which is why it is forbidden rather than merely discouraged: an
-index ahead of the markdown makes `sq repair` **silently revert** a committed mutation, or resurrect
-a removed item. A loud, repairable inconsistency is strictly better than a quiet rollback.
+**Batch mutation is a third shape**, and the answer is neither of the first two: the check runs
+*before* the batch, never inside it. Bulk import applies every event inside one transaction, and §1's
+own ordering rule means a raise part-way through leaves the markdown writes of everything already
+applied standing — so a mid-flight refusal turns one drifted item into a partially applied import,
+which is worse than the overwrite the guard exists to prevent. The importer is already validate-first
+for exactly this reason: its pre-pass simulates every event against a throwaway copy of the index,
+collects every issue instead of stopping at the first, and applies only on a clean plan, so an
+apply-time failure can only be I/O. The guard belongs in that pre-pass as one more collected issue,
+evaluated **once per targeted pre-existing item** rather than per event — after that item's first
+event, divergence from disk is the import's own doing. Creates are out of scope: there is no prior
+file to diverge from. The bulk retype and rename-status paths take the same shape: their affected set
+is known up front, so they pre-flight it and refuse before the first write, and their file-rollback
+path stays what it is — a crash safety net, not the guard's mechanism.
 
-Compliance is the skew direction, not the syntax. Doing the markdown work inside the transaction body
-is how an ordinary mutation achieves it. Board-wide reshaping ops that own every file and finish by
-rebuilding the index outright (`repad`, `renumber`) comply by ending in that rebuild, and must not be
-restructured to nest hundreds of renames inside one transaction — that would hold the write lock for
-the whole pass and cannot compose with a rebuild that replaces the index wholesale anyway.
-
-**Exempt from the rule:**
-
-- **Regenerable artifacts** — backend pointer files, managed regions in `CLAUDE.md`/`AGENTS.md`,
-  `.claude/` output. They hold no state, are reproduced by `sq sync`, and may be written after the
-  commit (as `update`'s pointer regen already does).
-- **The reflog** — an append-only observability log, deliberately appended after `os.replace` under
-  a never-raise contract. It is not source of truth and must stay where it is.
-- **Re-derivable regions of an item `.md` the committing transaction did not mirror into the index** —
-  the resolved-skill cache in a role's frontmatter and the generated `## Skills` region of its body,
-  refreshed after the commit that changed a *skill*'s refs. This is the permitted skew, not the
-  absence of one: the transaction never wrote these derived values to the index, so neither crash
-  direction is index-ahead, and `sq sync` re-derives them from the ref graph, so the worst case is a
-  stale cache. A post-commit item-`.md` write must meet both halves — a derived value the transaction
-  did not mirror, and reproducible by `sq sync`.
+`repad` and `renumber` fall outside the guard, and not by exemption — their ordering-side compliance
+is settled above by ending in a rebuild; whether the guard reaches them is the separate question. It
+does not: the guard attaches to index-derived frontmatter substitution, not to file writes in general. `repad` renames files and
+leaves their bytes untouched; `renumber` rewrites id strings inside the files' own content. Neither
+sources a value from the index, so neither can revert a skew — and a guard placed there would
+false-refuse on precisely the id-width divergence `repad` creates.
 
 ## 2. Per-file atomicity on the markdown side
 
@@ -185,8 +214,11 @@ atomic-replace primitive: write a temp file in the same directory, flush, fsync,
 in a single thread hop with no `await` between fsync and rename — the shape `_atomic_write` already
 uses for the index. Consequences: a killed process can no longer truncate the source of truth, and
 no reader can ever observe a partially written item file. Regenerable artifacts stay on the plain
-write; their loss costs a `sq sync`, and routing them through the atomic primitive would be churn
-for no invariant.
+write, but the exemption reaches only what sq can **wholly** reproduce, where losing the file costs a
+`sq sync` and nothing else. A whole-file rewrite of a file sq only partly owns does not qualify — a
+managed region injected into an adopter's `CLAUDE.md`, a provenance stamp refreshed inside a
+hand-authored override — because the write truncates content sq cannot regenerate. Those take the
+primitive; the plain write is for files sq owns end to end.
 
 `.squads.toml` is squad data, not a regenerable artifact. `sq sync` only re-stamps its version
 field; nothing reconstructs the rest — the active backends, the default role, the schema version the
@@ -251,9 +283,8 @@ confirmed and does not belong in `check`.
 **What `sq check` may claim.** It reports the board as of a point in time; it takes no lock, never
 blocks a mutation, is never blocked by one, and never writes. A reported drift or reconciliation
 error means a **real, durable** inconsistency — actionable, `sq repair` heals it, and the message says
-to repair before mutating that item again, because §1's healing window closes on that item's next
-write. What it may *not*
-claim is quiescence: "clean" means "no confirmed inconsistency was observed", not "the board is
+to repair before mutating that item again, since until that happens the item's own mutations refuse
+(§1). What it may *not* claim is quiescence: "clean" means "no confirmed inconsistency was observed", not "the board is
 consistent now". Where the two `updated_at` values order the pair, a confirmed drift may name the
 direction — markdown-ahead is the expected repairable skew, index-ahead means the ordering rule was
 violated or the failure was out of model. The clock is second-resolution and a mutation stamps both
@@ -272,11 +303,22 @@ process-wide where the old instance attribute was per-instance, and one process 
 (the observable-equivalence rule of ADR-534 §3) — a scenario a long-lived server or daemon process
 makes routine rather than hypothetical.
 
-Identity here is the `IndexStore` **instance**, not the resolved index path. The two differ
-observably, because one process does hold two stores over the same squad directory (`repair`, tests),
-and the instance is the faithful translation of the per-instance attribute being replaced: a log call
-against a store with no open transaction stays the silent no-op it is today, instead of being routed
-into an unrelated store's buffer and committed by that store.
+Identity here is the `IndexStore` **instance**, not the resolved index path. The two differ observably,
+because one process does hold two stores over the same squad directory (`repair`, tests), and the
+instance is the fail-closed choice: a log call against a store with no open transaction stays the
+silent no-op it is today, instead of being routed into an unrelated store's buffer and committed by
+that store.
+
+One case is a genuine behaviour change rather than a translation of the attribute being replaced, and
+should not be described as one. That attribute was per-store by construction, so with store A's
+transaction open and store B's nested inside it, A's log call still found A's own buffer. A single
+task-local slot cannot: while B's binding occupies it, A's log call is discarded silently. Identity is
+not what costs that — path identity would misattribute A's entries into B's buffer and commit them
+there, which is worse — the single slot is, and it fails closed by losing a reflog line rather than
+open by committing a wrong one. No live call path opens one store's transaction inside another's, so
+this is unreachable today; what would make it reachable is exactly what the promotion trigger below
+names — a second store in flight on one task, through fan-out, batch, or the server — and a per-store
+mapping is the answer on that day, not this one.
 
 The context is built from the load taken **inside** the lock. The pre-lock load that exists only to
 construct the context and is then discarded goes away, which removes both the unlocked window that
@@ -302,31 +344,34 @@ engine-internal, and mutated by appending to its reflog buffer.
 
 # Consequences
 
-**Contract.** Entirely internal. No CLI surface, flag, or output-format change; no frontmatter or
-index field added, therefore no schema bump and no migration. Two observable behaviour changes worth
-a changelog line: `sq check` no longer reports phantom drift or reconciliation errors (and no longer
-exits 3) while another process is mutating the board; and an interrupted mutation now always leaves
-the repairable skew — repairable until that item's next write, per §1 — rather than, in the worst
-case, a truncated item file. The adopter-facing line claims the truncation is gone and the survivor is
-repairable; it must not claim the interrupted mutation is durable across continued use without repair.
+**Contract.** No frontmatter or index field is added, therefore no schema bump and no migration; no
+new CLI flag. Three observable behaviour changes worth a changelog line: `sq check` no longer reports
+phantom drift or reconciliation errors (and no longer exits 3) while another process is mutating the
+board; an interrupted mutation leaves the repairable skew rather than, in the worst case, a truncated
+item file, and the surviving values are then preserved until `sq repair` runs rather than being
+overwritten by the next write; and — the cost of that, user-visible and therefore stated plainly — a
+mutation over an unrepaired skew refuses with a `sq repair` pointer, while `sq sync` reports a skipped
+roster item instead of overwriting it. The adopter-facing line claims exactly those and nothing wider.
 
-**Audit obligation.** The ordering rule is only worth what its weakest call site is. Every mutation
-core is checked against it, not just the status path: `remove_item(purge=True)` unlinks after the
-commit and must move inside the transaction, and the same sync `Path.unlink` there should go through
-the async helper the rest of the layer uses. `remove_item`'s default of de-indexing while leaving
-the `.md` on disk is a separate question — it deliberately produces an on-disk-but-not-indexed file,
-which `check` reports as an error — and is out of scope here.
+**Audit obligation.** The ordering rule is worth what its weakest call site is, so every mutation core
+is checked against it, not only the status path — including the cores that unlink rather than write,
+where the removal belongs inside the transaction like any other markdown-side write, and goes through
+the same async helpers as the rest of the layer. De-indexing an item while deliberately leaving its
+`.md` on disk is a separate question and out of scope here: it produces an on-disk-but-not-indexed
+file, which `check` reports as an error.
 
-**Documentation the rule lives in.** The `_index/_store.py` and `_itemfile.py` module docstrings
-carry the skew-direction rule and the atomic-write primitive's contract, because that is where an
-implementer reads before adding a mutation. One correction belongs there too: `transaction()`
-currently documents "If the body raises, nothing is written", which is true only of the index —
-markdown writes already made do stand, and that is by design under this decision.
+**Documentation the rule lives in.** The `_index/_store.py` and `_itemfile.py` module docstrings carry
+the skew-direction rule and the atomic-write primitive's contract, because that is where an
+implementer reads before adding a mutation. They also state the limit of transactional rollback: when
+a body raises, nothing is written *to the index*, while markdown writes already made stand — by
+design, per §1.
 
 **Testable acceptance shapes.** The crash window is reachable without killing a process: raise from
 inside a transaction body after the markdown write and assert the index is unchanged, the file is
 ahead, and `repair` converges on the file's state. Non-atomic markdown writes become structurally
-impossible if the item-file layer exposes only the atomic primitive. The read model is testable by
+impossible only where every writer of an item file goes through the item-file layer and that layer
+exposes only the atomic primitive; a backend or migration that writes an item file directly is outside
+that guarantee and carries its own coverage. The read model is testable by
 committing a mutation between a scan and its confirm pass and asserting no issue is reported, and by
 leaving a real drift on disk and asserting it is.
 
@@ -404,4 +449,22 @@ squad.
   - Two implementation constraints, both in the body: capture the base in the pure half of the core (not from a reflog delta — that structure describes logging, not a write); and treat the by-design divergences as a category — the corrections load() applies in memory and lets reach disk on the next write — normalizing the on-disk side where a normalization exists rather than excluding the field, since an exclusion is a permanent blind spot. Any future load-time in-memory correction must be registered there in the same change.
   - Roster regen ruling: skip and report, never refuse the run. Same invariant, response scaled to the operation — sync is bulk regeneration and is itself the operator's remedy for wrong generated files, so aborting it blocks the fix over a condition it did not cause; a skip preserves the surviving content and defers only regeneration (stale cache, not loss). Exit stays 0 — sq check is the dedicated reporter and already fails on that item; a verify/strict mode is where non-zero for stale generated state would belong.
   - Neither ruling changes what 0.12.2 can claim: both are 0.13 remedies and the claim stands where the F4 narrowing left it — truncation gone, survivor repairable, no durability claim across continued use without repair. F4 does not stay substantially open under this criterion: it covers description and sub-entity state, so option 1 was not the answer.
+- [2026-07-27T20:36:26Z] Robert Architect:
+  - Guard pulled into 0.12.2 (op-pierre's call, recorded on TASK-672): §1 amended for tense and scope. The 'closing it is a later change' sentence is gone; the bound now reads as enforced rather than described — surviving frontmatter is preserved UNTIL sq repair runs, with the cost stated plainly (a drifted item blocks its own mutations until repaired, per-item, one-command remedy).
+  - Bulk-mutation ruling: the check runs BEFORE the batch, never inside it. A mid-flight raise is the worst of the three options — §1's own ordering rule means the markdown writes of everything already applied stand, so one drifted item yields a partially applied import. Verified against _import.py: the importer is already validate-first (the pre-pass simulates every event on a throwaway index copy, collects every issue rather than stopping at the first, and applies only on a clean plan — its docstring pins 'an apply-time failure can only be I/O'). The guard is one more collected pre-pass issue, evaluated ONCE PER TARGETED PRE-EXISTING ITEM, not per event: after that item's first event, divergence from disk is the import's own doing. Creates are out of scope. Bulk retype/rename-status: same shape, pre-flight the known affected set and refuse before the first write; _rollback_files stays a crash safety net, not the guard's mechanism.
+  - repad/renumber are outside the guard, and not by exemption — the guard attaches to index-derived frontmatter substitution, not to file writes in general. repad renames files and leaves bytes untouched; renumber rewrites id strings inside the files' own content. Neither sources a value from the index, so neither can revert a skew, and a guard there would false-refuse on exactly the id-width divergence repad creates.
+  - Correction accepted on the divergence category: it spans BOTH correction sites, not just load() — the index side corrects at load (legacy severity, counter/width fixups), the file side at parse (pre-0.2 extra.ref_kinds folded into inline refs). The registration rule now names both.
+  - Round-trip default sanctioned, and measured rather than assumed: comparing Item.from_frontmatter(disk).to_frontmatter_dict() against the base's to_frontmatter_dict() collapses legacy extra.severity, extra.ref_kinds, key order, absent-vs-None AND a padded id (recomputed from prefix + sequence_id) — I ran all four through the real model. Olivia's caveat about id width does not bite. Note  is a from_frontmatter kwarg, so it collapses by construction if the guard passes the item's own path.
+- [2026-07-27T20:36:42Z] Robert Architect:
+  - Typo repair on the line above: the word dropped by a shell quoting slip is "path" — the path field is a from_frontmatter keyword argument, so it collapses by construction provided the guard passes the item own path.
+- [2026-07-27T21:07:47Z] Robert Architect:
+  - F13 accepted, and verified against both sides of 13888b8 rather than the summary. Old: _current_ctx was per-instance, so with store A's transaction open and B's nested inside, A._log() read A._current_ctx and buffered correctly. New: one task-local slot, so _transaction_ctx_for(A) sees active.store is B and returns None — A's entry is discarded. That is a behaviour change, not a translation; §4 corrected.
+  - Precision worth keeping: identity is not what costs the nested case — path identity would misattribute A's entries into B's buffer and commit them there, which is worse. The single slot costs it, and it fails closed (a lost reflog line) rather than open. Instance identity remains the right choice; the wording 'faithful translation' was mine and over-generalized from the no-open-transaction case, which it does describe correctly. Unreachable today (no live path opens one store's transaction inside another's); the existing promotion trigger already names what would make it reachable, and a per-store mapping is the answer then, not now.
+  - Same wrong phrase is in the code: _transaction_ctx_for's docstring in _index/_store.py carries 'instance identity is the faithful translation of the per-instance attribute this replaces'. I cannot touch src — worth folding into whoever fixes F13 so the record and the code agree.
+- [2026-07-27T21:11:43Z] Robert Architect:
+  - Coherence pass, no new decisions — five fixes plus one found while moving blocks.
+  - Rule errors first. §2's exemption premise was falsified by F3 and would have contradicted the shipped fix: the exemption now reaches only what sq can WHOLLY reproduce, and a whole-file rewrite of a file sq partly owns (a managed region in an adopter's CLAUDE.md, a stamp inside a hand-authored override) takes the primitive. The acceptance claim F1 disproved is qualified: structural impossibility holds only where every writer of an item file goes through the item-file layer; a backend or migration writing one directly is outside that guarantee and carries its own coverage.
+  - §1 reordered so the justification precedes the machinery: rule, permitted-state table, healing, why the inverse direction is forbidden, what compliance means, exemptions, then the guard. Pure block move, no wording changed.
+  - Audit obligation and the documentation paragraph restated as standing rules rather than pending work — the obligation without the status, so the record stops reading as a to-do list. repad/renumber now say explicitly that their ordering-side compliance is settled in §1 and the guard question is separate.
+  - Two more found in the pass: §3's drift message still explained itself by the pre-guard framing ('the healing window closes on that item's next write') — corrected to 'until then the item's own mutations refuse'; and §1's regenerable-artifacts bullet now says it exempts ordering only, so nobody reads it as blanket permission to use the plain writer that §2 forbids.
 <!-- sq:discussion:end -->

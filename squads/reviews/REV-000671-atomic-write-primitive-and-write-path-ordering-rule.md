@@ -7,18 +7,20 @@ status: ChangesRequested
 author: reviewer
 refs:
 - TASK-664
+- TASK-665
+- TASK-666
 subentities:
 - local_id: F1
   title: Stamped skill item files still written non-atomically by sync
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Interruption tests pass with the primitive sabotaged
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Whole-file rewrites of partly hand-authored files stay non-atomic
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Markdown-ahead skew is reverted by the next mutation
@@ -26,26 +28,42 @@ subentities:
   severity: medium
 - local_id: F5
   title: Migration-runner exemption's recorded reason covers only ordering
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: Post-commit role-file writes in link-role carry no exemption note
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Temp files leak on the error path; config temp escapes gitignore
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: Dry-run filesystem fix landed without a regression test
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F9
   title: No changelog entry for the durability change
   status: Open
   severity: low
+- local_id: F10
+  title: Confirm round drops a durable drift when the index path is stale
+  status: Open
+  severity: high
+- local_id: F11
+  title: Interruption tests hook os.fsync, which the ADR may remove
+  status: Open
+  severity: low
+- local_id: F12
+  title: Root gitignore pattern never reaches an existing squad
+  status: Open
+  severity: low
+- local_id: F13
+  title: Nested different-store transaction silently drops the outer log
+  status: Open
+  severity: low
 created_at: '2026-07-27T16:00:06Z'
-updated_at: '2026-07-27T20:26:15Z'
+updated_at: '2026-07-27T20:57:11Z'
 ---
 <!-- sq:body -->
 Independent review of the atomic write primitive and the write-path ordering rule as committed in
@@ -115,6 +133,59 @@ alone. Only the recorded justification for the migration runners is wrong in its
   writing the same target at once.
 - The full suite was not run — that belongs to the operator; targeted suites over the touched paths
   were run instead.
+
+---
+
+# Second pass — the fixes, plus the read side and the transaction context
+
+Re-reviewed at `bb39384`, covering `ebaf966` (the five fixes), `d6cd884` (the cross-source confirm
+round) and `13888b8` (the task-local transaction context). Method was the same as the first pass and
+deliberately adversarial: every claimed fix was re-broken in a scratch worktree to see whether the
+tests that are supposed to hold it actually fail.
+
+## Sabotage results
+
+| what was broken | tests that went red |
+|---|---|
+| primitive → bare truncate-in-place | 4 (both interruption tests) |
+| primitive → in-place write that still flushes and fsyncs | 4 |
+| primitive → fsync dropped, temp+replace kept (atomicity intact) | 4 — see the finding on the hook |
+| pre-fix impure rename restored in `_rename` | 1, on the right assertion |
+| section-edit routed back to the plain writer | 1 |
+| confirm round returns nothing | 8, including the CLI exit-3 case |
+| stale name in the `index_reconciled` filter | 2 race tests |
+| pre-change shared-attribute transaction context | 3, one showing 1 of 8 reflog lines surviving |
+
+Everything the first pass asked for is delivered and provably held by a test. The atomic write path
+is in good shape.
+
+## The read side
+
+The confirm round's design is sound and its "pays nothing when clean" contract is real (one index
+load, no re-reads). Durable inconsistencies survive concurrent activity on *other* items — I wrote
+three adversarial race tests to check that specifically, and all three report correctly.
+
+It has one hole, and it is the one this design was always going to risk: a candidate is re-observed
+through the index's stored path, so when that path is stale the file is not found and the claim is
+dropped. An interrupted title-changing update produces exactly that state, and for a board in it
+`sq check` prints "no issues" and exits 0 where the previous commit reported the drift.
+
+## The transaction context
+
+Correct, and it fixes more than the record claimed — the misattribution it prevents is reachable
+today with two concurrent transactions on one store, not merely latent. The nested different-store
+degradation is unreachable in live code (every `IndexStore` construction site checked) and is pinned
+by a test; the only thing I would change is the wording that calls it a faithful translation of the
+attribute it replaces.
+
+## What I could not check
+
+- The full suite and `sq check` remain the operator's; targeted `tests/service`, `tests/unit` and
+  `tests/cli` runs are green on the committed tree, as are pyright, ruff check and ruff format.
+- Still no real `fork`+`SIGKILL` test post-fix. The fault injection now lands inside the live
+  primitive, which is most of the distance, but a genuine kill remains the only end-to-end proof.
+- Concurrency across *processes* (two `sq` invocations racing) is still reasoned about rather than
+  exercised; the new race tests are all single-process.
 <!-- sq:body:end -->
 
 ## Findings
@@ -126,15 +197,19 @@ _Add with `sq review 671 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Stamped skill item files still written non-atomically by sync |
-| F2 | 🟡 medium | Fixed |  | Interruption tests pass with the primitive sabotaged |
-| F3 | 🟡 medium | Fixed |  | Whole-file rewrites of partly hand-authored files stay non-atomic |
+| F1 | 🟠 high | Verified |  | Stamped skill item files still written non-atomically by sync |
+| F2 | 🟡 medium | Verified |  | Interruption tests pass with the primitive sabotaged |
+| F3 | 🟡 medium | Verified |  | Whole-file rewrites of partly hand-authored files stay non-atomic |
 | F4 | 🟡 medium | Open |  | Markdown-ahead skew is reverted by the next mutation |
-| F5 | 🟢 low | Fixed |  | Migration-runner exemption's recorded reason covers only ordering |
-| F6 | 🟢 low | Fixed |  | Post-commit role-file writes in link-role carry no exemption note |
-| F7 | 🟢 low | Fixed |  | Temp files leak on the error path; config temp escapes gitignore |
-| F8 | 🟢 low | Fixed |  | Dry-run filesystem fix landed without a regression test |
+| F5 | 🟢 low | Verified |  | Migration-runner exemption's recorded reason covers only ordering |
+| F6 | 🟢 low | Verified |  | Post-commit role-file writes in link-role carry no exemption note |
+| F7 | 🟢 low | Verified |  | Temp files leak on the error path; config temp escapes gitignore |
+| F8 | 🟢 low | Verified |  | Dry-run filesystem fix landed without a regression test |
 | F9 | 🟢 low | Open |  | No changelog entry for the durability change |
+| F10 | 🟠 high | Open |  | Confirm round drops a durable drift when the index path is stale |
+| F11 | 🟢 low | Open |  | Interruption tests hook os.fsync, which the ADR may remove |
+| F12 | 🟢 low | Open |  | Root gitignore pattern never reaches an existing squad |
+| F13 | 🟢 low | Open |  | Nested different-store transaction silently drops the outer log |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -143,7 +218,7 @@ _Add with `sq review 671 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Stamped skill item files still written non-atomically by sync
 
 <!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟠 High
 <!-- sq:finding:F1:head:end -->
 
@@ -184,6 +259,9 @@ fields exist nowhere else, and losing them is what makes the state above unrecov
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-07-27T20:53:37Z] Paul Reviewer:
+  - Verified against ebaf966. All four write branches in _write_managed_skill now use atomic_write_text; re-ran my write spy over a fresh init+sync and every one of the 10 SKILL item files is atomic (was 10 plain / 8 atomic before), leaving only .claude/ pointers and settings.json on the plain writer.
+  - Independently checked the _agents_md conclusion rather than taking it: spied a full init+sync with backend=agents_md — its only plain writes are the .agents_md/roles/*.md staging files, which carry no frontmatter id and no index entry. The conclusion holds.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -191,7 +269,7 @@ fields exist nowhere else, and losing them is what makes the state above unrecov
 ### F2 — Interruption tests pass with the primitive sabotaged
 
 <!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟡 Medium
 <!-- sq:finding:F2:head:end -->
 
@@ -238,6 +316,12 @@ index-backed output.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-07-27T20:53:52Z] Paul Reviewer:
+  - Verified against ebaf966, by re-running the sabotage myself rather than taking the report. Three variants: (A) bare truncate-in-place — 4 tests red; (B) in-place write that still flushes and fsyncs, i.e. non-atomic but durable — 4 tests red, which is the sharper case and the one that matters. Both now fail on the right assertion: the CLI test reads the item file's own frontmatter and catches description='Renamed' having landed.
+  - The vacuous *.tmp assertion is gone, replaced by an assertion that the primitive's new error-path cleanup actually removed the temp sibling — it now tests something.
+  - One residual coupling filed separately as F13: the fault hook is os.fsync, which ADR-663 §2 explicitly sanctions removing.
+- [2026-07-27T20:56:17Z] Paul Reviewer:
+  - Correction to my note above: the fsync-hook follow-up is F11, not F13.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -245,7 +329,7 @@ index-backed output.
 ### F3 — Whole-file rewrites of partly hand-authored files stay non-atomic
 
 <!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟡 Medium
 <!-- sq:finding:F3:head:end -->
 
@@ -276,6 +360,8 @@ async, or leaving them sync and using the same temp+replace shape inline).
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-07-27T20:53:58Z] Paul Reviewer:
+  - Verified against ebaf966. managed_region.inject routes all four branches through atomic_write_text — confirmed live: CLAUDE.md and AGENTS.md now appear in the atomic set of a full init+sync. The override stamp writers use the new _aio.atomic_replace_sync; factoring the sync core out rather than cloning the temp+fsync+replace shape is the right call, and the same core now backs both the sync and async wrappers.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -328,7 +414,7 @@ divergence), or §1 gains the qualifier "provided repair runs before the next mu
 ### F5 — Migration-runner exemption's recorded reason covers only ordering
 
 <!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F5:head:end -->
 
@@ -362,6 +448,8 @@ stop telling a future reader that repair covers a truncation.
 <!-- sq:finding:F5:discussion -->
 - [2026-07-27T16:10:31Z] Catherine Manager:
   - ADR-663 §2 amended: migration runners are not exempt in principle — new migration code uses the primitive; the shipped runners stay frozen because a migration is one-shot, operator-driven and preceded by the runbook's version-control rollback point. The 'repair reconciles it' reason was mine and was wrong for atomicity.
+- [2026-07-27T20:54:09Z] Paul Reviewer:
+  - Verified: ADR-663 §2 now carries the corrected reasoning — migration runners are not exempt in principle, the shipped ones stay frozen because a migration is one-shot, operator-driven and preceded by the runbook's version-control rollback point, and it says in as many words that this is not because repair reconciles a truncation. That is the record I asked for.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -369,7 +457,7 @@ stop telling a future reader that repair covers a truncation.
 ### F6 — Post-commit role-file writes in link-role carry no exemption note
 
 <!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F6:head:end -->
 
@@ -403,6 +491,8 @@ regions of an item `.md` the committing transaction did not mirror").
 <!-- sq:finding:F6:discussion -->
 - [2026-07-27T16:10:32Z] Catherine Manager:
   - ADR-663 §1 gains a third exemption bullet naming this as the permitted skew, with both conditions pinned: a derived value the committing transaction did not mirror into the index, and reproducible by sq sync.
+- [2026-07-27T20:54:15Z] Paul Reviewer:
+  - Verified: ADR-663 §1 now names a third exemption — re-derivable regions of an item .md the committing transaction did not mirror into the index — with both conditions pinned (derived value the transaction did not mirror, and reproducible by sq sync). It is framed as the permitted skew rather than the absence of one, which is the distinction I wanted. No code change was needed and none was made.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -410,7 +500,7 @@ regions of an item `.md` the committing transaction did not mirror").
 ### F7 — Temp files leak on the error path; config temp escapes gitignore
 
 <!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F7:head:end -->
 
@@ -437,6 +527,12 @@ make the two diverge. Fixing it in both places keeps them identical.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-07-27T20:54:30Z] Paul Reviewer:
+  - Verified for both halves as specified. Cleanup: atomic_replace_sync and both IndexStore writers now unlink the temp sibling on the way out under except BaseException, and the unit test that previously asserted the leak now asserts its absence — that test change is correct, not convenient: it was pinning the behaviour this finding asked to change, and it still fails if the cleanup is removed.
+  - Gitignore: verified live. Into a project with an existing root .gitignore, init appends only the pattern and leaves node_modules/ and *.log untouched; a second run is a no-op. Appending rather than rewriting is the right mechanism and applies F3's own lesson.
+  - The fix's reach is narrower than the hole — filed separately as F14 rather than reopening this one.
+- [2026-07-27T20:56:19Z] Paul Reviewer:
+  - Correction to my note above: the gitignore-reach follow-up is F12, not F14.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -444,7 +540,7 @@ make the two diverge. Fixing it in both places keeps them identical.
 ### F8 — Dry-run filesystem fix landed without a regression test
 
 <!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
+**Status:** 🟢 Verified
 **Severity:** 🟢 Low
 <!-- sq:finding:F8:head:end -->
 
@@ -472,6 +568,9 @@ One service-level test per family, patching `_aio.write_text` to raise if reache
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-07-27T20:54:35Z] Paul Reviewer:
+  - Verified by sabotage, not by reading: re-introducing the pre-fix impure rename inside _rename turns test_a_dry_run_title_change_never_renames_the_file_on_disk red on exactly the right assertion (the original filename no longer exists). The apply-side companion test asserts the physical move, closing the half that the index-reading assertion could never have caught.
+  - The routing gate file also has teeth — routing _section_edit_core back to _aio.write_text turns test_commenting_never_reaches_the_plain_write red.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -500,6 +599,180 @@ internal primitive.
 <!-- sq:finding:F9:discussion -->
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
+
+<!-- sq:finding:F10 -->
+### F10 — Confirm round drops a durable drift when the index path is stale
+
+<!-- sq:finding:F10:head -->
+**Status:** 🔴 Open
+**Severity:** 🟠 High
+<!-- sq:finding:F10:head:end -->
+
+<!-- sq:finding:F10:body -->
+The confirm round re-reads a drift candidate's file at `item_file(self.paths, fresh_item)` — the
+path the **index** holds — and silently `continue`s on `FileNotFoundError`. When the index's stored
+`path` for that item is stale, the file is not there, the candidate is dropped, and a real, durable
+drift is never reported.
+
+A stale index `path` is not an exotic state. It is exactly what an interrupted **title-changing**
+update leaves: `_update_core` renames the file, writes the new frontmatter, and only then commits the
+index, so a crash in that window leaves the file at the new path with the new values and the index
+holding the old path *and* the old status. Both conditions for the miss hold at once.
+
+**Reproduced through the real code path** (fault the index commit during
+`update(title=…, status=…)`):
+
+    INDEX : Ready   tasks/TASK-000002-original-title.md
+    ONDISK: TASK-000002-renamed-mid-crash.md   (status: InProgress)
+    sq check -> (no issues at all)
+
+And end to end through the CLI on a scratch squad in the same state: `✓ no issues`, **exit 0**.
+
+**It is a regression, not a pre-existing gap.** The same scenario against `ebaf966` (the commit
+immediately before this one) reports `warn TASK-2: status drift between frontmatter and index`. The
+scan pass finds the file by walking the type folders — reality — while the confirm pass looks it up
+through the index, which is the side already known to be behind.
+
+**Why this one matters more than its class usually would.** The architect's F4 ruling accepts shipping
+the silent-clobber gap on the strength of exactly this signal: "the drift message tells the reader to
+repair before mutating that item again". A gate that answers "no issues" for a board in that state
+removes the only warning the user gets before the next mutation destroys the interrupted update's
+fields. It also breaks the gate's own stated contract in the other direction from the one this work
+was worried about: `check` may decline to claim quiescence, but a durable inconsistency has to survive
+the confirm round.
+
+**Fix shape.** In the drift loop, re-observe the file wherever the sequence number actually lives, not
+only where the index thinks it does: try the fresh index's path, and on `FileNotFoundError` fall back
+to the path the scan recorded for that sequence (`on_disk[seq][1]`) before giving up. Only skip when
+neither exists — that is the genuine "gone since the scan" case the `continue` was written for. The
+ADR's instruction to use the freshly loaded index's path was aimed at an in-flight retype
+manufacturing a false claim; it does not anticipate the index's path field itself being the stale
+side, which an interrupted rename guarantees.
+
+Worth a regression test in the same file as the other durable-inconsistency cases: durable drift on an
+item whose index path is stale must still be reported.
+<!-- sq:finding:F10:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F10:discussion -->
+<!-- sq:finding:F10:discussion:end -->
+<!-- sq:finding:F10:end -->
+
+<!-- sq:finding:F11 -->
+### F11 — Interruption tests hook os.fsync, which the ADR may remove
+
+<!-- sq:finding:F11:head -->
+**Status:** 🔴 Open
+**Severity:** 🟢 Low
+<!-- sq:finding:F11:head:end -->
+
+<!-- sq:finding:F11:body -->
+Both interruption tests now fault the live primitive by monkeypatching `os.fsync`. That is a real
+improvement over the stub — I verified it catches a bare truncate-in-place *and* an in-place write
+that still flushes and fsyncs. The residual problem is the choice of hook.
+
+ADR-663 §2 names removing the markdown-side fsync as the **sanctioned relief** if bulk import ever
+measures a real regression: "the sanctioned relief is to skip the fsync on the markdown side — not to
+defer the renames … and not to reorder against the index commit". So the tests are pinned to a call
+the design explicitly reserves the right to delete.
+
+Verified: dropping only the fsync from `atomic_replace_sync`, leaving temp+replace (and therefore
+atomicity) fully intact, turns all four interruption tests red. Whoever takes that sanctioned relief
+will get four failing durability tests describing a data-loss scenario that has not occurred, and the
+natural reading of that failure is "the relief broke atomicity" when it did not.
+
+Not urgent and not a correctness problem today. A hook that survives the sanctioned change: patch
+`pathlib.Path.replace` but raise only when the target is this item's path, letting the index's own
+replace through. That faults the step the design cannot remove — the rename is the atomicity — and it
+sidesteps the reason `Path.replace` was abandoned in the first place (the index commit tripping the
+same global patch).
+<!-- sq:finding:F11:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F11:discussion -->
+<!-- sq:finding:F11:discussion:end -->
+<!-- sq:finding:F11:end -->
+
+<!-- sq:finding:F12 -->
+### F12 — Root gitignore pattern never reaches an existing squad
+
+<!-- sq:finding:F12:head -->
+**Status:** 🔴 Open
+**Severity:** 🟢 Low
+<!-- sq:finding:F12:head:end -->
+
+<!-- sq:finding:F12:body -->
+`_ensure_root_tmp_ignored` is called from `init` and `adopt` only. Neither runs again on a squad that
+already exists, so every squad initialised before this release keeps the hole the finding described:
+an interrupted `.squads.toml` write leaves `.squads.toml.<pid>.<tid>.tmp` at the project root,
+untracked and unignored, where a `git add -A` sweeps it into a commit.
+
+This repository is itself an example — its root `.gitignore` contains neither `*.tmp` nor the new
+pattern, and nothing in the upgrade path will add it.
+
+`sq sync` is the natural home: it is the idempotent "bring this squad up to date with the installed
+version" command, the helper is already a no-op when the pattern (or a covering `*.tmp`) is present,
+and it is what an upgrading adopter runs anyway. Calling it from `sync` in addition to `init`/`adopt`
+is a one-line change and needs no migration.
+
+Low severity — the artefact only appears after a failed config write, and committing it is untidy
+rather than harmful. Filed separately rather than reopening the original finding, whose two asks were
+both delivered as written.
+<!-- sq:finding:F12:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F12:discussion -->
+<!-- sq:finding:F12:discussion:end -->
+<!-- sq:finding:F12:end -->
+
+<!-- sq:finding:F13 -->
+### F13 — Nested different-store transaction silently drops the outer log
+
+<!-- sq:finding:F13:head -->
+**Status:** 🔴 Open
+**Severity:** 🟢 Low
+<!-- sq:finding:F13:head:end -->
+
+<!-- sq:finding:F13:body -->
+The store-scoped guard is right, and the concurrency fix it delivers is real: I restored the
+pre-change shared-attribute design in a scratch worktree and the new concurrency test fails hard —
+**1 of 8** reflog lines survives, the other seven misattributed into another task's buffer. The
+defect the decision called "currently unreachable" is reachable the moment two transactions on one
+store share an event loop, which is what a long-lived process (TUI, editor extension, server) does.
+Worth recording, because it makes this change more than hygiene.
+
+The one thing I would not leave as written is the claim that instance identity is "the faithful
+translation of the per-instance attribute being replaced". For the nested case it is not a
+translation, it is a behaviour change:
+
+- **Before:** store A opens a transaction; store B's transaction is nested inside; `A._log()` reads
+  `A._current_ctx`, which is still A's own context, and buffers correctly.
+- **After:** one ambient slot per task, so B's binding shadows A's; `A._log()` sees a foreign owner
+  and returns `None`. A's entries are **silently discarded** for the duration of the inner
+  transaction — not misattributed, but not written either.
+
+The unit test pins that discard as intended (`assert _transaction_ctx_for(outer_store) is None`),
+which is the right way to record a known divergence but does mean the divergence is now load-bearing.
+
+Unreachable today — I checked every `IndexStore(...)` construction site: the two migration runners
+build their own store outside any other transaction, `init`/`adopt` build one standalone, and
+`Service` holds exactly one. Nothing nests across stores. So no fix is needed for 0.12.2.
+
+Two cheap ways to close it whenever the transaction API is next touched (the decision already names
+that as the promotion trigger): bind a per-store mapping rather than a single slot
+(`ContextVar[dict[IndexStore, _TransactionCtx]]`, entry added and removed by token), or keep the
+single slot and drop the "faithful translation" wording so the next reader knows the nested case
+loses log lines rather than assuming parity with the old attribute.
+<!-- sq:finding:F13:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F13:discussion -->
+<!-- sq:finding:F13:discussion:end -->
+<!-- sq:finding:F13:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -515,4 +788,12 @@ internal primitive.
   - @tech-lead @python-dev F1 and F2 are the actionable pair; F3/F4 are model-level and need @architect's call rather than a patch here.
 - [2026-07-27T20:19:40Z] Catherine Manager:
   - F1/F2/F3/F7/F8 fixed in the tree; awaiting full-suite verification and re-review. F2's acceptance was met by demonstration: sabotaging the primitive to a bare truncate turns both interruption tests red (4 failed), restoring turns them green. Signed off the dev's scope call to touch _services/_service.py for F7's gitignore half — it was the only way to close it. F4/F5/F6 ruled by the architect; F9 goes to the tech writer at the end of the round.
+- [2026-07-27T20:57:11Z] Paul Reviewer:
+  - Second pass at bb39384 (ebaf966 + d6cd884 + 13888b8). All five fixes verified by re-breaking them, not by reading: F1, F2, F3, F5, F6, F7, F8 → Verified. Details and the sabotage table are in each finding and the appended body section.
+  - One new high finding, F10, and it is a shipping blocker for 0.12.2 as it stands: sq check's confirm round re-reads a drift candidate at the path the INDEX holds and silently skips on FileNotFoundError, so when that path is stale the durable drift is never reported. An interrupted title-changing update leaves exactly that state (rename, then frontmatter write, then the index commit that never lands). Reproduced through the real code path and end to end — the CLI prints '✓ no issues' and exits 0; ebaf966, one commit earlier, reports the drift. Fix is a fallback to the scan's own path for that sequence before giving up.
+  - F10 matters beyond its own scope because @architect's F4 ruling accepts the silent-clobber risk on the strength of this exact signal — 'the drift message tells the reader to repair before mutating that item again'. With F10 open there is no message.
+  - Three low findings, none blocking: F11 (the interruption tests hook os.fsync, which ADR-663 §2 explicitly reserves the right to remove — taking that sanctioned relief turns all four red for a reason unrelated to atomicity), F12 (the root gitignore pattern only reaches new squads; sync is the idempotent home), F13 (the nested different-store context degradation is a behaviour change, not a faithful translation, of the attribute it replaced — unreachable today, so wording or a per-store mapping, not a fix now).
+  - Otherwise the read side is sound: the confirm round pays nothing on a clean board, and durable inconsistencies survive concurrent activity on other items — I wrote three adversarial race tests to check that specifically. The transaction context is right and fixes more than was claimed: restoring the old shared attribute leaves 1 of 8 reflog lines surviving, so that misattribution was reachable, not latent.
+  - On pace: this round is not being rushed in the sense of skipped work — the fixes are thorough and the new tests have teeth. But F10 is a regression that landed in the same commit as its own test suite and neither the suite nor the gate caught it, which is the second time in this ticket that a green suite has stood in for a proof. Fix F10, add the regression test, and I would call 0.12.2 shippable.
+  - @python-dev F10 is the one to act on. @tech-lead F11/F12 are cheap; F13 is a judgement call for @architect on wording versus mechanism.
 <!-- sq:discussion:end -->
