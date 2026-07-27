@@ -13,6 +13,7 @@ import {
   NO_FILTER,
 } from '../src/domain/listView';
 import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
+import { buildTypeLabelMap } from '../src/domain/typeLabels';
 import { buildTypeOrderMap } from '../src/domain/typeOrder';
 import type {
   SqListItem,
@@ -133,10 +134,17 @@ describe('groupListItems', () => {
   });
 
   it('given the type catalog, orders groups by spec order rather than type name (F1)', () => {
-    const nodes = groupListItems(items, true, TYPE_ORDER_MAP);
+    const nodes = groupListItems(items, true, { orderMap: TYPE_ORDER_MAP });
 
     // Spec order is task(30) < bug(40) < review(60); alphabetical would be bug, review, task.
     expect(nodes.map((node) => node.label)).toEqual(['task', 'bug', 'review']);
+  });
+
+  it('with a labelMap, renders group headers using the resolved plural label, not the raw type', () => {
+    const labelMap = buildTypeLabelMap(TYPE_CATALOG_FIXTURE);
+    const nodes = groupListItems(items, true, { labelMap });
+
+    expect(nodes.map((node) => node.label).sort()).toEqual(['Bugs', 'Reviews', 'Tasks']);
   });
 
   it('sorts leaves within each type bucket by numeric id order too', () => {
@@ -156,16 +164,7 @@ describe('groupListItems', () => {
       { ...makeItem('ADR-1', 'decision'), status: 'Accepted' },
     ];
 
-    const nodes = groupListItems(
-      mixedItems,
-      false,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      statusRoles,
-      roleCatalog,
-    );
+    const nodes = groupListItems(mixedItems, false, { statusRoles, roleCatalog });
 
     // InProgress ("active" role): not settled, not hidden, positive colour.
     const inProgress = nodes.find((node) => node.id === 'TASK-1');
@@ -199,7 +198,7 @@ describe('groupListItems', () => {
   });
 
   it('layers squads.typeIcons overrides over the bundled per-type icon defaults (F21)', () => {
-    const nodes = groupListItems(items, false, undefined, { task: 'flame' });
+    const nodes = groupListItems(items, false, { iconOverrides: { task: 'flame' } });
 
     expect(nodes.find((node) => node.id === 'TASK-1')?.iconId).toBe('flame');
     // A type absent from the overrides still gets its bundled default.
@@ -236,6 +235,25 @@ describe('buildFilteredGroupedView (end to end)', () => {
       'decision',
       'review',
       'guide',
+    ]);
+  });
+
+  it('given a labelMap, renders group headers with resolved plural labels end to end', () => {
+    const labelMap = buildTypeLabelMap(TYPE_CATALOG_FIXTURE);
+
+    const nodes = buildFilteredGroupedView(LIST_FIXTURE, NO_FILTER, true, {
+      orderMap: TYPE_ORDER_MAP,
+      labelMap,
+    });
+
+    expect(nodes.map((node) => node.label)).toEqual([
+      'Epics',
+      'Features',
+      'Tasks',
+      'Bugs',
+      'Decisions',
+      'Reviews',
+      'Guides',
     ]);
   });
 });

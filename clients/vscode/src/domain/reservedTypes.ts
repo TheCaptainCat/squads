@@ -7,7 +7,11 @@
  * `META_BUCKETS` is the single source both directions read from: the work tree excludes these
  * types (`isReservedType`), and the meta/roster view (`domain/metaView.ts`) is their complement,
  * bucketed under these 3 fixed, ordered subfolders — never derived from `distinctTypes`, so it
- * can't grow a 4th bucket just because a project happens to have a differently-named type.
+ * can't grow a 4th bucket just because a project happens to have a differently-named type. Only
+ * the bucket *types* are fixed here — each bucket's rendered *label* is no longer a TS literal:
+ * `domain/metaView.ts` resolves it from the type catalog via `domain/typeLabels.ts::pluralLabel`
+ * (the same shared resolver the Records and Work trees use), falling back to the raw type string
+ * the same way every other tree does when the catalog fetch failed or hasn't completed.
  *
  * The work tree ALSO excludes `records`-category types (decision/guide, plus any custom records
  * type): those get their own dedicated view (`domain/recordsView.ts`), the same way roster does.
@@ -16,10 +20,10 @@
  */
 import { isRecordsCategory, NO_CATEGORIES, type TypeCategoryMap } from './typeCategory';
 
-export const META_BUCKETS: readonly { readonly type: string; readonly label: string }[] = [
-  { type: 'role', label: 'Roles' },
-  { type: 'skill', label: 'Skills' },
-  { type: 'operator', label: 'Operators' },
+export const META_BUCKETS: readonly { readonly type: string }[] = [
+  { type: 'role' },
+  { type: 'skill' },
+  { type: 'operator' },
 ];
 
 const RESERVED_TYPES: ReadonlySet<string> = new Set(META_BUCKETS.map((bucket) => bucket.type));

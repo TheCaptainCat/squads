@@ -1,18 +1,21 @@
 """``sq workflow types`` — the type-catalog machine surface.
 
 Default prints a human Rich table; ``--json`` emits the frozen bare-array shape
-(``{type, order, prefix, reserved, category, fields}``) in ascending resolved order,
+(``{type, order, prefix, reserved, category, fields, labels}``) in ascending resolved order,
 type-name tiebreak. ``category`` is the type's declared roster/work/records axis
 (``reserved`` is exactly ``category == "roster"``); ``fields`` is the type's declared
-field->collection bindings. Both clients read the category split from here instead of
-re-deriving it. The byte-identical golden is pinned in
+field->collection bindings; ``labels`` is the type's four resolved display-label forms
+(``singular``/``plural``/``singular_lower``/``plural_lower``, pin-else-derive via
+``labels_for``). Both clients read the category split and the display labels from here
+instead of re-deriving them. The byte-identical golden is pinned in
 ``tests/cli/test_json_output_shape.py`` (``tests/goldens/workflow_types.json``) — this module
 covers the field-set/model contract, the null-order representation, the ``fields`` binding,
-and the human table.
+the ``labels`` forms, and the human table.
 """
 
 import json
 import math
+from typing import cast
 
 import pytest
 
@@ -132,11 +135,69 @@ async def test_json_row_fields_matches_the_spec_declared_field_collection_bindin
     assert {f["code"] for f in rows["bug"]["fields"]} == {"priority", "severity"}
 
 
+async def test_json_labels_are_derived_for_bundled_types(project, invoke) -> None:
+    """No pinned override present: every bundled type's labels are the plain derived
+    fallback (singular.capitalize() + naive "s" pluralization)."""
+    result = await invoke(["workflow", "types", "--json"])
+    rows = {r["type"]: r for r in json.loads(result.output)}
+    assert rows["decision"]["labels"] == {
+        "singular": "Decision",
+        "plural": "Decisions",
+        "singular_lower": "decision",
+        "plural_lower": "decisions",
+    }
+    assert rows["role"]["labels"] == {
+        "singular": "Role",
+        "plural": "Roles",
+        "singular_lower": "role",
+        "plural_lower": "roles",
+    }
+
+
+def test_json_labels_reflect_a_pinned_override() -> None:
+    """A type with a pinned ``labels`` table on its ``ItemSpec`` surfaces that pin verbatim
+    (pin-else-derive), rather than the naive derived fallback."""
+    from squads._workflow._models import LabelSpec
+
+    base = load_workflow_spec()
+    new_items = dict(base.items)
+    new_items["bug"] = base.items["bug"].model_copy(
+        update={"labels": LabelSpec(singular="Defect", plural="Defects")}
+    )
+    spec = WorkflowSpec.model_validate(
+        {
+            "items": new_items,
+            "statuses": base.statuses,
+            "lifecycles": base.lifecycles,
+            "prefix_to_type": base.prefix_to_type,
+            "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
+            "roles": base.roles,
+        }
+    )
+    rows = {r["type"]: r for r in _type_catalog(spec)}
+    bug_labels = cast("dict[str, str]", rows["bug"]["labels"])
+    assert bug_labels["singular"] == "Defect"
+    assert bug_labels["plural"] == "Defects"
+    # unset forms on the pin still fall back to derived.
+    assert bug_labels["singular_lower"] == "bug"
+    assert bug_labels["plural_lower"] == "bugs"
+
+
 # ─── field-set / model contract ─────────────────────────────────────────────────
 
 
-def test_frozen_field_set_is_exactly_type_order_prefix_reserved_category_fields() -> None:
-    assert TYPE_CATALOG_FIELDS == ("type", "order", "prefix", "reserved", "category", "fields")
+def test_frozen_field_set_is_exactly_type_order_prefix_reserved_category_fields_labels() -> None:
+    assert TYPE_CATALOG_FIELDS == (
+        "type",
+        "order",
+        "prefix",
+        "reserved",
+        "category",
+        "fields",
+        "labels",
+    )
 
 
 def test_frozen_field_entry_field_set_is_exactly_code_label_collection() -> None:

@@ -4,6 +4,11 @@
  * the complement of the work tree's reserved-type exclusion (`reservedTypes.ts`). Unlike the
  * work tree, this view is never filterable/groupable: always exactly these 3 buckets, in this
  * fixed order, each present even when empty, with items inside a bucket in numeric id order.
+ * The 3 bucket *types* are the fixed `META_BUCKETS` list; each bucket's rendered *label* is
+ * resolved from the type catalog via the shared `domain/typeLabels.ts::pluralLabel` resolver —
+ * the same one the Records and Work trees route through — falling back to the raw type string
+ * when the catalog fetch failed, hasn't completed, or the connected `sq` predates the resolved
+ * `labels` field.
  */
 import type { SqListItem } from '../types';
 import {
@@ -23,6 +28,7 @@ import {
   type RoleCatalogMap,
   type StatusRoleMap,
 } from './statusRole';
+import { NO_LABELS, pluralLabel, type TypeLabelMap } from './typeLabels';
 
 function itemToLeaf(
   item: SqListItem,
@@ -72,19 +78,22 @@ function sortedLeaves(
  * order, each always present (even with 0 items) and never merged/reordered by content.
  * `fieldBindings`/`badgeVocabulary` (F19) and `statusRoles`/`roleCatalog`  default to the
  * graceful-fallback empty maps, degrading each leaf's tooltip badges to raw codes / disabling
- * the colour highlight rather than breaking the view. */
+ * the colour highlight rather than breaking the view. `labelMap` defaults to `NO_LABELS`,
+ * resolving each bucket's header via the shared `pluralLabel` resolver rather than a hardcoded
+ * literal — falls back to the raw type string the same way every other tree does. */
 export function buildMetaView(
   items: readonly SqListItem[],
   fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
   badgeVocabulary: BadgeVocabulary = NO_BADGE_VOCABULARY,
   statusRoles: StatusRoleMap = NO_STATUS_ROLES,
   roleCatalog: RoleCatalogMap = NO_ROLES,
+  labelMap: TypeLabelMap = NO_LABELS,
 ): DisplayNode[] {
-  return META_BUCKETS.map(({ type, label }) => {
+  return META_BUCKETS.map(({ type }) => {
     const bucketItems = items.filter((item) => item.type === type);
     return groupDisplayNode(
       `meta:${type}`,
-      label,
+      pluralLabel(type, labelMap),
       bucketItems.length,
       sortedLeaves(bucketItems, fieldBindings, badgeVocabulary, statusRoles, roleCatalog),
     );

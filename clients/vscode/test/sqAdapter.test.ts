@@ -415,8 +415,42 @@ describe('getTypeCatalog', () => {
       reserved: false,
       category: 'work',
       fields: [{ code: 'priority', label: 'Priority', collection: 'priority' }],
+      labels: { singular: 'Epic', plural: 'Epics', singular_lower: 'epic', plural_lower: 'epics' },
     });
     expect(outcome.data.some((entry) => entry.reserved)).toBe(true);
+  });
+
+  it('accepts an entry with no labels object (an older sq predating resolved display labels)', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        { type: 'widget', order: null, prefix: 'WID', reserved: false, category: 'work' },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+  });
+
+  it('rejects an entry whose labels object is missing a required field', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        {
+          type: 'widget',
+          order: null,
+          prefix: 'WID',
+          reserved: false,
+          category: 'work',
+          labels: { singular: 'Widget', plural: 'Widgets', singular_lower: 'widget' },
+        },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('parse-error');
   });
 
   it('builds argv as "workflow types --json"', async () => {

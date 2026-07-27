@@ -26,6 +26,7 @@ from rich.table import Table
 
 from squads._cli._common import console, e, handle_errors, status_text
 from squads._errors import SquadsError
+from squads._models._vocab import labels_for
 
 if TYPE_CHECKING:
     from squads._workflow._models import WorkflowSpec
@@ -86,13 +87,14 @@ def _print_cheatsheet(*, raw: bool) -> None:
 
 #: Frozen field set for the ``sq workflow types --json`` catalog. Kept as a module-level
 #: tuple so a test can assert the CLI never drifts from the declared contract.
-TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str] = (
+TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str] = (
     "type",
     "order",
     "prefix",
     "reserved",
     "category",
     "fields",
+    "labels",
 )
 
 #: Frozen field set for each entry of a type-catalog row's ``fields`` array.
@@ -118,7 +120,10 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     declared ``roster``/``work``/``records`` axis (the same taxonomy ``reserved``
     already summarizes as a boolean) — a client reads it here instead of re-deriving the
     split from ``reserved`` or a hardcoded type list. ``fields`` is the type's declared
-    field->collection bindings — ``[]`` for a type with no badge fields.
+    field->collection bindings — ``[]`` for a type with no badge fields. ``labels`` is the
+    type's four resolved display-label forms (``singular``/``plural``/``singular_lower``/
+    ``plural_lower``), pin-else-derive via ``labels_for`` — a client reads a pretty group
+    header here instead of title-casing the raw type string itself.
     """
     types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
     return [
@@ -129,6 +134,7 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "reserved": spec.items[t].category == "roster",
             "category": spec.items[t].category,
             "fields": _type_fields(t, spec),
+            "labels": labels_for(t, spec),
         }
         for t in types
     ]
@@ -143,12 +149,14 @@ def workflow_types(
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
     declared type (work AND reserved), in ascending resolved ``order`` (type-name
-    string breaks ties): ``{type, order, prefix, reserved, category, fields}``. ``order``
-    is ``null`` when the type has no explicit order (``+inf``); ``category`` is one of
-    ``roster``/``work``/``records`` (``reserved`` is exactly ``category == "roster"``);
-    ``fields`` is the type's declared field->collection bindings
-    (``[{code, label, collection}]``, ``[]`` if none) — present, never omitted, so the
-    key set is stable across every object.
+    string breaks ties): ``{type, order, prefix, reserved, category, fields, labels}``.
+    ``order`` is ``null`` when the type has no explicit order (``+inf``); ``category`` is
+    one of ``roster``/``work``/``records`` (``reserved`` is exactly
+    ``category == "roster"``); ``fields`` is the type's declared field->collection
+    bindings (``[{code, label, collection}]``, ``[]`` if none); ``labels`` is the type's
+    four resolved display-label forms (``{singular, plural, singular_lower,
+    plural_lower}``, pin-else-derive) — all present, never omitted, so the key set is
+    stable across every object.
     """
     from squads._cli._common import get_active_spec, print_json_clean
 

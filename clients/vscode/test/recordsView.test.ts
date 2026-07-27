@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { buildRecordsView } from '../src/domain/recordsView';
 import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
 import { buildCategoryMap, NO_CATEGORIES } from '../src/domain/typeCategory';
+import { buildTypeLabelMap } from '../src/domain/typeLabels';
 import { buildTypeOrderMap } from '../src/domain/typeOrder';
 import type {
   SqListItem,
@@ -127,16 +128,7 @@ describe('buildRecordsView', () => {
     const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
     const items: SqListItem[] = [makeItem('ADR-1', 'decision', 'Accepted')];
 
-    const nodes = buildRecordsView(
-      items,
-      CATEGORY_MAP,
-      ORDER_MAP,
-      {},
-      undefined,
-      undefined,
-      statusRoles,
-      roleCatalog,
-    );
+    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP, { statusRoles, roleCatalog });
     const leaf = nodes.find((node) => node.label === 'decision')?.children[0];
 
     // Accepted ("in_force" role): settled but NOT hidden — shows in its own colour.
@@ -152,5 +144,22 @@ describe('buildRecordsView', () => {
 
     expect(nodes.find((node) => node.label === 'decision')?.children[0]?.iconId).toBe('lightbulb');
     expect(nodes.find((node) => node.label === 'guide')?.children[0]?.iconId).toBe('book');
+  });
+
+  it('with a labelMap, renders bucket headers using the resolved plural label, not the raw type', () => {
+    const labelMap = buildTypeLabelMap(TYPE_CATALOG_FIXTURE);
+    const items: SqListItem[] = [makeItem('ADR-1', 'decision'), makeItem('GUIDE-1', 'guide')];
+
+    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP, { labelMap });
+
+    expect(nodes.map((node) => node.label)).toEqual(['Decisions', 'Guides']);
+  });
+
+  it('without a labelMap (the graceful fallback), still uses the raw type as the header', () => {
+    const items: SqListItem[] = [makeItem('ADR-1', 'decision')];
+
+    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP);
+
+    expect(nodes.map((node) => node.label)).toEqual(['decision', 'guide']);
   });
 });
