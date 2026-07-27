@@ -31,3 +31,7 @@ class RoleNotFoundError(SquadsError):
 
 class StatusNotInWorkflowError(SquadsError):
     pass
+
+
+class UndecodableFileError(SquadsError):
+    """A file's on-disk bytes aren't valid UTF-8 — raised by :func:`squads._aio.read_text`."""

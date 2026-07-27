@@ -23,6 +23,8 @@ from pathlib import Path
 
 import anyio.to_thread
 
+from squads._errors import UndecodableFileError
+
 
 async def to_thread[T](fn: Callable[[], T]) -> T:
     """Run a zero-arg blocking callable on a worker thread; pin the return type.
@@ -34,8 +36,27 @@ async def to_thread[T](fn: Callable[[], T]) -> T:
 
 
 async def read_text(path: Path) -> str:
-    """Read *path* as UTF-8 text on a worker thread."""
-    return await to_thread(lambda: path.read_text(encoding="utf-8"))
+    """Read *path* as UTF-8 text on a worker thread.
+
+    Raises :class:`~squads._errors.UndecodableFileError` (a ``SquadsError`` naming *path* and
+    the decoder's failing byte/offset) when the on-disk bytes aren't valid UTF-8. This is the
+    one shared read helper nearly every reader in the product goes through — item files, board
+    notices, memory entries, override templates, the reflog, the migration runners — so one
+    guard here covers all of them.
+
+    Deliberately does **not** catch ``FileNotFoundError``: a few callers
+    (``_services/_maintenance.py``'s ``check`` confirm round, ``_services/_import.py``'s
+    pre-pass) read a missing file as a signal, not a failure, and rely on it propagating
+    unchanged. Callers that want a clean not-found error convert it themselves at their own
+    read seam, where "missing" has one meaning instead of several.
+    """
+    try:
+        return await to_thread(lambda: path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as exc:
+        bad_byte = exc.object[exc.start]
+        raise UndecodableFileError(
+            f"{path} is not valid UTF-8: byte {bad_byte:#04x} at offset {exc.start} — {exc.reason}"
+        ) from exc
 
 
 async def write_text(path: Path, text: str) -> None:

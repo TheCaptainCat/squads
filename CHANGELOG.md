@@ -20,6 +20,12 @@ All notable changes to this project are documented here. The format follows
   `sq repair` clears the block and both the interrupted change and the new one land. `sq sync`
   responds differently for a drifted role or skill: it leaves that item's file untouched, names
   it, and still regenerates everything else.
+- **A file `sq` can't read now reports a clear error instead of a stack trace.** A squad-data
+  file containing bytes that aren't valid UTF-8 — an item, a board notice, a memory entry, or
+  `.squads.toml` itself — now fails with a message naming the file, on every command that
+  reads it. Separately, an item whose file has moved out from under the index (an interrupted
+  rename or retype) now reports a clear error naming the item and pointing at `sq repair`,
+  instead of failing with a stack trace.
 
 ## [0.12.1]
 

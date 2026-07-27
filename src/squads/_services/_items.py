@@ -437,13 +437,13 @@ class ItemsMixin(ServiceCore):
     async def read_body(self, item_id: str) -> str:
         """The item's top-level ``:body`` region content (for ``sq show``) — read on a thread."""
         item = await self.get(item_id)
-        text = await _aio.read_text(item_file(self.paths, item))
+        text = await self._read_item_file(item, item_file(self.paths, item))
         return (sections.get_section(text, markers.BODY) or "").strip("\n")
 
     async def read_discussion(self, item_id: str) -> str:
         """The item's top-level ``:discussion`` region content (for ``sq show --comments``)."""
         item = await self.get(item_id)
-        text = await _aio.read_text(item_file(self.paths, item))
+        text = await self._read_item_file(item, item_file(self.paths, item))
         return (sections.get_section(text, markers.DISCUSSION) or "").strip("\n")
 
     async def comments(self, item_id: str) -> list[discussion.Comment]:
