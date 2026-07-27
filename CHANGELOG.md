@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1]
+
+### Added
+
+- **Per-type display labels.** An item type can declare human-readable display labels — a
+  singular and plural form (each with a lowercase variant) — in `.overrides/workflow.toml`;
+  any form left out is derived from the type name. `sq workflow types --json` now exposes the
+  resolved labels per type, and every client renders them: the VS Code extension's Records and
+  Work (group-by-type) trees show "Decisions" / "Tasks" instead of the raw `decision` / `task`,
+  the Roster tree resolves its labels from the spec, and the `sq ui` TUI's type filters and
+  search results show the label too. Acronym or irregular types (e.g. an `ADR`) can pin every
+  form so they stay correctly cased.
+
+### Changed
+
+- **Generated onboarding nudges agents to load their memory and the board on start.** A fresh
+  `sq init` / `sq sync` now writes start-of-run guidance into the CLAUDE.md/AGENTS.md managed
+  region and each role sheet — load your role memory (`sq memory <role> list`) and check the
+  team board (`sq board list`) — and tells the coordinating manager to load the `squads` skill
+  at session start and again after a context compaction.
+
 ## [0.12.0]
 
 ### Added
