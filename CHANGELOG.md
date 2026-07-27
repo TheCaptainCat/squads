@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.2]
+
+### Changed
+
+- **`sq check` no longer reports phantom drift or reconciliation errors — and no longer
+  fails — while another process is mutating the board.** A status/parent mismatch, a file
+  found on disk but missing from the index, or an index entry with no file on disk are now
+  confirmed with one fresh re-read before being reported, so a mutation that lands while
+  `check` is scanning resolves quietly instead of surfacing a false warning or a false error
+  exit code. A confirmed drift now also names which side is ahead when that can be determined.
+
 ## [0.12.1]
 
 ### Added
