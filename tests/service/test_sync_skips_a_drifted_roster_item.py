@@ -21,7 +21,7 @@ async def test_a_drifted_role_is_skipped_and_named_while_the_rest_of_the_roster_
     role = await svc.activate_role("tech-writer")
     other_role = await svc.activate_role("reviewer")
 
-    real_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+    real_atomic_write = IndexStore._atomic_write
 
     async def _boom(self, db):
         raise OSError("simulated crash during the index commit")

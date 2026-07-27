@@ -212,7 +212,7 @@ class CollabMixin(ServiceCore):
                 raise SquadsError(
                     f"no discussion section {tag!r} in {item_id} (was it scaffolded?)"
                 )
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "comment",
                 _item.id,
                 {"author": as_slug},

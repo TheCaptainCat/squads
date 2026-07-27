@@ -65,7 +65,7 @@ class ItemsMixin(ServiceCore):
         """The status-transition mutation core: takes an already-open transaction's ``db``."""
         item, old_status, base = self._set_status_model(db, item_id, status, force=force)
         await update_frontmatter(item_file(self.paths, item), item, base)
-        self.store._log(  # pyright: ignore[reportPrivateUsage]
+        self.store.log(
             "status",
             item.id,
             {"status": [old_status, item.status]},
@@ -225,7 +225,7 @@ class ItemsMixin(ServiceCore):
 
         A title change shares retype's rename-then-write shape below: the file moves to its
         new path, then its frontmatter is rewritten there — see
-        :func:`squads._services._retype._apply_type_change` for the crash window that opens
+        :func:`squads._services._retype.apply_type_change` for the crash window that opens
         between those two steps and why it is the expected, repairable outcome rather than a
         defect. A title-less update never renames, so it stays readable at one path throughout.
         """
@@ -260,7 +260,7 @@ class ItemsMixin(ServiceCore):
                 ensure_no_skew(old_text, base)
                 await _aio.path_rename(old_path, new_path)
         await update_frontmatter(item_file(self.paths, item), item, base)
-        self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
+        self.store.log("update", item.id, delta)
         return item
 
     @staticmethod
@@ -356,7 +356,7 @@ class ItemsMixin(ServiceCore):
             # create/update site gates through.
             ValidatorEngine(spec=self.spec).gate(child, db)
             await update_frontmatter(item_file(self.paths, child), child, base)
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "link",
                 child.id,
                 {"parent": [old_parent, parent_id]},
@@ -372,7 +372,7 @@ class ItemsMixin(ServiceCore):
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, child), child, base)
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "link",
                 child.id,
                 {"parent": [old_parent, None]},
@@ -417,7 +417,7 @@ class ItemsMixin(ServiceCore):
                 current = (sections.get_section(text, markers.BODY) or "").strip("\n")
                 if current:
                     new_body = f"{current}\n\n{body}"
-            self.store._log("body", item.id, {})  # pyright: ignore[reportPrivateUsage]
+            self.store.log("body", item.id, {})
             return sections.replace_section(text, markers.BODY, new_body)
 
         return mutate
@@ -496,7 +496,7 @@ class ItemsMixin(ServiceCore):
         number is a sanctioned gap — it is never reissued.
 
         **Reflog:** the op identity (``op=remove``) and gone-item snapshot are assembled
-        here and appended post-commit via ``store._log()`` inside the transaction.
+        here and appended post-commit via ``store.log()`` inside the transaction.
         """
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
@@ -558,7 +558,7 @@ class ItemsMixin(ServiceCore):
 
             # Reflog: op=remove + gone-item snapshot.
             # Appended AFTER os.replace by the store's transaction machinery.
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "remove",
                 item.id,
                 {

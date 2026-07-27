@@ -17,7 +17,7 @@ from squads._tui._browse import BrowseScreen
 from squads._tui._reader import ReaderScreen
 from squads._tui._search import (
     SearchScreen,
-    _HitItem,  # pyright: ignore[reportPrivateUsage]
+    _HitItem,
 )
 from squads._workflow import bundled_spec
 from squads._workflow._models import LabelSpec
@@ -39,7 +39,7 @@ def _find(root: TreeNode[str], item_id: str) -> TreeNode[str]:
 
 
 def _status_text(search: SearchScreen) -> str:
-    content = search._status.content  # pyright: ignore[reportPrivateUsage]
+    content = search._status.content
     if isinstance(content, Content):
         return content.plain
     assert isinstance(content, str)
@@ -70,7 +70,7 @@ async def test_submitting_a_query_lists_hits_with_id_type_title_and_snippets(svc
         search = app.screen
         assert isinstance(search, SearchScreen)
 
-        search._query.value = "oauth"  # pyright: ignore[reportPrivateUsage]
+        search._query.value = "oauth"
         await pilot.press("enter")
 
         results = search.query_one(ListView)
@@ -100,7 +100,7 @@ async def test_blank_query_shows_the_prompt_state_without_calling_search(svc, mo
         search = app.screen
         assert isinstance(search, SearchScreen)
 
-        search._query.value = "   "  # pyright: ignore[reportPrivateUsage]
+        search._query.value = "   "
         await pilot.press("enter")
         await pilot.pause()
 
@@ -119,7 +119,7 @@ async def test_a_query_with_no_matches_shows_a_clean_no_results_state(svc):
         search = app.screen
         assert isinstance(search, SearchScreen)
 
-        search._query.value = "no-such-needle-xyz"  # pyright: ignore[reportPrivateUsage]
+        search._query.value = "no-such-needle-xyz"
         await pilot.press("enter")
 
         await wait_until(pilot, lambda: not search.query_one(ListView).loading)
@@ -160,7 +160,7 @@ async def test_a_searching_state_is_shown_while_the_worker_runs(svc, monkeypatch
         search = app.screen
         assert isinstance(search, SearchScreen)
 
-        search._query.value = "needle-xyz"  # pyright: ignore[reportPrivateUsage]
+        search._query.value = "needle-xyz"
         await pilot.press("enter")
         await pilot.pause()
         assert search.query_one(ListView).loading
@@ -178,8 +178,8 @@ async def test_escape_returns_to_browse_with_the_tree_position_intact(svc):
         await pilot.pause()
         browse = app.screen
         assert isinstance(browse, BrowseScreen)
-        node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
-        browse._tree.cursor_line = node.line  # pyright: ignore[reportPrivateUsage]
+        node = _find(browse._tree.root, feat.id)
+        browse._tree.cursor_line = node.line
         await pilot.pause()
 
         await pilot.press("/")
@@ -190,7 +190,7 @@ async def test_escape_returns_to_browse_with_the_tree_position_intact(svc):
         await pilot.pause()
 
         assert app.screen is browse
-        cursor_node = browse._tree.cursor_node  # pyright: ignore[reportPrivateUsage]
+        cursor_node = browse._tree.cursor_node
         assert cursor_node is not None
         assert cursor_node.data == feat.id
 
@@ -217,11 +217,11 @@ async def test_type_and_status_narrowing_are_forwarded_to_svc_search(svc, monkey
         search = app.screen
         assert isinstance(search, SearchScreen)
 
-        search._query.value = "oauth"  # pyright: ignore[reportPrivateUsage]
+        search._query.value = "oauth"
         await pilot.press("enter")
         await wait_until(pilot, lambda: bool(calls) and calls[-1] == ("oauth", None, None))
 
-        search._type_select.value = "task"  # pyright: ignore[reportPrivateUsage]
+        search._type_select.value = "task"
         await wait_until(pilot, lambda: calls[-1] == ("oauth", "task", None))
 
         results = search.query_one(ListView)
@@ -243,8 +243,8 @@ async def test_selecting_a_hit_pushes_a_reader_screen_without_moving_browse_sele
         await pilot.pause()
         browse = app.screen
         assert isinstance(browse, BrowseScreen)
-        feat_node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
-        browse._tree.cursor_line = feat_node.line  # pyright: ignore[reportPrivateUsage]
+        feat_node = _find(browse._tree.root, feat.id)
+        browse._tree.cursor_line = feat_node.line
         await pilot.pause()
 
         await pilot.press("/")
@@ -252,7 +252,7 @@ async def test_selecting_a_hit_pushes_a_reader_screen_without_moving_browse_sele
         search = app.screen
         assert isinstance(search, SearchScreen)
 
-        search._query.value = "oauth"  # pyright: ignore[reportPrivateUsage]
+        search._query.value = "oauth"
         await pilot.press("enter")
 
         results = search.query_one(ListView)
@@ -280,7 +280,7 @@ async def test_selecting_a_hit_pushes_a_reader_screen_without_moving_browse_sele
         await pilot.press("escape")
         await pilot.pause()
         assert app.screen is browse
-        cursor_node = browse._tree.cursor_node  # pyright: ignore[reportPrivateUsage]
+        cursor_node = browse._tree.cursor_node
         assert cursor_node is not None
         assert cursor_node.data == feat.id  # browse selection untouched by the search excursion
 
@@ -300,14 +300,11 @@ async def test_type_filter_options_and_hit_rows_show_the_resolved_type_label(pro
         search = app.screen
         assert isinstance(search, SearchScreen)
 
-        options = {
-            value: label
-            for label, value in search._type_select._options  # pyright: ignore[reportPrivateUsage]
-        }
+        options = {value: label for label, value in search._type_select._options}
         assert options["task"] == "Task"  # bundled type: derived label
         assert options["bug"] == "Defect"  # pinned override, not the raw "bug"
 
-        search._query.value = "crash"  # pyright: ignore[reportPrivateUsage]
+        search._query.value = "crash"
         await pilot.press("enter")
 
         results = search.query_one(ListView)

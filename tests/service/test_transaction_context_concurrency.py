@@ -29,9 +29,7 @@ async def test_concurrent_transactions_on_one_store_never_cross_attribute_reflog
             # (and, under the old shared-instance-attribute design, to clobber the active
             # context) while this task still holds the lock and has an op buffered.
             await anyio.lowlevel.checkpoint()
-            store._log(  # pyright: ignore[reportPrivateUsage]
-                "update", f"TASK-{i:06d}", {"i": i}
-            )
+            store.log("update", f"TASK-{i:06d}", {"i": i})
             await anyio.lowlevel.checkpoint()
 
     async with anyio.create_task_group() as tg:

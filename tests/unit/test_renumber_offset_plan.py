@@ -24,19 +24,15 @@ def _seqs_from(remap: dict[str, str]) -> dict[int, int]:
 def test_offset_plan_requires_exactly_one_of_onto_or_by() -> None:
     records = _fake_records(3)
     with pytest.raises(SquadsError, match="exactly one"):
-        MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
-            records, from_seq=3, counter=5, onto=None, by=None, padding=6
-        )
+        MaintenanceMixin._offset_plan(records, from_seq=3, counter=5, onto=None, by=None, padding=6)
     with pytest.raises(SquadsError, match="exactly one"):
-        MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
-            records, from_seq=3, counter=5, onto=10, by=3, padding=6
-        )
+        MaintenanceMixin._offset_plan(records, from_seq=3, counter=5, onto=10, by=3, padding=6)
 
 
 def test_offset_plan_onto_computes_the_minimal_safe_offset_above_both_ranges() -> None:
     records = _fake_records(3, 4, 5)
     for onto, counter in [(10, 5), (2, 5), (5, 5)]:
-        remap, _renames, warning = MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
+        remap, _renames, warning = MaintenanceMixin._offset_plan(
             records, from_seq=3, counter=counter, onto=onto, by=None, padding=6
         )
         assert warning is None  # --onto never warns — it fully certifies disjointness
@@ -48,7 +44,7 @@ def test_offset_plan_by_shifts_correctly_but_warns_it_cannot_certify_the_other_b
     None
 ):
     records = _fake_records(3, 4, 5)
-    remap, renames, warning = MaintenanceMixin._offset_plan(  # pyright: ignore[reportPrivateUsage]
+    remap, renames, warning = MaintenanceMixin._offset_plan(
         records, from_seq=3, counter=5, onto=None, by=3, padding=6
     )
     assert warning is not None and "onto" in warning.lower()

@@ -3,7 +3,7 @@ by moving them (and their value) to the front of the argument list, wherever the
 so `sq <subcommand> ... --at ...` works exactly like `sq --at ... <subcommand> ...`.
 """
 
-from squads._cli import _hoist_global_options as hoist  # pyright: ignore[reportPrivateUsage]
+from squads._cli import _hoist_global_options as hoist
 
 
 def test_leading_global_options_are_left_untouched():

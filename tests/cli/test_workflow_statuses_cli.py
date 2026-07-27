@@ -15,7 +15,7 @@ import pytest
 
 from squads._cli._workflow_cmd import (
     STATUS_CATALOG_FIELDS,
-    _status_catalog,  # pyright: ignore[reportPrivateUsage]
+    _status_catalog,
 )
 from squads._workflow import load_workflow_spec
 

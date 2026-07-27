@@ -22,8 +22,8 @@ import pytest
 from squads._cli._workflow_cmd import (
     TYPE_CATALOG_FIELDS,
     TYPE_FIELD_ENTRY_FIELDS,
-    _type_catalog,  # pyright: ignore[reportPrivateUsage]
-    _type_fields,  # pyright: ignore[reportPrivateUsage]
+    _type_catalog,
+    _type_fields,
 )
 from squads._workflow import load_workflow_spec
 from squads._workflow._models import ItemSpec, WorkflowSpec

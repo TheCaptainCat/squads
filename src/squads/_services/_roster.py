@@ -20,7 +20,7 @@ class RosterMixin(ServiceCore):
         so a ``roles/<slug>.toml`` with ``full_name`` is also honoured).
         """
         role = resolve_role(slug, self.paths.squad_dir)
-        existing = await self._role_item(slug)
+        existing = await self.roster_item(ROSTER_ROLE, slug)
         if existing is not None:
             return existing
         # Apply the explicit name override on top of whatever the resolver returned.
@@ -54,7 +54,7 @@ class RosterMixin(ServiceCore):
         role = resolve_dev_role(
             tech, name=name, seq=seq, model=model, squad_dir=self.paths.squad_dir
         )
-        if await self._role_item(role.slug) is not None:
+        if await self.roster_item(ROSTER_ROLE, role.slug) is not None:
             raise SquadsError(f"a developer with slug {role.slug!r} already exists")
         res = await self.create(
             ROSTER_ROLE,
@@ -87,7 +87,7 @@ class RosterMixin(ServiceCore):
         parent: str | None = None,
     ) -> Item:
         slug = slugify(name)
-        if await self._skill_item(slug) is not None:
+        if await self.roster_item(ROSTER_SKILL, slug) is not None:
             raise SquadsError(f"a skill with slug {slug!r} already exists")
         res = await self.create(
             ROSTER_SKILL,
@@ -112,7 +112,7 @@ class RosterMixin(ServiceCore):
     async def add_operator(self, name: str, *, slug: str | None = None) -> Item:
         """Register a human operator (assignable + can author items/comments), e.g. `op-pierre`."""
         slug = slug or operator_slug(name)
-        if await self._operator_item(slug) is not None:
+        if await self.roster_item(ROSTER_OPERATOR, slug) is not None:
             raise SquadsError(f"an operator with slug {slug!r} already exists")
         res = await self.create(
             ROSTER_OPERATOR,

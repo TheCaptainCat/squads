@@ -759,7 +759,7 @@ async def resolve_item_id_any(token: str, svc: Service) -> str:
     return item.id
 
 
-def _is_full_id_shape(token: str) -> bool:
+def is_full_id_shape(token: str) -> bool:
     """Return True when *token* looks like a full item ID (``TYPE-NNNNNN``)."""
     _, sep, tail = token.rpartition("-")
     return bool(sep) and tail.isdigit()
@@ -777,19 +777,12 @@ async def resolve_agent_addr(token: str, item_type: str, svc: Service) -> str:
     """
     t = token.strip()
     # Paths 1 and 2: numeric or full-ID token — let the typed resolver handle it.
-    if t.isdigit() or _is_full_id_shape(t):
+    if t.isdigit() or is_full_id_shape(t):
         return await resolve_item_id_typed(token, item_type, svc)
     # Path 3: treat as a slug — delegate to the service's authoritative slug lookup.
-    _SLUG_LOOKUP = {
-        "role": svc._role_item,  # pyright: ignore[reportPrivateUsage]
-        "skill": svc._skill_item,  # pyright: ignore[reportPrivateUsage]
-        "operator": svc._operator_item,  # pyright: ignore[reportPrivateUsage]
-    }
-    lookup = _SLUG_LOOKUP.get(item_type)
-    if lookup is not None:
-        item = await lookup(t)
-        if item is not None:
-            return item.id
+    item = await svc.roster_item(item_type, t)
+    if item is not None:
+        return item.id
     raise SquadsError(f"no {item_type} with slug, ID, or number {token!r}")
 
 

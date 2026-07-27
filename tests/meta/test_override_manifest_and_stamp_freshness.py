@@ -11,7 +11,7 @@ import importlib.resources as pkg_resources
 
 from squads import __version__
 from squads._overrides._manifest import (
-    _load_manifest,  # pyright: ignore[reportPrivateUsage]
+    _load_manifest,
     bundled_template_content,
     current_template_hash,
     invalidate_cache,

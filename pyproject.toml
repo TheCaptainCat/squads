@@ -135,6 +135,11 @@ reportUnknownParameterType = "none"
 reportUnknownArgumentType = "none"
 reportUnknownLambdaType = "none"
 reportMissingParameterType = "none"
+# A test pinning another module's (or a third-party library's, e.g. Textual's widget
+# internals in tests/tui/) private attributes is deliberate whitebox coverage, not the
+# cross-module reach-in this rule targets in src/ — that rule stays at strict's error level
+# there. Off only for tests.
+reportPrivateUsage = "none"
 
 # vulture: periodic, non-gating dead-code scan (see CLAUDE.md). Suppresses framework
 # false-positive categories only — Typer/pydantic decorators, plus test-only public

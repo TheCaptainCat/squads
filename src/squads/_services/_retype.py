@@ -166,7 +166,7 @@ class RetypeMixin(ServiceCore):
             )
             ValidatorEngine(spec=self.spec).gate(prospective, db)
 
-            # Check the skew BEFORE any file moves — _apply_type_change renames the file to
+            # Check the skew BEFORE any file moves — apply_type_change renames the file to
             # its new-type path before rewriting the frontmatter, and a refusal raised only
             # at that later point would leave the file sitting at the new filename with its
             # old (skewed) frontmatter still inside: a strictly worse intermediate state than
@@ -175,7 +175,7 @@ class RetypeMixin(ServiceCore):
             current_text = await _aio.read_text(item_file(self.paths, item))
             ensure_no_skew(current_text, base)
 
-            new_path = await _apply_type_change(
+            new_path = await apply_type_change(
                 self.paths, self.spec, db, item, new_type, carry_status=not status_reset, base=base
             )
             new_id = item.id  # @computed_field formats from item.prefix (now correct); unpadded
@@ -193,7 +193,7 @@ class RetypeMixin(ServiceCore):
             touched = await rewrite_ids(all_paths, remap)
 
             # Re-sync in-memory items
-            _resync_edges(db, remap, exclude={item.sequence_id})
+            resync_edges(db, remap, exclude={item.sequence_id})
 
             # Update the index entry
             db.add(item)
@@ -205,7 +205,7 @@ class RetypeMixin(ServiceCore):
 
             # Reflog: op=retype captures old→new id/type and status outcome.
             # Appended AFTER os.replace by the store's transaction machinery.
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "retype",
                 new_id,
                 {
@@ -228,7 +228,7 @@ class RetypeMixin(ServiceCore):
         )
 
 
-async def _apply_type_change(
+async def apply_type_change(
     paths: SquadPaths,
     spec: WorkflowSpec,
     db: SquadsDB,
@@ -245,7 +245,7 @@ async def _apply_type_change(
     *carry_status* itself, via :func:`_carry_or_reset_status`) and the bulk rename path
     (which always passes ``carry_status=True``). It does *not* touch other items' edges —
     that is the separate, batchable pass in :func:`~squads._itemfile.rewrite_ids` /
-    :func:`_resync_edges`, so a bulk caller can run it once across every renamed item
+    :func:`resync_edges`, so a bulk caller can run it once across every renamed item
     instead of once per item. Returns the new file path.
 
     ``base`` is *item* as loaded, before this call's own delta — the caller (``retype()`` for
@@ -297,13 +297,13 @@ async def _ensure_subentity_container(spec: WorkflowSpec, new_type: str, path: P
     await write_text(path, text)
 
 
-def _resync_edges(db: SquadsDB, remap: dict[str, str], *, exclude: set[int]) -> None:
+def resync_edges(db: SquadsDB, remap: dict[str, str], *, exclude: set[int]) -> None:
     """Update in-memory index entries whose parent or refs point at any old ID in *remap*.
 
     Bulk-capable by construction: one pass over ``db.items`` applies every ``{old: new}``
     pair in *remap*, so a multi-item rename resyncs edges once instead of once per renamed
     item. *exclude* holds the sequence IDs of the items being changed themselves (already
-    self-consistent via :func:`_apply_type_change`).
+    self-consistent via :func:`apply_type_change`).
     """
     for other in db.items.values():
         if other.sequence_id in exclude:

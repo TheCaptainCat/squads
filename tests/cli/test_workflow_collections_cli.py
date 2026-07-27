@@ -14,7 +14,7 @@ import pytest
 from squads._cli._workflow_cmd import (
     COLLECTION_BADGE_ENTRY_FIELDS,
     COLLECTION_CATALOG_FIELDS,
-    _collection_catalog,  # pyright: ignore[reportPrivateUsage]
+    _collection_catalog,
 )
 from squads._workflow import load_workflow_spec
 

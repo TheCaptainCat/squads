@@ -52,7 +52,7 @@ async def test_an_interrupted_schema_stamp_leaves_the_previous_config_intact(svc
     with pytest.MonkeyPatch.context() as mp:
         _fail_before_replace(mp)
         with pytest.raises(OSError, match="simulated crash"):
-            await svc._stamp_schema("9.9")  # pyright: ignore[reportPrivateUsage]
+            await svc._stamp_schema("9.9")
 
     assert config_path.read_bytes() == previous_bytes
     load_config(config_path)  # still parses

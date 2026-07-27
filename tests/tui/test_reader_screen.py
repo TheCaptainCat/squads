@@ -25,7 +25,7 @@ async def test_reader_screen_loads_the_item_and_pops_on_escape(svc):
 
         header = app.screen.query_one("#glance-header", Static)
         body = app.screen.query_one("#body-view", Markdown)
-        await wait_until(pilot, lambda: "Hello world" in body._markdown)  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "Hello world" in body._markdown)
         assert "Draft" in str(header.content)
 
         await pilot.press("escape")

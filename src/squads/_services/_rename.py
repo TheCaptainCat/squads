@@ -3,7 +3,7 @@
 A rename is a **vocabulary** change (same semantic type, new label/prefix), not a
 reclassification: unlike :mod:`squads._services._retype`, sub-entities carry over unchanged
 and status always carries over. It reuses ``_retype.py``'s per-item primitive
-(``_apply_type_change``) and edge-resync primitive (``_resync_edges``) under its own
+(``apply_type_change``) and edge-resync primitive (``resync_edges``) under its own
 validation, batching both the id-rewrite and the edge-resync into one pass across every
 renamed item instead of once per item.
 """
@@ -31,8 +31,8 @@ from squads._paths import SquadPaths
 from squads._services._base import ServiceCore
 from squads._services._results import RenameResult
 from squads._services._retype import (
-    _apply_type_change,  # pyright: ignore[reportPrivateUsage]
-    _resync_edges,  # pyright: ignore[reportPrivateUsage]
+    apply_type_change,
+    resync_edges,
 )
 from squads._workflow._models import WorkflowSpec
 
@@ -91,7 +91,7 @@ async def _snapshot_files(paths: SquadPaths, db: SquadsDB) -> dict[int, tuple[Pa
     """Read every item's current (path, text) before any mutation.
 
     The index's own atomicity comes for free from ``IndexStore.transaction()`` (nothing is
-    written until the body returns normally) — but ``_apply_type_change``/``rewrite_ids``
+    written until the body returns normally) — but ``apply_type_change``/``rewrite_ids``
     write ``.md`` files eagerly, ahead of that commit. This snapshot is what lets a mid-flight
     failure restore the filesystem, not just the index, to exactly its pre-call state.
     """
@@ -184,7 +184,7 @@ class RenameMixin(ServiceCore):
                 for item in old_items:
                     old_id = item.id
                     base = item.model_copy(deep=True)
-                    await _apply_type_change(
+                    await apply_type_change(
                         self.paths, self.spec, db, item, new_type, carry_status=True, base=base
                     )
                     remap[old_id] = item.id
@@ -199,14 +199,14 @@ class RenameMixin(ServiceCore):
                 # old_type may ref each other, and that cross-reference needs remapping too
                 # (retype's single-pair exclude is a no-op there since an item can't ref
                 # itself; a multi-entry bulk remap has no such guarantee).
-                _resync_edges(db, remap, exclude=set())
+                resync_edges(db, remap, exclude=set())
 
                 ids: list[tuple[str, str]] = []
                 for old_id, item in pairs:
                     db.add(item)
                     new_path = item_file(self.paths, item)
                     await _append_rename_comment(new_path, old_id, item.id, item)
-                    self.store._log(  # pyright: ignore[reportPrivateUsage]
+                    self.store.log(
                         "rename-type",
                         item.id,
                         {
@@ -278,7 +278,7 @@ class RenameMixin(ServiceCore):
                     await update_frontmatter(path, item, base)
                     db.add(item)
                     await _append_rename_status_comment(path, old_status, new_status)
-                    self.store._log(  # pyright: ignore[reportPrivateUsage]
+                    self.store.log(
                         "rename-status",
                         item.id,
                         {"type": item_type, "old_status": old_status, "new_status": new_status},

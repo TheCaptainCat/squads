@@ -17,7 +17,7 @@ def _lines(*events: dict[str, object]) -> str:
 
 
 async def _drift_via_interrupted_index_commit(svc, monkeypatch, item_id: str) -> None:
-    real_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+    real_atomic_write = IndexStore._atomic_write
 
     async def _boom(self, db):
         raise OSError("simulated crash during the index commit")

@@ -14,37 +14,37 @@ from squads._rendering._engine import invalidate_squad_dir, set_active_squad_dir
 def _touch(squad_dir: Path | None) -> None:
     """Force an Environment to be built/cached for *squad_dir* without rendering a template."""
     set_active_squad_dir(squad_dir)
-    _engine._env()  # pyright: ignore[reportPrivateUsage]
+    _engine._env()
 
 
 def test_the_env_cache_never_grows_past_its_capacity(tmp_path: Path) -> None:
-    cap = _engine._ENV_CACHE_MAX_SIZE  # pyright: ignore[reportPrivateUsage]
+    cap = _engine._ENV_CACHE_MAX_SIZE
     dirs = [tmp_path / f"squad-{i}" for i in range(cap + 5)]
     for d in dirs:
         d.mkdir()
         set_active_squad_dir(d)
-        _engine._env()  # pyright: ignore[reportPrivateUsage]
-        assert len(_engine._env_cache) <= cap  # pyright: ignore[reportPrivateUsage]
+        _engine._env()
+        assert len(_engine._env_cache) <= cap
 
 
 def test_touching_more_dirs_than_capacity_evicts_the_least_recently_used_first(
     tmp_path: Path,
 ) -> None:
-    cap = _engine._ENV_CACHE_MAX_SIZE  # pyright: ignore[reportPrivateUsage]
+    cap = _engine._ENV_CACHE_MAX_SIZE
     dirs = [tmp_path / f"squad-{i}" for i in range(cap)]
     for d in dirs:
         d.mkdir()
         set_active_squad_dir(d)
-        _engine._env()  # pyright: ignore[reportPrivateUsage]
-    assert dirs[0] in _engine._env_cache  # pyright: ignore[reportPrivateUsage]
+        _engine._env()
+    assert dirs[0] in _engine._env_cache
 
     # One more distinct dir past capacity must evict the oldest (dirs[0]), not any other.
     extra = tmp_path / "squad-extra"
     extra.mkdir()
     set_active_squad_dir(extra)
-    _engine._env()  # pyright: ignore[reportPrivateUsage]
+    _engine._env()
 
-    cache = _engine._env_cache  # pyright: ignore[reportPrivateUsage]
+    cache = _engine._env_cache
     assert len(cache) == cap
     assert dirs[0] not in cache
     assert extra in cache
@@ -54,23 +54,23 @@ def test_touching_more_dirs_than_capacity_evicts_the_least_recently_used_first(
 def test_re_touching_an_entry_marks_it_most_recently_used_so_it_survives_eviction(
     tmp_path: Path,
 ) -> None:
-    cap = _engine._ENV_CACHE_MAX_SIZE  # pyright: ignore[reportPrivateUsage]
+    cap = _engine._ENV_CACHE_MAX_SIZE
     dirs = [tmp_path / f"squad-{i}" for i in range(cap)]
     for d in dirs:
         d.mkdir()
         set_active_squad_dir(d)
-        _engine._env()  # pyright: ignore[reportPrivateUsage]
+        _engine._env()
 
     # Re-touch the oldest entry so it becomes most-recently-used.
     set_active_squad_dir(dirs[0])
-    _engine._env()  # pyright: ignore[reportPrivateUsage]
+    _engine._env()
 
     extra = tmp_path / "squad-extra"
     extra.mkdir()
     set_active_squad_dir(extra)
-    _engine._env()  # pyright: ignore[reportPrivateUsage]
+    _engine._env()
 
-    cache = _engine._env_cache  # pyright: ignore[reportPrivateUsage]
+    cache = _engine._env_cache
     # dirs[1] was the actual least-recently-used one now, not dirs[0].
     assert dirs[0] in cache
     assert dirs[1] not in cache
@@ -82,12 +82,12 @@ def test_invalidate_squad_dir_still_evicts_a_single_entry_at_any_cache_size(
     squad_dir = tmp_path / "squad"
     squad_dir.mkdir()
     _touch(squad_dir)
-    assert squad_dir in _engine._env_cache  # pyright: ignore[reportPrivateUsage]
+    assert squad_dir in _engine._env_cache
 
     invalidate_squad_dir(squad_dir)
-    assert squad_dir not in _engine._env_cache  # pyright: ignore[reportPrivateUsage]
+    assert squad_dir not in _engine._env_cache
 
 
 def test_bundled_only_none_path_is_unaffected_by_bounding() -> None:
     _touch(None)
-    assert None in _engine._env_cache  # pyright: ignore[reportPrivateUsage]
+    assert None in _engine._env_cache

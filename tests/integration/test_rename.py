@@ -167,9 +167,7 @@ async def test_rename_type_mid_flight_failure_restores_disk_and_index(
     svc, monkeypatch, tmp_path
 ) -> None:
     from squads._services import _service as service
-    from squads._services._rename import (
-        _apply_type_change,  # pyright: ignore[reportPrivateUsage]
-    )
+    from squads._services._rename import apply_type_change
     from squads._workflow._loader import load_workflow_spec
     from squads._workflow._models import ItemSpec, WorkflowSpec
 
@@ -210,7 +208,7 @@ async def test_rename_type_mid_flight_failure_restores_disk_and_index(
     before = _snapshot(svc.paths.squad_dir)
 
     calls = {"n": 0}
-    real = _apply_type_change
+    real = apply_type_change
 
     async def _flaky(*args, **kwargs):
         calls["n"] += 1
@@ -218,7 +216,7 @@ async def test_rename_type_mid_flight_failure_restores_disk_and_index(
             raise RuntimeError("boom")
         return await real(*args, **kwargs)
 
-    monkeypatch.setattr("squads._services._rename._apply_type_change", _flaky)
+    monkeypatch.setattr("squads._services._rename.apply_type_change", _flaky)
 
     with pytest.raises(RuntimeError, match="boom"):
         await ticket_svc.rename_type("task", "ticket")
@@ -274,7 +272,7 @@ async def test_rename_status_mid_flight_failure_restores_disk_and_index(svc, mon
     rename-type's — mirror the same failure-injection technique against the sibling
     private helper it actually calls."""
     from squads._services._rename import (
-        _append_rename_status_comment,  # pyright: ignore[reportPrivateUsage]
+        _append_rename_status_comment,
     )
 
     t1 = (await svc.create("task", "t1")).item

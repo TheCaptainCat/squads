@@ -237,7 +237,7 @@ class SubentitiesMixin(ServiceCore):
         }
         if title_advisory is not None:
             log_delta["title_advisory"] = {"advisory": True, "title_len": len(title)}
-        self.store._log(  # pyright: ignore[reportPrivateUsage]
+        self.store.log(
             "subentity",
             item.id,
             log_delta,
@@ -406,7 +406,7 @@ class SubentitiesMixin(ServiceCore):
             db, parent_id, kind, local_id, status, force=force
         )
         await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
-        self.store._log(  # pyright: ignore[reportPrivateUsage]
+        self.store.log(
             "subentity",
             item.id,
             {
@@ -486,7 +486,7 @@ class SubentitiesMixin(ServiceCore):
         """The sub-entity assignee mutation core: takes an already-open transaction's ``db``."""
         item, sub, base = self._set_block_assignee_model(db, parent_id, kind, local_id, assignee)
         await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
-        self.store._log(  # pyright: ignore[reportPrivateUsage]
+        self.store.log(
             "subentity",
             item.id,
             {"op": "assignee", "kind": kind, "local_id": local_id, "assignee": assignee},
@@ -566,7 +566,7 @@ class SubentitiesMixin(ServiceCore):
             self._apply_subentity_status(kind, sub, status, force=force)
         item.updated_at = clock.now()
         await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
-        self.store._log(  # pyright: ignore[reportPrivateUsage]
+        self.store.log(
             "subentity",
             item.id,
             {"op": "update", "kind": kind, "local_id": local_id},
@@ -590,7 +590,7 @@ class SubentitiesMixin(ServiceCore):
                 current = (sections.get_section(text, btag) or "").strip("\n")
                 if current and current.strip() != discussion.body_placeholder(kind, self.spec):
                     new_body = f"{current}\n\n{body}"
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "subentity",
                 item.id,
                 {"op": "body", "kind": kind, "local_id": local_id},
@@ -642,7 +642,7 @@ class SubentitiesMixin(ServiceCore):
             text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
             text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
             await write_text(path, text)
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "subentity",
                 item.id,
                 {

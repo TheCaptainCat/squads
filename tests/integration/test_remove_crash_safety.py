@@ -18,7 +18,7 @@ async def test_the_file_is_gone_before_a_crashed_commit_so_repair_never_resurrec
     seq = task.sequence_id
     path = svc.paths.abspath(task.path)
 
-    original_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+    original_atomic_write = IndexStore._atomic_write
 
     def _crash_on_write(self, db):
         raise OSError("simulated crash during index commit")

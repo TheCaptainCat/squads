@@ -40,14 +40,14 @@ async def _race_a_mutation_against_check(svc, mutate) -> list[CheckIssue]:
     """
     started = anyio.Event()
     release = anyio.Event()
-    orig_scan = svc._scan_for_check  # pyright: ignore[reportPrivateUsage]
+    orig_scan = svc._scan_for_check
 
     async def paused_scan():
         started.set()
         await release.wait()
         return await orig_scan()
 
-    svc._scan_for_check = paused_scan  # pyright: ignore[reportPrivateUsage]
+    svc._scan_for_check = paused_scan
 
     issues: list[CheckIssue] = []
 
@@ -177,7 +177,7 @@ async def test_durable_drift_survives_a_stale_index_path_from_an_interrupted_ren
     """
     task = (await svc.create("task", "original title")).item
 
-    real_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+    real_atomic_write = IndexStore._atomic_write
 
     async def _boom(self, db):
         raise OSError("simulated crash during the index commit")

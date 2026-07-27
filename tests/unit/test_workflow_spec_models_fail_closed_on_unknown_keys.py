@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from squads._errors import SquadsError
 from squads._workflow import load_workflow_spec
-from squads._workflow._loader import _build_spec  # pyright: ignore[reportPrivateUsage]
+from squads._workflow._loader import _build_spec
 from squads._workflow._models import ItemSpec, Lifecycle, RefRule, StatusSpec, WorkflowSpec
 
 

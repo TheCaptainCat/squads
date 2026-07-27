@@ -24,7 +24,7 @@ from squads import _aio  # noqa: E402
 from squads._cli import app  # noqa: E402
 from squads._context import RequestContext, bind_context, get_context  # noqa: E402
 from squads._rendering._engine import (  # noqa: E402
-    _env_cache,  # pyright: ignore[reportPrivateUsage]
+    _env_cache,
     set_active_squad_dir,
 )
 from squads._services import _service as service  # noqa: E402
@@ -99,11 +99,11 @@ def _reset_context():  # pyright: ignore[reportUnusedFunction]  # autouse: pytes
     bind_context(RequestContext())
     yield
     bind_context(RequestContext())
-    from squads._cli import _CustomTypeGroup  # pyright: ignore[reportPrivateUsage]
-    from squads._cli._create import _CustomCreateGroup  # pyright: ignore[reportPrivateUsage]
+    from squads._cli import _CustomTypeGroup
+    from squads._cli._create import _CustomCreateGroup
 
-    _CustomTypeGroup._custom_cmd_cache.clear()  # pyright: ignore[reportPrivateUsage]
-    _CustomCreateGroup._custom_cmd_cache.clear()  # pyright: ignore[reportPrivateUsage]
+    _CustomTypeGroup._custom_cmd_cache.clear()
+    _CustomCreateGroup._custom_cmd_cache.clear()
 
 
 @pytest.fixture(autouse=True)

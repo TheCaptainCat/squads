@@ -177,7 +177,7 @@ class _ReflogOp:
     """A reflog entry buffered during a transaction, flushed after the commit.
 
     ``ts``/``actor``/``session_id``/``parent_session_id`` are captured from the ambient
-    context at the moment :meth:`IndexStore._log` is called (buffer time), NOT re-read at
+    context at the moment :meth:`IndexStore.log` is called (buffer time), NOT re-read at
     flush time — a single transaction may buffer several ops under different ambient actor/
     clock bindings (bulk import rebinds per event while holding one open transaction), so
     each op must carry its own snapshot rather than sharing one taken after the last rebind.
@@ -265,9 +265,9 @@ def _transaction_ctx_for(store: IndexStore) -> _TransactionCtx | None:
     For that no-open-transaction case, instance identity correctly mirrors the per-instance
     attribute this replaces. It is not a faithful translation in one other case, and must not
     be described as one: with store A's transaction open and store B's nested inside it on
-    the same task, the old per-instance attribute let ``A._log()`` still find A's own context
+    the same task, the old per-instance attribute let ``A.log()`` still find A's own context
     and buffer correctly, while this task-local slot lets B's binding shadow A's, so
-    ``A._log()`` sees a foreign owner and returns ``None`` — A's entries are silently
+    ``A.log()`` sees a foreign owner and returns ``None`` — A's entries are silently
     discarded for the inner transaction's duration, not misattributed into B's buffer (which
     path identity would do, and which is worse: it fails open by committing a wrong entry
     rather than closed by losing one). No live call path opens one store's transaction inside
@@ -382,7 +382,7 @@ class IndexStore:
         leak (inner ``finally`` no-ops, outer releases the proc-mutex, the ``async with``
         releases the per-loop lock).
 
-        The active-transaction context (read by ``_log``) is bound to the
+        The active-transaction context (read by ``log``) is bound to the
         ``_active_transaction`` ``ContextVar`` only once Layer 3 is held and the in-lock
         load below has produced it — never before any lock is taken — and is
         always unbound (restoring whatever was bound before, if anything) in the same
@@ -451,14 +451,29 @@ class IndexStore:
             finally:
                 await _aio.to_thread(self._proc_mutex.release)  # Layer 2; Layer 1 by async-with
 
-    def _log(self, op: str, target: str, delta: dict[str, Any]) -> None:
-        """Buffer a reflog entry on the active transaction context (no-op outside one), so the
-        op is captured where the change is known and emitted after the commit.
+    def log(self, op: str, target: str, delta: dict[str, Any]) -> None:
+        """Buffer a reflog entry on the active transaction context, so the op is captured where
+        the change is known and emitted after the commit.
 
         Snapshots the ambient actor/clock/session **now** (buffer time) rather than leaving
         that to the post-commit flush — see ``_ReflogOp`` for why a single transaction can't
         share one snapshot across every buffered op (bulk import rebinds actor/clock per event
         while the whole apply stays inside one transaction).
+
+        A deliberate silent no-op when this store has no open transaction — including when the
+        ambient context belongs to a *different* ``IndexStore`` instance (see
+        ``_transaction_ctx_for``). Raising here would turn a benign two-stores-in-one-process
+        situation into a crash, and because most callers write markdown before they log, it
+        would also abort a transaction after a durable markdown write and before the index
+        commit, manufacturing the exact skew the durability model forbids. The reflog
+        assertions over the mutation cores are the safety net for a call site that forgets to
+        log, not an exception from this method.
+
+        **Provisional.** This is the ambient-context shape of the logging entry point, not a
+        commitment to ``store.log()`` as the permanent surface: when the transaction API is
+        next revised for fan-out/batch mutation or the server, the active-transaction handle
+        becomes an explicit parameter and this becomes ``txn.log(...)``. Kept minimal for that
+        migration — no overloads, no return value, no extra keyword arguments.
         """
         ctx = _transaction_ctx_for(self)
         if ctx is not None:
