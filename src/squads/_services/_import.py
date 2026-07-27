@@ -13,6 +13,16 @@ pass (:meth:`ImportMixin._apply_import`) calls the full ``_X_core`` (model + fil
 against the real ``db``, inside ONE open transaction, rebinding the ambient clock/actor per
 event via the ``RequestContext`` seam so every event's own ``at``/``as`` drives its
 ``created_at``/``updated_at``/authorship exactly as an interactive ``--at``/``--as`` call would.
+
+**The pre-pass is no longer file-I/O-free.** It still simulates every event against an
+in-memory shadow copy and touches no files for its own sake — but it now also reads, once per
+*targeted pre-existing item* (never per event, and never for a handle created within the same
+import), that item's ``.md`` to pre-flight the same skew guard the single-mutation write seams
+enforce (see :func:`squads._itemfile.ensure_no_skew`). This keeps a mid-apply refusal — which
+would leave the batch partially applied, since the markdown writes of everything already
+applied stand per the write-path ordering rule — off the table entirely: a drifted target is
+reported as a pre-pass issue instead, and the apply pass never runs. The extra reads are
+bounded by the affected set (N reads for N distinct pre-existing targets), not by the board.
 """
 
 from dataclasses import dataclass, field
@@ -26,6 +36,7 @@ from squads import _clock as clock
 from squads._context import bind_context, get_context
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
+from squads._itemfile import frontmatter_skew, skew_message
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import VALID_REF_KINDS, make_ref, split_ref
@@ -40,6 +51,7 @@ from squads._services._import_model import (
     BodyEvent,
     CommentEvent,
     CreateEvent,
+    ImportEvent,
     RefEvent,
     ResolvedEvent,
     StatusEvent,
@@ -118,6 +130,14 @@ def _resolve_refs(handles: HandleMap, refs: list[str]) -> list[str]:
             raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
         out.append(make_ref(handles.resolve_item(rid), kind))
     return out
+
+
+def _event_target_token(event: ImportEvent) -> str | None:
+    """The raw ``target``/handle token an event names, or ``None`` for a create (which
+    names no existing item — there is nothing for the batch skew pre-flight to check).
+    Every other event carries a ``target`` field, sub-entity events included: the host
+    item is what the frontmatter rewrite touches, whatever local id inside it changed."""
+    return None if isinstance(event, CreateEvent) else event.target
 
 
 def _field_for(spec: WorkflowSpec, type_or_kind: str, code: str) -> Field | None:
@@ -209,14 +229,22 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         (including bumping its counter) is exactly invariant #2's "simulate only" — the real
         counter lives in ``self.store`` and is untouched until (and unless) :meth:`_apply_import`
         opens its own transaction.
+
+        Also pre-flights the frontmatter-skew guard against disk, once per targeted
+        pre-existing item — see the module docstring's "no longer file-I/O-free" note.
         """
         shadow = (await self.store.load()).model_copy(deep=True)
+        pre_existing_seqs = set(shadow.items)
         handles = HandleMap()
         counts = ImportOpCount()
         issues: list[ImportIssue] = []
+        skew_checked: set[int] = set()
         for ev in events:
             counts.bump(ev.event.op)
             try:
+                await self._check_target_skew(
+                    shadow, handles, ev, pre_existing_seqs, skew_checked, issues
+                )
                 self._simulate_one(shadow, handles, ev)
             except _COLLECTIBLE as exc:
                 issues.append(ImportIssue(line=ev.line, message=str(exc)))
@@ -226,6 +254,45 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             handle_to_sub=dict(handles.subentities),
             issues=issues,
         )
+
+    async def _check_target_skew(
+        self,
+        shadow: SquadsDB,
+        handles: HandleMap,
+        ev: ResolvedEvent,
+        pre_existing_seqs: set[int],
+        checked: set[int],
+        issues: list[ImportIssue],
+    ) -> None:
+        """The batch shape of the skew guard: once per *pre-existing* item an event targets,
+        never per event and never for a handle created within this same import (no prior file
+        to diverge from). After an item's first targeting event, any further divergence from
+        disk is the import's own simulated-but-not-yet-applied doing, not a real skew — so a
+        second check would false-refuse on the import's own pending first delta.
+
+        Runs BEFORE :meth:`_simulate_one` for the same event, so ``shadow.get(target)`` is
+        still the unmutated base the moment this is the item's first touch. Any problem here
+        (item not found, file missing) is left for the real per-op validation/reconciliation
+        to report — this only ever adds a skew issue, never masks or duplicates another one.
+        """
+        token = _event_target_token(ev.event)
+        if token is None:
+            return
+        target_id = handles.resolve_item(token)
+        item = shadow.get(target_id)
+        if item is None or item.sequence_id not in pre_existing_seqs:
+            return
+        if item.sequence_id in checked:
+            return
+        checked.add(item.sequence_id)
+        base = item.model_copy(deep=True)
+        try:
+            text = await _aio.read_text(item_file(self.paths, item))
+        except FileNotFoundError:
+            return  # on-disk reconciliation is `sq check`'s claim to make, not this guard's
+        diverging = frontmatter_skew(text, base)
+        if diverging:
+            issues.append(ImportIssue(line=ev.line, message=skew_message(base, diverging)))
 
     def _simulate_one(self, shadow: SquadsDB, handles: HandleMap, ev: ResolvedEvent) -> None:
         """One per-op dispatch — mirrors :meth:`_apply_one`'s shape (validate side)."""
@@ -336,7 +403,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             else None
         )
         resolved_fields = _resolve_fields(self.spec, event.kind, event.fields)
-        item, sub = self._add_block_model(
+        item, sub, _base = self._add_block_model(
             shadow,
             target,
             event.kind,

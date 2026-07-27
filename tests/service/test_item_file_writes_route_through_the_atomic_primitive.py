@@ -49,9 +49,10 @@ async def test_write_new_uses_the_atomic_primitive(svc, monkeypatch):
 async def test_update_frontmatter_uses_the_atomic_primitive(svc, monkeypatch):
     item = (await svc.create("task", "Existing")).item
     path = item_file(svc.paths, item)
+    base = item.model_copy(deep=True)
     calls = _install_spy(monkeypatch)
 
-    await itemfile.update_frontmatter(path, item)
+    await itemfile.update_frontmatter(path, item, base)
 
     assert len(calls) == 1
     assert calls[0][0] == path

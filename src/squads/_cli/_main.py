@@ -976,7 +976,8 @@ async def mine(
 async def sync():
     """Regenerate tool-owned managed files to the current squads version."""
     svc = get_service()
-    await svc.sync()
+    skipped = await svc.sync()
+    _print_scaffold_warnings(skipped)
     console.print("[green]synced[/green] managed files to this squads version")
 
 

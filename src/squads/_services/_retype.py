@@ -13,7 +13,7 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
-from squads._itemfile import rewrite_ids, update_frontmatter, write_text
+from squads._itemfile import ensure_no_skew, rewrite_ids, update_frontmatter, write_text
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, format_item_id, make_ref, split_ref
@@ -166,8 +166,17 @@ class RetypeMixin(ServiceCore):
             )
             ValidatorEngine(spec=self.spec).gate(prospective, db)
 
+            # Check the skew BEFORE any file moves — _apply_type_change renames the file to
+            # its new-type path before rewriting the frontmatter, and a refusal raised only
+            # at that later point would leave the file sitting at the new filename with its
+            # old (skewed) frontmatter still inside: a strictly worse intermediate state than
+            # refusing here, before anything on disk has moved.
+            base = item.model_copy(deep=True)
+            current_text = await _aio.read_text(item_file(self.paths, item))
+            ensure_no_skew(current_text, base)
+
             new_path = await _apply_type_change(
-                self.paths, self.spec, db, item, new_type, carry_status=not status_reset
+                self.paths, self.spec, db, item, new_type, carry_status=not status_reset, base=base
             )
             new_id = item.id  # @computed_field formats from item.prefix (now correct); unpadded
 
@@ -227,6 +236,7 @@ async def _apply_type_change(
     new_type: str,
     *,
     carry_status: bool,
+    base: Item,
 ) -> Path:
     """Mutate *item* in place for a type change: new prefix/id, moved file, frontmatter,
     status, and sub-entity container. Body bytes stay verbatim.
@@ -237,6 +247,11 @@ async def _apply_type_change(
     that is the separate, batchable pass in :func:`~squads._itemfile.rewrite_ids` /
     :func:`_resync_edges`, so a bulk caller can run it once across every renamed item
     instead of once per item. Returns the new file path.
+
+    ``base`` is *item* as loaded, before this call's own delta — the caller (``retype()`` for
+    one item, ``rename_type()``'s pre-flight for a batch) has already confirmed it matches
+    disk before any file was moved; :func:`~squads._itemfile.update_frontmatter` below checks
+    again at the new path, which is safe/redundant rather than a second real divergence.
     """
     old_path = item_file(paths, item)
     if not carry_status:
@@ -254,7 +269,7 @@ async def _apply_type_change(
     await _aio.path_rename(old_path, new_path)
     item.path = new_rel
     item.updated_at = clock.now()
-    await update_frontmatter(new_path, item)
+    await update_frontmatter(new_path, item, base)
 
     # Append sub-entity container if the new type hosts one and it is absent
     await _ensure_subentity_container(spec, new_type, new_path)
