@@ -3,7 +3,7 @@ id: TASK-672
 sequence_id: 672
 type: task
 title: Refuse an index-derived frontmatter rewrite over an unrepaired skew
-status: Draft
+status: InProgress
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -19,18 +19,21 @@ subentities:
   title: Skip and report a drifted roster item in sync
   status: Todo
 - local_id: ST3
-  title: Tests for both failure directions, and the changelog line
+  title: Tests for both failure directions across every path
+  status: Todo
+- local_id: ST4
+  title: 'Pre-flight the batch: import, bulk retype, rename-status'
   status: Todo
 created_at: '2026-07-27T16:13:19Z'
-updated_at: '2026-07-27T20:29:57Z'
+updated_at: '2026-07-27T20:42:45Z'
 ---
 <!-- sq:body -->
-Close the conditional half of ADR-663 §1's guarantee: an ordinary write refuses, loudly, rather
-than silently overwriting an unrepaired markdown-ahead skew.
+Close the conditional half of ADR-663 §1's guarantee: a write refuses, loudly, rather than silently
+overwriting an unrepaired markdown-ahead skew.
 
 Addresses REV-671 F4. Read the finding and ADR-663 §1 (amended) before starting — §1's "What the
-guard compares" and "The roster regen path" paragraphs are the specification this task implements,
-and they are binding.
+guard compares", "The roster regen path", "Batch mutation is a third shape" and the
+`repad`/`renumber` paragraph are the specification this task implements, and they are binding.
 
 ## What is broken
 
@@ -51,6 +54,9 @@ succeeded normally and warned about nothing.
 
 Body bytes are never at risk — a frontmatter rewrite preserves them verbatim — so the loss surface
 is exactly frontmatter, sub-entity state included, per item, and it does not spread to other items.
+
+The cost of closing it is stated and accepted: a drifted item is not mutable until repair runs. It
+blocks its own mutations, loudly, with a one-command remedy, and the block is per-item.
 
 ## The mechanism: a three-way comparison, decoupled from `sq check`
 
@@ -74,11 +80,7 @@ In the normal case the two sides are identical, because the last successful muta
 one item. That is what makes an inequality *evidence* rather than a heuristic — and it is also why a
 false refusal is a serious defect rather than a tuning problem (see the release note below).
 
-No new I/O: both frontmatter-rewriting seams already read the file's full text before writing —
-`_itemfile.update_frontmatter` reads it to substitute the block, and the shared section-edit core
-reads it to run its mutate closure. No schema change, no new stored field.
-
-Creation is out of scope by construction: `write_new` has no prior file to diverge from.
+No schema change, no new frontmatter or index field.
 
 ## Three constraints that are the whole risk
 
@@ -88,32 +90,26 @@ from the index-loaded item at entry. Explicitly **not** derived from a reflog de
 is designed to describe logging, not to describe a write, and tying the guard to it would couple two
 things that change for different reasons.
 
-**2. By-design divergences are a category, not a list: normalize, don't exclude.** The category is
-*the corrections applied in memory when state is read, which only reach disk on the next write*.
-Known members:
+**2. Normalize structurally; the exclusion list is empty, and stays empty by default.** By-design
+divergences are a *category, not a list*, and the category spans **both** sides of the comparison:
+the index side corrects at load (the legacy-severity relocation, the counter and width fixups), and
+the file side corrects at parse (the pre-0.2 `extra.ref_kinds` map folded into inline `"ID:kind"`
+refs).
 
-- the legacy-severity relocation (`extra.severity` → the top-level `severity` field);
-- id width, which differs between file and index after a `repad` until the file is next rewritten;
-- the pre-0.2 `extra.ref_kinds` map, folded into inline `"ID:kind"` refs on read.
+Normalize once, structurally, by putting both sides through the same serializer: compare
+`Item.from_frontmatter(disk).to_frontmatter_dict()` against the base's `to_frontmatter_dict()`.
+Measured against the real model, that collapses **all** the known divergences — legacy
+`extra.severity`, `extra.ref_kinds`, and a padded id (recomputed from prefix and sequence number) —
+along with key order and absent-versus-`None`. So there is nothing to exclude today, and no field
+needs hand-normalizing.
 
-An excluded field is a permanent blind spot; a normalized one still catches a real skew. Normalize
-the on-disk side wherever a normalization exists.
+Implementation detail that makes the last one work: `path` is a `from_frontmatter` keyword argument,
+so it collapses by construction **provided the guard passes the item's own path**. Pass it.
 
-**The cheap way to get most of this for free** — worth trying first, and measuring rather than
-assuming: instead of comparing raw parsed YAML, round-trip the on-disk frontmatter through
-`Item.from_frontmatter(...).to_frontmatter_dict()` and compare that against the base's
-`to_frontmatter_dict()`. Both sides are then produced by the same serializer, so every read-time
-normalization already implemented there applies to both — `_read_severity` folds legacy severity,
-`_read_refs`/`_read_extra` fold `ref_kinds`, and absent-vs-`None`, key order and optional-field
-omission stop being differences at all. Establish empirically which divergences actually survive
-that round-trip (id width is the one to check first) and normalize only those by hand — comparing
-ids by sequence number, for which `_check_items` is the precedent.
-
-**Standing rule to carry into the code:** any future in-memory correction applied at read time must
-be registered with this guard in the same change that introduces it, or it silently becomes a false
-refusal. Note the correction sites are on *both* sides — `IndexStore.load()` corrects the
-index-loaded item, `Item.from_frontmatter` corrects the file-loaded one — so the rule covers both,
-not only `load()`.
+**Standing rule:** a future correction that does *not* collapse through the round-trip is registered
+explicitly, on whichever side it lives, in the same change that introduces it. Unregistered, it
+becomes a false refusal. An excluded field would be a permanent blind spot; a normalized one still
+catches a real skew — so registration means teaching the round-trip, not adding to a skip list.
 
 **3. Merge-on-write is rejected, on correctness rather than cost.** Recorded so nobody re-proposes it
 as the "obvious" better fix:
@@ -125,19 +121,31 @@ as the "obvious" better fix:
 
 Detection is fail-closed and needs none of that machinery.
 
-## The roster regen path: skip and report, never refuse the run
+## Where the guard attaches, and where it does not
 
-`sq sync` shares the loss but not the response. It leaves the drifted item's file untouched, names it
-in the output with the `sq repair` pointer, and regenerates everything else. **Exit status stays 0.**
+**Single mutation — refuse.** One item's write *is* the operation, so refusing is proportionate. No
+new I/O: both frontmatter-rewriting seams already read the file's full text before writing.
 
-The invariant is identical — never silently overwrite an ahead-of-index value — and only the response
-scales with the operation. Refusing is proportionate when one item's mutation *is* the operation;
-`sync` is bulk regeneration of derived state and is itself what an operator reaches for when
-generated files are wrong, so aborting the run would block the remedy over a condition `sync` did not
-cause. Skipping preserves the surviving content and defers only regeneration — stale cache, not loss.
-The exit code stays 0 because `sq check` is the dedicated reporter and already fails on that item;
-duplicating its exit semantics here would break scripted syncs. A verify/strict mode is where a
-non-zero exit for stale generated state would belong, and that is not this task.
+**`sq sync`'s roster regen — skip and report, exit 0.** The invariant is identical (never silently
+overwrite an ahead-of-index value) and only the response scales. `sync` is bulk regeneration of
+derived state and is itself what an operator reaches for when generated files are wrong, so aborting
+the run would block the remedy over a condition `sync` did not cause. Skipping preserves the
+surviving content and defers only regeneration — stale cache, not loss. Exit stays 0 because
+`sq check` is the dedicated reporter and already fails on that item; duplicating its exit semantics
+would break scripted syncs. A verify/strict mode is where a non-zero exit for stale generated state
+would belong, and that is not this task.
+
+**Batch mutation — check before the batch, never inside it.** A mid-flight raise is the one option
+that must not ship: §1's own ordering rule means the markdown writes of everything already applied
+stand, so one drifted item turns an import into a *partially applied* import — worse than the
+overwrite the guard exists to prevent. See the dedicated subtask; this is where the precision is.
+
+**`repad` and `renumber` — outside the guard, and not by exemption.** Worth stating as reasoning so
+nobody later "fixes" the omission: the guard attaches to *index-derived frontmatter substitution*,
+not to file writes in general. `repad` renames files and leaves their bytes untouched; `renumber`
+rewrites id strings inside the files' own content. Neither sources a value from the index, so
+neither can revert a skew — and a guard placed there would false-refuse on precisely the id-width
+divergence `repad` creates. Do not add one.
 
 ## Release scope
 
@@ -148,7 +156,7 @@ What that costs is a higher bar on false refusals, and the acceptance criteria c
 wrongly refuses is far worse than the loss it prevents: the silent loss needs an interrupted write
 first and then touches one item, whereas a false refusal hits every user on every mutation of a
 perfectly healthy board. Under-detection degrades to today's behaviour; over-detection bricks the
-tool. When the two trade off, err toward letting a write through.
+tool. When the two trade off, err toward letting the write through.
 
 Nothing else blocks this: the write path and the confirm pass it builds on are already in place.
 
@@ -158,22 +166,29 @@ Nothing else blocks this: the write path and the confirm pass it builds on are a
 refuse before writing anything, with a message naming the item, what diverged, and `sq repair`. The
 guard must be shown to fire — a test that passes because the guard is inert proves nothing.
 
-**It does not refuse a healthy board.** One "a normal mutation still succeeds" test per known
-by-design divergence, each as a first-class case rather than an afterthought:
+**It does not refuse a healthy board.** The five false-refusal cases below are all expected to pass
+**by construction**, because the round-trip collapses every known divergence — a dev who finds them
+green on first run has the right result, not a broken test. They stay as tests anyway: they are the
+regression net that catches the day someone adds a correction without registering it, and their
+value is precisely that they are cheap and boring while the guard is correct.
 
 - an item whose severity lives in the legacy `extra.severity` location;
 - a squad after `sq migrate repad`, where the file's id width and the index's disagree;
 - an item whose refs are still carried by a pre-0.2 `extra.ref_kinds` map;
-- an item with optional fields absent from the file (no `parent`, no `assignee`, no `extra`), where
-  the serialized base omits them too — absent must not read as a divergence.
+- an item with optional fields absent from the file (no `parent`, no `assignee`, no `extra`);
+- a plain round trip: create an item, mutate it twice in a row with no interruption, and assert the
+  second mutation is not refused.
 
 **End to end on the finding.** F4's reproduction refuses; after `sq repair` the same mutation
 succeeds, and both the interrupted value and the new delta are present on disk.
 
-**Everything else.** No new I/O on the write path; no schema change and no new frontmatter or index
-field; `sq sync` skips a drifted roster item, names it, regenerates the rest and exits 0; a clean
-roster syncs exactly as before with no new output. `uv run sq check` clean; the suite green under
-`uv run --all-extras`.
+**Per path.** `sq sync` skips a drifted roster item, names it, regenerates the rest and exits 0; a
+clean roster syncs exactly as before with no new output. A bulk import naming a drifted item reports
+it in the pre-pass and applies nothing. Bulk retype and rename-status refuse before their first
+write. `repad` and `renumber` are unaffected, including on a board that has a real skew.
+
+**Everything else.** No schema change and no new frontmatter or index field. `uv run sq check`
+clean; the suite green under `uv run --all-extras`.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -185,7 +200,8 @@ _Add with `sq task 672 add-subtask "<title>"`; track with `sq task 672 subtask <
 | --- | --- | --- | --- | --- |
 | ST1 | Todo |  | Compare and refuse on the mutation path |  |
 | ST2 | Todo |  | Skip and report a drifted roster item in sync |  |
-| ST3 | Todo |  | Tests for both failure directions, and the changelog line |  |
+| ST3 | Todo |  | Tests for both failure directions across every path |  |
+| ST4 | Todo |  | Pre-flight the batch: import, bulk retype, rename-status |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -198,7 +214,7 @@ _Add with `sq task 672 add-subtask "<title>"`; track with `sq task 672 subtask <
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-The three-way comparison and the refusal, on the write path.
+The three-way comparison and the refusal, on the single-mutation write path.
 
 **Capture the base in the pure half.** The mutation cores already split into a pure `_*_model` half
 (no I/O) and an I/O half. The base — what the index-loaded item would serialize *before* the delta —
@@ -215,15 +231,19 @@ cost:
 - the shared section-edit core in `_services/_base.py` — reads the text, runs its mutate closure,
   then substitutes the frontmatter from the item.
 
-Put the comparison in one place both reach. A second copy of the predicate is the outcome to avoid.
+Put the comparison in one place both reach. A second copy of the predicate is the outcome to avoid —
+and the batch pre-pass has to reach the same one, so give it a shape callable with
+`(on-disk frontmatter, base item)` rather than one welded to the write path.
 
-**Normalize rather than exclude.** Try the round-trip first — parse the on-disk frontmatter through
-`Item.from_frontmatter(...)` and compare its `to_frontmatter_dict()` against the base's, so both
-sides come out of the same serializer and every read-time normalization already implemented applies
-to both. Then establish, by test rather than by reading, which by-design divergences still survive it
-and normalize those explicitly (compare ids by sequence number; `_check_items` is the precedent).
-Whatever is left unnormalized is a permanent blind spot, so keep that set as small as the code
-allows and name each survivor in a comment.
+**Normalize structurally — there is nothing to hand-normalize.** Compare
+`Item.from_frontmatter(disk, path=<the item's own path>).to_frontmatter_dict()` against the base's
+`to_frontmatter_dict()`. Both sides then come out of one serializer, which collapses every known
+divergence: legacy `extra.severity`, the pre-0.2 `extra.ref_kinds` map, a padded id (recomputed from
+prefix and sequence number), key order, and absent-versus-`None`. That was measured against the real
+model, so the exclusion list is empty and no field needs special-casing.
+
+The `path` keyword argument is load-bearing: pass the item's own path, or the `path`-derived fields
+will not collapse and the guard will false-refuse on every item.
 
 **Refuse before any write.** No frontmatter write, no index commit, no reflog entry — the mutation
 must not half-apply. Raise `SquadsError` so the CLI's error decorator renders it cleanly and exits 1.
@@ -235,12 +255,14 @@ reader nothing to verify against.
 Acceptance:
 - The base is captured in the pure half of the core and nowhere else.
 - Both rewrite seams are covered — a status/metadata mutation and a body/comment edit — with one
-  copy of the comparison.
+  copy of the comparison, reusable by the batch pre-pass.
+- The comparison passes the item's own path into `from_frontmatter`.
 - An unrepaired skew refuses before writing anything; the message names the item, the field(s) and
   `sq repair`.
 - After `sq repair`, the same mutation succeeds with both the surviving value and the new delta on
   disk.
-- Every field the guard cannot normalize is named in a comment at the comparison.
+- If any divergence turns out not to collapse through the round-trip, it is registered explicitly
+  (taught to the normalization) rather than added to a skip list — and named in a comment.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -297,22 +319,23 @@ Acceptance:
 <!-- sq:subtask:ST2:end -->
 
 <!-- sq:subtask:ST3 -->
-### ST3 — Tests for both failure directions, and the changelog line
+### ST3 — Tests for both failure directions across every path
 
 <!-- sq:subtask:ST3:head -->
 **Status:** ⚪ Todo
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-Pin the guard against both ways it can be wrong. The false-refusal side carries more weight than the
-missed-detection side, and the tests should reflect that ratio.
+Pin the guard against both ways it can be wrong, across every path it attaches to. The
+false-refusal side carries more weight than the missed-detection side, and the tests should reflect
+that ratio.
 
 **It fires on a real skew.** Reproduce F4's shape end to end: fault the index commit during a
 `--desc` update so the file is ahead, then attempt an ordinary `set_status` on that item and assert
 it refuses without writing. Then `sq repair`, re-run the mutation, and assert both the interrupted
 description and the new status are on disk. Fault the *index commit* rather than stubbing the write
-helper — a test whose outcome is guaranteed by its own stub proves routing, not behaviour. Cover a
-divergence outside `{status, parent}` deliberately, since that is the case the narrower design would
+helper — a test whose outcome is guaranteed by its own stub proves routing, not behaviour. Diverge a
+field **outside `{status, parent}`** deliberately, since that is the case the narrower design would
 have missed.
 
 **It does not fire on a healthy board.** One test each, all asserting a normal mutation still
@@ -321,31 +344,42 @@ succeeds:
 - an item whose severity lives in the legacy `extra.severity` location;
 - a squad after `sq migrate repad`, with the file's id width behind the index's;
 - an item whose refs are still carried by a pre-0.2 `extra.ref_kinds` map;
-- an item with optional fields absent from the file (no `parent`, no `assignee`, no `extra`) — absent
-  must not read as a divergence against a base that omits them too;
-- a plain round-trip: create an item, mutate it twice in a row with no interruption, and assert the
-  second mutation is not refused. The guard's own premise is that the two sides are identical in the
-  normal case; if that premise is wrong the tool is unusable, and this is the cheapest test that
-  catches it.
+- an item with optional fields absent from the file (no `parent`, no `assignee`, no `extra`);
+- a plain round trip: create an item, mutate it twice in a row with no interruption, and assert the
+  second mutation is not refused.
 
-If any of these fails, treat it as more urgent than a missed detection: under-detection degrades to
-today's behaviour, over-detection refuses writes on healthy boards.
+**These are all expected to pass on the first run**, because the round-trip through
+`Item.from_frontmatter(...).to_frontmatter_dict()` collapses every one of these divergences
+structurally — that was measured against the real model, not assumed. Green immediately is the
+correct result, not a sign the test is inert. Their job is to be the regression net for the day a
+new load-time or parse-time correction lands unregistered, so write them as real end-to-end
+mutations rather than as assertions about the comparison helper: a test that only exercises the
+helper stops protecting anything the moment a caller stops using it.
 
-**Both write seams**, since the guard sits at two: a metadata/status mutation and a body or comment
-edit, each in both directions (refuses a real skew, passes a clean item).
+To keep the set honest against inertness, at least one of them should be shown to fail if the
+round-trip normalization is removed — the same technique that caught the sabotage-proof gap in the
+atomic-write tests.
+
+**Every path, both directions.** Single mutation at both write seams (metadata/status, and a
+body/comment edit); `sq sync` on a drifted roster item and on a clean roster; a bulk import against
+a drifted target and against a clean board; bulk retype and rename-status; and `repad`/`renumber` on
+a board carrying a real skew, asserting they are *unaffected* — that last one is what stops someone
+later adding a guard where the decision says there must not be one.
 
 Name tests by the behaviour they pin, never by a ticket id.
 
 **Changelog.** A write that used to succeed now refuses, so it needs an adopter-facing line under the
-unreleased section: `sq` refuses to overwrite an item whose file and index disagree, and points at
+unreleased section: `sq` refuses to overwrite an item whose file and index disagree and points at
 `sq repair`; `sq sync` skips such an item and names it. Adopter wording only — no ticket ids, no
-repo-process detail, nothing about the internal comparison. It must not contradict the same release's
-durability line, which claims the truncation is gone and the survivor repairable; that stays true.
+repo-process detail, nothing about the internal comparison. It must not contradict the same
+release's durability line, which claims the truncation is gone and the survivor repairable; that
+stays true, and this line completes it.
 
 Acceptance:
 - The F4 reproduction refuses, and succeeds after repair with both values intact.
-- Every by-design divergence above mutates cleanly, each with its own test.
-- Both write seams are covered in both directions.
+- Every false-refusal case above mutates cleanly, and at least one is shown to fail without the
+  normalization.
+- Every attachment path is covered in both directions, including `repad`/`renumber` being unaffected.
 - Full suite green under `uv run --all-extras`; run it once, redirect to a file, and read the file
   rather than re-running to reslice output.
 - CHANGELOG updated in the unreleased section.
@@ -356,6 +390,68 @@ Acceptance:
 <!-- sq:subtask:ST3:discussion -->
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
+
+<!-- sq:subtask:ST4 -->
+### ST4 — Pre-flight the batch: import, bulk retype, rename-status
+
+<!-- sq:subtask:ST4:head -->
+**Status:** ⚪ Todo
+<!-- sq:subtask:ST4:head:end -->
+
+<!-- sq:subtask:ST4:body -->
+Batch mutation: the check runs **before** the batch, never inside it.
+
+A mid-flight raise is the one option that must not ship. Bulk import applies every event inside one
+transaction, and §1's ordering rule means the markdown writes of everything already applied stand
+when the body raises — so one drifted item turns an import into a partially applied import, which is
+worse than the overwrite the guard exists to prevent.
+
+**Bulk import.** The importer is already validate-first for exactly this reason: `_plan_import`
+simulates every event against a throwaway copy of the index, collects every issue instead of
+stopping at the first, and `_apply_import` runs only on a clean plan — its docstring pins that an
+apply-time failure "can therefore only be I/O". A guard raising inside the apply loop would break
+that contract, not merely be unpleasant.
+
+So the guard becomes one more collected `ImportIssue` in the pre-pass, with one precision that must
+not be missed:
+
+- **Once per targeted pre-existing item, not once per event.** After that item's first event,
+  divergence from disk is the import's own doing, and a per-event check would false-refuse on event
+  two.
+- **Creates are out of scope** — no prior file to diverge from.
+- `ImportIssue` is `(line, message)`, so a per-item issue has to choose a line: use the line of that
+  item's *first* targeting event, which is where a reader will look.
+
+Note the one real cost, and do not paper over it: the pre-pass is pure today — it simulates against
+an in-memory copy and touches no files. Adding the guard means reading each targeted pre-existing
+item's `.md` during the pre-pass. That is N reads for N distinct pre-existing targets, bounded by
+the affected set rather than by the board, and it is the price of keeping the check out of the apply
+loop. State it in the pre-pass's docstring rather than leaving the next reader to discover that
+"validate-first" now touches disk.
+
+**Bulk retype and rename-status.** Same shape: the affected set is known up front (both compute it
+before touching anything), so pre-flight that set and refuse before the first write. Their
+file-rollback path stays what it is — a crash safety net, not the guard's mechanism; do not
+implement the guard as "let it fail and roll back". These two already read every item file for their
+rollback snapshot, so the file content the comparison needs may already be in hand — check before
+adding a second read.
+
+Acceptance:
+- A bulk import naming a drifted pre-existing item reports it as a pre-pass issue and applies
+  nothing; the plan still collects every *other* issue in the same run rather than stopping there.
+- An import that targets the same drifted item with several events reports it once, not once per
+  event.
+- An import that only creates items is never affected, however many events it carries.
+- Bulk retype and rename-status refuse before their first write, leaving every file untouched.
+- No guard check runs inside `_apply_import`; an apply-time failure can still only be I/O.
+- The pre-pass's new disk reads are documented where the validate-first contract is described.
+<!-- sq:subtask:ST4:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST4:discussion -->
+<!-- sq:subtask:ST4:discussion:end -->
+<!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
@@ -371,4 +467,11 @@ Acceptance:
   - Body rewritten to @architect's final ruling; my three options are withdrawn — he rejected all of them. The guard is decoupled from §3's predicate (§3's set unchanged) and its comparison set is derived, not chosen: on-disk frontmatter vs what the index-loaded item would serialize BEFORE the delta, every key in scope, the mutation's own fields plus the updated_at/session stamps dropping out structurally. Base captured in the pure half of a core, never from a reflog delta. By-design divergences normalized rather than excluded, as a category. ST2 ruled: skip and report, exit 0, never refuse the run.
   - One addition to the divergence list he did not name: the pre-0.2 `extra.ref_kinds` map, folded into inline refs by `from_frontmatter`. It is the same category but lives on the *file* side, not in `load()` — so the standing registration rule in the body covers both correction sites, not only `load()`. Concrete way to collapse most of the category for free: compare `Item.from_frontmatter(disk).to_frontmatter_dict()` against the base's `to_frontmatter_dict()`, so both sides come out of one serializer; then normalize only what demonstrably survives that (id width first).
   - Release scope now 0.12.2 per op-pierre. Acceptance carries the resulting bar: five false-refusal tests (legacy severity, post-repad id width, legacy ref_kinds, absent optional fields, and a plain two-mutations-in-a-row round trip), plus a real-skew test outside {status, parent} so the guard cannot pass by being inert, plus both write seams in both directions. Stated tiebreak when detection and false refusals trade off: err toward letting the write through.
+- [2026-07-27T20:42:02Z] Olivia Lead:
+  - Both rulings folded in; the ticket is dispatchable. New ST4 carries the batch shape (guard runs in the importer's pre-pass as one more collected ImportIssue, once per targeted pre-existing item rather than per event, creates out of scope; bulk retype and rename-status pre-flight their known affected set and refuse before the first write; _rollback_files stays a crash safety net, not the mechanism). repad/renumber stated as non-applicability with the reasoning — the guard attaches to index-derived frontmatter substitution, not to file writes — so nobody later adds one and false-refuses on the id-width divergence repad itself creates.
+  - Round-trip is now the sanctioned default rather than a proposal, and my id-width caveat is withdrawn — @architect measured it against the real model and a padded id collapses too (recomputed from prefix + sequence_id). Exclusion list is empty; the standing rule is teach-the-normalization, not add-to-a-skip-list. The `path` kwarg is called out as load-bearing in ST1: pass the item's own path or every item false-refuses.
+  - Acceptance updated: the five false-refusal cases now pass by construction, and the body says so explicitly so a dev seeing them green on first run knows that is the right result. Added a counterweight so the set cannot be inert — at least one must be shown to fail with the normalization removed, the same technique that caught the sabotage-proof gap in the atomic-write tests.
+  - One cost I corrected in my own body while folding: the 'no new I/O' claim is true for the single-mutation path (both seams already read the file) but false for the import pre-pass, which is pure today and will now read each targeted pre-existing item's .md. Bounded by the affected set, not the board — the claim is scoped per path now, and ST4 asks for it in the validate-first docstring rather than left for the next reader to discover.
+- [2026-07-27T20:42:45Z] Catherine Manager:
+  - Dispatched. Guard ships in 0.12.2 per Pierre; ADR-663 is binding and now covers the bulk pre-pass ruling, the empty exclusion list, and repad/renumber non-applicability.
 <!-- sq:discussion:end -->

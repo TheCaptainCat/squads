@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 672,
+  "counter": 673,
   "padding": 6,
   "items": {
     "12": {
@@ -24407,7 +24407,7 @@
       "subentities": [],
       "path": "adrs/ADR-000663-durability-model-of-the-integrity-core-markdown-ahead-index.md",
       "created_at": "2026-07-27T14:02:48Z",
-      "updated_at": "2026-07-27T16:17:32Z",
+      "updated_at": "2026-07-27T21:11:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24418,7 +24418,7 @@
       "type": "task",
       "title": "Atomic markdown writes and markdown-ahead ordering in the write path",
       "slug": "atomic-markdown-writes-and-markdown-ahead-ordering-in-the-wr",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "One atomic temp+fsync+replace primitive for every squad-data .md write, and the markdown-ahead ordering rule enforced at every mutation core.",
       "parent": null,
       "author": "tech-lead",
@@ -24445,7 +24445,7 @@
         {
           "local_id": "ST2",
           "title": "Route every squad-data write through the primitive",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24472,7 +24472,7 @@
         {
           "local_id": "ST5",
           "title": "Repair-convergence tests and the changelog line",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24490,7 +24490,7 @@
       ],
       "path": "tasks/TASK-000664-atomic-markdown-writes-and-markdown-ahead-ordering-in-the-wr.md",
       "created_at": "2026-07-27T14:22:46Z",
-      "updated_at": "2026-07-27T16:05:11Z",
+      "updated_at": "2026-07-27T20:36:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24501,7 +24501,7 @@
       "type": "task",
       "title": "sq check: confirm cross-source claims before reporting them",
       "slug": "sq-check-confirm-cross-source-claims-before-reporting-them",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Partition check's issues into single-source and cross-source; cross-source claims become candidates confirmed by one cheap re-read before they are reported.",
       "parent": null,
       "author": "tech-lead",
@@ -24554,7 +24554,7 @@
       ],
       "path": "tasks/TASK-000665-sq-check-confirm-cross-source-claims-before-reporting-them.md",
       "created_at": "2026-07-27T14:22:53Z",
-      "updated_at": "2026-07-27T20:34:07Z",
+      "updated_at": "2026-07-27T20:36:20Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24747,13 +24747,15 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "TASK-664"
+        "TASK-664",
+        "TASK-665",
+        "TASK-666"
       ],
       "subentities": [
         {
           "local_id": "F1",
           "title": "Stamped skill item files still written non-atomically by sync",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -24762,7 +24764,7 @@
         {
           "local_id": "F2",
           "title": "Interruption tests pass with the primitive sabotaged",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -24771,7 +24773,7 @@
         {
           "local_id": "F3",
           "title": "Whole-file rewrites of partly hand-authored files stay non-atomic",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -24789,7 +24791,7 @@
         {
           "local_id": "F5",
           "title": "Migration-runner exemption's recorded reason covers only ordering",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24798,7 +24800,7 @@
         {
           "local_id": "F6",
           "title": "Post-commit role-file writes in link-role carry no exemption note",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24807,7 +24809,7 @@
         {
           "local_id": "F7",
           "title": "Temp files leak on the error path; config temp escapes gitignore",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24816,7 +24818,7 @@
         {
           "local_id": "F8",
           "title": "Dry-run filesystem fix landed without a regression test",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24830,11 +24832,47 @@
           "severity": "low",
           "story": null,
           "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Confirm round drops a durable drift when the index path is stale",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Interruption tests hook os.fsync, which the ADR may remove",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Root gitignore pattern never reaches an existing squad",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Nested different-store transaction silently drops the outer log",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
         }
       ],
       "path": "reviews/REV-000671-atomic-write-primitive-and-write-path-ordering-rule.md",
       "created_at": "2026-07-27T16:00:06Z",
-      "updated_at": "2026-07-27T20:26:15Z",
+      "updated_at": "2026-07-27T20:57:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24845,7 +24883,7 @@
       "type": "task",
       "title": "Refuse an index-derived frontmatter rewrite over an unrepaired skew",
       "slug": "refuse-an-index-derived-frontmatter-rewrite-over-an-unrepair",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "Fail-closed detection: compare on-disk frontmatter against the index-derived item before rewriting, and refuse with a sq repair pointer instead of silently reverting the skew.",
       "parent": null,
       "author": "tech-lead",
@@ -24878,7 +24916,16 @@
         },
         {
           "local_id": "ST3",
-          "title": "Tests for both failure directions, and the changelog line",
+          "title": "Tests for both failure directions across every path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Pre-flight the batch: import, bulk retype, rename-status",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -24888,11 +24935,65 @@
       ],
       "path": "tasks/TASK-000672-refuse-an-index-derived-frontmatter-rewrite-over-an-unrepair.md",
       "created_at": "2026-07-27T16:13:19Z",
-      "updated_at": "2026-07-27T20:29:57Z",
+      "updated_at": "2026-07-27T20:42:45Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "TASK-672"
+    },
+    "673": {
+      "sequence_id": 673,
+      "type": "task",
+      "title": "Malformed frontmatter and config fail cleanly, not with a traceback",
+      "slug": "malformed-frontmatter-and-config-fail-cleanly-not-with-a-tra",
+      "status": "Draft",
+      "description": "Guard the unguarded YAML and TOML parses on the read path so a hand-edited or merge-broken file produces a clean error naming it, instead of a raw traceback.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-669:fixes",
+        "TASK-672:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Guard the .squads.toml parse",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "CLI-layer tests pinning the clean failure",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Guard the frontmatter parse and name the file",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000673-malformed-frontmatter-and-config-fail-cleanly-not-with-a-tra.md",
+      "created_at": "2026-07-27T21:07:24Z",
+      "updated_at": "2026-07-27T21:45:59Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-673"
     }
   }
 }
