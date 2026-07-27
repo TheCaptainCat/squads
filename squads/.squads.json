@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 659,
+  "counter": 662,
   "padding": 6,
   "items": {
     "12": {
@@ -24086,7 +24086,7 @@
       "subentities": [],
       "path": "agents/skills/SKILL-000508-releasing-squads.md",
       "created_at": "2026-07-20T12:32:09Z",
-      "updated_at": "2026-07-24T08:51:26Z",
+      "updated_at": "2026-07-27T09:55:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {
@@ -24251,6 +24251,105 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-659"
+    },
+    "660": {
+      "sequence_id": 660,
+      "type": "feature",
+      "title": "Release version-bump script",
+      "slug": "release-version-bump-script",
+      "status": "Done",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "features/FEAT-000660-release-version-bump-script.md",
+      "created_at": "2026-07-27T09:43:23Z",
+      "updated_at": "2026-07-27T10:00:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-660"
+    },
+    "661": {
+      "sequence_id": 661,
+      "type": "task",
+      "title": "Add scripts/bump_version.py release bump automation",
+      "slug": "add-scripts-bump-version-py-release-bump-automation",
+      "status": "Done",
+      "description": "",
+      "parent": "FEAT-660",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Implement scripts/bump_version.py (pure helpers + orchestration + --dry-run)",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Unit-test version-rewrite helpers + --dry-run smoke test",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Update releasing-squads (SKILL-508) Prep to call the script",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000661-add-scripts-bump-version-py-release-bump-automation.md",
+      "created_at": "2026-07-27T09:43:45Z",
+      "updated_at": "2026-07-27T10:00:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-661"
+    },
+    "662": {
+      "sequence_id": 662,
+      "type": "review",
+      "title": "Release version-bump script (bump_version.py)",
+      "slug": "release-version-bump-script-bump-version-py",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-661:scopes"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000662-release-version-bump-script-bump-version-py.md",
+      "created_at": "2026-07-27T09:58:58Z",
+      "updated_at": "2026-07-27T10:00:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-662"
     }
   }
 }
