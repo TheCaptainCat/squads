@@ -561,7 +561,7 @@ class ServiceCore:
                 "expected": sorted(in_lane_owner(item_type)),
                 "type": item_type,
             }
-        self.store._log(  # pyright: ignore[reportPrivateUsage]
+        self.store.log(
             "create",
             item.id,
             log_delta,
@@ -771,9 +771,20 @@ class ServiceCore:
         return it
 
     # ------------------------------------------------------------------ role / skill lookups
-    async def _role_item(self, slug: str) -> Item | None:
+    async def roster_item(self, item_type: str, slug: str) -> Item | None:
+        """Return the roster item of *item_type* (``ROSTER_ROLE``/``ROSTER_SKILL``/
+        ``ROSTER_OPERATOR``) whose slug matches, or ``None``.
+
+        A skill's slug falls back to its own :attr:`Item.slug` when ``extra.get(X.SLUG)`` is
+        unset (``extra.get(X.SLUG, it.slug)``); role and operator lookups use no fallback
+        (``extra.get(X.SLUG)``, so an item with no stored slug never matches). That per-type
+        difference is real and preserved here rather than flattened by the shared loop.
+        """
         for it in (await self.store.load()).items.values():
-            if it.type == ROSTER_ROLE and it.extra.get(X.SLUG) == slug:
+            if it.type != item_type:
+                continue
+            default = it.slug if item_type == ROSTER_SKILL else None
+            if it.extra.get(X.SLUG, default) == slug:
                 return it
         return None
 
@@ -783,7 +794,7 @@ class ServiceCore:
         Returns ``None`` when no tracked item exists for this slug (bundled-only role).
         The returned string is stripped of leading/trailing newlines.
         """
-        item = await self._role_item(slug)
+        item = await self.roster_item(ROSTER_ROLE, slug)
         if item is None:
             return None
         text = await _aio.read_text(item_file(self.paths, item))
@@ -791,18 +802,6 @@ class ServiceCore:
         if body is None:
             return None
         return body.strip("\n")
-
-    async def _skill_item(self, slug: str) -> Item | None:
-        for it in (await self.store.load()).items.values():
-            if it.type == ROSTER_SKILL and it.extra.get(X.SLUG, it.slug) == slug:
-                return it
-        return None
-
-    async def _operator_item(self, slug: str) -> Item | None:
-        for it in (await self.store.load()).items.values():
-            if it.type == ROSTER_OPERATOR and it.extra.get(X.SLUG) == slug:
-                return it
-        return None
 
     def _author_of(self, db: SquadsDB, slug: str) -> str:
         """Display (full) name for a participant slug, resolved against an already-loaded
@@ -1052,7 +1051,7 @@ class ServiceCore:
         ``sq sync`` is the reporter of record for a drifted role, same as it is for the roster
         sweep this hook is a partial-sync optimization over.
         """
-        role = await self._role_item(slug)
+        role = await self.roster_item(ROSTER_ROLE, slug)
         if role is None:
             return  # nothing to resync — caller already validated the role exists
         resolved = await self.resolved_skills_for_role(slug)

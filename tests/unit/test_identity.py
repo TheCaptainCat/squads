@@ -8,7 +8,7 @@ filesystem dependency — the file-move/index/body side of retype lives in tests
 from datetime import UTC, datetime
 
 from squads._models._item import Item
-from squads._services._retype import _carry_or_reset_status  # pyright: ignore[reportPrivateUsage]
+from squads._services._retype import _carry_or_reset_status
 from squads._workflow import WORKFLOWS, WorkflowSpec, load_workflow_spec
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)

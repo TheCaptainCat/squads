@@ -346,7 +346,7 @@ class RefsMixin(ServiceCore):
         """The ref-add mutation core: takes an already-open transaction's ``db``."""
         src, base = self._add_ref_model(db, from_id, to_id, kind=kind)
         await update_frontmatter(item_file(self.paths, src), src, base)
-        self.store._log(  # pyright: ignore[reportPrivateUsage]
+        self.store.log(
             "ref",
             src.id,
             {"add": to_id, "kind": kind},
@@ -372,7 +372,7 @@ class RefsMixin(ServiceCore):
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, src), src, base)
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "ref",
                 src.id,
                 {"remove": to_id},
@@ -421,7 +421,7 @@ class RefsMixin(ServiceCore):
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, src), src, base)
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "ref",
                 src.id,
                 {"remove": role_id, "kind": "scopes"},

@@ -162,10 +162,10 @@ async def test_selecting_a_node_loads_its_detail_and_reselection_refreshes_it(sv
         # Same executor-backed-parse race as the scroll test above: poll for the settled
         # body instead of trusting a single pause.
         tree.cursor_line = node1.line
-        await wait_until(pilot, lambda: "First body" in body._markdown)  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "First body" in body._markdown)
 
         tree.cursor_line = node2.line
-        await wait_until(pilot, lambda: "Second body" in body._markdown)  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "Second body" in body._markdown)
 
 
 async def test_reader_header_shows_status_priority_and_assignee_gracefully(svc):
@@ -207,7 +207,7 @@ async def test_body_tab_renders_markdown_blocks_and_an_empty_state_for_a_blank_b
 
         blank_node = _find(tree.root, blank.id)
         tree.cursor_line = blank_node.line
-        await wait_until(pilot, lambda: "no body yet" in body._markdown)  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "no body yet" in body._markdown)
 
 
 async def test_body_tab_scrolls_to_reach_content_below_the_fold(svc):
@@ -246,19 +246,19 @@ async def test_subentities_tab_shows_each_blocks_head_and_body_with_empty_states
         node = _find(tree.root, feat.id)
         tree.cursor_line = node.line
         sub_view = app.screen.query_one("#subentities-view", Markdown)
-        await wait_until(pilot, lambda: "Some story prose." in sub_view._markdown)  # pyright: ignore[reportPrivateUsage]
-        source = sub_view._markdown  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "Some story prose." in sub_view._markdown)
+        source = sub_view._markdown
         assert "US1" in source
         assert "Login" in source
         assert "manager" in source
 
         empty_node = _find(tree.root, feat_empty.id)
         tree.cursor_line = empty_node.line
-        await wait_until(pilot, lambda: sub_view._markdown == "*(none)*")  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: sub_view._markdown == "*(none)*")
 
         role_node = _find(tree.root, role.id)
         tree.cursor_line = role_node.line
-        await wait_until(pilot, lambda: sub_view._markdown == "*(none)*")  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: sub_view._markdown == "*(none)*")
 
 
 async def test_discussion_tab_renders_markdown_ordered_comments_and_empty_state(svc):
@@ -275,15 +275,15 @@ async def test_discussion_tab_renders_markdown_ordered_comments_and_empty_state(
         node = _find(tree.root, feat.id)
         tree.cursor_line = node.line
         disc_view = app.screen.query_one("#discussion-view", Markdown)
-        await wait_until(pilot, lambda: "second" in disc_view._markdown)  # pyright: ignore[reportPrivateUsage]
-        source = disc_view._markdown  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: "second" in disc_view._markdown)
+        source = disc_view._markdown
         assert source.index("first") < source.index("second")
         assert await svc.author("manager") in source
         assert any(isinstance(w, MarkdownParagraph) for w in disc_view.children)
 
         quiet_node = _find(tree.root, quiet.id)
         tree.cursor_line = quiet_node.line
-        await wait_until(pilot, lambda: disc_view._markdown == "*(none)*")  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: disc_view._markdown == "*(none)*")
 
 
 async def test_reader_tabs_are_switchable_by_keyboard(svc):

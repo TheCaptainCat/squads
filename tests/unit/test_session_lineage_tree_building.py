@@ -11,8 +11,8 @@ from rich.console import Console
 
 import squads._cli._main as main_mod
 from squads._cli._main import (
-    _build_session_maps,  # pyright: ignore[reportPrivateUsage]
-    _render_reflog_tree,  # pyright: ignore[reportPrivateUsage]
+    _build_session_maps,
+    _render_reflog_tree,
 )
 from squads._services._results import ReflogEntry
 

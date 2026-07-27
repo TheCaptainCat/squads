@@ -43,8 +43,8 @@ from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, R
 from squads._services._validators import (
     SQUAD_GLOBAL_CATALOG,
     ValidatorEngine,
-    _not_on_disk,  # pyright: ignore[reportPrivateUsage]
-    _on_disk_not_indexed,  # pyright: ignore[reportPrivateUsage]
+    not_on_disk,
+    on_disk_not_indexed,
 )
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, STATUS_ACTIVE
 
@@ -394,7 +394,7 @@ class MaintenanceMixin(ServiceCore):
                 # rather than a permanent orphan the idempotent-skip logic can never revisit).
                 await _aio.path_unlink(legacy_path)
                 db.add(item)
-                self.store._log(  # pyright: ignore[reportPrivateUsage]
+                self.store.log(
                     "create",
                     item_id,
                     {"title": slug, "type": ROSTER_SKILL, "status": STATUS_ACTIVE},
@@ -471,7 +471,7 @@ class MaintenanceMixin(ServiceCore):
                 # transaction, alongside the write it now always follows.
                 await _aio.path_unlink(legacy_path)
                 db.add(item)
-                self.store._log(  # pyright: ignore[reportPrivateUsage]
+                self.store.log(
                     "create",
                     item_id,
                     {"title": slug, "type": ROSTER_SKILL, "status": STATUS_ACTIVE},
@@ -675,7 +675,7 @@ class MaintenanceMixin(ServiceCore):
         async with self.store.transaction() as _db:
             old_padding = _db.padding
             _db.padding = new_padding
-            self.store._log(  # pyright: ignore[reportPrivateUsage]
+            self.store.log(
                 "migrate",
                 "",
                 {
@@ -1080,7 +1080,7 @@ class MaintenanceMixin(ServiceCore):
             fid, path, _data = on_disk[seq]
             if not await _aio.path_exists(path):
                 continue  # the file itself is gone since the scan — nothing left to claim
-            issue = _on_disk_not_indexed(seq, fid, indexed=seq in fresh_index.items)
+            issue = on_disk_not_indexed(seq, fid, indexed=seq in fresh_index.items)
             if issue is not None:
                 issues.append(issue)
 
@@ -1089,7 +1089,7 @@ class MaintenanceMixin(ServiceCore):
             if fresh_item is None:
                 continue  # removed from the index since the scan — no claim to confirm
             exists = await _aio.path_exists(item_file(self.paths, fresh_item))
-            issue = _not_on_disk(fresh_item, on_disk=exists)
+            issue = not_on_disk(fresh_item, on_disk=exists)
             if issue is not None:
                 issues.append(issue)
 

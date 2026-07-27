@@ -25,7 +25,7 @@ async def test_migrate_repad_renames_files_and_prints_a_summary(project, invoke)
     assert (await svc.store.load()).padding == 7
 
     # Every ID-prefixed item file now has a 7-digit width (slug-only skill files are skipped).
-    for _, md in svc._iter_item_files():  # pyright: ignore[reportPrivateUsage]
+    for _, md in svc._iter_item_files():
         stem = md.stem
         _, sep, digits_slug = stem.partition("-")
         digit_run = digits_slug.split("-", 1)[0] if sep else ""

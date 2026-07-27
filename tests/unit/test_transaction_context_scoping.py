@@ -10,7 +10,7 @@ import pytest
 from squads._index._reflog import read_lines, reflog_path
 from squads._index._store import (
     IndexStore,
-    _transaction_ctx_for,  # pyright: ignore[reportPrivateUsage]
+    _transaction_ctx_for,
 )
 
 pytestmark = pytest.mark.anyio
@@ -74,7 +74,7 @@ async def test_binding_is_restored_when_the_transaction_is_cancelled(tmp_path):
 
 async def test_a_nested_transaction_on_a_different_store_restores_the_outer_binding(tmp_path):
     """Only one ambient slot exists per task, so while a different store's transaction is
-    nested inside, it is the currently-bound one; the outer store's own ``_log`` calls
+    nested inside, it is the currently-bound one; the outer store's own ``log`` calls
     correctly see "no transaction of mine is active right now" (safe no-op, never routed
     into the inner store's buffer — the same guard ``_transaction_ctx_for`` applies to any
     foreign-store call). Once the inner transaction unwinds, the outer binding is
@@ -103,9 +103,7 @@ async def test_a_nested_transaction_on_a_different_store_restores_the_outer_bind
 async def test_log_call_with_no_open_transaction_is_a_silent_noop(tmp_path):
     store = _make_store(tmp_path)
 
-    store._log(  # pyright: ignore[reportPrivateUsage]
-        "update", "TASK-000001", {"title": ["Old", "New"]}
-    )  # no exception
+    store.log("update", "TASK-000001", {"title": ["Old", "New"]})  # no exception
 
     lines = await read_lines(reflog_path(store.index_path.parent))
     assert lines == []
@@ -119,9 +117,7 @@ async def test_log_call_on_a_different_store_instance_does_not_leak_into_the_ope
 
     async with store_a.transaction() as db:
         _ = db
-        store_b._log(  # pyright: ignore[reportPrivateUsage]
-            "update", "TASK-000002", {"title": ["Old", "New"]}
-        )
+        store_b.log("update", "TASK-000002", {"title": ["Old", "New"]})
         ctx_a = _transaction_ctx_for(store_a)
         assert ctx_a is not None
         assert ctx_a.reflog_ops == []  # not routed into A's buffer
@@ -137,9 +133,7 @@ async def test_a_log_call_on_the_owning_store_still_buffers_and_flushes(tmp_path
 
     async with store.transaction() as db:
         _ = db
-        store._log(  # pyright: ignore[reportPrivateUsage]
-            "update", "TASK-000003", {"title": ["Old", "New"]}
-        )
+        store.log("update", "TASK-000003", {"title": ["Old", "New"]})
 
     lines = await read_lines(reflog_path(store.index_path.parent))
     matching = [ln for ln in lines if ln.op == "update" and ln.target == "TASK-000003"]

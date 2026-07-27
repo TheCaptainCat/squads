@@ -18,7 +18,7 @@ async def _crash_the_index_commit(svc, monkeypatch, mutate):
     commit faulted so it never lands -- the `.md` write inside the transaction body has
     already happened and stands, exactly the markdown-ahead-of-index skew the durability
     model calls safe. Restores the real commit before returning."""
-    real_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+    real_atomic_write = IndexStore._atomic_write
 
     async def _boom(self, db):
         raise OSError("simulated crash during the index commit")

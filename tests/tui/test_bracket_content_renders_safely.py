@@ -12,7 +12,7 @@ from textual.widgets.tree import TreeNode
 
 from squads._tui._app import SquadsApp
 from squads._tui._browse import BrowseScreen
-from squads._tui._search import SearchScreen, _HitItem  # pyright: ignore[reportPrivateUsage]
+from squads._tui._search import SearchScreen, _HitItem
 
 from ._helpers import wait_until
 
@@ -40,7 +40,7 @@ async def test_a_tree_item_title_with_brackets_renders_without_crashing(svc):
         await pilot.pause()
         browse = app.screen
         assert isinstance(browse, BrowseScreen)
-        node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
+        node = _find(browse._tree.root, feat.id)
         assert _BRACKETY in str(node.label)
 
 
@@ -53,11 +53,11 @@ async def test_a_discussion_comment_with_brackets_renders_without_crashing(svc):
         await pilot.pause()
         browse = app.screen
         assert isinstance(browse, BrowseScreen)
-        node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
-        browse._tree.cursor_line = node.line  # pyright: ignore[reportPrivateUsage]
+        node = _find(browse._tree.root, feat.id)
+        browse._tree.cursor_line = node.line
 
         disc_view = browse.query_one("#discussion-view", Markdown)
-        await wait_until(pilot, lambda: _BRACKETY in disc_view._markdown)  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: _BRACKETY in disc_view._markdown)
 
 
 async def test_a_glance_assignee_with_brackets_renders_without_crashing(svc, monkeypatch):
@@ -78,8 +78,8 @@ async def test_a_glance_assignee_with_brackets_renders_without_crashing(svc, mon
         await pilot.pause()
         browse = app.screen
         assert isinstance(browse, BrowseScreen)
-        node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
-        browse._tree.cursor_line = node.line  # pyright: ignore[reportPrivateUsage]
+        node = _find(browse._tree.root, feat.id)
+        browse._tree.cursor_line = node.line
 
         header = browse.query_one("#glance-header", Static)
         await wait_until(pilot, lambda: _BRACKETY in str(header.content))
@@ -95,11 +95,11 @@ async def test_a_sub_entity_body_with_brackets_renders_without_crashing(svc):
         await pilot.pause()
         browse = app.screen
         assert isinstance(browse, BrowseScreen)
-        node = _find(browse._tree.root, feat.id)  # pyright: ignore[reportPrivateUsage]
-        browse._tree.cursor_line = node.line  # pyright: ignore[reportPrivateUsage]
+        node = _find(browse._tree.root, feat.id)
+        browse._tree.cursor_line = node.line
 
         sub_view = browse.query_one("#subentities-view", Markdown)
-        await wait_until(pilot, lambda: _BRACKETY in sub_view._markdown)  # pyright: ignore[reportPrivateUsage]
+        await wait_until(pilot, lambda: _BRACKETY in sub_view._markdown)
 
 
 async def test_a_search_snippet_with_brackets_renders_without_crashing(svc):
@@ -113,7 +113,7 @@ async def test_a_search_snippet_with_brackets_renders_without_crashing(svc):
         search = app.screen
         assert isinstance(search, SearchScreen)
 
-        search._query.value = "needle-xyz"  # pyright: ignore[reportPrivateUsage]
+        search._query.value = "needle-xyz"
         await pilot.press("enter")
 
         results = search.query_one(ListView)

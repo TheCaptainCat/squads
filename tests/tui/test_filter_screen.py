@@ -27,7 +27,7 @@ def _all_ids(tree_screen: BrowseScreen) -> set[str]:
         for child in node.children:  # pyright: ignore[reportAttributeAccessIssue]
             _walk(child)
 
-    _walk(tree_screen._tree.root)  # pyright: ignore[reportPrivateUsage]
+    _walk(tree_screen._tree.root)
     return ids
 
 
@@ -44,7 +44,7 @@ async def test_escape_dismisses_the_popup_without_applying_pending_changes(svc):
         await pilot.pause()
         popup = app.screen
         assert isinstance(popup, FilterScreen)
-        popup._type_select.value = "task"  # pyright: ignore[reportPrivateUsage]
+        popup._type_select.value = "task"
 
         await pilot.press("escape")
         await pilot.pause()
@@ -67,7 +67,7 @@ async def test_applying_a_type_filter_narrows_the_tree_keeping_an_ancestor_visib
         await pilot.pause()
         popup = app.screen
         assert isinstance(popup, FilterScreen)
-        popup._type_select.value = "task"  # pyright: ignore[reportPrivateUsage]
+        popup._type_select.value = "task"
         popup.query_one("#apply", Button).press()
         await pilot.pause()
 
@@ -90,7 +90,7 @@ async def test_applying_returns_a_new_state_and_a_later_open_is_seeded_from_it(s
         await pilot.pause()
         popup = app.screen
         assert isinstance(popup, FilterScreen)
-        popup._type_select.value = "feature"  # pyright: ignore[reportPrivateUsage]
+        popup._type_select.value = "feature"
         popup.query_one("#apply", Button).press()
         await pilot.pause()
 
@@ -100,7 +100,7 @@ async def test_applying_returns_a_new_state_and_a_later_open_is_seeded_from_it(s
         await pilot.pause()
         reopened = app.screen
         assert isinstance(reopened, FilterScreen)
-        assert reopened._type_select.value == "feature"  # pyright: ignore[reportPrivateUsage]
+        assert reopened._type_select.value == "feature"
 
 
 async def test_show_closed_toggle_reveals_and_hides_a_done_item(svc):
@@ -118,7 +118,7 @@ async def test_show_closed_toggle_reveals_and_hides_a_done_item(svc):
         await pilot.pause()
         popup = app.screen
         assert isinstance(popup, FilterScreen)
-        popup._show_closed_switch.value = True  # pyright: ignore[reportPrivateUsage]
+        popup._show_closed_switch.value = True
         popup.query_one("#apply", Button).press()
         await pilot.pause()
         assert closed.id in _all_ids(browse)
@@ -127,7 +127,7 @@ async def test_show_closed_toggle_reveals_and_hides_a_done_item(svc):
         await pilot.pause()
         popup2 = app.screen
         assert isinstance(popup2, FilterScreen)
-        popup2._show_closed_switch.value = False  # pyright: ignore[reportPrivateUsage]
+        popup2._show_closed_switch.value = False
         popup2.query_one("#apply", Button).press()
         await pilot.pause()
         assert closed.id not in _all_ids(browse)
@@ -148,11 +148,11 @@ async def test_sort_by_title_reorders_siblings_without_crossing_levels(svc):
         await pilot.pause()
         popup = app.screen
         assert isinstance(popup, FilterScreen)
-        popup._sort_select.value = "title"  # pyright: ignore[reportPrivateUsage]
+        popup._sort_select.value = "title"
         popup.query_one("#apply", Button).press()
         await pilot.pause()
 
-        work_group = browse._tree.root.children[0]  # pyright: ignore[reportPrivateUsage]
+        work_group = browse._tree.root.children[0]
         top_level = [n.data for n in work_group.children if n.data in (zeta.id, alpha.id)]
         assert top_level == [alpha.id, zeta.id]  # "Alpha" sorts before "Zeta"
 
@@ -174,9 +174,9 @@ async def test_clear_resets_the_popup_and_applying_reproduces_the_default_view(s
         await pilot.pause()
         popup = app.screen
         assert isinstance(popup, FilterScreen)
-        popup._type_select.value = "feature"  # pyright: ignore[reportPrivateUsage]
-        popup._show_closed_switch.value = True  # pyright: ignore[reportPrivateUsage]
-        popup._sort_select.value = "title"  # pyright: ignore[reportPrivateUsage]
+        popup._type_select.value = "feature"
+        popup._show_closed_switch.value = True
+        popup._sort_select.value = "title"
         popup.query_one("#apply", Button).press()
         await pilot.pause()
         assert not browse.state.is_default()
@@ -208,7 +208,7 @@ async def test_applying_a_category_filter_round_trips_into_browse_state(svc):
         await pilot.pause()
         popup = app.screen
         assert isinstance(popup, FilterScreen)
-        popup._category_select.value = "records"  # pyright: ignore[reportPrivateUsage]
+        popup._category_select.value = "records"
         popup.query_one("#apply", Button).press()
         await pilot.pause()
 
@@ -220,11 +220,11 @@ async def test_applying_a_category_filter_round_trips_into_browse_state(svc):
         await pilot.pause()
         reopened = app.screen
         assert isinstance(reopened, FilterScreen)
-        assert reopened._category_select.value == "records"  # pyright: ignore[reportPrivateUsage]
+        assert reopened._category_select.value == "records"
 
         reopened.query_one("#clear", Button).press()
         await pilot.pause()
-        assert reopened._category_select.value is Select.NULL  # pyright: ignore[reportPrivateUsage]
+        assert reopened._category_select.value is Select.NULL
         reopened.query_one("#apply", Button).press()
         await pilot.pause()
         assert browse.state.filter.category is None
@@ -236,16 +236,16 @@ async def test_active_filter_indicator_shows_only_while_filtered(svc):
         await pilot.pause()
         browse = app.screen
         assert isinstance(browse, BrowseScreen)
-        assert browse._indicator.content == ""  # pyright: ignore[reportPrivateUsage]
+        assert browse._indicator.content == ""
 
         await pilot.press("f")
         await pilot.pause()
         popup = app.screen
         assert isinstance(popup, FilterScreen)
-        popup._type_select.value = "feature"  # pyright: ignore[reportPrivateUsage]
+        popup._type_select.value = "feature"
         popup.query_one("#apply", Button).press()
         await pilot.pause()
-        assert browse._indicator.content != ""  # pyright: ignore[reportPrivateUsage]
+        assert browse._indicator.content != ""
 
         await pilot.press("f")
         await pilot.pause()
@@ -254,7 +254,7 @@ async def test_active_filter_indicator_shows_only_while_filtered(svc):
         popup2.query_one("#clear", Button).press()
         popup2.query_one("#apply", Button).press()
         await pilot.pause()
-        assert browse._indicator.content == ""  # pyright: ignore[reportPrivateUsage]
+        assert browse._indicator.content == ""
 
 
 def test_type_filter_options_display_resolved_labels_with_raw_type_values() -> None:
@@ -263,7 +263,7 @@ def test_type_filter_options_display_resolved_labels_with_raw_type_values() -> N
     spec = base.model_copy(update={"items": {**base.items, "bug": pinned_bug}})
 
     popup = FilterScreen(BrowseState(), spec)
-    options = {value: label for label, value in popup._type_select._options}  # pyright: ignore[reportPrivateUsage]
+    options = {value: label for label, value in popup._type_select._options}
 
     assert options["task"] == "Task"  # bundled type: derived label
     assert options["bug"] == "Defect"  # pinned override, not the raw "bug"

@@ -12,7 +12,7 @@ pytestmark = pytest.mark.anyio
 async def test_sync_command_warns_on_a_drifted_role_and_still_exits_clean(svc, invoke, monkeypatch):
     role = await svc.activate_role("tech-writer")
 
-    real_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+    real_atomic_write = IndexStore._atomic_write
 
     async def _boom(self, db):
         raise OSError("simulated crash during the index commit")

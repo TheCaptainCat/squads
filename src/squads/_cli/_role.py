@@ -22,11 +22,11 @@ from rich.table import Table
 import squads._cli._common as common
 from squads._cli._common import (
     AddressDispatchGroup,
-    _is_full_id_shape,  # pyright: ignore[reportPrivateUsage]
     console,
     e,
     get_service,
     handle_errors,
+    is_full_id_shape,
     print_json_clean,
     render_body_text,
     resolve_agent_addr,
@@ -172,7 +172,7 @@ async def _resolve_addr(
     ctx.obj = {_ADDR_KEY: addr}
     t = addr.strip()
     # Detect numeric or full-ID-shaped tokens (TYPE-NNNNNN).
-    if t.isdigit() or _is_full_id_shape(t):
+    if t.isdigit() or is_full_id_shape(t):
         # Numeric or full-ID tokens: strict DB resolution — wrong-type errors bubble up.
         ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
     else:

@@ -9,7 +9,7 @@ tests/cli/test_slug_validation_surfaces.py.
 
 import pytest
 
-from squads._cli._common import resolve_slug_or_raise  # pyright: ignore[reportPrivateUsage]
+from squads._cli._common import resolve_slug_or_raise
 from squads._errors import SquadsError
 
 pytestmark = pytest.mark.anyio

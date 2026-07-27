@@ -124,7 +124,7 @@ class SquadGlobalValidator(Protocol):
     for a single item id, or it cannot be confirmed by ``check``'s one-round confirm pass and
     does not belong in this catalog. Shape a new cross-source check as a
     small ``(single item, freshly observed pair) -> CheckIssue | None`` predicate (see
-    ``_on_disk_not_indexed``/``_not_on_disk`` below) that the whole-scan pass and the confirm
+    ``on_disk_not_indexed``/``not_on_disk`` below) that the whole-scan pass and the confirm
     pass both call unchanged — never inline the comparison in the squad-global loop itself,
     or the two passes will have their own copies to drift apart. A validator that only reads
     the disk (``backend_reconciled``) carries no such requirement — nothing racing a
@@ -366,7 +366,7 @@ assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATO
 # --------------------------------------------------------------------------- squad-global catalog
 
 
-def _on_disk_not_indexed(seq: int, fid: str, *, indexed: bool) -> CheckIssue | None:
+def on_disk_not_indexed(seq: int, fid: str, *, indexed: bool) -> CheckIssue | None:
     """One direction of ``_index_reconciled``, factored to a single-item predicate so
     ``check``'s confirm round in ``_maintenance.py`` can re-run this exact comparison against
     a freshly loaded index's membership for just this candidate — never a second copy."""
@@ -375,9 +375,9 @@ def _on_disk_not_indexed(seq: int, fid: str, *, indexed: bool) -> CheckIssue | N
     return CheckIssue("error", fid, "on disk but not in index (run `sq repair`)")
 
 
-def _not_on_disk(item: Item, *, on_disk: bool) -> CheckIssue | None:
+def not_on_disk(item: Item, *, on_disk: bool) -> CheckIssue | None:
     """The other direction of ``_index_reconciled`` — same reuse rationale as
-    ``_on_disk_not_indexed``."""
+    ``on_disk_not_indexed``."""
     if on_disk:
         return None
     return CheckIssue("error", item.id, "in index but no markdown file found")
@@ -386,7 +386,7 @@ def _not_on_disk(item: Item, *, on_disk: bool) -> CheckIssue | None:
 def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """← ``_check_reconciliation``: index and on-disk files agree, compared by sequence
     number (width-tolerant across a repad). The whole-scan pass over the pair; ``check``'s
-    confirm pass re-runs ``_on_disk_not_indexed``/``_not_on_disk`` directly, one candidate at
+    confirm pass re-runs ``on_disk_not_indexed``/``not_on_disk`` directly, one candidate at
     a time, rather than calling this function again — a full rescan would reintroduce the
     cost the lock-free design exists to avoid."""
     index_seqs = {it.sequence_id for it in ctx.index.items.values()}
@@ -394,12 +394,12 @@ def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
     issues = [
         issue
         for seq, (fid, _md, _data) in ctx.on_disk.items()
-        if (issue := _on_disk_not_indexed(seq, fid, indexed=seq in index_seqs)) is not None
+        if (issue := on_disk_not_indexed(seq, fid, indexed=seq in index_seqs)) is not None
     ]
     issues += [
         issue
         for it in ctx.index.items.values()
-        if (issue := _not_on_disk(it, on_disk=it.sequence_id in on_disk_seqs)) is not None
+        if (issue := not_on_disk(it, on_disk=it.sequence_id in on_disk_seqs)) is not None
     ]
     return issues
 

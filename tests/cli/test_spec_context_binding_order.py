@@ -23,7 +23,7 @@ def test_the_active_spec_is_bound_before_type_and_status_parser_callbacks_run(
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
 
-    from squads._cli._common import get_active_spec  # pyright: ignore[reportPrivateUsage]
+    from squads._cli._common import get_active_spec
 
     result = runner.invoke(app, ["list", "--type", "task", "--status", "InProgress"])
     assert result.exit_code == 0, result.output
@@ -33,7 +33,7 @@ def test_the_active_spec_is_bound_before_type_and_status_parser_callbacks_run(
 def test_parse_type_falls_back_to_the_bundled_spec_when_no_spec_is_bound(tmp_path, monkeypatch):
     """Outside of any CLI invocation, `get_active_spec()`/`parse_type` fall back transparently."""
     monkeypatch.chdir(tmp_path)
-    from squads._cli._common import (  # pyright: ignore[reportPrivateUsage]
+    from squads._cli._common import (
         get_active_spec,
         parse_type,
         set_active_spec,
@@ -49,7 +49,7 @@ def test_parse_status_validates_loose_and_canonical_forms_against_the_active_spe
     tmp_path, monkeypatch
 ):
     monkeypatch.chdir(tmp_path)
-    from squads._cli._common import (  # pyright: ignore[reportPrivateUsage]
+    from squads._cli._common import (
         parse_status,
         set_active_spec,
     )

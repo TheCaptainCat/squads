@@ -226,7 +226,7 @@ def test_a_required_field_with_no_default_fails_closed_but_resolves_via_the_coll
 
 
 def test_loader_field_parse_error_names_the_owning_type() -> None:
-    from squads._workflow._loader import _build_spec  # pyright: ignore[reportPrivateUsage]
+    from squads._workflow._loader import _build_spec
 
     raw = {
         "lifecycles": {"work": {"initial": "Draft", "transitions": {"Draft": []}}},

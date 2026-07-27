@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 
 from squads._interactions import PLAYBOOK, get_playbook_spec, spec_to_item_playbook
-from squads._interactions._loader import _build_spec  # pyright: ignore[reportPrivateUsage]
+from squads._interactions._loader import _build_spec
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec, RoleGuideSpec
 from squads._roles._catalog import get_catalog
 from squads._workflow import bundled_spec

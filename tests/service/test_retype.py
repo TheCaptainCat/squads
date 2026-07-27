@@ -184,7 +184,7 @@ async def test_retype_refuses_a_drifted_item_and_leaves_the_file_at_its_original
     task = (await svc.create("task", "Drifted retype target")).item
     old_path = svc.paths.abspath(task.path)
 
-    real_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+    real_atomic_write = IndexStore._atomic_write
 
     async def _boom(self, db):
         raise OSError("simulated crash during the index commit")

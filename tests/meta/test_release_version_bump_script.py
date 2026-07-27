@@ -118,8 +118,8 @@ def test_dry_run_prints_the_plan_and_makes_no_file_or_subprocess_side_effects(
 
     monkeypatch.setattr(Path, "write_text", _forbidden_write)
 
-    pyproject_path = bump_version._PYPROJECT_PATH  # pyright: ignore[reportPrivateUsage]
-    package_json_path = bump_version._PACKAGE_JSON_PATH  # pyright: ignore[reportPrivateUsage]
+    pyproject_path = bump_version._PYPROJECT_PATH
+    package_json_path = bump_version._PACKAGE_JSON_PATH
     before_pyproject = pyproject_path.read_text(encoding="utf-8")
     before_package_json = package_json_path.read_text(encoding="utf-8")
 

@@ -9,7 +9,7 @@ pytest.importorskip("textual")
 
 from rich.text import Text
 
-from squads._tui._tree import _label, _status_style  # pyright: ignore[reportPrivateUsage]
+from squads._tui._tree import _label, _status_style
 
 pytestmark = pytest.mark.anyio
 

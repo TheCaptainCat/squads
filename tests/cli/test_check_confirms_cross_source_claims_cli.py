@@ -51,7 +51,7 @@ async def test_a_mutation_racing_the_scan_no_longer_flips_sq_check_to_exit_3_thr
 
     started = threading.Event()
     release = threading.Event()
-    orig_scan = maintenance.MaintenanceMixin._scan_for_check  # pyright: ignore[reportPrivateUsage]
+    orig_scan = maintenance.MaintenanceMixin._scan_for_check
 
     async def paused_scan(self):
         started.set()
@@ -61,7 +61,7 @@ async def test_a_mutation_racing_the_scan_no_longer_flips_sq_check_to_exit_3_thr
     monkeypatch.setattr(
         maintenance.MaintenanceMixin,
         "_scan_for_check",
-        paused_scan,  # pyright: ignore[reportPrivateUsage]
+        paused_scan,
     )
 
     def mutate() -> None:
