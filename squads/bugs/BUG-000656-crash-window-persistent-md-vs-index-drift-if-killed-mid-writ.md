@@ -5,8 +5,11 @@ type: bug
 title: 'Crash-window: persistent .md-vs-index drift if killed mid-write'
 status: Open
 author: qa
+severity: medium
+refs:
+- BUG-668
 created_at: '2026-07-24T14:38:30Z'
-updated_at: '2026-07-24T14:40:13Z'
+updated_at: '2026-07-27T14:42:02Z'
 ---
 <!-- sq:body -->
 ## Symptom
@@ -42,10 +45,14 @@ self-healing like the check-time race); `sq repair` rebuilt the index and cleare
 
 ## Severity
 
-Medium. Not data loss (frontmatter is the source of truth per invariant #1, and `sq repair`
-always heals it), but it's a real, durable inconsistency, and this project's own workflow
-routinely backgrounds and stops agent/subagent processes mid-task — exactly the kind of
-interruption that can land a process in this window.
+Medium, unchanged on review. This bug's own window assumes the `.md` write already
+completed before the kill lands — not data loss (frontmatter is the source of truth per
+invariant #1, and `sq repair` always heals it), just a real, durable inconsistency, and this
+project's own workflow routinely backgrounds and stops agent/subagent processes mid-task —
+exactly the kind of interruption that can land a process in this window. A kill *during* the
+`.md` write itself is a distinct, worse failure (the write is non-atomic, so it can leave a
+truncated or empty file that `sq repair` cannot reconstruct from) — tracked separately as
+BUG-668.
 
 ## Proposed fix
 
@@ -63,4 +70,13 @@ Make the `.md` write and the index commit all-or-nothing — options:
 <!-- sq:discussion -->
 - [2026-07-24T14:40:13Z] Pierre Chat:
   - Investigated + fix proposed; parked — not scheduled for 0.12.1.
+- [2026-07-27T13:53:01Z] Pierre Chat:
+  - Unparked: fix all three. Architect settles the .md-vs-index ordering/atomicity model in an ADR first, then implement.
+- [2026-07-27T14:06:13Z] Robert Architect:
+  - ADR-663 §1-2 settles the ordering: markdown ahead or equal, index commits last, never the reverse (option 1 as filed inverts it into the lossy direction). Adds atomic tmp+replace for every squad-data .md write — the real worst case in the window is a truncated source-of-truth file.
+- [2026-07-27T14:26:21Z] Olivia Lead:
+  - Broken down: TASK-664 closes this (ADR-663 §1+§2 — atomic temp+fsync+replace for every squad-data .md write, plus the markdown-ahead ordering rule at every mutation core, including the `remove_item(purge=True)` violation).
+  - The bug's own fix option 1 (rename the .md in only after the index commit) is NOT what lands: the ADR rejects it as the lossy direction — repair would revert the mutation or resurrect a removed item.
+- [2026-07-27T14:42:02Z] Mara Tester:
+  - Severity kept at Medium on review: this bug's window is specifically post-write/pre-index-commit (repairable drift, no data loss); the worse pre-write-completion case (truncation destroying the .md itself) is now tracked separately at BUG-668/high, ref'd.
 <!-- sq:discussion:end -->
