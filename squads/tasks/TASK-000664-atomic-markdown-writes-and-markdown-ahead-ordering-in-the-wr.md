@@ -3,7 +3,7 @@ id: TASK-664
 sequence_id: 664
 type: task
 title: Atomic markdown writes and markdown-ahead ordering in the write path
-status: InReview
+status: InProgress
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -15,24 +15,24 @@ description: One atomic temp+fsync+replace primitive for every squad-data .md wr
 subentities:
 - local_id: ST1
   title: Atomic replace primitive for squad-data writes
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Route every squad-data write through the primitive
-  status: Todo
+  status: InProgress
 - local_id: ST3
   title: Board notices and memory entries onto the primitive
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Ordering audit across mutation cores; fix the violating sites
-  status: Todo
+  status: Done
 - local_id: ST5
   title: Repair-convergence tests and the changelog line
-  status: Todo
+  status: InProgress
 - local_id: ST6
   title: Route the sync filesystem calls on the mutation path through _aio
-  status: Todo
+  status: Done
 created_at: '2026-07-27T14:22:46Z'
-updated_at: '2026-07-27T15:42:42Z'
+updated_at: '2026-07-27T16:05:11Z'
 ---
 <!-- sq:body -->
 Implements the write side of ADR-663: §1 (skew direction — markdown ahead or equal, index
@@ -170,12 +170,12 @@ _Add with `sq task 664 add-subtask "<title>"`; track with `sq task 664 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Atomic replace primitive for squad-data writes |  |
-| ST2 | Todo |  | Route every squad-data write through the primitive |  |
-| ST3 | Todo |  | Board notices and memory entries onto the primitive |  |
-| ST4 | Todo |  | Ordering audit across mutation cores; fix the violating sites |  |
-| ST5 | Todo |  | Repair-convergence tests and the changelog line |  |
-| ST6 | Todo |  | Route the sync filesystem calls on the mutation path through _aio |  |
+| ST1 | Done |  | Atomic replace primitive for squad-data writes |  |
+| ST2 | InProgress |  | Route every squad-data write through the primitive |  |
+| ST3 | Done |  | Board notices and memory entries onto the primitive |  |
+| ST4 | Done |  | Ordering audit across mutation cores; fix the violating sites |  |
+| ST5 | InProgress |  | Repair-convergence tests and the changelog line |  |
+| ST6 | Done |  | Route the sync filesystem calls on the mutation path through _aio |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -184,7 +184,7 @@ _Add with `sq task 664 add-subtask "<title>"`; track with `sq task 664 subtask <
 ### ST1 — Atomic replace primitive for squad-data writes
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -222,7 +222,7 @@ Acceptance:
 ### ST2 — Route every squad-data write through the primitive
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟡 In Progress
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -273,7 +273,7 @@ Acceptance:
 ### ST3 — Board notices and memory entries onto the primitive
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
@@ -301,7 +301,7 @@ Acceptance:
 ### ST4 — Ordering audit across mutation cores; fix the violating sites
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
@@ -350,7 +350,7 @@ Acceptance:
 ### ST5 — Repair-convergence tests and the changelog line
 
 <!-- sq:subtask:ST5:head -->
-**Status:** ⚪ Todo
+**Status:** 🟡 In Progress
 <!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
@@ -409,7 +409,7 @@ Acceptance:
 ### ST6 — Route the sync filesystem calls on the mutation path through _aio
 
 <!-- sq:subtask:ST6:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->

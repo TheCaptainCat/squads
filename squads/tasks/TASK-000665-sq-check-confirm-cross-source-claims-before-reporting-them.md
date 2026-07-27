@@ -3,7 +3,7 @@ id: TASK-665
 sequence_id: 665
 type: task
 title: 'sq check: confirm cross-source claims before reporting them'
-status: Draft
+status: InProgress
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -14,18 +14,22 @@ description: Partition check's issues into single-source and cross-source; cross
 subentities:
 - local_id: ST1
   title: Partition check's issues into single-source and cross-source
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST2
   title: One confirm round over the candidate set
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST3
   title: Name the skew direction on a confirmed drift
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST4
   title: Claim boundary in the docstring, exit-code tests, changelog
-  status: Todo
+  status: Done
+  assignee: python-dev
 created_at: '2026-07-27T14:22:53Z'
-updated_at: '2026-07-27T14:46:38Z'
+updated_at: '2026-07-27T20:34:07Z'
 ---
 <!-- sq:body -->
 Implements ADR-663 §3. `sq check` stays lock-free; a cross-source claim becomes a *candidate*
@@ -139,10 +143,10 @@ _Add with `sq task 665 add-subtask "<title>"`; track with `sq task 665 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Partition check's issues into single-source and cross-source |  |
-| ST2 | Todo |  | One confirm round over the candidate set |  |
-| ST3 | Todo |  | Name the skew direction on a confirmed drift |  |
-| ST4 | Todo |  | Claim boundary in the docstring, exit-code tests, changelog |  |
+| ST1 | Done | python-dev | Partition check's issues into single-source and cross-source |  |
+| ST2 | Done | python-dev | One confirm round over the candidate set |  |
+| ST3 | Done | python-dev | Name the skew direction on a confirmed drift |  |
+| ST4 | Done | python-dev | Claim boundary in the docstring, exit-code tests, changelog |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -151,38 +155,12 @@ _Add with `sq task 665 add-subtask "<title>"`; track with `sq task 665 subtask <
 ### ST1 — Partition check's issues into single-source and cross-source
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
+**Assignee:** Elias Python
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-Split what `check()` produces today into the two classes the ADR defines, and make each
-cross-source claim carry the item sequence number it was derived from, so the confirm pass can
-re-read exactly those items and re-run exactly those predicates.
-
-Cross-source, and only these three today:
-- status drift and parent drift (`_drift_issues`, `_services/_maintenance.py`);
-- `_index_reconciled`'s "on disk but not in index" direction;
-- `_index_reconciled`'s "in index but no markdown file" direction.
-
-Everything else — marker damage, missing `id`, unwritten sub-entity body, over-long titles,
-status-banner prose, the two override checks, and the rest of the per-item catalog — is
-single-source and reported as-is.
-
-Keep each cross-source predicate a single function that can be re-run against a fresh
-`(index entry, frontmatter)` pair. Do not duplicate the comparison logic between the scan pass
-and the confirm pass; two copies will drift apart.
-
-Note the asymmetry: "in index but no markdown file" has no on-disk frontmatter to re-read, so
-its confirm input is the item id plus a fresh existence check against a freshly loaded index.
-
-Also write down the standing requirement this shape imposes: a cross-source predicate must be
-evaluable for a single item id, or it cannot be confirmed and does not belong in `check`. Put it
-where the next person adding a validator will read it.
-
-Acceptance:
-- The candidate-vs-finding split is explicit in the code, not implied by call order.
-- A test asserts a single-source issue (e.g. marker damage) is reported with no second read.
-- The requirement on future cross-source validators is stated at the validator seam.
+Cross-source claims (status/parent drift; both index/disk reconciliation directions) split from single-source scan issues in _services/_maintenance.py and _services/_validators.py. Drift is decomposed into _status_drift/_parent_drift/_drift_issues (single-item, reused unchanged by scan and confirm); index_reconciled's two directions factored into _on_disk_not_indexed(seq, fid, *, indexed: bool)/_not_on_disk(item, *, on_disk: bool) — bool-flag signatures, evaluable per item id. The per-item-id requirement is stated on SquadGlobalValidator's docstring, the seam where the next validator gets added. A dedicated test proves a single-source issue (marker damage) triggers no second index load.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -195,33 +173,12 @@ Acceptance:
 ### ST2 — One confirm round over the candidate set
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
+**Assignee:** Elias Python
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-After the scan, when the candidate set is non-empty, re-load the index (one small read) and
-re-read only the candidate items' `.md` files, then re-evaluate their own predicates against
-that fresh pair. Report only the claims that still hold.
-
-Exactly one round: no loop, no retry, no backoff. Under continuous mutation a retry loop would
-not terminate, and one round already reduces the residual false positive to a mutation landing
-in both the scan window *and* the confirm window for the same item.
-
-An empty candidate set means no second pass at all — no index re-load, no file re-read. That is
-the common case and it must stay free.
-
-Keep the re-read scoped to the candidates. A full rescan would reintroduce exactly the cost the
-lock-free design exists to avoid, and would widen the window it is meant to close.
-
-Because a mutation commits both sides while holding the lock, a candidate produced by an
-in-flight transaction resolves on the recheck, while a durable inconsistency reproduces on every
-recheck.
-
-Acceptance:
-- A mutation applied between the two passes drops the phantom issue — tested for a drift
-  candidate and for both reconciliation directions.
-- A durable inconsistency left on disk survives the confirm pass and is reported.
-- On a clean board the index is loaded exactly once and no file is read twice.
+Service.check() now runs a scan pass, then _confirm_cross_source(index, on_disk): if the drift/orphan/missing candidate sets are all empty it returns immediately (no reload, no reread). Otherwise it reloads the index once and, per candidate, re-observes at the path the fresh index gives that item (drift: reread the file there; missing: existence check there) — the orphan direction has no fresh index-given path, so it re-checks the original scanned path plus fresh index membership, matching the ADR's asymmetry note. Same predicate functions run in both passes (no duplicated comparison). Verified with genuine two-coroutine interleaving (anyio task group + a real transaction landing inside a paused _scan_for_check) for all three candidate kinds, plus a CLI-level version using a real background thread through the full sq check stack. Sabotage-checked: reverting the confirm round to unconfirmed reporting makes exactly these tests fail (both service- and CLI-level), while the durable/true-positive tests keep passing.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -234,26 +191,12 @@ Acceptance:
 ### ST3 — Name the skew direction on a confirmed drift
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
+**Assignee:** Elias Python
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-When the two `updated_at` values order the pair, a confirmed drift says which side is ahead.
-Markdown-ahead is the expected repairable skew; index-ahead means the ordering rule was violated,
-or the failure was out of the stated model (host crash, power loss).
-
-The level stays `warn` for both directions. Forged clocks (`sq --at`) make the direction an
-informative detail for whoever reads the report, not a gate signal — do not promote index-ahead
-to `error`.
-
-Keep the existing "run `sq repair`" guidance in the message; the direction is added context, not
-a replacement. When the timestamps do not order the pair (equal, or one missing), say nothing
-about direction rather than guessing.
-
-Acceptance:
-- One test per direction asserting the message names it.
-- A test asserting both directions are still `warn`, so a drift never changes the exit code.
-- A test asserting no direction is claimed when the timestamps do not order the pair.
+_drift_direction(item, fdata) compares item.updated_at (index) against the frontmatter's own updated_at (parsed via clock.parse_iso); returns markdown/index/None. _drift_message appends '— markdown is ahead' or '— index is ahead of markdown, which should not happen' only when determinable; level stays warn either way. Tests pin both directions, the warn level in both, and that no direction is claimed when the pair doesn't order (equal timestamps).
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion
@@ -266,35 +209,12 @@ Acceptance:
 ### ST4 — Claim boundary in the docstring, exit-code tests, changelog
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
+**Assignee:** Elias Python
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
-State in `check()`'s own docstring what it may and may not claim: it reports the board as of a
-point in time; it takes no lock, never blocks a mutation, is never blocked by one, and never
-writes. A reported drift or reconciliation error means a real, durable inconsistency that
-`sq repair` heals. It may **not** claim quiescence — "clean" means "no confirmed inconsistency
-was observed", not "the board is consistent now".
-
-Tests to add beyond the per-subtask ones:
-- A concurrent-mutation run exits 0 rather than 3. Assert the exit code of a bare invocation
-  (`cmd >/dev/null 2>&1; echo $?`) — a pipeline masks it.
-- The whole flow end to end through the CLI, not only the service, since this is a gate agents
-  invoke as `sq check`.
-
-Name tests by the behaviour they pin, never by a ticket id — repo rule, and `tests/meta`
-enforces it.
-
-Add the adopter-facing CHANGELOG line under the unreleased section: `sq check` no longer reports
-phantom drift or reconciliation errors — and no longer fails — while another process is mutating
-the board. Adopter-facing wording only: no ticket ids, no repo-process detail.
-
-Acceptance:
-- The docstring carries the claim boundary.
-- Exit-code test passes and asserts a bare invocation's status.
-- Full suite green under `uv run --all-extras`; run it once, redirect to a file, and read the
-  file rather than re-running to reslice output.
-- CHANGELOG updated in the unreleased section.
+check()'s docstring now states the claim boundary: no lock, never blocks/blocked, never writes; a reported issue means a real durable inconsistency; a clean result means no confirmed inconsistency was observed, not that the board is consistent now. Exit-code coverage: a service-level test asserts the index is loaded exactly once on a clean board and exactly twice when a candidate exists; CLI-level tests (through invoke/CliRunner, one via a real background thread racing the CLI's own check() through a class-level _scan_for_check pause) assert exit 0 under a race and exit 3 for a durable orphan, plus one literal subprocess invocation (no shell pipe) for the plain clean-board case. CHANGELOG [0.12.2]/Changed gained the adopter-facing line; no ticket ids.
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion
@@ -309,4 +229,15 @@ Acceptance:
 <!-- sq:discussion -->
 - [2026-07-27T14:46:38Z] Olivia Lead:
   - Dependency rationale on TASK-664 corrected in the body — the `yaml.YAMLError` half was a phantom (BUG-668 shows the frontmatter dict is fully serialized before any byte is written, so a cut can only precede the closing `---` or follow a complete dict). The edge stands on the real half: a truncated read yields single-source errors (missing `id`, half-written marker) that no confirm round can filter, so this task's promise only holds once writes are atomic.
+- [2026-07-27T20:29:56Z] Elias Python:
+  - All 4 subtasks Done. ADR-663 §3 implemented as written, with one point of interpretation: for the on-disk-but-not-indexed direction the ADR's 'path the freshly loaded index gives for that item' has no referent (nothing indexes it), so the confirm re-observation there is the original scanned path + fresh index membership — matches ST1's own asymmetry note, which only spells this out for the other direction.
+  - check() partitions issues into single-source (reported as-is) and cross-source candidates (drift, both reconciliation directions); a non-empty candidate set triggers exactly one index reload + per-candidate reread, never a full rescan. Confirmed drift names markdown-ahead/index-ahead when the updated_at pair orders it, warn either way, silent when it doesn't.
+  - sq check exit codes: clean board or a resolved-by-confirm candidate -> 0 (no cross-source issue reported); a real durable drift or reconciliation break -> 3 exactly as before, now naming direction for drift. A mutation racing the scan never produces a phantom warn or error.
+  - Tests: tests/service/test_check_confirms_cross_source_claims.py (12) - genuine two-coroutine interleaving via anyio task group + a paused _scan_for_check for all 3 candidate kinds, the clean-board-pays-nothing / single-source-no-second-read checks, 3 durable-inconsistency-still-reported tests, 3 direction tests. tests/cli/test_check_confirms_cross_source_claims_cli.py (4) - same race through the full CLI via a real background thread + class-level monkeypatch, a durable-orphan exit-3 test, a clean-board exit-0 test, and one literal subprocess invocation (no shell pipe).
+  - Verified the headline tests aren't stubs: temporarily reverted _confirm_cross_source to report straight from the scan pair (pre-fix behavior) - the 3 concurrency tests + the reload-count test failed as expected (both service and CLI level), the durable/true-positive tests kept passing. No case found where the confirm round swallows a real inconsistency.
+  - Gates green: pyright/ruff check/ruff format --check on all touched files; tests/meta clean (ticket-ID hygiene scan required 2 rounds of cleanup - first pass left an ADR reference in a validators.py comment). CHANGELOG [0.12.2]/Changed line added (no version bump - left for the release cut). Did not touch _index/_store.py, store._log, or the mixins; did not run sq check or the full suite (both yours per brief); no commits.
+- [2026-07-27T20:34:07Z] Elias Python:
+  - Amendment per the re-amended ADR-663 §1/§3: _drift_message now tells the reader to repair before mutating that item again, not merely to repair. New composition: '{field} drift between frontmatter and index{direction suffix}; run `sq repair` before this item is mutated again, or the fix is lost silently.' Direction suffix unchanged and still composes cleanly (em-dash clause, then the semicolon-separated action clause).
+  - No existing test asserted the old exact string ('(run `sq repair`)' as a drift-message suffix) - only my own new test file did, and only via substrings that survive unchanged ('status drift', 'markdown is ahead', 'index is ahead of markdown', absence of 'ahead' when undetermined). Updated nothing else; reconciliation messages (on disk but not in index / in index but no markdown file) are untouched - out of scope, and not what §1's healing-window argument is about (there's no frontmatter value to silently lose there).
+  - Gates green (pyright/ruff check/ruff format --check on _maintenance.py), tests/meta clean, both test files still 16/16 green. Did not reopen any other file.
 <!-- sq:discussion:end -->

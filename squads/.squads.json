@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 670,
+  "counter": 672,
   "padding": 6,
   "items": {
     "12": {
@@ -24159,7 +24159,7 @@
       "type": "bug",
       "title": "sq check TOCTOU: phantom status-drift under concurrent mutation",
       "slug": "sq-check-toctou-phantom-status-drift-under-concurrent-mutati",
-      "status": "Open",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -24171,7 +24171,7 @@
       "subentities": [],
       "path": "bugs/BUG-000655-sq-check-toctou-phantom-status-drift-under-concurrent-mutati.md",
       "created_at": "2026-07-24T14:38:21Z",
-      "updated_at": "2026-07-27T14:41:22Z",
+      "updated_at": "2026-07-27T15:56:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24407,7 +24407,7 @@
       "subentities": [],
       "path": "adrs/ADR-000663-durability-model-of-the-integrity-core-markdown-ahead-index.md",
       "created_at": "2026-07-27T14:02:48Z",
-      "updated_at": "2026-07-27T15:12:51Z",
+      "updated_at": "2026-07-27T16:17:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24418,7 +24418,7 @@
       "type": "task",
       "title": "Atomic markdown writes and markdown-ahead ordering in the write path",
       "slug": "atomic-markdown-writes-and-markdown-ahead-ordering-in-the-wr",
-      "status": "InReview",
+      "status": "InProgress",
       "description": "One atomic temp+fsync+replace primitive for every squad-data .md write, and the markdown-ahead ordering rule enforced at every mutation core.",
       "parent": null,
       "author": "tech-lead",
@@ -24436,7 +24436,7 @@
         {
           "local_id": "ST1",
           "title": "Atomic replace primitive for squad-data writes",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24445,7 +24445,7 @@
         {
           "local_id": "ST2",
           "title": "Route every squad-data write through the primitive",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24454,7 +24454,7 @@
         {
           "local_id": "ST3",
           "title": "Board notices and memory entries onto the primitive",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24463,7 +24463,7 @@
         {
           "local_id": "ST4",
           "title": "Ordering audit across mutation cores; fix the violating sites",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24472,7 +24472,7 @@
         {
           "local_id": "ST5",
           "title": "Repair-convergence tests and the changelog line",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24481,7 +24481,7 @@
         {
           "local_id": "ST6",
           "title": "Route the sync filesystem calls on the mutation path through _aio",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -24490,7 +24490,7 @@
       ],
       "path": "tasks/TASK-000664-atomic-markdown-writes-and-markdown-ahead-ordering-in-the-wr.md",
       "created_at": "2026-07-27T14:22:46Z",
-      "updated_at": "2026-07-27T15:42:42Z",
+      "updated_at": "2026-07-27T16:05:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24501,7 +24501,7 @@
       "type": "task",
       "title": "sq check: confirm cross-source claims before reporting them",
       "slug": "sq-check-confirm-cross-source-claims-before-reporting-them",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "Partition check's issues into single-source and cross-source; cross-source claims become candidates confirmed by one cheap re-read before they are reported.",
       "parent": null,
       "author": "tech-lead",
@@ -24518,8 +24518,8 @@
         {
           "local_id": "ST1",
           "title": "Partition check's issues into single-source and cross-source",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -24527,8 +24527,8 @@
         {
           "local_id": "ST2",
           "title": "One confirm round over the candidate set",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -24536,8 +24536,8 @@
         {
           "local_id": "ST3",
           "title": "Name the skew direction on a confirmed drift",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -24545,8 +24545,8 @@
         {
           "local_id": "ST4",
           "title": "Claim boundary in the docstring, exit-code tests, changelog",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -24554,7 +24554,7 @@
       ],
       "path": "tasks/TASK-000665-sq-check-confirm-cross-source-claims-before-reporting-them.md",
       "created_at": "2026-07-27T14:22:53Z",
-      "updated_at": "2026-07-27T14:46:38Z",
+      "updated_at": "2026-07-27T20:34:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24565,7 +24565,7 @@
       "type": "task",
       "title": "Task-local, store-scoped active transaction context",
       "slug": "task-local-store-scoped-active-transaction-context",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Publish the live transaction context in a ContextVar set inside the locks and scoped to its owning store; drop the pre-lock load.",
       "parent": null,
       "author": "tech-lead",
@@ -24608,7 +24608,7 @@
       ],
       "path": "tasks/TASK-000666-task-local-store-scoped-active-transaction-context.md",
       "created_at": "2026-07-27T14:22:54Z",
-      "updated_at": "2026-07-27T15:55:40Z",
+      "updated_at": "2026-07-27T15:56:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24732,6 +24732,167 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-670"
+    },
+    "671": {
+      "sequence_id": 671,
+      "type": "review",
+      "title": "Atomic write primitive and write-path ordering rule",
+      "slug": "atomic-write-primitive-and-write-path-ordering-rule",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-664"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Stamped skill item files still written non-atomically by sync",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Interruption tests pass with the primitive sabotaged",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Whole-file rewrites of partly hand-authored files stay non-atomic",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Markdown-ahead skew is reverted by the next mutation",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Migration-runner exemption's recorded reason covers only ordering",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Post-commit role-file writes in link-role carry no exemption note",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Temp files leak on the error path; config temp escapes gitignore",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Dry-run filesystem fix landed without a regression test",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "No changelog entry for the durability change",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000671-atomic-write-primitive-and-write-path-ordering-rule.md",
+      "created_at": "2026-07-27T16:00:06Z",
+      "updated_at": "2026-07-27T20:26:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-671"
+    },
+    "672": {
+      "sequence_id": 672,
+      "type": "task",
+      "title": "Refuse an index-derived frontmatter rewrite over an unrepaired skew",
+      "slug": "refuse-an-index-derived-frontmatter-rewrite-over-an-unrepair",
+      "status": "Draft",
+      "description": "Fail-closed detection: compare on-disk frontmatter against the index-derived item before rewriting, and refuse with a sq repair pointer instead of silently reverting the skew.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-663:implements",
+        "REV-671:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Compare and refuse on the mutation path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Skip and report a drifted roster item in sync",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Tests for both failure directions, and the changelog line",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000672-refuse-an-index-derived-frontmatter-rewrite-over-an-unrepair.md",
+      "created_at": "2026-07-27T16:13:19Z",
+      "updated_at": "2026-07-27T20:29:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-672"
     }
   }
 }
