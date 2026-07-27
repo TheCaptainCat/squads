@@ -3,7 +3,7 @@ id: TASK-667
 sequence_id: 667
 type: task
 title: Write the durability rule where implementers read it
-status: Draft
+status: InProgress
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -14,12 +14,12 @@ description: The skew-direction rule and atomic-write contract in the store/item
 subentities:
 - local_id: ST1
   title: State the rule in the store and item-file docstrings
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Fold the index writer onto the shared primitive, or record why not
-  status: Todo
+  status: Done
 created_at: '2026-07-27T14:22:56Z'
-updated_at: '2026-07-27T14:25:37Z'
+updated_at: '2026-07-27T22:25:49Z'
 ---
 <!-- sq:body -->
 ADR-663's rule is only worth what its weakest call site is, and the ADR names where it has to
@@ -85,8 +85,8 @@ _Add with `sq task 667 add-subtask "<title>"`; track with `sq task 667 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | State the rule in the store and item-file docstrings |  |
-| ST2 | Todo |  | Fold the index writer onto the shared primitive, or record why not |  |
+| ST1 | Done |  | State the rule in the store and item-file docstrings |  |
+| ST2 | Done |  | Fold the index writer onto the shared primitive, or record why not |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -95,7 +95,7 @@ _Add with `sq task 667 add-subtask "<title>"`; track with `sq task 667 subtask <
 ### ST1 — State the rule in the store and item-file docstrings
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -135,7 +135,7 @@ Acceptance:
 ### ST2 — Fold the index writer onto the shared primitive, or record why not
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -172,4 +172,8 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-27T22:25:49Z] Elias Python:
+  - ST1: skew-direction rule + failure model + interrupted-op table + inverse-skew rationale in _index/_store.py's module docstring; transaction() rollback claim corrected (index-only, markdown stands by design); N-files-not-atomic-across-N added to _itemfile.py; rename-then-write FileNotFoundError window documented on _apply_type_change (retype) + cross-ref from _update_core (title rename); one CLAUDE.md invariants line (outside the managed region).
+  - ST2: IndexStore._atomic_write/_atomic_write_sync now delegate to _aio.atomic_write_text/atomic_replace_sync — pure refactor, same tmp-name shape, single thread hop preserved, no behaviour change. Added crash-safety + bootstrap-roundtrip tests in tests/unit/test_index_allocation.py.
+  - Gate clean: pyright/ruff check/ruff format --check tree-wide, targeted pytest (unit + service + integration + cli touched here, plus tests/meta) all green. Full suite and sq check left to the operator.
 <!-- sq:discussion:end -->
