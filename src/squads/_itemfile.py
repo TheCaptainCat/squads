@@ -30,8 +30,25 @@ from typing import Any, cast
 
 from squads import _aio
 from squads._errors import SquadsError
+from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
+from squads._roles._catalog import RoleDef
 from squads._sections import join_frontmatter, replace_frontmatter, split_frontmatter
+
+#: The durability model's permitted skew, as a property of the *field* rather than of whichever
+#: writer happens to persist it: the role's resolved-skills cache (``X.SKILLS``) and every
+#: catalog-merged identity field a predefined role's ``extra`` carries (``RoleDef.to_extra()``'s
+#: key set). Both are written by a roster-regen path that never opens ``store.transaction()``
+#: (`link-role`/`unlink-role`'s partial resync, `sync`'s full sweep), so the index-loaded side of
+#: the comparison structurally cannot carry their current generation -- not even on a fully
+#: healthy role that was never interrupted. Comparing them like an ordinary field would refuse
+#: the very next mutation through any *other* seam after such a resync ever ran. Derived from
+#: ``RoleDef.to_extra()`` itself (not a hand-duplicated list of key names) so a field later added
+#: to the catalog is exempt automatically, the same day it starts being written this way -- never
+#: a second list to remember to update.
+PERMITTED_EXTRA_SKEW: frozenset[str] = frozenset(
+    {X.SKILLS, *RoleDef(slug="", full_name="", title="", description="", mission="").to_extra()}
+)
 
 
 def read_frontmatter(
@@ -54,20 +71,19 @@ def _label(path: Path | None) -> str | None:
     return str(path) if path is not None else None
 
 
-def _without_extra_keys(data: dict[str, Any], keys: frozenset[str]) -> dict[str, Any]:
-    """*data* (a ``to_frontmatter_dict()`` output) with *keys* removed from its nested
-    ``extra`` mapping, if present — the mechanics behind ``frontmatter_skew``'s
-    ``ignore_extra_keys``. A no-op copy when *keys* is empty or ``extra`` doesn't carry any
-    of them, so callers that never pass *keys* never allocate anything extra."""
-    if not keys:
-        return data
+def _without_permitted_extra_skew(data: dict[str, Any]) -> dict[str, Any]:
+    """*data* (a ``to_frontmatter_dict()`` output) with :data:`PERMITTED_EXTRA_SKEW` removed
+    from its nested ``extra`` mapping, if present — the mechanics behind
+    ``frontmatter_skew``'s unconditional exclusion. A no-op copy when ``extra`` doesn't carry
+    any of those keys, so the overwhelmingly common case (a non-role item, or a role nothing
+    has ever resynced) never allocates anything extra."""
     extra = data.get("extra")
     if not isinstance(extra, dict):
         return data
     extra_typed = cast("dict[str, Any]", extra)
-    if not (extra_typed.keys() & keys):
+    if not (extra_typed.keys() & PERMITTED_EXTRA_SKEW):
         return data
-    trimmed = {k: v for k, v in extra_typed.items() if k not in keys}
+    trimmed = {k: v for k, v in extra_typed.items() if k not in PERMITTED_EXTRA_SKEW}
     out = dict(data)
     if trimmed:
         out["extra"] = trimmed
@@ -76,9 +92,7 @@ def _without_extra_keys(data: dict[str, Any], keys: frozenset[str]) -> dict[str,
     return out
 
 
-def frontmatter_skew(
-    text: str, base: Item, *, ignore_extra_keys: frozenset[str] = frozenset()
-) -> list[str]:
+def frontmatter_skew(text: str, base: Item) -> list[str]:
     """The frontmatter keys on which *text*'s on-disk frontmatter diverges from what *base*
     — the item as loaded before the pending mutation's own delta — would itself serialize.
 
@@ -95,24 +109,27 @@ def frontmatter_skew(
     In the normal case the two sides are identical — the last successful mutation wrote both
     from one item — so an empty return is the expected result, not evidence the check is inert.
 
-    ``ignore_extra_keys`` exists for exactly one category: an ``extra`` sub-key the
-    durability decision names as the permitted skew — "re-derivable regions of an item
+    :data:`PERMITTED_EXTRA_SKEW` is excluded from every comparison unconditionally, for every
+    caller — a property of those particular ``extra`` keys, not something a writer opts into.
+    They are the durability decision's named permitted skew: "re-derivable regions of an item
     ``.md`` the committing transaction did not mirror into the index" (the role's
-    resolved-skills cache; a role's catalog-merged fields). Those two write their value to
-    the file WITHOUT ever going through ``store.transaction()``, so the index-loaded
-    ``base`` never carries the current generation of that value even in the fully healthy
-    case — disk is *permanently* ahead of the index on that one key, by design, not because
-    of an interrupted write. Comparing it like every other field would false-refuse on the
-    very first mutation after any such resync ever ran. This is not a load/parse-time
-    correction the round trip can be taught — the two sides are reading genuinely different
-    sources of truth for that key — so it is
-    named here explicitly rather than silently folded into the general round trip.
+    resolved-skills cache; a role's catalog-merged fields). Those write their value to the
+    file WITHOUT ever going through ``store.transaction()``, so the index-loaded ``base``
+    never carries the current generation of that value even in the fully healthy case — disk
+    is *permanently* ahead of the index on those keys, by design, not because of an
+    interrupted write. Comparing them like an ordinary field would false-refuse the very next
+    mutation, through *any* seam, after any such resync ever ran — which is exactly what
+    happened before this exclusion moved here: it used to be an opt-in a writer passed
+    (``ignore_extra_keys``), so every other seam compared the field anyway. This is not a
+    load/parse-time correction the round trip can be taught — the two sides are reading
+    genuinely different sources of truth for these keys — so they are named here explicitly
+    rather than folded into the general round trip.
     """
     disk_data, _ = split_frontmatter(text, source=base.path)
     disk_dict = Item.from_frontmatter(disk_data, path=base.path).to_frontmatter_dict()
     base_dict = base.to_frontmatter_dict()
-    disk_dict = _without_extra_keys(disk_dict, ignore_extra_keys)
-    base_dict = _without_extra_keys(base_dict, ignore_extra_keys)
+    disk_dict = _without_permitted_extra_skew(disk_dict)
+    base_dict = _without_permitted_extra_skew(base_dict)
     keys = disk_dict.keys() | base_dict.keys()
     return sorted(k for k in keys if disk_dict.get(k) != base_dict.get(k))
 
@@ -129,23 +146,52 @@ def skew_message(base: Item, diverging: list[str]) -> str:
     )
 
 
-def ensure_no_skew(
-    text: str, base: Item, *, ignore_extra_keys: frozenset[str] = frozenset()
-) -> None:
+def ensure_no_skew(text: str, base: Item) -> None:
     """Raise :class:`SquadsError` when *text*'s on-disk frontmatter has drifted from *base*.
 
     Writing over it now — substituting the whole frontmatter block from an index-derived
-    item — would silently discard whatever survived on disk since the index last saw it. The
-    single-mutation write seams call this before every rewrite (never passing
-    ``ignore_extra_keys`` — the exclusion list stays empty there); the two roster-regen
-    writers that persist an ADR-named never-mirrored-into-the-index cache pass their own key
-    so that permitted, permanent skew isn't mistaken for a real one (see
-    :func:`frontmatter_skew`). Batch paths call :func:`frontmatter_skew` directly instead,
-    since their response is not a plain refusal.
+    item — would silently discard whatever survived on disk since the index last saw it.
+    Every single-mutation write seam calls this before every rewrite; the two roster-regen
+    writers that persist an ADR-named never-mirrored-into-the-index value get the same
+    exemption everyone else does, since :func:`frontmatter_skew` excludes
+    :data:`PERMITTED_EXTRA_SKEW` unconditionally rather than by caller opt-in — that permitted,
+    permanent skew is never mistaken for a real one at *any* seam. Batch paths call
+    :func:`frontmatter_skew` directly instead, since their response is not a plain refusal.
     """
-    diverging = frontmatter_skew(text, base, ignore_extra_keys=ignore_extra_keys)
+    diverging = frontmatter_skew(text, base)
     if diverging:
         raise SquadsError(skew_message(base, diverging))
+
+
+def missing_file_error(item_id: str) -> SquadsError:
+    """The clean, actionable error a missing indexed file converts into for a caller that
+    wants the item's *content*, not a signal — see :func:`read_item_text`. Shared with the
+    service layer's ``ServiceCore._read_item_file`` so the message is written once.
+    """
+    return SquadsError(
+        f"{item_id}'s file is missing from its indexed location — an interrupted "
+        "rename or retype likely left the index stale; run `sq repair`"
+    )
+
+
+async def read_item_text(path: Path, item_id: str) -> str:
+    """Read *item_id*'s file at *path*, converting a missing file into :func:`missing_file_error`.
+
+    An interrupted title-changing update or retype can physically move a file before the
+    index commits, leaving *path* (built from the index-loaded item) stale. Unlike
+    :func:`~squads._aio.read_text`, which propagates ``FileNotFoundError`` unchanged for the
+    two callers that read it as a signal rather than a failure — ``check``'s confirm round
+    stale-path fallback and the bulk importer's pre-pass skew guard, both in ``_services/`` —
+    every other reader of an item's file wants the content outright and has no fallback of
+    its own to try, so the exception becomes a message naming the item and pointing at
+    ``sq repair``. This is the read side of the write seams that already refuse cleanly on a
+    real skew (see :func:`ensure_no_skew`): both directions of "can't safely proceed on this
+    item until it's repaired" now report the same way.
+    """
+    try:
+        return await _aio.read_text(path)
+    except FileNotFoundError as exc:
+        raise missing_file_error(item_id) from exc
 
 
 async def write_new(path: Path, item: Item, rendered_body: str) -> None:
@@ -158,19 +204,17 @@ async def write_new(path: Path, item: Item, rendered_body: str) -> None:
     await _aio.atomic_write_text(path, text)
 
 
-async def update_frontmatter(
-    path: Path, item: Item, base: Item, *, ignore_extra_keys: frozenset[str] = frozenset()
-) -> None:
+async def update_frontmatter(path: Path, item: Item, base: Item) -> None:
     """Rewrite the frontmatter from the item; body is preserved verbatim.
 
-    Refuses (:class:`SquadsError`) if the on-disk frontmatter has diverged from what *base*
-    — the item as loaded before this mutation's own delta, captured by the caller's pure
-    half — would itself have serialized: see :func:`ensure_no_skew`, including what
-    ``ignore_extra_keys`` is for and why it stays unused outside the two named roster-regen
-    writers.
+    The read is :func:`read_item_text`, so a stale index-derived *path* (an interrupted
+    rename/retype) reports cleanly instead of a raw ``FileNotFoundError``. Refuses
+    (:class:`SquadsError`) if the on-disk frontmatter has diverged from what *base* — the item
+    as loaded before this mutation's own delta, captured by the caller's pure half — would
+    itself have serialized: see :func:`ensure_no_skew`.
     """
-    text = await _aio.read_text(path)
-    ensure_no_skew(text, base, ignore_extra_keys=ignore_extra_keys)
+    text = await read_item_text(path, item.id)
+    ensure_no_skew(text, base)
     await _aio.atomic_write_text(
         path, replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
     )

@@ -213,7 +213,7 @@ class SubentitiesMixin(ServiceCore):
         )
         local_id = sub.local_id
         path = item_file(self.paths, item)
-        text = await _aio.read_text(path)
+        text = await self._read_item_file(item, path)
         if not sections.has_section(text, container):
             raise SquadsError(f"no {container} section in {item_id}")
         block = discussion.build_block(kind, local_id, title, body=body, spec=self.spec)
@@ -636,7 +636,7 @@ class SubentitiesMixin(ServiceCore):
             item.subentities = [s for s in item.subentities if s.local_id != local_id]
             item.updated_at = clock.now()
             path = item_file(self.paths, item)
-            text = await _aio.read_text(path)
+            text = await self._read_item_file(item, path)
             ensure_no_skew(text, base)
             text = sections.remove_section(text, f"{kind}:{local_id}")
             text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
@@ -696,7 +696,7 @@ class SubentitiesMixin(ServiceCore):
         """
         kind = self.subentity_kind[item.type]
         container = self.subentity_container[kind]
-        text = await _aio.read_text(path) if text is None else text
+        text = await self._read_item_file(item, path) if text is None else text
         ensure_no_skew(text, base)
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
         text = discussion.set_heading(text, kind, head_for.local_id, head_for.title)

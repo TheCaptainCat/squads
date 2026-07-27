@@ -261,3 +261,69 @@ async def test_renumber_is_unaffected_by_a_real_skew(svc, monkeypatch):
 
     current = await svc.get(task.id)
     assert current.description == "interrupted description"
+
+
+# ---------------------------------------------------------------------------------------------
+# PERMITTED_EXTRA_SKEW: two roster-regen writers persist role-only `extra` keys the committing
+# transaction never mirrors into the index. That is a permanent, by-design skew on those keys
+# alone — never a real one — and the exclusion must hold for every OTHER seam that later
+# mutates the same role, on a board where nothing was ever interrupted.
+# ---------------------------------------------------------------------------------------------
+
+
+async def test_linking_a_skill_to_a_role_then_mutating_it_elsewhere_is_never_falsely_refused(svc):
+    """The reviewer's own reproduction: a healthy board, no crash anywhere. `link-role` resyncs
+    the role's `extra.skills` cache outside any transaction, so disk is permanently ahead of the
+    index on that one key by design -- an ordinary mutation through a different seam right after
+    must still succeed, not refuse with a `sq repair` pointer for a divergence that never
+    happened."""
+    role = await svc.activate_role("qa")
+    skill = await svc.add_skill("Review Runbook")
+
+    await svc.link_role(skill.id, role.id)
+
+    # Must not raise -- this is the exact refusal the finding reproduced. (The mutation
+    # rewrites the whole frontmatter from the index-loaded item, so the resolved-skills cache
+    # it carries reverts to what the index still knows -- expected per the decision's own
+    # "worst case is a stale cache", and `sync` re-derives it again; the guard's job here is
+    # only to not refuse, not to preserve a value it was never told about.)
+    await svc.update(role.id, description="mutated after a role resync")
+    reloaded = await svc.get(role.id)
+    assert reloaded.description == "mutated after a role resync"
+
+
+async def test_a_catalog_field_merged_by_sync_does_not_false_refuse_the_next_mutation(svc):
+    """The second, broader trigger named in the finding: a role catalog gains a field (or an
+    override edit does the same), `sync` merges it into the file outside any transaction, and
+    the index-loaded side permanently lags on that key from then on. Simulated by stripping a
+    catalog field consistently from both sides, syncing (which re-merges it on disk only), then
+    mutating the role through an unrelated seam."""
+    role = await svc.activate_role("reviewer")  # a role whose catalog carries `agreements`
+
+    path = svc.paths.abspath(role.path)
+    text = path.read_text(encoding="utf-8")
+    from squads._sections import join_frontmatter, split_frontmatter
+
+    fm, rest = split_frontmatter(text)
+    fm["extra"].pop("agreements", None)
+    path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
+
+    db = await svc.store.load()
+    item = db.get(role.id)
+    assert item is not None
+    item.extra.pop("agreements", None)
+    await svc.store.overwrite(db)
+
+    skipped = await svc.sync()
+    assert not skipped  # the merge write went through -- no false report either
+
+    on_disk = itemfile.read_frontmatter(path=path)
+    assert on_disk["extra"]["agreements"]  # merged back onto disk
+    reloaded = await svc.get(role.id)
+    assert "agreements" not in reloaded.extra  # the index copy still lags, by design
+
+    # Must not raise -- the merged field is exempt everywhere, not just at the writer that
+    # merged it.
+    await svc.update(role.id, description="mutated after a catalog merge")
+    final = await svc.get(role.id)
+    assert final.description == "mutated after a catalog merge"

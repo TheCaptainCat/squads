@@ -172,7 +172,7 @@ class RetypeMixin(ServiceCore):
             # old (skewed) frontmatter still inside: a strictly worse intermediate state than
             # refusing here, before anything on disk has moved.
             base = item.model_copy(deep=True)
-            current_text = await _aio.read_text(item_file(self.paths, item))
+            current_text = await self._read_item_file(item, item_file(self.paths, item))
             ensure_no_skew(current_text, base)
 
             new_path = await apply_type_change(

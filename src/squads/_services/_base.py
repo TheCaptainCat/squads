@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any
 
 from squads import _actor as actor
-from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
 from squads._backends._base import AgentBackend, BackendContext, OperatorView, RoleView
@@ -30,7 +29,13 @@ from squads._interactions import (
     is_lane_exempt,
     skills_for_role,
 )
-from squads._itemfile import ensure_no_skew, update_frontmatter, write_new, write_text
+from squads._itemfile import (
+    ensure_no_skew,
+    read_item_text,
+    update_frontmatter,
+    write_new,
+    write_text,
+)
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
@@ -575,25 +580,21 @@ class ServiceCore:
 
     async def _read_item_file(self, item: Item, path: Path) -> str:
         """Read *item*'s file at *path*, converting a missing file into a clean, actionable
-        error — the item-read seam every show/body/discussion/comment path shares.
+        error — the item-read seam every show/body/discussion/comment path, and every
+        mutating write seam that needs the on-disk text first, shares.
 
         An interrupted title-changing update or retype (see
         ``_services/_retype.py::apply_type_change``) can physically move the file before the
-        index commits, leaving *path* (built from the index-loaded ``item``) stale. Unlike
-        :func:`~squads._aio.read_text`, which propagates ``FileNotFoundError`` unchanged for
-        callers that read it as a signal (the ``check`` confirm round's stale-path fallback,
-        the bulk importer's pre-pass), a read reaching this point has no fallback of its own
-        to try — it already wants the content, not a signal — so it converts the exception
-        into a message naming the item and pointing at the fix. ``sq repair`` re-indexes from
-        the file's current location and resolves it.
+        index commits, leaving *path* (built from the index-loaded ``item``) stale. Delegates
+        to :func:`~squads._itemfile.read_item_text`, which is unlike
+        :func:`~squads._aio.read_text` in the one respect that matters here: it converts
+        ``FileNotFoundError`` into a message naming the item and pointing at ``sq repair``,
+        for callers that already want the content and have no fallback of their own to try —
+        as opposed to the two callers that read it as a signal instead (the ``check`` confirm
+        round's stale-path fallback, the bulk importer's pre-pass), which keep calling
+        ``_aio.read_text`` directly and must never be routed through here.
         """
-        try:
-            return await _aio.read_text(path)
-        except FileNotFoundError as exc:
-            raise SquadsError(
-                f"{item.id}'s file is missing from its indexed location — an interrupted "
-                "rename or retype likely left the index stale; run `sq repair`"
-            ) from exc
+        return await read_item_text(path, item.id)
 
     async def list_items(
         self,
@@ -1012,13 +1013,11 @@ class ServiceCore:
         skip-report message, or ``None`` when the write went through (or there was nothing to
         resolve).
 
-        The skew guard ignores ``extra[X.SKILLS]`` itself (``ignore_extra_keys``): this write
-        never goes through ``store.transaction()``, so the index-loaded ``base`` never carries
-        the resolved list's current generation even on a perfectly healthy role — disk being
-        "ahead" on this one key is the durability decision's named permitted skew, not
-        evidence of loss.
-        Comparing it like every other field would false-refuse the first mutation after any
-        prior resync ever ran (measured: it did, before this exclusion was added).
+        ``extra[X.SKILLS]`` is exempt from the skew guard everywhere, not just here — see
+        ``_itemfile.PERMITTED_EXTRA_SKEW`` — because this write never goes through
+        ``store.transaction()``, so the index-loaded ``base`` never carries the resolved
+        list's current generation even on a perfectly healthy role: disk being "ahead" on
+        this one key is the durability decision's named permitted skew, not evidence of loss.
         """
         slug = item.extra.get(X.SLUG, item.slug)
         resolved = role_skills.get(slug)
@@ -1028,9 +1027,7 @@ class ServiceCore:
         previous = item.extra.get(X.SKILLS)
         item.extra[X.SKILLS] = resolved
         try:
-            await update_frontmatter(
-                item_file(self.paths, item), item, base, ignore_extra_keys=frozenset({X.SKILLS})
-            )
+            await update_frontmatter(item_file(self.paths, item), item, base)
         except SquadsError as exc:
             if previous is None:
                 item.extra.pop(X.SKILLS, None)
@@ -1052,7 +1049,7 @@ class ServiceCore:
         if new_body_inner is None:
             return
         path = self.paths.abspath(item.path)
-        existing = await _aio.read_text(path)
+        existing = await self._read_item_file(item, path)
         updated = sections.replace_section(existing, markers.BODY, new_body_inner)
         await write_text(path, updated)
 
