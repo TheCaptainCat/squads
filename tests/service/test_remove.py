@@ -88,8 +88,9 @@ async def test_remove_width_tolerant_ref_severing(svc):
     async with svc.store.transaction() as db:
         r_item = db.get(referrer.id)
         assert r_item is not None
+        base = r_item.model_copy(deep=True)
         r_item.refs = [make_ref(old_width_id, "related")]
-        await update_frontmatter(item_file(svc.paths, r_item), r_item)
+        await update_frontmatter(item_file(svc.paths, r_item), r_item, base)
 
     res = await svc.remove_work_item(target.id, force=True)
     assert referrer.id in res.severed_refs

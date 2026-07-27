@@ -14,6 +14,12 @@ All notable changes to this project are documented here. The format follows
   confirmed with one fresh re-read before being reported, so a mutation that lands while
   `check` is scanning resolves quietly instead of surfacing a false warning or a false error
   exit code. A confirmed drift now also names which side is ahead when that can be determined.
+- **`sq` refuses to overwrite an item whose file and index disagree.** If an interrupted
+  mutation left an item's file ahead of the index, the next mutation of that item now refuses
+  with a `sq repair` pointer instead of silently reverting the surviving value; running
+  `sq repair` clears the block and both the interrupted change and the new one land. `sq sync`
+  responds differently for a drifted role or skill: it leaves that item's file untouched, names
+  it, and still regenerates everything else.
 
 ## [0.12.1]
 

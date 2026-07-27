@@ -140,8 +140,16 @@ def _drift_issues(item: Item, fdata: dict[str, Any]) -> list[CheckIssue]:
 
 class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ sync
-    async def sync(self) -> None:
-        """Regenerate all tool-owned managed files to the current version; stamp the config."""
+    async def sync(self) -> list[str]:
+        """Regenerate all tool-owned managed files to the current version; stamp the config.
+
+        Returns one skip-report message per drifted roster item whose frontmatter was left
+        untouched (see :meth:`_refresh_catalog_extra`/:meth:`_refresh_role_skills_extra`) —
+        empty for a clean roster, exactly today's silent behaviour. Never raises for a drift:
+        this is bulk regeneration of derived state, and is itself what an operator reaches for
+        when generated files are wrong, so a drifted item is reported and the rest of the
+        squad still syncs (exit stays 0 — ``sq check`` is the dedicated reporter that gates).
+        """
         # Ensure that every type folder declared in the active spec exists on disk.
         # Built-in type folders are created by init/adopt; custom type folders may not
         # yet exist if the type was added to the spec after the squad was initialised.
@@ -158,9 +166,13 @@ class MaintenanceMixin(ServiceCore):
         # cache write, so a full sync is the single recomputation point for both surfaces.
         role_skills = await self._role_skills_map()
         role_ctx = BackendContext(paths=self.paths, spec=self.spec, role_skills=role_skills)
+        skipped: list[str] = []
         for it in await self.list_items(item_type=ROSTER_ROLE):
-            await self._refresh_catalog_extra(it)
-            await self._refresh_role_skills_extra(it, role_skills)
+            msgs = (
+                await self._refresh_catalog_extra(it),
+                await self._refresh_role_skills_extra(it, role_skills),
+            )
+            skipped.extend(msg for msg in msgs if msg is not None)
             for backend in backends:
                 await backend.generate_role_entry(role_ctx, it, RoleDef.from_extra(it.extra))
             await self._regen_role_body(it)
@@ -178,8 +190,9 @@ class MaintenanceMixin(ServiceCore):
         # Seed SKILL ids for any custom types declared in the spec (idempotent).
         await self.seed_custom_skills()
         await self._stamp_version(__version__)
+        return skipped
 
-    async def _refresh_catalog_extra(self, item: Item) -> None:
+    async def _refresh_catalog_extra(self, item: Item) -> str | None:
         """Merge current catalog fields into a predefined role's item extra.
 
         When a new field is added to :class:`RoleDef` (e.g. ``agreements``), existing items
@@ -190,20 +203,48 @@ class MaintenanceMixin(ServiceCore):
 
         Developer roles (``is_dev=True``) and custom items without a catalog entry are skipped —
         their extra is fully owned by the ``add_dev`` / ``create`` call-site.
+
+        This is a roster-regen path, not a single mutation: an unrepaired skew is skipped and
+        reported (the returned message) rather than refused, and the in-memory merge is rolled
+        back on skip so *item* stays truthful to what is actually on disk. Returns ``None``
+        when nothing changed or the write went through.
+
+        The skew guard ignores exactly the catalog keys this call itself is about to write
+        (``ignore_extra_keys``): like the resolved-skills cache, a catalog-merge write never
+        goes through ``store.transaction()``, so once any earlier sync has merged a field the
+        catalog changed, the index-loaded ``base`` permanently lags disk on that one key —
+        the durability decision's named permitted skew, not loss. Comparing it like every
+        other field would false-refuse the very next sync on a perfectly healthy role.
         """
         slug = item.extra.get(X.SLUG, "")
         try:
             catalog_role = resolve_role(slug, self.paths.squad_dir)
         except RoleNotFoundError:
-            return  # dev role or unknown slug — not catalog-managed
+            return None  # dev role or unknown slug — not catalog-managed
         catalog_extra = catalog_role.to_extra()
-        changed = False
+        base = item.model_copy(deep=True)
+        previous: dict[str, Any] = {}
         for key, value in catalog_extra.items():
             if item.extra.get(key) != value:
+                previous[key] = item.extra.get(key)
                 item.extra[key] = value
-                changed = True
-        if changed:
-            await update_frontmatter(item_file(self.paths, item), item)
+        if not previous:
+            return None
+        try:
+            await update_frontmatter(
+                item_file(self.paths, item),
+                item,
+                base,
+                ignore_extra_keys=frozenset(catalog_extra.keys()),
+            )
+        except SquadsError as exc:
+            for key, old_value in previous.items():
+                if old_value is None:
+                    item.extra.pop(key, None)
+                else:
+                    item.extra[key] = old_value
+            return str(exc)
+        return None
 
     async def _stamp_version(self, version: str) -> None:
         cfg = self.paths.config.model_copy(update={"squads_version": version})

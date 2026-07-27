@@ -8,6 +8,7 @@ validation, batching both the id-rewrite and the edge-resync into one pass acros
 renamed item instead of once per item.
 """
 
+from collections.abc import Iterable
 from pathlib import Path
 
 from squads import _aio
@@ -16,7 +17,13 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
-from squads._itemfile import rewrite_ids, update_frontmatter, write_text
+from squads._itemfile import (
+    frontmatter_skew,
+    rewrite_ids,
+    skew_message,
+    update_frontmatter,
+    write_text,
+)
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -95,6 +102,25 @@ async def _snapshot_files(paths: SquadPaths, db: SquadsDB) -> dict[int, tuple[Pa
     return snap
 
 
+def _check_batch_skew(items: Iterable[Item], snapshot: dict[int, tuple[Path, str]]) -> None:
+    """Refuse before any write if any of *items* has diverged from its own on-disk
+    frontmatter — the batch shape of the guard every single mutation write seam enforces
+    (see :func:`~squads._itemfile.ensure_no_skew`), run once for the whole affected set,
+    before the mutation loop's first write, so a bulk op can never partially apply over an
+    unrepaired item. *items* are still their as-loaded (pre-delta) selves at the point every
+    caller here runs this — no extra read: *snapshot* already holds each item's disk text,
+    taken for the existing rollback safety net.
+    """
+    problems = [
+        skew_message(item, diverging)
+        for item in items
+        if (entry := snapshot.get(item.sequence_id)) is not None
+        and (diverging := frontmatter_skew(entry[1], item))
+    ]
+    if problems:
+        raise SquadsError(" | ".join(problems))
+
+
 async def _rollback_files(
     paths: SquadPaths, db: SquadsDB, snapshot: dict[int, tuple[Path, str]]
 ) -> None:
@@ -145,6 +171,11 @@ class RenameMixin(ServiceCore):
             # Everything above is read-only; the snapshot below is taken only once validation
             # has passed, right before the first byte on disk changes.
             snapshot = await _snapshot_files(self.paths, db)
+            # Pre-flight the whole affected set before the first write: a mid-flight refusal
+            # here would leave every item already processed renamed/rewritten and the rest
+            # untouched — a partially applied bulk rename, worse than the overwrite this guard
+            # exists to prevent. Reuses the snapshot just taken; no extra read.
+            _check_batch_skew(old_items, snapshot)
             try:
                 # Per-item self-rewrite (id/prefix/file/frontmatter; status carried
                 # unconditionally).
@@ -152,8 +183,9 @@ class RenameMixin(ServiceCore):
                 remap: dict[str, str] = {}
                 for item in old_items:
                     old_id = item.id
+                    base = item.model_copy(deep=True)
                     await _apply_type_change(
-                        self.paths, self.spec, db, item, new_type, carry_status=True
+                        self.paths, self.spec, db, item, new_type, carry_status=True, base=base
                     )
                     remap[old_id] = item.id
                     pairs.append((old_id, item))
@@ -232,14 +264,18 @@ class RenameMixin(ServiceCore):
             # Everything above is read-only; the snapshot below is taken only once validation
             # has passed, right before the first byte on disk changes.
             snapshot = await _snapshot_files(self.paths, db)
+            # Pre-flight the whole affected set before the first write — see rename_type's
+            # matching comment; reuses the snapshot just taken, no extra read.
+            _check_batch_skew(matching, snapshot)
             try:
                 ids: list[tuple[str, str]] = []
                 rewritten: list[Path] = []
                 for item in matching:
+                    base = item.model_copy(deep=True)
                     item.status = new_status
                     item.updated_at = clock.now()
                     path = item_file(self.paths, item)
-                    await update_frontmatter(path, item)
+                    await update_frontmatter(path, item, base)
                     db.add(item)
                     await _append_rename_status_comment(path, old_status, new_status)
                     self.store._log(  # pyright: ignore[reportPrivateUsage]

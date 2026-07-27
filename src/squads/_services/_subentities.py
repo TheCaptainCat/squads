@@ -17,7 +17,7 @@ from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._interactions import TITLE_ADVISORY_MAX
-from squads._itemfile import write_text
+from squads._itemfile import ensure_no_skew, write_text
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -142,9 +142,12 @@ class SubentitiesMixin(ServiceCore):
         status: str | None = None,
         body: str | None = None,
         now: datetime | None = None,
-    ) -> tuple[Item, SubEntity]:
+    ) -> tuple[Item, SubEntity, Item]:
         """The PURE half of scaffolding a sub-entity: every check, the local-id allocation, and
-        the ``SubEntity`` itself — no file I/O. Returns ``(item, sub)``.
+        the ``SubEntity`` itself — no file I/O. Returns ``(item, sub, base)``.
+
+        ``base`` is *item* as loaded, before this call's own delta — for the write seam's skew
+        guard (see :func:`~squads._itemfile.ensure_no_skew`).
 
         Shared by :meth:`_add_block_core` (the interactive/apply path, which appends the
         rendered block to the item's file text around this) and the bulk importer's pre-pass,
@@ -160,6 +163,7 @@ class SubentitiesMixin(ServiceCore):
         # pre-pass cannot collect as an ImportIssue (KeyError isn't in _COLLECTIBLE) — it
         # would abort the whole validate-first pass instead of reporting one bad line.
         item = self._require_parent(db, item_id, kind)
+        base = item.model_copy(deep=True)
         initial_status = self._resolve_add_status(kind, status)
         self._check_assignee(db, assignee)
         if story:
@@ -179,7 +183,7 @@ class SubentitiesMixin(ServiceCore):
             sub.set_badge_value(code, value)
         item.subentities.append(sub)
         item.updated_at = now if now is not None else clock.now()
-        return item, sub
+        return item, sub, base
 
     async def _add_block_core(  # noqa: PLR0913 — mirrors `add_block`'s own keyword surface
         self,
@@ -196,7 +200,7 @@ class SubentitiesMixin(ServiceCore):
     ) -> BlockResult:
         """The sub-entity-scaffold mutation core: takes an already-open transaction's ``db``."""
         container = self.subentity_container[kind]
-        item, sub = self._add_block_model(
+        item, sub, base = self._add_block_model(
             db,
             item_id,
             kind,
@@ -214,7 +218,7 @@ class SubentitiesMixin(ServiceCore):
             raise SquadsError(f"no {container} section in {item_id}")
         block = discussion.build_block(kind, local_id, title, body=body, spec=self.spec)
         text = sections.append_to_section(text, container, block)
-        await self._write_block_file(db, item, path, text=text, head_for=sub)
+        await self._write_block_file(db, item, path, text=text, head_for=sub, base=base)
         # Advisory title-length check.
         # Fires when title length > TITLE_ADVISORY_MAX.  Service must NOT print;
         # the warning rides back on the result to be rendered at the CLI edge.
@@ -371,19 +375,21 @@ class SubentitiesMixin(ServiceCore):
         *,
         force: bool = False,
         now: datetime | None = None,
-    ) -> tuple[Item, SubEntity, str]:
+    ) -> tuple[Item, SubEntity, str, Item]:
         """The PURE half of a sub-entity status transition: no file I/O.
 
-        Returns ``(item, sub, old_status)``. Shared by :meth:`_set_block_status_core` (the
-        interactive/apply path) and the bulk importer's pre-pass, which calls this directly
-        against a throwaway ``db`` copy with ``now=ev.at``.
+        Returns ``(item, sub, old_status, base)`` — ``base`` is *item* as loaded, before this
+        call's own delta. Shared by :meth:`_set_block_status_core` (the interactive/apply path)
+        and the bulk importer's pre-pass, which calls this directly against a throwaway ``db``
+        copy with ``now=ev.at``.
         """
         item = self._require_parent(db, parent_id, kind)
         sub = self._find(item, kind, local_id)
+        base = item.model_copy(deep=True)
         old_status = sub.status
         self._apply_subentity_status(kind, sub, status, force=force)
         item.updated_at = now if now is not None else clock.now()
-        return item, sub, old_status
+        return item, sub, old_status, base
 
     async def _set_block_status_core(
         self,
@@ -396,10 +402,10 @@ class SubentitiesMixin(ServiceCore):
         force: bool = False,
     ) -> None:
         """The sub-entity status-transition mutation core: takes an already-open ``db``."""
-        item, sub, old_status = self._set_block_status_model(
+        item, sub, old_status, base = self._set_block_status_model(
             db, parent_id, kind, local_id, status, force=force
         )
-        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
         self.store._log(  # pyright: ignore[reportPrivateUsage]
             "subentity",
             item.id,
@@ -459,8 +465,9 @@ class SubentitiesMixin(ServiceCore):
         assignee: str | None,
         *,
         now: datetime | None = None,
-    ) -> tuple[Item, SubEntity]:
-        """The PURE half of a sub-entity assignee change: no file I/O. Returns ``(item, sub)``.
+    ) -> tuple[Item, SubEntity, Item]:
+        """The PURE half of a sub-entity assignee change: no file I/O. Returns ``(item, sub,
+        base)`` — ``base`` is *item* as loaded, before this call's own delta.
 
         Shared by :meth:`_set_block_assignee_core` (the interactive/apply path) and the bulk
         importer's pre-pass, which calls this directly against a throwaway ``db`` copy.
@@ -468,16 +475,17 @@ class SubentitiesMixin(ServiceCore):
         self._check_assignee(db, assignee)
         item = self._require_parent(db, parent_id, kind)
         sub = self._find(item, kind, local_id)
+        base = item.model_copy(deep=True)
         sub.assignee = assignee
         item.updated_at = now if now is not None else clock.now()
-        return item, sub
+        return item, sub, base
 
     async def _set_block_assignee_core(
         self, db: SquadsDB, parent_id: str, kind: str, local_id: str, assignee: str | None
     ) -> None:
         """The sub-entity assignee mutation core: takes an already-open transaction's ``db``."""
-        item, sub = self._set_block_assignee_model(db, parent_id, kind, local_id, assignee)
-        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+        item, sub, base = self._set_block_assignee_model(db, parent_id, kind, local_id, assignee)
+        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
         self.store._log(  # pyright: ignore[reportPrivateUsage]
             "subentity",
             item.id,
@@ -538,6 +546,7 @@ class SubentitiesMixin(ServiceCore):
             reject_markers(title, "title")
         item = self._require_parent(db, parent_id, kind)
         sub = self._find(item, kind, local_id)
+        base = item.model_copy(deep=True)
         if title is not None:
             sub.title = title
         for code, value in (fields or {}).items():
@@ -556,7 +565,7 @@ class SubentitiesMixin(ServiceCore):
         if status is not None:
             self._apply_subentity_status(kind, sub, status, force=force)
         item.updated_at = clock.now()
-        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub)
+        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
         self.store._log(  # pyright: ignore[reportPrivateUsage]
             "subentity",
             item.id,
@@ -615,6 +624,7 @@ class SubentitiesMixin(ServiceCore):
         async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind)
             sub = self._find(item, kind, local_id)
+            base = item.model_copy(deep=True)
             if kind == "story":
                 dependents = self._dependent_subtasks(db, item, local_id)
                 if dependents:
@@ -627,6 +637,7 @@ class SubentitiesMixin(ServiceCore):
             item.updated_at = clock.now()
             path = item_file(self.paths, item)
             text = await _aio.read_text(path)
+            ensure_no_skew(text, base)
             text = sections.remove_section(text, f"{kind}:{local_id}")
             text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
             text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
@@ -668,12 +679,25 @@ class SubentitiesMixin(ServiceCore):
         return SubentityDetail(info=sub, body=body, discussion=disc)
 
     async def _write_block_file(
-        self, db: SquadsDB, item: Item, path: Path, *, text: str | None = None, head_for: SubEntity
+        self,
+        db: SquadsDB,
+        item: Item,
+        path: Path,
+        *,
+        text: str | None = None,
+        head_for: SubEntity,
+        base: Item,
     ) -> None:
-        """Persist the item's frontmatter from the model + re-render its block's head + summary."""
+        """Persist the item's frontmatter from the model + re-render its block's head + summary.
+
+        ``base`` is *item* as loaded before the caller's own delta — checked against the
+        on-disk frontmatter (already in ``text``, whether read here or supplied by the caller)
+        before it is substituted for the index-derived one.
+        """
         kind = self.subentity_kind[item.type]
         container = self.subentity_container[kind]
         text = await _aio.read_text(path) if text is None else text
+        ensure_no_skew(text, base)
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
         text = discussion.set_heading(text, kind, head_for.local_id, head_for.title)
         text = await self._refresh_head(text, db, item, kind, head_for)

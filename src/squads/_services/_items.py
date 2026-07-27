@@ -12,7 +12,7 @@ from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
 from squads._interactions import is_system_skill
-from squads._itemfile import update_frontmatter
+from squads._itemfile import ensure_no_skew, update_frontmatter
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
@@ -42,26 +42,29 @@ class ItemsMixin(ServiceCore):
         *,
         force: bool = False,
         now: datetime | None = None,
-    ) -> tuple[Item, str]:
-        """The PURE half of a status transition: no file I/O. Returns ``(item, old_status)``.
+    ) -> tuple[Item, str, Item]:
+        """The PURE half of a status transition: no file I/O. Returns ``(item, old_status,
+        base)`` — ``base`` is the item as loaded, before this call's own delta, for the
+        write seam's skew guard (see :func:`~squads._itemfile.ensure_no_skew`).
 
         Shared by :meth:`_set_status_core` (the interactive/apply path) and the bulk importer's
         pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
         to simulate the transition using the exact same workflow gate the real path runs.
         """
         item = require_item(db, item_id)
+        base = item.model_copy(deep=True)
         old_status = item.status
         self._apply_status(item, status, force=force)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
-        return item, old_status
+        return item, old_status, base
 
     async def _set_status_core(
         self, db: SquadsDB, item_id: str, status: str, *, force: bool = False
     ) -> Item:
         """The status-transition mutation core: takes an already-open transaction's ``db``."""
-        item, old_status = self._set_status_model(db, item_id, status, force=force)
-        await update_frontmatter(item_file(self.paths, item), item)
+        item, old_status, base = self._set_status_model(db, item_id, status, force=force)
+        await update_frontmatter(item_file(self.paths, item), item, base)
         self.store._log(  # pyright: ignore[reportPrivateUsage]
             "status",
             item.id,
@@ -135,8 +138,9 @@ class ItemsMixin(ServiceCore):
         set_extra: dict[str, str] | None = None,
         unset_extra: list[str] | None = None,
         now: datetime | None = None,
-    ) -> tuple[Item, dict[str, object], tuple[Path, Path] | None]:
-        """The PURE half of a metadata update: no file I/O. Returns ``(item, delta, rename)``.
+    ) -> tuple[Item, dict[str, object], tuple[Path, Path] | None, Item]:
+        """The PURE half of a metadata update: no file I/O. Returns ``(item, delta, rename,
+        base)``.
 
         ``rename`` is ``(old_path, new_path)`` when the title change requires moving the file
         on disk, else ``None`` — the physical move is a separate I/O step the caller
@@ -144,8 +148,13 @@ class ItemsMixin(ServiceCore):
         pre-pass (which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
         to simulate the update using the exact same checks + catalog gate the real path runs)
         never touches the real filesystem.
+
+        ``base`` is *item* as loaded, before this call's own delta — captured before any
+        field is touched, for the write seam's skew guard
+        (see :func:`~squads._itemfile.ensure_no_skew`).
         """
         item = require_item(db, item_id)
+        base = item.model_copy(deep=True)
         delta: dict[str, object] = {}
         rename_paths: tuple[Path, Path] | None = None
         if title is not None and title != item.title:
@@ -186,7 +195,7 @@ class ItemsMixin(ServiceCore):
         # Fail-closed on the updated item's first error-level catalog violation — the
         # same engine `sq check` reports (a warn-level catalog issue never aborts here).
         ValidatorEngine(spec=self.spec).gate(item, db)
-        return item, delta, rename_paths
+        return item, delta, rename_paths, base
 
     async def _update_core(  # noqa: PLR0913 — mirrors `update`'s own keyword surface
         self,
@@ -214,7 +223,7 @@ class ItemsMixin(ServiceCore):
         own I/O concern outside the index transaction (the bulk importer runs its own regen
         pass, if any, after the whole apply commits).
         """
-        item, delta, rename_paths = self._update_model(
+        item, delta, rename_paths, base = self._update_model(
             db,
             item_id,
             title=title,
@@ -235,8 +244,16 @@ class ItemsMixin(ServiceCore):
         if rename_paths is not None:
             old_path, new_path = rename_paths
             if old_path != new_path and await _aio.path_exists(old_path):
+                # Check for a skew BEFORE the physical move, at the item's still-current
+                # path: once moved, a refusal here would otherwise leave the file sitting at
+                # the new filename with its old (skewed) frontmatter still inside — a strictly
+                # worse intermediate state than not moving it at all. `update_frontmatter`'s
+                # own read below (at the possibly-new path) re-checks against the same `base`,
+                # which is safe/redundant rather than a second real read of divergent content.
+                old_text = await _aio.read_text(old_path)
+                ensure_no_skew(old_text, base)
                 await _aio.path_rename(old_path, new_path)
-        await update_frontmatter(item_file(self.paths, item), item)
+        await update_frontmatter(item_file(self.paths, item), item, base)
         self.store._log("update", item.id, delta)  # pyright: ignore[reportPrivateUsage]
         return item
 
@@ -322,6 +339,7 @@ class ItemsMixin(ServiceCore):
     async def link(self, child_id: str, parent_id: str) -> Item:
         async with self.store.transaction() as db:
             child = require_item(db, child_id)
+            base = child.model_copy(deep=True)
             old_parent = child.parent
             self._check_parent(db, child.type, parent_id)
             child.parent = parent_id
@@ -331,7 +349,7 @@ class ItemsMixin(ServiceCore):
             # (parent type-eligibility, in particular) — the same engine every other
             # create/update site gates through.
             ValidatorEngine(spec=self.spec).gate(child, db)
-            await update_frontmatter(item_file(self.paths, child), child)
+            await update_frontmatter(item_file(self.paths, child), child, base)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "link",
                 child.id,
@@ -342,11 +360,12 @@ class ItemsMixin(ServiceCore):
     async def unlink(self, child_id: str) -> Item:
         async with self.store.transaction() as db:
             child = require_item(db, child_id)
+            base = child.model_copy(deep=True)
             old_parent = child.parent
             child.parent = None
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
-            await update_frontmatter(item_file(self.paths, child), child)
+            await update_frontmatter(item_file(self.paths, child), child, base)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "link",
                 child.id,
@@ -509,13 +528,14 @@ class ItemsMixin(ServiceCore):
                     referrer = db.get(ref_id)
                     if referrer is None:
                         continue
+                    base = referrer.model_copy(deep=True)
                     referrer.refs = [
                         r
                         for r in referrer.refs
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
                     referrer.updated_at = clock.now()
-                    await update_frontmatter(item_file(self.paths, referrer), referrer)
+                    await update_frontmatter(item_file(self.paths, referrer), referrer, base)
                     severed.append(ref_id)
 
             # ------------------------------------------------------------------

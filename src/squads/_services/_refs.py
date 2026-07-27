@@ -312,8 +312,10 @@ class RefsMixin(ServiceCore):
         *,
         kind: str = DEFAULT_KIND,
         now: datetime | None = None,
-    ) -> Item:
-        """The PURE half of a ref-add: no file I/O.
+    ) -> tuple[Item, Item]:
+        """The PURE half of a ref-add: no file I/O. Returns ``(src, base)`` — ``base`` is
+        *src* as loaded, before this call's own delta, for the write seam's skew guard (see
+        :func:`~squads._itemfile.ensure_no_skew`).
 
         Shared by :meth:`_add_ref_core` (the interactive/apply path) and the bulk importer's
         pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``.
@@ -325,6 +327,7 @@ class RefsMixin(ServiceCore):
             raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
         src = require_item(db, from_id)
         tgt = require_item(db, to_id)
+        base = src.model_copy(deep=True)
         # The kind rides with the edge; re-adding an existing edge updates its kind.
         # Dedup by (prefix, seq) so old-width stored refs ("PREFIX-000007") are replaced
         # when re-adding across a repad boundary where to_id is "PREFIX-0000007" — file
@@ -335,14 +338,14 @@ class RefsMixin(ServiceCore):
         src.refs.append(make_ref(to_id, kind))
         src.updated_at = now if now is not None else clock.now()
         src.modified_session, _ = actor.current_session()
-        return src
+        return src, base
 
     async def _add_ref_core(
         self, db: SquadsDB, from_id: str, to_id: str, *, kind: str = DEFAULT_KIND
     ) -> Item:
         """The ref-add mutation core: takes an already-open transaction's ``db``."""
-        src = self._add_ref_model(db, from_id, to_id, kind=kind)
-        await update_frontmatter(item_file(self.paths, src), src)
+        src, base = self._add_ref_model(db, from_id, to_id, kind=kind)
+        await update_frontmatter(item_file(self.paths, src), src, base)
         self.store._log(  # pyright: ignore[reportPrivateUsage]
             "ref",
             src.id,
@@ -353,6 +356,7 @@ class RefsMixin(ServiceCore):
     async def rm_ref(self, from_id: str, to_id: str) -> Item:
         async with self.store.transaction() as db:
             src = require_item(db, from_id)
+            base = src.model_copy(deep=True)
             # Determine (prefix, seq) from the caller's to_id — width-tolerant: the stored
             # ref may carry an old width, the to_id may carry the new width.
             head, _, digits = to_id.rpartition("-")
@@ -367,7 +371,7 @@ class RefsMixin(ServiceCore):
                 src.refs = [r for r in src.refs if split_ref(r)[0] != to_id]
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
-            await update_frontmatter(item_file(self.paths, src), src)
+            await update_frontmatter(item_file(self.paths, src), src, base)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "ref",
                 src.id,
@@ -405,6 +409,7 @@ class RefsMixin(ServiceCore):
         role_seq = role.sequence_id
         async with self.store.transaction() as db:
             src = require_item(db, skill_id)
+            base = src.model_copy(deep=True)
             src.refs = [
                 r
                 for r in src.refs
@@ -415,7 +420,7 @@ class RefsMixin(ServiceCore):
             ]
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
-            await update_frontmatter(item_file(self.paths, src), src)
+            await update_frontmatter(item_file(self.paths, src), src, base)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "ref",
                 src.id,

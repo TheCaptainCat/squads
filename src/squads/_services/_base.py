@@ -30,7 +30,7 @@ from squads._interactions import (
     is_lane_exempt,
     skills_for_role,
 )
-from squads._itemfile import update_frontmatter, write_new, write_text
+from squads._itemfile import ensure_no_skew, update_frontmatter, write_new, write_text
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
@@ -753,10 +753,17 @@ class ServiceCore:
         ``mutate(text, item)`` returns the new file text (sync callable — may raise to abort
         before any write). Shared by :meth:`_locked_section_edit` (body/comment/sub-body's
         common core) and the bulk importer.
+
+        This is the second of the two write seams that rewrite an item's frontmatter from an
+        index-derived ``Item`` (the other is :func:`~squads._itemfile.update_frontmatter`) —
+        ``base`` is captured here, before ``mutate`` runs, and the on-disk text already read
+        below is reused for the skew guard at no extra I/O cost.
         """
         it = require_item(db, item_id)
+        base = it.model_copy(deep=True)
         path = item_file(self.paths, it)
         text = await _aio.read_text(path)
+        ensure_no_skew(text, base)
         new_text = mutate(text, it)
         it.updated_at = clock.now()
         it.modified_session, _ = actor.current_session()
@@ -958,7 +965,7 @@ class ServiceCore:
 
     async def _refresh_role_skills_extra(
         self, item: Item, role_skills: dict[str, list[str]]
-    ) -> None:
+    ) -> str | None:
         """Persist the resolver's output into the role item's ``extra.skills`` cache.
 
         A pure, re-derivable cache — recomputed from system membership plus ``scopes`` ref
@@ -976,13 +983,40 @@ class ServiceCore:
         frontmatter is written, per invariant #1); comparing against it would go stale the
         moment two resyncs of the same role happen without an index-refreshing event in
         between (e.g. link then unlink), silently skipping the second write.
+
+        This is a roster-regen path, not a single mutation: an unrepaired skew is skipped and
+        reported rather than refused, so ``item.extra`` is rolled back to its pre-call value
+        on skip — leaving the in-memory item truthful to what is actually on disk for any
+        later read in the same pass (e.g. the body/pointer regen that follows). Returns the
+        skip-report message, or ``None`` when the write went through (or there was nothing to
+        resolve).
+
+        The skew guard ignores ``extra[X.SKILLS]`` itself (``ignore_extra_keys``): this write
+        never goes through ``store.transaction()``, so the index-loaded ``base`` never carries
+        the resolved list's current generation even on a perfectly healthy role — disk being
+        "ahead" on this one key is the durability decision's named permitted skew, not
+        evidence of loss.
+        Comparing it like every other field would false-refuse the first mutation after any
+        prior resync ever ran (measured: it did, before this exclusion was added).
         """
         slug = item.extra.get(X.SLUG, item.slug)
         resolved = role_skills.get(slug)
         if resolved is None:
-            return
+            return None
+        base = item.model_copy(deep=True)
+        previous = item.extra.get(X.SKILLS)
         item.extra[X.SKILLS] = resolved
-        await update_frontmatter(item_file(self.paths, item), item)
+        try:
+            await update_frontmatter(
+                item_file(self.paths, item), item, base, ignore_extra_keys=frozenset({X.SKILLS})
+            )
+        except SquadsError as exc:
+            if previous is None:
+                item.extra.pop(X.SKILLS, None)
+            else:
+                item.extra[X.SKILLS] = previous
+            return str(exc)
+        return None
 
     async def _regen_role_body(self, item: Item) -> None:
         """Re-render the role template's body section into the existing role item file.
@@ -1010,6 +1044,13 @@ class ServiceCore:
         every other role's pointer/body is left byte-untouched. A full
         ``sq sync`` remains the authoritative recomputation for the whole roster — this is an
         optimization on top of it, never the only path.
+
+        A skip-reported skew from :meth:`_refresh_role_skills_extra` is swallowed here rather
+        than surfaced: this hook runs after ``link-role``/``unlink-role``'s own edit has
+        already committed successfully, and the ``extra.skills`` cache it refreshes is the
+        ADR's named third exemption (re-derivable, never mirrored into the index) — a full
+        ``sq sync`` is the reporter of record for a drifted role, same as it is for the roster
+        sweep this hook is a partial-sync optimization over.
         """
         role = await self._role_item(slug)
         if role is None:

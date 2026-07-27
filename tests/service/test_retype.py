@@ -167,3 +167,44 @@ async def test_retype_refuses_a_parented_item_into_a_no_parent_records_type(svc)
 
     with pytest.raises(SquadsError, match="takes no parent"):
         await svc.retype(task.id, "decision")
+
+
+# --------------------------------------------------------------------------- frontmatter skew
+
+
+async def test_retype_refuses_a_drifted_item_and_leaves_the_file_at_its_original_path(
+    svc, monkeypatch
+):
+    """A real, unrepaired skew must refuse BEFORE the file moves at all -- retyping renames
+    the file (to its new type's folder/prefix) before rewriting the frontmatter, so a refusal
+    that happened only after the move would leave the item sitting at the new filename with
+    its old (skewed) frontmatter still inside, a strictly worse state than not moving it."""
+    from squads._index._store import IndexStore
+
+    task = (await svc.create("task", "Drifted retype target")).item
+    old_path = svc.paths.abspath(task.path)
+
+    real_atomic_write = IndexStore._atomic_write  # pyright: ignore[reportPrivateUsage]
+
+    async def _boom(self, db):
+        raise OSError("simulated crash during the index commit")
+
+    monkeypatch.setattr(IndexStore, "_atomic_write", _boom)
+    with pytest.raises(OSError):
+        await svc.update(task.id, description="interrupted description")
+    monkeypatch.setattr(IndexStore, "_atomic_write", real_atomic_write)
+
+    with pytest.raises(SquadsError, match="repair"):
+        await svc.retype(task.id, "bug")
+
+    # Untouched: still at the original path, still type `task`.
+    assert old_path.exists()
+    reloaded = await svc.get(task.id)
+    assert reloaded.type == "task"
+    assert svc.paths.abspath(reloaded.path) == old_path
+
+    await svc.repair()
+    res = await svc.retype(task.id, "bug")
+    assert res.item.type == "bug"
+    final = await svc.get(task.id)
+    assert final.description == "interrupted description"
