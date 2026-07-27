@@ -3,7 +3,7 @@ id: TASK-651
 sequence_id: 651
 type: task
 title: Expose display labels in JSON + clients render them
-status: Draft
+status: InReview
 parent: FEAT-647
 author: tech-lead
 refs:
@@ -11,22 +11,22 @@ refs:
 subentities:
 - local_id: ST1
   title: Add resolved labels to sq workflow types --json
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST2
   title: Extension renders per-type Records buckets with plural labels
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST3
   title: Route Work tree group-by-type headers through the shared resolver
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST4
   title: De-hardcode Roster tree bucket labels from the catalog
-  status: Todo
+  status: Done
   story: US3
 created_at: '2026-07-24T12:55:56Z'
-updated_at: '2026-07-24T13:49:08Z'
+updated_at: '2026-07-24T14:23:36Z'
 ---
 <!-- sq:body -->
 Completes FEAT-647: the display labels + resolver exist (label_for/labels_for in _models/_vocab.py, TASK-648 Done), but no --json surface exposes them, so the VS Code trees render the raw lowercase type instead of pretty names. Expose the labels in JSON, then STANDARDIZE the extension's per-type group headers onto one spec-driven source across all three trees.
@@ -54,10 +54,10 @@ _Add with `sq task 651 add-subtask "<title>"`; track with `sq task 651 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Add resolved labels to sq workflow types --json | US3 |
-| ST2 | Todo |  | Extension renders per-type Records buckets with plural labels | US3 |
-| ST3 | Todo |  | Route Work tree group-by-type headers through the shared resolver | US3 |
-| ST4 | Todo |  | De-hardcode Roster tree bucket labels from the catalog | US3 |
+| ST1 | Done |  | Add resolved labels to sq workflow types --json | US3 |
+| ST2 | Done |  | Extension renders per-type Records buckets with plural labels | US3 |
+| ST3 | Done |  | Route Work tree group-by-type headers through the shared resolver | US3 |
+| ST4 | Done |  | De-hardcode Roster tree bucket labels from the catalog | US3 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -66,18 +66,12 @@ _Add with `sq task 651 add-subtask "<title>"`; track with `sq task 651 subtask <
 ### ST1 — Add resolved labels to sq workflow types --json
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — Clients render per-type display labels
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
-Python (JSON exposure). Add the four resolved label forms to each entry of `sq workflow types --json` — covers every type, including the roster ones (role/skill/operator, category=roster), so all three trees can consume it.
-
-Builder: `_type_catalog` in src/squads/_cli/_workflow_cmd.py — add a `"labels"` key to each row via `labels_for(t, spec)` (returns the dict of all four forms) from _models/_vocab.py. Derived-by-default for bundled types (decision → singular "Decision", plural "Decisions"; role → "Roles" etc.; acronym/irregular types resolve per their pinned overrides). Extend the frozen TYPE_CATALOG_FIELDS tuple to include "labels" so the contract test tracks it.
-
-Additive only — no key removed, no schema/version bump. Add a test asserting the JSON carries the label forms (e.g. decision plural == "Decisions", role plural == "Roles").
-
-Gates: uv run --all-extras pyright/ruff; fast pytest selector while iterating (coordinating loop owns the full suite). If you add any module-level constant, run tests/meta.
+Added a `labels` object {singular, plural, singular_lower, plural_lower} to each row of `sq workflow types --json`, resolved via labels_for(type, spec) (pin-else-derive). Additive only; TYPE_CATALOG_FIELDS extended, golden regenerated, new tests added.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -90,20 +84,12 @@ Gates: uv run --all-extras pyright/ruff; fast pytest selector while iterating (c
 ### ST2 — Extension renders per-type Records buckets with plural labels
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — Clients render per-type display labels
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
-TypeScript. Depends on ST1 landing first. Shared resolver + Records tree.
-
-Add ONE shared TS helper that resolves a type's PLURAL display label from the `sq workflow types --json` catalog (`labels.plural`), falling back to the raw type when the field is absent (older sq). This helper becomes the single source of truth every per-type group header routes through (ST3, ST4 reuse it).
-
-- Extend the `sq workflow types --json` shape guard in clients/vscode/src/sqAdapter.ts (~line 247) for the new `labels` field.
-- Route the Records tree bucket headers (clients/vscode/src/recordsTreeDataProvider.ts) through the shared helper.
-- Add TS tests for the shared resolver (pinned + derived-fallback + raw-fallback) and the Records header.
-
-Gates: extension tsc + eslint + prettier + its tests. Keep the type-aware lint gate intact (TS pinned 6.0.3; do NOT weaken lint to compile).
+Shape guard for the new labels field + shared TS resolver (domain/typeLabels.ts::pluralLabel) + Records tree bucket headers routed through it.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -116,16 +102,12 @@ Gates: extension tsc + eslint + prettier + its tests. Keep the type-aware lint g
 ### ST3 — Route Work tree group-by-type headers through the shared resolver
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — Clients render per-type display labels
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
-TypeScript. Depends on ST2's shared resolver.
-
-Route the Work tree's group-by-type headers through the shared plural-label resolver instead of the raw type. Site: clients/vscode/src/domain/listView.ts (~line 131, groupDisplayNode).
-
-Add/adjust a TS test for the Work-tree grouping header. Same gates: extension tsc + eslint + prettier + its tests; keep the type-aware lint gate intact (TS 6.0.3, do not weaken lint).
+Work tree's group-by-type headers (domain/listView.ts::groupListItems) routed through the shared pluralLabel resolver.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion
@@ -138,20 +120,12 @@ Add/adjust a TS test for the Work-tree grouping header. Same gates: extension ts
 ### ST4 — De-hardcode Roster tree bucket labels from the catalog
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — Clients render per-type display labels
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
-TypeScript. Depends on ST2's shared resolver.
-
-De-hardcode the Roster tree's rendered LABELS: resolve them from the type catalog via the shared plural-label resolver instead of the TS literals in clients/vscode/src/domain/reservedTypes.ts (META_BUCKETS) / metaView.ts.
-
-KEEP the three fixed reserved bucket TYPES (role/skill/operator are the reserved set; META_BUCKETS also drives the Work tree's exclusion of roster types — that stays). Only the label strings move to the catalog.
-
-The rendered labels are unchanged (derived plurals Roles/Skills/Operators == today's literals) — the point is a single source of truth, not a visible change. State that in any test so the intent is clear.
-
-Add/adjust a TS test for the Roster header labels. Same gates: extension tsc + eslint + prettier + its tests; keep the type-aware lint gate intact (TS 6.0.3, do not weaken lint).
+Roster tree bucket labels (domain/metaView.ts) now resolved from the type catalog via pluralLabel; META_BUCKETS keeps only the 3 fixed reserved types, no longer the TS-literal labels.
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion
@@ -164,4 +138,13 @@ Add/adjust a TS test for the Roster header labels. Same gates: extension tsc + e
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-24T14:02:54Z] Elias Python:
+  - ST1 done: sq workflow types --json now includes a labels object {singular, plural, singular_lower, plural_lower} per type row, resolved via labels_for(type, spec) (pin-else-derive). Additive only — existing keys unchanged. TYPE_CATALOG_FIELDS extended to include 'labels'; golden tests/goldens/workflow_types.json regenerated. Ready for ST2 (extension resolver reads labels.plural, falls back to raw type if absent).
+- [2026-07-24T14:23:36Z] Ada Typescript:
+  - ST2/ST3/ST4 done: added domain/typeLabels.ts (pluralLabel/buildTypeLabelMap), the single shared resolver every per-type group header now routes through.
+  - sqAdapter.ts shape guard extended for the optional labels object (older sq without it still parses fine).
+  - Records tree (recordsView.ts), Work tree (listView.ts groupListItems), and Roster tree (metaView.ts, via de-hardcoded META_BUCKETS) all resolve their bucket/group headers from the type catalog now; reserved bucket types (role/skill/operator) unchanged.
+  - Rendered output is unchanged in the normal case (Roles/Skills/Operators, Decisions/Guides, etc. render exactly as before) -- this is a single-source-of-truth refactor, not a visible change.
+  - Gates green: tsc, eslint --max-warnings 0, prettier --check, vitest (399 passed), plus test:canary against a real sq binary.
+  - Needs the operator's visual check on the Windows VS Code dev host before Done.
 <!-- sq:discussion:end -->

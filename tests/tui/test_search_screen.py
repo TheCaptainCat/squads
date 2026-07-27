@@ -8,9 +8,10 @@ import pytest
 pytest.importorskip("textual")
 
 from textual.content import Content
-from textual.widgets import ListView
+from textual.widgets import ListView, Static
 from textual.widgets.tree import TreeNode
 
+from squads._services import _service as service
 from squads._tui._app import SquadsApp
 from squads._tui._browse import BrowseScreen
 from squads._tui._reader import ReaderScreen
@@ -18,6 +19,8 @@ from squads._tui._search import (
     SearchScreen,
     _HitItem,  # pyright: ignore[reportPrivateUsage]
 )
+from squads._workflow import bundled_spec
+from squads._workflow._models import LabelSpec
 
 from ._helpers import wait_until
 
@@ -280,3 +283,41 @@ async def test_selecting_a_hit_pushes_a_reader_screen_without_moving_browse_sele
         cursor_node = browse._tree.cursor_node  # pyright: ignore[reportPrivateUsage]
         assert cursor_node is not None
         assert cursor_node.data == feat.id  # browse selection untouched by the search excursion
+
+
+async def test_type_filter_options_and_hit_rows_show_the_resolved_type_label(project):
+    base = bundled_spec()
+    pinned_bug = base.items["bug"].model_copy(update={"labels": LabelSpec(singular="Defect")})
+    spec = base.model_copy(update={"items": {**base.items, "bug": pinned_bug}})
+    svc = service.Service(project, spec=spec)
+    bug = (await svc.create("bug", "Crash on save")).item
+
+    app = SquadsApp(svc)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("/")
+        await pilot.pause()
+        search = app.screen
+        assert isinstance(search, SearchScreen)
+
+        options = {
+            value: label
+            for label, value in search._type_select._options  # pyright: ignore[reportPrivateUsage]
+        }
+        assert options["task"] == "Task"  # bundled type: derived label
+        assert options["bug"] == "Defect"  # pinned override, not the raw "bug"
+
+        search._query.value = "crash"  # pyright: ignore[reportPrivateUsage]
+        await pilot.press("enter")
+
+        results = search.query_one(ListView)
+
+        def _hits() -> list[_HitItem]:
+            return [c for c in results.children if isinstance(c, _HitItem)]
+
+        await wait_until(pilot, lambda: len(_hits()) == 1)
+        hit_content = _hits()[0].query_one(Static).content
+        assert isinstance(hit_content, Content)
+        assert "(Defect)" in hit_content.plain
+        assert "(bug)" not in hit_content.plain
+        assert bug.id in hit_content.plain

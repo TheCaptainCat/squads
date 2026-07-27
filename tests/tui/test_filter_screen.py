@@ -9,8 +9,10 @@ pytest.importorskip("textual")
 from textual.widgets import Button, Select
 
 from squads._tui._app import SquadsApp
-from squads._tui._browse import BrowseScreen
+from squads._tui._browse import BrowseScreen, BrowseState
 from squads._tui._filter import FilterScreen
+from squads._workflow import bundled_spec
+from squads._workflow._models import LabelSpec
 
 pytestmark = pytest.mark.anyio
 
@@ -253,3 +255,15 @@ async def test_active_filter_indicator_shows_only_while_filtered(svc):
         popup2.query_one("#apply", Button).press()
         await pilot.pause()
         assert browse._indicator.content == ""  # pyright: ignore[reportPrivateUsage]
+
+
+def test_type_filter_options_display_resolved_labels_with_raw_type_values() -> None:
+    base = bundled_spec()
+    pinned_bug = base.items["bug"].model_copy(update={"labels": LabelSpec(singular="Defect")})
+    spec = base.model_copy(update={"items": {**base.items, "bug": pinned_bug}})
+
+    popup = FilterScreen(BrowseState(), spec)
+    options = {value: label for label, value in popup._type_select._options}  # pyright: ignore[reportPrivateUsage]
+
+    assert options["task"] == "Task"  # bundled type: derived label
+    assert options["bug"] == "Defect"  # pinned override, not the raw "bug"

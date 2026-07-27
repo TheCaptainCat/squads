@@ -16,9 +16,12 @@ subentities:
   status: Done
 - local_id: US3
   title: Clients render per-type display labels
-  status: Todo
+  status: InProgress
+- local_id: US4
+  title: sq ui renders per-type display labels
+  status: Done
 created_at: '2026-07-24T11:47:44Z'
-updated_at: '2026-07-24T12:57:20Z'
+updated_at: '2026-07-27T08:05:04Z'
 ---
 <!-- sq:body -->
 Adopters can declare a human-readable display name per item type, so clients render "Decisions"/"ADRs" instead of the bare lowercase type key, with acronym types kept correctly capitalized.
@@ -39,7 +42,8 @@ _Add with `sq feature 647 add-story "As a <role>, I want … so that …"`; trac
 | --- | --- | --- | --- |
 | US1 | Done |  | Labels schema field + label_for resolver |
 | US2 | Done |  | Retarget display-name consumers through the resolver |
-| US3 | Todo |  | Clients render per-type display labels |
+| US3 | InProgress |  | Clients render per-type display labels |
+| US4 | Done |  | sq ui renders per-type display labels |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -82,7 +86,7 @@ Replace ad-hoc .capitalize()/.title() type-name display derivations (Claude Code
 ### US3 — Clients render per-type display labels
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟡 In Progress
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -94,6 +98,23 @@ Resolved display labels are exposed on the sq JSON surface and clients render th
 <!-- sq:story:US3:discussion -->
 <!-- sq:story:US3:discussion:end -->
 <!-- sq:story:US3:end -->
+
+<!-- sq:story:US4 -->
+### US4 — sq ui renders per-type display labels
+
+<!-- sq:story:US4:head -->
+**Status:** 🟢 Done
+<!-- sq:story:US4:head:end -->
+
+<!-- sq:story:US4:body -->
+The terminal TUI (sq ui) shows resolved display labels for item types, not raw lowercase type names.
+<!-- sq:story:US4:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US4:discussion -->
+<!-- sq:story:US4:discussion:end -->
+<!-- sq:story:US4:end -->
 <!-- sq:stories:end -->
 
 ## Discussion

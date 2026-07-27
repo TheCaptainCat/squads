@@ -15,6 +15,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, Switch
 from textual.widgets.select import NoSelection
 
+from squads._models._vocab import label_for
 from squads._workflow import CATEGORIES
 from squads._workflow._models import Field, WorkflowSpec
 
@@ -89,7 +90,7 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
         seed_field = next((f for f in self._badge_fields if f.code == seed_code), None)
 
         self._type_select: Select[str] = Select(
-            [(t, t) for t in sorted(spec.non_roster_types())],
+            [(label_for(t, "singular", spec), t) for t in sorted(spec.non_roster_types())],
             id="filter-type",
             value=state.filter.item_type or Select.NULL,
         )
