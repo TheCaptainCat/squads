@@ -533,7 +533,7 @@ class MaintenanceMixin(ServiceCore):
         max_n = 0
         max_filename_width = 0
         for item_type, md in self._iter_item_files():
-            data = read_frontmatter(text=await _aio.read_text(md))
+            data = read_frontmatter(text=await _aio.read_text(md), source=str(md))
             if not data.get("id"):
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
@@ -693,7 +693,7 @@ class MaintenanceMixin(ServiceCore):
     async def _scan_records(self) -> list[_FileRec]:
         records: list[_FileRec] = []
         for item_type, md in self._iter_item_files():
-            fid = read_frontmatter(text=await _aio.read_text(md)).get("id")
+            fid = read_frontmatter(text=await _aio.read_text(md), source=str(md)).get("id")
             if not fid:
                 continue
             stem = md.name.removesuffix(".md")
@@ -771,10 +771,12 @@ class MaintenanceMixin(ServiceCore):
             new_path = old_path.parent / new_name
             await _aio.path_rename(old_path, new_path)
             text = await _aio.read_text(new_path)
-            fm, _ = sections.split_frontmatter(text)
+            fm, _ = sections.split_frontmatter(text, source=str(new_path))
             if fm:
                 fm["sequence_id"] = number_for_id(new_id)
-                await write_text(new_path, sections.replace_frontmatter(text, fm))
+                await write_text(
+                    new_path, sections.replace_frontmatter(text, fm, source=str(new_path))
+                )
 
     async def _renumber(self) -> dict[str, str]:
         """Resolve duplicate global ID numbers from a merge: reassign + rewrite references."""
@@ -1056,19 +1058,23 @@ class MaintenanceMixin(ServiceCore):
             fresh_item = fresh_index.items.get(seq)
             if fresh_item is None:
                 continue  # removed since the scan — no index side left to confirm against
+            confirm_path = item_file(self.paths, fresh_item)
             try:
-                text = await _aio.read_text(item_file(self.paths, fresh_item))
+                text = await _aio.read_text(confirm_path)
             except FileNotFoundError:
                 # The fresh index's own path field can itself be the stale side: an
                 # interrupted rename leaves the file at its new path while the index still
                 # holds the old one. Fall back to the path the scan actually found this
                 # sequence at before giving up on the candidate — only skip when neither
                 # path has the file, the genuine "gone since the scan" case.
+                confirm_path = on_disk[seq][1]
                 try:
-                    text = await _aio.read_text(on_disk[seq][1])
+                    text = await _aio.read_text(confirm_path)
                 except FileNotFoundError:
                     continue  # gone from both paths — no frontmatter side left to confirm
-            issues += _drift_issues(fresh_item, read_frontmatter(text=text))
+            issues += _drift_issues(
+                fresh_item, read_frontmatter(text=text, source=str(confirm_path))
+            )
 
         for seq in sorted(orphan_seqs):
             fid, path, _data = on_disk[seq]
@@ -1113,7 +1119,7 @@ class MaintenanceMixin(ServiceCore):
         for item_type, md in self._iter_item_files():
             text = await _aio.read_text(md)
             issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
-            data = read_frontmatter(text=text)
+            data = read_frontmatter(text=text, source=str(md))
             fid = data.get("id")
             if not fid:
                 # Slug-named skill body files (e.g. squads.md) are pre-migration: skip silently.

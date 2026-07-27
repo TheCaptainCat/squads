@@ -163,7 +163,7 @@ class ClaudeCodeBackend(AgentBackend):
 
         if await _aio.path_exists(body_path):
             existing = await _aio.read_text(body_path)
-            fm, _ = sections.split_frontmatter(existing)
+            fm, _ = sections.split_frontmatter(existing, source=str(body_path))
             if fm and sections.has_section(existing, markers.BODY):
                 # File has been stamped with frontmatter: preserve it, only update body region.
                 # This is squad data (an indexed SKILL item's .md) — atomic replace, not the

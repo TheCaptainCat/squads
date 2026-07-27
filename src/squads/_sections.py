@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import yaml
 
+from squads._errors import SquadsError
 from squads._models import _markers as markers
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)
@@ -17,12 +18,23 @@ _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)
 # --------------------------------------------------------------------------- frontmatter
 
 
-def split_frontmatter(text: str) -> tuple[dict[str, Any], str]:
-    """Return (frontmatter_dict, body). Empty dict if there is no frontmatter block."""
+def split_frontmatter(text: str, *, source: str | None = None) -> tuple[dict[str, Any], str]:
+    """Return (frontmatter_dict, body). Empty dict if there is no frontmatter block.
+
+    Raises :class:`SquadsError` when the block between intact ``---`` delimiters is not
+    valid YAML — a hand-edit, an unresolved merge conflict, a file restored from a partial
+    patch. ``source`` names the offending file in that message when the caller has a path;
+    callers that only hold text (no path in scope) leave it unset and the message degrades
+    to the parse failure alone.
+    """
     m = _FRONTMATTER_RE.match(text)
     if not m:
         return {}, text
-    loaded = yaml.safe_load(m.group(1))
+    try:
+        loaded = yaml.safe_load(m.group(1))
+    except yaml.YAMLError as exc:
+        where = f" in {source}" if source else ""
+        raise SquadsError(f"malformed frontmatter{where}: {exc}") from exc
     data: dict[str, Any] = cast("dict[str, Any]", loaded) if isinstance(loaded, dict) else {}
     return data, text[m.end() :]
 
@@ -34,9 +46,9 @@ def join_frontmatter(data: dict[str, Any], body: str) -> str:
     return f"---\n{front}---{body}"
 
 
-def replace_frontmatter(text: str, data: dict[str, Any]) -> str:
+def replace_frontmatter(text: str, data: dict[str, Any], *, source: str | None = None) -> str:
     """Rewrite only the frontmatter block, preserving the entire body verbatim."""
-    _, body = split_frontmatter(text)
+    _, body = split_frontmatter(text, source=source)
     return join_frontmatter(data, body)
 
 

@@ -28,8 +28,11 @@ def find_config(start: Path | None = None) -> Path | None:
 
 
 def load_config(config_path: Path) -> SquadsConfig:
-    with config_path.open("rb") as fh:
-        data = tomllib.load(fh)
+    try:
+        with config_path.open("rb") as fh:
+            data = tomllib.load(fh)
+    except tomllib.TOMLDecodeError as exc:
+        raise SquadsError(f"malformed {config_path}: {exc}") from exc
     try:
         return SquadsConfig.from_toml_dict(data)
     except ValidationError as exc:
