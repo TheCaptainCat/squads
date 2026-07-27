@@ -3,13 +3,16 @@ boundary (temp file written, the durability barrier never completes) leaves the 
 where the CLI left off, still fully visible through `show`/`list -a`, and `sq repair` still
 converges.
 
-Faults the LIVE primitive's own `os.fsync` call rather than `Path.replace`: the markdown write
-reaches it strictly before the index commit does (the ordering rule this work enforces), so the
-non-zero exit this test asserts is produced by the item-file write failing -- never by the
-index's own atomic write, which this fault never reaches.
+Faults the LIVE primitive's own rename step (`tmp.replace`), scoped to this item's own target
+path, rather than `os.fsync`: the design explicitly reserves the right to drop that call under
+measured load, so a test pinned to it would fail on a sanctioned change that breaks nothing.
+Scoping to this item's path (rather than a global `Path.replace` patch) also means the index
+commit's own unrelated `.squads.json` replace is never touched, so the non-zero exit this test
+asserts is produced by the item-file write failing -- never by the index's own atomic write.
 """
 
-import os
+from os import PathLike
+from pathlib import Path
 
 import pytest
 
@@ -25,8 +28,12 @@ async def test_an_interrupted_update_still_leaves_the_item_reachable_and_repaira
     task = (await svc.create("task", "CLI smoke target")).item
     path = item_file(svc.paths, task)
 
-    def _raise(fd: int) -> None:
-        raise OSError("simulated crash right after the temp write, before the replace")
+    real_replace = Path.replace
+
+    def _replace_or_die(self: Path, target: str | PathLike[str]) -> Path:
+        if Path(target) == path:
+            raise OSError("simulated crash right before the replace")
+        return real_replace(self, target)
 
     # `--desc`, not `--title`: a title change also moves the file (a rename), whose own
     # repair-recoverable skew is covered separately (see the retype/rename case in
@@ -34,7 +41,7 @@ async def test_an_interrupted_update_still_leaves_the_item_reachable_and_repaira
     # plain, no-move case: the file itself stays fully readable, at the same path, with no
     # `sq repair` required first.
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(os, "fsync", _raise)
+        mp.setattr(Path, "replace", _replace_or_die)
         r = await invoke(["task", str(task.sequence_id), "update", "--desc", "Renamed"])
         assert r.exit_code != 0
 

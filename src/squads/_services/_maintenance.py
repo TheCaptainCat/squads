@@ -23,6 +23,7 @@ from squads._interactions import (
 from squads._itemfile import read_frontmatter, rewrite_ids, update_frontmatter, write_text
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models import _markers as markers
+from squads._models._config import CONFIG_FILENAME
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
@@ -50,6 +51,36 @@ from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, STATUS_ACTIVE
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` — every type (built-in or custom) resolves from the spec.
 type _FileRec = tuple[str, Path, str, str, int]
+
+_ROOT_TMP_IGNORE_PATTERN = f"{CONFIG_FILENAME}.*.tmp"
+
+
+async def ensure_root_tmp_ignored(root: Path) -> None:
+    """Make sure an interrupted ``.squads.toml`` write's temp sibling can never end up
+    committed by accident.
+
+    The atomic-replace primitive puts the temp file in the target's own directory (a
+    cross-directory rename isn't atomic) — for ``.squads.toml`` that's the *project root*,
+    outside the squad dir's own ``.gitignore``. Appends the pattern to a root ``.gitignore``
+    if one exists, without touching any of its other (adopter-owned) content; creates a
+    minimal one if none exists yet. A no-op once the pattern (or a covering ``*.tmp``) is
+    already present.
+
+    Called from ``init``/``adopt`` (a squad's first appearance) and from :meth:`sync
+    <MaintenanceMixin.sync>` — the idempotent "bring this squad up to date" path, so a squad
+    initialised before this pattern existed still picks it up on its next sync rather than
+    carrying the hole forever.
+    """
+    gitignore = root / ".gitignore"
+    if not await _aio.path_exists(gitignore):
+        await _aio.atomic_write_text(gitignore, f"{_ROOT_TMP_IGNORE_PATTERN}\n")
+        return
+    text = await _aio.read_text(gitignore)
+    lines = text.splitlines()
+    if _ROOT_TMP_IGNORE_PATTERN in lines or "*.tmp" in lines:
+        return
+    sep = "" if text.endswith("\n") else "\n"
+    await _aio.atomic_write_text(gitignore, f"{text}{sep}{_ROOT_TMP_IGNORE_PATTERN}\n")
 
 
 def _marker_issues(text: str) -> list[str]:
@@ -150,6 +181,10 @@ class MaintenanceMixin(ServiceCore):
         when generated files are wrong, so a drifted item is reported and the rest of the
         squad still syncs (exit stays 0 — ``sq check`` is the dedicated reporter that gates).
         """
+        # Idempotent: a squad initialised before this pattern existed picks it up here
+        # instead of carrying the hole for the rest of its life.
+        await ensure_root_tmp_ignored(self.paths.root)
+
         # Ensure that every type folder declared in the active spec exists on disk.
         # Built-in type folders are created by init/adopt; custom type folders may not
         # yet exist if the type was added to the spec after the squad was initialised.
@@ -1024,7 +1059,15 @@ class MaintenanceMixin(ServiceCore):
             try:
                 text = await _aio.read_text(item_file(self.paths, fresh_item))
             except FileNotFoundError:
-                continue  # file gone since the scan — no frontmatter side left to confirm
+                # The fresh index's own path field can itself be the stale side: an
+                # interrupted rename leaves the file at its new path while the index still
+                # holds the old one. Fall back to the path the scan actually found this
+                # sequence at before giving up on the candidate — only skip when neither
+                # path has the file, the genuine "gone since the scan" case.
+                try:
+                    text = await _aio.read_text(on_disk[seq][1])
+                except FileNotFoundError:
+                    continue  # gone from both paths — no frontmatter side left to confirm
             issues += _drift_issues(fresh_item, read_frontmatter(text=text))
 
         for seq in sorted(orphan_seqs):

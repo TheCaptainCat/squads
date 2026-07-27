@@ -213,12 +213,25 @@ _active_transaction: ContextVar[_ActiveTransaction | None] = ContextVar(
 def _transaction_ctx_for(store: IndexStore) -> _TransactionCtx | None:
     """Return *store*'s active transaction context, or ``None`` if it has none open.
 
-    Ignores an ambient binding owned by a *different* ``IndexStore`` instance. Identity
-    is the store instance, not its resolved index path: two ``IndexStore``s can
-    legitimately point at the same squad directory in one process (``sq repair``, tests),
-    and instance identity is the faithful translation of the per-instance attribute this
-    replaces — a store with no open transaction of its own stays the silent no-op it is
-    today, rather than being routed into an unrelated store's buffer and committed there.
+    Ignores an ambient binding owned by a *different* ``IndexStore`` instance. Identity is
+    the store instance, not its resolved index path: two ``IndexStore``s can legitimately
+    point at the same squad directory in one process (``sq repair``, tests), and a store
+    with no open transaction of its own stays the silent no-op it is today, rather than
+    being routed into an unrelated store's buffer and committed there.
+
+    For that no-open-transaction case, instance identity correctly mirrors the per-instance
+    attribute this replaces. It is not a faithful translation in one other case, and must not
+    be described as one: with store A's transaction open and store B's nested inside it on
+    the same task, the old per-instance attribute let ``A._log()`` still find A's own context
+    and buffer correctly, while this task-local slot lets B's binding shadow A's, so
+    ``A._log()`` sees a foreign owner and returns ``None`` — A's entries are silently
+    discarded for the inner transaction's duration, not misattributed into B's buffer (which
+    path identity would do, and which is worse: it fails open by committing a wrong entry
+    rather than closed by losing one). No live call path opens one store's transaction inside
+    another's on one task, so this is unreachable today; what would make it reachable is a
+    second store in flight on one task — fan-out, batch, or a server — the same trigger that
+    already promotes this binding to an explicit parameter, and a per-store mapping is the
+    answer on that day, not this one.
     """
     active = _active_transaction.get()
     if active is None or active.store is not store:
