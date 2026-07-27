@@ -2,6 +2,7 @@
 
 from collections import Counter
 from collections.abc import Iterable, Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +39,12 @@ from squads._roles._resolver import resolve_role
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
-from squads._services._validators import ValidatorEngine
+from squads._services._validators import (
+    SQUAD_GLOBAL_CATALOG,
+    ValidatorEngine,
+    _not_on_disk,  # pyright: ignore[reportPrivateUsage]
+    _on_disk_not_indexed,  # pyright: ignore[reportPrivateUsage]
+)
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, STATUS_ACTIVE
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
@@ -68,17 +74,68 @@ def _marker_issues(text: str) -> list[str]:
     return problems
 
 
-def _drift_issues(iid: str, item: Item, fdata: dict[str, Any]) -> list[CheckIssue]:
-    issues: list[CheckIssue] = []
-    if fdata.get("status") != item.status:
-        issues.append(
-            CheckIssue("warn", iid, "status drift between frontmatter and index (run `sq repair`)")
-        )
-    if (fdata.get("parent") or None) != item.parent:
-        issues.append(
-            CheckIssue("warn", iid, "parent drift between frontmatter and index (run `sq repair`)")
-        )
-    return issues
+def _drift_direction(item: Item, fdata: dict[str, Any]) -> str | None:
+    """Which side is ahead when the two ``updated_at`` values order the pair:
+    ``"markdown"`` is the expected, repairable skew; ``"index"`` means the ordering rule was
+    violated, or the failure was out of the stated crash model. ``None`` when the clock's
+    whole-second truncation (or a missing/unparseable frontmatter value) leaves the pair
+    unordered — say nothing about direction then, rather than reaching for a second input to
+    force an answer.
+    """
+    raw = fdata.get("updated_at")
+    if isinstance(raw, datetime):
+        disk_dt = raw if raw.tzinfo else raw.replace(tzinfo=UTC)
+    elif isinstance(raw, str):
+        try:
+            disk_dt = clock.parse_iso(raw)
+        except ValueError:
+            return None
+    else:
+        return None
+    if disk_dt > item.updated_at:
+        return "markdown"
+    if item.updated_at > disk_dt:
+        return "index"
+    return None
+
+
+def _drift_message(field: str, item: Item, fdata: dict[str, Any]) -> str:
+    direction = _drift_direction(item, fdata)
+    if direction == "markdown":
+        suffix = " — markdown is ahead"
+    elif direction == "index":
+        suffix = " — index is ahead of markdown, which should not happen"
+    else:
+        suffix = ""
+    return (
+        f"{field} drift between frontmatter and index{suffix}; "
+        "run `sq repair` before this item is mutated again, or the fix is lost silently"
+    )
+
+
+def _status_drift(item: Item, fdata: dict[str, Any]) -> CheckIssue | None:
+    """One of the two drift candidates: confirmable for a single item id, so
+    ``check``'s scan pass (to detect the candidate) and its one confirm pass (to decide
+    whether it still holds) both call this same function against their own ``(item, fdata)``
+    pair — never two copies of the comparison to drift apart. Level stays ``warn`` regardless
+    of direction: forged clocks (``sq --at``) make direction an informative detail, not a
+    gate signal.
+    """
+    if fdata.get("status") == item.status:
+        return None
+    return CheckIssue("warn", item.id, _drift_message("status", item, fdata))
+
+
+def _parent_drift(item: Item, fdata: dict[str, Any]) -> CheckIssue | None:
+    """The other drift candidate — see :func:`_status_drift`."""
+    if (fdata.get("parent") or None) == item.parent:
+        return None
+    return CheckIssue("warn", item.id, _drift_message("parent", item, fdata))
+
+
+def _drift_issues(item: Item, fdata: dict[str, Any]) -> list[CheckIssue]:
+    """Both drift candidates for one ``(item, fdata)`` pair."""
+    return [i for i in (_status_drift(item, fdata), _parent_drift(item, fdata)) if i is not None]
 
 
 class MaintenanceMixin(ServiceCore):
@@ -850,25 +907,102 @@ class MaintenanceMixin(ServiceCore):
 
     # ------------------------------------------------------------------ check
     async def check(self) -> list[CheckIssue]:
-        """Every reported issue now comes from exactly two sources: the residue that isn't a
-        catalog validator (marker/no-id scan, frontmatter/index drift, the two override
-        checks) and :class:`ValidatorEngine` — the per-item + squad-global catalog, the sole
-        source for everything else `sq check` used to compute via hardcoded ``_check_*``
-        methods.
+        """Report the squad board as of one point in time.
+
+        ``check`` takes no lock: it never blocks a mutation, is never blocked by one, and
+        never writes. Its per-item/squad-global catalog issues and single-source scan issues
+        (marker damage, a missing frontmatter ``id``, the two override checks) are each as
+        true as the one read that produced them, and are reported as-is. Its **cross-source**
+        issues — status/parent drift and both directions of index/disk reconciliation, each a
+        claim comparing the on-disk scan against the index snapshot loaded above — are
+        candidates, not findings: they are confirmed by exactly one cheap re-read
+        (:meth:`_confirm_cross_source`) before being reported, so a mutation racing the scan
+        can no longer produce a false drift warning or a false reconciliation error (and can
+        no longer make ``sq check`` exit 3 for a board that was never actually wrong).
+
+        A reported drift or reconciliation issue therefore means a **real, durable**
+        inconsistency that ``sq repair`` heals. What this may **not** claim is quiescence —
+        an empty/warn-only result means "no confirmed inconsistency was observed", not "the
+        board is consistent now"; another transaction may commit the instant after this
+        returns.
         """
         from squads._overrides._service import check_override_issues
 
         index = await self.store.load()
         issues, on_disk, bodies = await self._scan_for_check()
-        issues += self._check_items(index, on_disk)
         # Two override checks — version-drift warn + missing-marker error.
         issues += [
             CheckIssue(level, item, msg)
             for level, item, msg in check_override_issues(self.paths.squad_dir)
         ]
-        issues += ValidatorEngine(spec=self.spec, paths=self.paths).report(
-            index, on_disk, bodies=bodies
-        )
+        # ``index_reconciled`` is excluded here — it is cross-source, so its two directions
+        # are confirmed below instead of reported straight from the scan pair.
+        squad_global = {k: v for k, v in SQUAD_GLOBAL_CATALOG.items() if k != "index_reconciled"}
+        engine = ValidatorEngine(spec=self.spec, paths=self.paths, squad_global=squad_global)
+        issues += engine.report(index, on_disk, bodies=bodies)
+        issues += await self._confirm_cross_source(index, on_disk)
+        return issues
+
+    async def _confirm_cross_source(
+        self,
+        index: SquadsDB,
+        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
+    ) -> list[CheckIssue]:
+        """The one confirm round for cross-source claims.
+
+        Partitions status/parent drift and both index/disk reconciliation directions into
+        *candidates* from the ``(index, on_disk)`` scan pair, then — only when the candidate
+        set is non-empty — re-loads the index exactly once and re-observes exactly those
+        candidates (never a full rescan, which would reintroduce the cost the lock-free
+        design exists to avoid) at the path the freshly loaded index gives for each one,
+        before re-running the same predicate against that fresh pair. A candidate produced by
+        a transaction that commits between the scan and this reload resolves here and is
+        never reported; a durable inconsistency reproduces on the fresh pair and is reported
+        below, still naming its skew direction when the two ``updated_at`` values order it.
+
+        A clean board pays nothing: no candidates, no second index load, no second file read.
+        """
+        drift_seqs = {
+            item.sequence_id
+            for item in index.items.values()
+            if (entry := on_disk.get(item.sequence_id)) is not None
+            and _drift_issues(item, entry[2])
+        }
+        orphan_seqs = set(on_disk) - set(index.items)
+        missing_seqs = set(index.items) - set(on_disk)
+        if not (drift_seqs or orphan_seqs or missing_seqs):
+            return []
+
+        fresh_index = await self.store.load()
+        issues: list[CheckIssue] = []
+
+        for seq in sorted(drift_seqs):
+            fresh_item = fresh_index.items.get(seq)
+            if fresh_item is None:
+                continue  # removed since the scan — no index side left to confirm against
+            try:
+                text = await _aio.read_text(item_file(self.paths, fresh_item))
+            except FileNotFoundError:
+                continue  # file gone since the scan — no frontmatter side left to confirm
+            issues += _drift_issues(fresh_item, read_frontmatter(text=text))
+
+        for seq in sorted(orphan_seqs):
+            fid, path, _data = on_disk[seq]
+            if not await _aio.path_exists(path):
+                continue  # the file itself is gone since the scan — nothing left to claim
+            issue = _on_disk_not_indexed(seq, fid, indexed=seq in fresh_index.items)
+            if issue is not None:
+                issues.append(issue)
+
+        for seq in sorted(missing_seqs):
+            fresh_item = fresh_index.items.get(seq)
+            if fresh_item is None:
+                continue  # removed from the index since the scan — no claim to confirm
+            exists = await _aio.path_exists(item_file(self.paths, fresh_item))
+            issue = _not_on_disk(fresh_item, on_disk=exists)
+            if issue is not None:
+                issues.append(issue)
+
         return issues
 
     async def _scan_for_check(
@@ -908,21 +1042,3 @@ class MaintenanceMixin(ServiceCore):
             on_disk[seq] = (fid, md, data)
             bodies[seq] = text
         return issues, on_disk, bodies
-
-    def _check_items(
-        self,
-        index: SquadsDB,
-        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
-    ) -> list[CheckIssue]:
-        """Residual frontmatter/index **drift** check — not a catalog validator (see
-        ``_drift_issues``). Status/parent/ref/agent-registration membership moved to the
-        engine's ``item_status_valid``/``parent_in``/``no_parent``/``dangling_ref``/
-        ``ref_kind_valid``/``agent_registered``.
-        """
-        issues: list[CheckIssue] = []
-        for item in index.items.values():
-            # Lookup by sequence number: frontmatter id width may differ from item.id after repad.
-            disk_entry = on_disk.get(item.sequence_id)
-            if disk_entry is not None:
-                issues += _drift_issues(item.id, item, disk_entry[2])
-        return issues
