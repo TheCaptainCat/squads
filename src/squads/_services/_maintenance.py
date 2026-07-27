@@ -244,12 +244,12 @@ class MaintenanceMixin(ServiceCore):
         back on skip so *item* stays truthful to what is actually on disk. Returns ``None``
         when nothing changed or the write went through.
 
-        The skew guard ignores exactly the catalog keys this call itself is about to write
-        (``ignore_extra_keys``): like the resolved-skills cache, a catalog-merge write never
-        goes through ``store.transaction()``, so once any earlier sync has merged a field the
-        catalog changed, the index-loaded ``base`` permanently lags disk on that one key —
-        the durability decision's named permitted skew, not loss. Comparing it like every
-        other field would false-refuse the very next sync on a perfectly healthy role.
+        The catalog keys this call writes are exempt from the skew guard everywhere, not just
+        here — see ``_itemfile.PERMITTED_EXTRA_SKEW`` — because like the resolved-skills cache,
+        a catalog-merge write never goes through ``store.transaction()``, so once any earlier
+        sync has merged a field the catalog changed, the index-loaded ``base`` permanently
+        lags disk on that one key. That is the durability decision's named permitted skew, not
+        loss.
         """
         slug = item.extra.get(X.SLUG, "")
         try:
@@ -266,12 +266,7 @@ class MaintenanceMixin(ServiceCore):
         if not previous:
             return None
         try:
-            await update_frontmatter(
-                item_file(self.paths, item),
-                item,
-                base,
-                ignore_extra_keys=frozenset(catalog_extra.keys()),
-            )
+            await update_frontmatter(item_file(self.paths, item), item, base)
         except SquadsError as exc:
             for key, old_value in previous.items():
                 if old_value is None:

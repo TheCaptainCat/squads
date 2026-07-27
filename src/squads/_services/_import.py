@@ -506,7 +506,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             item = final_db.get(item_id)
             if item is None:
                 continue
-            bodies[item.sequence_id] = await _aio.read_text(item_file(self.paths, item))
+            bodies[item.sequence_id] = await self._read_item_file(item, item_file(self.paths, item))
         engine = ValidatorEngine(spec=self.spec, squad_global={})
         issues = engine.report(final_db, {}, bodies=bodies)
         return [f"{i.item}: {i.message}" for i in issues if i.item in touched_ids]

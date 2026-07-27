@@ -120,3 +120,56 @@ async def test_everything_works_again_after_repair(svc, invoke, monkeypatch):
         ["task", str(task.sequence_id), "comment", "--as", "manager", "-m", "hi"]
     )
     assert commented.exit_code == 0, commented.output
+
+
+# ---------------------------------------------------------------------------------------------
+# The read verbs above were the first seams routed through the clean-failure conversion; these
+# mutating ones were left crashing raw in the exact same state. Same fixture, same forbidden
+# frames, same repairable outcome -- write verbs get no different a story than read ones.
+# ---------------------------------------------------------------------------------------------
+
+
+async def test_updating_the_description_fails_cleanly_after_an_interrupted_rename(
+    svc, invoke, monkeypatch
+):
+    task = (await svc.create("task", "Original title")).item
+    await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
+
+    result = await invoke(["task", str(task.sequence_id), "update", "--desc", "new summary"])
+    assert result.exit_code == 1, result.output
+    _assert_clean_failure(result.output, item_id=task.id)
+
+
+async def test_changing_status_fails_cleanly_after_an_interrupted_rename(svc, invoke, monkeypatch):
+    task = (await svc.create("task", "Original title")).item
+    await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
+
+    result = await invoke(["task", str(task.sequence_id), "status", "InProgress"])
+    assert result.exit_code == 1, result.output
+    _assert_clean_failure(result.output, item_id=task.id)
+
+
+async def test_adding_a_subtask_fails_cleanly_after_an_interrupted_rename(svc, invoke, monkeypatch):
+    task = (await svc.create("task", "Original title")).item
+    await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
+
+    result = await invoke(["task", str(task.sequence_id), "add-subtask", "A new subtask"])
+    assert result.exit_code == 1, result.output
+    _assert_clean_failure(result.output, item_id=task.id)
+
+
+async def test_the_mutating_verbs_all_work_again_after_repair(svc, invoke, monkeypatch):
+    task = (await svc.create("task", "Original title")).item
+    await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
+
+    repaired = await invoke(["repair"])
+    assert repaired.exit_code == 0, repaired.output
+
+    updated = await invoke(["task", str(task.sequence_id), "update", "--desc", "new summary"])
+    assert updated.exit_code == 0, updated.output
+
+    stated = await invoke(["task", str(task.sequence_id), "status", "InProgress"])
+    assert stated.exit_code == 0, stated.output
+
+    added = await invoke(["task", str(task.sequence_id), "add-subtask", "A new subtask"])
+    assert added.exit_code == 0, added.output
