@@ -432,12 +432,19 @@ class IndexStore:
     def _atomic_write_sync(self, db: SquadsDB) -> None:
         """Sync atomic write — for ``create_empty`` (bootstrap, single-process path)."""
         tmp = self.index_path.with_suffix(f".json.{os.getpid()}.{threading.get_ident()}.tmp")
-        # fsync the write handle — Windows raises OSError [Errno 9] on a read-only handle.
-        with tmp.open("w", encoding="utf-8") as fh:
-            fh.write(db.to_json() + "\n")
-            fh.flush()
-            os.fsync(fh.fileno())
-        tmp.replace(self.index_path)
+        try:
+            # fsync the write handle — Windows raises OSError [Errno 9] on a read-only handle.
+            with tmp.open("w", encoding="utf-8") as fh:
+                fh.write(db.to_json() + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+            tmp.replace(self.index_path)
+        except BaseException:
+            # An exception escaping the write is in-model (process death is not, and can't
+            # run this handler regardless) — clean up the temp sibling before re-raising.
+            # Mirrors `_aio.atomic_replace_sync`'s shape; keep both identical.
+            tmp.unlink(missing_ok=True)
+            raise
 
     async def _atomic_write(self, db: SquadsDB) -> None:
         """Async atomic write: tmp-open/write/fsync/replace runs as ONE thread hop.
@@ -451,10 +458,15 @@ class IndexStore:
         def _write_and_replace() -> None:
             # thread id in the tmp name so concurrent callers never collide on the temp path.
             tmp = index_path.with_suffix(f".json.{os.getpid()}.{threading.get_ident()}.tmp")
-            with tmp.open("w", encoding="utf-8") as fh:
-                fh.write(json_text)
-                fh.flush()
-                os.fsync(fh.fileno())
-            tmp.replace(index_path)
+            try:
+                with tmp.open("w", encoding="utf-8") as fh:
+                    fh.write(json_text)
+                    fh.flush()
+                    os.fsync(fh.fileno())
+                tmp.replace(index_path)
+            except BaseException:
+                # Mirrors `_aio.atomic_replace_sync`'s cleanup shape; keep both identical.
+                tmp.unlink(missing_ok=True)
+                raise
 
         await _aio.to_thread(_write_and_replace)

@@ -166,21 +166,25 @@ class ClaudeCodeBackend(AgentBackend):
             fm, _ = sections.split_frontmatter(existing)
             if fm and sections.has_section(existing, markers.BODY):
                 # File has been stamped with frontmatter: preserve it, only update body region.
+                # This is squad data (an indexed SKILL item's .md) — atomic replace, not the
+                # plain truncating writer.
                 new_inner = f"\n{body}\n"
                 updated = sections.replace_section(existing, markers.BODY, new_inner)
-                await _aio.write_text(body_path, updated)
+                await _aio.atomic_write_text(body_path, updated)
             elif fm:
                 # Frontmatter present but sq:body region absent/partial — fail-safe: re-emit
                 # the existing frontmatter so the stamped id/sequence_id are never lost.
                 # Body region becomes freshly wrapped.
-                await _aio.write_text(body_path, sections.join_frontmatter(fm, body_with_markers))
+                await _aio.atomic_write_text(
+                    body_path, sections.join_frontmatter(fm, body_with_markers)
+                )
             else:
                 # Genuinely no frontmatter (first-write or pre-stamp file): write bare body
                 # with markers.  We do NOT invent frontmatter here — allocation is a separate
                 # step.
-                await _aio.write_text(body_path, body_with_markers)
+                await _aio.atomic_write_text(body_path, body_with_markers)
         else:
-            await _aio.write_text(body_path, body_with_markers)
+            await _aio.atomic_write_text(body_path, body_with_markers)
 
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / name / _SKILL_FILE
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)

@@ -28,6 +28,31 @@ from squads._services._roster import RosterMixin
 from squads._services._subentities import SubentitiesMixin
 from squads._workflow import ROSTER_ROLE, bundled_spec
 
+_ROOT_TMP_IGNORE_PATTERN = f"{CONFIG_FILENAME}.*.tmp"
+
+
+async def _ensure_root_tmp_ignored(root: Path) -> None:
+    """Make sure an interrupted ``.squads.toml`` write's temp sibling can never end up
+    committed by accident.
+
+    The atomic-replace primitive puts the temp file in the target's own directory (a
+    cross-directory rename isn't atomic) — for ``.squads.toml`` that's the *project root*,
+    outside the squad dir's own ``.gitignore``. Appends the pattern to a root ``.gitignore``
+    if one exists, without touching any of its other (adopter-owned) content; creates a
+    minimal one if none exists yet. A no-op once the pattern (or a covering ``*.tmp``) is
+    already present.
+    """
+    gitignore = root / ".gitignore"
+    if not await _aio.path_exists(gitignore):
+        await _aio.atomic_write_text(gitignore, f"{_ROOT_TMP_IGNORE_PATTERN}\n")
+        return
+    text = await _aio.read_text(gitignore)
+    lines = text.splitlines()
+    if _ROOT_TMP_IGNORE_PATTERN in lines or "*.tmp" in lines:
+        return
+    sep = "" if text.endswith("\n") else "\n"
+    await _aio.atomic_write_text(gitignore, f"{text}{sep}{_ROOT_TMP_IGNORE_PATTERN}\n")
+
 
 class Service(
     ImportMixin,
@@ -84,6 +109,7 @@ async def init(
         init_names=effective_names,
     )
     await _aio.atomic_write_text(config_path, config.to_toml())
+    await _ensure_root_tmp_ignored(root)
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
@@ -141,6 +167,7 @@ async def adopt(
             squads_version=__version__,
         )
         await _aio.atomic_write_text(config_path, config.to_toml())
+    await _ensure_root_tmp_ignored(root)
 
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)

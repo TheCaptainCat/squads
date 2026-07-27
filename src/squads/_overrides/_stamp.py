@@ -20,6 +20,14 @@ Role TOML overrides also carry a stamp, embedded as a TOML comment on the first 
 import re
 from pathlib import Path
 
+from squads._aio import atomic_replace_sync
+
+# Both stamp writers below rewrite a *whole* override file the adopter hand-authored — a
+# template or a role TOML — so a kill mid-write must not cost that content. This module is sync
+# end to end (called from `_overrides/_service.py`, itself sync), so it reaches for
+# `_aio.atomic_replace_sync` directly rather than the async `atomic_write_text` wrapper, which
+# would force this whole call chain async for no benefit.
+
 # ─── Template-file stamp (HTML comment) ────────────────────────────────────────
 
 _TEMPLATE_STAMP_RE = re.compile(r"<!--\s*squads:override-base:([A-Za-z0-9._-]+)\s*-->")
@@ -46,10 +54,10 @@ def write_template_stamp(text: str, version: str) -> str:
 
 
 def stamp_template_file(path: Path, version: str) -> None:
-    """Read *path*, update (or insert) the override-base stamp, and write it back."""
+    """Read *path*, update (or insert) the override-base stamp, and write it back atomically."""
     text = path.read_text(encoding="utf-8")
     updated = write_template_stamp(text, version)
-    path.write_text(updated, encoding="utf-8")
+    atomic_replace_sync(path, updated)
 
 
 # ─── Role TOML stamp (TOML comment) ────────────────────────────────────────────
@@ -73,7 +81,7 @@ def write_toml_stamp(text: str, version: str) -> str:
 
 
 def stamp_toml_file(path: Path, version: str) -> None:
-    """Read *path*, update (or insert) the TOML stamp comment, and write it back."""
+    """Read *path*, update (or insert) the TOML stamp comment, and write it back atomically."""
     text = path.read_text(encoding="utf-8")
     updated = write_toml_stamp(text, version)
-    path.write_text(updated, encoding="utf-8")
+    atomic_replace_sync(path, updated)
