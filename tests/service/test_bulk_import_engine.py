@@ -269,3 +269,38 @@ async def test_repair_reconciles_after_a_simulated_mid_apply_failure(svc, monkey
     await svc.repair()
     db2 = await svc.store.load()
     assert any(it.title == "Survives the crash" for it in db2.items.values())
+
+
+async def test_a_dry_run_title_change_never_renames_the_file_on_disk(svc):
+    """A title-bearing `update` reaches a real `Path.rename` only through the apply pass's
+    `_update_core` -- the pre-pass simulates purely against a throwaway index copy. Pin the
+    actual promise a dry run makes: the filesystem is untouched, not just the index."""
+    task = (await svc.create("task", "Original title")).item
+    old_path = item_file(svc.paths, task)
+    assert old_path.exists()
+
+    text = _lines({"op": "update", "target": task.id, "title": "Renamed via dry run"})
+    result = await svc.import_events(text, dry_run=True)
+    assert result.plan.ok
+    assert result.applied is None
+
+    assert old_path.exists()
+    assert list(old_path.parent.glob("*renamed-via-dry-run*")) == []
+    reloaded = await svc.get(task.id)
+    assert reloaded.title == "Original title"
+
+
+async def test_applying_a_title_change_does_rename_the_file_on_disk(svc):
+    """The other half of the same guarantee: once a dry run's own plan is clean, the real
+    apply performs the physical move the pre-pass deliberately never does."""
+    task = (await svc.create("task", "Original title")).item
+    old_path = item_file(svc.paths, task)
+
+    text = _lines({"op": "update", "target": task.id, "title": "Renamed for real"})
+    result = await svc.import_events(text)
+    assert result.applied is not None
+
+    assert not old_path.exists()
+    item = await svc.get(task.id)
+    assert item.title == "Renamed for real"
+    assert item_file(svc.paths, item).exists()

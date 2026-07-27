@@ -53,10 +53,11 @@ async def test_a_failure_between_the_temp_write_and_the_replace_leaves_previous_
 
     # The target -- the file every reader/repair actually looks at -- was never touched.
     assert path.read_text(encoding="utf-8") == "previous bytes"
-    # The half-committed temp file is left behind (a failed write is not itself cleaned up;
-    # it is gitignored -- see `*.tmp` -- and orphaned only on this out-of-model failure path).
+    # An exception escaping the write is in-model (unlike a real process death, it CAN run
+    # cleanup code), so the primitive removes the temp sibling itself before re-raising --
+    # no permanent `*.tmp` litter from a failed write.
     tmp_leftovers = list(tmp_path.glob("*.tmp"))
-    assert len(tmp_leftovers) == 1
+    assert tmp_leftovers == []
 
 
 async def test_the_temp_name_carries_pid_and_thread_id_so_concurrent_writers_never_collide(

@@ -41,23 +41,28 @@ async def inject(target: Path, section_body: str, *, missing_header: str) -> boo
     file (markers present — the normal regen path, replaced in place wherever it sits)
     both return ``False``.
     """
+    # The target is a whole file that is only *partly* generated — everything outside the
+    # managed markers is the adopter's own hand-written content, which `sq sync` cannot
+    # reproduce. Every branch below rewrites the whole file, so all of them go through the
+    # atomic primitive rather than the plain truncating writer: a kill mid-write must never
+    # cost that hand-authored content.
     block = wrap(section_body)
     if not await _aio.path_exists(target):
-        await _aio.write_text(target, f"{missing_header}{block}")
+        await _aio.atomic_write_text(target, f"{missing_header}{block}")
         return False
     text = await _aio.read_text(target)
     si, ei = text.find(START), text.find(END)
     if si != -1 and ei != -1:
         new = text[:si] + block.rstrip("\n") + text[ei + len(END) :]
-        await _aio.write_text(target, new)
+        await _aio.atomic_write_text(target, new)
         return False
     if text.strip():
         # Real pre-existing hand-written content, no markers yet: lead with the managed
         # block (insert at the top) rather than appending below it.
         sep = "" if text.startswith("\n") else "\n"
-        await _aio.write_text(target, f"{block}{sep}{text}")
+        await _aio.atomic_write_text(target, f"{block}{sep}{text}")
         return True
     # Blank/whitespace-only file: nothing to contradict — append quietly, as before.
     sep = "" if text.endswith("\n") else "\n"
-    await _aio.write_text(target, f"{text}{sep}\n{block}")
+    await _aio.atomic_write_text(target, f"{text}{sep}\n{block}")
     return False

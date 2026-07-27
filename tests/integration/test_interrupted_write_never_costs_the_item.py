@@ -1,20 +1,17 @@
 """The headline guarantee of the atomic write path: a process killed mid-write can no longer
 truncate an item's `.md` and cost it the board.
 
-Reproduces the exact interruption pattern that used to produce that loss -- a fractional-
-prefix write followed by process death -- through the real `Service.set_status()` call path,
-fault-injected at the write boundary rather than via an actual `fork`+`SIGKILL` (equally
-sanctioned, and far less flaky under this harness's own nested-process/thread-pool
-constraints): the fault lands exactly where a kill would land -- after a fractional prefix has
-been flushed to the temp file, before `os.replace` ever runs -- so the real target is provably
-never touched.
+Faults the LIVE primitive (`_aio.atomic_write_text`) at its own `os.fsync` call -- the exact
+boundary between "the temp file holds whatever bytes made it to disk" and "the durability
+barrier plus the rename that would make them visible at the real target" -- rather than
+replacing the primitive with a stub. A stub's "the real target is untouched" is guaranteed by
+its own construction; faulting the real code path is what actually observes it.
 """
 
 import os
 
 import pytest
 
-from squads._aio import to_thread
 from squads._itemfile import read_frontmatter
 
 pytestmark = pytest.mark.anyio
@@ -26,49 +23,43 @@ class _SimulatedProcessDeath(BaseException):
     swallows the interruption and quietly "completes" the mutation."""
 
 
-async def _die_after_a_fractional_write(path, text, *, frac: float):
-    """Stands in for `_aio.atomic_write_text`, but stops exactly where a killed process
-    would: after a `frac` prefix of the intended bytes has been written to the TEMP file and
-    fsynced -- never touching the real target, never reaching `os.replace`."""
-
-    def _write_partial_prefix() -> None:
-        tmp = path.with_name(f"{path.name}.{os.getpid()}.crash.tmp")
-        with tmp.open("w", encoding="utf-8") as fh:
-            fh.write(text[: int(len(text) * frac)])
-            fh.flush()
-            os.fsync(fh.fileno())
-
-    await to_thread(_write_partial_prefix)
-    raise _SimulatedProcessDeath("process died mid-write, right after the temp write")
-
-
 @pytest.mark.parametrize("frac", [0.3, 0.55, 0.85])
 async def test_a_kill_mid_write_leaves_the_item_fully_intact_and_recoverable(svc, frac):
     task = (await svc.create("task", "Crash target")).item
     path = svc.paths.abspath(task.path)
     complete_bytes_before = path.read_bytes()
 
-    async def _fake_atomic_write(p, t):
-        await _die_after_a_fractional_write(p, t, frac=frac)
+    real_fsync = os.fsync
+
+    def _fsync_a_fractional_write_then_die(fd: int) -> None:
+        # By the time `os.fsync` runs, the primitive's own `fh.write(text)` has already
+        # handed the FULL intended bytes to the OS buffer for the temp file. A real kill can
+        # land anywhere before they're durable, so truncate the temp file down to a `frac`
+        # prefix of them -- standing in for "only this much actually made it to disk" -- fsync
+        # that truncated state for real, then die before the primitive ever reaches
+        # `tmp.replace`. The real target is never touched at any point in this sequence.
+        size = os.fstat(fd).st_size
+        os.ftruncate(fd, int(size * frac))
+        real_fsync(fd)
+        raise _SimulatedProcessDeath("process died mid-write, right after the partial fsync")
 
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("squads._aio.atomic_write_text", _fake_atomic_write)
+        mp.setattr(os, "fsync", _fsync_a_fractional_write_then_die)
         with pytest.raises(_SimulatedProcessDeath):
             await svc.set_status(task.id, "InProgress", force=True)
 
     # The real target is untouched -- complete, PREVIOUS bytes exactly. Not either of the two
     # truncation shapes a bare `Path.write_text` could produce (a cut inside frontmatter with
     # no closing `---`, or a cut inside the body with a half-written marker) -- no shape at
-    # all, because the cut only ever lands on the temp file's bytes now.
+    # all, because the cut only ever lands on the temp file's bytes, never the target's.
     assert path.read_bytes() == complete_bytes_before
     frontmatter = read_frontmatter(path=path)
     assert frontmatter["id"] == task.id
     assert frontmatter["status"] == "Draft"  # the update never landed -- and that's correct
 
-    # No corrupted item file is left as a permanent orphan `sq` cannot recover -- the mess (if
-    # any) is confined to the gitignored `*.tmp` name, never the real target.
-    for stray in path.parent.glob("*.tmp"):
-        assert stray.name != path.name
+    # The primitive's own error-path cleanup removes the temp sibling on the way out -- no
+    # `*.tmp` litter left behind for a failed write to leak.
+    assert list(path.parent.glob("*.tmp")) == []
 
     # The item stays exactly as reachable as it was before the interruption -- by direct
     # lookup, by the listing, and by a repair pass (a no-op here: the index never committed
