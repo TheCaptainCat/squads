@@ -30,8 +30,6 @@ Release integration checklist:
        print(p.read_text()[:80])"``
 """
 
-from __future__ import annotations
-
 import hashlib
 import json
 import sys
