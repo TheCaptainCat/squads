@@ -63,7 +63,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-07-27T16:00:06Z'
-updated_at: '2026-07-27T22:38:30Z'
+updated_at: '2026-07-27T22:45:40Z'
 ---
 <!-- sq:body -->
 Independent review of the atomic write primitive and the write-path ordering rule as committed in
@@ -805,4 +805,6 @@ loses log lines rather than assuming parity with the old attribute.
   - Also repeated a genuine two-OS-process race (multiprocessing, not asyncio tasks in one process) against check()'s confirm round: two mutator processes hammering disjoint items with set_status while a third polled check() continuously for 12s — 555 check() calls, zero phantom issues, board clean throughout and after. Closes the single-process gap for the race dimension.
   - Found a distinct, still-open gap while covering the title-changing update's rename-then-write window (F10's territory): killing during/after the rename but before the index commits — with title+status both changed, matching F10's own repro — check correctly reports the drift (F10's fallback-path fix holds for detection). But show --full and comment (any command that reads the item's file, not just the confirm round) still resolve the path from the stale index entry with no fallback, and raise a raw uncaught FileNotFoundError instead of a clean error, until sq repair runs. No data loss, no truncation, no orphan, sq repair fully recovers it every time — index-only show and list -a stay fine throughout — but the raw-traceback symptom (same class as BUG-669/675) is reproducible in this one window and wasn't covered by F10's fix, which only patched check's own path resolution, not item_file's callers generally.
   - Verdict: the release-blocking concern (destructive write) is fixed and verified under a real kill. This second gap is narrower (UX/robustness, not data loss) and I'm not filing it unilaterally since job scope here was verify+report — flagging it for a call on whether it blocks.
+- [2026-07-27T22:45:40Z] Mara Tester:
+  - Kill-test verification against release/0.12.2: real fork+SIGKILL (not fault injection) — file always old-complete or new-complete, never truncated; always indexed and resolvable; sq repair converges every time. Genuine two-process race (multiprocessing): two mutators on disjoint items, a third polling check() for 12s, 555 calls, zero phantom issues. Both gaps the review listed as unverifiable are now closed.
 <!-- sq:discussion:end -->

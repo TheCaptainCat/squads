@@ -18,7 +18,7 @@ subentities:
   title: Tests that the scan continued and no phantom appeared
   status: Todo
 created_at: '2026-07-27T22:26:00Z'
-updated_at: '2026-07-27T22:26:41Z'
+updated_at: '2026-07-27T22:46:33Z'
 ---
 <!-- sq:body -->
 Today one unreadable file aborts `sq check`'s whole scan, so the rest of the board stays unseen —
@@ -259,4 +259,6 @@ Acceptance:
   - Cut from the scope note I left on TASK-673. The asymmetry is preserved in the body with its reasoning: check continues because it is a reporter and a reporter that stops at the first problem fails when it is most needed; repair/renumber/repad keep aborting because they rebuild identity from the markdown and cannot do that from a board they cannot fully read. An acceptance criterion pins the refusal by test so nobody later 'fixes' the inconsistency into unsafety.
   - Refs: implements ADR-663 rather than related — §3 already classifies single-source issues as reported-as-is, and an unreadable file is squarely single-source, so this handles the case nobody enumerated the way §3 says its category should be handled. depends-on TASK-673: that work turns the raw yaml error into a SquadsError, which is what makes it catchable by a type the service layer is allowed to catch.
   - It is NOT as contained as it looks. `_scan_for_check` has one consumer, so continuing is safe for the caller — but its OUTPUT feeds `_confirm_cross_source`, where `missing_seqs = set(index.items) - set(on_disk)` turns a skipped file into a phantom error-level 'in index but no markdown file found'. That is worse than the crash: it points at the wrong problem and its documented remedy is `sq repair`, which for an unreadable file drops the item. The confirm round then re-reads the same unparseable file and either re-raises or confirms the phantom. So the scan needs a third state — present-but-unparseable, treated as present for reconciliation, skipped by the content predicates — with the keying problem (no readable id; filename stem as the fallback source) decided in the body rather than left to the dev.
+- [2026-07-27T22:46:33Z] Catherine Manager:
+  - Adjacent follow-up from the read-path work: the UTF-8 decode guard means one bad byte in one notice fails the whole sq board list, and likewise sq memory list — the same reporter-stops-at-the-first-problem shape this ticket rejects for check. This ticket covers check only. Worth extending to the listings; agents run both at session start.
 <!-- sq:discussion:end -->
