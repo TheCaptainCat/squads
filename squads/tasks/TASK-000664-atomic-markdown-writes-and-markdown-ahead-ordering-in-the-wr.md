@@ -3,7 +3,7 @@ id: TASK-664
 sequence_id: 664
 type: task
 title: Atomic markdown writes and markdown-ahead ordering in the write path
-status: InProgress
+status: InReview
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -32,7 +32,7 @@ subentities:
   title: Route the sync filesystem calls on the mutation path through _aio
   status: Todo
 created_at: '2026-07-27T14:22:46Z'
-updated_at: '2026-07-27T15:40:27Z'
+updated_at: '2026-07-27T15:42:42Z'
 ---
 <!-- sq:body -->
 Implements the write side of ADR-663: §1 (skew direction — markdown ahead or equal, index

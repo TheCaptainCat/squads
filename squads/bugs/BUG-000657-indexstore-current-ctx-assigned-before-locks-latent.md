@@ -3,10 +3,10 @@ id: BUG-657
 sequence_id: 657
 type: bug
 title: IndexStore._current_ctx assigned before locks (latent)
-status: Open
+status: InProgress
 author: qa
 created_at: '2026-07-24T14:38:38Z'
-updated_at: '2026-07-27T14:26:23Z'
+updated_at: '2026-07-27T15:42:48Z'
 ---
 <!-- sq:body -->
 ## Symptom

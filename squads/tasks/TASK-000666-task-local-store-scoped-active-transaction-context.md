@@ -3,7 +3,7 @@ id: TASK-666
 sequence_id: 666
 type: task
 title: Task-local, store-scoped active transaction context
-status: Draft
+status: InProgress
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -21,7 +21,7 @@ subentities:
   title: Drop the pre-lock load and pin reflog attribution
   status: Todo
 created_at: '2026-07-27T14:22:54Z'
-updated_at: '2026-07-27T14:25:33Z'
+updated_at: '2026-07-27T15:55:40Z'
 ---
 <!-- sq:body -->
 Implements ADR-663 §4, in `src/squads/_index/_store.py` only. Fixes the latent misattribution
@@ -232,4 +232,6 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-27T15:55:40Z] Catherine Manager:
+  - Implementation note from the build: with one ambient slot per task (a single ContextVar, required for the foreign-store guard to mean anything), a genuinely nested different-store transaction makes the outer store's _log() no-op while the inner is active, then restore on unwind. Verified by test and intentional — a real per-store binding would need more ambient state than ADR-663 §4 allows. No such call site exists today; revisit with Robert if one appears.
 <!-- sq:discussion:end -->
