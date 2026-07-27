@@ -32,7 +32,7 @@ subentities:
   title: Route the sync filesystem calls on the mutation path through _aio
   status: Todo
 created_at: '2026-07-27T14:22:46Z'
-updated_at: '2026-07-27T15:32:22Z'
+updated_at: '2026-07-27T15:40:27Z'
 ---
 <!-- sq:body -->
 Implements the write side of ADR-663: §1 (skew direction — markdown ahead or equal, index
@@ -454,4 +454,6 @@ Acceptance:
   - Acceptance strengthened off BUG-668: the headline criterion is now that an interrupted write cannot cost an item — today a cut inside the frontmatter block makes `sq repair` drop it from the index (unreachable by `show`, absent from `sq list -a`, corrupted orphan left on disk). Also corrected: the bare `yaml.YAMLError` the ADR posited is structurally unreachable; the two real shapes are the missing-`id` error and a half-written marker.
 - [2026-07-27T14:52:28Z] Catherine Manager:
   - Dispatched to Elias Python. Scope: the atomic write primitive + routing every squad-data writer onto it, including .squads.toml per ADR-663 §2. Running solo in the main tree; TASK-666 follows.
+- [2026-07-27T15:40:27Z] Catherine Manager:
+  - Audit note: two migration runners (_v0_4_to_v0_5.py ~246, _v0_8_to_v0_10.py ~186) share the fixed skill-seeding shape — db.add inside the transaction, legacy-slug unlink after it closes. Left unfixed: runner modules are frozen and never re-migrated, and sq migrate up ends in repair + stamp, which reconciles the surviving state. Recorded so the exception is deliberate and findable, not an oversight.
 <!-- sq:discussion:end -->

@@ -16,7 +16,7 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
-from squads._itemfile import rewrite_ids, update_frontmatter
+from squads._itemfile import rewrite_ids, update_frontmatter, write_text
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -105,7 +105,7 @@ async def _rollback_files(
         if current_path != orig_path and await _aio.path_exists(current_path):
             await _aio.mkdir(orig_path.parent, parents=True, exist_ok=True)
             await _aio.path_rename(current_path, orig_path)
-        await _aio.write_text(orig_path, orig_text)
+        await write_text(orig_path, orig_text)
 
 
 class RenameMixin(ServiceCore):
@@ -266,7 +266,7 @@ async def _append_rename_comment(path: Path, old_id: str, new_id: str, item: Ite
     text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
         text = sections.append_to_section(text, markers.DISCUSSION, entry)
-        await _aio.write_text(path, text)
+        await write_text(path, text)
 
 
 async def _append_rename_status_comment(path: Path, old_status: str, new_status: str) -> None:
@@ -277,4 +277,4 @@ async def _append_rename_status_comment(path: Path, old_status: str, new_status:
     text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
         text = sections.append_to_section(text, markers.DISCUSSION, entry)
-        await _aio.write_text(path, text)
+        await write_text(path, text)

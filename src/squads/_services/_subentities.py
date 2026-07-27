@@ -17,6 +17,7 @@ from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._interactions import TITLE_ADVISORY_MAX
+from squads._itemfile import write_text
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -629,7 +630,7 @@ class SubentitiesMixin(ServiceCore):
             text = sections.remove_section(text, f"{kind}:{local_id}")
             text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
             text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
-            await _aio.write_text(path, text)
+            await write_text(path, text)
             self.store._log(  # pyright: ignore[reportPrivateUsage]
                 "subentity",
                 item.id,
@@ -677,7 +678,7 @@ class SubentitiesMixin(ServiceCore):
         text = discussion.set_heading(text, kind, head_for.local_id, head_for.title)
         text = await self._refresh_head(text, db, item, kind, head_for)
         text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
-        await _aio.write_text(path, text)
+        await write_text(path, text)
 
     async def _refresh_head(
         self, text: str, db: SquadsDB, item: Item, kind: str, sub: SubEntity
