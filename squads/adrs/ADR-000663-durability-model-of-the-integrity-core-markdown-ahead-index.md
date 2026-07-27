@@ -15,7 +15,7 @@ description: Markdown is always ahead or equal and the index commits last; every
   .md write is an atomic replace; sq check stays lock-free and confirms cross-source
   claims; the active transaction is task-local and store-scoped.
 created_at: '2026-07-27T14:02:48Z'
-updated_at: '2026-07-27T14:45:25Z'
+updated_at: '2026-07-27T15:12:51Z'
 ---
 <!-- sq:body -->
 # Context
@@ -316,4 +316,6 @@ squad.
   - Factual correction inside the accepted decision, no design change: the Context bullet on write atomicity claimed a truncated write could raise a bare yaml.YAMLError out of sq check. Wrong — withdrawn. `_FRONTMATTER_RE` needs a literal closing `---` line, so a prefix of a fully-serialized block either has no closer (the missing-`id` bucket) or contains the whole block and parses; malformed-but-closed frontmatter is unreachable from a single truncated write. Confirmed independently against the regex, and the ADR now states why rather than just dropping the claim.
   - The reader-visible consequence the bullet was arguing for is unchanged — it now rests on the two reproduced errors (no `id`, unclosed marker) instead of an unreproducible third.
   - Strengthened in the same edit: the loss is silent and terminal, not just unhealable. repair rebuilds from the markdown, so a destroyed file makes it drop the item from the index as missing — unreachable by show, absent from `sq list -a`, a corrupted orphan left on disk that no sq command can recover. That is the strongest argument §2 has and it now says so.
+- [2026-07-27T15:12:51Z] Pierre Chat:
+  - This round ships in 0.12.2.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-664
 sequence_id: 664
 type: task
 title: Atomic markdown writes and markdown-ahead ordering in the write path
-status: Draft
+status: InProgress
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -31,7 +31,7 @@ subentities:
   title: Route the sync filesystem calls on the mutation path through _aio
   status: Todo
 created_at: '2026-07-27T14:22:46Z'
-updated_at: '2026-07-27T14:46:36Z'
+updated_at: '2026-07-27T14:52:28Z'
 ---
 <!-- sq:body -->
 Implements the write side of ADR-663: §1 (skew direction — markdown ahead or equal, index
@@ -451,4 +451,6 @@ Acceptance:
 - [2026-07-27T14:46:36Z] Olivia Lead:
   - Open question above is resolved — @architect ruled against the exemption and ADR-663 §2 now names `.squads.toml` as squad data. Body and ST2 updated: it goes through the atomic primitive (writers: `_services/_service.py` init/adopt config writes, `_stamp_version`/`_stamp_schema` in `_services/_maintenance.py`), and stays outside §1's ordering rule since nothing in the index mirrors it. `.gitignore` and the override stamps remain exempt.
   - Acceptance strengthened off BUG-668: the headline criterion is now that an interrupted write cannot cost an item — today a cut inside the frontmatter block makes `sq repair` drop it from the index (unreachable by `show`, absent from `sq list -a`, corrupted orphan left on disk). Also corrected: the bare `yaml.YAMLError` the ADR posited is structurally unreachable; the two real shapes are the missing-`id` error and a half-written marker.
+- [2026-07-27T14:52:28Z] Catherine Manager:
+  - Dispatched to Elias Python. Scope: the atomic write primitive + routing every squad-data writer onto it, including .squads.toml per ADR-663 §2. Running solo in the main tree; TASK-666 follows.
 <!-- sq:discussion:end -->
