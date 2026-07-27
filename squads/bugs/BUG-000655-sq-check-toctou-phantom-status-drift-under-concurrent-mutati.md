@@ -3,11 +3,11 @@ id: BUG-655
 sequence_id: 655
 type: bug
 title: 'sq check TOCTOU: phantom status-drift under concurrent mutation'
-status: Open
+status: InProgress
 author: qa
 severity: high
 created_at: '2026-07-24T14:38:21Z'
-updated_at: '2026-07-27T14:41:22Z'
+updated_at: '2026-07-27T15:56:48Z'
 ---
 <!-- sq:body -->
 ## Symptom

@@ -3,7 +3,7 @@ id: TASK-666
 sequence_id: 666
 type: task
 title: Task-local, store-scoped active transaction context
-status: InProgress
+status: InReview
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -21,7 +21,7 @@ subentities:
   title: Drop the pre-lock load and pin reflog attribution
   status: Todo
 created_at: '2026-07-27T14:22:54Z'
-updated_at: '2026-07-27T15:55:40Z'
+updated_at: '2026-07-27T15:56:44Z'
 ---
 <!-- sq:body -->
 Implements ADR-663 §4, in `src/squads/_index/_store.py` only. Fixes the latent misattribution
