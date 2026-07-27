@@ -671,7 +671,7 @@ class SubentitiesMixin(ServiceCore):
         item = await self.get(parent_id)
         self._check_type(item, kind)
         sub = self._find(item, kind, local_id)
-        text = await _aio.read_text(item_file(self.paths, item))
+        text = await self._read_item_file(item, item_file(self.paths, item))
         body = (sections.get_section(text, discussion.body_tag(kind, local_id)) or "").strip("\n")
         disc = (
             sections.get_section(text, markers.discussion_tag(f"{kind}:{local_id}")) or ""

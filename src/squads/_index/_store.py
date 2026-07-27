@@ -75,7 +75,7 @@ from filelock import FileLock
 from pydantic import ValidationError
 
 from squads import _aio
-from squads._errors import SquadsError
+from squads._errors import SquadsError, UndecodableFileError
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -359,9 +359,14 @@ class IndexStore:
         try:
             raw = await _aio.read_text(self.index_path)
             db = SquadsDB.model_validate_json(raw)
-        except ValidationError as exc:
+        except (ValidationError, UndecodableFileError) as exc:  # fmt: skip
+            # An undecodable index is just as unreadable as a schema-invalid one — same
+            # remedy, same wording; only ValidationError carries an error_count().
+            reason = (
+                f"{exc.error_count()} problem(s)" if isinstance(exc, ValidationError) else str(exc)
+            )
             raise SquadsError(
-                f"corrupt index {self.index_path.name} ({exc.error_count()} problem(s)); "
+                f"corrupt index {self.index_path.name} ({reason}); "
                 "run `sq repair` to rebuild it from the markdown files"
             ) from exc
         max_seq = max((item.sequence_id for item in db.items.values()), default=0)

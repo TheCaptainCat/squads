@@ -573,6 +573,28 @@ class ServiceCore:
     async def get(self, item_id: str) -> Item:
         return require_item(await self.store.load(), item_id)
 
+    async def _read_item_file(self, item: Item, path: Path) -> str:
+        """Read *item*'s file at *path*, converting a missing file into a clean, actionable
+        error — the item-read seam every show/body/discussion/comment path shares.
+
+        An interrupted title-changing update or retype (see
+        ``_services/_retype.py::apply_type_change``) can physically move the file before the
+        index commits, leaving *path* (built from the index-loaded ``item``) stale. Unlike
+        :func:`~squads._aio.read_text`, which propagates ``FileNotFoundError`` unchanged for
+        callers that read it as a signal (the ``check`` confirm round's stale-path fallback,
+        the bulk importer's pre-pass), a read reaching this point has no fallback of its own
+        to try — it already wants the content, not a signal — so it converts the exception
+        into a message naming the item and pointing at the fix. ``sq repair`` re-indexes from
+        the file's current location and resolves it.
+        """
+        try:
+            return await _aio.read_text(path)
+        except FileNotFoundError as exc:
+            raise SquadsError(
+                f"{item.id}'s file is missing from its indexed location — an interrupted "
+                "rename or retype likely left the index stale; run `sq repair`"
+            ) from exc
+
     async def list_items(
         self,
         *,
@@ -762,7 +784,7 @@ class ServiceCore:
         it = require_item(db, item_id)
         base = it.model_copy(deep=True)
         path = item_file(self.paths, it)
-        text = await _aio.read_text(path)
+        text = await self._read_item_file(it, path)
         ensure_no_skew(text, base)
         new_text = mutate(text, it)
         it.updated_at = clock.now()
@@ -797,7 +819,7 @@ class ServiceCore:
         item = await self.roster_item(ROSTER_ROLE, slug)
         if item is None:
             return None
-        text = await _aio.read_text(item_file(self.paths, item))
+        text = await self._read_item_file(item, item_file(self.paths, item))
         body = sections.get_section(text, markers.BODY)
         if body is None:
             return None
