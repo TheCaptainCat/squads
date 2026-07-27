@@ -9,6 +9,7 @@ refs:
 - ADR-663:implements
 - BUG-656:fixes
 - BUG-668:fixes
+- BUG-670:fixes
 description: One atomic temp+fsync+replace primitive for every squad-data .md write,
   and the markdown-ahead ordering rule enforced at every mutation core.
 subentities:
@@ -31,7 +32,7 @@ subentities:
   title: Route the sync filesystem calls on the mutation path through _aio
   status: Todo
 created_at: '2026-07-27T14:22:46Z'
-updated_at: '2026-07-27T14:52:28Z'
+updated_at: '2026-07-27T15:32:22Z'
 ---
 <!-- sq:body -->
 Implements the write side of ADR-663: §1 (skew direction — markdown ahead or equal, index
