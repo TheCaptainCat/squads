@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 662,
+  "counter": 668,
   "padding": 6,
   "items": {
     "12": {
@@ -24134,13 +24134,13 @@
       "author": "qa",
       "assignee": null,
       "priority": null,
-      "severity": null,
+      "severity": "high",
       "labels": [],
       "refs": [],
       "subentities": [],
       "path": "bugs/BUG-000655-sq-check-toctou-phantom-status-drift-under-concurrent-mutati.md",
       "created_at": "2026-07-24T14:38:21Z",
-      "updated_at": "2026-07-24T14:40:08Z",
+      "updated_at": "2026-07-27T14:41:22Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24157,13 +24157,15 @@
       "author": "qa",
       "assignee": null,
       "priority": null,
-      "severity": null,
+      "severity": "medium",
       "labels": [],
-      "refs": [],
+      "refs": [
+        "BUG-668"
+      ],
       "subentities": [],
       "path": "bugs/BUG-000656-crash-window-persistent-md-vs-index-drift-if-killed-mid-writ.md",
       "created_at": "2026-07-24T14:38:30Z",
-      "updated_at": "2026-07-24T14:40:13Z",
+      "updated_at": "2026-07-27T14:42:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24186,7 +24188,7 @@
       "subentities": [],
       "path": "bugs/BUG-000657-indexstore-current-ctx-assigned-before-locks-latent.md",
       "created_at": "2026-07-24T14:38:38Z",
-      "updated_at": "2026-07-24T14:40:22Z",
+      "updated_at": "2026-07-27T14:26:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24350,6 +24352,306 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-662"
+    },
+    "663": {
+      "sequence_id": 663,
+      "type": "decision",
+      "title": "Durability model of the integrity core: markdown ahead, index last",
+      "slug": "durability-model-of-the-integrity-core-markdown-ahead-index",
+      "status": "Accepted",
+      "description": "Markdown is always ahead or equal and the index commits last; every squad-data .md write is an atomic replace; sq check stays lock-free and confirms cross-source claims; the active transaction is task-local and store-scoped.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-655:addresses",
+        "BUG-656:addresses",
+        "BUG-657:addresses",
+        "ADR-534",
+        "ADR-249"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000663-durability-model-of-the-integrity-core-markdown-ahead-index.md",
+      "created_at": "2026-07-27T14:02:48Z",
+      "updated_at": "2026-07-27T14:45:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-663"
+    },
+    "664": {
+      "sequence_id": 664,
+      "type": "task",
+      "title": "Atomic markdown writes and markdown-ahead ordering in the write path",
+      "slug": "atomic-markdown-writes-and-markdown-ahead-ordering-in-the-wr",
+      "status": "Draft",
+      "description": "One atomic temp+fsync+replace primitive for every squad-data .md write, and the markdown-ahead ordering rule enforced at every mutation core.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-663:implements",
+        "BUG-656:fixes",
+        "BUG-668:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Atomic replace primitive for squad-data writes",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Route every squad-data write through the primitive",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Board notices and memory entries onto the primitive",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Ordering audit across mutation cores; fix the violating sites",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Repair-convergence tests and the changelog line",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Route the sync filesystem calls on the mutation path through _aio",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000664-atomic-markdown-writes-and-markdown-ahead-ordering-in-the-wr.md",
+      "created_at": "2026-07-27T14:22:46Z",
+      "updated_at": "2026-07-27T14:46:36Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-664"
+    },
+    "665": {
+      "sequence_id": 665,
+      "type": "task",
+      "title": "sq check: confirm cross-source claims before reporting them",
+      "slug": "sq-check-confirm-cross-source-claims-before-reporting-them",
+      "status": "Draft",
+      "description": "Partition check's issues into single-source and cross-source; cross-source claims become candidates confirmed by one cheap re-read before they are reported.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-663:implements",
+        "BUG-655:fixes",
+        "TASK-664:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Partition check's issues into single-source and cross-source",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "One confirm round over the candidate set",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Name the skew direction on a confirmed drift",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Claim boundary in the docstring, exit-code tests, changelog",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000665-sq-check-confirm-cross-source-claims-before-reporting-them.md",
+      "created_at": "2026-07-27T14:22:53Z",
+      "updated_at": "2026-07-27T14:46:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-665"
+    },
+    "666": {
+      "sequence_id": 666,
+      "type": "task",
+      "title": "Task-local, store-scoped active transaction context",
+      "slug": "task-local-store-scoped-active-transaction-context",
+      "status": "Draft",
+      "description": "Publish the live transaction context in a ContextVar set inside the locks and scoped to its owning store; drop the pre-lock load.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-663:implements",
+        "BUG-657:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Bind the transaction context task-locally, inside the locks",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Scope the ambient context to its owning store",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Drop the pre-lock load and pin reflog attribution",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000666-task-local-store-scoped-active-transaction-context.md",
+      "created_at": "2026-07-27T14:22:54Z",
+      "updated_at": "2026-07-27T14:25:33Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-666"
+    },
+    "667": {
+      "sequence_id": 667,
+      "type": "task",
+      "title": "Write the durability rule where implementers read it",
+      "slug": "write-the-durability-rule-where-implementers-read-it",
+      "status": "Draft",
+      "description": "The skew-direction rule and atomic-write contract in the store/item-file docstrings and the invariants list, plus one atomic-write primitive instead of two.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-663:implements",
+        "TASK-664:depends-on",
+        "TASK-666:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "State the rule in the store and item-file docstrings",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Fold the index writer onto the shared primitive, or record why not",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000667-write-the-durability-rule-where-implementers-read-it.md",
+      "created_at": "2026-07-27T14:22:56Z",
+      "updated_at": "2026-07-27T14:25:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-667"
+    },
+    "668": {
+      "sequence_id": 668,
+      "type": "bug",
+      "title": "Non-atomic .md write: kill mid-write destroys the source of truth",
+      "slug": "non-atomic-md-write-kill-mid-write-destroys-the-source-of-tr",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": "high",
+      "labels": [],
+      "refs": [
+        "ADR-663"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000668-non-atomic-md-write-kill-mid-write-destroys-the-source-of-tr.md",
+      "created_at": "2026-07-27T14:39:58Z",
+      "updated_at": "2026-07-27T14:40:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-668"
     }
   }
 }
