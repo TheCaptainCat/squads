@@ -18,7 +18,7 @@ All notable changes to this project are documented here. The format follows
 
   **The cost of this guarantee, stated plainly: that item is not mutable until you run `sq repair`.** Running repair clears the block and promotes the interrupted mutation's values into the index. The block is per-item; nothing spreads.
 
-- **Unreadable files and stale item paths now report a clear error instead of a traceback.** A squad-data file that contains bytes that are not valid UTF-8 — an item, a board notice, a memory entry, or `.squads.toml` itself — now fails with a message naming the file instead of a raw Python traceback, on every command that reads it: `sq check`, `sq repair`, `sq renumber`, `sq sync`, `sq board list`, and `sq memory list`. Separately, an item whose file has moved out from under the index (a stale path from an interrupted rename or retype) now reports a clear error naming the item and pointing at `sq repair`, instead of failing with a traceback when you try to read it.
+- **Unreadable files and stale item paths now report a clear error instead of a traceback.** A squad-data file that contains bytes that are not valid UTF-8 — an item, a board notice, a memory entry, or `.squads.toml` itself — now fails with a message naming the file instead of a raw Python traceback, on every command that reads it: `sq check`, `sq repair`, `sq renumber`, `sq sync`, `sq board list`, and `sq memory list`. Separately, an item whose file has moved out from under the index (a stale path from an interrupted rename or retype) now reports a clear error naming the item and pointing at `sq repair`, instead of failing with a traceback.
 
 ## [0.12.1]
 
