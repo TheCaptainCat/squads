@@ -1,62 +1,113 @@
 # Squads
 
-**Browse your squads-managed project's work items without leaving VS Code.**
+**See what your AI-agent team is working on, without leaving the editor.**
 
-This extension brings your [squads](https://github.com/TheCaptainCat/squads) project's work items, team roster, and workflow directly into VS Code — a read-only browse companion that keeps you in context while you code.
+[squads](https://github.com/TheCaptainCat/squads) is a command-line coordination layer (`sq`) for a
+team of AI coding agents working on one repository. It gives them a structure to share: a stable ID
+for every piece of work, named roles with defined skills, a status lifecycle per item type, and a
+handoff protocol — comments, `@mentions`, an inbox — so work moves from one agent to the next
+instead of living in one chat window. All of it is markdown under a `squads/` folder in the repo, so
+the team's state is committed, diffable, and reviewed like the code it describes.
 
-## Features
+This extension is the window onto that state from your editor. Once agents are doing the typing, the
+question you spend the day on is less "what am I writing" and more "where is the work, and what moved
+while I was in this file". That's what these views answer — three trees in the activity bar, a
+rendered dossier for any item, and diagrams of how items connect. They update themselves each time an
+agent touches the board.
 
-### Browse & Search
+**This extension reads; it does not write.** Creating, editing and transitioning items is still the
+`sq` CLI's job. The **What it doesn't do** section below spells out the boundary — read it before you
+install.
 
-- **Work Items tree** — Explore your squad's hierarchy from a dedicated activity-bar view. Select any item to open its full dossier.
-- **Roster view** — One place for all team roles, skills, and operators, organized in fixed buckets (Roles / Skills / Operators).
-- **Workspace auto-discovery** — The extension finds `sq` automatically: workspace virtualenv, `uv`, `poetry`, or PATH.
+## Three views in the sidebar
 
-### Item Preview
+- **Work Items** — epics, features, tasks, bugs and code reviews (or whichever work types your
+  project declares) in their real parent/child hierarchy, from the top of a feature down to the
+  subtask an agent is on right now.
+- **Records** — the durable side of the project: architecture decisions, guides, and any other
+  record type your project declares, each in its own bucket.
+- **Roster** — who is on the team. Roles and the skills attached to them, plus the human operators
+  registered alongside the agents.
 
-- **Full dossier rendering** — Click any work item to open its complete `sq show` output as a clean, readable HTML panel. Never hijacked by opening other markdown files.
-- **Navigable references** — Links to parent items and related references are clickable: single-click opens in the same panel; Ctrl/Cmd+click or middle-click opens in a new panel.
-- **Sub-entities** — Collapsed/expandable sections for stories, subtasks, and findings with their own status, severity, and assignee.
-- **Discussion history** — Read comments and decisions in a collapsed/expandable timeline.
-- **Reference & subtree graphs** — Two collapsible mermaid diagrams show what an item depends on and what depends on it.
-- **Workflow cheatsheet** — A view-title button opens the workflow state machine diagram for quick reference.
+Item icons are coloured from the workflow's own semantics rather than a fixed palette: work in
+flight stands out, blocked items are flagged, finished ones are dimmed. Hover any row for its
+status, assignee, and priority or severity badges. Type icons can be remapped to your preferred VS
+Code codicons in settings.
 
-### Display Controls
+## The item dossier
 
-- **Filter by type** — Quick-pick to focus on one item type or see all.
-- **Group by type** — Toggle to flatten the hierarchy and organize by type.
-- **Show closed items** — Toggle to include closed/terminal items (rendered dimmed for clarity).
-- **Clear filters** — Reset to the default hierarchy view.
-- **Collapse all** — Fold all expanded groups at once.
+Select an item and it opens in a dedicated panel — a real dossier, not a raw file:
 
-### Polish
+- **The item itself** — description and body rendered as markdown, in a panel this extension owns
+  end to end, so opening another markdown file never steals it.
+- **Sub-entities** — a feature's stories, a task's subtasks, a review's findings, each carrying its
+  own status, assignee and severity, in a collapsible section.
+- **Discussion** — the comment history that agents use to hand work over, in a collapsible
+  timeline, with `@mentions` and item IDs as live links.
+- **Two graphs** — one for the item's subtree, one for its references (what it points at, and what
+  points back), rendered as mermaid diagrams. Click a node to open that item.
+- **Navigation** — every ID reference is clickable: a plain click follows it in place, middle-click
+  opens a second panel, and back/forward buttons retrace your path through the graph.
+- **Workflow cheatsheet** — one button prints your project's actual state machine: which statuses
+  each item type has, and which transitions are legal.
 
-- **Auto-refresh** — Both views refresh automatically when `.squads.json` changes (when agents run commands, or after a `git pull`).
-- **Hover tooltips** — Hover over any item to see status, assignee, and priority/severity badges at a glance.
-- **Active-role highlights** — Items in active status (work in flight) appear in green for instant visibility.
-- **Custom type icons** — Optionally remap work-item type names to VS Code codicons via settings.
+## It updates while you work
 
-## Getting Started
+The views watch the project index on disk. When an agent runs a command, or when you pull or switch
+a branch, the trees and any open dossier refresh on their own — without a keystroke from you. That's
+the difference between reading a snapshot and watching a board: leave the sidebar open beside the
+code and status changes land in it as agents make them.
 
-### 1. Install
+## Finding things
 
-Install **Squads** from the VS Code marketplace or from a `.vsix` build.
+- **Search** — run **Squads: Search…** from the command palette to search titles, bodies and
+  discussion across the project, narrowing by type, status, or category as you type. Pick a hit to
+  open its dossier.
+- **Filter by type** — focus the work tree on a single item type.
+- **Group by type** — flatten the hierarchy into per-type groups instead.
+- **Show closed items** — bring finished and cancelled work back into view, dimmed.
+- **Clear filters** and **Collapse all** — get back to a clean hierarchy in one click.
 
-### 2. Open a Squads Project
+## What it doesn't do
 
-Open a folder or workspace containing a `squads/` directory and `.squads.toml` configuration. The extension activates automatically.
+- **No writing.** You cannot create, edit, transition, assign or comment from here. Do that with
+  `sq` in a terminal, or let an agent do it — either way the views pick the change up a moment
+  later. Editing from the editor is a planned direction, not a shipped feature.
+- **It doesn't bundle squads.** The extension is a client; it needs the `sq` CLI installed and a
+  project already under squads management.
+- **It doesn't phone home.** No network calls, no telemetry, no account. It runs your local `sq`,
+  renders the output, and draws the diagrams from a script bundled in the package.
 
-### 3. Discovery & Configuration
+## Getting started
 
-The extension finds `sq` in this order:
+### 1. Install the extension
 
-1. **Explicit config** (`squads.sqPath` — an absolute path, or `squads.command` — a command array like `["uv", "run", "sq"]`)
-2. **Workspace virtualenv** (`.venv/bin/sq`)
-3. **`uv` on PATH** (if a `pyproject.toml` exists → `uv run sq`)
-4. **`poetry` on PATH** (if a `pyproject.toml` exists → `poetry run sq`)
-5. **Bare `sq` on PATH** (fallback)
+Install **Squads** from the VS Code Marketplace, or from a `.vsix` build.
 
-**To override**, open VS Code settings and set one of:
+### 2. Install the CLI
+
+The extension needs `sq` on your machine. See the
+[squads repository](https://github.com/TheCaptainCat/squads) for CLI install instructions, then run
+`sq init` in a project to set the team up — or open a project someone else has already initialised.
+
+### 3. Open the project
+
+Open a folder or workspace containing a `.squads.toml` file and its `squads/` directory. The Squads
+icon appears in the activity bar; the views load on their own. If no squad is found, the tree says
+so rather than failing silently.
+
+### 4. Point the extension at `sq`
+
+Discovery is automatic, in this order:
+
+1. **Explicit config** — `squads.sqPath` (an absolute path) or `squads.command` (a command array
+   like `["uv", "run", "sq"]`)
+2. **Workspace virtualenv** — `.venv/bin/sq`
+3. **`uv` on PATH** — used as `uv run sq` when a `pyproject.toml` is present
+4. **`poetry` on PATH** — used as `poetry run sq` when a `pyproject.toml` is present
+5. **Bare `sq` on PATH**
+
+To override, set one of these in VS Code settings:
 
 ```json
 {
@@ -65,30 +116,31 @@ The extension finds `sq` in this order:
 }
 ```
 
-### 4. Browse
-
-- Click the **Squads** icon in the activity bar (left sidebar) to expand the work items and roster.
-- Click any item to view its full details in the preview panel.
-- Use the toolbar buttons to filter, group, and navigate.
-
 ## Requirements
 
 - **VS Code** 1.85 or later
-- **A squads-managed project** with a `.squads.toml` file
-- **`sq` available** on your PATH or explicitly configured (see **Getting Started** above)
-
-## Currently Read-Only
-
-This extension is a browse-only client. Creating, editing, and updating items is a planned feature; for now, use the `sq` CLI to author and mutate work.
+- **A squads-managed project** — a `.squads.toml` file at the workspace root
+- **The `sq` CLI** — on your PATH, or configured as above
 
 ## Troubleshooting
 
-If the views show an error about finding `sq`:
+**The views report that `sq` can't be found.**
 
-1. Verify `sq` is installed and on PATH (run `sq --version` in a terminal)
-2. If you're using a virtualenv or project wrapper, set `squads.sqPath` or `squads.command` in your VS Code settings
-3. Reload the VS Code window (`Cmd/Ctrl+Shift+P` → **Developer: Reload Window**)
+1. Check the CLI works on its own: run `sq --version` in a terminal.
+2. If `sq` lives in a virtualenv or behind a project runner, set `squads.sqPath` or
+   `squads.command` in your settings.
+3. Reload the window (`Cmd/Ctrl+Shift+P` → **Developer: Reload Window**).
+
+**The views don't refresh on their own.** Auto-refresh watches the project index on the local
+filesystem, so it stays quiet in workspaces that aren't backed by one — a virtual filesystem, for
+instance. The refresh button on each view still works.
+
+**An item looks out of date in the dossier.** The dossier reflects what `sq` reports; if the
+markdown file was edited by hand outside the CLI, run `sq repair` to bring the index back in line
+with the files.
 
 ---
 
-Made by the squads team. For issues, questions, or contributions, visit the [squads repository](https://github.com/TheCaptainCat/squads).
+Squads is open source under the MIT licence. The CLI, the documentation and the issue tracker all
+live in the [squads repository](https://github.com/TheCaptainCat/squads) — that's the place for bug
+reports, questions, and a closer look at how the team structure works.

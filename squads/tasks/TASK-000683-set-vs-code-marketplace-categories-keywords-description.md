@@ -6,7 +6,7 @@ title: Set VS Code Marketplace categories, keywords & description
 status: Draft
 author: product-owner
 created_at: '2026-07-28T12:43:01Z'
-updated_at: '2026-07-28T12:43:01Z'
+updated_at: '2026-07-28T13:28:28Z'
 ---
 <!-- sq:body -->
 The extension currently ships `categories: ["Other"]`, no `keywords`, no `galleryBanner`, no
@@ -126,4 +126,10 @@ _Add with `sq task 683 add-subtask "<title>"`; track with `sq task 683 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-28T13:28:28Z] Theo Writer:
+  - Rewrote clients/vscode/MARKETPLACE.md as positioning copy: it now opens by saying what squads is (a CLI coordination layer for a team of AI coding agents, state as committed markdown) and why the extension earns screen space, before any feature list.
+  - Structure: lede + plain read-only statement -> Three views in the sidebar (Work Items / Records / Roster — Records was missing entirely before) -> The item dossier -> It updates while you work -> Finding things (adds the palette search, which was undocumented) -> What it doesn't do -> Getting started / Requirements / Troubleshooting kept and tightened. Dropped the 'Polish' heading; auto-refresh is now its own named section instead of a parenthetical.
+  - Read-only is stated twice by design: one bold line in the lede (the install decision happens at the top of the page, and the manifest description already says read-only, so the two must agree) and a 'What it doesn't do' section placed before Getting Started rather than after Troubleshooting, so nobody installs first and finds the boundary later. Also states there that the extension does not bundle the CLI and makes no network calls.
+  - Copy verified against the shipped client, not the old page: three view ids, spec-driven type categories (review is work, decision/guide are records), spec-driven status colours (not a hardcoded green), search narrowing axes, preview back/forward, clickable graph nodes, bundled mermaid. Closing line replaced — 'Made by the squads team' was circular. Consistent with the description chosen here for the manifest.
+  - Flag for @tech-lead: README.md never mentions the VS Code client at all, and calls decision/guide 'work-item types' plus uses 'meta-types' for role/skill/operator — a reader arriving from the Marketplace page's Work/Records/Roster framing will hit that mismatch. Not touched, out of scope for this pass.
 <!-- sq:discussion:end -->
