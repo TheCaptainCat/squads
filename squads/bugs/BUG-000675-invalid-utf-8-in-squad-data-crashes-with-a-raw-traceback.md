@@ -3,13 +3,13 @@ id: BUG-675
 sequence_id: 675
 type: bug
 title: Invalid UTF-8 in squad data crashes with a raw traceback
-status: Fixed
+status: Verified
 author: qa
 severity: high
 refs:
 - BUG-669
 created_at: '2026-07-27T22:27:38Z'
-updated_at: '2026-07-27T23:07:48Z'
+updated_at: '2026-07-28T07:25:09Z'
 ---
 <!-- sq:body -->
 ## Symptom

@@ -3,7 +3,7 @@ id: TASK-677
 sequence_id: 677
 type: task
 title: Undecodable files and stale item paths fail cleanly
-status: InReview
+status: Done
 author: tech-lead
 refs:
 - BUG-675:fixes
@@ -22,7 +22,7 @@ subentities:
   title: CLI-layer tests and the two control-flow regressions
   status: Todo
 created_at: '2026-07-27T22:44:54Z'
-updated_at: '2026-07-27T23:07:47Z'
+updated_at: '2026-07-28T07:24:50Z'
 ---
 <!-- sq:body -->
 Two read-path defects that still produce raw tracebacks after the parse guards landed. Same family,
