@@ -27,7 +27,11 @@ def _assert_clean_failure(output: str, *, names: str) -> None:
     assert "error:" in output
     # Rich hard-wraps a long unbroken path at the console width with a bare newline (no
     # inserted space) -- flatten before searching so a wrap point isn't mistaken for a miss.
-    assert names in output.replace("\n", "")
+    # Normalise separators on both sides (not just the output): a posix-relative Item.path
+    # never carries a backslash, but a native str(Path) name does on Windows, so the raw
+    # name must be normalised too or a genuinely-missing path could slip past unnoticed.
+    flattened = output.replace("\n", "").replace("\\", "/")
+    assert names.replace("\\", "/") in flattened
 
 
 def _insert_invalid_byte(path: Path) -> None:

@@ -59,8 +59,11 @@ def test_read_frontmatter_names_the_path_it_was_given(tmp_path: Path):
     path = tmp_path / "item.md"
     path.write_text(_MERGE_CONFLICTED, encoding="utf-8")
 
-    with pytest.raises(SquadsError, match=str(path)):
+    # `match` treats its argument as a regex, and a Windows path (backslashes) isn't a
+    # valid one -- assert on the rendered message instead.
+    with pytest.raises(SquadsError) as excinfo:
         read_frontmatter(path=path)
+    assert str(path) in str(excinfo.value)
 
 
 def test_a_well_formed_file_parses_exactly_as_before():
@@ -73,8 +76,11 @@ def test_load_config_raises_squads_error_on_a_malformed_toml(tmp_path: Path):
     config_path = tmp_path / ".squads.toml"
     config_path.write_text("squad_dir = [unterminated\n", encoding="utf-8")
 
-    with pytest.raises(SquadsError, match=str(config_path)):
+    # `match` treats its argument as a regex, and a Windows path (backslashes) isn't a
+    # valid one -- assert on the rendered message instead.
+    with pytest.raises(SquadsError) as excinfo:
         load_config(config_path)
+    assert str(config_path) in str(excinfo.value)
 
 
 def test_load_config_reads_a_well_formed_file_exactly_as_before(tmp_path: Path):
