@@ -3,36 +3,112 @@
 **See what your AI-agent team is working on, without leaving the editor.**
 
 [squads](https://github.com/TheCaptainCat/squads) is a command-line coordination layer (`sq`) for a
-team of AI coding agents working on one repository. It gives them a structure to share: a stable ID
-for every piece of work, named roles with defined skills, a status lifecycle per item type, and a
-handoff protocol — comments, `@mentions`, an inbox — so work moves from one agent to the next
-instead of living in one chat window. All of it is markdown under a `squads/` folder in the repo, so
-the team's state is committed, diffable, and reviewed like the code it describes.
+team of AI coding agents working on one repository. This extension is the window onto it from VS
+Code — three trees in the activity bar, a rendered dossier for any piece of work, and diagrams of
+how the work connects, refreshing on their own as agents move the board.
 
-This extension is the window onto that state from your editor. Once agents are doing the typing, the
-question you spend the day on is less "what am I writing" and more "where is the work, and what moved
-while I was in this file". That's what these views answer — three trees in the activity bar, a
-rendered dossier for any item, and diagrams of how items connect. They update themselves each time an
-agent touches the board.
+If you've not met squads before, the next few sections are for you: what it's for, how the model
+works, and what using it looks like. The extension picks up further down.
 
-**This extension reads; it does not write.** Creating, editing and transitioning items is still the
-`sq` CLI's job. The **What it doesn't do** section below spells out the boundary — read it before you
-install.
+**The extension reads; it does not write.** Creating, editing and transitioning work is the `sq`
+CLI's job. The **What it doesn't do** section spells out the boundary — read it before you install.
+
+## The problem it solves
+
+An agent's memory ends when its session does. Put two agents on the same codebase and each one's
+understanding of the plan lives in its own transcript — invisible to the other, invisible to you
+tomorrow, and impossible to review. Coordination degrades into a human retyping context into the
+next chat window.
+
+squads moves that state out of the chat and into the repository. What each piece of work is, who
+owns it, what it's waiting on, what was decided and why: all of it is markdown in a `squads/`
+folder, addressed by a stable ID and committed alongside the code it describes. An agent starting
+cold reads the same board the last one left behind. You review it in a pull request like anything
+else.
+
+## The model
+
+- **Named roles, not anonymous prompts.** A squad has a roster — an architect, a tech lead, a
+  reviewer, a QA engineer, a product owner, developers per stack — each a named agent with a defined
+  mission and its own set of skills. Work is addressed to a role, not to whoever happens to be in
+  the window.
+- **Typed work items with stable IDs.** `FEAT-20`, `TASK-21`, `BUG-34`: a single global counter, so
+  a number is unique across the whole project — there is no `TASK-7` and `BUG-7` to confuse. Each
+  type carries its own status lifecycle — a task runs `Draft → Ready → InProgress → InReview → Done`,
+  a bug runs `Open → InProgress → Fixed → Verified` — and transitions are validated, not free text.
+- **Breakdown that holds together.** Epics contain features, features contain tasks. A feature's
+  user stories map onto the subtasks that implement them, so a piece of work always knows which
+  larger thing it serves.
+- **Handoff in writing.** An agent hands work on by commenting on the item and `@mentioning` the
+  next role; that role finds it with `sq inbox <role>`. The discussion is append-only, so the
+  reasoning behind a decision outlives the session that produced it.
+- **Records, not just tickets.** Architecture decisions and guides are first-class items with their
+  own lifecycles — the durable side of the project, kept beside the work that caused it.
+- **Humans on the roster too.** Operators are registered alongside the agents: they author items,
+  comment under their own name, and have work assigned to them.
+
+Only the markdown is authoritative. The index file beside it is a rebuildable cache — delete it and
+`sq repair` reconstructs it from the files.
+
+## What using it looks like
+
+One piece of work, from proposal to closed, as the team would actually run it:
+
+```bash
+# The product owner opens a feature and the stories under it
+sq create feature "Password reset" --author product-owner --desc "Email a signed link, 30-minute expiry"
+sq feature 20 add-story "Request a reset link by email" --assignee python-dev
+
+# The tech lead turns it into implementation work, mapped to that story
+sq create task "Signed reset tokens" --author tech-lead --parent FEAT-20
+sq task 21 add-subtask "Reject tokens past their expiry" --story US1
+
+# A developer picks it up, and hands it on through the item's own discussion
+sq task 21 status InProgress
+sq task 21 comment --as python-dev -m "HMAC-signed tokens, 30-minute TTL." -m "@reviewer ready for a look"
+
+# The reviewer finds it waiting for them, and records what they found
+sq inbox reviewer
+sq task 21 status InReview
+sq create review "Reset token review" --author reviewer --ref TASK-21
+sq review 22 add-finding "Expiry not enforced on a resend" --severity high
+
+# Findings are closed on the record, and the work lands
+sq review 22 finding 1 update --status Fixed
+sq review 22 status InReview      # a review can't jump straight to Approved
+sq review 22 status Approved
+sq task 21 status Done
+```
+
+Every one of those commands writes markdown a human can read and git can diff. Agents run them
+themselves: the roster, the skills and the handoff protocol are installed into the project at setup,
+so an agent knows the process without being told it again each session.
+
+## Works with your agent tooling
+
+The agent-facing files are written by a pluggable backend, so squads isn't tied to one assistant.
+Two ship today: `claude_code` writes pointer files under `.claude/` plus a managed section in
+`CLAUDE.md`; `agents_md` writes a single `AGENTS.md`, the cross-tool convention other AI coding
+tools read. Pick either at setup, or keep both current at once — the coordination model underneath
+is identical.
+
+---
+
+That's squads. The rest of this page is the extension.
 
 ## Three views in the sidebar
 
 - **Work Items** — epics, features, tasks, bugs and code reviews (or whichever work types your
   project declares) in their real parent/child hierarchy, from the top of a feature down to the
   subtask an agent is on right now.
-- **Records** — the durable side of the project: architecture decisions, guides, and any other
-  record type your project declares, each in its own bucket.
+- **Records** — the durable side: architecture decisions, guides, and any other record type your
+  project declares, each in its own bucket.
 - **Roster** — who is on the team. Roles and the skills attached to them, plus the human operators
   registered alongside the agents.
 
 Item icons are coloured from the workflow's own semantics rather than a fixed palette: work in
 flight stands out, blocked items are flagged, finished ones are dimmed. Hover any row for its
-status, assignee, and priority or severity badges. Type icons can be remapped to your preferred VS
-Code codicons in settings.
+status, assignee, and priority or severity badges.
 
 ## The item dossier
 
@@ -41,13 +117,12 @@ Select an item and it opens in a dedicated panel — a real dossier, not a raw f
 - **The item itself** — description and body rendered as markdown, in a panel this extension owns
   end to end, so opening another markdown file never steals it.
 - **Sub-entities** — a feature's stories, a task's subtasks, a review's findings, each carrying its
-  own status, assignee and severity, in a collapsible section.
-- **Discussion** — the comment history that agents use to hand work over, in a collapsible
-  timeline, with `@mentions` and item IDs as live links.
+  own status, assignee and severity.
+- **Discussion** — the handoff history in a collapsible timeline, with `@mentions` and item IDs as
+  live links: a plain click follows one in place, middle-click opens a second panel, and
+  back/forward buttons retrace your path.
 - **Two graphs** — one for the item's subtree, one for its references (what it points at, and what
-  points back), rendered as mermaid diagrams. Click a node to open that item.
-- **Navigation** — every ID reference is clickable: a plain click follows it in place, middle-click
-  opens a second panel, and back/forward buttons retrace your path through the graph.
+  points back), as mermaid diagrams. Click a node to open that item.
 - **Workflow cheatsheet** — one button prints your project's actual state machine: which statuses
   each item type has, and which transitions are legal.
 
@@ -63,10 +138,9 @@ code and status changes land in it as agents make them.
 - **Search** — run **Squads: Search…** from the command palette to search titles, bodies and
   discussion across the project, narrowing by type, status, or category as you type. Pick a hit to
   open its dossier.
-- **Filter by type** — focus the work tree on a single item type.
-- **Group by type** — flatten the hierarchy into per-type groups instead.
-- **Show closed items** — bring finished and cancelled work back into view, dimmed.
-- **Clear filters** and **Collapse all** — get back to a clean hierarchy in one click.
+- **View controls** — filter the work tree to one type, group by type instead of hierarchy, bring
+  closed items back into view (dimmed), collapse everything, or reset it all in one click.
+- **Type icons** — remap any work-item type to the VS Code codicon you prefer, in settings.
 
 ## What it doesn't do
 
@@ -84,30 +158,30 @@ code and status changes land in it as agents make them.
 
 Install **Squads** from the VS Code Marketplace, or from a `.vsix` build.
 
-### 2. Install the CLI
+### 2. Install the CLI and set a project up
 
-The extension needs `sq` on your machine. See the
-[squads repository](https://github.com/TheCaptainCat/squads) for CLI install instructions, then run
-`sq init` in a project to set the team up — or open a project someone else has already initialised.
+`sq` is a Python tool (3.14 or newer):
+
+```bash
+uv tool install squads     # or: pipx install squads
+cd your-project
+sq init --roles all        # scaffolds squads/, the roster, and the agent files
+```
+
+Or open a project a teammate has already initialised — the squad folder is committed, so there's
+nothing to set up per machine.
 
 ### 3. Open the project
 
 Open a folder or workspace containing a `.squads.toml` file and its `squads/` directory. The Squads
-icon appears in the activity bar; the views load on their own. If no squad is found, the tree says
-so rather than failing silently.
+icon appears in the activity bar and the views load on their own. If no squad is found, the tree
+says so rather than failing silently.
 
 ### 4. Point the extension at `sq`
 
-Discovery is automatic, in this order:
-
-1. **Explicit config** — `squads.sqPath` (an absolute path) or `squads.command` (a command array
-   like `["uv", "run", "sq"]`)
-2. **Workspace virtualenv** — `.venv/bin/sq`
-3. **`uv` on PATH** — used as `uv run sq` when a `pyproject.toml` is present
-4. **`poetry` on PATH** — used as `poetry run sq` when a `pyproject.toml` is present
-5. **Bare `sq` on PATH**
-
-To override, set one of these in VS Code settings:
+Discovery is automatic, in this order: explicit config, a workspace virtualenv (`.venv/bin/sq`),
+`uv run sq` or `poetry run sq` when a `pyproject.toml` is present, then bare `sq` on your PATH. To
+override, set one of these in VS Code settings:
 
 ```json
 {
@@ -124,23 +198,19 @@ To override, set one of these in VS Code settings:
 
 ## Troubleshooting
 
-**The views report that `sq` can't be found.**
-
-1. Check the CLI works on its own: run `sq --version` in a terminal.
-2. If `sq` lives in a virtualenv or behind a project runner, set `squads.sqPath` or
-   `squads.command` in your settings.
-3. Reload the window (`Cmd/Ctrl+Shift+P` → **Developer: Reload Window**).
+**The views report that `sq` can't be found.** Check the CLI works on its own (`sq --version` in a
+terminal). If it lives in a virtualenv or behind a project runner, set `squads.sqPath` or
+`squads.command`, then reload the window (`Cmd/Ctrl+Shift+P` → **Developer: Reload Window**).
 
 **The views don't refresh on their own.** Auto-refresh watches the project index on the local
 filesystem, so it stays quiet in workspaces that aren't backed by one — a virtual filesystem, for
 instance. The refresh button on each view still works.
 
-**An item looks out of date in the dossier.** The dossier reflects what `sq` reports; if the
-markdown file was edited by hand outside the CLI, run `sq repair` to bring the index back in line
-with the files.
+**An item looks out of date.** The dossier shows what `sq` reports; if a markdown file was edited by
+hand outside the CLI, run `sq repair` to bring the index back in line with the files.
 
 ---
 
-Squads is open source under the MIT licence. The CLI, the documentation and the issue tracker all
+Squads is open source under the MIT licence. The CLI, its documentation and the issue tracker all
 live in the [squads repository](https://github.com/TheCaptainCat/squads) — that's the place for bug
-reports, questions, and a closer look at how the team structure works.
+reports, questions, and the full picture of how a squad is put together.
