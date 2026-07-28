@@ -1,0 +1,50 @@
+---
+id: TASK-684
+sequence_id: 684
+type: task
+title: Adopter-facing PyPI project description page
+status: Draft
+author: tech-writer
+created_at: '2026-07-28T14:48:35Z'
+updated_at: '2026-07-28T14:50:26Z'
+---
+<!-- sq:body -->
+The root README carries the GitHub repo, contributors, and — via `readme = "README.md"` — the PyPI project description. This splits the last audience onto its own page, the way the VS Code client already has a dedicated Marketplace overview.
+
+## What was written
+
+`PYPI.md` at the repository root, 144 lines (the Marketplace overview is 206). Ordered for a reader at a terminal: what squads is, install, `sq init`, then the problem it solves, the model, a worked CLI example, backends, a short pointer to the read-only clients, docs links, and a pre-1.0 maturity note with the licence.
+
+## Shape and rationale
+
+- **Install and first squad come before the argument.** A PyPI reader wants to know what a package is and how to start, in that order; the persuasion can follow.
+- **The worked example is the centrepiece** — a full piece of work from proposal to closed, sixteen commands, each one executed against a real squad rather than checked against `--help`. It keeps the line where a review cannot move straight from Requested to Approved, because on a CLI page that is the clearest available proof that transitions are validated rather than free text.
+- **The clients are three sentences, not a section.** `sq ui` (named with its `tui` extra) and the VS Code extension, both read-only, no feature list.
+- **Every link is absolute.** PyPI renders no repo-relative links, so each doc pointer is a full `https://github.com/...` URL. No HTML, no badges, no images.
+- **Maturity stated plainly:** pre-1.0, surfaces still moving, schema changes possible, `sq migrate up` as the carry-forward, and the stability contract linked for what 1.0 will promise. No claims about adoption or ecosystem.
+
+## Left out relative to the Marketplace overview
+
+The three sidebar views, the dossier anatomy, the auto-refresh section, the search and view controls, the read-only-boundary section, and the whole VS Code install and discovery flow. Reference material is left to the repository, which is one click away.
+<!-- sq:body:end -->
+
+## Subtasks
+
+_Add with `sq task 684 add-subtask "<title>"`; track with `sq task 684 subtask <n> update --status <Status>`._
+
+<!-- sq:summary -->
+<!-- sq:summary:end -->
+
+<!-- sq:subtasks -->
+<!-- sq:subtasks:end -->
+
+## Discussion
+
+<!-- sq:discussion -->
+- [2026-07-28T14:50:26Z] Theo Writer:
+  - Wrote PYPI.md at the repository root (144 lines, untracked — not committed). Reused the squads half of the Marketplace overview as source material but reordered it for the audience: install and 'sq init' come before the argument, since a PyPI reader wants what-it-is then how-to-start, fast.
+  - Every link is absolute (nine github.com/TheCaptainCat/squads URLs plus the Marketplace item URL) — checked mechanically, no repo-relative paths, no HTML, no badges or images. The commands in the page were run rather than assumed: the sixteen-line example against a throwaway squad in an earlier pass, and sq workflow / sq docs / sq mine / sq blocked / show --full --comments re-checked for exit 0 here.
+  - Cut relative to the Marketplace overview: the three sidebar views, the dossier anatomy, auto-refresh, search and view controls, the read-only-boundary section, and the whole VS Code install and discovery flow. The clients are three sentences with the tui extra named and both flagged read-only.
+  - @op-pierre filename: PYPI.md at the root, for symmetry with clients/vscode/MARKETPLACE.md — each file named for where it is published, sitting next to the thing it describes. It has to be inside the sdist for 'readme' to resolve, which the root guarantees. One consequence worth a nod: the root then holds README.md and PYPI.md side by side, and a browser may wonder which is canonical — the answer is README.md, and if that ever grates the alternative is packaging/PYPI.md.
+  - @devops the packaging change this needs is 'readme = "PYPI.md"' in pyproject.toml — not made here, and the file is deliberately left uncommitted for review first.
+<!-- sq:discussion:end -->

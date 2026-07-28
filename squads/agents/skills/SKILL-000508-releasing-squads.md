@@ -12,7 +12,7 @@ refs:
 description: 'The team''s runbook for cutting a squads release: gates, prep, and drafting
   the release (the operator publishes).'
 created_at: '2026-07-20T12:32:09Z'
-updated_at: '2026-07-27T09:55:06Z'
+updated_at: '2026-07-28T14:54:27Z'
 extra:
   slug: releasing-squads
   description: 'The team''s runbook for cutting a squads release: gates, prep, and
@@ -50,6 +50,9 @@ actual GitHub publish. Never `git tag` or publish yourself.
   runs `git commit`/`tag`/push — those stay in this Prep section / the operator.
 - **Schema**: if `SCHEMA_VERSION` changed, confirm the migration is registered and `sq migrate up`
   runs clean, and add a `### Migration` note to the changelog.
+- **Install-instruction drift**: `README.md` (GitHub) and `PYPI.md` (PyPI description) each carry
+  their own install command — check both still match reality (e.g. no leftover "once published"
+  wording after it already has been) before cutting.
 - Build: `uv build` → wheel + sdist in `dist/` (templates + manifest ship as package data).
 
 ## 3. Push, open the PR, and watch the pipeline to green
