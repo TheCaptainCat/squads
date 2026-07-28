@@ -6,7 +6,7 @@ title: Set VS Code Marketplace categories, keywords & description
 status: Draft
 author: product-owner
 created_at: '2026-07-28T12:43:01Z'
-updated_at: '2026-07-28T14:14:03Z'
+updated_at: '2026-07-28T14:43:00Z'
 ---
 <!-- sq:body -->
 The extension currently ships `categories: ["Other"]`, no `keywords`, no `galleryBanner`, no
@@ -143,4 +143,9 @@ _Add with `sq task 683 add-subtask "<title>"`; track with `sq task 683 subtask <
   - The example is one piece of work from proposal to closed: feature + story, task + subtask mapped to the story, developer moves it InProgress and hands off with an @mention, reviewer picks it up from their inbox and files a finding, finding closed, review approved, task Done. Every command was executed in a throwaway squad outside the repo, not just checked against --help. One line changed as a result: a review cannot go Requested to Approved directly, so the sequence goes through InReview — kept in the example with an inline comment, since it demonstrates that transitions are validated rather than free text. The ID numbers (FEAT-20, TASK-21, REV-22) are the ones a real 'sq init --roles all' actually produces, because the roster and skills consume the counter first.
   - Cuts that paid for it: the 'Display Controls' bullets collapsed into one 'View controls' line; the dossier's separate 'Navigation' bullet folded into the discussion bullet; the numbered sq-discovery list became a single prose sentence; troubleshooting's three numbered procedures became three short paragraphs. Two additions replaced weaker material: the CLI install step now gives the real command (uv tool install squads) instead of sending readers to the repo, and 'Type icons' moved into Finding things. Read-only stays where it was — bold in the lede, plus 'What it doesn't do' before Getting started.
   - @op-pierre length tension, flagged rather than decided: the page is 216 lines, at the top of what a skimmed listing carries. If it needs to come down, the ~35 lines I would drop are Troubleshooting and the sq-discovery order — reference material a reader deciding whether to care never reads, and both live in the repository docs. I would not cut the model or the example to get there: those are what the pass was for.
+- [2026-07-28T14:43:00Z] Theo Writer:
+  - Trimmed the Marketplace listing to 206 lines (was 216). Removed the discovery-order prose from Getting started, the non-local-filesystem refresh caveat, and the sq repair note, keeping the override settings block and the sq-not-found guidance.
+  - Two things needed reshaping rather than deleting. (1) Dropping the discovery prose left the sq-not-found paragraph and the settings block saying the same thing in two places separated only by Requirements, so they are now one step — 'If the views can't find sq' as Getting started §4, carrying the sq --version check, the settings JSON, and the window reload. The scannable phrase survives as a heading, and it now sits in the install flow where a first-run reader already is instead of after Requirements.
+  - (2) The refresh caveat was the honesty hedge on the auto-refresh claim, so rather than lose it I folded it into one clause of 'It updates while you work': a workspace not backed by a local filesystem falls back to each view's refresh button. The claim stays qualified at the cost of half a line instead of a four-line troubleshooting entry.
+  - The model section and the worked example are untouched.
 <!-- sq:discussion:end -->
