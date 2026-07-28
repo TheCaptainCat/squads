@@ -98,6 +98,13 @@ jobs:
         working-directory: clients/vscode
         run: cp MARKETPLACE.md README.md
 
+      # vsce warns and ships the VSIX with no license text if it can't find a LICENSE file
+      # next to package.json; clients/vscode has none of its own (ephemeral CI checkout only —
+      # the root LICENSE stays the one committed copy, so there's nothing to keep in sync).
+      - name: copy root LICENSE for the VSIX
+        working-directory: clients/vscode
+        run: cp ../../LICENSE LICENSE
+
       - name: package VSIX
         working-directory: clients/vscode
         run: npx @vscode/vsce package --no-dependencies -o "../../squads-vscode-${{ steps.core-version.outputs.version }}.vsix"
