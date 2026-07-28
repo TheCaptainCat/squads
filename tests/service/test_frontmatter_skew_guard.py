@@ -327,3 +327,93 @@ async def test_a_catalog_field_merged_by_sync_does_not_false_refuse_the_next_mut
     await svc.update(role.id, description="mutated after a catalog merge")
     final = await svc.get(role.id)
     assert final.description == "mutated after a catalog merge"
+
+
+async def test_a_project_override_role_under_a_new_slug_is_not_falsely_refused_after_sync(svc):
+    """The same false-refusal shape, for a role that isn't one of the bundled eight at all --
+    a project override defining a brand-new slug entirely by its own TOML.
+    `_refresh_catalog_extra` resolves any role through `resolve_role`, which merges override
+    TOMLs too, not just bundled slugs, and merges its catalog fields outside any transaction
+    exactly like a bundled role's -- so the exemption must cover it too, not only slugs the
+    bundled catalog itself recognizes."""
+    override = svc.paths.squad_dir / ".overrides" / "roles" / "security-expert.toml"
+    override.parent.mkdir(parents=True, exist_ok=True)
+    override.write_text(
+        'full_name = "Sam Security"\ntitle = "security expert"\n'
+        'description = "Keeps the system secure."\nmission = "Find and fix security issues."\n'
+        'model = "opus"\n',
+        encoding="utf-8",
+    )
+    role = await svc.activate_role("security-expert")
+
+    path = svc.paths.abspath(role.path)
+    text = path.read_text(encoding="utf-8")
+    from squads._sections import join_frontmatter, split_frontmatter
+
+    fm, rest = split_frontmatter(text)
+    fm["extra"].pop("model", None)
+    path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
+
+    db = await svc.store.load()
+    item = db.get(role.id)
+    assert item is not None
+    item.extra.pop("model", None)
+    await svc.store.overwrite(db)
+
+    skipped = await svc.sync()
+    assert not skipped  # the merge write went through -- no false report either
+
+    on_disk = itemfile.read_frontmatter(path=path)
+    assert on_disk["extra"]["model"] == "opus"  # merged back onto disk by the override
+    reloaded = await svc.get(role.id)
+    assert "model" not in reloaded.extra  # the index copy still lags, by design
+
+    # Must not raise -- the merged field is exempt for an override-defined role too, not only
+    # a role the bundled catalog itself recognizes.
+    await svc.update(role.id, description="mutated after an override catalog merge")
+    final = await svc.get(role.id)
+    assert final.description == "mutated after an override catalog merge"
+
+
+# ---------------------------------------------------------------------------------------------
+# The permitted set above is by *key name*; whether it actually applies is a further, per-item
+# question. A dev role is never touched by the catalog-merge writer (it explicitly skips dev
+# roles), so its catalog-shaped fields (`model`, `title`, ...) are ordinary, transaction-guarded
+# fields for one -- a REAL skew on them must refuse like any other field, not slide through.
+# ---------------------------------------------------------------------------------------------
+
+
+async def test_interrupting_a_dev_roles_set_model_then_editing_elsewhere_refuses_not_reverts(
+    svc, monkeypatch
+):
+    """The counterpart to the two false-refusal cases above: this key-name collides with a
+    catalog role's exempt `model`, but `_refresh_catalog_extra` never touches a dev role, so
+    nothing here is permitted skew. Interrupting `--set model=` must be treated as the real
+    skew it is -- refusing the next mutation through any other seam -- rather than the old
+    behaviour, which let the mutation through and clobbered the committed value with the
+    stale index-loaded one."""
+    dev = await svc.add_dev("python")
+
+    await _crash_the_index_commit(
+        svc, monkeypatch, lambda: svc.update(dev.id, set_extra={"model": "haiku"})
+    )
+
+    # Markdown ahead of the index: the file carries the new model, the index doesn't.
+    on_disk = itemfile.read_frontmatter(path=svc.paths.abspath(dev.path))
+    assert on_disk["extra"]["model"] == "haiku"
+    reloaded = await svc.get(dev.id)
+    assert reloaded.extra.get("model") != "haiku"
+
+    # An unrelated edit refuses -- before writing anything -- rather than silently reverting
+    # the committed model back to the stale index-loaded value.
+    with pytest.raises(SquadsError, match=rf"{dev.id}.*repair"):
+        await svc.update(dev.id, description="mutated after an interrupted --set")
+
+    still_on_disk = itemfile.read_frontmatter(path=svc.paths.abspath(dev.path))
+    assert still_on_disk["extra"]["model"] == "haiku"  # not reverted by the refused attempt
+
+    await svc.repair()
+    await svc.update(dev.id, description="mutated after repair")
+    final = await svc.get(dev.id)
+    assert final.extra.get("model") == "haiku"
+    assert final.description == "mutated after repair"

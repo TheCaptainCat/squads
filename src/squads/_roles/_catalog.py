@@ -9,8 +9,9 @@ The role data is loaded from the bundled ``roles.toml`` via ``load_role_catalog(
 ``RoleCatalogSpec`` singleton.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 from squads._errors import RoleNotFoundError
 from squads._models._extras import ExtraKey as X
@@ -33,20 +34,37 @@ class RoleDef:
     is_default: bool = False
     can_spawn: bool = False  # True only for orchestrating roles (manager, tech-lead)
 
+    #: The single source of truth for :meth:`to_extra`'s shape: the ``extra`` key paired with
+    #: the typed accessor that reads its value off an instance. :meth:`extra_keys` reads only
+    #: the key column, so the key set and the values it's paired with can never drift apart —
+    #: there is no second, separately maintained list of key names to forget to update.
+    _EXTRA_FIELD_KEYS: ClassVar[tuple[tuple[str, Callable[[RoleDef], Any]], ...]] = (
+        (X.FULL_NAME, lambda r: r.full_name),
+        (X.SLUG, lambda r: r.slug),
+        (X.TITLE, lambda r: r.title),
+        (X.MISSION, lambda r: r.mission),
+        (X.RESPONSIBILITIES, lambda r: list(r.responsibilities)),
+        (X.AGREEMENTS, lambda r: list(r.agreements)),
+        (X.MODEL, lambda r: r.model),
+        (X.COLOR, lambda r: r.color),
+        (X.IS_DEFAULT, lambda r: r.is_default),
+        (X.CAN_SPAWN, lambda r: r.can_spawn),
+    )
+
     def to_extra(self) -> dict[str, Any]:
         """Type-specific fields stored on the ROLE item."""
-        return {
-            X.FULL_NAME: self.full_name,
-            X.SLUG: self.slug,
-            X.TITLE: self.title,
-            X.MISSION: self.mission,
-            X.RESPONSIBILITIES: list(self.responsibilities),
-            X.AGREEMENTS: list(self.agreements),
-            X.MODEL: self.model,
-            X.COLOR: self.color,
-            X.IS_DEFAULT: self.is_default,
-            X.CAN_SPAWN: self.can_spawn,
-        }
+        return {key: getter(self) for key, getter in self._EXTRA_FIELD_KEYS}
+
+    @classmethod
+    def extra_keys(cls) -> frozenset[str]:
+        """The key names :meth:`to_extra` populates — derived from the same field/key table
+        that builds its values, without constructing an instance. A required field added to
+        ``RoleDef`` later must not turn a throwaway construction here into a startup crash,
+        and a description-only change to ``to_extra`` (e.g. omitting a falsy value) must not
+        silently shrink this set out from under it — reading the table's key column instead
+        of the table's *output* pins both.
+        """
+        return frozenset(key for key, _ in cls._EXTRA_FIELD_KEYS)
 
     @classmethod
     def from_extra(cls, extra: dict[str, Any]) -> RoleDef:

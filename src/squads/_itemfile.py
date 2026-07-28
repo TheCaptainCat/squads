@@ -38,17 +38,63 @@ from squads._sections import join_frontmatter, replace_frontmatter, split_frontm
 #: The durability model's permitted skew, as a property of the *field* rather than of whichever
 #: writer happens to persist it: the role's resolved-skills cache (``X.SKILLS``) and every
 #: catalog-merged identity field a predefined role's ``extra`` carries (``RoleDef.to_extra()``'s
-#: key set). Both are written by a roster-regen path that never opens ``store.transaction()``
-#: (`link-role`/`unlink-role`'s partial resync, `sync`'s full sweep), so the index-loaded side of
-#: the comparison structurally cannot carry their current generation -- not even on a fully
-#: healthy role that was never interrupted. Comparing them like an ordinary field would refuse
-#: the very next mutation through any *other* seam after such a resync ever ran. Derived from
-#: ``RoleDef.to_extra()`` itself (not a hand-duplicated list of key names) so a field later added
-#: to the catalog is exempt automatically, the same day it starts being written this way -- never
-#: a second list to remember to update.
-PERMITTED_EXTRA_SKEW: frozenset[str] = frozenset(
-    {X.SKILLS, *RoleDef(slug="", full_name="", title="", description="", mission="").to_extra()}
-)
+#: key set, via :meth:`RoleDef.extra_keys`). Both are written by a roster-regen path that never
+#: opens ``store.transaction()`` (`link-role`/`unlink-role`'s partial resync, `sync`'s full
+#: sweep), so the index-loaded side of the comparison structurally cannot carry their current
+#: generation -- not even on a fully healthy role that was never interrupted. Comparing them
+#: like an ordinary field would refuse the very next mutation through any *other* seam after
+#: such a resync ever ran. Derived from ``RoleDef.extra_keys()`` (not a hand-duplicated list of
+#: key names) so a field later added to the catalog is exempt automatically, the same day it
+#: starts being written this way -- never a second list to remember to update.
+#:
+#: This is the *whole* permitted set -- which of it actually applies to a given item is a
+#: further, per-item question (see :func:`_exempt_extra_keys`): these are ``extra`` key
+#: *names*, and the same name can legitimately belong to a different item type/role shape
+#: that neither regen writer ever touches (e.g. a skill item's own ``model``, or a dev role
+#: RoleDef.MODEL, which is a plain transaction-guarded field for a dev role since
+#: ``_refresh_catalog_extra`` explicitly skips dev roles).
+PERMITTED_EXTRA_SKEW: frozenset[str] = frozenset({X.SKILLS, *RoleDef.extra_keys()})
+
+
+def _exempt_extra_keys(item: Item) -> frozenset[str]:
+    """The subset of :data:`PERMITTED_EXTRA_SKEW` that actually applies to *item* --
+    answering "what does a regen writer persist outside a transaction for *this* item",
+    not "what key names does the exemption know about in general".
+
+    - A dev role (``extra.is_dev`` truthy) never goes through ``_refresh_catalog_extra``
+      (it explicitly skips dev roles), so none of ``RoleDef.extra_keys()`` is exempt for
+      one -- only ``extra.skills`` is, since ``_refresh_role_skills_extra`` resyncs every
+      role's resolved-skills cache this way, dev roles included. Every other field
+      (``model``, ``title``, ...) is an ordinary, transaction-guarded field on a dev role,
+      and must be compared like any other -- the exact loss class this exemption otherwise
+      reopens: interrupt a dev role's ``--set model=haiku``, then edit it through any other
+      seam, and the stale index-loaded value would silently overwrite the committed one.
+    - Any other role gets the whole permitted set. A role is identified here by
+      ``extra.mission`` -- the one key only a role's own ``RoleDef.to_extra()`` merge ever
+      writes (skill/operator/work-item extra never carries it) -- rather than by asking
+      whether its slug resolves in the *bundled* catalog. ``_refresh_catalog_extra`` itself
+      resolves through ``resolve_role``, which also merges a project-override role defined
+      under a brand-new slug; this module has no ``squad_dir`` to replicate that resolution,
+      so it widens to "any non-dev role" instead of narrowing to "any bundled-slug role".
+      That is deliberately the safe direction: under-exempting degrades to a real (if
+      spurious) refusal -- annoying, but `sq repair` clears it and nothing is lost; over-
+      exempting a key nothing actually writes this way risks masking a genuine skew on it
+      instead. The corresponding gap: a role item whose slug resolves in *neither* the
+      bundled catalog nor an override (its backing definition vanished after the role was
+      activated) is, by this same widening, still exempted even though
+      ``_refresh_catalog_extra`` no longer touches it -- a real skew on such an orphaned
+      role's catalog fields would go undetected. That's narrower than the false refusal
+      this widening fixes (which hit *every* override-defined role), and the same
+      under/over tradeoff resolves it the same way.
+    - Anything else (no ``extra.mission`` at all) gets none of it -- a coincidental
+      key-name collision with another item's own ``extra`` (e.g. a skill item's own
+      ``model``) is never this exemption's business.
+    """
+    if item.extra.get(X.IS_DEV):
+        return frozenset({X.SKILLS})
+    if X.MISSION in item.extra:
+        return PERMITTED_EXTRA_SKEW
+    return frozenset()
 
 
 def read_frontmatter(
@@ -71,19 +117,20 @@ def _label(path: Path | None) -> str | None:
     return str(path) if path is not None else None
 
 
-def _without_permitted_extra_skew(data: dict[str, Any]) -> dict[str, Any]:
-    """*data* (a ``to_frontmatter_dict()`` output) with :data:`PERMITTED_EXTRA_SKEW` removed
-    from its nested ``extra`` mapping, if present — the mechanics behind
+def _without_permitted_extra_skew(data: dict[str, Any], item: Item) -> dict[str, Any]:
+    """*data* (a ``to_frontmatter_dict()`` output) with *item*'s own :func:`_exempt_extra_keys`
+    removed from its nested ``extra`` mapping, if present — the mechanics behind
     ``frontmatter_skew``'s unconditional exclusion. A no-op copy when ``extra`` doesn't carry
-    any of those keys, so the overwhelmingly common case (a non-role item, or a role nothing
+    any exempt keys, so the overwhelmingly common case (a non-role item, or a role nothing
     has ever resynced) never allocates anything extra."""
     extra = data.get("extra")
     if not isinstance(extra, dict):
         return data
     extra_typed = cast("dict[str, Any]", extra)
-    if not (extra_typed.keys() & PERMITTED_EXTRA_SKEW):
+    exempt = _exempt_extra_keys(item)
+    if not (extra_typed.keys() & exempt):
         return data
-    trimmed = {k: v for k, v in extra_typed.items() if k not in PERMITTED_EXTRA_SKEW}
+    trimmed = {k: v for k, v in extra_typed.items() if k not in exempt}
     out = dict(data)
     if trimmed:
         out["extra"] = trimmed
@@ -109,27 +156,33 @@ def frontmatter_skew(text: str, base: Item) -> list[str]:
     In the normal case the two sides are identical — the last successful mutation wrote both
     from one item — so an empty return is the expected result, not evidence the check is inert.
 
-    :data:`PERMITTED_EXTRA_SKEW` is excluded from every comparison unconditionally, for every
-    caller — a property of those particular ``extra`` keys, not something a writer opts into.
-    They are the durability decision's named permitted skew: "re-derivable regions of an item
-    ``.md`` the committing transaction did not mirror into the index" (the role's
-    resolved-skills cache; a role's catalog-merged fields). Those write their value to the
-    file WITHOUT ever going through ``store.transaction()``, so the index-loaded ``base``
-    never carries the current generation of that value even in the fully healthy case — disk
-    is *permanently* ahead of the index on those keys, by design, not because of an
-    interrupted write. Comparing them like an ordinary field would false-refuse the very next
-    mutation, through *any* seam, after any such resync ever ran — which is exactly what
-    happened before this exclusion moved here: it used to be an opt-in a writer passed
-    (``ignore_extra_keys``), so every other seam compared the field anyway. This is not a
-    load/parse-time correction the round trip can be taught — the two sides are reading
+    Whichever of :data:`PERMITTED_EXTRA_SKEW` actually applies to *base* (see
+    :func:`_exempt_extra_keys`) is excluded from every comparison unconditionally, for every
+    caller — a property of those particular ``extra`` keys *on this item*, not something a
+    writer opts into. They are the durability decision's named permitted skew: "re-derivable
+    regions of an item ``.md`` the committing transaction did not mirror into the index" (the
+    role's resolved-skills cache; a non-dev role's catalog-merged fields). Those write
+    their value to the file WITHOUT ever going through ``store.transaction()``, so the
+    index-loaded ``base`` never carries the current generation of that value even in the fully
+    healthy case — disk is *permanently* ahead of the index on those keys, by design, not
+    because of an interrupted write. Comparing them like an ordinary field would false-refuse
+    the very next mutation, through *any* seam, after any such resync ever ran — which is
+    exactly what happened before this exclusion moved here: it used to be an opt-in a writer
+    passed (``ignore_extra_keys``), so every other seam compared the field anyway. This is not
+    a load/parse-time correction the round trip can be taught — the two sides are reading
     genuinely different sources of truth for these keys — so they are named here explicitly
     rather than folded into the general round trip.
+
+    The exclusion is conditioned on *base* actually being the shape a regen writer touches
+    this way (a dev role only for ``extra.skills``; any other role for the whole set) — never
+    on the key names alone, which the same ``extra`` bag can carry for an unrelated reason
+    (a dev role's own, transaction-guarded ``model``; a skill item's own ``model``).
     """
     disk_data, _ = split_frontmatter(text, source=base.path)
     disk_dict = Item.from_frontmatter(disk_data, path=base.path).to_frontmatter_dict()
     base_dict = base.to_frontmatter_dict()
-    disk_dict = _without_permitted_extra_skew(disk_dict)
-    base_dict = _without_permitted_extra_skew(base_dict)
+    disk_dict = _without_permitted_extra_skew(disk_dict, base)
+    base_dict = _without_permitted_extra_skew(base_dict, base)
     keys = disk_dict.keys() | base_dict.keys()
     return sorted(k for k in keys if disk_dict.get(k) != base_dict.get(k))
 

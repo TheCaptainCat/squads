@@ -19,6 +19,7 @@ from squads._errors import SquadsError
 from squads._index._resolver import item_file
 from squads._itemfile import (
     frontmatter_skew,
+    read_item_text,
     rewrite_ids,
     skew_message,
     update_frontmatter,
@@ -94,11 +95,16 @@ async def _snapshot_files(paths: SquadPaths, db: SquadsDB) -> dict[int, tuple[Pa
     written until the body returns normally) — but ``apply_type_change``/``rewrite_ids``
     write ``.md`` files eagerly, ahead of that commit. This snapshot is what lets a mid-flight
     failure restore the filesystem, not just the index, to exactly its pre-call state.
+
+    This is a board-wide pre-flight read, not a single item's — so a stale indexed path
+    (an interrupted title-changing update/retype elsewhere on the board, unrelated to this
+    call's own affected set) must report cleanly rather than crash the whole verb on a raw
+    ``FileNotFoundError``: see :func:`~squads._itemfile.read_item_text`.
     """
     snap: dict[int, tuple[Path, str]] = {}
     for it in db.items.values():
         p = item_file(paths, it)
-        snap[it.sequence_id] = (p, await _aio.read_text(p))
+        snap[it.sequence_id] = (p, await read_item_text(p, it.id))
     return snap
 
 
