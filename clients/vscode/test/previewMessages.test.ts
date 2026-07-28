@@ -5,8 +5,12 @@ import {
   OPEN_ITEM_COMMAND,
   parseNavigateHistoryMessage,
   parseOpenItemMessage,
+  parseRefreshMessage,
+  parseToggleFoldMessage,
+  REFRESH_COMMAND,
   routeForMessage,
   routeForTreeSelection,
+  TOGGLE_FOLD_COMMAND,
 } from '../src/domain/previewMessages';
 
 describe('parseOpenItemMessage', () => {
@@ -103,5 +107,65 @@ describe('parseNavigateHistoryMessage', () => {
     expect(
       parseNavigateHistoryMessage({ command: NAVIGATE_HISTORY_COMMAND, direction: 'sideways' }),
     ).toBeNull();
+  });
+});
+
+describe('parseRefreshMessage', () => {
+  it('parses a well-formed message', () => {
+    expect(parseRefreshMessage({ command: REFRESH_COMMAND })).toEqual({ command: 'refresh' });
+  });
+
+  it('rejects null/undefined/non-object payloads', () => {
+    expect(parseRefreshMessage(null)).toBeNull();
+    expect(parseRefreshMessage(undefined)).toBeNull();
+    expect(parseRefreshMessage('refresh')).toBeNull();
+    expect(parseRefreshMessage({})).toBeNull();
+  });
+
+  it('rejects a wrong command discriminator', () => {
+    expect(parseRefreshMessage({ command: 'somethingElse' })).toBeNull();
+  });
+});
+
+describe('parseToggleFoldMessage', () => {
+  it('parses a well-formed open message', () => {
+    const message = parseToggleFoldMessage({
+      command: TOGGLE_FOLD_COMMAND,
+      id: 'ST1',
+      open: true,
+    });
+    expect(message).toEqual({ command: 'toggleFold', id: 'ST1', open: true });
+  });
+
+  it('parses a well-formed close message', () => {
+    const message = parseToggleFoldMessage({
+      command: TOGGLE_FOLD_COMMAND,
+      id: 'ST1',
+      open: false,
+    });
+    expect(message).toEqual({ command: 'toggleFold', id: 'ST1', open: false });
+  });
+
+  it('rejects null/undefined/non-object payloads', () => {
+    expect(parseToggleFoldMessage(null)).toBeNull();
+    expect(parseToggleFoldMessage(undefined)).toBeNull();
+    expect(parseToggleFoldMessage('toggleFold')).toBeNull();
+    expect(parseToggleFoldMessage({})).toBeNull();
+  });
+
+  it('rejects a wrong command discriminator', () => {
+    expect(parseToggleFoldMessage({ command: 'somethingElse', id: 'ST1', open: true })).toBeNull();
+  });
+
+  it('rejects an empty or non-string id', () => {
+    expect(parseToggleFoldMessage({ command: TOGGLE_FOLD_COMMAND, id: '', open: true })).toBeNull();
+    expect(parseToggleFoldMessage({ command: TOGGLE_FOLD_COMMAND, id: 42, open: true })).toBeNull();
+  });
+
+  it('rejects a missing or non-boolean open', () => {
+    expect(
+      parseToggleFoldMessage({ command: TOGGLE_FOLD_COMMAND, id: 'ST1', open: 'yes' }),
+    ).toBeNull();
+    expect(parseToggleFoldMessage({ command: TOGGLE_FOLD_COMMAND, id: 'ST1' })).toBeNull();
   });
 });

@@ -16,6 +16,8 @@ import {
 import {
   NAVIGATE_HISTORY_COMMAND,
   OPEN_ITEM_COMMAND,
+  REFRESH_COMMAND,
+  TOGGLE_FOLD_COMMAND,
   UPDATE_CONTENT_COMMAND,
 } from '../src/domain/previewMessages';
 import { buildRoleDirectory } from '../src/domain/roleDirectory';
@@ -299,6 +301,30 @@ describe('buildPreviewHtml', () => {
     expect(html).toContain("direction: navTarget.getAttribute('data-sq-nav')");
   });
 
+  it('posts a refresh message when the toolbar refresh button is clicked', () => {
+    expect(html).toContain(`command: '${REFRESH_COMMAND}'`);
+    expect(html).toContain("closest('[data-sq-refresh]')");
+  });
+
+  it('checks the refresh button before falling through to link/graph-node click handling', () => {
+    // A structural guard, not a behavioral one: the refresh check must come before the shared
+    // `post(...)` fallthrough so a click on the button never also gets misread as a link click.
+    const refreshBranch = html.indexOf('data-sq-refresh');
+    const postCall = html.indexOf('post(event, event.ctrlKey');
+    expect(refreshBranch).toBeGreaterThan(-1);
+    expect(postCall).toBeGreaterThan(refreshBranch);
+  });
+
+  it('reports a fold toggle via a capture-phase listener (native toggle does not bubble)', () => {
+    expect(html).toContain(`command: '${TOGGLE_FOLD_COMMAND}'`);
+    expect(html).toContain("addEventListener('toggle'");
+    expect(html).toContain("matches('[data-sq-fold-id]')");
+    expect(html).toContain('open: target.open');
+    // The trailing `true` is the capture flag — a plain bubbling listener would miss a `toggle`
+    // event, which does not bubble.
+    expect(html).toMatch(/addEventListener\('toggle', function \(event\) \{[\s\S]*?\}, true\);/);
+  });
+
   it('intercepts a plain click and a middle-click distinctly (newTab true/false)', () => {
     expect(html).toContain('post(event, event.ctrlKey || event.metaKey)');
     expect(html).toContain('post(event, true)');
@@ -431,6 +457,22 @@ describe('buildHistoryToolbarHtml', () => {
     expect(html).toContain('title="Back" aria-label="Back"');
     expect(html).toContain('title="Forward" aria-label="Forward"');
   });
+
+  it('renders the refresh button immediately left of back/forward, inside the same button group', () => {
+    const html = buildHistoryToolbarHtml('TASK-452 — Title', true, true);
+    const buttonsIndex = html.indexOf('sq-nav-buttons');
+    const refreshIndex = html.indexOf('data-sq-refresh');
+    const backIndex = html.indexOf('data-sq-nav="back"');
+    expect(refreshIndex).toBeGreaterThan(buttonsIndex);
+    expect(backIndex).toBeGreaterThan(refreshIndex);
+  });
+
+  it('the refresh button carries no disabled state, unlike the arrows at the ends of history', () => {
+    const html = buildHistoryToolbarHtml('TASK-452 — Title', false, false);
+    const refreshButton = /<button[^>]*data-sq-refresh[^>]*>/.exec(html)?.[0] ?? '';
+    expect(refreshButton).not.toContain('disabled');
+    expect(refreshButton).toContain('title="Refresh" aria-label="Refresh"');
+  });
 });
 
 describe('buildGraphsHtml', () => {
@@ -439,10 +481,25 @@ describe('buildGraphsHtml', () => {
 
   it('renders each graph as its own independently-foldable <details> section, collapsed by default (F23)', () => {
     const html = buildGraphsHtml(withSource, withSource);
-    expect(html.match(/<details class="sq-graph">/g)).toHaveLength(2);
-    expect(html).not.toContain('<details class="sq-graph" open>');
+    expect(html.match(/<details class="sq-graph" data-sq-fold-id="[a-z]+">/g)).toHaveLength(2);
+    expect(html).not.toContain('open>');
     expect(html).toContain('Children / Subtree');
     expect(html).toContain('Ref Graph');
+  });
+
+  it('stamps each graph section with its own stable fold id', () => {
+    const html = buildGraphsHtml(withSource, withSource);
+    expect(html).toContain('data-sq-fold-id="children"');
+    expect(html).toContain('data-sq-fold-id="refs"');
+  });
+
+  it('restores a fold as open per the childrenOpen/refsOpen flags, independently', () => {
+    const bothOpen = buildGraphsHtml(withSource, withSource, true, true);
+    expect(bothOpen.match(/ open>/g)).toHaveLength(2);
+
+    const childrenOnly = buildGraphsHtml(withSource, withSource, true, false);
+    expect(childrenOnly).toContain('data-sq-fold-id="children" open>');
+    expect(childrenOnly).not.toContain('data-sq-fold-id="refs" open>');
   });
 
   it('hides the mermaid source in the DOM (client script reads it, user never sees raw text)', () => {
@@ -467,7 +524,7 @@ describe('buildGraphsHtml', () => {
     const html = buildGraphsHtml(withoutSource, withoutSource);
     expect(html).toContain('sq graph failed: boom');
     expect(html).not.toContain('class="sq-graph-source"');
-    expect(html.match(/<details class="sq-graph">/g)).toHaveLength(2);
+    expect(html.match(/<details class="sq-graph" data-sq-fold-id="[a-z]+">/g)).toHaveLength(2);
   });
 });
 
@@ -604,13 +661,38 @@ describe('buildSubEntitiesHtml', () => {
 
   it('renders a non-blank body as collapsible prose through the markdown renderer', () => {
     const html = buildSubEntitiesHtml({ entities: [finding] });
-    expect(html).toContain('<details class="sq-subentity-body">');
+    expect(html).toContain('<details class="sq-subentity-body" data-sq-fold-id="F15">');
     expect(html).toContain('<p>Add a section listing sub-entities.</p>');
   });
 
   it('renders no body <details> when the sub-entity has no body', () => {
     const html = buildSubEntitiesHtml({ entities: [story] });
     expect(html).not.toContain('sq-subentity-body');
+  });
+
+  it('closes the body fold by default, with no isOpen predicate given', () => {
+    const html = buildSubEntitiesHtml({ entities: [finding] });
+    expect(html).not.toContain('data-sq-fold-id="F15" open>');
+  });
+
+  it('restores a body fold as open when the isOpen predicate says so, by local id', () => {
+    const html = buildSubEntitiesHtml(
+      { entities: [finding] },
+      undefined,
+      undefined,
+      (localId) => localId === 'F15',
+    );
+    expect(html).toContain('data-sq-fold-id="F15" open>');
+  });
+
+  it('leaves a fold the predicate reports as closed, closed', () => {
+    const html = buildSubEntitiesHtml({ entities: [finding] }, undefined, undefined, () => false);
+    expect(html).not.toContain('data-sq-fold-id="F15" open>');
+  });
+
+  it('the wrapper section always renders open regardless of the isOpen predicate (unaffected by the regression this fixes)', () => {
+    const html = buildSubEntitiesHtml({ entities: [finding] }, undefined, undefined, () => false);
+    expect(html).toContain('<details class="sq-graph" open><summary>Sub-entities (1)</summary>');
   });
 
   it('escapes the local id and title', () => {

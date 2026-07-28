@@ -3,13 +3,13 @@ id: BUG-679
 sequence_id: 679
 type: bug
 title: 'VS Code: per-section refresh only refreshes its own tree'
-status: Open
+status: InProgress
 author: qa
 severity: low
 refs:
 - BUG-680
 created_at: '2026-07-28T07:32:44Z'
-updated_at: '2026-07-28T08:01:06Z'
+updated_at: '2026-07-28T14:45:33Z'
 ---
 <!-- sq:body -->
 Observed (Pierre): clicking the refresh button on one of the three activity-bar sections

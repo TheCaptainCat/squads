@@ -1,15 +1,28 @@
 /**
- * View-title/palette commands: refresh, filter by type, the group-by-type and show-closed
- * view-title toggles, clear, the tree-node-selection command that opens the owned item-preview
- * webview, the view-title button that opens the workflow cheatsheet in its own owned panel, and
- * the preview panel's back/forward navigation commands. These two are a secondary path to the
- * primary in-content toolbar rendered inside the preview HTML itself (see
- * `itemPreviewManager.ts`'s module doc comment for why) — reachable via the `alt+left`/
+ * View-title/palette commands: the one global refresh command, filter by type, the
+ * group-by-type and show-closed view-title toggles, clear, the tree-node-selection command that
+ * opens the owned item-preview webview, the view-title button that opens the workflow cheatsheet
+ * in its own owned panel, and the preview panel's back/forward navigation commands. These two
+ * are a secondary path to the primary in-content toolbar rendered inside the preview HTML itself
+ * (see `itemPreviewManager.ts`'s module doc comment for why) — reachable via the `alt+left`/
  * `alt+right` keybindings `package.json` scopes to the item-preview panel, and the Command
  * Palette.
+ *
+ * `REFRESH_ALL_COMMAND` (`squads.refreshAll`) is the *one* definition of "refresh everything":
+ * all three trees plus every open preview panel — the actual orchestration lives in the pure,
+ * unit-tested `domain/refreshAll.ts`, not inline here, so it stays testable without a `vscode`
+ * host. It used to be three independent commands (`refreshTree`/`refreshMeta`/`refreshRecords`),
+ * each touching only its own provider and none of them touching an open preview —
+ * `package.json`'s three `view/title` entries now all point at this single id instead, so any of
+ * the three refresh buttons does the same complete refresh. `extension.ts`'s `.squads.json`
+ * watcher and the in-content preview refresh button (`itemPreviewManager.ts`'s message handler)
+ * both invoke it by id (`commandIds.ts`) rather than keeping their own copy of what "refresh
+ * everything" means.
  */
 import * as vscode from 'vscode';
 
+import { REFRESH_ALL_COMMAND } from './commandIds';
+import { refreshAll } from './domain/refreshAll';
 import type { ItemPreviewManager } from './itemPreviewManager';
 import type { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
 import type { SquadsRecordsTreeDataProvider } from './recordsTreeDataProvider';
@@ -30,6 +43,8 @@ export function registerCommands(
   knownTypes: () => readonly string[],
   previewManager: ItemPreviewManager,
   searchQuickPick: SearchQuickPickController,
+  metaProvider: SquadsMetaTreeDataProvider,
+  recordsProvider: SquadsRecordsTreeDataProvider,
 ): void {
   // The title-bar toggle icons render pressed/unpressed from these context keys; seed them from
   // the provider's initial state so a fresh window starts in sync.
@@ -37,8 +52,9 @@ export function registerCommands(
   syncToggleContext('squads.showClosed', provider.viewState.showClosed);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('squads.refreshTree', () => {
-      void provider.refresh();
+    // The one refresh command every entry point routes through — see the module doc comment.
+    vscode.commands.registerCommand(REFRESH_ALL_COMMAND, async () => {
+      await refreshAll(provider, metaProvider, recordsProvider, previewManager);
     }),
 
     vscode.commands.registerCommand('squads.filterByType', async () => {
@@ -87,31 +103,6 @@ export function registerCommands(
 
     vscode.commands.registerCommand('squads.search', () => {
       searchQuickPick.open();
-    }),
-  );
-}
-
-/** The meta/roster view (F12) has no filter/group/show-closed state — just its own refresh. */
-export function registerMetaCommands(
-  context: vscode.ExtensionContext,
-  provider: SquadsMetaTreeDataProvider,
-): void {
-  context.subscriptions.push(
-    vscode.commands.registerCommand('squads.refreshMeta', () => {
-      void provider.refresh();
-    }),
-  );
-}
-
-/** The records view has the same shape as the meta/roster view — no
- * filter/group/show-closed state, just its own refresh. */
-export function registerRecordsCommands(
-  context: vscode.ExtensionContext,
-  provider: SquadsRecordsTreeDataProvider,
-): void {
-  context.subscriptions.push(
-    vscode.commands.registerCommand('squads.refreshRecords', () => {
-      void provider.refresh();
     }),
   );
 }
