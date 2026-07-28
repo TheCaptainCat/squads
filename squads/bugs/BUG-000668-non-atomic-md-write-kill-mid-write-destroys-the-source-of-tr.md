@@ -3,13 +3,13 @@ id: BUG-668
 sequence_id: 668
 type: bug
 title: 'Non-atomic .md write: kill mid-write destroys the source of truth'
-status: InProgress
+status: Fixed
 author: qa
 severity: high
 refs:
 - ADR-663
 created_at: '2026-07-27T14:39:58Z'
-updated_at: '2026-07-27T14:52:26Z'
+updated_at: '2026-07-27T23:59:25Z'
 ---
 <!-- sq:body -->
 ## Symptom
