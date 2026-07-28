@@ -2,7 +2,7 @@
 name = "squads"
 version = "0.12.2"
 description = "The coordination layer for a team of AI agents working on one codebase: stable JIRA-like IDs, roles & skills, a status lifecycle, and handoffs in predictable markdown."
-readme = "README.md"
+readme = "PYPI.md"
 requires-python = ">=3.14"
 license = "MIT"
 license-files = ["LICENSE"]
