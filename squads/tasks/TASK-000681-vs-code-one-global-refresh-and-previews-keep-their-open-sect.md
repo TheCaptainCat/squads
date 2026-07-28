@@ -3,7 +3,7 @@ id: TASK-681
 sequence_id: 681
 type: task
 title: 'VS Code: one global refresh, and previews keep their open sections'
-status: InProgress
+status: InReview
 author: tech-lead
 refs:
 - BUG-679:fixes
@@ -23,10 +23,10 @@ subentities:
   status: Done
 - local_id: ST4
   title: Dev-host verification of both behaviours
-  status: Todo
+  status: Done
   assignee: op-pierre
 created_at: '2026-07-28T08:04:21Z'
-updated_at: '2026-07-28T15:08:49Z'
+updated_at: '2026-07-28T15:23:52Z'
 ---
 <!-- sq:body -->
 Make "refresh" mean one thing in the VS Code extension: every refresh action refreshes all three
@@ -165,7 +165,7 @@ _Add with `sq task 681 add-subtask "<title>"`; track with `sq task 681 subtask <
 | ST1 | Done |  | One global refresh command, all callers routed through it |  |
 | ST2 | Done |  | Capture and replay preview fold state |  |
 | ST3 | Done |  | In-content refresh action left of the nav arrows |  |
-| ST4 | Todo | op-pierre | Dev-host verification of both behaviours |  |
+| ST4 | Done | op-pierre | Dev-host verification of both behaviours |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -327,7 +327,7 @@ Acceptance:
 ### ST4 — Dev-host verification of both behaviours
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Assignee:** Pierre Chat
 <!-- sq:subtask:ST4:head:end -->
 
@@ -369,6 +369,8 @@ Acceptance:
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-07-28T15:23:35Z] Pierre Chat:
+  - Dev-host check on the Windows host: the button is present, placed and styled correctly beside the nav arrows, and clickable. Folds stayed expanded across a watcher-driven refresh.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
@@ -390,4 +392,8 @@ Acceptance:
   - Falsified both behaviours (break/restore, see my reply to the dispatcher for verbatim output): dropped the preview call from refreshAll -> refreshAll.test.ts failed; zeroed the open attribute in buildGraphSection and buildSubEntityHtml -> previewDocument.test.ts failed on the fold-restore assertions for both graph and sub-entity folds. All three restored and green.
   - Not verified by me: the button surviving a real content swap in a live webview, and the toolbar's visual placement/hover-styling -- that's ST4, on the dev host.
   - ST4 (@op-pierre) is the only remaining open item; task stays InProgress until that's recorded.
+- [2026-07-28T15:16:45Z] Catherine Manager:
+  - Dev-host verification in progress: checking the in-content refresh button, its survival across a content swap, and fold preservation on all three refresh triggers.
+- [2026-07-28T15:22:44Z] Pierre Chat:
+  - The in-content refresh button is a railguard, not a routine control: auto-refresh normally handles everything, and I only reached for a manual refresh once when the watcher failed. No visual feedback on click is acceptable for that role — the indication is the stale content updating.
 <!-- sq:discussion:end -->

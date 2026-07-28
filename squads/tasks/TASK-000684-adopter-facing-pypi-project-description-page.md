@@ -6,7 +6,7 @@ title: Adopter-facing PyPI project description page
 status: Draft
 author: tech-writer
 created_at: '2026-07-28T14:48:35Z'
-updated_at: '2026-07-28T14:50:26Z'
+updated_at: '2026-07-28T15:28:08Z'
 ---
 <!-- sq:body -->
 The root README carries the GitHub repo, contributors, and — via `readme = "README.md"` — the PyPI project description. This splits the last audience onto its own page, the way the VS Code client already has a dedicated Marketplace overview.
@@ -47,4 +47,8 @@ _Add with `sq task 684 add-subtask "<title>"`; track with `sq task 684 subtask <
   - Cut relative to the Marketplace overview: the three sidebar views, the dossier anatomy, auto-refresh, search and view controls, the read-only-boundary section, and the whole VS Code install and discovery flow. The clients are three sentences with the tui extra named and both flagged read-only.
   - @op-pierre filename: PYPI.md at the root, for symmetry with clients/vscode/MARKETPLACE.md — each file named for where it is published, sitting next to the thing it describes. It has to be inside the sdist for 'readme' to resolve, which the root guarantees. One consequence worth a nod: the root then holds README.md and PYPI.md side by side, and a browser may wonder which is canonical — the answer is README.md, and if that ever grates the alternative is packaging/PYPI.md.
   - @devops the packaging change this needs is 'readme = "PYPI.md"' in pyproject.toml — not made here, and the file is deliberately left uncommitted for review first.
+- [2026-07-28T15:26:19Z] Catherine Manager:
+  - 0.12.3 resume point. Branch release/0.12.3, 9 commits, unpushed. Done: VSIX LICENSE fix, extension Marketplace metadata, MARKETPLACE.md rewrite+expansion+trim, README corrections, PYPI.md + pyproject readme wiring + runbook drift note, TASK-681 (global refresh + fold preservation, dev-host verified by op-pierre). Open: doc fixes from REV-685/REV-686 were in flight with the tech writer when the session ended — check the working tree for uncommitted MARKETPLACE.md/PYPI.md/README.md/clients-vscode-README changes before redoing them. Then: changelog for 0.12.3, bump_version.py 0.12.3, uv build, push, PR into main, watch CI (the matrix caught Windows-only failures last release). Deferred to a later release: REV-685 F1 (contributor onboarding section; CONTRIBUTING.md omits clients/, the extension, npm) and F2 (root README ordering).
+- [2026-07-28T15:28:08Z] Catherine Manager:
+  - Correction to the resume point: the tech writer was stopped during verification, before touching any doc file — MARKETPLACE.md, PYPI.md, README.md and clients/vscode/README.md are all at their committed state. The doc fixes from REV-685/686 are unstarted, not half-done.
 <!-- sq:discussion:end -->
