@@ -29,9 +29,12 @@ async def test_read_text_raises_a_squads_error_naming_the_file_on_bad_bytes(tmp_
     path = tmp_path / "item.md"
     path.write_bytes(b"hello \x80 world")
 
-    with pytest.raises(UndecodableFileError, match=str(path)) as excinfo:
+    # `match` treats its argument as a regex, and a Windows path (backslashes) isn't a
+    # valid one -- assert on the rendered message instead.
+    with pytest.raises(UndecodableFileError) as excinfo:
         await _aio.read_text(path)
     assert isinstance(excinfo.value, SquadsError)
+    assert str(path) in str(excinfo.value)
 
 
 async def test_read_text_error_carries_the_offending_byte_and_offset(tmp_path: Path):
@@ -64,5 +67,8 @@ def test_load_config_raises_squads_error_on_undecodable_bytes(tmp_path: Path):
     config_path = tmp_path / ".squads.toml"
     config_path.write_bytes(b'squad_dir = "squads\x80"\n')
 
-    with pytest.raises(SquadsError, match=str(config_path)):
+    # `match` treats its argument as a regex, and a Windows path (backslashes) isn't a
+    # valid one -- assert on the rendered message instead.
+    with pytest.raises(SquadsError) as excinfo:
         load_config(config_path)
+    assert str(config_path) in str(excinfo.value)
