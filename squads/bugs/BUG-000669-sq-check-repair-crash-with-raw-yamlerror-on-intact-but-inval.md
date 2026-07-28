@@ -3,13 +3,13 @@ id: BUG-669
 sequence_id: 669
 type: bug
 title: sq check/repair crash with raw YAMLError on intact-but-invalid frontmatter
-status: Fixed
+status: Verified
 author: qa
 severity: high
 refs:
 - BUG-668
 created_at: '2026-07-27T14:56:34Z'
-updated_at: '2026-07-27T22:30:01Z'
+updated_at: '2026-07-28T07:25:08Z'
 ---
 <!-- sq:body -->
 ## Symptom

@@ -3,13 +3,13 @@ id: BUG-676
 sequence_id: 676
 type: bug
 title: 'Interrupted rename: item-file reads crash raw, not clean'
-status: Fixed
+status: Verified
 author: qa
 severity: medium
 refs:
 - BUG-675
 created_at: '2026-07-27T22:40:47Z'
-updated_at: '2026-07-27T23:07:49Z'
+updated_at: '2026-07-28T07:25:10Z'
 ---
 <!-- sq:body -->
 ## Symptom

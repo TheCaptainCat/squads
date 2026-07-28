@@ -3,7 +3,7 @@ id: TASK-672
 sequence_id: 672
 type: task
 title: Refuse an index-derived frontmatter rewrite over an unrepaired skew
-status: InReview
+status: Done
 author: tech-lead
 refs:
 - ADR-663:implements
@@ -25,7 +25,7 @@ subentities:
   title: 'Pre-flight the batch: import, bulk retype, rename-status'
   status: Done
 created_at: '2026-07-27T16:13:19Z'
-updated_at: '2026-07-27T21:47:29Z'
+updated_at: '2026-07-28T07:24:47Z'
 ---
 <!-- sq:body -->
 Close the conditional half of ADR-663 §1's guarantee: a write refuses, loudly, rather than silently

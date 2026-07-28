@@ -3,7 +3,7 @@ id: TASK-673
 sequence_id: 673
 type: task
 title: Malformed frontmatter and config fail cleanly, not with a traceback
-status: InReview
+status: Done
 author: tech-lead
 refs:
 - BUG-669:fixes
@@ -21,7 +21,7 @@ subentities:
   title: Guard the frontmatter parse and name the file
   status: Done
 created_at: '2026-07-27T21:07:24Z'
-updated_at: '2026-07-27T22:30:00Z'
+updated_at: '2026-07-28T07:24:48Z'
 ---
 <!-- sq:body -->
 A `.md` whose frontmatter is malformed YAML *with an intact closing delimiter* — a hand-edit, a badly

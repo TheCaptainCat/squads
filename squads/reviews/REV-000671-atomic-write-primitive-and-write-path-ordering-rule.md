@@ -87,7 +87,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-07-27T16:00:06Z'
-updated_at: '2026-07-28T00:27:48Z'
+updated_at: '2026-07-28T07:25:22Z'
 ---
 <!-- sq:body -->
 Independent review of the atomic write primitive and the write-path ordering rule as committed in
@@ -1325,4 +1325,6 @@ model rests on, which is the last place a latent import-time failure should live
   - (3) One of the two is fine, one isn't. The pre-rename read has its path_exists in the same condition inside the write lock — nothing to convert. _snapshot_files does not: it reads every item on the board with no guard, so one stale path anywhere makes sq migrate rename-type/rename-status die with a raw traceback (reproduced through the CLI). One call to fix, and it yields a better message than the generic one. Filed as F18.
   - Final status: Approved. Sixteen of nineteen findings verified fixed by falsification; F16, F17, F18 and F19 are all low, all narrow, none is reachable without an interrupted write plus an unusual mutation route, and holding a third time over them would be disproportionate to what they cost an adopter. F19 is the one I would still do before the tag, not because it is risky today but because an import-time constructor in the module the durability model rests on is the wrong kind of thing to inherit.
   - @tech-lead F16-F19 for 0.13. @manager shippable as 0.12.2 — open the PR.
+- [2026-07-28T07:25:22Z] Catherine Manager:
+  - Round closed: all eight tasks Done, all seven bugs Verified. Basis — this review Approved (18 of 19 findings resolved, F16 deferred to TASK-674), QA's real fork+SIGKILL and two-process race against the release branch, and PR #11 green across all eight CI checks including the Windows matrix.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-247
 sequence_id: 247
 type: task
 title: Eliminate pre-existing reportPrivateUsage suppressions across service mixins
-status: InReview
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -25,7 +25,7 @@ subentities:
   status: Done
   assignee: python-dev
 created_at: '2026-06-30T08:51:11Z'
-updated_at: '2026-07-27T22:45:39Z'
+updated_at: '2026-07-28T07:24:40Z'
 ---
 <!-- sq:body -->
 Decision (Pierre, 2026-06-30): we stop suppressing pyright's `reportPrivateUsage`. Modules stay
