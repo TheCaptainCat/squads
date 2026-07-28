@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 677,
+  "counter": 678,
   "padding": 6,
   "items": {
     "12": {
@@ -24159,7 +24159,7 @@
       "type": "bug",
       "title": "sq check TOCTOU: phantom status-drift under concurrent mutation",
       "slug": "sq-check-toctou-phantom-status-drift-under-concurrent-mutati",
-      "status": "InProgress",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -24171,7 +24171,7 @@
       "subentities": [],
       "path": "bugs/BUG-000655-sq-check-toctou-phantom-status-drift-under-concurrent-mutati.md",
       "created_at": "2026-07-24T14:38:21Z",
-      "updated_at": "2026-07-27T15:56:48Z",
+      "updated_at": "2026-07-27T23:59:21Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24182,7 +24182,7 @@
       "type": "bug",
       "title": "Crash-window: persistent .md-vs-index drift if killed mid-write",
       "slug": "crash-window-persistent-md-vs-index-drift-if-killed-mid-writ",
-      "status": "InProgress",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -24196,7 +24196,7 @@
       "subentities": [],
       "path": "bugs/BUG-000656-crash-window-persistent-md-vs-index-drift-if-killed-mid-writ.md",
       "created_at": "2026-07-24T14:38:30Z",
-      "updated_at": "2026-07-27T14:52:24Z",
+      "updated_at": "2026-07-27T23:59:22Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24207,7 +24207,7 @@
       "type": "bug",
       "title": "IndexStore._current_ctx assigned before locks (latent)",
       "slug": "indexstore-current-ctx-assigned-before-locks-latent",
-      "status": "InProgress",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -24219,7 +24219,7 @@
       "subentities": [],
       "path": "bugs/BUG-000657-indexstore-current-ctx-assigned-before-locks-latent.md",
       "created_at": "2026-07-24T14:38:38Z",
-      "updated_at": "2026-07-27T15:42:48Z",
+      "updated_at": "2026-07-27T23:59:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24665,7 +24665,7 @@
       "type": "bug",
       "title": "Non-atomic .md write: kill mid-write destroys the source of truth",
       "slug": "non-atomic-md-write-kill-mid-write-destroys-the-source-of-tr",
-      "status": "InProgress",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -24679,7 +24679,7 @@
       "subentities": [],
       "path": "bugs/BUG-000668-non-atomic-md-write-kill-mid-write-destroys-the-source-of-tr.md",
       "created_at": "2026-07-27T14:39:58Z",
-      "updated_at": "2026-07-27T14:52:26Z",
+      "updated_at": "2026-07-27T23:59:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24738,7 +24738,7 @@
       "type": "review",
       "title": "Atomic write primitive and write-path ordering rule",
       "slug": "atomic-write-primitive-and-write-path-ordering-rule",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -24782,7 +24782,7 @@
         {
           "local_id": "F4",
           "title": "Markdown-ahead skew is reverted by the next mutation",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -24827,7 +24827,7 @@
         {
           "local_id": "F9",
           "title": "No changelog entry for the durability change",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24836,7 +24836,7 @@
         {
           "local_id": "F10",
           "title": "Confirm round drops a durable drift when the index path is stale",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -24845,7 +24845,7 @@
         {
           "local_id": "F11",
           "title": "Interruption tests hook os.fsync, which the ADR may remove",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24854,7 +24854,7 @@
         {
           "local_id": "F12",
           "title": "Root gitignore pattern never reaches an existing squad",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -24863,6 +24863,60 @@
         {
           "local_id": "F13",
           "title": "Nested different-store transaction silently drops the outer log",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Guard ignore-set is per-writer, not per-field: roles refuse after resync",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "Stale-path clean failure covers read verbs only; update still crashes raw",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "One unparseable item file aborts sq check and sq repair board-wide",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "Permitted-skew set over-exempts dev-role and skill extra fields",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F18",
+          "title": "Bulk rename's board-wide snapshot read still crashes raw",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F19",
+          "title": "Throwaway RoleDef instance at import time to enumerate keys",
           "status": "Fixed",
           "assignee": null,
           "severity": "low",
@@ -24872,7 +24926,7 @@
       ],
       "path": "reviews/REV-000671-atomic-write-primitive-and-write-path-ordering-rule.md",
       "created_at": "2026-07-27T16:00:06Z",
-      "updated_at": "2026-07-27T22:45:40Z",
+      "updated_at": "2026-07-28T00:27:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24998,10 +25052,10 @@
     "674": {
       "sequence_id": 674,
       "type": "task",
-      "title": "sq check reports an unreadable file and completes the scan",
-      "slug": "sq-check-reports-an-unreadable-file-and-completes-the-scan",
+      "title": "Unreadable files degrade per file instead of aborting the command",
+      "slug": "unreadable-files-degrade-per-file-instead-of-aborting-the-co",
       "status": "Draft",
-      "description": "Report a corrupt item file as a per-file issue and keep scanning, without inventing a phantom reconciliation error; repair and renumber keep aborting.",
+      "description": "check keeps scanning, repair rebuilds from what it can read and carries the unreadable item's existing entry forward, and the board and memory listings show every entry they can read.",
       "parent": null,
       "author": "tech-lead",
       "assignee": null,
@@ -25010,7 +25064,8 @@
       "labels": [],
       "refs": [
         "TASK-673:depends-on",
-        "ADR-663:implements"
+        "ADR-663:implements",
+        "REV-671:addresses"
       ],
       "subentities": [
         {
@@ -25030,11 +25085,29 @@
           "severity": null,
           "story": null,
           "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Repair rebuilds and carries the unreadable item forward",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Board and memory listings degrade per file",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
         }
       ],
-      "path": "tasks/TASK-000674-sq-check-reports-an-unreadable-file-and-completes-the-scan.md",
+      "path": "tasks/TASK-000674-unreadable-files-degrade-per-file-instead-of-aborting-the-co.md",
       "created_at": "2026-07-27T22:26:00Z",
-      "updated_at": "2026-07-27T22:46:33Z",
+      "updated_at": "2026-07-27T23:58:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25045,7 +25118,7 @@
       "type": "bug",
       "title": "Invalid UTF-8 in squad data crashes with a raw traceback",
       "slug": "invalid-utf-8-in-squad-data-crashes-with-a-raw-traceback",
-      "status": "InProgress",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -25059,7 +25132,7 @@
       "subentities": [],
       "path": "bugs/BUG-000675-invalid-utf-8-in-squad-data-crashes-with-a-raw-traceback.md",
       "created_at": "2026-07-27T22:27:38Z",
-      "updated_at": "2026-07-27T22:46:30Z",
+      "updated_at": "2026-07-27T23:07:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25070,7 +25143,7 @@
       "type": "bug",
       "title": "Interrupted rename: item-file reads crash raw, not clean",
       "slug": "interrupted-rename-item-file-reads-crash-raw-not-clean",
-      "status": "InProgress",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -25084,7 +25157,7 @@
       "subentities": [],
       "path": "bugs/BUG-000676-interrupted-rename-item-file-reads-crash-raw-not-clean.md",
       "created_at": "2026-07-27T22:40:47Z",
-      "updated_at": "2026-07-27T23:07:26Z",
+      "updated_at": "2026-07-27T23:07:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25095,7 +25168,7 @@
       "type": "task",
       "title": "Undecodable files and stale item paths fail cleanly",
       "slug": "undecodable-files-and-stale-item-paths-fail-cleanly",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Guard the UTF-8 decode in the shared read helper and the config reader, and convert the interrupted-rename FileNotFoundError at the item-read seam — without breaking the two callers that use it as control flow.",
       "parent": null,
       "author": "tech-lead",
@@ -25138,11 +25211,74 @@
       ],
       "path": "tasks/TASK-000677-undecodable-files-and-stale-item-paths-fail-cleanly.md",
       "created_at": "2026-07-27T22:44:54Z",
-      "updated_at": "2026-07-27T22:46:29Z",
+      "updated_at": "2026-07-27T23:07:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "TASK-677"
+    },
+    "678": {
+      "sequence_id": 678,
+      "type": "task",
+      "title": "Client behaviour on a drifted or unreadable board",
+      "slug": "client-behaviour-on-a-drifted-or-unreadable-board",
+      "status": "Draft",
+      "description": "Neither client was exercised against the skew guard or a corrupt board; both are read-only today, so pin that, audit the extension's silent-degrade paths, and write the refusal contract before the first mutating command.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-663",
+        "REV-671"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Confirm and pin the read-only property",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Audit the extension's silent-degrade paths",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Write the client refusal contract",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Manual dev-host check on a drifted board",
+          "status": "Todo",
+          "assignee": "op-pierre",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000678-client-behaviour-on-a-drifted-or-unreadable-board.md",
+      "created_at": "2026-07-28T00:11:38Z",
+      "updated_at": "2026-07-28T00:12:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-678"
     }
   }
 }

@@ -3,13 +3,13 @@ id: BUG-656
 sequence_id: 656
 type: bug
 title: 'Crash-window: persistent .md-vs-index drift if killed mid-write'
-status: InProgress
+status: Fixed
 author: qa
 severity: medium
 refs:
 - BUG-668
 created_at: '2026-07-24T14:38:30Z'
-updated_at: '2026-07-27T14:52:24Z'
+updated_at: '2026-07-27T23:59:22Z'
 ---
 <!-- sq:body -->
 ## Symptom
