@@ -128,10 +128,11 @@ Select an item and it opens in a dedicated panel — a real dossier, not a raw f
 
 ## It updates while you work
 
-The views watch the project index on disk. When an agent runs a command, or when you pull or switch
-a branch, the trees and any open dossier refresh on their own — without a keystroke from you. That's
-the difference between reading a snapshot and watching a board: leave the sidebar open beside the
-code and status changes land in it as agents make them.
+The views watch the project index on the local filesystem. When an agent runs a command, or when you
+pull or switch a branch, the trees and any open dossier refresh on their own — without a keystroke
+from you, though a workspace not backed by a local filesystem falls back to each view's refresh
+button. That's the difference between reading a snapshot and watching a board: leave the sidebar open
+beside the code and status changes land in it as agents make them.
 
 ## Finding things
 
@@ -177,11 +178,13 @@ Open a folder or workspace containing a `.squads.toml` file and its `squads/` di
 icon appears in the activity bar and the views load on their own. If no squad is found, the tree
 says so rather than failing silently.
 
-### 4. Point the extension at `sq`
+### 4. If the views can't find `sq`
 
-Discovery is automatic, in this order: explicit config, a workspace virtualenv (`.venv/bin/sq`),
-`uv run sq` or `poetry run sq` when a `pyproject.toml` is present, then bare `sq` on your PATH. To
-override, set one of these in VS Code settings:
+This is the one failure worth knowing up front, since the extension shells out to a CLI it doesn't
+bundle. Discovery is automatic in the usual cases — a workspace virtualenv, `uv` or `poetry`, or your
+PATH — so first check that the CLI works on its own (`sq --version` in a terminal). If it lives
+somewhere less obvious, name it in VS Code settings and reload the window
+(`Cmd/Ctrl+Shift+P` → **Developer: Reload Window**):
 
 ```json
 {
@@ -195,19 +198,6 @@ override, set one of these in VS Code settings:
 - **VS Code** 1.85 or later
 - **A squads-managed project** — a `.squads.toml` file at the workspace root
 - **The `sq` CLI** — on your PATH, or configured as above
-
-## Troubleshooting
-
-**The views report that `sq` can't be found.** Check the CLI works on its own (`sq --version` in a
-terminal). If it lives in a virtualenv or behind a project runner, set `squads.sqPath` or
-`squads.command`, then reload the window (`Cmd/Ctrl+Shift+P` → **Developer: Reload Window**).
-
-**The views don't refresh on their own.** Auto-refresh watches the project index on the local
-filesystem, so it stays quiet in workspaces that aren't backed by one — a virtual filesystem, for
-instance. The refresh button on each view still works.
-
-**An item looks out of date.** The dossier shows what `sq` reports; if a markdown file was edited by
-hand outside the CLI, run `sq repair` to bring the index back in line with the files.
 
 ---
 
