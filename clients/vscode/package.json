@@ -1,7 +1,7 @@
 {
   "name": "squads-vscode",
   "displayName": "Squads",
-  "description": "Browse a squads-managed project's work items from VS Code.",
+  "description": "Browse your AI-agent team's work items, roster, and workflow in VS Code — read-only companion for squads-managed projects.",
   "version": "0.12.2",
   "publisher": "pierre-chat",
   "author": "Pierre Chat",
@@ -15,8 +15,22 @@
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Other"
+    "AI",
+    "Visualization"
   ],
+  "keywords": [
+    "ai agents",
+    "multi-agent systems",
+    "agent orchestration",
+    "claude code",
+    "agentic development",
+    "work item tracking",
+    "issue tracking",
+    "project tracking",
+    "team roster",
+    "markdown"
+  ],
+  "qna": false,
   "icon": "resources/squads-icon-marketplace.png",
   "main": "./out/src/extension.js",
   "activationEvents": [],
