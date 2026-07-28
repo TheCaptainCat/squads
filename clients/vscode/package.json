@@ -91,20 +91,8 @@
     },
     "commands": [
       {
-        "command": "squads.refreshTree",
-        "title": "Refresh",
-        "category": "Squads",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "squads.refreshMeta",
-        "title": "Refresh Roster",
-        "category": "Squads",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "squads.refreshRecords",
-        "title": "Refresh Records",
+        "command": "squads.refreshAll",
+        "title": "Refresh All",
         "category": "Squads",
         "icon": "$(refresh)"
       },
@@ -174,7 +162,7 @@
     "menus": {
       "view/title": [
         {
-          "command": "squads.refreshTree",
+          "command": "squads.refreshAll",
           "when": "view == squadsTree",
           "group": "navigation@1"
         },
@@ -206,12 +194,12 @@
           "group": "1_squads"
         },
         {
-          "command": "squads.refreshMeta",
+          "command": "squads.refreshAll",
           "when": "view == squadsMeta",
           "group": "navigation@1"
         },
         {
-          "command": "squads.refreshRecords",
+          "command": "squads.refreshAll",
           "when": "view == squadsRecords",
           "group": "navigation@1"
         }

@@ -18,6 +18,8 @@ import { escapeHtml, renderMarkdownToHtml } from './markdown';
 import {
   NAVIGATE_HISTORY_COMMAND,
   OPEN_ITEM_COMMAND,
+  REFRESH_COMMAND,
+  TOGGLE_FOLD_COMMAND,
   UPDATE_CONTENT_COMMAND,
 } from './previewMessages';
 import type { RoleDirectory } from './roleDirectory';
@@ -30,6 +32,13 @@ const CHILDREN_GRAPH_SOURCE_ID = 'sq-children-graph-source';
 const CHILDREN_GRAPH_OUTPUT_ID = 'sq-children-graph';
 const REFS_GRAPH_SOURCE_ID = 'sq-refs-graph-source';
 const REFS_GRAPH_OUTPUT_ID = 'sq-refs-graph';
+
+/** Stable fold ids for the two graph `<details>` sections — the `ToggleFoldMessage`/
+ * `ExpansionTracker` identity used to restore open/closed state across a refresh (see
+ * `buildGraphSection`). Distinct from the source/output ids above, which wire the mermaid
+ * *rendering* rather than fold tracking. */
+export const CHILDREN_GRAPH_FOLD_ID = 'children';
+export const REFS_GRAPH_FOLD_ID = 'refs';
 
 const PREVIEW_STYLES = `
 body {
@@ -197,11 +206,24 @@ details.sq-graph .sq-graph-empty {
  * `previewMessages.ts`'s `parseOpenItemMessage` accepts.
  *
  * Also delegates clicks on the in-content back/forward toolbar (`[data-sq-nav]`, built by
- * `buildHistoryToolbarHtml`) to `navCommand` (`NAVIGATE_HISTORY_COMMAND`) — checked *before* the
- * link/graph-node handling above since it's a disjoint element kind. A `disabled` button (the
- * end of history — `buildHistoryToolbarHtml` never renders one enabled past that point) doesn't
- * dispatch a click at all in a Chromium webview, but the handler still re-checks `.disabled`
- * defensively rather than relying solely on that platform behavior.
+ * `buildHistoryToolbarHtml`) to `navCommand` (`NAVIGATE_HISTORY_COMMAND`), and on the same
+ * toolbar's refresh button (`[data-sq-refresh]`) to `refreshCommand` (`REFRESH_COMMAND`) —
+ * checked *before* the link/graph-node handling above since both are disjoint element kinds. A
+ * `disabled` nav button (the end of history — `buildHistoryToolbarHtml` never renders one
+ * enabled past that point) doesn't dispatch a click at all in a Chromium webview, but the
+ * handler still re-checks `.disabled` defensively rather than relying solely on that platform
+ * behavior; the refresh button has no disabled state to check. Both listeners are bound once, on
+ * `document`, in this same outer IIFE — never re-bound after a same-item patch — so a button
+ * that lives inside the very content a patch replaces (the toolbar is part of `articleHtml`)
+ * keeps working after its container is swapped out from under it; only the DOM node changes
+ * identity, not the delegated listener.
+ *
+ * Also listens (capture phase — a native `toggle` event on `<details>` does not bubble) for a
+ * toggle on a tracked fold — a sub-entity body (`.sq-subentity-body`) or one of the two graph
+ * sections (`.sq-graph[data-sq-fold-id]`, deliberately excluding the "Sub-entities (N)"/
+ * "Discussion (N)" wrapper `<details>`, which carry no `data-sq-fold-id` and always render
+ * `open`) — and reports it to the host as a `ToggleFoldMessage` so the next render can restore
+ * exactly the folds the reader had open (see `domain/previewMessages.ts`).
  *
  * Also listens for the host's `updateCommand` message (`UpdateContentMessage`) — a same-item
  * refresh's replacement HTML for the three stable mount points — and patches them in place via
@@ -210,13 +232,23 @@ details.sq-graph .sq-graph-empty {
  * `.sq-graph-source` elements just landed. Patching in place (as opposed to reassigning
  * `panel.webview.html`, which reloads the page) is what preserves the reader's scroll
  * position for that path — nothing here calls `scrollTo` for a patch, deliberately: the page
- * never navigates, so the browser's own scroll position is simply never disturbed.
+ * never navigates, so the browser's own scroll position is simply never disturbed. The
+ * replacement HTML's own fold `<details>` already carry the right `open` attribute (stamped by
+ * `itemPreviewManager.ts`'s render from its per-panel tracker before the message is even sent),
+ * so setting the attribute at parse time here never itself fires a spurious `toggle` back to the
+ * host.
  *
  * Every *fresh* load of this document (a genuine navigation — `itemPreviewManager.ts`'s
  * `'reload'` mode: a new panel, or reusing the panel for a different item) explicitly resets to
  * the top on parse — a real `window.scrollTo(0, 0)` rather than counting on a browser's default
  * fresh-document scroll position, since VS Code's webview host doesn't document that guarantee. */
-function clientScript(openCommand: string, updateCommand: string, navCommand: string): string {
+function clientScript(
+  openCommand: string,
+  updateCommand: string,
+  navCommand: string,
+  refreshCommand: string,
+  toggleFoldCommand: string,
+): string {
   return `(function () {
   window.scrollTo(0, 0);
   const vscode = acquireVsCodeApi();
@@ -237,12 +269,25 @@ function clientScript(openCommand: string, updateCommand: string, navCommand: st
       vscode.postMessage({ command: '${navCommand}', direction: navTarget.getAttribute('data-sq-nav') });
       return;
     }
+    const refreshTarget = event.target.closest('[data-sq-refresh]');
+    if (refreshTarget) {
+      event.preventDefault();
+      vscode.postMessage({ command: '${refreshCommand}' });
+      return;
+    }
     post(event, event.ctrlKey || event.metaKey);
   });
   document.addEventListener('auxclick', function (event) {
     if (event.button !== 1) { return; }
     post(event, true);
   });
+  document.addEventListener('toggle', function (event) {
+    const target = event.target;
+    if (!target || !target.matches || !target.matches('[data-sq-fold-id]')) { return; }
+    const id = target.getAttribute('data-sq-fold-id');
+    if (!id) { return; }
+    vscode.postMessage({ command: '${toggleFoldCommand}', id: id, open: target.open });
+  }, true);
   window.addEventListener('message', function (event) {
     const message = event.data;
     if (!message || message.command !== '${updateCommand}') { return; }
@@ -466,38 +511,58 @@ interface GraphSectionSpec {
   readonly sourceId: string;
   readonly outputId: string;
   readonly outcome: GraphOutcome;
+  /** Stable fold-tracking id (`CHILDREN_GRAPH_FOLD_ID`/`REFS_GRAPH_FOLD_ID`) stamped as
+   * `data-sq-fold-id`, so a toggle here reports back through `ToggleFoldMessage`. */
+  readonly foldId: string;
+  /** Whether this fold should render `open`, per the caller's per-panel fold tracker — `false`
+   * on a fresh load (no tracked state yet), restored across a same-item refresh otherwise. */
+  readonly open: boolean;
 }
 
 /** One collapsible `<details>` graph section — native fold/unfold, no client JS needed for
- * that part. Collapsed by default (F23: no `open` attribute) — a graph is supplementary detail,
- * not something that should push the dossier body below the fold. When `mermaidSource` is
- * present the hidden `<pre>` holds the escaped diagram source the client script reads via
- * `textContent` (so it comes back out unescaped); its `data-output-id` points the generic
- * render script (see `mermaidRenderScript`) at the adjacent output `<div>` it renders into.
- * Otherwise the message stands in for it. */
+ * that part beyond the `toggle` report wired in `clientScript`. Collapsed by default on a fresh
+ * load (F23: `open` reflects the caller's fold tracker, not a hardcoded default) — a graph is
+ * supplementary detail, not something that should push the dossier body below the fold. When
+ * `mermaidSource` is present the hidden `<pre>` holds the escaped diagram source the client
+ * script reads via `textContent` (so it comes back out unescaped); its `data-output-id` points
+ * the generic render script (see `mermaidRenderScript`) at the adjacent output `<div>` it renders
+ * into. Otherwise the message stands in for it. */
 function buildGraphSection(spec: GraphSectionSpec): string {
   const inner =
     spec.outcome.mermaidSource === null
       ? `<p class="sq-graph-empty">${escapeHtml(spec.outcome.message ?? 'No data available.')}</p>`
       : `<pre class="sq-graph-source" id="${spec.sourceId}" data-output-id="${spec.outputId}" hidden>${escapeHtml(spec.outcome.mermaidSource)}</pre><div class="sq-graph-output" id="${spec.outputId}">Rendering…</div>`;
-  return `<details class="sq-graph"><summary>${escapeHtml(spec.title)}</summary>${inner}</details>`;
+  const openAttr = spec.open ? ' open' : '';
+  return `<details class="sq-graph" data-sq-fold-id="${escapeHtml(spec.foldId)}"${openAttr}><summary>${escapeHtml(spec.title)}</summary>${inner}</details>`;
 }
 
 /** The two graph sections (children/subtree, ref graph), each independently collapsible and
- * kept separate from the dossier body and from each other. */
-export function buildGraphsHtml(children: GraphOutcome, refs: GraphOutcome): string {
+ * kept separate from the dossier body and from each other. `childrenOpen`/`refsOpen` — both
+ * defaulted to `false`, matching every pre-existing caller/test — restore each section's prior
+ * open/closed state across a same-item refresh (see `CHILDREN_GRAPH_FOLD_ID`/`REFS_GRAPH_FOLD_ID`
+ * and `itemPreviewManager.ts`'s per-panel `ExpansionTracker`). */
+export function buildGraphsHtml(
+  children: GraphOutcome,
+  refs: GraphOutcome,
+  childrenOpen = false,
+  refsOpen = false,
+): string {
   return [
     buildGraphSection({
       title: 'Children / Subtree',
       sourceId: CHILDREN_GRAPH_SOURCE_ID,
       outputId: CHILDREN_GRAPH_OUTPUT_ID,
       outcome: children,
+      foldId: CHILDREN_GRAPH_FOLD_ID,
+      open: childrenOpen,
     }),
     buildGraphSection({
       title: 'Ref Graph',
       sourceId: REFS_GRAPH_SOURCE_ID,
       outputId: REFS_GRAPH_OUTPUT_ID,
       outcome: refs,
+      foldId: REFS_GRAPH_FOLD_ID,
+      open: refsOpen,
     }),
   ].join('\n');
 }
@@ -590,31 +655,44 @@ function buildSubEntityHeadLine(entity: SqSubEntity): string {
  * (when it has one) its body as collapsible prose rendered through the same markdown renderer
  * the dossier body and discussion comments use (mermaid-fences off, `currentId` still
  * suppresses a self-link, `roles` resolves any `@<slug>` mention the same way) — a blank body
- * renders no `<details>` at all rather than an empty fold. */
+ * renders no `<details>` at all rather than an empty fold. The body fold's `data-sq-fold-id` is
+ * the sub-entity's own `local_id` — stable across a same-item refresh, which is exactly the
+ * `ToggleFoldMessage`/`ExpansionTracker` identity `open` (from the caller's per-panel tracker)
+ * is keyed on; not unique *across* items (a different item can reuse the same local id), which
+ * is why `itemPreviewManager.ts` resets its per-panel tracker on every navigation to a different
+ * item rather than keying trackers by local id alone. */
 function buildSubEntityHtml(
   entity: SqSubEntity,
   currentId: string | undefined,
   roles: RoleDirectory | undefined,
+  open: boolean,
 ): string {
   const header =
     `<div class="sq-subentity-header"><span class="sq-subentity-id">${escapeHtml(entity.local_id)}</span>` +
     `<span class="sq-subentity-title">${escapeHtml(entity.title)}</span></div>`;
   const head = `<div class="sq-subentity-head">${buildSubEntityHeadLine(entity)}</div>`;
+  const openAttr = open ? ' open' : '';
   const body =
     entity.body.trim() === ''
       ? ''
-      : `<details class="sq-subentity-body"><summary>Body</summary>${renderMarkdownToHtml(entity.body, currentId, false, roles)}</details>`;
+      : `<details class="sq-subentity-body" data-sq-fold-id="${escapeHtml(entity.local_id)}"${openAttr}><summary>Body</summary>${renderMarkdownToHtml(entity.body, currentId, false, roles)}</details>`;
   return `<div class="sq-subentity">${header}${head}${body}</div>`;
 }
 
 /** The collapsible sub-entities section (F15): a feature's stories, a task's subtasks, a
  * review's findings — in `sq show <id> --json`'s `subentities` array order. Mirrors
  * `buildDiscussionHtml`'s failure/empty/populated shape exactly, including the `roles`
- * pass-through for `@<slug>` mentions in a sub-entity's body. */
+ * pass-through for `@<slug>` mentions in a sub-entity's body. `isBodyOpen` — defaulted to "always
+ * closed", matching every pre-existing caller/test — restores a sub-entity body fold's prior
+ * open/closed state across a same-item refresh; the wrapper `<details>` this function itself
+ * renders always carries `open` regardless (unaffected by the bug this exists to fix — see
+ * `buildGraphSection`'s doc comment for why the *inner* per-sub-entity fold is the one that
+ * regressed, not this wrapper). */
 export function buildSubEntitiesHtml(
   outcome: SubEntitiesOutcome,
   currentId?: string,
   roles?: RoleDirectory,
+  isBodyOpen: (localId: string) => boolean = () => false,
 ): string {
   if (outcome.entities === null) {
     return (
@@ -626,7 +704,7 @@ export function buildSubEntitiesHtml(
     return '';
   }
   const entries = outcome.entities
-    .map((entity) => buildSubEntityHtml(entity, currentId, roles))
+    .map((entity) => buildSubEntityHtml(entity, currentId, roles, isBodyOpen(entity.local_id)))
     .join('\n');
   const count = String(outcome.entities.length);
   return `<details class="sq-graph" open><summary>Sub-entities (${count})</summary>${entries}</details>`;
@@ -642,14 +720,22 @@ export function buildSubEntitiesHtml(
  * the panel's current `PreviewHistory` on every render (both `'reload'` and `'patch'`), so this
  * never goes stale relative to the history it reflects.
  *
+ * Also carries the in-content refresh button, immediately left of the back/forward pair (markup
+ * order inside `.sq-nav-buttons`, not a menu `navigation@N` ordinal — this button is not, and
+ * cannot be, a contributed command; see `commands.ts`'s and `previewMessages.ts`'s module doc
+ * comments for why). It posts a `RefreshMessage`, the same round trip `NavigateHistoryMessage`
+ * makes, and fires the exact global refresh (`squads.refreshAll`) a tree view-title button does.
+ * Styled as a sibling of the arrow buttons (same `.sq-nav-button` class, same hover treatment)
+ * with no disabled state — unlike the arrows, refreshing is always a valid action.
+ *
  * Doubles as the item's title bar (`titleText` — `renderOutcomeHtml`'s extracted heading, or
  * the item id as a fallback): pinned to the top of the preview's own viewport as the reader
  * scrolls (`position: fixed` in `PREVIEW_STYLES`'s `.sq-nav-toolbar` rule — see that rule's
- * comment for why `fixed`, not `sticky`), reading `title … ←  →`, title on the left (truncating
+ * comment for why `fixed`, not `sticky`), reading `title ⟳ ←  →`, title on the left (truncating
  * with an ellipsis rather than shoving the buttons off — `.sq-nav-title`'s `text-overflow`), nav
- * on the right. The buttons are plain arrow glyphs, not text — `title`/`aria-label` still carry
- * "Back"/"Forward" for the hover tooltip and screen readers, so the control stays discoverable
- * without a text label competing for the toolbar's limited width. The trailing
+ * on the right. The buttons are plain glyphs, not text — `title`/`aria-label` still carry
+ * "Refresh"/"Back"/"Forward" for the hover tooltip and screen readers, so the controls stay
+ * discoverable without a text label competing for the toolbar's limited width. The trailing
  * `.sq-nav-toolbar-spacer` reserves the fixed bar's height in the normal document flow, so the
  * graphs/body/etc. that follow don't render underneath it. */
 export function buildHistoryToolbarHtml(
@@ -657,12 +743,13 @@ export function buildHistoryToolbarHtml(
   canGoBack: boolean,
   canGoForward: boolean,
 ): string {
+  const refresh = `<button type="button" class="sq-nav-button" data-sq-refresh title="Refresh" aria-label="Refresh">&#8635;</button>`;
   const back = `<button type="button" class="sq-nav-button" data-sq-nav="back"${canGoBack ? '' : ' disabled'} title="Back" aria-label="Back">&#8592;</button>`;
   const forward = `<button type="button" class="sq-nav-button" data-sq-nav="forward"${canGoForward ? '' : ' disabled'} title="Forward" aria-label="Forward">&#8594;</button>`;
   const escapedTitle = escapeHtml(titleText);
   const title = `<span class="sq-nav-title" title="${escapedTitle}">${escapedTitle}</span>`;
   return (
-    `<div class="sq-nav-toolbar">${title}<div class="sq-nav-buttons">${back}${forward}</div></div>` +
+    `<div class="sq-nav-toolbar">${title}<div class="sq-nav-buttons">${refresh}${back}${forward}</div></div>` +
     `<div class="sq-nav-toolbar-spacer"></div>`
   );
 }
@@ -740,7 +827,7 @@ export function buildPreviewHtml(params: PreviewDocumentParams): string {
 <div id="${SUBENTITIES_MOUNT_ID}">${params.subEntitiesHtml}</div>
 <div id="${DISCUSSION_MOUNT_ID}">${params.discussionHtml}</div>
 <script nonce="${params.nonce}" src="${params.mermaidScriptUri}"></script>
-<script nonce="${params.nonce}">${clientScript(OPEN_ITEM_COMMAND, UPDATE_CONTENT_COMMAND, NAVIGATE_HISTORY_COMMAND)}
+<script nonce="${params.nonce}">${clientScript(OPEN_ITEM_COMMAND, UPDATE_CONTENT_COMMAND, NAVIGATE_HISTORY_COMMAND, REFRESH_COMMAND, TOGGLE_FOLD_COMMAND)}
 ${mermaidRenderScript(params.nonce)}</script>
 </body>
 </html>`;

@@ -3,7 +3,7 @@ id: TASK-681
 sequence_id: 681
 type: task
 title: 'VS Code: one global refresh, and previews keep their open sections'
-status: Draft
+status: InProgress
 author: tech-lead
 refs:
 - BUG-679:fixes
@@ -14,19 +14,19 @@ description: Every refresh action refreshes all three trees plus open previews t
 subentities:
 - local_id: ST1
   title: One global refresh command, all callers routed through it
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Capture and replay preview fold state
-  status: Todo
+  status: Done
 - local_id: ST3
   title: In-content refresh action left of the nav arrows
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Dev-host verification of both behaviours
   status: Todo
   assignee: op-pierre
 created_at: '2026-07-28T08:04:21Z'
-updated_at: '2026-07-28T08:05:08Z'
+updated_at: '2026-07-28T15:08:49Z'
 ---
 <!-- sq:body -->
 Make "refresh" mean one thing in the VS Code extension: every refresh action refreshes all three
@@ -162,9 +162,9 @@ _Add with `sq task 681 add-subtask "<title>"`; track with `sq task 681 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | One global refresh command, all callers routed through it |  |
-| ST2 | Todo |  | Capture and replay preview fold state |  |
-| ST3 | Todo |  | In-content refresh action left of the nav arrows |  |
+| ST1 | Done |  | One global refresh command, all callers routed through it |  |
+| ST2 | Done |  | Capture and replay preview fold state |  |
+| ST3 | Done |  | In-content refresh action left of the nav arrows |  |
 | ST4 | Todo | op-pierre | Dev-host verification of both behaviours |  |
 <!-- sq:summary:end -->
 
@@ -174,7 +174,7 @@ _Add with `sq task 681 add-subtask "<title>"`; track with `sq task 681 subtask <
 ### ST1 — One global refresh command, all callers routed through it
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -221,7 +221,7 @@ Acceptance:
 ### ST2 — Capture and replay preview fold state
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -275,7 +275,7 @@ Acceptance:
 ### ST3 — In-content refresh action left of the nav arrows
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
@@ -380,4 +380,14 @@ Acceptance:
   - One task, fixing both bugs — and the reason is a dependency, not convenience. Today the three tree buttons don't touch an open preview, so clicking one never collapses anything; the collapse only fires on the watcher. Land BUG-679's global refresh alone and every click starts collapsing every open sub-entity body and graph fold — trading three clicks for a collapsed preview makes Pierre's original complaint worse. BUG-680 is a precondition for 679's new behaviour being worth having. They also share refreshOpenPreviews(), the file, and the dev-host session, which is the scarce resource.
   - Answer to the toolbar question, and it inverts the concern: the nav arrows are NOT contributed commands. package.json's menus block has only the three view/title tree entries; previewBack/previewForward appear solely under keybindings. The arrows are rendered inside the webview page (.sq-nav-toolbar / .sq-nav-buttons / [data-sq-nav] delegation in domain/previewDocument.ts), and previewMessages.ts records why — VS Code's editor/title/navigation menu 'doesn't reliably surface inline buttons for a plain createWebviewPanel, confirmed by screenshot'. So: no navigation@N ordinal, placement is markup order (prepend). The catch is elsewhere — the action can't be a contributed command, it must post a message the host handles (the NavigateHistoryMessage pattern), and the button lives inside the content it refreshes, so it must survive its own swap. 'Works once then goes dead' is the failure mode, and it's invisible to a unit test.
   - Global-refresh shape is extraction, not invention: extension.ts's watcher handler already calls all three providers plus refreshOpenPreviews(). Two decisions left explicit rather than to the diff — keep three command ids or collapse to one, and retitle whatever survives since 'Refresh Tree' in the Command Palette would be a lie. The watcher must call the shared command rather than keep its own copy. ST4 is dev-host verification assigned @op-pierre: both bugs were filed from code inspection with on-screen behaviour explicitly unverified, so it is what actually closes them.
+- [2026-07-28T14:45:36Z] Catherine Manager:
+  - Dispatched to Ada for 0.12.3. Both bugs close together — the global refresh is only an improvement if previews keep their open sections, otherwise every click collapses them.
+- [2026-07-28T15:08:49Z] Ada Typescript:
+  - ST1-ST3 implemented and gates clean (compile/typecheck/lint/format/npm test/npm run test:canary).
+  - ST1: collapsed the three refresh commands into one squads.refreshAll (title "Refresh All"), all three view/title entries now point at it. Orchestration extracted to a pure domain/refreshAll.ts (structural Refreshable/PreviewRefreshable interfaces, no vscode import) so it's unit-tested with fakes, not inline in the command callback. The watcher and the new in-content button both invoke the command by id (src/commandIds.ts) rather than each keeping a copy.
+  - ST2: reused ExpansionTracker (same class the trees use) per open panel. Sub-entity body folds are keyed by local_id, the two graph folds by fixed ids 'children'/'refs' -- both now carry data-sq-fold-id and a real open attribute. The webview reports toggles via a new capture-phase 'toggle' listener (native toggle doesn't bubble) -> ToggleFoldMessage -> tracker.setExpanded. Tracker resets on any navigation to a different item (local_id isn't globally unique) and prunes against the fresh sub-entity/graph id set on every successful patch render -- skipped on a failed fetch so a transient error doesn't wipe tracked state.
+  - ST3: refresh button prepended inside .sq-nav-buttons (markup order, no menu contribution, per the ticket's framing). Posts a RefreshMessage (same round trip as NavigateHistoryMessage) -> host executes squads.refreshAll. Delegation is on document, same mechanism the nav arrows already rely on.
+  - Falsified both behaviours (break/restore, see my reply to the dispatcher for verbatim output): dropped the preview call from refreshAll -> refreshAll.test.ts failed; zeroed the open attribute in buildGraphSection and buildSubEntityHtml -> previewDocument.test.ts failed on the fold-restore assertions for both graph and sub-entity folds. All three restored and green.
+  - Not verified by me: the button surviving a real content swap in a live webview, and the toolbar's visual placement/hover-styling -- that's ST4, on the dev host.
+  - ST4 (@op-pierre) is the only remaining open item; task stays InProgress until that's recorded.
 <!-- sq:discussion:end -->

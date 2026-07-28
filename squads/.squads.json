@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 684,
+  "counter": 686,
   "padding": 6,
   "items": {
     "12": {
@@ -25351,7 +25351,7 @@
         {
           "local_id": "ST1",
           "title": "One global refresh command, all callers routed through it",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25360,7 +25360,7 @@
         {
           "local_id": "ST2",
           "title": "Capture and replay preview fold state",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25369,7 +25369,7 @@
         {
           "local_id": "ST3",
           "title": "In-content refresh action left of the nav arrows",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25387,7 +25387,7 @@
       ],
       "path": "tasks/TASK-000681-vs-code-one-global-refresh-and-previews-keep-their-open-sect.md",
       "created_at": "2026-07-28T08:04:21Z",
-      "updated_at": "2026-07-28T14:45:36Z",
+      "updated_at": "2026-07-28T15:08:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25461,6 +25461,171 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-684"
+    },
+    "685": {
+      "sequence_id": 685,
+      "type": "review",
+      "title": "The two internal READMEs: audience fitness and coherence",
+      "slug": "the-two-internal-readmes-audience-fitness-and-coherence",
+      "status": "ChangesRequested",
+      "description": "Root README and the VS Code extension README reviewed for audience fitness, contradiction, duplication and staleness; the two published listings deliberately out of scope.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Root README has no contributor onboarding",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Ordering serves neither arrival",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Extension README serves neither of its audiences",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Extension README describes two views; there are three",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Ref-kind list is five of nine valid kinds",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Extension README omits search and display labels",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Review-finding id leaked into the extension README",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Dropped 'meta' terminology still in the extension README",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Neither README acknowledges its sibling documents",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000685-the-two-internal-readmes-audience-fitness-and-coherence.md",
+      "created_at": "2026-07-28T15:03:55Z",
+      "updated_at": "2026-07-28T15:08:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-685"
+    },
+    "686": {
+      "sequence_id": 686,
+      "type": "review",
+      "title": "Independent review of the two published-listing pages (MARKETPLACE.md, PYPI.md)",
+      "slug": "independent-review-of-the-two-published-listing-pages-market",
+      "status": "InReview",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Worked example fails as written: python-dev role does not exist after sq init --roles all",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "PyPI page states its present-tense limits without the directional pairing the Marketplace page already has",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Manifest positioning, audience split, and all checkable factual claims verified clean",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000686-independent-review-of-the-two-published-listing-pages-market.md",
+      "created_at": "2026-07-28T15:06:17Z",
+      "updated_at": "2026-07-28T15:08:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-686"
     }
   }
 }

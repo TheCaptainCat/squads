@@ -2,11 +2,13 @@
  * Extension entry point: resolves `sq` for the first workspace folder, then wires up the
  * activity-bar work-item tree, the meta/roster view (F12), the records view, the
  * owned item-preview webview, the filter/group/refresh commands, and the `.squads.json` watcher
- * that auto-refreshes all three tree views on an on-disk change (F17).
+ * that auto-refreshes all three tree views plus any open preview on an on-disk change (F17),
+ * via the shared `squads.refreshAll` command (`commandIds.ts`/`commands.ts`).
  */
 import * as vscode from 'vscode';
 
-import { registerCommands, registerMetaCommands, registerRecordsCommands } from './commands';
+import { REFRESH_ALL_COMMAND } from './commandIds';
+import { registerCommands } from './commands';
 import { SqDiscovery } from './discovery';
 import { ItemPreviewManager } from './itemPreviewManager';
 import { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
@@ -144,9 +146,9 @@ export function activate(context: vscode.ExtensionContext): void {
     () => treeDataProvider.getKnownTypes(),
     previewManager,
     searchQuickPick,
+    metaTreeDataProvider,
+    recordsTreeDataProvider,
   );
-  registerMetaCommands(context, metaTreeDataProvider);
-  registerRecordsCommands(context, recordsTreeDataProvider);
 
   void treeDataProvider.refresh();
   void metaTreeDataProvider.refresh();
@@ -154,14 +156,13 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // F17: auto-refresh all three tree views + any open item preview when `.squads.json` changes on
   // disk (an agent runs `sq`, a `git pull`) — no-ops cleanly for a non-local/remote workspace or
-  // when no `.squads.toml` is found.
+  // when no `.squads.toml` is found. Routed through the same `squads.refreshAll` command the
+  // manual refresh buttons and the in-content preview button invoke (`commands.ts`) rather than
+  // keeping its own copy of the provider/preview list, so the two never drift apart.
   context.subscriptions.push(
     watchSquadIndex(workspaceFolder, squadDirEnv, {
       onIndexChanged: () => {
-        void treeDataProvider.refresh();
-        void metaTreeDataProvider.refresh();
-        void recordsTreeDataProvider.refresh();
-        void previewManager.refreshOpenPreviews();
+        void vscode.commands.executeCommand(REFRESH_ALL_COMMAND);
       },
     }),
   );

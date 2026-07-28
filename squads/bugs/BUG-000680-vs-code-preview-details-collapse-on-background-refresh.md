@@ -3,13 +3,13 @@ id: BUG-680
 sequence_id: 680
 type: bug
 title: 'VS Code: preview details collapse on background refresh'
-status: Open
+status: InProgress
 author: qa
 severity: medium
 refs:
 - BUG-679
 created_at: '2026-07-28T07:32:45Z'
-updated_at: '2026-07-28T07:59:29Z'
+updated_at: '2026-07-28T14:45:34Z'
 ---
 <!-- sq:body -->
 Observed (Pierre): sub-entity bodies collapse back on refresh; expectation is that collapsible

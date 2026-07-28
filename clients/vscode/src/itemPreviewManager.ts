@@ -54,7 +54,9 @@ import { randomUUID } from 'node:crypto';
 
 import * as vscode from 'vscode';
 
+import { REFRESH_ALL_COMMAND } from './commandIds';
 import { describeTriedOrder, type SqDiscovery } from './discovery';
+import { ExpansionTracker } from './domain/expansionTracker';
 import { buildRefGraphMermaid, buildSubtreeMermaid } from './domain/graphDiagrams';
 import {
   buildArticleHtml,
@@ -63,8 +65,10 @@ import {
   buildHistoryToolbarHtml,
   buildPreviewHtml,
   buildSubEntitiesHtml,
+  CHILDREN_GRAPH_FOLD_ID,
   type DiscussionOutcome,
   type GraphOutcome,
+  REFS_GRAPH_FOLD_ID,
   renderOutcomeHtml,
   renderWorkflowHtml,
   type SubEntitiesOutcome,
@@ -82,6 +86,8 @@ import {
 import {
   parseNavigateHistoryMessage,
   parseOpenItemMessage,
+  parseRefreshMessage,
+  parseToggleFoldMessage,
   routeForMessage,
   routeForTreeSelection,
   UPDATE_CONTENT_COMMAND,
@@ -168,6 +174,14 @@ export class ItemPreviewManager {
   // Per-panel back/forward navigation history, independent of `openPanels`'s "current id"
   // bookkeeping — a `'patch'` refresh updates `openPanels` but must never touch this.
   private readonly histories = new Map<vscode.WebviewPanel, PreviewHistory>();
+  // Per-panel record of which sub-entity body/graph folds the reader has open, keyed by the
+  // same `ExpansionTracker` the activity-bar trees use for expand/collapse (F26) — fed
+  // by `ToggleFoldMessage`s the webview posts on a native `toggle` event, and consulted on every
+  // render to stamp the right `open` attribute back onto the matching `<details>`. Reset to
+  // empty on every navigation to a *different* item (never on a same-item `'patch'` refresh):
+  // a sub-entity's `local_id` is scoped to its parent item, not globally unique, so carrying a
+  // previous item's tracked ids into a new one would be at best meaningless and at worst wrong.
+  private readonly foldState = new Map<vscode.WebviewPanel, ExpansionTracker>();
   // The item-preview panel VS Code currently reports as the *active* editor tab — distinct from
   // `activePanel` (the panel tree-selection reuses), since more than one preview panel can be
   // open at once and only one of them is visually focused. Drives which panel's history the
@@ -288,6 +302,7 @@ export class ItemPreviewManager {
       }
       this.openPanels.delete(panel);
       this.histories.delete(panel);
+      this.foldState.delete(panel);
       if (this.focusedPanel === panel) {
         this.focusedPanel = undefined;
       }
@@ -327,6 +342,25 @@ export class ItemPreviewManager {
       await this.stepHistoryFor(panel, navMessage.direction === 'back' ? stepBack : stepForward);
       return;
     }
+    // The in-content toolbar's refresh button (F26) — fires the exact same global
+    // refresh a tree view-title button or the `.squads.json` watcher does, rather than a
+    // preview-only refresh, so "refresh" means one thing everywhere it's triggered from.
+    if (parseRefreshMessage(raw) !== null) {
+      await vscode.commands.executeCommand(REFRESH_ALL_COMMAND);
+      return;
+    }
+    // A tracked fold's open/closed state changed in the webview (F26) — recorded against
+    // this panel's tracker for the next render to restore, never triggers one itself.
+    const foldMessage = parseToggleFoldMessage(raw);
+    if (foldMessage !== null) {
+      let tracker = this.foldState.get(panel);
+      if (tracker === undefined) {
+        tracker = new ExpansionTracker();
+        this.foldState.set(panel, tracker);
+      }
+      tracker.setExpanded(foldMessage.id, foldMessage.open);
+      return;
+    }
     const message = parseOpenItemMessage(raw);
     if (message === null) {
       return;
@@ -358,6 +392,14 @@ export class ItemPreviewManager {
     mode: 'reload' | 'patch' = 'reload',
   ): Promise<void> {
     this.openPanels.set(panel, id);
+    if (mode !== 'patch') {
+      // A different item (or the very first render of a fresh panel) starts with every fold
+      // closed — see `foldState`'s field comment for why a previous tracker can't just carry
+      // over. `refreshOpenPreviews`'s `'patch'` mode is the only caller that must *not* do this:
+      // it's always the same item already on screen, which is the whole point of F26.
+      this.foldState.set(panel, new ExpansionTracker());
+    }
+    const foldTracker = this.foldState.get(panel) ?? new ExpansionTracker();
     const resolution = this.discovery.resolve();
     let titleText: string;
     let headerHtml: string;
@@ -399,8 +441,25 @@ export class ItemPreviewManager {
       graphsHtml = buildGraphsHtml(
         toGraphOutcome<readonly SqTreeNode[]>(tree, buildSubtreeMermaid),
         toGraphOutcome<SqGraphNode>(graph, buildRefGraphMermaid),
+        foldTracker.isExpanded(CHILDREN_GRAPH_FOLD_ID),
+        foldTracker.isExpanded(REFS_GRAPH_FOLD_ID),
       );
-      subEntitiesHtml = buildSubEntitiesHtml(toSubEntitiesOutcome(showJson), id, roles);
+      const subEntitiesOutcome = toSubEntitiesOutcome(showJson);
+      // Only prune on a *successful* fetch: `entities === null` here means the fetch failed, not
+      // that the item genuinely has no sub-entities, and pruning against that would wipe every
+      // tracked fold on a transient failure rather than leaving them for the next good fetch.
+      if (subEntitiesOutcome.entities !== null) {
+        foldTracker.prune(
+          new Set([
+            ...subEntitiesOutcome.entities.map((entity) => entity.local_id),
+            CHILDREN_GRAPH_FOLD_ID,
+            REFS_GRAPH_FOLD_ID,
+          ]),
+        );
+      }
+      subEntitiesHtml = buildSubEntitiesHtml(subEntitiesOutcome, id, roles, (localId) =>
+        foldTracker.isExpanded(localId),
+      );
       discussionHtml = buildDiscussionHtml(toDiscussionOutcome(showJson), id, roles);
     }
     panel.title = id;
