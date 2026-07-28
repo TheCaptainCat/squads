@@ -10,3 +10,4 @@ dist
 
 # Local claude settings
 .claude/settings.local.json
+.squads.toml.*.tmp
