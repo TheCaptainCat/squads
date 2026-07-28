@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 681,
+  "counter": 682,
   "padding": 6,
   "items": {
     "12": {
@@ -25392,6 +25392,29 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-681"
+    },
+    "682": {
+      "sequence_id": 682,
+      "type": "task",
+      "title": "VSIX packaging ships with no LICENSE text",
+      "slug": "vsix-packaging-ships-with-no-license-text",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "devops",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000682-vsix-packaging-ships-with-no-license-text.md",
+      "created_at": "2026-07-28T12:35:03Z",
+      "updated_at": "2026-07-28T12:35:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-682"
     }
   }
 }
