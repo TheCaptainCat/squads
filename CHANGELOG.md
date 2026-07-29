@@ -12,15 +12,32 @@ documentation an adopter reads before installing, and the page PyPI shows for th
 
 ### VS Code extension
 
-- **One refresh covers the whole sidebar.** A refresh button used to refresh only its own view, so
-  keeping the sidebar current meant clicking each of them in turn. Any refresh now refreshes all
-  three trees — Work Items, Records, Roster — and every open item preview.
+Mostly the sidebar. The two side views — Roster and Records — gained the filtering and grouping
+controls only Work Items had, and every button in a view's title bar now shows the state the view
+is in rather than only the action it performs.
+
+- **A view-title toggle shows which state its view is in.** Group-by-type, show-closed and the
+  rest rendered identically whether on or off, so the toolbar gave no clue how the tree in front
+  of you was filtered. Each toggle now swaps its icon to reflect the current state, and its title
+  names what a click will do.
+- **The Roster view can be narrowed.** It had nothing but a refresh button. Archived entries are
+  now hidden by default with a toggle to reveal them, and the view can be restricted to a single
+  status; the active filter shows beside the view title. Filtering to a normally hidden status
+  reveals it, the way `sq list --status` does without `--all`.
+- **Both side views can be flattened, and Records hides what is settled.** Roster and Records
+  group their entries by type as before, and each can now be flattened into a single list.
+  Records — which also had only a refresh button — now hides terminal records by default:
+  superseded and deprecated decisions, deprecated guides. An accepted decision or a published
+  guide stays visible; those are settled but still in force. In every view, "Clear" returns it to
+  these defaults rather than revealing everything.
+- **One refresh covers the whole sidebar, from the sidebar or from an item.** A refresh button
+  used to refresh only its own view, so keeping the sidebar current meant clicking each of them in
+  turn. Any refresh now refreshes all three trees — Work Items, Records, Roster — and every open
+  item preview. The preview panel has a refresh button of its own too, left of the back/forward
+  arrows, so bringing the dossier you're reading up to date no longer means leaving it.
 - **An open preview keeps its expanded sections across a refresh.** Sub-entity bodies and the two
   graph folds stay as you left them when the preview reloads. Since agents mutate the board while
   you are reading it, a preview left open used to collapse itself repeatedly through a session.
-- **A refresh action inside the preview panel.** The panel's own toolbar gained one, left of the
-  back/forward arrows, firing that same whole-sidebar refresh — so bringing the dossier you're
-  reading up to date no longer means leaving it.
 - **The packaged extension carries its licence, and the Marketplace listing says what it is.** The
   VSIX now ships the MIT licence text, and the listing has real categories, search keywords, and a
   description naming the extension for what it is: a read-only companion for squads-managed

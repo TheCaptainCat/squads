@@ -3,7 +3,7 @@ id: TASK-689
 sequence_id: 689
 type: task
 title: 'VS Code: grouping toggle and hide-terminal on Roster and Records'
-status: InProgress
+status: Done
 parent: FEAT-621
 author: op-pierre
 description: Both views get a group-by-type toggle defaulting to grouped, plus a hide
@@ -20,10 +20,10 @@ subentities:
   status: Done
 - local_id: ST4
   title: Dev-host verification per increment
-  status: Todo
+  status: Done
   assignee: op-pierre
 created_at: '2026-07-29T09:50:19Z'
-updated_at: '2026-07-29T10:03:56Z'
+updated_at: '2026-07-29T12:46:13Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -65,7 +65,7 @@ _Add with `sq task 689 add-subtask "<title>"`; track with `sq task 689 subtask <
 | ST1 | Done |  | Group-by-type toggle on Roster and Records |  |
 | ST2 | Done |  | Hide-terminal button on Records |  |
 | ST3 | Done |  | Visible active state and clear, both views |  |
-| ST4 | Todo | op-pierre | Dev-host verification per increment |  |
+| ST4 | Done | op-pierre | Dev-host verification per increment |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -137,7 +137,7 @@ Roster and Records each get a call-site-documented clear back to default (groupe
 ### ST4 — Dev-host verification per increment
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Assignee:** Pierre Chat
 <!-- sq:subtask:ST4:head:end -->
 
@@ -148,6 +148,8 @@ Live verification on the Windows dev host.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-07-29T12:46:12Z] Pierre Chat:
+  - Verified on the stable dev host: the roster and records controls read and behave correctly.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
