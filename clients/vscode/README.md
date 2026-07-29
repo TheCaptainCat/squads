@@ -75,14 +75,19 @@ npm test        # vitest — unit layer, committed fixtures only, no sq binary n
 Anything visual has to be seen in a real Extension Development Host, not inferred from tests:
 
 ```bash
-npm run compile                                   # vendors mermaid, emits out/
-code --extensionDevelopmentPath=. --disable-extensions
+npm run compile                     # vendors mermaid, emits out/
+code --extensionDevelopmentPath=.
 ```
 
 The entry point is `out/src/extension.js`, so compile before launching or the host loads a stale
-build. `--disable-extensions` keeps your installed extensions out of the picture. Open a
-squads-managed folder in the new window to exercise the views. Under WSL, launch through the Windows
-`code` CLI — the Linux binary renders poorly enough to mislead a visual check.
+build. Open a squads-managed folder in the new window to exercise the views.
+
+**On WSL, launch the dev host as a WSL remote and leave `--disable-extensions` off.** The flag is the
+documented way to isolate a dev host from your installed extensions, but it also disables Remote-WSL:
+the host then runs on Windows over the UNC share, where a Linux `sq` in `.venv/bin` cannot execute, so
+you get a discovery error instead of a working extension. Elsewhere, add the flag if a local
+extension is interfering. Either way the visual check belongs on the desktop — a poorly rendering
+host misleads more than it shows.
 
 ### Integration skew canary
 

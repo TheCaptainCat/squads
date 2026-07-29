@@ -191,7 +191,7 @@ Full docs (with diagrams) live in **[docs/](docs/README.md)**:
 The same docs are readable offline, without leaving the terminal: `sq docs` (add `--rich` to
 pretty-print).
 
-Contributing: **[CONTRIBUTING.md](CONTRIBUTING.md)** · contributors: **[CONTRIBUTORS.md](CONTRIBUTORS.md)** · changes: **[CHANGELOG.md](CHANGELOG.md)**.
+Contributing: **[CONTRIBUTING.md](CONTRIBUTING.md)** · contributors: **[CONTRIBUTORS.md](CONTRIBUTORS.md)** · changes: **[CHANGELOG.md](CHANGELOG.md)** · working on the VS Code client: **[clients/vscode/README.md](clients/vscode/README.md)**.
 
 ---
 

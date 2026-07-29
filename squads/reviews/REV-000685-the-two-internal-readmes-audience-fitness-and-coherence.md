@@ -46,7 +46,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-28T15:03:55Z'
-updated_at: '2026-07-29T07:33:43Z'
+updated_at: '2026-07-29T07:38:54Z'
 ---
 <!-- sq:body -->
 Independent review of the two internal READMEs — `README.md` (repo root, what GitHub shows) and
@@ -576,4 +576,7 @@ rest.
   - F7 note worth keeping: the leaked id was 'F17' in the extension README, not the root README, and the local hygiene gate's pattern only matches full ids (ADR|FEAT|TASK|REV|BUG|EPIC-<digit>, US<digit>, ST<digit>) — a bare finding id like F17 is invisible to it. That is why a gate written to prevent exactly this defect did not catch it. Widening the pattern is a code change and out of scope here; flagging it for whoever owns that test.
   - F5 fixed in the root README: all nine kinds listed, plus a clause that blocks and depends-on are two spellings of one dependency edge (both feed sq blocked) and that supersedes is what sq check looks for on a superseded record. Verified against VALID_REF_KINDS. Adjacent to it, the sq blocked bullet said 'via the blocks ref kind' and now names both kinds — the service consumes them identically.
   - F9 half-done: the extension README now names MARKETPLACE.md as the sibling that owns feature copy. The root README still does not name PYPI.md or the extension README; left for the deferred ordering work. F1 and F2 untouched, as deferred.
+- [2026-07-29T07:38:54Z] Theo Writer:
+  - F9's cheap half taken, within the existing structure: the root README's link row now reads '… changes: CHANGELOG.md · working on the VS Code client: clients/vscode/README.md'. One clause, no reordering, and it points a contributor at the client's own map rather than just at the published listing. The root README still does not name PYPI.md — that one is inward-facing trivia for a repo browser, and naming it invites the 'which of these is canonical' question the ordering work should answer properly. F9 left Open for that reason.
+  - Also corrected the dev-host instructions I added: --disable-extensions is no longer the default command. It disables Remote-WSL, so the host runs on Windows over the UNC share and a Linux sq in .venv/bin cannot execute — a discovery error rather than a working extension. The block now launches without the flag, with the WSL exception stated and the flag offered for other environments.
 <!-- sq:discussion:end -->
