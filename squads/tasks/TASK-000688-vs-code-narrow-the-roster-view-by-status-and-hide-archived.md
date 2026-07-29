@@ -3,7 +3,7 @@ id: TASK-688
 sequence_id: 688
 type: task
 title: 'VS Code: narrow the Roster view by status and hide archived'
-status: InProgress
+status: Done
 parent: FEAT-621
 author: tech-lead
 refs:
@@ -23,10 +23,10 @@ subentities:
   status: Done
 - local_id: ST4
   title: Dev-host verification per increment
-  status: Todo
+  status: Done
   assignee: op-pierre
 created_at: '2026-07-29T08:55:21Z'
-updated_at: '2026-07-29T09:37:06Z'
+updated_at: '2026-07-29T12:46:09Z'
 ---
 <!-- sq:body -->
 Let a reader narrow the VS Code **Roster** view the way they can already narrow Work Items — hide
@@ -109,7 +109,7 @@ _Add with `sq task 688 add-subtask "<title>"`; track with `sq task 688 subtask <
 | ST1 | Done |  | Hide archived roster entries |  |
 | ST2 | Done |  | Status filter on the Roster view |  |
 | ST3 | Done |  | Visible filter state, and clear |  |
-| ST4 | Todo | op-pierre | Dev-host verification per increment |  |
+| ST4 | Done | op-pierre | Dev-host verification per increment |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -268,7 +268,7 @@ Acceptance:
 ### ST4 — Dev-host verification per increment
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Assignee:** Pierre Chat
 <!-- sq:subtask:ST4:head:end -->
 
@@ -308,6 +308,8 @@ Acceptance:
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-07-29T12:46:08Z] Pierre Chat:
+  - Verified on the stable dev host: the roster and records controls read and behave correctly.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
