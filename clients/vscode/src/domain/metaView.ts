@@ -80,13 +80,15 @@ function sortedLeaves(
 
 /** Builds the meta/roster view's roots: one group per `META_BUCKETS` entry, in that fixed
  * order, each always present (even with 0 items, whether from an empty fetch or a filter that
- * matched nothing in that bucket) and never merged/reordered by content. `fieldBindings`/
- * `badgeVocabulary` and `statusRoles`/`roleCatalog` default to the graceful-fallback empty maps,
- * degrading each leaf's tooltip badges to raw codes / disabling the colour highlight rather than
- * breaking the view. `labelMap` defaults to `NO_LABELS`, resolving each bucket's header via the
- * shared `pluralLabel` resolver rather than a hardcoded literal — falls back to the raw type
- * string the same way every other tree does. `state` defaults to `DEFAULT_META_VIEW_STATE`
- * (archived hidden, no status filter) — see `domain/metaFilter.ts` for the predicate. */
+ * matched nothing in that bucket) and never merged/reordered by content — unless
+ * `state.groupByType` is `false` (default `true`), which skips the 3 buckets and returns every
+ * surviving item as one id-sorted flat list instead. `fieldBindings`/`badgeVocabulary` and
+ * `statusRoles`/`roleCatalog` default to the graceful-fallback empty maps, degrading each leaf's
+ * tooltip badges to raw codes / disabling the colour highlight rather than breaking the view.
+ * `labelMap` defaults to `NO_LABELS`, resolving each bucket's header via the shared `pluralLabel`
+ * resolver rather than a hardcoded literal — falls back to the raw type string the same way
+ * every other tree does. `state` defaults to `DEFAULT_META_VIEW_STATE` (archived hidden, no
+ * status filter, grouped) — see `domain/metaFilter.ts` for the predicate. */
 export function buildMetaView(
   items: readonly SqListItem[],
   fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
@@ -96,7 +98,14 @@ export function buildMetaView(
   labelMap: TypeLabelMap = NO_LABELS,
   state: MetaViewState = DEFAULT_META_VIEW_STATE,
 ): DisplayNode[] {
-  const visible = items.filter((item) => matchesMetaFilter(item, state, statusRoles, roleCatalog));
+  const bucketTypes = new Set(META_BUCKETS.map((bucket) => bucket.type));
+  const visible = items.filter(
+    (item) =>
+      bucketTypes.has(item.type) && matchesMetaFilter(item, state, statusRoles, roleCatalog),
+  );
+  if (!state.groupByType) {
+    return sortedLeaves(visible, fieldBindings, badgeVocabulary, statusRoles, roleCatalog);
+  }
   return META_BUCKETS.map(({ type }) => {
     const bucketItems = visible.filter((item) => item.type === type);
     return groupDisplayNode(

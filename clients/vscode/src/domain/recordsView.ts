@@ -4,10 +4,12 @@
  * any custom records type a project declares) — the complement of the work tree's records
  * exclusion (`domain/reservedTypes.ts::isReservedType`). Mirrors
  * `domain/metaView.ts::buildMetaView`'s shape (fixed buckets, each always present, numeric id
- * order within a bucket), with one difference: unlike roster's 3 fixed buckets, the records
- * bucket LIST itself is spec-driven — derived from `domain/typeCategory.ts`'s category map, never
- * a hardcoded decision/guide/contract list, so a project's own custom records type gets a bucket
- * with no client change.
+ * order within a bucket, narrowable by `state` before bucketing — `domain/recordsFilter.ts`),
+ * with one difference: unlike roster's 3 fixed buckets, the records bucket LIST itself is
+ * spec-driven — derived from `domain/typeCategory.ts`'s category map, never a hardcoded
+ * decision/guide/contract list, so a project's own custom records type gets a bucket with no
+ * client change. `state.groupByType: false` flattens every bucket into one id-sorted list, same
+ * flattening `domain/listView.ts::groupListItems` does for the work tree.
  */
 import type { SqListItem } from '../types';
 import {
@@ -25,6 +27,11 @@ import {
   type TypeIconOverrides,
 } from './displayNode';
 import { compareIds } from './idOrder';
+import {
+  DEFAULT_RECORDS_VIEW_STATE,
+  matchesRecordsFilter,
+  type RecordsViewState,
+} from './recordsFilter';
 import {
   NO_ROLES,
   NO_STATUS_ROLES,
@@ -103,15 +110,19 @@ export interface RecordsViewOptions {
 /** Builds the records view's roots: one group per declared `records`-category type
  * (`domain/typeCategory.ts::recordsTypes`, ordered by the spec's per-type `order` — `orderMap`
  * defaults to `NO_TYPE_ORDER`, degrading to type-name order), each always present (even with 0
- * items). When `categoryMap` is empty (the type-catalog fetch failed or hasn't completed), there
- * is no way to know which types are records, so this returns no buckets at all rather than
- * guessing at a hardcoded list — the same "can't tell yet" default `isReservedType` uses to keep
- * those same rows in the work tree meanwhile. `options` (icons/badges/status-role/labels)
- * defaults every field to its own graceful-fallback empty value when omitted. */
+ * items, whether from an empty fetch or `state.showTerminal: false` filtering a bucket empty).
+ * `state.groupByType: false` (default `true`) skips the per-type buckets and returns every
+ * surviving item as one id-sorted flat list instead. When `categoryMap` is empty (the
+ * type-catalog fetch failed or hasn't completed), there is no way to know which types are
+ * records, so this returns no buckets/leaves at all rather than guessing at a hardcoded list —
+ * the same "can't tell yet" default `isReservedType` uses to keep those same rows in the work
+ * tree meanwhile. `options` (icons/badges/status-role/labels) defaults every field to its own
+ * graceful-fallback empty value when omitted. */
 export function buildRecordsView(
   items: readonly SqListItem[],
   categoryMap: TypeCategoryMap = NO_CATEGORIES,
   orderMap: TypeOrderMap = NO_TYPE_ORDER,
+  state: RecordsViewState = DEFAULT_RECORDS_VIEW_STATE,
   options: RecordsViewOptions = {},
 ): DisplayNode[] {
   const {
@@ -123,8 +134,23 @@ export function buildRecordsView(
     labelMap = NO_LABELS,
   } = options;
   const types = sortTypesByOrder(recordsTypes(categoryMap), orderMap);
+  const recordsTypeSet = new Set(types);
+  const visible = items.filter(
+    (item) =>
+      recordsTypeSet.has(item.type) && matchesRecordsFilter(item, state, statusRoles, roleCatalog),
+  );
+  if (!state.groupByType) {
+    return sortedLeaves(
+      visible,
+      iconOverrides,
+      fieldBindings,
+      badgeVocabulary,
+      statusRoles,
+      roleCatalog,
+    );
+  }
   return types.map((type) => {
-    const bucketItems = items.filter((item) => item.type === type);
+    const bucketItems = visible.filter((item) => item.type === type);
     return groupDisplayNode(
       `records:${type}`,
       pluralLabel(type, labelMap),

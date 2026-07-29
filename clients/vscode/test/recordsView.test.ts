@@ -3,6 +3,7 @@ import * as path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_RECORDS_VIEW_STATE } from '../src/domain/recordsFilter';
 import { buildRecordsView } from '../src/domain/recordsView';
 import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
 import { buildCategoryMap, NO_CATEGORIES } from '../src/domain/typeCategory';
@@ -128,7 +129,10 @@ describe('buildRecordsView', () => {
     const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
     const items: SqListItem[] = [makeItem('ADR-1', 'decision', 'Accepted')];
 
-    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP, { statusRoles, roleCatalog });
+    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP, DEFAULT_RECORDS_VIEW_STATE, {
+      statusRoles,
+      roleCatalog,
+    });
     const leaf = nodes.find((node) => node.label === 'decision')?.children[0];
 
     // Accepted ("in_force" role): settled but NOT hidden — shows in its own colour.
@@ -150,7 +154,9 @@ describe('buildRecordsView', () => {
     const labelMap = buildTypeLabelMap(TYPE_CATALOG_FIXTURE);
     const items: SqListItem[] = [makeItem('ADR-1', 'decision'), makeItem('GUIDE-1', 'guide')];
 
-    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP, { labelMap });
+    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP, DEFAULT_RECORDS_VIEW_STATE, {
+      labelMap,
+    });
 
     expect(nodes.map((node) => node.label)).toEqual(['Decisions', 'Guides']);
   });
@@ -161,5 +167,55 @@ describe('buildRecordsView', () => {
     const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP);
 
     expect(nodes.map((node) => node.label)).toEqual(['decision', 'guide']);
+  });
+
+  it('hides a terminal (hidden-role) record by default, unlike a merely settled-but-visible one', () => {
+    const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
+    const items: SqListItem[] = [
+      makeItem('ADR-1', 'decision', 'Accepted'), // "in_force": settled but not hidden.
+      makeItem('ADR-2', 'decision', 'Superseded'), // "superseded": settled AND hidden.
+    ];
+
+    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP, DEFAULT_RECORDS_VIEW_STATE, {
+      statusRoles,
+      roleCatalog,
+    });
+    const decisions = nodes.find((node) => node.label === 'decision');
+
+    expect(decisions?.children.map((child) => child.itemId)).toEqual(['ADR-1']);
+  });
+
+  it('shows a terminal record once showTerminal is on', () => {
+    const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
+    const items: SqListItem[] = [makeItem('ADR-2', 'decision', 'Superseded')];
+
+    const nodes = buildRecordsView(
+      items,
+      CATEGORY_MAP,
+      ORDER_MAP,
+      { ...DEFAULT_RECORDS_VIEW_STATE, showTerminal: true },
+      { statusRoles, roleCatalog },
+    );
+    const decisions = nodes.find((node) => node.label === 'decision');
+
+    expect(decisions?.children.map((child) => child.itemId)).toEqual(['ADR-2']);
+  });
+
+  it('with groupByType: false, flattens every bucket into one id-sorted list of leaves', () => {
+    const items: SqListItem[] = [
+      makeItem('GUIDE-1', 'guide'),
+      makeItem('ADR-2', 'decision'),
+      makeItem('ADR-1', 'decision'),
+    ];
+
+    const nodes = buildRecordsView(items, CATEGORY_MAP, ORDER_MAP, {
+      ...DEFAULT_RECORDS_VIEW_STATE,
+      groupByType: false,
+    });
+
+    expect(nodes.map((node) => node.itemId)).toEqual(['ADR-1', 'ADR-2', 'GUIDE-1']);
+    expect(nodes.every((node) => node.children.length === 0)).toBe(true);
   });
 });

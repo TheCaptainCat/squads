@@ -143,12 +143,53 @@
         "icon": "$(eye)"
       },
       {
+        "command": "squads.toggleGroupByTypeMeta",
+        "title": "Group by Type",
+        "category": "Squads",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "squads.ungroupByTypeMeta",
+        "title": "Ungroup",
+        "category": "Squads",
+        "icon": "$(list-tree)"
+      },
+      {
         "command": "squads.filterMetaByStatus",
         "title": "Filter by Status...",
         "category": "Squads"
       },
       {
         "command": "squads.clearMetaFilter",
+        "title": "Clear Filter",
+        "category": "Squads"
+      },
+      {
+        "command": "squads.toggleGroupByTypeRecords",
+        "title": "Group by Type",
+        "category": "Squads",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "squads.ungroupByTypeRecords",
+        "title": "Ungroup",
+        "category": "Squads",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "squads.toggleShowTerminal",
+        "title": "Show Terminal Records",
+        "category": "Squads",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "squads.hideTerminal",
+        "title": "Hide Terminal Records",
+        "category": "Squads",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "squads.clearRecordsFilter",
         "title": "Clear Filter",
         "category": "Squads"
       },
@@ -241,14 +282,24 @@
           "group": "navigation@1"
         },
         {
+          "command": "squads.toggleGroupByTypeMeta",
+          "when": "view == squadsMeta && !squads.metaGroupByType",
+          "group": "navigation@2"
+        },
+        {
+          "command": "squads.ungroupByTypeMeta",
+          "when": "view == squadsMeta && squads.metaGroupByType",
+          "group": "navigation@2"
+        },
+        {
           "command": "squads.toggleShowArchived",
           "when": "view == squadsMeta && !squads.metaShowArchived",
-          "group": "navigation@2"
+          "group": "navigation@3"
         },
         {
           "command": "squads.hideArchived",
           "when": "view == squadsMeta && squads.metaShowArchived",
-          "group": "navigation@2"
+          "group": "navigation@3"
         },
         {
           "command": "squads.filterMetaByStatus",
@@ -264,6 +315,31 @@
           "command": "squads.refreshAll",
           "when": "view == squadsRecords",
           "group": "navigation@1"
+        },
+        {
+          "command": "squads.toggleGroupByTypeRecords",
+          "when": "view == squadsRecords && !squads.recordsGroupByType",
+          "group": "navigation@2"
+        },
+        {
+          "command": "squads.ungroupByTypeRecords",
+          "when": "view == squadsRecords && squads.recordsGroupByType",
+          "group": "navigation@2"
+        },
+        {
+          "command": "squads.toggleShowTerminal",
+          "when": "view == squadsRecords && !squads.recordsShowTerminal",
+          "group": "navigation@3"
+        },
+        {
+          "command": "squads.hideTerminal",
+          "when": "view == squadsRecords && squads.recordsShowTerminal",
+          "group": "navigation@3"
+        },
+        {
+          "command": "squads.clearRecordsFilter",
+          "when": "view == squadsRecords",
+          "group": "1_squads"
         }
       ]
     }

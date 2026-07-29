@@ -1,11 +1,14 @@
 /**
  * The third activity-bar view's `TreeDataProvider` ("Records"): renders one bucket
  * per declared `records`-category type (decision/guide, plus any custom records type), built by
- * the vscode-free `domain/recordsView.ts`. Same shape as `metaTreeDataProvider.ts`: no
- * filter/group/show-closed state — one `sq list --json --all` fetch (`--all` so a record that
- * ever reaches a settled/hidden status still shows up in its bucket) feeds every bucket directly.
- * Thin glue only: this module's vscode wiring is exercised by the extension-host smoke test,
- * `buildRecordsView` is what's unit-tested.
+ * the vscode-free `domain/recordsView.ts`, or a flat id-sorted list when `groupByType` is off.
+ * Same shape as `metaTreeDataProvider.ts`: `RecordsViewState` (`domain/recordsFilter.ts`) is a
+ * deliberately small state machine (group-by-type + hide-terminal, no status filter — Records
+ * has no equivalent request for one yet). One `sq list --json --all` fetch (`--all` so a record
+ * that ever reaches a settled/hidden status still shows up when `showTerminal` is toggled on,
+ * with no second round trip) feeds every bucket. Thin glue only: this module's vscode wiring is
+ * exercised by the extension-host smoke test, `buildRecordsView`/`domain/recordsFilter.ts` are
+ * what's unit-tested.
  */
 import * as vscode from 'vscode';
 
@@ -23,6 +26,7 @@ import {
   errorDisplayNode,
 } from './domain/displayNode';
 import { ExpansionTracker } from './domain/expansionTracker';
+import { DEFAULT_RECORDS_VIEW_STATE, type RecordsViewState } from './domain/recordsFilter';
 import { buildRecordsView } from './domain/recordsView';
 import { resolveSquadDir, type SquadDirEnvironment } from './domain/squadDir';
 import {
@@ -55,6 +59,7 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
   // See `treeDataProvider.ts`'s matching field: a full-root refresh (this view's only kind) does
   // not preserve expand/collapse state on its own, even with a stable `item.id`.
   private readonly expansion = new ExpansionTracker();
+  private state: RecordsViewState = DEFAULT_RECORDS_VIEW_STATE;
 
   constructor(
     private readonly runner: ProcessRunner,
@@ -75,6 +80,25 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
 
   getChildren(node?: DisplayNode): DisplayNode[] {
     return node === undefined ? this.roots : [...node.children];
+  }
+
+  get viewState(): RecordsViewState {
+    return this.state;
+  }
+
+  toggleGroupByType(): void {
+    this.state = { ...this.state, groupByType: !this.state.groupByType };
+    void this.refresh();
+  }
+
+  toggleShowTerminal(): void {
+    this.state = { ...this.state, showTerminal: !this.state.showTerminal };
+    void this.refresh();
+  }
+
+  clearFilter(): void {
+    this.state = DEFAULT_RECORDS_VIEW_STATE;
+    void this.refresh();
   }
 
   async refresh(): Promise<void> {
@@ -126,7 +150,7 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
         : NO_STATUS_ROLES;
     const roleCatalog =
       rolesOutcome.kind === 'success' ? buildRoleCatalogMap(rolesOutcome.data) : NO_ROLES;
-    this.roots = buildRecordsView(outcome.data, categoryMap, orderMap, {
+    this.roots = buildRecordsView(outcome.data, categoryMap, orderMap, this.state, {
       iconOverrides: getTypeIconOverrides(),
       fieldBindings,
       badgeVocabulary,

@@ -11,14 +11,19 @@
  * refresh button (`itemPreviewManager.ts`'s message handler) both invoke it by id
  * (`commandIds.ts`) rather than keeping their own copy of what "refresh everything" means.
  *
- * The view-title toggles (Work Items' group-by-type and show-closed, the Roster's show-archived)
- * each register *two* commands, not one: VS Code never reads a per-item `toggled` property on an
- * extension's `contributes.menus` (only core VS Code's own `ICommandAction` has it), so it's a
- * no-op everywhere. Each pair instead uses opposite `when` clauses plus a distinct icon (current
+ * Every view-title toggle (Work Items' group-by-type and show-closed; the Roster's
+ * show-archived and its own group-by-type; Records' group-by-type and show-terminal) registers
+ * *two* commands, not one: VS Code never reads a per-item `toggled` property on an extension's
+ * `contributes.menus` (only core VS Code's own `ICommandAction` has it), so it's a no-op
+ * everywhere. Each pair instead uses opposite `when` clauses plus a distinct icon (current
  * state) and title (the action) per half — the idiom VS Code's own `references-view`
- * call-hierarchy direction toggle uses (`showIncomingCalls`/`showOutgoingCalls`). The Roster's
- * status filter is a quick-pick, not a toggle, so it has no such pair — its active state instead
- * shows in the view's `.description` (`extension.ts`, `domain/metaFilter.ts::describeMetaFilterState`).
+ * call-hierarchy direction toggle uses (`showIncomingCalls`/`showOutgoingCalls`). A toggle's
+ * *default* state is independent of this idiom: Work Items' group-by-type defaults off, the
+ * Roster's and Records' default on — each pair's icon/`when` still just reflects whichever
+ * state is current. The Roster's status filter is a quick-pick, not a toggle, so it has no such
+ * pair — its active state instead shows in the view's `.description` (`extension.ts`,
+ * `domain/metaFilter.ts::describeMetaFilterState`); Records has no such quick-pick, so it needs
+ * no equivalent.
  */
 import * as vscode from 'vscode';
 
@@ -53,6 +58,9 @@ export function registerCommands(
   syncToggleContext('squads.groupByType', provider.viewState.groupByType);
   syncToggleContext('squads.showClosed', provider.viewState.showClosed);
   syncToggleContext('squads.metaShowArchived', metaProvider.viewState.showArchived);
+  syncToggleContext('squads.metaGroupByType', metaProvider.viewState.groupByType);
+  syncToggleContext('squads.recordsGroupByType', recordsProvider.viewState.groupByType);
+  syncToggleContext('squads.recordsShowTerminal', recordsProvider.viewState.showTerminal);
 
   context.subscriptions.push(
     // The one refresh command every entry point routes through — see the module doc comment.
@@ -108,6 +116,18 @@ export function registerCommands(
       syncToggleContext('squads.metaShowArchived', metaProvider.viewState.showArchived);
     }),
 
+    // Same pair shape as Work Items' toggleGroupByType/ungroupByType above, distinct ids
+    // because the Roster's own `groupByType` state (default on) is a different piece of state.
+    vscode.commands.registerCommand('squads.toggleGroupByTypeMeta', () => {
+      metaProvider.toggleGroupByType();
+      syncToggleContext('squads.metaGroupByType', metaProvider.viewState.groupByType);
+    }),
+
+    vscode.commands.registerCommand('squads.ungroupByTypeMeta', () => {
+      metaProvider.toggleGroupByType();
+      syncToggleContext('squads.metaGroupByType', metaProvider.viewState.groupByType);
+    }),
+
     vscode.commands.registerCommand('squads.filterMetaByStatus', async () => {
       const picked = await vscode.window.showQuickPick(
         [ALL_STATUSES_LABEL, ...metaProvider.getKnownStatuses()],
@@ -126,6 +146,39 @@ export function registerCommands(
     vscode.commands.registerCommand('squads.clearMetaFilter', () => {
       metaProvider.clearFilter();
       syncToggleContext('squads.metaShowArchived', metaProvider.viewState.showArchived);
+      syncToggleContext('squads.metaGroupByType', metaProvider.viewState.groupByType);
+    }),
+
+    // Records' group-by-type pair — same shape as the Roster's above.
+    vscode.commands.registerCommand('squads.toggleGroupByTypeRecords', () => {
+      recordsProvider.toggleGroupByType();
+      syncToggleContext('squads.recordsGroupByType', recordsProvider.viewState.groupByType);
+    }),
+
+    vscode.commands.registerCommand('squads.ungroupByTypeRecords', () => {
+      recordsProvider.toggleGroupByType();
+      syncToggleContext('squads.recordsGroupByType', recordsProvider.viewState.groupByType);
+    }),
+
+    // Records' terminal-hiding pair — the Records equivalent of the Roster's
+    // toggleShowArchived/hideArchived (module doc comment); "terminal" rather than "closed"
+    // per the wording call at the command-title level, "archived" doesn't fit either.
+    vscode.commands.registerCommand('squads.toggleShowTerminal', () => {
+      recordsProvider.toggleShowTerminal();
+      syncToggleContext('squads.recordsShowTerminal', recordsProvider.viewState.showTerminal);
+    }),
+
+    vscode.commands.registerCommand('squads.hideTerminal', () => {
+      recordsProvider.toggleShowTerminal();
+      syncToggleContext('squads.recordsShowTerminal', recordsProvider.viewState.showTerminal);
+    }),
+
+    // Returns Records to its default — grouped, terminal hidden — not to show-everything; same
+    // asymmetry as squads.clearMetaFilter above, restated here because it's Records' own call site.
+    vscode.commands.registerCommand('squads.clearRecordsFilter', () => {
+      recordsProvider.clearFilter();
+      syncToggleContext('squads.recordsGroupByType', recordsProvider.viewState.groupByType);
+      syncToggleContext('squads.recordsShowTerminal', recordsProvider.viewState.showTerminal);
     }),
 
     vscode.commands.registerCommand('squads.openItemPreview', async (itemId: unknown) => {

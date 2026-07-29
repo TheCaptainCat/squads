@@ -103,6 +103,7 @@ describe('buildMetaView', () => {
       {
         showArchived: true,
         statusFilter: null,
+        groupByType: true,
       },
     );
 
@@ -130,6 +131,45 @@ describe('buildMetaView', () => {
 
     expect(roles?.children.map((child) => child.itemId)).toEqual(['ROLE-1']);
     expect(roles?.description).toBe('1 item');
+  });
+
+  it('with groupByType: false, flattens every bucket into one id-sorted list of leaves', () => {
+    const items: SqListItem[] = [
+      makeItem('SKILL-193', 'skill'),
+      makeItem('ROLE-2', 'role'),
+      makeItem('OP-10', 'operator'),
+      makeItem('ROLE-1', 'role'),
+    ];
+
+    const nodes = buildMetaView(items, undefined, undefined, undefined, undefined, undefined, {
+      showArchived: false,
+      statusFilter: null,
+      groupByType: false,
+    });
+
+    // compareIds sorts the whole id string (numeric-aware), not grouped by type prefix first —
+    // "OP-10" sorts before "ROLE-1" alphabetically on the prefix.
+    expect(nodes.map((node) => node.itemId)).toEqual(['OP-10', 'ROLE-1', 'ROLE-2', 'SKILL-193']);
+    // Flattened, so there are no group wrapper nodes left to hold children.
+    expect(nodes.every((node) => node.children.length === 0)).toBe(true);
+  });
+
+  it('flattening still excludes a non-roster type and an archived (hidden-by-default) entry', () => {
+    const items: SqListItem[] = [
+      makeItem('ROLE-1', 'role'),
+      makeItem('EPIC-99', 'epic'),
+      { ...makeItem('ROLE-2', 'role'), status: 'Archived' },
+    ];
+    const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
+
+    const nodes = buildMetaView(items, undefined, undefined, statusRoles, roleCatalog, undefined, {
+      showArchived: false,
+      statusFilter: null,
+      groupByType: false,
+    });
+
+    expect(nodes.map((node) => node.itemId)).toEqual(['ROLE-1']);
   });
 
   it('with no statusRoles/roleCatalog (the graceful fallback), no roster item is ever hidden or coloured', () => {
