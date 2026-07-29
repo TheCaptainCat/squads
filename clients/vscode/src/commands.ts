@@ -11,12 +11,14 @@
  * refresh button (`itemPreviewManager.ts`'s message handler) both invoke it by id
  * (`commandIds.ts`) rather than keeping their own copy of what "refresh everything" means.
  *
- * The two view-title toggles (group-by-type, show-closed) each register *two* commands, not one:
- * VS Code never reads a per-item `toggled` property on an extension's `contributes.menus` (only
- * core VS Code's own `ICommandAction` has it), so it's a no-op everywhere. Each pair instead uses
- * opposite `when` clauses plus a distinct icon (current state) and title (the action) per half —
- * the idiom VS Code's own `references-view` call-hierarchy direction toggle uses
- * (`showIncomingCalls`/`showOutgoingCalls`).
+ * The view-title toggles (Work Items' group-by-type and show-closed, the Roster's show-archived)
+ * each register *two* commands, not one: VS Code never reads a per-item `toggled` property on an
+ * extension's `contributes.menus` (only core VS Code's own `ICommandAction` has it), so it's a
+ * no-op everywhere. Each pair instead uses opposite `when` clauses plus a distinct icon (current
+ * state) and title (the action) per half — the idiom VS Code's own `references-view`
+ * call-hierarchy direction toggle uses (`showIncomingCalls`/`showOutgoingCalls`). The Roster's
+ * status filter is a quick-pick, not a toggle, so it has no such pair — its active state instead
+ * shows in the view's `.description` (`extension.ts`, `domain/metaFilter.ts::describeMetaFilterState`).
  */
 import * as vscode from 'vscode';
 
@@ -29,6 +31,7 @@ import type { SearchQuickPickController } from './searchQuickPick';
 import type { SquadsTreeDataProvider } from './treeDataProvider';
 
 const ALL_TYPES_LABEL = 'All types';
+const ALL_STATUSES_LABEL = 'All statuses';
 
 /** Mirrors a toggle's current state into a context key so the title-bar shows the right half of
  * its icon/title pair — see the module doc comment for why there are two commands per toggle. */
@@ -49,6 +52,7 @@ export function registerCommands(
   // them from the provider's initial state so a fresh window starts in sync.
   syncToggleContext('squads.groupByType', provider.viewState.groupByType);
   syncToggleContext('squads.showClosed', provider.viewState.showClosed);
+  syncToggleContext('squads.metaShowArchived', metaProvider.viewState.showArchived);
 
   context.subscriptions.push(
     // The one refresh command every entry point routes through — see the module doc comment.
@@ -90,6 +94,38 @@ export function registerCommands(
     vscode.commands.registerCommand('squads.clearFiltersAndGrouping', () => {
       provider.clearFilterAndGrouping();
       syncToggleContext('squads.groupByType', provider.viewState.groupByType);
+    }),
+
+    // Both ids of this pair share this handler — either flips the same `showArchived` state
+    // (module doc comment).
+    vscode.commands.registerCommand('squads.toggleShowArchived', () => {
+      metaProvider.toggleShowArchived();
+      syncToggleContext('squads.metaShowArchived', metaProvider.viewState.showArchived);
+    }),
+
+    vscode.commands.registerCommand('squads.hideArchived', () => {
+      metaProvider.toggleShowArchived();
+      syncToggleContext('squads.metaShowArchived', metaProvider.viewState.showArchived);
+    }),
+
+    vscode.commands.registerCommand('squads.filterMetaByStatus', async () => {
+      const picked = await vscode.window.showQuickPick(
+        [ALL_STATUSES_LABEL, ...metaProvider.getKnownStatuses()],
+        { placeHolder: 'Filter the Roster view by status' },
+      );
+      if (picked === undefined) {
+        return;
+      }
+      metaProvider.setStatusFilter(picked === ALL_STATUSES_LABEL ? null : picked);
+    }),
+
+    // Returns to the Roster's default state — archived hidden, no status filter — same as
+    // `clearFiltersAndGrouping` above returns to Work Items' own default (hide-closed) rather
+    // than to unfiltered. "Clear" means default, not "show everything": a reader who wants
+    // archived entries visible still needs the toggle.
+    vscode.commands.registerCommand('squads.clearMetaFilter', () => {
+      metaProvider.clearFilter();
+      syncToggleContext('squads.metaShowArchived', metaProvider.viewState.showArchived);
     }),
 
     vscode.commands.registerCommand('squads.openItemPreview', async (itemId: unknown) => {

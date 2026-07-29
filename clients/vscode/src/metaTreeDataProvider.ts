@@ -1,11 +1,15 @@
 /**
  * The second activity-bar view's `TreeDataProvider` ("Roster"): renders the 3 fixed
  * reserved-type buckets (Roles/Skills/Operators) built by the vscode-free `domain/metaView.ts`.
- * Unlike `SquadsTreeDataProvider` there is no filter/group/show-closed state — one `sq list
- * --json --all` fetch (`--all` so a role/skill/operator that ever reaches a terminal status
- * still shows up in its bucket) feeds the 3 buckets directly. Thin glue only, same split as
- * `treeDataProvider.ts`: this module's vscode wiring is exercised by the extension-host smoke
- * test, `buildMetaView` is what's unit-tested.
+ * Never groupable, but narrowable — `MetaViewState` (`domain/metaFilter.ts`) hides
+ * archived-by-default entries and/or restricts to one status, a deliberately smaller state
+ * machine than `SquadsTreeDataProvider`'s (no type filter or grouping: the 3 buckets already are
+ * the type dimension). The fetch stays one unconditional `sq list --json --all` regardless of
+ * `state` — unlike the work tree's `--all`-gated fetch, `--all` is needed unconditionally here so
+ * toggling `showArchived` or picking any declared status back in doesn't require a second round
+ * trip. Thin glue only, same split as `treeDataProvider.ts`: this module's vscode wiring is
+ * exercised by the extension-host smoke test, `buildMetaView`/`domain/metaFilter.ts` are what's
+ * unit-tested.
  */
 import * as vscode from 'vscode';
 
@@ -23,6 +27,11 @@ import {
   errorDisplayNode,
 } from './domain/displayNode';
 import { ExpansionTracker } from './domain/expansionTracker';
+import {
+  allDeclaredStatuses,
+  DEFAULT_META_VIEW_STATE,
+  type MetaViewState,
+} from './domain/metaFilter';
 import { buildMetaView } from './domain/metaView';
 import { resolveSquadDir, type SquadDirEnvironment } from './domain/squadDir';
 import {
@@ -52,6 +61,8 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
   // See `treeDataProvider.ts`'s matching field: a full-root refresh (this view's only kind)
   // does not preserve expand/collapse state on its own, even with a stable `item.id`.
   private readonly expansion = new ExpansionTracker();
+  private state: MetaViewState = DEFAULT_META_VIEW_STATE;
+  private knownStatuses: readonly string[] = [];
 
   constructor(
     private readonly runner: ProcessRunner,
@@ -72,6 +83,32 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
 
   getChildren(node?: DisplayNode): DisplayNode[] {
     return node === undefined ? this.roots : [...node.children];
+  }
+
+  get viewState(): MetaViewState {
+    return this.state;
+  }
+
+  /** Every status the active spec declares (`domain/metaFilter.ts::allDeclaredStatuses`) —
+   * feeds the status-filter quick-pick, same role `getKnownTypes` plays for the work tree's
+   * type-filter quick-pick. */
+  getKnownStatuses(): readonly string[] {
+    return this.knownStatuses;
+  }
+
+  toggleShowArchived(): void {
+    this.state = { ...this.state, showArchived: !this.state.showArchived };
+    void this.refresh();
+  }
+
+  setStatusFilter(status: string | null): void {
+    this.state = { ...this.state, statusFilter: status };
+    void this.refresh();
+  }
+
+  clearFilter(): void {
+    this.state = DEFAULT_META_VIEW_STATE;
+    void this.refresh();
   }
 
   async refresh(): Promise<void> {
@@ -123,6 +160,8 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
       rolesOutcome.kind === 'success' ? buildRoleCatalogMap(rolesOutcome.data) : NO_ROLES;
     const labelMap =
       catalogOutcome.kind === 'success' ? buildTypeLabelMap(catalogOutcome.data) : NO_LABELS;
+    this.knownStatuses =
+      statusesOutcome.kind === 'success' ? allDeclaredStatuses(statusesOutcome.data) : [];
     this.roots = buildMetaView(
       outcome.data,
       fieldBindings,
@@ -130,6 +169,7 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
       statusRoles,
       roleCatalog,
       labelMap,
+      this.state,
     );
     this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);

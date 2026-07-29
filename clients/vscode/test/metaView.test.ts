@@ -83,7 +83,7 @@ describe('buildMetaView', () => {
     expect(nodes.map((node) => node.description)).toEqual(['0 items', '0 items', '0 items']);
   });
 
-  it('marks a closed/hidden/coloured meta item via the statuses/roles catalog join', () => {
+  it('marks a closed/hidden/coloured meta item via the statuses/roles catalog join, once shown', () => {
     const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
     const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
     const items: SqListItem[] = [
@@ -91,7 +91,20 @@ describe('buildMetaView', () => {
       { ...makeItem('ROLE-2', 'role'), status: 'Archived' },
     ];
 
-    const [roles] = buildMetaView(items, undefined, undefined, statusRoles, roleCatalog);
+    // showArchived: true — otherwise the archived leaf is excluded before it ever reaches the
+    // marking this test checks (see the default-hides-archived test below).
+    const [roles] = buildMetaView(
+      items,
+      undefined,
+      undefined,
+      statusRoles,
+      roleCatalog,
+      undefined,
+      {
+        showArchived: true,
+        statusFilter: null,
+      },
+    );
 
     // Active ("active" role): not settled, not hidden, positive colour.
     const active = roles?.children.find((child) => child.itemId === 'ROLE-1');
@@ -103,6 +116,20 @@ describe('buildMetaView', () => {
     const archived = roles?.children.find((child) => child.itemId === 'ROLE-2');
     expect(archived?.closed).toBe(true);
     expect(archived?.hidden).toBe(true);
+  });
+
+  it('hides an archived (hidden-role) item by default, unlike a merely settled-but-visible one', () => {
+    const statusRoles = buildStatusRoleMap(STATUSES_CATALOG_FIXTURE);
+    const roleCatalog = buildRoleCatalogMap(ROLES_CATALOG_FIXTURE);
+    const items: SqListItem[] = [
+      { ...makeItem('ROLE-1', 'role'), status: 'Active' },
+      { ...makeItem('ROLE-2', 'role'), status: 'Archived' },
+    ];
+
+    const [roles] = buildMetaView(items, undefined, undefined, statusRoles, roleCatalog);
+
+    expect(roles?.children.map((child) => child.itemId)).toEqual(['ROLE-1']);
+    expect(roles?.description).toBe('1 item');
   });
 
   it('with no statusRoles/roleCatalog (the graceful fallback), no roster item is ever hidden or coloured', () => {

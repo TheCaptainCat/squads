@@ -131,6 +131,28 @@
         "category": "Squads"
       },
       {
+        "command": "squads.toggleShowArchived",
+        "title": "Show Archived Entries",
+        "category": "Squads",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "squads.hideArchived",
+        "title": "Hide Archived Entries",
+        "category": "Squads",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "squads.filterMetaByStatus",
+        "title": "Filter by Status...",
+        "category": "Squads"
+      },
+      {
+        "command": "squads.clearMetaFilter",
+        "title": "Clear Filter",
+        "category": "Squads"
+      },
+      {
         "command": "squads.openWorkflow",
         "title": "Open Workflow Cheatsheet",
         "category": "Squads",
@@ -217,6 +239,26 @@
           "command": "squads.refreshAll",
           "when": "view == squadsMeta",
           "group": "navigation@1"
+        },
+        {
+          "command": "squads.toggleShowArchived",
+          "when": "view == squadsMeta && !squads.metaShowArchived",
+          "group": "navigation@2"
+        },
+        {
+          "command": "squads.hideArchived",
+          "when": "view == squadsMeta && squads.metaShowArchived",
+          "group": "navigation@2"
+        },
+        {
+          "command": "squads.filterMetaByStatus",
+          "when": "view == squadsMeta",
+          "group": "1_squads"
+        },
+        {
+          "command": "squads.clearMetaFilter",
+          "when": "view == squadsMeta",
+          "group": "1_squads"
         },
         {
           "command": "squads.refreshAll",
