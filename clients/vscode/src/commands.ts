@@ -1,23 +1,15 @@
 /**
- * View-title/palette commands: the one global refresh command, filter by type, the
- * group-by-type and show-closed view-title toggles, clear, the tree-node-selection command that
- * opens the owned item-preview webview, the view-title button that opens the workflow cheatsheet
- * in its own owned panel, and the preview panel's back/forward navigation commands. These two
- * are a secondary path to the primary in-content toolbar rendered inside the preview HTML itself
- * (see `itemPreviewManager.ts`'s module doc comment for why) — reachable via the `alt+left`/
- * `alt+right` keybindings `package.json` scopes to the item-preview panel, and the Command
- * Palette.
+ * View-title/palette commands, including the preview panel's back/forward navigation commands —
+ * a secondary path to the primary in-content toolbar rendered inside the preview HTML itself (see
+ * `itemPreviewManager.ts`'s module doc comment for why), reachable via the `alt+left`/`alt+right`
+ * keybindings and the Command Palette.
  *
- * `REFRESH_ALL_COMMAND` (`squads.refreshAll`) is the *one* definition of "refresh everything":
- * all three trees plus every open preview panel — the actual orchestration lives in the pure,
- * unit-tested `domain/refreshAll.ts`, not inline here, so it stays testable without a `vscode`
- * host. It used to be three independent commands (`refreshTree`/`refreshMeta`/`refreshRecords`),
- * each touching only its own provider and none of them touching an open preview —
- * `package.json`'s three `view/title` entries now all point at this single id instead, so any of
- * the three refresh buttons does the same complete refresh. `extension.ts`'s `.squads.json`
- * watcher and the in-content preview refresh button (`itemPreviewManager.ts`'s message handler)
- * both invoke it by id (`commandIds.ts`) rather than keeping their own copy of what "refresh
- * everything" means.
+ * `REFRESH_ALL_COMMAND` (`squads.refreshAll`) is the *one* definition of "refresh everything": all
+ * three trees plus every open preview panel, orchestrated by the pure, unit-tested
+ * `domain/refreshAll.ts` rather than inline here. `package.json`'s three `view/title` entries all
+ * point at this single id, and `extension.ts`'s `.squads.json` watcher and the in-content preview
+ * refresh button (`itemPreviewManager.ts`'s message handler) both invoke it by id
+ * (`commandIds.ts`) rather than keeping their own copy of what "refresh everything" means.
  */
 import * as vscode from 'vscode';
 

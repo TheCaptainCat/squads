@@ -37,8 +37,8 @@ interface FieldBinding {
 /** type name -> (field code -> its label + bound collection code). */
 export type FieldBindingsByType = ReadonlyMap<string, ReadonlyMap<string, FieldBinding>>;
 
-/** The degrade-gracefully default: no known bindings, so every field falls back to its own raw
- * code as both key and lookup — used when the type-catalog fetch failed or hasn't completed. */
+/** Fallback when the type-catalog fetch failed or hasn't completed: no known bindings, so every
+ * field falls back to its raw code (see the module doc for the degrade-gracefully contract). */
 export const NO_FIELD_BINDINGS: FieldBindingsByType = new Map();
 
 export function buildFieldBindings(types: readonly SqTypeCatalogEntry[]): FieldBindingsByType {
@@ -61,8 +61,9 @@ export type BadgeVocabulary = ReadonlyMap<
   ReadonlyMap<string, { readonly label: string; readonly emoji: string }>
 >;
 
-/** The degrade-gracefully default: no known vocabulary, so every badge falls back to its raw
- * code as text — used when the collections-catalog fetch failed or hasn't completed. */
+/** Fallback when the collections-catalog fetch failed or hasn't completed: no known vocabulary,
+ * so every badge falls back to its raw code (see the module doc for the degrade-gracefully
+ * contract). */
 export const NO_BADGE_VOCABULARY: BadgeVocabulary = new Map();
 
 export function buildBadgeVocabulary(
@@ -78,11 +79,9 @@ export function buildBadgeVocabulary(
   );
 }
 
-/** Resolves an item's `badges` map (defaulting to `{}` when the surface omitted it — an older
- * `sq`) into renderable badges, in the map's own key order. Every entry in `badges` always
- * yields a `ResolvedBadge` — a missing field binding or vocabulary entry degrades to raw-code
- * text (`fieldCode`/`badgeCode`, `emoji: null`) rather than being dropped, so a stale/failed
- * catalog fetch never hides that the item actually carries the field. */
+/** Resolves an item's `badges` map (defaulting to `{}` when the surface omitted it) into
+ * renderable badges, in the map's own key order. A missing binding or vocabulary entry degrades
+ * to raw-code text (`fieldCode`/`badgeCode`, `emoji: null`) rather than dropping the entry. */
 export function resolveItemBadges(
   itemType: string,
   badges: SqBadgeMap | undefined,

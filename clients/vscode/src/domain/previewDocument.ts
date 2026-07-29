@@ -1,12 +1,8 @@
 /**
- * Assembles the full webview HTML document for an item preview: a strict, self-contained
- * CSP (no remote content, no `unsafe-inline` — both the `<style>` and `<script>` tags carry
- * the same per-render nonce), the rendered dossier body, the two collapsible mermaid graph
- * sections, the collapsible sub-entities section (`buildSubEntitiesHtml`, built from
- * `sq show <id> --json`'s `subentities` array), the collapsible discussion/comments section
- * (`buildDiscussionHtml`, built from the same call's `discussion` array), and the inline
- * client script that both intercepts clicks on `a.sq-item-link` (posting them back to the
- * extension host) and renders the graphs' mermaid source via the bundled renderer.
+ * Assembles the full webview HTML document for an item preview — a strict, self-contained CSP
+ * (no remote content, no `unsafe-inline`), the rendered dossier body, the two collapsible mermaid
+ * graph sections, the sub-entities and discussion sections, and the inline client script (see
+ * `buildPreviewHtml`).
  *
  * Kept `vscode`-free/pure — `nonce` and the mermaid script's webview uri are passed in rather
  * than computed here, so this (and the markdown rendering it wraps) is unit-testable with no
@@ -195,53 +191,33 @@ details.sq-graph .sq-graph-empty {
 }
 `;
 
-/** Delegated click/auxclick handling for both `a.sq-item-link` (dossier/comment/sub-entity
- * body links — including a resolved `@<slug>` role mention, which carries the role item's id
- * in the same attribute) and `g.node[data-item-id]` (a rendered graph node — the attribute
- * stamped post-render by `mermaidRenderScript`): a plain click (or ctrl/cmd-click) requests
- * same-panel navigation; a middle-click (`auxclick`, button 1) requests a new panel. Both
- * element kinds carry the target id in the same `data-item-id` attribute, so one selector/lookup
- * handles either — no new message type needed for a role mention. `openCommand` is substituted
- * with the shared `OPEN_ITEM_COMMAND` constant so the wire format can never drift from what
- * `previewMessages.ts`'s `parseOpenItemMessage` accepts.
+/** Delegated click/auxclick handling for `a.sq-item-link`/`g.node[data-item-id]` (including a
+ * resolved `@<slug>` role mention, which shares the same `data-item-id` attribute) — a plain
+ * click (or ctrl/cmd-click) requests same-panel navigation, a middle-click (`auxclick`, button 1)
+ * a new panel — plus the in-content toolbar's back/forward (`[data-sq-nav]` -> `navCommand`) and
+ * refresh (`[data-sq-refresh]` -> `refreshCommand`) buttons, checked first since both are
+ * disjoint element kinds. A `disabled` nav button doesn't dispatch a click at all in a Chromium
+ * webview, but the handler still re-checks `.disabled` defensively rather than relying solely on
+ * that platform behavior.
  *
- * Also delegates clicks on the in-content back/forward toolbar (`[data-sq-nav]`, built by
- * `buildHistoryToolbarHtml`) to `navCommand` (`NAVIGATE_HISTORY_COMMAND`), and on the same
- * toolbar's refresh button (`[data-sq-refresh]`) to `refreshCommand` (`REFRESH_COMMAND`) —
- * checked *before* the link/graph-node handling above since both are disjoint element kinds. A
- * `disabled` nav button (the end of history — `buildHistoryToolbarHtml` never renders one
- * enabled past that point) doesn't dispatch a click at all in a Chromium webview, but the
- * handler still re-checks `.disabled` defensively rather than relying solely on that platform
- * behavior; the refresh button has no disabled state to check. Both listeners are bound once, on
- * `document`, in this same outer IIFE — never re-bound after a same-item patch — so a button
- * that lives inside the very content a patch replaces (the toolbar is part of `articleHtml`)
- * keeps working after its container is swapped out from under it; only the DOM node changes
- * identity, not the delegated listener.
+ * All listeners are bound once, on `document`, in this outer IIFE — never re-bound after a
+ * same-item patch — so a button living inside content a patch replaces (the toolbar is part of
+ * `articleHtml`) keeps working after its container is swapped out from under it: only the DOM
+ * node changes identity, not the delegated listener.
  *
- * Also listens (capture phase — a native `toggle` event on `<details>` does not bubble) for a
- * toggle on a tracked fold — a sub-entity body (`.sq-subentity-body`) or one of the two graph
- * sections (`.sq-graph[data-sq-fold-id]`, deliberately excluding the "Sub-entities (N)"/
- * "Discussion (N)" wrapper `<details>`, which carry no `data-sq-fold-id` and always render
- * `open`) — and reports it to the host as a `ToggleFoldMessage` so the next render can restore
- * exactly the folds the reader had open (see `domain/previewMessages.ts`).
+ * Also listens, capture phase (see `previewMessages.ts`'s `ToggleFoldMessage` for why), for a
+ * toggle on a tracked fold and reports it back as a `ToggleFoldMessage`.
  *
- * Also listens for the host's `updateCommand` message (`UpdateContentMessage`) — a same-item
- * refresh's replacement HTML for the three stable mount points — and patches them in place via
- * `innerHTML` rather than navigating, then re-runs the mermaid render pass
- * (`window.__sqRenderMermaid`, defined by `mermaidRenderScript`) over whatever new
- * `.sq-graph-source` elements just landed. Patching in place (as opposed to reassigning
- * `panel.webview.html`, which reloads the page) is what preserves the reader's scroll
- * position for that path — nothing here calls `scrollTo` for a patch, deliberately: the page
- * never navigates, so the browser's own scroll position is simply never disturbed. The
- * replacement HTML's own fold `<details>` already carry the right `open` attribute (stamped by
- * `itemPreviewManager.ts`'s render from its per-panel tracker before the message is even sent),
- * so setting the attribute at parse time here never itself fires a spurious `toggle` back to the
- * host.
+ * Handles the host's `updateCommand` message (`UpdateContentMessage`, see `previewMessages.ts`)
+ * by patching the three mount points in place via `innerHTML` and re-running the mermaid render
+ * pass (`window.__sqRenderMermaid`) over whatever new `.sq-graph-source` elements just landed.
+ * The replacement HTML's own fold `<details>` already carry the right `open` attribute (stamped
+ * by `itemPreviewManager.ts`'s render before the message is even sent), so setting it at parse
+ * time here never itself fires a spurious `toggle` back to the host.
  *
- * Every *fresh* load of this document (a genuine navigation — `itemPreviewManager.ts`'s
- * `'reload'` mode: a new panel, or reusing the panel for a different item) explicitly resets to
- * the top on parse — a real `window.scrollTo(0, 0)` rather than counting on a browser's default
- * fresh-document scroll position, since VS Code's webview host doesn't document that guarantee. */
+ * Every *fresh* load (a genuine navigation) resets scroll with a real `window.scrollTo(0, 0)`
+ * rather than counting on a browser's default fresh-document scroll position — VS Code's webview
+ * host doesn't document that guarantee. */
 function clientScript(
   openCommand: string,
   updateCommand: string,
@@ -299,13 +275,11 @@ function clientScript(
 })();`;
 }
 
-/** Renders every `.sq-graph-source` element's mermaid text into its paired output `<div>`
- * (found via its `data-output-id` attribute — a generic scan, not a fixed list, so it covers
- * both the two structured graph sections and however many inline ```mermaid``` fences a
- * document's own markdown body carries), using the mermaid renderer loaded by the preceding
- * `<script src>` tag (global `mermaid`). `flowchart.wrappingWidth` pairs with
- * `graphDiagrams.ts`'s markdown-string node labels so a long label wraps onto multiple
- * lines from real text-metric measurement instead of overflowing/cropping at the node's edge.
+/** Renders every `.sq-graph-source` element's mermaid text into its paired output `<div>` (via
+ * `data-output-id` — a generic scan, not a fixed list, so it covers both the two structured graph
+ * sections and any inline ```mermaid``` fences a dossier's own body carries), using the mermaid
+ * renderer loaded by the preceding `<script src>` tag. `flowchart.wrappingWidth` pairs with
+ * `graphDiagrams.ts`'s markdown-string node labels for real text-metric wrapping.
  *
  * CSP note (kept strict — no `unsafe-inline`/`unsafe-eval` added for this): mermaid's own
  * `render()` builds each diagram by inserting a plain, un-nonced `<style>` tag carrying its
@@ -314,26 +288,21 @@ function clientScript(
  * 'nonce-*'` policy (diagram present, but unstyled). Instead the returned SVG is parsed
  * (detached, via `DOMParser` — no CSP applies to a detached document), this render's nonce is
  * stamped onto every `<style>` found in it, and only then are the resulting *nodes* (not the
- * raw string) inserted into the live document — so the stylesheet already carries a matching
- * nonce the moment it's connected and CSP allows it, with no policy relaxation at all. If a
- * future mermaid version needs something this can't cover, the documented fallback is a
- * narrowly-scoped `style-src 'unsafe-inline'` (never `script-src`) — flagged for review rather
- * than applied speculatively.
+ * raw string) inserted into the live document. If a future mermaid version needs something this
+ * can't cover, the documented fallback is a narrowly-scoped `style-src 'unsafe-inline'` (never
+ * `script-src`) — flagged for review rather than applied speculatively.
  *
- * Node-click wiring: mermaid's `click` directive is disabled under `securityLevel:
- * 'strict'`, so navigation is wired here instead, after render. Every rendered flowchart node
- * gets an `id` of the form `<diagramId>-flowchart-<nodeId>-<n>` (`nodeId` being exactly what
- * `graphDiagrams.ts`'s `mermaidNodeId` produced when building the source) — `nodeId` is
- * recovered from that id and un-sanitized back to the real item id (undoing `mermaidNodeId`'s
- * hyphen->underscore fold; an item id has exactly one such character, so this is lossless),
- * then stamped onto the node as `data-item-id` so `clientScript`'s shared
- * `a.sq-item-link`/`g.node[data-item-id]` click handling picks it up like any other link.
+ * Node-click wiring: mermaid's `click` directive is disabled under `securityLevel: 'strict'`, so
+ * navigation is wired here instead, after render. Each rendered node's id
+ * (`<diagramId>-flowchart-<nodeId>-<n>`, `nodeId` being what `graphDiagrams.ts`'s `mermaidNodeId`
+ * produced) is parsed back to the real item id (undoing the hyphen->underscore fold — lossless,
+ * since an id has exactly one such character) and stamped as `data-item-id` for `clientScript`'s
+ * shared click handling.
  *
- * Exposed as `window.__sqRenderMermaid` (rather than a run-once IIFE) so `clientScript`'s
- * `updateCommand` handler can re-invoke it after a same-item refresh patches in fresh
- * `.sq-graph-source` elements — the render-id counter (`callSeq`) lives in the enclosing closure
- * so it keeps counting up across every call, not just the initial one, guaranteeing every
- * `mermaid.render` invocation for the life of the page gets its own id. */
+ * Exposed as `window.__sqRenderMermaid` (rather than a run-once IIFE) so `clientScript` can
+ * re-invoke it after a same-item refresh patches in fresh `.sq-graph-source` elements —
+ * `callSeq` lives in the enclosing closure so every `mermaid.render` call gets a unique id for
+ * the life of the page, not just the first render. */
 function mermaidRenderScript(nonce: string): string {
   return `(function () {
   var callSeq = 0;
@@ -431,13 +400,11 @@ export function splitDossierMarkdown(markdown: string): { header: string; body: 
 
 /** The plain-text title line a `splitDossierMarkdown` header fragment starts with, for the
  * sticky in-content toolbar's compact title slot (`buildHistoryToolbarHtml`) — a *copy*, not a
- * move: the heading stays right where it always was in `headerHtml` too (rendered as a full,
- * never-truncated `<h1>` in the body), since a title truncated down to the toolbar's width would
- * otherwise be the reader's only complete view of it. Plain text out (the toolbar escapes it,
- * and also uses it verbatim as a hover-tooltip `title=` attribute so even the ellipsis'd copy is
- * inspectable), not HTML. Falls back to an empty string when `header` doesn't start with an H1
- * — `renderOutcomeHtml` covers that case with the item id instead, same as it always showed
- * *something* identifying for a header-less dossier. */
+ * move: the heading stays in `headerHtml` too, rendered as a full, never-truncated `<h1>` in the
+ * body, since a title truncated to the toolbar's width would otherwise be the reader's only
+ * complete view of it. Plain text (the toolbar escapes it, and reuses it as a hover-tooltip
+ * `title=`), not HTML. Falls back to `''` when `header` doesn't start with an H1 —
+ * `renderOutcomeHtml` covers that case with the item id instead. */
 function extractTitleLine(header: string): string {
   if (!header.startsWith('# ')) {
     return '';
@@ -456,14 +423,12 @@ export interface DossierHtml {
 }
 
 /** Renders an `sq show <id> --raw` outcome to the HTML/text fragments shown in the panel: the
- * metadata header fragment (title + bullet list, full and untruncated) and the prose body, split
- * by `splitDossierMarkdown` so the caller can inject the graph sections between them —
- * plus `titleText`, a plain-text copy of just the heading for the sticky toolbar's compact title
- * slot above both (see `extractTitleLine`). On failure the message renders entirely as
- * `bodyHtml` with an empty header and `id` itself as the title (never blank/stale content) — the
- * caller is still responsible for firing the accompanying VS Code notification. `roles`, when
- * given, resolves `@<slug>` mentions found in the dossier body the same way the discussion/
- * sub-entity sections do (see `domain/roleDirectory.ts`). */
+ * metadata header fragment and prose body, split by `splitDossierMarkdown` so the caller can
+ * inject the graph sections between them, plus `titleText` for the sticky toolbar's compact
+ * title slot (see `extractTitleLine`). On failure the message renders entirely as `bodyHtml`
+ * with an empty header and `id` itself as the title — the caller is still responsible for firing
+ * the accompanying VS Code notification. `roles`, when given, resolves `@<slug>` mentions in the
+ * dossier body (see `domain/roleDirectory.ts`). */
 export function renderOutcomeHtml(
   id: string,
   outcome: SqOutcome<string>,
@@ -519,14 +484,13 @@ interface GraphSectionSpec {
   readonly open: boolean;
 }
 
-/** One collapsible `<details>` graph section — native fold/unfold, no client JS needed for
- * that part beyond the `toggle` report wired in `clientScript`. Collapsed by default on a fresh
- * load (`open` reflects the caller's fold tracker, not a hardcoded default) — a graph is
- * supplementary detail, not something that should push the dossier body below the fold. When
- * `mermaidSource` is present the hidden `<pre>` holds the escaped diagram source the client
- * script reads via `textContent` (so it comes back out unescaped); its `data-output-id` points
- * the generic render script (see `mermaidRenderScript`) at the adjacent output `<div>` it renders
- * into. Otherwise the message stands in for it. */
+/** One collapsible `<details>` graph section — native fold/unfold, no client JS needed beyond the
+ * `toggle` report wired in `clientScript`. Collapsed by default on a fresh load (`open` reflects
+ * the caller's fold tracker) — a graph is supplementary detail, not something that should push
+ * the dossier body below the fold. When `mermaidSource` is present the hidden `<pre>` holds the
+ * escaped diagram source, which the client script reads via `textContent` (so it comes back out
+ * unescaped); `data-output-id` points the render script at the adjacent output `<div>`. Otherwise
+ * the message stands in for it. */
 function buildGraphSection(spec: GraphSectionSpec): string {
   const inner =
     spec.outcome.mermaidSource === null
@@ -536,11 +500,11 @@ function buildGraphSection(spec: GraphSectionSpec): string {
   return `<details class="sq-graph" data-sq-fold-id="${escapeHtml(spec.foldId)}"${openAttr}><summary>${escapeHtml(spec.title)}</summary>${inner}</details>`;
 }
 
-/** The two graph sections (children/subtree, ref graph), each independently collapsible and
- * kept separate from the dossier body and from each other. `childrenOpen`/`refsOpen` — both
- * defaulted to `false`, matching every pre-existing caller/test — restore each section's prior
- * open/closed state across a same-item refresh (see `CHILDREN_GRAPH_FOLD_ID`/`REFS_GRAPH_FOLD_ID`
- * and `itemPreviewManager.ts`'s per-panel `ExpansionTracker`). */
+/** The two graph sections (children/subtree, ref graph), each independently collapsible and kept
+ * separate from the dossier body and from each other. `childrenOpen`/`refsOpen` restore each
+ * section's prior open/closed state across a same-item refresh (see
+ * `CHILDREN_GRAPH_FOLD_ID`/`REFS_GRAPH_FOLD_ID` and `itemPreviewManager.ts`'s per-panel
+ * `ExpansionTracker`). */
 export function buildGraphsHtml(
   children: GraphOutcome,
   refs: GraphOutcome,
@@ -595,12 +559,9 @@ function buildCommentHtml(
   );
 }
 
-/** The collapsible discussion/comments section, appended after the dossier body and the
- * graph sections. A failed fetch degrades to an inline failure message inside the same
- * `<details>` shell the graph sections use (consistent styling, never silently blank); a
- * successful fetch with no comments yet renders no section at all — nothing to fold open.
- * `roles`, when given, resolves `@<slug>` role mentions found in a comment's body (see
- * `domain/roleDirectory.ts`). */
+/** The collapsible discussion/comments section, appended after the dossier body and the graph
+ * sections — see `DiscussionOutcome` for the failure/empty/populated behavior. `roles`, when
+ * given, resolves `@<slug>` mentions in a comment's body (see `domain/roleDirectory.ts`). */
 export function buildDiscussionHtml(
   outcome: DiscussionOutcome,
   currentId?: string,
@@ -634,9 +595,8 @@ export interface SubEntitiesOutcome {
 /** The head badge line for one sub-entity — status / severity / assignee / story, each field
  * omitted when absent (`severity`: findings only; `story`: subtasks only). Plain text, not the
  * spec's rendered badge glyph — this preview head doesn't fetch/join the collections catalog
- * (`sq workflow collections --json`) the way the tree tooltip does; shows the raw code, same
- * convention `graphDiagrams.ts` uses for priority. Deliberate; parity with the hover tooltip
- * is a possible follow-up, not required here. */
+ * (`sq workflow collections --json`) the way the tree tooltip does, same raw-code convention
+ * `graphDiagrams.ts` uses for priority. */
 function buildSubEntityHeadLine(entity: SqSubEntity): string {
   const parts = [`Status: ${escapeHtml(entity.status)}`];
   if (entity.severity !== null) {
@@ -653,14 +613,12 @@ function buildSubEntityHeadLine(entity: SqSubEntity): string {
 
 /** One sub-entity: its local id + title as a header, the head badge line always visible, and
  * (when it has one) its body as collapsible prose rendered through the same markdown renderer
- * the dossier body and discussion comments use (mermaid-fences off, `currentId` still
- * suppresses a self-link, `roles` resolves any `@<slug>` mention the same way) — a blank body
- * renders no `<details>` at all rather than an empty fold. The body fold's `data-sq-fold-id` is
- * the sub-entity's own `local_id` — stable across a same-item refresh, which is exactly the
- * `ToggleFoldMessage`/`ExpansionTracker` identity `open` (from the caller's per-panel tracker)
- * is keyed on; not unique *across* items (a different item can reuse the same local id), which
- * is why `itemPreviewManager.ts` resets its per-panel tracker on every navigation to a different
- * item rather than keying trackers by local id alone. */
+ * the dossier/discussion sections use — a blank body renders no `<details>` at all. The body
+ * fold's `data-sq-fold-id` is the sub-entity's own `local_id` — stable across a same-item refresh
+ * (which is what `open`, from the caller's per-panel tracker, is keyed on), but *not* unique
+ * across items (a different item can reuse the same local id), which is why
+ * `itemPreviewManager.ts` resets its per-panel tracker on every navigation to a different item
+ * rather than keying trackers by local id alone. */
 function buildSubEntityHtml(
   entity: SqSubEntity,
   currentId: string | undefined,
@@ -679,15 +637,11 @@ function buildSubEntityHtml(
   return `<div class="sq-subentity">${header}${head}${body}</div>`;
 }
 
-/** The collapsible sub-entities section: a feature's stories, a task's subtasks, a
- * review's findings — in `sq show <id> --json`'s `subentities` array order. Mirrors
- * `buildDiscussionHtml`'s failure/empty/populated shape exactly, including the `roles`
- * pass-through for `@<slug>` mentions in a sub-entity's body. `isBodyOpen` — defaulted to "always
- * closed", matching every pre-existing caller/test — restores a sub-entity body fold's prior
- * open/closed state across a same-item refresh; the wrapper `<details>` this function itself
- * renders always carries `open` regardless (unaffected by the bug this exists to fix — see
- * `buildGraphSection`'s doc comment for why the *inner* per-sub-entity fold is the one that
- * regressed, not this wrapper). */
+/** The collapsible sub-entities section: a feature's stories, a task's subtasks, a review's
+ * findings — in `sq show <id> --json`'s `subentities` array order. Mirrors `buildDiscussionHtml`'s
+ * failure/empty/populated shape, including the `roles` pass-through for `@<slug>` mentions.
+ * `isBodyOpen` restores a sub-entity body fold's prior open/closed state across a same-item
+ * refresh; the wrapper `<details>` this function renders always stays `open` regardless. */
 export function buildSubEntitiesHtml(
   outcome: SubEntitiesOutcome,
   currentId?: string,
@@ -710,34 +664,17 @@ export function buildSubEntitiesHtml(
   return `<details class="sq-graph" open><summary>Sub-entities (${count})</summary>${entries}</details>`;
 }
 
-/** The in-content back/forward toolbar: VS Code's `editor/title/navigation` menu
- * doesn't reliably surface inline buttons for a plain `createWebviewPanel` panel — confirmed by
- * screenshot in the extension dev host, not just by reading the docs — so this rendered-in-page
- * toolbar is the primary back/forward control (the `alt+left`/`alt+right` keybindings remain a
- * secondary path to the same commands). A real `disabled` attribute at either end of history, so
- * the browser itself dims and inert-s the button — no separate CSS-only "looks disabled" state
- * to keep in sync. `itemPreviewManager.ts`'s `render` recomputes `canGoBack`/`canGoForward` from
- * the panel's current `PreviewHistory` on every render (both `'reload'` and `'patch'`), so this
- * never goes stale relative to the history it reflects.
- *
- * Also carries the in-content refresh button, immediately left of the back/forward pair (markup
- * order inside `.sq-nav-buttons`, not a menu `navigation@N` ordinal — this button is not, and
- * cannot be, a contributed command; see `commands.ts`'s and `previewMessages.ts`'s module doc
- * comments for why). It posts a `RefreshMessage`, the same round trip `NavigateHistoryMessage`
- * makes, and fires the exact global refresh (`squads.refreshAll`) a tree view-title button does.
- * Styled as a sibling of the arrow buttons (same `.sq-nav-button` class, same hover treatment)
- * with no disabled state — unlike the arrows, refreshing is always a valid action.
- *
- * Doubles as the item's title bar (`titleText` — `renderOutcomeHtml`'s extracted heading, or
- * the item id as a fallback): pinned to the top of the preview's own viewport as the reader
- * scrolls (`position: fixed` in `PREVIEW_STYLES`'s `.sq-nav-toolbar` rule — see that rule's
- * comment for why `fixed`, not `sticky`), reading `title ⟳ ←  →`, title on the left (truncating
- * with an ellipsis rather than shoving the buttons off — `.sq-nav-title`'s `text-overflow`), nav
- * on the right. The buttons are plain glyphs, not text — `title`/`aria-label` still carry
- * "Refresh"/"Back"/"Forward" for the hover tooltip and screen readers, so the controls stay
- * discoverable without a text label competing for the toolbar's limited width. The trailing
- * `.sq-nav-toolbar-spacer` reserves the fixed bar's height in the normal document flow, so the
- * graphs/body/etc. that follow don't render underneath it. */
+/** The in-content back/forward/refresh toolbar (see `previewMessages.ts`'s module doc for why it
+ * exists instead of a native title-bar button) and, doubling as it, the item's title bar
+ * (`titleText` — `renderOutcomeHtml`'s extracted heading, or the item id as a fallback). Pinned
+ * to the top of the preview's viewport (`.sq-nav-toolbar`'s `position: fixed` in
+ * `PREVIEW_STYLES` — see that rule's comment for the spacer it pairs with). A real `disabled`
+ * attribute at either end of history, so the browser itself dims/inerts the button with no
+ * CSS-only state to keep in sync; `itemPreviewManager.ts`'s `render` recomputes
+ * `canGoBack`/`canGoForward` from the panel's current history on every render, so this never goes
+ * stale. The refresh button posts a `RefreshMessage` and is styled as a sibling of the arrow
+ * buttons with no disabled state — unlike the arrows, refreshing is always valid. Buttons are
+ * plain glyphs; `title`/`aria-label` carry the text for hover/screen readers. */
 export function buildHistoryToolbarHtml(
   titleText: string,
   canGoBack: boolean,
@@ -786,11 +723,9 @@ export interface PreviewDocumentParams {
   readonly discussionHtml: string;
 }
 
-/** The `<article>` mount point's inner HTML — the back/forward toolbar, then header + graphs +
- * body, in that fixed order (toolbar first). Shared by `buildPreviewHtml` (a fresh
- * load) and `itemPreviewManager.ts`'s same-item-refresh `UpdateContentMessage` (a DOM patch) so
- * the two are always byte-identical: a refresh never shows different content than a fresh load
- * of the same dossier would — including the toolbar's enabled/disabled state, since the caller
+/** The `<article>` mount point's inner HTML. Shared by `buildPreviewHtml` (a fresh load) and
+ * `itemPreviewManager.ts`'s same-item-refresh `UpdateContentMessage` (a DOM patch) so the two are
+ * always byte-identical — including the toolbar's enabled/disabled state, since the caller
  * recomputes `toolbarHtml` from the current history on every render, patch included. */
 export function buildArticleHtml(
   toolbarHtml: string,

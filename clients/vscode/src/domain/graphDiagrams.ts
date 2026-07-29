@@ -27,14 +27,12 @@ function escapeMermaidMarkdownLabel(text: string): string {
   return escapeHtml(text).replace(/[`*_]/g, (char) => `\\${char}`);
 }
 
-/** Wraps `text` as a Mermaid *markdown-string* node label — `"` + a backtick-delimited string
- * + `"` — mermaid's supported mechanism for auto-wrapping a long label onto multiple lines
- * from real text-metric measurement (`config.flowchart.wrappingWidth`, set alongside
- * `securityLevel: 'strict'` in `previewDocument.ts`'s `mermaidRenderScript`), unlike a plain
- * quoted label's single non-wrapping line — a node whose box doesn't grow to fit its own text
- * crops the label at its edge. `truncate` is a defensive length cap on top of that, not the
- * wrapping mechanism itself (so a pathologically long title still can't produce an unbounded
- * node). */
+/** Wraps `text` as a Mermaid *markdown-string* node label (`"` + backtick-delimited string +
+ * `"`) rather than a plain quoted label — only the markdown-string form auto-wraps a long label
+ * across multiple lines via real text-metric measurement (`config.flowchart.wrappingWidth`, set
+ * alongside `securityLevel: 'strict'` in `previewDocument.ts`'s `mermaidRenderScript`); a plain
+ * quoted label stays a single line and crops at the node's edge. `truncate` is a separate
+ * defensive length cap, not the wrapping mechanism. */
 function mermaidNodeLabel(text: string): string {
   return `"\`${escapeMermaidMarkdownLabel(truncate(text, 120))}\`"`;
 }
@@ -57,10 +55,9 @@ function subtreeNodeLabel(node: SqTreeNode): string {
 }
 
 /**
- * Builds a `flowchart TD` source for the children/subtree graph from `sq tree <id> --json`
- * (an array holding the single requested root — see `sqAdapter.getTree`). Emits one labeled
- * node per item plus a plain, unlabeled `parent --> child` edge per hierarchy link (parentage
- * needs no label, unlike the ref graph's edges).
+ * Builds a `flowchart TD` source for the children/subtree graph from `sq tree <id> --json` (an
+ * array holding the single requested root — see `sqAdapter.getTree`). Edges are plain, unlabeled
+ * `parent --> child` links — parentage needs no label, unlike the ref graph's edges.
  */
 export function buildSubtreeMermaid(roots: readonly SqTreeNode[]): string {
   const lines = ['flowchart TD'];
@@ -103,13 +100,11 @@ function graphNodeLabel(node: SqGraphNode): string {
 }
 
 /**
- * Builds a `flowchart LR` source for the ref graph from `sq graph <id> --json` (a single
- * nested root object; `edge_kind`/`direction` are `null` only on the root itself). A node
- * revisited elsewhere in the BFS (`seen: true`) collapses to the same diagram node — it's
- * looked up/deduplicated by id, same as the core CLI export — so a cycle back to the root (or
- * any other already-visited node) draws as a real edge into the existing box rather than a
- * duplicate. Edges are deduplicated by the full (from, to, label) triple, then sorted for a
- * deterministic diagram across runs.
+ * Builds a `flowchart LR` source for the ref graph from `sq graph <id> --json` (`edge_kind`/
+ * `direction` are `null` only on the root). A revisited node (`seen: true`) is deduplicated by
+ * id, same as the core CLI export, so a cycle draws as an edge into the existing box rather than
+ * a duplicate node. Edges are deduplicated by the full (from, to, label) triple, then sorted for
+ * a deterministic diagram across runs.
  */
 export function buildRefGraphMermaid(root: SqGraphNode): string {
   const nodesById = new Map<string, SqGraphNode>();

@@ -43,10 +43,9 @@ export interface SqGraphNode {
   readonly children: readonly SqGraphNode[];
 }
 
-/** One entry of a type's `fields` array on `sq workflow types --json`: the
- * field code an item's `badges` map may carry for this type, its display label, and the
- * collection code it's bound to (bundled fields coincide with their collection, e.g. field
- * `priority` -> collection `priority`; a relabeled/custom field need not). */
+/** One entry of a type's `fields` array on `sq workflow types --json`. Bundled fields coincide
+ * with their collection (e.g. field `priority` -> collection `priority`); a relabeled/custom
+ * field need not. */
 export interface SqTypeField {
   readonly code: string;
   readonly label: string;
@@ -63,14 +62,12 @@ export interface SqTypeLabels {
   readonly plural_lower: string;
 }
 
-/** One entry of `sq workflow types --json` — the spec's declared type catalog (work types and
- * the reserved meta types alike), one object per type, already in the spec's resolved order.
- * `category` is the type's declared axis (`"work"` / `"records"` / `"roster"`) — the single
- * client-side source of which browse view a type belongs in (`domain/typeCategory.ts`), never a
- * hardcoded type-name list. `fields` is optional the same way `SqBadgeMap` is: an older `sq`
- * simply omits it, treated the same as an empty array (no field->collection binding known).
- * `labels` is optional the same way: an older `sq` omits it, and callers fall back to the raw
- * `type` string (`domain/typeLabels.ts`). */
+/** One entry of `sq workflow types --json` — the spec's declared type catalog, in the spec's
+ * resolved order. `category` is the type's declared axis (`"work"` / `"records"` / `"roster"`)
+ * — the single client-side source of which browse view a type belongs in
+ * (`domain/typeCategory.ts`), never a hardcoded type-name list. `fields`/`labels` are optional
+ * the same way `SqBadgeMap` is (an older `sq` simply omits them); a missing `fields` is treated
+ * as `[]`, a missing `labels` falls back to the raw `type` string (`domain/typeLabels.ts`). */
 export interface SqTypeCatalogEntry {
   readonly type: string;
   readonly order: number | null;
@@ -99,14 +96,12 @@ export interface SqCollectionCatalogEntry {
   readonly badges: readonly SqCollectionBadge[];
 }
 
-/** One entry of `sq workflow statuses --json` — the spec's declared status
- * vocabulary, one object per status. `role` is the name of the status's declared semantic role
+/** One entry of `sq workflow statuses --json`. `role` names the status's declared semantic role
  * (e.g. `"active"`, `"superseded"`) — a reference into the separate `sq workflow roles --json`
- * catalog (`SqRoleCatalogEntry`), not a behaviour in itself. A client joins an item's `status`
- * string through this catalog's `role`, then that name through the roles catalog, to resolve
- * settled/hidden/colour — never by the literal status name, and no `terminal`/`is_open` field
- * survives on either surface (both are derived client-side from the referenced role's
- * `settled`). */
+ * catalog (`SqRoleCatalogEntry`), not a behaviour in itself. A client joins `status` -> `role` ->
+ * the roles catalog to resolve settled/hidden/colour, never by the literal status name; no
+ * `terminal`/`is_open` field survives on either surface (both derive client-side from the
+ * referenced role's `settled`). */
 export interface SqStatusCatalogEntry {
   readonly status: string;
   readonly role: string | null;
@@ -135,11 +130,10 @@ export interface SqDiscussionEntry {
   readonly body: string;
 }
 
-/** One entry of `sq show <id> --json`'s `subentities` array — a story/subtask/finding tracked
- * on the parent item. `local_id` is kind-prefixed (`US<n>` story / `ST<n>` subtask / `F<n>`
- * finding) — the kind itself isn't a separate field, so the client never needs a hardcoded
- * kind list. `severity`/`story`/`assignee` are `null` unless set (`severity`: findings only;
- * `story`: subtasks only, the parent story's local id). */
+/** One entry of `sq show <id> --json`'s `subentities` array — a story/subtask/finding tracked on
+ * the parent item. `local_id` is kind-prefixed (`US<n>` story / `ST<n>` subtask / `F<n>` finding)
+ * — the kind itself isn't a separate field, so the client never needs a hardcoded kind list.
+ * `severity` is set for findings only; `story` for subtasks only (the parent story's local id). */
 export interface SqSubEntity {
   readonly local_id: string;
   readonly title: string;
@@ -150,10 +144,8 @@ export interface SqSubEntity {
   readonly body: string;
 }
 
-/** The `sq show <id> --json` shape this client reads. Hand-trimmed like every other shape here
- * — only `discussion` (the preview's collapsible comments section) and `subentities` (the
- * preview's sub-entities section) are modeled; every other key `sq show --json` emits (id,
- * title, body, status, …) is ignored, not rejected. */
+/** The `sq show <id> --json` shape this client reads: only `discussion` (the preview's
+ * collapsible comments section) and `subentities` (the preview's sub-entities section). */
 export interface SqShowJson {
   readonly discussion: readonly SqDiscussionEntry[];
   readonly subentities: readonly SqSubEntity[];

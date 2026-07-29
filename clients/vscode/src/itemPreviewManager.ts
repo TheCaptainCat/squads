@@ -1,54 +1,23 @@
 /**
- * Owns the item-preview `WebviewPanel` lifecycle: a dedicated tab the
- * extension controls end to end — never hijacked by opening another markdown file (unlike
- * the `markdown.showPreview` path this replaces) — rendering `sq show <id> --raw` as HTML via
- * the vscode-free `domain/markdown` + `domain/previewDocument` helpers, alongside the two
- * collapsible mermaid graphs (`domain/graphDiagrams`) built from `sq tree`/`sq graph --json`,
- * and the collapsible sub-entities + discussion sections built from `sq show <id> --json`'s
- * `subentities`/`discussion` arrays (`getShowJson`) — all fetched in parallel with the `--raw`
- * dossier text.
+ * Owns the item-preview `WebviewPanel` lifecycle: a dedicated tab the extension controls end to
+ * end (never hijacked by opening another markdown file), rendering `sq show <id> --raw` as HTML
+ * via `domain/markdown` + `domain/previewDocument`, alongside the two collapsible mermaid graphs
+ * (`domain/graphDiagrams`, from `sq tree`/`sq graph --json`) and the collapsible sub-entities +
+ * discussion sections (from `sq show <id> --json`'s `subentities`/`discussion` arrays) — all
+ * fetched in parallel with the `--raw` dossier text.
  *
- * Navigation: a tree-node selection reuses the single owned panel if one is open (mirroring
- * the old dynamic preview's UX), otherwise opens a fresh one. A link click inside a panel
- * posts a message back (`domain/previewMessages`); a plain click/ctrl-click navigates the
- * *originating* panel in place, a middle-click opens a brand new panel — routed through the
- * same `routeForMessage`/`routeForTreeSelection` pure logic that's unit-tested in isolation.
- * This module's own vscode wiring (panel creation, message subscription) is exercised by the
- * extension-host smoke test, not a unit test — mirrors `treeDataProvider.ts`'s split.
+ * Navigation and back/forward history are covered by the methods below (`openFromTree`,
+ * `navigate`, `goBack`/`goForward`, `stepHistoryFor`) and by `domain/previewMessages.ts`'s
+ * routing logic. The in-content toolbar (`domain/previewDocument.ts`'s
+ * `buildHistoryToolbarHtml`) is the primary back/forward control rather than a
+ * `editor/title/navigation` menu contribution because that VS Code mechanism doesn't reliably
+ * render inline buttons for a plain `createWebviewPanel` panel — confirmed by screenshot in a
+ * real Extension Development Host, with `enablement` also tried and dropped from the commands
+ * before landing on this approach.
  *
  * Alongside the per-item panel pool, this also owns a single, separate panel for the workflow
- * cheatsheet (`sq workflow --raw`) — not an item, so it's tracked independently of
- * `activePanel`/`openFromTree`: opening the cheatsheet never steals the item-preview panel's
- * slot, and vice versa. It renders the same clean-markdown body through `renderWorkflowHtml`,
- * which opts into live ```mermaid``` rendering the plain item dossier doesn't.
- *
- * Back/forward history: each item-preview panel keeps its own `PreviewHistory`
- * (`domain/previewHistory` — pure, unit-tested) alongside its `openPanels` current-item entry.
- * A real navigation (tree selection, link/`@mention` click) pushes onto the *originating*
- * panel's history through `navigate`; `goBack`/`goForward` only move the index and re-render
- * through the same `'reload'` path — no push. The watcher's `refreshOpenPreviews` (`'patch'`
- * mode) never touches history.
- *
- * Back/forward controls, primary path: a small toolbar rendered *inside* the preview HTML itself
- * (`domain/previewDocument.ts`'s `buildHistoryToolbarHtml`), at the top of `<article>`. This is
- * the primary control because VS Code's `editor/title/navigation` menu contribution — the usual
- * way an extension adds inline title-bar buttons — does not reliably render for a plain
- * `createWebviewPanel` panel; confirmed by screenshot in a real Extension Development Host (with
- * `enablement` already dropped from the commands, ruling that out too), not just inferred from
- * docs. A toolbar button posts a `NavigateHistoryMessage` (`domain/previewMessages.ts`) back to
- * *this specific panel*'s message handler — no ambiguity about which panel's history to step,
- * unlike a global command. The button carries a real `disabled` attribute at the corresponding
- * end of history, computed fresh on every render (`'reload'` and `'patch'` alike) from that
- * panel's current `PreviewHistory`, so it's never stale and the browser itself dims/inert-s it.
- *
- * Secondary path: `alt+left`/`alt+right` keybindings still invoke the workspace-global
- * `squads.previewBack`/`squads.previewForward` commands (also reachable from the Command
- * Palette). Since a command invocation carries no panel reference, `focusedPanel` tracks
- * whichever preview panel VS Code currently reports as the active editor tab
- * (`onDidChangeViewState`, not just at navigation time) and `goBack`/`goForward` act on *that*
- * panel's history, never `activePanel` (the tree-selection reuse target, which can be a
- * different, unfocused panel). Both paths converge on `stepHistoryFor`, which no-ops at the
- * corresponding end of history exactly like the in-content button's `disabled` state implies.
+ * cheatsheet (`sq workflow --raw`, `openWorkflow`) — tracked independently of
+ * `activePanel`/`openPanels`, so opening one never steals the other's slot.
  */
 import { randomUUID } from 'node:crypto';
 
@@ -122,8 +91,7 @@ function toGraphOutcome<T>(outcome: SqOutcome<T>, build: (data: T) => string): G
 }
 
 /** Turns a `getShowJson` outcome into the discussion section's content — the parsed comment
- * list on success, or the same human-readable failure message every other surface shows, on
- * failure. Mirrors `toGraphOutcome`'s shape. */
+ * list on success. Mirrors `toGraphOutcome`'s failure-handling shape. */
 function toDiscussionOutcome(outcome: SqOutcome<SqShowJson>): DiscussionOutcome {
   if (outcome.kind !== 'success') {
     return { entries: null, message: describeFailure(outcome) };
@@ -132,8 +100,7 @@ function toDiscussionOutcome(outcome: SqOutcome<SqShowJson>): DiscussionOutcome 
 }
 
 /** Turns a `getShowJson` outcome into the sub-entities section's content — the parsed
- * sub-entity list on success, or the same human-readable failure message every other surface
- * shows, on failure. Mirrors `toDiscussionOutcome`'s shape (same underlying fetch). */
+ * sub-entity list on success. Mirrors `toDiscussionOutcome`'s shape (same underlying fetch). */
 function toSubEntitiesOutcome(outcome: SqOutcome<SqShowJson>): SubEntitiesOutcome {
   if (outcome.kind !== 'success') {
     return { entities: null, message: describeFailure(outcome) };
@@ -184,8 +151,8 @@ export class ItemPreviewManager {
   private readonly foldState = new Map<vscode.WebviewPanel, ExpansionTracker>();
   // The item-preview panel VS Code currently reports as the *active* editor tab — distinct from
   // `activePanel` (the panel tree-selection reuses), since more than one preview panel can be
-  // open at once and only one of them is visually focused. Drives which panel's history the
-  // back/forward commands apply to (see the module doc comment).
+  // open at once and only one of them is visually focused. Drives which panel's history
+  // `goBack`/`goForward` apply to.
   private focusedPanel: vscode.WebviewPanel | undefined;
 
   constructor(
@@ -208,10 +175,11 @@ export class ItemPreviewManager {
     await this.openNewPanel(id);
   }
 
-  /** The `squads.previewBack`/`squads.previewForward` commands (`alt+left`/`alt+right` — the
-   * secondary path, see the module doc comment) act on whichever preview panel is currently the
-   * focused editor tab (`focusedPanel`, kept in sync by `onDidChangeViewState`) — not
-   * `activePanel`, which tracks the tree-reuse target instead. A no-op with no focused panel. */
+  /** The `squads.previewBack`/`squads.previewForward` commands (`alt+left`/`alt+right` — a
+   * secondary path to the in-content toolbar buttons) act on whichever preview panel is
+   * currently the focused editor tab (`focusedPanel`, kept in sync by `onDidChangeViewState`) —
+   * not `activePanel`, which tracks the tree-reuse target instead. A no-op with no focused
+   * panel. */
   async goBack(): Promise<void> {
     if (this.focusedPanel !== undefined) {
       await this.stepHistoryFor(this.focusedPanel, stepBack);
@@ -307,9 +275,9 @@ export class ItemPreviewManager {
         this.focusedPanel = undefined;
       }
     });
-    // Kept in sync on every focus change, not only on navigation (see the module doc comment) —
-    // each open panel's history is independent, so `goBack`/`goForward` must always act on
-    // whichever panel is actually focused, even when that change wasn't a navigation at all.
+    // Kept in sync on every focus change, not only on navigation — each open panel's history is
+    // independent, so `goBack`/`goForward` must always act on whichever panel is actually
+    // focused, even when that change wasn't a navigation at all.
     panel.onDidChangeViewState((event) => {
       if (event.webviewPanel.active) {
         this.focusedPanel = panel;
@@ -377,14 +345,12 @@ export class ItemPreviewManager {
   /** Fetches + renders one item into `panel`, in one of two modes:
    *
    * - `'reload'` (the default — every navigation: opening a new panel, reusing the panel for a
-   *   *different* item from the tree or a link click) reassigns `panel.webview.html` wholesale,
-   *   a fresh page load that starts at the top — the right behavior for a reader landing on a
-   *   new item, and exactly what every call did before this distinction existed.
+   *   different item from the tree or a link click) reassigns `panel.webview.html` wholesale, a
+   *   fresh page load that starts at the top.
    * - `'patch'` (`refreshOpenPreviews` only — the `.squads.json`-watcher refresh of an item
    *   already on screen) instead `postMessage`s the freshly-rendered sections
    *   (`UpdateContentMessage`) for the webview's own script to swap into place via `innerHTML`.
-   *   The page itself never reloads, so the reader's scroll position is simply never disturbed —
-   *   no explicit capture/restore needed, since there's no navigation to restore it *from*.
+   *   The page never reloads, so the reader's scroll position is never disturbed.
    */
   private async render(
     panel: vscode.WebviewPanel,
@@ -434,9 +400,9 @@ export class ItemPreviewManager {
         }
         this.notifyError(`Squads: ${describeFailure(dossier)}`);
       }
-      // A failed role-list fetch degrades to NO_ROLE_DIRECTORY (`@slug` mentions render as
-      // plain text) rather than a second notification — same treatment as the tree/graph/
-      // sub-entities/discussion fetches below, none of which are the actionable failure.
+      // Degrades via `roleDirectoryFrom` rather than a second notification — same treatment as
+      // the tree/graph/sub-entities/discussion fetches below, none of which are the actionable
+      // failure.
       const roles = roleDirectoryFrom(roleList);
       ({ titleText, headerHtml, bodyHtml } = renderOutcomeHtml(id, dossier, roles));
       graphsHtml = buildGraphsHtml(

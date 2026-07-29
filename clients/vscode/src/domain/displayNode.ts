@@ -1,9 +1,8 @@
 /**
  * `DisplayNode` is the vscode-free intermediate representation both browse views (the
- * hierarchy tree and the flat/filtered/grouped list) render into before a thin, untested-by-unit-tests
- * wrapper turns each node into an actual `vscode.TreeItem`. Keeping this layer free of the
- * `vscode` import is what lets the JSON -> display mapping run under `vitest` with no real
- * VS Code host.
+ * hierarchy tree and the flat/filtered/grouped list) render into before a thin wrapper turns
+ * each node into an actual `vscode.TreeItem`. Keeping this layer free of the `vscode` import is
+ * what lets the JSON -> display mapping run under `vitest` with no real VS Code host.
  */
 import type { ResolvedBadge } from './badgeCatalog';
 import type { ColorIntent } from './statusRole';
