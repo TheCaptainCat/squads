@@ -19,34 +19,34 @@ subentities:
   severity: medium
 - local_id: F3
   title: Extension README serves neither of its audiences
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Extension README describes two views; there are three
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F5
   title: Ref-kind list is five of nine valid kinds
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F6
   title: Extension README omits search and display labels
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F7
   title: Review-finding id leaked into the extension README
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F8
   title: Dropped 'meta' terminology still in the extension README
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F9
   title: Neither README acknowledges its sibling documents
   status: Open
   severity: low
 created_at: '2026-07-28T15:03:55Z'
-updated_at: '2026-07-28T15:08:49Z'
+updated_at: '2026-07-29T07:33:43Z'
 ---
 <!-- sq:body -->
 Independent review of the two internal READMEs — `README.md` (repo root, what GitHub shows) and
@@ -170,12 +170,12 @@ _Add with `sq review 685 add-finding "…" --severity medium`; track with `sq re
 | --- | --- | --- | --- | --- |
 | F1 | 🟠 high | Open |  | Root README has no contributor onboarding |
 | F2 | 🟡 medium | Open |  | Ordering serves neither arrival |
-| F3 | 🟡 medium | Open |  | Extension README serves neither of its audiences |
-| F4 | 🟡 medium | Open |  | Extension README describes two views; there are three |
-| F5 | 🟡 medium | Open |  | Ref-kind list is five of nine valid kinds |
-| F6 | 🟡 medium | Open |  | Extension README omits search and display labels |
-| F7 | 🟢 low | Open |  | Review-finding id leaked into the extension README |
-| F8 | 🟢 low | Open |  | Dropped 'meta' terminology still in the extension README |
+| F3 | 🟡 medium | Fixed |  | Extension README serves neither of its audiences |
+| F4 | 🟡 medium | Fixed |  | Extension README describes two views; there are three |
+| F5 | 🟡 medium | Fixed |  | Ref-kind list is five of nine valid kinds |
+| F6 | 🟡 medium | Fixed |  | Extension README omits search and display labels |
+| F7 | 🟢 low | Fixed |  | Review-finding id leaked into the extension README |
+| F8 | 🟢 low | Fixed |  | Dropped 'meta' terminology still in the extension README |
 | F9 | 🟢 low | Open |  | Neither README acknowledges its sibling documents |
 <!-- sq:summary:end -->
 
@@ -271,7 +271,7 @@ agents" up above the command reference.
 ### F3 — Extension README serves neither of its audiences
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F3:head:end -->
 
@@ -315,7 +315,7 @@ contributor, and would be structurally resistant to going stale.
 ### F4 — Extension README describes two views; there are three
 
 <!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F4:head:end -->
 
@@ -358,7 +358,7 @@ Verified via `package.json`'s `views` block, not by comparing the two documents.
 ### F5 — Ref-kind list is five of nine valid kinds
 
 <!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F5:head:end -->
 
@@ -400,7 +400,7 @@ Verified against `VALID_REF_KINDS`, not against another document.
 ### F6 — Extension README omits search and display labels
 
 <!-- sq:finding:F6:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F6:head:end -->
 
@@ -440,7 +440,7 @@ Verified against `package.json`'s contributed commands and keybindings, the pres
 ### F7 — Review-finding id leaked into the extension README
 
 <!-- sq:finding:F7:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F7:head:end -->
 
@@ -478,7 +478,7 @@ that becomes convention if it stays.
 ### F8 — Dropped 'meta' terminology still in the extension README
 
 <!-- sq:finding:F8:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F8:head:end -->
 
@@ -570,4 +570,10 @@ rest.
   - Verdict: the root README's facts hold (the earlier ten-defect pass stuck) but it discharges half its purpose — contributor onboarding — with a single mid-sentence link, and its ordering buries the strongest advert material below a 65-line command reference while putting 30 lines of shell completion above the Quickstart. The extension README is the weak point: a 36-line single-paragraph feature inventory that is too internal to advertise and too shallow to onboard, and whose form is why a whole activity-bar view and the search QuickPick went missing from it.
   - Two cross-document notes: the root README correctly names three activity-bar trees while the extension README describes two (the doc closer to the code is the stale one), and the read/write boundary is consistent in both — 'Read-only, like sq ui' and 'Current state: read-only browse … a later increment' — so no drift there. Weighed the tech writer's three recommendations in the body: agree on the sibling-document pointer, reject the 'move contributor material forward' framing now the page owns two audiences (ordering, not promotion) with a concrete order proposed, agree on keeping the command reference but only on condition it gets verified against the tool — its ref-kind list is five of nine.
   - @tech-writer for the fixes; @manager F1/F3 are the pair worth acting on, and F3's fix subsumes F4/F6/F7/F8 if the paragraph is replaced rather than patched. Note for the record: content from the parallel listings review bled into my working files mid-pass and landed once in F1's body; caught, F1 rewritten from my own reading, and I confirmed no other finding was affected. The published listings stayed out of scope.
+- [2026-07-29T07:33:43Z] Theo Writer:
+  - F3 fixed by replacement, not patching, so F4/F6/F7/F8 close with it. The 36-line paragraph is gone; the file now opens with two short paragraphs (what the client is, and a pointer to MARKETPLACE.md as the owner of the user-facing feature description) and then becomes a contributor map: a Layers section splitting the host layer (a module/responsibility table, all three tree providers named) from the vscode-free domain layer grouped by concern, then seven numbered conventions — domain purity, pure CLI consumption, read-only, spec-driven vocabulary, strict CSP and no CDN, no squad-item ids, and the TypeScript pin.
+  - Added what F3 listed as missing onboarding: a 'Running it in a dev host' block (compile first, --extensionDevelopmentPath, --disable-extensions, and the WSL caveat that the Linux binary misleads a visual check). The existing three test-layer sections are unchanged and were already correct.
+  - F7 note worth keeping: the leaked id was 'F17' in the extension README, not the root README, and the local hygiene gate's pattern only matches full ids (ADR|FEAT|TASK|REV|BUG|EPIC-<digit>, US<digit>, ST<digit>) — a bare finding id like F17 is invisible to it. That is why a gate written to prevent exactly this defect did not catch it. Widening the pattern is a code change and out of scope here; flagging it for whoever owns that test.
+  - F5 fixed in the root README: all nine kinds listed, plus a clause that blocks and depends-on are two spellings of one dependency edge (both feed sq blocked) and that supersedes is what sq check looks for on a superseded record. Verified against VALID_REF_KINDS. Adjacent to it, the sq blocked bullet said 'via the blocks ref kind' and now names both kinds — the service consumes them identically.
+  - F9 half-done: the extension README now names MARKETPLACE.md as the sibling that owns feature copy. The root README still does not name PYPI.md or the extension README; left for the deferred ordering work. F1 and F2 untouched, as deferred.
 <!-- sq:discussion:end -->

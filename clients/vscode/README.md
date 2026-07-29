@@ -1,51 +1,66 @@
 # squads VS Code extension
 
-Browse a [squads](https://github.com/TheCaptainCat/squads)-managed project's work items from
-VS Code. The extension is a pure consumer of the CLI's frozen `sq --json` surfaces: it never
-reads `.claude/` or parses `.squads.json` directly, discovers `sq` by auto-detecting the
-workspace toolchain (an explicit config override, then a workspace virtualenv, `uv`,
-`poetry`, and finally bare PATH as a last resort), and maps every exit code the CLI documents.
+The VS Code client for a [squads](https://github.com/TheCaptainCat/squads)-managed project: a
+read-only window onto the squad's work items, records and roster, backed entirely by the `sq` CLI.
 
-This package is self-contained: its own `package.json`, `tsconfig.json`, ESLint/Prettier
-config, and lockfile, entirely disjoint from the Python core's toolchain. Nothing under
-`clients/` is read by the Python gate (`pyright`/`ruff`/`pytest`) and vice versa.
+**For what it does from a user's point of view**, see [MARKETPLACE.md](MARKETPLACE.md) — the
+published listing, and the file to update when a user-visible feature changes. In one line: three
+activity-bar trees (**Work Items**, **Records**, **Roster**), an owned webview panel rendering any
+item's full dossier, full-text search, and auto-refresh driven by changes to the squad index on
+disk.
 
-Current state: read-only browse. An activity-bar **Work Items** tree (`src/treeDataProvider.ts`)
-renders the squad hierarchy from `sq tree --json` (or a flat filtered/grouped view when filters
-or grouping is active); selecting an item opens its `sq show --raw` dossier, rendered to HTML,
-in an owned `WebviewPanel` (`src/itemPreviewManager.ts`) — a dedicated tab that's never hijacked
-by opening another markdown file, unlike VS Code's built-in dynamic preview. Parent/ref item ids
-in the dossier render as navigable links: a click opens that item in the same panel, a
-middle-click (or ctrl/cmd-click) opens it in a new one — the webview posts a message back to
-the extension host, which routes it (`src/domain/previewMessages.ts`) and re-renders. Below the
-dossier prose, the panel renders three collapsible sections: **sub-entities** (stories/subtasks/
-findings from `sq show --json`'s `subentities` array, with status/assignee/severity badges),
-**discussion** (comments from `sq show --json`'s `discussion` array, escaped and rendered as
-markdown), and two independently collapsible **mermaid diagrams** (`src/domain/graphDiagrams.ts`)
-showing the item's children/subtree (`sq tree <id> --json`) and its ref graph (`sq graph <id>
---json`). The mermaid renderer is bundled as a local webview asset (`media/mermaid.min.js`,
-vendored by `npm run compile` — see `scripts/copy-mermaid.js`), loaded through the same strict
-CSP, no CDN. The markdown -> HTML rendering (`src/domain/markdown.ts`) and the panel's HTML
-document (`src/domain/previewDocument.ts`, strict per-render-nonce CSP, no remote content) are
-vscode-free and unit-tested directly. View-title toolbar commands filter by type, toggle
-group-by-type, toggle show-closed items (closed items render dimmed, not grouped), clear all
-filters/grouping, and refresh on demand (`src/commands.ts`); VS Code's native collapse-all icon
-(via `createTreeView`'s `showCollapseAll`) completes the toolbar. A separate view-title button
-opens the workflow cheatsheet (`sq workflow --raw`) in its own owned webview panel, with live
-mermaid rendering. A second, independent activity-bar view — **Roster** (`squadsMeta`,
-`src/metaTreeDataProvider.ts`) — lists the meta/reserved items (roles, skills, operators) the
-work tree deliberately excludes, under 3 fixed subfolders: Roles, Skills, Operators, refreshed
-together on demand or when `.squads.json` changes. It's not filterable/groupable, and selecting
-an entry opens the same owned preview webview as a work item. Item trees and lists render
-**active-role items in green** (the status carries the spec's `"active"` semantic role, joined
-via the statuses catalog), and all items carry a **tooltip** with id/type/status/assignee/badges
-visible on hover. The `sq` discovery module (`src/discovery.ts`) auto-detects how to invoke `sq`
-(explicit config, workspace venv, `uv`, `poetry`, bare PATH) and the `sq --json`/`--raw`
-adapter (`src/sqAdapter.ts`) underpin all of this, tested against committed fixtures
-(`test/fixtures/`) with no `sq` binary required — plus an integration skew-canary layer that
-re-checks those fixtures against a real `sq` (see below). Both views auto-refresh when
-`.squads.json` changes on disk (F17, via `src/squadWatcher.ts`). Mutating the squad from the
-editor is a later increment.
+The rest of this file is the map for working on it. The package is self-contained — its own
+`package.json`, `tsconfig.json`, ESLint/Prettier config and lockfile, disjoint from the Python
+core's toolchain; nothing under `clients/` is read by the Python gate, and vice versa.
+
+## Layers
+
+**Host layer** (`src/*.ts`) — everything allowed to import `vscode`:
+
+| Module | Responsibility |
+|---|---|
+| `extension.ts` | activation: builds the providers, registers commands, wires the watcher |
+| `treeDataProvider.ts` | the **Work Items** tree (hierarchy, or a flat filtered/grouped view) |
+| `recordsTreeDataProvider.ts` | the **Records** tree (one bucket per `records`-category type) |
+| `metaTreeDataProvider.ts` | the **Roster** tree (fixed Roles / Skills / Operators buckets) |
+| `treeItemRendering.ts` | shared `DisplayNode` → `vscode.TreeItem` mapping (icons, colours, tooltips) |
+| `itemPreviewManager.ts` | the owned `WebviewPanel`s: item dossiers, per-panel back/forward history, and the separate workflow-cheatsheet panel |
+| `searchQuickPick.ts` | the full-text search QuickPick over `sq search --json` |
+| `commands.ts`, `commandIds.ts` | command registration and the contributed command ids |
+| `squadWatcher.ts` | watches the squad index on disk and triggers one global refresh |
+| `discovery.ts`, `processRunner.ts`, `sqAdapter.ts`, `nodeEnvironment.ts` | finding `sq`, invoking it, and parsing its `--json` / `--raw` output |
+
+**Domain layer** (`src/domain/*.ts`) — pure, `vscode`-free, unit-tested directly with no host:
+
+- **view building** — `listView`, `metaView`, `recordsView`, `treeMapping`, `displayNode`,
+  `expansionTracker`, `refreshAll`
+- **preview assembly** — `previewDocument`, `markdown`, `graphDiagrams`, `previewHistory`,
+  `previewMessages`
+- **spec-driven vocabulary** — `typeCategory`, `typeLabels`, `typeOrder`, `statusRole`,
+  `badgeCatalog`, `reservedTypes`, `roleDirectory`
+- **search** — `searchRunner`, `searchResults`, `searchFilterArgs`, `searchAccept`
+- **misc** — `squadDir` (client-side `.squads.toml` walk-up), `idOrder`
+
+## Conventions to preserve
+
+1. **`src/domain/` never imports `vscode`.** That constraint is what makes the logic unit-testable
+   without an extension host; anything needing the API belongs in the host layer, kept thin enough
+   to be covered by the smoke test instead.
+2. **Pure consumer of the CLI.** Data comes from `sq … --json` / `--raw` and nothing else: never
+   read `.claude/`, and never parse the squad index for content — the watcher treats it as a change
+   *trigger* only, then re-fetches through the normal adapter calls.
+3. **Read-only.** Contribute no command that mutates a squad.
+4. **Spec-driven, not hardcoded.** Item types, statuses, labels, ordering and badges come from the
+   workflow catalogs, so a project with custom types works with no client change. Degrade
+   gracefully when a catalog is unavailable — fall back to prior behaviour rather than dropping
+   items.
+5. **Strict CSP, no remote content.** Webview HTML carries a per-render nonce for both its
+   `<style>` and `<script>`; mermaid is vendored locally (`media/mermaid.min.js`, copied by
+   `scripts/copy-mermaid.js` during `npm run compile`). Never introduce a CDN load.
+6. **No squad-item ids in source, config, or this file.** `test/hygiene.test.ts` enforces it,
+   mirroring the Python core's own gate, which does not reach into `clients/`.
+7. **TypeScript stays on 6.0.x.** The type-aware lint layer peer-caps below 6.1; the pin lifts when
+   that does, and not by dropping the type-aware gate.
 
 ## Development
 
@@ -54,6 +69,20 @@ npm install
 npm run check   # tsc --noEmit && eslint --max-warnings 0 && prettier --check
 npm test        # vitest — unit layer, committed fixtures only, no sq binary needed
 ```
+
+### Running it in a dev host
+
+Anything visual has to be seen in a real Extension Development Host, not inferred from tests:
+
+```bash
+npm run compile                                   # vendors mermaid, emits out/
+code --extensionDevelopmentPath=. --disable-extensions
+```
+
+The entry point is `out/src/extension.js`, so compile before launching or the host loads a stale
+build. `--disable-extensions` keeps your installed extensions out of the picture. Open a
+squads-managed folder in the new window to exercise the views. Under WSL, launch through the Windows
+`code` CLI — the Linux binary renders poorly enough to mislead a visual check.
 
 ### Integration skew canary
 

@@ -224,7 +224,7 @@ works exactly like the canonical spelling.
 
 **Find & focus**
 - `sq search TEXT [--type] [--status] [--json]` — match item titles, summaries, and bodies/discussion
-- `sq blocked [--json]` — open items blocked by other open items (via the `blocks` ref kind)
+- `sq blocked [--json]` — open items blocked by other open items (via the `blocks` / `depends-on` ref kinds)
 - `sq mine [ROLE] [--all] [--json]` — items assigned to a role (default: the squad's default role)
 - `sq workload [--json]` — open/closed/total work-item counts per assignee
 - `sq inbox <role>` — open items mentioning `@role`
@@ -240,7 +240,7 @@ works exactly like the canonical spelling.
 discussion — all written through commands.
 
 **Cross-linking**
-- `sq <type> <n> ref add TARGET [--kind related|blocks|implements|fixes|addresses]` · `sq <type> <n> ref rm TARGET`
+- `sq <type> <n> ref add TARGET [--kind related|blocks|depends-on|implements|fixes|addresses|supersedes|duplicates|scopes]` · `sq <type> <n> ref rm TARGET` — nine kinds. `blocks` and `depends-on` are the two spellings of one dependency edge (which end holds it differs; both feed `sq blocked`), and `supersedes` is what `sq check` looks for on a superseded record
 - `sq <type> <n> refs [--out|--in|--all] [--json]` (forward edges stored; backrefs computed)
 - `sq graph <ID> [--depth N] [--kind K] [--direction out|in|both] [--all] [--format dot|mermaid] [--json]` — the ref neighbourhood around one item
 

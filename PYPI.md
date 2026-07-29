@@ -63,32 +63,36 @@ Only the markdown is authoritative. `squads/.squads.json` is a rebuildable index
 
 ## What using it looks like
 
-One piece of work, from proposal to closed:
+One piece of work, from proposal to closed. `sq create` prints the ID it allocated — substitute it
+wherever these show `FEAT-<n>`, `TASK-<n>` or `REV-<n>`:
 
 ```bash
+# Developer roles are per stack; the bundled roster is the process roles
+sq dev add --tech python
+
 # The product owner opens a feature and the stories under it
 sq create feature "Password reset" --author product-owner --desc "Email a signed link, 30-minute expiry"
-sq feature 20 add-story "Request a reset link by email" --assignee python-dev
+sq feature FEAT-<n> add-story "Request a reset link by email" --assignee python-dev
 
 # The tech lead turns it into implementation work, mapped to that story
-sq create task "Signed reset tokens" --author tech-lead --parent FEAT-20
-sq task 21 add-subtask "Reject tokens past their expiry" --story US1
+sq create task "Signed reset tokens" --author tech-lead --parent FEAT-<n>
+sq task TASK-<n> add-subtask "Reject tokens past their expiry" --story US1
 
 # A developer picks it up, and hands it on through the item's own discussion
-sq task 21 status InProgress
-sq task 21 comment --as python-dev -m "HMAC-signed tokens, 30-minute TTL." -m "@reviewer ready for a look"
+sq task TASK-<n> status InProgress
+sq task TASK-<n> comment --as python-dev -m "HMAC-signed tokens, 30-minute TTL." -m "@reviewer ready for a look"
 
 # The reviewer finds it waiting for them, and records what they found
 sq inbox reviewer
-sq task 21 status InReview
-sq create review "Reset token review" --author reviewer --ref TASK-21
-sq review 22 add-finding "Expiry not enforced on a resend" --severity high
+sq task TASK-<n> status InReview
+sq create review "Reset token review" --author reviewer --ref TASK-<n>
+sq review REV-<n> add-finding "Expiry not enforced on a resend" --severity high
 
 # Findings are closed on the record, and the work lands
-sq review 22 finding 1 update --status Fixed
-sq review 22 status InReview      # a review can't jump straight to Approved
-sq review 22 status Approved
-sq task 21 status Done
+sq review REV-<n> finding 1 update --status Fixed
+sq review REV-<n> status InReview      # a review can't jump straight to Approved
+sq review REV-<n> status Approved
+sq task TASK-<n> status Done
 ```
 
 Every one of those commands writes markdown a human can read and git can diff. Agents run them
@@ -96,7 +100,7 @@ themselves — the roster, the skills and the handoff protocol are installed int
 agent knows the process without being told it again each session.
 
 Read the board back with `sq tree`, `sq list`, `sq blocked`, `sq mine <role>`, or
-`sq task 21 show --full --comments` for one item's whole dossier.
+`sq task TASK-<n> show --full --comments` for one item's whole dossier.
 
 ## Works with your agent tooling
 
@@ -112,7 +116,8 @@ Two read-only clients exist for browsing a squad: `sq ui`, a terminal browser in
 `tui` extra, and a
 [VS Code extension](https://marketplace.visualstudio.com/items?itemName=pierre-chat.squads-vscode)
 that puts the work items, records and roster in the sidebar with a rendered dossier per item.
-Neither writes anything — every mutation goes through `sq`.
+Neither writes anything today — every mutation goes through `sq`. Editing from a client is a planned
+direction, not a shipped feature.
 
 ## Documentation
 
@@ -135,9 +140,9 @@ The same pages are readable offline, without leaving the terminal: `sq docs`.
 
 ## Where it is
 
-squads is pre-1.0 and moves: surfaces are still being settled, and a release can change the
-on-disk schema. When one does, `sq migrate up` carries an existing squad forward — a squad created
-on any 0.x release reaches 1.0 intact. What is and is not going to be stable after 1.0 is written
+squads is pre-1.0 and under active development: surfaces are still being settled, and a release can
+change the on-disk schema. When one does, `sq migrate up` carries an existing squad forward — a squad
+created on any 0.x release reaches 1.0 intact. What is and is not going to be stable after 1.0 is written
 down in [the stability contract](https://github.com/TheCaptainCat/squads/blob/main/docs/stability.md).
 
 MIT licensed. Issues and questions:

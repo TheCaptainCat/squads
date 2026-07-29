@@ -52,32 +52,36 @@ Only the markdown is authoritative. The index file beside it is a rebuildable ca
 
 ## What using it looks like
 
-One piece of work, from proposal to closed, as the team would actually run it:
+One piece of work, from proposal to closed, as the team would actually run it. `sq create` prints the
+ID it allocated — substitute it wherever these show `FEAT-<n>`, `TASK-<n>` or `REV-<n>`:
 
 ```bash
+# Developer roles are per stack; the bundled roster is the process roles
+sq dev add --tech python
+
 # The product owner opens a feature and the stories under it
 sq create feature "Password reset" --author product-owner --desc "Email a signed link, 30-minute expiry"
-sq feature 20 add-story "Request a reset link by email" --assignee python-dev
+sq feature FEAT-<n> add-story "Request a reset link by email" --assignee python-dev
 
 # The tech lead turns it into implementation work, mapped to that story
-sq create task "Signed reset tokens" --author tech-lead --parent FEAT-20
-sq task 21 add-subtask "Reject tokens past their expiry" --story US1
+sq create task "Signed reset tokens" --author tech-lead --parent FEAT-<n>
+sq task TASK-<n> add-subtask "Reject tokens past their expiry" --story US1
 
 # A developer picks it up, and hands it on through the item's own discussion
-sq task 21 status InProgress
-sq task 21 comment --as python-dev -m "HMAC-signed tokens, 30-minute TTL." -m "@reviewer ready for a look"
+sq task TASK-<n> status InProgress
+sq task TASK-<n> comment --as python-dev -m "HMAC-signed tokens, 30-minute TTL." -m "@reviewer ready for a look"
 
 # The reviewer finds it waiting for them, and records what they found
 sq inbox reviewer
-sq task 21 status InReview
-sq create review "Reset token review" --author reviewer --ref TASK-21
-sq review 22 add-finding "Expiry not enforced on a resend" --severity high
+sq task TASK-<n> status InReview
+sq create review "Reset token review" --author reviewer --ref TASK-<n>
+sq review REV-<n> add-finding "Expiry not enforced on a resend" --severity high
 
 # Findings are closed on the record, and the work lands
-sq review 22 finding 1 update --status Fixed
-sq review 22 status InReview      # a review can't jump straight to Approved
-sq review 22 status Approved
-sq task 21 status Done
+sq review REV-<n> finding 1 update --status Fixed
+sq review REV-<n> status InReview      # a review can't jump straight to Approved
+sq review REV-<n> status Approved
+sq task TASK-<n> status Done
 ```
 
 Every one of those commands writes markdown a human can read and git can diff. Agents run them
@@ -130,8 +134,8 @@ Select an item and it opens in a dedicated panel — a real dossier, not a raw f
 
 The views watch the project index on the local filesystem. When an agent runs a command, or when you
 pull or switch a branch, the trees and any open dossier refresh on their own — without a keystroke
-from you, though a workspace not backed by a local filesystem falls back to each view's refresh
-button. That's the difference between reading a snapshot and watching a board: leave the sidebar open
+from you, though a workspace not backed by a local filesystem falls back to the **Refresh All**
+button in the views' title bars. That's the difference between reading a snapshot and watching a board: leave the sidebar open
 beside the code and status changes land in it as agents make them.
 
 ## Finding things
