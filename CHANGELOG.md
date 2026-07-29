@@ -4,6 +4,56 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.3]
+
+**No change to the `sq` CLI in this release.** The Python package behaves exactly as 0.12.2 did —
+nothing to migrate, no commands or output to re-learn. What changed is the VS Code extension, the
+documentation an adopter reads before installing, and the page PyPI shows for the package.
+
+### VS Code extension
+
+- **One refresh covers the whole sidebar.** A refresh button used to refresh only its own view, so
+  keeping the sidebar current meant clicking each of them in turn. Any refresh now refreshes all
+  three trees — Work Items, Records, Roster — and every open item preview.
+- **An open preview keeps its expanded sections across a refresh.** Sub-entity bodies and the two
+  graph folds stay as you left them when the preview reloads. Since agents mutate the board while
+  you are reading it, a preview left open used to collapse itself repeatedly through a session.
+- **A refresh action inside the preview panel.** The panel's own toolbar gained one, left of the
+  back/forward arrows, firing that same whole-sidebar refresh — so bringing the dossier you're
+  reading up to date no longer means leaving it.
+- **The packaged extension carries its licence, and the Marketplace listing says what it is.** The
+  VSIX now ships the MIT licence text, and the listing has real categories, search keywords, and a
+  description naming the extension for what it is: a read-only companion for squads-managed
+  projects.
+
+### Documentation
+
+Corrections, not additions — each of these was wrong in a way that cost the reader an error:
+
+- **The README's quickstart failed as written.** `sq create` requires `--author`, which the example
+  omitted, so the first command an adopter copied returned `Missing option '--author'`. The
+  quickstart now passes `--author`, and addresses items by the ID `sq create` prints back rather
+  than by a fixed number that only matched one particular squad.
+- **A bug's lifecycle was documented as the epic/feature/task one.** The table gave bugs
+  `Draft → Ready → InProgress → InReview → Done`; the real machine is
+  `Open → InProgress → Fixed → Verified` (+ `WontFix`, `Blocked`, `Cancelled`), so a reader
+  following it hit a rejected transition. Sub-entity lifecycles are now documented alongside it.
+- **The ref-kind list showed five of the nine kinds.** `depends-on`, `supersedes`, `duplicates` and
+  `scopes` were missing — including the kind `sq check` looks for on a superseded record, and the
+  one that records sequencing between items.
+- **Three documented commands did not exist** (`sq story add`, `sq skill list`, `sq guide list`),
+  and the roster commands were written verb-first when the real grammar addresses the entry first
+  (`sq role <slug> show`). Commands that do exist but were undocumented are now listed, among them
+  `sq show`, `sq graph`, `sq docs`, `sq ui`, `sq memory`, `sq board`, `sq migrate` and
+  `sq override`.
+- **The install line still said "once published".** The package has been on PyPI for several
+  releases; `uv tool install squads` is now given as the instruction it is, with the `tui` extra
+  named for anyone who wants `sq ui`.
+- **PyPI has its own project description.** The package page is now written for someone at a
+  terminal deciding whether to install the CLI — what squads is, how the model works, and a worked
+  example of one piece of work moving from proposal to closed — instead of the repository's README,
+  which serves GitHub visitors and contributors.
+
 ## [0.12.2]
 
 ### Fixed

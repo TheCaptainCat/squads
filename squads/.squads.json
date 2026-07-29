@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 686,
+  "counter": 687,
   "padding": 6,
   "items": {
     "12": {
@@ -25626,6 +25626,29 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-686"
+    },
+    "687": {
+      "sequence_id": 687,
+      "type": "bug",
+      "title": "VS Code: toggle actions show no active state",
+      "slug": "vs-code-toggle-actions-show-no-active-state",
+      "status": "Open",
+      "description": "Group by type and Show closed render identically whether on or off",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000687-vs-code-toggle-actions-show-no-active-state.md",
+      "created_at": "2026-07-29T08:49:02Z",
+      "updated_at": "2026-07-29T08:49:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-687"
     }
   }
 }
