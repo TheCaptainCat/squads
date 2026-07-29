@@ -5,11 +5,19 @@ import { describe, expect, it } from 'vitest';
 
 import {
   allDeclaredStatuses,
+  DEFAULT_META_VIEW_STATE,
   describeMetaFilterState,
   matchesMetaFilter,
+  type MetaViewState,
 } from '../src/domain/metaFilter';
 import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
 import type { SqListItem, SqRoleCatalogEntry, SqStatusCatalogEntry } from '../src/types';
+
+// `groupByType` is irrelevant to every test below (it doesn't affect matchesMetaFilter or
+// describeMetaFilterState), so tests only ever override showArchived/statusFilter through this.
+function state(overrides: Partial<MetaViewState>): MetaViewState {
+  return { ...DEFAULT_META_VIEW_STATE, ...overrides };
+}
 
 function readFixture(name: string): string {
   return readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -62,7 +70,7 @@ describe('matchesMetaFilter', () => {
     expect(
       matchesMetaFilter(
         archived,
-        { showArchived: false, statusFilter: null },
+        state({ showArchived: false, statusFilter: null }),
         STATUS_ROLES,
         ROLE_CATALOG,
       ),
@@ -75,7 +83,7 @@ describe('matchesMetaFilter', () => {
     expect(
       matchesMetaFilter(
         archived,
-        { showArchived: true, statusFilter: null },
+        state({ showArchived: true, statusFilter: null }),
         STATUS_ROLES,
         ROLE_CATALOG,
       ),
@@ -88,7 +96,7 @@ describe('matchesMetaFilter', () => {
     expect(
       matchesMetaFilter(
         active,
-        { showArchived: false, statusFilter: null },
+        state({ showArchived: false, statusFilter: null }),
         STATUS_ROLES,
         ROLE_CATALOG,
       ),
@@ -101,7 +109,7 @@ describe('matchesMetaFilter', () => {
     expect(
       matchesMetaFilter(
         archived,
-        { showArchived: false, statusFilter: 'Archived' },
+        state({ showArchived: false, statusFilter: 'Archived' }),
         STATUS_ROLES,
         ROLE_CATALOG,
       ),
@@ -114,7 +122,7 @@ describe('matchesMetaFilter', () => {
     expect(
       matchesMetaFilter(
         active,
-        { showArchived: true, statusFilter: 'Draft' },
+        state({ showArchived: true, statusFilter: 'Draft' }),
         STATUS_ROLES,
         ROLE_CATALOG,
       ),
@@ -124,17 +132,19 @@ describe('matchesMetaFilter', () => {
 
 describe('describeMetaFilterState', () => {
   it('is undefined at the default state', () => {
-    expect(describeMetaFilterState({ showArchived: false, statusFilter: null })).toBeUndefined();
+    expect(
+      describeMetaFilterState(state({ showArchived: false, statusFilter: null })),
+    ).toBeUndefined();
   });
 
   it('names the status filter when set, regardless of showArchived', () => {
-    expect(describeMetaFilterState({ showArchived: false, statusFilter: 'Draft' })).toBe(
+    expect(describeMetaFilterState(state({ showArchived: false, statusFilter: 'Draft' }))).toBe(
       'Filtered: Draft',
     );
   });
 
   it('reports archived-shown when the toggle is on and no status filter is set', () => {
-    expect(describeMetaFilterState({ showArchived: true, statusFilter: null })).toBe(
+    expect(describeMetaFilterState(state({ showArchived: true, statusFilter: null }))).toBe(
       'Archived shown',
     );
   });

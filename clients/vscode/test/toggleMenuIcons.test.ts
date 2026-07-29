@@ -64,6 +64,21 @@ const TOGGLE_PAIRS: readonly { on: string; off: string; contextKey: string }[] =
     off: 'squads.hideArchived',
     contextKey: 'squads.metaShowArchived',
   },
+  {
+    on: 'squads.toggleGroupByTypeMeta',
+    off: 'squads.ungroupByTypeMeta',
+    contextKey: 'squads.metaGroupByType',
+  },
+  {
+    on: 'squads.toggleGroupByTypeRecords',
+    off: 'squads.ungroupByTypeRecords',
+    contextKey: 'squads.recordsGroupByType',
+  },
+  {
+    on: 'squads.toggleShowTerminal',
+    off: 'squads.hideTerminal',
+    contextKey: 'squads.recordsShowTerminal',
+  },
 ];
 
 describe('view-title toggle icon pairs', () => {

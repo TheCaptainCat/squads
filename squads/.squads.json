@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 688,
+  "counter": 690,
   "padding": 6,
   "items": {
     "12": {
@@ -25711,6 +25711,110 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-688"
+    },
+    "689": {
+      "sequence_id": 689,
+      "type": "task",
+      "title": "VS Code: grouping toggle and hide-terminal on Roster and Records",
+      "slug": "vs-code-grouping-toggle-and-hide-terminal-on-roster-and-reco",
+      "status": "InProgress",
+      "description": "Both views get a group-by-type toggle defaulting to grouped, plus a hide button",
+      "parent": "FEAT-621",
+      "author": "op-pierre",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Group-by-type toggle on Roster and Records",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Hide-terminal button on Records",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Visible active state and clear, both views",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Dev-host verification per increment",
+          "status": "Todo",
+          "assignee": "op-pierre",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000689-vs-code-grouping-toggle-and-hide-terminal-on-roster-and-reco.md",
+      "created_at": "2026-07-29T09:50:19Z",
+      "updated_at": "2026-07-29T10:03:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-689"
+    },
+    "690": {
+      "sequence_id": 690,
+      "type": "feature",
+      "title": "See memory and board in the extension and sq ui",
+      "slug": "see-memory-and-board-in-the-extension-and-sq-ui",
+      "status": "Draft",
+      "description": "Read-only oversight views for per-role memory (hygiene audit) and the team board in both browse clients",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "EPIC-316"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Memory hygiene-oversight view (sq ui first, extension once list --json carries created_at)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Team board view (both clients, low cost, no named urgency — sequence after memory)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000690-see-memory-and-board-in-the-extension-and-sq-ui.md",
+      "created_at": "2026-07-29T10:03:25Z",
+      "updated_at": "2026-07-29T10:03:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-690"
     }
   }
 }

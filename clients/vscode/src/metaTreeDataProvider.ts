@@ -1,15 +1,15 @@
 /**
  * The second activity-bar view's `TreeDataProvider` ("Roster"): renders the 3 fixed
- * reserved-type buckets (Roles/Skills/Operators) built by the vscode-free `domain/metaView.ts`.
- * Never groupable, but narrowable — `MetaViewState` (`domain/metaFilter.ts`) hides
- * archived-by-default entries and/or restricts to one status, a deliberately smaller state
- * machine than `SquadsTreeDataProvider`'s (no type filter or grouping: the 3 buckets already are
- * the type dimension). The fetch stays one unconditional `sq list --json --all` regardless of
- * `state` — unlike the work tree's `--all`-gated fetch, `--all` is needed unconditionally here so
- * toggling `showArchived` or picking any declared status back in doesn't require a second round
- * trip. Thin glue only, same split as `treeDataProvider.ts`: this module's vscode wiring is
- * exercised by the extension-host smoke test, `buildMetaView`/`domain/metaFilter.ts` are what's
- * unit-tested.
+ * reserved-type buckets (Roles/Skills/Operators) built by the vscode-free `domain/metaView.ts`,
+ * or a flat id-sorted list when `groupByType` is off. `MetaViewState`
+ * (`domain/metaFilter.ts`) is a deliberately smaller state machine than
+ * `SquadsTreeDataProvider`'s (no type filter: the 3 buckets already are the type dimension), and
+ * defaults `groupByType` to `true` (the opposite of the work tree's default). The fetch stays
+ * one unconditional `sq list --json --all` regardless of `state` — unlike the work tree's
+ * `--all`-gated fetch, `--all` is needed unconditionally here so toggling `showArchived` or
+ * picking any declared status back in doesn't require a second round trip. Thin glue only, same
+ * split as `treeDataProvider.ts`: this module's vscode wiring is exercised by the extension-host
+ * smoke test, `buildMetaView`/`domain/metaFilter.ts` are what's unit-tested.
  */
 import * as vscode from 'vscode';
 
@@ -98,6 +98,11 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
 
   toggleShowArchived(): void {
     this.state = { ...this.state, showArchived: !this.state.showArchived };
+    void this.refresh();
+  }
+
+  toggleGroupByType(): void {
+    this.state = { ...this.state, groupByType: !this.state.groupByType };
     void this.refresh();
   }
 
