@@ -1,5 +1,5 @@
 /**
- * Pure domain logic for the second activity-bar view (the "Roster" section, F12): buckets
+ * Pure domain logic for the second activity-bar view (the "Roster" section): buckets
  * `sq list --json` rows into the 3 fixed reserved-type subfolders — Roles, Skills, Operators —
  * the complement of the work tree's reserved-type exclusion (`reservedTypes.ts`). Unlike the
  * work tree, this view is never filterable/groupable: always exactly these 3 buckets, in this
@@ -76,7 +76,7 @@ function sortedLeaves(
 
 /** Builds the meta/roster view's roots: one group per `META_BUCKETS` entry, in that fixed
  * order, each always present (even with 0 items) and never merged/reordered by content.
- * `fieldBindings`/`badgeVocabulary` (F19) and `statusRoles`/`roleCatalog`  default to the
+ * `fieldBindings`/`badgeVocabulary` and `statusRoles`/`roleCatalog`  default to the
  * graceful-fallback empty maps, degrading each leaf's tooltip badges to raw codes / disabling
  * the colour highlight rather than breaking the view. `labelMap` defaults to `NO_LABELS`,
  * resolving each bucket's header via the shared `pluralLabel` resolver rather than a hardcoded

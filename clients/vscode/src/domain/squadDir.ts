@@ -3,7 +3,7 @@
  * walk up from the workspace root looking for `.squads.toml`, then read its `squad_dir` key
  * (defaulting to `"squads"`, same as `SquadsConfig`) to get the folder that holds `.squads.json`.
  *
- * This exists purely so `squadWatcher.ts` (F17) knows *which directory* to watch — it is never
+ * This exists purely so `squadWatcher.ts` knows *which directory* to watch — it is never
  * used to read item data itself (the extension stays a pure consumer of `sq … --json`).
  * Pure/injectable like `discovery.ts`, so the walk-up + TOML-key parsing is unit-testable with
  * no real filesystem or VS Code host.

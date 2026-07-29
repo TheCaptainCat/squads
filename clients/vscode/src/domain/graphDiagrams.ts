@@ -13,7 +13,7 @@ import { escapeHtml } from './markdown';
  * (mirrors the core CLI's own `sq graph --format mermaid` `_safe_id`, `_services/_refs.py`).
  * Reversible: since an item id has exactly one non-word character (the hyphen), the webview's
  * post-render click wiring (`previewDocument.ts`'s `mermaidRenderScript`) recovers the original
- * id straight from a rendered node's id by undoing this same substitution — see F25. */
+ * id straight from a rendered node's id by undoing this same substitution. */
 function mermaidNodeId(id: string): string {
   return id.replace(/[^A-Za-z0-9_]/g, '_');
 }
