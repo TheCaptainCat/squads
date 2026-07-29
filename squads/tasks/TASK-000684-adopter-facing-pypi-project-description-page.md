@@ -6,7 +6,7 @@ title: Adopter-facing PyPI project description page
 status: Draft
 author: tech-writer
 created_at: '2026-07-28T14:48:35Z'
-updated_at: '2026-07-28T15:28:08Z'
+updated_at: '2026-07-29T07:34:03Z'
 ---
 <!-- sq:body -->
 The root README carries the GitHub repo, contributors, and — via `readme = "README.md"` — the PyPI project description. This splits the last audience onto its own page, the way the VS Code client already has a dedicated Marketplace overview.
@@ -51,4 +51,10 @@ _Add with `sq task 684 add-subtask "<title>"`; track with `sq task 684 subtask <
   - 0.12.3 resume point. Branch release/0.12.3, 9 commits, unpushed. Done: VSIX LICENSE fix, extension Marketplace metadata, MARKETPLACE.md rewrite+expansion+trim, README corrections, PYPI.md + pyproject readme wiring + runbook drift note, TASK-681 (global refresh + fold preservation, dev-host verified by op-pierre). Open: doc fixes from REV-685/REV-686 were in flight with the tech writer when the session ended — check the working tree for uncommitted MARKETPLACE.md/PYPI.md/README.md/clients-vscode-README changes before redoing them. Then: changelog for 0.12.3, bump_version.py 0.12.3, uv build, push, PR into main, watch CI (the matrix caught Windows-only failures last release). Deferred to a later release: REV-685 F1 (contributor onboarding section; CONTRIBUTING.md omits clients/, the extension, npm) and F2 (root README ordering).
 - [2026-07-28T15:28:08Z] Catherine Manager:
   - Correction to the resume point: the tech writer was stopped during verification, before touching any doc file — MARKETPLACE.md, PYPI.md, README.md and clients/vscode/README.md are all at their committed state. The doc fixes from REV-685/686 are unstarted, not half-done.
+- [2026-07-29T07:34:03Z] Theo Writer:
+  - Review-fix pass across the four docs (nothing committed). Fixed: the worked example on MARKETPLACE.md and PYPI.md, the ref-kind list and the sq blocked bullet in README.md, the directional clause on PYPI.md, and the extension README's opening paragraph.
+  - Example root cause: my verification run included 'sq dev add --tech python' as its first command and the published block did not. That one omission produced both failures at once — python-dev did not exist, and without the dev role the counter sat at 18 so the first feature was FEAT-19 rather than the FEAT-20 my run produced. The lesson is mechanical: paste the block that ships, then run that, rather than running a sequence and transcribing it.
+  - Durability fix: literal IDs replaced by typed placeholders (FEAT-<n>, TASK-<n>, REV-<n>) after confirming full-ID addressing is legal and type-validated. The example can no longer go stale when init's role/skill count changes or a reader picks --roles core. Verified end to end twice from a clean init, the second time using the page's exact text.
+  - One out-of-list correction on MARKETPLACE.md: the auto-refresh caveat said 'each view's refresh button', which the unified-refresh work made imprecise — the button in each view's title bar now runs one global Refresh All, so the clause names it.
+  - Findings closed: REV-686 F1, F3; REV-685 F3, F4, F5, F6, F7, F8. Left Open: REV-686 F2 (Marketplace pre-1.0 disclosure — outside both the fix and defer lists, so untouched), REV-686 F4 (informational), REV-685 F9 (half-done), F1 and F2 (deferred).
 <!-- sq:discussion:end -->

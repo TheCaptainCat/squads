@@ -9,7 +9,7 @@ subentities:
 - local_id: F1
   title: 'Worked example fails as written: python-dev role does not exist after sq
     init --roles all'
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states
@@ -18,7 +18,7 @@ subentities:
 - local_id: F3
   title: PyPI page states its present-tense limits without the directional pairing
     the Marketplace page already has
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Manifest positioning, audience split, and all checkable factual claims verified
@@ -26,7 +26,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-28T15:06:17Z'
-updated_at: '2026-07-28T15:08:17Z'
+updated_at: '2026-07-29T07:33:41Z'
 ---
 <!-- sq:body -->
 Independent read of `clients/vscode/MARKETPLACE.md` (VS Code Marketplace listing) and `PYPI.md`
@@ -55,9 +55,9 @@ _Add with `sq review 686 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Open |  | Worked example fails as written: python-dev role does not exist after sq init --roles all |
+| F1 | 🟠 high | Fixed |  | Worked example fails as written: python-dev role does not exist after sq init --roles all |
 | F2 | 🟡 medium | Open |  | Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states |
-| F3 | 🟡 medium | Open |  | PyPI page states its present-tense limits without the directional pairing the Marketplace page already has |
+| F3 | 🟡 medium | Fixed |  | PyPI page states its present-tense limits without the directional pairing the Marketplace page already has |
 | F4 | 🟢 low | Open |  | Manifest positioning, audience split, and all checkable factual claims verified clean |
 <!-- sq:summary:end -->
 
@@ -67,7 +67,7 @@ _Add with `sq review 686 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Worked example fails as written: python-dev role does not exist after sq init --roles all
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟠 High
 <!-- sq:finding:F1:head:end -->
 
@@ -140,7 +140,7 @@ bloating the page.
 ### F3 — PyPI page states its present-tense limits without the directional pairing the Marketplace page already has
 
 <!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F3:head:end -->
 
@@ -236,4 +236,10 @@ drifted from the "read-only, planned direction for editing" framing settled here
   - Highest-value single change: add 'sq dev add --tech python' before the add-story step in the shared worked example (F1) — it's the one thing a reader will actually type, and it's currently broken on both pages.
   - Direction steer addressed: MARKETPLACE's 'planned direction, not a shipped feature' line for editing is the right shape and stays as-is (F3 notes it as the model). PYPI's pre-1.0 framing states the present cleanly but has no equivalent forward clause — F3 recommends one clause, no specifics, no version numbers.
   - @tech-lead cross-cutting note in F4: worth a quick check that README.md's description of the extension's read/write boundary still matches 'read-only, planned direction for editing' while you're in there.
+- [2026-07-29T07:33:41Z] Theo Writer:
+  - F1 fixed on both pages, and the root cause was worse than a missing line: my verification run had 17 commands and the published block had 16 — I ran 'sq dev add --tech python' first to make python-dev real, then omitted it when writing the block. That single omission caused both symptoms, because dev add also consumes a counter slot: without it the roles/skills leave the counter at 18 and the first feature is FEAT-19, with it the feature is FEAT-20. The page showed the numbers from my run and the commands from a run that never happened.
+  - Fix goes further than adding the line back: literal IDs are now gone. The block uses typed placeholders (FEAT-<n>, TASK-<n>, REV-<n>) with a lead-in saying sq create prints the ID to substitute. Full-ID addressing is a legal, type-checked form ('sq feature FEAT-20 add-story' works; 'sq task FEAT-20 show' is rejected), so the page shows real syntax and cannot drift when init's role/skill count changes or when a reader uses --roles core instead of all.
+  - Verified twice from a clean 'sq init --roles all': once with substituted numbers, once with the page's exact full-ID form. All 17 commands succeed, including 'sq inbox reviewer' listing the task at the moment the example calls it.
+  - F3 fixed: 'Neither writes anything today … Editing from a client is a planned direction, not a shipped feature' beside the clients sentence, and 'pre-1.0 and under active development' in the maturity section. Present tense stays exact, no dates, no version numbers.
+  - F2 (Marketplace missing the pre-1.0/schema disclosure) is NOT fixed — it fell between the coordinator's fix list and defer list, so I left the published page alone rather than adding unrequested copy to it. @op-pierre @manager it is a two-line addition when someone wants it. F4 left Open as an informational record.
 <!-- sq:discussion:end -->
