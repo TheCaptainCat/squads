@@ -1,10 +1,9 @@
 # tests/ — authoring conventions
 
-**Status: finalized (FEAT-231, Phase 4; `tests/tui/` added for EPIC-28).** This document governs
-`tests/unit/`, `tests/service/`, `tests/cli/`, `tests/integration/`, `tests/tui/` — the five
-behavioral layers — plus the orthogonal `tests/meta/` repo-self-test category (see §1). Together they are the sole test tree, authored
-per these rules in Phase 2 and verified for parity in Phase 3. The old flat `tests/test_*.py`
-suite predated this document and was retired wholesale in Phase 3, not edited to comply.
+This document governs `tests/unit/`, `tests/service/`, `tests/cli/`, `tests/integration/`,
+`tests/tui/` — the five behavioral layers — plus the orthogonal `tests/meta/` repo-self-test
+category (see §1). Together they are the sole test tree, and every test in it is authored per
+these rules.
 
 ## 1. The layers
 
@@ -80,9 +79,12 @@ that…"** without requiring the reader to know anything about this project's de
   (`test_bundled_spec_is_byte_identical_to_the_golden`, not `test_golden_lock_spec`).
 - Any `FEAT-`, `TASK-`, `ADR-`, `REV-`, `BUG-` reference (file name, test name, or docstring).
   Ticket pointers belong in commit history, not the test tree — this is the same project rule that
-  bans ticket IDs from source. `tests/unit/test_source_and_new_test_tree_have_no_stray_ticket_references.py`
-  enforces it mechanically: full-text for `src/`+`docs/`, and by name/docstring (not assertion
-  data) across this tree — closing the loop the old suite's `test_squad_ref_hygiene.py` left open.
+  bans ticket IDs from source. `tests/meta/test_source_and_new_test_tree_have_no_stray_ticket_references.py`
+  enforces it mechanically: full-text for `src/`+`docs/`, by name/docstring (not assertion data)
+  across this tree, and by `#` comment across `src/`+`tests/` — closing the loop the old suite's
+  `test_squad_ref_hygiene.py` left open. The pattern also catches a bare sub-entity finding id
+  (`F1`, `F17`) alongside the full ticket-id shapes, with a `noqa:`-aware exclusion so a real ruff
+  suppression code (e.g. `F401`) is never mistaken for one.
 - A ticket ID embedded in a *filename* specifically (e.g. the old suite's
   `test_workflow_renderer_261.py`) — same rule, just the file-level instance of it.
 
@@ -92,7 +94,7 @@ behavior-named file for its contract area. It's a legitimate general testing ter
 squads-internal acronym, so this is a softer call than the four bullets above — but default to a
 behavior name unless there's a specific reason the characterization framing earns its keep.
 
-**Correct form** (from FEAT-231 itself):
+**Correct form:**
 ```
 test_item_id_is_globally_unique
 test_cli_json_output_has_no_ansi_escapes
@@ -120,7 +122,7 @@ test_migration_preserves_ref_kinds_across_schema_versions
 
 ## 5. Dedup discipline: assert each invariant once, at the lowest meaningful layer
 
-The core rule from FEAT-231 Principle 4: **a contract about `Item.id` format belongs in a unit
+The core rule: **a contract about `Item.id` format belongs in a unit
 test, not in five CLI smoke tests.** A CLI test proves that a command exits cleanly and produces
 parseable output — not that the underlying model fields are well-formed (that's already proven at
 the unit layer). Before adding a test, ask: *does an existing test at a lower layer already prove

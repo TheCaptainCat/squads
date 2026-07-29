@@ -3,7 +3,7 @@ id: REV-685
 sequence_id: 685
 type: review
 title: 'The two internal READMEs: audience fitness and coherence'
-status: ChangesRequested
+status: Approved
 author: reviewer
 description: Root README and the VS Code extension README reviewed for audience fitness,
   contradiction, duplication and staleness; the two published listings deliberately
@@ -46,7 +46,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-07-28T15:03:55Z'
-updated_at: '2026-07-29T08:37:27Z'
+updated_at: '2026-07-29T08:39:06Z'
 ---
 <!-- sq:body -->
 Independent review of the two internal READMEs — `README.md` (repo root, what GitHub shows) and
