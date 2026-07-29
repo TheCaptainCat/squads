@@ -156,6 +156,10 @@ beside the code and status changes land in it as agents make them.
   project already under squads management.
 - **It doesn't phone home.** No network calls, no telemetry, no account. It runs your local `sq`,
   renders the output, and draws the diagrams from a script bundled in the package.
+- **It doesn't promise a frozen format.** squads is pre-1.0, and its on-disk format can change
+  between releases; `sq migrate up` carries an existing squad forward when it does, and
+  [the stability contract](https://github.com/TheCaptainCat/squads/blob/main/docs/stability.md) sets
+  out what holds after 1.0.
 
 ## Getting started
 

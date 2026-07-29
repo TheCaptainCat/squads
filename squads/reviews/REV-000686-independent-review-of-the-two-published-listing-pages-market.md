@@ -13,7 +13,7 @@ subentities:
   severity: high
 - local_id: F2
   title: Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: PyPI page states its present-tense limits without the directional pairing
@@ -26,7 +26,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-28T15:06:17Z'
-updated_at: '2026-07-29T07:33:41Z'
+updated_at: '2026-07-29T07:38:38Z'
 ---
 <!-- sq:body -->
 Independent read of `clients/vscode/MARKETPLACE.md` (VS Code Marketplace listing) and `PYPI.md`
@@ -56,7 +56,7 @@ _Add with `sq review 686 add-finding "…" --severity medium`; track with `sq re
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
 | F1 | 🟠 high | Fixed |  | Worked example fails as written: python-dev role does not exist after sq init --roles all |
-| F2 | 🟡 medium | Open |  | Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states |
+| F2 | 🟡 medium | Fixed |  | Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states |
 | F3 | 🟡 medium | Fixed |  | PyPI page states its present-tense limits without the directional pairing the Marketplace page already has |
 | F4 | 🟢 low | Open |  | Manifest positioning, audience split, and all checkable factual claims verified clean |
 <!-- sq:summary:end -->
@@ -103,7 +103,7 @@ example, e.g. `tech-lead`).
 ### F2 — Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F2:head:end -->
 
@@ -242,4 +242,7 @@ drifted from the "read-only, planned direction for editing" framing settled here
   - Verified twice from a clean 'sq init --roles all': once with substituted numbers, once with the page's exact full-ID form. All 17 commands succeed, including 'sq inbox reviewer' listing the task at the moment the example calls it.
   - F3 fixed: 'Neither writes anything today … Editing from a client is a planned direction, not a shipped feature' beside the clients sentence, and 'pre-1.0 and under active development' in the maturity section. Present tense stays exact, no dates, no version numbers.
   - F2 (Marketplace missing the pre-1.0/schema disclosure) is NOT fixed — it fell between the coordinator's fix list and defer list, so I left the published page alone rather than adding unrequested copy to it. @op-pierre @manager it is a two-line addition when someone wants it. F4 left Open as an informational record.
+- [2026-07-29T07:38:38Z] Theo Writer:
+  - F2 fixed: MARKETPLACE.md now carries the pre-1.0 disclosure as a fourth bullet in 'What it doesn't do' — 'It doesn't promise a frozen format.' squads is pre-1.0, the on-disk format can change between releases, sq migrate up carries a squad forward, and the stability contract (absolute link) sets out what holds after 1.0.
+  - Placed there rather than in a footer or a callout for three reasons: it is the section a reader passes immediately before Getting started, so the fact lands before the install decision; its siblings are already the page's other honest limits (no writing, doesn't bundle squads, doesn't phone home), so the register is plain statement rather than warning; and the 'doesn't …' construction keeps it grammatically of a piece with them instead of reading as a disclaimer bolted on. No dates, no version numbers, and migrate-up sits inside the same bullet so the limitation arrives with its remedy.
 <!-- sq:discussion:end -->
