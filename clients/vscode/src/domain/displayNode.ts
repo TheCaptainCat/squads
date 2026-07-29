@@ -75,7 +75,7 @@ const ERROR_ICON = 'error';
 const EMPTY_STATE_ICON = 'info';
 
 /** A user-configured `squads.typeIcons` map: type name -> codicon id, layered over the
- * bundled `ICON_BY_TYPE` defaults (F21). Keeps icons spec-agnostic/client-side with no core
+ * bundled `ICON_BY_TYPE` defaults. Keeps icons spec-agnostic/client-side with no core
  * change — the one place the client hardcodes work-item type names, made overridable. */
 export type TypeIconOverrides = Readonly<Record<string, string>>;
 
@@ -111,7 +111,7 @@ export interface TooltipFields {
   readonly type: string;
   readonly status: string;
   readonly assignee: string | null;
-  /** Already-resolved collection badges (F19) — whatever the spec declares for this
+  /** Already-resolved collection badges — whatever the spec declares for this
    * item (priority, severity, any custom axis), pre-joined through the type/collections
    * catalogs by the caller. `buildTooltip` itself hardcodes no collection name. */
   readonly badges: readonly ResolvedBadge[];
@@ -119,7 +119,7 @@ export interface TooltipFields {
 }
 
 /** Backslash-escapes the markdown metacharacters (`` ` ``/`*`/`_`) that would otherwise read as
- * code/emphasis inside the `vscode.MarkdownString` tooltip (F19) — mirrors `graphDiagrams.ts`'s
+ * code/emphasis inside the `vscode.MarkdownString` tooltip — mirrors `graphDiagrams.ts`'s
  * `escapeMermaidMarkdownLabel`, minus its HTML-escaping step: this string is handed straight to
  * VS Code's own markdown renderer, never through this client's HTML renderer. Applied to
  * `assignee`, the only user-derived line in the tooltip — id/type/status/badges are all

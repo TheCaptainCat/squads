@@ -80,7 +80,7 @@ export function isFlatViewActive(state: ViewState): boolean {
   return state.filter.type !== null || state.groupByType;
 }
 
-/** Degrade a failed/unreachable type-catalog fetch to `NO_TYPE_ORDER` (F1's graceful fallback)
+/** Degrade a failed/unreachable type-catalog fetch to `NO_TYPE_ORDER`
  * rather than surfacing it as a tree-breaking error — group-by-type and the type-filter
  * quick-pick still work, just alphabetically, until the catalog is reachable again. */
 function orderMapFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): TypeOrderMap {
@@ -103,14 +103,14 @@ function labelMapFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): TypeLa
 }
 
 /** Same graceful-degrade shape as `orderMapFrom`, for the type catalog's field->collection
- * bindings (F19): a failed fetch falls back to raw-code tooltip badges rather
+ * bindings: a failed fetch falls back to raw-code tooltip badges rather
  * than a broken view. */
 function fieldBindingsFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>) {
   return outcome.kind === 'success' ? buildFieldBindings(outcome.data) : NO_FIELD_BINDINGS;
 }
 
 /** Same graceful-degrade shape as `orderMapFrom`, for the collections catalog's badge
- * vocabulary (F19): a failed fetch falls back to raw-code tooltip badges. */
+ * vocabulary: a failed fetch falls back to raw-code tooltip badges. */
 function badgeVocabularyFrom(outcome: SqOutcome<readonly SqCollectionCatalogEntry[]>) {
   return outcome.kind === 'success' ? buildBadgeVocabulary(outcome.data) : NO_BADGE_VOCABULARY;
 }
@@ -127,7 +127,7 @@ function roleCatalogFrom(outcome: SqOutcome<readonly SqRoleCatalogEntry[]>): Rol
   return outcome.kind === 'success' ? buildRoleCatalogMap(outcome.data) : NO_ROLES;
 }
 
-/** The `squads.typeIcons` setting (F21): a user type-name -> codicon-id map, layered over the
+/** The `squads.typeIcons` setting: a user type-name -> codicon-id map, layered over the
  * bundled `ICON_BY_TYPE` defaults in `domain/displayNode.ts::iconForType`. Read fresh on every
  * refresh so an edit to the setting takes effect on the next refresh, same as `getSquadsConfig`
  * in `extension.ts`. Exported so `recordsTreeDataProvider.ts` (the other `iconForType`-based
@@ -186,13 +186,13 @@ export class SquadsTreeDataProvider implements vscode.TreeDataProvider<DisplayNo
     void this.refresh();
   }
 
-  /** Flips the group-by-type view-title toggle (F3). */
+  /** Flips the group-by-type view-title toggle. */
   toggleGroupByType(): void {
     this.state = { ...this.state, groupByType: !this.state.groupByType };
     void this.refresh();
   }
 
-  /** Flips the show-closed view-title toggle (F4): whether the next fetch includes
+  /** Flips the show-closed view-title toggle: whether the next fetch includes
    * closed/terminal items, in either the hierarchy tree or the flat/grouped view. */
   toggleShowClosed(): void {
     this.state = { ...this.state, showClosed: !this.state.showClosed };

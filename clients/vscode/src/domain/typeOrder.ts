@@ -1,5 +1,5 @@
 /**
- * Spec-driven type ordering for group-by-type and the type-filter quick-pick (F1), sourced from
+ * Spec-driven type ordering for group-by-type and the type-filter quick-pick, sourced from
  * `sq workflow types --json` rather than any hardcoded type list.
  *
  * A type absent from the map — including the whole-map-empty case, when the catalog fetch

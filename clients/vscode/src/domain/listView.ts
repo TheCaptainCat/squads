@@ -53,7 +53,7 @@ export function excludeReservedTypes(
 }
 
 /** Distinct, non-reserved item types present in `items`, ordered by the spec's per-type `order`
- * (F1) — feeds the "filter by type" quick-pick's option list without the client hardcoding a
+ * — feeds the "filter by type" quick-pick's option list without the client hardcoding a
  * type catalog or its ordering. `orderMap`/`categoryMap` default to their graceful fallbacks
  * when the catalog fetch failed. */
 export function distinctTypes(
@@ -147,11 +147,11 @@ export interface GroupListItemsOptions {
 }
 
 /** Groups `items` by type (one bucket per distinct type, ordered by the spec's per-type `order`
- * — F1, `orderMap` defaults to `NO_TYPE_ORDER` which degrades gracefully to a type-name sort)
+ * — `orderMap` defaults to `NO_TYPE_ORDER` which degrades gracefully to a type-name sort)
  * when `groupByType`, otherwise returns the items themselves as sorted leaves. There is no
  * open/closed grouping axis: open/closed is a separate show/hide toggle plus a dimmed visual
  * treatment applied by the tree-item renderer, not a grouping mode. `options` (icons/badges/
- * status-role/labels, F19/F21) defaults every field to its own graceful-fallback empty value
+ * status-role/labels) defaults every field to its own graceful-fallback empty value
  * when omitted. */
 export function groupListItems(
   items: readonly SqListItem[],
@@ -212,9 +212,9 @@ export interface FilteredGroupedViewOptions extends GroupListItemsOptions {
 }
 
 /** End-to-end: exclude reserved types, filter by type, then group by type if requested, groups
- * ordered by the spec's per-type `order` (F1). Whether closed items appear in `items` at all is
+ * ordered by the spec's per-type `order`. Whether closed items appear in `items` at all is
  * the caller's fetch-time decision (the show-closed toggle), not something this function
- * classifies or filters. `options` (badges/icons/status-role/category, F19/F21) defaults every
+ * classifies or filters. `options` (badges/icons/status-role/category) defaults every
  * field to its own graceful-fallback empty value when omitted. */
 export function buildFilteredGroupedView(
   items: readonly SqListItem[],

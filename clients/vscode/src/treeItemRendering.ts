@@ -61,7 +61,7 @@ export function toTreeItem(
     item.description = node.description;
   }
   if (node.tooltip !== '') {
-    // A MarkdownString (F19) rather than a plain string tooltip: `buildTooltip` joins
+    // A MarkdownString rather than a plain string tooltip: `buildTooltip` joins
     // its lines with markdown hard-breaks so a rendered collection badge (e.g. "🟠 High") shows
     // on its own line rather than running the whole tooltip together.
     item.tooltip = new vscode.MarkdownString(node.tooltip);

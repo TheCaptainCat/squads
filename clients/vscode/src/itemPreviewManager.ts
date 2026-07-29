@@ -148,7 +148,7 @@ function roleDirectoryFrom(outcome: SqOutcome<readonly SqListItem[]>): RoleDirec
   return outcome.kind === 'success' ? buildRoleDirectory(outcome.data) : NO_ROLE_DIRECTORY;
 }
 
-/** The squads icon shown on a webview panel's editor tab (F16). Unlike the activity-bar
+/** The squads icon shown on a webview panel's editor tab. Unlike the activity-bar
  * container icon (`package.json`'s single `currentColor` SVG, themed via VS Code's own
  * icon-masking), a webview tab icon is drawn as a plain image with no such re-tinting — so it
  * needs its own light/dark pair with an explicit stroke color to read against either tab-bar
@@ -169,13 +169,13 @@ export class ItemPreviewManager {
   private activeWorkflowPanel: vscode.WebviewPanel | undefined;
   // Every currently-open item-preview panel (there may be more than one — middle-click opens a
   // new tab alongside the reused `activePanel`), mapped to the item id it currently shows. Lets
-  // the `.squads.json` watcher (F17) refresh every open preview, not just the reused one.
+  // the `.squads.json` watcher refresh every open preview, not just the reused one.
   private readonly openPanels = new Map<vscode.WebviewPanel, string>();
   // Per-panel back/forward navigation history, independent of `openPanels`'s "current id"
   // bookkeeping — a `'patch'` refresh updates `openPanels` but must never touch this.
   private readonly histories = new Map<vscode.WebviewPanel, PreviewHistory>();
   // Per-panel record of which sub-entity body/graph folds the reader has open, keyed by the
-  // same `ExpansionTracker` the activity-bar trees use for expand/collapse (F26) — fed
+  // same `ExpansionTracker` the activity-bar trees use for expand/collapse — fed
   // by `ToggleFoldMessage`s the webview posts on a native `toggle` event, and consulted on every
   // render to stamp the right `open` attribute back onto the matching `<details>`. Reset to
   // empty on every navigation to a *different* item (never on a same-item `'patch'` refresh):
@@ -326,7 +326,7 @@ export class ItemPreviewManager {
   }
 
   /** Re-renders every currently-open item-preview panel against its current item id. Called by
-   * the `.squads.json` watcher (F17) on an on-disk change — always re-fetches through `sq …
+   * the `.squads.json` watcher on an on-disk change — always re-fetches through `sq …
    * --json`, never reads stale state. Rendered in `'patch'` mode: this is a same-item refresh,
    * not a navigation, so the reader's scroll position must be preserved rather than reset — see
    * `render`'s doc comment. */
@@ -342,14 +342,14 @@ export class ItemPreviewManager {
       await this.stepHistoryFor(panel, navMessage.direction === 'back' ? stepBack : stepForward);
       return;
     }
-    // The in-content toolbar's refresh button (F26) — fires the exact same global
+    // The in-content toolbar's refresh button — fires the exact same global
     // refresh a tree view-title button or the `.squads.json` watcher does, rather than a
     // preview-only refresh, so "refresh" means one thing everywhere it's triggered from.
     if (parseRefreshMessage(raw) !== null) {
       await vscode.commands.executeCommand(REFRESH_ALL_COMMAND);
       return;
     }
-    // A tracked fold's open/closed state changed in the webview (F26) — recorded against
+    // A tracked fold's open/closed state changed in the webview — recorded against
     // this panel's tracker for the next render to restore, never triggers one itself.
     const foldMessage = parseToggleFoldMessage(raw);
     if (foldMessage !== null) {
@@ -396,7 +396,8 @@ export class ItemPreviewManager {
       // A different item (or the very first render of a fresh panel) starts with every fold
       // closed — see `foldState`'s field comment for why a previous tracker can't just carry
       // over. `refreshOpenPreviews`'s `'patch'` mode is the only caller that must *not* do this:
-      // it's always the same item already on screen, which is the whole point of F26.
+      // it's always the same item already on screen, which is exactly why patch mode must
+      // leave the reader's open folds alone.
       this.foldState.set(panel, new ExpansionTracker());
     }
     const foldTracker = this.foldState.get(panel) ?? new ExpansionTracker();

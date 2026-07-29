@@ -73,9 +73,9 @@ function mapNode(
   };
 }
 
-/** `iconOverrides` (the `squads.typeIcons` setting, F21) defaults to none, layered over the
- * bundled per-type icon defaults for every node in the tree. `fieldBindings`/`badgeVocabulary`
- * (F19), `statusRoles`/`roleCatalog` , and `categoryMap`  default to the
+/** `iconOverrides` (the `squads.typeIcons` setting) defaults to none, layered over the
+ * bundled per-type icon defaults for every node in the tree. `fieldBindings`/`badgeVocabulary`,
+ * `statusRoles`/`roleCatalog` , and `categoryMap`  default to the
  * graceful-fallback empty maps, degrading the tooltip's badge rendering to raw codes / disabling
  * the colour highlight / falling back to roster-only exclusion rather than breaking the tree when
  * a catalog fetch failed. */
@@ -104,7 +104,7 @@ export function treeNodesToDisplay(
 }
 
 /** Distinct, non-reserved item types present anywhere in the tree, ordered by the spec's
- * per-type `order` (F1; `orderMap` defaults to `NO_TYPE_ORDER`, degrading gracefully to a
+ * per-type `order` (`orderMap` defaults to `NO_TYPE_ORDER`, degrading gracefully to a
  * type-name sort when the catalog fetch failed) — feeds the "filter by type" quick-pick's
  * option list without a second `sq list --json` fetch just for the type catalog. */
 export function distinctTypesInTree(

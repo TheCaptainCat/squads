@@ -1,6 +1,6 @@
 /**
  * Watches `<squad-dir>/.squads.json` for on-disk changes — an agent running `sq`, a `git pull` —
- * and auto-refreshes the tree views + any open item preview (F17), instead of requiring an
+ * and auto-refreshes the tree views + any open item preview, instead of requiring an
  * explicit manual refresh.
  *
  * The extension stays a pure CONSUMER of `sq … --json`. This module never parses `.squads.json`

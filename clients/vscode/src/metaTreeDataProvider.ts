@@ -1,5 +1,5 @@
 /**
- * The second activity-bar view's `TreeDataProvider` (F12, "Roster"): renders the 3 fixed
+ * The second activity-bar view's `TreeDataProvider` ("Roster"): renders the 3 fixed
  * reserved-type buckets (Roles/Skills/Operators) built by the vscode-free `domain/metaView.ts`.
  * Unlike `SquadsTreeDataProvider` there is no filter/group/show-closed state — one `sq list
  * --json --all` fetch (`--all` so a role/skill/operator that ever reaches a terminal status

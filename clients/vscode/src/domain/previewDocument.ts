@@ -2,9 +2,9 @@
  * Assembles the full webview HTML document for an item preview: a strict, self-contained
  * CSP (no remote content, no `unsafe-inline` — both the `<style>` and `<script>` tags carry
  * the same per-render nonce), the rendered dossier body, the two collapsible mermaid graph
- * sections, the collapsible sub-entities section (F15, `buildSubEntitiesHtml`, built from
+ * sections, the collapsible sub-entities section (`buildSubEntitiesHtml`, built from
  * `sq show <id> --json`'s `subentities` array), the collapsible discussion/comments section
- * (F14, `buildDiscussionHtml`, built from the same call's `discussion` array), and the inline
+ * (`buildDiscussionHtml`, built from the same call's `discussion` array), and the inline
  * client script that both intercepts clicks on `a.sq-item-link` (posting them back to the
  * extension host) and renders the graphs' mermaid source via the bundled renderer.
  *
@@ -197,7 +197,7 @@ details.sq-graph .sq-graph-empty {
 
 /** Delegated click/auxclick handling for both `a.sq-item-link` (dossier/comment/sub-entity
  * body links — including a resolved `@<slug>` role mention, which carries the role item's id
- * in the same attribute) and `g.node[data-item-id]` (a rendered graph node — F25, the attribute
+ * in the same attribute) and `g.node[data-item-id]` (a rendered graph node — the attribute
  * stamped post-render by `mermaidRenderScript`): a plain click (or ctrl/cmd-click) requests
  * same-panel navigation; a middle-click (`auxclick`, button 1) requests a new panel. Both
  * element kinds carry the target id in the same `data-item-id` attribute, so one selector/lookup
@@ -304,7 +304,7 @@ function clientScript(
  * both the two structured graph sections and however many inline ```mermaid``` fences a
  * document's own markdown body carries), using the mermaid renderer loaded by the preceding
  * `<script src>` tag (global `mermaid`). `flowchart.wrappingWidth` pairs with
- * `graphDiagrams.ts`'s markdown-string node labels (F24) so a long label wraps onto multiple
+ * `graphDiagrams.ts`'s markdown-string node labels so a long label wraps onto multiple
  * lines from real text-metric measurement instead of overflowing/cropping at the node's edge.
  *
  * CSP note (kept strict — no `unsafe-inline`/`unsafe-eval` added for this): mermaid's own
@@ -320,7 +320,7 @@ function clientScript(
  * narrowly-scoped `style-src 'unsafe-inline'` (never `script-src`) — flagged for review rather
  * than applied speculatively.
  *
- * Node-click wiring (F25): mermaid's `click` directive is disabled under `securityLevel:
+ * Node-click wiring: mermaid's `click` directive is disabled under `securityLevel:
  * 'strict'`, so navigation is wired here instead, after render. Every rendered flowchart node
  * gets an `id` of the form `<diagramId>-flowchart-<nodeId>-<n>` (`nodeId` being exactly what
  * `graphDiagrams.ts`'s `mermaidNodeId` produced when building the source) — `nodeId` is
@@ -408,7 +408,7 @@ function skipMetadataBullets(lines: readonly string[], start: number): number {
 
 /** Splits a clean `sq show <id> --raw` dossier into its metadata header (title + bullet list)
  * and the rest — its prose body — so the two can be rendered as separate HTML fragments with
- * the graph sections injected between them (F23: graphs directly under the metadata header,
+ * the graph sections injected between them (graphs directly under the metadata header,
  * above the body). Falls back to an empty header (the whole text treated as body) when the
  * input doesn't start with the expected title-then-bullets shape — e.g. a synthesized failure
  * message — rather than guessing past what it can actually detect. */
@@ -457,7 +457,7 @@ export interface DossierHtml {
 
 /** Renders an `sq show <id> --raw` outcome to the HTML/text fragments shown in the panel: the
  * metadata header fragment (title + bullet list, full and untruncated) and the prose body, split
- * by `splitDossierMarkdown` so the caller can inject the graph sections between them (F23) —
+ * by `splitDossierMarkdown` so the caller can inject the graph sections between them —
  * plus `titleText`, a plain-text copy of just the heading for the sticky toolbar's compact title
  * slot above both (see `extractTitleLine`). On failure the message renders entirely as
  * `bodyHtml` with an empty header and `id` itself as the title (never blank/stale content) — the
@@ -521,7 +521,7 @@ interface GraphSectionSpec {
 
 /** One collapsible `<details>` graph section — native fold/unfold, no client JS needed for
  * that part beyond the `toggle` report wired in `clientScript`. Collapsed by default on a fresh
- * load (F23: `open` reflects the caller's fold tracker, not a hardcoded default) — a graph is
+ * load (`open` reflects the caller's fold tracker, not a hardcoded default) — a graph is
  * supplementary detail, not something that should push the dossier body below the fold. When
  * `mermaidSource` is present the hidden `<pre>` holds the escaped diagram source the client
  * script reads via `textContent` (so it comes back out unescaped); its `data-output-id` points
@@ -595,7 +595,7 @@ function buildCommentHtml(
   );
 }
 
-/** The collapsible discussion/comments section (F14), appended after the dossier body and the
+/** The collapsible discussion/comments section, appended after the dossier body and the
  * graph sections. A failed fetch degrades to an inline failure message inside the same
  * `<details>` shell the graph sections use (consistent styling, never silently blank); a
  * successful fetch with no comments yet renders no section at all — nothing to fold open.
@@ -679,7 +679,7 @@ function buildSubEntityHtml(
   return `<div class="sq-subentity">${header}${head}${body}</div>`;
 }
 
-/** The collapsible sub-entities section (F15): a feature's stories, a task's subtasks, a
+/** The collapsible sub-entities section: a feature's stories, a task's subtasks, a
  * review's findings — in `sq show <id> --json`'s `subentities` array order. Mirrors
  * `buildDiscussionHtml`'s failure/empty/populated shape exactly, including the `roles`
  * pass-through for `@<slug>` mentions in a sub-entity's body. `isBodyOpen` — defaulted to "always
@@ -762,7 +762,7 @@ export interface PreviewDocumentParams {
   readonly toolbarHtml: string;
   /** The dossier's metadata header fragment (title + bullet list, full and untruncated — a
    * plain-text *copy* of just the heading also appears in `toolbarHtml`'s compact title slot,
-   * see `renderOutcomeHtml`) — rendered above the graph sections, per F23. Empty when there's no
+   * see `renderOutcomeHtml`) — rendered above the graph sections. Empty when there's no
    * detectable header (e.g. a failure message; see `splitDossierMarkdown`), in which case the
    * graphs simply sit at the top of `<article>`. */
   readonly headerHtml: string;
@@ -774,7 +774,7 @@ export interface PreviewDocumentParams {
    * nonce'd `<script src>` tag, same as every other script on this page; no CDN, no
    * `node_modules` shipped, see `scripts/copy-mermaid.js`. */
   readonly mermaidScriptUri: string;
-  /** Pre-rendered `<details>` markup for the two graph sections (`buildGraphsHtml`) — F23:
+  /** Pre-rendered `<details>` markup for the two graph sections (`buildGraphsHtml`) —
    * positioned between `headerHtml` and `bodyHtml`, directly under the metadata header and
    * above the prose body, rather than after it. */
   readonly graphsHtml: string;
@@ -787,7 +787,7 @@ export interface PreviewDocumentParams {
 }
 
 /** The `<article>` mount point's inner HTML — the back/forward toolbar, then header + graphs +
- * body, in F23's fixed order (toolbar first). Shared by `buildPreviewHtml` (a fresh
+ * body, in that fixed order (toolbar first). Shared by `buildPreviewHtml` (a fresh
  * load) and `itemPreviewManager.ts`'s same-item-refresh `UpdateContentMessage` (a DOM patch) so
  * the two are always byte-identical: a refresh never shows different content than a fresh load
  * of the same dossier would — including the toolbar's enabled/disabled state, since the caller

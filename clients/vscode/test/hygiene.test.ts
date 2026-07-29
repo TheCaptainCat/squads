@@ -10,8 +10,15 @@ import { describe, expect, it } from 'vitest';
  * config, and the README must never cite a squad-item ID. Test data — committed fixtures
  * and assertion literals under test/ — is deliberately excluded, the same carve-out the
  * core gate makes for its own test-assertion data.
+ *
+ * Covers bare sub-entity ids (`US1`, `ST1`, `F1`) alongside the prefixed item forms. `F<n>`
+ * (a review finding) is capped at 1-3 digits with a trailing `\b`: that keeps it clear of
+ * longer digit runs it would otherwise eat into — hex literals (`#F44336`), version/build
+ * numbers, timestamps — while still catching every finding id this project has actually
+ * produced. Checked against this package's real corpus before landing: no such collision
+ * exists in src/ or the scanned config/README today.
  */
-const TICKET_ID_PATTERN = /\b(?:ADR|FEAT|TASK|REV|BUG|EPIC)-\d|\bUS\d|\bST\d/;
+const TICKET_ID_PATTERN = /\b(?:ADR|FEAT|TASK|REV|BUG|EPIC)-\d|\bUS\d|\bST\d|\bF\d{1,3}\b/;
 
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 const SCAN_DIRS = ['src'];

@@ -1,5 +1,5 @@
 /**
- * Spec-driven per-item badge rendering (F19/F20). An item's generic
+ * Spec-driven per-item badge rendering. An item's generic
  * `badges` map (`{"priority": "high"}`, field code -> badge code) carries only stable codes —
  * never a glyph or a hardcoded field/collection name — so rendering the real badge (`🟠 High`)
  * means joining two catalogs, both cached once per refresh alongside the existing type-catalog
