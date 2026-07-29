@@ -10,6 +10,7 @@ import * as vscode from 'vscode';
 import { REFRESH_ALL_COMMAND } from './commandIds';
 import { registerCommands } from './commands';
 import { SqDiscovery } from './discovery';
+import { describeMetaFilterState } from './domain/metaFilter';
 import { ItemPreviewManager } from './itemPreviewManager';
 import { SquadsMetaTreeDataProvider } from './metaTreeDataProvider';
 import { createNodeDiscoveryEnvironment, createNodeSquadDirEnvironment } from './nodeEnvironment';
@@ -74,9 +75,9 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   // The meta/roster view: role/skill/operator under 3 fixed buckets, alongside the work
-  // tree as a second collapsible section in the same activity-bar container — not
-  // filterable/groupable, so it gets its own minimal provider rather than reusing the work
-  // tree's filter/group/show-closed state machine.
+  // tree as a second collapsible section in the same activity-bar container — never groupable,
+  // but narrowable by its own smaller hide-archived/status-filter state
+  // (`domain/metaFilter.ts`), not the work tree's filter/group/show-closed state machine.
   const metaTreeDataProvider = new SquadsMetaTreeDataProvider(
     nodeProcessRunner,
     discovery,
@@ -95,6 +96,20 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     metaTreeView.onDidCollapseElement((event) => {
       metaTreeDataProvider.setExpanded(event.element.id, false);
+    }),
+    // The toggle's own icon swap (`commands.ts`'s module doc comment) shows `showArchived` on
+    // its own; the status filter is a quick-pick with no icon pair, so it (and, once set,
+    // showArchived too) surfaces here instead — the view's `.description`, refreshed every time
+    // the provider's data (and therefore possibly its state) changes.
+    metaTreeDataProvider.onDidChangeTreeData(() => {
+      const description = describeMetaFilterState(metaTreeDataProvider.viewState);
+      // `delete`, not `= undefined` — `TreeView.description` is `description?: string`, and
+      // `exactOptionalPropertyTypes` (tsconfig) rejects assigning `undefined` to that.
+      if (description === undefined) {
+        delete metaTreeView.description;
+      } else {
+        metaTreeView.description = description;
+      }
     }),
   );
 

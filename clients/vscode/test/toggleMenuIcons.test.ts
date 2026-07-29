@@ -59,6 +59,11 @@ function menuItemFor(id: string): ManifestMenuItem {
 const TOGGLE_PAIRS: readonly { on: string; off: string; contextKey: string }[] = [
   { on: 'squads.toggleGroupByType', off: 'squads.ungroupByType', contextKey: 'squads.groupByType' },
   { on: 'squads.toggleShowClosed', off: 'squads.hideClosed', contextKey: 'squads.showClosed' },
+  {
+    on: 'squads.toggleShowArchived',
+    off: 'squads.hideArchived',
+    contextKey: 'squads.metaShowArchived',
+  },
 ];
 
 describe('view-title toggle icon pairs', () => {

@@ -1,9 +1,12 @@
 /**
  * Pure domain logic for the second activity-bar view (the "Roster" section): buckets
  * `sq list --json` rows into the 3 fixed reserved-type subfolders — Roles, Skills, Operators —
- * the complement of the work tree's reserved-type exclusion (`reservedTypes.ts`). Unlike the
- * work tree, this view is never filterable/groupable: always exactly these 3 buckets, in this
- * fixed order, each present even when empty, with items inside a bucket in numeric id order.
+ * the complement of the work tree's reserved-type exclusion (`reservedTypes.ts`). Never
+ * groupable (always exactly these 3 buckets, in this fixed order, each present even when empty,
+ * items inside a bucket in numeric id order) but — like the work tree's show-closed toggle and
+ * type filter — narrowable: `state` (`domain/metaFilter.ts`) hides archived-by-default entries
+ * and/or restricts to one status before bucketing, so a bucket's count reflects what's actually
+ * shown rather than everything fetched.
  * The 3 bucket *types* are the fixed `META_BUCKETS` list; each bucket's rendered *label* is
  * resolved from the type catalog via the shared `domain/typeLabels.ts::pluralLabel` resolver —
  * the same one the Records and Work trees route through — falling back to the raw type string
@@ -20,6 +23,7 @@ import {
 } from './badgeCatalog';
 import { buildTooltip, type DisplayNode, groupDisplayNode, iconForMetaType } from './displayNode';
 import { compareIds } from './idOrder';
+import { DEFAULT_META_VIEW_STATE, matchesMetaFilter, type MetaViewState } from './metaFilter';
 import { META_BUCKETS } from './reservedTypes';
 import {
   NO_ROLES,
@@ -75,12 +79,14 @@ function sortedLeaves(
 }
 
 /** Builds the meta/roster view's roots: one group per `META_BUCKETS` entry, in that fixed
- * order, each always present (even with 0 items) and never merged/reordered by content.
- * `fieldBindings`/`badgeVocabulary` and `statusRoles`/`roleCatalog`  default to the
- * graceful-fallback empty maps, degrading each leaf's tooltip badges to raw codes / disabling
- * the colour highlight rather than breaking the view. `labelMap` defaults to `NO_LABELS`,
- * resolving each bucket's header via the shared `pluralLabel` resolver rather than a hardcoded
- * literal — falls back to the raw type string the same way every other tree does. */
+ * order, each always present (even with 0 items, whether from an empty fetch or a filter that
+ * matched nothing in that bucket) and never merged/reordered by content. `fieldBindings`/
+ * `badgeVocabulary` and `statusRoles`/`roleCatalog` default to the graceful-fallback empty maps,
+ * degrading each leaf's tooltip badges to raw codes / disabling the colour highlight rather than
+ * breaking the view. `labelMap` defaults to `NO_LABELS`, resolving each bucket's header via the
+ * shared `pluralLabel` resolver rather than a hardcoded literal — falls back to the raw type
+ * string the same way every other tree does. `state` defaults to `DEFAULT_META_VIEW_STATE`
+ * (archived hidden, no status filter) — see `domain/metaFilter.ts` for the predicate. */
 export function buildMetaView(
   items: readonly SqListItem[],
   fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
@@ -88,9 +94,11 @@ export function buildMetaView(
   statusRoles: StatusRoleMap = NO_STATUS_ROLES,
   roleCatalog: RoleCatalogMap = NO_ROLES,
   labelMap: TypeLabelMap = NO_LABELS,
+  state: MetaViewState = DEFAULT_META_VIEW_STATE,
 ): DisplayNode[] {
+  const visible = items.filter((item) => matchesMetaFilter(item, state, statusRoles, roleCatalog));
   return META_BUCKETS.map(({ type }) => {
-    const bucketItems = items.filter((item) => item.type === type);
+    const bucketItems = visible.filter((item) => item.type === type);
     return groupDisplayNode(
       `meta:${type}`,
       pluralLabel(type, labelMap),
