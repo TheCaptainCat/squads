@@ -14,6 +14,7 @@ That shared structure lives under a relocatable `squads/` folder — the team's 
 files written into `.claude/` are **thin pointers** to those definitions, plus a managed `squads`
 skill and a managed section in `CLAUDE.md` that teaches the agents how to work.
 
+
 ---
 
 ## Install
@@ -49,47 +50,65 @@ uvx --from squads sq --help     # or: uvx --from . sq --help  in a checkout
 > `uv run sq …`. The examples below use bare `sq` (tool install); prefix with `uv run` if you're
 > working from a source checkout.
 
-## Shell completion
-
-`sq` supports tab-completion for **bash** and **zsh** (and also fish and PowerShell).
-
-**bash**
-
-```bash
-sq --install-completion bash
-# then restart your terminal (or source the new file printed by the command)
-```
-
-**zsh**
-
-```bash
-sq --install-completion zsh
-# then restart your terminal (or source the new file printed by the command)
-```
-
-`--install-completion` writes a shell-specific script to your home directory and prints the path.
-Once the shell is restarted, pressing `Tab` after `sq ` completes commands, options, and arguments.
-
-To inspect the script without installing it:
-
-```bash
-sq --show-completion bash
-sq --show-completion zsh
-```
-
-> **Note:** completion requires `sq` to be on your `PATH` (i.e. installed as a tool via `uv tool install` or `pipx install`). It will not work through `uv run sq` because `uv run` wraps the entry point in a way that the shell cannot discover.
-
 ## Quickstart
 
 ```bash
 cd your-project
-sq init --roles all                 # scaffold squads/, .claude/, CLAUDE.md
-sq create feature "User authentication" --desc "Login & sessions"
-sq create task "Validate token expiry" --parent FEAT-<n>
-sq task 11 status InProgress
-sq task 11 comment --as architect -m "Reuse the clock abstraction" -m "@qa verify edges"
+sq init --roles all                 # scaffolds squads/, the roster, .claude/, CLAUDE.md
+sq create feature "User authentication" --author product-owner --desc "Login & sessions"
+sq create task "Validate token expiry" --author tech-lead --parent FEAT-<n>
+sq task TASK-<n> status InProgress
+sq task TASK-<n> comment --as architect -m "Reuse the clock abstraction" -m "@qa verify edges"
 sq tree
 ```
+
+`sq create` prints the ID it allocated — substitute it for `FEAT-<n>` / `TASK-<n>` above. Every item
+is authored by a role (`--author`), which is why a squad starts by activating a roster.
+
+---
+
+## Working with agents
+
+After `sq init`, open Claude Code in the project. `CLAUDE.md` tells the agents how the process
+works and how to **impersonate a role on greeting**: say *"Hi Robert"* and Claude becomes Robert
+Architect; with no name it defaults to **Catherine Manager**, who triages and routes the request.
+
+The bundled roster: Catherine Manager (`manager`, default), Robert Architect (`architect`),
+Olivia Lead (`tech-lead`), Paul Reviewer (`reviewer`), Mara Tester (`qa`), Hugo Ops (`devops`),
+Nina Product (`product-owner`), Theo Writer (`tech-writer`). Add stack developers with `sq dev add`.
+
+Agents create items with `sq`, fill in the body with `sq <type> <n> body`, and hand off with
+`sq <type> <n> comment … @role`. Everything an item knows — body, status, discussion — arrives
+through the CLI; the `.md` files are never hand-edited.
+
+`sq init`/`sq sync` also generate a **skill per item type** (`sq-feature`, `sq-task`, `sq-bug`, …)
+with role-directed guidance, plus the general `squads` skill. Each role's `.claude/agents/<slug>.md`
+pointer preloads (via `skills:`) only the skills for the item types that role manages — so the
+product owner gets `sq-feature`/`sq-epic`, a developer gets `sq-task`/`sq-bug`/`sq-review`, and the
+manager (who triages rather than owning a type) gets just `squads`. Run `sq workflow` for the
+cheatsheet.
+
+### Team workflow
+
+squads encodes a light division of labour (enforced by validation + `sq check`):
+
+- The **product owner** writes **epics**, **features** and their **user stories**
+  (`sq create epic`, `sq create feature`, `sq feature <n> add-story`).
+- The **tech lead** writes **tasks**. A task's **parent is the feature** it implements, and each
+  **subtask maps to one user story**:
+  ```bash
+  sq create task "Token validation" --author tech-lead --parent FEAT-<n>
+  sq task TASK-<n> add-subtask "Validate expiry" --story US1   # US1 must exist on FEAT-<n>
+  ```
+- A task may instead/also link a **bug** or **review** via typed refs — or nothing if it's purely
+  technical:
+  ```bash
+  sq task TASK-<n> ref add BUG-<n> --kind fixes
+  sq task TASK-<n> ref add REV-<n> --kind addresses
+  ```
+
+A task's parent must be a feature (link a bug/review with a ref, not as parent); a feature's parent
+must be an epic. Invalid links are rejected at create/link time and flagged by `sq check`.
 
 ## Browsing the squad
 
@@ -191,7 +210,57 @@ Full docs (with diagrams) live in **[docs/](docs/README.md)**:
 The same docs are readable offline, without leaving the terminal: `sq docs` (add `--rich` to
 pretty-print).
 
-Contributing: **[CONTRIBUTING.md](CONTRIBUTING.md)** · contributors: **[CONTRIBUTORS.md](CONTRIBUTORS.md)** · changes: **[CHANGELOG.md](CHANGELOG.md)** · working on the VS Code client: **[clients/vscode/README.md](clients/vscode/README.md)**.
+Of those, **[internals](docs/internals.md)** and **[backends](docs/backends.md)** are the two written
+for contributors; the rest are for people *using* a squad.
+
+**This file is the repo's front page.** Two sibling pages describe the same product to whoever
+arrives somewhere else — **[PYPI.md](PYPI.md)** is the package's front page on PyPI, and
+**[clients/vscode/MARKETPLACE.md](clients/vscode/MARKETPLACE.md)** the extension's on the
+Marketplace. Also here: **[CONTRIBUTORS.md](CONTRIBUTORS.md)** and
+**[CHANGELOG.md](CHANGELOG.md)**.
+
+---
+
+## Contributing
+
+**[CONTRIBUTING.md](CONTRIBUTING.md)** is the working manual — setup, the full convention list, and
+how to add a template, a command, an item type or a backend. What it helps to know before you open
+it:
+
+**The repo holds two toolchains, gated separately.** The Python core is the `sq` CLI; the VS Code
+client under `clients/vscode/` is TypeScript with its own `package.json`, lockfile and lint config.
+Neither gate reads the other's files.
+
+```bash
+# Python core — from the repo root
+uv sync
+uv run --all-extras pyright
+uv run --all-extras ruff check . && uv run --all-extras ruff format --check .
+uv run --all-extras pytest
+
+# VS Code client — from clients/vscode/
+npm install
+npm run check          # tsc --noEmit + eslint + prettier
+npm test               # vitest, no sq binary needed
+```
+
+`--all-extras` is not optional on the Python side: a bare `uv run` prunes the optional `tui` extra,
+and `pyright` then reports hundreds of phantom unresolved-import errors from the terminal-UI code.
+
+**Both gates must be green**, and `sq check` — the tool's own linter, run against this repo's squad —
+must be clean for whatever you touched.
+
+**Where things are documented.** [docs/internals.md](docs/internals.md) covers the core's layering
+(`_cli → _services → index/backends/rendering`, with `_models` at the bottom);
+[clients/vscode/README.md](clients/vscode/README.md) maps the extension and the conventions specific
+to it. `CLAUDE.md` is the terse working reference the agents themselves read.
+
+**The conventions most likely to bounce a change:** every core module and subpackage is
+underscore-private and `__init__`s don't re-export; the markdown frontmatter is the source of truth
+and `.squads.json` is only a rebuildable index; file content is edited through the marker helpers,
+never by rewriting an authored body; time comes from the injectable clock, never `datetime.now()`;
+and no tracked-item id appears in source, tests or config — the linkage belongs in the item, not the
+code. `CONTRIBUTING.md` has the rest, with the reasoning.
 
 ---
 
@@ -262,48 +331,35 @@ discussion — all written through commands.
 
 ---
 
-## Working with agents
+## Shell completion
 
-After `sq init`, open Claude Code in the project. `CLAUDE.md` tells the agents how the process
-works and how to **impersonate a role on greeting**: say *"Hi Robert"* and Claude becomes Robert
-Architect; with no name it defaults to **Catherine Manager**, who triages and routes the request.
+`sq` supports tab-completion for **bash** and **zsh** (and also fish and PowerShell).
 
-The bundled roster: Catherine Manager (`manager`, default), Robert Architect (`architect`),
-Olivia Lead (`tech-lead`), Paul Reviewer (`reviewer`), Mara Tester (`qa`), Hugo Ops (`devops`),
-Nina Product (`product-owner`), Theo Writer (`tech-writer`). Add stack developers with `sq dev add`.
+**bash**
 
-Agents create items with `sq`, fill in the body with `sq <type> <n> body`, and hand off with
-`sq <type> <n> comment … @role`. Everything an item knows — body, status, discussion — arrives
-through the CLI; the `.md` files are never hand-edited.
+```bash
+sq --install-completion bash
+# then restart your terminal (or source the new file printed by the command)
+```
 
-`sq init`/`sq sync` also generate a **skill per item type** (`sq-feature`, `sq-task`, `sq-bug`, …)
-with role-directed guidance, plus the general `squads` skill. Each role's `.claude/agents/<slug>.md`
-pointer preloads (via `skills:`) only the skills for the item types that role manages — so the
-product owner gets `sq-feature`/`sq-epic`, a developer gets `sq-task`/`sq-bug`/`sq-review`, and the
-manager (who triages rather than owning a type) gets just `squads`. Run `sq workflow` for the
-cheatsheet.
+**zsh**
 
-### Team workflow
+```bash
+sq --install-completion zsh
+# then restart your terminal (or source the new file printed by the command)
+```
 
-squads encodes a light division of labour (enforced by validation + `sq check`):
+`--install-completion` writes a shell-specific script to your home directory and prints the path.
+Once the shell is restarted, pressing `Tab` after `sq ` completes commands, options, and arguments.
 
-- The **product owner** writes **epics**, **features** and their **user stories**
-  (`sq create epic`, `sq create feature`, `sq feature <n> add-story`).
-- The **tech lead** writes **tasks**. A task's **parent is the feature** it implements, and each
-  **subtask maps to one user story**:
-  ```bash
-  sq create task "Token validation" --parent FEAT-<n>
-  sq task 3 add-subtask "Validate expiry" --story USn   # USn must exist in FEAT-<n>
-  ```
-- A task may instead/also link a **bug** or **review** via typed refs — or nothing if it's purely
-  technical:
-  ```bash
-  sq task 3 ref add BUG-<n> --kind fixes
-  sq task 3 ref add REV-<n> --kind addresses
-  ```
+To inspect the script without installing it:
 
-A task's parent must be a feature (link a bug/review with a ref, not as parent); a feature's parent
-must be an epic. Invalid links are rejected at create/link time and flagged by `sq check`.
+```bash
+sq --show-completion bash
+sq --show-completion zsh
+```
+
+> **Note:** completion requires `sq` to be on your `PATH` (i.e. installed as a tool via `uv tool install` or `pipx install`). It will not work through `uv run sq` because `uv run` wraps the entry point in a way that the shell cannot discover.
 
 ---
 

@@ -3,13 +3,13 @@ id: BUG-679
 sequence_id: 679
 type: bug
 title: 'VS Code: per-section refresh only refreshes its own tree'
-status: Fixed
+status: Verified
 author: qa
 severity: low
 refs:
 - BUG-680
 created_at: '2026-07-28T07:32:44Z'
-updated_at: '2026-07-28T15:23:40Z'
+updated_at: '2026-07-29T08:32:22Z'
 ---
 <!-- sq:body -->
 Observed (Pierre): clicking the refresh button on one of the three activity-bar sections
@@ -40,4 +40,6 @@ for this filing; based on source inspection of the command registrations only.
   - In the vscode ext, the refresh button of each section should refresh ALL 3 sections, I had to click to refresh each
 - [2026-07-28T08:01:06Z] Pierre Chat:
   - Extend the expected behaviour: a tree refresh button should also trigger a webview refresh, so one global refresh covers all three trees plus any open previews. And add a refresh action on the webview itself, left of the nav arrows, firing that same global refresh.
+- [2026-07-29T08:32:22Z] Catherine Manager:
+  - Verified with a split basis, recorded so it isn't overstated: the operator confirmed the in-content refresh action on the dev host (present, correctly placed beside the nav arrows, clickable). The one-click-refreshes-all-three-trees-plus-preview half is covered by unit test rather than observation — it is not visually observable, since the watcher pre-empts a manual refresh and the action gives no feedback by design. Dropping the preview call from refreshAll turns that test red.
 <!-- sq:discussion:end -->

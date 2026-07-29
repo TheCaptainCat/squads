@@ -6,7 +6,7 @@ title: Adopter-facing PyPI project description page
 status: Done
 author: tech-writer
 created_at: '2026-07-28T14:48:35Z'
-updated_at: '2026-07-29T08:26:18Z'
+updated_at: '2026-07-29T08:37:45Z'
 ---
 <!-- sq:body -->
 The root README carries the GitHub repo, contributors, and — via `readme = "README.md"` — the PyPI project description. This splits the last audience onto its own page, the way the VS Code client already has a dedicated Marketplace overview.
@@ -62,4 +62,10 @@ _Add with `sq task 684 add-subtask "<title>"`; track with `sq task 684 subtask <
   - MARKETPLACE.md: added the pre-1.0/schema disclosure (REV-686 F2, now Fixed) as a fourth bullet in 'What it doesn't do' — before Getting started, in the same plain register as the section's other limits, with sq migrate up and the stability contract in the same bullet so the limitation arrives with its remedy. Every link on the page remains absolute.
   - clients/vscode/README.md: dev-host launch corrected. --disable-extensions dropped from the default command because it disables Remote-WSL — the host then runs on Windows over the UNC share where a Linux sq in .venv/bin cannot execute, producing a discovery error instead of the extension. WSL exception stated explicitly, flag kept as an option elsewhere.
   - README.md: one clause on the existing link row naming clients/vscode/README.md as where the VS Code client is worked on — REV-685 F9's cheap half, no restructuring, so the ordering question stays closed. F9 stays Open for the PYPI.md half.
+- [2026-07-29T08:37:45Z] Theo Writer:
+  - Closed REV-685's last three findings (F1, F2, F9) in README.md and CONTRIBUTING.md; the review is now fully Fixed. Nothing committed.
+  - README.md restructured, no deletions: pitch / Install / Quickstart / Working with agents / Browsing the squad / Concepts / Documentation / Contributing / Command reference / Shell completion / Backends / Git notes. Shell completion moved from third section to appendix; 'Working with agents' moved from line 265 up to just after Quickstart; a real Contributing section added; the sibling-page question answered in Documentation.
+  - Split chosen: README routes (two toolchains, both gate blocks, --all-extras, where architecture lives, the conventions that bounce a PR), CONTRIBUTING.md holds the depth (full conventions, how-to-add recipes, release runbook) and gained what it was missing — the VS Code client's npm gate, the tests/meta guard tests, --all-extras with its symptom, and a two-toolchain opening.
+  - Stale material found by the reorganisation: the Quickstart failed as written ('sq create feature' without the required --author) and used a literal task number; both fixed and verified end to end from a clean init. CONTRIBUTING.md's 'how to add an item type' pointed at the deleted _models/_enums module and at a PLAYBOOK constant that is now bundled TOML; both rewritten. Flagged but out of scope: the bundled TOMLs cite golden-lock test paths that have moved, and the repo-root docs plus tests/CONVENTIONS.md sit outside both hygiene gates' scan roots.
+  - Note for whoever commits: the working tree also carries BUG-679/BUG-680 status transitions and a verification comment authored by the manager, not by me — my changes are README.md and CONTRIBUTING.md only.
 <!-- sq:discussion:end -->
