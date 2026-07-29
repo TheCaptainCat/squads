@@ -3,13 +3,13 @@ id: BUG-680
 sequence_id: 680
 type: bug
 title: 'VS Code: preview details collapse on background refresh'
-status: Fixed
+status: Verified
 author: qa
 severity: medium
 refs:
 - BUG-679
 created_at: '2026-07-28T07:32:45Z'
-updated_at: '2026-07-28T15:23:42Z'
+updated_at: '2026-07-29T08:32:21Z'
 ---
 <!-- sq:body -->
 Observed (Pierre): sub-entity bodies collapse back on refresh; expectation is that collapsible
@@ -75,4 +75,6 @@ restore around the `innerHTML` swap.
   - Confirmed the trigger: the webview, refreshing while an agent was running sq — so the watcher was firing on the index changing. Not a click on any refresh button.
 - [2026-07-28T07:59:29Z] Catherine Manager:
   - Trigger confirmed by the operator, which makes this routine rather than an edge case: agents mutate the index continuously in this repo's normal workflow, so any preview left open collapses its sub-entity bodies and graph folds repeatedly through a session — exactly when someone is watching a preview to follow an agent's work.
+- [2026-07-29T08:32:21Z] Pierre Chat:
+  - Verified on the Windows dev host: folds stayed expanded across a watcher-driven refresh.
 <!-- sq:discussion:end -->

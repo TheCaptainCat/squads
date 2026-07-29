@@ -11,11 +11,11 @@ description: Root README and the VS Code extension README reviewed for audience 
 subentities:
 - local_id: F1
   title: Root README has no contributor onboarding
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: Ordering serves neither arrival
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: Extension README serves neither of its audiences
@@ -43,10 +43,10 @@ subentities:
   severity: low
 - local_id: F9
   title: Neither README acknowledges its sibling documents
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-07-28T15:03:55Z'
-updated_at: '2026-07-29T07:38:54Z'
+updated_at: '2026-07-29T08:37:27Z'
 ---
 <!-- sq:body -->
 Independent review of the two internal READMEs — `README.md` (repo root, what GitHub shows) and
@@ -168,15 +168,15 @@ _Add with `sq review 685 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:summary -->
 | Finding | Severity | Status | Assignee | Title |
 | --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Open |  | Root README has no contributor onboarding |
-| F2 | 🟡 medium | Open |  | Ordering serves neither arrival |
+| F1 | 🟠 high | Fixed |  | Root README has no contributor onboarding |
+| F2 | 🟡 medium | Fixed |  | Ordering serves neither arrival |
 | F3 | 🟡 medium | Fixed |  | Extension README serves neither of its audiences |
 | F4 | 🟡 medium | Fixed |  | Extension README describes two views; there are three |
 | F5 | 🟡 medium | Fixed |  | Ref-kind list is five of nine valid kinds |
 | F6 | 🟡 medium | Fixed |  | Extension README omits search and display labels |
 | F7 | 🟢 low | Fixed |  | Review-finding id leaked into the extension README |
 | F8 | 🟢 low | Fixed |  | Dropped 'meta' terminology still in the extension README |
-| F9 | 🟢 low | Open |  | Neither README acknowledges its sibling documents |
+| F9 | 🟢 low | Fixed |  | Neither README acknowledges its sibling documents |
 <!-- sq:summary:end -->
 
 <!-- sq:findings -->
@@ -185,7 +185,7 @@ _Add with `sq review 685 add-finding "…" --severity medium`; track with `sq re
 ### F1 — Root README has no contributor onboarding
 
 <!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟠 High
 <!-- sq:finding:F1:head:end -->
 
@@ -230,7 +230,7 @@ thin onboarding leaves open from the other side.
 ### F2 — Ordering serves neither arrival
 
 <!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟡 Medium
 <!-- sq:finding:F2:head:end -->
 
@@ -517,7 +517,7 @@ edited anyway for the view-count error, so the cost of fixing it is zero.
 ### F9 — Neither README acknowledges its sibling documents
 
 <!-- sq:finding:F9:head -->
-**Status:** 🔴 Open
+**Status:** 🟡 Fixed
 **Severity:** 🟢 Low
 <!-- sq:finding:F9:head:end -->
 
@@ -579,4 +579,13 @@ rest.
 - [2026-07-29T07:38:54Z] Theo Writer:
   - F9's cheap half taken, within the existing structure: the root README's link row now reads '… changes: CHANGELOG.md · working on the VS Code client: clients/vscode/README.md'. One clause, no reordering, and it points a contributor at the client's own map rather than just at the published listing. The root README still does not name PYPI.md — that one is inward-facing trivia for a repo browser, and naming it invites the 'which of these is canonical' question the ordering work should answer properly. F9 left Open for that reason.
   - Also corrected the dev-host instructions I added: --disable-extensions is no longer the default command. It disables Remote-WSL, so the host runs on Windows over the UNC share and a Linux sq in .venv/bin cannot execute — a discovery error rather than a working extension. The block now launches without the flag, with the WSL exception stated and the flag offered for other environments.
+- [2026-07-29T08:37:26Z] Theo Writer:
+  - F1, F2 and F9 fixed; all nine findings on this review are now closed.
+  - F2 — new order: pitch / Install / Quickstart / Working with agents / Browsing the squad / Concepts / Documentation / Contributing / Command reference / Shell completion / Backends / Git notes. Two departures from the proposed order, both deliberate: Install stays above Quickstart (a quickstart that opens with sq init before the reader has the tool is the wrong first instruction), and 'Working with agents' goes directly after Quickstart rather than after Concepts — once a reader has seen the commands, the question is what the team does with them, not what the data model is. Shell completion, backends and git notes are last, in that order. Nothing was deleted and the command reference is intact.
+  - F1 — split: README routes, CONTRIBUTING.md is the manual. The README's new Contributing section states that the repo holds two separately gated toolchains, gives both gate blocks (Python with --all-extras on every command, npm from clients/vscode/), says both must be green and sq check clean, points at internals.md and the client's own README for architecture, and lists the five conventions most likely to bounce a change. CONTRIBUTING.md gained the client's gate as a subsection, a tests/meta guard-tests subsection, the --all-extras warning with its symptom, and a two-toolchains framing in its opening. Deliberately not duplicated: the full convention list, the how-to-add-things recipes and the release runbook stay in CONTRIBUTING alone.
+  - F9 — answered in the Documentation section: this README is the repo's front page, PYPI.md is the package's front page on PyPI, MARKETPLACE.md the extension's on the Marketplace. Same paragraph carries CONTRIBUTORS.md and CHANGELOG.md, so the old run-on link row is gone.
+- [2026-07-29T08:37:27Z] Theo Writer:
+  - Found while restructuring — the README's Quickstart was broken, and had been through every previous pass on this file. 'sq create feature "User authentication" --desc "Login & sessions"' fails with 'Missing option --author'; --author is required. It also used a literal 'sq task 11 …' that corresponds to nothing a reader would have. Both fixed and the block run end to end from a clean init: feature and task now pass --author, addressing uses the FEAT-<n> / TASK-<n> placeholder convention the listings adopted, and a following line explains the substitution and why every item has an author. The Team workflow snippets got the same treatment (--author on create, TASK-<n> addressing, --story US1 rather than the invalid 'USn').
+  - Two stale instructions in CONTRIBUTING.md's 'How to add things', both pointing at things that no longer exist: 'add to ItemType (_models/_enums)' — that module is gone, types are declared in squads/_bundled/workflow.toml — and 'a PLAYBOOK entry in _interactions', which is now a [types.<name>] entry in squads/_bundled/playbook.toml. Both rewritten, with the note that the TOMLs are golden-locked and that a *project* adds types through .overrides/workflow.toml with no code change.
+  - Two gaps flagged, not fixed, both outside this review's files. (1) The bundled TOMLs' own header comments point at 'tests/test_workflow_spec.py' and 'tests/test_playbook.py'; the golden-lock tests are now tests/unit/test_workflow_spec_artifact.py and tests/unit/test_playbook_spec_artifact.py. (2) tests/CONVENTIONS.md — which CONTRIBUTING.md now links, and should — opens with a status line citing two item ids and build-phase language; it sits outside both hygiene gates' scan roots, as do README.md, CONTRIBUTING.md and PYPI.md at the repo root. That is the same blind spot that let a bare finding id survive in the extension README.
 <!-- sq:discussion:end -->

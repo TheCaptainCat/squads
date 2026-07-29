@@ -1,8 +1,17 @@
 # Contributing to squads
 
-Thanks for hacking on squads! This is a Python 3.14 / `uv` project. `CLAUDE.md` is the terse
-working-reference; this file is the friendly version. Deeper design lives in
-[docs/internals.md](docs/internals.md).
+Thanks for hacking on squads! `CLAUDE.md` is the terse working-reference; this file is the friendly
+version. Deeper design lives in [docs/internals.md](docs/internals.md).
+
+The repo holds **two independent toolchains**:
+
+- the **Python core** — the `sq` CLI, Python 3.14 / `uv`, at the repo root;
+- the **VS Code client** — TypeScript under `clients/vscode/`, with its own `package.json`,
+  lockfile and lint config.
+
+Neither reads the other's files, and each has its own gate. Work on the client starts at
+[clients/vscode/README.md](clients/vscode/README.md), which maps that package and the conventions
+specific to it; the sections below are the core unless they say otherwise.
 
 ## Setup
 
@@ -15,15 +24,46 @@ uv run pytest           # the test suite (fast; everything runs in tmp dirs)
 ## The gate (must stay green)
 
 ```bash
-uv run ruff check .
-uv run ruff format --check .
-uv run pyright            # strict mode
-uv run pytest
+uv run --all-extras ruff check .
+uv run --all-extras ruff format --check .
+uv run --all-extras pyright            # strict mode
+uv run --all-extras pytest
 ```
+
+**Pass `--all-extras` on every one of them.** A bare `uv run` prunes the optional `tui` extra
+(`textual`), after which `pyright` reports hundreds of phantom unresolved-import errors from
+`_tui/` and the terminal-UI tests break — a confusing failure that has nothing to do with your
+change.
 
 Ruff runs an expanded ruleset (`E F I UP B W` + `C901 SIM PERF PTH RUF TRY PLR0911/12/13/15`,
 `max-complexity 12`, `max-args 8`, `TRY003` ignored). Pyright is **strict**. CI (`.github/workflows`)
 runs all four on pushes/PRs to `main`.
+
+`sq check` — the tool's own linter, run against this repo's own squad — must also be clean for
+whatever you touched. It is advisory for people *using* squads; here it is part of the gate.
+
+### The VS Code client's gate
+
+From `clients/vscode/`:
+
+```bash
+npm install
+npm run check          # tsc --noEmit + eslint (zero warnings) + prettier --check
+npm test               # vitest: unit layer, committed fixtures, no sq binary needed
+npm run test:canary    # fixtures vs a real sq; skips cleanly when sq isn't on PATH
+npm run test:e2e       # extension-host smoke test; needs a compiled build and a display
+```
+
+`npm run check` and `npm test` are the two that must be green for every client change. The canary
+and the host smoke test are documented in that package's README along with how to run a dev host.
+
+### Guard tests (`tests/meta/`)
+
+Beyond the unit suite, a small set of repo-hygiene tests fail on things a reviewer would otherwise
+have to catch by eye: a tracked-item id appearing in source or config, new module-level mutable
+state, a documented CLI command that no longer resolves, a stale override manifest or template
+stamp. If one of them fails, read its docstring — each explains the rule it enforces and the
+sanctioned way to satisfy it.
 
 ## Conventions
 
@@ -56,9 +96,12 @@ runs all four on pushes/PRs to `main`.
   package data automatically. Render with `squads._rendering._engine.render` (StrictUndefined).
 - **A command** → add it to the right `squads/_cli/_*` module (or a new one), wire it onto `app`
   in `_cli/__init__`, and route logic through `Service`.
-- **An item type** → add to `ItemType` (`_models/_enums`) with its prefix + folder, give it a
-  workflow in `_workflow`, an item template, and (if agents author it) a `PLAYBOOK` entry in
-  `_interactions`.
+- **An item type** → declare it in the bundled workflow spec (`squads/_bundled/workflow.toml`):
+  prefix, folder, category, lifecycle, and any parent/ref rules. Add its item template, and — if
+  agents author it — a `[types.<name>]` entry in `squads/_bundled/playbook.toml` so the type gets its
+  managed `sq-<type>` skill. Both TOMLs are golden-locked by a test under `tests/unit/`; update the
+  golden in the same change. (A *project* adds its own types through `.overrides/workflow.toml`
+  instead — see [docs/overrides.md](docs/overrides.md) — and needs no code change at all.)
 - **A backend** → see [docs/backends.md](docs/backends.md).
 
 ## Tests
@@ -69,6 +112,14 @@ through the service/CLI and assert on the generated files (valid frontmatter, in
 preserved body). When you add a feature, add a service-level test and a CLI smoke test. Time is
 frozen via the `frozen_time` fixture; the `_reset_clock_override` autouse fixture stops a forged
 `--at` from leaking between tests.
+
+The suite is laid out by kind — `tests/unit/`, `tests/service/`, `tests/cli/`, `tests/integration/`,
+`tests/tui/`, plus the `tests/meta/` guards above; [tests/CONVENTIONS.md](tests/CONVENTIONS.md) sets
+out how tests are named and where a new one belongs. It runs under `pytest-xdist` by default, which
+is safe because every test owns its own `tmp_path`; pass `-n0` to force serial (for `--pdb`, say).
+The scale-bound tests marked `slow` are skipped unless you pass `--run-slow`, so a bare run stays
+quick. Redirect a full run to a file and read the file rather than re-running the suite to see a
+different slice of its output.
 
 ## Commits / PRs
 
