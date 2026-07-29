@@ -10,7 +10,7 @@ refs:
 description: Init docs recommend the manager interview the operator and author a self-assigned
   squad-running skill
 created_at: '2026-07-24T07:41:51Z'
-updated_at: '2026-07-24T07:42:22Z'
+updated_at: '2026-07-29T09:37:09Z'
 ---
 <!-- sq:body -->
 **Capability.** `sq init`'s documentation recommends — but never scaffolds, generates, or enforces — that the manager agent open a squad by interviewing the operator about how they want the squad run, then author and self-assign a bespoke skill (e.g. a "run the dev loop" skill) that encodes the operator's answers.
@@ -49,4 +49,6 @@ _Add with `sq feature 644 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-29T09:37:09Z] Pierre Chat:
+  - Scheduled for 0.13.
 <!-- sq:discussion:end -->

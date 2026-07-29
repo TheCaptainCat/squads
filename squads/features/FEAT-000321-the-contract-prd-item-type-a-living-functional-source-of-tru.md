@@ -29,7 +29,7 @@ subentities:
     schema to 0.8
   status: Todo
 created_at: '2026-07-07T08:33:54Z'
-updated_at: '2026-07-07T08:34:43Z'
+updated_at: '2026-07-29T09:37:07Z'
 ---
 <!-- sq:body -->
 # The contract (PRD) item type
@@ -206,4 +206,6 @@ As an existing squad, I want `sq migrate up` to add the contracts folder and bum
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-29T09:37:07Z] Pierre Chat:
+  - Scheduled for 0.13.
 <!-- sq:discussion:end -->
