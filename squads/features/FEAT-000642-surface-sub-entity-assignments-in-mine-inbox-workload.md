@@ -7,7 +7,7 @@ status: Draft
 author: product-owner
 description: Route work by per-subtask assignee, not just item-level
 created_at: '2026-07-24T07:28:33Z'
-updated_at: '2026-07-24T07:28:35Z'
+updated_at: '2026-07-29T09:37:08Z'
 ---
 <!-- sq:body -->
 A sub-entity (story/subtask/finding) already carries its own `assignee`, but the work-queue surfaces are item-level only: `sq mine` filters on `item.assignee`, and `inbox`/`workload` likewise never scan sub-entity assignees. So an actor assigned only a subtask (not the parent) is never routed that work.
@@ -28,4 +28,6 @@ _Add with `sq feature 642 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-07-29T09:37:08Z] Pierre Chat:
+  - Scheduled for 0.13.
 <!-- sq:discussion:end -->
