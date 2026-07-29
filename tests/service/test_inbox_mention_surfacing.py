@@ -45,7 +45,7 @@ async def test_inbox_surfaces_a_mention_in_story_subtask_and_finding_discussion(
     assert task.id in {it.id for it, _ in await svc.inbox("reviewer")}
 
     rev = (await svc.create("review", "Code review")).item
-    await svc.add_finding(rev.id, "Null deref")  # F1
+    await svc.add_finding(rev.id, "Null deref")  # the review's first (and only) finding
     await svc.comment(rev.id, ["@qa does this fix satisfy?"], as_slug="reviewer", finding="F1")
     assert rev.id in {it.id for it, _ in await svc.inbox("qa")}
 

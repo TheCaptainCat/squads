@@ -149,7 +149,7 @@ async def test_a_bundled_only_squad_gets_no_custom_skill_at_all(
 async def test_the_thin_skill_has_no_dead_subentity_footer_and_its_create_command_runs(
     invoke, tmp_path, monkeypatch, frozen_time
 ) -> None:
-    """F4: a custom type declares no sub-entity kind, so the footer must not advertise ``<kind>
+    """A custom type declares no sub-entity kind, so the footer must not advertise ``<kind>
     <k> body``/``show`` verbs; and the ``sq create incident ...`` line it DOES advertise runs."""
     monkeypatch.chdir(tmp_path)
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)

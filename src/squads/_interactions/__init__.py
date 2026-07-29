@@ -296,7 +296,7 @@ def custom_skill_slugs(spec: WorkflowSpec) -> list[str]:
     """All custom type skill slugs for *spec*, in lexical order.
 
     Extends the same allocation primitive to custom types: each type declared in the spec
-    with no ``PLAYBOOK`` entry (F4's thin-auto-generated-skill boundary — regardless of
+    with no ``PLAYBOOK`` entry (the thin-auto-generated-skill boundary — regardless of
     whether it's a built-in or a project-declared type) gets a ``sq-<type>`` skill slug
     allocated in the same lexical-by-slug order so there is no churn of existing SKILL ids.
 

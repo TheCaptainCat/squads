@@ -194,7 +194,7 @@ sub-entity also gets a marker-scoped **block in the body** holding only its pros
 <!-- sq:subtask:STn:end -->
 ```
 
-Local ids (`USn`, `STn`, `F1`) auto-increment via `next_local_id` (over the stored list). Each has a
+Local ids (`USn`, `STn`, `Fn`) auto-increment via `next_local_id` (over the stored list). Each has a
 **status state machine** (`SUBENTITY_WORKFLOWS`: subtask/story `Todo → InProgress → Done`; finding
 `Open → Fixed → Verified`), transitioned with `sq <type> <n> <kind> <k> update --status …` (validated;
 `--force` overrides) — `update` is the one metadata entry point (`--title`/`--status`/`--assignee`, a

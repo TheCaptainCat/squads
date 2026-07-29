@@ -1,4 +1,4 @@
-"""A second instance of the F1 genericity-failure family (the sibling instance is the per-item
+"""A second instance of a genericity-failure family (the sibling instance is the per-item
 skill's frozen-lifecycle fallback, tests/integration/test_item_skill_body_generation.py): the
 workflow cheatsheet and the CLAUDE.md section both render without crashing when a type the
 authoring-prose logic expects to exist (e.g. "task") has been dropped from the active spec —
