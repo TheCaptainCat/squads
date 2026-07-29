@@ -3,10 +3,10 @@ id: TASK-683
 sequence_id: 683
 type: task
 title: Set VS Code Marketplace categories, keywords & description
-status: Draft
+status: Done
 author: product-owner
 created_at: '2026-07-28T12:43:01Z'
-updated_at: '2026-07-28T14:43:00Z'
+updated_at: '2026-07-29T08:26:11Z'
 ---
 <!-- sq:body -->
 The extension currently ships `categories: ["Other"]`, no `keywords`, no `galleryBanner`, no

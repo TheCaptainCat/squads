@@ -3,10 +3,10 @@ id: TASK-682
 sequence_id: 682
 type: task
 title: VSIX packaging ships with no LICENSE text
-status: Draft
+status: Done
 author: devops
 created_at: '2026-07-28T12:35:03Z'
-updated_at: '2026-07-28T12:35:24Z'
+updated_at: '2026-07-29T08:26:06Z'
 ---
 <!-- sq:body -->
 The 0.12.2 VSIX job logged:

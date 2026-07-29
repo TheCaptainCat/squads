@@ -3,7 +3,7 @@ id: REV-686
 sequence_id: 686
 type: review
 title: Independent review of the two published-listing pages (MARKETPLACE.md, PYPI.md)
-status: InReview
+status: Approved
 author: product-owner
 subentities:
 - local_id: F1
@@ -26,7 +26,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-07-28T15:06:17Z'
-updated_at: '2026-07-29T07:38:38Z'
+updated_at: '2026-07-29T08:26:21Z'
 ---
 <!-- sq:body -->
 Independent read of `clients/vscode/MARKETPLACE.md` (VS Code Marketplace listing) and `PYPI.md`
