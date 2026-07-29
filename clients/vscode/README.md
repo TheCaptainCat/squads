@@ -17,18 +17,18 @@ core's toolchain; nothing under `clients/` is read by the Python gate, and vice 
 
 **Host layer** (`src/*.ts`) — everything allowed to import `vscode`:
 
-| Module | Responsibility |
-|---|---|
-| `extension.ts` | activation: builds the providers, registers commands, wires the watcher |
-| `treeDataProvider.ts` | the **Work Items** tree (hierarchy, or a flat filtered/grouped view) |
-| `recordsTreeDataProvider.ts` | the **Records** tree (one bucket per `records`-category type) |
-| `metaTreeDataProvider.ts` | the **Roster** tree (fixed Roles / Skills / Operators buckets) |
-| `treeItemRendering.ts` | shared `DisplayNode` → `vscode.TreeItem` mapping (icons, colours, tooltips) |
-| `itemPreviewManager.ts` | the owned `WebviewPanel`s: item dossiers, per-panel back/forward history, and the separate workflow-cheatsheet panel |
-| `searchQuickPick.ts` | the full-text search QuickPick over `sq search --json` |
-| `commands.ts`, `commandIds.ts` | command registration and the contributed command ids |
-| `squadWatcher.ts` | watches the squad index on disk and triggers one global refresh |
-| `discovery.ts`, `processRunner.ts`, `sqAdapter.ts`, `nodeEnvironment.ts` | finding `sq`, invoking it, and parsing its `--json` / `--raw` output |
+| Module                                                                   | Responsibility                                                                                                       |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `extension.ts`                                                           | activation: builds the providers, registers commands, wires the watcher                                              |
+| `treeDataProvider.ts`                                                    | the **Work Items** tree (hierarchy, or a flat filtered/grouped view)                                                 |
+| `recordsTreeDataProvider.ts`                                             | the **Records** tree (one bucket per `records`-category type)                                                        |
+| `metaTreeDataProvider.ts`                                                | the **Roster** tree (fixed Roles / Skills / Operators buckets)                                                       |
+| `treeItemRendering.ts`                                                   | shared `DisplayNode` → `vscode.TreeItem` mapping (icons, colours, tooltips)                                          |
+| `itemPreviewManager.ts`                                                  | the owned `WebviewPanel`s: item dossiers, per-panel back/forward history, and the separate workflow-cheatsheet panel |
+| `searchQuickPick.ts`                                                     | the full-text search QuickPick over `sq search --json`                                                               |
+| `commands.ts`, `commandIds.ts`                                           | command registration and the contributed command ids                                                                 |
+| `squadWatcher.ts`                                                        | watches the squad index on disk and triggers one global refresh                                                      |
+| `discovery.ts`, `processRunner.ts`, `sqAdapter.ts`, `nodeEnvironment.ts` | finding `sq`, invoking it, and parsing its `--json` / `--raw` output                                                 |
 
 **Domain layer** (`src/domain/*.ts`) — pure, `vscode`-free, unit-tested directly with no host:
 
@@ -48,7 +48,7 @@ core's toolchain; nothing under `clients/` is read by the Python gate, and vice 
    to be covered by the smoke test instead.
 2. **Pure consumer of the CLI.** Data comes from `sq … --json` / `--raw` and nothing else: never
    read `.claude/`, and never parse the squad index for content — the watcher treats it as a change
-   *trigger* only, then re-fetches through the normal adapter calls.
+   _trigger_ only, then re-fetches through the normal adapter calls.
 3. **Read-only.** Contribute no command that mutates a squad.
 4. **Spec-driven, not hardcoded.** Item types, statuses, labels, ordering and badges come from the
    workflow catalogs, so a project with custom types works with no client change. Degrade
