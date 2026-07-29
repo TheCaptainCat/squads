@@ -3,7 +3,7 @@ id: TASK-681
 sequence_id: 681
 type: task
 title: 'VS Code: one global refresh, and previews keep their open sections'
-status: InReview
+status: Done
 author: tech-lead
 refs:
 - BUG-679:fixes
@@ -26,7 +26,7 @@ subentities:
   status: Done
   assignee: op-pierre
 created_at: '2026-07-28T08:04:21Z'
-updated_at: '2026-07-28T15:23:52Z'
+updated_at: '2026-07-29T08:26:19Z'
 ---
 <!-- sq:body -->
 Make "refresh" mean one thing in the VS Code extension: every refresh action refreshes all three

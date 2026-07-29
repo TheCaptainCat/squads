@@ -3,10 +3,10 @@ id: TASK-684
 sequence_id: 684
 type: task
 title: Adopter-facing PyPI project description page
-status: Draft
+status: Done
 author: tech-writer
 created_at: '2026-07-28T14:48:35Z'
-updated_at: '2026-07-29T07:38:55Z'
+updated_at: '2026-07-29T08:26:18Z'
 ---
 <!-- sq:body -->
 The root README carries the GitHub repo, contributors, and — via `readme = "README.md"` — the PyPI project description. This splits the last audience onto its own page, the way the VS Code client already has a dedicated Marketplace overview.
