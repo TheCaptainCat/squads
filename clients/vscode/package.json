@@ -105,11 +105,23 @@
         "command": "squads.toggleGroupByType",
         "title": "Group by Type",
         "category": "Squads",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "squads.ungroupByType",
+        "title": "Ungroup",
+        "category": "Squads",
         "icon": "$(list-tree)"
       },
       {
         "command": "squads.toggleShowClosed",
         "title": "Show Closed Items",
+        "category": "Squads",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "squads.hideClosed",
+        "title": "Hide Closed Items",
         "category": "Squads",
         "icon": "$(eye)"
       },
@@ -168,15 +180,23 @@
         },
         {
           "command": "squads.toggleGroupByType",
-          "when": "view == squadsTree",
-          "group": "navigation@2",
-          "toggled": "squads.groupByType"
+          "when": "view == squadsTree && !squads.groupByType",
+          "group": "navigation@2"
+        },
+        {
+          "command": "squads.ungroupByType",
+          "when": "view == squadsTree && squads.groupByType",
+          "group": "navigation@2"
         },
         {
           "command": "squads.toggleShowClosed",
-          "when": "view == squadsTree",
-          "group": "navigation@3",
-          "toggled": "squads.showClosed"
+          "when": "view == squadsTree && !squads.showClosed",
+          "group": "navigation@3"
+        },
+        {
+          "command": "squads.hideClosed",
+          "when": "view == squadsTree && squads.showClosed",
+          "group": "navigation@3"
         },
         {
           "command": "squads.openWorkflow",
