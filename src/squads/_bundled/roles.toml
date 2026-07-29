@@ -1,7 +1,7 @@
 # squads bundled role catalog
 # Encodes the role definitions byte-for-byte.
 # Loaded and validated by load_role_catalog() in _loader.py.
-# DO NOT edit without updating the golden-lock test in tests/test_role_catalog.py.
+# DO NOT edit without updating the golden-lock test in tests/unit/test_role_catalog_artifact.py.
 
 # ---------------------------------------------------------------------------
 # Named bundles (selectable at sq init --roles)

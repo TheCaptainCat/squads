@@ -2,7 +2,7 @@
 # Encodes the vocabulary byte-for-byte, including capability flags (category,
 # subentity_kind, parent_required, ref_rules) and StatusSpec.role.
 # Loaded and validated by load_workflow_spec() in _loader.py.
-# DO NOT edit without updating the golden-lock test in tests/test_workflow_spec.py.
+# DO NOT edit without updating the golden-lock test in tests/unit/test_workflow_spec_artifact.py.
 #
 # [collections.*] + the `fields` lists below are the badge vocabulary — the bundled
 # priority/severity collections/fields ARE the runtime vocabulary now (no more Priority/Severity
