@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.12.0",
-  "counter": 687,
+  "counter": 688,
   "padding": 6,
   "items": {
     "12": {
@@ -5059,7 +5059,7 @@
       "subentities": [],
       "path": "features/FEAT-000621-roster-view-filtering-parity-with-work-records-filter-surfac.md",
       "created_at": "2026-07-23T07:11:12Z",
-      "updated_at": "2026-07-23T07:11:32Z",
+      "updated_at": "2026-07-29T08:56:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25632,7 +25632,7 @@
       "type": "bug",
       "title": "VS Code: toggle actions show no active state",
       "slug": "vs-code-toggle-actions-show-no-active-state",
-      "status": "Open",
+      "status": "Fixed",
       "description": "Group by type and Show closed render identically whether on or off",
       "parent": null,
       "author": "op-pierre",
@@ -25644,11 +25644,73 @@
       "subentities": [],
       "path": "bugs/BUG-000687-vs-code-toggle-actions-show-no-active-state.md",
       "created_at": "2026-07-29T08:49:02Z",
-      "updated_at": "2026-07-29T08:49:30Z",
+      "updated_at": "2026-07-29T09:08:21Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "BUG-687"
+    },
+    "688": {
+      "sequence_id": 688,
+      "type": "task",
+      "title": "VS Code: narrow the Roster view by status and hide archived",
+      "slug": "vs-code-narrow-the-roster-view-by-status-and-hide-archived",
+      "status": "Draft",
+      "description": "Give the Roster view the ability to narrow that Work Items has, in the dimensions a fixed-bucket tree actually has: hide archived entries and filter to one status, with visible active state.",
+      "parent": "FEAT-621",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-687:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Hide archived roster entries",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Status filter on the Roster view",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Visible filter state, and clear",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Dev-host verification per increment",
+          "status": "Todo",
+          "assignee": "op-pierre",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000688-vs-code-narrow-the-roster-view-by-status-and-hide-archived.md",
+      "created_at": "2026-07-29T08:55:21Z",
+      "updated_at": "2026-07-29T08:55:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-688"
     }
   }
 }
