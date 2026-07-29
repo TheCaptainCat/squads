@@ -1,15 +1,20 @@
 """Repo-hygiene gate: a concrete squad-item ID reference (``FEAT-<n>``-shaped, ``US<n>``-shaped,
-…) must never leak into ``src/`` or ``docs/`` (full file text — production code and shipped
-docs have no legitimate reason to cite a real backlog number) other than the designated
-illustrative-walkthrough docs, which cite fictional self-consistent ids by design. It must
-also never appear in a test file's own *name* or *docstring* (a test's assertion *data*
-legitimately manufactures items and asserts on rendered ids or local sub-entity ids — that's
-the feature under test, not a citation, so plain assertion data is deliberately left alone;
-only the identifier/documentation surface is scanned), nor in a `#` comment anywhere under
-``src/`` or ``tests/`` (comments, unlike assertion-data strings, never have a legitimate reason
-to cite a real backlog number either — this is a ``tokenize``-based scan, so it can walk
-``tests/`` too without ever touching a string literal). Placeholder shapes and incidental
-substrings never match any of the three scans.
+a bare sub-entity local id like ``F<n>``, …) must never leak into ``src/`` or ``docs/`` (full
+file text — production code and shipped docs have no legitimate reason to cite a real backlog
+number) other than the designated illustrative-walkthrough docs, which cite fictional
+self-consistent ids by design. It must also never appear in a test file's own *name* or
+*docstring* (a test's assertion *data* legitimately manufactures items and asserts on rendered
+ids or local sub-entity ids — that's the feature under test, not a citation, so plain assertion
+data is deliberately left alone; only the identifier/documentation surface is scanned), nor in
+a `#` comment anywhere under ``src/`` or ``tests/`` (comments, unlike assertion-data strings,
+never have a legitimate reason to cite a real backlog number either — this is a
+``tokenize``-based scan, so it can walk ``tests/`` too without ever touching a string literal).
+Placeholder shapes and incidental substrings never match any of the three scans.
+
+The bare ``F<n>`` shape (a review-finding local id) collides with ruff/pyflakes' own family of
+``F``-prefixed lint-rule codes, which this repo suppresses legitimately via ``# noqa: ...``
+comments. Every scan strips a ``noqa:`` directive's code list before matching, so a real linter
+suppression is never mistaken for a finding-id citation — see ``_without_noqa_directives``.
 
 This is the new-suite's own permanent home for the invariant the pre-rebuild
 ``tests/test_squad_ref_hygiene.py`` protected for ``src/``+``docs/`` (that file also
@@ -27,7 +32,23 @@ from pathlib import Path
 
 import pytest
 
-REFERENCE_PATTERN = re.compile(r"\b(?:ADR|FEAT|TASK|REV|BUG|EPIC)-[0-9]|\bUS[0-9]|\bST[0-9]|§[0-9]")
+REFERENCE_PATTERN = re.compile(
+    r"\b(?:ADR|FEAT|TASK|REV|BUG|EPIC)-[0-9]|\bUS[0-9]|\bST[0-9]|\bF[0-9]|§[0-9]"
+)
+
+#: A trailing linter-suppression directive's code list, stripped from any text before it's
+#: checked against ``REFERENCE_PATTERN`` — ruff/pyflakes' own ``F``-prefixed rule codes share
+#: the bare ``F<n>`` shape a review-finding local id takes, and this repo cites both
+#: legitimately. Only the codes immediately after the directive keyword are removed, so a real
+#: finding-id reference elsewhere on the same line or comment is still caught.
+_NOQA_DIRECTIVE_PATTERN = re.compile(
+    r"noqa:\s*[A-Za-z]+[0-9]+(?:\s*,\s*[A-Za-z]+[0-9]+)*", re.IGNORECASE
+)
+
+
+def _without_noqa_directives(text: str) -> str:
+    return _NOQA_DIRECTIVE_PATTERN.sub("", text)
+
 
 #: Full-file-text scan — production code and docs have no legitimate reason to cite a real
 #: backlog number as data.
@@ -79,7 +100,7 @@ def _full_text_violations(root: Path) -> list[tuple[str, int, str]]:
             except (UnicodeDecodeError, OSError):  # fmt: skip
                 continue
             for lineno, line in enumerate(text.splitlines(), start=1):
-                match = REFERENCE_PATTERN.search(line)
+                match = REFERENCE_PATTERN.search(_without_noqa_directives(line))
                 if match:
                     violations.append((rel, lineno, match.group(0)))
     return violations
@@ -118,7 +139,7 @@ def _name_and_docstring_violations(root: Path) -> list[tuple[str, str]]:
             for surface in _identifiers_and_docstrings(path):
                 # findall (not search) so a second, non-allowlisted token later in the same
                 # surface is never masked by an earlier allowlisted one.
-                tokens = REFERENCE_PATTERN.findall(surface)
+                tokens = REFERENCE_PATTERN.findall(_without_noqa_directives(surface))
                 violations.extend(
                     (rel, token)
                     for token in tokens
@@ -161,7 +182,7 @@ def _comment_violations(root: Path) -> list[tuple[str, int, str]]:
                 continue
             rel = path.relative_to(root).as_posix()
             for tok in _comment_tokens(path):
-                match = REFERENCE_PATTERN.search(tok.string)
+                match = REFERENCE_PATTERN.search(_without_noqa_directives(tok.string))
                 if match:
                     violations.append((rel, tok.start[0], match.group(0)))
     return violations
@@ -186,10 +207,23 @@ def test_no_ticket_reference_appears_in_a_comment_under_src_or_tests() -> None:
 
 
 def test_the_pattern_ignores_placeholder_shapes_and_incidental_substrings() -> None:
-    placeholders = "See FEAT-<n>, TASK-<n>, ADR-…, USn, PREFIX-NNNNNN, and §N for the shape."
+    placeholders = "See FEAT-<n>, TASK-<n>, ADR-…, USn, STn, Fn, PREFIX-NNNNNN, and §N."
     incidental = "STATUS1 costs FOCUS2 nothing; PLUS100 and TESTBED9 are fine, so is campus3."
     assert REFERENCE_PATTERN.search(placeholders) is None
     assert REFERENCE_PATTERN.search(incidental) is None
+
+
+def test_the_full_text_scan_would_catch_a_bare_finding_id_reference_planted_in_src(
+    tmp_path: Path,
+) -> None:
+    """A bare sub-entity local id (a review finding, shaped ``F<n>``) is exactly as stale a
+    citation as a full item id once the review is archived — it must be caught too."""
+    planted = tmp_path / "src" / "squads" / "_example.py"
+    planted.parent.mkdir(parents=True)
+    planted.write_text("# see F4 for context\n", encoding="utf-8")
+
+    violations = _full_text_violations(tmp_path)
+    assert violations == [("src/squads/_example.py", 1, "F4")]
 
 
 def test_the_full_text_scan_would_catch_a_real_reference_planted_in_src_or_docs(
@@ -222,6 +256,43 @@ def test_the_comment_scan_would_catch_a_planted_reference_in_a_tests_inline_comm
 
     violations = _comment_violations(tmp_path)
     assert violations == [("tests/cli/test_example.py", 2, "FEAT-9")]
+
+
+def test_the_comment_scan_would_catch_a_bare_finding_id_reference_in_a_source_comment(
+    tmp_path: Path,
+) -> None:
+    planted = tmp_path / "src" / "squads" / "_example.py"
+    planted.parent.mkdir(parents=True)
+    planted.write_text("x = 1  # see F4 for context\n", encoding="utf-8")
+
+    violations = _comment_violations(tmp_path)
+    assert violations == [("src/squads/_example.py", 1, "F4")]
+
+
+def test_the_comment_scan_never_flags_a_real_noqa_linter_suppression(tmp_path: Path) -> None:
+    """Ruff's own pyflakes ``F``-prefixed rule codes share the bare ``F<n>`` shape a
+    review-finding id takes; a real ``# noqa: ...`` suppression must never trip the gate."""
+    planted = tmp_path / "src" / "squads" / "_example.py"
+    planted.parent.mkdir(parents=True)
+    planted.write_text(
+        "import os  # noqa: F401  # pyright: ignore[reportUnusedImport]\n", encoding="utf-8"
+    )
+
+    assert _comment_violations(tmp_path) == []
+    assert _full_text_violations(tmp_path) == []
+
+
+def test_the_noqa_exclusion_never_masks_a_real_finding_id_on_the_same_comment(
+    tmp_path: Path,
+) -> None:
+    """The exclusion strips only the ``noqa:`` code list itself — a genuine finding-id
+    reference elsewhere on the same comment is still caught."""
+    planted = tmp_path / "src" / "squads" / "_example.py"
+    planted.parent.mkdir(parents=True)
+    planted.write_text("import os  # noqa: F401 -- see F9 for why\n", encoding="utf-8")
+
+    violations = _comment_violations(tmp_path)
+    assert violations == [("src/squads/_example.py", 1, "F9")]
 
 
 def test_the_comment_scan_never_flags_a_legitimate_assertion_data_string_literal(

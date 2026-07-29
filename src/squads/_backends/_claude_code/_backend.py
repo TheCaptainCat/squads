@@ -211,7 +211,7 @@ class ClaudeCodeBackend(AgentBackend):
         (a ``<tech>-dev`` role), so a squad with no devs yet doesn't carry guidance for an actor
         that can't act.
 
-        A type with no ``PLAYBOOK`` entry — built-in or project-declared alike (F4; there is no
+        A type with no ``PLAYBOOK`` entry — built-in or project-declared alike (there is no
         static built-in/custom split any more) — also gets a thin auto-generated skill: lifecycle
         string (from ``linearize_lifecycle``), the standard command list, and no role sections
         (graceful degradation).

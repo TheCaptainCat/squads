@@ -161,7 +161,7 @@ def _validate_item_vocab(db: SquadsDB, spec: WorkflowSpec) -> None:
                 "longer declares; migrate or re-type this item before it can load again "
                 "(or run `sq repair` if the index itself is merely stale)"
             )
-        # F5: sub-entity statuses share the same vocabulary — validate each one too.
+        # Sub-entity statuses share the same vocabulary as the item's own — validate each one too.
         for sub in item.subentities:
             if sub.status not in known_statuses:
                 raise SquadsError(
