@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from squads._interactions import skills_for_role
+from squads._interactions._models import PlaybookSpec
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
@@ -27,12 +28,25 @@ class Artifact:
 
 @dataclass(frozen=True)
 class RoleView:
-    """The roster entry passed to backends (decoupled from RoleDef internals)."""
+    """The roster entry passed to backends (decoupled from RoleDef internals).
+
+    Carries every role field a backend renders into a compiled managed region. ``mission`` and
+    ``responsibilities`` are here for a specific reason: without them the AGENTS.md backend
+    could not see either, and recovered the mission by string-matching the ``**Mission:**``
+    line back out of markdown it had itself generated one step earlier — a rendering
+    convention standing in for a declaration, over a template that is meant to be editable.
+    Relabelling that line silently emptied every mission in the compiled file, and
+    ``responsibilities`` was never recovered at all, so the section's responsibilities block
+    had never once rendered. A view field is the declaration; the generated text is output,
+    never an input.
+    """
 
     slug: str
     full_name: str
     title: str
     is_default: bool
+    mission: str = ""
+    responsibilities: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -62,6 +76,11 @@ class BackendContext:
     # ``None`` means use only built-in types (backward-compatible default for callers that
     # don't supply a spec, e.g. backend conformance tests).
     spec: WorkflowSpec | None
+    # Active (merged) playbook — supplied by the Service alongside ``spec`` so a per-type skill
+    # writer sees a project override's role guidance. ``None`` means the bundled playbook
+    # (:func:`squads._interactions.get_playbook_spec`) — the same backward-compatible default
+    # shape as ``spec`` above, for callers (backend conformance tests) that supply neither.
+    playbook: PlaybookSpec | None
 
     def __init__(
         self,
@@ -69,11 +88,13 @@ class BackendContext:
         skill_paths: dict[str, Path] | None = None,
         role_skills: dict[str, list[str]] | None = None,
         spec: WorkflowSpec | None = None,
+        playbook: PlaybookSpec | None = None,
     ) -> None:
         self.paths = paths
         self.skill_paths = skill_paths if skill_paths is not None else {}
         self.role_skills = role_skills if role_skills is not None else {}
         self.spec = spec
+        self.playbook = playbook
 
     @property
     def root(self) -> Path:
@@ -101,7 +122,7 @@ class BackendContext:
         """
         if slug in self.role_skills:
             return self.role_skills[slug]
-        return skills_for_role(slug)
+        return skills_for_role(slug, self.spec, self.playbook)
 
 
 class AgentBackend(ABC):

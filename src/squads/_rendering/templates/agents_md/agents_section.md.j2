@@ -29,19 +29,23 @@ At the start of a run, load your role memory — `sq memory <role> list`, then `
 show <slug>` for relevant entries — and check the team board with `sq board list`. Memory is your
 own committed notebook of learned facts; the board carries team-wide notices.
 
+Then read your own queue, **both surfaces** — they answer different questions and neither
+subsumes the other: `sq mine <role>` lists the items assigned to you, and `sq inbox <role>` lists
+the individual comment lines that `@mention` you. An item can be in one and not the other.
+
 {% include "workflow.md.j2" %}
 
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
-sq task 3 show --full --comments     # full dossier: body + sub-entities + discussion
-sq task 3 status InProgress          # transition (validated per type)
-sq task 3 update --assignee qa --priority high --parent FEAT-<n>
-sq task 3 body -m "## Description" -m "…"
-sq task 3 comment --as <your-slug> -m "…"   # hand off / @mentions
-sq list --type task --status InProgress      # closed items hidden; --all to include
-sq tree FEAT-<n> --json           # a feature's whole subtree (status/blocked)
+sq create {{ anchor or "<type>" }} "Title" --author <your-slug>{% if anchor_parent_prefix %} [--parent {{ anchor_parent_prefix }}-<n>]{% endif %} [-m "body…"]  # also: {{ also_creatable_types }}
+sq {{ anchor or "<type>" }} 3 show --full --comments     # full dossier: body + sub-entities + discussion
+sq {{ anchor or "<type>" }} 3 status {{ anchor_active or anchor_settled or "<status>" }}          # transition (validated per type)
+sq {{ anchor or "<type>" }} 3 update --assignee {{ example_assignee_slug(roles) }}{% if priority_field %} --{{ priority_field.code }} {{ priority_values[0] }}{% endif %}{% if anchor_parent_prefix %} --parent {{ anchor_parent_prefix }}-<n>{% endif +%}
+sq {{ anchor or "<type>" }} 3 body -m "## Description" -m "…"
+sq {{ anchor or "<type>" }} 3 comment --as <your-slug> -m "…"   # hand off / @mentions
+sq list --type {{ anchor or "<type>" }} --status {{ anchor_active or anchor_settled or "<status>" }}      # closed items hidden; --all to include
+sq tree {{ anchor_parent_prefix or anchor_prefix }}-<n> --json           # a parent's whole subtree (status/blocked)
 sq search "lockout"                  # match titles, summaries, bodies
 sq mine <your-slug>                  # your open items  ·  sq workload
 sq blocked                           # open items waiting on an open blocker

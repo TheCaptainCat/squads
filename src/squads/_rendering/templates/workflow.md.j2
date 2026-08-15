@@ -1,21 +1,33 @@
+{% set _wf_anchor = cheatsheet_anchor_type(spec) %}
 ## Team workflow
 
-- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
-  `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq {{ _wf_anchor or "<type>" }} 35 show`);
+  create with `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
 {# Altitude rule: this cheatsheet is a cross-type SYSTEM MAP, not the full per-type playbook —
    one condensed line per type-role authoring pairing (who creates it + its single
    highest-signal handoff: parent/sub-entity/ref). The enter/do/handoff/watch detail for one
    type lives in its own sq-<type> skill; don't duplicate that here. Every fact below is
    derived by looping spec.items/authoring_owner/parent_chain — never a hardcoded type literal —
    so a dropped or renamed built-in type degrades gracefully instead of crashing. #}
+{% set _roles = roles if (roles is defined and roles is not none) else none %}
+{% set _playbook = playbook if playbook is defined else none %}
+{% set roster_slugs = (_roles | map(attribute="slug") | list) if _roles else none %}
+{% set role_titles = {} %}
+{% for r in _roles or [] %}
+{% set _ = role_titles.update({r.slug: r.title}) %}
+{% endfor %}
 {% for item_type, item_spec in spec.items.items() %}
 {% if item_spec.category != "roster" %}
-{% set owner = authoring_owner(item_type) %}
+{% set owner = authoring_owner(item_type, roster_slugs, _playbook, role_titles) %}
 {% if owner %}
 {% set parent = spec.item_parent_required(item_type) %}
 {% set subkind = spec.item_subentity_kind(item_type) %}
 {% set refkinds = spec.item_ref_rules(item_type) | map(attribute="kind") | list %}
-- **{{ owner[1][0] | upper }}{{ owner[1][1:] }}** → `sq create {{ item_type }} "…" --author {{ owner[0] }}`{% if parent and parent in spec.items %} `--parent {{ spec.items[parent].prefix }}-…`{% endif %}{% if subkind %}, then `add-{{ subkind }} "…"`{% if spec.subentity_kinds[subkind].maps_parent_story %} `--story USn`{% endif %}{% endif %}{% if refkinds %}; link with `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
+{# The `--story` local-id prefix belongs to the PARENT type's sub-entity kind (that is what
+   maps_parent_story maps into), so it is read off that kind's declared local_prefix — never
+   the bundled "US" literal, which a renamed prefix makes a command that exits 1. #}
+{% set story_kind = spec.item_subentity_kind(parent) if (parent and parent in spec.items) else none %}
+- **{{ owner[1][0] | upper }}{{ owner[1][1:] }}** → `sq create {{ item_type }} "…" --author {{ owner[0] }}`{% if parent and parent in spec.items %} `--parent {{ spec.items[parent].prefix }}-…`{% endif %}{% if subkind %}, then `add-{{ subkind }} "…"`{% if spec.subentity_kinds[subkind].maps_parent_story and story_kind %} `--story {{ spec.subentity_kinds[story_kind].local_prefix }}n`{% endif %}{% endif %}{% if refkinds %}; link with `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
 {% endif %}
 {% endif %}
 {% endfor %}
@@ -64,35 +76,6 @@
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
 
-## Item hierarchy
-
-{# Spec-derived: every type's parent_chain(), flattened to unique parent->child edges — the
-   same source data as the "Hierarchy: ..." bullets above, as a diagram instead of prose. Node
-   ids run through the `mermaid_id` filter so a customized vocab's type names (spaces, hyphens,
-   …) stay valid Mermaid identifiers; the bracketed label always shows the real name. #}
-{% set hierarchy_edges = [] %}
-{% for item_type, item_spec in spec.items.items() %}
-{% if item_spec.category != "roster" %}
-{% set chain = parent_chain(spec, item_type) %}
-{% for i in range(chain | length - 1) %}
-{% set edge = (chain[i], chain[i + 1]) %}
-{% if edge not in hierarchy_edges %}
-{% set _ = hierarchy_edges.append(edge) %}
-{% endif %}
-{% endfor %}
-{% endif %}
-{% endfor %}
-{% if hierarchy_edges %}
-```mermaid
-flowchart TD
-{% for parent, child in hierarchy_edges %}
-    {{ parent | mermaid_id }}["{{ parent }}"] --> {{ child | mermaid_id }}["{{ child }}"]
-{% endfor %}
-```
-{% else %}
-_No multi-level parent/child hierarchy declared in the active spec._
-{% endif %}
-
 ## Type-command aliases
 
 Short and single-letter aliases for the item-type commands — input sugar only. They are hidden from
@@ -125,36 +108,4 @@ statuses and transitions.
 {% endif %}
 {% endfor %}
 
-{% if not for_skill | default(false) %}
-{# Per-type stateDiagram-v2, one per non-roster type — the actual transition edges (the table
-   above only linearizes them into a readable chain). `lifecycle_states_in_order`/
-   `lifecycle_edges` walk the machine deterministically (Lifecycle.states is a frozenset,
-   hash-seed-ordered — unsafe to iterate directly in a byte-stable generated file).
-   Skipped when rendering for the agent-facing squads skill (`for_skill`): agents read the
-   skill as raw text, mermaid doesn't render there, and the one-line lifecycle table above
-   already conveys the same statuses/transitions — `sq workflow` still shows these in full. #}
-{% for item_type, item_spec in spec.items.items() %}
-{% if item_spec.category != "roster" %}
-{% set machine = spec.machine_for(item_type) %}
-`{{ item_type }}` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> {{ machine.initial | mermaid_id }}
-{% for status in lifecycle_states_in_order(machine) %}
-    {{ status | mermaid_id }} : {{ status }}
-{% endfor %}
-{% for src, dst in lifecycle_edges(machine) %}
-    {{ src | mermaid_id }} --> {{ dst | mermaid_id }}
-{% endfor %}
-{% for status in lifecycle_states_in_order(machine) %}
-{% if not spec.is_open(status) %}
-    {{ status | mermaid_id }} --> [*]
-{% endif %}
-{% endfor %}
-```
-
-{% endif %}
-{% endfor %}
-{% endif %}
 {% include "workflow_static.md.j2" %}
