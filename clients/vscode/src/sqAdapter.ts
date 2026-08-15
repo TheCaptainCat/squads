@@ -23,6 +23,7 @@ import type {
   SqShowJson,
   SqStatusCatalogEntry,
   SqSubEntity,
+  SqSubEntityKindCatalogEntry,
   SqTreeNode,
   SqTypeCatalogEntry,
   SqTypeField,
@@ -80,6 +81,16 @@ function classifyNonZeroExit(
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+function isStringOrNull(value: unknown): value is string | null {
+  return typeof value === 'string' || value === null;
+}
+
+/** A key an older `sq` omits entirely and a newer one may legitimately emit as `null`. Absent
+ * and `null` mean the same thing to every consumer here: nothing to join on. */
+function isOptionalNullableString(value: unknown): value is string | null | undefined {
+  return value === undefined || isStringOrNull(value);
 }
 
 /** `badges` is optional on every item-bearing surface — absent (an older `sq`)
@@ -277,7 +288,28 @@ export function isSqTypeCatalogEntry(value: unknown): value is SqTypeCatalogEntr
     typeof entry.reserved === 'boolean' &&
     typeof entry.category === 'string' &&
     isOptionalTypeFieldArray(entry.fields) &&
-    isOptionalTypeLabels(entry.labels)
+    isOptionalTypeLabels(entry.labels) &&
+    isOptionalNullableString(entry.subentity_kind)
+  );
+}
+
+/** Shape guard for one `sq workflow subentity-kinds --json` entry, trimmed to the two keys the
+ * client joins on (`SqSubEntityKindCatalogEntry`). Unlike the optional keys above, both are
+ * required: this catalog has no older-`sq` variant to tolerate — an `sq` predating it doesn't
+ * emit the row at all, it refuses the sub-command, which the adapter already reports as an
+ * ordinary failure the caller degrades through. Exported for the same reason as `isSqTreeNode`
+ * — the skew canary reuses the real adapter predicate. */
+export function isSqSubEntityKindCatalogEntry(
+  value: unknown,
+): value is SqSubEntityKindCatalogEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.subentity_kind === 'string' &&
+    Array.isArray(entry.fields) &&
+    entry.fields.every(isSqTypeField)
   );
 }
 
@@ -335,7 +367,8 @@ export function isSqRoleCatalogEntry(value: unknown): value is SqRoleCatalogEntr
     typeof entry.role === 'string' &&
     typeof entry.settled === 'boolean' &&
     typeof entry.hidden === 'boolean' &&
-    typeof entry.color === 'string'
+    typeof entry.color === 'string' &&
+    typeof entry.live === 'boolean'
   );
 }
 
@@ -351,6 +384,17 @@ function isSqDiscussionEntry(value: unknown): value is SqDiscussionEntry {
   );
 }
 
+/** `discussion` is **optional**, not required: an older `sq` predating the field omits the key
+ * entirely, and a required-field guard would reject the whole `sq show --json` payload over one
+ * missing array, blanking the entire preview rather than just its comments. Split out of
+ * `isSqSubEntity` to keep that guard's complexity in check as much as to name the check. */
+function hasOptionalDiscussion(entry: Record<string, unknown>): boolean {
+  return (
+    entry.discussion === undefined ||
+    (Array.isArray(entry.discussion) && entry.discussion.every(isSqDiscussionEntry))
+  );
+}
+
 function isSqSubEntity(value: unknown): value is SqSubEntity {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -360,16 +404,19 @@ function isSqSubEntity(value: unknown): value is SqSubEntity {
     typeof entry.local_id === 'string' &&
     typeof entry.title === 'string' &&
     typeof entry.status === 'string' &&
-    (typeof entry.assignee === 'string' || entry.assignee === null) &&
-    (typeof entry.severity === 'string' || entry.severity === null) &&
-    (typeof entry.story === 'string' || entry.story === null) &&
-    typeof entry.body === 'string'
+    isStringOrNull(entry.assignee) &&
+    isStringOrNull(entry.story) &&
+    typeof entry.body === 'string' &&
+    isOptionalBadgeMap(entry.badges) &&
+    hasOptionalDiscussion(entry)
   );
 }
 
-/** Shape guard for `sq show <id> --json`. Only checks the two keys this client reads
- * (`discussion`, `subentities`) — every other field `sq show --json` emits is ignored, per
- * `SqShowJson`'s hand-trimmed contract. */
+/** Shape guard for `sq show <id> --json`. Only checks the keys this client reads
+ * (`discussion`, `subentities`, `type`) — every other field `sq show --json` emits is ignored,
+ * per `SqShowJson`'s hand-trimmed contract. `type` is checked as optional rather than required
+ * so a payload without it degrades to unlabelled sub-entity fields instead of failing the whole
+ * guard and blanking the preview. */
 export function isSqShowJson(value: unknown): value is SqShowJson {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -379,7 +426,8 @@ export function isSqShowJson(value: unknown): value is SqShowJson {
     Array.isArray(obj.discussion) &&
     obj.discussion.every(isSqDiscussionEntry) &&
     Array.isArray(obj.subentities) &&
-    obj.subentities.every(isSqSubEntity)
+    obj.subentities.every(isSqSubEntity) &&
+    (obj.type === undefined || typeof obj.type === 'string')
   );
 }
 
@@ -528,7 +576,7 @@ export function getRaw(
 }
 
 /** `sq show <id> --json` — the structured `discussion` array (author/ts/body per comment) and
- * `subentities` array (local_id/title/status/assignee/severity/story/body per sub-entity) are
+ * `subentities` array (local_id/title/status/assignee/story/body/badges per sub-entity) are
  * consumed, feeding the preview's collapsible discussion and sub-entities sections respectively;
  * every other key is ignored (see `SqShowJson`). Distinct from `getRaw`'s `--raw` dossier text,
  * fetched in parallel with it by the caller. */
@@ -568,6 +616,26 @@ export function getTypeCatalog(
     workspaceRoot,
     ['workflow', 'types', '--json'],
     isSqTypeCatalogEntry,
+  );
+}
+
+/** `sq workflow subentity-kinds --json` — the spec's declared sub-entity kind catalog, whose
+ * `fields` carry each kind's declared axes (code, label, bound collection). Joined from an
+ * item's type through the type catalog's `subentity_kind`, so the preview labels a sub-entity's
+ * badge by what the spec calls it instead of a literal. An `sq` that predates the sub-command
+ * fails this call the same way any other unavailable surface does; the caller degrades to the
+ * raw field code rather than losing the badge. */
+export function getSubentityKindsCatalog(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<SqSubEntityKindCatalogEntry[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['workflow', 'subentity-kinds', '--json'],
+    isSqSubEntityKindCatalogEntry,
   );
 }
 

@@ -69,10 +69,11 @@ export function buildStatusRoleMap(statuses: readonly SqStatusCatalogEntry[]): S
 }
 
 /** The full join: `status` -> its declared role name (`statusRoles`) -> that role's spec object
- * (`roles`). Returns `null` when either catalog hasn't loaded, `status` is unrecognized, or its
- * role name doesn't (yet) appear in the roles catalog — every one of those cases degrades the
- * same way: no settled/hidden/colour behaviour, matching a status with no declared role at all
- * (the spec's fail-safe-visible default). Never a literal status-name or role-name comparison
+ * (`roles`). `sq workflow statuses --json` emits the *resolved* role name for every declared
+ * status — including one that declares no role of its own, which resolves server-side to the
+ * engine's fallback role (never a bare `null`) — so `null` here means only "the catalog hasn't
+ * loaded yet" or `status`/its role name is genuinely unrecognized (a stale/partial fetch), never
+ * "this status has no role by design." Never a literal status-name or role-name comparison
  * elsewhere in the client — this is the one place that resolves a status's behaviour. */
 export function resolveRole(
   status: string,

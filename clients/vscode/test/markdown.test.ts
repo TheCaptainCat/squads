@@ -3,15 +3,18 @@ import * as path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { buildItemDirectory } from '../src/domain/itemDirectory';
+import { buildItemIdMatcher, DEFAULT_ITEM_ID_MATCHER } from '../src/domain/itemIdPattern';
 import {
   isSafeLinkUrl,
-  ITEM_ID_PATTERN,
   linkifyPlainText,
   MENTION_PATTERN,
   renderMarkdownToHtml,
 } from '../src/domain/markdown';
 import { buildRoleDirectory } from '../src/domain/roleDirectory';
-import type { SqListItem } from '../src/types';
+import type { SqListItem, SqTypeCatalogEntry } from '../src/types';
+
+const ITEM_ID_PATTERN = DEFAULT_ITEM_ID_MATCHER.inline;
 
 function makeRole(overrides: Partial<SqListItem> = {}): SqListItem {
   return {
@@ -62,6 +65,249 @@ describe('ITEM_ID_PATTERN / linkifyPlainText', () => {
 
   it('escapes HTML-significant characters', () => {
     expect(linkifyPlainText('<script>&"\'')).toBe('&lt;script&gt;&amp;&quot;&#39;');
+  });
+});
+
+/**
+ * The declared-prefix grammar, driven end to end through the two production entry points a
+ * preview actually calls — prose (`linkifyPlainText`, and the same path inside
+ * `renderMarkdownToHtml`) and link position (`renderMarkdownToHtml`'s `[text](url)`). One case
+ * per prefix shape an adopter can declare, because the defect being fixed was a grammar that
+ * handled exactly one of them.
+ */
+describe('renders item ids from the squad’s declared prefixes', () => {
+  function catalog(...prefixes: readonly string[]): SqTypeCatalogEntry[] {
+    return prefixes.map((prefix, index) => ({
+      type: `type${String(index)}`,
+      order: null,
+      prefix,
+      reserved: false,
+      category: 'work',
+    }));
+  }
+
+  const families = [
+    { name: 'a hyphenated prefix', prefix: 'MY-WIDGET' },
+    { name: 'an underscored prefix', prefix: 'MY_WIDGET' },
+    { name: 'a single-character prefix', prefix: 'W' },
+    { name: 'a lowercase prefix', prefix: 'widget' },
+  ] as const;
+
+  for (const { name, prefix } of families) {
+    const id = `${prefix}-19`;
+    const ids = buildItemIdMatcher(catalog(prefix));
+
+    it(`links ${name} found in prose, keeping the id text intact`, () => {
+      const html = linkifyPlainText(`see ${id} now`, undefined, undefined, ids);
+      expect(html).toBe(`see <a class="sq-item-link" href="#" data-item-id="${id}">${id}</a> now`);
+    });
+
+    it(`links ${name} used as a markdown link url`, () => {
+      const html = renderMarkdownToHtml(`[see it](${id})`, undefined, false, undefined, ids);
+      expect(html).toBe(`<p><a class="sq-item-link" href="#" data-item-id="${id}">see it</a></p>`);
+    });
+
+    it(`suppresses the self-link for ${name} in both positions`, () => {
+      expect(linkifyPlainText(id, id, undefined, ids)).toBe(id);
+      expect(renderMarkdownToHtml(`[self](${id})`, id, false, undefined, ids)).toBe('<p>self</p>');
+    });
+  }
+
+  it('never emits a link to a nonexistent item built from a prefix tail', () => {
+    const ids = buildItemIdMatcher(catalog('MY-WIDGET'));
+    const html = linkifyPlainText('see MY-WIDGET-19 now', undefined, undefined, ids);
+    expect(html).not.toContain('data-item-id="WIDGET-19"');
+    expect(html).toContain('data-item-id="MY-WIDGET-19"');
+  });
+
+  it('keeps a link whose url is a hyphenated id rather than dropping the anchor entirely', () => {
+    const ids = buildItemIdMatcher(catalog('MY-WIDGET'));
+    const html = renderMarkdownToHtml(
+      '[cross-ref](MY-WIDGET-19)',
+      undefined,
+      false,
+      undefined,
+      ids,
+    );
+    expect(html).toContain('data-item-id="MY-WIDGET-19"');
+  });
+
+  it('linkifies a declared prefix inside a table cell and a list item too', () => {
+    const ids = buildItemIdMatcher(catalog('MY-WIDGET'));
+    const table = renderMarkdownToHtml(
+      '| A |\n| --- |\n| MY-WIDGET-19 |',
+      undefined,
+      false,
+      undefined,
+      ids,
+    );
+    expect(table).toContain('data-item-id="MY-WIDGET-19"');
+    const list = renderMarkdownToHtml('- MY-WIDGET-19', undefined, false, undefined, ids);
+    expect(list).toContain('data-item-id="MY-WIDGET-19"');
+  });
+
+  it('does not link a prefix the catalog does not declare', () => {
+    const ids = buildItemIdMatcher(catalog('MY-WIDGET'));
+    expect(linkifyPlainText('see TASK-452', undefined, undefined, ids)).toBe('see TASK-452');
+  });
+
+  it('falls back to the generic grammar when no catalog is threaded through', () => {
+    expect(linkifyPlainText('see TASK-452')).toContain('data-item-id="TASK-452"');
+  });
+});
+
+/**
+ * Hover text on an item-id anchor. The anchors carry `href="#"` (navigation is intercepted from
+ * `data-item-id`), so an anchor with no `title` has nothing useful to show a reader hovering it
+ * — hence a `title` whenever the id resolves, and none at all when it does not. Both anchor
+ * shapes are checked for every case: a bare id found in prose, and a markdown link whose url is
+ * an id.
+ */
+describe('item-id anchors carry the referenced item’s hover text', () => {
+  function directory(entries: Readonly<Record<string, string>>) {
+    return buildItemDirectory(
+      Object.entries(entries).map(([id, title]) => ({
+        id,
+        sequence_id: 1,
+        type: 'task',
+        title,
+        slug: 'x',
+        status: 'Ready',
+        description: '',
+        parent: null,
+        author: null,
+        assignee: null,
+        priority: null,
+        severity: null,
+        labels: [],
+        refs: [],
+        path: 'tasks/x.md',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      })),
+    );
+  }
+
+  const items = directory({ 'TASK-452': 'Wire the preview', 'ADR-427': 'Client architecture' });
+
+  it('titles a bare id token found in prose', () => {
+    const html = linkifyPlainText('see TASK-452', undefined, undefined, undefined, items);
+
+    expect(html).toBe(
+      'see <a class="sq-item-link" href="#" data-item-id="TASK-452" title="TASK-452 — Wire the preview">TASK-452</a>',
+    );
+  });
+
+  it('titles a markdown link whose url is an id, with the same text', () => {
+    const html = renderMarkdownToHtml(
+      '[see it](TASK-452)',
+      undefined,
+      false,
+      undefined,
+      undefined,
+      items,
+    );
+
+    expect(html).toBe(
+      '<p><a class="sq-item-link" href="#" data-item-id="TASK-452" title="TASK-452 — Wire the preview">see it</a></p>',
+    );
+  });
+
+  it('titles every reference in a run, each with its own item’s text', () => {
+    const html = linkifyPlainText('TASK-452 and ADR-427', undefined, undefined, undefined, items);
+
+    expect(html).toContain('title="TASK-452 — Wire the preview"');
+    expect(html).toContain('title="ADR-427 — Client architecture"');
+  });
+
+  it('leaves an unresolved id linked but untitled, in both shapes', () => {
+    const prose = linkifyPlainText('see TASK-999', undefined, undefined, undefined, items);
+    const link = renderMarkdownToHtml(
+      '[x](TASK-999)',
+      undefined,
+      false,
+      undefined,
+      undefined,
+      items,
+    );
+
+    expect(prose).toContain('data-item-id="TASK-999"');
+    expect(prose).not.toContain('title=');
+    expect(link).toContain('data-item-id="TASK-999"');
+    expect(link).not.toContain('title=');
+  });
+
+  it('omits the title entirely when no directory is threaded through', () => {
+    const html = linkifyPlainText('see TASK-452');
+
+    expect(html).toContain('data-item-id="TASK-452"');
+    expect(html).not.toContain('title=');
+  });
+
+  it('keeps a self-reference plain text, with no anchor and no title', () => {
+    expect(linkifyPlainText('TASK-452', 'TASK-452', undefined, undefined, items)).toBe('TASK-452');
+    expect(
+      renderMarkdownToHtml('[self](TASK-452)', 'TASK-452', false, undefined, undefined, items),
+    ).toBe('<p>self</p>');
+  });
+
+  it('escapes a title rather than letting it break out of the attribute', () => {
+    const hostile = directory({ 'TASK-1': 'A "quoted" <b>title</b> & more' });
+    const html = linkifyPlainText('TASK-1', undefined, undefined, undefined, hostile);
+
+    expect(html).toContain(
+      'title="TASK-1 — A &quot;quoted&quot; &lt;b&gt;title&lt;/b&gt; &amp; more"',
+    );
+    expect(html).not.toContain('<b>title</b>');
+  });
+
+  it('titles an id whose prefix is hyphenated, resolved through the declared grammar', () => {
+    const ids = buildItemIdMatcher([
+      { type: 'widget', order: null, prefix: 'MY-WIDGET', reserved: false, category: 'work' },
+    ]);
+    const html = linkifyPlainText(
+      'see MY-WIDGET-19',
+      undefined,
+      undefined,
+      ids,
+      directory({ 'MY-WIDGET-19': 'A widget' }),
+    );
+
+    expect(html).toContain('data-item-id="MY-WIDGET-19" title="MY-WIDGET-19 — A widget"');
+  });
+
+  it('titles references inside emphasis, a table cell and a list item too', () => {
+    const bold = renderMarkdownToHtml(
+      '**TASK-452**',
+      undefined,
+      false,
+      undefined,
+      undefined,
+      items,
+    );
+    const table = renderMarkdownToHtml(
+      '| A |\n| --- |\n| TASK-452 |',
+      undefined,
+      false,
+      undefined,
+      undefined,
+      items,
+    );
+    const list = renderMarkdownToHtml('- TASK-452', undefined, false, undefined, undefined, items);
+
+    for (const html of [bold, table, list]) {
+      expect(html).toContain('title="TASK-452 — Wire the preview"');
+    }
+  });
+
+  it('leaves a role mention’s own hover text alone', () => {
+    const roles = buildRoleDirectory([makeRole()]);
+    const html = linkifyPlainText('@manager see TASK-452', undefined, roles, undefined, items);
+
+    expect(html).toContain(
+      'data-item-id="ROLE-1" title="Catherine Manager (manager) — Runs the work loop."',
+    );
+    expect(html).toContain('title="TASK-452 — Wire the preview"');
   });
 });
 
@@ -368,8 +614,15 @@ describe('renderMarkdownToHtml: renderMermaidFences (workflow cheatsheet)', () =
     expect(html).toBe('<pre><code class="language-bash">sq workflow --raw</code></pre>');
   });
 
-  it('renders the real sq workflow --raw fixture without crashing, with every diagram live', () => {
-    const raw = fixture('workflow-raw.txt');
+  // `sq workflow --raw` used to be the fixture here, but the operator had its per-type
+  // lifecycle/hierarchy diagrams dropped from the cheatsheet template — a frozen pre-removal
+  // copy would pass this test for the wrong reason (it isn't what the command emits any more).
+  // `renderWorkflowHtml` (previewDocument.ts) still opts real workflow markdown into this same
+  // live-mermaid mode, so the mechanism stays genuinely wired; `sq graph --format mermaid-md`
+  // is the CLI surface that still emits a real ```mermaid fence today, so it stands in as the
+  // real-shape fixture instead.
+  it('renders a real sq graph --format mermaid-md fixture without crashing, with its diagram live', () => {
+    const raw = fixture('graph-mermaid.txt');
     const fenceCount = (raw.match(/```mermaid/g) ?? []).length;
     const html = renderMarkdownToHtml(raw, undefined, true);
     expect(fenceCount).toBeGreaterThan(0);

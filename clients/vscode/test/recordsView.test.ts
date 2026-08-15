@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_RECORDS_VIEW_STATE } from '../src/domain/recordsFilter';
-import { buildRecordsView } from '../src/domain/recordsView';
+import { buildRecordsView, recordsEmptyStateMessage } from '../src/domain/recordsView';
 import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
 import { buildCategoryMap, NO_CATEGORIES } from '../src/domain/typeCategory';
 import { buildTypeLabelMap } from '../src/domain/typeLabels';
@@ -217,5 +217,28 @@ describe('buildRecordsView', () => {
 
     expect(nodes.map((node) => node.itemId)).toEqual(['ADR-1', 'ADR-2', 'GUIDE-1']);
     expect(nodes.every((node) => node.children.length === 0)).toBe(true);
+  });
+});
+
+/**
+ * `buildRecordsView` returning nothing is legitimate but indistinguishable on screen from a
+ * broken view, so the caller replaces an empty root list with one of these. Each message names
+ * a different cause, and neither of them is "the fetch failed" — that stays an error node.
+ */
+describe('recordsEmptyStateMessage', () => {
+  it('says no records types are declared when the category map declares none', () => {
+    expect(recordsEmptyStateMessage(NO_CATEGORIES)).toBe('No records types declared in this squad');
+  });
+
+  it('says there is nothing to show when records types exist but produced no rows', () => {
+    expect(recordsEmptyStateMessage(CATEGORY_MAP)).toBe('No records to show');
+  });
+
+  it('defaults to the no-declared-types message with no map at all', () => {
+    expect(recordsEmptyStateMessage()).toBe('No records types declared in this squad');
+  });
+
+  it('pairs with the empty build it explains: no records types means no roots', () => {
+    expect(buildRecordsView([makeItem('ADR-1', 'decision')], NO_CATEGORIES)).toEqual([]);
   });
 });

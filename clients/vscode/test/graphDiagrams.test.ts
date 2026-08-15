@@ -3,7 +3,12 @@ import * as path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { buildRefGraphMermaid, buildSubtreeMermaid } from '../src/domain/graphDiagrams';
+import {
+  buildRefGraphMermaid,
+  buildSubtreeMermaid,
+  decodeMermaidNodeId,
+  mermaidNodeId,
+} from '../src/domain/graphDiagrams';
 import type { SqGraphNode, SqTreeNode } from '../src/types';
 
 function fixture(name: string): unknown {
@@ -64,13 +69,13 @@ describe('buildSubtreeMermaid', () => {
     expect(buildSubtreeMermaid([root])).toBe(
       [
         'flowchart TD',
-        '  TASK_1["`TASK-1: Do the thing (Ready)`"]',
-        '  TASK_1 --> TASK_2',
-        '  TASK_2["`TASK-2: Sub thing (Done)`"]',
-        '  TASK_1 --> TASK_3',
-        '  TASK_3["`TASK-3: Blocked thing (Open) [blocked]`"]',
-        '  TASK_3 --> TASK_4',
-        '  TASK_4["`TASK-4: Leaf (Draft)`"]',
+        '  TASK_002d1["`TASK-1: Do the thing (Ready)`"]',
+        '  TASK_002d1 --> TASK_002d2',
+        '  TASK_002d2["`TASK-2: Sub thing (Done)`"]',
+        '  TASK_002d1 --> TASK_002d3',
+        '  TASK_002d3["`TASK-3: Blocked thing (Open) [blocked]`"]',
+        '  TASK_002d3 --> TASK_002d4',
+        '  TASK_002d4["`TASK-4: Leaf (Draft)`"]',
       ].join('\n'),
     );
   });
@@ -92,7 +97,7 @@ describe('buildSubtreeMermaid', () => {
     const root = treeNode({ id: 'TASK-1', title: 'A `code` and *emphasis* and _underscore_' });
     const source = buildSubtreeMermaid([root]);
     // Markdown-string label syntax: a `"` + backtick-delimited string + `"`.
-    expect(source).toContain('TASK_1["`TASK-1: ');
+    expect(source).toContain('TASK_002d1["`TASK-1: ');
     expect(source).toContain('`"]');
     // Every mermaid markdown metacharacter in the title is backslash-escaped so it renders as
     // literal text rather than emphasis/code formatting.
@@ -121,9 +126,9 @@ describe('buildSubtreeMermaid', () => {
 
     expect(lines[0]).toBe('flowchart TD');
     expect(lines.length).toBe(1 + total + (total - 1));
-    expect(source).toContain('EPIC_99[');
-    expect(source).toContain('EPIC_99 --> FEAT_100');
-    expect(source).toContain('FEAT_100 --> TASK_428');
+    expect(source).toContain('EPIC_002d99[');
+    expect(source).toContain('EPIC_002d99 --> FEAT_002d100');
+    expect(source).toContain('FEAT_002d100 --> TASK_002d428');
   });
 });
 
@@ -165,12 +170,12 @@ describe('buildRefGraphMermaid', () => {
     expect(buildRefGraphMermaid(root)).toBe(
       [
         'flowchart LR',
-        '  TASK_10["`TASK-10 (task): Ready`"]',
-        '  TASK_11["`TASK-11 (task): Done`"]',
-        '  TASK_12["`TASK-12 (bug, high): Open`"]',
-        '  TASK_10 -->|depends on| TASK_11',
-        '  TASK_10 -->|required by| TASK_12',
-        '  TASK_12 -->|related| TASK_11',
+        '  TASK_002d10["`TASK-10 (task): Ready`"]',
+        '  TASK_002d11["`TASK-11 (task): Done`"]',
+        '  TASK_002d12["`TASK-12 (bug, high): Open`"]',
+        '  TASK_002d10 -->|depends on| TASK_002d11',
+        '  TASK_002d10 -->|required by| TASK_002d12',
+        '  TASK_002d12 -->|related| TASK_002d11',
       ].join('\n'),
     );
   });
@@ -196,15 +201,15 @@ describe('buildRefGraphMermaid', () => {
     expect(buildRefGraphMermaid(root)).toBe(
       [
         'flowchart LR',
-        '  FEAT_449["`FEAT-449 (feature): Draft`"]',
-        '  FEAT_100["`FEAT-100 (feature, low): Done`"]',
-        '  ADR_427["`ADR-427 (decision): Accepted`"]',
-        '  REV_448["`REV-448 (review): Requested`"]',
-        '  FEAT_100 -->|related| ADR_427',
-        '  FEAT_100 -->|related| FEAT_449',
-        '  FEAT_100 -->|related| REV_448',
-        '  FEAT_449 -->|related| FEAT_100',
-        '  FEAT_449 -->|addresses| REV_448',
+        '  FEAT_002d449["`FEAT-449 (feature): Draft`"]',
+        '  FEAT_002d100["`FEAT-100 (feature, low): Done`"]',
+        '  ADR_002d427["`ADR-427 (decision): Accepted`"]',
+        '  REV_002d448["`REV-448 (review): Requested`"]',
+        '  FEAT_002d100 -->|related| ADR_002d427',
+        '  FEAT_002d100 -->|related| FEAT_002d449',
+        '  FEAT_002d100 -->|related| REV_002d448',
+        '  FEAT_002d449 -->|related| FEAT_002d100',
+        '  FEAT_002d449 -->|addresses| REV_002d448',
       ].join('\n'),
     );
   });
@@ -219,5 +224,70 @@ describe('buildRefGraphMermaid', () => {
     expect(source).toContain('&lt;script&gt;');
     expect(source).not.toContain('<script>');
     expect(source).toContain('-->|a/b|');
+  });
+});
+
+/**
+ * A mermaid node id has to survive the trip back: the webview reads it off the rendered SVG and
+ * stamps the decoded value on as the item id a click navigates to. A fold loses that, and loses
+ * it differently for each prefix shape, so the round trip is checked per shape family rather
+ * than on one example.
+ */
+describe('mermaidNodeId / decodeMermaidNodeId round trip', () => {
+  const ids = [
+    'TASK-452',
+    'MY-WIDGET-19',
+    'MY_WIDGET-19',
+    'MY_WIDGET_MORE-19',
+    'W-1',
+    'widget-19',
+    'MyWidget-19',
+    'A1-19',
+    'C++-19',
+    'é-19',
+    '𝔘-19',
+  ];
+
+  for (const id of ids) {
+    it(`round-trips ${id}`, () => {
+      expect(decodeMermaidNodeId(mermaidNodeId(id))).toBe(id);
+    });
+  }
+
+  it('emits only characters mermaid accepts in a node identifier', () => {
+    for (const id of ids) {
+      expect(mermaidNodeId(id)).toMatch(/^[A-Za-z0-9_]+$/);
+    }
+  });
+
+  it('keeps two ids distinct that a hyphen->underscore fold collapsed into one node', () => {
+    // The defect: folding mapped these to the same node id, so mermaid merged two items into
+    // one node and the decoded click target was a guess.
+    expect(mermaidNodeId('MY-WIDGET-1')).not.toBe(mermaidNodeId('MY_WIDGET-1'));
+    expect(decodeMermaidNodeId(mermaidNodeId('MY_WIDGET-1'))).toBe('MY_WIDGET-1');
+  });
+
+  it('renders one node per item when two ids differ only in hyphen-versus-underscore', () => {
+    const source = buildSubtreeMermaid([
+      treeNode({
+        id: 'MY-WIDGET-1',
+        title: 'Hyphenated',
+        children: [treeNode({ id: 'MY_WIDGET-1', title: 'Underscored' })],
+      }),
+    ]);
+    const nodeLines = source.split('\n').filter((line) => line.includes('["`'));
+
+    expect(nodeLines).toHaveLength(2);
+    expect(new Set(nodeLines.map((line) => line.trim().split('[')[0])).size).toBe(2);
+  });
+
+  it('leaves text carrying no escape untouched', () => {
+    expect(decodeMermaidNodeId('InProgress')).toBe('InProgress');
+    expect(decodeMermaidNodeId('')).toBe('');
+  });
+
+  it('decodes an escape immediately followed by hex-looking characters, taking exactly four', () => {
+    // `A-1234` encodes to `A_002d1234`; a greedy decoder would eat the item number.
+    expect(decodeMermaidNodeId(mermaidNodeId('A-1234'))).toBe('A-1234');
   });
 });

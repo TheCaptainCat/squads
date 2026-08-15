@@ -7,7 +7,8 @@
  * squad and checks that the committed fixtures still describe the live shape of the
  * surfaces the client depends on (ADR-427 #2) — `sq tree --json`, `sq graph --json`,
  * `sq list --json`, `sq show <id> --raw`, `sq workflow types --json`,
- * `sq workflow statuses --json`, `sq workflow roles --json`.
+ * `sq workflow statuses --json`, `sq workflow roles --json`,
+ * `sq workflow subentity-kinds --json`.
  *
  * It asserts SHAPE (key set / types / structure), never exact values — a squad's actual
  * items, statuses, and prose legitimately vary between runs and machines. If a core-side
@@ -20,6 +21,11 @@
  * isn't resolvable on PATH, so a contributor without the Python toolchain still gets a
  * hermetic `npm test`; CI provisions a real `sq` for this lane (see
  * ../../../.github/workflows/vscode-client.yml).
+ *
+ * It shells out to whatever `sq` PATH resolves first, and cannot tell a stale one from the
+ * one you are developing against. An older `sq` earlier on PATH than the project's own
+ * environment reports drift that does not exist — missing sub-commands, absent keys — so
+ * check `sq --version` against the core before believing a red run here.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -34,6 +40,7 @@ import {
   isSqListItem,
   isSqRoleCatalogEntry,
   isSqStatusCatalogEntry,
+  isSqSubEntityKindCatalogEntry,
   isSqTreeNode,
   isSqTypeCatalogEntry,
 } from '../../src/sqAdapter';
@@ -43,6 +50,7 @@ import type {
   SqListItem,
   SqRoleCatalogEntry,
   SqStatusCatalogEntry,
+  SqSubEntityKindCatalogEntry,
   SqTreeNode,
   SqTypeCatalogEntry,
 } from '../../src/types';
@@ -267,9 +275,21 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       for (const entry of entries) {
         expect(isSqTypeCatalogEntry(entry)).toBe(true);
         expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining(['type', 'order', 'prefix', 'reserved', 'category', 'fields']),
+          expect.arrayContaining([
+            'type',
+            'order',
+            'prefix',
+            'reserved',
+            'category',
+            'fields',
+            'subentity_kind',
+          ]),
         );
       }
+      // Present on every row, `null` where the type hosts no kind — the client joins on it and
+      // an omitted key would silently degrade every sub-entity badge to its raw field code.
+      expect(entries.every((entry) => entry.subentity_kind !== undefined)).toBe(true);
+      expect(entries.some((entry) => entry.subentity_kind === null)).toBe(true);
       // Emitted in ascending resolved order, so the client's group-by-type sort can trust it
       // directly rather than re-deriving anything.
       const orders = entries.map((entry) => entry.order).filter((order) => order !== null);
@@ -358,6 +378,64 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
     });
   });
 
+  describe('sq workflow subentity-kinds --json', () => {
+    it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
+      const parsed = JSON.parse(runSq(['workflow', 'subentity-kinds', '--json'])) as unknown;
+      expect(Array.isArray(parsed)).toBe(true);
+
+      const entries = parsed as SqSubEntityKindCatalogEntry[];
+      // At least the 3 bundled kinds (story, subtask, finding).
+      expect(entries.length).toBeGreaterThanOrEqual(3);
+      for (const entry of entries) {
+        expect(isSqSubEntityKindCatalogEntry(entry)).toBe(true);
+        expect(Object.keys(entry)).toEqual(
+          expect.arrayContaining([
+            'subentity_kind',
+            'lifecycle',
+            'plural',
+            'local_prefix',
+            'container_heading',
+            'completion',
+            'maps_parent_story',
+            'fields',
+          ]),
+        );
+      }
+      // The finding kind's declared axis, a real non-empty example of the entry shape the
+      // client reads — and the same `{code, label, collection}` shape a type row's own
+      // `fields` carries, which is what lets one resolver serve both levels.
+      const finding = entries.find((entry) => entry.subentity_kind === 'finding');
+      expect(finding?.fields).toEqual(
+        expect.arrayContaining([{ code: 'severity', label: 'Severity', collection: 'severity' }]),
+      );
+    });
+
+    it('the type catalog’s subentity_kind resolves to a row in this catalog', () => {
+      // The join itself, live: every non-null `subentity_kind` on a type row names a kind the
+      // kind catalog publishes. A rename on either side that broke this would leave the
+      // preview labelling sub-entity badges by their raw field code with nothing failing.
+      const types = JSON.parse(runSq(['workflow', 'types', '--json'])) as SqTypeCatalogEntry[];
+      const kinds = JSON.parse(
+        runSq(['workflow', 'subentity-kinds', '--json']),
+      ) as SqSubEntityKindCatalogEntry[];
+      const declared = new Set(kinds.map((entry) => entry.subentity_kind));
+      const hosted = types
+        .map((entry) => entry.subentity_kind)
+        .filter((kind): kind is string => typeof kind === 'string');
+
+      expect(hosted.length).toBeGreaterThan(0);
+      expect(hosted.every((kind) => declared.has(kind))).toBe(true);
+    });
+
+    it('the committed fixture still conforms to the shape the adapter accepts', () => {
+      const entries = JSON.parse(fixture('subentity-kinds-catalog.json')) as unknown[];
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(isSqSubEntityKindCatalogEntry(entry)).toBe(true);
+      }
+    });
+  });
+
   describe('sq workflow roles --json', () => {
     it('every live entry has the shape the adapter (and the committed fixture) expect', () => {
       const parsed = JSON.parse(runSq(['workflow', 'roles', '--json'])) as unknown;
@@ -369,13 +447,20 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       for (const entry of entries) {
         expect(isSqRoleCatalogEntry(entry)).toBe(true);
         expect(Object.keys(entry)).toEqual(
-          expect.arrayContaining(['role', 'settled', 'hidden', 'color']),
+          expect.arrayContaining(['role', 'settled', 'hidden', 'color', 'live']),
         );
       }
-      // "active" (work in flight): not settled, not hidden, a positive colour intent — the join
-      // the client uses to colour "work in flight" items, never by the literal status name.
+      // "active" (work in flight): not settled, not hidden, a positive colour intent, and the
+      // one bundled role on offer — the join the client uses to colour "work in flight" items,
+      // never by the literal status name.
       const active = entries.find((entry) => entry.role === 'active');
-      expect(active).toEqual({ role: 'active', settled: false, hidden: false, color: 'positive' });
+      expect(active).toEqual({
+        role: 'active',
+        settled: false,
+        hidden: false,
+        color: 'positive',
+        live: true,
+      });
       // "in_force" (a settled record that stays visible, e.g. Accepted/Published) is the
       // case distinguishing it from "done" (settled AND hidden).
       const inForce = entries.find((entry) => entry.role === 'in_force');

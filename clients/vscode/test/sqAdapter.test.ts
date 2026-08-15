@@ -15,6 +15,7 @@ import {
   getSearch,
   getShowJson,
   getStatusesCatalog,
+  getSubentityKindsCatalog,
   getTree,
   getTypeCatalog,
   getWorkflowRaw,
@@ -414,10 +415,90 @@ describe('getTypeCatalog', () => {
       prefix: 'EPIC',
       reserved: false,
       category: 'work',
+      // Present and `null`: an epic hosts no sub-entity kind. `lifecycle` is published too and
+      // deliberately unmodelled — see `SqTypeCatalogEntry`.
+      subentity_kind: null,
+      lifecycle: 'work',
       fields: [{ code: 'priority', label: 'Priority', collection: 'priority' }],
       labels: { singular: 'Epic', plural: 'Epics', singular_lower: 'epic', plural_lower: 'epics' },
     });
     expect(outcome.data.some((entry) => entry.reserved)).toBe(true);
+  });
+
+  it('carries the subentity_kind join key when the row declares one', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        {
+          type: 'review',
+          order: null,
+          prefix: 'REV',
+          reserved: false,
+          category: 'work',
+          subentity_kind: 'finding',
+        },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data[0]?.subentity_kind).toBe('finding');
+  });
+
+  it('accepts a null subentity_kind (a type hosting no sub-entity kind)', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        {
+          type: 'epic',
+          order: null,
+          prefix: 'EPIC',
+          reserved: false,
+          category: 'work',
+          subentity_kind: null,
+        },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+
+    expect((await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT)).kind).toBe('success');
+  });
+
+  it('accepts a row with no subentity_kind key at all (an older sq predating it)', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        { type: 'review', order: null, prefix: 'REV', reserved: false, category: 'work' },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+
+    expect((await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT)).kind).toBe('success');
+  });
+
+  it('rejects a subentity_kind that is neither a string nor null', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        {
+          type: 'review',
+          order: null,
+          prefix: 'REV',
+          reserved: false,
+          category: 'work',
+          subentity_kind: 7,
+        },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+
+    expect((await getTypeCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT)).kind).toBe(
+      'parse-error',
+    );
   });
 
   it('accepts an entry with no labels object (an older sq predating resolved display labels)', async () => {
@@ -616,12 +697,14 @@ describe('getRolesCatalog', () => {
       settled: false,
       hidden: false,
       color: 'positive',
+      live: true,
     });
     expect(outcome.data.find((entry) => entry.role === 'done')).toEqual({
       role: 'done',
       settled: true,
       hidden: true,
       color: 'positive',
+      live: false,
     });
   });
 
@@ -662,7 +745,135 @@ describe('getShowJson', () => {
     expect(outcome.data.subentities).toEqual([]);
   });
 
-  it('parses a populated subentities array (local_id/title/status/assignee/severity/story/body)', async () => {
+  it('parses a populated subentities array (local_id/title/status/assignee/story/body/badges)', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({
+        type: 'review',
+        discussion: [],
+        subentities: [
+          {
+            local_id: 'F15',
+            title: 'A finding',
+            status: 'Open',
+            assignee: null,
+            severity: 'high',
+            story: null,
+            body: 'Body text.',
+            badges: { severity: 'high' },
+          },
+        ],
+      }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'REV-1');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.subentities).toHaveLength(1);
+    expect(outcome.data.subentities[0]).toMatchObject({
+      local_id: 'F15',
+      badges: { severity: 'high' },
+    });
+    expect(outcome.data.type).toBe('review');
+  });
+
+  it('accepts a sub-entity with no badges key at all (older sq, newer client)', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({
+        discussion: [],
+        subentities: [
+          {
+            local_id: 'F15',
+            title: 'A finding',
+            status: 'Open',
+            assignee: null,
+            story: null,
+            body: 'Body text.',
+          },
+        ],
+      }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'REV-1');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.subentities[0]?.badges).toBeUndefined();
+  });
+
+  it('accepts a payload with no top-level type key rather than blanking the whole preview', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({ discussion: [], subentities: [] }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'REV-1');
+
+    expect(outcome.kind).toBe('success');
+  });
+
+  it('rejects a sub-entity whose badges map holds a non-string value', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({
+        discussion: [],
+        subentities: [
+          {
+            local_id: 'F15',
+            title: 'A finding',
+            status: 'Open',
+            assignee: null,
+            story: null,
+            body: 'Body text.',
+            badges: { severity: 3 },
+          },
+        ],
+      }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'REV-1');
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+
+  it('parses a sub-entity carrying its own discussion array', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({
+        discussion: [],
+        subentities: [
+          {
+            local_id: 'F15',
+            title: 'A finding',
+            status: 'Open',
+            assignee: null,
+            severity: 'high',
+            story: null,
+            body: 'Body text.',
+            discussion: [{ author: 'Ada Typescript', ts: '2026-08-03T00:00:00Z', body: 'Noted.' }],
+          },
+        ],
+      }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'REV-1');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.subentities[0]?.discussion).toEqual([
+      { author: 'Ada Typescript', ts: '2026-08-03T00:00:00Z', body: 'Noted.' },
+    ]);
+  });
+
+  it('accepts a sub-entity with no discussion key at all (older sq, newer client)', async () => {
     const runner = stubRunner({
       stdout: JSON.stringify({
         discussion: [],
@@ -687,8 +898,32 @@ describe('getShowJson', () => {
     if (outcome.kind !== 'success') {
       throw new Error('expected success');
     }
-    expect(outcome.data.subentities).toHaveLength(1);
-    expect(outcome.data.subentities[0]).toMatchObject({ local_id: 'F15', severity: 'high' });
+    expect(outcome.data.subentities[0]?.discussion).toBeUndefined();
+  });
+
+  it('rejects a sub-entity whose discussion entries are malformed, as a parse-error', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify({
+        discussion: [],
+        subentities: [
+          {
+            local_id: 'F15',
+            title: 'A finding',
+            status: 'Open',
+            assignee: null,
+            severity: 'high',
+            story: null,
+            body: 'Body text.',
+            discussion: [{ author: 'Ada Typescript' }],
+          },
+        ],
+      }),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'REV-1');
+
+    expect(outcome.kind).toBe('parse-error');
   });
 
   it('ignores every other key sq show --json emits, keeping only discussion and subentities', async () => {
@@ -809,5 +1044,97 @@ describe('describeFailure', () => {
     expect(describeFailure({ kind: 'runtime-error', message: 'boom', exitCode: 17 })).toBe('boom');
     expect(describeFailure({ kind: 'parse-error', message: 'bad json' })).toBe('bad json');
     expect(describeFailure({ kind: 'spawn-error', message: 'ENOENT' })).toBe('ENOENT');
+  });
+});
+
+/**
+ * The sub-entity kind catalog (`sq workflow subentity-kinds --json`). An `sq` that predates the
+ * sub-command exits non-zero on it, which is an ordinary failure outcome the caller degrades
+ * through — never a thrown error and never a blank preview.
+ */
+describe('getSubentityKindsCatalog', () => {
+  it('parses a kind row down to the join key and its declared fields', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        {
+          subentity_kind: 'finding',
+          lifecycle: 'finding',
+          plural: 'findings',
+          local_prefix: 'F',
+          container_heading: 'Findings',
+          completion: 'Fixed',
+          maps_parent_story: false,
+          fields: [{ code: 'severity', label: 'Severity', collection: 'severity' }],
+        },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getSubentityKindsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data[0]).toMatchObject({
+      subentity_kind: 'finding',
+      fields: [{ code: 'severity', label: 'Severity', collection: 'severity' }],
+    });
+  });
+
+  it('accepts a kind declaring no fields at all', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([{ subentity_kind: 'story', fields: [] }]),
+      stderr: '',
+      exitCode: 0,
+    });
+
+    expect((await getSubentityKindsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT)).kind).toBe(
+      'success',
+    );
+  });
+
+  it('rejects a row missing its identity key', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([{ fields: [] }]),
+      stderr: '',
+      exitCode: 0,
+    });
+
+    expect((await getSubentityKindsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT)).kind).toBe(
+      'parse-error',
+    );
+  });
+
+  it('rejects a row whose field entries are malformed', async () => {
+    const runner = stubRunner({
+      stdout: JSON.stringify([
+        { subentity_kind: 'finding', fields: [{ code: 'severity', label: 'Severity' }] },
+      ]),
+      stderr: '',
+      exitCode: 0,
+    });
+
+    expect((await getSubentityKindsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT)).kind).toBe(
+      'parse-error',
+    );
+  });
+
+  it('reports an sq too old to know the sub-command as an ordinary usage error', async () => {
+    const runner = stubRunner({
+      stdout: '',
+      stderr: "No such command 'subentity-kinds'.",
+      exitCode: 2,
+    });
+    const outcome = await getSubentityKindsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('usage-error');
+  });
+
+  it('invokes the documented sub-command', async () => {
+    const { runner, calls } = recordingRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    await getSubentityKindsCatalog(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(calls[0]?.args).toEqual(['workflow', 'subentity-kinds', '--json']);
   });
 });

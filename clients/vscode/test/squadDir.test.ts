@@ -41,6 +41,56 @@ describe('parseSquadDirKey', () => {
   it('falls back to the default "squads" when the key is present but empty', () => {
     expect(parseSquadDirKey('squad_dir = ""\n')).toBe('squads');
   });
+
+  // `sq` reads the config with a real TOML parser, so every spelling below is a config it
+  // accepts. A client that reads only one of them watches a directory that does not exist, and
+  // auto-refresh then never fires with nothing on screen to say so.
+  it('reads a single-quoted (TOML literal) value', () => {
+    expect(parseSquadDirKey("squad_dir = 'board'\n")).toBe('board');
+  });
+
+  it('reads a quoted key spelling', () => {
+    expect(parseSquadDirKey('"squad_dir" = "board"\n')).toBe('board');
+    expect(parseSquadDirKey("'squad_dir' = 'board'\n")).toBe('board');
+  });
+
+  it('reads a value with no spaces around the equals sign', () => {
+    expect(parseSquadDirKey('squad_dir="board"\n')).toBe('board');
+  });
+
+  it('ignores a trailing inline comment', () => {
+    expect(parseSquadDirKey('squad_dir = "board"  # where the squad lives\n')).toBe('board');
+  });
+
+  it('honours a backslash escape inside a basic string', () => {
+    expect(parseSquadDirKey('squad_dir = "a\\"b"\n')).toBe('a"b');
+    expect(parseSquadDirKey("squad_dir = 'a\\\\b'\n")).toBe('a\\\\b');
+  });
+
+  it('reads the key when other keys precede it', () => {
+    const toml = '# a comment\n\nschema_version = "0.2"\nsquad_dir = \'board\'\n';
+    expect(parseSquadDirKey(toml)).toBe('board');
+  });
+
+  it('ignores a squad_dir key nested under a table, which sq would not read either', () => {
+    const toml = 'schema_version = "0.2"\n\n[tool]\nsquad_dir = "nested"\n';
+    expect(parseSquadDirKey(toml)).toBe('squads');
+  });
+
+  it('reads the root key even when a table declares one of its own further down', () => {
+    const toml = 'squad_dir = "board"\n\n[tool]\nsquad_dir = "nested"\n';
+    expect(parseSquadDirKey(toml)).toBe('board');
+  });
+
+  it('falls back to the default for a value form it deliberately does not parse', () => {
+    expect(parseSquadDirKey('squad_dir = """board"""\n')).toBe('squads');
+    expect(parseSquadDirKey('squad_dir = board\n')).toBe('squads');
+    expect(parseSquadDirKey('squad_dir = "unterminated\n')).toBe('squads');
+  });
+
+  it('does not match a different key that merely ends in squad_dir', () => {
+    expect(parseSquadDirKey('other_squad_dir = "board"\n')).toBe('squads');
+  });
 });
 
 describe('findSquadConfig', () => {
@@ -71,6 +121,11 @@ describe('resolveSquadDir', () => {
   it('honors a custom squad_dir value', () => {
     const env = makeEnvironment({ files: { '/workspace/.squads.toml': 'squad_dir = "work"' } });
     expect(resolveSquadDir('/workspace', env)).toBe('/workspace/work');
+  });
+
+  it('honors a single-quoted custom squad_dir value, the same as sq does', () => {
+    const env = makeEnvironment({ files: { '/workspace/.squads.toml': "squad_dir = 'board'" } });
+    expect(resolveSquadDir('/workspace', env)).toBe('/workspace/board');
   });
 
   it('falls back to the default "squads" dir name when the config can\'t be read', () => {

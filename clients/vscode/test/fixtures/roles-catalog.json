@@ -3,48 +3,56 @@
         "role": "active",
         "settled": false,
         "hidden": false,
-        "color": "positive"
+        "color": "positive",
+        "live": true
     },
     {
         "role": "attention",
         "settled": false,
         "hidden": false,
-        "color": "danger"
+        "color": "danger",
+        "live": false
     },
     {
         "role": "blocked",
         "settled": false,
         "hidden": false,
-        "color": "danger"
+        "color": "danger",
+        "live": false
     },
     {
         "role": "done",
         "settled": true,
         "hidden": true,
-        "color": "positive"
+        "color": "positive",
+        "live": false
     },
     {
         "role": "in_force",
         "settled": true,
         "hidden": false,
-        "color": "info"
+        "color": "info",
+        "live": false
     },
     {
         "role": "pending",
         "settled": false,
         "hidden": false,
-        "color": "neutral"
+        "color": "neutral",
+        "live": false
     },
     {
         "role": "retired",
         "settled": true,
         "hidden": true,
-        "color": "muted"
+        "color": "muted",
+        "live": false
     },
     {
         "role": "superseded",
         "settled": true,
         "hidden": true,
-        "color": "muted"
+        "color": "muted",
+        "live": false
     }
 ]
