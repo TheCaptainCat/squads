@@ -8,6 +8,7 @@ import json
 
 import pytest
 
+from _helpers import create_item
 from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
@@ -15,8 +16,8 @@ pytestmark = pytest.mark.anyio
 
 async def test_repair_cli_reports_missing_items_and_holds_the_counter(project, invoke):
     svc = Service(project)
-    await svc.create("feature", "feat")
-    top = (await svc.create("task", "task")).item
+    await create_item(svc, "feature", "feat")
+    top = (await create_item(svc, "task", "task")).item
 
     svc.paths.abspath(top.path).unlink()
 
@@ -28,7 +29,7 @@ async def test_repair_cli_reports_missing_items_and_holds_the_counter(project, i
 
 async def test_repair_cli_holds_the_padding_floor_after_file_loss(project, invoke):
     svc = Service(project)
-    top = (await svc.create("task", "task")).item
+    top = (await create_item(svc, "task", "task")).item
 
     raw = json.loads(svc.store.index_path.read_text(encoding="utf-8"))
     raw["padding"] = 7  # simulate a squad that already went through a repad

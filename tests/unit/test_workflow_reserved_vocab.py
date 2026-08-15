@@ -1,14 +1,19 @@
-"""The type/status floor is exactly the three roster types plus Draft/Active/Archived — everything
-else (the 7 work types, the sub-entity/finding statuses) is ordinary, droppable spec vocabulary.
-A custom type also cannot shadow a reserved prefix or folder.
+"""The reserved surface, after the reserved-status floor's retirement, is exactly the three
+roster types (each declaring ``category = "roster"``) — no status name is reserved any more.
+A lifecycle bound to a ``category = "roster"`` type instead carries its own floor restated
+against the ``live`` flag (R1 — at least one live status; R1' — exactly one when the
+``initial`` itself isn't live; R2 — a settled, non-live status reachable from a live
+one), asserted here via direct construction; the collect/lint/load-boundary surfacing of that
+floor lives in ``test_workflow_lint_merge_errors.py`` and ``test_load_boundary_vocab.py``. A
+custom type also cannot shadow a reserved prefix or folder.
 """
 
 import pytest
 
-from _helpers import FLOOR_STATUSES, FORMER_FLOOR_STATUSES, ROSTER_TYPES, WORK_TYPES
+from _helpers import FLOOR_STATUSES, ROSTER_TYPES, WORK_TYPES
 from squads._errors import SquadsError
 from squads._workflow import bundled_spec
-from squads._workflow._models import ItemSpec, WorkflowSpec
+from squads._workflow._models import ItemSpec, Lifecycle, StatusSpec, WorkflowSpec
 
 
 def _spec_without_type(drop_type: str) -> dict[str, object]:
@@ -71,21 +76,57 @@ def test_spec_missing_a_work_type_loads_successfully(work_type: str) -> None:
 
 
 @pytest.mark.parametrize("floor_status", sorted(FLOOR_STATUSES))
-def test_spec_missing_a_floor_status_fails_closed(floor_status: str) -> None:
-    with pytest.raises(SquadsError, match="spec missing reserved Status members"):
-        WorkflowSpec.model_validate(_spec_without_status(floor_status))
-
-
-@pytest.mark.parametrize("former_floor_status", sorted(FORMER_FLOOR_STATUSES))
-def test_former_floor_subentity_statuses_no_longer_hit_the_floor(
-    former_floor_status: str,
+def test_dropping_an_agent_lifecycle_status_still_fails_closed_but_never_via_the_retired_message(
+    floor_status: str,
 ) -> None:
-    """Dropping a sub-entity/finding status still fails (a lifecycle still names it in its
-    transitions) but via lifecycle integrity, never via the reserved-floor check — proving these
-    left the reserved floor and became ordinary spec vocabulary."""
+    """Draft/Active/Archived are no longer a reserved-status floor — dropping one still fails
+    to load, because the ``agent``/``work``/``guide`` lifecycles still reference it by name
+    (lifecycle integrity), but never via the retired 'spec missing reserved Status members'
+    message; that check no longer exists."""
     with pytest.raises(SquadsError) as exc_info:
-        WorkflowSpec.model_validate(_spec_without_status(former_floor_status))
+        WorkflowSpec.model_validate(_spec_without_status(floor_status))
     assert "spec missing reserved Status members" not in str(exc_info.value)
+
+
+def test_a_roster_lifecycle_may_use_entirely_custom_status_and_role_names() -> None:
+    """No status name is reserved any more: a roster type's lifecycle may name its states
+    anything, in any language, as long as at least one resolves to a live role (with the
+    initial itself live here, vacating R1') and a settled, non-live one is reachable from
+    it — the flag-keyed floor, not a literal Draft/Active/Archived requirement. The custom
+    status name below is deliberately NOT "Live" — that word now names the flag itself, and
+    picking it as a status literal would read as if the assertions below were circular."""
+    base = bundled_spec()
+    custom_statuses = {
+        **base.statuses,
+        "Provisioning": StatusSpec(role="pending"),
+        "Online": StatusSpec(role="active"),
+        "Decommissioned": StatusSpec(role="retired"),
+    }
+    custom_lifecycles = {
+        **base.lifecycles,
+        "custom_agent": Lifecycle(
+            initial="Online",
+            transitions={"Online": ["Decommissioned"], "Decommissioned": ["Online"]},
+        ),
+    }
+    custom_items = {
+        **base.items,
+        "role": base.items["role"].model_copy(update={"lifecycle": "custom_agent"}),
+    }
+    spec = WorkflowSpec.model_validate(
+        {
+            "items": custom_items,
+            "statuses": custom_statuses,
+            "lifecycles": custom_lifecycles,
+            "prefix_to_type": dict(base.prefix_to_type),
+            "alias_to_type": dict(base.alias_to_type),
+            "collections": dict(base.collections),
+            "subentity_kinds": dict(base.subentity_kinds),
+            "roles": dict(base.roles),
+        }
+    )
+    assert spec.live_statuses("role") == {"Online"}
+    assert spec.live_initial("role") == "Online"
 
 
 # --------------------------------------------------------------------------- prefix/folder shadow
@@ -148,7 +189,9 @@ def test_non_roster_types_matches_category_derived_expectation() -> None:
 def test_non_roster_types_includes_a_custom_work_type_but_not_a_custom_roster_type() -> None:
     base = bundled_spec()
     incident = ItemSpec(prefix="INC", folder="incidents", lifecycle="work", category="work")
-    agent = ItemSpec(prefix="AGENT", folder="agents/custom", lifecycle="work", category="roster")
+    # lifecycle="agent" (not "work"): a category="roster" type's lifecycle must satisfy the
+    # roster floor (exactly one 'active'-role status), which "work" does not.
+    agent = ItemSpec(prefix="AGENT", folder="agents/custom", lifecycle="agent", category="roster")
     new_items = {**base.items, "incident": incident, "custom-agent": agent}
     new_prefix_to_type = {**base.prefix_to_type, "INC": "incident", "AGENT": "custom-agent"}
     spec = WorkflowSpec.model_validate(

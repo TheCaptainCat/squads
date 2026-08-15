@@ -57,6 +57,19 @@ async def test_load_wraps_a_corrupt_index_in_squads_error(tmp_path):
         await store.load()
 
 
+async def test_load_wraps_a_missing_index_in_squads_error(tmp_path):
+    """No `.squads.json` on disk at all (a fresh clone of a gitignored index, a wrong
+    ``--dir``, a half-finished adopt) is just as unusable as a corrupt one -- it must raise
+    the same clean SquadsError naming `sq repair`, not let FileNotFoundError escape raw."""
+    path = tmp_path / ".squads.json"
+    store = IndexStore(path, tmp_path / ".squads.json.lock")
+    assert not path.exists()
+
+    with pytest.raises(SquadsError, match="missing index") as exc_info:
+        await store.load()
+    assert "sq repair" in str(exc_info.value)
+
+
 async def test_allocate_id_raises_a_named_recovery_hint_at_capacity(tmp_path):
     """Exhausting the current padding's id space fails closed and names `sq migrate repad`
     rather than silently wrapping or corrupting the counter."""

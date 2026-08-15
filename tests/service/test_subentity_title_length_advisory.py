@@ -7,6 +7,7 @@ over the three kinds rather than tripled.
 
 import pytest
 
+from _helpers import create_item
 from squads._index._reflog import read_lines, reflog_path
 from squads._interactions import TITLE_ADVISORY_MAX
 
@@ -26,7 +27,7 @@ _KIND_SETUP = {
 @pytest.mark.parametrize("kind", ["story", "subtask", "finding"])
 async def test_over_threshold_title_returns_an_advisory_naming_length_and_body_command(svc, kind):
     parent_type, add = _KIND_SETUP[kind]
-    parent = (await svc.create(parent_type, "p")).item
+    parent = (await create_item(svc, parent_type, "p")).item
     res = await add(svc, parent.id, LONG_TITLE)
     assert res.title_advisory is not None
     assert str(len(LONG_TITLE)) in res.title_advisory
@@ -40,13 +41,13 @@ async def test_over_threshold_title_returns_an_advisory_naming_length_and_body_c
 )
 async def test_at_or_below_threshold_title_has_no_advisory(svc, kind, title):
     parent_type, add = _KIND_SETUP[kind]
-    parent = (await svc.create(parent_type, "p")).item
+    parent = (await create_item(svc, parent_type, "p")).item
     res = await add(svc, parent.id, title)
     assert res.title_advisory is None
 
 
 async def test_advisory_wording_has_no_enforcement_language(svc):
-    feat = (await svc.create("feature", "F")).item
+    feat = (await create_item(svc, "feature", "F")).item
     res = await svc.add_story(feat.id, LONG_TITLE)
     advisory = (res.title_advisory or "").lower()
     for forbidden in ("enforce", "guarantee", "secur", "forbid", "blocked", "prevented"):
@@ -54,7 +55,7 @@ async def test_advisory_wording_has_no_enforcement_language(svc):
 
 
 async def test_advisory_is_recorded_in_the_reflog_delta_only_when_it_fires(svc, frozen_time):
-    feat = (await svc.create("feature", "F")).item
+    feat = (await create_item(svc, "feature", "F")).item
     await svc.add_story(feat.id, LONG_TITLE)
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     add_lines = [
@@ -65,7 +66,7 @@ async def test_advisory_is_recorded_in_the_reflog_delta_only_when_it_fires(svc, 
     delta = add_lines[-1].delta
     assert delta["title_advisory"] == {"advisory": True, "title_len": len(LONG_TITLE)}
 
-    task = (await svc.create("task", "T")).item
+    task = (await create_item(svc, "task", "T")).item
     await svc.add_subtask(task.id, SHORT_TITLE)
     lines2 = await read_lines(reflog_path(svc.paths.squad_dir))
     add_lines2 = [
@@ -82,7 +83,7 @@ class TestCheckSubentityTitleLengthAdvisory:
     async def test_over_threshold_title_emits_exactly_one_warn_issue_naming_length_and_threshold(
         self, svc
     ):
-        feat = (await svc.create("feature", "F")).item
+        feat = (await create_item(svc, "feature", "F")).item
         await svc.add_story(feat.id, LONG_TITLE)
         issues = [i for i in await svc.check() if "advisory" in i.message and "chars" in i.message]
         assert len(issues) == 1
@@ -92,14 +93,14 @@ class TestCheckSubentityTitleLengthAdvisory:
         assert str(TITLE_ADVISORY_MAX) in issues[0].message
 
     async def test_at_threshold_and_short_titles_emit_no_advisory_issue(self, svc):
-        feat = (await svc.create("feature", "F")).item
+        feat = (await create_item(svc, "feature", "F")).item
         await svc.add_story(feat.id, EXACT_TITLE)
         await svc.add_story(feat.id, SHORT_TITLE)
         issues = [i for i in await svc.check() if "advisory" in i.message and "chars" in i.message]
         assert not issues
 
     async def test_mixed_titles_flag_only_the_over_long_one(self, svc):
-        feat = (await svc.create("feature", "F")).item
+        feat = (await create_item(svc, "feature", "F")).item
         await svc.add_story(feat.id, LONG_TITLE)
         await svc.add_story(feat.id, SHORT_TITLE)
         issues = [i for i in await svc.check() if "advisory" in i.message and "chars" in i.message]

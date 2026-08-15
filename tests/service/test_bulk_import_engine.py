@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from _helpers import create_item
 from squads import _itemfile
 from squads._index._reflog import read_lines, reflog_path
 from squads._index._resolver import item_file
@@ -140,7 +141,7 @@ async def test_the_counter_advances_monotonically_across_every_created_item(svc)
         {"op": "create", "type": "task", "title": "Two", "handle": "b"},
         {"op": "create", "type": "task", "title": "Three", "handle": "c"},
     )
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
     assert result.applied is not None
     after = (await svc.store.load()).counter
     assert after == before + 3
@@ -149,7 +150,7 @@ async def test_the_counter_advances_monotonically_across_every_created_item(svc)
 async def test_dry_run_writes_nothing_even_when_the_file_is_fully_clean(svc):
     before = await svc.list_items()
     text = _lines({"op": "create", "type": "task", "title": "Never written"})
-    result = await svc.import_events(text, dry_run=True)
+    result = await svc.import_events(text, dry_run=True, default_as="manager")
     assert result.plan.ok
     assert result.applied is None
     after = await svc.list_items()
@@ -157,8 +158,8 @@ async def test_dry_run_writes_nothing_even_when_the_file_is_fully_clean(svc):
 
 
 async def test_prepass_collects_every_seeded_error_with_correct_line_numbers(svc):
-    existing = (await svc.create("task", "Existing")).item
-    other = (await svc.create("task", "Other")).item
+    existing = (await create_item(svc, "task", "Existing")).item
+    other = (await create_item(svc, "task", "Other")).item
 
     text = _lines(
         {"op": "create", "type": "not-a-real-type", "title": "Bad type"},  # line 1
@@ -170,7 +171,7 @@ async def test_prepass_collects_every_seeded_error_with_correct_line_numbers(svc
         {"op": "add-sub", "target": existing.id, "kind": "no-such-kind", "title": "x"},  # line 7
     )
 
-    result = await svc.import_events(text, dry_run=True)
+    result = await svc.import_events(text, dry_run=True, default_as="manager")
     assert not result.plan.ok
     assert result.applied is None
     lines_with_issues = {i.line for i in result.plan.issues}
@@ -185,11 +186,11 @@ async def test_an_unknown_add_sub_kind_is_collected_not_a_traceback(svc):
     """A generic ``add-sub`` naming a kind the item doesn't host (or that doesn't exist at
     all) must resolve to a reported pre-pass issue at its own line, never an uncaught
     ``KeyError`` that aborts the whole validate-first pass."""
-    task = (await svc.create("task", "Host")).item
+    task = (await create_item(svc, "task", "Host")).item
     text = _lines(
         {"op": "add-sub", "target": task.id, "kind": "no-such-kind", "title": "x"},
     )
-    result = await svc.import_events(text, dry_run=True)
+    result = await svc.import_events(text, dry_run=True, default_as="manager")
     assert not result.plan.ok
     assert result.applied is None
     assert result.plan.issues[0].line == 1
@@ -200,18 +201,18 @@ async def test_a_dangling_handle_reference_is_reported_not_silently_passed_throu
     text = _lines(
         {"op": "status", "target": "never-created", "status": "InProgress"},
     )
-    result = await svc.import_events(text, dry_run=True)
+    result = await svc.import_events(text, dry_run=True, default_as="manager")
     assert not result.plan.ok
     assert result.plan.issues[0].line == 1
 
 
 async def test_board_debt_from_an_import_surfaces_as_a_warning_not_silent_debt(svc):
-    review = (await svc.create("review", "A review")).item
+    review = (await create_item(svc, "review", "A review")).item
     long_title = "x" * 200
     text = _lines(
         {"op": "add-finding", "target": review.id, "title": long_title, "severity": "high"},
     )
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
     assert result.applied is not None
     assert any("title" in w.lower() for w in result.applied.warnings)
 
@@ -223,7 +224,7 @@ async def test_apply_only_runs_after_a_fully_clean_prepass(svc):
         {"op": "status", "target": "ok", "status": "Bogus"},
     )
     before = await svc.list_items()
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
     assert not result.plan.ok
     assert result.applied is None
     after = await svc.list_items()
@@ -238,13 +239,13 @@ async def test_repair_reconciles_after_a_simulated_mid_apply_failure(svc, monkey
         {"op": "create", "type": "task", "title": "Survives the crash", "handle": "a"},
         {"op": "status", "target": "a", "status": "InProgress"},
     )
-    parsed = await svc.import_events(text, dry_run=True)
+    parsed = await svc.import_events(text, dry_run=True, default_as="manager")
     assert parsed.plan.ok
 
     from squads._services import _import_model
 
     events, _issues = _import_model.parse_events(
-        text, default_at=_import_model.utc_now_floor(), default_as=svc.paths.config.default_role
+        text, default_at=_import_model.utc_now_floor(), default_as="manager"
     )
 
     real_update_frontmatter = _itemfile.update_frontmatter
@@ -275,12 +276,12 @@ async def test_a_dry_run_title_change_never_renames_the_file_on_disk(svc):
     """A title-bearing `update` reaches a real `Path.rename` only through the apply pass's
     `_update_core` -- the pre-pass simulates purely against a throwaway index copy. Pin the
     actual promise a dry run makes: the filesystem is untouched, not just the index."""
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     old_path = item_file(svc.paths, task)
     assert old_path.exists()
 
     text = _lines({"op": "update", "target": task.id, "title": "Renamed via dry run"})
-    result = await svc.import_events(text, dry_run=True)
+    result = await svc.import_events(text, dry_run=True, default_as="manager")
     assert result.plan.ok
     assert result.applied is None
 
@@ -290,14 +291,82 @@ async def test_a_dry_run_title_change_never_renames_the_file_on_disk(svc):
     assert reloaded.title == "Original title"
 
 
+async def test_replaying_a_history_that_retires_the_last_live_role_before_a_replacement_lands(
+    svc,
+):
+    """The importer's pre-pass is held to the same config-integrity gate as the interactive
+    path, at each step it replays: a history that retires the only live role and activates a
+    replacement in the very next event is refused at the retiring step, even though the final
+    state would have been fine — the accepted cost of holding a replay to the same rule as the
+    interactive path. The remedy is to reorder the import so the replacement lands first."""
+    manager = await svc.roster_item("role", "manager")
+    qa = await svc.activate_role("qa")
+    await svc.set_status(qa.id, "Archived")  # pre-existing, but not yet live
+
+    text = _lines(
+        {"op": "status", "target": manager.id, "status": "Archived"},  # line 1: last live role
+        {"op": "status", "target": qa.id, "status": "Active"},  # line 2: would have fixed it
+    )
+    result = await svc.import_events(text, dry_run=True, default_as="manager")
+
+    assert not result.plan.ok
+    assert result.applied is None
+    assert result.plan.issues[0].line == 1
+    assert "no role entry is live" in result.plan.issues[0].message
+    # Nothing written — the pre-existing roles are untouched on disk.
+    still_manager = await svc.get(manager.id)
+    assert still_manager.status == "Active"
+
+
+async def test_a_shrinking_pre_existing_scoped_edge_violation_replays_cleanly(svc):
+    """The delta-key fix through the importer: the pre-pass calls the same delta-scoped gate as the
+    interactive path, at each event it replays. A skill archived while scoped to two live
+    roles is a pre-existing violation; replaying an event that retires one of those roles
+    strictly shrinks it and must not be refused, the same as the interactive path."""
+    live_role = await svc.activate_role("qa")
+    other_role = await svc.roster_item("role", "manager")
+    skill = await svc.add_skill("Custom Helper")
+    await svc.link_role(skill.id, live_role.id)
+    await svc.link_role(skill.id, other_role.id)
+    async with svc.store.transaction() as db:
+        item = db.get(skill.id)
+        assert item is not None
+        base = item.model_copy(deep=True)
+        item.status = "Archived"  # pre-existing: scoped to qa AND manager, reached outside sq
+        await _itemfile.update_frontmatter(item_file(svc.paths, item), item, base)
+
+    text = _lines({"op": "status", "target": live_role.id, "status": "Archived"})
+    result = await svc.import_events(text, default_as="manager")
+
+    assert result.plan.ok, result.plan.issues
+    assert result.applied is not None
+    assert (await svc.get(live_role.id)).status == "Archived"
+
+
+async def test_a_generic_update_event_cannot_change_a_roster_items_status(svc):
+    """The generic ``update`` op's ``status`` field reaches ``_update_model`` directly, which
+    evaluates none of the config-integrity clauses and runs no projection — the roster status
+    axis has exactly one gated entry point (the ``status`` op / ``set_roster_status``), and this
+    ungated one must refuse rather than silently write a status the gate never saw."""
+    role = await svc.roster_item("role", "manager")
+
+    text = _lines({"op": "update", "target": role.id, "status": "Archived"})
+    result = await svc.import_events(text, dry_run=True, default_as="manager")
+
+    assert not result.plan.ok
+    assert "status cannot change through `update`" in result.plan.issues[0].message
+    still_manager = await svc.get(role.id)
+    assert still_manager.status == "Active"
+
+
 async def test_applying_a_title_change_does_rename_the_file_on_disk(svc):
     """The other half of the same guarantee: once a dry run's own plan is clean, the real
     apply performs the physical move the pre-pass deliberately never does."""
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     old_path = item_file(svc.paths, task)
 
     text = _lines({"op": "update", "target": task.id, "title": "Renamed for real"})
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
     assert result.applied is not None
 
     assert not old_path.exists()

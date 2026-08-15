@@ -8,6 +8,7 @@ of truth) rather than crashing on the missing fields.
 
 import pytest
 
+from _helpers import create_item
 from squads import _actor as actor
 from squads import _aio
 from squads import _sections as sections
@@ -23,7 +24,7 @@ pytestmark = pytest.mark.anyio
 
 async def test_create_records_the_session_on_the_reflog_line_and_the_item_frontmatter(svc):
     actor.seed_session("sid-create", "sid-parent")
-    item = (await svc.create("task", "Session task")).item
+    item = (await create_item(svc, "task", "Session task")).item
 
     lines = await read_lines(reflog_path(svc.paths.squad_dir))
     create_line = next(ln for ln in lines if ln.op == "create" and ln.target == item.id)
@@ -36,7 +37,7 @@ async def test_create_records_the_session_on_the_reflog_line_and_the_item_frontm
 
 
 async def test_with_no_session_seeded_the_frontmatter_fields_stay_none(svc):
-    item = (await svc.create("task", "No-session task")).item
+    item = (await create_item(svc, "task", "No-session task")).item
     loaded = await svc.get(item.id)
     assert loaded.created_session is None
     assert loaded.modified_session is None
@@ -44,7 +45,7 @@ async def test_with_no_session_seeded_the_frontmatter_fields_stay_none(svc):
 
 async def test_set_status_updates_modified_session_leaving_created_session_alone(svc):
     actor.seed_session("sid-create", None)
-    item = (await svc.create("task", "Session update test")).item
+    item = (await create_item(svc, "task", "Session update test")).item
     actor.seed_session("sid-modify", None)
     await svc.set_status(item.id, "InProgress")
 
@@ -55,7 +56,7 @@ async def test_set_status_updates_modified_session_leaving_created_session_alone
 
 async def test_read_reflog_surfaces_the_session_fields_on_reflog_entry(svc):
     actor.seed_session("sid-svc", "sid-par")
-    item = (await svc.create("task", "Reflog entry session")).item
+    item = (await create_item(svc, "task", "Reflog entry session")).item
 
     entries = await svc.read_reflog(item=item.id, op_filter="create")
     (entry,) = entries
@@ -65,7 +66,7 @@ async def test_read_reflog_surfaces_the_session_fields_on_reflog_entry(svc):
 
 
 async def test_a_legacy_item_with_no_session_fields_loads_cleanly(svc):
-    item = (await svc.create("task", "Legacy item")).item
+    item = (await create_item(svc, "task", "Legacy item")).item
     path = item_file(svc.paths, item)
     text = await _aio.read_text(path)
     fm, body = sections.split_frontmatter(text)
@@ -79,7 +80,7 @@ async def test_a_legacy_item_with_no_session_fields_loads_cleanly(svc):
 
 
 async def test_repair_on_a_legacy_no_session_item_preserves_invariant_1(svc):
-    item = (await svc.create("task", "Repair legacy")).item
+    item = (await create_item(svc, "task", "Repair legacy")).item
     path = item_file(svc.paths, item)
     text = await _aio.read_text(path)
     fm, body = sections.split_frontmatter(text)

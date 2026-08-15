@@ -10,6 +10,7 @@ traceback around it.
 
 import pytest
 
+from _helpers import create_item
 from squads._index._store import IndexStore
 
 pytestmark = pytest.mark.anyio
@@ -43,7 +44,7 @@ async def _interrupt_a_title_changing_update(svc, monkeypatch, item_id: str) -> 
 
 
 async def test_show_full_fails_cleanly_after_an_interrupted_rename(svc, invoke, monkeypatch):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     result = await invoke(["task", str(task.sequence_id), "show", "--full"])
@@ -52,7 +53,7 @@ async def test_show_full_fails_cleanly_after_an_interrupted_rename(svc, invoke, 
 
 
 async def test_comment_fails_cleanly_after_an_interrupted_rename(svc, invoke, monkeypatch):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     result = await invoke(["task", str(task.sequence_id), "comment", "--as", "manager", "-m", "hi"])
@@ -63,7 +64,7 @@ async def test_comment_fails_cleanly_after_an_interrupted_rename(svc, invoke, mo
 async def test_the_comments_readback_verb_fails_cleanly_after_an_interrupted_rename(
     svc, invoke, monkeypatch
 ):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     result = await invoke(["task", str(task.sequence_id), "comments"])
@@ -74,7 +75,7 @@ async def test_the_comments_readback_verb_fails_cleanly_after_an_interrupted_ren
 async def test_a_subtask_body_read_fails_cleanly_after_an_interrupted_rename(
     svc, invoke, monkeypatch
 ):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     added = await svc.add_subtask(task.id, "A subtask")
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
@@ -87,7 +88,7 @@ async def test_plain_show_also_fails_cleanly_since_it_reads_the_body_too(svc, in
     """Plain `show` (no `--full`) still renders the body region -- it is not purely
     index-derived -- so it hits the same stale-path seam and must fail the same clean way,
     not a raw traceback, even though it never asked for `--full`."""
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     result = await invoke(["task", str(task.sequence_id), "show"])
@@ -96,7 +97,7 @@ async def test_plain_show_also_fails_cleanly_since_it_reads_the_body_too(svc, in
 
 
 async def test_list_stays_index_only_and_unaffected_by_the_stale_path(svc, invoke, monkeypatch):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     result = await invoke(["list", "-a"])
@@ -107,7 +108,7 @@ async def test_list_stays_index_only_and_unaffected_by_the_stale_path(svc, invok
 
 
 async def test_everything_works_again_after_repair(svc, invoke, monkeypatch):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     repaired = await invoke(["repair"])
@@ -132,7 +133,7 @@ async def test_everything_works_again_after_repair(svc, invoke, monkeypatch):
 async def test_updating_the_description_fails_cleanly_after_an_interrupted_rename(
     svc, invoke, monkeypatch
 ):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     result = await invoke(["task", str(task.sequence_id), "update", "--desc", "new summary"])
@@ -141,7 +142,7 @@ async def test_updating_the_description_fails_cleanly_after_an_interrupted_renam
 
 
 async def test_changing_status_fails_cleanly_after_an_interrupted_rename(svc, invoke, monkeypatch):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     result = await invoke(["task", str(task.sequence_id), "status", "InProgress"])
@@ -150,7 +151,7 @@ async def test_changing_status_fails_cleanly_after_an_interrupted_rename(svc, in
 
 
 async def test_adding_a_subtask_fails_cleanly_after_an_interrupted_rename(svc, invoke, monkeypatch):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     result = await invoke(["task", str(task.sequence_id), "add-subtask", "A new subtask"])
@@ -159,7 +160,7 @@ async def test_adding_a_subtask_fails_cleanly_after_an_interrupted_rename(svc, i
 
 
 async def test_the_mutating_verbs_all_work_again_after_repair(svc, invoke, monkeypatch):
-    task = (await svc.create("task", "Original title")).item
+    task = (await create_item(svc, "task", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, task.id)
 
     repaired = await invoke(["repair"])

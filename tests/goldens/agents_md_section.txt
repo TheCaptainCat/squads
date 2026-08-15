@@ -21,7 +21,7 @@ truth. Use `sq <type> <number> <verb>` to interact with work items.
 
 Operators are the **humans** who work on this project. They can author items, be assigned work, and
 leave comments. Address them by their `op-` slug.
-- **Pierre Chat** (`op-pierre`)
+- **Alice Tester** (`op-alice`)
 
 ## Start of a run
 
@@ -29,10 +29,14 @@ At the start of a run, load your role memory — `sq memory <role> list`, then `
 show <slug>` for relevant entries — and check the team board with `sq board list`. Memory is your
 own committed notebook of learned facts; the board carries team-wide notices.
 
+Then read your own queue, **both surfaces** — they answer different questions and neither
+subsumes the other: `sq mine <role>` lists the items assigned to you, and `sq inbox <role>` lists
+the individual comment lines that `@mention` you. An item can be in one and not the other.
+
 ## Team workflow
 
-- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
-  `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
+  create with `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
 - **Product owner** → `sq create epic "…" --author product-owner`.
 - **Product owner** → `sq create feature "…" --author product-owner`, then `add-story "…"`.
 - **Tech lead** → `sq create task "…" --author tech-lead` `--parent FEAT-…`, then `add-subtask "…"` `--story USn`; link with `ref add <id> --kind fixes|addresses`.
@@ -50,14 +54,6 @@ own committed notebook of learned facts; the board carries team-wide notices.
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
-
-## Item hierarchy
-
-```mermaid
-flowchart TD
-    epic["epic"] --> feature["feature"]
-    feature["feature"] --> task["task"]
-```
 
 ## Type-command aliases
 
@@ -95,202 +91,6 @@ statuses and transitions.
 | `REV` | `review` | `Requested → InReview → ChangesRequested → Approved (+ Rejected)` |
 | `GUIDE` | `guide` | `Draft → Published → Deprecated` |
 
-`epic` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft : Draft
-    Ready : Ready
-    InProgress : InProgress
-    Cancelled : Cancelled
-    Blocked : Blocked
-    InReview : InReview
-    Done : Done
-    Draft --> Ready
-    Draft --> InProgress
-    Draft --> Cancelled
-    Ready --> InProgress
-    Ready --> Blocked
-    Ready --> Cancelled
-    InProgress --> InReview
-    InProgress --> Blocked
-    InProgress --> Done
-    InProgress --> Cancelled
-    Cancelled --> Draft
-    Blocked --> Ready
-    Blocked --> InProgress
-    Blocked --> Cancelled
-    InReview --> InProgress
-    InReview --> Done
-    InReview --> Blocked
-    InReview --> Cancelled
-    Done --> InProgress
-    Cancelled --> [*]
-    Done --> [*]
-```
-
-`feature` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft : Draft
-    Ready : Ready
-    InProgress : InProgress
-    Cancelled : Cancelled
-    Blocked : Blocked
-    InReview : InReview
-    Done : Done
-    Draft --> Ready
-    Draft --> InProgress
-    Draft --> Cancelled
-    Ready --> InProgress
-    Ready --> Blocked
-    Ready --> Cancelled
-    InProgress --> InReview
-    InProgress --> Blocked
-    InProgress --> Done
-    InProgress --> Cancelled
-    Cancelled --> Draft
-    Blocked --> Ready
-    Blocked --> InProgress
-    Blocked --> Cancelled
-    InReview --> InProgress
-    InReview --> Done
-    InReview --> Blocked
-    InReview --> Cancelled
-    Done --> InProgress
-    Cancelled --> [*]
-    Done --> [*]
-```
-
-`task` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft : Draft
-    Ready : Ready
-    InProgress : InProgress
-    Cancelled : Cancelled
-    Blocked : Blocked
-    InReview : InReview
-    Done : Done
-    Draft --> Ready
-    Draft --> InProgress
-    Draft --> Cancelled
-    Ready --> InProgress
-    Ready --> Blocked
-    Ready --> Cancelled
-    InProgress --> InReview
-    InProgress --> Blocked
-    InProgress --> Done
-    InProgress --> Cancelled
-    Cancelled --> Draft
-    Blocked --> Ready
-    Blocked --> InProgress
-    Blocked --> Cancelled
-    InReview --> InProgress
-    InReview --> Done
-    InReview --> Blocked
-    InReview --> Cancelled
-    Done --> InProgress
-    Cancelled --> [*]
-    Done --> [*]
-```
-
-`bug` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Open
-    Open : Open
-    InProgress : InProgress
-    WontFix : WontFix
-    Cancelled : Cancelled
-    Fixed : Fixed
-    Blocked : Blocked
-    Verified : Verified
-    Open --> InProgress
-    Open --> WontFix
-    Open --> Cancelled
-    InProgress --> Fixed
-    InProgress --> Blocked
-    InProgress --> WontFix
-    InProgress --> Cancelled
-    WontFix --> Open
-    Cancelled --> Open
-    Fixed --> Verified
-    Fixed --> InProgress
-    Blocked --> InProgress
-    Blocked --> WontFix
-    Blocked --> Cancelled
-    Verified --> InProgress
-    WontFix --> [*]
-    Cancelled --> [*]
-    Verified --> [*]
-```
-
-`decision` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Proposed
-    Proposed : Proposed
-    Accepted : Accepted
-    Rejected : Rejected
-    Superseded : Superseded
-    Deprecated : Deprecated
-    Proposed --> Accepted
-    Proposed --> Rejected
-    Accepted --> Superseded
-    Accepted --> Deprecated
-    Rejected --> Proposed
-    Accepted --> [*]
-    Rejected --> [*]
-    Superseded --> [*]
-    Deprecated --> [*]
-```
-
-`review` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Requested
-    Requested : Requested
-    InReview : InReview
-    Rejected : Rejected
-    ChangesRequested : ChangesRequested
-    Approved : Approved
-    Requested --> InReview
-    Requested --> Rejected
-    InReview --> ChangesRequested
-    InReview --> Approved
-    InReview --> Rejected
-    ChangesRequested --> InReview
-    ChangesRequested --> Approved
-    ChangesRequested --> Rejected
-    Rejected --> [*]
-    Approved --> [*]
-```
-
-`guide` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft : Draft
-    Published : Published
-    Deprecated : Deprecated
-    Draft --> Published
-    Published --> Deprecated
-    Published --> Draft
-    Deprecated --> Published
-    Published --> [*]
-    Deprecated --> [*]
-```
-
 ## Retype
 
 Reclassify a work item to a different type — the sequence number (and durable identity) is
@@ -298,7 +98,7 @@ preserved; only the ID prefix changes. All incoming refs, children's parent link
 mentions are rewritten to the new ID atomically.
 
 ```bash
-sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
+sq <type> <n> retype <new-type>   # e.g. sq epic 7 retype feature
 ```
 
 Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
@@ -342,7 +142,7 @@ normal; the reflog records a reconstructable removal line that explains each gap
 
 ## Ref kinds
 
-The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
+The vocabulary is closed — exactly nine kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
 
 | Kind | Meaning | Direction convention | Consumer |
 |---|---|---|---|
@@ -350,10 +150,11 @@ The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. U
 | `blocks` | A is blocking B; B cannot proceed while A is open | `A blocks B` lives on **A** (the blocker) | `sq blocked` |
 | `depends-on` | A depends on B; A cannot proceed while B is open. Equivalent to `B blocks A` — `A depends-on B` ≡ `B blocks A` | `A depends-on B` lives on **A** (the dependent) | `sq blocked` |
 | `implements` | A implements the requirement or spec described by B | `A implements B` lives on A | Navigation |
-| `fixes` | A (a task or PR) fixes bug B | `A fixes B` lives on A | `sq check` task rules |
-| `addresses` | A (a task) addresses or follows up review B | `A addresses B` lives on A | `sq check` task rules |
+| `fixes` | A (the resolving work) fixes the problem tracked by B | `A fixes B` lives on A | `sq check` ref-rule warnings |
+| `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `A addresses B` lives on A | `sq check` ref-rule warnings |
 | `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be Superseded | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
 | `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as Cancelled | `A duplicates B` lives on **A** (the later filing) | Navigation |
+| `scopes` | A (a skill) is scoped to role B; B's generated pointer preloads A | `A scopes B` lives on **A** (the skill) | Preload resolver, retirement gate |
 
 `blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context. Bare `ref add <id>` (no `--kind`) defaults to `related`.
 
@@ -363,11 +164,11 @@ The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. U
 sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
 sq task 3 show --full --comments     # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress          # transition (validated per type)
-sq task 3 update --assignee qa --priority high --parent FEAT-<n>
+sq task 3 update --assignee python-dev --priority urgent --parent FEAT-<n>
 sq task 3 body -m "## Description" -m "…"
 sq task 3 comment --as <your-slug> -m "…"   # hand off / @mentions
 sq list --type task --status InProgress      # closed items hidden; --all to include
-sq tree FEAT-<n> --json           # a feature's whole subtree (status/blocked)
+sq tree FEAT-<n> --json           # a parent's whole subtree (status/blocked)
 sq search "lockout"                  # match titles, summaries, bodies
 sq mine <your-slug>                  # your open items  ·  sq workload
 sq blocked                           # open items waiting on an open blocker
@@ -379,35 +180,103 @@ sq blocked                           # open items waiting on an open blocker
 
 **Role:** Manager
 
+**Mission:** Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.
+
+**Responsibilities:**
+- Triage incoming requests and clarify intent
+- Delegate work to the right specialist agents and integrate their results
+- Drive features through the loop (implement → review → fix) until done
+- Keep the backlog and statuses honest
+- Summarise progress for the operator
+
 ### Robert Architect (`architect`)
 
 **Role:** Architect
+
+**Mission:** Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.
+
+**Responsibilities:**
+- Design components and their interactions
+- Record significant design decisions (ADRs in the bundled workflow)
+- Author cross-cutting guides
+- Review designs before implementation
 
 ### Olivia Lead (`tech-lead`)
 
 **Role:** Tech lead
 
+**Mission:** Turn features into well-scoped tasks, sequence the work, and unblock the team.
+
+**Responsibilities:**
+- Break each feature into scoped units of work, parented to the feature they implement (bundled default: `sq create task --parent FEAT-<n>`)
+- Map each unit of work's sub-items to a single user story where the type supports it (bundled default: `sq task <n> add-subtask "…" --story USn`)
+- For a fix or review follow-up, link via refs rather than re-describing the work (bundled default: `sq task <n> ref add <id> --kind fixes|addresses`)
+- Leave purely-technical work items unlinked to a feature
+- Sequence and assign work; unblock developers
+- Co-author guides with the architect
+
 ### Paul Reviewer (`reviewer`)
 
 **Role:** Code reviewer
+
+**Mission:** Guard quality: review changes critically, request changes when needed, approve when sound.
+
+**Responsibilities:**
+- Review diffs for correctness and clarity
+- Drive code-review items to a verdict
+- Flag risks and missing tests
 
 ### Mara Tester (`qa`)
 
 **Role:** QA engineer
 
+**Mission:** Prove the software works: design test cases from user stories and verify fixes.
+
+**Responsibilities:**
+- Derive test cases from acceptance criteria (user stories in the bundled workflow)
+- Verify fixes and features
+- Report defects as tracked items (bug items in the bundled workflow)
+
 ### Hugo Ops (`devops`)
 
 **Role:** DevOps engineer
+
+**Mission:** Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.
+
+**Responsibilities:**
+- Maintain CI/CD pipelines
+- Manage infrastructure and environments
+- Run releases
 
 ### Nina Product (`product-owner`)
 
 **Role:** Product owner
 
+**Mission:** Represent the user: capture requirements as features and user stories, prioritise the backlog.
+
+**Responsibilities:**
+- Author features and capture requirements (`sq create feature` in the bundled workflow)
+- Write each feature's user stories (bundled default: `sq feature <n> add-story`)
+- Prioritise the backlog and define acceptance criteria
+
 ### Theo Writer (`tech-writer`)
 
 **Role:** Technical writer
 
+**Mission:** Make the work understandable: write and maintain clear documentation and guides.
+
+**Responsibilities:**
+- Write user- and developer-facing docs
+- Keep guides current
+
 ### Elias Python (`python-dev`)
 
 **Role:** Python developer
+
+**Mission:** Implement assigned tasks in Python, following the project's guides, with tests.
+
+**Responsibilities:**
+- Implement tasks in Python
+- Write tests for changes
+- Follow the relevant guides; ask the architect when unsure
 

@@ -127,15 +127,19 @@ async def test_reading_an_unknown_slug_raises_a_clean_error_without_mutating_any
 
 
 async def test_an_empty_or_never_used_role_pool_lists_as_empty_not_an_error(svc):
-    assert await svc.memory_list("some-role-with-no-memories-yet") == []
+    entries, unreadable = await svc.memory_list("some-role-with-no-memories-yet")
+    assert entries == []
+    assert unreadable == []
 
 
 async def test_two_roles_get_independent_memory_pools(svc):
     await svc.memory_add("python-dev", "python fact")
     await svc.memory_add("dotnet-dev", "dotnet fact")
 
-    assert [e.summary for e in await svc.memory_list("python-dev")] == ["python fact"]
-    assert [e.summary for e in await svc.memory_list("dotnet-dev")] == ["dotnet fact"]
+    python_entries, _ = await svc.memory_list("python-dev")
+    dotnet_entries, _ = await svc.memory_list("dotnet-dev")
+    assert [e.summary for e in python_entries] == ["python fact"]
+    assert [e.summary for e in dotnet_entries] == ["dotnet fact"]
 
 
 async def test_memory_add_and_forget_never_allocate_a_counter_id_or_touch_squads_json(svc):

@@ -63,10 +63,18 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         }
     ),
     "src/squads/_workflow/_models.py": frozenset(
-        {"_SIDE_PRIORITY"}  # fixed side-status sort-priority lookup table
+        {
+            "_SIDE_PRIORITY",  # fixed side-status sort-priority lookup table
+            "_BUNDLED_CONTAINER_HEADINGS",  # fixed bundled sub-entity container heading table
+            "CATEGORY_BUNDLES",  # fixed category -> default-bundle table; the Plane-1 pass
+            # resolves the same effective set the validator engine runs, so it is defined here
+        }
     ),
     "src/squads/_rendering/_engine.py": frozenset(
         {"_env_cache"}  # compiled-template cache, per-squad-dir, LRU-bounded
+    ),
+    "src/squads/_roles/_loader.py": frozenset(
+        {"VALID_MODELS"}  # fixed vocab of valid model names, read by the role-override resolver
     ),
     "src/squads/_roles/_catalog.py": frozenset(
         {
@@ -83,7 +91,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "_PLAYBOOK_SPEC",  # loaded playbook singleton
             "PLAYBOOK",  # derived from _PLAYBOOK_SPEC
             "SKILL_DESCRIPTIONS",  # fixed bundled-skill description table
-            "CREATE_LANES",  # fixed role -> create-lane-types table
         }
     ),
     "src/squads/_cli/_create.py": frozenset(
@@ -110,9 +117,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "_GENERIC_FIELDS",  # fixed generic (non-badge) extra-field catalog
         }
     ),
-    "src/squads/_services/_retype.py": frozenset(
-        {"_BUNDLED_CONTAINER_HEADINGS"}  # fixed bundled sub-entity container heading table
-    ),
     "src/squads/_migrations/_registry.py": frozenset(
         {"MIGRATIONS"}  # the ordered migration table — a point-in-time-frozen definition
     ),
@@ -129,8 +133,10 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {
             "CATALOG",  # closed per-item validator catalog — definition-time, empty in Phase A
             "SQUAD_GLOBAL_CATALOG",  # closed squad-global validator registry, same status
-            "CATEGORY_BUNDLES",  # fixed category -> default-bundle lookup table
         }
+    ),
+    "src/squads/_services/_retirement.py": frozenset(
+        {"CLAUSE_REF_KINDS"}  # fixed clause -> severable-ref-kind declaration, read by --unlink
     ),
     "src/squads/_tui/_tree.py": frozenset(
         {

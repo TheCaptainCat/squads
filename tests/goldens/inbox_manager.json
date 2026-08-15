@@ -3,7 +3,22 @@
     "id": "TASK-3",
     "title": "Implement login",
     "lines": [
+      "- @manager please double check this subtask",
       "- @manager please review the login handler"
+    ],
+    "regions": [
+      "subtask:ST1:discussion#1",
+      null
+    ]
+  },
+  {
+    "id": "TASK-10",
+    "title": "Rotate the signing keys",
+    "lines": [
+      "@manager owns the rotation window"
+    ],
+    "regions": [
+      null
     ]
   }
 ]

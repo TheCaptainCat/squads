@@ -1,7 +1,7 @@
 ## Team workflow
 
-- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
-  `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
+  create with `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
 - **Product owner** → `sq create epic "…" --author product-owner`.
 - **Product owner** → `sq create feature "…" --author product-owner`, then `add-story "…"`.
 - **Tech lead** → `sq create task "…" --author tech-lead` `--parent FEAT-…`, then `add-subtask "…"` `--story USn`; link with `ref add <id> --kind fixes|addresses`.
@@ -19,14 +19,6 @@
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
-
-## Item hierarchy
-
-```mermaid
-flowchart TD
-    epic["epic"] --> feature["feature"]
-    feature["feature"] --> task["task"]
-```
 
 ## Type-command aliases
 
@@ -64,202 +56,6 @@ statuses and transitions.
 | `REV` | `review` | `Requested → InReview → ChangesRequested → Approved (+ Rejected)` |
 | `GUIDE` | `guide` | `Draft → Published → Deprecated` |
 
-`epic` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft : Draft
-    Ready : Ready
-    InProgress : InProgress
-    Cancelled : Cancelled
-    Blocked : Blocked
-    InReview : InReview
-    Done : Done
-    Draft --> Ready
-    Draft --> InProgress
-    Draft --> Cancelled
-    Ready --> InProgress
-    Ready --> Blocked
-    Ready --> Cancelled
-    InProgress --> InReview
-    InProgress --> Blocked
-    InProgress --> Done
-    InProgress --> Cancelled
-    Cancelled --> Draft
-    Blocked --> Ready
-    Blocked --> InProgress
-    Blocked --> Cancelled
-    InReview --> InProgress
-    InReview --> Done
-    InReview --> Blocked
-    InReview --> Cancelled
-    Done --> InProgress
-    Cancelled --> [*]
-    Done --> [*]
-```
-
-`feature` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft : Draft
-    Ready : Ready
-    InProgress : InProgress
-    Cancelled : Cancelled
-    Blocked : Blocked
-    InReview : InReview
-    Done : Done
-    Draft --> Ready
-    Draft --> InProgress
-    Draft --> Cancelled
-    Ready --> InProgress
-    Ready --> Blocked
-    Ready --> Cancelled
-    InProgress --> InReview
-    InProgress --> Blocked
-    InProgress --> Done
-    InProgress --> Cancelled
-    Cancelled --> Draft
-    Blocked --> Ready
-    Blocked --> InProgress
-    Blocked --> Cancelled
-    InReview --> InProgress
-    InReview --> Done
-    InReview --> Blocked
-    InReview --> Cancelled
-    Done --> InProgress
-    Cancelled --> [*]
-    Done --> [*]
-```
-
-`task` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft : Draft
-    Ready : Ready
-    InProgress : InProgress
-    Cancelled : Cancelled
-    Blocked : Blocked
-    InReview : InReview
-    Done : Done
-    Draft --> Ready
-    Draft --> InProgress
-    Draft --> Cancelled
-    Ready --> InProgress
-    Ready --> Blocked
-    Ready --> Cancelled
-    InProgress --> InReview
-    InProgress --> Blocked
-    InProgress --> Done
-    InProgress --> Cancelled
-    Cancelled --> Draft
-    Blocked --> Ready
-    Blocked --> InProgress
-    Blocked --> Cancelled
-    InReview --> InProgress
-    InReview --> Done
-    InReview --> Blocked
-    InReview --> Cancelled
-    Done --> InProgress
-    Cancelled --> [*]
-    Done --> [*]
-```
-
-`bug` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Open
-    Open : Open
-    InProgress : InProgress
-    WontFix : WontFix
-    Cancelled : Cancelled
-    Fixed : Fixed
-    Blocked : Blocked
-    Verified : Verified
-    Open --> InProgress
-    Open --> WontFix
-    Open --> Cancelled
-    InProgress --> Fixed
-    InProgress --> Blocked
-    InProgress --> WontFix
-    InProgress --> Cancelled
-    WontFix --> Open
-    Cancelled --> Open
-    Fixed --> Verified
-    Fixed --> InProgress
-    Blocked --> InProgress
-    Blocked --> WontFix
-    Blocked --> Cancelled
-    Verified --> InProgress
-    WontFix --> [*]
-    Cancelled --> [*]
-    Verified --> [*]
-```
-
-`decision` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Proposed
-    Proposed : Proposed
-    Accepted : Accepted
-    Rejected : Rejected
-    Superseded : Superseded
-    Deprecated : Deprecated
-    Proposed --> Accepted
-    Proposed --> Rejected
-    Accepted --> Superseded
-    Accepted --> Deprecated
-    Rejected --> Proposed
-    Accepted --> [*]
-    Rejected --> [*]
-    Superseded --> [*]
-    Deprecated --> [*]
-```
-
-`review` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Requested
-    Requested : Requested
-    InReview : InReview
-    Rejected : Rejected
-    ChangesRequested : ChangesRequested
-    Approved : Approved
-    Requested --> InReview
-    Requested --> Rejected
-    InReview --> ChangesRequested
-    InReview --> Approved
-    InReview --> Rejected
-    ChangesRequested --> InReview
-    ChangesRequested --> Approved
-    ChangesRequested --> Rejected
-    Rejected --> [*]
-    Approved --> [*]
-```
-
-`guide` lifecycle:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft : Draft
-    Published : Published
-    Deprecated : Deprecated
-    Draft --> Published
-    Published --> Deprecated
-    Published --> Draft
-    Deprecated --> Published
-    Published --> [*]
-    Deprecated --> [*]
-```
-
 ## Retype
 
 Reclassify a work item to a different type — the sequence number (and durable identity) is
@@ -267,7 +63,7 @@ preserved; only the ID prefix changes. All incoming refs, children's parent link
 mentions are rewritten to the new ID atomically.
 
 ```bash
-sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
+sq <type> <n> retype <new-type>   # e.g. sq epic 7 retype feature
 ```
 
 Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
@@ -311,7 +107,7 @@ normal; the reflog records a reconstructable removal line that explains each gap
 
 ## Ref kinds
 
-The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
+The vocabulary is closed — exactly nine kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
 
 | Kind | Meaning | Direction convention | Consumer |
 |---|---|---|---|
@@ -319,9 +115,10 @@ The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. U
 | `blocks` | A is blocking B; B cannot proceed while A is open | `A blocks B` lives on **A** (the blocker) | `sq blocked` |
 | `depends-on` | A depends on B; A cannot proceed while B is open. Equivalent to `B blocks A` — `A depends-on B` ≡ `B blocks A` | `A depends-on B` lives on **A** (the dependent) | `sq blocked` |
 | `implements` | A implements the requirement or spec described by B | `A implements B` lives on A | Navigation |
-| `fixes` | A (a task or PR) fixes bug B | `A fixes B` lives on A | `sq check` task rules |
-| `addresses` | A (a task) addresses or follows up review B | `A addresses B` lives on A | `sq check` task rules |
+| `fixes` | A (the resolving work) fixes the problem tracked by B | `A fixes B` lives on A | `sq check` ref-rule warnings |
+| `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `A addresses B` lives on A | `sq check` ref-rule warnings |
 | `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be Superseded | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
 | `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as Cancelled | `A duplicates B` lives on **A** (the later filing) | Navigation |
+| `scopes` | A (a skill) is scoped to role B; B's generated pointer preloads A | `A scopes B` lives on **A** (the skill) | Preload resolver, retirement gate |
 
 `blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context. Bare `ref add <id>` (no `--kind`) defaults to `related`.

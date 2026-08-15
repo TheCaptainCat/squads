@@ -5,6 +5,8 @@ that interpolates free-form item/discussion/search text.
 
 import pytest
 
+from _helpers import create_item
+
 pytest.importorskip("textual")
 
 from textual.widgets import ListView, Markdown, Static
@@ -33,7 +35,7 @@ def _find(root: TreeNode[str], item_id: str) -> TreeNode[str]:
 
 
 async def test_a_tree_item_title_with_brackets_renders_without_crashing(svc):
-    feat = (await svc.create("feature", f"Title {_BRACKETY}")).item
+    feat = (await create_item(svc, "feature", f"Title {_BRACKETY}")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -45,7 +47,7 @@ async def test_a_tree_item_title_with_brackets_renders_without_crashing(svc):
 
 
 async def test_a_discussion_comment_with_brackets_renders_without_crashing(svc):
-    feat = (await svc.create("feature", "Chatty")).item
+    feat = (await create_item(svc, "feature", "Chatty")).item
     await svc.comment(feat.id, [f"comment {_BRACKETY}"], as_slug="manager")
 
     app = SquadsApp(svc)
@@ -64,7 +66,7 @@ async def test_a_glance_assignee_with_brackets_renders_without_crashing(svc, mon
     # Assignee is validated against registered participants (slugs can't carry brackets), so a
     # bracket-laden assignee can only come from an on-disk file edited outside `sq` — simulate
     # that by having `svc.get` return an item with one, exercising the real render path for it.
-    feat = (await svc.create("feature", "Assigned")).item
+    feat = (await create_item(svc, "feature", "Assigned")).item
     mutated = (await svc.get(feat.id)).model_copy(update={"assignee": f"weird {_BRACKETY}"})
     original_get = type(svc).get
 
@@ -86,7 +88,7 @@ async def test_a_glance_assignee_with_brackets_renders_without_crashing(svc, mon
 
 
 async def test_a_sub_entity_body_with_brackets_renders_without_crashing(svc):
-    feat = (await svc.create("feature", "Has stories")).item
+    feat = (await create_item(svc, "feature", "Has stories")).item
     await svc.add_story(feat.id, "Login")
     await svc.set_story_body(feat.id, "US1", f"body prose {_BRACKETY}")
 
@@ -103,7 +105,7 @@ async def test_a_sub_entity_body_with_brackets_renders_without_crashing(svc):
 
 
 async def test_a_search_snippet_with_brackets_renders_without_crashing(svc):
-    await svc.create("feature", f"Findable {_BRACKETY}", body=f"needle-xyz {_BRACKETY}")
+    await create_item(svc, "feature", f"Findable {_BRACKETY}", body=f"needle-xyz {_BRACKETY}")
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:

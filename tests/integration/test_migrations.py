@@ -7,6 +7,7 @@ import re
 
 import pytest
 
+from _helpers import create_item
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations import _meta_compat, _v0_1_to_v0_2, _v0_2_to_v0_3
@@ -18,7 +19,7 @@ pytestmark = pytest.mark.anyio
 async def _write_legacy_task(svc) -> str:
     """A task created normally, then hand-rewritten to the pre-0.2 (bare refs + ref_kinds)
     shape."""
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     path = svc.paths.abspath(task.path)
     text = path.read_text(encoding="utf-8")
     fm, _ = sections.split_frontmatter(text)
@@ -45,12 +46,12 @@ async def test_v0_1_to_v0_2_folds_ref_kinds_inline_and_is_idempotent(svc):
 
 
 async def test_v0_1_to_v0_2_is_a_noop_on_an_already_current_squad(svc):
-    await svc.create("task", "fresh")  # already written in the new format
+    await create_item(svc, "task", "fresh")  # already written in the new format
     assert _v0_1_to_v0_2.migrate(svc.paths) == 0
 
 
 async def test_v0_1_to_v0_2_gives_a_legacy_review_a_findings_skeleton(svc):
-    rev = (await svc.create("review", "R")).item
+    rev = (await create_item(svc, "review", "R")).item
     path = svc.paths.abspath(rev.path)
     text = path.read_text(encoding="utf-8")
     for tag in ("findings", "summary"):
@@ -89,11 +90,11 @@ async def _devolve_to_v0_2(svc, item_id: str, kind: str) -> None:
 
 async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_the_head(svc):
     await svc.add_dev("python", name="Grace Hopper")
-    feat = (await svc.create("feature", "Login")).item
+    feat = (await create_item(svc, "feature", "Login")).item
     await svc.add_story(feat.id, "As a user, I want to reset my password")
-    task = (await svc.create("task", "Auth", parent=feat.id)).item
+    task = (await create_item(svc, "task", "Auth", parent=feat.id)).item
     await svc.add_subtask(task.id, "Validate", story="US1", assignee="python-dev")
-    rev = (await svc.create("review", "r")).item
+    rev = (await create_item(svc, "review", "r")).item
     await svc.add_finding(rev.id, "Null deref", severity="high")
 
     for item_id, kind in ((feat.id, "story"), (task.id, "subtask"), (rev.id, "finding")):
@@ -118,12 +119,69 @@ async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_the_head(svc
     assert sub_head is not None
     assert "**Status:** ⚪ Todo" in sub_head
     assert "**Assignee:** Grace Hopper" in sub_head  # slug resolved to the role's full name
+    # No override in play — the carried-forward status is reachable, nothing to flag.
+    assert "migration:" not in (sections.get_section(final, "discussion") or "")
+
+    assert _v0_2_to_v0_3.migrate(svc.paths) == 0  # idempotent
+
+
+async def test_v0_2_to_v0_3_carries_forward_a_status_the_active_override_cant_reach(svc, invoke):
+    """A 0.2 squad whose active override replaces the subtask lifecycle: the legacy status is
+    carried forward unchanged (never rewritten, never invented) — the runner itself reports
+    nothing (it's frozen, and `sq check` already validates a sub-entity's status against this
+    same active/override-aware spec, with a non-zero exit)."""
+    task = (await create_item(svc, "task", "Auth")).item
+    await svc.add_subtask(task.id, "Validate")
+    await svc.update_subtask(task.id, "ST1", status="InProgress")
+    await svc.update_subtask(task.id, "ST1", status="Done")
+    await _devolve_to_v0_2(svc, task.id, "subtask")
+
+    override_dir = svc.paths.squad_dir / ".overrides"
+    override_dir.mkdir(parents=True, exist_ok=True)
+    (override_dir / "workflow.toml").write_text(
+        """
+[statuses.Pending]
+role = "pending"
+
+[statuses.Doing]
+role = "active"
+
+[statuses.Complete]
+role = "done"
+
+[subentity_kinds.subtask]
+lifecycle = "custom_subtask"
+completion = "Complete"
+
+[lifecycles.custom_subtask]
+initial = "Pending"
+
+[lifecycles.custom_subtask.transitions]
+Pending = ["Doing"]
+Doing = ["Complete"]
+Complete = []
+""",
+        encoding="utf-8",
+    )
+
+    changed = _v0_2_to_v0_3.migrate(svc.paths)
+    assert changed == 1
+
+    sub_path = svc.paths.abspath((await svc.get(task.id)).path)
+    (sub,) = read_frontmatter(sub_path)["subentities"]
+    assert sub["status"] == "Done"  # carried forward unchanged, never rewritten/invented
+    final_text = sub_path.read_text(encoding="utf-8")
+    assert "migration:" not in (sections.get_section(final_text, "discussion") or "")
+
+    r = await invoke(["check"])
+    assert r.exit_code != 0
+    assert "invalid status" in r.output and "Done" in r.output and task.id in r.output
 
     assert _v0_2_to_v0_3.migrate(svc.paths) == 0  # idempotent
 
 
 async def test_v0_2_to_v0_3_backfills_a_missing_sequence_id(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     p = svc.paths.abspath(task.path)
     stripped = re.sub(r"\nsequence_id: \d+", "", p.read_text(encoding="utf-8"))
     p.write_text(stripped, encoding="utf-8")

@@ -5,14 +5,15 @@ refs, backrefs, `sq check`) working at the new width.
 
 import pytest
 
+from _helpers import create_item
 from squads._errors import SquadsError
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_repad_renames_files_bumps_padding_and_leaves_bytes_identical(svc):
-    feat = (await svc.create("feature", "feat")).item
-    task = (await svc.create("task", "task")).item
+    feat = (await create_item(svc, "feature", "feat")).item
+    task = (await create_item(svc, "task", "task")).item
     original_bytes = svc.paths.abspath(task.path).read_bytes()
 
     renamed = await svc.repad(7)
@@ -29,7 +30,7 @@ async def test_repad_renames_files_bumps_padding_and_leaves_bytes_identical(svc)
 
 
 async def test_repad_refuses_to_lower_the_width(svc):
-    await svc.create("task", "t")
+    await create_item(svc, "task", "t")
     with pytest.raises(SquadsError, match="must be greater than"):
         await svc.repad(6)
     with pytest.raises(SquadsError, match="must be greater than"):
@@ -37,7 +38,7 @@ async def test_repad_refuses_to_lower_the_width(svc):
 
 
 async def test_repad_is_idempotent_on_files_already_at_the_target_width(svc):
-    await svc.create("task", "t")
+    await create_item(svc, "task", "t")
     await svc.repad(7)
     renamed_again = await svc.repad(8)
     assert renamed_again > 0  # width-7 -> width-8 does rename
@@ -48,8 +49,8 @@ async def test_repad_is_idempotent_on_files_already_at_the_target_width(svc):
 async def test_repad_leaves_check_clean_and_every_id_resolution_path_working(svc):
     """Display stays unpadded, and parent/ref lookups resolve at any width — the filename
     change must never leak into content or lookups."""
-    feat = (await svc.create("feature", "feat")).item
-    task = (await svc.create("task", "task", parent=feat.id)).item
+    feat = (await create_item(svc, "feature", "feat")).item
+    task = (await create_item(svc, "task", "task", parent=feat.id)).item
     await svc.add_ref(task.id, feat.id)
 
     await svc.repad(7)

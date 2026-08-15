@@ -31,7 +31,7 @@ async def test_posting_a_notice_goes_through_the_atomic_primitive(svc, monkeypat
     monkeypatch.setattr(_aio, "atomic_write_text", _spy)
     monkeypatch.setattr(_aio, "write_text", _fail_if_reached)
 
-    notice = await svc.board_post("op-pierre", "a notice for the board")
+    notice = await svc.board_post("op-alice", "a notice for the board")
 
     assert len(calls) == 1
     assert calls[0][0] == _notice_path(svc, notice)
@@ -44,7 +44,7 @@ async def test_a_failure_between_the_temp_write_and_the_replace_leaves_no_notice
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(pathlib.Path, "replace", _raise)
         with pytest.raises(OSError, match="simulated crash"):
-            await svc.board_post("op-pierre", "a notice that never lands")
+            await svc.board_post("op-alice", "a notice that never lands")
 
     # The create direction: no notice existed at this content-derived path before, so an
     # interrupted write must leave nothing there -- never a half-written orphan.
@@ -53,12 +53,12 @@ async def test_a_failure_between_the_temp_write_and_the_replace_leaves_no_notice
     assert on_disk == []
 
     # A normal (uninterrupted) post afterwards still works fine.
-    notice = await svc.board_post("op-pierre", "a notice that lands cleanly")
+    notice = await svc.board_post("op-alice", "a notice that lands cleanly")
     assert _notice_path(svc, notice).read_text(encoding="utf-8")
 
 
 async def test_an_interrupted_post_never_disturbs_an_existing_notice(svc):
-    existing = await svc.board_post("op-pierre", "an existing notice, untouched by later posts")
+    existing = await svc.board_post("op-alice", "an existing notice, untouched by later posts")
     existing_bytes = _notice_path(svc, existing).read_bytes()
 
     def _raise(self, target):
@@ -67,8 +67,8 @@ async def test_an_interrupted_post_never_disturbs_an_existing_notice(svc):
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(pathlib.Path, "replace", _raise)
         with pytest.raises(OSError, match="simulated crash"):
-            await svc.board_post("op-pierre", "a second notice that never lands")
+            await svc.board_post("op-alice", "a second notice that never lands")
 
     assert _notice_path(svc, existing).read_bytes() == existing_bytes
-    listed = await svc.board_list()
+    listed, _unreadable = await svc.board_list()
     assert [n.id for n in listed] == [existing.id]

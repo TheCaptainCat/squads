@@ -72,5 +72,5 @@ async def test_an_interrupted_add_never_disturbs_an_existing_entry(svc):
             await svc.memory_add(_ROLE, "a second fact that never lands")
 
     assert _entry_path(svc, existing).read_bytes() == existing_bytes
-    listed = await svc.memory_list(_ROLE)
+    listed, _unreadable = await svc.memory_list(_ROLE)
     assert [e.slug for e in listed] == [existing.slug]

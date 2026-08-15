@@ -72,12 +72,12 @@ def test_two_branches_posting_distinct_notices_merge_the_md_files_cleanly(tmp_pa
     _git(tmp_path, "branch", "branch-beta")
 
     _git(tmp_path, "checkout", "-q", "branch-alpha")
-    _sq(tmp_path, "board", "post", "-m", "notice posted from branch alpha")
+    _sq(tmp_path, "board", "post", "-m", "notice posted from branch alpha", "--as", "manager")
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-q", "-m", "alpha notice")
 
     _git(tmp_path, "checkout", "-q", "branch-beta")
-    _sq(tmp_path, "board", "post", "-m", "notice posted from branch beta")
+    _sq(tmp_path, "board", "post", "-m", "notice posted from branch beta", "--as", "manager")
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-q", "-m", "beta notice")
 
@@ -110,7 +110,7 @@ def test_two_branches_posting_distinct_notices_merge_the_md_files_cleanly(tmp_pa
 
 def test_clearing_a_notice_is_a_real_git_deletion_with_history_retained(tmp_path):
     _seed_git_repo(tmp_path)
-    _sq(tmp_path, "board", "post", "-m", "a notice that will later be cleared")
+    _sq(tmp_path, "board", "post", "-m", "a notice that will later be cleared", "--as", "manager")
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-q", "-m", "post the notice")
     posted_commit = _git(tmp_path, "rev-parse", "HEAD").stdout.strip()
@@ -134,7 +134,7 @@ def test_clearing_a_notice_is_a_real_git_deletion_with_history_retained(tmp_path
 
 def test_listing_after_a_clean_merge_leaves_no_git_tracked_file_dirty(tmp_path):
     _seed_git_repo(tmp_path)
-    _sq(tmp_path, "board", "post", "-m", "a notice to read back")
+    _sq(tmp_path, "board", "post", "-m", "a notice to read back", "--as", "manager")
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-q", "-m", "post a notice")
     assert _git(tmp_path, "status", "--porcelain").stdout.strip() == ""

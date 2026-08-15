@@ -117,3 +117,41 @@ async def test_link_role_run_for_several_roles_preloads_all_and_only_those(
     for slug in ("manager", "devops", "tech-writer"):
         assert "release-runbook" in _pointer_text(seeded_paths, slug)
     assert "release-runbook" not in _pointer_text(seeded_paths, "python-dev")
+
+
+# --------------------------------------------------------------------------- status --unlink
+
+
+async def test_status_unlink_reports_the_severed_scope_edge_and_retires_the_skill(
+    seeded_paths, invoke
+) -> None:
+    svc = service.Service(seeded_paths)
+    role = await svc.activate_role("tech-writer")
+    skill = await svc.add_skill("Release Runbook")
+    r = await invoke(["skill", str(skill.sequence_id), "link-role", "tech-writer"])
+    assert r.exit_code == 0, r.output
+
+    r = await invoke(["skill", str(skill.sequence_id), "status", "Archived", "--unlink"])
+
+    assert r.exit_code == 0, r.output
+    assert "Archived" in r.output
+    assert "severed" in r.output
+    assert skill.id in r.output and role.id in r.output
+    assert "scopes" in r.output
+    assert await svc.refs_out(skill.id) == []
+
+
+async def test_status_unlink_without_the_flag_leaves_the_scope_edge_and_refuses(
+    seeded_paths, invoke
+) -> None:
+    svc = service.Service(seeded_paths)
+    await svc.activate_role("tech-writer")
+    skill = await svc.add_skill("Release Runbook")
+    r = await invoke(["skill", str(skill.sequence_id), "link-role", "tech-writer"])
+    assert r.exit_code == 0, r.output
+
+    r = await invoke(["skill", str(skill.sequence_id), "status", "Archived"])
+
+    assert r.exit_code == 1
+    assert "scoped to live role" in r.output
+    assert "Traceback" not in r.output

@@ -6,6 +6,7 @@ rules themselves are proven once at tests/service/test_check_ref_kind_and_supers
 
 import pytest
 
+from _helpers import create_item
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 
@@ -16,9 +17,9 @@ async def test_check_cli_prints_both_warnings_and_exits_0(project, invoke):
     from squads._services._service import Service
 
     svc = Service(project)
-    a = (await svc.create("task", "a")).item
-    await svc.create("task", "b")
-    old_adr = (await svc.create("decision", "old decision")).item
+    a = (await create_item(svc, "task", "a")).item
+    await create_item(svc, "task", "b")
+    old_adr = (await create_item(svc, "decision", "old decision")).item
 
     # Inject an out-of-vocabulary kind directly into frontmatter.
     path = svc.paths.abspath(a.path)

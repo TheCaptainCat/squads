@@ -20,8 +20,8 @@ async def test_accepts_a_registered_agent_slug(svc) -> None:
 
 
 async def test_accepts_a_registered_operator_slug(svc) -> None:
-    await svc.add_operator("Pierre Chat")
-    assert await resolve_slug_or_raise("op-pierre", svc) == "op-pierre"
+    await svc.add_operator("Alice Tester")
+    assert await resolve_slug_or_raise("op-alice", svc) == "op-alice"
 
 
 async def test_accepts_the_legacy_anonymous_operator_sentinel(svc) -> None:
@@ -38,13 +38,13 @@ async def test_raises_on_an_unknown_slug(svc) -> None:
 
 
 async def test_error_message_names_at_least_one_valid_slug(svc) -> None:
-    await svc.add_operator("Pierre Chat")
+    await svc.add_operator("Alice Tester")
     with pytest.raises(SquadsError) as exc_info:
         await resolve_slug_or_raise("nobody", svc)
-    assert "manager" in str(exc_info.value) or "op-pierre" in str(exc_info.value)
+    assert "manager" in str(exc_info.value) or "op-alice" in str(exc_info.value)
 
 
 async def test_an_operator_slug_is_a_valid_author_on_a_work_item(svc) -> None:
-    await svc.add_operator("Pierre Chat")
-    res = await svc.create("task", "manual", author="op-pierre")
-    assert res.item.author == "op-pierre"
+    await svc.add_operator("Alice Tester")
+    res = await svc.create("task", "manual", author="op-alice")
+    assert res.item.author == "op-alice"

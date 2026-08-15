@@ -5,6 +5,8 @@ their empty states).
 
 import pytest
 
+from _helpers import create_item
+
 pytest.importorskip("textual")
 
 from textual.containers import VerticalScroll
@@ -60,9 +62,9 @@ async def test_launching_and_quitting_leaves_no_running_app(svc):
 
 
 async def test_tree_matches_the_service_tree_view_structure(svc):
-    epic = (await svc.create("epic", "Epic")).item
-    feat = (await svc.create("feature", "Feature", parent=epic.id)).item
-    task = (await svc.create("task", "Task", parent=feat.id)).item
+    epic = (await create_item(svc, "epic", "Epic")).item
+    feat = (await create_item(svc, "feature", "Feature", parent=epic.id)).item
+    task = (await create_item(svc, "task", "Task", parent=feat.id)).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -81,9 +83,9 @@ async def test_tree_matches_the_service_tree_view_structure(svc):
 
 
 async def test_tree_splits_top_level_into_work_records_and_roster_groups(svc):
-    epic = (await svc.create("epic", "Epic")).item
-    feat = (await svc.create("feature", "Feature")).item
-    decision = (await svc.create("decision", "Use widgets")).item
+    epic = (await create_item(svc, "epic", "Epic")).item
+    feat = (await create_item(svc, "feature", "Feature")).item
+    decision = (await create_item(svc, "decision", "Use widgets")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -104,7 +106,7 @@ async def test_tree_splits_top_level_into_work_records_and_roster_groups(svc):
 
 
 async def test_empty_records_root_renders_without_error(svc):
-    await svc.create("feature", "Feature")
+    await create_item(svc, "feature", "Feature")
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -118,9 +120,9 @@ async def test_empty_records_root_renders_without_error(svc):
 
 
 async def test_keyboard_moves_between_siblings_into_children_and_back_to_parent(svc):
-    feat = (await svc.create("feature", "Feature")).item
-    task1 = (await svc.create("task", "Task one", parent=feat.id)).item
-    task2 = (await svc.create("task", "Task two", parent=feat.id)).item
+    feat = (await create_item(svc, "feature", "Feature")).item
+    task1 = (await create_item(svc, "task", "Task one", parent=feat.id)).item
+    task2 = (await create_item(svc, "task", "Task two", parent=feat.id)).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -147,8 +149,8 @@ async def test_keyboard_moves_between_siblings_into_children_and_back_to_parent(
 
 
 async def test_selecting_a_node_loads_its_detail_and_reselection_refreshes_it(svc):
-    feat1 = (await svc.create("feature", "First", body="First body")).item
-    feat2 = (await svc.create("feature", "Second", body="Second body")).item
+    feat1 = (await create_item(svc, "feature", "First", body="First body")).item
+    feat2 = (await create_item(svc, "feature", "Second", body="Second body")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -170,9 +172,9 @@ async def test_selecting_a_node_loads_its_detail_and_reselection_refreshes_it(sv
 
 async def test_reader_header_shows_status_priority_and_assignee_gracefully(svc):
     with_priority = (
-        await svc.create("feature", "Prioritized", priority="high", assignee="manager")
+        await create_item(svc, "feature", "Prioritized", priority="high", assignee="manager")
     ).item
-    bare = (await svc.create("feature", "Bare")).item
+    bare = (await create_item(svc, "feature", "Bare")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -191,8 +193,8 @@ async def test_reader_header_shows_status_priority_and_assignee_gracefully(svc):
 
 
 async def test_body_tab_renders_markdown_blocks_and_an_empty_state_for_a_blank_body(svc):
-    with_body = (await svc.create("feature", "Doc'd", body="# Heading\n\nSome text.")).item
-    blank = (await svc.create("feature", "Blank", body="")).item
+    with_body = (await create_item(svc, "feature", "Doc'd", body="# Heading\n\nSome text.")).item
+    blank = (await create_item(svc, "feature", "Blank", body="")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -212,7 +214,7 @@ async def test_body_tab_renders_markdown_blocks_and_an_empty_state_for_a_blank_b
 
 async def test_body_tab_scrolls_to_reach_content_below_the_fold(svc):
     tall_body = "\n\n".join(f"Paragraph {i}" for i in range(200))
-    tall = (await svc.create("feature", "Tall", body=tall_body)).item
+    tall = (await create_item(svc, "feature", "Tall", body=tall_body)).item
 
     app = SquadsApp(svc)
     async with app.run_test(size=(80, 24)) as pilot:
@@ -232,10 +234,10 @@ async def test_body_tab_scrolls_to_reach_content_below_the_fold(svc):
 
 
 async def test_subentities_tab_shows_each_blocks_head_and_body_with_empty_states(svc):
-    feat = (await svc.create("feature", "Has stories")).item
+    feat = (await create_item(svc, "feature", "Has stories")).item
     await svc.add_story(feat.id, "Login", assignee="manager")
     await svc.set_story_body(feat.id, "US1", "Some story prose.")
-    feat_empty = (await svc.create("feature", "No stories")).item
+    feat_empty = (await create_item(svc, "feature", "No stories")).item
     role = await svc.get("ROLE-1")
 
     app = SquadsApp(svc)
@@ -262,10 +264,10 @@ async def test_subentities_tab_shows_each_blocks_head_and_body_with_empty_states
 
 
 async def test_discussion_tab_renders_markdown_ordered_comments_and_empty_state(svc):
-    feat = (await svc.create("feature", "Chatty")).item
+    feat = (await create_item(svc, "feature", "Chatty")).item
     await svc.comment(feat.id, ["first\n- a bullet"], as_slug="manager")
     await svc.comment(feat.id, ["second"], as_slug="manager")
-    quiet = (await svc.create("feature", "Quiet")).item
+    quiet = (await create_item(svc, "feature", "Quiet")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -287,7 +289,7 @@ async def test_discussion_tab_renders_markdown_ordered_comments_and_empty_state(
 
 
 async def test_reader_tabs_are_switchable_by_keyboard(svc):
-    feat = (await svc.create("feature", "Feature")).item
+    feat = (await create_item(svc, "feature", "Feature")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:

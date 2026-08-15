@@ -5,6 +5,7 @@ before their first write -- never mid-flight, which would leave the batch partia
 
 import pytest
 
+from _helpers import create_item
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
 
@@ -26,8 +27,8 @@ async def _drift_via_interrupted_index_commit(svc, monkeypatch, item_id: str) ->
 async def test_bulk_retype_refuses_before_its_first_write_when_one_target_has_drifted(
     svc, monkeypatch
 ):
-    drifted = (await svc.create("task", "Drifted retype target")).item
-    healthy = (await svc.create("task", "Healthy retype target")).item
+    drifted = (await create_item(svc, "task", "Drifted retype target")).item
+    healthy = (await create_item(svc, "task", "Healthy retype target")).item
     await _drift_via_interrupted_index_commit(svc, monkeypatch, drifted.id)
 
     with pytest.raises(SquadsError, match="repair"):
@@ -41,8 +42,8 @@ async def test_bulk_retype_refuses_before_its_first_write_when_one_target_has_dr
 
 
 async def test_bulk_retype_of_a_clean_set_is_unaffected(svc):
-    a = (await svc.create("task", "Clean retype A")).item
-    b = (await svc.create("task", "Clean retype B")).item
+    a = (await create_item(svc, "task", "Clean retype A")).item
+    b = (await create_item(svc, "task", "Clean retype B")).item
 
     result = await svc.rename_type("task", "bug")
 
@@ -56,8 +57,8 @@ async def test_bulk_retype_of_a_clean_set_is_unaffected(svc):
 async def test_bulk_rename_status_refuses_before_its_first_write_when_one_target_has_drifted(
     svc, monkeypatch
 ):
-    drifted = (await svc.create("task", "Drifted rename-status target")).item
-    healthy = (await svc.create("task", "Healthy rename-status target")).item
+    drifted = (await create_item(svc, "task", "Drifted rename-status target")).item
+    healthy = (await create_item(svc, "task", "Healthy rename-status target")).item
     await _drift_via_interrupted_index_commit(svc, monkeypatch, drifted.id)
 
     with pytest.raises(SquadsError, match="repair"):
@@ -70,8 +71,8 @@ async def test_bulk_rename_status_refuses_before_its_first_write_when_one_target
 
 
 async def test_bulk_rename_status_of_a_clean_set_is_unaffected(svc):
-    a = (await svc.create("task", "Clean rename-status A")).item
-    b = (await svc.create("task", "Clean rename-status B")).item
+    a = (await create_item(svc, "task", "Clean rename-status A")).item
+    b = (await create_item(svc, "task", "Clean rename-status B")).item
 
     result = await svc.rename_status("task", "Draft", "Ready")
 

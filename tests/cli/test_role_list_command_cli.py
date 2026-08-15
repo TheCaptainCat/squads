@@ -1,5 +1,6 @@
 """``sq role list`` — the active roster, distinct from ``sq role catalog`` (the bundled catalog).
-Table output carries an active/inactive marker column; ``--json`` gives an additive machine shape.
+Table output carries a live/not-live marker column; ``--json`` gives an additive machine
+shape.
 """
 
 import json
@@ -9,10 +10,14 @@ import pytest
 pytestmark = pytest.mark.anyio
 
 
-async def test_plain_output_lists_the_active_roster_with_an_active_marker(project, invoke) -> None:
+async def test_plain_output_lists_the_active_roster_with_a_live_marker(project, invoke) -> None:
     r = await invoke(["role", "list"])
     assert r.exit_code == 0, r.output
     assert "manager" in r.output
+    # The column reads "Live" (not "Active") and the default bundled `manager` role is
+    # live (its status resolves to the live `active` role), so the tick renders.
+    assert "Live" in r.output
+    assert "✓" in r.output
 
 
 async def test_json_output_shape(project, invoke) -> None:

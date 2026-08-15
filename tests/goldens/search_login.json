@@ -26,7 +26,7 @@
       {
         "region": "summary",
         "location": "summary",
-        "snippet": "| --- | --- | --- | --- | --- | / | ST1 | Todo |  | Write login handler | US1 |"
+        "snippet": "| --- | --- | --- | --- | --- | / | ST1 | Todo | manager | Write login handler | US1 |"
       },
       {
         "region": "subtask:ST1",

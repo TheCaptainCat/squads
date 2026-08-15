@@ -13,6 +13,7 @@ write on any of these routes.
 
 import pytest
 
+from _helpers import create_item
 from squads import _aio
 
 pytestmark = pytest.mark.anyio
@@ -23,7 +24,7 @@ async def _fail_if_reached(path, text):
 
 
 async def test_commenting_never_reaches_the_plain_write(svc, monkeypatch):
-    task = (await svc.create("task", "Comment target")).item
+    task = (await create_item(svc, "task", "Comment target")).item
     monkeypatch.setattr(_aio, "write_text", _fail_if_reached)
 
     await svc.comment(task.id, ["a note on the record"], as_slug="manager")
@@ -33,7 +34,7 @@ async def test_commenting_never_reaches_the_plain_write(svc, monkeypatch):
 
 
 async def test_adding_a_sub_entity_block_never_reaches_the_plain_write(svc, monkeypatch):
-    review = (await svc.create("review", "Review target")).item
+    review = (await create_item(svc, "review", "Review target")).item
     monkeypatch.setattr(_aio, "write_text", _fail_if_reached)
 
     result = await svc.add_finding(review.id, "A finding")
@@ -44,7 +45,7 @@ async def test_adding_a_sub_entity_block_never_reaches_the_plain_write(svc, monk
 
 
 async def test_retyping_an_item_never_reaches_the_plain_write(svc, monkeypatch):
-    task = (await svc.create("task", "Retype target")).item
+    task = (await create_item(svc, "task", "Retype target")).item
     monkeypatch.setattr(_aio, "write_text", _fail_if_reached)
 
     result = await svc.retype(task.id, "bug")
@@ -55,7 +56,7 @@ async def test_retyping_an_item_never_reaches_the_plain_write(svc, monkeypatch):
 
 
 async def test_bulk_renaming_a_status_never_reaches_the_plain_write(svc, monkeypatch):
-    task = (await svc.create("task", "Rename-status target")).item
+    task = (await create_item(svc, "task", "Rename-status target")).item
     monkeypatch.setattr(_aio, "write_text", _fail_if_reached)
 
     result = await svc.rename_status("task", "Draft", "Ready")

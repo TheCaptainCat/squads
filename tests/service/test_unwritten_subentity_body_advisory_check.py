@@ -7,6 +7,7 @@ tests/cli/test_unwritten_subentity_body_advisory_check_cli.py.
 
 import pytest
 
+from _helpers import create_item
 from squads import _discussion as discussion
 
 pytestmark = pytest.mark.anyio
@@ -19,7 +20,7 @@ def _unwritten_body_issues(issues):
 async def test_a_fresh_placeholder_body_is_flagged_warn_naming_the_parent_and_local_id(
     svc,
 ) -> None:
-    feat = (await svc.create("feature", "My feature")).item
+    feat = (await create_item(svc, "feature", "My feature")).item
     res = await svc.add_story(feat.id, "A story")
     issues = _unwritten_body_issues(await svc.check())
     assert len(issues) == 1
@@ -29,9 +30,9 @@ async def test_a_fresh_placeholder_body_is_flagged_warn_naming_the_parent_and_lo
 
 
 async def test_subtask_and_finding_placeholders_are_flagged_the_same_way(svc) -> None:
-    task = (await svc.create("task", "My task")).item
+    task = (await create_item(svc, "task", "My task")).item
     await svc.add_subtask(task.id, "A subtask")
-    review = (await svc.create("review", "My review")).item
+    review = (await create_item(svc, "review", "My review")).item
     await svc.add_finding(review.id, "A finding")
 
     issues = _unwritten_body_issues(await svc.check())
@@ -40,7 +41,7 @@ async def test_subtask_and_finding_placeholders_are_flagged_the_same_way(svc) ->
 
 
 async def test_writing_a_real_body_clears_the_flag(svc) -> None:
-    feat = (await svc.create("feature", "My feature")).item
+    feat = (await create_item(svc, "feature", "My feature")).item
     res = await svc.add_story(feat.id, "A story")
     await svc.set_story_body(feat.id, res.local_id, "As a user, I want X so that Y.")
     assert not _unwritten_body_issues(await svc.check())
@@ -49,7 +50,7 @@ async def test_writing_a_real_body_clears_the_flag(svc) -> None:
 async def test_a_body_diverging_from_the_placeholder_by_one_character_is_not_flagged(
     svc,
 ) -> None:
-    feat = (await svc.create("feature", "My feature")).item
+    feat = (await create_item(svc, "feature", "My feature")).item
     res = await svc.add_story(feat.id, "A story")
     placeholder = discussion.body_placeholder("story")
     await svc.set_story_body(feat.id, res.local_id, placeholder[:-1] + "!")
@@ -57,14 +58,14 @@ async def test_a_body_diverging_from_the_placeholder_by_one_character_is_not_fla
 
 
 async def test_multiple_unwritten_bodies_each_produce_their_own_issue(svc) -> None:
-    feat = (await svc.create("feature", "My feature")).item
+    feat = (await create_item(svc, "feature", "My feature")).item
     await svc.add_story(feat.id, "Story one")
     await svc.add_story(feat.id, "Story two")
     assert len(_unwritten_body_issues(await svc.check())) == 2
 
 
 async def test_a_mix_of_written_and_unwritten_bodies_flags_only_the_unwritten_one(svc) -> None:
-    feat = (await svc.create("feature", "My feature")).item
+    feat = (await create_item(svc, "feature", "My feature")).item
     written = await svc.add_story(feat.id, "Story one")
     await svc.set_story_body(feat.id, written.local_id, "Real acceptance criteria.")
     await svc.add_story(feat.id, "Story two")
@@ -72,12 +73,12 @@ async def test_a_mix_of_written_and_unwritten_bodies_flags_only_the_unwritten_on
 
 
 async def test_an_item_with_no_subentities_produces_no_issue(svc) -> None:
-    await svc.create("feature", "My feature")
+    await create_item(svc, "feature", "My feature")
     assert not _unwritten_body_issues(await svc.check())
 
 
 async def test_the_warn_level_never_affects_other_issue_levels(svc) -> None:
-    feat = (await svc.create("feature", "My feature")).item
+    feat = (await create_item(svc, "feature", "My feature")).item
     await svc.add_story(feat.id, "A story")
     for issue in _unwritten_body_issues(await svc.check()):
         assert issue.level == "warn"

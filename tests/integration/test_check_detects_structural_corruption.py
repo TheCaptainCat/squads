@@ -7,11 +7,13 @@ purpose — that's not corruption, it's a not-yet-migrated file).
 
 import pytest
 
+from _helpers import create_item
+
 pytestmark = pytest.mark.anyio
 
 
 async def test_check_detects_a_dangling_parent(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     async with svc.store.transaction() as db:
         db.items[task.sequence_id].parent = "FEAT-999999"
     issues = await svc.check()
@@ -19,7 +21,7 @@ async def test_check_detects_a_dangling_parent(svc):
 
 
 async def test_check_detects_a_broken_marker(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     path = svc.paths.abspath(task.path)
     text = path.read_text(encoding="utf-8").replace("<!-- sq:body:end -->", "")
     path.write_text(text, encoding="utf-8")

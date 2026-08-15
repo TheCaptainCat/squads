@@ -1,0 +1,18 @@
+{
+  "local_id": "ST1",
+  "title": "Write login handler",
+  "status": "Todo",
+  "assignee": "manager",
+  "severity": null,
+  "story": "US1",
+  "extra": {},
+  "body": "_Describe this subtask here \u2014 free-form paragraphs or bullet lists._",
+  "badges": {},
+  "discussion": [
+    {
+      "author": "Catherine Manager",
+      "ts": "2026-06-07T10:00:00Z",
+      "body": "- @manager please double check this subtask"
+    }
+  ]
+}

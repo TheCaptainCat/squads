@@ -8,12 +8,14 @@ while still blocked (something else it depends on isn't).
 
 import pytest
 
+from _helpers import create_item
+
 pytestmark = pytest.mark.anyio
 
 
 async def test_depends_on_and_blocks_are_equivalent_spellings(svc):
-    blocker = (await svc.create("task", "blocker")).item
-    dependent = (await svc.create("task", "dependent")).item
+    blocker = (await create_item(svc, "task", "blocker")).item
+    dependent = (await create_item(svc, "task", "dependent")).item
 
     await svc.add_ref(dependent.id, blocker.id, kind="depends-on")
 
@@ -25,9 +27,9 @@ async def test_depends_on_and_blocks_are_equivalent_spellings(svc):
 
 
 async def test_an_item_blocked_via_both_edge_spellings_appears_once_with_the_union(svc):
-    blocker_a = (await svc.create("task", "blocker-a")).item
-    blocker_b = (await svc.create("task", "blocker-b")).item
-    dependent = (await svc.create("task", "dependent")).item
+    blocker_a = (await create_item(svc, "task", "blocker-a")).item
+    blocker_b = (await create_item(svc, "task", "blocker-b")).item
+    dependent = (await create_item(svc, "task", "dependent")).item
 
     await svc.add_ref(blocker_a.id, dependent.id, kind="blocks")
     await svc.add_ref(dependent.id, blocker_b.id, kind="depends-on")
@@ -40,8 +42,8 @@ async def test_an_item_blocked_via_both_edge_spellings_appears_once_with_the_uni
 
 
 async def test_a_closed_blocker_no_longer_counts(svc):
-    blocker = (await svc.create("task", "blocker")).item
-    dependent = (await svc.create("task", "dependent")).item
+    blocker = (await create_item(svc, "task", "blocker")).item
+    dependent = (await create_item(svc, "task", "dependent")).item
     await svc.add_ref(dependent.id, blocker.id, kind="depends-on")
 
     await svc.set_status(blocker.id, "InProgress")
@@ -52,8 +54,8 @@ async def test_a_closed_blocker_no_longer_counts(svc):
 async def test_a_closed_dependent_is_never_reported_as_blocked_even_with_an_open_blocker(svc):
     """The *target* being closed (not the blocker) short-circuits ``blocked()`` — a distinct
     branch from ``test_a_closed_blocker_no_longer_counts`` above, which closes the blocker."""
-    blocker = (await svc.create("task", "still open")).item
-    dependent = (await svc.create("task", "already done")).item
+    blocker = (await create_item(svc, "task", "still open")).item
+    dependent = (await create_item(svc, "task", "already done")).item
     await svc.add_ref(dependent.id, blocker.id, kind="depends-on")
 
     await svc.set_status(dependent.id, "InProgress")
@@ -65,8 +67,8 @@ async def test_an_item_can_be_ready_and_blocked_at_the_same_time(svc):
     """Ready-ness is about the item's OWN prose being done; blocked-ness is about a
     still-open dependency. The two facts hold on the same item simultaneously — orthogonal
     axes, not a state machine where one implies the other."""
-    blocker = (await svc.create("task", "still open")).item
-    dependent = (await svc.create("task", "prose is done")).item
+    blocker = (await create_item(svc, "task", "still open")).item
+    dependent = (await create_item(svc, "task", "prose is done")).item
     await svc.add_ref(dependent.id, blocker.id, kind="depends-on")
 
     await svc.set_status(dependent.id, "Ready")  # own status: Ready

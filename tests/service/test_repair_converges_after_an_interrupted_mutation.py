@@ -7,6 +7,7 @@ state.
 
 import pytest
 
+from _helpers import create_item
 from squads._index._resolver import item_file
 from squads._index._store import IndexStore
 from squads._itemfile import read_frontmatter
@@ -33,7 +34,7 @@ async def test_create_survives_a_crash_between_the_file_write_and_the_index_comm
     with pytest.MonkeyPatch.context() as mp:
         _crash_the_commit(mp)
         with pytest.raises(OSError, match="simulated crash"):
-            await svc.create("task", "Interrupted create")
+            await create_item(svc, "task", "Interrupted create")
 
     # The file was written (create's own write_new runs inside the transaction body) but the
     # index commit never happened.
@@ -50,7 +51,7 @@ async def test_create_survives_a_crash_between_the_file_write_and_the_index_comm
 
 
 async def test_a_status_update_survives_a_crash_between_the_file_write_and_the_index_commit(svc):
-    task = (await svc.create("task", "Interrupted update")).item
+    task = (await create_item(svc, "task", "Interrupted update")).item
     await svc.set_status(task.id, "Ready")
 
     with pytest.MonkeyPatch.context() as mp:
@@ -69,7 +70,7 @@ async def test_a_status_update_survives_a_crash_between_the_file_write_and_the_i
 
 
 async def test_removal_survives_a_crash_between_the_unlink_and_the_index_commit(svc):
-    task = (await svc.create("task", "Interrupted remove")).item
+    task = (await create_item(svc, "task", "Interrupted remove")).item
     path = item_file(svc.paths, task)
 
     with pytest.MonkeyPatch.context() as mp:
@@ -106,7 +107,7 @@ async def test_purging_a_roster_item_survives_a_crash_between_the_unlink_and_the
 
 
 async def test_retype_survives_a_crash_between_the_file_move_and_the_index_commit(svc):
-    task = (await svc.create("task", "Interrupted retype")).item
+    task = (await create_item(svc, "task", "Interrupted retype")).item
     old_id, old_path = task.id, item_file(svc.paths, task)
 
     with pytest.MonkeyPatch.context() as mp:

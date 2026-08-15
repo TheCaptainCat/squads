@@ -12,7 +12,9 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_post_then_list_then_clear_round_trips_a_notice(project, invoke):
-    posted = await invoke(["board", "post", "-m", "the CI runners are down for maintenance"])
+    posted = await invoke(
+        ["board", "post", "-m", "the CI runners are down for maintenance", "--as", "manager"]
+    )
     assert posted.exit_code == 0
     assert "posted" in posted.output
 
@@ -32,8 +34,8 @@ async def test_post_then_list_then_clear_round_trips_a_notice(project, invoke):
 
 
 async def test_until_expiry_hides_a_notice_from_list(project, invoke):
-    await invoke(["board", "post", "-m", "old notice", "--until", "2020-01-01"])
-    await invoke(["board", "post", "-m", "current notice"])
+    await invoke(["board", "post", "-m", "old notice", "--until", "2020-01-01", "--as", "manager"])
+    await invoke(["board", "post", "-m", "current notice", "--as", "manager"])
 
     listed = await invoke(["board", "list"])
     assert listed.exit_code == 0
@@ -51,8 +53,21 @@ async def test_as_attributes_the_post_to_a_role_or_operator(project, invoke):
     assert "manager" in listed.output
 
 
+async def test_as_attributes_the_post_to_an_operator_via_the_op_slug(project, invoke):
+    await invoke(["operator", "add", "Alice Tester"])
+    posted = await invoke(["board", "post", "-m", "release cut tonight", "--as", "op-alice"])
+    assert posted.exit_code == 0
+    assert "op-alice" in posted.output
+
+    result = await invoke(["board", "list", "--json"])
+    rows = json.loads(result.output)
+    assert rows[0]["author"] == "op-alice"
+
+
 async def test_list_json_shape_includes_ordinal_author_posted_at_and_until(project, invoke):
-    await invoke(["board", "post", "-m", "notice with expiry", "--until", "2099-01-01"])
+    await invoke(
+        ["board", "post", "-m", "notice with expiry", "--until", "2099-01-01", "--as", "manager"]
+    )
 
     result = await invoke(["board", "list", "--json"])
     assert result.exit_code == 0
@@ -61,7 +76,7 @@ async def test_list_json_shape_includes_ordinal_author_posted_at_and_until(proje
     row = rows[0]
     assert row["n"] == 1
     assert row["body"] == "notice with expiry"
-    assert row["author"] == "operator"
+    assert row["author"] == "manager"
     assert row["until"] == "2099-01-01T00:00:00Z"
     assert set(row) == {"n", "id", "author", "posted_at", "until", "body"}
 
@@ -75,10 +90,17 @@ async def test_list_json_on_an_empty_board_is_an_empty_list(project, invoke):
 async def test_clearing_an_out_of_range_ordinal_raises_a_clean_error_not_a_traceback(
     project, invoke
 ):
-    await invoke(["board", "post", "-m", "the only notice"])
+    await invoke(["board", "post", "-m", "the only notice", "--as", "manager"])
 
     result = await invoke(["board", "clear", "2"])
     assert result.exit_code == 1
+    assert "Traceback" not in result.output
+
+
+async def test_posting_without_as_fails_cleanly_asking_for_the_actor(project, invoke):
+    result = await invoke(["board", "post", "-m", "text"])
+    assert result.exit_code == 1
+    assert "--as is required" in result.output
     assert "Traceback" not in result.output
 
 

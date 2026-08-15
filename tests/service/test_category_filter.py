@@ -4,12 +4,14 @@ with the existing type/status/badge dimensions.
 
 import pytest
 
+from _helpers import create_item
+
 pytestmark = pytest.mark.anyio
 
 
 async def test_category_filter_narrows_to_the_matching_types(svc):
-    task = (await svc.create("task", "T1")).item
-    decision = (await svc.create("decision", "D1")).item
+    task = (await create_item(svc, "task", "T1")).item
+    decision = (await create_item(svc, "decision", "D1")).item
 
     work_ids = {i.id for i in await svc.list_items(category="work")}
     records_ids = {i.id for i in await svc.list_items(category="records")}
@@ -19,9 +21,9 @@ async def test_category_filter_narrows_to_the_matching_types(svc):
 
 
 async def test_category_filter_ands_with_other_dimensions(svc):
-    hi = (await svc.create("task", "Hi", priority="high")).item
-    lo = (await svc.create("task", "Lo", priority="low")).item
-    await svc.create("decision", "D1")
+    hi = (await create_item(svc, "task", "Hi", priority="high")).item
+    lo = (await create_item(svc, "task", "Lo", priority="low")).item
+    await create_item(svc, "decision", "D1")
 
     ids = {i.id for i in await svc.list_items(category="work", badges={"priority": "high"})}
     assert ids == {hi.id}

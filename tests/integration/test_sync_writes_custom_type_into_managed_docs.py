@@ -1,7 +1,10 @@
 """End to end: ``sq sync`` regenerates both CLAUDE.md and AGENTS.md to include a custom type
 declared in ``.overrides/workflow.toml`` — the alias table row and its custom alias appear in
 each file — while the static Retype/Remove-vs-Cancel/Ref-kinds sections survive byte-identical
-apart from the one deliberately spec-derived "Valid targets" line.
+apart from the two deliberately spec-derived lines: the "Valid targets" line and AGENTS.md's
+own "# also: ..." creatable-types list on the `sq create task` example line (which must grow
+to include a newly-added custom type exactly as the alias table row does — it is not a
+hardcoded bundled list either).
 """
 
 import pytest
@@ -89,8 +92,13 @@ async def test_static_sections_stay_byte_identical_after_a_custom_type_is_added_
     def _static_tail(text: str) -> str:
         idx = text.find("**Status behaviour:**")
         end = text.find("<!-- squads:end -->", idx)
-        return text[idx:end] if end != -1 else text[idx:]
+        tail = text[idx:end] if end != -1 else text[idx:]
+        # the "# also: ..." creatable-types list is deliberately spec-derived (checked
+        # separately below), same exemption already made for "Valid targets" above.
+        return "\n".join(line for line in tail.splitlines() if "sq create task " not in line)
 
     assert "`incident`" not in before
     assert "incident" in after.split("Valid targets:")[1].splitlines()[0]
+    assert "incident" not in before.split("# also:")[1].splitlines()[0]
+    assert "incident" in after.split("# also:")[1].splitlines()[0]
     assert _static_tail(before) == _static_tail(after)

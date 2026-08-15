@@ -72,7 +72,7 @@ def roster() -> list[RoleView]:
 
 @pytest.fixture
 def operators() -> list[OperatorView]:
-    return [OperatorView(slug="op-pierre", full_name="Pierre Chat")]
+    return [OperatorView(slug="op-alice", full_name="Alice Tester")]
 
 
 @pytest.fixture

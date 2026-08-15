@@ -5,16 +5,28 @@ rather than re-deriving the runner's own behaviour.
 """
 
 import json
+from pathlib import PureWindowsPath
 
 import pytest
 
 from squads._interactions import bundled_skill_slugs, skill_description
+from squads._migrations._v0_4_to_v0_5 import _posix_rel
 from squads._migrations._v0_4_to_v0_5 import migrate as migrate_v0_4_to_v0_5
 from squads._models._schema import SCHEMA_VERSION
 from squads._sections import split_frontmatter
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
+
+
+def test_posix_rel_normalizes_windows_style_separators_on_any_host():
+    """`_posix_rel` must render `/`, never the host separator — pinned against
+    `PureWindowsPath` (pure path arithmetic, no real filesystem, no host OS involved) so this
+    fails on Linux CI too if the implementation ever regresses to a bare `str(relative_to(...))`,
+    which renders `\\` on Windows but `/` on Linux/macOS and so would pass unnoticed there."""
+    root = PureWindowsPath("C:\\squads")
+    path = PureWindowsPath("C:\\squads\\agents\\skills\\SKILL-000002-greeting.md")
+    assert _posix_rel(path, root) == "agents/skills/SKILL-000002-greeting.md"
 
 
 async def _make_pre_seed_squad(tmp_path, monkeypatch):
@@ -105,6 +117,9 @@ async def test_migration_renames_an_already_stamped_but_still_slug_named_file(
     assert convention
     fm, _ = split_frontmatter(convention[0].read_text(encoding="utf-8"))
     assert fm.get("id") == "SKILL-000099"  # no reallocation
+    # `path` is model-only and derivable from the file's own location — the migration must
+    # strip a stale copy rather than persist/refresh one that goes stale on the next rename.
+    assert "path" not in fm
 
 
 async def test_migration_leaves_a_pointer_that_resolves_to_the_renamed_body_file(
@@ -165,6 +180,64 @@ async def test_migration_backfills_description_onto_an_already_stamped_conventio
         convention = list(skills_dir.glob(f"SKILL-*-{slug}.md"))
         fm, _ = split_frontmatter(convention[0].read_text(encoding="utf-8"))
         assert fm.get("description") == skill_description(slug)
+
+
+async def test_description_backfill_still_rewrites_the_pointer_with_no_path_frontmatter_key(
+    tmp_path, monkeypatch, frozen_time
+):
+    """The pointer target must be derived from the convention file's own location, not a stored
+    `path:` frontmatter key — the live model never writes one, so every current-build file hits
+    this description-backfill branch with `path` absent."""
+    from squads._sections import replace_frontmatter, split_frontmatter
+
+    paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
+    await migrate_v0_4_to_v0_5(paths)  # first pass: creates convention files + pointers
+
+    skills_dir = paths.squad_dir / "agents/skills"
+    slug = bundled_skill_slugs()[0]
+    convention = next(iter(skills_dir.glob(f"SKILL-*-{slug}.md")))
+    text = convention.read_text(encoding="utf-8")
+    fm, _ = split_frontmatter(text)
+    assert "path" not in fm  # the live model never writes this key
+    fm["description"] = ""
+    convention.write_text(replace_frontmatter(text, fm), encoding="utf-8")
+
+    pointer = paths.root / ".claude" / "skills" / slug / "SKILL.md"
+    pointer.write_text("STALE\n", encoding="utf-8")  # simulate a pointer that needs rewriting
+
+    acted = await migrate_v0_4_to_v0_5(paths)
+    assert acted > 0
+
+    content = pointer.read_text(encoding="utf-8")
+    assert "STALE" not in content
+    assert f"agents/skills/{convention.name}" in content
+
+
+async def test_backfill_strips_a_stale_path_key_even_with_a_description_already_present(
+    tmp_path, monkeypatch, frozen_time
+):
+    """An already-migrated corpus from a pre-fix release can carry a stale `path:` key on a
+    convention file that already has its description — the early-return no-op path must not
+    let that survive forever; it has to reach the strip too."""
+    from squads._sections import replace_frontmatter, split_frontmatter
+
+    paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
+    await migrate_v0_4_to_v0_5(paths)  # first pass: creates convention files + description
+
+    skills_dir = paths.squad_dir / "agents/skills"
+    slug = bundled_skill_slugs()[0]
+    convention = next(iter(skills_dir.glob(f"SKILL-*-{slug}.md")))
+    text = convention.read_text(encoding="utf-8")
+    fm, _ = split_frontmatter(text)
+    assert fm.get("description")  # precondition: description already present
+    fm["path"] = f"agents/skills/OLD-STALE-NAME-{slug}.md"  # what a pre-fix release stamped
+    convention.write_text(replace_frontmatter(text, fm), encoding="utf-8")
+
+    acted = await migrate_v0_4_to_v0_5(paths)
+    assert acted > 0
+
+    fm_after, _ = split_frontmatter(convention.read_text(encoding="utf-8"))
+    assert "path" not in fm_after
 
 
 # --------------------------------------------------------------------------- CLI wiring (thin)

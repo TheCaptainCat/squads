@@ -7,13 +7,14 @@ rejected rather than silently accepted.
 
 import pytest
 
+from _helpers import create_item
 from squads._errors import SquadsError
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_add_story_seeds_the_given_status_instead_of_the_initial_one(svc):
-    feat = (await svc.create("feature", "Login")).item
+    feat = (await create_item(svc, "feature", "Login")).item
     await svc.add_story(feat.id, "Reset password", status="InProgress")
 
     (story,) = await svc.list_stories(feat.id)
@@ -23,7 +24,7 @@ async def test_add_story_seeds_the_given_status_instead_of_the_initial_one(svc):
 async def test_add_subtask_seeds_the_given_status_and_round_trips_in_frontmatter(svc):
     from squads._itemfile import read_frontmatter
 
-    task = (await svc.create("task", "Auth")).item
+    task = (await create_item(svc, "task", "Auth")).item
     await svc.add_subtask(task.id, "Validate", status="Blocked")
 
     (subtask,) = await svc.list_subtasks(task.id)
@@ -34,7 +35,7 @@ async def test_add_subtask_seeds_the_given_status_and_round_trips_in_frontmatter
 
 
 async def test_add_finding_seeds_the_given_status_alongside_its_severity_default(svc):
-    rev = (await svc.create("review", "r")).item
+    rev = (await create_item(svc, "review", "r")).item
     finding = await svc.add_finding(rev.id, "Null deref", status="Fixed")
 
     detail = await svc.get_block(rev.id, "finding", finding.local_id)
@@ -43,7 +44,7 @@ async def test_add_finding_seeds_the_given_status_alongside_its_severity_default
 
 
 async def test_add_finding_severity_flag_behaviour_is_unchanged_by_the_new_status_axis(svc):
-    rev = (await svc.create("review", "r")).item
+    rev = (await create_item(svc, "review", "r")).item
     finding = await svc.add_finding(rev.id, "Race condition", severity="high")
 
     detail = await svc.get_block(rev.id, "finding", finding.local_id)
@@ -52,7 +53,7 @@ async def test_add_finding_severity_flag_behaviour_is_unchanged_by_the_new_statu
 
 
 async def test_add_without_status_still_seeds_the_kinds_initial_status(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     await svc.add_subtask(task.id, "Old-style call, no flags")
 
     (subtask,) = await svc.list_subtasks(task.id)
@@ -60,7 +61,7 @@ async def test_add_without_status_still_seeds_the_kinds_initial_status(svc):
 
 
 async def test_a_status_outside_the_kinds_own_lifecycle_is_rejected_not_seeded(svc):
-    rev = (await svc.create("review", "r")).item
+    rev = (await create_item(svc, "review", "r")).item
 
     # "InProgress" is a valid *story/subtask* status but not a member of the finding
     # lifecycle (Open/Fixed/Verified/WontFix) — must fail closed, scoped to the kind.
@@ -71,7 +72,7 @@ async def test_a_status_outside_the_kinds_own_lifecycle_is_rejected_not_seeded(s
 
 
 async def test_a_finding_only_status_is_rejected_on_a_story(svc):
-    feat = (await svc.create("feature", "Login")).item
+    feat = (await create_item(svc, "feature", "Login")).item
 
     with pytest.raises(SquadsError, match="WontFix"):
         await svc.add_story(feat.id, "Reset password", status="WontFix")

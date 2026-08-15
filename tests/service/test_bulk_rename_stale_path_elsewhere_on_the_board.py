@@ -6,6 +6,7 @@ own affected set -- rather than crash the whole verb on a raw `FileNotFoundError
 
 import pytest
 
+from _helpers import create_item
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
 
@@ -31,10 +32,10 @@ async def _interrupt_a_title_changing_update(svc, monkeypatch, item_id: str) -> 
 async def test_rename_status_fails_cleanly_when_an_unrelated_item_has_a_stale_path(
     svc, monkeypatch
 ):
-    stale = (await svc.create("bug", "Original title")).item
+    stale = (await create_item(svc, "bug", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, stale.id)
 
-    target = (await svc.create("task", "Rename-status target")).item
+    target = (await create_item(svc, "task", "Rename-status target")).item
 
     with pytest.raises(SquadsError, match=rf"{stale.id}.*repair"):
         await svc.rename_status("task", "Draft", "Ready")
@@ -44,10 +45,10 @@ async def test_rename_status_fails_cleanly_when_an_unrelated_item_has_a_stale_pa
 
 
 async def test_rename_type_fails_cleanly_when_an_unrelated_item_has_a_stale_path(svc, monkeypatch):
-    stale = (await svc.create("bug", "Original title")).item
+    stale = (await create_item(svc, "bug", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, stale.id)
 
-    target = (await svc.create("task", "Rename-type target")).item
+    target = (await create_item(svc, "task", "Rename-type target")).item
 
     with pytest.raises(SquadsError, match=rf"{stale.id}.*repair"):
         await svc.rename_type("task", "bug")
@@ -57,12 +58,12 @@ async def test_rename_type_fails_cleanly_when_an_unrelated_item_has_a_stale_path
 
 
 async def test_both_verbs_work_again_after_repair(svc, monkeypatch):
-    stale = (await svc.create("bug", "Original title")).item
+    stale = (await create_item(svc, "bug", "Original title")).item
     await _interrupt_a_title_changing_update(svc, monkeypatch, stale.id)
 
     await svc.repair()
 
-    target = (await svc.create("task", "Rename target after repair")).item
+    target = (await create_item(svc, "task", "Rename target after repair")).item
     status_result = await svc.rename_status("task", "Draft", "Ready")
     assert status_result.renamed == 1
     reloaded = await svc.get(target.id)

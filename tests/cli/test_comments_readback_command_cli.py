@@ -43,3 +43,14 @@ async def test_json_output_is_an_empty_list_when_there_are_no_comments(project, 
     r = await invoke(["bug", "2", "comments", "--json"])
     assert r.exit_code == 0, r.output
     assert json.loads(r.output) == []
+
+
+async def test_an_explicit_op_slug_records_the_operator_as_author_not_a_role(
+    project, invoke
+) -> None:
+    await invoke(["operator", "add", "Alice Tester"])
+    await invoke(["create", "task", "T", "--author", "manager"])
+    await invoke(["task", "3", "comment", "--as", "op-alice", "-m", "approved by the human"])
+
+    comments = json.loads((await invoke(["task", "3", "comments", "--json"])).output)
+    assert comments[0]["author"] == "Alice Tester"

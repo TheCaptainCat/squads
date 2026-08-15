@@ -42,7 +42,7 @@ sq tree EPIC-… [--json]
 - shape it technically; spin off ADRs (`sq create decision`) for cross-cutting calls and link them (`sq epic <n> ref add ADR-… --kind related`)
 
 **Hand off:**
-- when the technical shape is settled, `@tech-lead` to break it into features and tasks
+- when the technical shape is settled, `@tech-lead` to break it down into features
 
 ## For Olivia Lead (`tech-lead`)
 
@@ -50,11 +50,11 @@ sq tree EPIC-… [--json]
 - Read the full item dossier: `sq epic <n> show --full --comments` (decisions and
   refinements often live in discussion comments, not the body — skipping this is how context
   gets missed).
-- review the epic's features and their state (`sq tree EPIC-… --json`)
+- review the epic's subtree and its state (`sq tree EPIC-… --json`)
 
 **Do:**
 - group features under the epic (`sq feature <n> update --parent EPIC-…`)
-- keep its scope coherent; track status as features progress
+- keep its scope coherent; track status as the work beneath it progresses
 
 **Watch for:**
 - authoring features is the product-owner's job, not yours

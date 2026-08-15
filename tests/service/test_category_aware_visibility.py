@@ -8,6 +8,8 @@ status, unchanged. ``sq list``'s own default-hiding lives at the CLI layer (see
 
 import pytest
 
+from _helpers import create_item
+
 pytestmark = pytest.mark.anyio
 
 
@@ -20,10 +22,10 @@ def _ids(nodes) -> set[str]:
 
 
 async def test_accepted_decision_stays_visible_by_default_while_done_feature_hides(svc):
-    decision = (await svc.create("decision", "Use JWT")).item
+    decision = (await create_item(svc, "decision", "Use JWT")).item
     await svc.set_status(decision.id, "Accepted")
 
-    feature = (await svc.create("feature", "Feat")).item
+    feature = (await create_item(svc, "feature", "Feat")).item
     await svc.set_status(feature.id, "InProgress")
     await svc.set_status(feature.id, "Done")
 
@@ -37,7 +39,7 @@ async def test_accepted_decision_stays_visible_by_default_while_done_feature_hid
 
 
 async def test_superseded_decision_hides_by_default(svc):
-    old = (await svc.create("decision", "Old choice")).item
+    old = (await create_item(svc, "decision", "Old choice")).item
     await svc.set_status(old.id, "Accepted")
     await svc.set_status(old.id, "Superseded")
 
@@ -46,7 +48,7 @@ async def test_superseded_decision_hides_by_default(svc):
 
 
 async def test_deprecated_guide_hides_by_default(svc):
-    guide = (await svc.create("guide", "Old guide")).item
+    guide = (await create_item(svc, "guide", "Old guide")).item
     await svc.set_status(guide.id, "Published")
     await svc.set_status(guide.id, "Deprecated")
 
@@ -55,14 +57,14 @@ async def test_deprecated_guide_hides_by_default(svc):
 
 
 async def test_published_guide_stays_visible_by_default(svc):
-    guide = (await svc.create("guide", "Live guide")).item
+    guide = (await create_item(svc, "guide", "Live guide")).item
     await svc.set_status(guide.id, "Published")
 
     assert guide.id in _ids(await svc.tree_view())
 
 
 async def test_done_task_still_hides_by_default_unchanged(svc):
-    task = (await svc.create("task", "T1")).item
+    task = (await create_item(svc, "task", "T1")).item
     await svc.set_status(task.id, "InProgress")
     await svc.set_status(task.id, "Done")
 

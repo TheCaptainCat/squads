@@ -137,3 +137,23 @@ def test_every_builtin_work_type_declares_at_least_one_alias() -> None:
     spec = bundled_spec()
     alias_less = [t for t in spec.non_roster_types() if not spec.items[t].aliases]
     assert not alias_less
+
+
+# --------------------------------------------------------------------------- roster lifecycle
+
+
+def test_the_bundled_roster_lifecycle_has_exactly_two_states() -> None:
+    """Draft was dropped — nothing in the bundled spec ever transitioned into it and every
+    roster-create verb writes directly at the ``agent`` lifecycle's own ``initial``."""
+    spec = bundled_spec()
+    for roster_type in ("role", "skill", "operator"):
+        assert spec.machine_for(roster_type).states == {"Active", "Archived"}
+
+
+def test_draft_stays_a_declared_global_status_owned_by_work_and_guide() -> None:
+    spec = bundled_spec()
+    assert "Draft" in spec.statuses
+    assert "Draft" in spec.machine_for("task").states
+    assert "Draft" in spec.machine_for("guide").states
+    for roster_type in ("role", "skill", "operator"):
+        assert "Draft" not in spec.machine_for(roster_type).states

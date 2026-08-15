@@ -7,6 +7,7 @@ import json
 
 import pytest
 
+from _helpers import create_item
 from squads._index._store import IndexStore
 
 pytestmark = pytest.mark.anyio
@@ -29,7 +30,7 @@ async def _drift_via_interrupted_index_commit(svc, monkeypatch, item_id: str) ->
 
 
 async def test_a_drifted_pre_existing_target_is_reported_and_nothing_is_applied(svc, monkeypatch):
-    task = (await svc.create("task", "Drifted import target")).item
+    task = (await create_item(svc, "task", "Drifted import target")).item
     await _drift_via_interrupted_index_commit(svc, monkeypatch, task.id)
 
     before = await svc.list_items()
@@ -37,7 +38,7 @@ async def test_a_drifted_pre_existing_target_is_reported_and_nothing_is_applied(
         {"op": "create", "type": "task", "title": "Would have worked", "handle": "ok"},
         {"op": "status", "target": task.id, "status": "InProgress"},
     )
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
 
     assert not result.plan.ok
     assert any(
@@ -51,14 +52,14 @@ async def test_a_drifted_pre_existing_target_is_reported_and_nothing_is_applied(
 async def test_a_drifted_target_issue_coexists_with_an_unrelated_validation_issue(svc, monkeypatch):
     """The skew check never stops the pre-pass at the first problem -- it collects alongside
     every other issue the plan already gathers, same as any other collectible problem."""
-    task = (await svc.create("task", "Drifted alongside an unrelated bad event")).item
+    task = (await create_item(svc, "task", "Drifted alongside an unrelated bad event")).item
     await _drift_via_interrupted_index_commit(svc, monkeypatch, task.id)
 
     text = _lines(
         {"op": "status", "target": task.id, "status": "InProgress"},
         {"op": "status", "target": "no-such-handle-or-id", "status": "InProgress"},
     )
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
 
     assert not result.plan.ok
     assert len(result.plan.issues) == 2
@@ -69,7 +70,7 @@ async def test_a_drifted_target_issue_coexists_with_an_unrelated_validation_issu
 async def test_several_events_on_the_same_drifted_target_report_it_once_not_per_event(
     svc, monkeypatch
 ):
-    task = (await svc.create("task", "Multiply-targeted drifted item")).item
+    task = (await create_item(svc, "task", "Multiply-targeted drifted item")).item
     await _drift_via_interrupted_index_commit(svc, monkeypatch, task.id)
 
     text = _lines(
@@ -77,7 +78,7 @@ async def test_several_events_on_the_same_drifted_target_report_it_once_not_per_
         {"op": "update", "target": task.id, "description": "second touch"},
         {"op": "assign", "target": task.id, "assignee": "manager"},
     )
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
 
     assert not result.plan.ok
     matching = [i for i in result.plan.issues if task.id in i.message]
@@ -90,7 +91,7 @@ async def test_an_import_that_only_creates_items_is_never_affected_by_a_drifted_
     """Creates are out of scope for the guard -- there is no prior file to diverge from --
     so a drifted item elsewhere on the board never touches a create-only import, however
     many creating events it carries."""
-    drifted = (await svc.create("task", "Unrelated drifted item")).item
+    drifted = (await create_item(svc, "task", "Unrelated drifted item")).item
     await _drift_via_interrupted_index_commit(svc, monkeypatch, drifted.id)
 
     text = _lines(
@@ -98,7 +99,7 @@ async def test_an_import_that_only_creates_items_is_never_affected_by_a_drifted_
         {"op": "create", "type": "task", "title": "Fresh two"},
         {"op": "create", "type": "task", "title": "Fresh three"},
     )
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
 
     assert result.plan.ok
     assert result.applied is not None
@@ -106,10 +107,10 @@ async def test_an_import_that_only_creates_items_is_never_affected_by_a_drifted_
 
 
 async def test_a_clean_import_against_a_clean_board_is_unaffected(svc):
-    task = (await svc.create("task", "Perfectly healthy target")).item
+    task = (await create_item(svc, "task", "Perfectly healthy target")).item
     text = _lines({"op": "status", "target": task.id, "status": "InProgress"})
 
-    result = await svc.import_events(text)
+    result = await svc.import_events(text, default_as="manager")
 
     assert result.plan.ok
     assert result.applied is not None

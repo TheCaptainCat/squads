@@ -1,7 +1,7 @@
 """``sq workflow --raw`` (and ``sq workflow show --raw``) print the cheatsheet as clean
 markdown — zero Rich chrome (no box-drawing table borders, no ANSI) — mirroring the
 ``sq show --raw`` precedent: opt out of ``rich.Markdown`` rendering, print the
-``workflow.md.j2`` source verbatim (markdown tables + fenced ```mermaid``` blocks). Pinned
+``workflow.md.j2`` source verbatim (markdown tables, no diagram markup). Pinned
 against a golden text file so a future template change is a deliberate, reviewed diff.
 
 Regenerating the golden: set ``UPDATE_GOLDENS=1`` and run this module; commit the diff.
@@ -49,10 +49,9 @@ async def test_workflow_raw_has_zero_rich_chrome(project, invoke):
     assert "\x1b[" not in result.output
 
 
-async def test_workflow_raw_emits_fenced_mermaid_and_markdown_tables(project, invoke):
+async def test_workflow_raw_emits_markdown_tables_and_no_diagram_markup(project, invoke):
     result = await invoke(["workflow", "--raw"])
     assert result.exit_code == 0
-    assert "```mermaid" in result.output
-    assert "flowchart TD" in result.output
-    assert "stateDiagram-v2" in result.output
     assert "| Canonical | Aliases | Example |" in result.output
+    assert "| Prefix | Type | Lifecycle |" in result.output
+    assert "```mermaid" not in result.output

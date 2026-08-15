@@ -9,6 +9,7 @@ proving the dedicated verb, not the edge itself, is what keeps things current.
 
 import pytest
 
+from _helpers import create_item
 from squads._itemfile import read_frontmatter
 from squads._models._extras import ExtraKey as X
 
@@ -126,7 +127,7 @@ async def test_removing_the_last_role_link_leaves_no_orphaned_reference(svc):
 
 
 async def test_linking_to_a_non_role_item_is_rejected(svc):
-    role_like_task = (await svc.create("task", "Not a role")).item
+    role_like_task = (await create_item(svc, "task", "Not a role")).item
     skill = await svc.add_skill("Release Runbook")
 
     with pytest.raises(Exception, match="targets a role"):

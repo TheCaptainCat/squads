@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import create_item
 from squads._errors import SquadsError
 
 pytestmark = pytest.mark.anyio
@@ -75,7 +76,7 @@ def _patch_md_subentity_status(md_path: Path, bad_status: str) -> None:
 
 
 async def test_load_rejects_an_item_with_an_unknown_type(svc, project):
-    await svc.create("task", "Normal task")
+    await create_item(svc, "task", "Normal task")
     _patch_index_item_field(_index_path(project), "type", "gizmo")
 
     with pytest.raises(SquadsError, match="no longer declares"):
@@ -83,7 +84,7 @@ async def test_load_rejects_an_item_with_an_unknown_type(svc, project):
 
 
 async def test_load_rejects_an_item_with_an_unknown_status(svc, project):
-    await svc.create("task", "Normal task")
+    await create_item(svc, "task", "Normal task")
     _patch_index_item_field(_index_path(project), "status", "Frobnicated")
 
     with pytest.raises(SquadsError, match="no longer declares"):
@@ -91,7 +92,7 @@ async def test_load_rejects_an_item_with_an_unknown_status(svc, project):
 
 
 async def test_load_rejects_an_unknown_subentity_status(svc, project):
-    feat_res = await svc.create("feature", "Feature with story")
+    feat_res = await create_item(svc, "feature", "Feature with story")
     await svc.add_story(feat_res.item.id, "User story one")
     _patch_index_first_subentity_status(_index_path(project), "Frobnicated")
 
@@ -106,7 +107,7 @@ async def test_load_error_leads_with_the_real_cause_not_a_repair_loop(svc, proje
     from squads._index._store import IndexStore
     from squads._workflow import bundled_spec
 
-    await svc.create("task", "Normal task")
+    await create_item(svc, "task", "Normal task")
 
     base = bundled_spec()
     dropped_items = {k: v for k, v in base.items.items() if k != "task"}
@@ -122,23 +123,35 @@ async def test_load_error_leads_with_the_real_cause_not_a_repair_loop(svc, proje
 
 
 async def test_load_rejects_an_unknown_badge_code_on_a_priority_field(svc, project):
-    task = (await svc.create("task", "Normal task", priority="high")).item
+    """This is the genuinely-unknown-code shape — the item's data is wrong relative to any
+    spec, no override involved (the ``svc`` fixture runs the bundled spec with no override
+    file). The message must stay true for exactly that: it must name the fact (the code isn't
+    declared) and never presuppose an override caused it — 'revert the override' or 'add the
+    code back to the collection' would be misleading here, since there is nothing to revert
+    and the code was never valid to begin with."""
+    task = (await create_item(svc, "task", "Normal task", priority="high")).item
     _patch_index_item_by_seq(_index_path(project), task.sequence_id, priority="stratospheric")
 
-    with pytest.raises(SquadsError, match="field 'priority' has unknown code 'stratospheric'"):
+    with pytest.raises(SquadsError) as exc_info:
         await svc.list_items()
+    message = str(exc_info.value)
+    assert "field 'priority' has code 'stratospheric'" in message
+    assert "does not declare" in message
+    assert "override" not in message
 
 
 async def test_load_rejects_an_unknown_badge_code_on_a_severity_field(svc, project):
-    bug = (await svc.create("bug", "Normal bug")).item
+    bug = (await create_item(svc, "bug", "Normal bug")).item
     _patch_index_item_by_seq(_index_path(project), bug.sequence_id, severity="apocalyptic")
 
-    with pytest.raises(SquadsError, match="field 'severity' has unknown code 'apocalyptic'"):
+    with pytest.raises(
+        SquadsError, match=r"field 'severity' has code 'apocalyptic'.*does not declare"
+    ):
         await svc.list_items()
 
 
 async def test_load_rejects_an_unknown_badge_code_on_a_finding_sub_entity(svc, project):
-    rev = (await svc.create("review", "Review with a bad finding severity")).item
+    rev = (await create_item(svc, "review", "Review with a bad finding severity")).item
     await svc.add_finding(rev.id, "Null deref")
     (sub,) = (await svc.get(rev.id)).subentities
 
@@ -148,7 +161,9 @@ async def test_load_rejects_an_unknown_badge_code_on_a_finding_sub_entity(svc, p
         subentities=[{**sub.to_frontmatter_dict(), "severity": "off-the-scale"}],
     )
 
-    with pytest.raises(SquadsError, match="field 'severity' has unknown code 'off-the-scale'"):
+    with pytest.raises(
+        SquadsError, match=r"field 'severity' has code 'off-the-scale'.*does not declare"
+    ):
         await svc.list_items()
 
 
@@ -156,7 +171,7 @@ async def test_load_backfills_a_pre_migration_bugs_legacy_extra_severity(svc, pr
     """A bug indexed before the top-level severity field existed still resolves correctly:
     load() backfills the legacy extra copy in memory and drops it, with no dedicated migration
     needed."""
-    bug = (await svc.create("bug", "Legacy-shaped bug")).item
+    bug = (await create_item(svc, "bug", "Legacy-shaped bug")).item
     _patch_index_item_by_seq(
         _index_path(project), bug.sequence_id, severity=None, extra={"severity": "critical"}
     )
@@ -170,7 +185,7 @@ async def test_load_backfills_a_pre_migration_bugs_legacy_extra_severity(svc, pr
 
 
 async def test_repair_rejects_a_frontmatter_file_with_an_unknown_type(svc):
-    res = await svc.create("task", "Repair target task")
+    res = await create_item(svc, "task", "Repair target task")
     _patch_md_frontmatter_field(res.path, "type", "gizmo")
 
     with pytest.raises(SquadsError, match="unknown type"):
@@ -178,7 +193,7 @@ async def test_repair_rejects_a_frontmatter_file_with_an_unknown_type(svc):
 
 
 async def test_repair_rejects_a_frontmatter_file_with_an_unknown_status(svc):
-    res = await svc.create("task", "Repair target task")
+    res = await create_item(svc, "task", "Repair target task")
     _patch_md_frontmatter_field(res.path, "status", "Frobnicated")
 
     with pytest.raises(SquadsError, match="unknown status"):
@@ -186,9 +201,47 @@ async def test_repair_rejects_a_frontmatter_file_with_an_unknown_status(svc):
 
 
 async def test_repair_rejects_a_frontmatter_sub_entity_with_an_unknown_status(svc):
-    feat_res = await svc.create("feature", "Feature with story for repair test")
+    feat_res = await create_item(svc, "feature", "Feature with story for repair test")
     await svc.add_story(feat_res.item.id, "Sub-entity with bad status")
     _patch_md_subentity_status(feat_res.path, "Frobnicated")
 
     with pytest.raises(SquadsError, match="unknown status"):
         await svc.repair()
+
+
+# --------------------------------------------------------------------------- open_service boundary
+# a roster lifecycle violating its own floor is refused at the spec-load boundary, before any
+# item is read — see tests/integration/test_workflow_override_service_integration.py for the
+# fuller open_service AC5 story this shares its machinery with.
+
+
+async def test_open_service_rejects_a_workflow_override_declaring_an_unmaterialisable_roster_type(
+    project,
+) -> None:
+    """The roster type-key lock refuses a NEW category='roster' type outright, so the only way
+    to drive a roster-category lifecycle through the merge at all is to shadow one of the
+    three built-in roster types' (role/skill/operator) own `lifecycle` field — an ordinary
+    field-merge — pointing it at a custom lifecycle that fails the roster floor."""
+    from squads._services import _service as service
+
+    override_dir = project.squad_dir / ".overrides"
+    override_dir.mkdir(parents=True, exist_ok=True)
+    (override_dir / "workflow.toml").write_text(
+        """
+[statuses.Spinning]
+[statuses.Retired]
+role = "done"
+
+[lifecycles.gadget_lc]
+initial = "Spinning"
+[lifecycles.gadget_lc.transitions]
+Spinning = ["Retired"]
+Retired = []
+
+[items.role]
+lifecycle = "gadget_lc"
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(SquadsError, match="no live status"):
+        service.open_service()

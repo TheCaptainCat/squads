@@ -2,6 +2,10 @@
 active_backends list verifies nothing (sq-only squad), a deactivated backend's lingering
 files are ignored not flagged, and the ``--backend none`` sentinel wires through the CLI.
 
+Also: a roster status transition's materialise/withdraw projection fans out over
+every deduped active backend — the point of fan-out being tested at all, since a single-backend
+squad can't distinguish "fanned out" from "wrote the one backend it has".
+
 Config-model-only facts (dedup, legacy single-key read) live in
 tests/unit/test_active_backends_config.py.
 """
@@ -87,7 +91,6 @@ class TestEmptyActiveBackends:
             f'schema_version = "{cfg_data["schema_version"]}"',
             f'squad_dir = "{cfg_data["squad_dir"]}"',
             "active_backends = []",
-            f'default_role = "{cfg_data["default_role"]}"',
             f'squads_version = "{cfg_data["squads_version"]}"',
             "",
         ]
@@ -98,6 +101,73 @@ class TestEmptyActiveBackends:
         issues = await svc.check()
         backend_issues = [i for i in issues if "managed file missing" in i.message]
         assert not backend_issues
+
+
+class TestRosterProjectionFansOutOverBothBackends:
+    async def test_retiring_a_role_withdraws_its_pointer_in_both_backends(
+        self, tmp_squad: Path
+    ) -> None:
+        result = await service.init(
+            root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
+        )
+        svc = service.Service(result.paths)
+        item = await svc.activate_role("qa")
+        claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
+        agents_md_staging = tmp_squad / ".agents_md" / "roles" / "qa.md"
+        assert claude_pointer.exists()
+        assert agents_md_staging.exists()
+
+        await svc.set_status(item.id, "Archived")
+        assert not claude_pointer.exists()
+        assert not agents_md_staging.exists()
+
+    async def test_reactivating_regenerates_the_pointer_in_both_backends(
+        self, tmp_squad: Path
+    ) -> None:
+        result = await service.init(
+            root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
+        )
+        svc = service.Service(result.paths)
+        item = await svc.activate_role("qa")
+        claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
+        agents_md_staging = tmp_squad / ".agents_md" / "roles" / "qa.md"
+        await svc.set_status(item.id, "Archived")
+        # Self-contained: assert the withdrawal actually happened in both backends before
+        # trusting the reactivation check below — otherwise a withdrawal that silently
+        # missed one backend would let this test pass on a file that was never removed.
+        assert not claude_pointer.exists()
+        assert not agents_md_staging.exists()
+
+        await svc.set_status(item.id, "Active")
+        assert claude_pointer.exists()
+        assert agents_md_staging.exists()
+
+    async def test_a_backend_removed_from_active_backends_is_left_untouched(
+        self, tmp_squad: Path
+    ) -> None:
+        """The deactivated-backend asymmetry, restated for retirement: a backend that has been
+        deactivated is neither refreshed nor probed, so a retired entry's stale file under it
+        survives exactly as it was — deliberate, and distinct from a still-active backend's
+        withdrawal above."""
+        result = await service.init(
+            root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
+        )
+        svc = service.Service(result.paths)
+        item = await svc.activate_role("qa")
+        claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
+        agents_md_staging = tmp_squad / ".agents_md" / "roles" / "qa.md"
+        assert claude_pointer.exists()
+        assert agents_md_staging.exists()
+
+        # Deactivate agents_md before retiring — its stale file must be left alone.
+        cfg = result.paths.config.model_copy(update={"active_backends": ["claude_code"]})
+        (tmp_squad / ".squads.toml").write_text(cfg.to_toml(), encoding="utf-8")
+        from squads._paths import resolve
+
+        svc2 = service.Service(resolve())
+        await svc2.set_status(item.id, "Archived")
+        assert not claude_pointer.exists()  # the still-active backend withdrew normally
+        assert agents_md_staging.exists()  # the deactivated one was never touched
 
 
 class TestDedupSingleRunOnly:

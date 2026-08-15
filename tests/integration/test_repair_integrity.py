@@ -6,12 +6,14 @@ per feature.
 
 import pytest
 
+from _helpers import create_item
+
 pytestmark = pytest.mark.anyio
 
 
 async def test_repair_keeps_the_counter_after_the_top_items_file_is_deleted(svc):
-    await svc.create("feature", "alpha")
-    top = (await svc.create("task", "beta")).item
+    await create_item(svc, "feature", "alpha")
+    top = (await create_item(svc, "task", "beta")).item
     assert (await svc.store.load()).counter == top.sequence_id
 
     svc.paths.abspath(top.path).unlink()
@@ -22,19 +24,19 @@ async def test_repair_keeps_the_counter_after_the_top_items_file_is_deleted(svc)
 
 
 async def test_a_freed_sequence_number_is_never_reused_after_repair(svc):
-    await svc.create("feature", "alpha")
-    top = (await svc.create("task", "beta")).item
+    await create_item(svc, "feature", "alpha")
+    top = (await create_item(svc, "task", "beta")).item
 
     svc.paths.abspath(top.path).unlink()
     await svc.repair()
 
-    new_item = (await svc.create("bug", "new bug")).item
+    new_item = (await create_item(svc, "bug", "new bug")).item
     assert new_item.sequence_id == top.sequence_id + 1
 
 
 async def test_a_hand_regressed_counter_is_corrected_on_the_next_write(svc):
-    await svc.create("feature", "f1")
-    task = (await svc.create("task", "t1")).item
+    await create_item(svc, "feature", "f1")
+    task = (await create_item(svc, "task", "t1")).item
 
     async with svc.store.transaction() as db:
         db.counter = 1  # simulate a hand-edit that regressed the counter
@@ -42,14 +44,14 @@ async def test_a_hand_regressed_counter_is_corrected_on_the_next_write(svc):
     loaded = await svc.store.load()
     assert loaded.counter == task.sequence_id  # load() corrects the in-memory value ...
 
-    new_item = (await svc.create("bug", "should follow the real max")).item
+    new_item = (await create_item(svc, "bug", "should follow the real max")).item
     assert new_item.sequence_id == task.sequence_id + 1
 
 
 async def test_repair_renumber_resolves_a_sequence_collision(svc):
     """A collision like a git merge would produce: two items sharing one number."""
-    await svc.create("task", "real task")
-    bug = (await svc.create("bug", "real bug")).item
+    await create_item(svc, "task", "real task")
+    bug = (await create_item(svc, "bug", "real bug")).item
     feat_dir = svc.paths.folder_for("feature", spec=svc.spec)
     forged = feat_dir / "FEAT-000003-forged.md"
     forged.write_text(
@@ -77,7 +79,7 @@ async def test_repair_renumber_resolves_a_sequence_collision(svc):
 
 
 async def _seed_fresh(svc):
-    await svc.create("task", "t")
+    await create_item(svc, "task", "t")
 
 
 async def _seed_with_seeded_skills(svc):
@@ -85,7 +87,7 @@ async def _seed_with_seeded_skills(svc):
 
 
 async def _seed_after_repad(svc):
-    await svc.create("task", "t")
+    await create_item(svc, "task", "t")
     await svc.repad(7)
 
 

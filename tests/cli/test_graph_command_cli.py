@@ -85,7 +85,7 @@ async def test_format_dot_and_mermaid_emit_serialized_graphs(project, invoke):
         ["graph", "FEAT-000002", "--format", "mermaid", "--depth", "1", "--direction", "in"]
     )
     assert mermaid.exit_code == 0
-    assert "flowchart LR" in mermaid.output and "FEAT_2" in mermaid.output
+    assert "flowchart LR" in mermaid.output and 'FEAT_002d2["FEAT-2"]' in mermaid.output
 
 
 async def test_format_mermaid_md_wraps_the_serialized_body_in_a_fence(project, invoke):

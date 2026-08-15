@@ -4,6 +4,7 @@ while leaving fenced/inline code spans and filename references (which are never 
 
 import pytest
 
+from _helpers import create_item
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations import _v0_5_to_v0_7
@@ -38,9 +39,9 @@ async def _devolve_to_padded(
 
 
 async def test_migration_unpads_frontmatter_and_prose_but_skips_code_spans_and_filenames(svc):
-    feature = (await svc.create("feature", "Login")).item
-    bug = (await svc.create("bug", "Session leak")).item
-    task = (await svc.create("task", "Implement auth", parent=feature.id, refs=[bug.id])).item
+    feature = (await create_item(svc, "feature", "Login")).item
+    bug = (await create_item(svc, "bug", "Session leak")).item
+    task = (await create_item(svc, "task", "Implement auth", parent=feature.id, refs=[bug.id])).item
     await svc.add_subtask(task.id, "placeholder")
     await svc.set_subtask_body(task.id, "ST1", "Real subtask description, not the stub.")
 

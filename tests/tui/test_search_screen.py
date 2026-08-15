@@ -5,6 +5,8 @@ no-results states, and escape back to browse.
 import anyio
 import pytest
 
+from _helpers import create_item
+
 pytest.importorskip("textual")
 
 from textual.content import Content
@@ -60,7 +62,7 @@ async def test_search_key_opens_the_full_screen_search_page(svc):
 
 
 async def test_submitting_a_query_lists_hits_with_id_type_title_and_snippets(svc):
-    feat = (await svc.create("feature", "Login flow", body="Implements OAuth login")).item
+    feat = (await create_item(svc, "feature", "Login flow", body="Implements OAuth login")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -109,7 +111,7 @@ async def test_blank_query_shows_the_prompt_state_without_calling_search(svc, mo
 
 
 async def test_a_query_with_no_matches_shows_a_clean_no_results_state(svc):
-    await svc.create("feature", "Unrelated")
+    await create_item(svc, "feature", "Unrelated")
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -142,7 +144,7 @@ async def test_results_list_fills_the_remaining_screen_height(svc):
 
 
 async def test_a_searching_state_is_shown_while_the_worker_runs(svc, monkeypatch):
-    await svc.create("feature", "Findable", body="needle-xyz here")
+    await create_item(svc, "feature", "Findable", body="needle-xyz here")
     gate = anyio.Event()
     original = type(svc).search
 
@@ -171,7 +173,7 @@ async def test_a_searching_state_is_shown_while_the_worker_runs(svc, monkeypatch
 
 
 async def test_escape_returns_to_browse_with_the_tree_position_intact(svc):
-    feat = (await svc.create("feature", "Alpha")).item
+    feat = (await create_item(svc, "feature", "Alpha")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -206,8 +208,8 @@ async def test_type_and_status_narrowing_are_forwarded_to_svc_search(svc, monkey
         return await original(self, text, **kwargs)
 
     monkeypatch.setattr(type(svc), "search", _spy)
-    feat = (await svc.create("feature", "OAuth flow")).item
-    task = (await svc.create("task", "OAuth task", parent=feat.id)).item
+    feat = (await create_item(svc, "feature", "OAuth flow")).item
+    task = (await create_item(svc, "task", "OAuth task", parent=feat.id)).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -234,8 +236,8 @@ async def test_type_and_status_narrowing_are_forwarded_to_svc_search(svc, monkey
 
 
 async def test_selecting_a_hit_pushes_a_reader_screen_without_moving_browse_selection(svc):
-    feat = (await svc.create("feature", "Alpha", body="oauth token flow")).item
-    closed = (await svc.create("feature", "Legacy", body="oauth legacy code")).item
+    feat = (await create_item(svc, "feature", "Alpha", body="oauth token flow")).item
+    closed = (await create_item(svc, "feature", "Legacy", body="oauth legacy code")).item
     await svc.update(closed.id, status="Done", force=True)
 
     app = SquadsApp(svc)
@@ -290,7 +292,7 @@ async def test_type_filter_options_and_hit_rows_show_the_resolved_type_label(pro
     pinned_bug = base.items["bug"].model_copy(update={"labels": LabelSpec(singular="Defect")})
     spec = base.model_copy(update={"items": {**base.items, "bug": pinned_bug}})
     svc = service.Service(project, spec=spec)
-    bug = (await svc.create("bug", "Crash on save")).item
+    bug = (await create_item(svc, "bug", "Crash on save")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:

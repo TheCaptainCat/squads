@@ -1,7 +1,8 @@
-"""The per-invocation spec context handle (a threaded handle, not a module global — Pierre's
-own contract for this design): the root callback binds the active `WorkflowSpec` before Typer's
-own parser callbacks (`parse_type`/`parse_status`, driven by `--type`/`--status`) run, and those
-parser callbacks fall back to the bundled spec gracefully when no invocation has bound one yet.
+"""The per-invocation spec context handle (a threaded handle, not a module global — the
+project's settled contract for this design): the root callback binds the active `WorkflowSpec`
+before Typer's own parser callbacks (`parse_type`/`parse_status`, driven by `--type`/`--status`)
+run, and those parser callbacks fall back to the bundled spec gracefully when no invocation has
+bound one yet.
 """
 
 import pytest
