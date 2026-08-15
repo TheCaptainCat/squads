@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from squads._errors import InvalidIdError, NotInitializedError, SquadsError
 from squads._models._config import CONFIG_FILENAME, INDEX_FILENAME, LOCK_FILENAME, SquadsConfig
+from squads._models._item import prefix_from_id
 from squads._workflow._models import WorkflowSpec
 
 
@@ -161,7 +162,7 @@ def type_for_id(item_id: str, spec: WorkflowSpec | None = None) -> str:
     for every type, built-in or custom. Raises ``InvalidIdError`` when no spec is
     supplied, or the prefix is not recognised by it.
     """
-    prefix = item_id.split("-", 1)[0]
+    prefix = prefix_from_id(item_id)
     if spec is not None and prefix in spec.prefix_to_type:
         return spec.prefix_to_type[prefix]
     raise InvalidIdError(f"unknown ID prefix in {item_id!r}")

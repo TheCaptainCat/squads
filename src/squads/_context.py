@@ -48,6 +48,15 @@ class RequestContext:
     active_dir: str | None = None
     client_cwd: Path | None = None
 
+    #: Why the squad's workflow override could not be resolved this invocation, already
+    #: phrased as the refusal the user reads. Set only when an override file **exists** and
+    #: failed — being outside a squad, or having no override, leaves it ``None`` with
+    #: ``active_spec`` falling back to the bundled spec as before. Its presence is what turns
+    #: every spec-consuming surface into a refusal instead of an answer drawn from bundled
+    #: vocabulary the project did not declare: a spec that failed to load has no honest
+    #: substitute, so there is nothing to fall back *to*.
+    spec_error: str | None = None
+
 
 _DEFAULT_CONTEXT = RequestContext()
 

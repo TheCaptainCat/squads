@@ -26,10 +26,11 @@ Fields
                            immediate parent session, from ``SQUADS_PARENT_SESSION_ID``.  The full
                            ancestor chain is reconstructable by walking ``parent_session_id`` edges;
                            only the immediate parent is stored.
-- ``op``                 — operation name from the closed vocabulary:
-                           ``create`` / ``status`` / ``update`` / ``body`` / ``comment`` /
-                           ``subentity`` / ``ref`` / ``link`` / ``remove`` / ``repair`` /
-                           ``migrate`` / ``renumber`` / ``rename-type`` / ``rename-status``.
+- ``op``                 — operation name from the closed vocabulary :data:`REFLOG_OPS`, which is
+                           where the names live.  Enumerating them here too was how the
+                           vocabulary drifted: this docstring, ``sq reflog --op``'s help and the
+                           workflow guide's table each carried a hand-maintained copy, all three
+                           were incomplete, and their union still missed one.
 - ``target``             — the affected item ID (formatted, e.g. ``"TASK-XXXXXX"``).
 - ``delta``              — compact before→after summary; shape depends on ``op``.
 
@@ -59,6 +60,41 @@ from pathlib import Path
 from typing import Any
 
 from squads._models._schema import SCHEMA_VERSION
+
+#: The closed ``op`` vocabulary — **the** list, not one of several.  Every surface that names the
+#: reflog's operations (this module's docstring, ``sq reflog --op``'s help text, the workflow
+#: guide's op table) reads or is checked against this tuple, so a new op cannot be documented in
+#: one place and missed in the others.
+#:
+#: Ordered narrative-first — the ops an item accumulates through its life, then the squad-level
+#: maintenance ops — because ``sq reflog --help`` prints it verbatim and alphabetical order would
+#: scatter related verbs.
+#:
+#: Hand-maintained, because a ``store.log(...)`` call site is a bare string literal at an
+#: arbitrary depth in ``_services/`` and no import-time registry sees them.  ``tests/meta`` pins
+#: this tuple against every such literal in the source tree, in both directions — that AST guard,
+#: not this comment, is what makes "closed" a true claim.
+#:
+#: ``link`` has no CLI verb today (an item's parent moves through ``update`` from the CLI); it is
+#: reachable on the service and emitted by its own tests, so it is vocabulary, not dead weight.
+REFLOG_OPS: tuple[str, ...] = (
+    "create",
+    "status",
+    "update",
+    "body",
+    "comment",
+    "subentity",
+    "ref",
+    "link",
+    "retype",
+    "default_role",
+    "remove",
+    "repair",
+    "renumber",
+    "migrate",
+    "rename-type",
+    "rename-status",
+)
 
 
 @dataclass

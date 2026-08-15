@@ -25,8 +25,6 @@ class SquadsConfig(BaseModel):
     squad_dir: NonEmpty = "squads"
     #: Active agent backends (ordered list; duplicates silently collapsed on read).
     active_backends: list[str] = Field(default_factory=lambda: ["claude_code"])
-    #: Role slug impersonated when the operator names no agent.
-    default_role: NonEmpty = "manager"
     #: squads version that last generated the managed (tool-owned) files.
     squads_version: NonEmpty = "0.0.0"
     #: Optional mapping of role slug → full name, seeded at ``sq init``.
@@ -48,7 +46,6 @@ class SquadsConfig(BaseModel):
             f'schema_version = "{self.schema_version}"',
             f'squad_dir = "{self.squad_dir}"',
             f"active_backends = {backends_toml}",
-            f'default_role = "{self.default_role}"',
             f'squads_version = "{self.squads_version}"',
             "",
         ]
