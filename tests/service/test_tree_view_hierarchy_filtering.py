@@ -8,6 +8,7 @@ closed-item gate mirrors ``list``'s own default-hides-closed behaviour. Also: th
 
 import pytest
 
+from _helpers import create_item
 from squads._services._base import ItemFilter
 
 pytestmark = pytest.mark.anyio
@@ -32,10 +33,10 @@ def _path_only_ids(nodes) -> set[str]:
 
 async def _hierarchy(svc):
     """EPIC -> FEAT -> TASK, plus a standalone BUG."""
-    epic = (await svc.create("epic", "Epic")).item
-    feat = (await svc.create("feature", "Feature", parent=epic.id)).item
-    task = (await svc.create("task", "Task", parent=feat.id)).item
-    bug = (await svc.create("bug", "Bug")).item
+    epic = (await create_item(svc, "epic", "Epic")).item
+    feat = (await create_item(svc, "feature", "Feature", parent=epic.id)).item
+    task = (await create_item(svc, "task", "Task", parent=feat.id)).item
+    bug = (await create_item(svc, "bug", "Bug")).item
     return epic.id, feat.id, task.id, bug.id
 
 
@@ -56,9 +57,9 @@ async def test_a_filter_narrows_to_matches_while_preserving_their_full_ancestor_
 
 
 async def test_a_matching_ancestor_is_not_flagged_path_only(svc):
-    root = (await svc.create("epic", "Root")).item
-    feat = (await svc.create("feature", "Feat", parent=root.id)).item
-    task = (await svc.create("task", "Task", parent=feat.id)).item
+    root = (await create_item(svc, "epic", "Root")).item
+    feat = (await create_item(svc, "feature", "Feat", parent=root.id)).item
+    task = (await create_item(svc, "task", "Task", parent=feat.id)).item
     await svc.update(feat.id, priority="high")
     await svc.update(task.id, priority="high")
 
@@ -100,9 +101,9 @@ async def test_depth_zero_returns_roots_only_with_no_children(svc):
 async def test_depth_wins_over_a_match_below_the_cut(svc):
     """A deeper match is not shown even though it would otherwise be preserved as an ancestor
     chain — depth truncation applies before ancestor preservation, not after."""
-    root = (await svc.create("epic", "Root")).item
-    mid = (await svc.create("feature", "Mid", parent=root.id)).item
-    leaf = (await svc.create("task", "Leaf", parent=mid.id)).item
+    root = (await create_item(svc, "epic", "Root")).item
+    mid = (await create_item(svc, "feature", "Mid", parent=root.id)).item
+    leaf = (await create_item(svc, "task", "Leaf", parent=mid.id)).item
     await svc.update(leaf.id, priority="high")
 
     nodes = await svc.tree_view(filter=ItemFilter(badges=(("priority", "high"),)), depth=1)
@@ -110,8 +111,8 @@ async def test_depth_wins_over_a_match_below_the_cut(svc):
 
 
 async def test_a_match_within_depth_renders_with_its_in_depth_ancestors(svc):
-    root = (await svc.create("epic", "Root")).item
-    mid = (await svc.create("feature", "Mid", parent=root.id)).item
+    root = (await create_item(svc, "epic", "Root")).item
+    mid = (await create_item(svc, "feature", "Mid", parent=root.id)).item
     await svc.update(mid.id, priority="high")
 
     nodes = await svc.tree_view(filter=ItemFilter(badges=(("priority", "high"),)), depth=1)
@@ -122,7 +123,7 @@ async def test_a_match_within_depth_renders_with_its_in_depth_ancestors(svc):
 async def test_closed_items_are_hidden_by_default_and_revealed_by_include_closed_or_status_match(
     svc,
 ):
-    feat = (await svc.create("feature", "Feat")).item
+    feat = (await create_item(svc, "feature", "Feat")).item
     await svc.set_status(feat.id, "InProgress")
     await svc.set_status(feat.id, "Done")
 
@@ -136,10 +137,10 @@ async def test_closed_items_are_hidden_by_default_and_revealed_by_include_closed
 
 
 async def test_item_filter_selects_the_same_items_that_list_items_does(svc):
-    feat = (await svc.create("feature", "Feat")).item
-    t1 = (await svc.create("task", "T1", priority="high", parent=feat.id)).item
-    t2 = (await svc.create("task", "T2", priority="low", parent=feat.id)).item
-    await svc.create("bug", "B1")
+    feat = (await create_item(svc, "feature", "Feat")).item
+    t1 = (await create_item(svc, "task", "T1", priority="high", parent=feat.id)).item
+    t2 = (await create_item(svc, "task", "T2", priority="low", parent=feat.id)).item
+    await create_item(svc, "bug", "B1")
 
     listed_ids = {i.id for i in await svc.list_items(item_type="task", badges={"priority": "high"})}
     f = ItemFilter(item_type="task", badges=(("priority", "high"),))

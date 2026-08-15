@@ -6,6 +6,7 @@ exit code (proven generically elsewhere); this file proves the two rules actuall
 
 import pytest
 
+from _helpers import create_item
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 
@@ -13,8 +14,8 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_check_warns_on_an_unknown_ref_kind(svc):
-    a = (await svc.create("task", "a")).item
-    b = (await svc.create("task", "b")).item
+    a = (await create_item(svc, "task", "a")).item
+    b = (await create_item(svc, "task", "b")).item
 
     # Inject a kind outside the vocabulary directly into frontmatter, bypassing add_ref's
     # own validation (the only way an unknown kind reaches disk).
@@ -32,7 +33,7 @@ async def test_check_warns_on_an_unknown_ref_kind(svc):
 
 
 async def test_check_warns_on_a_superseded_decision_with_no_incoming_edge(svc):
-    old_adr = (await svc.create("decision", "old decision")).item
+    old_adr = (await create_item(svc, "decision", "old decision")).item
     await svc.set_status(old_adr.id, "Proposed")
     await svc.set_status(old_adr.id, "Superseded", force=True)
 
@@ -46,8 +47,8 @@ async def test_check_warns_on_a_superseded_decision_with_no_incoming_edge(svc):
 
 
 async def test_check_does_not_warn_when_the_supersedes_edge_is_present(svc):
-    old_adr = (await svc.create("decision", "old decision")).item
-    new_adr = (await svc.create("decision", "new decision")).item
+    old_adr = (await create_item(svc, "decision", "old decision")).item
+    new_adr = (await create_item(svc, "decision", "new decision")).item
 
     await svc.set_status(old_adr.id, "Proposed")
     await svc.set_status(old_adr.id, "Superseded", force=True)

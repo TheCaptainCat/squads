@@ -7,6 +7,7 @@ filters, cycle termination via a seen-marker, and closed-item hiding.
 
 import pytest
 
+from _helpers import create_item
 from squads._errors import SquadsError
 
 pytestmark = pytest.mark.anyio
@@ -14,9 +15,9 @@ pytestmark = pytest.mark.anyio
 
 async def _chain(svc):
     """A depends-on B (edge on A); B blocks C (edge on B, so C depends on B)."""
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
-    c = (await svc.create("bug", "C")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
+    c = (await create_item(svc, "bug", "C")).item
     await svc.add_ref(a.id, b.id, kind="depends-on")
     await svc.add_ref(b.id, c.id, kind="blocks")
     return a.id, b.id, c.id
@@ -47,8 +48,8 @@ async def test_depth_two_reaches_two_hops_away(svc):
 
 
 async def test_a_depends_on_b_authored_on_a_normalizes_to_depends_on_direction_out(svc):
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
     await svc.add_ref(a.id, b.id, kind="depends-on")
     root = await svc.graph(a.id, depth=1, direction="out")
     (child,) = root.children
@@ -59,8 +60,8 @@ async def test_a_depends_on_b_authored_on_a_normalizes_to_depends_on_direction_o
 
 async def test_c_blocks_d_authored_on_c_normalizes_to_depends_on_direction_in(svc):
     """Raw 'blocks' must never appear as edge_kind — it always normalizes to depends-on."""
-    c = (await svc.create("task", "C")).item
-    d = (await svc.create("bug", "D")).item
+    c = (await create_item(svc, "task", "C")).item
+    d = (await create_item(svc, "bug", "D")).item
     await svc.add_ref(c.id, d.id, kind="blocks")
     root = await svc.graph(c.id, depth=1, direction="out")
     (child,) = root.children
@@ -74,10 +75,10 @@ async def test_mixed_edge_authorship_renders_the_same_normalized_direction(svc):
     """A depends-on B (authored on A) and C blocks D (authored on C) must produce the same
     edge_kind/direction pair for their respective dependent/blocker ends — not two literal
     kinds depending on which side happened to author the ref."""
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
-    c = (await svc.create("task", "C")).item
-    d = (await svc.create("bug", "D")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
+    c = (await create_item(svc, "task", "C")).item
+    d = (await create_item(svc, "bug", "D")).item
     await svc.add_ref(a.id, b.id, kind="depends-on")
     await svc.add_ref(c.id, d.id, kind="blocks")
 
@@ -96,16 +97,16 @@ async def test_mixed_edge_authorship_renders_the_same_normalized_direction(svc):
 async def test_dependent_and_blocker_backref_sides_both_normalize_correctly(svc):
     """Rooted at the dependent side of a 'blocks' edge and the blocker side of a
     'depends-on' edge, the reverse-direction traversal still normalizes consistently."""
-    c = (await svc.create("task", "C")).item
-    d = (await svc.create("bug", "D")).item
+    c = (await create_item(svc, "task", "C")).item
+    d = (await create_item(svc, "bug", "D")).item
     await svc.add_ref(c.id, d.id, kind="blocks")  # C blocks D
     root_d = await svc.graph(d.id, depth=1, direction="in")
     c_child = next(ch for ch in root_d.children if ch.id == c.id)
     assert c_child.edge_kind == "depends-on"
     assert c_child.direction == "out"  # D depends on C
 
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
     await svc.add_ref(a.id, b.id, kind="depends-on")  # A depends-on B
     root_b = await svc.graph(b.id, depth=1, direction="in")
     a_child = next(ch for ch in root_b.children if ch.id == a.id)
@@ -114,8 +115,8 @@ async def test_dependent_and_blocker_backref_sides_both_normalize_correctly(svc)
 
 
 async def test_a_symmetric_ref_kind_shows_its_own_name_as_the_edge_label(svc):
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
     await svc.add_ref(a.id, b.id, kind="related")
     root = await svc.graph(a.id, depth=1, direction="both")
     b_child = next(ch for ch in root.children if ch.id == b.id)
@@ -123,9 +124,9 @@ async def test_a_symmetric_ref_kind_shows_its_own_name_as_the_edge_label(svc):
 
 
 async def test_kind_filter_includes_only_the_requested_kinds(svc):
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
-    c = (await svc.create("bug", "C")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
+    c = (await create_item(svc, "bug", "C")).item
     await svc.add_ref(a.id, b.id, kind="depends-on")
     await svc.add_ref(a.id, c.id, kind="related")
     root = await svc.graph(a.id, depth=1, kinds={"related"}, direction="out")
@@ -135,15 +136,15 @@ async def test_kind_filter_includes_only_the_requested_kinds(svc):
 
 
 async def test_an_unknown_kind_raises_squads_error(svc):
-    a = (await svc.create("feature", "A")).item
+    a = (await create_item(svc, "feature", "A")).item
     with pytest.raises(SquadsError, match="unknown ref kind"):
         await svc.graph(a.id, kinds={"nonexistent-kind"})
 
 
 async def test_direction_out_follows_only_forward_refs(svc):
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
-    c = (await svc.create("bug", "C")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
+    c = (await create_item(svc, "bug", "C")).item
     await svc.add_ref(a.id, b.id, kind="related")
     await svc.add_ref(c.id, a.id, kind="related")
     root = await svc.graph(a.id, depth=1, direction="out")
@@ -153,9 +154,9 @@ async def test_direction_out_follows_only_forward_refs(svc):
 
 
 async def test_direction_in_follows_only_backrefs(svc):
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
-    c = (await svc.create("bug", "C")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
+    c = (await create_item(svc, "bug", "C")).item
     await svc.add_ref(a.id, b.id, kind="related")
     await svc.add_ref(c.id, a.id, kind="related")
     root = await svc.graph(a.id, depth=1, direction="in")
@@ -165,9 +166,9 @@ async def test_direction_in_follows_only_backrefs(svc):
 
 
 async def test_direction_both_merges_forward_refs_and_backrefs(svc):
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
-    c = (await svc.create("bug", "C")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
+    c = (await create_item(svc, "bug", "C")).item
     await svc.add_ref(a.id, b.id, kind="related")
     await svc.add_ref(c.id, a.id, kind="related")
     root = await svc.graph(a.id, depth=1, direction="both")
@@ -176,8 +177,8 @@ async def test_direction_both_merges_forward_refs_and_backrefs(svc):
 
 
 async def test_a_cycle_terminates_via_a_seen_marker_not_infinite_recursion(svc):
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
     await svc.add_ref(a.id, b.id, kind="related")
     await svc.add_ref(b.id, a.id, kind="related")  # A -> B -> A
     root = await svc.graph(a.id, depth=5, direction="out")
@@ -188,8 +189,8 @@ async def test_a_cycle_terminates_via_a_seen_marker_not_infinite_recursion(svc):
 
 
 async def test_closed_items_are_hidden_by_default_and_revealed_by_include_closed(svc):
-    a = (await svc.create("feature", "A")).item
-    b = (await svc.create("task", "B")).item
+    a = (await create_item(svc, "feature", "A")).item
+    b = (await create_item(svc, "task", "B")).item
     await svc.set_status(b.id, "InProgress")
     await svc.set_status(b.id, "Done")
     await svc.add_ref(a.id, b.id, kind="related")

@@ -16,11 +16,12 @@ from squads._workflow._models import ItemSpec, Lifecycle, RoleSpec, StatusSpec, 
 
 _ROLES: dict[str, RoleSpec] = {
     "pending": RoleSpec(settled=False, hidden=False, color="neutral"),
+    "active": RoleSpec(settled=False, hidden=False, color="positive", live=True),
     "done": RoleSpec(settled=True, hidden=True, color="positive"),
 }
 _FLOOR_STATUSES: dict[str, StatusSpec] = {
     "Draft": StatusSpec(role="pending"),
-    "Active": StatusSpec(role="pending"),
+    "Active": StatusSpec(role="active"),
     "Archived": StatusSpec(role="done"),
     "Todo": StatusSpec(role="pending"),
     "InProgress": StatusSpec(role="pending"),

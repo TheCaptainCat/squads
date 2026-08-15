@@ -85,18 +85,18 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
                 "operator": ItemSpec(
                     prefix="OP", folder="operators", lifecycle="agent", category="roster"
                 ),
-                "feat": ItemSpec(prefix="FEAT", folder="feats", lifecycle="work"),
+                "capability": ItemSpec(prefix="CAP", folder="capabilities", lifecycle="work"),
                 "chore": ItemSpec(
                     prefix="CHORE",
                     folder="chores",
                     lifecycle="work",
-                    parents=["feat"],
+                    parents=["capability"],
                     ref_rules=[RefRule(kind="mends", hint="see `sq ref add <chore> <id>`")],
                 ),
             },
             "statuses": {
                 "Draft": StatusSpec(),
-                "Active": StatusSpec(),
+                "Active": StatusSpec(role="active"),
                 "Archived": StatusSpec(role="done"),
                 "Done": StatusSpec(role="done"),
             },
@@ -110,17 +110,18 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
             "alias_to_type": {},
             "roles": {
                 "pending": RoleSpec(settled=False, hidden=False, color="neutral"),
+                "active": RoleSpec(settled=False, hidden=False, color="positive", live=True),
                 "done": RoleSpec(settled=True, hidden=True, color="positive"),
             },
         }
     )
     hint = custom.parent_hint("chore")
-    assert hint == "a chore's parent must be of type feat; see `sq ref add <chore> <id>`"
+    assert hint == "a chore's parent must be of type capability; see `sq ref add <chore> <id>`"
 
 
 def test_extra_fields_declared_on_guide_and_review_empty_where_undeclared() -> None:
     spec = _spec()
-    assert spec.item_extra_fields("guide") == ["tags"]
+    assert spec.item_extra_fields("guide") == ["tags", "tech"]
     assert spec.item_extra_fields("review") == ["target_ref"]
     assert spec.item_extra_fields("task") == []
 

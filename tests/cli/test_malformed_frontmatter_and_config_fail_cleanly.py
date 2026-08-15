@@ -1,7 +1,11 @@
 """A `.md` whose frontmatter has an intact closing delimiter but unparsable YAML between
 the delimiters — a hand-edit, an unresolved merge conflict, a file restored from a partial
-patch — and a `.squads.toml` with a syntax error must each fail with a single clean
-`error: ...` line naming the file, not a raw interpreter traceback.
+patch — and a `.squads.toml` with a syntax error must each name the file cleanly, never with a
+raw interpreter traceback. `renumber`/`sync`/an ordinary command still abort outright (a single
+`error: ...` line); `check`/`repair`/`board list`/`memory list` degrade per file instead —
+report the bad file as an error-level issue and keep going for the rest of the board — so their
+own tests assert the command *completes* (exit 0 or the ordinary error-level exit) rather than
+aborting. Either shape is "clean": no traceback, the file named.
 
 Pins the user-visible outcome (what reaches the terminal), not just the exception type: a
 test asserting only that a `SquadsError` was raised would pass even if the CLI still printed
@@ -13,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import create_item
 from squads._board._store import board_folder
 from squads._memory._store import role_folder
 
@@ -27,7 +32,10 @@ _FORBIDDEN_SNIPPETS = ("Traceback", "site-packages", ".venv", "yaml.", "tomllib.
 def _assert_clean_failure(output: str, *, names: str) -> None:
     for snippet in _FORBIDDEN_SNIPPETS:
         assert snippet not in output, f"{snippet!r} leaked into output:\n{output}"
-    assert "error:" in output
+    # "error:" (an abort) or a bare "error" issue-level word (a degraded-but-completed report,
+    # e.g. `sq check`'s "error <file>: <message>") — either is a clean report, never a
+    # traceback; the individual command-shape assertions pin exit code separately.
+    assert "error" in output
     # Rich hard-wraps a long unbroken path at the console width with a bare newline (no
     # inserted space) — flatten before searching so a wrap point isn't mistaken for a miss.
     # Normalise separators on both sides (not just the output): a posix-relative Item.path
@@ -60,26 +68,50 @@ def _corrupt_config(project) -> None:
 # --------------------------------------------------------------------------- frontmatter
 
 
-async def test_check_fails_cleanly_on_a_merge_conflicted_item_file(project, svc, invoke):
-    task = (await svc.create("task", "Corrupt-file target")).item
+async def test_check_reports_a_merge_conflicted_item_file_and_keeps_checking(project, svc, invoke):
+    """`check` degrades per file rather than aborting: the corrupt file is reported at error
+    level, naming it cleanly, and the run still completes (no traceback) — see the sibling
+    continuation test for proof a *second*, unrelated issue is also still reported."""
+    task = (await create_item(svc, "task", "Corrupt-file target")).item
     _corrupt_with_merge_conflict(svc.paths.abspath(task.path))
 
     result = await invoke(["check"])
-    assert result.exit_code == 1, result.output
+    assert result.exit_code == 3, result.output
     _assert_clean_failure(result.output, names=task.path)
 
 
-async def test_repair_fails_cleanly_on_a_merge_conflicted_item_file(project, svc, invoke):
-    task = (await svc.create("task", "Corrupt-file target")).item
+async def test_repair_carries_the_merge_conflicted_items_previous_entry_forward(
+    project, svc, invoke
+):
+    """`repair` degrades per file too, and — unlike a naive skip-and-rebuild — never drops the
+    unreadable item: its previous index entry survives the rebuild, so it stays resolvable.
+
+    The file itself is still corrupt, so reading its *body* still fails cleanly (the carried
+    entry is stale, not a fix) — the metadata panel from the carried frontmatter is what proves
+    "resolvable", not a fully clean `show`.
+    """
+    task = (await create_item(svc, "task", "Corrupt-file target")).item
     _corrupt_with_merge_conflict(svc.paths.abspath(task.path))
 
     result = await invoke(["repair"])
+    # Exit 1, not 0: `repair` did rebuild, but it carried a stale entry forward rather than
+    # refreshing it, and its own message says to fix the file and repair again -- a degraded
+    # result, not a clean one, so a caller gating on `$?` must see that.
     assert result.exit_code == 1, result.output
     _assert_clean_failure(result.output, names=task.path)
 
+    listed = await invoke(["list", "-a"])
+    assert listed.exit_code == 0, listed.output
+    assert task.id in listed.output
+
+    shown = await invoke(["task", str(task.sequence_id), "show"])
+    assert task.title in shown.output  # the carried entry's metadata panel still renders
+    for snippet in _FORBIDDEN_SNIPPETS:
+        assert snippet not in shown.output
+
 
 async def test_renumber_fails_cleanly_on_a_merge_conflicted_item_file(project, svc, invoke):
-    task = (await svc.create("task", "Corrupt-file target")).item
+    task = (await create_item(svc, "task", "Corrupt-file target")).item
     _corrupt_with_merge_conflict(svc.paths.abspath(task.path))
 
     result = await invoke(["renumber", "--from", "1", "--by", "100"])
@@ -98,7 +130,10 @@ async def test_sync_fails_cleanly_on_a_merge_conflicted_skill_file(project, svc,
     _assert_clean_failure(result.output, names=str(skill_path))
 
 
-async def test_board_list_fails_cleanly_on_a_merge_conflicted_notice(project, svc, invoke):
+async def test_board_list_degrades_past_a_merge_conflicted_notice(project, svc, invoke):
+    """`board list` names the corrupt notice and keeps listing the rest rather than emptying
+    the whole listing — the same reporter-stops-at-the-first-problem shape `check` rejects.
+    Exit 1, not 0: an `error:` line reached the terminal, so `$?` must say so too."""
     posted = await invoke(["board", "post", "-m", "a notice", "--as", "manager"])
     assert posted.exit_code == 0, posted.output
     notice_path = next(iter(board_folder(project).glob("*.md")))
@@ -107,17 +142,21 @@ async def test_board_list_fails_cleanly_on_a_merge_conflicted_notice(project, sv
     result = await invoke(["board", "list"])
     assert result.exit_code == 1, result.output
     _assert_clean_failure(result.output, names=str(notice_path))
+    assert "no current notices" in result.output
 
 
-async def test_memory_list_fails_cleanly_on_a_merge_conflicted_entry(project, svc, invoke):
+async def test_memory_list_degrades_past_a_merge_conflicted_entry(project, svc, invoke):
+    """`memory list` names the corrupt entry and exits clean rather than emptying the whole
+    listing — same rationale as the board sibling above."""
     added = await invoke(["memory", "manager", "add", "a remembered fact"])
     assert added.exit_code == 0, added.output
     memory_path = next(iter(role_folder(project, "manager").glob("*.md")))
     _corrupt_with_merge_conflict(memory_path)
 
     result = await invoke(["memory", "manager", "list"])
-    assert result.exit_code == 1, result.output
+    assert result.exit_code == 0, result.output
     _assert_clean_failure(result.output, names=str(memory_path))
+    assert "no memories for manager" in result.output
 
 
 async def test_memory_show_fails_cleanly_on_a_merge_conflicted_entry(project, svc, invoke):
@@ -155,7 +194,7 @@ async def test_check_fails_cleanly_on_a_malformed_config(project, invoke):
 
 
 async def test_a_clean_board_is_unaffected_across_the_same_commands(project, svc, invoke):
-    task = (await svc.create("task", "Healthy target")).item
+    task = (await create_item(svc, "task", "Healthy target")).item
     await svc.seed_bundled_skills()
     posted = await invoke(["board", "post", "-m", "a notice", "--as", "manager"])
     assert posted.exit_code == 0, posted.output

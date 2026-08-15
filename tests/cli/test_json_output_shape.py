@@ -27,6 +27,9 @@ def golden_squad(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, frozen_time: A
     ROLE-2  manager, FEAT-2  User authentication, TASK-3  Implement login (parent=FEAT-2),
     BUG-4, ADR-5, REV-6, GUIDE-7, SKIL-8, OP-9, plus a story/subtask/finding/ref/comment/
     status-change/override-scaffold — see the invocation list below for the exact sequence.
+    The subtask (ST1) is assigned to `manager` and carries its own discussion comment (so is
+    the story, US1), exercising the sub-entity-aware `mine`/`workload`/`inbox`/`show --json`
+    surfaces from one fixture.
     """
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
@@ -58,6 +61,35 @@ def golden_squad(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, frozen_time: A
     inv(["task", "3", "add-subtask", "Write login handler", "--story", "US1"])
     inv(["review", "6", "add-finding", "Missing input validation", "--severity", "high"])
     inv(["task", "3", "ref", "add", "BUG-000004", "--kind", "depends-on"])
+    # A sub-entity assignment + its own discussion — exercises the sub-entity-aware `mine`/
+    # `workload`/`inbox` surfaces and the per-subentity `discussion` JSON key.
+    inv(["task", "3", "subtask", "ST1", "update", "--assignee", "manager"])
+    inv(
+        [
+            "task",
+            "3",
+            "subtask",
+            "ST1",
+            "comment",
+            "--as",
+            "manager",
+            "-m",
+            "@manager please double check this subtask",
+        ]
+    )
+    inv(
+        [
+            "feature",
+            "2",
+            "story",
+            "US1",
+            "comment",
+            "--as",
+            "manager",
+            "-m",
+            "Scoped to password auth only for this release.",
+        ]
+    )
     inv(
         [
             "task",
@@ -70,6 +102,20 @@ def golden_squad(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, frozen_time: A
         ]
     )
     inv(["task", "3", "status", "InProgress"])
+    # An item whose ONLY mention lives in its own frontmatter (`--desc`), added last so no
+    # existing id shifts. Without it the alignment guard below never sees the one shape that can
+    # produce a zero-line hit, and passed while `sq inbox` was emitting exactly that.
+    inv(
+        [
+            "create",
+            "task",
+            "Rotate the signing keys",
+            "--author",
+            "manager",
+            "--desc",
+            "@manager owns the rotation window",
+        ]
+    )
     inv(["override", "scaffold", "items/task.md.j2"])
 
     return runner
@@ -109,6 +155,7 @@ def _run_json(runner: CliRunner, args: list[str], expected_exit: int = 0) -> Any
         ("feature_stories", ["feature", "2", "stories", "--json"]),
         ("task_subtasks", ["task", "3", "subtasks", "--json"]),
         ("review_findings", ["review", "6", "findings", "--json"]),
+        ("subtask_st1_show", ["task", "3", "subtask", "ST1", "show", "--json"]),
         ("role_catalog", ["role", "catalog", "--json"]),
         ("role_manager_show", ["role", "manager", "show", "--json"]),
         ("role_qa_show", ["role", "qa", "show", "--json"]),
@@ -120,6 +167,7 @@ def _run_json(runner: CliRunner, args: list[str], expected_exit: int = 0) -> Any
         ("override_list", ["override", "list", "--json"]),
         ("override_diff", ["override", "diff", "items/task.md.j2", "--json"]),
         ("workflow_types", ["workflow", "types", "--json"]),
+        ("workflow_subentity_kinds", ["workflow", "subentity-kinds", "--json"]),
         ("workflow_collections", ["workflow", "collections", "--json"]),
         ("workflow_statuses", ["workflow", "statuses", "--json"]),
         ("workflow_roles", ["workflow", "roles", "--json"]),
@@ -134,6 +182,20 @@ def test_command_json_output_matches_its_golden_shape(
 def test_check_json_output_matches_its_golden_shape_and_exits_0(golden_squad: CliRunner) -> None:
     """sq check --json: the seeded squad may carry warnings (no errors, so exit 0)."""
     _check_golden("check_squad", _run_json(golden_squad, ["check", "--json"], expected_exit=0))
+
+
+def test_inbox_json_lines_and_regions_stay_index_aligned(golden_squad: CliRunner) -> None:
+    """`lines` and `regions` are two parallel arrays built off one paired list (`InboxLine`) —
+    nothing in the payload states the alignment invariant, so pin it directly: for every
+    item, and especially the multi-hit one the fixture already produces (an item-level line
+    and a sub-entity one on the same task), the two arrays are the same length."""
+    data = _run_json(golden_squad, ["inbox", "manager", "--json"])
+    assert data  # the fixture's mentioned task always matches; an empty run would prove nothing
+    for hit in data:
+        assert len(hit["lines"]) == len(hit["regions"]) > 0
+    multi = next(hit for hit in data if len(hit["lines"]) > 1)
+    assert any(r is not None for r in multi["regions"])
+    assert any(r is None for r in multi["regions"])
 
 
 @pytest.mark.parametrize(

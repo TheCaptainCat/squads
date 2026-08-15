@@ -7,6 +7,7 @@ import json
 
 import pytest
 
+from _helpers import create_item
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 
@@ -16,8 +17,8 @@ pytestmark = pytest.mark.anyio
 async def test_check_json_sorts_no_item_issues_first_then_by_sequence_then_error_before_warn(
     invoke, svc
 ):
-    a = (await svc.create("task", "a")).item
-    b = (await svc.create("task", "b")).item  # higher sequence number than a
+    a = (await create_item(svc, "task", "a")).item
+    b = (await create_item(svc, "task", "b")).item  # higher sequence number than a
 
     # Give b BOTH a warn (unknown ref kind) and an error (dangling parent) — out of message
     # alphabetical order — so the assertion proves level wins over message within one item.
@@ -51,7 +52,7 @@ async def test_check_json_sorts_no_item_issues_first_then_by_sequence_then_error
 
 
 async def test_check_console_output_uses_the_same_order_as_json(invoke, svc):
-    b = (await svc.create("task", "b")).item
+    b = (await create_item(svc, "task", "b")).item
     path = svc.paths.abspath((await svc.get(b.id)).path)
     text = path.read_text(encoding="utf-8")
     fm = read_frontmatter(text=text)

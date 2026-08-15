@@ -28,11 +28,34 @@ class TestMine:
         assert "TASK-2" in r.output
 
     async def test_a_valid_operator_slug_works(self, invoke, project) -> None:
-        await invoke(["operator", "add", "Pierre Chat"])
-        await invoke(["create", "task", "T", "--author", "manager", "--assignee", "op-pierre"])
-        r = await invoke(["mine", "op-pierre"])
+        await invoke(["operator", "add", "Alice Tester"])
+        await invoke(["create", "task", "T", "--author", "manager", "--assignee", "op-alice"])
+        r = await invoke(["mine", "op-alice"])
         assert r.exit_code == 0
         assert "TASK-3" in r.output
+
+    async def test_a_terminal_records_category_item_still_shows_by_default(
+        self, invoke, project
+    ) -> None:
+        """A decision moved to a terminal status is shown-by-default category (like `sq list`),
+        not hidden by the closed-work rule `sq mine` used to apply to every type alike."""
+        await invoke(["create", "decision", "D", "--author", "manager", "--assignee", "manager"])
+        await invoke(["decision", "2", "status", "Accepted", "--force"])
+        r = await invoke(["mine", "manager"])
+        assert r.exit_code == 0
+        assert "ADR-2" in r.output
+
+    async def test_a_done_task_still_hides_by_default_and_surfaces_with_all(
+        self, invoke, project
+    ) -> None:
+        await invoke(["create", "task", "T", "--author", "manager", "--assignee", "manager"])
+        await invoke(["task", "2", "status", "InProgress"])
+        await invoke(["task", "2", "status", "Done"])
+        r = await invoke(["mine", "manager"])
+        assert r.exit_code == 0
+        assert "TASK-2" not in r.output
+        r_all = await invoke(["mine", "manager", "--all"])
+        assert "TASK-2" in r_all.output
 
 
 class TestInbox:
@@ -58,6 +81,12 @@ class TestInbox:
 
 
 class TestCommentAs:
+    async def test_missing_as_fails_cleanly_asking_for_the_actor(self, invoke, project) -> None:
+        await invoke(["create", "task", "T", "--author", "manager"])
+        r = await invoke(["task", "2", "comment", "-m", "hello"])
+        assert r.exit_code == 1
+        assert "--as is required" in r.output
+
     async def test_unknown_slug_exits_1(self, invoke, project) -> None:
         await invoke(["create", "task", "T", "--author", "manager"])
         r = await invoke(["task", "2", "comment", "--as", "ghost", "-m", "hello"])
@@ -75,9 +104,9 @@ class TestCommentAs:
         assert r.exit_code == 0
 
     async def test_a_registered_operator_slug_works(self, invoke, project) -> None:
-        await invoke(["operator", "add", "Pierre Chat"])
+        await invoke(["operator", "add", "Alice Tester"])
         await invoke(["create", "task", "T", "--author", "manager"])
-        r = await invoke(["task", "3", "comment", "--as", "op-pierre", "-m", "approved"])
+        r = await invoke(["task", "3", "comment", "--as", "op-alice", "-m", "approved"])
         assert r.exit_code == 0
 
 
@@ -113,9 +142,9 @@ class TestListAssignee:
         assert "TASK-2" in r.output
 
     async def test_a_valid_operator_assignee_works(self, invoke, project) -> None:
-        await invoke(["operator", "add", "Pierre Chat"])
-        await invoke(["create", "task", "T", "--author", "manager", "--assignee", "op-pierre"])
-        r = await invoke(["list", "--assignee", "op-pierre"])
+        await invoke(["operator", "add", "Alice Tester"])
+        await invoke(["create", "task", "T", "--author", "manager", "--assignee", "op-alice"])
+        r = await invoke(["list", "--assignee", "op-alice"])
         assert r.exit_code == 0
         assert "TASK-3" in r.output
 
@@ -135,8 +164,8 @@ class TestSubtaskAssignee:
         assert "unknown slug" in r.output
 
     async def test_update_subtask_a_valid_operator_assignee_works(self, invoke, project) -> None:
-        await invoke(["operator", "add", "Pierre Chat"])
+        await invoke(["operator", "add", "Alice Tester"])
         await invoke(["create", "task", "T", "--author", "manager"])
         await invoke(["task", "3", "add-subtask", "wire"])
-        r = await invoke(["task", "3", "subtask", "1", "update", "--assignee", "op-pierre"])
+        r = await invoke(["task", "3", "subtask", "1", "update", "--assignee", "op-alice"])
         assert r.exit_code == 0

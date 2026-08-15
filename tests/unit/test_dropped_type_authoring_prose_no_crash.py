@@ -30,7 +30,10 @@ def test_dropping_task_from_the_spec_does_not_crash_the_claude_md_section() -> N
     rendered = render(
         "claude/claude_section.md.j2",
         squad_dir="squads",
-        roles=[],
+        # epic/feature's owner (product-owner) must be on the roster for its authoring
+        # bullet — the one this test asserts on — to render now that authoring_owner is
+        # roster-aware.
+        roles=[{"full_name": "Nina Product", "title": "Product owner", "slug": "product-owner"}],
         operators=[],
         default_role_full_name="Catherine Manager",
         default_role_slug="manager",

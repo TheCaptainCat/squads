@@ -168,3 +168,48 @@ async def test_the_thin_skill_has_no_dead_subentity_footer_and_its_create_comman
     result = await invoke(["create", "incident", "Disk full alert", "--author", "manager"])
     assert result.exit_code == 0, result.output
     assert "INC-" in result.output and "INCIDENT-" not in result.output
+
+
+async def test_init_itself_seeds_a_custom_type_skill_with_no_sync_needed(
+    tmp_path, monkeypatch, frozen_time
+) -> None:
+    """A pre-placed override declaring a custom type is visible to `init` itself
+    (`_init_time_spec` resolves the merged spec) — the custom type's skill must be a
+    first-class, indexed SKILL item right after `init` returns, not an untracked body file
+    that only `sq sync` would pick up later."""
+    monkeypatch.chdir(tmp_path)
+    squad_dir = tmp_path / "squads"
+    _write_override(squad_dir)
+
+    init_result = await service.init(root=tmp_path, roles_spec="minimal")
+    paths = init_result.paths
+
+    skills = {
+        it.extra.get("slug"): it
+        for it in await service.Service(paths).list_items(item_type="skill")
+    }
+    assert "sq-incident" in skills, "custom-type skill was not indexed by init itself"
+
+    # convention-named on disk (not the untracked legacy `<slug>.md` seeding leaves behind).
+    convention = list((paths.squad_dir / "agents" / "skills").glob("SKILL-*-sq-incident.md"))
+    assert convention, "custom-type skill body wasn't stamped to its convention-named file"
+
+
+async def test_adopt_seeds_both_bundled_and_custom_type_skills(
+    tmp_path, monkeypatch, frozen_time
+) -> None:
+    """`adopt` previously seeded neither bundled nor custom skills at all — the worse of the
+    two gaps, since it's the path an existing project takes."""
+    monkeypatch.chdir(tmp_path)
+    squad_dir = tmp_path / "squads"
+    _write_override(squad_dir)
+
+    adopt_result = await service.adopt(root=tmp_path, roles_spec="minimal")
+    paths = adopt_result.paths
+
+    skills = {
+        it.extra.get("slug"): it
+        for it in await service.Service(paths).list_items(item_type="skill")
+    }
+    assert "squads" in skills, "bundled skills were not seeded by adopt"
+    assert "sq-incident" in skills, "custom-type skill was not seeded by adopt"

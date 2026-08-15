@@ -5,7 +5,7 @@ intent survives the shift, driven through the real CLI end to end.
 
 import pytest
 
-from _helpers import strip_ansi
+from _helpers import create_item, strip_ansi
 from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
@@ -13,9 +13,9 @@ pytestmark = pytest.mark.anyio
 
 async def test_renumber_shifts_a_block_and_rewrites_refs_and_files(project, invoke):
     svc = Service(project)
-    feat = (await svc.create("feature", "keep")).item  # below --from: never shifted
-    task = (await svc.create("task", "shift-task", parent=feat.id)).item
-    bug = (await svc.create("bug", "shift-bug")).item
+    feat = (await create_item(svc, "feature", "keep")).item  # below --from: never shifted
+    task = (await create_item(svc, "task", "shift-task", parent=feat.id)).item
+    bug = (await create_item(svc, "bug", "shift-bug")).item
     await svc.add_ref(task.id, bug.id)
 
     result = await invoke(["renumber", "--from", str(task.sequence_id), "--onto", "10"])

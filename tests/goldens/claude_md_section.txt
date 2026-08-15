@@ -22,7 +22,7 @@ truth. See the `squads` skill for the `sq` CLI.
 Operators are the **humans** who work on this project — they can author items and review points, and
 be assigned work (including manual steps). They are *not* agents: never spawn them, and address them
 by their `op-` slug.
-- **Pierre Chat** (`op-pierre`)
+- **Alice Tester** (`op-alice`)
 
 **When a human opens a conversation, greet them first** — follow the **`greeting`** skill to
 detect the operator, match their tone, explain your role, and give a quick read of the project.
@@ -45,7 +45,7 @@ to yourself by full name.
 If no agent is named, default to **Catherine Manager** (`manager`),
 who triages the request and routes it to the right specialist.
 
-A human introducing *themselves* (e.g. "it's Pierre") is the **operator** identifying who you're
+A human introducing *themselves* (e.g. "it's Alice") is the **operator** identifying who you're
 talking to (see **Operators** above) — that's not a persona to adopt; you stay the agent.
 
 ## Start of a run
@@ -53,6 +53,10 @@ talking to (see **Operators** above) — that's not a persona to adopt; you stay
 At the start of a run, load your role memory — `sq memory <role> list`, then `sq memory <role>
 show <slug>` for relevant entries — and check the team board with `sq board list`. Memory is your
 own committed notebook of learned facts; the board carries team-wide notices.
+
+Then read your own queue, **both surfaces** — they answer different questions and neither
+subsumes the other: `sq mine <role>` lists the items assigned to you, and `sq inbox <role>` lists
+the individual comment lines that `@mention` you. An item can be in one and not the other.
 
 ## Orchestration loop
 
@@ -62,7 +66,7 @@ Code subagent. Load the `squads` skill immediately at session start, and again a
 compaction (compaction drops loaded skills). Run the work as a loop, with `sq` as the shared memory
 between turns:
 
-1. **Assess.** Read the current state from `sq` — `sq tree FEAT-… --json` for a feature's whole
+1. **Assess.** Read the current state from `sq` — `sq tree <parent-id> --json` for a parent's whole
    subtree (status / priority / assignee / blocked per node), `sq <type> <n> show --full --comments`
    to brief on one item (body + sub-entities + discussion), `sq blocked` for what's stuck.
 2. **Delegate.** Spawn the specialist's subagent with the **Task tool** (`subagent_type:` the role
@@ -72,7 +76,7 @@ between turns:
 3. **Integrate.** When it returns, re-read `sq` state — item/review status, new findings, whether
    anything is now blocked.
 4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
-   feature's tasks are `Done` and its reviews `Approved`.
+   parent's own work is settled: every child item closed out, every linked review resolved.
 5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, run
    one final subagent pass that *reads* the new delivered text — item/sub-entity bodies, code
    comments and docstrings, CHANGELOG, docs — for internal build-process references that seeped in:
@@ -88,8 +92,8 @@ The operator may also speak directly to a specialist for live debugging; the spe
 
 ## Team workflow
 
-- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
-  `sq create <type>`. Sub-entities nest: `sq feature 12 story 1 update --status InProgress`.
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
+  create with `sq create <type>`. Sub-entities nest: `sq <type> <n> <kind> <k> update --status <status>`.
 - The **product owner** authors **epics** (`sq create epic`).
 - The **product owner** authors **features** (`sq create feature`), breaking work into `add-story`.
 - The **tech lead** authors **tasks** (`sq create task`); its parent is the feature it implements (`--parent FEAT-…`), breaking work into `add-subtask` (`--story USn` maps one to a parent story), and links fixes/follow-ups via `ref add <id> --kind fixes|addresses`.

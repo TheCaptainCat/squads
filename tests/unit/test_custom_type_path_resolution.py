@@ -21,6 +21,12 @@ _INCIDENT_TYPE = "incident"
 _INCIDENT_PREFIX = "INC"
 _INCIDENT_FOLDER = "incidents"
 
+# A prefix containing a hyphen (legal per the workflow spec's own TOML-bare-key grammar) —
+# every prefix-parsing consumer must be hyphen-safe, splitting on the LAST hyphen only.
+_RUNBOOK_TYPE = "runbook"
+_RUNBOOK_PREFIX = "RUN-BOOK"
+_RUNBOOK_FOLDER = "runbooks"
+
 
 def _spec_with_incident() -> WorkflowSpec:
     base = load_workflow_spec()
@@ -36,6 +42,28 @@ def _spec_with_incident() -> WorkflowSpec:
             "statuses": base.statuses,
             "lifecycles": {**base.lifecycles, "triage": triage},
             "prefix_to_type": {**base.prefix_to_type, _INCIDENT_PREFIX: _INCIDENT_TYPE},
+            "alias_to_type": base.alias_to_type,
+            "collections": base.collections,
+            "subentity_kinds": base.subentity_kinds,
+            "roles": base.roles,
+        }
+    )
+
+
+def _spec_with_runbook() -> WorkflowSpec:
+    base = load_workflow_spec()
+    triage = Lifecycle(initial="Open", transitions={"Open": ["Done"], "Done": []})
+    return WorkflowSpec.model_validate(
+        {
+            "items": {
+                **base.items,
+                _RUNBOOK_TYPE: ItemSpec(
+                    prefix=_RUNBOOK_PREFIX, folder=_RUNBOOK_FOLDER, lifecycle="triage"
+                ),
+            },
+            "statuses": base.statuses,
+            "lifecycles": {**base.lifecycles, "triage": triage},
+            "prefix_to_type": {**base.prefix_to_type, _RUNBOOK_PREFIX: _RUNBOOK_TYPE},
             "alias_to_type": base.alias_to_type,
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
@@ -113,6 +141,12 @@ def test_type_for_id_resolves_every_builtin_prefix_via_a_spec() -> None:
 
 def test_type_for_id_resolves_a_custom_prefix_via_its_spec() -> None:
     assert type_for_id(f"{_INCIDENT_PREFIX}-000001", spec=_spec_with_incident()) == _INCIDENT_TYPE
+
+
+def test_type_for_id_resolves_a_hyphenated_custom_prefix_via_its_spec() -> None:
+    """A prefix containing a hyphen must resolve by its LAST hyphen, not its first — splitting
+    on the first would treat "RUN" as the prefix and "BOOK-000001" as the number."""
+    assert type_for_id(f"{_RUNBOOK_PREFIX}-000001", spec=_spec_with_runbook()) == _RUNBOOK_TYPE
 
 
 @pytest.mark.parametrize(

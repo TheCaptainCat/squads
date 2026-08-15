@@ -75,6 +75,8 @@ _ALLOWED_NAME_DOCSTRING_HITS: frozenset[tuple[str, str]] = frozenset(
         ("tests/cli/test_json_output_shape.py", "BUG-4"),
         ("tests/cli/test_json_output_shape.py", "ADR-5"),
         ("tests/cli/test_json_output_shape.py", "REV-6"),
+        ("tests/cli/test_json_output_shape.py", "ST1"),
+        ("tests/cli/test_json_output_shape.py", "US1"),
     }
 )
 

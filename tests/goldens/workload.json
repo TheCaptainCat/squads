@@ -1,8 +1,20 @@
 [
   {
     "assignee": null,
-    "open": 6,
+    "open": 7,
     "closed": 0,
-    "total": 6
+    "total": 7,
+    "subentity_open": 2,
+    "subentity_closed": 0,
+    "subentity_total": 2
+  },
+  {
+    "assignee": "manager",
+    "open": 0,
+    "closed": 0,
+    "total": 0,
+    "subentity_open": 1,
+    "subentity_closed": 0,
+    "subentity_total": 1
   }
 ]

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import create_item
 from squads._interactions import TITLE_ADVISORY_MAX
 from squads._services._validators import (
     CATALOG,
@@ -29,7 +30,7 @@ def _raw_text(svc, item) -> str:
 
 
 async def test_parent_in_flags_a_dangling_parent(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     db = await svc.store.load()
     db.items[task.sequence_id].parent = "FEAT-999999"  # dangling, bypassing create()'s own gate
     ctx = ValidatorContext(item=db.get(task.id), spec=svc.spec, index=db)
@@ -40,9 +41,9 @@ async def test_parent_in_flags_a_dangling_parent(svc):
 
 
 async def test_parent_in_flags_a_wrong_type_parent(svc):
-    feat = (await svc.create("feature", "f")).item
-    task = (await svc.create("task", "t", parent=feat.id)).item
-    other_task = (await svc.create("task", "u")).item
+    feat = (await create_item(svc, "feature", "f")).item
+    task = (await create_item(svc, "task", "t", parent=feat.id)).item
+    other_task = (await create_item(svc, "task", "u")).item
     db = await svc.store.load()
     db.items[task.sequence_id].parent = other_task.id  # a task can't parent a task
     ctx = ValidatorContext(item=db.get(task.id), spec=svc.spec, index=db)
@@ -56,16 +57,16 @@ async def test_parent_in_flags_a_wrong_type_parent(svc):
 async def test_parent_in_is_lenient_when_parents_is_empty(svc):
     """`review`'s declared `parents` is empty — any parent (or none) passes, byte-identical
     with today's `parent_allowed` short-circuit."""
-    task = (await svc.create("task", "t")).item
-    rev = (await svc.create("review", "r", parent=task.id)).item
+    task = (await create_item(svc, "task", "t")).item
+    rev = (await create_item(svc, "review", "r", parent=task.id)).item
     db = await svc.store.load()
     ctx = ValidatorContext(item=db.get(rev.id), spec=svc.spec, index=db)
     assert CATALOG["parent_in"](ctx) == []
 
 
 async def test_no_parent_flags_any_declared_parent(svc):
-    feat = (await svc.create("feature", "f")).item
-    task = (await svc.create("task", "t", parent=feat.id)).item
+    feat = (await create_item(svc, "feature", "f")).item
+    task = (await create_item(svc, "task", "t", parent=feat.id)).item
     db = await svc.store.load()
     ctx = ValidatorContext(item=db.get(task.id), spec=svc.spec, index=db)
     issues = CATALOG["no_parent"](ctx)
@@ -73,7 +74,7 @@ async def test_no_parent_flags_any_declared_parent(svc):
 
 
 async def test_no_parent_is_silent_with_no_parent(svc):
-    feat = (await svc.create("feature", "f")).item
+    feat = (await create_item(svc, "feature", "f")).item
     db = await svc.store.load()
     ctx = ValidatorContext(item=db.get(feat.id), spec=svc.spec, index=db)
     assert CATALOG["no_parent"](ctx) == []
@@ -83,7 +84,7 @@ async def test_no_parent_is_silent_with_no_parent(svc):
 
 
 async def test_item_status_valid_flags_an_unknown_status(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     db = await svc.store.load()
     db.items[task.sequence_id].status = "NotAStatus"
     ctx = ValidatorContext(item=db.get(task.id), spec=svc.spec)
@@ -95,7 +96,7 @@ async def test_item_status_valid_flags_an_unknown_status(svc):
 
 
 async def test_dangling_ref_flags_an_unresolvable_target(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     db = await svc.store.load()
     db.items[task.sequence_id].refs = ["BUG-999999"]
     ctx = ValidatorContext(item=db.get(task.id), spec=svc.spec, index=db)
@@ -104,8 +105,8 @@ async def test_dangling_ref_flags_an_unresolvable_target(svc):
 
 
 async def test_ref_kind_valid_flags_an_unknown_kind(svc):
-    a = (await svc.create("task", "a")).item
-    b = (await svc.create("task", "b")).item
+    a = (await create_item(svc, "task", "a")).item
+    b = (await create_item(svc, "task", "b")).item
     db = await svc.store.load()
     db.items[a.sequence_id].refs = [f"{b.id}:not-a-real-kind"]
     ctx = ValidatorContext(item=db.get(a.id), spec=svc.spec, index=db)
@@ -144,9 +145,9 @@ async def test_agent_registered_is_silent_for_a_registered_author(svc):
 
 
 async def test_subtask_story_mapping_flags_a_missing_story(svc):
-    feat = (await svc.create("feature", "f")).item
+    feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "a story")
-    task = (await svc.create("task", "t", parent=feat.id)).item
+    task = (await create_item(svc, "task", "t", parent=feat.id)).item
     await svc.add_subtask(task.id, "a subtask", story="US1")
 
     db = await svc.store.load()
@@ -159,9 +160,9 @@ async def test_subtask_story_mapping_flags_a_missing_story(svc):
 
 
 async def test_subtask_story_mapping_is_silent_when_the_story_exists(svc):
-    feat = (await svc.create("feature", "f")).item
+    feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "a story")
-    task = (await svc.create("task", "t", parent=feat.id)).item
+    task = (await create_item(svc, "task", "t", parent=feat.id)).item
     await svc.add_subtask(task.id, "a subtask", story="US1")
 
     db = await svc.store.load()
@@ -173,7 +174,7 @@ async def test_subtask_story_mapping_is_silent_when_the_story_exists(svc):
 
 
 async def test_subentity_status_valid_flags_an_unreachable_status(svc):
-    feat = (await svc.create("feature", "f")).item
+    feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "a story")
     db = await svc.store.load()
     db.items[feat.sequence_id].subentities[0].status = "NotAStatus"
@@ -186,7 +187,7 @@ async def test_subentity_status_valid_flags_an_unreachable_status(svc):
 
 
 async def test_subentity_body_written_flags_an_unwritten_placeholder(svc):
-    feat = (await svc.create("feature", "f")).item
+    feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "a story")  # no body= → stays the placeholder
     db = await svc.store.load()
     item = db.get(feat.id)
@@ -196,7 +197,7 @@ async def test_subentity_body_written_flags_an_unwritten_placeholder(svc):
 
 
 async def test_subentity_body_written_is_silent_once_written(svc):
-    feat = (await svc.create("feature", "f")).item
+    feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "a story", body="real content")
     db = await svc.store.load()
     item = db.get(feat.id)
@@ -208,7 +209,7 @@ async def test_subentity_body_written_is_silent_once_written(svc):
 
 
 async def test_subentity_title_max_flags_an_over_long_title(svc):
-    feat = (await svc.create("feature", "f")).item
+    feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "x" * (TITLE_ADVISORY_MAX + 1))
     db = await svc.store.load()
     ctx = ValidatorContext(item=db.get(feat.id), spec=svc.spec)
@@ -218,7 +219,7 @@ async def test_subentity_title_max_flags_an_over_long_title(svc):
 
 
 async def test_subentity_title_max_is_silent_at_the_threshold(svc):
-    feat = (await svc.create("feature", "f")).item
+    feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "x" * TITLE_ADVISORY_MAX)
     db = await svc.store.load()
     ctx = ValidatorContext(item=db.get(feat.id), spec=svc.spec)
@@ -229,7 +230,7 @@ async def test_subentity_title_max_is_silent_at_the_threshold(svc):
 
 
 async def test_no_status_banner_flags_a_body_banner(svc):
-    task = (await svc.create("task", "t", body="STATUS: Draft\nsome text")).item
+    task = (await create_item(svc, "task", "t", body="STATUS: Draft\nsome text")).item
     db = await svc.store.load()
     item = db.get(task.id)
     ctx = ValidatorContext(item=item, spec=svc.spec, raw_text=_raw_text(svc, item))
@@ -238,7 +239,7 @@ async def test_no_status_banner_flags_a_body_banner(svc):
 
 
 async def test_no_status_banner_flags_a_description_banner(svc):
-    task = (await svc.create("task", "t", description="STATUS: Draft")).item
+    task = (await create_item(svc, "task", "t", description="STATUS: Draft")).item
     db = await svc.store.load()
     item = db.get(task.id)
     ctx = ValidatorContext(item=item, spec=svc.spec, raw_text=_raw_text(svc, item))
@@ -247,7 +248,7 @@ async def test_no_status_banner_flags_a_description_banner(svc):
 
 
 async def test_no_status_banner_is_silent_for_ordinary_prose(svc):
-    task = (await svc.create("task", "t", body="just some prose")).item
+    task = (await create_item(svc, "task", "t", body="just some prose")).item
     db = await svc.store.load()
     item = db.get(task.id)
     ctx = ValidatorContext(item=item, spec=svc.spec, raw_text=_raw_text(svc, item))
@@ -258,7 +259,7 @@ async def test_no_status_banner_is_silent_for_ordinary_prose(svc):
 
 
 async def test_supersedes_incoming_flags_a_superseded_decision_with_no_incoming_edge(svc):
-    old_adr = (await svc.create("decision", "old decision")).item
+    old_adr = (await create_item(svc, "decision", "old decision")).item
     await svc.set_status(old_adr.id, "Proposed")
     await svc.set_status(old_adr.id, "Superseded", force=True)
     db = await svc.store.load()
@@ -268,8 +269,8 @@ async def test_supersedes_incoming_flags_a_superseded_decision_with_no_incoming_
 
 
 async def test_supersedes_incoming_is_silent_once_superseded(svc):
-    old_adr = (await svc.create("decision", "old decision")).item
-    new_adr = (await svc.create("decision", "new decision")).item
+    old_adr = (await create_item(svc, "decision", "old decision")).item
+    new_adr = (await create_item(svc, "decision", "new decision")).item
     await svc.set_status(old_adr.id, "Proposed")
     await svc.set_status(old_adr.id, "Superseded", force=True)
     await svc.add_ref(new_adr.id, old_adr.id, kind="supersedes")
@@ -284,7 +285,7 @@ async def test_supersedes_incoming_is_silent_once_superseded(svc):
 
 
 async def test_index_reconciled_flags_an_item_with_no_markdown_file(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     db = await svc.store.load()  # on_disk stays {} — no on-disk entry for this item's sequence
     ctx = SquadGlobalContext(index=db, on_disk={}, spec=svc.spec, paths=svc.paths)
     issues = SQUAD_GLOBAL_CATALOG["index_reconciled"](ctx)
@@ -292,7 +293,7 @@ async def test_index_reconciled_flags_an_item_with_no_markdown_file(svc):
 
 
 async def test_index_reconciled_flags_a_file_absent_from_the_index(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     db = await svc.store.load()
     on_disk = {task.sequence_id: (task.id, Path("unused"), {})}
     del db.items[task.sequence_id]  # present on disk, absent from the (in-memory) index
@@ -325,8 +326,8 @@ async def test_registered_slugs_reads_the_roster(svc):
 
 
 async def test_supersedes_incoming_seqs_reads_incoming_supersedes_edges(svc):
-    old_adr = (await svc.create("decision", "old decision")).item
-    new_adr = (await svc.create("decision", "new decision")).item
+    old_adr = (await create_item(svc, "decision", "old decision")).item
+    new_adr = (await create_item(svc, "decision", "new decision")).item
     await svc.add_ref(new_adr.id, old_adr.id, kind="supersedes")
     db = await svc.store.load()
     seqs = supersedes_incoming_seqs(db)

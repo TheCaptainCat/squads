@@ -17,7 +17,7 @@ async def test_adopt_imports_a_legacy_tree_and_is_idempotent_on_a_second_run(
     monkeypatch.chdir(tmp_path)
     # A pre-existing squad with one task but no config/index — legacy/native files only.
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    await service.Service(init.paths).create("task", "legacy")
+    await service.Service(init.paths).create("task", "legacy", author="manager")
     (tmp_path / ".squads.toml").unlink()
     (tmp_path / "squads" / ".squads.json").unlink()
 

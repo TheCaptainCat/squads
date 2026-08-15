@@ -8,6 +8,7 @@ import json
 
 import pytest
 
+from _helpers import create_item
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -46,7 +47,7 @@ async def test_a_task_can_ref_a_skill_and_the_forward_ref_appears_in_its_refs(
     seeded_paths, invoke
 ) -> None:
     svc = service.Service(seeded_paths)
-    task = (await svc.create("task", "Ref test task")).item
+    task = (await create_item(svc, "task", "Ref test task")).item
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
 
     r = await invoke(["task", str(task.sequence_id), "ref", "add", sk.id, "--kind", "related"])
@@ -59,7 +60,7 @@ async def test_a_task_can_ref_a_skill_and_the_forward_ref_appears_in_its_refs(
 async def test_a_skills_backref_appears_via_refs_in_never_persisted(seeded_paths, invoke) -> None:
     """CLAUDE.md invariant #4: backrefs are computed by inversion, never persisted."""
     svc = service.Service(seeded_paths)
-    task = (await svc.create("task", "Backref test task")).item
+    task = (await create_item(svc, "task", "Backref test task")).item
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
     await svc.add_ref(task.id, sk.id, kind="related")
 
@@ -72,7 +73,7 @@ async def test_a_feature_ref_to_a_skill_round_trips_forward_and_backward(
     seeded_paths, invoke
 ) -> None:
     svc = service.Service(seeded_paths)
-    feat = (await svc.create("feature", "Ref test feature")).item
+    feat = (await create_item(svc, "feature", "Ref test feature")).item
     (sk,) = (await svc.list_items(item_type="skill"))[:1]
 
     r = await invoke(["feature", str(feat.sequence_id), "ref", "add", sk.id, "--kind", "related"])

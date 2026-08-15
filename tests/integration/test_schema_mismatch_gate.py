@@ -5,6 +5,7 @@ squad whose on-disk schema is behind this build, points the user at `sq migrate 
 
 import pytest
 
+from _helpers import create_item
 from squads import _sections as sections
 from squads._models._schema import SCHEMA_VERSION
 from squads._services._service import Service
@@ -14,8 +15,8 @@ pytestmark = pytest.mark.anyio
 
 async def test_an_ordinary_command_hard_stops_until_migrate_up_runs(project, invoke):
     svc = Service(project)
-    task = (await svc.create("task", "T")).item
-    guide = (await svc.create("guide", "G")).item
+    task = (await create_item(svc, "task", "T")).item
+    guide = (await create_item(svc, "guide", "G")).item
 
     # Forge the pre-0.2 on-disk shape: an old schema version in config, plus a bare ref and
     # a legacy ref_kinds map on the task (the shape `sq migrate up` must fold away).

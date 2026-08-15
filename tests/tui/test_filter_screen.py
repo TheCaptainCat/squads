@@ -4,6 +4,8 @@
 
 import pytest
 
+from _helpers import create_item
+
 pytest.importorskip("textual")
 
 from textual.widgets import Button, Select
@@ -32,7 +34,7 @@ def _all_ids(tree_screen: BrowseScreen) -> set[str]:
 
 
 async def test_escape_dismisses_the_popup_without_applying_pending_changes(svc):
-    await svc.create("feature", "Alpha")
+    await create_item(svc, "feature", "Alpha")
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -54,8 +56,8 @@ async def test_escape_dismisses_the_popup_without_applying_pending_changes(svc):
 
 
 async def test_applying_a_type_filter_narrows_the_tree_keeping_an_ancestor_visible(svc):
-    feat = (await svc.create("feature", "Alpha")).item
-    task = (await svc.create("task", "Sub", parent=feat.id)).item
+    feat = (await create_item(svc, "feature", "Alpha")).item
+    task = (await create_item(svc, "task", "Sub", parent=feat.id)).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -78,7 +80,7 @@ async def test_applying_a_type_filter_narrows_the_tree_keeping_an_ancestor_visib
 
 
 async def test_applying_returns_a_new_state_and_a_later_open_is_seeded_from_it(svc):
-    await svc.create("feature", "Alpha")
+    await create_item(svc, "feature", "Alpha")
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -104,7 +106,7 @@ async def test_applying_returns_a_new_state_and_a_later_open_is_seeded_from_it(s
 
 
 async def test_show_closed_toggle_reveals_and_hides_a_done_item(svc):
-    closed = (await svc.create("feature", "Retired")).item
+    closed = (await create_item(svc, "feature", "Retired")).item
     await svc.update(closed.id, status="Done", force=True)
 
     app = SquadsApp(svc)
@@ -134,9 +136,9 @@ async def test_show_closed_toggle_reveals_and_hides_a_done_item(svc):
 
 
 async def test_sort_by_title_reorders_siblings_without_crossing_levels(svc):
-    zeta = (await svc.create("feature", "Zeta")).item
-    alpha = (await svc.create("feature", "Alpha")).item
-    child = (await svc.create("task", "Only child", parent=zeta.id)).item
+    zeta = (await create_item(svc, "feature", "Zeta")).item
+    alpha = (await create_item(svc, "feature", "Alpha")).item
+    child = (await create_item(svc, "task", "Only child", parent=zeta.id)).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:
@@ -161,7 +163,7 @@ async def test_sort_by_title_reorders_siblings_without_crossing_levels(svc):
 
 
 async def test_clear_resets_the_popup_and_applying_reproduces_the_default_view(svc):
-    closed = (await svc.create("feature", "Retired")).item
+    closed = (await create_item(svc, "feature", "Retired")).item
     await svc.update(closed.id, status="Done", force=True)
 
     app = SquadsApp(svc)
@@ -195,8 +197,8 @@ async def test_clear_resets_the_popup_and_applying_reproduces_the_default_view(s
 
 
 async def test_applying_a_category_filter_round_trips_into_browse_state(svc):
-    await svc.create("feature", "Alpha")
-    decision = (await svc.create("decision", "Use widgets")).item
+    await create_item(svc, "feature", "Alpha")
+    decision = (await create_item(svc, "decision", "Use widgets")).item
 
     app = SquadsApp(svc)
     async with app.run_test() as pilot:

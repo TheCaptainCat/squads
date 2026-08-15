@@ -5,6 +5,7 @@ values, not pytest fixtures.
 """
 
 import re
+from typing import Any
 
 _ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -33,6 +34,13 @@ EXPECTED_BUILTIN_STATUS_BADGES: dict[str, str] = {
     "Verified": "🟢",
     "WontFix": "⚫",
 }
+
+#: The closed set of `[selected]` section names the workflow spec's loader will pass to
+#: `squads._specmerge`'s merge engine — shared across the `test_specmerge_*` modules so the
+#: accepted-section set is pinned in exactly one place, not duplicated per test file.
+SPECMERGE_WORKFLOW_SECTIONS = frozenset(
+    {"items", "statuses", "lifecycles", "collections", "subentity_kinds", "roles"}
+)
 
 #: Built-in type -> ID prefix, mirroring the bundled ``workflow.toml`` exactly.
 #:
@@ -118,19 +126,32 @@ BUILTIN_STATUSES: tuple[str, ...] = (
     "WontFix",
 )
 
-#: The agent-lifecycle statuses — the only status-axis floor.
+#: The three statuses the bundled agent (role/skill/operator) lifecycle used to require before
+#: the reserved-status floor was retired in favour of a role-keyed one — no status name is
+#: reserved any more; these three remain ordinary declared vocabulary (Draft is now owned by
+#: the work/guide lifecycles only, Active/Archived by the two-state agent lifecycle).
 FLOOR_STATUSES: tuple[str, ...] = ("Draft", "Active", "Archived")
 
-#: The sub-entity/finding statuses that left the floor and became ordinary spec vocabulary —
-#: bound by machine role (start state / per-kind completion target) instead of by name.
-FORMER_FLOOR_STATUSES: tuple[str, ...] = (
-    "Todo",
-    "InProgress",
-    "Blocked",
-    "Done",
-    "Cancelled",
-    "Open",
-    "Fixed",
-    "Verified",
-    "WontFix",
-)
+#: Default ``author`` for :func:`create_item` — a slug guaranteed present in every fixture-built
+#: squad (the ``project``/``svc`` fixtures always init with the ``minimal`` roles bundle, which
+#: registers only the manager role).
+DEFAULT_TEST_AUTHOR = "manager"
+
+
+async def create_item(svc: Any, item_type: str, title: str, **kwargs: Any) -> Any:
+    """``svc.create()`` for call sites that have no opinion about who authored the item.
+
+    ``Service.create()`` requires an explicit ``author`` — attribution is only knowable at the
+    call site, so a caller that omits it fails there rather than acquiring a silent default (see
+    ``_services/_base.py``). That is correct production behaviour, but it left several hundred
+    setup-only test call sites (``svc.create("task", "t")`` as bare scaffolding for an unrelated
+    assertion) with no attribution to give and no interest in one.
+
+    This is the one place that invents a default, and it is visible and overridable: pass
+    ``author=`` through ``kwargs`` to pick a specific slug (`setdefault` lets it win), or skip
+    this helper and call ``svc.create`` directly whenever the test's actual subject is
+    authorship, participation, or ``sq check``'s participant rules — those call sites should
+    name the honest slug inline, not hide behind this default.
+    """
+    kwargs.setdefault("author", DEFAULT_TEST_AUTHOR)
+    return await svc.create(item_type, title, **kwargs)

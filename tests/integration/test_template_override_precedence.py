@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import create_item
 from squads._models._item import Item
 from squads._rendering._engine import invalidate_squad_dir, render, set_active_squad_dir
 from squads._workflow import bundled_spec
@@ -80,13 +81,13 @@ async def test_service_create_renders_the_override_when_one_is_active(project, s
     )
     _place_override(project.squad_dir, "items/task.md.j2", custom)
     # ServiceCore binds the squad dir at construction time; re-create to pick up the override.
-    result = await service.Service(project).create("task", "Override smoke test")
+    result = await service.Service(project).create("task", "Override smoke test", author="manager")
     body = result.path.read_text(encoding="utf-8")
     assert "OVERRIDDEN_BODY" in body
 
 
 async def test_service_create_renders_the_bundle_when_no_override_is_active(project, svc) -> None:
-    result = await svc.create("task", "Bundled task")
+    result = await create_item(svc, "task", "Bundled task")
     body = result.path.read_text(encoding="utf-8")
     assert "## Description" in body
     assert "OVERRIDDEN" not in body

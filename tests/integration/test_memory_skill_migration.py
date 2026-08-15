@@ -107,6 +107,9 @@ async def test_migration_renames_an_already_stamped_but_still_slug_named_file(
     assert convention
     fm, _ = split_frontmatter(convention[0].read_text(encoding="utf-8"))
     assert fm.get("id") == "SKILL-000099"  # no reallocation
+    # `path` is model-only and derivable from the file's own location — the migration must
+    # strip a stale copy rather than persist/refresh one that goes stale on the next rename.
+    assert "path" not in fm
 
 
 async def test_migration_is_a_noop_when_already_tracked(tmp_path, monkeypatch, frozen_time):

@@ -23,7 +23,8 @@
           ],
           "watch": [
             "an epic is an outcome, not a task list — keep it about the why"
-          ]
+          ],
+          "authors": true
         },
         {
           "slug": "architect",
@@ -34,23 +35,25 @@
             "shape it technically; spin off ADRs (`sq create decision`) for cross-cutting calls and link them (`sq epic <n> ref add ADR-… --kind related`)"
           ],
           "handoff": [
-            "when the technical shape is settled, `@tech-lead` to break it into features and tasks"
+            "when the technical shape is settled, `@tech-lead` to break it down into features"
           ],
-          "watch": []
+          "watch": [],
+          "authors": false
         },
         {
           "slug": "tech-lead",
           "enter": [
-            "review the epic's features and their state (`sq tree EPIC-… --json`)"
+            "review the epic's subtree and its state (`sq tree EPIC-… --json`)"
           ],
           "do": [
             "group features under the epic (`sq feature <n> update --parent EPIC-…`)",
-            "keep its scope coherent; track status as features progress"
+            "keep its scope coherent; track status as the work beneath it progresses"
           ],
           "handoff": [],
           "watch": [
             "authoring features is the product-owner's job, not yours"
-          ]
+          ],
+          "authors": false
         }
       ]
     },
@@ -81,7 +84,8 @@
           "watch": [
             "stories describe user value + acceptance criteria — not implementation steps",
             "a story is not done until its body carries acceptance criteria — an unwritten placeholder body is a defect even if the title reads fine"
-          ]
+          ],
+          "authors": true
         },
         {
           "slug": "tech-lead",
@@ -98,7 +102,8 @@
           ],
           "watch": [
             "if a story is ambiguous, ask the product-owner (`@product-owner`) first"
-          ]
+          ],
+          "authors": false
         },
         {
           "slug": "qa",
@@ -107,12 +112,13 @@
           ],
           "do": [
             "derive test cases from each story",
-            "verify the feature against its acceptance criteria once tasks land"
+            "verify the feature against its acceptance criteria once the implementation lands"
           ],
           "handoff": [
             "when acceptance criteria all pass, confirm in a comment so the feature can close; when one fails, file a bug and `@tech-lead`"
           ],
-          "watch": []
+          "watch": [],
+          "authors": false
         }
       ]
     },
@@ -142,7 +148,8 @@
           ],
           "watch": [
             "a task's parent must be a feature; link bugs/reviews via refs, never as parent"
-          ]
+          ],
+          "authors": true
         },
         {
           "slug": "*dev",
@@ -163,7 +170,8 @@
           "watch": [
             "don't author features/tasks — that's the product-owner/tech-lead",
             "file a newly-found defect as a bug; don't silently expand scope"
-          ]
+          ],
+          "authors": false
         },
         {
           "slug": "reviewer",
@@ -180,7 +188,8 @@
           ],
           "watch": [
             "request changes — don't fix the code yourself"
-          ]
+          ],
+          "authors": false
         },
         {
           "slug": "qa",
@@ -196,7 +205,8 @@
           ],
           "watch": [
             "verify against acceptance criteria, not just that it runs"
-          ]
+          ],
+          "authors": false
         }
       ]
     },
@@ -205,7 +215,7 @@
       "lifecycle": "Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)",
       "commands": [
         "sq create bug \"…\" --author <slug>",
-        "sq task <n> ref add BUG-… --kind fixes",
+        "sq <type> <n> ref add BUG-… --kind fixes   # from the item carrying the fix",
         "sq bug <n> status InProgress"
       ],
       "roles": [
@@ -220,9 +230,10 @@
             "set `--severity`/`--priority`"
           ],
           "handoff": [
-            "once filed, `@tech-lead` to triage; once a fix task lands, verify it and confirm in a comment so the bug can close"
+            "once filed, `@tech-lead` to triage; once the fix lands, verify it and confirm in a comment so the bug can close"
           ],
-          "watch": []
+          "watch": [],
+          "authors": true
         },
         {
           "slug": "*dev",
@@ -238,7 +249,8 @@
           ],
           "watch": [
             "track the fix on a task — don't implement straight off the bug"
-          ]
+          ],
+          "authors": false
         },
         {
           "slug": "tech-lead",
@@ -251,12 +263,13 @@
           "handoff": [
             "once the fix task is created and assigned, `@<tech>-dev` to start the fix"
           ],
-          "watch": []
+          "watch": [],
+          "authors": false
         },
         {
           "slug": "reviewer",
           "enter": [
-            "read the bug + the fix task's changes"
+            "read the bug + the changes that fix it"
           ],
           "do": [
             "review the fix for correctness and a regression test before it lands"
@@ -264,7 +277,8 @@
           "handoff": [],
           "watch": [
             "make sure the root cause is fixed, not just the symptom"
-          ]
+          ],
+          "authors": false
         }
       ]
     },
@@ -287,11 +301,12 @@
             "link what it affects (`sq decision <n> ref add … --kind related`)"
           ],
           "handoff": [
-            "once the decision is agreed, `sq decision <n> status Accepted` and `@tech-lead` to apply it in the affected tasks"
+            "once the decision is agreed, `sq decision <n> status Accepted` and `@tech-lead` to apply it in the work it affects"
           ],
           "watch": [
             "supersede an old ADR rather than editing its decision after acceptance"
-          ]
+          ],
+          "authors": true
         },
         {
           "slug": "tech-lead",
@@ -299,12 +314,13 @@
             "read the proposed decision + its context"
           ],
           "do": [
-            "co-author/review it; ensure tasks follow it once Accepted"
+            "co-author/review it; ensure the implementation follows it once Accepted"
           ],
           "handoff": [
             "supersede it (new ADR) when reality changes"
           ],
-          "watch": []
+          "watch": [],
+          "authors": false
         }
       ]
     },
@@ -316,13 +332,13 @@
         "sq review <n> add-finding \"…\" --severity high",
         "sq review <n> finding <k> update --status Fixed   # transition a finding",
         "sq review <n> status InReview",
-        "sq task <n> ref add REV-… --kind addresses"
+        "sq <type> <n> ref add REV-… --kind addresses   # from the item that addresses it"
       ],
       "roles": [
         {
           "slug": "reviewer",
           "enter": [
-            "read the task/changes under review + the feature's acceptance criteria"
+            "read the changes under review + the feature's acceptance criteria"
           ],
           "do": [
             "`sq review <n> status InReview`",
@@ -336,7 +352,8 @@
           ],
           "watch": [
             "severity-tag findings honestly; don't approve with open high findings"
-          ]
+          ],
+          "authors": true
         },
         {
           "slug": "*dev",
@@ -345,7 +362,7 @@
           ],
           "do": [
             "fix each one, then `sq review <n> finding <k> update --status Fixed`",
-            "link the fix task (`sq task <n> ref add REV-… --kind addresses`)",
+            "link the item carrying the fix (`sq <type> <n> ref add REV-… --kind addresses`)",
             "use `sq review <n> finding <k> comment` when closing a finding with fix rationale — keep the review's main discussion for handoff @mentions (see the `squads` skill's comment-scoping convention)"
           ],
           "handoff": [
@@ -353,7 +370,8 @@
           ],
           "watch": [
             "don't close findings you didn't actually address"
-          ]
+          ],
+          "authors": false
         }
       ]
     },
@@ -377,18 +395,20 @@
           "handoff": [
             "when the first draft is complete, `@tech-writer` to polish; set `sq guide <n> status Published` once it's clean"
           ],
-          "watch": []
+          "watch": [],
+          "authors": true
         },
         {
           "slug": "tech-lead",
           "enter": [
-            "spot a lesson from a real task worth generalising"
+            "spot a lesson from real work worth generalising"
           ],
           "do": [
             "co-author the guide drawn from concrete work"
           ],
           "handoff": [],
-          "watch": []
+          "watch": [],
+          "authors": false
         },
         {
           "slug": "tech-writer",
@@ -403,7 +423,8 @@
           ],
           "watch": [
             "keep it project-agnostic; deprecate guides that go stale"
-          ]
+          ],
+          "authors": true
         }
       ]
     }

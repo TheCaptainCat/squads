@@ -22,3 +22,10 @@ async def test_a_skill_slug_is_not_a_valid_author_only_role_and_operator_slugs_a
     skill_slug = seeded[0].extra.get("slug", seeded[0].slug)
     with pytest.raises(SquadsError, match="not a registered agent or operator"):
         await svc.create("task", "t", author=skill_slug)
+
+
+async def test_creating_without_an_author_fails_rather_than_attributing_to_a_default(svc):
+    """No fallback of any kind: an omitted author must fail, not silently acquire the
+    squad's configured default role."""
+    with pytest.raises(SquadsError, match="author is required"):
+        await svc.create("task", "t")

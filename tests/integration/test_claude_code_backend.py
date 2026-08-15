@@ -3,6 +3,10 @@
 Pointer frontmatter validity, settings-merge non-clobber, CLAUDE.md managed-section
 idempotency, and the impersonation instruction naming a real ``sq`` command rather than a
 filesystem path.
+
+Also: retiring a role changes generated *prose* beyond the roster table — the
+default-role line and the developer-gated per-item-type skill text — so a withdrawal is
+exercised against those two compiled surfaces specifically, not just "the row is gone".
 """
 
 import json
@@ -11,6 +15,7 @@ import pytest
 import yaml
 
 from squads._sections import split_frontmatter
+from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
 
@@ -78,3 +83,84 @@ async def test_impersonation_instruction_names_the_sq_command_not_a_filesystem_p
     synced = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
     assert "sq role <slug> show" in synced
     assert "agents/roles/" not in synced
+
+
+async def test_retiring_the_default_role_drops_it_from_the_claude_md_default_line(
+    project, svc
+) -> None:
+    """Withdrawal changes generated prose beyond the roster table: the default-role line is
+    picked from the entry carrying ``is_default`` (manager, bundled), and retiring it must not
+    leave the managed section still naming a role that is no longer live.
+
+    Manager is this fixture's only role, so retiring it interactively is now refused by the
+    retirement gate's ``no_live_role`` clause (it would leave zero live roles): reach the
+    withdrawn state through a direct index write, the same bypass ``tests/integration/
+    test_check_detects_structural_corruption.py`` uses for other now-service-refused states,
+    then drive the same post-transition projection call the real path runs."""
+    before = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "default to **Catherine Manager** (`manager`)" in before
+
+    manager = await svc.roster_item("role", "manager")
+    assert manager is not None
+    async with svc.store.transaction() as db:
+        db.items[manager.sequence_id].status = "Archived"
+    await svc._project_roster_transition(await svc.get(manager.id))
+
+    after = (project.root / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "default to **Catherine Manager** (`manager`)" not in after
+    # No live role carries the designation: the projection omits the default-role line and
+    # the orchestration paragraph's name entirely rather than fabricating one (the withdrawn
+    # `no_default_role` clause — the fabricated "the manager"/"manager" fallback is the defect
+    # this replaced).
+    assert "default to **the manager**" not in after
+    assert "the manager" not in after
+    assert "If no agent is named, default to" not in after
+    assert "When you coordinate a larger piece of work, you" in after
+
+
+def _sq_task_skill_body(project) -> str:
+    """The real ``sq-task`` skill body — the ``.claude/`` file is only a thin pointer to it.
+
+    Unseeded (this fixture skips skill seeding), so it sits at the temporary slug-named path
+    (``sq-task.md``) rather than the convention ``SKILL-<n>-sq-task.md`` name."""
+    skills_dir = project.squad_dir / "agents" / "skills"
+    (body_path,) = skills_dir.glob("*sq-task.md")
+    return body_path.read_text(encoding="utf-8")
+
+
+async def test_retiring_the_only_developer_drops_the_developer_gated_skill_text(
+    project, svc
+) -> None:
+    """The per-item-type skills branch on whether any developer role is present (``has_dev``)
+    — retiring the only dev role must remove the '## For developers' section from a generated
+    per-item-type skill, not merely change the roster table."""
+    dev = await svc.add_dev("python")
+    assert "## For developers" in _sq_task_skill_body(project)
+
+    await svc.set_status(dev.id, "Archived")
+    assert "## For developers" not in _sq_task_skill_body(project)
+
+
+async def test_the_init_then_sync_round_trip_survives_a_retired_default_role(
+    tmp_path, monkeypatch
+) -> None:
+    """`sq sync` stays the convergence point even when the retired entry is the one carrying
+    ``is_default`` — a second sync must not resurrect the pointer or re-name it in CLAUDE.md.
+
+    Reaches the retired-default state through a direct index write (this fixture's only role
+    is also the default, so an interactive retirement is now refused by the gate — see the
+    companion test above) — `sync()` is the convergence point under test, not the transition."""
+    monkeypatch.chdir(tmp_path)
+    result = await service.init(root=tmp_path, roles_spec="minimal")
+    svc2 = service.Service(result.paths)
+    manager = await svc2.roster_item("role", "manager")
+    assert manager is not None
+    async with svc2.store.transaction() as db:
+        db.items[manager.sequence_id].status = "Archived"
+
+    await svc2.sync()
+    await svc2.sync()  # idempotent
+    assert not (tmp_path / ".claude" / "agents" / "manager.md").exists()
+    claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "Catherine Manager" not in claude_md
+    assert "the manager" not in claude_md

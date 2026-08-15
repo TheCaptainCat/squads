@@ -10,23 +10,23 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_plain_output_lists_registered_operators(project, invoke) -> None:
-    await invoke(["operator", "add", "Pierre Chat"])
+    await invoke(["operator", "add", "Alice Tester"])
     r = await invoke(["operator", "list"])
     assert r.exit_code == 0, r.output
-    assert "Pierre Chat" in r.output
-    assert "op-pierre" in r.output
+    assert "Alice Tester" in r.output
+    assert "op-alice" in r.output
 
 
 async def test_json_output_field_set_matches_operator_show(project, invoke) -> None:
-    await invoke(["operator", "add", "Pierre Chat"])
+    await invoke(["operator", "add", "Alice Tester"])
     listed = json.loads((await invoke(["operator", "list", "--json"])).output)
     assert len(listed) == 1
     row = listed[0]
-    shown = json.loads((await invoke(["operator", "op-pierre", "show", "--json"])).output)
+    shown = json.loads((await invoke(["operator", "op-alice", "show", "--json"])).output)
     assert set(row) == {"id", "slug", "full_name", "status"}
     assert row["id"] == shown["id"]
-    assert row["slug"] == shown["slug"] == "op-pierre"
-    assert row["full_name"] == shown["full_name"] == "Pierre Chat"
+    assert row["slug"] == shown["slug"] == "op-alice"
+    assert row["full_name"] == shown["full_name"] == "Alice Tester"
 
 
 async def test_empty_roster_lists_cleanly(project, invoke) -> None:

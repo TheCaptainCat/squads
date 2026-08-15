@@ -7,6 +7,7 @@ reflog file at all is backward compatible, and neither `repair` nor `check` ever
 
 import pytest
 
+from _helpers import create_item
 from squads import _actor as actor
 from squads import _clock as clock
 from squads._index import _reflog
@@ -16,7 +17,7 @@ pytestmark = pytest.mark.anyio
 
 
 async def _create(svc):
-    return (await svc.create("task", "T")).item
+    return (await create_item(svc, "task", "T")).item
 
 
 async def _status(svc):
@@ -33,7 +34,7 @@ async def _update(svc):
 
 async def _ref_add(svc):
     a = await _create(svc)
-    b = (await svc.create("bug", "B")).item
+    b = (await create_item(svc, "bug", "B")).item
     await svc.add_ref(a.id, b.id, kind="related")
     return a
 
@@ -93,7 +94,7 @@ async def test_repair_emits_its_own_reflog_line(svc, frozen_time):
 
 async def test_ambient_actor_and_frozen_clock_flow_into_the_reflog_line(svc, frozen_time):
     actor.set_actor("python-dev")
-    item = (await svc.create("task", "Authored by python-dev")).item
+    item = (await create_item(svc, "task", "Authored by python-dev")).item
     lines = await _reflog.read_lines(reflog_path(svc.paths.squad_dir))
     create_lines = [ln for ln in lines if ln.op == "create" and ln.target == item.id]
     assert create_lines[-1].actor == "python-dev"
@@ -103,7 +104,7 @@ async def test_ambient_actor_and_frozen_clock_flow_into_the_reflog_line(svc, fro
 async def test_repair_and_check_never_read_the_reflog_a_corrupt_reflog_does_not_break_them(
     svc, frozen_time
 ):
-    await svc.create("task", "T")
+    await create_item(svc, "task", "T")
     rpath = reflog_path(svc.paths.squad_dir)
     rpath.write_text("this is not json at all\n", encoding="utf-8")
     result = await svc.repair()
@@ -115,7 +116,7 @@ async def test_a_squad_with_no_reflog_file_is_backward_compatible(svc, frozen_ti
     rpath = reflog_path(svc.paths.squad_dir)
     if rpath.exists():
         rpath.unlink()
-    item = (await svc.create("task", "No reflog")).item
+    item = (await create_item(svc, "task", "No reflog")).item
     assert (await svc.get(item.id)).title == "No reflog"
     assert rpath.exists()  # re-created by the mutation that just ran
 
@@ -130,5 +131,5 @@ async def test_a_failed_reflog_append_does_not_roll_back_the_committed_mutation(
         raise OSError("simulated reflog write failure")
 
     monkeypatch.setattr(_reflog, "append_line", _boom)
-    item = (await svc.create("task", "Must exist")).item
+    item = (await create_item(svc, "task", "Must exist")).item
     assert (await svc.get(item.id)).title == "Must exist"

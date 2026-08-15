@@ -48,7 +48,7 @@ def roster():
 
 @pytest.fixture
 def operators():
-    return [OperatorView(slug="op-pierre", full_name="Pierre Chat")]
+    return [OperatorView(slug="op-alice", full_name="Alice Tester")]
 
 
 class TestScaffold:
@@ -95,8 +95,8 @@ class TestWriteManaged:
 
 
 class TestUsefulnessPin:
-    """AGENTS.md must be genuinely useful, not a roster-only stub — the regression class
-    is a staging file written by the service but never read by write_managed."""
+    """AGENTS.md must be genuinely useful, not a roster-only stub — every role field the
+    section renders has to actually arrive there, from the roster view it is handed."""
 
     async def test_workflow_commands_and_status_machine_reach_agents_md_after_sync(
         self, tmp_path, monkeypatch
@@ -111,11 +111,14 @@ class TestUsefulnessPin:
         assert "InProgress" in text
         assert "Canonical" in text  # the type-alias table header
 
-    async def test_role_mission_text_is_compiled_into_agents_md_after_sync(
+    async def test_role_mission_and_responsibilities_are_compiled_into_agents_md_after_sync(
         self, tmp_path, monkeypatch
     ):
-        """Regression guard: role missions are written to a staging file by the service and
-        must actually be read by write_managed, not orphaned."""
+        """Both role prose fields reach the compiled section.
+
+        ``responsibilities`` is the half that had never rendered once: the section template
+        has always carried the block, and the value it looped over was an unconditional empty
+        list, so the block was dead code that no test noticed because it emitted nothing."""
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         svc = service.Service(result.paths)
@@ -124,6 +127,102 @@ class TestUsefulnessPin:
         assert "Role definitions" in text
         assert "**Mission:**" in text
         assert "first point of contact" in text  # the manager's real mission, not a title stub
+        assert "**Responsibilities:**" in text
+        role = await svc.roster_item("role", "manager")
+        assert role is not None
+        for responsibility in role.extra["responsibilities"]:
+            assert f"- {responsibility}" in text
+
+    async def test_a_relabelled_role_entry_template_cannot_empty_the_compiled_section(
+        self, tmp_path, monkeypatch
+    ):
+        """The compiled section is built from the roster view, never parsed back out of the
+        per-role staging markdown this backend generated one step earlier.
+
+        The staging entry's ``**Mission:**`` line used to be the carrier: ``write_managed``
+        recovered the mission by matching that literal prefix, so relabelling the line in
+        ``role_entry.md.j2`` — a rendering choice, not a declaration — silently emptied every
+        mission from AGENTS.md with nothing reporting it. Driven here by rewriting the staged
+        files to the relabelled shape and recompiling: the missions must survive."""
+        monkeypatch.chdir(tmp_path)
+        result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
+        svc = service.Service(result.paths)
+        await svc.sync()
+
+        staged = sorted((tmp_path / ".agents_md" / "roles").glob("*.md"))
+        assert staged, "the per-role staging files should exist to be relabelled"
+        for entry in staged:
+            relabelled = entry.read_text(encoding="utf-8").replace("**Mission:**", "**Purpose:**")
+            assert "**Purpose:**" in relabelled
+            entry.write_text(relabelled, encoding="utf-8")
+
+        await svc.refresh_managed()  # recompile only -- does not rewrite the staging files
+        text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        assert "first point of contact" in text
+        assert "**Mission:**" in text
+
+    async def test_the_compiled_section_needs_no_staging_files_at_all(
+        self, backend, ctx, operators
+    ):
+        """The sharpest form of the same property: with no staging directory in existence,
+        every role field still renders, because the view carries them."""
+        roster = [
+            RoleView(
+                slug="qa",
+                full_name="Mara Tester",
+                title="QA engineer",
+                is_default=False,
+                mission="Break it before an adopter does.",
+                responsibilities=("Write the failing case first",),
+            )
+        ]
+        assert not (ctx.root / ".agents_md").exists()
+
+        await backend.write_managed(ctx, roster, operators)
+
+        text = (ctx.root / "AGENTS.md").read_text(encoding="utf-8")
+        assert "Break it before an adopter does." in text
+        assert "- Write the failing case first" in text
+
+
+class TestRosterProjection:
+    """Retiring a role withdraws its staging file and excludes it from the compiled
+    AGENTS.md region — the agents_md half of the projection, alongside the Claude
+    backend's default-role-line/dev-gated-skill coverage in test_claude_code_backend.py."""
+
+    async def test_retiring_a_role_excludes_it_from_the_compiled_agents_md_and_withdraws_its_staging_file(  # noqa: E501
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
+        svc = service.Service(result.paths)
+        item = await svc.activate_role("qa")
+        await svc.refresh_managed()  # the CLI's own post-activate step
+        staging = tmp_path / ".agents_md" / "roles" / "qa.md"
+        assert staging.exists()
+        before = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        assert "Mara Tester" in before
+
+        await svc.set_status(item.id, "Archived")
+        assert not staging.exists()
+        after = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        assert "Mara Tester" not in after
+
+    async def test_reactivating_regenerates_the_staging_file_and_the_compiled_entry(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
+        svc = service.Service(result.paths)
+        item = await svc.activate_role("qa")
+        staging = tmp_path / ".agents_md" / "roles" / "qa.md"
+        await svc.set_status(item.id, "Archived")
+        assert not staging.exists()
+
+        await svc.set_status(item.id, "Active")
+        assert staging.exists()
+        after = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        assert "Mara Tester" in after
 
 
 class TestCliRoundTrip:
@@ -142,10 +241,10 @@ class TestCliRoundTrip:
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         svc = service.Service(result.paths)
-        await svc.add_operator("Pierre Chat")
+        await svc.add_operator("Alice Tester")
         await svc.sync()
         text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
-        assert "Pierre Chat" in text and "op-pierre" in text
+        assert "Alice Tester" in text and "op-alice" in text
         await svc.sync()
         assert (tmp_path / "AGENTS.md").read_text(encoding="utf-8") == text
 

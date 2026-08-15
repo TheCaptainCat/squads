@@ -371,17 +371,28 @@ fields = [{ code = "priority", label = "Priority", collection = "priority" }]
     assert [f.code for f in spec.fields_for("finding")] == ["severity"]  # untouched
 
 
-@pytest.mark.parametrize(
-    ("toml", "match"),
-    [
-        ('[collections.priority]\nlabel = "Renamed"\nordered = true\nbadges = []\n', "priority"),
-        ("[subentity_kinds.finding]\nfields = []\n", "finding"),
-    ],
-    ids=["collection", "subentity_kind"],
-)
-def test_redefining_a_builtin_collection_or_subentity_kind_raises(
-    tmp_path: Path, toml: str, match: str
+def test_shadowing_a_builtin_collection_wholesale_replaces_its_badges(tmp_path: Path) -> None:
+    """A workflow override may now shadow (not just add to) a built-in collection: the
+    hand-written fields replace their bundled counterparts leaf-by-leaf, and ``badges`` — an
+    array, hence a leaf under the merge engine's own rule — replaces wholesale rather than
+    merging element-by-element."""
+    _write_override(
+        tmp_path, '[collections.priority]\nlabel = "Renamed"\nordered = true\nbadges = []\n'
+    )
+    spec = load_workflow_spec(squad_dir=tmp_path)
+    assert spec.collections["priority"].label == "Renamed"
+    assert spec.collections["priority"].badges == []
+
+
+def test_shadowing_a_builtin_subentity_kinds_fields_leaves_its_other_fields_inherited(
+    tmp_path: Path,
 ) -> None:
-    _write_override(tmp_path, toml)
-    with pytest.raises(SquadsError, match=f"may not redefine built-in .* '{match}'"):
-        load_workflow_spec(squad_dir=tmp_path)
+    """Shadowing one field of a built-in ``subentity_kinds`` entry (here ``fields``) inherits
+    every other field of that entry unchanged from the bundled default."""
+    _write_override(tmp_path, "[subentity_kinds.finding]\nfields = []\n")
+    spec = load_workflow_spec(squad_dir=tmp_path)
+    kind = spec.subentity_kinds["finding"]
+    assert kind.fields == []
+    assert kind.plural == "findings"
+    assert kind.local_prefix == "F"
+    assert kind.lifecycle == "finding"

@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import create_item
 from squads._itemfile import read_frontmatter
 
 pytestmark = pytest.mark.anyio
@@ -31,7 +32,7 @@ class _SimulatedProcessDeath(BaseException):
 
 
 async def test_a_kill_right_before_the_replace_leaves_the_item_fully_intact_and_recoverable(svc):
-    task = (await svc.create("task", "Crash target")).item
+    task = (await create_item(svc, "task", "Crash target")).item
     path = svc.paths.abspath(task.path)
     complete_bytes_before = path.read_bytes()
 

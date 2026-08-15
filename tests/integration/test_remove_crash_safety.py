@@ -6,6 +6,7 @@ leave the .md surviving while the index-entry is already gone, and repair would 
 
 import pytest
 
+from _helpers import create_item
 from squads._index._store import IndexStore
 
 pytestmark = pytest.mark.anyio
@@ -14,7 +15,7 @@ pytestmark = pytest.mark.anyio
 async def test_the_file_is_gone_before_a_crashed_commit_so_repair_never_resurrects_it(
     svc, monkeypatch
 ):
-    task = (await svc.create("task", "AtomicCheck")).item
+    task = (await create_item(svc, "task", "AtomicCheck")).item
     seq = task.sequence_id
     path = svc.paths.abspath(task.path)
 

@@ -5,6 +5,7 @@ remove seam (`_refs.py`) -- both reach the same shared guard, and both refuse a 
 
 import pytest
 
+from _helpers import create_item
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
 
@@ -24,7 +25,7 @@ async def _drift_via_interrupted_index_commit(svc, monkeypatch, item_id: str) ->
 
 
 async def test_adding_a_sub_entity_refuses_on_a_drifted_parent(svc, monkeypatch):
-    review = (await svc.create("review", "Drifted review")).item
+    review = (await create_item(svc, "review", "Drifted review")).item
     await _drift_via_interrupted_index_commit(svc, monkeypatch, review.id)
 
     with pytest.raises(SquadsError, match="repair"):
@@ -36,7 +37,7 @@ async def test_adding_a_sub_entity_refuses_on_a_drifted_parent(svc, monkeypatch)
 
 
 async def test_a_sub_entity_status_change_refuses_on_a_drifted_parent(svc, monkeypatch):
-    task = (await svc.create("task", "Drifted subtask host")).item
+    task = (await create_item(svc, "task", "Drifted subtask host")).item
     added = await svc.add_subtask(task.id, "a subtask")
     await _drift_via_interrupted_index_commit(svc, monkeypatch, task.id)
 
@@ -50,8 +51,8 @@ async def test_a_sub_entity_status_change_refuses_on_a_drifted_parent(svc, monke
 
 
 async def test_adding_a_ref_refuses_on_a_drifted_source_item(svc, monkeypatch):
-    a = (await svc.create("task", "Drifted ref source")).item
-    b = (await svc.create("task", "Ref target")).item
+    a = (await create_item(svc, "task", "Drifted ref source")).item
+    b = (await create_item(svc, "task", "Ref target")).item
     await _drift_via_interrupted_index_commit(svc, monkeypatch, a.id)
 
     with pytest.raises(SquadsError, match="repair"):
@@ -64,8 +65,8 @@ async def test_adding_a_ref_refuses_on_a_drifted_source_item(svc, monkeypatch):
 
 
 async def test_removing_a_ref_refuses_on_a_drifted_source_item(svc, monkeypatch):
-    a = (await svc.create("task", "Drifted ref remover")).item
-    b = (await svc.create("task", "Ref target for removal")).item
+    a = (await create_item(svc, "task", "Drifted ref remover")).item
+    b = (await create_item(svc, "task", "Ref target for removal")).item
     await svc.add_ref(a.id, b.id, kind="related")
     await _drift_via_interrupted_index_commit(svc, monkeypatch, a.id)
 

@@ -3,7 +3,7 @@
     "local_id": "ST1",
     "title": "Write login handler",
     "status": "Todo",
-    "assignee": null,
+    "assignee": "manager",
     "severity": null,
     "story": "US1"
   }

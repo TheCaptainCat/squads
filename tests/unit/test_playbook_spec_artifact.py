@@ -38,7 +38,7 @@ class TestFailsClosedOnUnknownKeys:
             }
         }
         with pytest.raises(Exception, match=r"(?i)(extra|commandz|invalid|unknown|forbidden)"):
-            _build_spec(raw, get_catalog(), bundled_spec())
+            _build_spec(raw, {r.slug for r in get_catalog().roles}, bundled_spec())
 
     def test_unknown_key_in_a_role_guide_entry_raises(self) -> None:
         raw: dict[str, Any] = {
@@ -61,7 +61,7 @@ class TestFailsClosedOnUnknownKeys:
             }
         }
         with pytest.raises(Exception, match=r"(?i)(extra|entr|invalid|unknown|forbidden)"):
-            _build_spec(raw, get_catalog(), bundled_spec())
+            _build_spec(raw, {r.slug for r in get_catalog().roles}, bundled_spec())
 
 
 class TestSpecIsAPinnedArtifact:
@@ -97,10 +97,11 @@ class TestShimIsALosslessConversion:
             assert shim.commands == converted.commands
             assert len(shim.roles) == len(converted.roles)
             for sr, cr in zip(shim.roles, converted.roles, strict=True):
-                assert (sr.slug, sr.enter, sr.do, sr.handoff, sr.watch) == (
+                assert (sr.slug, sr.enter, sr.do, sr.handoff, sr.watch, sr.authors) == (
                     cr.slug,
                     cr.enter,
                     cr.do,
                     cr.handoff,
                     cr.watch,
+                    cr.authors,
                 )

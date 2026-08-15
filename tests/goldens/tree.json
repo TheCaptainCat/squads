@@ -98,5 +98,16 @@
     "blocked": false,
     "badges": {},
     "children": []
+  },
+  {
+    "id": "TASK-10",
+    "type": "task",
+    "title": "Rotate the signing keys",
+    "status": "Draft",
+    "priority": null,
+    "assignee": null,
+    "blocked": false,
+    "badges": {},
+    "children": []
   }
 ]

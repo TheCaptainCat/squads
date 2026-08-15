@@ -101,7 +101,7 @@
         "local_id": "ST1",
         "title": "Write login handler",
         "status": "Todo",
-        "assignee": null,
+        "assignee": "manager",
         "severity": null,
         "story": "US1",
         "extra": {}
@@ -276,6 +276,30 @@
       "full_name": "Alice Tester"
     },
     "id": "OP-9",
+    "badges": {}
+  },
+  {
+    "sequence_id": 10,
+    "type": "task",
+    "title": "Rotate the signing keys",
+    "slug": "rotate-the-signing-keys",
+    "status": "Draft",
+    "description": "@manager owns the rotation window",
+    "parent": null,
+    "author": "manager",
+    "assignee": null,
+    "priority": null,
+    "severity": null,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "tasks/TASK-000010-rotate-the-signing-keys.md",
+    "created_at": "2026-06-07T10:00:00Z",
+    "updated_at": "2026-06-07T10:00:00Z",
+    "created_session": null,
+    "modified_session": null,
+    "extra": {},
+    "id": "TASK-10",
     "badges": {}
   }
 ]

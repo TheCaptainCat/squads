@@ -40,9 +40,9 @@ async def test_manager_is_exempt_from_the_lane_check(svc, frozen_time) -> None:
 
 
 async def test_an_op_slug_is_exempt_from_the_lane_check(svc, frozen_time) -> None:
-    await svc.add_operator("Pierre", slug="op-pierre")
-    actor.set_actor("op-pierre")
-    res = await svc.create("feature", "Human feature", author="op-pierre")
+    await svc.add_operator("Alice", slug="op-alice")
+    actor.set_actor("op-alice")
+    res = await svc.create("feature", "Human feature", author="op-alice")
     assert res.lane_warning is None
 
 

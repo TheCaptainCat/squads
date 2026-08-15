@@ -26,6 +26,7 @@ from pathlib import Path
 import anyio
 import pytest
 
+from _helpers import create_item
 from squads import _actor as actor
 from squads import _clock as clock
 from squads._context import RequestContext, bind_context, get_context
@@ -80,7 +81,7 @@ async def test_ambient_context_never_bleeds_between_two_concurrent_squad_request
         await b_checked.wait()
         ctx = get_context()
         svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
-        result = await svc.create("task", "Written by request A")
+        result = await create_item(svc, "task", "Written by request A")
         created["item_id"] = result.item.id
 
     async def request_for_b() -> None:
@@ -162,7 +163,7 @@ async def test_a_same_squad_concurrent_reader_sees_the_write_the_moment_it_commi
         )
         ctx = get_context()
         svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
-        result = await svc.create("task", "Committed by the writer")
+        result = await create_item(svc, "task", "Committed by the writer")
         written["item_id"] = result.item.id
         committed.set()
 
@@ -204,7 +205,7 @@ async def test_four_interleaved_requests_across_two_squads_each_see_only_their_o
         )
         ctx = get_context()
         svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
-        result = await svc.create("task", f"Written by {label}")
+        result = await create_item(svc, "task", f"Written by {label}")
         written[label] = result.item.id
 
     async with anyio.create_task_group() as tg:

@@ -20,10 +20,10 @@ from typing import cast
 import pytest
 
 from squads._cli._workflow_cmd import (
+    FIELD_ENTRY_FIELDS,
     TYPE_CATALOG_FIELDS,
-    TYPE_FIELD_ENTRY_FIELDS,
+    _field_entries,
     _type_catalog,
-    _type_fields,
 )
 from squads._workflow import load_workflow_spec
 from squads._workflow._models import ItemSpec, WorkflowSpec
@@ -188,20 +188,22 @@ def test_json_labels_reflect_a_pinned_override() -> None:
 # ─── field-set / model contract ─────────────────────────────────────────────────
 
 
-def test_frozen_field_set_is_exactly_type_order_prefix_reserved_category_fields_labels() -> None:
+def test_frozen_field_set_is_exactly_the_nine_declared_keys() -> None:
     assert TYPE_CATALOG_FIELDS == (
         "type",
         "order",
         "prefix",
         "reserved",
         "category",
+        "subentity_kind",
+        "lifecycle",
         "fields",
         "labels",
     )
 
 
 def test_frozen_field_entry_field_set_is_exactly_code_label_collection() -> None:
-    assert TYPE_FIELD_ENTRY_FIELDS == ("code", "label", "collection")
+    assert FIELD_ENTRY_FIELDS == ("code", "label", "collection")
 
 
 def test_every_catalog_row_has_exactly_the_frozen_field_set() -> None:
@@ -213,17 +215,43 @@ def test_every_catalog_row_has_exactly_the_frozen_field_set() -> None:
 def test_every_field_entry_has_exactly_the_frozen_field_set() -> None:
     spec = load_workflow_spec()
     for t in spec.items:
-        for entry in _type_fields(t, spec):
-            assert set(entry.keys()) == set(TYPE_FIELD_ENTRY_FIELDS)
+        for entry in _field_entries(t, spec):
+            assert set(entry.keys()) == set(FIELD_ENTRY_FIELDS)
 
 
-def test_order_and_prefix_and_category_are_real_itemspec_fields() -> None:
-    """The catalog's ``order``/``prefix`` are read verbatim off ``ItemSpec``, and
-    ``reserved`` mirrors ``ItemSpec.category == "roster"`` — guards against a stray field
-    name that doesn't actually trace back to the model."""
-    assert "order" in ItemSpec.model_fields
-    assert "prefix" in ItemSpec.model_fields
-    assert "category" in ItemSpec.model_fields
+def test_every_verbatim_key_is_a_real_itemspec_field() -> None:
+    """The catalog's ``order``/``prefix``/``category``/``subentity_kind``/``lifecycle`` are
+    read verbatim off ``ItemSpec``, and ``reserved`` mirrors ``ItemSpec.category ==
+    "roster"`` — guards against a stray field name that doesn't actually trace back to the
+    model."""
+    for name in ("order", "prefix", "category", "subentity_kind", "lifecycle"):
+        assert name in ItemSpec.model_fields
+
+
+def test_subentity_kind_is_the_declared_kind_or_null_and_lifecycle_names_the_machine() -> None:
+    """The two reference keys — carried by NAME, joining the sub-entity-kind and (0.14)
+    lifecycle catalogs, never an inlined copy of the row they point at."""
+    spec = load_workflow_spec()
+    rows = {r["type"]: r for r in _type_catalog(spec)}
+    assert rows["review"]["subentity_kind"] == "finding"
+    assert rows["feature"]["subentity_kind"] == "story"
+    assert rows["task"]["subentity_kind"] == "subtask"
+    assert rows["epic"]["subentity_kind"] is None
+    assert rows["role"]["subentity_kind"] is None
+    for t, ts in spec.items.items():
+        assert rows[t]["lifecycle"] == ts.lifecycle
+        assert isinstance(rows[t]["lifecycle"], str)
+
+
+def test_every_non_null_subentity_kind_resolves_in_the_kind_catalog() -> None:
+    """The join has to close: a type's ``subentity_kind`` must name a row that
+    ``sq workflow subentity-kinds --json`` actually emits, or the client's chain dead-ends."""
+    from squads._cli._workflow_cmd import _subentity_kind_catalog
+
+    spec = load_workflow_spec()
+    kinds = {r["subentity_kind"] for r in _subentity_kind_catalog(spec)}
+    referenced = {r["subentity_kind"] for r in _type_catalog(spec) if r["subentity_kind"]}
+    assert referenced and referenced <= kinds
 
 
 # ─── null-order representation (unordered/custom type) ─────────────────────────

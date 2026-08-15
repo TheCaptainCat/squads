@@ -5,6 +5,8 @@ re-deriving a hidden set in the TUI.
 
 import pytest
 
+from _helpers import create_item
+
 pytest.importorskip("textual")
 
 from rich.text import Text
@@ -26,7 +28,7 @@ def _full_span_styles(label: Text) -> set[str]:
 
 
 async def test_a_visible_status_label_is_not_dimmed(svc):
-    task = (await svc.create("task", "In flight")).item
+    task = (await create_item(svc, "task", "In flight")).item
     await svc.update(task.id, status="InProgress", force=True)
     task = await svc.get(task.id)
 
@@ -35,7 +37,7 @@ async def test_a_visible_status_label_is_not_dimmed(svc):
 
 
 async def test_a_hidden_by_default_status_dims_the_whole_row(svc):
-    task = (await svc.create("task", "Shipped")).item
+    task = (await create_item(svc, "task", "Shipped")).item
     for status in ("InProgress", "InReview", "Done"):
         await svc.update(task.id, status=status, force=True)
     task = await svc.get(task.id)
@@ -46,6 +48,6 @@ async def test_a_hidden_by_default_status_dims_the_whole_row(svc):
 
 
 async def test_path_only_ancestors_stay_dimmed_regardless_of_role(svc):
-    task = (await svc.create("task", "Ancestor")).item
+    task = (await create_item(svc, "task", "Ancestor")).item
     label = _label(task, path_only=True, spec=svc.spec)
     assert "dim" in _full_span_styles(label)

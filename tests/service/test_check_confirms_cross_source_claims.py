@@ -11,6 +11,7 @@ from pathlib import Path
 import anyio
 import pytest
 
+from _helpers import create_item
 from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
@@ -70,7 +71,7 @@ async def _race_a_mutation_against_check(svc, mutate) -> list[CheckIssue]:
 
 
 async def test_status_drift_candidate_from_a_racing_mutation_is_not_reported(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
 
     async def mutate() -> None:
         await svc.set_status(task.id, "InProgress")
@@ -83,7 +84,7 @@ async def test_on_disk_not_indexed_candidate_from_an_in_flight_create_is_not_rep
     created: dict[str, Item] = {}
 
     async def mutate() -> None:
-        created["item"] = (await svc.create("task", "brand new")).item
+        created["item"] = (await create_item(svc, "task", "brand new")).item
 
     issues = await _race_a_mutation_against_check(svc, mutate)
     assert not any("on disk but not in index" in i.message for i in issues), issues
@@ -92,7 +93,7 @@ async def test_on_disk_not_indexed_candidate_from_an_in_flight_create_is_not_rep
 
 
 async def test_in_index_but_no_file_candidate_from_an_in_flight_remove_is_not_reported(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
 
     async def mutate() -> None:
         await svc.remove_work_item(task.id)
@@ -102,8 +103,8 @@ async def test_in_index_but_no_file_candidate_from_an_in_flight_remove_is_not_re
 
 
 async def test_clean_board_loads_the_index_once_and_never_rereads_a_file(svc, monkeypatch):
-    await svc.create("task", "a")
-    await svc.create("task", "b")
+    await create_item(svc, "task", "a")
+    await create_item(svc, "task", "b")
 
     load_calls = 0
     orig_load = svc.store.load
@@ -134,7 +135,7 @@ async def test_clean_board_loads_the_index_once_and_never_rereads_a_file(svc, mo
 
 
 async def test_single_source_marker_damage_is_reported_with_no_second_read(svc, monkeypatch):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     path = svc.paths.abspath(task.path)
     path.write_text(
         path.read_text(encoding="utf-8").replace("<!-- sq:body:end -->", ""), encoding="utf-8"
@@ -159,7 +160,7 @@ async def test_single_source_marker_damage_is_reported_with_no_second_read(svc, 
 
 
 async def test_durable_status_drift_is_reported(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     _edit_frontmatter(svc.paths.abspath(task.path), status="InProgress")
 
     issues = await svc.check()
@@ -175,7 +176,7 @@ async def test_durable_drift_survives_a_stale_index_path_from_an_interrupted_ren
     number actually lives, not only where the (stale) index path points, or a real, durable
     drift is silently dropped instead of reported.
     """
-    task = (await svc.create("task", "original title")).item
+    task = (await create_item(svc, "task", "original title")).item
 
     real_atomic_write = IndexStore._atomic_write
 
@@ -203,7 +204,7 @@ async def test_durable_drift_survives_a_stale_index_path_from_an_interrupted_ren
 
 
 async def test_durable_orphan_file_is_reported(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     async with svc.store.transaction() as db:
         del db.items[task.sequence_id]
 
@@ -214,7 +215,7 @@ async def test_durable_orphan_file_is_reported(svc):
 
 
 async def test_durable_missing_file_is_reported(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     svc.paths.abspath(task.path).unlink()
 
     issues = await svc.check()
@@ -224,7 +225,7 @@ async def test_durable_missing_file_is_reported(svc):
 async def test_confirm_round_reloads_index_when_candidates_exist(svc, monkeypatch):
     """The other half of the "pays nothing when clean" contract: a real candidate does cost
     exactly one extra index load (never zero, never more)."""
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     svc.paths.abspath(task.path).unlink()
 
     load_calls = 0
@@ -245,7 +246,7 @@ async def test_confirm_round_reloads_index_when_candidates_exist(svc, monkeypatc
 
 
 async def test_confirmed_drift_names_the_markdown_ahead_direction(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     # advance the frontmatter's own `updated_at` past the index's frozen one
     ahead = clock.now() + timedelta(seconds=5)
     _edit_frontmatter(
@@ -259,7 +260,7 @@ async def test_confirmed_drift_names_the_markdown_ahead_direction(svc):
 
 
 async def test_confirmed_drift_names_the_index_ahead_direction(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     _edit_frontmatter(svc.paths.abspath(task.path), status="InProgress")
 
     async with svc.store.transaction() as db:
@@ -273,7 +274,7 @@ async def test_confirmed_drift_names_the_index_ahead_direction(svc):
 
 
 async def test_confirmed_drift_names_no_direction_when_timestamps_do_not_order_the_pair(svc):
-    task = (await svc.create("task", "t")).item
+    task = (await create_item(svc, "task", "t")).item
     _edit_frontmatter(svc.paths.abspath(task.path), status="InProgress")
 
     issues = await svc.check()

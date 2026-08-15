@@ -43,8 +43,9 @@ def test_three_state_linear_with_a_back_edge() -> None:
 
 
 def test_agent_lifecycle() -> None:
-    m = _m("Draft", {"Draft": ["Active"], "Active": ["Archived"], "Archived": ["Active"]})
-    assert linearize_lifecycle(m) == "Draft → Active → Archived"
+    """The bundled role/skill/operator machine: Active <-> Archived."""
+    m = _m("Active", {"Active": ["Archived"], "Archived": ["Active"]})
+    assert linearize_lifecycle(m) == "Active → Archived"
 
 
 # ---------------------------------------------------------------------------

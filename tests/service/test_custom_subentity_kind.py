@@ -6,6 +6,7 @@ and two distinct types are free to share the same kind without either misrouting
 
 import pytest
 
+from _helpers import create_item
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services import _service as service
 from squads._workflow import bundled_spec
@@ -78,8 +79,8 @@ async def test_two_types_sharing_one_kind_each_resolve_their_own_items_independe
     invalidate_squad_dir(project.squad_dir)  # evict the pre-existing-template env cache
     svc = service.Service(project, spec=spec)
 
-    task = (await svc.create("task", "t")).item
-    ticket = (await svc.create("ticket", "tk")).item
+    task = (await create_item(svc, "task", "t")).item
+    ticket = (await create_item(svc, "ticket", "tk")).item
     task_sub = await svc.add_subtask(task.id, "task work")
     ticket_sub = await svc.add_subtask(ticket.id, "ticket work")
 

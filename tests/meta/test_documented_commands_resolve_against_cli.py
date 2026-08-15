@@ -109,10 +109,25 @@ def _repo_root() -> Path:
 
 def _own_option_arity(cmd: Any, token: str) -> int | None:
     """How many extra tokens *token* consumes if it's one of *cmd*'s own declared options
-    (0 for a bare flag, 1 for a value option) — or None if it isn't one of *cmd*'s options."""
+    (0 for a bare flag, 1 for a value option) — or None if it isn't one of *cmd*'s options.
+
+    Click auto-adds a help option to every command/group unless explicitly disabled
+    (``add_help_option=False``) — it is never one of *cmd*'s ``params`` (it isn't a
+    user-declared ``Option``, so the loop above can never see it), which used to make a
+    perfectly valid, documented ``sq --help`` fail to resolve. Recognized here via Click's own
+    ``get_help_option_names`` — a real, introspectable property of the command object keyed
+    off its context settings — rather than hardcoding the string ``"--help"``, matching this
+    module's stated no-pattern-matching design for everything else it resolves. Applies at any
+    level (root, group, or leaf), not just the root, since the same auto-added option exists
+    on every one of them.
+    """
     for p in getattr(cmd, "params", []):
         if getattr(p, "param_type_name", None) == "option" and token in (p.opts or []):
             return 0 if getattr(p, "is_flag", False) else 1
+    if getattr(cmd, "add_help_option", False):
+        ctx = cmd.make_context("sq", [], resilient_parsing=True)
+        if token in cmd.get_help_option_names(ctx):
+            return 0
     return None
 
 
@@ -194,6 +209,7 @@ def _resolve(tokens: list[str]) -> str | None:
         arity = _own_option_arity(current, tokens[i])
         if arity is None:
             return None
+        path.append(tokens[i])
         i += 1 + arity
     while i < n:
         tok = tokens[i]
@@ -333,6 +349,42 @@ def test_a_leaf_commands_real_flags_and_positionals_still_resolve() -> None:
     assert _resolve(["role", "list", "--json"]) == "role list"
     assert _resolve(["dev", "add", "--tech", "python"]) == "dev add"
     assert _resolve(["create", "feature", "Login", "--parent", "EPIC-1"]) == "create feature"
+
+
+def test_a_bare_root_level_flag_resolves_instead_of_being_read_as_unresolved() -> None:
+    """`sq --help` / `sq --version` are complete, valid invocations on their own — nothing
+    ever follows a root flag that consumes the whole line. The walk used to conflate that
+    with genuine failure: once the leading-flags loop consumed everything, `path` stayed
+    empty and the final `return … if path else None` read empty-because-nothing-left-to-check
+    the same as empty-because-nothing-ever-matched. Covers every root-level flag this app
+    actually declares, not just `--help` — `--version`/`--install-completion`/
+    `--show-completion` are real ``Option``s already visible to `_own_option_arity`, so the
+    fix here is the `path`-recording change, not the help-flag recognition (that one's own
+    test is below)."""
+    assert _resolve(["--version"]) == "--version"
+    assert _resolve(["--install-completion"]) == "--install-completion"
+    assert _resolve(["--show-completion"]) == "--show-completion"
+
+
+def test_the_auto_added_help_flag_resolves_at_root_group_and_leaf_level() -> None:
+    """`--help` is never one of a command's declared `params` (Click adds it itself unless
+    `add_help_option=False`), so the plain declared-options loop in `_own_option_arity` can
+    never see it on its own — this is the second, independent half of the `sq --help` fix
+    (distinct from the empty-`path` bug the previous test covers), and it must hold at every
+    level, not only the root."""
+    assert _resolve(["--help"]) == "--help"
+    assert _resolve(["role", "--help"]) == "role"
+    assert _resolve(["role", "list", "--help"]) == "role list"
+
+
+def test_a_flag_this_cli_never_declared_still_fails_to_resolve() -> None:
+    """Falsification target for both fixes above: a resolver made permissive enough to stop
+    complaining about a real gap is worse than the false positive it replaced. `-h` is never
+    registered by this app (only the long `--help` form is), and a made-up root flag must
+    still fail — the widened recognition is for Click's actual help-option names and this
+    app's actually-declared options, not for "any flag-shaped token"."""
+    assert _resolve(["-h"]) is None
+    assert _resolve(["--totally-not-a-real-flag"]) is None
 
 
 def test_no_documented_override_base_stamp_is_a_stale_version() -> None:

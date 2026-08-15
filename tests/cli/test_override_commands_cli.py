@@ -240,3 +240,38 @@ async def test_diff_plain_output_renders_for_the_role_and_workflow_kinds_too(
     workflow_diff = await invoke(["override", "diff", "workflow"])
     assert workflow_diff.exit_code == 0, workflow_diff.output
     assert "kind: workflow" in workflow_diff.output
+
+
+async def test_scaffold_diff_and_update_all_reach_the_playbook_kind(project, invoke) -> None:
+    """The playbook-kind branch of every override subcommand, driven through the real CLI —
+    both the ``playbook`` positional name and the ``--playbook`` flag form. Mirrors
+    ``test_scaffold_diff_and_update_all_reach_the_workflow_kind`` exactly."""
+    scaffolded = await invoke(["override", "scaffold", "playbook"])
+    assert scaffolded.exit_code == 0, scaffolded.output
+    dest = project.squad_dir / ".overrides" / "playbook.toml"
+    assert dest.exists()
+
+    listed = await invoke(["override", "list"])
+    assert "playbook" in listed.output
+
+    diffed = await invoke(["override", "diff", "--playbook"])
+    assert diffed.exit_code == 0, diffed.output
+    assert "Δ-mine" in diffed.output and "Δ-upgrade" in diffed.output
+
+    from squads._overrides._stamp import stamp_toml_file
+
+    stamp_toml_file(dest, "0.1.0")
+    updated = await invoke(["override", "update", "playbook"])
+    assert updated.exit_code == 0, updated.output
+
+    from squads import __version__
+    from squads._overrides._stamp import read_toml_stamp
+
+    assert read_toml_stamp(dest.read_text(encoding="utf-8")) == __version__
+
+
+async def test_diff_plain_output_renders_for_the_playbook_kind_too(project, invoke) -> None:
+    await invoke(["override", "scaffold", "--playbook"])
+    playbook_diff = await invoke(["override", "diff", "playbook"])
+    assert playbook_diff.exit_code == 0, playbook_diff.output
+    assert "kind: playbook" in playbook_diff.output

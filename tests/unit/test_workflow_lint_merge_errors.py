@@ -1,11 +1,12 @@
-"""``lint_workflow_spec`` collects EVERY additive-merge/structural error in one pass instead of
-raising on the first (the "sq workflow lint" verbose surface). Distinct from the transition-
-graph *reachability* lint (tests/unit/test_workflow_lifecycle_reachability.py, out of this
-chunk's range) — this is the merge-time vocabulary-conflict family.
+"""``lint_workflow_spec`` collects EVERY merge/structural error in one pass instead of raising
+on the first (the "sq workflow lint" verbose surface). Distinct from the transition-graph
+*reachability* lint (tests/unit/test_workflow_lifecycle_reachability.py) — this is the
+merge-time vocabulary-conflict family.
 """
 
 from pathlib import Path
 
+from squads import __version__
 from squads._workflow._loader import lint_workflow_spec
 
 
@@ -13,6 +14,14 @@ def _write_override(squad_dir: Path, content: str) -> None:
     override_dir = squad_dir / ".overrides"
     override_dir.mkdir(parents=True, exist_ok=True)
     (override_dir / "workflow.toml").write_text(content, encoding="utf-8")
+
+
+def _stamped(content: str) -> str:
+    """Prefix *content* with a current-version stamp — used only by the "is clean" roster-
+    floor tests below, so the unrelated unstamped-and-shadowing finding (a shadowing override
+    with no ``# squads:override-base`` stamp is its own error-level finding) never masks
+    whether the floor itself is satisfied."""
+    return f"# squads:override-base:{__version__}\n{content}"
 
 
 def test_lint_with_no_override_reports_nothing(tmp_path: Path) -> None:
@@ -43,6 +52,54 @@ lifecycle = "incident_lc"
     assert errors == []
 
 
+# --------------------------------------------------------------------------- the stamp
+# obligation's lint-side half — shared with `sq check` via `workflow_stamp_finding` so the two
+# surfaces can never disagree about the same file; each of the three levels driven directly
+# through `lint_workflow_spec` (the surface `sq workflow lint` itself calls), never assumed
+# from the shared helper's own unit coverage.
+
+
+def test_lint_reports_an_error_for_a_shadowing_override_with_no_stamp(tmp_path: Path) -> None:
+    _write_override(tmp_path, '[items.guide]\nfolder = "handbooks"\n')  # shadows a bundled key
+    findings = lint_workflow_spec(tmp_path)
+    errors = [f for f in findings if f[0] == "error"]
+    assert len(errors) == 1
+    assert "override-base" in errors[0][2]
+
+
+def test_lint_reports_a_warning_for_a_shadowing_override_with_a_stale_stamp(
+    tmp_path: Path,
+) -> None:
+    _write_override(tmp_path, '# squads:override-base:0.0.1\n[items.guide]\nfolder = "handbooks"\n')
+    findings = lint_workflow_spec(tmp_path)
+    warnings = [f for f in findings if f[0] == "warn"]
+    assert len(warnings) == 1
+    assert "stale" in warnings[0][2]
+    assert not [f for f in findings if f[0] == "error"]
+
+
+def test_lint_reports_nothing_for_an_add_only_override_with_no_stamp(tmp_path: Path) -> None:
+    _write_override(
+        tmp_path,
+        '[items.incident]\nprefix = "INC"\nfolder = "incidents"\nlifecycle = "work"\n',
+    )
+    assert lint_workflow_spec(tmp_path) == []
+
+
+def test_lint_and_check_agree_on_the_same_unstamped_shadowing_override(tmp_path: Path) -> None:
+    """The two surfaces reading `workflow_stamp_finding` — `sq workflow lint`
+    (`lint_workflow_spec`) and `sq check` (`check_override_issues`) — must report the exact
+    same level for the exact same file, never diverge."""
+    from squads._overrides._service import check_override_issues
+
+    _write_override(tmp_path, '[items.guide]\nfolder = "handbooks"\n')
+    lint_level = next(f[0] for f in lint_workflow_spec(tmp_path) if "override-base" in f[2])
+    check_level = next(
+        level for level, _loc, msg in check_override_issues(tmp_path) if "override-base" in msg
+    )
+    assert lint_level == check_level == "error"
+
+
 def test_lint_reports_a_finding_shaped_tuple_for_a_structural_error(tmp_path: Path) -> None:
     _write_override(
         tmp_path,
@@ -60,26 +117,28 @@ def test_lint_reports_a_finding_shaped_tuple_for_a_structural_error(tmp_path: Pa
 
 
 def test_lint_collects_every_conflict_in_one_pass_not_just_the_first(tmp_path: Path) -> None:
-    """Redefining TWO built-in types in one override must surface two separate findings."""
+    """Two independent structural violations in one override — two new types each naming an
+    undeclared lifecycle — must surface as two separate findings, not just the first
+    (``WorkflowSpec._validate``'s combined error message splits into one bullet per finding)."""
     _write_override(
         tmp_path,
         """
-[items.task]
-prefix = "TSK2"
-folder = "tasks2"
-lifecycle = "work"
+[items.widget]
+prefix = "WDGT"
+folder = "widgets"
+lifecycle = "nonexistent_lifecycle_1"
 
-[items.bug]
-prefix = "BUG2"
-folder = "bugs2"
-lifecycle = "work"
+[items.gizmo]
+prefix = "GIZ"
+folder = "gizmos"
+lifecycle = "nonexistent_lifecycle_2"
 """,
     )
     errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
     assert len(errors) >= 2
     messages = " ".join(f[2] for f in errors)
-    assert "task" in messages
-    assert "bug" in messages
+    assert "widget" in messages
+    assert "gizmo" in messages
 
 
 def test_lint_surfaces_a_prefix_shadowing_a_builtin_as_an_error(tmp_path: Path) -> None:
@@ -110,6 +169,216 @@ prefix = "INC"
 folder = "incidents"
 lifecycle = "triage"
 """,
+    )
+    errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
+    assert not errors
+
+
+# --------------------------------------------------------------------------- roster lifecycle floor
+# The roster type-key lock refuses ANY type outside role/skill/operator from declaring
+# category="roster" (that lock is covered separately below), so the only way to drive a
+# roster-category lifecycle through the merge is to shadow ONE of those three built-ins'
+# `lifecycle` field — an ordinary field-merge — pointing it at a brand-new custom lifecycle
+# declared in the same override. `role`/`skill` are used here as the two available roster
+# hosts; the type itself is untouched (still category="roster", still named `role`/`skill`).
+#
+# Every custom status here that names `role = "active"` resolves to the bundled `[roles.active]`
+# role, which is `live = true` — the merge is additive over the bundled role catalog, so a
+# shadowed roster lifecycle reusing the bundled role name gets the bundled live flag for free.
+
+
+def test_lint_reports_a_roster_type_with_zero_live_statuses(tmp_path: Path) -> None:
+    """R1: a category='roster' type's lifecycle must have at least one live status. Neither
+    Spinning (role-less, falls back to 'pending', not live) nor Retired ('done', not
+    live) carries it, so shadowing `role`'s lifecycle with this one has zero — refused,
+    naming the type."""
+    _write_override(
+        tmp_path,
+        """
+[statuses.Spinning]
+[statuses.Retired]
+role = "done"
+
+[lifecycles.gadget_lc]
+initial = "Spinning"
+[lifecycles.gadget_lc.transitions]
+Spinning = ["Retired"]
+Retired = []
+
+[items.role]
+lifecycle = "gadget_lc"
+""",
+    )
+    errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
+    assert any("role" in msg and "no live status" in msg and "R1" in msg for _, _, msg, _ in errors)
+
+
+def test_lint_is_clean_for_a_roster_type_with_two_live_statuses_when_the_initial_is_live(
+    tmp_path: Path,
+) -> None:
+    """R1 only requires AT LEAST ONE live status, and R1' only bites when the lifecycle's
+    initial is itself non-live. Here Spinning (the initial) and AlsoSpinning both carry the
+    live 'active' role — two live statuses, but since the initial is one of them there is
+    no ambiguity for the create path to resolve, so this is legal (it was a violation under the
+    old 'exactly one' rule)."""
+    _write_override(
+        tmp_path,
+        _stamped(
+            """
+[statuses.Spinning]
+role = "active"
+[statuses.AlsoSpinning]
+role = "active"
+[statuses.Retired]
+role = "done"
+
+[lifecycles.gadget_lc]
+initial = "Spinning"
+[lifecycles.gadget_lc.transitions]
+Spinning = ["AlsoSpinning", "Retired"]
+AlsoSpinning = ["Retired"]
+Retired = []
+
+[items.role]
+lifecycle = "gadget_lc"
+"""
+        ),
+    )
+    errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
+    assert not errors
+
+
+def test_lint_reports_a_roster_type_with_two_live_statuses_when_the_initial_is_nonlive(
+    tmp_path: Path,
+) -> None:
+    """R1': when the lifecycle's initial is NOT live, exactly one status must be live —
+    Booting (role-less, not live) is the initial here, and BOTH Spinning and AlsoSpinning
+    are live, leaving the create path with no unambiguous target."""
+    _write_override(
+        tmp_path,
+        """
+[statuses.Booting]
+[statuses.Spinning]
+role = "active"
+[statuses.AlsoSpinning]
+role = "active"
+[statuses.Retired]
+role = "done"
+
+[lifecycles.gadget_lc]
+initial = "Booting"
+[lifecycles.gadget_lc.transitions]
+Booting = ["Spinning", "AlsoSpinning"]
+Spinning = ["Retired"]
+AlsoSpinning = ["Retired"]
+Retired = []
+
+[items.role]
+lifecycle = "gadget_lc"
+""",
+    )
+    errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
+    assert any("role" in msg and "R1'" in msg and "found 2 live" in msg for _, _, msg, _ in errors)
+
+
+def test_lint_reports_a_roster_type_whose_live_status_can_never_retire(tmp_path: Path) -> None:
+    """R2: a settled, non-live status must be reachable from a live one — Shutdown IS
+    reachable from initial (so the universal reachable-settled floor is satisfied) but NOT
+    from the live Spinning status, which has no outgoing transition at all."""
+    _write_override(
+        tmp_path,
+        """
+[statuses.Bootstrapping]
+[statuses.Spinning]
+role = "active"
+[statuses.Shutdown]
+role = "done"
+
+[lifecycles.gadget_lc]
+initial = "Bootstrapping"
+[lifecycles.gadget_lc.transitions]
+Bootstrapping = ["Spinning", "Shutdown"]
+Spinning = []
+Shutdown = []
+
+[items.role]
+lifecycle = "gadget_lc"
+""",
+    )
+    errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
+    assert any(
+        "role" in msg
+        and "no settled, non-live status reachable from a live status" in msg
+        and "R2" in msg
+        for _, _, msg, _ in errors
+    )
+
+
+def test_lint_collects_both_roster_floor_violations_across_two_types_in_one_pass(
+    tmp_path: Path,
+) -> None:
+    """Two independent roster-category types (`role` and `skill`, each shadowed onto its own
+    custom lifecycle) each violating a different floor clause are both reported in one lint
+    run — collected, not fail-fast-on-first."""
+    _write_override(
+        tmp_path,
+        """
+[statuses.Spinning]
+[statuses.Retired]
+role = "done"
+
+[lifecycles.gadget_lc]
+initial = "Spinning"
+[lifecycles.gadget_lc.transitions]
+Spinning = ["Retired"]
+Retired = []
+
+[items.role]
+lifecycle = "gadget_lc"
+
+[statuses.Booting]
+[statuses.Widgeting]
+role = "active"
+[statuses.Retired2]
+role = "done"
+
+[lifecycles.widget_lc]
+initial = "Booting"
+[lifecycles.widget_lc.transitions]
+Booting = ["Widgeting", "Retired2"]
+Widgeting = []
+Retired2 = []
+
+[items.skill]
+lifecycle = "widget_lc"
+""",
+    )
+    errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
+    messages = " ".join(f[2] for f in errors)
+    assert "role" in messages and "no live status" in messages
+    assert "skill" in messages and "no settled, non-live status reachable" in messages
+
+
+def test_lint_is_clean_for_a_custom_roster_type_that_satisfies_the_floor(tmp_path: Path) -> None:
+    _write_override(
+        tmp_path,
+        _stamped(
+            """
+[statuses.Spinning]
+role = "active"
+[statuses.Retired]
+role = "done"
+
+[lifecycles.gadget_lc]
+initial = "Spinning"
+[lifecycles.gadget_lc.transitions]
+Spinning = ["Retired"]
+Retired = ["Spinning"]
+
+[items.role]
+lifecycle = "gadget_lc"
+"""
+        ),
     )
     errors = [f for f in lint_workflow_spec(tmp_path) if f[0] == "error"]
     assert not errors

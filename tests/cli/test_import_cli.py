@@ -1,7 +1,9 @@
 """``sq import`` CLI surface: a clean file applies and reports counts, ``--dry-run`` writes
 nothing and prints the projected plan, a file with seeded problems exits non-zero (nothing
 written, every problem line-numbered), stdin (``-``) works, ``--json`` shape is asserted, and
-the global ``--at``/local ``--as`` defaults reach the engine.
+the global ``--at``/local ``--as`` defaults reach the engine. ``--as`` has no fallback of its
+own (unlike ``--at``, which defaults to "now"): an event with no actor anywhere in its chain
+fails cleanly like any other validation issue rather than borrowing a config default.
 """
 
 import json
@@ -18,7 +20,7 @@ async def test_clean_file_applies_and_reports_counts(project, invoke, tmp_path):
         '{"op":"status","target":"f1","status":"InProgress"}\n',
         encoding="utf-8",
     )
-    result = await invoke(["import", str(events)])
+    result = await invoke(["import", str(events), "--as", "manager"])
     assert result.exit_code == 0, result.output
     assert "create: 1" in result.output
     assert "status: 1" in result.output
@@ -34,7 +36,7 @@ async def test_clean_file_applies_and_reports_counts(project, invoke, tmp_path):
 async def test_dry_run_writes_nothing_and_prints_the_plan(project, invoke, tmp_path):
     events = tmp_path / "events.jsonl"
     events.write_text('{"op":"create","type":"feature","title":"Not written","handle":"f1"}\n')
-    result = await invoke(["import", "--dry-run", str(events)])
+    result = await invoke(["import", "--dry-run", str(events), "--as", "manager"])
     assert result.exit_code == 0, result.output
     assert "f1" in result.output
     assert "dry run" in result.output
@@ -53,7 +55,7 @@ async def test_a_bad_file_exits_nonzero_writes_nothing_and_lists_every_line_numb
         '{"op":"status","target":"does-not-exist","status":"InProgress"}\n',
         encoding="utf-8",
     )
-    result = await invoke(["import", str(events)])
+    result = await invoke(["import", str(events), "--as", "manager"])
     assert result.exit_code == 1
     assert "line 1:" in result.output
     assert "line 2:" in result.output
@@ -67,7 +69,7 @@ async def test_a_bad_file_exits_nonzero_writes_nothing_and_lists_every_line_numb
 
 async def test_stdin_dash_reads_the_event_stream(project, invoke):
     result = await invoke(
-        ["import", "-"],
+        ["import", "-", "--as", "manager"],
         input='{"op":"create","type":"task","title":"From stdin"}\n',
     )
     assert result.exit_code == 0, result.output
@@ -82,7 +84,7 @@ async def test_json_shape_on_success(project, invoke, tmp_path):
         '{"op":"add-story","target":"f1","title":"a story","handle":"s1"}\n',
         encoding="utf-8",
     )
-    result = await invoke(["import", "--json", str(events)])
+    result = await invoke(["import", "--json", str(events), "--as", "manager"])
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert payload["ok"] is True
@@ -99,7 +101,7 @@ async def test_json_shape_on_success(project, invoke, tmp_path):
 async def test_json_shape_on_failure_no_ansi_and_exit_1(project, invoke, tmp_path):
     events = tmp_path / "bad.jsonl"
     events.write_text('{"op":"status","target":"NOPE","status":"weird"}\n', encoding="utf-8")
-    result = await invoke(["import", "--json", str(events)])
+    result = await invoke(["import", "--json", str(events), "--as", "manager"])
     assert result.exit_code == 1
     payload = json.loads(result.output)  # raises if any ANSI/non-JSON leaked in
     assert payload["ok"] is False
@@ -132,6 +134,22 @@ async def test_an_event_at_overrides_the_file_level_default(project, invoke, tmp
     assert result.exit_code == 0, result.output
     listed = await invoke(["list", "--type", "task", "--json"])
     assert json.loads(listed.output)[0]["created_at"] == "2021-06-01T00:00:00Z"
+
+
+async def test_an_event_with_no_actor_anywhere_fails_cleanly_naming_the_missing_actor(
+    project, invoke, tmp_path
+):
+    """No ``--as``, no event-level ``as`` — there is no config-file fallback to invent one, so
+    this is a validation issue like any other, not a silent attribution."""
+    events = tmp_path / "events.jsonl"
+    events.write_text('{"op":"create","type":"task","title":"Orphaned"}\n', encoding="utf-8")
+    result = await invoke(["import", str(events)])
+    assert result.exit_code == 1
+    assert "no actor" in result.output
+    assert "line 1" in result.output
+
+    listed = await invoke(["list", "--type", "task", "--json"])
+    assert json.loads(listed.output) == []
 
 
 async def test_unreadable_file_is_a_clean_error_not_a_traceback(project, invoke, tmp_path):

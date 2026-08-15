@@ -7,6 +7,7 @@ import json
 
 import pytest
 
+from _helpers import create_item
 from squads._services._service import Service
 
 pytestmark = pytest.mark.anyio
@@ -14,7 +15,7 @@ pytestmark = pytest.mark.anyio
 
 async def test_migrate_repad_renames_files_and_prints_a_summary(project, invoke):
     svc = Service(project)
-    await svc.create("task", "task one")
+    await create_item(svc, "task", "task one")
 
     result = await invoke(["migrate", "repad", "7"])
     assert result.exit_code == 0, result.output

@@ -13,6 +13,7 @@ import threading
 import anyio
 import pytest
 
+from _helpers import create_item
 from squads import _aio
 from squads._services import _maintenance as maintenance
 from squads._services import _service as service
@@ -47,7 +48,7 @@ async def test_a_mutation_racing_the_scan_no_longer_flips_sq_check_to_exit_3_thr
     init_result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     paths = init_result.paths
     setup_svc = service.Service(paths)
-    task = (await setup_svc.create("task", "t")).item
+    task = (await create_item(setup_svc, "task", "t")).item
 
     started = threading.Event()
     release = threading.Event()

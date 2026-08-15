@@ -16,8 +16,11 @@ the literal string ``"squads"`` so path references are stable across machines.
 import os
 from pathlib import Path
 
+from squads._backends._agents_md._backend import _also_creatable_types
 from squads._backends._base import OperatorView, RoleView
+from squads._interactions import cheatsheet_anchor_context
 from squads._rendering._engine import render
+from squads._roles._catalog import dev_role, get_catalog
 from squads._workflow import bundled_spec
 
 GOLDENS_DIR = Path(__file__).parents[1] / "goldens"
@@ -42,7 +45,7 @@ _PINNED_ROSTER: list[RoleView] = [
         slug="python-dev", full_name="Elias Python", title="Python developer", is_default=False
     ),
 ]
-_PINNED_OPERATORS: list[OperatorView] = [OperatorView(slug="op-pierre", full_name="Pierre Chat")]
+_PINNED_OPERATORS: list[OperatorView] = [OperatorView(slug="op-alice", full_name="Alice Tester")]
 _DEFAULT_ROLE = next(r for r in _PINNED_ROSTER if r.is_default)
 
 
@@ -81,6 +84,18 @@ def test_the_claude_md_managed_section_body_matches_its_pinned_golden() -> None:
 
 
 def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
+    """Pinned with real ``mission``/``responsibilities`` on every roster entry.
+
+    Those two fields only became readable by this backend when ``RoleView`` started carrying
+    them; before that the section's responsibilities block had never rendered once. Pinning
+    the golden against empty values would have kept it that way, so the roster below carries
+    the bundled catalog's own text and the golden holds the block's actual output.
+    """
+    spec = bundled_spec()
+    anchor_ctx = cheatsheet_anchor_context(spec)
+    dev = dev_role("python")
+    catalog = {r.slug: (r.mission, list(r.responsibilities)) for r in get_catalog().roles}
+    catalog[dev.slug] = (dev.mission, list(dev.responsibilities))
     actual = render(
         "agents_md/agents_section.md.j2",
         squad_dir="squads",
@@ -89,14 +104,17 @@ def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
                 "full_name": r.full_name,
                 "title": r.title,
                 "slug": r.slug,
-                "mission": "",
-                "responsibilities": [],
+                "mission": catalog[r.slug][0],
+                "responsibilities": catalog[r.slug][1],
             }
             for r in _PINNED_ROSTER
         ],
         operators=[{"full_name": o.full_name, "slug": o.slug} for o in _PINNED_OPERATORS],
-        spec=bundled_spec(),
+        spec=spec,
+        also_creatable_types=_also_creatable_types(spec, anchor_ctx["anchor"]),
+        **anchor_ctx,
     )
     assert "Elias Python" in actual
+    assert "**Responsibilities:**" in actual  # the block the view field made reachable
     assert "\x1b[" not in actual
     _check_golden("agents_md_section", actual)

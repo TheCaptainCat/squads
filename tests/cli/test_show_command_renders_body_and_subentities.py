@@ -183,6 +183,32 @@ async def test_full_comments_orders_subentity_comments_before_the_main_discussio
     assert r.output.index("Per-sub.") < r.output.index("Main discussion.")
 
 
+async def test_subentity_comment_without_as_fails_cleanly_asking_for_the_actor(
+    project, invoke
+) -> None:
+    await invoke(["create", "task", "T", "--author", "manager"])
+    await invoke(["task", "2", "add-subtask", "A subtask"])
+    r = await invoke(["task", "2", "subtask", "1", "comment", "-m", "no attribution"])
+    assert r.exit_code == 1
+    assert "--as is required" in r.output
+
+
+async def test_subentity_comment_with_an_explicit_op_slug_attributes_to_the_operator(
+    project, invoke
+) -> None:
+    await invoke(["operator", "add", "Alice Tester"])
+    await invoke(["create", "task", "T", "--author", "manager"])
+    await invoke(["task", "3", "add-subtask", "A subtask"])
+    r = await invoke(
+        ["task", "3", "subtask", "1", "comment", "--as", "op-alice", "-m", "Looks good."]
+    )
+    assert r.exit_code == 0, r.output
+
+    shown = await invoke(["task", "3", "show", "--full", "--comments"])
+    assert "Looks good." in shown.output
+    assert "Alice Tester" in shown.output
+
+
 async def test_full_degrades_gracefully_with_no_subentities_and_stays_byte_stable(
     project, invoke
 ) -> None:

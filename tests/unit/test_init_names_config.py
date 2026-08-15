@@ -13,7 +13,6 @@ def _config(**names: str) -> SquadsConfig:
     return SquadsConfig(
         squad_dir="squads",
         active_backends=["claude_code"],
-        default_role="manager",
         squads_version="0.1.0",
         init_names=names,
     )

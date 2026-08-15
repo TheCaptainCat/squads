@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import create_item
 from squads._errors import SquadsError
 from squads._index._reflog import read_lines, reflog_path
 from squads._models._schema import SCHEMA_VERSION
@@ -124,7 +125,7 @@ async def test_rename_type_leaves_check_clean_and_repair_a_pure_no_op(
 async def test_rename_type_refuses_an_undeclared_new_type_and_a_no_op_rename_to_itself(
     svc,
 ) -> None:
-    await svc.create("task", "t")
+    await create_item(svc, "task", "t")
     with pytest.raises(SquadsError, match="not declared"):
         await svc.rename_type("task", "ticket")
     with pytest.raises(SquadsError, match="itself"):
@@ -153,8 +154,8 @@ async def test_rename_type_refuses_when_a_child_would_have_an_invalid_parent_und
     )
     generic_svc = service.Service(svc.paths, spec=spec)
 
-    feat = (await svc.create("feature", "f")).item
-    task = (await svc.create("task", "t", parent=feat.id)).item  # requires a feature parent
+    feat = (await create_item(svc, "feature", "f")).item
+    task = (await create_item(svc, "task", "t", parent=feat.id)).item  # requires a feature parent
 
     with pytest.raises(SquadsError, match="child item"):
         await generic_svc.rename_type("feature", "generic")
@@ -194,9 +195,9 @@ async def test_rename_type_mid_flight_failure_restores_disk_and_index(
     )
     ticket_svc = service.Service(svc.paths, spec=spec)
 
-    feat = (await svc.create("feature", "f")).item
-    await svc.create("task", "t1", parent=feat.id)
-    await svc.create("task", "t2", parent=feat.id)
+    feat = (await create_item(svc, "feature", "f")).item
+    await create_item(svc, "task", "t1", parent=feat.id)
+    await create_item(svc, "task", "t2", parent=feat.id)
 
     def _snapshot(root: Path) -> dict[str, str]:
         return {
@@ -275,8 +276,8 @@ async def test_rename_status_mid_flight_failure_restores_disk_and_index(svc, mon
         _append_rename_status_comment,
     )
 
-    t1 = (await svc.create("task", "t1")).item
-    t2 = (await svc.create("task", "t2")).item
+    t1 = (await create_item(svc, "task", "t1")).item
+    t2 = (await create_item(svc, "task", "t2")).item
     await svc.set_status(t1.id, "Ready")
     await svc.set_status(t2.id, "Ready")
 

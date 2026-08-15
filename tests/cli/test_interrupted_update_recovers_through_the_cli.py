@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import create_item
 from squads._index._resolver import item_file
 from squads._itemfile import read_frontmatter
 
@@ -25,7 +26,7 @@ pytestmark = pytest.mark.anyio
 async def test_an_interrupted_update_still_leaves_the_item_reachable_and_repairable(
     project, svc, invoke
 ):
-    task = (await svc.create("task", "CLI smoke target")).item
+    task = (await create_item(svc, "task", "CLI smoke target")).item
     path = item_file(svc.paths, task)
 
     real_replace = Path.replace

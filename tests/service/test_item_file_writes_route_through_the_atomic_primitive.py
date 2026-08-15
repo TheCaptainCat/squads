@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import create_item
 from squads import _aio
 from squads import _itemfile as itemfile
 from squads._index._resolver import item_file
@@ -35,7 +36,7 @@ def _install_spy(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Path, str]]:
 
 
 async def test_write_new_uses_the_atomic_primitive(svc, monkeypatch):
-    item = (await svc.create("task", "Fresh")).item
+    item = (await create_item(svc, "task", "Fresh")).item
     path = item_file(svc.paths, item)
     path.unlink()  # write_new is exercised standalone below, on a clean target
     calls = _install_spy(monkeypatch)
@@ -47,7 +48,7 @@ async def test_write_new_uses_the_atomic_primitive(svc, monkeypatch):
 
 
 async def test_update_frontmatter_uses_the_atomic_primitive(svc, monkeypatch):
-    item = (await svc.create("task", "Existing")).item
+    item = (await create_item(svc, "task", "Existing")).item
     path = item_file(svc.paths, item)
     base = item.model_copy(deep=True)
     calls = _install_spy(monkeypatch)
@@ -59,7 +60,7 @@ async def test_update_frontmatter_uses_the_atomic_primitive(svc, monkeypatch):
 
 
 async def test_write_text_uses_the_atomic_primitive(svc, monkeypatch):
-    item = (await svc.create("task", "Sectioned")).item
+    item = (await create_item(svc, "task", "Sectioned")).item
     path = item_file(svc.paths, item)
     new_text = path.read_text(encoding="utf-8")
     calls = _install_spy(monkeypatch)
@@ -72,9 +73,9 @@ async def test_write_text_uses_the_atomic_primitive(svc, monkeypatch):
 async def test_rewrite_ids_uses_the_atomic_primitive_only_for_files_it_actually_changes(
     svc, monkeypatch
 ):
-    a = (await svc.create("task", "A")).item
-    b = (await svc.create("task", "B mentions " + a.id)).item
-    c = (await svc.create("task", "C, unrelated")).item
+    a = (await create_item(svc, "task", "A")).item
+    b = (await create_item(svc, "task", "B mentions " + a.id)).item
+    c = (await create_item(svc, "task", "C, unrelated")).item
     a_path, b_path, c_path = (item_file(svc.paths, it) for it in (a, b, c))
     calls = _install_spy(monkeypatch)
 

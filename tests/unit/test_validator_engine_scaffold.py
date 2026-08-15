@@ -14,15 +14,18 @@ from squads._models._item import Item
 from squads._services._results import CheckIssue
 from squads._services._validators import (
     CATALOG,
-    CATEGORY_BUNDLES,
-    COMMON_CORE,
     SQUAD_GLOBAL_CATALOG,
     ValidatorContext,
     ValidatorEngine,
-    effective_validator_names,
 )
 from squads._workflow import bundled_spec
-from squads._workflow._models import SQUAD_GLOBAL_VALIDATOR_NAMES, VALIDATOR_NAMES
+from squads._workflow._models import (
+    CATEGORY_BUNDLES,
+    COMMON_CORE,
+    SQUAD_GLOBAL_VALIDATOR_NAMES,
+    VALIDATOR_NAMES,
+    effective_validator_names,
+)
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 

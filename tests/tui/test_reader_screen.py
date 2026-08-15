@@ -4,6 +4,8 @@ the browse tree (reused for search hits in the follow-up increment).
 
 import pytest
 
+from _helpers import create_item
+
 pytest.importorskip("textual")
 
 from textual.app import App
@@ -17,7 +19,7 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_reader_screen_loads_the_item_and_pops_on_escape(svc):
-    feat = (await svc.create("feature", "Standalone", body="Hello world")).item
+    feat = (await create_item(svc, "feature", "Standalone", body="Hello world")).item
 
     app = App[None]()
     async with app.run_test() as pilot:
