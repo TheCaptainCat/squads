@@ -1,0 +1,472 @@
+# squads default workflow specification
+# Encodes the vocabulary byte-for-byte, including capability flags (category,
+# subentity_kind, parent_required, ref_rules) and StatusSpec.role.
+# Loaded and validated by load_workflow_spec() in _loader.py.
+# DO NOT edit without updating the golden-lock test in tests/unit/test_workflow_spec_artifact.py.
+#
+# [collections.*] + the `fields` lists below are the badge vocabulary — the bundled
+# priority/severity collections/fields ARE the runtime vocabulary now (no more Priority/Severity
+# enums); "does type/kind X carry field Y" is a fields_for(X) lookup.
+#
+# [roles.*] is the role catalog — the sole explicit status axis. Every status below names one
+# role via `role`; the role object carries `settled`/`hidden`/`color`/`live` (terminal/
+# is_open/default-visibility/materialisation are all derived from the referenced role, never
+# stored per-status). `badge` stays its own independent per-status field.
+
+# ---------------------------------------------------------------------------
+# Named lifecycle state machines — item lifecycles and sub-entity lifecycles
+# all live in one merged namespace (names don't collide).
+#
+# Item lifecycles:    work, adr, review, bug, guide, agent
+# Sub-entity kinds:   story + subtask share `subentity`; finding has its own `finding`
+#   (bound via subentity_kinds.<kind>.lifecycle, not by kind-name==lifecycle-name)
+# ---------------------------------------------------------------------------
+
+[lifecycles.work]
+# Work items: Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)
+initial = "Draft"
+
+[lifecycles.work.transitions]
+Draft = ["Ready", "InProgress", "Cancelled"]
+Ready = ["InProgress", "Blocked", "Cancelled"]
+InProgress = ["InReview", "Blocked", "Done", "Cancelled"]
+InReview = ["InProgress", "Done", "Blocked", "Cancelled"]
+Blocked = ["Ready", "InProgress", "Cancelled"]
+Done = ["InProgress"]
+Cancelled = ["Draft"]
+
+[lifecycles.adr]
+# ADR: Proposed → Accepted → Superseded (+ Rejected, Deprecated)
+initial = "Proposed"
+
+[lifecycles.adr.transitions]
+Proposed = ["Accepted", "Rejected"]
+Accepted = ["Superseded", "Deprecated"]
+Rejected = ["Proposed"]
+Superseded = []
+Deprecated = []
+
+[lifecycles.review]
+# Code review: Requested → InReview → ChangesRequested → Approved (+ Rejected)
+initial = "Requested"
+
+[lifecycles.review.transitions]
+Requested = ["InReview", "Rejected"]
+InReview = ["ChangesRequested", "Approved", "Rejected"]
+ChangesRequested = ["InReview", "Approved", "Rejected"]
+Approved = []
+Rejected = []
+
+[lifecycles.bug]
+# Bug: Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)
+initial = "Open"
+
+[lifecycles.bug.transitions]
+Open = ["InProgress", "WontFix", "Cancelled"]
+InProgress = ["Fixed", "Blocked", "WontFix", "Cancelled"]
+Fixed = ["Verified", "InProgress"]
+Verified = ["InProgress"]
+Blocked = ["InProgress", "WontFix", "Cancelled"]
+WontFix = ["Open"]
+Cancelled = ["Open"]
+
+[lifecycles.guide]
+# Guide: Draft → Published → Deprecated
+initial = "Draft"
+
+[lifecycles.guide.transitions]
+Draft = ["Published"]
+Published = ["Deprecated", "Draft"]
+Deprecated = ["Published"]
+
+[lifecycles.agent]
+# Role / Skill / Operator: Active ⇄ Archived. A roster entry is created directly at this
+# lifecycle's own `initial` (the roster create verbs pass no status at all), so Draft is not a
+# reachable state of this machine; Draft stays a declared global status (the work/guide
+# lifecycles own it).
+initial = "Active"
+
+[lifecycles.agent.transitions]
+Active = ["Archived"]
+Archived = ["Active"]
+
+# Sub-entity lifecycles. story and subtask share one machine (subentity_kinds.story/subtask
+# both name it via `lifecycle`) — collapsing this from two identical tables is byte-identical
+# now that the machine binding is explicit rather than kind-name-positional.
+
+[lifecycles.subentity]
+initial = "Todo"
+
+[lifecycles.subentity.transitions]
+Todo = ["InProgress", "Blocked", "Cancelled"]
+InProgress = ["Done", "Blocked", "Cancelled"]
+Blocked = ["InProgress", "Cancelled"]
+Done = ["InProgress"]
+Cancelled = ["Todo"]
+
+[lifecycles.finding]
+# Review findings: Open → Fixed → Verified (+ WontFix)
+initial = "Open"
+
+[lifecycles.finding.transitions]
+Open = ["Fixed", "WontFix"]
+Fixed = ["Verified", "Open"]
+Verified = []
+WontFix = ["Open"]
+
+# ---------------------------------------------------------------------------
+# Roles — the role catalog. Eight bundled roles; every status below names exactly one.
+# `settled` is the old `terminal`; `hidden` is default-visibility; `color` is a semantic
+# colour intent from the closed palette (positive/danger/warning/muted/neutral/info),
+# mapped to a concrete colour per client (not here). `live` (defaults false) is the
+# materialisation axis — the one bundled live role is `active`. `warning` is unused by
+# the bundled defaults — reserved for adopters.
+# ---------------------------------------------------------------------------
+
+[roles.pending]
+settled = false
+hidden = false
+color = "neutral"
+
+[roles.active]
+settled = false
+hidden = false
+color = "positive"
+live = true
+
+[roles.attention]
+settled = false
+hidden = false
+color = "danger"
+
+[roles.blocked]
+settled = false
+hidden = false
+color = "danger"
+
+[roles.in_force]
+settled = true
+hidden = false
+color = "info"
+
+[roles.done]
+settled = true
+hidden = true
+color = "positive"
+
+[roles.retired]
+settled = true
+hidden = true
+color = "muted"
+
+[roles.superseded]
+settled = true
+hidden = true
+color = "muted"
+
+# ---------------------------------------------------------------------------
+# Statuses (role reference + optional sub-entity badge)
+# Every status names one of the roles above. badge is declared for the 9 sub-entity statuses
+# only; other statuses render the graceful default when their badge is looked up. The
+# done-toggle target per sub-entity kind lives on subentity_kinds.<kind>.completion below, not
+# here — "Fixed" carrying the non-settled "active" role (it's also the pending-verification bug
+# item status) has no bearing on it being the finding kind's completion target; the two concepts
+# are independent by design.
+# ---------------------------------------------------------------------------
+
+[statuses.Draft]
+role = "pending"
+
+[statuses.Ready]
+role = "pending"
+
+[statuses.InProgress]
+badge = "🟡"
+role = "active"
+
+[statuses.InReview]
+role = "active"
+
+[statuses.Done]
+badge = "🟢"
+role = "done"
+
+[statuses.Blocked]
+badge = "🔴"
+role = "blocked"
+
+[statuses.Cancelled]
+badge = "⚫"
+role = "retired"
+
+[statuses.Proposed]
+role = "pending"
+
+[statuses.Accepted]
+role = "in_force"
+
+[statuses.Superseded]
+role = "superseded"
+
+[statuses.Rejected]
+role = "retired"
+
+[statuses.Deprecated]
+role = "retired"
+
+[statuses.Requested]
+role = "pending"
+
+[statuses.ChangesRequested]
+role = "active"
+
+[statuses.Approved]
+role = "done"
+
+[statuses.Published]
+role = "in_force"
+
+[statuses.Active]
+role = "active"
+
+[statuses.Archived]
+role = "retired"
+
+[statuses.Todo]
+badge = "⚪"
+role = "pending"
+
+[statuses.Open]
+badge = "🔴"
+role = "attention"
+
+[statuses.Fixed]
+badge = "🟡"
+role = "active"
+
+[statuses.Verified]
+badge = "🟢"
+role = "done"
+
+[statuses.WontFix]
+badge = "⚫"
+role = "retired"
+
+# ---------------------------------------------------------------------------
+# Collections — reusable badge libraries. priority/severity are the sole vocabulary for
+# those two axes (no more Priority/Severity enums) — codes/labels/emoji/default here ARE
+# what renders, resolved via fields_for()/WorkflowSpec.collection() at runtime.
+# ---------------------------------------------------------------------------
+
+[collections.priority]
+label = "Priority"
+ordered = true
+badges = [
+  { code = "urgent", label = "Urgent", emoji = "🔴" },
+  { code = "high",   label = "High",   emoji = "🟠" },
+  { code = "medium", label = "Medium", emoji = "🟡" },
+  { code = "low",    label = "Low",    emoji = "🟢" },
+]
+
+[collections.severity]
+label = "Severity"
+ordered = true
+default = "medium"
+badges = [
+  { code = "critical", label = "Critical", emoji = "🔴" },
+  { code = "high",     label = "High",     emoji = "🟠" },
+  { code = "medium",   label = "Medium",   emoji = "🟡" },
+  { code = "low",      label = "Low",      emoji = "🟢" },
+  { code = "info",     label = "Info",     emoji = "🔵" },
+]
+
+# ---------------------------------------------------------------------------
+# Items (prefix / folder / lifecycle / parents / aliases)
+# This table is the sole vocabulary source for prefix/folder/allowed-parents/aliases.
+# parents = [] means unconstrained (any parent or none is valid).
+#
+# `order` is the explicit CLI registration/display order (ascending; type name breaks
+# ties) — a float, deliberately spaced by 10 so a future type can be inserted between
+# two existing ones (even fractionally, e.g. 25.5 between task and bug) without
+# renumbering everything. Work types keep today's logical sequence; roster types
+# (role/skill/operator) come after them for completeness, though they register via
+# their own dedicated subcommands rather than this ordering. A type that omits
+# `order` defaults to +inf (ItemSpec.order) — sorts after every value declared here.
+# ---------------------------------------------------------------------------
+
+[items.epic]
+prefix = "EPIC"
+folder = "epics"
+lifecycle = "work"
+parents = []
+aliases = ["e"]
+order = 10
+category = "work"
+validators = ["no_parent"]
+ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+# subentity_kind absent → None (no sub-entities)
+# parent_required absent → None (unconstrained; no_parent enforces epic as root)
+
+[items.feature]
+prefix = "FEAT"
+folder = "features"
+lifecycle = "work"
+parents = ["epic"]
+aliases = ["feat", "f"]
+order = 20
+category = "work"
+subentity_kind = "story"
+ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+# parent_required absent → None (unconstrained — any parent or none is valid)
+
+[items.task]
+prefix = "TASK"
+folder = "tasks"
+lifecycle = "work"
+parents = ["feature"]
+aliases = ["t"]
+order = 30
+category = "work"
+subentity_kind = "subtask"
+# The feature whose stories a task's subtasks map onto (`add-subtask --story USn`), and the
+# type the generated `--parent` examples name. It does NOT make the parent mandatory at
+# create: `parents` above says a parent must be a feature *if* there is one, and a bare
+# `sq create task` stays valid. A project that wants it mandatory adds "parent_present" to
+# this type's `validators` — left off here on purpose, because the same validator set backs
+# both the create gate and `sq check`, so turning it on would also error on every parentless
+# task already on disk.
+parent_required = "feature"
+ref_rules = [
+  { kind = "fixes", hint = "link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`" },
+  { kind = "addresses", hint = "link a bug or review with `sq ref add <task> <id> --kind fixes|addresses`" },
+]
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+
+[items.bug]
+prefix = "BUG"
+folder = "bugs"
+lifecycle = "bug"
+parents = []
+aliases = ["b"]
+order = 40
+category = "work"
+ref_rules = []
+fields = [
+  { code = "priority", label = "Priority", collection = "priority" },
+  { code = "severity", label = "Severity", collection = "severity", required = false, default = "medium" },
+]
+# subentity_kind absent → None
+# parent_required absent → None
+
+[items.decision]
+prefix = "ADR"
+folder = "adrs"
+lifecycle = "adr"
+parents = []
+aliases = ["dec", "d"]
+order = 50
+category = "records"
+ref_rules = [{ kind = "supersedes", hint = "" }]
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+# subentity_kind absent → None
+# parent_required absent → None
+
+[items.review]
+prefix = "REV"
+folder = "reviews"
+lifecycle = "review"
+parents = []
+aliases = ["rev", "r"]
+order = 60
+category = "work"
+subentity_kind = "finding"
+ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+extra_fields = ["target_ref"]
+# parent_required absent → None
+
+[items.guide]
+prefix = "GUIDE"
+folder = "guides"
+lifecycle = "guide"
+parents = []
+aliases = ["g"]
+order = 70
+category = "records"
+ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+extra_fields = ["tags", "tech"]
+# subentity_kind absent → None
+# parent_required absent → None
+
+[items.role]
+prefix = "ROLE"
+folder = "agents/roles"
+lifecycle = "agent"
+parents = []
+aliases = []
+order = 80
+category = "roster"
+ref_rules = []
+# subentity_kind absent → None
+# parent_required absent → None
+
+[items.skill]
+prefix = "SKILL"
+folder = "agents/skills"
+lifecycle = "agent"
+parents = []
+aliases = []
+order = 90
+category = "roster"
+ref_rules = []
+# subentity_kind absent → None
+# parent_required absent → None
+
+[items.operator]
+prefix = "OP"
+folder = "operators"
+lifecycle = "agent"
+parents = []
+aliases = []
+order = 100
+category = "roster"
+ref_rules = []
+# subentity_kind absent → None
+# parent_required absent → None
+
+# ---------------------------------------------------------------------------
+# Sub-entity kinds — machine binding (`lifecycle`) + done-toggle target (`completion`) +
+# CLI/storage vocabulary (`plural`/`local_prefix`/`placeholder`/`maps_parent_story`) +
+# field declarations (mirrors the item `fields` mechanism). `lifecycle` is an explicit
+# reference, mirroring `ItemSpec.lifecycle` — story and subtask share `subentity`; a
+# custom kind is likewise free to share a machine with another kind by naming it.
+# `completion` must be a reachable, non-initial status of that lifecycle.
+# ---------------------------------------------------------------------------
+
+[subentity_kinds.story]
+lifecycle = "subentity"
+completion = "Done"
+plural = "stories"
+local_prefix = "US"
+placeholder = "_Write the user story (e.g. “As an <role>, I want … so that …”) and its acceptance criteria here — free-form paragraphs or bullet lists._"
+
+[subentity_kinds.subtask]
+lifecycle = "subentity"
+completion = "Done"
+plural = "subtasks"
+local_prefix = "ST"
+placeholder = "_Describe this subtask here — free-form paragraphs or bullet lists._"
+maps_parent_story = true
+
+[subentity_kinds.finding]
+lifecycle = "finding"
+completion = "Fixed"
+plural = "findings"
+local_prefix = "F"
+placeholder = "_Describe the finding, its impact, and a recommendation — free-form._"
+fields = [
+  { code = "severity", label = "Severity", collection = "severity", required = true, default = "medium" },
+]
