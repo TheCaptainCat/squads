@@ -41,11 +41,13 @@ their function** (e.g. "talk to the architect", "the dotnet dev"), adopt that ag
 by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), run `sq role <slug> show`
 to read the full role definition, and act as them for the rest of the conversation, referring
 to yourself by full name.
+{% if default_role_full_name %}
 
 If no agent is named, default to **{{ default_role_full_name }}** (`{{ default_role_slug }}`),
 who triages the request and routes it to the right specialist.
+{% endif %}
 
-A human introducing *themselves* (e.g. "it's Pierre") is the **operator** identifying who you're
+A human introducing *themselves* (e.g. "it's Alice") is the **operator** identifying who you're
 talking to (see **Operators** above) — that's not a persona to adopt; you stay the agent.
 
 ## Start of a run
@@ -54,25 +56,56 @@ At the start of a run, load your role memory — `sq memory <role> list`, then `
 show <slug>` for relevant entries — and check the team board with `sq board list`. Memory is your
 own committed notebook of learned facts; the board carries team-wide notices.
 
+Then read your own queue, **both surfaces** — they answer different questions and neither
+subsumes the other: `sq mine <role>` lists the items assigned to you, and `sq inbox <role>` lists
+the individual comment lines that `@mention` you. An item can be in one and not the other.
+
 ## Orchestration loop
 
+{% if default_role_full_name %}
 When you act as **{{ default_role_full_name }}** (or any agent coordinating a larger piece of
 work), you **delegate by spawning the right specialist as a subagent** — each role here is a Claude
 Code subagent. Load the `squads` skill immediately at session start, and again after any context
 compaction (compaction drops loaded skills). Run the work as a loop, with `sq` as the shared memory
 between turns:
+{% else %}
+When you coordinate a larger piece of work, you **delegate by spawning the right specialist as a
+subagent** — each role here is a Claude Code subagent. Load the `squads` skill immediately at
+session start, and again after any context compaction (compaction drops loaded skills). Run the
+work as a loop, with `sq` as the shared memory between turns:
+{% endif %}
 
-1. **Assess.** Read the current state from `sq` — `sq tree FEAT-… --json` for a feature's whole
+{% set roster_slugs = roles | map(attribute="slug") | list %}
+{% set _ns = namespace(has_dev=false) %}
+{% for _slug in roster_slugs %}
+{% if _slug.endswith("-dev") %}
+{% set _ns.has_dev = true %}
+{% endif %}
+{% endfor %}
+{% set _delegate_examples = [] %}
+{# Curated example order (not roster order) — a fixed, readable illustration of the shape of a
+   subagent_type, filtered to slugs actually on this squad's roster so it never names a role
+   that can't be spawned. `<tech>-dev` is a fill-in-the-blank pattern, not a concrete slug —
+   shown only when at least one dev role actually exists. #}
+{% for _cand in ["tech-lead", "architect", "reviewer", "qa"] %}
+{% if _cand in roster_slugs %}
+{% set _ = _delegate_examples.append(_cand) %}
+{% endif %}
+{% endfor %}
+{% if _ns.has_dev %}
+{% set _ = _delegate_examples.insert(2, "<tech>-dev") %}
+{% endif %}
+1. **Assess.** Read the current state from `sq` — `sq tree <parent-id> --json` for a parent's whole
    subtree (status / priority / assignee / blocked per node), `sq <type> <n> show --full --comments`
    to brief on one item (body + sub-entities + discussion), `sq blocked` for what's stuck.
 2. **Delegate.** Spawn the specialist's subagent with the **Task tool** (`subagent_type:` the role
-   slug below — e.g. `tech-lead`, `architect`, `<tech>-dev`, `reviewer`, `qa`), and hand it the
+   slug below{% if _delegate_examples %} — e.g. {% for _s in _delegate_examples %}`{{ _s }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}), and hand it the
    **item ID + a crisp scope**. It boots with its role, skills, and model already loaded, does the
    work, and tracks everything through `sq`.
 3. **Integrate.** When it returns, re-read `sq` state — item/review status, new findings, whether
    anything is now blocked.
 4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
-   feature's tasks are `Done` and its reviews `Approved`.
+   parent's own work is settled: every child item closed out, every linked review resolved.
 5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, run
    one final subagent pass that *reads* the new delivered text — item/sub-entity bodies, code
    comments and docstrings, CHANGELOG, docs — for internal build-process references that seeped in:
@@ -88,19 +121,28 @@ The operator may also speak directly to a specialist for live debugging; the spe
 
 ## Team workflow
 
-- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
-  `sq create <type>`. Sub-entities nest: `sq feature 12 story 1 update --status InProgress`.
+{% set _wf_anchor = cheatsheet_anchor_type(spec) %}
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq {{ _wf_anchor or "<type>" }} 35 show`);
+  create with `sq create <type>`. Sub-entities nest: `sq <type> <n> <kind> <k> update --status <status>`.
 {# One line per type-role authoring pairing, generically derived from the spec (mirrors
    workflow.md.j2's Team workflow section) — never a hardcoded type name, so a dropped/renamed
    built-in type degrades gracefully instead of crashing. #}
+{% set _playbook = playbook if playbook is defined else none %}
+{% set _role_titles = {} %}
+{% for r in roles %}
+{% set _ = _role_titles.update({r.slug: r.title}) %}
+{% endfor %}
 {% for item_type, item_spec in spec.items.items() %}
 {% if item_spec.category != "roster" %}
-{% set owner = authoring_owner(item_type) %}
+{% set owner = authoring_owner(item_type, roster_slugs, _playbook, _role_titles) %}
 {% if owner %}
 {% set parent = spec.item_parent_required(item_type) %}
 {% set subkind = spec.item_subentity_kind(item_type) %}
 {% set refkinds = spec.item_ref_rules(item_type) | map(attribute="kind") | list %}
-- The **{{ owner[1] }}** authors **{{ item_type }}s** (`sq create {{ item_type }}`){% if parent and parent in spec.items %}; its parent is the {{ parent }} it implements (`--parent {{ spec.items[parent].prefix }}-…`){% endif %}{% if subkind %}, breaking work into `add-{{ subkind }}`{% if spec.subentity_kinds[subkind].maps_parent_story %} (`--story USn` maps one to a parent story){% endif %}{% endif %}{% if refkinds %}, and links fixes/follow-ups via `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
+{# The `--story` local-id prefix is the PARENT type's sub-entity kind's declared
+   local_prefix, never the bundled "US" — a renamed prefix makes that literal exit 1. #}
+{% set story_kind = spec.item_subentity_kind(parent) if (parent and parent in spec.items) else none %}
+- The **{{ owner[1] }}** authors **{{ item_type }}s** (`sq create {{ item_type }}`){% if parent and parent in spec.items %}; its parent is the {{ parent }} it implements (`--parent {{ spec.items[parent].prefix }}-…`){% endif %}{% if subkind %}, breaking work into `add-{{ subkind }}`{% if spec.subentity_kinds[subkind].maps_parent_story and story_kind %} (`--story {{ spec.subentity_kinds[story_kind].local_prefix }}n` maps one to a parent story){% endif %}{% endif %}{% if refkinds %}, and links fixes/follow-ups via `ref add <id> --kind {{ refkinds | join("|") }}`{% endif %}.
 {% endif %}
 {% endif %}
 {% endfor %}

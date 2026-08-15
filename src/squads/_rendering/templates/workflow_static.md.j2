@@ -4,16 +4,16 @@ Reclassify a work item to a different type — the sequence number (and durable 
 preserved; only the ID prefix changes. All incoming refs, children's parent links, and prose
 mentions are rewritten to the new ID atomically.
 
-```bash
-sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
-```
-
 {% set retype_targets = [] %}
 {% for item_type, item_spec in spec.items.items() %}
 {% if item_spec.category != "roster" %}
 {% set _ = retype_targets.append(item_type) %}
 {% endif %}
 {% endfor %}
+```bash
+sq <type> <n> retype <new-type>{% if retype_targets | length > 1 %}   # e.g. sq {{ retype_targets[0] }} 7 retype {{ retype_targets[1] }}{% endif +%}
+```
+
 Valid targets: {% for item_type in retype_targets %}`{{ item_type }}`{% if not loop.last %}, {% endif %}{% endfor %}.
 
 {# Same-workflow example: group non-roster types by their declared lifecycle name, rather than
@@ -52,16 +52,22 @@ After retype, `sq check` is clean and `sq repair` is a stable no-op.
 
 ## Remove vs. Cancel
 
+{# The status names below are spec-derived, not literals: `dropped` is the off-spine settled
+   exit of a representative type's own lifecycle (bundled: `Cancelled`), so a squad whose
+   lifecycle names that state otherwise reads a command that runs. The surrounding narrative
+   is deliberately static — only the vocabulary moves. #}
+{% set _drop_anchor = cheatsheet_anchor_type(spec) %}
+{% set dropped = spec.first_dropped_status(_drop_anchor) if _drop_anchor else none %}
 Two distinct exit paths for work items — use the right one:
 
 | | Cancel | Remove |
 |---|---|---|
 | **Intent** | Work genuinely considered, then dropped | Item should never have existed (mis-creation, test artifact, rolled-back decision) |
-| **Effect** | Status → `Cancelled`; item stays on the books, greppable, linkable, visible in `tree`/`list` | File deleted, index entry gone; only a sequence-number gap remains |
-| **Command** | `sq <type> <n> status Cancelled` | `sq <type> <n> remove` |
+| **Effect** | Status → `{{ dropped or "<dropped-status>" }}`; item stays on the books, greppable, linkable, visible in `tree`/`list` | File deleted, index entry gone; only a sequence-number gap remains |
+| **Command** | `sq <type> <n> status {{ dropped or "<dropped-status>" }}` | `sq <type> <n> remove` |
 
 ```bash
-sq <type> <n> status Cancelled   # drop work that was genuinely considered
+sq <type> <n> status {{ dropped or "<dropped-status>" }}   # drop work that was genuinely considered
 sq <type> <n> remove             # erase a mis-creation (interactive confirm)
 sq <type> <n> remove --yes       # skip the confirm
 sq <type> <n> remove --force     # also sever incoming refs from referrers' frontmatter
@@ -79,7 +85,7 @@ normal; the reflog records a reconstructable removal line that explains each gap
 
 ## Ref kinds
 
-The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
+The vocabulary is closed — exactly nine kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
 
 | Kind | Meaning | Direction convention | Consumer |
 |---|---|---|---|
@@ -87,9 +93,14 @@ The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. U
 | `blocks` | A is blocking B; B cannot proceed while A is open | `A blocks B` lives on **A** (the blocker) | `sq blocked` |
 | `depends-on` | A depends on B; A cannot proceed while B is open. Equivalent to `B blocks A` — `A depends-on B` ≡ `B blocks A` | `A depends-on B` lives on **A** (the dependent) | `sq blocked` |
 | `implements` | A implements the requirement or spec described by B | `A implements B` lives on A | Navigation |
-| `fixes` | A (a task or PR) fixes bug B | `A fixes B` lives on A | `sq check` task rules |
-| `addresses` | A (a task) addresses or follows up review B | `A addresses B` lives on A | `sq check` task rules |
-| `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be Superseded | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
-| `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as Cancelled | `A duplicates B` lives on **A** (the later filing) | Navigation |
+| `fixes` | A (the resolving work) fixes the problem tracked by B | `A fixes B` lives on A | `sq check` ref-rule warnings |
+| `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `A addresses B` lives on A | `sq check` ref-rule warnings |
+{# Same rule as the Cancel section: the status the engine actually looks for is the one whose
+   declared role is `superseded` (what `sq check`'s supersedes rule reads), not the bundled
+   status name. #}
+{% set _superseded = spec.statuses_with_role("superseded") | first %}
+| `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be {{ _superseded or "the superseded state" }} | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
+| `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as {{ dropped or "dropped" }} | `A duplicates B` lives on **A** (the later filing) | Navigation |
+| `scopes` | A (a skill) is scoped to role B; B's generated pointer preloads A | `A scopes B` lives on **A** (the skill) | Preload resolver, retirement gate |
 
 `blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context. Bare `ref add <id>` (no `--kind`) defaults to `related`.

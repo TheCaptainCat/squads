@@ -4,16 +4,17 @@
 _TODO: summarise this feature._
 <!-- sq:body:end -->
 
-## User Stories
-
 {% set kind = spec.item_subentity_kind(item.type) %}
+{% set tag = spec.subentity_plural(kind) %}
+## {{ spec.subentity_container_heading(kind) }}
+
 _Add with `sq {{ item.type }} {{ item.id | idnum }} add-{{ kind }} "As a <role>, I want … so that …"`; track with `sq {{ item.type }} {{ item.id | idnum }} {{ kind }} <n> update --status <Status>`._
 
 <!-- sq:summary -->
 <!-- sq:summary:end -->
 
-<!-- sq:stories -->
-<!-- sq:stories:end -->
+{{ tag | open_marker }}
+{{ tag | close_marker }}
 
 ## Discussion
 

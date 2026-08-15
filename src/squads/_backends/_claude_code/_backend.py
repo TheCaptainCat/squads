@@ -13,7 +13,11 @@ from squads import _interactions as interactions
 from squads import _sections as sections
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code import _claude_md as claude_md
-from squads._backends._claude_code._frontmatter import normalize_model, oneline
+from squads._backends._claude_code._frontmatter import (
+    model_drop_warning,
+    normalize_model,
+    oneline,
+)
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
@@ -78,6 +82,17 @@ class ClaudeCodeBackend(AgentBackend):
                 "agents/squads_skill.md.j2",
                 squad_dir=squad_dir,
                 spec=spec,
+                # roles=... so the included workflow.md.j2 cheatsheet's authoring bullets
+                # (authoring_owner) can filter by the LIVE roster, and so the example
+                # `--assignee` names a slug this squad actually carries — matches the
+                # CLAUDE.md managed section below.
+                roles=[
+                    {"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster
+                ],
+                # playbook=... so those same bullets resolve the create-lane through the
+                # ACTIVE (merged) playbook: an override-declared authoring role is named here
+                # instead of the type silently losing its authoring line.
+                playbook=ctx.playbook,
             ),
         )
         # greeting skill — the start-of-conversation ritual (detect the human, register, greet)
@@ -101,9 +116,15 @@ class ClaudeCodeBackend(AgentBackend):
             squad_dir=squad_dir,
             roles=[{"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster],
             operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
-            default_role_full_name=default.full_name if default else "the manager",
-            default_role_slug=default.slug if default else "manager",
+            # No live role carrying `is_default` is a legitimate state, not a gap to paper over
+            # with a fabricated slug: the template omits the default-role line and the
+            # orchestration paragraph's name entirely rather than inventing one, the same
+            # degradation `has_dev` already performs below when the last developer role
+            # retires.
+            default_role_full_name=default.full_name if default else None,
+            default_role_slug=default.slug if default else None,
             spec=spec,
+            playbook=ctx.playbook,
         )
         claude_md_path = ctx.root / _CLAUDE_MD
         contradiction = await claude_md.inject(claude_md_path, section)
@@ -146,12 +167,17 @@ class ClaudeCodeBackend(AgentBackend):
         # (layering invariant: _backends must not import _index).
         #
         # On first write (sq init, before seeding): skill_paths is empty so we fall back
-        # to a slug-named temporary path; seed_bundled_skills renames it to the convention
-        # name right after and rewrites the pointer.
+        # to a slug-named temporary path under the *declared* skill folder (an override
+        # may have relocated it before init ever ran); seed_bundled_skills renames it to
+        # the convention name right after and rewrites the pointer.
+        from squads._workflow import bundled_spec
+
         resolved = ctx.skill_paths.get(name)
-        body_path: Path = (
-            resolved if resolved is not None else (ctx.squad_dir / _AGENTS / _SKILLS / f"{name}.md")
-        )
+        if resolved is not None:
+            body_path: Path = resolved
+        else:
+            spec = ctx.spec if ctx.spec is not None else bundled_spec()
+            body_path = ctx.squad_dir / spec.items[ROSTER_SKILL].folder / f"{name}.md"
         await _aio.mkdir(body_path.parent, parents=True, exist_ok=True)
 
         # Wrap the rendered body in sq:body markers so the file is marker-structured.
@@ -211,21 +237,30 @@ class ClaudeCodeBackend(AgentBackend):
         (a ``<tech>-dev`` role), so a squad with no devs yet doesn't carry guidance for an actor
         that can't act.
 
-        A type with no ``PLAYBOOK`` entry — built-in or project-declared alike (there is no
-        static built-in/custom split any more) — also gets a thin auto-generated skill: lifecycle
-        string (from ``linearize_lifecycle``), the standard command list, and no role sections
-        (graceful degradation).
+        A type with no entry in the active playbook — built-in or project-declared alike (there
+        is no static built-in/custom split any more) — also gets a thin auto-generated skill:
+        lifecycle string (from ``linearize_lifecycle``), the standard command list, and no role
+        sections (graceful degradation).
         """
         from squads._workflow import bundled_spec
 
         by_slug = {r.slug: r for r in roster}
         has_dev = any(interactions.is_dev_slug(r.slug) for r in roster)
         spec = ctx.spec if ctx.spec is not None else bundled_spec()
+        playbook = ctx.playbook if ctx.playbook is not None else interactions.get_playbook_spec()
         out: list[Artifact] = []
 
-        # Types with a PLAYBOOK entry — rich skill with full role guidance.
-        for item_type in interactions.managed_item_types():
-            pb = interactions.PLAYBOOK[item_type]
+        # Types with a playbook entry — rich skill with full role guidance. The active,
+        # per-request playbook (ctx.playbook, merged with any .overrides/playbook.toml) decides
+        # this set, not the bundled singleton — a project override's added/removed coverage is
+        # what should decide rich-vs-thin here. A type the active spec has dropped or renamed
+        # away must still produce no skill at all — never a stale one under its old name — so a
+        # type absent from the active spec is skipped outright rather than falling back to the
+        # playbook prose — the "no orphan" bar a shadowing override has to clear.
+        for item_type in interactions.managed_item_types(playbook):
+            if item_type not in spec.items:
+                continue
+            pb = playbook.types[item_type]
             sections: list[dict[str, Any]] = []
             for guide in pb.roles:
                 if guide.slug == interactions.DEV:
@@ -247,14 +282,11 @@ class ClaudeCodeBackend(AgentBackend):
                     }
                 )
             # Lifecycle + sub-entity kind derive from the active spec (not the frozen
-            # playbook prose) so an override on a kept built-in type stays correct; fall
-            # back to the frozen string only if the type itself was dropped from the spec.
+            # playbook prose) so an override on a kept built-in type stays correct; the guard
+            # above already skipped a type the spec has dropped, so item_type is always in
+            # spec.items here.
             subentity_kind = spec.item_subentity_kind(item_type)
-            lifecycle_str = (
-                linearize_lifecycle(spec.machine_for(item_type))
-                if item_type in spec.items
-                else pb.lifecycle
-            )
+            lifecycle_str = linearize_lifecycle(spec.machine_for(item_type))
             name = interactions.item_skill_name(item_type)
             body = render(
                 "agents/item_skill.md.j2",
@@ -274,16 +306,17 @@ class ClaudeCodeBackend(AgentBackend):
                 body=body,
             )
 
-        # Types with no PLAYBOOK entry — thin skill with auto-derived lifecycle + standard
-        # command list. This is the sole "custom vs built-in" line now: any type absent
-        # from PLAYBOOK falls back here, whether or not it happens to be a bundled type.
+        # Types with no active-playbook entry — thin skill with auto-derived lifecycle +
+        # standard command list. This is the sole "custom vs built-in" line now: any type
+        # absent from the active playbook falls back here, whether or not it's a bundled type.
         if ctx.spec is not None:
             for ctype, ctype_spec in ctx.spec.items.items():
-                if ctype in interactions.PLAYBOOK or ctype_spec.category == "roster":
+                if ctype in playbook.types or ctype_spec.category == "roster":
                     continue
                 machine = ctx.spec.machine_for(ctype)
                 lifecycle_str = linearize_lifecycle(machine)
                 name = interactions.custom_item_skill_name(ctype)
+                custom_subentity_kind = ctx.spec.item_subentity_kind(ctype)
                 body = render(
                     "agents/item_skill.md.j2",
                     title=label_for(ctype, "singular", ctx.spec),
@@ -292,8 +325,10 @@ class ClaudeCodeBackend(AgentBackend):
                     lifecycle=lifecycle_str,
                     commands=interactions.custom_item_skill_commands(ctype),
                     sections=[],
-                    subentity_kind=None,
-                    subentity_plural=None,
+                    subentity_kind=custom_subentity_kind,
+                    subentity_plural=ctx.spec.subentity_plural(custom_subentity_kind)
+                    if custom_subentity_kind
+                    else None,
                 )
                 out += await self._write_managed_skill(
                     ctx,
@@ -322,7 +357,11 @@ class ClaudeCodeBackend(AgentBackend):
                 can_spawn=role.can_spawn,
             ),
         )
-        return Artifact(ctx.rel(pointer), "agent", self.name)
+        # WARN-only, never a refusal: a model this host cannot express is dropped from the
+        # rendered pointer, and the artifact is what carries that fact back to the caller.
+        return Artifact(
+            ctx.rel(pointer), "agent", self.name, warning=model_drop_warning(role.slug, role.model)
+        )
 
     async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
         slug = item.extra.get(X.SLUG, item.slug)

@@ -1,19 +1,20 @@
+{% set _ac = cheatsheet_anchor_context(spec) %}
+{% set anchor = _ac.anchor %}
+{% set anchor_prefix = _ac.anchor_prefix %}
+{% set anchor_kind = _ac.anchor_kind %}
+{% set anchor_parent_prefix = _ac.anchor_parent_prefix %}
+{% set anchor_active = _ac.anchor_active %}
+{% set anchor_settled = _ac.anchor_settled %}
+{% set _priority_field = _ac.priority_field %}
+{% set _priority_values = _ac.priority_values %}
 # squads — working with the `sq` CLI
 
 **squads** is how this team coordinates — your shared structure for working alongside the other
 agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff protocol (comments,
 `@mentions`, an inbox). Here's your part of it. Work is tracked as identified markdown items under
 `{{ squad_dir }}/`, indexed in `{{ squad_dir }}/.squads.json`. Every item has a stable ID like
-`TASK-<n>` (the prefix marks the type; the number is globally unique).
+`{{ anchor_prefix }}-<n>` (the prefix marks the type; the number is globally unique).
 
-{% set _priority = namespace(field=none, values=[]) %}
-{% for f in spec.fields_for('task') %}
-{% set _coll = spec.collection(f.collection) %}
-{% if _coll.ordered and _priority.field is none %}
-{% set _priority.field = f %}
-{% set _priority.values = _coll.badges | map(attribute='code') | list %}
-{% endif %}
-{% endfor %}
 {% set _kind_to_type = {} %}
 {% for _t, _tspec in spec.items.items() %}
 {% if _tspec.subentity_kind %}
@@ -26,7 +27,8 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
     "story": "Acceptance clarification, story-local blocker or question",
     "subtask": "Implementation note, decision local to this unit of work",
 } %}
-{% for _kind, _kspec in spec.subentity_kinds.items() %}
+{% for _kind in _kind_to_type %}
+{% set _kspec = spec.subentity_kinds[_kind] %}
 {% if _kspec.maps_parent_story %}
 {% set _ = _kind_hints.append("a " ~ _kind ~ "'s `--story`") %}
 {% endif %}
@@ -36,8 +38,9 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
 {% endfor %}
 ## Golden rules
 
-- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 update --status Done`);
-  sub-entities nest: `sq feature 12 story 1 update --status InProgress`. Create with `sq create <type>`.
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq {{ anchor or "<type>" }} 35 update
+  --status {{ anchor_settled or anchor_active or "<status>" }}`); sub-entities nest:
+  `sq <type> <n> <kind> <k> update --status <status>`. Create with `sq create <type>`.
 - The `.md` files are sq-managed: never hand-edit frontmatter or the `<!-- sq:* -->` markers, and
   don't type prose directly into a file. Every region is written through a command.
 - Set an **item's** body with `sq <type> <n> body -m "…"` (repeat `-m`, or `--file body.md` /
@@ -60,27 +63,33 @@ The operator sometimes talks to you directly — for live work or debugging. The
 
 - **Anchor to an item.** Confirm the item with `sq <type> <n> show --full --comments` (body +
   sub-entities + discussion). Create the item first if it's genuinely new.
-- **Keep status honest.** Move it to `InProgress` when you start; don't leave it stale.
+- **Keep status honest.** Move it to its lifecycle's first working state (`sq <type> <n>
+  status <status>`) when you start; don't leave it stale.
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
-  -m "…"` summarising what changed — that's how the manager's loop (and the next agent) picks up
-  where you left off.
-- **Scope your comment to the right discussion.** Sub-entities ({{ spec.subentity_kinds.values() | map(attribute='plural') | join(', ') }})
+  -m "…"` summarising what changed — that's how the coordinating agent's loop (and the next
+  agent) picks up where you left off.
+{% set _hosted_plurals = [] %}
+{% for _kind in _kind_to_type %}
+{% set _ = _hosted_plurals.append(spec.subentity_plural(_kind)) %}
+{% endfor %}
+- **Scope your comment to the right discussion.** Sub-entities ({{ _hosted_plurals | join(', ') }})
   each have their own discussion region alongside the parent item's main discussion. Use
   `sq <type> <n> <kind> <k> comment` for anything scoped to that one sub-entity; use
   `sq <type> <n> comment` for cross-cutting material that applies to the whole item.
 
   | Scope | Command | When to use |
   |---|---|---|
-{% for _kind in spec.subentity_kinds %}
-  | One {{ _kind }} | `sq {{ _kind_to_type.get(_kind, "<type>") }} <n> {{ _kind }} <k> comment` | {{ _kind_notes.get(_kind, "Notes scoped to this sub-entity") }} |
+{% for _kind in _kind_to_type %}
+  | One {{ _kind }} | `sq {{ _kind_to_type[_kind] }} <n> {{ _kind }} <k> comment` | {{ _kind_notes.get(_kind, "Notes scoped to this sub-entity") }} |
 {% endfor %}
   | Whole item | `sq <type> <n> comment` | Handoff @mentions, decisions spanning multiple sub-entities, item-level status summaries |
 
   @mentions are surfaced by `sq inbox` wherever they live in the file — in a sub-entity discussion
   or the main one. Prefer the main discussion for @mentions that announce a transition or request
   action from the next agent (they read as item-level handoffs); a sub-entity discussion is fine for
-  a scoped question (e.g. `sq review N finding 1 comment --as reviewer -m "@dev does this fix
-  satisfy the requirement?"`). This is guidance, not a hard rule — the inbox never misses a mention.
+  a scoped question (e.g. `sq {{ anchor or "<type>" }} N {{ anchor_kind or "<kind>" }} 1 comment
+  --as <your-slug> -m "@role does this look right?"`). This is guidance, not a hard rule — the
+  inbox never misses a mention.
 - **Stay in lane.** File anything you discover that's out of scope as its own item (e.g. a bug);
   don't silently expand the work.
 
@@ -98,34 +107,37 @@ already tracked — not as a routine boot step.
   (story/subtask/finding blocks) — case-insensitive substring match.
 - Narrow with `--type <type>` and/or `--status <status>` (the same vocabulary as `sq list`); both
   AND-compose with the query.
+{# The region label is `<kind>:<local_prefix><n>`; both halves are spec-declared, so the
+   example is built from the first declared kind rather than the bundled story/US pair. #}
+{% set _ex_kind = (_kind_to_type | list | first) %}
+{% set _ex_region = (_ex_kind ~ ":" ~ spec.subentity_kinds[_ex_kind].local_prefix ~ "<n>") if _ex_kind else "<kind>:<k>" %}
 - Each result names **where** it matched: `body`, a `discussion` comment, or a named sub-entity
-  (e.g. `story:US<n>`, `story:US<n>:discussion#2`), alongside an in-context snippet — so you can jump
+  (e.g. `{{ _ex_region }}`, `{{ _ex_region }}:discussion#2`), alongside an in-context snippet — so you can jump
   straight to the right region instead of re-reading the whole item.
 - `sq search "<text>" --json` emits the same result set machine-readably (id/type/status plus
   each hit's region/location/snippet) for a script or an orchestrating agent to consume.
 
-{% set for_skill = true %}
 {% include "workflow.md.j2" %}
 
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: {{ spec.non_roster_types() | reject('eq', 'task') | sort | join('|') }}
+sq create {{ anchor or "<type>" }} "Title" --author <your-slug>{% if anchor_parent_prefix %} [--parent {{ anchor_parent_prefix }}-<n>]{% endif %} [-m "body…"]  # also: {{ spec.non_roster_types() | reject('eq', anchor) | sort | join('|') }}
 #   --author is required and must be a registered agent (your own role slug)
-sq task 3 show --full --comments                                # full dossier: body + sub-entities + discussion
-sq task 3 status InProgress                                     # transition (validated per type)
-sq task 3 update --assignee qa{% if _priority.field %} --{{ _priority.field.code }} {{ _priority.values[0] }}{% endif %} --parent FEAT-<n>  # metadata (parent validated)
-sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
-sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
-sq list --type task --status InProgress                         # closed items hidden; --all to include
-sq tree FEAT-<n> --json                                      # a feature's whole subtree (status/blocked) for coordinating
+sq {{ anchor or "<type>" }} 3 show --full --comments                                # full dossier: body + sub-entities + discussion
+sq {{ anchor or "<type>" }} 3 status {{ anchor_active or anchor_settled or "<status>" }}                                     # transition (validated per type)
+sq {{ anchor or "<type>" }} 3 update --assignee {{ example_assignee_slug(roles) }}{% if _priority_field %} --{{ _priority_field.code }} {{ _priority_values[0] }}{% endif %}{% if anchor_parent_prefix %} --parent {{ anchor_parent_prefix }}-<n>{% endif %}  # metadata (parent validated)
+sq {{ anchor or "<type>" }} 3 body -m "## Description" -m "…"                        # set the body (or --file)
+sq {{ anchor or "<type>" }} 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
+sq list --type {{ anchor or "<type>" }} --status {{ anchor_active or anchor_settled or "<status>" }}                         # closed items hidden; --all to include
+sq tree {{ anchor_parent_prefix or anchor_prefix }}-<n> --json                                      # a parent's whole subtree (status/blocked) for coordinating
 sq search "lockout"                                             # match titles, summaries, bodies
 sq mine <your-slug>                                             # your open items  ·  sq workload
 sq blocked                                                      # open items waiting on an open blocker
 sq docs [internals|workflow|migration|...]                      # read the full docs in-terminal (offline)
 ```
 
-Closed items (Done/Cancelled/…) drop out of `sq list`/`sq tree` by default — pass `--all` or an
-explicit `--status` to see them.{% if _priority.field %} Set importance with `--{{ _priority.field.code }} {{ _priority.values | join('|') }}`.{% endif +%}
+Items whose status is hidden-by-default (typically the settled/closed ones) drop out of `sq
+list`/`sq tree` — pass `--all` or an explicit `--status` to see them.{% if _priority_field %} Set importance with `--{{ _priority_field.code }} {{ _priority_values | join('|') }}`.{% endif +%}
 
 Run `sq --help`, `sq <type> --help`, or `sq <type> <n> --help` for the full surface.

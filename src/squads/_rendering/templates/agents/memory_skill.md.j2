@@ -1,8 +1,8 @@
 # sq-memory — your role's memory and the team board
 
 Your role has a committed memory: small facts you've learned while working on this project —
-timing quirks, gotchas, conventions. It's yours (`squads/agents/memory/<role>/`) and survives
-across sessions.
+timing quirks, gotchas, conventions. It's yours (`{{ squad_dir }}/agents/memory/<role>/`) and
+survives across sessions.
 
 ## Check it at the start of a run
 
@@ -65,10 +65,11 @@ notice and remove. If a notice stops applying before its `--until` (or has none)
 yourself rather than leaving it for someone else to puzzle over.
 
 ```
-sq board post -m "<notice>" [--until <date>] [--as <slug>]  # post a notice
-sq board list                                                # current (unexpired) notices
-sq board clear <n>                                           # take one down
+sq board post -m "<notice>" --as <slug> [--until <date>]  # post a notice
+sq board list                                              # current (unexpired) notices
+sq board clear <n>                                         # take one down
 ```
 
-`--as` attributes the post (an agent role slug, or `op-<slug>` for a human); `<n>` in `clear` is the
-notice's positional ordinal from the current `sq board list`, not a stored id.
+`--as` is required — it attributes the post (an agent role slug, or `op-<slug>` for a human);
+`<n>` in `clear` is the notice's positional ordinal from the current `sq board list`, not a
+stored id.

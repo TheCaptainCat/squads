@@ -8,18 +8,20 @@ _TODO: what is under review?_
 {% endif %}
 <!-- sq:body:end -->
 
-## Findings
-
 {% set finding_kind = spec.item_subentity_kind(item.type) %}
-_{{ field_label(finding_kind, 'severity', spec) }}:_ {{ collection_legend(resolve_collection(finding_kind, 'severity', spec), spec) }}
+{% set tag = spec.subentity_plural(finding_kind) %}
+{% set field_code = primary_field_code(finding_kind, spec) %}
+## {{ spec.subentity_container_heading(finding_kind) }}
 
-_Add with `sq review {{ item.id | idnum }} add-finding "…" --severity {{ field_default(finding_kind, 'severity', spec) }}`; track with `sq review {{ item.id | idnum }} finding <n> update --status <Status>`._
+_{{ field_label(finding_kind, field_code, spec) }}:_ {{ collection_legend(resolve_collection(finding_kind, field_code, spec), spec) }}
+
+_Add with `sq review {{ item.id | idnum }} add-{{ finding_kind }} "…" --{{ field_code }} {{ field_default(finding_kind, field_code, spec) }}`; track with `sq review {{ item.id | idnum }} {{ finding_kind }} <n> update --status <Status>`._
 
 <!-- sq:summary -->
 <!-- sq:summary:end -->
 
-<!-- sq:findings -->
-<!-- sq:findings:end -->
+{{ tag | open_marker }}
+{{ tag | close_marker }}
 
 ## Discussion
 
