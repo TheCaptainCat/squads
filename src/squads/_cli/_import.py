@@ -109,8 +109,8 @@ async def import_events(
     as_: str | None = typer.Option(
         None,
         "--as",
-        help="Default acting slug events inherit when they omit their own "
-        "(defaults to the squad's configured default role).",
+        help="Default acting slug events inherit when they omit their own. No fallback: an "
+        "event with no 'as' of its own, no prior event's, and no --as fails validation.",
     ),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
@@ -126,6 +126,10 @@ async def import_events(
     omit it and an event without its own ``at`` (and no prior event's ``at`` to inherit)
     uses "now". ``--dry-run`` stops after validation and prints the projected plan instead
     of applying.
+
+    Attribution has no equivalent silent fallback: an event without its own ``as``, with no
+    prior event's to inherit, and no ``--as`` given fails validation naming the missing actor,
+    rather than attributing to whatever role this squad happens to be configured to default to.
     """
     text = _read_import_text(file)
     svc = common.get_service()

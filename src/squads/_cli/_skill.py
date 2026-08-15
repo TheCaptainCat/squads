@@ -10,6 +10,7 @@ Grammar:
   sq skill <slug|id|n> link-role <role> — scope the skill to a role (+ resync that role)
   sq skill <slug|id|n> unlink-role <role> — remove that scope (+ resync that role)
   sq skill <slug|id|n> regen            — regenerate the Claude pointer
+  sq skill <slug|id|n> status <S>       — transition the skill's status
   sq skill <slug|id|n> rm [--purge]     — remove the skill item
 
 Address resolution order (exact match, no fuzzy):
@@ -30,6 +31,7 @@ from squads._cli._common import (
     e,
     get_service,
     print_json_clean,
+    register_status_verb,
     render_body_text,
     resolve_agent_addr,
     resolve_body,
@@ -43,8 +45,9 @@ skill_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent skills.",
     epilog=(
-        "Address a skill:  sq skill <slug|id|n> show|regen|rm\n"
+        "Address a skill:  sq skill <slug|id|n> show|regen|rm|status\n"
         "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm\n"
+        "           sq skill squads status Archived\n"
         "Note: a slug matching a group verb (add) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
@@ -147,11 +150,18 @@ async def skill_body(
     message: list[str] = typer.Option(None, "-m", "--message", help="Body paragraph."),
     file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
     append: bool = typer.Option(False, "--append", help="Append instead of replacing."),
+    force: bool = typer.Option(
+        False, "--force", help="Replace an already-written body (destructive, no undo)."
+    ),
 ) -> None:
-    """Set (or --append to) a custom skill's body (rejected for system/bundled skills)."""
+    """Set (or --append to) a custom skill's body (rejected for system/bundled skills).
+
+    Replacing an already-written body is refused unless --force, the same guard the item body
+    carries — probing whether the verb is permitted here costs nothing.
+    """
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    await svc.set_body(item_id, resolve_body(message or None, file), append=append)
+    await svc.set_body(item_id, resolve_body(message or None, file), append=append, force=force)
     console.print(f"{item_id}: body {'appended' if append else 'set'}")
 
 
@@ -275,5 +285,7 @@ async def skill_rm(
     await svc.remove_item(item_id, purge=purge)
     console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
 
+
+register_status_verb(_addr, lambda ctx: ctx.obj["id"])
 
 skill_app.add_typer(_addr, name="_addr", hidden=True)

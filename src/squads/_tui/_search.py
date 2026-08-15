@@ -20,6 +20,22 @@ from squads._workflow._models import WorkflowSpec
 _PROMPT = "Type to search…"
 
 
+def _skipped_note(count: int) -> Content:
+    """The status-line note for a degraded search: the results shown are real but partial.
+
+    The service reports unreadable item files per file rather than failing the whole walk, so
+    the screen has an answer to show — it just isn't the whole corpus, and silently rendering
+    it as if it were would be the misleading half of the old behaviour rather than the useful
+    half.
+    """
+    files = "file" if count == 1 else "files"
+    return Content.from_markup(
+        "[yellow]$count item $files could not be read — results are partial[/yellow]",
+        count=str(count),
+        files=files,
+    )
+
+
 def _render_hit(result: SearchResult, spec: WorkflowSpec) -> Content:
     # Static renders through Textual's own Content markup, which does not honor Rich's `\[`
     # escaping — ids/titles/snippets (all free-form, snippets especially bracket-heavy) go in
@@ -117,13 +133,18 @@ class SearchScreen(Screen[None]):
 
     @work(exclusive=True)
     async def _run_search(self, text: str, item_type: str | None, status: str | None) -> None:
-        results = await self._svc.search(text, item_type=item_type, status=status)
+        results, unreadable = await self._svc.search(text, item_type=item_type, status=status)
         await self._results.clear()
         self._results.loading = False
         if not results:
+            if unreadable:
+                # Nothing matched *and* files were skipped: say so rather than reporting a
+                # confident "no results" the corpus never actually got to answer.
+                self._status.update(_skipped_note(len(unreadable)))
+                return
             self._status.update(Content.from_markup("No results for $query", query=repr(text)))
             return
-        self._status.update("")
+        self._status.update(_skipped_note(len(unreadable)) if unreadable else "")
         await self._results.extend(_HitItem(r, self._svc.spec) for r in results)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:

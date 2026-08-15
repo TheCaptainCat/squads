@@ -1,10 +1,12 @@
-"""`sq role …` — manage agent roles (catalog/activate/show/regen/rm).
+"""`sq role …` — manage agent roles (catalog/activate/show/regen/rm/status/set-default).
 
 Grammar:
   sq role catalog                    — show the bundled role catalog
   sq role activate <slug>            — activate a bundled role
   sq role <slug|id|n> show           — show a role's card + body
   sq role <slug|id|n> regen          — regenerate the Claude pointer
+  sq role <slug|id|n> status <S>     — transition the role's status
+  sq role <slug|id|n> set-default    — move the default-role designation here
   sq role <slug|id|n> rm [--purge]   — remove the role item
 
 Address resolution order (exact match, no fuzzy):
@@ -14,6 +16,7 @@ Address resolution order (exact match, no fuzzy):
 # pyright: reportUnusedFunction=false
 
 import json
+from typing import ClassVar
 
 import typer
 from rich.panel import Panel
@@ -28,26 +31,33 @@ from squads._cli._common import (
     handle_errors,
     is_full_id_shape,
     print_json_clean,
+    register_status_verb,
     render_body_text,
     resolve_agent_addr,
 )
-from squads._errors import SquadsError
+from squads._errors import RoleNotFoundError, SquadsError
 from squads._interactions import allowed_create_types
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import resolve_role
-from squads._workflow import STATUS_ACTIVE
+from squads._workflow import ROSTER_ROLE
+
+
+class _RoleDispatchGroup(AddressDispatchGroup):
+    _ADDR_VERBS: ClassVar[str] = "show|regen|rm|status|set-default"
+
 
 role_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent roles.",
     epilog=(
-        "Address a role:  sq role <slug|id|n> show|regen|rm\n"
+        "Address a role:  sq role <slug|id|n> show|regen|rm|status|set-default\n"
         "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm\n"
+        "           sq role manager status Archived   sq role qa set-default\n"
         "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
-    cls=AddressDispatchGroup,
+    cls=_RoleDispatchGroup,
 )
 
 # --------------------------------------------------------------------------- catalog
@@ -110,15 +120,16 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
             )
         )
         return
+    live = svc.spec.live_statuses(ROSTER_ROLE)
     table = Table(box=None, pad_edge=False)
-    for col in ("Slug", "Name", "Title", "Active"):
+    for col in ("Slug", "Name", "Title", "Live"):
         table.add_column(col)
     for r in roles:
         table.add_row(
             e(r.extra.get(X.SLUG, r.slug)),
             e(r.extra.get(X.FULL_NAME, r.title)),
             e(r.extra.get(X.TITLE, "")),
-            "✓" if r.status == STATUS_ACTIVE else "",
+            "✓" if r.status in live else "",
         )
     console.print(table)
 
@@ -139,6 +150,9 @@ async def activate_role(
     ``<slug>`` may be a bundled role (see ``sq role catalog``) or a custom non-dev role defined
     under ``.overrides/roles/<slug>.toml`` — scaffold one with ``sq override scaffold --new
     <slug>``, fill in the essentials, then activate it here.
+
+    Activating an already-live role is a no-op.  A role that exists but has been retired is
+    *refused*, not silently returned: bring it back with ``sq role <slug> status <live-status>``.
     """
     svc = get_service()
     item = await svc.activate_role(slug, name=name)
@@ -228,11 +242,15 @@ async def show_role(
                     "model": r.model,
                     "is_default": r.is_default,
                     "can_spawn": r.can_spawn,
-                    "create_lane": sorted(allowed_create_types(slug)),
+                    "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
                     "responsibilities": list(r.responsibilities),
                 }
             )
-        except SquadsError:
+        except RoleNotFoundError:
+            # Narrow deliberately: this fallback exists for a slug the bundled catalog does
+            # not know, and only that. A broader catch also swallowed an *invalid* project
+            # role override — the refusal disappeared and the card rendered from the stored
+            # item, so a squad answered as though the broken override were not there.
             if item_id is not None:
                 it3 = await svc.get(item_id)
                 data.update(
@@ -243,7 +261,7 @@ async def show_role(
                         "model": it3.extra.get(X.MODEL),
                         "is_default": it3.extra.get(X.IS_DEFAULT, False),
                         "can_spawn": it3.extra.get(X.CAN_SPAWN, False),
-                        "create_lane": sorted(allowed_create_types(slug)),
+                        "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
                         "responsibilities": it3.extra.get(X.RESPONSIBILITIES, []),
                     }
                 )
@@ -255,7 +273,7 @@ async def show_role(
     # Build the catalog card from the resolved role definition (project override → bundled).
     try:
         r = resolve_role(slug, svc.paths.squad_dir)
-        lane_types = sorted(allowed_create_types(slug))
+        lane_types = sorted(allowed_create_types(slug, svc.spec, svc.playbook))
         creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
         rows = [
             f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
@@ -267,8 +285,10 @@ async def show_role(
             "[bold]responsibilities:[/bold]",
             *(f"  - {e(x)}" for x in r.responsibilities),
         ]
-    except SquadsError:
-        # Custom role not in the bundled catalog — fall back to the item fields.
+    except RoleNotFoundError:
+        # Custom role not in the bundled catalog — fall back to the item fields. Narrow for
+        # the same reason as the --json branch above: an invalid override must be reported,
+        # never quietly replaced by the stored item's own copy of the fields.
         if item_id is not None:
             it2 = await svc.get(item_id)
             rows = [
@@ -324,5 +344,30 @@ async def rm_role(
     await svc.refresh_managed()
     console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
 
+
+@_addr.command("set-default")
+@common.command
+async def set_default_role(ctx: typer.Context) -> None:
+    """Move the default-role designation onto this role, clearing every other holder.
+
+    A move, not a set: the previous holder(s) are cleared in the same transaction, so the
+    roster never ends up with two roles carrying the designation. Refuses a non-live role
+    (a designation the generated config cannot present is not a designation), and reports
+    designating the current holder as a no-op rather than an error. This is also the way
+    back after a squad has lost its default-role guidance to a retirement — see
+    `sq role <addr> status`.
+    """
+    item_id = _require_id(ctx)
+    svc = get_service()
+    result = await svc.set_default_role(item_id)
+    if not result.changed:
+        console.print(f"{result.item.id} already the default — no change")
+        return
+    console.print(f"{result.item.id} is now the default")
+    for cleared_id in result.cleared:
+        console.print(f"  cleared {e(cleared_id)}")
+
+
+register_status_verb(_addr, _require_id)
 
 role_app.add_typer(_addr, name="_addr", hidden=True)

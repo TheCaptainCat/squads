@@ -83,14 +83,23 @@ class ReaderScreen(Screen[None]):
 
 
 def _glance_line(item: Item, spec: WorkflowSpec) -> Content:
+    """The item header: status, then one badge per declared field carrying a value, then the
+    assignee — generic over ``fields_for(item.type)``, exactly like ``_subentity_head_line``
+    below and ``_tui/_filter.py``'s code enumeration.
+
+    Hardcoding ``priority`` here made an adopter's own declared axis invisible in the header
+    while remaining filterable and sortable in the same UI: `sq ui` could sort by ``impact``
+    and never show it.
+    """
     # Static renders through Textual's own Content markup, which does not honor Rich's `\[`
     # escaping — so the assignee (free-form, may contain brackets) goes in as a template
     # variable rather than being concatenated into the markup string.
     parts = [badges.status_badge(item.status, spec)]
-    priority = item.badge_value("priority")
-    if priority:
-        coll = badges.resolve_collection(item.type, "priority", spec)
-        parts.append(badges.badge_render(coll, priority, spec, as_label=True))
+    for field in spec.fields_for(item.type):
+        value = item.badge_value(field.code)
+        if value:
+            coll = badges.resolve_collection(item.type, field.code, spec)
+            parts.append(badges.badge_render(coll, value, spec, as_label=True))
     if item.assignee:
         template = "  ·  ".join([*parts, "$assignee"])
         return Content.from_markup(template, assignee=item.assignee)

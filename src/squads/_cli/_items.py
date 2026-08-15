@@ -13,9 +13,12 @@ per-kind closures. Every verb is a thin wrapper over an existing ``svc.*`` metho
 
 import inspect
 import json
-from typing import cast
+from typing import Any, cast
 
 import typer
+import typer._click as _click  # underscore is upstream's own private module path, not ours
+import typer.core
+import typer.main
 from rich.table import Table
 
 import squads._cli._common as common
@@ -24,8 +27,10 @@ from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._cli._common import (
     build_item_json,
+    build_subentity_json,
     console,
     e,
+    get_active_spec,
     get_service,
     handle_errors,
     parse_badge_code,
@@ -35,6 +40,7 @@ from squads._cli._common import (
     print_item,
     print_json_clean,
     print_subentity,
+    require_as,
     resolve_body,
     resolve_body_optional,
     resolve_item_id_any,
@@ -76,17 +82,152 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
 
 
 def _priority_help(item_type: str, spec: WorkflowSpec, template: str) -> str:
-    """``--priority``/``--min-priority`` help text, derived from the priority collection
-    bound to *item_type* — falls back to a spec-pointing phrase (no enumeration) when the
-    type doesn't declare a priority field/collection at all."""
-    coll_code = badges.resolve_collection(item_type, "priority", spec)
-    coll = spec.collections.get(coll_code)
+    """``--priority`` help text, derived from the priority collection *item_type* actually
+    binds — the spec-pointing phrase (no enumeration) when the type declares no ``priority``
+    field at all.
+
+    Strict resolution (:func:`squads._badges.declared_collection`): the graceful
+    same-name fallback would enumerate the bundled ``priority`` collection's codes on a type
+    that never declared the field, advertising a flag that can only error."""
+    # sanctioned field-code literal: `--priority` is the flag *for* this field code
+    coll_code = badges.declared_collection(item_type, "priority", spec)
+    coll = spec.collections.get(coll_code) if coll_code else None
     if coll and coll.badges:
         return template.format(codes="|".join(b.code for b in coll.badges))
     return "Priority code (as defined by your workflow's priority collection)."
 
 
-def build_item_app(item_type: str, spec: WorkflowSpec | None = None) -> typer.Typer:
+def _declares_priority(item_type: str, spec: WorkflowSpec) -> bool:
+    """Whether *item_type* declares a ``priority`` field — drives whether ``--priority`` is
+    advertised at all (a type that doesn't can only ever be refused by the service gate)."""
+    # sanctioned field-code literal: `--priority` is the flag *for* this field code
+    return badges.declared_collection(item_type, "priority", spec) is not None
+
+
+#: One entry per aspect of a sub-entity kind that shapes the generated command surface.
+type _FieldSignature = tuple[str, str, str, bool, str | None]
+type KindSignature = tuple[str, str, bool, tuple[_FieldSignature, ...]] | None
+
+
+def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
+    """Everything about *item_type*'s hosted sub-entity kind that ``_register_subentity``
+    bakes into the generated commands: the kind name, its plural (the list verb), whether it
+    maps a parent story (the ``--story`` options), and every declared field's code, label,
+    bound collection, requiredness and default (the ``--<field-code>`` options, their help
+    text, and the omitted-flag fallback).
+
+    Two specs producing the same signature produce the identical command tree, so comparing
+    it is the exact test for "does the statically-built tree still describe this spec?" —
+    strictly wider than the kind-name comparison it replaces, which missed a field swap.
+    ``None`` when the type hosts no kind at all.
+    """
+    kind = spec.item_subentity_kind(item_type)
+    ks = spec.subentity_kinds.get(kind) if kind else None
+    if kind is None or ks is None:
+        return None
+    fields = tuple(
+        (f.code, f.label, f.collection, f.required, f.default) for f in spec.fields_for(kind)
+    )
+    return (kind, ks.plural, ks.maps_parent_story, fields)
+
+
+def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
+    """A one-off ``TyperGroup`` subclass for *item_type*'s ``sq <type> <n> …`` command
+    group, falling back to a freshly-built sub-entity command (built from the resolved
+    per-invocation spec) when a requested command isn't found in the statically-built
+    tree — the same shape as ``_CustomTypeGroup``'s dynamic fallback in ``_cli/__init__.py``,
+    one level deeper: a *statically-registered* built-in type's sub-entity KIND is itself
+    baked in at import time from the bundled spec (``build_item_app`` has no per-invocation
+    spec to read yet), so a squad that renames the kind (e.g. feature's ``story`` ->
+    ``scenario``) still only gets ``add-story`` from the static tree — never
+    ``add-scenario`` — until this rebuilds the missing command against the live spec.
+
+    The OLD (bundled-baked) kind's commands stay reachable — ``get_command`` deliberately
+    doesn't hide them — so ``sq feature N add-story`` still dispatches into the accurate
+    "features host scenarios, not storys" refusal rather than Click's own did-you-mean
+    (the same "advertise vs dispatch" split as ``_dropped_static_names`` elsewhere in this
+    module). ``list_commands`` DOES hide them, though: once the live spec has a different
+    kind for this type, the old kind's verbs are stale and would otherwise sit right next
+    to the correct ones in ``--help``/completion.
+
+    A kind's NAME is not the only thing baked in at import time: ``_register_add``/
+    ``_register_update`` also bake one ``--<field-code>`` option per ``fields_for(kind)``
+    into the Typer parameter list. A spec that keeps the kind's name but replaces its fields
+    (``finding``'s ``severity`` -> a required ``impact``) therefore left the static tree
+    offering ``--severity`` — accepting and storing a value for a field the spec no longer
+    declares — and never offering ``--impact`` or applying its required default. So the
+    trigger for rebuilding is the kind's whole command-shaping SIGNATURE
+    (:func:`_kind_signature`), not just its name.
+    """
+    from squads._workflow import bundled_spec
+
+    def _kind_verb_names(kind: str, spec: WorkflowSpec) -> set[str]:
+        return {f"add-{kind}", spec.subentity_plural(kind), kind}
+
+    _bundled_spec = bundled_spec()
+    bundled_kind = _bundled_spec.item_subentity_kind(item_type)
+    # The stale (bundled-baked) verb names, computed once from the BUNDLED spec — never
+    # from the live/resolved one, which may no longer declare this kind at all (fully
+    # dropped, not just unbound from this type) and would raise on a plural lookup.
+    stale_verb_names: set[str] = (
+        _kind_verb_names(bundled_kind, _bundled_spec) if bundled_kind else set()
+    )
+    bundled_signature = _kind_signature(item_type, _bundled_spec)
+
+    class _Group(typer.core.TyperGroup):
+        def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
+            try:
+                spec = common.get_active_spec()
+                kind = spec.item_subentity_kind(item_type)
+                rebuild = _kind_signature(item_type, spec) != bundled_signature
+            except Exception:  # pylint: disable=broad-except
+                return super().get_command(ctx, cmd_name)
+
+            # Anything the live spec shapes differently from the bundled one — a renamed
+            # kind, or the SAME kind with different declared fields — is served from a
+            # freshly-built app so the parameter list matches what the spec declares today.
+            if rebuild:
+                fresh = build_item_app(item_type, spec=spec, dynamic_subentity=False)
+                fresh_click = cast(typer.core.TyperGroup, typer.main.get_command(fresh))
+                fresh_cmd = fresh_click.get_command(ctx, cmd_name)
+                if fresh_cmd is not None:
+                    return fresh_cmd
+
+            # Fall back to the statically-built tree: for an unchanged squad that IS the
+            # answer (byte-identical), and under a rename it keeps the old kind's verbs
+            # reachable so they dispatch into the accurate refusal rather than a did-you-mean.
+            cmd = super().get_command(ctx, cmd_name)
+            if cmd is not None:
+                return cmd
+            if kind is None or cmd_name not in _kind_verb_names(kind, spec):
+                return None
+            fresh = build_item_app(item_type, spec=spec, dynamic_subentity=False)
+            fresh_click = cast(typer.core.TyperGroup, typer.main.get_command(fresh))
+            return fresh_click.get_command(ctx, cmd_name)
+
+        def list_commands(self, ctx: Any) -> list[str]:
+            base = super().list_commands(ctx)
+            try:
+                spec = common.get_active_spec()
+                kind = spec.item_subentity_kind(item_type)
+            except Exception:  # pylint: disable=broad-except
+                return base
+            # The common (non-renamed) case returns `base` completely untouched, in its
+            # original registration order — `TyperGroup.list_commands` promises creation
+            # order, and a plain `sorted()` merge (even a no-op set union) would silently
+            # reshuffle every command's --help position for every non-customized squad.
+            if kind is None or kind == bundled_kind:
+                return base
+            visible = [c for c in base if c not in stale_verb_names]
+            new_names = sorted(_kind_verb_names(kind, spec) - set(visible))
+            return visible + new_names
+
+    return _Group
+
+
+def build_item_app(
+    item_type: str, spec: WorkflowSpec | None = None, *, dynamic_subentity: bool = True
+) -> typer.Typer:
     """A ``sq <type> <num> …`` group for one work-item type.
 
     Accepts a plain string type name (``"task"``, ``"incident"`` …) — every type, built-in
@@ -99,8 +240,21 @@ def build_item_app(item_type: str, spec: WorkflowSpec | None = None) -> typer.Ty
     dispatch, which must build from the *same* spec it used to decide the type exists —
     not whatever ``get_active_spec()`` happens to hold before the root callback binds it)
     should pass it explicitly.
+
+    ``dynamic_subentity`` (default ``True``) wraps the returned group in
+    :func:`_dynamic_subentity_group_cls`, so a renamed sub-entity kind (e.g. feature's
+    ``story`` -> ``scenario``) is reachable even on a statically-registered built-in type,
+    whose sub-entity verbs (``add-<kind>``, the ``<kind>s`` list, the nested ``<kind> <n>``
+    group) are otherwise baked in at import time from the *bundled* kind name. Pass
+    ``False`` only for the fresh, spec-resolved rebuild the fallback itself performs —
+    that one already IS the resolved kind, so it needs no further fallback (and enabling
+    it there would recurse).
     """
-    item = typer.Typer(no_args_is_help=True, help=f"Operate on a {item_type} by number/id.")
+    item = typer.Typer(
+        no_args_is_help=True,
+        help=f"Operate on a {item_type} by number/id.",
+        cls=_dynamic_subentity_group_cls(item_type) if dynamic_subentity else typer.core.TyperGroup,
+    )
 
     # Resolved once, up front (unless the caller already resolved it), so every command
     # builder below (retype's target-type help, update's --priority help) derives its help
@@ -134,15 +288,11 @@ def build_item_app(item_type: str, spec: WorkflowSpec | None = None) -> typer.Ty
         _register_subentity(item, subentity_kind, spec)
 
     # retype/remove: available for all non-roster types (spec-derived).
-    # For types unknown to the spec (pre-callback edge case), fall back to checking
-    # against the three roster-type names directly (the irreducible,
-    # by-name-bound minimum, not a spec lookup).
-    from squads._workflow import ROSTER_TYPES
-
-    is_roster = (
-        spec.item_is_roster(item_type) if item_type in spec.items else item_type in ROSTER_TYPES
-    )
-    if not is_roster:
+    # item_is_roster() degrades to False for a type unknown to the spec (pre-callback
+    # edge case) rather than raising — role/skill/operator are locked by key identity and
+    # can never be dropped, so an undeclared type is never roster; no by-name fallback
+    # vocabulary is needed here (mirrors the item_subentity_kind() comment above).
+    if not spec.item_is_roster(item_type):
         _cmd_retype(item, spec)
         _cmd_remove(item)
     return item
@@ -176,7 +326,20 @@ def _cmd_show(item: typer.Typer) -> None:
 def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
     priority_help = _priority_help(item_type, spec, "Priority: {codes}.")
 
-    @item.command("update")
+    def _refresh_priority_help(params: list[object]) -> None:
+        live_spec = common.get_active_spec()
+        text = _priority_help(item_type, live_spec, "Priority: {codes}.")
+        # Hidden, not removed, on a type declaring no priority field: the flag still parses
+        # so the service's declared-field gate owns the one accurate refusal, but a flag that
+        # can only ever error is never offered in --help (same split as the create side).
+        declared = _declares_priority(item_type, live_spec)
+        for p in params:
+            if getattr(p, "name", None) in ("priority", "no_priority"):
+                p.hidden = not declared  # type: ignore[attr-defined]
+            if getattr(p, "name", None) == "priority":
+                p.help = text  # type: ignore[attr-defined]
+
+    @item.command("update", cls=common.spec_aware_command_cls(_refresh_priority_help))
     @common.command
     async def update(  # noqa: PLR0913 — the one metadata entry point
         ctx: typer.Context,
@@ -215,7 +378,10 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             title=title,
             description=desc,
             assignee=validated_assignee,
-            priority=parse_badge_code("priority", priority) if priority else None,
+            # No pre-parse: the collection `priority` binds is per-type and the service's
+            # `_check_priority` resolves it from this item's own declared field. See the
+            # matching note in `_cli/_create.py`.
+            priority=priority,
             clear_priority=no_priority,
             add_labels=add_label or None,
             rm_labels=rm_label or None,
@@ -251,9 +417,19 @@ def _cmd_body(item: typer.Typer) -> None:
         message: list[str] = typer.Option(None, "-m", "--message", help="Body paragraph."),
         file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
         append: bool = typer.Option(False, "--append", help="Append instead of replacing."),
+        force: bool = typer.Option(
+            False, "--force", help="Replace an already-written body (destructive, no undo)."
+        ),
     ):
-        """Set (or --append to) the item's body."""
-        await get_service().set_body(_id(ctx), resolve_body(message or None, file), append=append)
+        """Set (or --append to) the item's body.
+
+        Replacing a body someone has already written is refused unless --force: the message
+        names what would be discarded and nothing is written, so a bare `body` on an occupied
+        item is a safe way to find out. A first write over the template scaffold just works.
+        """
+        await get_service().set_body(
+            _id(ctx), resolve_body(message or None, file), append=append, force=force
+        )
         console.print(f"{_id(ctx)}: body {'appended' if append else 'set'}")
 
 
@@ -263,11 +439,13 @@ def _cmd_comment(item: typer.Typer) -> None:
     async def comment(
         ctx: typer.Context,
         message: list[str] = typer.Option(..., "-m", "--message", help="A talking point."),
-        as_: str = typer.Option("operator", "--as", help="Author: a role slug or 'operator'."),
+        as_: str | None = typer.Option(
+            None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
+        ),
     ):
         """Append a timestamped comment to the item's discussion."""
         svc = get_service()
-        slug = await resolve_slug_or_raise(as_, svc)
+        slug = await resolve_slug_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
         await svc.comment(_id(ctx), message, as_slug=slug)
         console.print(f"commented on {_id(ctx)} as {slug}")
@@ -290,10 +468,24 @@ def _cmd_comments(item: typer.Typer) -> None:
         common.print_comments(cmt_list)
 
 
-def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
-    targets = "|".join(sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)))
+def _retype_targets(spec: WorkflowSpec) -> str:
+    return "|".join(sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)))
 
-    @item.command("retype")
+
+def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
+    targets = _retype_targets(spec)
+
+    def _refresh_retype_help(params: list[object]) -> None:
+        live_targets = _retype_targets(common.get_active_spec())
+        text = (
+            f"Target type (non-roster: work or records): {live_targets}. "
+            "The item number is preserved; only the ID prefix flips."
+        )
+        for p in params:
+            if getattr(p, "name", None) == "new_type":
+                p.help = text  # type: ignore[attr-defined]
+
+    @item.command("retype", cls=common.spec_aware_command_cls(_refresh_retype_help))
     @common.command
     async def retype(
         ctx: typer.Context,
@@ -754,10 +946,14 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
 
     @sub.command("show")
     @common.command
-    async def s_show(ctx: typer.Context):
+    async def s_show(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")):
         """Show the sub-entity's status/assignee, body, and discussion."""
         pid, lid = ids(ctx)
-        print_subentity(await get_service().get_block(pid, kind, lid), kind)
+        detail = await get_service().get_block(pid, kind, lid)
+        if json_out:
+            print_json_clean(json.dumps(build_subentity_json(get_active_spec(), kind, detail)))
+            return
+        print_subentity(detail, kind)
 
     _register_update(sub, kind, spec)
 
@@ -768,11 +964,18 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         message: list[str] = typer.Option(None, "-m", "--message"),
         file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
         append: bool = typer.Option(False, "--append"),
+        force: bool = typer.Option(
+            False, "--force", help="Replace an already-written body (destructive, no undo)."
+        ),
     ):
-        """Set (or --append to) the sub-entity's body."""
+        """Set (or --append to) the sub-entity's body.
+
+        Replacing an already-written body is refused unless --force, the same guard the item
+        body carries.
+        """
         pid, lid = ids(ctx)
         await get_service().set_block_body(
-            pid, kind, lid, resolve_body(message or None, file), append=append
+            pid, kind, lid, resolve_body(message or None, file), append=append, force=force
         )
         console.print(f"{pid} {lid}: body {'appended' if append else 'set'}")
 
@@ -781,12 +984,14 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
     async def s_comment(
         ctx: typer.Context,
         message: list[str] = typer.Option(..., "-m", "--message"),
-        as_: str = typer.Option("operator", "--as"),
+        as_: str | None = typer.Option(
+            None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
+        ),
     ):
         """Comment on the sub-entity's discussion."""
         pid, lid = ids(ctx)
         svc = get_service()
-        slug = await resolve_slug_or_raise(as_, svc)
+        slug = await resolve_slug_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
         await svc.comment(pid, message, as_slug=slug, sub=(kind, lid))
         console.print(f"commented on {pid} {lid} as {slug}")
