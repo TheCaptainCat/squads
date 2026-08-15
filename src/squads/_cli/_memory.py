@@ -13,6 +13,10 @@ SquadsError on an unknown slug — never a stack trace. Memory is a lighter tier
 (see `squads._memory._store`) so, unlike the `sq <type> <n> ...` groups, there is no
 counter-allocated id to resolve here — only the role slug and, for `show`/`forget`, the memory's
 own stable slug.
+
+Resolved against the **full** roster vocabulary, not just live slugs — a role's own
+notebook (like `sq inbox`/`sq mine`) is read-scoped to that role, not authorship attributed to
+it on someone else's item, so a retired role's memory stays reachable for review.
 """
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
@@ -25,6 +29,7 @@ import squads._cli._common as common
 from squads._cli._common import (
     console,
     e,
+    err_console,
     get_service,
     print_json_clean,
     render_body_text,
@@ -48,19 +53,24 @@ def _role(ctx: typer.Context) -> str:
 @common.command
 async def _resolve_role(
     ctx: typer.Context,
-    role: str = typer.Argument(..., help="Role slug (e.g. python-dev or op-pierre)."),
+    role: str = typer.Argument(..., help="Role slug (e.g. python-dev or op-alice)."),
 ) -> None:
     svc = get_service()
-    ctx.obj = {_ROLE_KEY: await resolve_slug_or_raise(role, svc)}
+    ctx.obj = {_ROLE_KEY: await resolve_slug_or_raise(role, svc, live_only=False)}
 
 
 @memory_app.command("list")
 @common.command
 async def list_memories(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")) -> None:
-    """Print the role's memory index: one line per memory (slug + summary)."""
+    """Print the role's memory index: one line per memory (slug + summary).
+
+    A memory that could not be read is named on stderr in both output modes — ``--json``'s
+    array shortens silently otherwise, with nothing to distinguish a degraded read from a
+    genuinely smaller pool.
+    """
     role_slug = _role(ctx)
     svc = get_service()
-    entries = await svc.memory_list(role_slug)
+    entries, unreadable = await svc.memory_list(role_slug)
     if json_out:
         print_json_clean(
             json.dumps(
@@ -70,7 +80,11 @@ async def list_memories(ctx: typer.Context, json_out: bool = typer.Option(False,
                 ]
             )
         )
+        for msg in unreadable:
+            err_console.print(f"[red]error[/red]: {e(msg)}")
         return
+    for msg in unreadable:
+        console.print(f"[red]error[/red]: {e(msg)}")
     if not entries:
         console.print(f"[dim]no memories for {e(role_slug)}[/dim]")
         return
@@ -85,17 +99,25 @@ async def search_memories(
     query: str = typer.Argument(..., help="Text to find (case-insensitive)."),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Memories whose summary or body contains the query text."""
+    """Memories whose summary or body contains the query text.
+
+    Same degrade-signal rule as `sq memory <role> list`: an unreadable memory is named on
+    stderr in both output modes.
+    """
     role_slug = _role(ctx)
     svc = get_service()
-    hits = await svc.memory_search(role_slug, query)
+    hits, unreadable = await svc.memory_search(role_slug, query)
     if json_out:
         print_json_clean(
             json.dumps(
                 [{"slug": m.slug, "description": m.summary, "hits": lines} for m, lines in hits]
             )
         )
+        for msg in unreadable:
+            err_console.print(f"[red]error[/red]: {e(msg)}")
         return
+    for msg in unreadable:
+        console.print(f"[red]error[/red]: {e(msg)}")
     if not hits:
         console.print(f"[dim]no matches for {e(query)}[/dim]")
         return

@@ -15,6 +15,7 @@ from squads import __version__
 from squads import _actor as actor
 from squads._cli import _common as common
 from squads._context import RequestContext
+from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 # The generated output (workflow cheatsheet, tables, panels) contains → • — and box-drawing
@@ -30,7 +31,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
 
     Built-in commands are registered statically at import time (unchanged, byte-identical
     to today for non-custom squads).  When Click calls ``get_command(ctx, name)`` for an
-    *unknown* name, this group resolves the active spec (bound by ``_bind_active_spec`` in
+    *unknown* name, this group resolves the active spec (bound by ``common.bind_active_spec`` in
     the root callback, or the bundled spec as fallback) and, if ``name`` is a custom work
     type declared in that spec, builds and returns a ``build_item_app(name)`` sub-app on
     the fly.
@@ -50,53 +51,54 @@ class _CustomTypeGroup(typer.core.TyperGroup):
 
     @staticmethod
     def _resolve_spec_for_ctx(ctx: Any) -> Any:
-        """Resolve the WorkflowSpec for the current Click context.
+        """Resolve the WorkflowSpec for the current Click context — shared with
+        ``_create.py``'s ``_CustomCreateGroup`` via ``common.resolve_spec_for_ctx``, since
+        both groups face the same "callback may not have run yet" completion/help path.
+        Always returns a ``WorkflowSpec`` (never raises)."""
+        return common.resolve_spec_for_ctx(ctx)
 
-        Tries three sources in order:
-        1. The already-bound per-invocation spec (``common.get_active_spec()``).  This is
-           set by ``_bind_active_spec`` in the root callback and is the fast path for
-           subcommand dispatch (callback fires before subcommand resolution).
-        2. ``ctx.params["dir"]`` — the hoisted ``--dir`` value parsed on the root group's
-           params before the callback fires (covers the ``sq --help`` path).
-        3. Fall back to ``common.get_active_spec()`` (which returns the bundled spec when
-           no per-invocation spec is bound), so ``--help`` on a non-custom squad is
-           byte-identical to today.
+    def format_help(self, ctx: Any, formatter: Any) -> None:
+        """Refresh the root epilog's alias summary from the resolved spec before rendering.
 
-        Always returns a ``WorkflowSpec`` (never raises).
+        ``self.epilog`` is a plain string set once at ``app = typer.Typer(...)`` construction
+        (from the bundled spec) — for a non-customized squad that's already the right answer,
+        but under a drop/rename it goes stale exactly like a baked ``--help`` string on any
+        other statically-built command (see ``common.spec_aware_command_cls``). Root help is
+        rendered through this one method regardless of path (``--help`` or ``sq`` bare), so
+        refreshing here — right before ``super().format_help()`` reads ``self.epilog`` —
+        covers it without needing a custom Command subclass.
+        """
+        self.epilog = root_epilog(self._resolve_spec_for_ctx(ctx))
+        super().format_help(ctx, formatter)
+
+    def _dropped_static_names_for_ctx(self, ctx: Any) -> frozenset[str]:
+        """Statically-registered command/alias names whose canonical built-in type has been
+        dropped from the resolved active spec — hidden from ``--help``/completion.
+
+        Mirrors ``_CustomCreateGroup._dropped_static_names`` in ``_cli/_create.py`` (see that
+        docstring for the fuller reasoning): ``get_command`` deliberately does NOT consult this
+        set. Hiding a dropped name there would let Click's own unknown-command handler answer
+        instead of the real command, and its did-you-mean would suggest the exact string the
+        user typed — the read path's own refusal (``sq bug 1 show`` → a clean "unknown item
+        type") is the one accurate message, and it only fires if the command still dispatches.
+        Fail-soft: any error resolving the active spec returns the empty set, so a dropped type
+        simply falls back to being offered, never to a crash in ``--help``/completion.
+
+        Stale *aliases* (``common.stale_static_aliases``) are folded in here rather than kept
+        separate: unlike a dropped type name they are also refused by ``get_command``, and
+        Click's did-you-mean is built from ``list_commands`` — leaving one listed makes the
+        refusal suggest the exact string the user just typed.
         """
         try:
-            from squads._context import get_context
-            from squads._workflow import bundled_spec
-            from squads._workflow._loader import (
-                WORKFLOW_OVERRIDE_FILENAME,
-                load_workflow_spec,
-                validate_against_index_fail_closed,
-            )
-
-            # If the per-invocation spec is already bound (i.e. callback has run), use it.
-            active = get_context().active_spec
-            if active is not None:
-                return active
-
-            # Try to read --dir from the context params (set by Click's arg parsing before
-            # the callback fires — available on the root ctx during list_commands/get_command).
-            dir_override: str | None = None
-            if ctx is not None and hasattr(ctx, "params"):
-                dir_override = ctx.params.get("dir")
-
-            # Resolve the spec for the given dir (same logic as _bind_active_spec).
-            from squads._paths import resolve
-
-            sp = resolve(dir_override, client_cwd=get_context().client_cwd)
-            override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-            if not override_path.is_file():
-                return bundled_spec()
-            merged = load_workflow_spec(squad_dir=sp.squad_dir)
-            validate_against_index_fail_closed(merged, sp.squad_dir)
+            spec = self._resolve_spec_for_ctx(ctx)
         except Exception:  # pylint: disable=broad-except
-            return common.get_active_spec()
-        else:
-            return merged
+            return frozenset()
+        dropped: set[str] = set(common.stale_static_aliases(spec))
+        for name in _STATIC_TYPES:
+            if name not in spec.items:
+                dropped.add(name)
+                dropped.update(_spec.items[name].aliases)
+        return frozenset(dropped)
 
     def _custom_non_roster_types_for_ctx(self, ctx: Any) -> frozenset[str]:
         """Return the set of custom creatable/trackable (non-roster) type names from the
@@ -119,12 +121,21 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         byte-identical to today.  Custom types appear after the built-in set,
         sorted alphabetically for determinism.
         """
-        base: list[str] = super().list_commands(ctx)
+        dropped = self._dropped_static_names_for_ctx(ctx)
+        base: list[str] = [c for c in super().list_commands(ctx) if c not in dropped]
         custom = sorted(self._custom_non_roster_types_for_ctx(ctx))
         # Custom types are never in the built-in set, so no dedup is needed.
         return base + custom
 
     def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
+        # A bundled alias the active spec no longer declares must NOT dispatch — the static
+        # table binds all ten unconditionally at import time, so without this an override that
+        # renames feature's aliases still answers `sq feat 9 show` from the feature tree.
+        # See `common.static_alias_is_stale` for why an alias (unlike a dropped type name)
+        # gets Click's "No such command" rather than a downstream refusal.
+        if common.static_alias_is_stale(ctx, cmd_name):
+            return common.stale_alias_command(ctx, cmd_name)
+
         # Fast path: try the statically-built command table first.
         cmd = super().get_command(ctx, cmd_name)
         if cmd is not None:
@@ -133,8 +144,10 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         # Spec-resolution region: decide whether cmd_name is a known custom type or alias.
         # Errors here (invalid spec, path resolution failures, etc.) are swallowed so that
         # `sq --help` always degrades gracefully.  The only valid outcome of this block is
-        # either (a) `canonical` resolved to a declared custom non-roster type, or (b) return
-        # None to let Click emit "No such command".
+        # either (a) `canonical` resolved to a declared custom non-roster type, or (b) fall
+        # through to Click's "No such command" — except when the override is known to have
+        # failed, where `common.spec_error_command` supplies the accurate refusal instead of
+        # a verdict on this squad's vocabulary read off the bundled spec (see its docstring).
         try:
             from squads._cli._items import build_item_app
 
@@ -155,10 +168,10 @@ class _CustomTypeGroup(typer.core.TyperGroup):
                     canonical = resolved
                 else:
                     # Not a custom type or alias — fall through to Click's "No such command" error.
-                    return None
+                    return common.spec_error_command(cmd_name, ctx)
         except Exception:  # pylint: disable=broad-except
             # Spec resolution failed (e.g. corrupt override, path error) — degrade gracefully.
-            return None
+            return common.spec_error_command(cmd_name, ctx)
 
         # Past this point `canonical` IS a declared custom work type.  Build errors here
         # are genuine failures for a type the user declared (and that --help lists), so they
@@ -185,6 +198,33 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         return self._custom_cmd_cache.get(cmd_name)
 
 
+def _alias_summary(spec: WorkflowSpec) -> str:
+    """``"e/f/t/b/d/r/g, feat/dec/rev"``-shaped summary of every non-roster type's aliases,
+    single-letter ones grouped first — the parenthesized clause in :func:`root_epilog`.
+    Type order matches the resource-group registration loop below (``ItemSpec.order``, type
+    name breaking ties), so the summary's own left-to-right order is stable and spec-derived,
+    not a hand-maintained list. Empty groups are dropped rather than rendered as ``", "``."""
+    types = sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t))
+    shorts = [a for t in types for a in spec.items[t].aliases if len(a) == 1]
+    longs = [a for t in types for a in spec.items[t].aliases if len(a) != 1]
+    groups = [g for g in ("/".join(shorts), "/".join(longs)) if g]
+    return ", ".join(groups)
+
+
+def root_epilog(spec: WorkflowSpec) -> str:
+    """Root ``--help`` epilog text, with the alias-set clause derived from *spec* rather than
+    a fixed literal — see ``_CustomTypeGroup.format_help`` for why this is called again at
+    render time, not just once at ``app = typer.Typer(...)`` construction below."""
+    alias_summary = _alias_summary(spec)
+    aliases_clause = f" ({alias_summary})" if alias_summary else ""
+    return (
+        "Team workflow: `sq workflow`  ·  full docs offline: `sq docs`  ·  "
+        "per-command help: `sq <command> --help`\n\n"
+        f"Type-command aliases{aliases_clause} are hidden from this list "
+        "but fully supported — see the alias table in `sq workflow`."
+    )
+
+
 app = typer.Typer(
     name="sq",
     help=(
@@ -193,12 +233,7 @@ app = typer.Typer(
         "New here? Run `sq workflow` for how the team works, `sq docs` to read the full docs "
         "offline, or `sq <command> --help` for details."
     ),
-    epilog=(
-        "Team workflow: `sq workflow`  ·  full docs offline: `sq docs`  ·  "
-        "per-command help: `sq <command> --help`\n\n"
-        "Type-command aliases (e/f/t/b/d/r/g, feat/dec/rev) are hidden from this list "
-        "but fully supported — see the alias table in `sq workflow`."
-    ),
+    epilog=root_epilog(bundled_spec()),
     no_args_is_help=True,
     add_completion=True,
     cls=_CustomTypeGroup,
@@ -209,44 +244,6 @@ def _version_cb(value: bool):
     if value:
         common.console.print(f"squads {__version__}")
         raise typer.Exit()
-
-
-def _bind_active_spec(dir_override: str | None, client_cwd: Path) -> WorkflowSpec | None:
-    """Resolve the WorkflowSpec for this invocation (does not bind it — the caller does, as
-    part of the single per-invocation ``RequestContext``).
-
-    Resolves and merges the squad-level workflow override (if present) exactly as
-    ``open_service`` does, so parse_type/parse_status and display helpers all see the
-    same spec.  Fails soft to the bundled spec on any resolution error (outside a squad,
-    invalid override) — returns ``None`` only when resolution itself raised, which
-    ``get_active_spec()`` also treats as "use the bundled spec".
-
-    ``client_cwd`` is threaded straight into ``resolve()`` — the same value the sibling
-    ``_CustomTypeGroup._resolve_spec_for_ctx`` path uses (``get_context().client_cwd``) —
-    so both spec-resolution paths agree on their resolution base rather than one of them
-    silently falling back to ``resolve()``'s own ``Path.cwd()`` default.
-    """
-    try:
-        from squads._paths import resolve
-        from squads._workflow import bundled_spec
-        from squads._workflow._loader import (
-            WORKFLOW_OVERRIDE_FILENAME,
-            load_workflow_spec,
-            validate_against_index_fail_closed,
-        )
-
-        sp = resolve(dir_override, client_cwd=client_cwd)
-        override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-        if not override_path.is_file():
-            return bundled_spec()
-
-        merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
-        validate_against_index_fail_closed(merged_spec, sp.squad_dir)
-    except Exception:  # pylint: disable=broad-except
-        # Outside a squad, invalid override, etc. — fall back to bundled spec.
-        return None
-    else:
-        return merged_spec
 
 
 def _resolve_clock_override(at: str | None, prior: RequestContext) -> datetime | None:
@@ -302,15 +299,17 @@ def main_callback(
     prior = get_context()
     session_id, parent_session_id = actor.session_from_env()
     client_cwd = Path.cwd()
+    active_spec, spec_error = common.bind_active_spec(dir, client_cwd)
     bind_context(
         RequestContext(
             clock_override=_resolve_clock_override(at, prior),
             actor_override="system",
             session_id=session_id,
             parent_session_id=parent_session_id,
-            active_spec=_bind_active_spec(dir, client_cwd),
+            active_spec=active_spec,
             active_dir=dir,
             client_cwd=client_cwd,
+            spec_error=spec_error,
         )
     )
     common.require_current_schema(ctx.invoked_subcommand)
@@ -335,7 +334,6 @@ from squads._cli import (  # noqa: E402
 from squads._cli import _import as _import  # noqa: E402
 from squads._cli import _main as _main  # noqa: E402
 from squads._cli import _ui as _ui  # noqa: E402
-from squads._workflow import bundled_spec  # noqa: E402
 
 app.add_typer(_create.create_app, name="create", help="Create a tracked item.")
 app.add_typer(_role.role_app, name="role", help="Manage agent roles.")

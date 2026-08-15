@@ -5,11 +5,12 @@ Custom types declared in ``.overrides/workflow.toml`` are dispatched lazily by
 ``_CustomCreateGroup``, which follows the same pattern as ``_CustomTypeGroup`` in
 ``_cli/__init__.py``.  Startup ordering: ``_CustomCreateGroup``
 resolves the active spec via ``common.get_active_spec()`` at Click dispatch time
-(``get_command`` / ``list_commands``), after ``_bind_active_spec`` has already run in
+(``get_command`` / ``list_commands``), after ``common.bind_active_spec`` has already run in
 the root callback — so the same spec that the resource groups see is also visible here.
 """
 
 import json
+from collections.abc import Callable
 from typing import Any, ClassVar
 
 import typer
@@ -24,10 +25,10 @@ from squads._cli._common import (
     console,
     e,
     get_service,
-    parse_badge_code,
     print_json_clean,
     resolve_body_optional,
     resolve_item_id_any,
+    resolve_slug_or_raise,
 )
 from squads._models._extras import ExtraKey as X
 from squads._models._item import make_ref, split_ref
@@ -36,15 +37,50 @@ from squads._workflow import bundled_spec
 
 def _priority_help(item_type: str) -> str:
     """``--priority`` help text for ``create <item_type>``, derived from the priority
-    collection bound to *item_type* in the resolved active spec (bundled spec for the
-    statically-registered types, since it's read before ``_bind_active_spec`` runs at
-    import time — byte-identical to the previous hardcoded text there)."""
+    collection *item_type* actually binds in the resolved active spec.
+
+    Read directly at command-registration time this is the bundled spec for the
+    statically-registered types (registered at import time, before ``common.bind_active_spec``
+    runs) — byte-identical to the previous hardcoded text there for a non-customized squad.
+    Statically-registered commands additionally re-derive this at ``--help`` render time via
+    :func:`common.spec_aware_command_cls`, so an override's replaced priority collection is
+    reflected there too, not just at construction.
+
+    Resolves strictly (:func:`squads._badges.declared_collection`): a type declaring no
+    ``priority`` field enumerates nothing rather than borrowing the same-named collection —
+    the flag is hidden outright in that case, see :func:`_refresh_priority_help`."""
     spec = common.get_active_spec()
-    coll_code = badges.resolve_collection(item_type, "priority", spec)
-    coll = spec.collections.get(coll_code)
+    # sanctioned field-code literal: `--priority` is the flag *for* this field code
+    coll_code = badges.declared_collection(item_type, "priority", spec)
+    coll = spec.collections.get(coll_code) if coll_code else None
     if coll and coll.badges:
         return f"Priority: {'|'.join(b.code for b in coll.badges)}."
     return "Priority code (as defined by your workflow's priority collection)."
+
+
+def _refresh_priority_help(item_type_str: str) -> Callable[[list[object]], None]:
+    """A ``spec_aware_command_cls`` refresh callback that re-derives ``--priority``'s help
+    for *item_type_str* from the live per-invocation spec at ``--help`` render time, and
+    hides the flag entirely on a type that declares no ``priority`` field.
+
+    Hiding rather than removing keeps the "advertise vs dispatch" split the rest of this
+    module uses: the flag still parses, so the service's own declared-field gate
+    (``ServiceCore._check_priority``) owns the one accurate refusal — but a flag that can
+    only ever error is never offered in ``--help``."""
+
+    def _refresh(params: list[object]) -> None:
+        text = _priority_help(item_type_str)
+        # sanctioned field-code literal: `--priority` is the flag *for* this field code
+        declared = (
+            badges.declared_collection(item_type_str, "priority", common.get_active_spec())
+            is not None
+        )
+        for p in params:
+            if getattr(p, "name", None) == "priority":
+                p.help = text  # type: ignore[attr-defined]
+                p.hidden = not declared  # type: ignore[attr-defined]
+
+    return _refresh
 
 
 def _build_create_cmd(item_type_str: str) -> _click.Command:
@@ -83,7 +119,11 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
         json_out: bool = typer.Option(False, "--json"),
     ):
         svc = get_service()
-        actor.set_actor(author)
+        # --author/--assignee accept only a live slug: a retired role stops being
+        # an active participant, though its past authorship stays readable.
+        validated_author = await resolve_slug_or_raise(author, svc)
+        actor.set_actor(validated_author)
+        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
         resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
         resolved_refs: list[str] | None = None
         if ref:
@@ -96,11 +136,15 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
             title,
             description=desc,
             parent=resolved_parent,
-            author=author,
+            author=validated_author,
             labels=label or None,
             refs=resolved_refs,
-            assignee=assignee,
-            priority=parse_badge_code("priority", priority) if priority else None,
+            assignee=validated_assignee,
+            # No pre-parse here: the collection `priority` binds is per-type, and the
+            # service's `_check_priority` already resolves it from the type's own declared
+            # field. A second CLI-side parse against a literally-named collection is the
+            # third door into a two-door axis, and the one that gets it wrong.
+            priority=priority,
             body=resolve_body_optional(message or None, file),
         )
         if json_out:
@@ -121,7 +165,11 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     # leaf command.  This ensures ``sq create incident TITLE`` dispatches ``TITLE`` as
     # an argument to the command, not as a subcommand of a group.
     _tmp_app = typer.Typer()
-    _tmp_app.command(item_type_str, help=f"Create a {item_type_str}.")(_cmd)
+    _tmp_app.command(
+        item_type_str,
+        help=f"Create a {item_type_str}.",
+        cls=common.spec_aware_command_cls(_refresh_priority_help(item_type_str)),
+    )(_cmd)
     leaf: _click.Command = typer.main.get_command(_tmp_app)  # type: ignore[assignment]
     leaf.name = item_type_str
     return leaf
@@ -140,23 +188,65 @@ class _CustomCreateGroup(typer.core.TyperGroup):
     - ``_CustomTypeGroup`` handles ``sq <type> <num> <verb>`` (resource operations).
     - ``_CustomCreateGroup`` handles only ``sq create <type> TITLE`` (creation entry).
     - Both call ``common.get_active_spec()`` which is bound once per invocation by
-      ``_bind_active_spec`` in the root callback, so they always see the same spec.
+      ``common.bind_active_spec`` in the root callback, so they always see the same spec.
     - The ``_custom_cmd_cache`` is scoped to this class (``ClassVar``), independent of
       the resource-group cache, so the two caches do not interfere.
     """
 
     _custom_cmd_cache: ClassVar[dict[str, _click.Command]] = {}
 
-    def _custom_non_roster_types(self) -> frozenset[str]:
+    def _dropped_static_names(self, ctx: Any) -> frozenset[str]:
+        """Statically-registered command/alias names whose canonical built-in type has been
+        dropped from the resolved active spec (via ``[selected]``, or any other means).
+
+        Resolves via ``common.resolve_spec_for_ctx(ctx)``, not ``common.get_active_spec()``
+        alone — on the shell-completion path the root callback never runs, so a plain
+        ``get_active_spec()`` here would silently see only the bundled spec (the same gap
+        fixed for ``_CustomTypeGroup`` at the root level).
+
+        These names still exist as real Click commands in the app built at import time — that
+        registration is unconditional and only reflects the *bundled* spec — so without this
+        check they would keep being offered by ``--help``/completion: a dropped type must not
+        be advertised. **Advertising only** — ``get_command`` deliberately does NOT consult
+        this set. Hiding a name from ``get_command`` would make Click's own unknown-command
+        handler answer instead of the command itself, and that handler's did-you-mean
+        suggestion still sees the (now merely help-hidden) name and would suggest the exact
+        string the user typed, reading as a bug in ``sq`` rather than a refusal. Leaving the
+        real command reachable lets it dispatch normally into ``svc.create``, whose own
+        membership gate is the one accurate, ``[selected]``-aware refusal — one call site
+        owns the message instead of two disagreeing ones. Fail-soft: any error resolving the
+        active spec returns the empty set (same degrade-gracefully contract as
+        ``_custom_non_roster_types``), so a dropped type simply falls back to being offered,
+        never to a crash in ``--help``/completion.
+        """
+        try:
+            spec = common.resolve_spec_for_ctx(ctx)
+        except Exception:  # pylint: disable=broad-except
+            return frozenset()
+        # Stale aliases are refused by get_command, so they must not stay listed either —
+        # Click's did-you-mean reads this list (see the root group's own note).
+        dropped: set[str] = set(common.stale_static_aliases(spec))
+        for name in _STATIC_CREATE_TYPES:
+            if name not in spec.items:
+                dropped.add(name)
+                dropped.update(
+                    alias
+                    for alias, canonical in _create_spec.alias_to_type.items()
+                    if canonical == name
+                )
+        return frozenset(dropped)
+
+    def _custom_non_roster_types(self, ctx: Any) -> frozenset[str]:
         """Return custom creatable/trackable (non-roster) type names from the resolved spec.
 
         "Custom" here means "not already registered by the static import-time loop"
         (``_STATIC_CREATE_TYPES``) — i.e. anything a project's own workflow override adds
         on top of the bundled spec. Safe to call at any time; returns the empty set on any
-        error.
+        error. Resolves via ``common.resolve_spec_for_ctx`` — see
+        :meth:`_dropped_static_names` for why (this is the completion path too).
         """
         try:
-            spec = common.get_active_spec()
+            spec = common.resolve_spec_for_ctx(ctx)
             return frozenset(t for t in spec.non_roster_types() if t not in _STATIC_CREATE_TYPES)
         except Exception:  # pylint: disable=broad-except
             return frozenset()
@@ -167,44 +257,66 @@ class _CustomCreateGroup(typer.core.TyperGroup):
         For a non-custom squad the custom set is empty, so this is byte-identical
         to the previous implementation.
         """
-        base: list[str] = super().list_commands(ctx)
-        custom = sorted(self._custom_non_roster_types())
+        dropped = self._dropped_static_names(ctx)
+        base: list[str] = [c for c in super().list_commands(ctx) if c not in dropped]
+        custom = sorted(self._custom_non_roster_types(ctx))
         return base + custom
 
-    def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
-        # Fast path: try the statically-built built-in commands first (canonical + hidden aliases).
-        cmd = super().get_command(ctx, cmd_name)
-        if cmd is not None:
-            return cmd
+    def _canonical_for(self, ctx: Any, cmd_name: str) -> str | None:
+        """The declared non-roster type *cmd_name* names, directly or via an alias — or
+        ``None`` when it names none, so Click emits "No such command".
 
-        # Spec-resolution region: decide whether cmd_name is a known custom non-roster type
-        # or alias. Errors here (invalid spec, missing active spec, etc.) are swallowed so
-        # that `sq create --help` always degrades gracefully. The only valid outcome is
-        # either (a) cmd_name confirmed (or resolved via alias) as a declared custom
-        # non-roster type, or (b) return None so Click emits "No such command".
+        Errors here (invalid spec, missing active spec, etc.) are swallowed so that
+        ``sq create --help`` always degrades gracefully.
+        """
         try:
             if cmd_name in _STATIC_CREATE_TYPES:
                 return None
 
-            spec = common.get_active_spec()
+            # resolve_spec_for_ctx (not get_active_spec) so this also sees the override on
+            # the completion path, where the root callback hasn't run.
+            spec = common.resolve_spec_for_ctx(ctx)
 
-            # Resolve alias → canonical for custom types (mirrors _CustomTypeGroup.get_command).
+            # Resolve alias → canonical (mirrors _CustomTypeGroup.get_command). The canonical
+            # type may itself be statically registered — a spec that gives a bundled type a
+            # NEW alias (`feature.aliases = ["ft"]`) declares a name the import-time loop
+            # never saw, and `sq create ft` has to reach the same command `sq ft` already
+            # does; only the *type* being static short-circuits above, not its aliases.
             canonical = cmd_name
             if cmd_name not in spec.non_roster_types():
                 resolved = spec.alias_to_type.get(cmd_name)
-                if (
-                    resolved is not None
-                    and resolved in spec.non_roster_types()
-                    and resolved not in _STATIC_CREATE_TYPES
-                ):
-                    canonical = resolved
-                else:
+                if resolved is None or resolved not in spec.non_roster_types():
                     return None
-            if spec.item_is_roster(canonical):
-                return None
+                canonical = resolved
+            return None if spec.item_is_roster(canonical) else canonical
         except Exception:  # pylint: disable=broad-except
             # Spec resolution failed — degrade gracefully.
             return None
+
+    def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
+        # A bundled alias the active spec no longer declares must not dispatch here either —
+        # `sq create feat TITLE` is the same stale-alias hazard as `sq feat 9 show`, one level
+        # down (see `common.static_alias_is_stale`).
+        if common.static_alias_is_stale(ctx, cmd_name):
+            return common.stale_alias_command(ctx, cmd_name)
+
+        # Fast path: try the statically-built built-in commands first (canonical + hidden
+        # aliases) — deliberately including one whose canonical type has been dropped from
+        # the active spec (see _dropped_static_names' docstring for why hiding it here would
+        # be worse than dispatching it: Click's own unknown-command handler would answer
+        # instead, and its did-you-mean would name the very string the user typed). The
+        # dispatched command runs through to `svc.create`, whose membership gate is the one
+        # refusal that actually names the type as dropped rather than as a typo.
+        cmd = super().get_command(ctx, cmd_name)
+        if cmd is not None:
+            return cmd
+
+        canonical = self._canonical_for(ctx, cmd_name)
+        if canonical is None:
+            # A name this squad may well declare, on a squad whose override did not load —
+            # `sq create widget "x"` must not answer "No such command" from bundled vocabulary
+            # any more than `sq widget 19 show` does. `None` whenever the spec is healthy.
+            return common.spec_error_command(cmd_name, ctx)
 
         # Past this point canonical IS a declared custom work type.  Build errors here are
         # genuine failures for a type the user declared (and that --help lists), so they
@@ -261,7 +373,11 @@ def _make(item_type_str: str):
         json_out: bool = typer.Option(False, "--json"),
     ):
         svc = get_service()
-        actor.set_actor(author)
+        # --author/--assignee accept only a live slug: a retired role stops being
+        # an active participant, though its past authorship stays readable.
+        validated_author = await resolve_slug_or_raise(author, svc)
+        actor.set_actor(validated_author)
+        validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
         resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
         resolved_refs: list[str] | None = None
         if ref:
@@ -274,11 +390,15 @@ def _make(item_type_str: str):
             title,
             description=desc,
             parent=resolved_parent,
-            author=author,
+            author=validated_author,
             labels=label or None,
             refs=resolved_refs,
-            assignee=assignee,
-            priority=parse_badge_code("priority", priority) if priority else None,
+            assignee=validated_assignee,
+            # No pre-parse here: the collection `priority` binds is per-type, and the
+            # service's `_check_priority` already resolves it from the type's own declared
+            # field. A second CLI-side parse against a literally-named collection is the
+            # third door into a two-door axis, and the one that gets it wrong.
+            priority=priority,
             body=resolve_body_optional(message or None, file),
         )
         if json_out:
@@ -296,7 +416,9 @@ def _make(item_type_str: str):
 
 
 for _t in _CREATABLE:
-    create_app.command(_t, help=f"Create a {_t}.")(_make(_t))
+    create_app.command(
+        _t, help=f"Create a {_t}.", cls=common.spec_aware_command_cls(_refresh_priority_help(_t))
+    )(_make(_t))
 
 # Register hidden aliases for the _CREATABLE types so `sq create feat TITLE` dispatches
 # identically to `sq create feature TITLE`.  Aliases come from the bundled spec (the single
@@ -304,7 +426,9 @@ for _t in _CREATABLE:
 # in --help, preserving byte-identical output.
 for _t in _CREATABLE:
     for _alias in _create_spec.items[_t].aliases:
-        create_app.command(_alias, hidden=True)(_make(_t))
+        create_app.command(
+            _alias, hidden=True, cls=common.spec_aware_command_cls(_refresh_priority_help(_t))
+        )(_make(_t))
 
 # Type names with a static `sq create <type>` command already registered above — used by
 # _CustomCreateGroup to draw the line between "already known" and "resolve dynamically".
@@ -335,15 +459,19 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
     if tag:
         extra[X.TAGS] = list(tag)
     svc = get_service()
-    actor.set_actor(author)
+    # --author/--assignee accept only a live slug: a retired role stops being an
+    # active participant, though its past authorship stays readable.
+    validated_author = await resolve_slug_or_raise(author, svc)
+    actor.set_actor(validated_author)
+    validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
     resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
     res = await svc.create(
         "guide",
         title,
         description=desc,
         parent=resolved_parent,
-        author=author,
-        assignee=assignee,
+        author=validated_author,
+        assignee=validated_assignee,
         extra=extra or None,
         body=resolve_body_optional(message or None, file),
     )

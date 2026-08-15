@@ -27,11 +27,12 @@ from squads._cli._common import (
     build_item_json,
     console,
     e,
+    err_console,
     get_active_spec,
     get_service,
     handle_errors,
-    parse_badge_code,
     parse_category,
+    parse_filter_badge_code,
     parse_status,
     parse_type,
     print_item,
@@ -40,15 +41,23 @@ from squads._cli._common import (
     resolve_slug_or_raise,
     status_text,
 )
-from squads._errors import SquadsError
+from squads._errors import PlaybookConfigError, SquadsError
+from squads._index._reflog import REFLOG_OPS
 from squads._models._config import CONFIG_FILENAME
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
+from squads._models._subentity import SubEntity
 from squads._paths import load_config
 from squads._roles._catalog import resolve_roles
 from squads._services._base import ItemFilter
 from squads._services._refs import graph_to_dot, graph_to_mermaid
-from squads._services._results import GraphNode, ReflogEntry, TreeNode
+from squads._services._results import (
+    GraphNode,
+    MineRow,
+    ReflogEntry,
+    TreeNode,
+    UnreadableItems,
+)
 from squads._services._service import Service
 from squads._services._service import adopt as svc_adopt
 from squads._services._service import init as svc_init
@@ -130,14 +139,19 @@ def _build_badge_filters(
     priority: str | None, min_priority: str | None, badge: list[str], min_badge: list[str]
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Merge the dedicated ``--priority``/``--min-priority`` sugar into the generic
-    ``--badge``/``--min-badge CODE=VALUE`` maps shared by ``list``/``tree``."""
-    badges = _parse_badge_pairs(badge)
+    ``--badge``/``--min-badge CODE=VALUE`` maps shared by ``list``/``tree``.
+
+    The sugar validates cross-type (:func:`parse_filter_badge_code`) because the filter
+    itself is cross-type — no single type's bound collection is the authority here."""
+    filters = _parse_badge_pairs(badge)
     if priority:
-        badges["priority"] = parse_badge_code("priority", priority)
+        # sanctioned field-code literal: `--priority` is the flag *for* this field code
+        filters["priority"] = parse_filter_badge_code("priority", priority)
     badge_min = _parse_badge_pairs(min_badge)
     if min_priority:
-        badge_min["priority"] = parse_badge_code("priority", min_priority)
-    return badges, badge_min
+        # sanctioned field-code literal: `--min-priority` is the flag *for* this field code
+        badge_min["priority"] = parse_filter_badge_code("priority", min_priority)
+    return filters, badge_min
 
 
 # TTY detection — injectable for testing (monkeypatch this callable).
@@ -176,17 +190,29 @@ def _parse_name_flags(raw: list[str]) -> dict[str, str]:
     return result
 
 
-def _item_table(items: list[Item], spec: WorkflowSpec) -> Table:
+def _item_table(
+    items: list[Item],
+    spec: WorkflowSpec,
+    *,
+    matched: dict[str, list[SubEntity]] | None = None,
+) -> Table:
     """The shared item table (shared by `list`, `search`, `mine`) — escape all dynamic strings.
 
     The Status cell is coloured by the status's role intent (``status_text``) — join
     status -> role -> colour, per client, never a hardcoded status-name check.
+
+    ``matched`` (keyed by item id) is `mine`'s roll-up of which sub-entities matched the
+    queried slug — when supplied, an extra "Matched" column names them, so a roll-up row
+    is never indistinguishable from a direct item assignment.
     """
     table = Table(box=None, pad_edge=False)
-    for col in ("ID", "Type", "Status", "Priority", "Title", "Parent", "Assignee"):
+    cols = ("ID", "Type", "Status", "Priority", "Title", "Parent", "Assignee")
+    if matched is not None:
+        cols = (*cols, "Matched")
+    for col in cols:
         table.add_column(col)
     for it in items:
-        table.add_row(
+        row = [
             it.id,
             it.type,
             status_text(it.status, spec),
@@ -194,7 +220,11 @@ def _item_table(items: list[Item], spec: WorkflowSpec) -> Table:
             e(it.title),
             it.parent or "",
             e(it.assignee or ""),
-        )
+        ]
+        if matched is not None:
+            subs = matched.get(it.id, [])
+            row.append(e(", ".join(f"{s.local_id} ({s.status})" for s in subs)))
+        table.add_row(*row)
     return table
 
 
@@ -426,7 +456,7 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
 
     Closed items are hidden unless ``--all`` or ``--status`` is given — category-aware: a
     ``work``/``roster`` item hides on a terminal status; a ``records`` item (e.g. a decision)
-    stays visible while final-but-live (``Accepted``, ``Published``) and hides only once
+    stays visible while terminal-but-shown (``Accepted``, ``Published``) and hides only once
     retired (``Superseded``, ``Deprecated``, ``Cancelled``). When hiding empties the view, a
     dim hint reports how many were hidden instead of a bare "no items".
 
@@ -438,7 +468,11 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     """
     svc = get_service()
     spec = get_active_spec()
-    validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+    # --assignee is a filter, not authorship: a retired role's already-assigned items must
+    # stay reachable, so this validates against the full roster, not live-only.
+    validated_assignee = (
+        await resolve_slug_or_raise(assignee, svc, live_only=False) if assignee else None
+    )
     resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
     badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
     items = await svc.list_items(
@@ -534,7 +568,11 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     resolved_root: str | None = None
     if root_id is not None:
         resolved_root = await resolve_item_id_any(root_id, svc)
-    validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
+    # --assignee is a filter, not authorship: a retired role's already-assigned items must
+    # stay reachable, so this validates against the full roster, not live-only.
+    validated_assignee = (
+        await resolve_slug_or_raise(assignee, svc, live_only=False) if assignee else None
+    )
     parsed_category = parse_category(category) if category else None
 
     # Mirror list's closed-item gate exactly:
@@ -618,14 +656,33 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
 @app.command()
 @common.command
 async def repair(renumber: bool = typer.Option(False, "--renumber")):
-    """Rebuild the index from the markdown frontmatter."""
-    svc = get_service()
+    """Rebuild the index from the markdown frontmatter.
+
+    Uses :func:`common.get_service_bypassing_index_cross_check` rather than the plain
+    ``get_service`` every other command uses: repair's entire job is reconciling the index
+    against the frontmatter, so it must remain runnable in every state the live-index
+    cross-check can refuse over — including one it did not cause (an unrelated override plus
+    an independently stale index) and, for that matter, one it did.
+
+    Exit codes: 0 = a clean rebuild, 1 = it rebuilt but had to carry an unreadable file's
+    previous entry forward rather than refresh it — the same "reported degradation is not
+    success" signal `sq check` gives at error level, so a caller gating on ``$?`` cannot
+    mistake a board that still needs a file fixed for one that came back clean.
+    """
+    svc = common.get_service_bypassing_index_cross_check()
     result = await svc.repair(renumber=renumber)
     console.print(f"rebuilt index: {len(result.db.items)} items, counter={result.db.counter}")
     for mid in result.missing_ids:
         console.print(
             f"[yellow]warn[/yellow] [dim]{mid}[/dim]: indexed but no markdown file found (deleted?)"
         )
+    for msg in result.unreadable:
+        console.print(
+            f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
+            "forward as-is; fix the file and repair again"
+        )
+    if result.unreadable:
+        raise typer.Exit(1)
 
 
 @app.command()
@@ -670,28 +727,85 @@ async def renumber(
         console.print(f"  {e(old)} -> {e(new)}")
 
 
+def _report_unreadable(unreadable: UnreadableItems, *, json_out: bool) -> None:
+    """Name each item file a corpus walk had to skip, then exit non-zero — after the results
+    have already been printed.
+
+    The per-file degradation posture ``check``/``repair``/``board list``/``memory list``
+    established, applied to the corpus-walking read commands: the answer is emitted first and
+    stays complete for every file that *could* be read, and the skipped ones are reported
+    out-of-band. Out-of-band matters for ``--json``: the payload stays a bare array (no added
+    key for a consumer to learn), the messages go to stderr, and the non-zero exit is what
+    tells a script the answer was partial. Nothing here is ever the *only* output — a command
+    that printed nothing but an error would be the failure mode this replaces.
+    """
+    if not unreadable:
+        return
+    target = err_console if json_out else console
+    for msg in unreadable:
+        target.print(f"[red]error[/red]: {e(msg)}")
+    raise typer.Exit(1)
+
+
+def _empty_result_note(empty: str, unreadable: UnreadableItems) -> str:
+    """The human-mode line for an empty result — *empty* when the corpus was fully read, an
+    explicitly partial one when it was not.
+
+    "no matches" is a claim about the corpus, and on a degraded read the command has not seen
+    the whole corpus, so it is not in a position to make it. The named files follow immediately
+    below either way, but the headline is what a reader acts on, and a confident negative is
+    the one shape that stops them looking further.
+    """
+    if not unreadable:
+        return empty
+    files = "item file" if len(unreadable) == 1 else "item files"
+    return f"{empty} in what could be read — {len(unreadable)} {files} skipped, listed below"
+
+
 @app.command()
 @common.command
 async def inbox(
     role: str = typer.Argument(..., help="Role slug (e.g. qa)."),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """Open items whose discussion mentions @role."""
+    """Open items whose discussion mentions @role.
+
+    Exit codes: 0 = a clean listing, 1 = it listed everything it could read but one or more
+    item files could not be read (named on stderr, whether or not ``--json`` is given — the
+    JSON array shape stays a bare array, so a degraded read is signalled out-of-band rather
+    than by an added key). The hits that *were* found are always printed first: one unreadable
+    file must never cost the whole answer.
+    """
     svc = get_service()
-    slug = await resolve_slug_or_raise(role, svc)
-    hits = await svc.inbox(slug)
+    # A read/filter, not authoring a new participant — a retired role's past @mentions
+    # must stay reachable, so this validates against the full roster, not live-only.
+    slug = await resolve_slug_or_raise(role, svc, live_only=False)
+    hits, unreadable = await svc.inbox(slug)
     if json_out:
         print_json_clean(
-            json.dumps([{"id": it.id, "title": it.title, "lines": lines} for it, lines in hits])
+            json.dumps(
+                [
+                    {
+                        "id": hit.item.id,
+                        "title": hit.item.title,
+                        "lines": [ln.text for ln in hit.lines],
+                        "regions": [ln.region for ln in hit.lines],
+                    }
+                    for hit in hits
+                ]
+            )
         )
+        _report_unreadable(unreadable, json_out=True)
         return
     if not hits:
-        console.print(f"[dim]nothing for @{slug}[/dim]")
-        return
-    for it, lines in hits:
+        console.print(f"[dim]{e(_empty_result_note(f'nothing for @{slug}', unreadable))}[/dim]")
+    for hit in hits:
+        it = hit.item
         console.print(f"[bold]{it.id}[/bold] {e(it.title)} [dim]({it.status})[/dim]")
-        for ln in lines:
-            console.print(f"    {e(ln)}")
+        for ln in hit.lines:
+            suffix = f" [dim]({e(ln.region)})[/dim]" if ln.region else ""
+            console.print(f"    {e(ln.text)}{suffix}")
+    _report_unreadable(unreadable, json_out=False)
 
 
 @app.command()
@@ -724,9 +838,15 @@ async def search(
             ]
           }
         ]
+
+    Exit codes: 0 = a clean search, 1 = it searched everything it could read but one or more
+    item files could not be read (named on stderr, whether or not ``--json`` is given — the
+    JSON array shape stays a bare array, so a degraded read is signalled out-of-band rather
+    than by an added key). The matches that *were* found are always printed first, and an item
+    whose file is unreadable still contributes a title or description match.
     """
     svc = get_service()
-    results = await svc.search(
+    results, unreadable = await svc.search(
         text,
         item_type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
@@ -749,15 +869,17 @@ async def search(
                 ]
             )
         )
+        _report_unreadable(unreadable, json_out=True)
         return
     if not results:
-        console.print(f"[dim]no matches for {e(text)}[/dim]")
-        return
+        note = _empty_result_note(f"no matches for {text}", unreadable)
+        console.print(f"[dim]{e(note)}[/dim]")
     for r in results:
         status_part = f"[dim]({e(r.item.status)})[/dim]"
         console.print(f"[bold]{e(r.item.id)}[/bold] {e(r.item.title)} {status_part}")
         for h in r.hits[:3]:
             console.print(f"    [dim]{e(h.region)}:[/dim] {e(h.snippet)}")
+    _report_unreadable(unreadable, json_out=False)
 
 
 @app.command()
@@ -924,14 +1046,23 @@ async def graph(
 @app.command()
 @common.command
 async def workload(json_out: bool = typer.Option(False, "--json")):
-    """Per-assignee open/closed/total work-item counts (busiest first)."""
+    """Per-assignee open/closed/total work-item counts (busiest first), plus each assignee's
+    separate sub-entity assignment counts."""
     svc = get_service()
     rows = await svc.workload()
     if json_out:
         print_json_clean(
             json.dumps(
                 [
-                    {"assignee": r.assignee, "open": r.open, "closed": r.closed, "total": r.total}
+                    {
+                        "assignee": r.assignee,
+                        "open": r.open,
+                        "closed": r.closed,
+                        "total": r.total,
+                        "subentity_open": r.subentity_open,
+                        "subentity_closed": r.subentity_closed,
+                        "subentity_total": r.subentity_total,
+                    }
                     for r in rows
                 ]
             )
@@ -941,34 +1072,56 @@ async def workload(json_out: bool = typer.Option(False, "--json")):
         console.print("[dim]no items[/dim]")
         return
     table = Table(box=None, pad_edge=False)
-    for col in ("Assignee", "Open", "Closed", "Total"):
+    for col in ("Assignee", "Open", "Closed", "Total", "Sub Open", "Sub Closed", "Sub Total"):
         table.add_column(col)
     for r in rows:
-        table.add_row(e(r.assignee or "(unassigned)"), str(r.open), str(r.closed), str(r.total))
+        table.add_row(
+            e(r.assignee or "(unassigned)"),
+            str(r.open),
+            str(r.closed),
+            str(r.total),
+            str(r.subentity_open),
+            str(r.subentity_closed),
+            str(r.subentity_total),
+        )
     console.print(table)
 
 
 @app.command()
 @common.command
 async def mine(
-    role: str = typer.Argument(..., help="Role slug (e.g. python-dev or op-pierre)."),
+    role: str = typer.Argument(..., help="Role slug (e.g. python-dev or op-alice)."),
     all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    """Items assigned to a role slug."""
+    """Items assigned to a role slug, directly or via one of their sub-entities."""
     svc = get_service()
-    slug = await resolve_slug_or_raise(role, svc)
-    items = await svc.list_items(assignee=slug)
+    # A read/filter: a retired role's still-open assigned items must stay reachable for
+    # review, so this validates against the full roster, not live-only.
+    slug = await resolve_slug_or_raise(role, svc, live_only=False)
+    rows = await svc.mine(slug, include_closed=all_)
     spec = get_active_spec()
-    if not all_:
-        items = [i for i in items if spec.is_open(i.status)]
     if json_out:
-        print_json_clean(json.dumps([i.model_dump(mode="json") for i in items]))
+        print_json_clean(json.dumps([_mine_row_json(r, spec) for r in rows]))
         return
-    if not items:
+    if not rows:
         console.print(f"[dim]nothing assigned to {e(slug)}[/dim]")
         return
-    console.print(_item_table(items, spec))
+    items = [r.item for r in rows]
+    matched = {r.item.id: r.matched_subentities for r in rows}
+    console.print(_item_table(items, spec, matched=matched))
+
+
+def _mine_row_json(row: MineRow, spec: WorkflowSpec) -> dict[str, Any]:
+    """`mine --json`'s per-item payload: the item, plus the additive ``matched_subentities``
+    key naming every sub-entity of it assigned to the queried slug (see :class:`MineRow`)."""
+    data = row.item.model_dump(mode="json")
+    kind = spec.item_subentity_kind(row.item.type)
+    data["matched_subentities"] = [
+        {"local_id": s.local_id, "kind": kind, "title": s.title, "status": s.status}
+        for s in row.matched_subentities
+    ]
+    return data
 
 
 @app.command()
@@ -1025,8 +1178,7 @@ async def reflog(
     op: str | None = typer.Option(
         None,
         "--op",
-        help="Filter by op name (create/status/update/body/comment/subentity/ref/link"
-        "/remove/repair/migrate).",
+        help=f"Filter by op name ({'/'.join(REFLOG_OPS)}).",
     ),
     since: str | None = typer.Option(
         None,
@@ -1074,8 +1226,6 @@ async def reflog(
 
             since_ts = clock.iso(parse_iso(since))
         except ValueError:
-            from squads._cli._common import err_console
-
             err_console.print(
                 f"[red]error:[/red] invalid --since timestamp {since!r} "
                 "(use ISO 8601, e.g. 2026-01-15 or 2026-01-15T09:30:00Z)"
@@ -1319,45 +1469,94 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     squad-global issues first, then by item, error before warn, then message — so it is
     diffable/stable across runs; see :func:`_check_issue_sort_key`.
 
-    When the workflow override spec is invalid (pure-spec error or index cross-check
-    failure), ``sq check`` degrades gracefully.  It captures the
-    workflow error as a single ``CheckIssue`` ("workflow config invalid — run `sq
-    workflow lint`") and continues running all other checks (marker scan, dangling
-    links, etc.) using the bundled default spec so they are not suppressed.
+    When the workflow spec fails to load (a pure-spec error, or the live-index cross-check
+    refusing) ``sq check`` degrades gracefully.  It captures the workflow error as a single
+    ``CheckIssue`` ("workflow config invalid — run `sq workflow lint`") and continues running
+    all other checks (marker scan, dangling links, etc.) using the bundled default spec so
+    they are not suppressed.
+
+    This is deliberately narrower than "``sq workflow lint`` reported an error": the stamp
+    obligation (a shadowing override with no ``squads:override-base`` provenance comment) is
+    an error-level lint finding, but absent provenance never changes whether the merged spec
+    loads — it is reported, not a load refusal (see ``workflow_stamp_finding``). That finding
+    already reaches this command's issue list on its own, via ``svc.check()``'s override-issue
+    walk, so gating "invalid" on ``open_service`` actually raising — rather than on any
+    error-level lint finding existing — is what keeps the two from disagreeing: a config that
+    loads and runs fine must never also be told it is invalid.
+
+    A playbook (bundled + any ``.overrides/playbook.toml``) load/validation failure is a
+    **separate** ``CheckIssue`` ("playbook config invalid: <detail>"), caught via
+    :class:`~squads._errors.PlaybookConfigError` — ``open_service`` raises that subclass
+    specifically so this command never mislabels a broken playbook override as a broken
+    workflow one and points at ``sq workflow lint``, which does not read
+    ``.overrides/playbook.toml`` at all and would report the workflow spec clean while the
+    real problem sits unreported. There is today no dedicated playbook lint surface to name
+    instead, so the message states the loader's own violation and the file, not a command.
     """
     from squads._context import get_context
     from squads._paths import resolve
     from squads._services._results import CheckIssue
     from squads._workflow import bundled_spec
-    from squads._workflow._loader import lint_workflow_spec
 
-    # --- Step 1: probe the workflow spec without going through the normal open_service
-    # hard-stop.  This lets sq check degrade gracefully when the spec is invalid (AC #4).
     ctx = get_context()
     sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
     workflow_issues: list[CheckIssue] = []
-    lint_findings = lint_workflow_spec(sp.squad_dir)
-    if any(f[0] == "error" for f in lint_findings):
+
+    # Open the service the normal way (``open_service``, which merges any override and runs
+    # the live-index cross-check). This IS the ground truth for "does the workflow config
+    # actually load" — unlike scanning `sq workflow lint`'s findings for any error level, it
+    # cannot be tripped by a finding (e.g. the stamp obligation) that is deliberately reported
+    # rather than load-blocking. Only a genuine load failure falls back to the bundled spec so
+    # the remaining checks (marker scan, dangling links, etc.) still run.
+    #
+    # PlaybookConfigError is caught FIRST and separately, ahead of the general SquadsError
+    # catch below — it is itself a SquadsError subclass, so ordering is load-bearing here: a
+    # broken playbook override must never fall into the workflow branch and inherit a message
+    # and a lint pointer that do not apply to it (see this command's docstring).
+    try:
+        svc = get_service()
+    except PlaybookConfigError as exc:
+        workflow_issues.append(CheckIssue("error", "playbook", f"playbook config invalid: {exc}"))
+        from squads._services._service import Service
+
+        # The playbook is what failed here — the workflow spec loaded fine (open_service only
+        # reaches resolve_playbook after the spec resolves), so falling back to the bundled
+        # spec would throw that away for nothing: any item of a project-declared type then
+        # looks undeclared to svc.check() and drowns out the real (playbook) finding above
+        # with a false, unrelated corpus/type error. Re-resolve the merged workflow spec
+        # directly (bypassing the playbook) so every other check still runs against the
+        # SAME spec every other command loads; only a genuinely broken override (unrelated
+        # to the playbook) falls all the way back to bundled — same last-resort
+        # `get_service_bypassing_index_cross_check` uses.
+        from squads._workflow._loader import load_workflow_spec
+
+        try:
+            fallback_spec = load_workflow_spec(squad_dir=sp.squad_dir)
+        except SquadsError:
+            fallback_spec = bundled_spec()
+        svc = Service(sp, spec=fallback_spec)
+    except SquadsError:
         workflow_issues.append(
             CheckIssue("error", "workflow", "workflow config invalid — run `sq workflow lint`")
         )
-
-    # --- Step 2: try to open the service normally (uses open_service which passes the
-    # override spec to Service explicitly).  If the spec is invalid *and* the index
-    # cross-check fails, open_service raises.  In that case fall back to the
-    # bundled spec so the remaining checks can still run.
-    try:
-        svc = get_service()
-    except SquadsError:
-        # The workflow spec was already captured above — build the service with the
-        # bundled spec directly so the other checks (markers, dangling links, etc.) still run.
         from squads._services._service import Service
 
         svc = Service(sp, spec=bundled_spec())
 
-    issues: list[CheckIssue] = sorted(
-        list(workflow_issues) + list(await svc.check()), key=_check_issue_sort_key
-    )
+    # The corpus scan runs against whichever spec survived above, and that spec may be unable to
+    # load the index at all: both fallbacks can land on a spec that does not declare a type the
+    # board still carries (both overrides broken, or a workflow override that drops a type with
+    # live items — the latter reachable with no playbook override in play). Letting that propagate
+    # discards every config finding collected above and prints one unrelated corpus error in their
+    # place, which is the failure mode this command exists to avoid: a reporter that stops at the
+    # first problem fails exactly when it is needed most. So the scan's own failure becomes its
+    # own finding and the collected ones still print — report and stop, never report nothing.
+    collected: list[CheckIssue] = list(workflow_issues)
+    try:
+        collected += await svc.check()
+    except SquadsError as exc:
+        collected.append(CheckIssue("error", "corpus", f"could not scan the corpus: {exc}"))
+    issues: list[CheckIssue] = sorted(collected, key=_check_issue_sort_key)
 
     if json_out:
         print_json_clean(

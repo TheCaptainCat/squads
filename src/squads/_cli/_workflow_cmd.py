@@ -3,6 +3,11 @@
 Sub-commands:
 - ``sq workflow`` / ``sq workflow show``  — print the team cheatsheet.
 - ``sq workflow lint``                   — verbose collect-all-errors spec validation.
+- one catalog command per declared ``WorkflowSpec`` vocabulary map (``types``,
+  ``subentity-kinds``, ``collections``, ``statuses``, ``roles``), each a human Rich table by
+  default and a bare JSON array under ``--json``: one row per declared entry in a documented
+  order, every key present on every row, and cross-references carried **by name** so a client
+  joins catalogs instead of receiving denormalized copies.
 
 ``lint`` is the author-facing diagnostic: it runs the same checks that ``open_service`` runs
 fail-closed (pure-spec validation + live-index cross-check), but prints EVERY error and
@@ -24,11 +29,14 @@ import typer
 from rich.markdown import Markdown
 from rich.table import Table
 
+import squads._cli._common as common
 from squads._cli._common import console, e, handle_errors, status_text
 from squads._errors import SquadsError
 from squads._models._vocab import labels_for
+from squads._workflow._models import FALLBACK_ROLE_NAME
 
 if TYPE_CHECKING:
+    from squads._interactions._models import PlaybookSpec
     from squads._workflow._models import WorkflowSpec
 
 workflow_app = typer.Typer(
@@ -38,8 +46,9 @@ workflow_app = typer.Typer(
         "Workflow cheatsheet and spec validation.\n\n"
         "Run `sq workflow` (or `sq workflow show`) for the team cheatsheet. "
         "Run `sq workflow lint` to validate your workflow override spec. "
-        "Run `sq workflow types` / `collections` / `statuses` / `roles` for the "
-        "machine-readable type / badge-collection / status / role catalogs."
+        "Run `sq workflow types` / `subentity-kinds` / `collections` / `statuses` / `roles` "
+        "for the machine-readable type / sub-entity-kind / badge-collection / status / role "
+        "catalogs."
     ),
 )
 
@@ -51,32 +60,55 @@ _RAW_HELP = "Plain markdown output (opt out of Rich markdown render)."
 
 
 @workflow_app.callback()
-def workflow_default(
+@common.command
+async def workflow_default(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help=_RAW_HELP),
 ) -> None:
     """Print the team workflow cheatsheet when no sub-command is given."""
     if ctx.invoked_subcommand is None:
-        _print_cheatsheet(raw=raw)
+        await _print_cheatsheet(raw=raw)
 
 
 @workflow_app.command("show")
-def workflow_show(raw: bool = typer.Option(False, "--raw", help=_RAW_HELP)) -> None:
+@common.command
+async def workflow_show(raw: bool = typer.Option(False, "--raw", help=_RAW_HELP)) -> None:
     """Print the team workflow cheatsheet (who writes what, how items link)."""
-    _print_cheatsheet(raw=raw)
+    await _print_cheatsheet(raw=raw)
 
 
-def _print_cheatsheet(*, raw: bool) -> None:
+async def _print_cheatsheet(*, raw: bool) -> None:
     """Render the cheatsheet — Rich markdown by default, clean markdown text with ``--raw``.
 
-    ``--raw`` prints the ``workflow.md.j2`` render verbatim (markdown tables + fenced
-    ```mermaid``` blocks, no box-drawing/ANSI), mirroring the ``sq show --raw`` / ``sq docs``
-    precedent: opt out of ``rich.Markdown`` rendering, print the source text as-is.
+    ``--raw`` prints the ``workflow.md.j2`` render verbatim (markdown tables, no
+    box-drawing/ANSI), mirroring the ``sq show --raw`` / ``sq docs`` precedent: opt out of
+    ``rich.Markdown`` rendering, print the source text as-is.
     """
-    from squads._cli._common import get_active_spec
     from squads._rendering._engine import render
 
-    content = render("workflow.md.j2", spec=get_active_spec())
+    # The cheatsheet's authoring bullets (authoring_owner) are roster-aware when a live
+    # roster is available, so an agent reading `sq workflow` sees the same "who actually
+    # authors what" answer as CLAUDE.md/the squads skill — never a role this squad doesn't
+    # have. `sq workflow` is also a valid reference command *outside* any squad (before
+    # `sq init`, or from an unrelated directory), where there is no roster to read; that
+    # case degrades to the historical unfiltered-by-catalog-membership-only behaviour rather
+    # than failing the whole command.
+    roles: list[dict[str, str]] | None = None
+    playbook: PlaybookSpec | None = None
+    try:
+        svc = common.get_service()
+        roster = await svc.roster()
+    except SquadsError:
+        roles = None
+    else:
+        roles = [{"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster]
+        # Same reason as the roster: resolve the create-lane through the ACTIVE (merged)
+        # playbook so an override-declared authoring role is named here too.
+        playbook = svc.playbook
+
+    content = render(
+        "workflow.md.j2", spec=common.get_active_spec(), roles=roles, playbook=playbook
+    )
     if raw:
         console.print(content, markup=False, highlight=False, soft_wrap=True)
     else:
@@ -87,26 +119,33 @@ def _print_cheatsheet(*, raw: bool) -> None:
 
 #: Frozen field set for the ``sq workflow types --json`` catalog. Kept as a module-level
 #: tuple so a test can assert the CLI never drifts from the declared contract.
-TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str] = (
+TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str] = (
     "type",
     "order",
     "prefix",
     "reserved",
     "category",
+    "subentity_kind",
+    "lifecycle",
     "fields",
     "labels",
 )
 
-#: Frozen field set for each entry of a type-catalog row's ``fields`` array.
-TYPE_FIELD_ENTRY_FIELDS: tuple[str, str, str] = ("code", "label", "collection")
+#: Frozen field set for each entry of a ``fields`` array — the SAME entry shape on the type
+#: catalog and the sub-entity-kind catalog, deliberately one tuple rather than two parallel
+#: ones: the sub-entity field mechanism is the item one unforked, and the published shape is
+#: part of that.
+FIELD_ENTRY_FIELDS: tuple[str, str, str] = ("code", "label", "collection")
 
 
-def _type_fields(t: str, spec: WorkflowSpec) -> list[dict[str, object]]:
-    """The field->collection bindings declared for type *t* — a client resolves field
-    code -> collection code here, then collection code -> vocabulary via ``sq workflow
-    collections --json``."""
+def _field_entries(type_or_kind: str, spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The field->collection bindings declared for an item type OR a sub-entity kind — a
+    client resolves field code -> collection code here, then collection code -> vocabulary via
+    ``sq workflow collections --json``. One builder for both catalogs (see
+    :data:`FIELD_ENTRY_FIELDS`)."""
     return [
-        {"code": f.code, "label": f.label, "collection": f.collection} for f in spec.fields_for(t)
+        {"code": f.code, "label": f.label, "collection": f.collection}
+        for f in spec.fields_for(type_or_kind)
     ]
 
 
@@ -119,11 +158,17 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     omitted, so the key set stays stable across every row. ``category`` is the type's
     declared ``roster``/``work``/``records`` axis (the same taxonomy ``reserved``
     already summarizes as a boolean) — a client reads it here instead of re-deriving the
-    split from ``reserved`` or a hardcoded type list. ``fields`` is the type's declared
-    field->collection bindings — ``[]`` for a type with no badge fields. ``labels`` is the
-    type's four resolved display-label forms (``singular``/``plural``/``singular_lower``/
-    ``plural_lower``), pin-else-derive via ``labels_for`` — a client reads a pretty group
-    header here instead of title-casing the raw type string itself.
+    split from ``reserved`` or a hardcoded type list. ``subentity_kind`` names the declared
+    kind this type hosts (``null`` for a type that hosts none) and is the join key into
+    ``sq workflow subentity-kinds --json``: a sub-entity in ``sq show --json`` carries no kind
+    of its own, so type -> kind is the only link a client has to the kind's declared field
+    labels. ``lifecycle`` names the machine this type binds — a declared choice, derivable
+    from nothing else on the row. Both are references *by name*, never inlined copies.
+    ``fields`` is the type's declared field->collection bindings — ``[]`` for a type with no
+    badge fields. ``labels`` is the type's four resolved display-label forms
+    (``singular``/``plural``/``singular_lower``/``plural_lower``), pin-else-derive via
+    ``labels_for`` — a client reads a pretty group header here instead of title-casing the
+    raw type string itself.
     """
     types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
     return [
@@ -133,7 +178,9 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "prefix": spec.items[t].prefix,
             "reserved": spec.items[t].category == "roster",
             "category": spec.items[t].category,
-            "fields": _type_fields(t, spec),
+            "subentity_kind": spec.items[t].subentity_kind,
+            "lifecycle": spec.items[t].lifecycle,
+            "fields": _field_entries(t, spec),
             "labels": labels_for(t, spec),
         }
         for t in types
@@ -149,10 +196,13 @@ def workflow_types(
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
     declared type (work AND reserved), in ascending resolved ``order`` (type-name
-    string breaks ties): ``{type, order, prefix, reserved, category, fields, labels}``.
+    string breaks ties): ``{type, order, prefix, reserved, category, subentity_kind,
+    lifecycle, fields, labels}``.
     ``order`` is ``null`` when the type has no explicit order (``+inf``); ``category`` is
     one of ``roster``/``work``/``records`` (``reserved`` is exactly
-    ``category == "roster"``); ``fields`` is the type's declared field->collection
+    ``category == "roster"``); ``subentity_kind`` is the declared sub-entity kind this type
+    hosts, or ``null`` — join it to ``sq workflow subentity-kinds --json``; ``lifecycle`` is
+    the machine this type binds; ``fields`` is the type's declared field->collection
     bindings (``[{code, label, collection}]``, ``[]`` if none); ``labels`` is the type's
     four resolved display-label forms (``{singular, plural, singular_lower,
     plural_lower}``, pin-else-derive) — all present, never omitted, so the key set is
@@ -177,6 +227,111 @@ def workflow_types(
             e(str(row["prefix"])),
             "yes" if row["reserved"] else "",
             e(str(row["category"])),
+        )
+    console.print(table)
+
+
+# ─── subentity-kinds ────────────────────────────────────────────────────────────
+
+#: Frozen field set for the ``sq workflow subentity-kinds --json`` catalog.
+#:
+#: ``placeholder`` is deliberately absent: scaffold prose is content the engine writes into a
+#: file, not vocabulary a client resolves.
+SUBENTITY_KIND_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str] = (
+    "subentity_kind",
+    "lifecycle",
+    "plural",
+    "local_prefix",
+    "container_heading",
+    "completion",
+    "maps_parent_story",
+    "fields",
+)
+
+
+def _subentity_kind_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The frozen sub-entity-kind rows, ascending kind name.
+
+    ``subentity_kind`` is the identity key, named as the spec names it, so the type row's
+    reference uses the identical key name (``type.subentity_kind`` joins
+    ``subentity_kind.subentity_kind``). Not ``kind``: ``kind`` already means ref-kind
+    everywhere a client sees ``refs`` (``"ID:kind"``).
+
+    Each remaining key is a declaration a client would otherwise have to guess:
+
+    - ``lifecycle`` — the machine this kind binds, by name.
+    - ``plural`` — the CLI list verb AND the persisted container-marker name; a client that
+      invokes the verb or reads the marker must read this rather than pluralize the kind name.
+    - ``local_prefix`` — the local-id prefix (``US``/``ST``/``F``), for rendering or parsing
+      a local id.
+    - ``container_heading`` — the resolved ``## <heading>`` above the kind's container block.
+      Published because it is an engine derivation with a special case ("User Stories", which
+      ``"stories".title()`` does not produce): a client that title-cases ``plural`` itself
+      renders a heading that disagrees with the markdown sq writes into the file.
+    - ``completion`` — the done-target status inside this kind's own lifecycle, so a "mark
+      done" action targets a declared status instead of a hardcoded ``Done``/``Fixed``.
+    - ``maps_parent_story`` — completes the roll-up column derivation (fixed base + one column
+      per declared field + a story column iff this flag). A client handed ``fields`` but not
+      the flag can build every column but the last, and would hardcode that one.
+    - ``fields`` — the same ``{code, label, collection}`` entry shape the type row carries
+      (:data:`FIELD_ENTRY_FIELDS`), so a client renders a declared label rather than a
+      title-cased code.
+    """
+    return [
+        {
+            "subentity_kind": kind,
+            "lifecycle": ks.lifecycle,
+            "plural": ks.plural,
+            "local_prefix": ks.local_prefix,
+            "container_heading": spec.subentity_container_heading(kind),
+            "completion": ks.completion,
+            "maps_parent_story": ks.maps_parent_story,
+            "fields": _field_entries(kind, spec),
+        }
+        for kind, ks in sorted(spec.subentity_kinds.items())
+    ]
+
+
+@workflow_app.command("subentity-kinds")
+@handle_errors
+def workflow_subentity_kinds(
+    json_out: bool = typer.Option(
+        False, "--json", help="Emit the machine sub-entity-kind catalog."
+    ),
+) -> None:
+    """List every declared sub-entity kind in the active workflow spec.
+
+    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per declared
+    kind, ascending kind name: ``{subentity_kind, lifecycle, plural, local_prefix,
+    container_heading, completion, maps_parent_story, fields}``. ``subentity_kind`` is the
+    identity key the type catalog's own ``subentity_kind`` field points at — join the two to
+    go from an item's ``type`` to the kind its sub-entities belong to, then to that kind's
+    declared field labels. ``fields`` is ``[{code, label, collection}]`` (``[]`` if none), the
+    same entry shape ``sq workflow types --json`` uses; resolve a code to its glyph/label
+    through ``sq workflow collections --json``. All keys present on every row, never omitted.
+    """
+    from squads._cli._common import get_active_spec, print_json_clean
+
+    spec = get_active_spec()
+    rows = _subentity_kind_catalog(spec)
+
+    if json_out:
+        print_json_clean(json.dumps(rows))
+        return
+
+    table = Table(box=None, pad_edge=False)
+    for col in ("Kind", "Lifecycle", "Plural", "Prefix", "Heading", "Completion", "Fields"):
+        table.add_column(col)
+    for row in rows:
+        row_fields = cast("list[dict[str, str]]", row["fields"])
+        table.add_row(
+            e(str(row["subentity_kind"])),
+            e(str(row["lifecycle"])),
+            e(str(row["plural"])),
+            e(str(row["local_prefix"])),
+            e(str(row["container_heading"])),
+            e(str(row["completion"])),
+            e(", ".join(f["code"] for f in row_fields)),
         )
     console.print(table)
 
@@ -263,11 +418,20 @@ def _status_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     on the literal status name (e.g. hardcoding ``status == "InProgress"`` to detect "work in
     flight"). ``role`` is the sole status axis — join ``sq workflow roles --json`` to resolve
     it to ``{settled, hidden, color}``; ``terminal``/``is_open`` are not exposed here, they are
-    ``role.settled``/``not role.settled`` on that catalog."""
+    ``role.settled``/``not role.settled`` on that catalog.
+
+    ``role`` is the *resolved* role name (``StatusSpec.role`` or, when a status declares none,
+    the engine's own ``FALLBACK_ROLE_NAME`` fallback — the same resolution
+    :meth:`WorkflowSpec.role_for` performs) — never the bare, possibly-``None`` declared field.
+    A client that receives ``role: null`` here would have no way to distinguish "this status
+    genuinely has no behaviour" from "the catalog fetch hasn't loaded yet"; every declared
+    status has *some* resolved role, so ``null`` is reserved for the latter. Byte-identical for
+    the bundled spec (every bundled status declares its own role already); only a role-less
+    custom status sees a different value here than the bare field would have given."""
     return [
         {
             "status": name,
-            "role": st.role,
+            "role": st.role or FALLBACK_ROLE_NAME,
             "badge": st.badge,
         }
         for name, st in sorted(spec.statuses.items())
@@ -313,19 +477,26 @@ def workflow_statuses(
 # ─── roles ───────────────────────────────────────────────────────────────────────
 
 #: Frozen field set for the ``sq workflow roles --json`` catalog.
-ROLE_CATALOG_FIELDS: tuple[str, str, str, str] = ("role", "settled", "hidden", "color")
+ROLE_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
+    "role",
+    "settled",
+    "hidden",
+    "color",
+    "live",
+)
 
 
 def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     """The frozen role-catalog rows, ascending role name — a client joins a status's ``role``
     (from ``sq workflow statuses --json``) to this catalog to resolve ``settled``/``hidden``/
-    ``color`` instead of hardcoding any role name or deriving it from category."""
+    ``color``/``live`` instead of hardcoding any role name or deriving it from category."""
     return [
         {
             "role": name,
             "settled": r.settled,
             "hidden": r.hidden,
             "color": r.color,
+            "live": r.live,
         }
         for name, r in sorted(spec.roles.items())
     ]
@@ -339,12 +510,14 @@ def workflow_roles(
     """List every declared role in the active workflow spec.
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared role, ascending role name: ``{role, settled, hidden, color}``. ``settled`` is
-    the old ``terminal`` (a resting/end state); ``hidden`` is default-visibility; ``color``
-    is a semantic colour intent from the closed palette (``positive``/``danger``/``warning``/
-    ``muted``/``neutral``/``info``) — each client maps it to a concrete colour, with a
-    neutral fallback for an intent it doesn't recognise. A status references one role by name
-    (``sq workflow statuses --json``'s ``role`` field); join the two to resolve behaviour.
+    declared role, ascending role name: ``{role, settled, hidden, color, live}``.
+    ``settled`` is the old ``terminal`` (a resting/end state); ``hidden`` is default-visibility;
+    ``color`` is a semantic colour intent from the closed palette (``positive``/``danger``/
+    ``warning``/``muted``/``neutral``/``info``) — each client maps it to a concrete colour,
+    with a neutral fallback for an intent it doesn't recognise. ``live`` (defaults false) is
+    the materialisation axis: an item whose status resolves to a live role is on offer to
+    be spawned/loaded/cited/assigned. A status references one role by name (``sq workflow
+    statuses --json``'s ``role`` field); join the two to resolve behaviour.
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -356,7 +529,7 @@ def workflow_roles(
         return
 
     table = Table(box=None, pad_edge=False)
-    for col in ("Role", "Settled", "Hidden", "Color"):
+    for col in ("Role", "Settled", "Hidden", "Color", "Live"):
         table.add_column(col)
     for row in rows:
         table.add_row(
@@ -364,6 +537,7 @@ def workflow_roles(
             "yes" if row["settled"] else "",
             "yes" if row["hidden"] else "",
             e(str(row["color"])),
+            "yes" if row["live"] else "",
         )
     console.print(table)
 

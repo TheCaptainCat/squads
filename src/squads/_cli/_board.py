@@ -23,8 +23,10 @@ from squads._cli._common import (
     command,
     console,
     e,
+    err_console,
     get_service,
     print_json_clean,
+    require_as,
     resolve_body,
     resolve_slug_or_raise,
 )
@@ -43,11 +45,13 @@ async def post_notice(
     until: str | None = typer.Option(
         None, "--until", help="Expiry (ISO 8601 date/datetime); the notice hides once past."
     ),
-    as_: str = typer.Option("operator", "--as", help="Author: a role slug or 'op-<slug>'."),
+    as_: str | None = typer.Option(
+        None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
+    ),
 ) -> None:
     """Post a notice to the board, visible to the whole team until it expires."""
     svc = get_service()
-    slug = await resolve_slug_or_raise(as_, svc)
+    slug = await resolve_slug_or_raise(require_as(as_), svc)
     actor.set_actor(slug)
     text = resolve_body(message or None, file)
     notice = await svc.board_post(slug, text, until=until)
@@ -57,9 +61,14 @@ async def post_notice(
 @board_app.command("list")
 @command
 async def list_notices(json_out: bool = typer.Option(False, "--json")) -> None:
-    """List current (unexpired) notices with their positional ordinal."""
+    """List current (unexpired) notices with their positional ordinal.
+
+    Exit codes: 0 = a clean listing, 1 = one or more notices could not be read (named on
+    stderr, whether or not ``--json`` is given — the JSON array shape stays a bare array, so
+    a degraded read is signalled out-of-band rather than by an added key).
+    """
     svc = get_service()
-    notices = await svc.board_list()
+    notices, unreadable = await svc.board_list()
     if json_out:
         print_json_clean(
             json.dumps(
@@ -76,16 +85,24 @@ async def list_notices(json_out: bool = typer.Option(False, "--json")) -> None:
                 ]
             )
         )
+        for msg in unreadable:
+            err_console.print(f"[red]error[/red]: {e(msg)}")
+        if unreadable:
+            raise typer.Exit(1)
         return
+    for msg in unreadable:
+        console.print(f"[red]error[/red]: {e(msg)}")
     if not notices:
         console.print("[dim]no current notices[/dim]")
-        return
-    for i, n in enumerate(notices, start=1):
-        until_part = f"  [dim]until {e(n.until)}[/dim]" if n.until else ""
-        console.print(
-            f"[bold]{i}.[/bold] {e(n.body)}  [dim]({e(n.author)} @ {e(n.posted_at)})[/dim]"
-            f"{until_part}"
-        )
+    else:
+        for i, n in enumerate(notices, start=1):
+            until_part = f"  [dim]until {e(n.until)}[/dim]" if n.until else ""
+            console.print(
+                f"[bold]{i}.[/bold] {e(n.body)}  [dim]({e(n.author)} @ {e(n.posted_at)})[/dim]"
+                f"{until_part}"
+            )
+    if unreadable:
+        raise typer.Exit(1)
 
 
 @board_app.command("clear")

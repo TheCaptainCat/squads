@@ -3,6 +3,7 @@
 Grammar:
   sq operator add <name> [--slug SLUG]  — register a human operator
   sq operator <slug|id|n> show           — show an operator's metadata panel
+  sq operator <slug|id|n> status <S>     — transition the operator's status
   sq operator <slug|id|n> rm [--purge]   — remove an operator
 
 Address resolution order (exact match, no fuzzy):
@@ -25,6 +26,7 @@ from squads._cli._common import (
     e,
     get_service,
     print_json_clean,
+    register_status_verb,
     render_body_text,
     resolve_agent_addr,
 )
@@ -32,15 +34,16 @@ from squads._models._extras import ExtraKey as X
 
 
 class _OperatorDispatchGroup(AddressDispatchGroup):
-    _ADDR_VERBS: ClassVar[str] = "show|rm"
+    _ADDR_VERBS: ClassVar[str] = "show|rm|status"
 
 
 operator_app = typer.Typer(
     no_args_is_help=True,
     help="Manage human operators.",
     epilog=(
-        "Address an operator:  sq operator <slug|id|n> show|rm\n"
-        "Examples:  sq operator op-pierre show   sq operator 2 rm\n"
+        "Address an operator:  sq operator <slug|id|n> show|rm|status\n"
+        "Examples:  sq operator op-alice show   sq operator 2 rm\n"
+        "           sq operator op-alice status Archived\n"
         "Note: a slug matching a group verb (add, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
@@ -53,7 +56,7 @@ operator_app = typer.Typer(
 @operator_app.command("add")
 @common.command
 async def operator_add(
-    name: str = typer.Argument(..., help='The human\'s display name, e.g. "Pierre Chat".'),
+    name: str = typer.Argument(..., help='The human\'s display name, e.g. "Alice Tester".'),
     slug: str | None = typer.Option(None, "--slug", help="Override the derived `op-<first>` slug."),
 ) -> None:
     """Register a human operator (assignable + can author items/comments)."""
@@ -170,5 +173,7 @@ async def operator_rm(
     await svc.refresh_managed()
     console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
 
+
+register_status_verb(_addr, lambda ctx: ctx.obj["id"])
 
 operator_app.add_typer(_addr, name="_addr", hidden=True)

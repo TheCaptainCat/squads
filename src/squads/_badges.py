@@ -8,6 +8,7 @@ import re
 from collections.abc import Callable
 
 from squads._workflow import WorkflowSpec, bundled_spec
+from squads._workflow._models import Field
 
 #: Neutral fallback badge for a status/collection that declares none — never crash.
 _DEFAULT_BADGE = "⚪"
@@ -34,6 +35,28 @@ def resolve_badges(
     }
 
 
+def first_ordered_field(spec: WorkflowSpec) -> Field | None:
+    """The first declared field — scanned across every non-roster type in declaration order
+    (``ItemSpec.order``, type name), not just one arbitrary type — whose bound collection is
+    ``ordered`` (squads' own "priority" axis is the bundled example, but this is generic over
+    whatever axis a project's spec marks ordered).
+
+    Generated prose that wants to teach "the ordered axis" (e.g. the squads skill's
+    ``--priority`` line) must not probe a single hardcoded type for it: dropping that one
+    type would silently delete the axis from the prose even though every other type still
+    declares the identical field. Scanning every type instead means the axis survives as
+    long as *any* surviving type carries it.
+
+    Returns ``None`` when no non-roster type declares an ordered-collection field at all.
+    """
+    for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
+        for f in spec.fields_for(item_type):
+            coll = spec.collections.get(f.collection)
+            if coll is not None and coll.ordered:
+                return f
+    return None
+
+
 def status_badge(status_value: str, spec: WorkflowSpec | None = None) -> str:
     """``"InProgress"`` → ``"🟡 In Progress"`` (emoji + spaced label) for the header.
 
@@ -49,6 +72,63 @@ def status_badge(status_value: str, spec: WorkflowSpec | None = None) -> str:
     return f"{emoji} {label}".strip()
 
 
+def primary_field_code(
+    kind: str, spec: WorkflowSpec | None = None, *, default: str = "severity"
+) -> str:
+    """The first field a sub-entity *kind* (or item type) declares — the axis an item template
+    shows beside its sub-entity container (e.g. review's finding severity legend/example).
+
+    Templates must not hardcode which field code that is (``'severity'``): a spec that relabels
+    or replaces the kind's field (e.g. ``finding`` → ``impact``) still has SOME declared field,
+    and this is it. Falls back to *default* only when the kind declares no field at all — the
+    same graceful posture as :func:`field_label`/:func:`field_default`, so a spec that dropped
+    the field entirely still renders something rather than crashing the template.
+    """
+    active_spec = spec if spec is not None else bundled_spec()
+    fields = active_spec.fields_for(kind)
+    return fields[0].code if fields else default
+
+
+def declared_collection(
+    type_or_kind: str, field_code: str, spec: WorkflowSpec | None = None
+) -> str | None:
+    """The collection code *type_or_kind* binds *field_code* to, or ``None`` when it declares
+    no such field — the **strict** resolver, with no same-name fallback.
+
+    This is the one to call when the answer decides whether a surface is *offered* or a value
+    is *accepted*. :func:`resolve_collection`'s fallback exists for rendering a value that is
+    already stored, and using it for a decision instead advertises a flag that can only ever
+    error: a type declaring only ``urgency`` "resolves" ``priority`` to the same-named bundled
+    collection, so the CLI offers ``--priority urgent|high|medium|low`` on a type whose own
+    service gate refuses every one of those codes.
+    """
+    active_spec = spec if spec is not None else bundled_spec()
+    field = next((f for f in active_spec.fields_for(type_or_kind) if f.code == field_code), None)
+    return field.collection if field else None
+
+
+def field_badge_codes(field_code: str, spec: WorkflowSpec | None = None) -> list[str]:
+    """Every badge code any declared non-roster type's binding of *field_code* accepts, in
+    type-declaration order, de-duplicated.
+
+    The vocabulary for a **cross-type** door — ``sq list``/``tree``'s ``--priority`` filter
+    runs over every type at once, so no single type's bound collection is the right authority
+    and the bundled ``priority`` collection is merely one of them. Returns ``[]`` when no
+    declared type binds *field_code* at all.
+    """
+    active_spec = spec if spec is not None else bundled_spec()
+    codes: list[str] = []
+    for item_type in sorted(
+        active_spec.non_roster_types(), key=lambda t: (active_spec.items[t].order, t)
+    ):
+        coll_code = declared_collection(item_type, field_code, active_spec)
+        coll = active_spec.collections.get(coll_code) if coll_code else None
+        if coll is None:
+            continue
+        codes.extend(b.code for b in coll.badges if b.code not in codes)
+    return codes
+
+
 def resolve_collection(type_or_kind: str, field_code: str, spec: WorkflowSpec | None = None) -> str:
     """The collection code a declared field is bound to (``fields_for(type_or_kind)``).
 
@@ -56,10 +136,13 @@ def resolve_collection(type_or_kind: str, field_code: str, spec: WorkflowSpec | 
     dropped/renamed field, or a frozen migration-era call with no live field to resolve) so
     the bundled ``priority``/``severity`` fields (whose code equals their collection code)
     keep working with no spec in hand.
+
+    **Rendering only.** The fallback makes an already-stored value keep rendering after its
+    field is dropped or renamed; it must never decide whether a flag is advertised or a value
+    is valid, because a same-named collection then answers for a field the type does not
+    declare. Use :func:`declared_collection` for any of those decisions.
     """
-    active_spec = spec if spec is not None else bundled_spec()
-    field = next((f for f in active_spec.fields_for(type_or_kind) if f.code == field_code), None)
-    return field.collection if field else field_code
+    return declared_collection(type_or_kind, field_code, spec) or field_code
 
 
 def field_label(kind: str, field_code: str, spec: WorkflowSpec | None = None) -> str:

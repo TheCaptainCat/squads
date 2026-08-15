@@ -1,5 +1,6 @@
 """Shared CLI helpers: console, error handling, service resolution, value parsing."""
 
+import contextlib
 import functools
 import json
 import sys
@@ -9,7 +10,9 @@ from typing import Any, ClassVar
 
 import anyio
 import typer
+import typer._click as _click  # underscore is upstream's own private module path, not ours
 import typer.core
+import typer.main
 from rich.console import Console, Group, RenderableType
 from rich.markdown import Markdown
 from rich.markup import escape
@@ -34,8 +37,8 @@ from squads._models._subentity import SubEntity
 from squads._paths import resolve
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
-from squads._workflow import CATEGORIES, bundled_spec
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
+from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
 
 console = Console()
 err_console = Console(stderr=True)
@@ -66,9 +69,313 @@ def set_active_spec(spec: WorkflowSpec | None) -> None:
 
 
 def get_active_spec() -> WorkflowSpec:
-    """Return the per-invocation spec, or the bundled spec if none has been bound yet."""
-    active = get_context().active_spec
+    """Return the per-invocation spec, or the bundled spec if none has been bound yet.
+
+    Raises ``SquadsError`` when the squad **has** a workflow override that failed to resolve
+    (``RequestContext.spec_error``). Answering from the bundled spec there would describe
+    vocabulary the project did not declare — the failure mode the hard-stop-at-load rule exists
+    to prevent — and the caller has no way to tell that answer apart from a correct one. Every
+    read surface that consults the spec therefore refuses with the *same* text
+    ``open_service`` raises (``_workflow._loader.spec_refusal``), rather than each deciding for
+    itself. ``sq workflow lint`` never calls this and never opens a service, which is what
+    keeps the diagnostic reachable while everything else is stopped; ``sq check`` and
+    ``sq repair`` take the refusal from ``open_service`` and degrade around it, reporting it
+    as a finding — reporting the failure is the contract, not dying on it.
+    """
+    ctx = get_context()
+    if ctx.spec_error is not None:
+        raise SquadsError(ctx.spec_error)
+    active = ctx.active_spec
     return active if active is not None else bundled_spec()
+
+
+def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
+    """Resolve the ``WorkflowSpec`` for the current Click context, on the completion/help
+    path where the root callback hasn't necessarily run yet.
+
+    Tries, in order:
+
+    1. The already-bound per-invocation spec (:func:`get_active_spec`) — set by the root
+       callback's :func:`bind_active_spec`, and the fast path for ordinary subcommand dispatch
+       (the callback fires before subcommand resolution).
+    2. ``ctx.params["dir"]`` — the hoisted ``--dir`` value parsed on the root group's own
+       params before its callback fires (covers ``sq --help`` and shell completion, where
+       Click walks the command tree via ``list_commands``/``get_command`` without ever
+       invoking the callback chain).
+    3. The bundled spec, so a non-customized squad's ``--help``/completion stays
+       byte-identical to before this existed.
+
+    Never raises — every resolution step is fail-soft, matching the two call sites this
+    consolidates (``_cli/__init__.py``'s ``_CustomTypeGroup`` and ``_cli/_create.py``'s
+    ``_CustomCreateGroup``). That stays true under a broken override: this function only ever
+    shapes ``--help`` text and the command table, and a *shell completion* that raised would
+    be a worse failure than one listing the built-in set. The refusal belongs to the surfaces
+    that answer questions about the squad — :func:`get_active_spec` and ``open_service`` — not
+    to the parser that decides whether a word is a command.
+    """
+    try:
+        active = get_context().active_spec
+        if active is not None:
+            return active
+
+        dir_override: str | None = None
+        if ctx is not None and hasattr(ctx, "params"):
+            dir_override = ctx.params.get("dir")
+
+        from squads._paths import resolve
+        from squads._workflow._loader import (
+            WORKFLOW_OVERRIDE_FILENAME,
+            load_workflow_spec,
+            validate_against_index_fail_closed,
+        )
+
+        sp = resolve(dir_override, client_cwd=get_context().client_cwd)
+        override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
+        if not override_path.is_file():
+            return bundled_spec()
+        merged = load_workflow_spec(squad_dir=sp.squad_dir)
+        validate_against_index_fail_closed(merged, sp.squad_dir)
+    except Exception:  # pylint: disable=broad-except
+        # Deliberately the bundled spec, not get_active_spec() — that one refuses under a
+        # broken override, and this path must not raise (see the docstring).
+        return bundled_spec()
+    else:
+        return merged
+
+
+def stale_static_aliases(spec: WorkflowSpec) -> frozenset[str]:
+    """Every statically-registered type alias whose owner type is still declared but no longer
+    declares that alias — a rename the static Click table never heard about.
+
+    A *dropped* owner type is deliberately excluded: its aliases keep dispatching, into the
+    canonical membership gate whose "unknown item type 'bug'" is the one refusal that owns the
+    dropped-type message, named by the type rather than by whichever alias was typed (see
+    ``_dropped_static_names``). Only the rename case has no such downstream answer.
+
+    Empty for every non-customized squad — the bundled arrangement is exactly "each owner
+    declares its own aliases".
+    """
+    return frozenset(
+        alias
+        for alias, owner in RESERVED_CLI_ALIASES
+        if (owner_spec := spec.items.get(owner)) is not None and alias not in owner_spec.aliases
+    )
+
+
+def static_alias_is_stale(ctx: Any, cmd_name: str) -> bool:
+    """True when *cmd_name* is a statically-registered type ALIAS that the resolved active
+    spec no longer declares — the caller must then refuse to dispatch it.
+
+    The root command table binds every bundled alias (``feat``/``f``/``t``/…) unconditionally
+    at import time, so an override that renames ``feature``'s aliases to ``["ft"]`` leaves
+    ``sq feat 9 show`` and ``sq f 9 show`` dispatching happily into the feature command tree
+    and exiting 0 — an alias the spec does not declare, answering as though it did.
+
+    Unlike a dropped *type name* (whose command is deliberately left reachable so the read
+    path's own "unknown item type" refusal fires — see ``_dropped_static_names``), a stale
+    alias has no accurate downstream refusal available: the type it routes to is usually
+    still perfectly valid, so every layer below answers as if nothing were wrong. The caller
+    substitutes :func:`stale_alias_command`, which supplies the missing refusal.
+
+    Only ever *narrows* dispatch for a squad whose override touched those aliases: the owner
+    type declaring the alias is the bundled arrangement, so a non-customized squad never takes
+    the refusal branch. Fail-soft — any spec-resolution error returns ``False`` (dispatch as
+    before), never a crash in ``--help``/completion.
+    """
+    if reserved_alias_owner(cmd_name) is None:
+        return False
+    try:
+        spec = resolve_spec_for_ctx(ctx)
+    except Exception:  # pylint: disable=broad-except
+        return False
+    return cmd_name in stale_static_aliases(spec)
+
+
+def stale_alias_command(ctx: Any, cmd_name: str) -> _click.Command:
+    """A one-off Click command that refuses a stale static alias, exit 1, naming the fix.
+
+    Returning ``None`` from ``get_command`` instead would hand the refusal to Typer's own
+    unknown-command handler, whose did-you-mean is built from the *raw registered command
+    table* (``self.commands`` — not ``list_commands``, so no amount of hiding reaches it) and
+    therefore suggests the exact stale string the user just typed. Dispatching into a real
+    refusal is the same "advertise vs dispatch" split the dropped-type path already uses:
+    the command stays reachable precisely so the one accurate message is the one that fires.
+
+    Swallows every trailing token (``sq feat 9 show``) and its own ``--help``, so the refusal
+    is what the user sees regardless of how the stale alias was invoked.
+    """
+    owner = reserved_alias_owner(cmd_name) or ""
+    try:
+        owner_spec = resolve_spec_for_ctx(ctx).items.get(owner)
+    except Exception:  # pylint: disable=broad-except
+        owner_spec = None
+    # `stale_static_aliases` only reports an alias whose owner type IS declared, so the
+    # aliases branch is the live case; the `None` guard is fail-soft belt-and-braces.
+    declared_aliases = list(owner_spec.aliases) if owner_spec is not None else []
+    if declared_aliases:
+        detail = f"{owner!r} now declares {', '.join(repr(a) for a in declared_aliases)}"
+    else:
+        detail = f"{owner!r} now declares no aliases"
+
+    refusal_app = typer.Typer()
+
+    # `help_option_names: []` retires this command's own --help, so `sq feat --help` refuses
+    # too instead of documenting an alias that no longer exists; `ignore_unknown_options`
+    # keeps every trailing verb/flag out of the parser's way.
+    @refusal_app.command(
+        cmd_name,
+        context_settings={"ignore_unknown_options": True, "help_option_names": []},
+        hidden=True,
+    )
+    def _refuse(  # pyright: ignore[reportUnusedFunction] — registered by the decorator above
+        rest: list[str] = typer.Argument(None, hidden=True),
+    ) -> None:
+        err_console.print(
+            f"[red]error:[/red] {cmd_name!r} is not a declared item-type alias in this "
+            f"squad's workflow spec — {e(detail)}. Use `sq {e(owner)}` instead."
+        )
+        raise typer.Exit(1)
+
+    leaf: _click.Command = typer.main.get_command(refusal_app)  # type: ignore[assignment]
+    leaf.name = cmd_name
+    return leaf
+
+
+def bind_active_spec(
+    dir_override: str | None, client_cwd: Path | None
+) -> tuple[WorkflowSpec | None, str | None]:
+    """Resolve the WorkflowSpec for this invocation (does not bind it — the caller does, as
+    part of the single per-invocation ``RequestContext``).
+
+    Resolves and merges the squad-level workflow override (if present) exactly as
+    ``open_service`` does, so parse_type/parse_status and display helpers all see the
+    same spec. Returns ``(spec, spec_error)``:
+
+    - **no squad / no override file** — ``(bundled spec, None)``, or ``(None, None)`` when
+      even ``resolve()`` failed. Both mean "use the bundled spec", which is the honest answer:
+      nothing was declared, so nothing is being substituted for.
+    - **an override file that will not load** — ``(None, refusal)``. This is *not* a fall back
+      to bundled. Falling soft here is what let ``sq workflow types/statuses/roles`` and the
+      cheatsheet exit 0 describing the bundled vocabulary — the project's own declared type
+      absent from all of them, with a client unable to detect it (exit 0, well-formed payload,
+      empty stderr) — while ``sq list`` beside them exited 1 naming the very same error.
+      A spec that fails to load is a hard stop at load, by rule: the type catalog is the only
+      honest answer to "what types do I have", and a catalog rendered from a spec the project
+      did not declare is not that answer.
+
+    Lives here rather than in the root module so the two spec-resolution helpers sit
+    together and the dependency runs one way: ``_cli/__init__`` already imports this
+    module, and :func:`_pending_spec_error` needs the same resolution at the root group,
+    where the callback that would have bound it has not run yet.
+
+    ``client_cwd`` is threaded straight into ``resolve()`` — the same value the sibling
+    ``_CustomTypeGroup._resolve_spec_for_ctx`` path uses (``get_context().client_cwd``) —
+    so both spec-resolution paths agree on their resolution base rather than one of them
+    silently falling back to ``resolve()``'s own ``Path.cwd()`` default.
+    """
+    from squads._paths import resolve
+    from squads._workflow import bundled_spec
+    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, spec_refusal
+
+    try:
+        sp = resolve(dir_override, client_cwd=client_cwd)
+        override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
+        has_override = override_path.is_file()
+    except Exception:  # pylint: disable=broad-except
+        # Outside a squad, unreadable config, … — nothing was declared here to honour.
+        return None, None
+    if not has_override:
+        return bundled_spec(), None
+
+    from squads._workflow._loader import load_workflow_spec, validate_against_index_fail_closed
+
+    try:
+        merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
+        validate_against_index_fail_closed(merged_spec, sp.squad_dir)
+    except Exception as exc:  # pylint: disable=broad-except
+        return None, spec_refusal(override_path, exc)
+    else:
+        return merged_spec, None
+
+
+def _pending_spec_error(ctx: Any) -> str | None:
+    """The workflow-override refusal in force for this invocation, or ``None``.
+
+    Reads the bound :class:`~squads._context.RequestContext` first — the root callback has
+    already resolved the override for every dispatch below the root group (``sq create
+    widget``), so that is the whole answer there and costs nothing.
+
+    At the *root* group it is not, and the ordering is the reason this helper exists: Click
+    resolves a subcommand name before invoking the group's own callback, so ``sq widget 19
+    show`` reaches ``get_command`` with nothing bound yet — the same "callback may not have run"
+    path :func:`resolve_spec_for_ctx` was written for. Only then is the override resolved here,
+    through :func:`bind_active_spec` itself rather than a second copy of its logic, so the refusal
+    text is the one every other surface prints and cannot drift from it.
+
+    Fail-soft throughout: a squad with no override, or one that cannot even be located, yields
+    ``None`` and the caller falls back to Click's own handling.
+    """
+    from squads._context import get_context
+
+    bound = get_context()
+    if bound.spec_error is not None:
+        return bound.spec_error
+    if bound.active_spec is not None or ctx is None:
+        return None  # the callback ran and reported no refusal — the spec is fine
+    try:
+        dir_override = ctx.params.get("dir") if hasattr(ctx, "params") else None
+        _spec, error = bind_active_spec(dir_override, bound.client_cwd)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    return error
+
+
+def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
+    """A refusal command for a name the parser cannot classify because the squad's workflow
+    override did not load — or ``None`` when the spec is fine and the name is simply unknown.
+
+    The command table was the last surface still answering from bundled vocabulary. Every
+    command that opens a service or reads the active spec refuses with the shared text, but a
+    name the static table does not carry was resolved against the *bundled* spec (the parser
+    must never raise, so :func:`resolve_spec_for_ctx` falls back), found absent, and handed to
+    Click — which exits 2 with ``No such command 'widget'``. For a squad whose own override
+    declares ``widget`` and whose board holds live ``WID-*`` items, that is not a degraded
+    answer but a wrong one: "no such command" is a claim about *this squad's* vocabulary, made
+    from a document this squad did not declare, and it points the adopter at their spelling
+    instead of at the file that failed to load.
+
+    So when — and only when — the override is known to have failed
+    (``RequestContext.spec_error``, set by the root callback), an unclassifiable name dispatches
+    into the same refusal ``sq list`` gives, at the same exit code. Same "advertise vs dispatch"
+    split :func:`stale_alias_command` uses, for the same reason: returning ``None`` hands the
+    answer to Click's unknown-command handler, whose did-you-mean is built from the raw static
+    table and would suggest a bundled type name in place of the adopter's own.
+
+    ``None`` whenever no refusal is in force, so a genuine typo on a healthy squad keeps
+    Click's "No such command" — the accurate answer *there*, and the reason this is not simply
+    a blanket refusal. See :func:`_pending_spec_error` for how the refusal is found at the root
+    group, where the callback that would have bound it has not run yet.
+    """
+    message = _pending_spec_error(ctx)
+    if message is None:
+        return None
+
+    refusal_app = typer.Typer()
+
+    @refusal_app.command(
+        cmd_name,
+        context_settings={"ignore_unknown_options": True, "help_option_names": []},
+        hidden=True,
+    )
+    def _refuse(  # pyright: ignore[reportUnusedFunction] — registered by the decorator above
+        rest: list[str] = typer.Argument(None, hidden=True),
+    ) -> None:
+        err_console.print(f"[red]error:[/red] {e(message)}")
+        raise typer.Exit(1)
+
+    leaf: _click.Command = typer.main.get_command(refusal_app)  # type: ignore[assignment]
+    leaf.name = cmd_name
+    return leaf
 
 
 def e(value: object) -> str:
@@ -546,16 +853,37 @@ def resolve_body(messages: list[str] | None, file: str | None) -> str:
     return body
 
 
+def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail) -> dict[str, Any]:
+    """The one sub-entity JSON object shape — shared by each ``subentities`` entry in
+    :func:`build_item_json` and the standalone ``sq <type> <n> <kind> <k> show --json``
+    (:func:`squads._cli._items._register_sub_verbs`), so the two surfaces are built from one
+    path and cannot drift into two different shapes.
+
+    Frontmatter fields (``local_id``/``title``/``status``/``assignee``/``severity``/
+    ``story``/``extra``) plus ``body``, the generic per-field ``badges`` map, and an additive
+    ``discussion`` array (ordered ``{author, ts, body}``, same shape/order as the item-level
+    one) — generic across every sub-entity kind, since sub-entity discussion is not per-kind.
+    """
+    data: dict[str, Any] = json.loads(detail.info.model_dump_json())
+    data["body"] = detail.body
+    data["badges"] = badges.resolve_badges(spec, kind, detail.info.badge_value)
+    data["discussion"] = [
+        {"author": cmt.author, "ts": cmt.timestamp, "body": cmt.body}
+        for cmt in discussion.split_discussion(detail.discussion)
+    ]
+    return data
+
+
 async def build_item_json(svc: Service, it: Item) -> str:
     """The ``show --json`` payload: frontmatter fields plus body/discussion — additive only.
 
     Adds top-level ``body`` (raw body markdown), ``discussion`` (ordered ``{author, ts,
     body}`` list), and ``badges`` (the generic per-item badge map, keyed by field
-    code — see :func:`squads._badges.resolve_badges`); plus a ``body`` and ``badges`` key on
-    each ``subentities`` entry (a sub-entity carries fields too, e.g. severity on a finding).
-    Added unconditionally — not gated by ``--comments``/``--full`` — so the existing
-    invariant that ``show --json`` is byte-identical across ``--raw``/``--comments``/
-    ``--full`` still holds. Nothing existing is renamed or removed.
+    code — see :func:`squads._badges.resolve_badges`); plus, per ``subentities`` entry, the
+    shared shape built by :func:`build_subentity_json` (adds ``body``, ``badges``, and
+    ``discussion``). Added unconditionally — not gated by ``--comments``/``--full`` — so the
+    existing invariant that ``show --json`` is byte-identical across
+    ``--raw``/``--comments``/``--full`` still holds. Nothing existing is renamed or removed.
     """
     spec = get_active_spec()
     payload: dict[str, Any] = json.loads(it.model_dump_json())
@@ -567,16 +895,49 @@ async def build_item_json(svc: Service, it: Item) -> str:
     payload["badges"] = badges.resolve_badges(spec, it.type, it.badge_value)
     kind = spec.item_subentity_kind(it.type)
     if kind:
-        for sub_data, sub in zip(payload["subentities"], it.subentities, strict=True):
+        subentities: list[dict[str, Any]] = []
+        for sub_data in payload["subentities"]:
             detail = await svc.get_block(it.id, kind, sub_data["local_id"])
-            sub_data["body"] = detail.body
-            sub_data["badges"] = badges.resolve_badges(spec, kind, sub.badge_value)
+            subentities.append(build_subentity_json(spec, kind, detail))
+        payload["subentities"] = subentities
     return json.dumps(payload)
 
 
 def get_service() -> Service:
     ctx = get_context()
     return open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+
+
+def get_service_bypassing_index_cross_check() -> Service:
+    """Like :func:`get_service`, but for the one class of caller that must never be blocked by
+    ``open_service``'s live-index cross-check: a maintenance command whose entire job is fixing
+    exactly what that cross-check can refuse over — a corpus/spec conflict, or (just as often) a
+    rebuildable index merely stale relative to the frontmatter it should mirror. A validation
+    gate that locks out its own recovery path is not a recovery path.
+
+    Falls back, in order:
+
+    1. The normal path (:func:`get_service` / ``open_service``) — the overwhelming majority of
+       invocations hit this and nothing changes.
+    2. On a ``SquadsError``, the merged (override-aware) spec with no live-index cross-check
+       (``load_workflow_spec`` alone, which never touches the index) — so the caller still
+       resolves a custom type's correct folder/prefix from the active override; it just isn't
+       blocked by a corpus mismatch the cross-check would refuse over.
+    3. If even that fails (a genuinely broken override, unrelated to the index), the bundled
+       spec — the same last-resort ``sq check`` already falls back to for the same reason.
+    """
+    try:
+        return get_service()
+    except SquadsError:
+        ctx = get_context()
+        sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
+        try:
+            from squads._workflow._loader import load_workflow_spec
+
+            merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
+        except SquadsError:
+            merged_spec = bundled_spec()
+        return Service(sp, spec=merged_spec)
 
 
 def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
@@ -708,8 +1069,20 @@ async def resolve_item_id_typed(token: str, item_type: str, svc: Service) -> str
     """
     # Resolve the prefix from the active spec — the sole vocabulary source.
     from squads._models._vocab import prefix_for
+    from squads._workflow import dropped_via_selected
 
     spec = get_active_spec()
+    if item_type not in spec.items and dropped_via_selected(item_type, spec):
+        # `prefix_for`'s own "declare it or check for a typo" message is accurate for a type
+        # that was never bundled or declared, but false for one an adopter's own override
+        # dropped — this is the read-path counterpart of the create-path membership gate in
+        # `_services/_base.py`, which the CLI's own dispatch already lets reach this message
+        # for the analogous case (`sq create <type>`).
+        raise SquadsError(
+            f"unknown item type {item_type!r}: {item_type!r} was dropped from a "
+            "[selected] list (selected.items) in .overrides/workflow.toml, not left "
+            "undeclared — add it back to selected.items to restore it"
+        )
     prefix = prefix_for(item_type, spec)
     t = token.strip()
     seq, given_prefix = _parse_item_token(token)
@@ -805,7 +1178,7 @@ class AddressDispatchGroup(typer.core.TyperGroup):
     escape hatch.
     """
 
-    _ADDR_VERBS: ClassVar[str] = "show|regen|rm"
+    _ADDR_VERBS: ClassVar[str] = "show|regen|rm|status"
 
     def _click_resolve_command(self, ctx: Any, args: list[str]) -> Any:  # type: ignore[override]
         cmd_name = args[0]
@@ -834,28 +1207,193 @@ class AddressDispatchGroup(typer.core.TyperGroup):
         return super()._click_resolve_command(ctx, args)
 
 
+def spec_aware_command_cls(
+    refresh_help: Callable[[list[Any]], None],
+) -> type[typer.core.TyperCommand]:
+    """Build a one-off ``TyperCommand`` subclass whose ``--help`` re-derives specific
+    parameters' help text from the *live* per-invocation spec at render time, instead of
+    whatever spec was active when the command object was constructed.
+
+    Statically-registered built-in commands (``sq <type> update``, ``sq <type> retype``,
+    the per-type ``sq create <type>``) are built once, at import time — before any squad
+    or override is known — so a plain ``help=`` string computed then is permanently the
+    bundled spec's answer (e.g. ``--priority``'s enumerated codes, retype's target list).
+    Click always renders ``--help`` through ``get_params(ctx)``, which fires only once the
+    root callback has already bound the per-invocation spec (the group-callback chain
+    resolves — and so runs ``main_callback`` — before the leaf command's own ``--help``
+    short-circuits), so refreshing there — and only there — makes a statically-registered
+    command's help as spec-aware as the lazily-built custom-type equivalent, without moving
+    *when* or *from which spec* it's registered. A non-customized squad resolves the same
+    (bundled) spec at render time as at import time, so output stays byte-identical.
+
+    *refresh_help* receives the command's already-resolved parameter list and mutates the
+    ``.help`` of whichever ones it recognizes (by ``.name``) in place.
+
+    **The refresh is fail-soft, and it has to be.** ``get_params`` runs during Click's own
+    parameter resolution — before the command body, and therefore outside the ``@handle_errors``
+    / ``@command`` boundary that turns a ``SquadsError`` into a clean message. A refresh that
+    raised there escaped as a traceback, which is the one thing the refusal contract rules out;
+    it surfaced the moment ``get_active_spec`` started refusing on an unresolvable override,
+    because ``sq create <type>``'s ``--priority`` help reads the active spec. Help text is
+    presentation, not an answer about the squad: when the spec cannot be resolved the baked
+    text simply stands, and the real refusal fires from the command body a moment later, once
+    there is somewhere to report it. Same division as :func:`resolve_spec_for_ctx` — the parser
+    degrades, the answering surfaces refuse.
+    """
+
+    class _SpecAwareCommand(typer.core.TyperCommand):
+        def get_params(self, ctx: Any) -> list[Any]:
+            params = super().get_params(ctx)
+            # see the docstring: presentation degrades, it never raises out of parse
+            with contextlib.suppress(Exception):
+                refresh_help(params)
+            return params
+
+    return _SpecAwareCommand
+
+
+def register_status_verb(
+    addr_app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]
+) -> None:
+    """Register a ``status`` verb on an addressed roster subgroup (``role``/``skill``/``operator``).
+
+    Mirrors ``_cmd_status`` in ``_cli/_items.py`` verb-for-verb (a ``STATUS`` positional,
+    ``--force``, the ``{id} → {status}`` confirmation line) but is shared across the three
+    roster modules instead of copied, since it needs no work-item-only machinery — it drives
+    ``Service.set_roster_status`` instead of the generic ``Service.set_status``, the roster
+    entry point that also reports what ``--unlink`` severed.
+
+    ``--unlink`` is offered here and nowhere else: only a roster-category type carries the
+    config-integrity clauses (``_services/_retirement.py``) it satisfies, and every caller of
+    this helper is already one of the three roster types.
+
+    ``id_from_ctx`` extracts the resolved item id from ``ctx.obj`` using the caller's own
+    convention: role's ``_require_id`` (raises the "activate it first" error for a
+    bundled-only slug) vs skill/operator's strict ``ctx.obj["id"]``. This keeps that
+    per-module fallback logic out of this shared helper.
+    """
+
+    @addr_app.command("status")
+    @command
+    async def status(  # pyright: ignore[reportUnusedFunction] — registered via the decorator above
+        ctx: typer.Context,
+        new_status: str = typer.Argument(..., metavar="STATUS"),
+        force: bool = typer.Option(
+            False,
+            "--force",
+            help=(
+                "Override the lifecycle's own disallowed transition edge. Never overrides a "
+                "refusal that the resulting config would be invalid."
+            ),
+        ),
+        unlink: bool = typer.Option(
+            False,
+            "--unlink",
+            help=(
+                "On a retirement, remove the scoping the refusal named — a custom skill's "
+                "link to a role — then re-run the check, rather than overriding it. Refused "
+                "on any other transition."
+            ),
+        ),
+    ) -> None:
+        """Transition the entity's status (shortcut for the work-item `status` verb)."""
+        item_id = id_from_ctx(ctx)
+        result = await get_service().set_roster_status(
+            item_id, parse_status(new_status), force=force, unlink=unlink
+        )
+        console.print(f"{result.item.id} → [bold]{result.item.status}[/bold]")
+        if unlink:
+            if result.severed:
+                for sev in result.severed:
+                    console.print(f"  severed {e(sev.referrer)} → {e(sev.target)} ({sev.kind})")
+            else:
+                console.print("  --unlink: no references severed (nothing was severable)")
+        for warning in result.warnings:
+            console.print(f"[yellow]warning:[/yellow] {e(warning)}")
+
+
 def resolve_local_id(token: str, kind: str) -> str:
     """A CLI sub-entity token → canonical local id: ``2`` → ``STn``/``USn``/``Fn``."""
     return discussion.local_id_for(kind, token, get_active_spec())
 
 
-async def resolve_slug_or_raise(slug: str, svc: Service) -> str:
+def require_as(as_: str | None) -> str:
+    """Validate ``--as`` was supplied and return it.
+
+    ``--as`` has no default: attribution is only knowable at the moment the command is
+    typed, so a missing flag must fail loudly rather than silently recording the
+    comment/notice in the operator's voice.
+    """
+    if not as_:
+        raise SquadsError("--as is required: the actor's slug")
+    return as_
+
+
+async def resolve_slug_or_raise(slug: str, svc: Service, *, live_only: bool = True) -> str:
     """Validate ``slug`` against the roster (agents + operators) and return it normalised.
 
     Mirrors :func:`resolve_item_id` in shape: one validation idiom for slugs, one for item IDs.
     Raises :class:`SquadsError` (exit 1) naming valid slugs when the slug is unknown.
     ``"operator"`` is the legacy anonymous sentinel — it is not validated (kept for compat).
+
+    ``live_only`` (default ``True``) is what makes a retired entry stop being **live**
+    while its history stays intact: the interactive entry points that *write* a
+    participant — ``--as``/``--author``/``--assignee`` on create/comment/update — accept only
+    a live slug, which this default gives them for free by reading ``svc.roster()`` /
+    ``svc.operators()`` (already live-only). Pass ``live_only=False`` for a caller that
+    *reads* or *filters* by a participant slug rather than attributing new authorship to one —
+    ``--assignee`` on `sq list`/`sq tree`, `sq mine`, `sq inbox` — since a retired role's
+    already-assigned items and past @mentions must stay reachable; those read
+    ``svc.roster_all()``/``svc.operators_all()`` instead.
+
+    A slug that is well known but merely retired reads as retired, not unknown: when
+    ``live_only`` rejects it, a second lookup against the full roster names the entry and the
+    one command that undoes it, rather than sending the operator after a typo or a missing
+    activation (see :func:`_retired_participant_hint`).
     """
     normalised = slug.lstrip("@").lower()
     if normalised == "operator":
         return normalised
-    agent_slugs = [r.slug for r in await svc.roster()]
-    operator_slugs = [o.slug for o in await svc.operators()]
-    if normalised in agent_slugs or normalised in operator_slugs:
-        return normalised
+    if live_only:
+        agent_slugs = [r.slug for r in await svc.roster()]
+        operator_slugs = [o.slug for o in await svc.operators()]
+        if normalised in agent_slugs or normalised in operator_slugs:
+            return normalised
+        retired = await _retired_participant_hint(svc, normalised)
+        if retired is not None:
+            raise SquadsError(retired)
+    else:
+        agent_slugs = [r.slug for r in await svc.roster_all()]
+        operator_slugs = [o.slug for o in await svc.operators_all()]
+        if normalised in agent_slugs or normalised in operator_slugs:
+            return normalised
     valid = sorted(agent_slugs + operator_slugs)
     hint = ", ".join(valid) if valid else "(none registered — run `sq init` or `sq operator add`)"
     raise SquadsError(f"unknown slug {slug!r}; valid slugs: {hint}")
+
+
+async def _retired_participant_hint(svc: Service, slug: str) -> str | None:
+    """``slug``'s retired-but-known message for :func:`resolve_slug_or_raise`, or ``None`` when
+    *slug* is not in the full roster either (genuinely unknown).
+
+    Looks the slug up against the full (not live-only) roster/operator vocabulary — the one
+    extra call ``live_only`` skips when the slug already resolved — and names the entry plus
+    the reactivating command rather than leaving the operator to guess it.
+    """
+    role = await svc.roster_item(ROSTER_ROLE, slug)
+    if role is not None:
+        target = svc.spec.live_initial(ROSTER_ROLE)
+        return (
+            f"{slug!r} ({role.id}) is retired; reactivate it with `sq role {slug} status {target}`"
+        )
+    op = await svc.roster_item(ROSTER_OPERATOR, slug)
+    if op is not None:
+        target = svc.spec.live_initial(ROSTER_OPERATOR)
+        return (
+            f"{slug!r} ({op.id}) is retired; reactivate it with `sq operator {slug} status "
+            f"{target}`"
+        )
+    return None
 
 
 def parse_type(value: str) -> str:
@@ -919,4 +1457,25 @@ def parse_badge_code(collection_code: str, value: str, spec: WorkflowSpec | None
     if coll is None or code not in coll.badge_codes:
         choices = ", ".join(b.code for b in coll.badges) if coll else ""
         raise SquadsError(f"unknown {collection_code} {value!r} (one of: {choices})")
+    return code
+
+
+def parse_filter_badge_code(field_code: str, value: str, spec: WorkflowSpec | None = None) -> str:
+    """Validate/normalize a **cross-type filter** value for badge field *field_code*.
+
+    ``sq list``/``sq tree`` filter over every type at once, so there is no single bound
+    collection to validate against — accept any code declared by *any* type's binding of
+    the field (:func:`squads._badges.field_badge_codes`) and let ``ItemFilter`` do the
+    per-item, per-type match. Validating against the collection literally *named*
+    ``priority`` instead made the filter unusable for a squad that binds task's priority to a
+    ``tshirt`` collection: ``--priority m`` was refused outright.
+
+    For the bundled spec the union is exactly the ``priority`` collection, so the accepted
+    values and the refusal text are unchanged.
+    """
+    active_spec = spec if spec is not None else get_active_spec()
+    codes = badges.field_badge_codes(field_code, active_spec)
+    code = value.strip().lower()
+    if code not in codes:
+        raise SquadsError(f"unknown {field_code} {value!r} (one of: {', '.join(codes)})")
     return code
