@@ -15,9 +15,6 @@ from squads._workflow._models import (
     ROSTER_ROLE,
     ROSTER_SKILL,
     ROSTER_TYPES,
-    STATUS_ACTIVE,
-    STATUS_ARCHIVED,
-    STATUS_DRAFT,
     ItemSpec,
     Lifecycle,
     RefRule,
@@ -85,6 +82,23 @@ def bundled_spec() -> WorkflowSpec:
     ``IndexStore`` or ``Service`` with no override).
     """
     return _BUNDLED_SPEC
+
+
+def dropped_via_selected(item_type: str, spec: WorkflowSpec) -> bool:
+    """Whether *item_type* was a bundled built-in that *spec* (the active/merged spec) no
+    longer declares.
+
+    The merge engine has exactly one way to remove a key the bundled base declares:
+    ``[selected]`` — deep-merge only ever adds or overwrites, never deletes on its own (see
+    ``squads._specmerge``'s own docstring). So a name that WAS a bundled type and is absent
+    from *spec* was, by construction, dropped via ``[selected]`` — never merely "undeclared".
+    Every "unknown item type" refusal that can tell the two apart (a dropped built-in versus a
+    name that was never bundled or declared at all — a genuine typo, or an as-yet-undeclared
+    custom type) should use this to decide which message applies, and point a dropped type's
+    refusal at the adopter's own ``selected.items`` line rather than asserting a plain
+    "declare it or check for a typo" that is accurate for the other case but not this one.
+    """
+    return item_type not in spec.items and item_type in bundled_spec().items
 
 
 def active_spec() -> WorkflowSpec:
@@ -198,9 +212,6 @@ __all__ = [
     "ROSTER_ROLE",
     "ROSTER_SKILL",
     "ROSTER_TYPES",
-    "STATUS_ACTIVE",
-    "STATUS_ARCHIVED",
-    "STATUS_DRAFT",
     "SUBENTITY_WORKFLOWS",
     "TERMINAL",
     "WORKFLOWS",

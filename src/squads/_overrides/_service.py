@@ -23,12 +23,16 @@ and subentity partials (subentities/*) are not item files and carry no sq-body s
 """
 
 import difflib
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from squads import __version__
 from squads._errors import SquadsError
+from squads._interactions._loader import (
+    PLAYBOOK_OVERRIDE_FILENAME,
+    bundled_playbook_toml_text,
+    playbook_stamp_finding,
+)
 from squads._overrides._manifest import (
     base_version_template_content,
     bundled_template_content,
@@ -44,7 +48,11 @@ from squads._overrides._stamp import (
 from squads._rendering._engine import invalidate_squad_dir
 from squads._roles._catalog import PREDEFINED
 from squads._sections import find_markers
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
+from squads._workflow._loader import (
+    WORKFLOW_OVERRIDE_FILENAME,
+    bundled_workflow_toml_text,
+    workflow_stamp_finding,
+)
 
 _BUNDLED_ROLE_SLUGS: frozenset[str] = frozenset(r.slug for r in PREDEFINED)
 
@@ -92,24 +100,23 @@ def _is_item_or_role_template(name: str) -> bool:
 
 # ─── Required marker detection ─────────────────────────────────────────────────
 
-_SQ_OPEN_RE = re.compile(r"<!--\s*(sq:[a-z0-9][a-z0-9:_-]*)\s*-->")
-
 
 def _required_markers_from_bundled(template_name: str) -> set[str]:
     """Return the set of ``sq:*`` open-marker tags that the bundled template requires.
 
     Only matches opening markers (not ``:end`` closers).  Empty set for templates we
     cannot read or that carry no markers.
+
+    Goes through :func:`~squads._sections.find_markers` — the one marker-recognition
+    primitive — rather than a second regex of its own: the copy that used to live here was a
+    verbatim duplicate, so it inherited the lowercase-only tag class that made every
+    mixed-case sub-entity marker invisible, and would have had to be found and fixed a second
+    time. One definition, one place to widen.
     """
     content = bundled_template_content(template_name)
     if content is None:
         return set()
-    tags: set[str] = set()
-    for m in _SQ_OPEN_RE.finditer(content):
-        tag = m.group(1)
-        if not tag.endswith(":end"):
-            tags.add(tag)
-    return tags
+    return {tag for tag in find_markers(content) if not tag.endswith(":end")}
 
 
 def _missing_required_markers(template_name: str, override_text: str) -> list[str]:
@@ -137,6 +144,10 @@ def _role_overrides_dir(squad_dir: Path) -> Path:
 
 def _workflow_override_path(squad_dir: Path) -> Path:
     return squad_dir / WORKFLOW_OVERRIDE_FILENAME
+
+
+def _playbook_override_path(squad_dir: Path) -> Path:
+    return squad_dir / PLAYBOOK_OVERRIDE_FILENAME
 
 
 # ─── Determine override state ──────────────────────────────────────────────────
@@ -183,8 +194,12 @@ def _role_state(slug: str, path: Path, text: str) -> str:
 def _workflow_state(text: str) -> str:
     """Classify the workflow TOML override as current / drifted.
 
-    The workflow override is additive-only (no bundled counterpart to diff against),
-    so drift is detected by version stamp alone: stamp < running version → drifted.
+    An unstamped file has by definition not been reconciled against any bundled version, so
+    it is classified not-current (drifted) regardless of whether it shadows or only adds —
+    that distinction drives the separate stamp-obligation *finding* in
+    :func:`_check_workflow_override_issues`, not this state. Drift is detected by
+    version stamp alone: there is no per-release content-hash for the workflow TOML in the
+    manifest, so this never compares content the way a template override's drift check does.
     TOML has no sq markers, so a workflow override is never 'broken' in the marker sense.
     """
     stamp = read_toml_stamp(text)
@@ -194,6 +209,19 @@ def _workflow_state(text: str) -> str:
         return STATE_CURRENT
     # For v1 simplicity: any stamp older than the running version is drifted.
     # (No per-release content-hash for the workflow TOML in the manifest yet.)
+    return STATE_DRIFTED
+
+
+def _playbook_state(text: str) -> str:
+    """Classify the playbook TOML override as current / drifted — mirrors
+    :func:`_workflow_state` exactly (same three-state, stamp-only contract; no per-release
+    content-hash for the playbook TOML either). TOML has no sq markers, so a playbook override
+    is never 'broken' in the marker sense."""
+    stamp = read_toml_stamp(text)
+    if stamp is None:
+        return STATE_DRIFTED
+    if stamp == __version__:
+        return STATE_CURRENT
     return STATE_DRIFTED
 
 
@@ -234,6 +262,16 @@ def scan_overrides(squad_dir: Path) -> list[OverrideEntry]:
         state = _workflow_state(text)
         entries.append(
             OverrideEntry(name="workflow", kind="workflow", base_version=stamp, state=state)
+        )
+
+    # Playbook TOML override (single file, not a directory)
+    pb_path = _playbook_override_path(squad_dir)
+    if pb_path.is_file():
+        text = pb_path.read_text(encoding="utf-8")
+        stamp = read_toml_stamp(text)
+        state = _playbook_state(text)
+        entries.append(
+            OverrideEntry(name="playbook", kind="playbook", base_version=stamp, state=state)
         )
 
     return entries
@@ -386,13 +424,24 @@ def scaffold_new_role(
 
 #: Starter content for a scaffolded workflow override — stamp + commented example.
 _WORKFLOW_SCAFFOLD_BODY = """\
-# Workflow spec override — additive-only extensions to the squads built-in vocabulary.
+# Workflow spec override — shadow or extend the squads built-in vocabulary.
 #
 # Rules:
-#   - You may ADD new item types, statuses, and lifecycle state machines.
-#   - You may NOT redefine (shadow) a built-in type, status, or lifecycle.
+#   - Add new item types, statuses, and lifecycle state machines.
+#   - Shadow (redefine one field of, or wholesale replace) a built-in type, status, or
+#     lifecycle — the field you write replaces its bundled counterpart; every other field
+#     is inherited unchanged.
+#   - Drop a built-in via a top-level [selected] table (e.g. selected.items = [...] to keep
+#     only the listed item types).
+#   - The three roster type keys (role, skill, operator) are locked: they can't be added,
+#     dropped, or claimed by another type's category.
 #   - A new type may reference a built-in lifecycle (e.g. lifecycle = "work").
-#   - Unknown TOML keys are rejected at load time (fail-closed).
+#   - Unknown top-level/[selected] keys are rejected at load time (fail-closed).
+#
+# Every status names a `role` — the single source of its settled/hidden/colour behaviour.
+# The built-in roles are: pending, active, attention, blocked, in_force, done, retired,
+# superseded (`sq workflow roles` lists them with their flags). A status with no `role`
+# falls back to `pending`, so it stays visible until you assign one.
 #
 # Validate with: sq workflow lint
 # See state after editing: sq override diff workflow
@@ -411,13 +460,13 @@ _WORKFLOW_SCAFFOLD_BODY = """\
 # Cancelled = ["Triage"]
 #
 # [statuses.Triage]
-# terminal = false
+# role = "pending"    # not settled, not hidden — an open incident awaiting triage
 #
 # [statuses.Mitigating]
-# terminal = false
+# role = "active"     # not settled — work in flight
 #
 # [statuses.Resolved]
-# terminal = true
+# role = "done"       # settled and hidden from the default list view
 #
 # [items.incident]
 # prefix = "INC"
@@ -430,9 +479,11 @@ _WORKFLOW_SCAFFOLD_BODY = """\
 def scaffold_workflow(squad_dir: Path, *, force: bool = False) -> Path:
     """Create ``.overrides/workflow.toml`` with the stamp comment + a worked example.
 
-    The file is additive-only: it starts from scratch (not a copy of the bundled default)
-    and contains only a commented example that the admin can uncomment and extend.
-    Raises :class:`SquadsError` if the file already exists and ``--force`` is not set.
+    The scaffolded file starts from scratch (not a copy of the bundled default) and contains
+    only a commented example the admin can uncomment and extend — but the override it primes
+    can shadow, not just add: a hand-written key replaces its bundled counterpart, and
+    ``[selected]`` drops one by name. Raises :class:`SquadsError` if the file
+    already exists and ``--force`` is not set.
     """
     dest = _workflow_override_path(squad_dir)
     if dest.exists() and not force:
@@ -441,6 +492,84 @@ def scaffold_workflow(squad_dir: Path, *, force: bool = False) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     stamp_line = f"# squads:override-base:{__version__}\n"
     dest.write_text(stamp_line + _WORKFLOW_SCAFFOLD_BODY, encoding="utf-8")
+    return dest
+
+
+# ─── scaffold_playbook ──────────────────────────────────────────────────────────
+
+#: Starter content for a scaffolded playbook override — stamp + the one worked example the
+#: playbook override exists for: the one-line append idiom.
+_PLAYBOOK_SCAFFOLD_BODY = """\
+# Playbook spec override — add role guidance to a type's entry, or shadow a bundled one.
+#
+# Rules:
+#   - One entry per non-roster type declared in the (possibly workflow-overridden) active spec
+#     — coverage is DERIVED, never independently declared: dropping a type via
+#     .overrides/workflow.toml's [selected] drops its playbook coverage requirement too, with
+#     no [selected] key here (none exists for this document).
+#   - A type entry's SCALAR fields (overview, lifecycle, commands) merge field-by-field: write
+#     only the one you want to change, every other field of that entry is inherited unchanged.
+#   - `roles` is a LIST, not a per-guide merge — writing it replaces the type's whole roles
+#     array. The one-line append idiom, `roles = ["$(*self)", { slug = "my-role", ... }]`,
+#     spreads the bundled array first so you keep every existing guide and ADD one — it does
+#     not edit an existing guide's fields, and must be TOML's inline-array form (the
+#     [[types.<t>.roles]] header form has no slot for the "$(*self)" token). Changing one field
+#     of one bundled guide, or replacing it outright, is not expressible without restating the
+#     whole array by hand (omit "$(*self)" and list every guide you want to keep).
+#   - A slug must not appear twice in one type's roles array — roles is keyed by slug (the
+#     generated skill renders one section per slug), so a repeat is rejected at load time, not
+#     merged or rendered twice.
+#   - Every role slug must be one of: a bundled catalog role, the "*dev" sentinel (matching any
+#     <tech>-dev role), or a project role you have defined under .overrides/roles/<slug>.toml.
+#     A project role must also be ACTIVATED (`sq role activate <slug>`) for its guidance to
+#     reach the generated skill — a guide whose slug names no live role loads fine but is
+#     dropped from the skill, and `sq check` warns about it until you activate the role or
+#     remove the guide.
+#   - `authors = true` on a guide declares that role an in-lane AUTHOR of the type the guide
+#     hangs under. It is the sole source of the advisory create-lane: `sq create <type>` warns
+#     when the declared author has no `authors = true` guide on that type. Omit it (the default)
+#     for a role that only reads, triages, or verifies the type.
+#   - Unknown top-level keys are rejected at load time (fail-closed); there is no [selected]
+#     table for this document — see the coverage rule above.
+#
+# See the state of this file with: sq override diff playbook
+# Re-stamp after merging:          sq override update playbook
+#
+# In the example below, the first entry appends a guide; the second appends one that also
+# claims the type's create-lane, so `sq create bug --author devops` stops warning.
+#
+# --- Worked example (uncomment and edit to activate) -------------------------
+#
+# [types.task]
+# roles = [
+#     "$(*self)",
+#     { slug = "architect", enter = ["Confirm the design holds"], do = ["Flag any deviation"] },
+# ]
+#
+# [types.bug]
+# roles = [
+#     "$(*self)",
+#     { slug = "devops", authors = true, do = ["File the incident as a bug"] },
+# ]
+# -----------------------------------------------------------------------------
+"""
+
+
+def scaffold_playbook(squad_dir: Path, *, force: bool = False) -> Path:
+    """Create ``.overrides/playbook.toml`` with the stamp comment + a worked example.
+
+    Mirrors :func:`scaffold_workflow`: starts from scratch (not a copy of the bundled default)
+    and contains only a commented example — the one-line append idiom, since that is the
+    mechanism this override kind exists for. Raises :class:`SquadsError` if the file already
+    exists and ``--force`` is not set.
+    """
+    dest = _playbook_override_path(squad_dir)
+    if dest.exists() and not force:
+        raise SquadsError(f"{PLAYBOOK_OVERRIDE_FILENAME} already exists; use --force to overwrite")
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    stamp_line = f"# squads:override-base:{__version__}\n"
+    dest.write_text(stamp_line + _PLAYBOOK_SCAFFOLD_BODY, encoding="utf-8")
     return dest
 
 
@@ -458,7 +587,7 @@ def _unified_diff(a: str, b: str, fromfile: str, tofile: str) -> str:
 def diff_override(squad_dir: Path, name: str, kind: str) -> DiffResult:
     """Compute both diffs for one override.
 
-    *kind* is ``"template"``, ``"role"``, or ``"workflow"``.
+    *kind* is ``"template"``, ``"role"``, ``"workflow"``, or ``"playbook"``.
     Raises :class:`SquadsError` when the override file is not found.
     """
     if kind == "template":
@@ -467,7 +596,11 @@ def diff_override(squad_dir: Path, name: str, kind: str) -> DiffResult:
         return _diff_role(squad_dir, name)
     if kind == "workflow":
         return _diff_workflow(squad_dir)
-    raise SquadsError(f"unknown override kind {kind!r}; expected 'template', 'role', or 'workflow'")
+    if kind == "playbook":
+        return _diff_playbook(squad_dir)
+    raise SquadsError(
+        f"unknown override kind {kind!r}; expected 'template', 'role', 'workflow', or 'playbook'"
+    )
 
 
 def _diff_template(squad_dir: Path, template_name: str) -> DiffResult:
@@ -583,12 +716,13 @@ def _diff_workflow(squad_dir: Path) -> DiffResult:
     override_text = path.read_text(encoding="utf-8")
     base_version = read_toml_stamp(override_text)
 
-    # Δ-mine: override vs empty reference (workflow overrides are additive-only, starting
-    # from scratch, so the meaningful diff is "what the team added").
+    # Δ-mine: override vs the bundled workflow.toml — now that the override can shadow, an
+    # empty reference would describe only "what the team added" and say nothing about a
+    # shadowed field, which is exactly the kind of change this diff exists to show.
     delta_mine = _unified_diff(
-        "",
+        bundled_workflow_toml_text(),
         override_text,
-        fromfile="(empty — workflow overrides are additive-only, starting from scratch)",
+        fromfile="bundled/workflow.toml",
         tofile=WORKFLOW_OVERRIDE_FILENAME,
     )
 
@@ -613,6 +747,49 @@ def _diff_workflow(squad_dir: Path) -> DiffResult:
     return DiffResult(
         name="workflow",
         kind="workflow",
+        delta_mine=delta_mine,
+        delta_upgrade=delta_upgrade,
+        base_version=base_version,
+        base_available=base_available,
+    )
+
+
+def _diff_playbook(squad_dir: Path) -> DiffResult:
+    """Mirrors :func:`_diff_workflow` exactly — same Δ-mine-against-bundled,
+    Δ-upgrade-by-stamp-comparison shape, no per-release content-hash for this document either."""
+    path = _playbook_override_path(squad_dir)
+    if not path.exists():
+        raise SquadsError("no playbook override found (run `sq override scaffold playbook` first)")
+
+    override_text = path.read_text(encoding="utf-8")
+    base_version = read_toml_stamp(override_text)
+
+    delta_mine = _unified_diff(
+        bundled_playbook_toml_text(),
+        override_text,
+        fromfile="bundled/playbook.toml",
+        tofile=PLAYBOOK_OVERRIDE_FILENAME,
+    )
+
+    delta_upgrade = ""
+    base_available = True
+    if base_version is None:
+        delta_upgrade = (
+            "(no stamp — run `sq override update playbook` to stamp the current version)"
+        )
+        base_available = False
+    elif base_version != __version__:
+        delta_upgrade = (
+            f"(stamp v{base_version} → running v{__version__}; "
+            "review the squads changelog for playbook changes, "
+            "then run `sq override update playbook` to re-stamp)"
+        )
+    else:
+        delta_upgrade = "(stamp matches running version — no upgrade delta)"
+
+    return DiffResult(
+        name="playbook",
+        kind="playbook",
         delta_mine=delta_mine,
         delta_upgrade=delta_upgrade,
         base_version=base_version,
@@ -645,6 +822,12 @@ def _update_one(squad_dir: Path, name: str, kind: str | None) -> list[str]:
             stamp_toml_file(path, __version__)
             return ["workflow"]
         raise SquadsError("no workflow override found. Run `sq override scaffold workflow` first.")
+    if kind == "playbook":
+        path = _playbook_override_path(squad_dir)
+        if path.exists():
+            stamp_toml_file(path, __version__)
+            return ["playbook"]
+        raise SquadsError("no playbook override found. Run `sq override scaffold playbook` first.")
     if kind == "template" or kind is None:
         path = _template_overrides_dir(squad_dir) / name
         if path.exists():
@@ -692,6 +875,12 @@ def _update_all(squad_dir: Path) -> list[str]:
     if wf_path.is_file():
         stamp_toml_file(wf_path, __version__)
         stamped.append("workflow")
+
+    # Playbook TOML override (single file)
+    pb_path = _playbook_override_path(squad_dir)
+    if pb_path.is_file():
+        stamp_toml_file(pb_path, __version__)
+        stamped.append("playbook")
 
     return stamped
 
@@ -780,36 +969,93 @@ def check_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
                         f"`sq override update --role {slug}`",
                     )
                 )
+            issues.extend(_check_role_override_resolves(squad_dir, slug, display))
 
     issues.extend(_check_workflow_override_issues(squad_dir))
+    issues.extend(_check_playbook_override_issues(squad_dir))
     return issues
 
 
+def _check_role_override_resolves(
+    squad_dir: Path, slug: str, display: str
+) -> list[tuple[str, str, str]]:
+    """Report a role override that the surfaces which consume it refuse to load.
+
+    A role override is refusable — an unknown key, a wrong type, a model outside the closed
+    vocabulary, a ``slug`` disagreeing with the filename. That refusal reaches ``sq sync`` and
+    ``sq role <slug> show``, both at exit 1, and reached nothing else: role overrides resolve
+    lazily at the point of use, so no reporter's path ever loaded one. A squad could sit at
+    ``sq check`` "no issues" while ``sq sync`` was impossible — and ``sq check`` is the gate an
+    adopter's CI runs, the surface whose whole job is finding that state before the command
+    that needs it does.
+
+    The workflow and playbook overrides are each reported this way already (their loaders run
+    on ``open_service``'s path, so ``sq check`` rewraps the failure into its own issue). This
+    is the same statement for the one document class that had no reporter at all.
+
+    Deliberately resolved through ``resolve_role`` — the exact function ``sq sync``'s catalog
+    refresh and ``sq role <slug> show`` both call — rather than a re-implemented validation, so
+    the report can never claim a refusal the consumers do not make, or miss one they do.
+    ``RoleNotFoundError`` is unreachable here (the file exists, so resolution always takes the
+    override branch) and needs no separate arm.
+
+    Every override file is resolved, not only the slugs the roster carries: ``sq role <slug>
+    show`` reads one for a bundled role that was never activated, so scoping to live roles
+    would leave a refusable file unreported on the one surface that can still reach it. Hence
+    the message names when each consumer refuses rather than asserting both do.
+    """
+    from squads._roles._resolver import resolve_role
+
+    try:
+        resolve_role(slug, squad_dir)
+    except SquadsError as exc:
+        return [
+            (
+                "error",
+                display,
+                f"role override does not load: {exc} — `sq role {slug} show` refuses now, "
+                f"and `sq sync` does too once {slug} is on the roster",
+            )
+        ]
+    return []
+
+
 def _check_workflow_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
-    """Return check issues for the workflow TOML override (if present)."""
+    """Return check issues for the workflow TOML override (if present).
+
+    The stamp obligation itself is decided by :func:`workflow_stamp_finding` — shared with
+    ``sq workflow lint`` so the two never disagree about the same file: an
+    error-level finding when the override shadows a bundled key and carries no stamp, the
+    existing warn-level drift finding when a stamp predates the running version, and nothing
+    for an add-only override with no stamp.
+    """
     wf_path = _workflow_override_path(squad_dir)
     if not wf_path.is_file():
         return []
 
-    issues: list[tuple[str, str, str]] = []
     display = WORKFLOW_OVERRIDE_FILENAME
     text = wf_path.read_text(encoding="utf-8")
     stamp = read_toml_stamp(text)
-    if stamp is None:
-        issues.append(
-            (
-                "warn",
-                display,
-                "workflow override has no squads:override-base stamp; "
-                "run `sq override update workflow` to re-stamp",
-            )
-        )
-    elif stamp != __version__:
-        msg = (
-            f"workflow override may be stale: stamp v{stamp} "
-            f"predates running v{__version__}; "
-            "run `sq override diff workflow` to review, then "
-            "`sq override update workflow` to re-stamp"
-        )
-        issues.append(("warn", display, msg))
-    return issues
+    finding = workflow_stamp_finding(squad_dir, stamp)
+    if finding is None:
+        return []
+    level, message = finding
+    return [(level, display, message)]
+
+
+def _check_playbook_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
+    """Return check issues for the playbook TOML override (if present) — mirrors
+    :func:`_check_workflow_override_issues` exactly, sharing the same stamp-obligation
+    decision shape via :func:`playbook_stamp_finding`."""
+    pb_path = _playbook_override_path(squad_dir)
+    if not pb_path.is_file():
+        return []
+
+    display = PLAYBOOK_OVERRIDE_FILENAME
+    text = pb_path.read_text(encoding="utf-8")
+    stamp = read_toml_stamp(text)
+    finding = playbook_stamp_finding(squad_dir, stamp)
+    if finding is None:
+        return []
+    level, message = finding
+    return [(level, display, message)]
