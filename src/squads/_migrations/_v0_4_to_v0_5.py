@@ -35,7 +35,7 @@ Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directl
 (this module is private).
 """
 
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
 
 from squads import _aio
@@ -96,6 +96,18 @@ def _convention_name(slug: str, item_id: str, padding: int) -> str:
     return f"{_SKILL_PREFIX}-{seq:0{padding}d}-{slug}.md"
 
 
+def _posix_rel(path: PurePath, root: PurePath) -> str:
+    """*path*'s location relative to *root*, POSIX-separated regardless of host platform.
+
+    ``str(some_path.relative_to(root))`` renders with the **OS separator** — a backslash on
+    Windows — which would land in a committed pointer/frontmatter value that must be the same
+    for the same corpus on every platform. ``.as_posix()`` is the fix; typed on ``PurePath``
+    (not ``Path``) so this is exercised directly against ``PureWindowsPath`` inputs in tests,
+    with no real filesystem or host OS involved.
+    """
+    return path.relative_to(root).as_posix()
+
+
 async def _rewrite_pointer(
     root: SquadPaths,
     slug: str,
@@ -124,21 +136,29 @@ async def _backfill_description(
     desc: str,
     squad_dir_rel: str,
 ) -> bool:
-    """Backfill description onto an already-convention-named but description-less file.
+    """Backfill description onto an already-convention-named file, and strip a stale ``path:``
+    frontmatter key if one survived from a pre-fix run (the live model never writes this key;
+    mirrors the strip in :func:`_rename_stamped_legacy`'s branch).
 
-    Returns True if the file was updated (description was empty/missing), False if it
-    already had a description (idempotent skip).
+    Returns True if the file was updated (description backfilled and/or a stale ``path``
+    stripped), False if there was nothing to do (fully idempotent skip).
     """
     convention_text = await _aio.read_text(convention_path)
     cfm, _ = sections.split_frontmatter(convention_text)
-    if cfm.get("description"):
-        return False  # already populated — no-op
-    cfm["description"] = desc
+    had_description = bool(cfm.get("description"))
+    had_stale_path = "path" in cfm
+    if had_description and not had_stale_path:
+        return False  # already populated and clean — no-op
+    if not had_description:
+        cfm["description"] = desc
+    cfm.pop("path", None)
     updated = sections.replace_frontmatter(convention_text, cfm)
     await _aio.write_text(convention_path, updated)
-    squad_rel = str(cfm.get("path", ""))
-    if squad_rel:
-        await _rewrite_pointer(paths, slug, desc, f"{squad_dir_rel}/{squad_rel}")
+    # The pointer target is the file's own location, not a stored (and possibly absent —
+    # the live model never writes `path` to frontmatter) `path:` frontmatter key. POSIX-
+    # separated regardless of host platform — see `_posix_rel`.
+    squad_rel = _posix_rel(convention_path, paths.squad_dir)
+    await _rewrite_pointer(paths, slug, desc, f"{squad_dir_rel}/{squad_rel}")
     return True
 
 
@@ -158,7 +178,9 @@ async def _rename_stamped_legacy(
     new_path = skills_folder / new_name
     await _aio.path_rename(legacy_path, new_path)
     squad_rel = f"{_SKILL_FOLDER}/{new_name}"
-    fm["path"] = squad_rel
+    # `path` is model-only (Item.to_frontmatter_dict never writes it) and derivable from the
+    # file's own location — never persist it, or it goes stale the moment the file moves again.
+    fm.pop("path", None)
     if not fm.get("description"):  # fill-if-empty: don't clobber an operator edit
         fm["description"] = desc
     new_text = await _aio.read_text(new_path)

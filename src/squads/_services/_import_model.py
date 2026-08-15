@@ -14,7 +14,7 @@ shape it actually simulates/applies against.
 """
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
@@ -61,6 +61,10 @@ class BodyEvent(_EventBase):
     target: str
     body: str
     append: bool = False
+    #: Replacing an already-written body is refused without this, exactly as on the CLI — an
+    #: import replayed onto a squad whose items already carry prose must not silently erase it.
+    #: The whole apply is one transaction, so the refusal aborts the run rather than half-applying.
+    force: bool = False
 
 
 class CommentEvent(_EventBase):
@@ -189,6 +193,8 @@ class SubBodyEvent(_EventBase):
     local: str
     body: str
     append: bool = False
+    #: See :attr:`BodyEvent.force`.
+    force: bool = False
 
 
 class AssignEvent(_EventBase):
@@ -300,7 +306,7 @@ def generic_add_sub(ev: ImportEvent) -> AddSubEvent:
 
 
 def parse_events(
-    text: str, *, default_at: datetime, default_as: str
+    text: str, *, default_at: datetime, default_as: str | None = None
 ) -> tuple[list[ResolvedEvent], list[ImportIssue]]:
     """Parse a JSONL event stream into resolved events, collecting every problem seen.
 
@@ -308,11 +314,16 @@ def parse_events(
     JSON, an unrecognised ``op``, a field of the wrong shape) becomes one :class:`ImportIssue`
     and is skipped; it does not interrupt ``at``/``as`` inheritance for the lines around it,
     which continues to track only successfully parsed events.
+
+    ``default_as`` has no fallback of its own — leave it ``None`` and an event that reaches
+    the chain with no actor at all (no ``as`` of its own, no prior event's, no file-level
+    default) becomes an :class:`ImportIssue` naming the missing actor rather than silently
+    inventing one.
     """
     events: list[ResolvedEvent] = []
     issues: list[ImportIssue] = []
     current_at = default_at
-    current_actor = default_as
+    current_actor: str | None = default_as
 
     for line_no, raw_line in enumerate(text.splitlines(), start=1):
         stripped = raw_line.strip()
@@ -345,11 +356,21 @@ def parse_events(
         if event.as_ is not None:
             current_actor = event.as_
 
+        if current_actor is None:
+            issues.append(ImportIssue(line=line_no, message="no actor: missing 'as'"))
+            continue
+
         events.append(ResolvedEvent(line=line_no, event=event, at=current_at, actor=current_actor))
 
     return events, issues
 
 
 def utc_now_floor() -> datetime:
-    """A safe file-level ``at`` default when the caller supplies none (e.g. a unit test)."""
-    return datetime.now(UTC).replace(microsecond=0)
+    """A safe file-level ``at`` default when the caller supplies none (e.g. a unit test).
+
+    Goes through the injectable clock rather than reading wall-clock time directly: an
+    ``sq --at ...`` run forging a historical instant, and a frozen-time test, must both see
+    their own instant here — a second, unhooked source of "now" silently ignores the override
+    at whichever seam still reads it.
+    """
+    return clock.now()

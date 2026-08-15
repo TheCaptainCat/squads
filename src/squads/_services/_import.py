@@ -196,14 +196,17 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
 
         ``default_at``/``default_as`` are the file-level fallbacks an event without its own
         ``at``/``as`` inherits when there is no PRIOR event to inherit from either — the CLI
-        task's ``--at``/``--as``. Left ``None``, they default to "now" and this squad's
-        configured default role, mirroring the interactive commands' own defaults.
+        task's ``--at``/``--as``. Left ``None``, ``default_at`` defaults to "now"; ``default_as``
+        has **no** fallback — attribution is only knowable at the moment the event was written
+        or the command typed, never invented from a config default, so an event that reaches the
+        chain with no actor at all (no ``as`` of its own, no prior event's, no ``--as``) becomes
+        a validation issue naming the missing actor instead of silently attributing to whoever
+        the squad happens to be configured to default to.
         """
         effective_default_at = default_at if default_at is not None else utc_now_floor()
-        effective_default_as = default_as or self.paths.config.default_role
 
         events, parse_issues = parse_events(
-            text, default_at=effective_default_at, default_as=effective_default_as
+            text, default_at=effective_default_at, default_as=default_as
         )
         plan = await self._plan_import(events)
         # Parse-time issues (bad JSON, an unrecognised op, …) merge into the pre-pass's own
@@ -541,11 +544,13 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             return {result.item.id}
         if isinstance(event, StatusEvent):
             target = handles.resolve_item(event.target)
-            item = await self._set_status_core(db, target, event.status, force=event.force)
+            item, _severed, _warnings = await self._set_status_core(
+                db, target, event.status, force=event.force
+            )
             return {item.id}
         if isinstance(event, BodyEvent):
             target = handles.resolve_item(event.target)
-            mutate = self._body_mutate(target, event.body, append=event.append)
+            mutate = self._body_mutate(target, event.body, append=event.append, force=event.force)
             item = await self._section_edit_core(db, target, mutate)
             return {item.id}
         if isinstance(event, CommentEvent):
@@ -567,7 +572,9 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         if isinstance(event, SubBodyEvent):
             target = handles.resolve_item(event.target)
             local_id = handles.resolve_local(target, event.local)
-            mutate = self._block_body_mutate(event.kind, local_id, event.body, append=event.append)
+            mutate = self._block_body_mutate(
+                event.kind, local_id, event.body, append=event.append, force=event.force
+            )
             item = await self._section_edit_core(db, target, mutate)
             return {item.id}
         if isinstance(event, AssignEvent):

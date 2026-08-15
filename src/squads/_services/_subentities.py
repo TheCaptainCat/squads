@@ -22,16 +22,32 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
-from squads._services._base import ServiceCore, reject_markers
+from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
 from squads._services._results import BlockResult, SubentityDetail
-
-#: Last-resort finding-severity fallback — only reached when the active spec's ``finding``
-#: kind carries no ``severity`` field at all (a customized spec that dropped it), so
-#: ``add_finding`` never crashes for want of a default.
-_DEFAULT_FINDING_SEVERITY = "medium"
 
 
 class SubentitiesMixin(ServiceCore):
+    def _checked_field_values(self, kind: str, fields: dict[str, str] | None) -> dict[str, str]:
+        """One validated badge code per given field code, refusing a code *kind* does not
+        declare — the sub-entity mirror of the item axis's ``_create_model`` gate.
+
+        Without it the generic ``fields=`` door wrote whatever it was handed: on a spec whose
+        ``finding`` kind declares only ``impact``, ``add_block(fields={"severity": "high"})``
+        stored ``severity`` into frontmatter for a field the spec no longer declares, where
+        it rendered nowhere (the spec-driven badges map is derived from ``fields_for``) and
+        ``sq check`` reported nothing. One gate for both doors, same as the item axis.
+        """
+        checked: dict[str, str] = {}
+        for code, value in (fields or {}).items():
+            field = self._badge_field(kind, code)
+            if field is None:
+                declared = ", ".join(f.code for f in self.spec.fields_for(kind)) or "(none)"
+                raise SquadsError(
+                    f"{code!r} is not a settable field on a {kind}; valid: {declared}"
+                )
+            checked[code] = self._parse_badge_code(field, value)
+        return checked
+
     def field_default(self, type_or_kind: str, code: str) -> str | None:
         """The badge code an omitted field falls back to: the field's own ``default``,
         else its collection's ``default``, else ``None`` (generic — no field/collection
@@ -82,14 +98,16 @@ class SubentitiesMixin(ServiceCore):
         status: str | None = None,
         body: str | None = None,
     ) -> BlockResult:
-        resolved_severity = (
-            severity or self.field_default("finding", "severity") or _DEFAULT_FINDING_SEVERITY
-        )
+        # Omit the field entirely when the active spec's `finding` kind declares no
+        # `severity` — a hardcoded last-resort value here would be exactly the undeclared
+        # write `_checked_field_values` refuses. An explicit `severity=` on such a spec is
+        # still refused, by that gate, with the declared codes named.
+        resolved_severity = severity or self.field_default("finding", "severity")
         return await self.add_block(
             review_id,
             "finding",
             title,
-            fields={"severity": resolved_severity},
+            fields={"severity": resolved_severity} if resolved_severity is not None else None,
             assignee=assignee,
             status=status,
             body=body,
@@ -178,8 +196,9 @@ class SubentitiesMixin(ServiceCore):
             story=story,
         )
         # Generic field-code -> badge-code store: ``severity`` (typed attribute) or any
-        # other declared field (SubEntity.extra) — the same dispatch for every code.
-        for code, value in (fields or {}).items():
+        # other declared field (SubEntity.extra) — the same dispatch for every code, gated
+        # on the kind's own declarations first.
+        for code, value in self._checked_field_values(kind, fields).items():
             sub.set_badge_value(code, value)
         item.subentities.append(sub)
         item.updated_at = now if now is not None else clock.now()
@@ -199,7 +218,7 @@ class SubentitiesMixin(ServiceCore):
         body: str | None = None,
     ) -> BlockResult:
         """The sub-entity-scaffold mutation core: takes an already-open transaction's ``db``."""
-        container = self.subentity_container[kind]
+        container = self._container_for(kind)
         item, sub, base = self._add_block_model(
             db,
             item_id,
@@ -292,14 +311,20 @@ class SubentitiesMixin(ServiceCore):
         await self._set_block_assignee(task_id, "subtask", local_id, assignee)
 
     async def set_subtask_body(
-        self, task_id: str, local_id: str, body: str, *, append: bool = False
+        self, task_id: str, local_id: str, body: str, *, append: bool = False, force: bool = False
     ) -> None:
-        await self.set_block_body(task_id, "subtask", local_id, body, append=append)
+        await self.set_block_body(task_id, "subtask", local_id, body, append=append, force=force)
 
     async def set_story_body(
-        self, feature_id: str, local_id: str, body: str, *, append: bool = False
+        self,
+        feature_id: str,
+        local_id: str,
+        body: str,
+        *,
+        append: bool = False,
+        force: bool = False,
     ) -> None:
-        await self.set_block_body(feature_id, "story", local_id, body, append=append)
+        await self.set_block_body(feature_id, "story", local_id, body, append=append, force=force)
 
     async def update_subtask(  # noqa: PLR0913 — full metadata entry point for a subtask
         self,
@@ -549,7 +574,7 @@ class SubentitiesMixin(ServiceCore):
         base = item.model_copy(deep=True)
         if title is not None:
             sub.title = title
-        for code, value in (fields or {}).items():
+        for code, value in self._checked_field_values(kind, fields).items():
             sub.set_badge_value(code, value)
         if clear_story:
             sub.story = None
@@ -573,36 +598,54 @@ class SubentitiesMixin(ServiceCore):
         )
 
     def _block_body_mutate(
-        self, kind: str, local_id: str, body: str, *, append: bool
+        self, kind: str, local_id: str, body: str, *, append: bool, force: bool = False
     ) -> Callable[[str, Item], str]:
         """Build the ``mutate(text, item)`` closure :meth:`set_block_body` applies via the
         shared section-edit core — factored out so the bulk importer's ``sub-body`` op can
         drive the exact same logic through
-        :meth:`~squads._services._base.ServiceCore._section_edit_core`."""
+        :meth:`~squads._services._base.ServiceCore._section_edit_core`.
+
+        A sub-entity body is authored prose with no regeneration path, exactly like an item
+        body, so it carries the same replace guard (see
+        :func:`~squads._services._base.reject_body_overwrite`). The "nothing written yet" value
+        here is the block's own placeholder line rather than a rendered template — the same one
+        ``--append`` already steps over — so the distinction needs no render.
+        """
         reject_markers(body)
         btag = discussion.body_tag(kind, local_id)
 
         def mutate(text: str, item: Item) -> str:
             self._check_type(item, kind)
             self._find(item, kind, local_id)  # ensure it exists
+            current = (sections.get_section(text, btag) or "").strip("\n")
+            authored = bool(current) and current.strip() != discussion.body_placeholder(
+                kind, self.spec
+            )
             new_body = body
             if append:
-                current = (sections.get_section(text, btag) or "").strip("\n")
-                if current and current.strip() != discussion.body_placeholder(kind, self.spec):
+                if authored:
                     new_body = f"{current}\n\n{body}"
-            self.store.log(
-                "subentity",
-                item.id,
-                {"op": "body", "kind": kind, "local_id": local_id},
-            )
+            elif authored and not force:
+                reject_body_overwrite(f"{item.id} {local_id}", current)
+            delta: dict[str, object] = {"op": "body", "kind": kind, "local_id": local_id}
+            if authored and not append:
+                delta["replaced_lines"] = len(current.splitlines())
+            self.store.log("subentity", item.id, delta)
             return sections.replace_section(text, btag, new_body)
 
         return mutate
 
     async def set_block_body(
-        self, parent_id: str, kind: str, local_id: str, body: str, *, append: bool
+        self,
+        parent_id: str,
+        kind: str,
+        local_id: str,
+        body: str,
+        *,
+        append: bool,
+        force: bool = False,
     ) -> None:
-        mutate = self._block_body_mutate(kind, local_id, body, append=append)
+        mutate = self._block_body_mutate(kind, local_id, body, append=append, force=force)
         await self._locked_section_edit(parent_id, mutate)
 
     async def remove_block(self, parent_id: str, kind: str, local_id: str) -> None:
@@ -616,16 +659,19 @@ class SubentitiesMixin(ServiceCore):
         never reissued to a *different* future sub-entity added later in the same run — see the
         note on :func:`discussion.next_local_id` for the one case that isn't fully covered.
 
-        **Dangling story map:** removing a ``story`` refuses (``SquadsError``) while any subtask
-        in a child task still maps to it — findings/subtasks have no such inbound mapping, so the
-        check is scoped to ``kind == "story"`` (a bounded built-in, like the mapping itself).
+        **Dangling story map:** removing a sub-entity of a kind that some other kind's
+        ``maps_parent_story`` mapping targets refuses (``SquadsError``) while any subtask in
+        a child task still maps to it — findings/subtasks have no such inbound mapping, so
+        the check is gated by :meth:`_kind_is_story_target` (derived from the spec's
+        ``maps_parent_story`` flag, the same one :meth:`_check_maps_parent_story` gates on),
+        not a ``kind == "story"`` literal, so a renamed story-equivalent kind stays covered.
         """
-        container = self.subentity_container[kind]
+        container = self._container_for(kind)
         async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind)
             sub = self._find(item, kind, local_id)
             base = item.model_copy(deep=True)
-            if kind == "story":
+            if self._kind_is_story_target(item.type):
                 dependents = self._dependent_subtasks(db, item, local_id)
                 if dependents:
                     listed = ", ".join(f"{task.id} {s.local_id}" for task, s in dependents)
@@ -695,7 +741,7 @@ class SubentitiesMixin(ServiceCore):
         before it is substituted for the index-derived one.
         """
         kind = self.subentity_kind[item.type]
-        container = self.subentity_container[kind]
+        container = self._container_for(kind)
         text = await self._read_item_file(item, path) if text is None else text
         ensure_no_skew(text, base)
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
@@ -748,6 +794,17 @@ class SubentitiesMixin(ServiceCore):
         self._check_type(item, kind)
         return item
 
+    def _container_for(self, kind: str) -> str:
+        """The container marker tag for *kind*, or a clean ``SquadsError`` — never a bare
+        ``KeyError`` — when *kind* names no declared sub-entity kind at all (e.g. a stale
+        CLI registration, or a bulk-import event citing a typo'd/dropped kind). A ``kind``
+        that IS declared but not hosted by the item in hand is a separate, better-worded
+        refusal from :meth:`_check_type`; this only guards the dict lookup itself."""
+        container = self.subentity_container.get(kind)
+        if container is None:
+            raise SquadsError(f"{kind!r} is not a declared sub-entity kind")
+        return container
+
     def _check_type(self, item: Item, kind: str) -> None:
         # Forward, 1:1 check (spec.item_subentity_kind) — never resolve ownership by
         # inverting kind->type, which collapses when two types share a kind.
@@ -764,6 +821,28 @@ class SubentitiesMixin(ServiceCore):
         ks = self.spec.subentity_kinds.get(kind)
         if ks is None or not ks.maps_parent_story:
             raise SquadsError(f"{kind} sub-entities don't map to a parent story")
+
+    def _kind_is_story_target(self, item_type: str) -> bool:
+        """True when some other item type's hosted sub-entity kind declares
+        ``maps_parent_story`` and maps onto *item_type*'s own hosted kind — i.e. removing one
+        of those sub-entities could orphan a mapped child's reference.
+
+        ``maps_parent_story`` is declared on the mapping (child) kind, e.g. ``subtask``, not
+        on the target (parent) kind, e.g. ``story`` — this walks every declared item type
+        looking for one whose hosted kind maps up, and whose required parent is
+        *item_type*, so the check stays correct however either kind is named."""
+        for other_type, ts in self.spec.items.items():
+            child_kind = ts.subentity_kind
+            if child_kind is None:
+                continue
+            ks = self.spec.subentity_kinds.get(child_kind)
+            if (
+                ks is not None
+                and ks.maps_parent_story
+                and self.spec.item_parent_required(other_type) == item_type
+            ):
+                return True
+        return False
 
     @staticmethod
     def _find(item: Item, kind: str, local_id: str) -> SubEntity:

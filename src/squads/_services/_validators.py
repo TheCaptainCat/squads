@@ -10,10 +10,14 @@ owning only the ``category`` field itself, the closed validator-NAME registries
 checks that read them.
 
 The engine is now the **sole** source of both ``sq check``'s per-item/squad-global issues and
-the create/update fail-closed gate — :data:`COMMON_CORE`/:data:`CATEGORY_BUNDLES` are populated,
+the create/update fail-closed gate — ``COMMON_CORE``/``CATEGORY_BUNDLES`` (defined in
+``_workflow/_models.py``, so the Plane-1 spec-validity pass can resolve the same effective set
+this engine runs) are populated,
 including ``no_parent`` on the ``records`` bundle and as ``epic``'s own ``validators`` addition,
 and the hardcoded ``_check_*`` methods that used to compute this are retired from
-``_maintenance.py``.
+``_maintenance.py``. One catalog member, ``parent_present``, sits in no bundle at all and is
+reachable only through a type's own ``validators`` list — see its docstring for why that is the
+decision and not an omission.
 ``gate()`` only aborts on an **error**-level issue — a warn-level one (``agent_registered``,
 ``no_status_banner``, …) is advisory everywhere, mirroring ``sq check``'s own error-only exit
 code; it is never a create/update blocker.
@@ -32,17 +36,26 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._backends._base import BackendContext
 from squads._backends._registry import get_backend
-from squads._interactions import TITLE_ADVISORY_MAX
+from squads._interactions import (
+    TITLE_ADVISORY_MAX,
+    orphaned_playbook_guide_message,
+    orphaned_playbook_guides,
+)
+from squads._interactions._loader import playbook_override_guide_pairs
+from squads._interactions._models import PlaybookSpec
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import VALID_REF_KINDS, Item, split_ref
 from squads._paths import SquadPaths, number_for_id
+from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
+    ROSTER_ROLE,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
     VALIDATOR_NAMES,
     WorkflowSpec,
+    effective_validator_names,
 )
 
 #: The on-disk scan map ``_scan_for_check`` builds: sequence number -> (frontmatter id, file
@@ -98,12 +111,21 @@ class SquadGlobalContext:
     """Everything one squad-global validator reads: the whole index, the on-disk scan map, the
     active spec, and the squad's resolved paths — the last two let ``backend_reconciled`` build
     the ``BackendContext`` its backend lookups need, mirroring what ``_check_backends`` holds
-    via ``self._ctx``/``self._backends()`` today."""
+    via ``self._ctx``/``self._backends()`` today.
+
+    ``playbook`` (defaulting to ``None``) is read by two validators:
+    ``roster_config_integrity`` threads it to ``config_integrity.check_all`` so a project's
+    merged playbook, not the bundled one, decides the always-on skill floor, and
+    ``playbook_guide_role_live`` reads its per-type guides directly. ``report()``'s own
+    construction always supplies ``Service.playbook``, so the ``None`` default only ever
+    describes a caller that has no playbook to offer at all.
+    """
 
     index: SquadsDB
     on_disk: OnDiskMap
     spec: WorkflowSpec
     paths: SquadPaths
+    playbook: PlaybookSpec | None = None
 
 
 class Validator(Protocol):
@@ -164,6 +186,34 @@ def _no_parent(ctx: ValidatorContext) -> list[CheckIssue]:
     return []
 
 
+def _parent_present(ctx: ValidatorContext) -> list[CheckIssue]:
+    """Requires a parent — the mandatory half of the parent vocabulary, which ``parents`` and
+    ``no_parent`` between them could not express.
+
+    ``parents`` is an *eligibility* allowlist: it says which type a parent may be, never that
+    there must be one, so ``parents = ["feature"]`` reads as "a feature or nothing". This is the
+    validator that closes that gap, and the only one defined over ``parent_required``'s
+    requiredness: with it effective, an item created with no parent is refused, naming the
+    declared type when the spec declares one.
+
+    **In no** :data:`~squads._workflow._models.CATEGORY_BUNDLES` **entry, deliberately.** A type
+    turns it on by naming it in its own ``validators`` — the same extend-only opt-in the
+    sub-entity clause documents. The bundled spec does not, and that is a decision rather than an
+    oversight: ``gate()`` and ``report()`` run one effective name set, so a validator that
+    refuses a parentless item at create also errors on every parentless item already on disk.
+    Putting this in the ``work`` bundle would therefore not be "new items must have a parent", it
+    would be "every historical bare item is now a ``sq check`` error", with no migration able to
+    invent a parent for them. Opt-in keeps the declaration honest for the adopter who wants it
+    and leaves every existing corpus alone.
+    """
+    item = ctx.item
+    if item.parent:
+        return []
+    required = ctx.spec.item_parent_required(item.type)
+    of_type = f" of type {required}" if required else ""
+    return [CheckIssue("error", item.id, f"{item.type} requires a parent{of_type}")]
+
+
 def _item_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_items``'s "status invalid for type" branch (named here for the first time —
     it was an unnamed inline check in the hardcoded set)."""
@@ -216,7 +266,8 @@ def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_subtask_stories``: a subtask maps to one of its parent's declared stories."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
-    if kind != "subtask":
+    ks = ctx.spec.subentity_kinds.get(kind) if kind is not None else None
+    if ks is None or not ks.maps_parent_story:
         return []
     refs = [(s.local_id, s.story) for s in item.subentities if s.story]
     if not refs:
@@ -252,6 +303,55 @@ def _subentity_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
         CheckIssue("error", item.id, f"{kind} {s.local_id} has invalid status {s.status!r}")
         for s in item.subentities
         if s.status not in valid
+    ]
+
+
+def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
+    """The item's on-disk container marker still matches the plural its kind declares.
+
+    ``subentity_kinds.<kind>.plural`` is the persisted container-marker name, so it is a
+    corpus-alignment field exactly like a type's ``prefix`` or ``folder`` — but unlike those
+    two it leaves no witness in the index, so the loader's live-index cross-check cannot see
+    it and ``sq workflow lint`` (which never opens an item file) has no way to. This is the
+    only plane that can: ``sq check`` already holds each item's on-disk text.
+
+    Renaming the plural against an existing corpus half-bricks it rather than breaking it,
+    which is why it needs its own report. ``add-<kind>`` fails — it looks for a container the
+    files do not carry — while sub-entity *body* writes keep succeeding, because those address
+    their own per-block markers. So the corpus stays usable enough to look fine, and both
+    gates said clean. Both directions are covered, because the plural can move either way:
+    declaring one over an existing corpus, and removing the declaration afterwards.
+    """
+    item = ctx.item
+    kind = ctx.spec.item_subentity_kind(item.type)
+    if kind is None or ctx.raw_text is None:
+        return []
+    plural = ctx.spec.subentity_plural(kind)
+    if sections.has_section(ctx.raw_text, plural):
+        return []
+    # Name the tag the file DOES carry: that is the difference between "your override renamed
+    # this" and "this file is malformed", and it is the fact that tells the adopter which way
+    # to fix it. A container is the only top-level marker in an item file that is not one of
+    # the three fixed structural tags and not a sub-entity block tag (those are ``kind:LOCAL``,
+    # so they carry a colon) — derived that way rather than matched against the *declared*
+    # plurals, because the whole point is that the file carries an UNdeclared one, and the old
+    # name it carries need not be declared anywhere any more.
+    structural = {markers.BODY, markers.SUMMARY, markers.DISCUSSION, plural}
+    tags = {
+        tag.removeprefix(markers.PREFIX).removesuffix(":end")
+        for tag in sections.find_markers(ctx.raw_text)
+    }
+    stale = sorted(tag for tag in tags if ":" not in tag and tag not in structural)
+    found = f"; the file carries {stale[0]!r}" if stale else ""
+    return [
+        CheckIssue(
+            "error",
+            item.id,
+            f"no {plural!r} container section{found} — {kind!r} declares plural {plural!r}, "
+            f"so `sq {item.type} {item.sequence_id} add-{kind}` cannot write here. Revert "
+            f"subentity_kinds.{kind}.plural in the workflow override, or change it only "
+            f"while no {item.type} items exist",
+        )
     ]
 
 
@@ -349,12 +449,14 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
 CATALOG: dict[str, Validator] = {
     "parent_in": _parent_in,
     "no_parent": _no_parent,
+    "parent_present": _parent_present,
     "item_status_valid": _item_status_valid,
     "dangling_ref": _dangling_ref,
     "ref_kind_valid": _ref_kind_valid,
     "agent_registered": _agent_registered,
     "subtask_story_mapping": _subtask_story_mapping,
     "subentity_status_valid": _subentity_status_valid,
+    "subentity_container_marker": _subentity_container_marker,
     "subentity_body_written": _subentity_body_written,
     "subentity_title_max": _subentity_title_max,
     "no_status_banner": _no_status_banner,
@@ -423,10 +525,117 @@ def _backend_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
     return issues
 
 
+def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """The config-integrity clauses (``no_live_role``/``preloaded_skill``), evaluated against
+    state already on disk rather than gating a transition: the roster status verb shipped
+    before any clause refused these
+    transitions, so a squad already sitting in a state a fresh retirement would refuse (or one
+    reached some other way) keeps it silently, and `sq sync` faithfully projects the breakage.
+    Delegates to ``_config_integrity.check_all``, the module the retirement gate also calls, so
+    neither restates the clauses. Reads the index and the config only — never the on-disk scan
+    — so it carries none of ``SquadGlobalValidator``'s cross-source single-item-evaluability
+    obligation.
+
+    Renders each finding's condition plus its remedy when one exists, via
+    ``config_integrity.render_finding`` — the one place condition and remedy are ever composed,
+    so this line never duplicates a phrase the finding's own ``message`` already states."""
+    findings = config_integrity.check_all(
+        ctx.index, ctx.spec, ctx.paths.config.active_backends, ctx.playbook
+    )
+    return [
+        CheckIssue("error", f.entry, f"config integrity: {config_integrity.render_finding(f)}")
+        for f in findings
+    ]
+
+
+def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """More than one **live** ``role`` item carrying ``is_default`` — an error naming the
+    holders, with ``sq role <addr> set-default`` as the remedy.
+
+    Report-only, deliberately: this predicate is never folded into
+    ``config_integrity.check_all``, so the retirement gate (``_retirement.py::enforce``) never
+    evaluates it. Delta scoping would fire it on *reactivating* a non-live role that still
+    carries the key while a live role also carries it — and no remedy exists in that direction:
+    ``Service.set_default_role`` refuses a non-live target, and no interactive command clears
+    the key off a non-live role. That is exactly the lock-out the withdrawn ``no_default_role``
+    clause was withdrawn for, so this stays a reporter-only fact about state already reached
+    (today, only through the bulk importer's ``update`` event — the one path outside
+    ``set_default_role`` that writes the key), never a gate clause.
+    """
+    live = ctx.spec.live_statuses(ROSTER_ROLE)
+    holders = sorted(
+        it.id
+        for it in ctx.index.items.values()
+        if it.type == ROSTER_ROLE and it.status in live and it.extra.get(X.IS_DEFAULT)
+    )
+    if len(holders) <= 1:
+        return []
+    return [
+        CheckIssue(
+            "error",
+            "",
+            "more than one live role carries the default-role designation: "
+            f"{', '.join(holders)} — remedy: `sq role <addr> set-default`",
+        )
+    ]
+
+
+def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """A playbook guide whose role slug names no live role — a warning per dropped guide.
+
+    The gap the playbook override's permissive slug authority leaves open: the loader accepts a
+    project role slug by filename (it must, being readable before the index), the generated
+    skill drops it unless the role is live, and nothing in between says so. This is the same
+    event as the orphaned ``sq-<type>`` skill the reporter already flags, one level down — a
+    guide the renderer will drop must never validate silently.
+
+    Warning, not error, and never a gate clause: both remedies (activate the role, or edit
+    ``.overrides/playbook.toml``) are outside any single transition, and a squad mid-scaffold is
+    legitimately in this state for as long as the adopter takes to run ``sq role activate``.
+    Refusing the retirement instead — the shape the *skill* side uses, where ``--unlink`` is a
+    performable step — would offer no equivalent escape here, since sq never rewrites an
+    adopter's override file. See :func:`~squads._interactions.orphaned_playbook_guides` for the
+    predicate and its two deliberate exemptions.
+
+    Scoped to guides the adopter actually wrote, which is why the raw override document is read
+    here (:func:`~squads._interactions._loader.playbook_override_guide_pairs`) rather than only
+    the merged playbook the context carries: the merged document holds no provenance, and a
+    report an adopter cannot act on is worse than silence for a squad whose only "fault" is
+    having retired a bundled role.
+    """
+    if ctx.playbook is None:
+        return []  # no playbook resolved for this context — nothing to strip guides from
+    live = ctx.spec.live_statuses(ROSTER_ROLE)
+    roles = [it for it in ctx.index.items.values() if it.type == ROSTER_ROLE]
+    known = frozenset(slug for it in roles if (slug := it.extra.get(X.SLUG)))
+    live_slugs = frozenset(
+        slug for it in roles if it.status in live and (slug := it.extra.get(X.SLUG))
+    )
+    live_initial = ctx.spec.live_initial(ROSTER_ROLE)
+    return [
+        CheckIssue(
+            "warn",
+            "",
+            orphaned_playbook_guide_message(
+                item_type, slug, retired=slug in known, live_status=live_initial
+            ),
+        )
+        for item_type, slug in orphaned_playbook_guides(
+            ctx.playbook,
+            ctx.spec,
+            live_role_slugs=live_slugs,
+            override_guides=playbook_override_guide_pairs(ctx.paths.squad_dir),
+        )
+    ]
+
+
 #: The closed squad-global validator registry — same CODE-constant status as ``CATALOG``.
 SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "index_reconciled": _index_reconciled,
     "backend_reconciled": _backend_reconciled,
+    "roster_config_integrity": _roster_config_integrity,
+    "default_designation_duplicated": _default_designation_duplicated,
+    "playbook_guide_role_live": _playbook_guide_role_live,
 }
 assert set(SQUAD_GLOBAL_CATALOG) == SQUAD_GLOBAL_VALIDATOR_NAMES, (
     "SQUAD_GLOBAL_CATALOG must implement exactly SQUAD_GLOBAL_VALIDATOR_NAMES"
@@ -462,58 +671,9 @@ def supersedes_incoming_seqs(index: SquadsDB) -> frozenset[int]:
 
 # --------------------------------------------------------------------------- composition + engine
 
+
 #: Cross-cutting per-item hygiene shared by every category (the accepted decision's "common
 #: core"): item status validity, ref resolution/kind, no self-declared status prose, and
-#: author/assignee registration.
-COMMON_CORE: tuple[str, ...] = (
-    "item_status_valid",
-    "dangling_ref",
-    "ref_kind_valid",
-    "no_status_banner",
-    "agent_registered",
-)
-
-#: Per-category default per-item validator-name bundle (per the accepted decision: "a category
-#: supplies a default validator bundle"). ``records`` carries ``no_parent`` here; ``epic`` gets
-#: its own ``no_parent`` as a per-type ``validators`` addition in the spec (``work``'s bundle
-#: parent check is vacuous for it, so this is a pure AND-compose tightening, not a conflict).
-CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
-    "roster": (),
-    "work": (
-        "parent_in",
-        "subentity_status_valid",
-        "subentity_body_written",
-        "subentity_title_max",
-        "subtask_story_mapping",
-    ),
-    "records": ("no_parent", "supersedes_incoming"),
-}
-
-
-def effective_validator_names(
-    category: str,
-    *,
-    common_core: tuple[str, ...] = COMMON_CORE,
-    category_bundles: dict[str, tuple[str, ...]] | None = None,
-    extra: tuple[str, ...] = (),
-) -> tuple[str, ...]:
-    """A type's effective per-item validator-name set: common core + its category's default
-    bundle + its own additions (the "extend-only floor" — a type may add to a bundle, never
-    subtract from it).
-
-    *extra* is the per-type ``ItemSpec.validators`` field (the assignment surface) —
-    ``_run_per_item`` passes the item's own list; every other caller defaults to none.
-
-    Parameterised on *common_core*/*category_bundles* — not hardcoded to the module
-    constants — so a caller (or a test) can exercise the composition against a stub bundle.
-    *category_bundles* defaults to ``None`` (resolved to the module-level
-    :data:`CATEGORY_BUNDLES` below) rather than binding the mutable dict itself as a parameter
-    default.
-    """
-    bundles = category_bundles if category_bundles is not None else CATEGORY_BUNDLES
-    return common_core + bundles.get(category, ()) + extra
-
-
 @dataclass(frozen=True)
 class ValidatorEngine:
     """Runs the catalog over live item + index state — one engine, two call sites, per the
@@ -535,6 +695,7 @@ class ValidatorEngine:
 
     spec: WorkflowSpec
     paths: SquadPaths | None = None
+    playbook: PlaybookSpec | None = None
     catalog: dict[str, Validator] = field(default_factory=lambda: CATALOG)
     squad_global: dict[str, SquadGlobalValidator] = field(
         default_factory=lambda: SQUAD_GLOBAL_CATALOG
@@ -595,7 +756,11 @@ class ValidatorEngine:
             if self.paths is None:
                 raise SquadsError("ValidatorEngine.report(): squad-global validators need paths")
             g_ctx = SquadGlobalContext(
-                index=index, on_disk=on_disk, spec=self.spec, paths=self.paths
+                index=index,
+                on_disk=on_disk,
+                spec=self.spec,
+                paths=self.paths,
+                playbook=self.playbook,
             )
             for validator in self.squad_global.values():
                 issues += validator(g_ctx)

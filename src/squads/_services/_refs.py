@@ -283,17 +283,62 @@ def graph_to_dot(root: GraphNode) -> str:
     return "\n".join(lines)
 
 
+def _mermaid_node_id(nid: str) -> str:
+    """An item id as a Mermaid flowchart node identifier: every non-alphanumeric character
+    escaped to ``_`` plus exactly four lowercase hex digits, alphanumeric runs left alone.
+
+    Mermaid's node-id alphabet is effectively ``[A-Za-z0-9_]``, and an item id may contain
+    anything a declared type prefix contains — a hyphen, an underscore, a symbol. This used to
+    fold (``-`` → ``_``), and a fold is many-to-one: an adopter declaring two prefixes that
+    differ only by hyphen versus underscore got one node standing for two distinct items, so the
+    diagram was wrong before anyone read it. Escaping is injective, which is the whole point;
+    the fixed four-digit width is what keeps it decodable, since a variable-width escape could
+    not tell its own digits from the alphanumerics that follow.
+
+    Deliberately the same scheme the VS Code client uses for the graphs it renders itself. The
+    two ends are independent — neither decodes the other's output, and this function's result is
+    display-only — so agreeing is a choice rather than a constraint; it is made because there is
+    one correct injective encoding into that alphabet and no reason for the product to carry two
+    spellings of it.
+
+    The escaped form is never what a reader sees: :func:`graph_to_mermaid` declares each node
+    with the real item id as its label, so a node still reads as the id it stands for and the
+    escape stays an implementation detail of the identifier.
+
+    Escapes **UTF-16 code units**, not code points, so a non-BMP character (an emoji prefix, say)
+    becomes its two surrogates at four digits each rather than one five-digit escape that would
+    break both the fixed width and the shared spelling.
+    """
+    units = nid.encode("utf-16-be")
+    pairs = (int.from_bytes(units[i : i + 2], "big") for i in range(0, len(units), 2))
+    return "".join(chr(u) if chr(u).isascii() and chr(u).isalnum() else f"_{u:04x}" for u in pairs)
+
+
+def _mermaid_label(text: str) -> str:
+    """*text* as a Mermaid quoted node label. ``"`` is the one character that could close the
+    quoting early, so it goes out as an HTML entity (which Mermaid renders as the literal
+    character) rather than being dropped or backslash-escaped, which Mermaid does not honour
+    inside a quoted string."""
+    return '"' + text.replace('"', "&quot;") + '"'
+
+
 def graph_to_mermaid(root: GraphNode) -> str:
-    """Serialize a GraphNode tree to a Mermaid ``flowchart LR`` string."""
+    """Serialize a GraphNode tree to a Mermaid ``flowchart LR`` string.
+
+    Nodes are declared before the edges, each carrying its real item id as an explicit label:
+    the identifier is escaped (see :func:`_mermaid_node_id`) and so is not readable on its own,
+    and without a label Mermaid would draw the escaped form as the box text. Only nodes that an
+    edge touches are declared, so the set of nodes drawn is exactly what it always was.
+    """
     _, edges = _collect_edges(root)
 
-    def _safe_id(nid: str) -> str:
-        # Mermaid node IDs can't contain hyphens in all renderers; use underscores.
-        return nid.replace("-", "_")
-
+    linked = sorted({end for from_id, to_id, _label in edges for end in (from_id, to_id)})
     lines = ["flowchart LR"]
-    for from_id, to_id, label in sorted(edges):
-        lines.append(f"    {_safe_id(from_id)} -->|{label}| {_safe_id(to_id)}")
+    lines.extend(f"    {_mermaid_node_id(nid)}[{_mermaid_label(nid)}]" for nid in linked)
+    lines.extend(
+        f"    {_mermaid_node_id(from_id)} -->|{label}| {_mermaid_node_id(to_id)}"
+        for from_id, to_id, label in sorted(edges)
+    )
     return "\n".join(lines)
 
 
@@ -353,7 +398,16 @@ class RefsMixin(ServiceCore):
         )
         return src
 
-    async def rm_ref(self, from_id: str, to_id: str) -> Item:
+    async def rm_ref(self, from_id: str, to_id: str, *, kind: str | None = None) -> Item:
+        """Remove a forward ref edge from *from_id* to *to_id*.
+
+        ``kind=None`` (default) keeps today's kind-agnostic behaviour: every edge to *to_id* is
+        dropped regardless of its own kind. Passing an explicit ``kind`` narrows removal to only
+        edges of that kind, leaving any other kind of edge between the two items untouched — the
+        primitive :meth:`unlink_role` and the retirement gate's ``--unlink``
+        (``_services/_retirement.py``) both build on, rather than each hand-rolling their own
+        kind-filtered removal.
+        """
         async with self.store.transaction() as db:
             src = require_item(db, from_id)
             base = src.model_copy(deep=True)
@@ -363,20 +417,26 @@ class RefsMixin(ServiceCore):
             if head and digits.isdigit():
                 to_prefix = head.upper()
                 to_seq = int(digits)
-                src.refs = [
-                    r for r in src.refs if not ref_id_matches(split_ref(r)[0], to_prefix, to_seq)
-                ]
+
+                def _matches(r: str) -> bool:
+                    rid, rkind = split_ref(r)
+                    return ref_id_matches(rid, to_prefix, to_seq) and (
+                        kind is None or rkind == kind
+                    )
             else:
                 # Bare number or malformed — fall back to literal string comparison.
-                src.refs = [r for r in src.refs if split_ref(r)[0] != to_id]
+                def _matches(r: str) -> bool:
+                    rid, rkind = split_ref(r)
+                    return rid == to_id and (kind is None or rkind == kind)
+
+            src.refs = [r for r in src.refs if not _matches(r)]
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
             await update_frontmatter(item_file(self.paths, src), src, base)
-            self.store.log(
-                "ref",
-                src.id,
-                {"remove": to_id},
-            )
+            payload: dict[str, object] = {"remove": to_id}
+            if kind is not None:
+                payload["kind"] = kind
+            self.store.log("ref", src.id, payload)
         return src
 
     async def link_role(self, skill_id: str, role_id: str) -> Item:
@@ -401,33 +461,17 @@ class RefsMixin(ServiceCore):
 
         Idempotent: unlinking a role that was never scoped is a clean no-op (the resync still
         runs, but recomputes the same already-current state).
+
+        A thin wrapper over the kind-aware :meth:`rm_ref` plus the existing partial resync —
+        its own observable behaviour (the target-type guard, the single-``scopes``-kind
+        removal, the resync) is unchanged from before ``rm_ref`` gained a kind filter.
         """
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
-        role_prefix = effective_prefix(role.prefix)
-        role_seq = role.sequence_id
-        async with self.store.transaction() as db:
-            src = require_item(db, skill_id)
-            base = src.model_copy(deep=True)
-            src.refs = [
-                r
-                for r in src.refs
-                if not (
-                    split_ref(r)[1] == "scopes"
-                    and ref_id_matches(split_ref(r)[0], role_prefix, role_seq)
-                )
-            ]
-            src.updated_at = clock.now()
-            src.modified_session, _ = actor.current_session()
-            await update_frontmatter(item_file(self.paths, src), src, base)
-            self.store.log(
-                "ref",
-                src.id,
-                {"remove": role_id, "kind": "scopes"},
-            )
+        updated = await self.rm_ref(skill_id, role_id, kind="scopes")
         await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
-        return src
+        return updated
 
     async def refs_out(self, item_id: str) -> list[tuple[str, str]]:
         return [split_ref(r) for r in (await self.get(item_id)).refs]

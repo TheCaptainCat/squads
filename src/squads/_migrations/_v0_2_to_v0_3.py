@@ -10,7 +10,14 @@
 Sub-entity state thus becomes single-sourced in frontmatter (visible to the index); the prose
 (``:body`` / ``:discussion``) and the rolled-up ``:summary`` stay in the body. Deterministic,
 marker-safe, idempotent (a file whose blocks carry no ``:meta`` is already at 0.3). Invoked by
-``sq migrate`` via ``_migrations._registry`` — never run directly (module is private).
+``sq migrate`` via ``_migrations._registry`` — never run directly (module is private), matching
+every other runner in this package (none of them thread the active spec).
+
+A carried-forward legacy meta status is written into ``subentities:`` unchanged, exactly as read
+— this runner never invents or remaps a value. If a project's active lifecycle for that kind no
+longer declares it (e.g. an override replaced the lifecycle after the file was written), that is
+already caught downstream by ``sq check`` (``_services/_validators.py::_subentity_status_valid``,
+which runs against the same active/override-aware spec) — see ``MANUAL`` below.
 
 Note on ``.squads.toml`` canonicalization: after this runner returns,
 ``run_pending_migrations`` calls ``_stamp_schema(SCHEMA_VERSION)``, which re-serializes the
@@ -29,7 +36,20 @@ from squads._itemfile import read_frontmatter
 from squads._migrations import _meta_compat
 from squads._paths import SquadPaths
 
-MANUAL = ""  # fully automatic — nothing for `sq migrate chlog` to surface
+MANUAL = """\
+## Schema 0.2 → 0.3 — a carried-forward sub-entity status your lifecycle no longer declares
+
+No manual steps are required — `sq migrate up` runs automatically.
+
+If a workflow override changed a story/subtask/finding lifecycle before this ran, a lifted
+sub-entity's legacy status may no longer be one of that lifecycle's states. Its status value is
+carried forward unchanged (never rewritten); run `sq check` after migrating — it already reports
+a mismatch as `invalid status` against the item, with a non-zero exit — then remap by hand:
+
+```
+sq <type> <n> <kind> <k> update --status <a-valid-status-for-your-lifecycle>
+```
+"""
 
 # Frozen v0.2/v0.3 type vocabulary — the type-name/prefix/folder literals as they existed at
 # this schema version. NEVER derive this from the live spec/enum: a migration is a

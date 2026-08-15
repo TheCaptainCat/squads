@@ -19,25 +19,10 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item, format_item_id, make_ref, split_ref
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths
-from squads._services._base import ServiceCore, subentity_container_map, subentity_kind_map
+from squads._services._base import ServiceCore, ensure_subentity_container_text
 from squads._services._results import RetypeResult
 from squads._services._validators import ValidatorEngine
 from squads._workflow._models import WorkflowSpec
-
-# Bundled sub-entity container headings — an explicit lookup because "User Stories" isn't
-# derivable from `plural` ("stories".title() == "Stories", not "User Stories"); a custom kind
-# falls back to its `plural` title-cased instead (see _container_heading).
-_BUNDLED_CONTAINER_HEADINGS: dict[str, str] = {
-    "story": "User Stories",
-    "subtask": "Subtasks",
-    "finding": "Findings",
-}
-
-
-def _container_heading(spec: WorkflowSpec, kind: str) -> str:
-    """The container heading for *kind*: the bundled literal for a built-in kind, else its
-    declared ``plural`` title-cased (e.g. ``"actions"`` -> ``"Actions"``)."""
-    return _BUNDLED_CONTAINER_HEADINGS.get(kind) or spec.subentity_kinds[kind].plural.title()
 
 
 def _validate_work_types(spec: WorkflowSpec, old_type: str, new_type: str, old_id: str) -> None:
@@ -286,15 +271,16 @@ async def apply_type_change(
 
 
 async def _ensure_subentity_container(spec: WorkflowSpec, new_type: str, path: Path) -> None:
-    """Append an empty sub-entity container block when *new_type* hosts sub-entities."""
-    kind = subentity_kind_map(spec).get(new_type)
-    if kind is None:
-        return
-    container_tag = subentity_container_map(spec)[kind]
+    """Append an empty sub-entity container block when *new_type* hosts sub-entities.
+
+    Thin file-I/O wrapper around the shared, template-agnostic primitive
+    (:func:`squads._services._base.ensure_subentity_container_text`) — also used directly
+    by item creation, so retype and create can never drift on how a container gets added.
+    """
     text = await _aio.read_text(path)
-    heading = _container_heading(spec, kind)
-    text = discussion.ensure_container(text, heading, container_tag)
-    await write_text(path, text)
+    updated = ensure_subentity_container_text(spec, new_type, text)
+    if updated != text:
+        await write_text(path, updated)
 
 
 def resync_edges(db: SquadsDB, remap: dict[str, str], *, exclude: set[int]) -> None:
