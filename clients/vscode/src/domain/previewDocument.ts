@@ -10,6 +10,15 @@
  */
 import type { SqOutcome } from '../sqAdapter';
 import type { SqDiscussionEntry, SqSubEntity } from '../types';
+import {
+  type FieldBindingsByType,
+  NO_BADGE_VOCABULARY,
+  NO_FIELD_BINDINGS,
+  resolveItemBadges,
+} from './badgeCatalog';
+import { MERMAID_NODE_ID_ESCAPE_SOURCE } from './graphDiagrams';
+import type { ItemDirectory } from './itemDirectory';
+import type { ItemIdMatcher } from './itemIdPattern';
 import { escapeHtml, renderMarkdownToHtml } from './markdown';
 import {
   NAVIGATE_HISTORY_COMMAND,
@@ -28,6 +37,15 @@ const CHILDREN_GRAPH_SOURCE_ID = 'sq-children-graph-source';
 const CHILDREN_GRAPH_OUTPUT_ID = 'sq-children-graph';
 const REFS_GRAPH_SOURCE_ID = 'sq-refs-graph-source';
 const REFS_GRAPH_OUTPUT_ID = 'sq-refs-graph';
+
+/** Marks a `.sq-graph-source` whose mermaid node ids are real item ids, so the webview's
+ * post-render pass knows it may stamp them as navigable (`mermaidRenderScript`). Only the two
+ * structured graph sections carry it: they are built from `sq tree`/`sq graph --json`, where
+ * every node IS an item. A diagram that came from a ```mermaid``` fence — a hand-authored one
+ * in a project's own cheatsheet template, say — carries whatever node ids its author wrote, so
+ * stamping those would offer the reader a click that opens nothing. Opt-in by construction:
+ * a future item-bearing diagram has to say so, and anything else is inert by default. */
+const ITEM_NODES_ATTRIBUTE = 'data-sq-item-nodes';
 
 /** Stable fold ids for the two graph `<details>` sections — the `ToggleFoldMessage`/
  * `ExpansionTracker` identity used to restore open/closed state across a refresh (see
@@ -293,11 +311,15 @@ function clientScript(
  * `script-src`) — flagged for review rather than applied speculatively.
  *
  * Node-click wiring: mermaid's `click` directive is disabled under `securityLevel: 'strict'`, so
- * navigation is wired here instead, after render. Each rendered node's id
+ * navigation is wired here instead, after render — and only for a source that declares its node
+ * ids to be item ids (`ITEM_NODES_ATTRIBUTE`; see that constant for why the default is inert).
+ * Each rendered node's id
  * (`<diagramId>-flowchart-<nodeId>-<n>`, `nodeId` being what `graphDiagrams.ts`'s `mermaidNodeId`
- * produced) is parsed back to the real item id (undoing the hyphen->underscore fold — lossless,
- * since an id has exactly one such character) and stamped as `data-item-id` for `clientScript`'s
- * shared click handling.
+ * produced) is decoded back to the real item id and stamped as `data-item-id` for
+ * `clientScript`'s shared click handling. The decode undoes that module's escape and nothing
+ * else — its pattern is interpolated from `MERMAID_NODE_ID_ESCAPE_SOURCE` rather than written
+ * out again here, so the encoder cannot change without this changing with it, and a node id
+ * that carries no escape (a hand-authored ```mermaid``` fence's own node) decodes to itself.
  *
  * Exposed as `window.__sqRenderMermaid` (rather than a run-once IIFE) so `clientScript` can
  * re-invoke it after a same-item refresh patches in fresh `.sq-graph-source` elements —
@@ -315,6 +337,15 @@ function mermaidRenderScript(nonce: string): string {
     });
     var nonce = '${nonce}';
     var nodeIdPattern = /-flowchart-([A-Za-z0-9_]+)-\\d+$/;
+    var escapePattern = /${MERMAID_NODE_ID_ESCAPE_SOURCE}/g;
+    var stampsItemNodes = function (sourceEl) {
+      return sourceEl.hasAttribute('${ITEM_NODES_ATTRIBUTE}');
+    };
+    var decodeNodeId = function (encoded) {
+      return encoded.replace(escapePattern, function (whole, hex) {
+        return String.fromCharCode(parseInt(hex, 16));
+      });
+    };
     var sources = document.querySelectorAll('.sq-graph-source');
     sources.forEach(function (sourceEl) {
       var outputId = sourceEl.getAttribute('data-output-id');
@@ -335,11 +366,13 @@ function mermaidRenderScript(nonce: string): string {
           styles[i].setAttribute('nonce', nonce);
           styles[i].nonce = nonce;
         }
-        var nodes = svgEl.querySelectorAll('.node');
-        for (var j = 0; j < nodes.length; j++) {
-          var match = nodeIdPattern.exec(nodes[j].getAttribute('id') || '');
-          if (!match) { continue; }
-          nodes[j].setAttribute('data-item-id', match[1].replace(/_/g, '-'));
+        if (stampsItemNodes(sourceEl)) {
+          var nodes = svgEl.querySelectorAll('.node');
+          for (var j = 0; j < nodes.length; j++) {
+            var match = nodeIdPattern.exec(nodes[j].getAttribute('id') || '');
+            if (!match) { continue; }
+            nodes[j].setAttribute('data-item-id', decodeNodeId(match[1]));
+          }
         }
         outputEl.replaceChildren(document.importNode(svgEl, true));
       }).catch(function () {
@@ -428,25 +461,36 @@ export interface DossierHtml {
  * title slot (see `extractTitleLine`). On failure the message renders entirely as `bodyHtml`
  * with an empty header and `id` itself as the title — the caller is still responsible for firing
  * the accompanying VS Code notification. `roles`, when given, resolves `@<slug>` mentions in the
- * dossier body (see `domain/roleDirectory.ts`). */
+ * dossier body (see `domain/roleDirectory.ts`); `ids` is the squad's declared-prefix id grammar
+ * (`domain/itemIdPattern.ts`) and `items` the hover text each linked id carries
+ * (`domain/itemDirectory.ts`), both threaded through to every markdown render below. */
 export function renderOutcomeHtml(
   id: string,
   outcome: SqOutcome<string>,
   roles?: RoleDirectory,
+  ids?: ItemIdMatcher,
+  items?: ItemDirectory,
 ): DossierHtml {
   if (outcome.kind !== 'success') {
     return {
       titleText: id,
       headerHtml: '',
-      bodyHtml: renderMarkdownToHtml(`# Squads: unable to load ${id}\n\n${outcome.message}`, id),
+      bodyHtml: renderMarkdownToHtml(
+        `# Squads: unable to load ${id}\n\n${outcome.message}`,
+        id,
+        false,
+        undefined,
+        ids,
+        items,
+      ),
     };
   }
   const { header, body } = splitDossierMarkdown(outcome.data);
   const titleText = extractTitleLine(header);
   return {
     titleText: titleText === '' ? id : titleText,
-    headerHtml: renderMarkdownToHtml(header, id),
-    bodyHtml: renderMarkdownToHtml(body, id, false, roles),
+    headerHtml: renderMarkdownToHtml(header, id, false, undefined, ids, items),
+    bodyHtml: renderMarkdownToHtml(body, id, false, roles, ids, items),
   };
 }
 
@@ -495,7 +539,7 @@ function buildGraphSection(spec: GraphSectionSpec): string {
   const inner =
     spec.outcome.mermaidSource === null
       ? `<p class="sq-graph-empty">${escapeHtml(spec.outcome.message ?? 'No data available.')}</p>`
-      : `<pre class="sq-graph-source" id="${spec.sourceId}" data-output-id="${spec.outputId}" hidden>${escapeHtml(spec.outcome.mermaidSource)}</pre><div class="sq-graph-output" id="${spec.outputId}">Rendering…</div>`;
+      : `<pre class="sq-graph-source" id="${spec.sourceId}" data-output-id="${spec.outputId}" ${ITEM_NODES_ATTRIBUTE} hidden>${escapeHtml(spec.outcome.mermaidSource)}</pre><div class="sq-graph-output" id="${spec.outputId}">Rendering…</div>`;
   const openAttr = spec.open ? ' open' : '';
   return `<details class="sq-graph" data-sq-fold-id="${escapeHtml(spec.foldId)}"${openAttr}><summary>${escapeHtml(spec.title)}</summary>${inner}</details>`;
 }
@@ -550,12 +594,14 @@ function buildCommentHtml(
   entry: SqDiscussionEntry,
   currentId: string | undefined,
   roles: RoleDirectory | undefined,
+  ids: ItemIdMatcher | undefined,
+  items: ItemDirectory | undefined,
 ): string {
   return (
     `<div class="sq-comment"><div class="sq-comment-header">` +
     `<span class="sq-comment-author">${escapeHtml(entry.author)}</span> ` +
     `<span class="sq-comment-ts">${escapeHtml(entry.ts)}</span></div>` +
-    `<div class="sq-comment-body">${renderMarkdownToHtml(entry.body, currentId, false, roles)}</div></div>`
+    `<div class="sq-comment-body">${renderMarkdownToHtml(entry.body, currentId, false, roles, ids, items)}</div></div>`
   );
 }
 
@@ -566,6 +612,8 @@ export function buildDiscussionHtml(
   outcome: DiscussionOutcome,
   currentId?: string,
   roles?: RoleDirectory,
+  ids?: ItemIdMatcher,
+  items?: ItemDirectory,
 ): string {
   if (outcome.entries === null) {
     return (
@@ -577,7 +625,7 @@ export function buildDiscussionHtml(
     return '';
   }
   const comments = outcome.entries
-    .map((entry) => buildCommentHtml(entry, currentId, roles))
+    .map((entry) => buildCommentHtml(entry, currentId, roles, ids, items))
     .join('\n');
   const count = String(outcome.entries.length);
   return `<details class="sq-graph" open><summary>Discussion (${count})</summary>${comments}</details>`;
@@ -592,15 +640,38 @@ export interface SubEntitiesOutcome {
   readonly message?: string;
 }
 
-/** The head badge line for one sub-entity — status / severity / assignee / story, each field
- * omitted when absent (`severity`: findings only; `story`: subtasks only). Plain text, not the
- * spec's rendered badge glyph — this preview head doesn't fetch/join the collections catalog
+/** What the head line needs to label a sub-entity's declared badge fields: the parent item's
+ * type, and the sub-entity field bindings to join it through (`domain/badgeCatalog.ts`). Both
+ * optional — an unknown type or an unavailable kind catalog labels each field by its raw code
+ * instead, which is a degrade, not a failure. */
+export interface SubEntityFieldContext {
+  readonly itemType?: string | undefined;
+  readonly fieldBindings?: FieldBindingsByType | undefined;
+}
+
+/** The head badge line for one sub-entity — status, then every declared badge field the
+ * sub-entity actually carries, then assignee and story (each omitted when absent; `story` is
+ * subtasks only). The badge fields come from the payload's own spec-resolved `badges` map and
+ * are labelled from the kind's declared `fields`, so a project that renames or adds an axis is
+ * followed here with no client change and no badge axis is named in this file. The three
+ * remaining literals are the sub-entity model's own structural fields, not declared vocabulary
+ * — and a kind that maps no parent story simply never carries one, so that part omits itself.
+ *
+ * Plain text, not the spec's rendered badge glyph, and the raw badge *code* rather than its
+ * display label — this preview head doesn't fetch/join the collections catalog
  * (`sq workflow collections --json`) the way the tree tooltip does, same raw-code convention
- * `graphDiagrams.ts` uses for priority. */
-function buildSubEntityHeadLine(entity: SqSubEntity): string {
+ * `graphDiagrams.ts` uses. That is why the vocabulary passed to `resolveItemBadges` here is
+ * deliberately the empty one. */
+function buildSubEntityHeadLine(entity: SqSubEntity, fields: SubEntityFieldContext = {}): string {
   const parts = [`Status: ${escapeHtml(entity.status)}`];
-  if (entity.severity !== null) {
-    parts.push(`Severity: ${escapeHtml(entity.severity)}`);
+  const badges = resolveItemBadges(
+    fields.itemType ?? '',
+    entity.badges,
+    fields.fieldBindings ?? NO_FIELD_BINDINGS,
+    NO_BADGE_VOCABULARY,
+  );
+  for (const badge of badges) {
+    parts.push(`${escapeHtml(badge.fieldLabel)}: ${escapeHtml(badge.badgeLabel)}`);
   }
   if (entity.assignee !== null) {
     parts.push(`Assignee: ${escapeHtml(entity.assignee)}`);
@@ -611,12 +682,40 @@ function buildSubEntityHeadLine(entity: SqSubEntity): string {
   return parts.join(' · ');
 }
 
-/** One sub-entity: its local id + title as a header, the head badge line always visible, and
- * (when it has one) its body as collapsible prose rendered through the same markdown renderer
- * the dossier/discussion sections use — a blank body renders no `<details>` at all. The body
- * fold's `data-sq-fold-id` is the sub-entity's own `local_id` — stable across a same-item refresh
- * (which is what `open`, from the caller's per-panel tracker, is keyed on), but *not* unique
- * across items (a different item can reuse the same local id), which is why
+/** A sub-entity's own comments block, mirroring `buildDiscussionHtml`'s markup (same `<details
+ * class="sq-graph" open>` wrapper, same `buildCommentHtml` per entry) so a reader recognises it
+ * as the same kind of thing, just scoped to the sub-entity rather than the whole item. `entries`
+ * is `undefined` for an older-`sq` payload that omits the key entirely (see `isSqSubEntity`) and
+ * treated exactly like an empty array — both fold away to nothing, the same graceful-empty
+ * behaviour `buildDiscussionHtml` gives the item-level section.
+ *
+ * Deliberately carries no `data-sq-fold-id`: the block always renders `open` and its state is
+ * never restored across a refresh, so it can't collide with — or reset — the sub-entity body
+ * fold's tracking, which *is* keyed by `local_id` (see `buildSubEntityHtml`). */
+function buildSubEntityDiscussionHtml(
+  entries: readonly SqDiscussionEntry[] | undefined,
+  currentId: string | undefined,
+  roles: RoleDirectory | undefined,
+  ids: ItemIdMatcher | undefined,
+  items: ItemDirectory | undefined,
+): string {
+  if (entries === undefined || entries.length === 0) {
+    return '';
+  }
+  const comments = entries
+    .map((entry) => buildCommentHtml(entry, currentId, roles, ids, items))
+    .join('\n');
+  const count = String(entries.length);
+  return `<details class="sq-graph" open><summary>Discussion (${count})</summary>${comments}</details>`;
+}
+
+/** One sub-entity: its local id + title as a header, the head badge line always visible, its body
+ * as collapsible prose (when it has one) rendered through the same markdown renderer the
+ * dossier/discussion sections use — a blank body renders no `<details>` at all — and, last, its
+ * own comments block (see `buildSubEntityDiscussionHtml`; absent/empty folds away the same way).
+ * The body fold's `data-sq-fold-id` is the sub-entity's own `local_id` — stable across a
+ * same-item refresh (which is what `open`, from the caller's per-panel tracker, is keyed on), but
+ * *not* unique across items (a different item can reuse the same local id), which is why
  * `itemPreviewManager.ts` resets its per-panel tracker on every navigation to a different item
  * rather than keying trackers by local id alone. */
 function buildSubEntityHtml(
@@ -624,29 +723,37 @@ function buildSubEntityHtml(
   currentId: string | undefined,
   roles: RoleDirectory | undefined,
   open: boolean,
+  fields: SubEntityFieldContext,
+  ids: ItemIdMatcher | undefined,
+  items: ItemDirectory | undefined,
 ): string {
   const header =
     `<div class="sq-subentity-header"><span class="sq-subentity-id">${escapeHtml(entity.local_id)}</span>` +
     `<span class="sq-subentity-title">${escapeHtml(entity.title)}</span></div>`;
-  const head = `<div class="sq-subentity-head">${buildSubEntityHeadLine(entity)}</div>`;
+  const head = `<div class="sq-subentity-head">${buildSubEntityHeadLine(entity, fields)}</div>`;
   const openAttr = open ? ' open' : '';
   const body =
     entity.body.trim() === ''
       ? ''
-      : `<details class="sq-subentity-body" data-sq-fold-id="${escapeHtml(entity.local_id)}"${openAttr}><summary>Body</summary>${renderMarkdownToHtml(entity.body, currentId, false, roles)}</details>`;
-  return `<div class="sq-subentity">${header}${head}${body}</div>`;
+      : `<details class="sq-subentity-body" data-sq-fold-id="${escapeHtml(entity.local_id)}"${openAttr}><summary>Body</summary>${renderMarkdownToHtml(entity.body, currentId, false, roles, ids, items)}</details>`;
+  const discussion = buildSubEntityDiscussionHtml(entity.discussion, currentId, roles, ids, items);
+  return `<div class="sq-subentity">${header}${head}${body}${discussion}</div>`;
 }
 
 /** The collapsible sub-entities section: a feature's stories, a task's subtasks, a review's
  * findings — in `sq show <id> --json`'s `subentities` array order. Mirrors `buildDiscussionHtml`'s
  * failure/empty/populated shape, including the `roles` pass-through for `@<slug>` mentions.
  * `isBodyOpen` restores a sub-entity body fold's prior open/closed state across a same-item
- * refresh; the wrapper `<details>` this function renders always stays `open` regardless. */
+ * refresh; the wrapper `<details>` this function renders always stays `open` regardless.
+ * `fields` labels each sub-entity's declared badge fields — see `SubEntityFieldContext`. */
 export function buildSubEntitiesHtml(
   outcome: SubEntitiesOutcome,
   currentId?: string,
   roles?: RoleDirectory,
   isBodyOpen: (localId: string) => boolean = () => false,
+  fields: SubEntityFieldContext = {},
+  ids?: ItemIdMatcher,
+  items?: ItemDirectory,
 ): string {
   if (outcome.entities === null) {
     return (
@@ -658,7 +765,9 @@ export function buildSubEntitiesHtml(
     return '';
   }
   const entries = outcome.entities
-    .map((entity) => buildSubEntityHtml(entity, currentId, roles, isBodyOpen(entity.local_id)))
+    .map((entity) =>
+      buildSubEntityHtml(entity, currentId, roles, isBodyOpen(entity.local_id), fields, ids, items),
+    )
     .join('\n');
   const count = String(outcome.entities.length);
   return `<details class="sq-graph" open><summary>Sub-entities (${count})</summary>${entries}</details>`;

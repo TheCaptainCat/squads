@@ -118,6 +118,17 @@ export interface RecordsViewOptions {
  * the same "can't tell yet" default `isReservedType` uses to keep those same rows in the work
  * tree meanwhile. `options` (icons/badges/status-role/labels) defaults every field to its own
  * graceful-fallback empty value when omitted. */
+/** The message a caller shows in place of an empty root list, so the panel explains itself
+ * instead of rendering blank. Distinguishes the two ways `buildRecordsView` legitimately returns
+ * nothing: a spec that declares no `records`-category type at all (no bucket can exist), versus
+ * declared types whose items are all filtered out or absent. A *failed* type-catalog fetch is
+ * neither — that is an error the caller reports as one, never an empty state. */
+export function recordsEmptyStateMessage(categoryMap: TypeCategoryMap = NO_CATEGORIES): string {
+  return recordsTypes(categoryMap).length === 0
+    ? 'No records types declared in this squad'
+    : 'No records to show';
+}
+
 export function buildRecordsView(
   items: readonly SqListItem[],
   categoryMap: TypeCategoryMap = NO_CATEGORIES,

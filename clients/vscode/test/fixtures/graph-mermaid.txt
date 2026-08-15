@@ -1,0 +1,12 @@
+```mermaid
+flowchart LR
+    ADR_002d427["ADR-427"]
+    FEAT_002d100["FEAT-100"]
+    FEAT_002d449["FEAT-449"]
+    REV_002d448["REV-448"]
+    FEAT_002d100 -->|related| ADR_002d427
+    FEAT_002d100 -->|related| FEAT_002d449
+    FEAT_002d100 -->|related| REV_002d448
+    FEAT_002d449 -->|related| FEAT_002d100
+    FEAT_002d449 -->|addresses| REV_002d448
+```

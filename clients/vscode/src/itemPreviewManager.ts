@@ -6,6 +6,19 @@
  * discussion sections (from `sq show <id> --json`'s `subentities`/`discussion` arrays) — all
  * fetched in parallel with the `--raw` dossier text.
  *
+ * Two spec catalogs are fetched alongside them, for the same reason every other view fetches
+ * them: so the rendering reads the project's declared vocabulary instead of assuming a bundled
+ * one. `sq workflow types --json` gives the declared id prefixes that decide what text is a
+ * navigable item reference (`domain/itemIdPattern.ts`), and joins to
+ * `sq workflow subentity-kinds --json` for the labels a sub-entity's badge fields carry. Each
+ * degrades on its own (see `itemIdMatcherFrom`/`subEntityFieldsFrom`); neither can fail the
+ * render.
+ *
+ * Two `sq list --json` fetches sit alongside them, and they are two on purpose: the roster one
+ * (`-t role`) keeps the default view because an archived role is not a mention target, while the
+ * id->hover-text one passes `--all` because prose overwhelmingly cites settled work. Both are
+ * batched — a render's cost never scales with how many ids a body happens to mention.
+ *
  * Navigation and back/forward history are covered by the methods below (`openFromTree`,
  * `navigate`, `goBack`/`goForward`, `stepHistoryFor`) and by `domain/previewMessages.ts`'s
  * routing logic. The in-content toolbar (`domain/previewDocument.ts`'s
@@ -25,8 +38,15 @@ import * as vscode from 'vscode';
 
 import { REFRESH_ALL_COMMAND } from './commandIds';
 import { describeTriedOrder, type SqDiscovery } from './discovery';
+import { buildSubEntityFieldBindings, NO_FIELD_BINDINGS } from './domain/badgeCatalog';
 import { ExpansionTracker } from './domain/expansionTracker';
 import { buildRefGraphMermaid, buildSubtreeMermaid } from './domain/graphDiagrams';
+import { buildItemDirectory, type ItemDirectory, NO_ITEM_DIRECTORY } from './domain/itemDirectory';
+import {
+  buildItemIdMatcher,
+  DEFAULT_ITEM_ID_MATCHER,
+  type ItemIdMatcher,
+} from './domain/itemIdPattern';
 import {
   buildArticleHtml,
   buildDiscussionHtml,
@@ -41,6 +61,7 @@ import {
   renderOutcomeHtml,
   renderWorkflowHtml,
   type SubEntitiesOutcome,
+  type SubEntityFieldContext,
 } from './domain/previewDocument';
 import {
   canStepBack,
@@ -70,11 +91,20 @@ import {
   getList,
   getRaw,
   getShowJson,
+  getSubentityKindsCatalog,
   getTree,
+  getTypeCatalog,
   getWorkflowRaw,
   type SqOutcome,
 } from './sqAdapter';
-import type { SqGraphNode, SqListItem, SqShowJson, SqTreeNode } from './types';
+import type {
+  SqGraphNode,
+  SqListItem,
+  SqShowJson,
+  SqSubEntityKindCatalogEntry,
+  SqTreeNode,
+  SqTypeCatalogEntry,
+} from './types';
 
 const VIEW_TYPE = 'squadsItemPreview';
 const WORKFLOW_VIEW_TYPE = 'squadsWorkflowPreview';
@@ -113,6 +143,38 @@ function toSubEntitiesOutcome(outcome: SqOutcome<SqShowJson>): SubEntitiesOutcom
  * simply renders as plain text rather than breaking the preview render. */
 function roleDirectoryFrom(outcome: SqOutcome<readonly SqListItem[]>): RoleDirectory {
   return outcome.kind === 'success' ? buildRoleDirectory(outcome.data) : NO_ROLE_DIRECTORY;
+}
+
+/** Hover text for every id the prose may link, from one batched `sq list --json --all`. Same
+ * degrade as `roleDirectoryFrom`: a failed fetch leaves anchors without a `title`, which costs
+ * the tooltip and nothing else — the link still navigates. */
+function itemDirectoryFrom(outcome: SqOutcome<readonly SqListItem[]>): ItemDirectory {
+  return outcome.kind === 'success' ? buildItemDirectory(outcome.data) : NO_ITEM_DIRECTORY;
+}
+
+/** The id grammar the preview linkifies against, from the squad's own declared type prefixes.
+ * A failed/unreachable type-catalog fetch degrades to the generic default matcher — the same
+ * graceful-degrade shape `roleDirectoryFrom` uses — rather than dropping every link. */
+function itemIdMatcherFrom(outcome: SqOutcome<readonly SqTypeCatalogEntry[]>): ItemIdMatcher {
+  return outcome.kind === 'success' ? buildItemIdMatcher(outcome.data) : DEFAULT_ITEM_ID_MATCHER;
+}
+
+/** The sub-entity badge-field labels for the item on screen, joined from the two catalogs that
+ * carry them (item type -> `subentity_kind` -> that kind's declared `fields`). Either fetch
+ * failing — including against an `sq` too old to publish the kind catalog at all — leaves the
+ * bindings empty, which labels each badge by its raw field code instead of hiding it. */
+function subEntityFieldsFrom(
+  showJson: SqOutcome<SqShowJson>,
+  types: SqOutcome<readonly SqTypeCatalogEntry[]>,
+  kinds: SqOutcome<readonly SqSubEntityKindCatalogEntry[]>,
+): SubEntityFieldContext {
+  return {
+    itemType: showJson.kind === 'success' ? showJson.data.type : undefined,
+    fieldBindings:
+      types.kind === 'success' && kinds.kind === 'success'
+        ? buildSubEntityFieldBindings(types.data, kinds.data)
+        : NO_FIELD_BINDINGS,
+  };
 }
 
 /** The squads icon shown on a webview panel's editor tab. Unlike the activity-bar
@@ -387,13 +449,17 @@ export class ItemPreviewManager {
       discussionHtml = buildDiscussionHtml({ entries: null, message }, id);
     } else {
       const { invocation } = resolution;
-      const [dossier, tree, graph, showJson, roleList] = await Promise.all([
-        getRaw(this.runner, invocation, this.workspaceRoot, id),
-        getTree(this.runner, invocation, this.workspaceRoot, id),
-        getGraph(this.runner, invocation, this.workspaceRoot, id),
-        getShowJson(this.runner, invocation, this.workspaceRoot, id),
-        getList(this.runner, invocation, this.workspaceRoot, ['-t', 'role']),
-      ]);
+      const [dossier, tree, graph, showJson, roleList, itemList, typeCatalog, kindCatalog] =
+        await Promise.all([
+          getRaw(this.runner, invocation, this.workspaceRoot, id),
+          getTree(this.runner, invocation, this.workspaceRoot, id),
+          getGraph(this.runner, invocation, this.workspaceRoot, id),
+          getShowJson(this.runner, invocation, this.workspaceRoot, id),
+          getList(this.runner, invocation, this.workspaceRoot, ['-t', 'role']),
+          getList(this.runner, invocation, this.workspaceRoot, ['--all']),
+          getTypeCatalog(this.runner, invocation, this.workspaceRoot),
+          getSubentityKindsCatalog(this.runner, invocation, this.workspaceRoot),
+        ]);
       if (dossier.kind !== 'success') {
         if (dossier.kind === 'spawn-error') {
           this.discovery.invalidate();
@@ -404,7 +470,9 @@ export class ItemPreviewManager {
       // the tree/graph/sub-entities/discussion fetches below, none of which are the actionable
       // failure.
       const roles = roleDirectoryFrom(roleList);
-      ({ titleText, headerHtml, bodyHtml } = renderOutcomeHtml(id, dossier, roles));
+      const ids = itemIdMatcherFrom(typeCatalog);
+      const items = itemDirectoryFrom(itemList);
+      ({ titleText, headerHtml, bodyHtml } = renderOutcomeHtml(id, dossier, roles, ids, items));
       graphsHtml = buildGraphsHtml(
         toGraphOutcome<readonly SqTreeNode[]>(tree, buildSubtreeMermaid),
         toGraphOutcome<SqGraphNode>(graph, buildRefGraphMermaid),
@@ -424,10 +492,16 @@ export class ItemPreviewManager {
           ]),
         );
       }
-      subEntitiesHtml = buildSubEntitiesHtml(subEntitiesOutcome, id, roles, (localId) =>
-        foldTracker.isExpanded(localId),
+      subEntitiesHtml = buildSubEntitiesHtml(
+        subEntitiesOutcome,
+        id,
+        roles,
+        (localId) => foldTracker.isExpanded(localId),
+        subEntityFieldsFrom(showJson, typeCatalog, kindCatalog),
+        ids,
+        items,
       );
-      discussionHtml = buildDiscussionHtml(toDiscussionOutcome(showJson), id, roles);
+      discussionHtml = buildDiscussionHtml(toDiscussionOutcome(showJson), id, roles, ids, items);
     }
     panel.title = id;
     // Recomputed from this panel's *current* history on every render, patch included — so a

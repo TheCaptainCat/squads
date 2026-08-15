@@ -1,0 +1,38 @@
+[
+    {
+        "subentity_kind": "finding",
+        "lifecycle": "finding",
+        "plural": "findings",
+        "local_prefix": "F",
+        "container_heading": "Findings",
+        "completion": "Fixed",
+        "maps_parent_story": false,
+        "fields": [
+            {
+                "code": "severity",
+                "label": "Severity",
+                "collection": "severity"
+            }
+        ]
+    },
+    {
+        "subentity_kind": "story",
+        "lifecycle": "subentity",
+        "plural": "stories",
+        "local_prefix": "US",
+        "container_heading": "User Stories",
+        "completion": "Done",
+        "maps_parent_story": false,
+        "fields": []
+    },
+    {
+        "subentity_kind": "subtask",
+        "lifecycle": "subentity",
+        "plural": "subtasks",
+        "local_prefix": "ST",
+        "container_heading": "Subtasks",
+        "completion": "Done",
+        "maps_parent_story": true,
+        "fields": []
+    }
+]

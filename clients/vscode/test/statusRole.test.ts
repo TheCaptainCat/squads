@@ -41,7 +41,7 @@ describe('buildRoleCatalogMap', () => {
 
   it('falls back to "neutral" for a color intent outside the closed vocabulary', () => {
     const roles = buildRoleCatalogMap([
-      { role: 'custom', settled: false, hidden: false, color: 'not-a-real-intent' },
+      { role: 'custom', settled: false, hidden: false, color: 'not-a-real-intent', live: false },
     ]);
 
     expect(roles.get('custom')?.color).toBe('neutral');
@@ -84,5 +84,23 @@ describe('resolveRole', () => {
   it('with NO_STATUS_ROLES/NO_ROLES (the graceful fallback), every status resolves to null', () => {
     expect(resolveRole('InProgress', NO_STATUS_ROLES, NO_ROLES)).toBeNull();
     expect(resolveRole('InProgress', statusRoles, NO_ROLES)).toBeNull();
+  });
+
+  it('resolves a role-less status through the server-resolved fallback role name, not null', () => {
+    // `sq workflow statuses --json` resolves a role-less status to the engine's fallback role
+    // name (e.g. "pending") rather than emitting a bare null — a project that shadows that
+    // fallback role (hiding it, say) must see that behaviour on a status that declares no role
+    // of its own, exactly as it would on one that explicitly names "pending".
+    const roleLessStatusRoles = buildStatusRoleMap([
+      { status: 'Parked', role: 'pending', badge: null },
+    ]);
+    const shadowedRoles = buildRoleCatalogMap([
+      { role: 'pending', settled: false, hidden: true, color: 'muted', live: false },
+    ]);
+    expect(resolveRole('Parked', roleLessStatusRoles, shadowedRoles)).toEqual({
+      settled: false,
+      hidden: true,
+      color: 'muted',
+    });
   });
 });

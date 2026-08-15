@@ -9,6 +9,10 @@
  * with no second round trip) feeds every bucket. Thin glue only: this module's vscode wiring is
  * exercised by the extension-host smoke test, `buildRecordsView`/`domain/recordsFilter.ts` are
  * what's unit-tested.
+ *
+ * Unlike its siblings, this view never renders an empty root list: the type catalog decides
+ * which buckets exist at all here, so a failed catalog fetch is reported as an error and a
+ * genuinely empty result gets a placeholder saying which kind of empty it is (`refresh`).
  */
 import * as vscode from 'vscode';
 
@@ -17,7 +21,6 @@ import {
   buildBadgeVocabulary,
   buildFieldBindings,
   NO_BADGE_VOCABULARY,
-  NO_FIELD_BINDINGS,
 } from './domain/badgeCatalog';
 import {
   collectNodeIds,
@@ -27,7 +30,7 @@ import {
 } from './domain/displayNode';
 import { ExpansionTracker } from './domain/expansionTracker';
 import { DEFAULT_RECORDS_VIEW_STATE, type RecordsViewState } from './domain/recordsFilter';
-import { buildRecordsView } from './domain/recordsView';
+import { buildRecordsView, recordsEmptyStateMessage } from './domain/recordsView';
 import { resolveSquadDir, type SquadDirEnvironment } from './domain/squadDir';
 import {
   buildRoleCatalogMap,
@@ -35,9 +38,9 @@ import {
   NO_ROLES,
   NO_STATUS_ROLES,
 } from './domain/statusRole';
-import { buildCategoryMap, NO_CATEGORIES } from './domain/typeCategory';
-import { buildTypeLabelMap, NO_LABELS } from './domain/typeLabels';
-import { buildTypeOrderMap, NO_TYPE_ORDER } from './domain/typeOrder';
+import { buildCategoryMap } from './domain/typeCategory';
+import { buildTypeLabelMap } from './domain/typeLabels';
+import { buildTypeOrderMap } from './domain/typeOrder';
 import type { ProcessRunner } from './processRunner';
 import {
   describeFailure,
@@ -115,9 +118,9 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
       return;
     }
     const { invocation } = resolution;
-    // Same catalogs the work tree fetches (the badge and status-role catalogs), plus the type catalog's `category`
-    //  that decides which buckets exist at all. A failed fetch degrades to raw-code
-    // badge text / no colour highlight / no buckets rather than breaking the view.
+    // Same catalogs the work tree fetches (the badge and status-role catalogs), plus the type
+    // catalog's `category` that decides which buckets exist at all. A failed badge/status-role
+    // fetch degrades to raw-code badge text / no colour highlight rather than breaking the view.
     const [outcome, catalogOutcome, collectionsOutcome, statusesOutcome, rolesOutcome] =
       await Promise.all([
         getList(this.runner, invocation, this.workspaceRoot, ['--all']),
@@ -130,16 +133,19 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
       this.failFrom(outcome);
       return;
     }
-    const categoryMap =
-      catalogOutcome.kind === 'success' ? buildCategoryMap(catalogOutcome.data) : NO_CATEGORIES;
-    const orderMap =
-      catalogOutcome.kind === 'success' ? buildTypeOrderMap(catalogOutcome.data) : NO_TYPE_ORDER;
-    const labelMap =
-      catalogOutcome.kind === 'success' ? buildTypeLabelMap(catalogOutcome.data) : NO_LABELS;
-    const fieldBindings =
-      catalogOutcome.kind === 'success'
-        ? buildFieldBindings(catalogOutcome.data)
-        : NO_FIELD_BINDINGS;
+    // The type catalog is load-bearing for THIS view in a way it isn't for its siblings: the
+    // work tree and the roster still have rows to show without it, but every bucket here is a
+    // `records`-category type, so no catalog means no buckets, no leaves, and — with no
+    // `viewsWelcome` behind an empty tree — a wholly blank panel that looks like an empty squad
+    // rather than a failed fetch. Reported as the error it is instead.
+    if (catalogOutcome.kind !== 'success') {
+      this.failFrom(catalogOutcome, 'Records unavailable — could not read the type catalog');
+      return;
+    }
+    const categoryMap = buildCategoryMap(catalogOutcome.data);
+    const orderMap = buildTypeOrderMap(catalogOutcome.data);
+    const labelMap = buildTypeLabelMap(catalogOutcome.data);
+    const fieldBindings = buildFieldBindings(catalogOutcome.data);
     const badgeVocabulary =
       collectionsOutcome.kind === 'success'
         ? buildBadgeVocabulary(collectionsOutcome.data)
@@ -150,7 +156,7 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
         : NO_STATUS_ROLES;
     const roleCatalog =
       rolesOutcome.kind === 'success' ? buildRoleCatalogMap(rolesOutcome.data) : NO_ROLES;
-    this.roots = buildRecordsView(outcome.data, categoryMap, orderMap, this.state, {
+    const roots = buildRecordsView(outcome.data, categoryMap, orderMap, this.state, {
       iconOverrides: getTypeIconOverrides(),
       fieldBindings,
       badgeVocabulary,
@@ -158,15 +164,27 @@ export class SquadsRecordsTreeDataProvider implements vscode.TreeDataProvider<Di
       roleCatalog,
       labelMap,
     });
+    // A successful build with nothing in it is a legitimate state (a spec declaring no records
+    // type, or every record filtered out) — but an empty tree renders as a blank panel, so it
+    // says which of the two it is. Calm placeholder, not the red error node above.
+    this.roots =
+      roots.length === 0 ? [emptyStateDisplayNode(recordsEmptyStateMessage(categoryMap))] : roots;
     this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);
   }
 
-  private failFrom(outcome: Exclude<SqOutcome<unknown>, { kind: 'success' }>): void {
+  /** `context`, when given, prefixes the raw `sq` failure text so the reader knows which fetch
+   * failed and what it cost them — the list fetch failing means no rows, the type-catalog fetch
+   * failing means no buckets, and the bare stderr alone says neither. */
+  private failFrom(
+    outcome: Exclude<SqOutcome<unknown>, { kind: 'success' }>,
+    context?: string,
+  ): void {
     if (outcome.kind === 'spawn-error') {
       this.discovery.invalidate();
     }
-    this.fail(describeFailure(outcome));
+    const message = describeFailure(outcome);
+    this.fail(context === undefined ? message : `${context}: ${message}`);
   }
 
   private fail(message: string): void {

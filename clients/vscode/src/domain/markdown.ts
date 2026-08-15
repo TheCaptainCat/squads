@@ -18,7 +18,10 @@
  *
  * Item-ID references (e.g. a task or decision id) found in any plain-text run are turned into
  * `<a class="sq-item-link" data-item-id="...">` anchors the webview's script intercepts — see
- * `previewDocument.ts`. `currentId`, when given, is left as plain text (no self-link).
+ * `previewDocument.ts`. `currentId`, when given, is left as plain text (no self-link). An
+ * anchor also carries a `title` when `items` (an `ItemDirectory`) resolves the id — the hover
+ * text a reader gets instead of the anchor's placeholder `href`; an id it cannot resolve gets
+ * no `title` at all rather than a fabricated one, and still navigates.
  *
  * A `@<slug>` role mention (e.g. `@manager`, `@tech-lead`) gets the same anchor treatment when
  * `roles` (a `RoleDirectory`, threaded alongside `currentId` through every render function below)
@@ -26,24 +29,53 @@
  * existing click->navigate path opens the role's sheet with no new message type needed) and its
  * `title` attribute carries the hover text. A slug that doesn't resolve (no `roles` given, or not
  * found in it) is left as plain text — never a dead/broken link.
+ *
+ * *Which* text is an item id is not decided here: it comes from the squad's declared type
+ * prefixes, threaded in as an `ItemIdMatcher` (`domain/itemIdPattern.ts`) the same way `roles`
+ * is. Omitted, every render falls back to that module's generic default.
  */
+import { type ItemDirectory, NO_ITEM_DIRECTORY } from './itemDirectory';
+import { DEFAULT_ITEM_ID_MATCHER, type ItemIdMatcher } from './itemIdPattern';
 import type { RoleDirectory } from './roleDirectory';
-
-/** Matches a formatted item id: an uppercase-letter-led prefix, a dash, then a run of digits.
- * Deliberately generic/spec-agnostic (no hardcoded type-prefix list, matching every other
- * spec-driven surface this client reads) — a bare sub-entity local id (no dash) doesn't
- * match, only a real item id does. */
-export const ITEM_ID_PATTERN = /\b[A-Z][A-Z0-9]*-\d+\b/g;
-
-/** Anchored (whole-string) counterpart of `ITEM_ID_PATTERN`, for deciding whether a markdown
- * link's *url* (not a substring found in prose) is itself a bare item id. */
-const FULL_ITEM_ID_PATTERN = /^[A-Z][A-Z0-9]*-\d+$/;
 
 /** Matches a `@<slug>` role mention: `@` then a lowercase-letter-led run of lowercase
  * letters/digits/hyphens (a role slug's actual shape, e.g. `manager`, `tech-lead`). Generic/
- * spec-agnostic like `ITEM_ID_PATTERN` — no hardcoded role list here; whether a given match
- * resolves to a real role is `roles` (a `RoleDirectory`)'s job, at replace time. */
+ * spec-agnostic — no hardcoded role list here; whether a given match resolves to a real role is
+ * `roles` (a `RoleDirectory`)'s job, at replace time. */
 export const MENTION_PATTERN = /@([a-z][a-z0-9-]*)\b/g;
+
+/** Everything a nested render needs to resolve links: the item already on screen (never
+ * self-linked), the role directory `@<slug>` mentions resolve through, and the id grammar.
+ * Bundled into one object because every block/inline renderer below threads all three — the
+ * alternative is the same three parameters repeated down a dozen signatures. */
+interface RenderContext {
+  readonly currentId: string | undefined;
+  readonly roles: RoleDirectory | undefined;
+  readonly ids: ItemIdMatcher;
+  readonly items: ItemDirectory;
+}
+
+function renderContext(
+  currentId: string | undefined,
+  roles: RoleDirectory | undefined,
+  ids: ItemIdMatcher | undefined,
+  items: ItemDirectory | undefined,
+): RenderContext {
+  return {
+    currentId,
+    roles,
+    ids: ids ?? DEFAULT_ITEM_ID_MATCHER,
+    items: items ?? NO_ITEM_DIRECTORY,
+  };
+}
+
+/** The `title="…"` attribute for an item anchor, or `''` when the directory doesn't resolve
+ * the id. Shared by both anchor shapes — a bare id token found in prose and a markdown link
+ * whose url is an id — so the two can't drift into one hovering and the other not. */
+function titleAttribute(id: string, ctx: RenderContext): string {
+  const hoverText = ctx.items.get(id);
+  return hoverText === undefined ? '' : ` title="${escapeHtml(hoverText)}"`;
+}
 
 /** Schemes a rendered `[text](url)` link's `href` is allowed to carry. Defense-in-depth
  * alongside the webview's CSP: a `javascript:`/`data:`/`vbscript:`/etc. url is dropped rather
@@ -71,12 +103,26 @@ export function escapeHtml(text: string): string {
 /** Escapes `text`, wraps every item-id token in a navigable-link anchor (save for `currentId`,
  * the item already open in this panel, left as plain escaped text), then — when `roles` is
  * given — does the same for every `@<slug>` role mention that resolves in it (an unresolved
- * slug is left as plain escaped text, same as any other prose). */
-export function linkifyPlainText(text: string, currentId?: string, roles?: RoleDirectory): string {
+ * slug is left as plain escaped text, same as any other prose). `ids` is the declared-prefix
+ * grammar; omitted, the generic fallback applies. */
+export function linkifyPlainText(
+  text: string,
+  currentId?: string,
+  roles?: RoleDirectory,
+  ids?: ItemIdMatcher,
+  items?: ItemDirectory,
+): string {
+  return linkifyRun(text, renderContext(currentId, roles, ids, items));
+}
+
+function linkifyRun(text: string, ctx: RenderContext): string {
   const escaped = escapeHtml(text);
-  const withItemLinks = escaped.replace(ITEM_ID_PATTERN, (id) =>
-    id === currentId ? id : `<a class="sq-item-link" href="#" data-item-id="${id}">${id}</a>`,
+  const withItemLinks = escaped.replace(ctx.ids.inline, (id) =>
+    id === ctx.currentId
+      ? id
+      : `<a class="sq-item-link" href="#" data-item-id="${id}"${titleAttribute(id, ctx)}>${id}</a>`,
   );
+  const { roles } = ctx;
   if (roles === undefined || roles.size === 0) {
     return withItemLinks;
   }
@@ -137,22 +183,18 @@ const INLINE_TOKEN =
 /** Renders one matched inline token (bold/italic/link) to HTML. Split out of `renderInline` to
  * keep that function's cyclomatic complexity low. Code spans are handled separately, before
  * this runs — see `extractCodeSpans`. */
-function renderInlineToken(
-  match: RegExpExecArray,
-  currentId: string | undefined,
-  roles: RoleDirectory | undefined,
-): string {
+function renderInlineToken(match: RegExpExecArray, ctx: RenderContext): string {
   const [, boldStar, boldUnderscore, emStar, emUnderscore, linkText, linkUrl] = match;
   const bold = boldStar ?? boldUnderscore;
   if (bold !== undefined) {
-    return `<strong>${linkifyPlainText(bold, currentId, roles)}</strong>`;
+    return `<strong>${linkifyRun(bold, ctx)}</strong>`;
   }
   const italic = emStar ?? emUnderscore;
   if (italic !== undefined) {
-    return `<em>${linkifyPlainText(italic, currentId, roles)}</em>`;
+    return `<em>${linkifyRun(italic, ctx)}</em>`;
   }
   if (linkText !== undefined && linkUrl !== undefined) {
-    return renderLink(linkText, linkUrl, currentId);
+    return renderLink(linkText, linkUrl, ctx);
   }
   return '';
 }
@@ -162,13 +204,13 @@ function renderInlineToken(
  * `currentId` suppressed the same way); a url on the safe-scheme allowlist becomes a normal
  * `<a href>`; anything else (an unsafe scheme, a relative path, a protocol-relative url) is
  * dropped, keeping only the escaped visible text — see `isSafeLinkUrl`. */
-function renderLink(text: string, url: string, currentId: string | undefined): string {
+function renderLink(text: string, url: string, ctx: RenderContext): string {
   const trimmedUrl = url.trim();
   const escapedText = escapeHtml(text);
-  if (FULL_ITEM_ID_PATTERN.test(trimmedUrl)) {
-    return trimmedUrl === currentId
+  if (ctx.ids.full.test(trimmedUrl)) {
+    return trimmedUrl === ctx.currentId
       ? escapedText
-      : `<a class="sq-item-link" href="#" data-item-id="${trimmedUrl}">${escapedText}</a>`;
+      : `<a class="sq-item-link" href="#" data-item-id="${trimmedUrl}"${titleAttribute(trimmedUrl, ctx)}>${escapedText}</a>`;
   }
   if (isSafeLinkUrl(trimmedUrl)) {
     return `<a href="${escapeHtml(trimmedUrl)}">${escapedText}</a>`;
@@ -180,19 +222,29 @@ function renderLink(text: string, url: string, currentId: string | undefined): s
  * ids (and, when `roles` resolves them, `@<slug>` role mentions) in every plain-text segment
  * along the way. Code spans are extracted first so they bind tighter than emphasis, per
  * CommonMark — see `extractCodeSpans`. */
-export function renderInline(raw: string, currentId?: string, roles?: RoleDirectory): string {
+export function renderInline(
+  raw: string,
+  currentId?: string,
+  roles?: RoleDirectory,
+  ids?: ItemIdMatcher,
+  items?: ItemDirectory,
+): string {
+  return renderInlineIn(raw, renderContext(currentId, roles, ids, items));
+}
+
+function renderInlineIn(raw: string, ctx: RenderContext): string {
   const { text, spans } = extractCodeSpans(raw);
   const regex = new RegExp(INLINE_TOKEN.source, 'g');
   let result = '';
   let lastIndex = 0;
   let match = regex.exec(text);
   while (match !== null) {
-    result += linkifyPlainText(text.slice(lastIndex, match.index), currentId, roles);
-    result += renderInlineToken(match, currentId, roles);
+    result += linkifyRun(text.slice(lastIndex, match.index), ctx);
+    result += renderInlineToken(match, ctx);
     lastIndex = regex.lastIndex;
     match = regex.exec(text);
   }
-  result += linkifyPlainText(text.slice(lastIndex), currentId, roles);
+  result += linkifyRun(text.slice(lastIndex), ctx);
   return restoreCodeSpans(result, spans);
 }
 
@@ -241,8 +293,7 @@ function isTableStart(lines: readonly string[], i: number): boolean {
 function renderTable(
   lines: readonly string[],
   start: number,
-  currentId: string | undefined,
-  roles: RoleDirectory | undefined,
+  ctx: RenderContext,
 ): { html: string; next: number } {
   const header = splitTableRow(lineAt(lines, start));
   const rows: string[][] = [];
@@ -251,12 +302,9 @@ function renderTable(
     rows.push(splitTableRow(lineAt(lines, i)));
     i++;
   }
-  const thead = `<thead><tr>${header.map((cell) => `<th>${renderInline(cell, currentId, roles)}</th>`).join('')}</tr></thead>`;
+  const thead = `<thead><tr>${header.map((cell) => `<th>${renderInlineIn(cell, ctx)}</th>`).join('')}</tr></thead>`;
   const tbody = `<tbody>${rows
-    .map(
-      (row) =>
-        `<tr>${row.map((cell) => `<td>${renderInline(cell, currentId, roles)}</td>`).join('')}</tr>`,
-    )
+    .map((row) => `<tr>${row.map((cell) => `<td>${renderInlineIn(cell, ctx)}</td>`).join('')}</tr>`)
     .join('')}</tbody>`;
   return { html: `<table>${thead}${tbody}</table>`, next: i };
 }
@@ -302,17 +350,14 @@ function scanListLines(lines: readonly string[], start: number): ListScan {
 function renderList(
   lines: readonly string[],
   start: number,
-  currentId: string | undefined,
-  roles: RoleDirectory | undefined,
+  ctx: RenderContext,
 ): { html: string; next: number } {
   const firstMatch = LIST_MARKER.exec(lineAt(lines, start));
   const ordered = firstMatch !== null && /^\d+\.$/.test(firstMatch[1] ?? '');
   const { items, next } = scanListLines(lines, start);
 
   const tag = ordered ? 'ol' : 'ul';
-  const itemsHtml = items
-    .map((raw) => `<li>${renderInline(raw.join(' '), currentId, roles)}</li>`)
-    .join('');
+  const itemsHtml = items.map((raw) => `<li>${renderInlineIn(raw.join(' '), ctx)}</li>`).join('');
   return { html: `<${tag}>${itemsHtml}</${tag}>`, next };
 }
 
@@ -362,17 +407,12 @@ function renderFence(
   };
 }
 
-function renderHeading(
-  lines: readonly string[],
-  start: number,
-  currentId: string | undefined,
-  roles: RoleDirectory | undefined,
-): BlockResult {
+function renderHeading(lines: readonly string[], start: number, ctx: RenderContext): BlockResult {
   const match = HEADING.exec(lineAt(lines, start));
   const level = String(match?.[1]?.length ?? 1);
   const text = match?.[2] ?? '';
   return {
-    html: `<h${level}>${renderInline(text, currentId, roles)}</h${level}>`,
+    html: `<h${level}>${renderInlineIn(text, ctx)}</h${level}>`,
     next: start + 1,
   };
 }
@@ -380,9 +420,8 @@ function renderHeading(
 function renderBlockquote(
   lines: readonly string[],
   start: number,
-  currentId: string | undefined,
+  ctx: RenderContext,
   renderMermaidFences: boolean,
-  roles: RoleDirectory | undefined,
 ): BlockResult {
   const quoteLines: string[] = [];
   let i = start;
@@ -391,17 +430,12 @@ function renderBlockquote(
     i++;
   }
   return {
-    html: `<blockquote>${renderMarkdownToHtml(quoteLines.join('\n'), currentId, renderMermaidFences, roles)}</blockquote>`,
+    html: `<blockquote>${renderBlocks(quoteLines.join('\n'), ctx, renderMermaidFences)}</blockquote>`,
     next: i,
   };
 }
 
-function renderParagraph(
-  lines: readonly string[],
-  start: number,
-  currentId: string | undefined,
-  roles: RoleDirectory | undefined,
-): BlockResult {
+function renderParagraph(lines: readonly string[], start: number, ctx: RenderContext): BlockResult {
   // The first line is consumed unconditionally (guaranteeing progress even when it matches
   // the `|`-based approximation `startsNewBlock` uses for tables but isn't a real table
   // start) before using `startsNewBlock` to decide whether to keep accumulating.
@@ -411,36 +445,35 @@ function renderParagraph(
     paraLines.push(lineAt(lines, i).trim());
     i++;
   }
-  return { html: `<p>${renderInline(paraLines.join(' '), currentId, roles)}</p>`, next: i };
+  return { html: `<p>${renderInlineIn(paraLines.join(' '), ctx)}</p>`, next: i };
 }
 
 function renderBlock(
   lines: readonly string[],
   i: number,
-  currentId: string | undefined,
+  ctx: RenderContext,
   renderMermaidFences: boolean,
-  roles: RoleDirectory | undefined,
 ): BlockResult {
   const line = lineAt(lines, i);
   if (FENCE_START.test(line)) {
     return renderFence(lines, i, renderMermaidFences);
   }
   if (HEADING.test(line)) {
-    return renderHeading(lines, i, currentId, roles);
+    return renderHeading(lines, i, ctx);
   }
   if (HR.test(line)) {
     return { html: '<hr>', next: i + 1 };
   }
   if (BLOCKQUOTE.test(line)) {
-    return renderBlockquote(lines, i, currentId, renderMermaidFences, roles);
+    return renderBlockquote(lines, i, ctx, renderMermaidFences);
   }
   if (isTableStart(lines, i)) {
-    return renderTable(lines, i, currentId, roles);
+    return renderTable(lines, i, ctx);
   }
   if (LIST_MARKER.test(line)) {
-    return renderList(lines, i, currentId, roles);
+    return renderList(lines, i, ctx);
   }
-  return renderParagraph(lines, i, currentId, roles);
+  return renderParagraph(lines, i, ctx);
 }
 
 /** Renders a markdown document to a fragment of HTML (no `<html>`/`<body>` wrapper — see
@@ -449,13 +482,22 @@ function renderBlock(
  * `renderMermaidFences` (default `false`) opts a ```mermaid``` fence into rendering as a live
  * diagram instead of plain code — see the module doc comment. `roles`, when given, resolves
  * `@<slug>` role mentions to their role item's link + hover text (see the module doc comment
- * and `domain/roleDirectory.ts`); omitted, every `@slug` is left as plain text. */
+ * and `domain/roleDirectory.ts`); omitted, every `@slug` is left as plain text. `ids`, when
+ * given, is the squad's declared-prefix id grammar (`domain/itemIdPattern.ts`); omitted, the
+ * generic fallback grammar applies. `items`, when given, supplies each linked id's hover text
+ * (`domain/itemDirectory.ts`); omitted, anchors carry no `title`. */
 export function renderMarkdownToHtml(
   markdown: string,
   currentId?: string,
   renderMermaidFences = false,
   roles?: RoleDirectory,
+  ids?: ItemIdMatcher,
+  items?: ItemDirectory,
 ): string {
+  return renderBlocks(markdown, renderContext(currentId, roles, ids, items), renderMermaidFences);
+}
+
+function renderBlocks(markdown: string, ctx: RenderContext, renderMermaidFences: boolean): string {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n');
   const out: string[] = [];
   let i = 0;
@@ -465,7 +507,7 @@ export function renderMarkdownToHtml(
       i++;
       continue;
     }
-    const block = renderBlock(lines, i, currentId, renderMermaidFences, roles);
+    const block = renderBlock(lines, i, ctx, renderMermaidFences);
     out.push(block.html);
     i = block.next;
   }

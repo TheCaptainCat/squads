@@ -15,8 +15,20 @@
  * `resolveItemBadges` joins an item's `badges` map through both, degrading gracefully (raw code
  * text, never a dropped entry or a thrown error) when a binding or vocabulary entry is missing —
  * a stale cache or an in-flight catalog fetch, not a reason to hide the item's data.
+ *
+ * A sub-entity's `badges` map is the same mechanism one level down, and resolves through the
+ * same function: `buildSubEntityFieldBindings` produces the bindings for the fields a type's
+ * sub-entities declare (joining the type catalog to `sq workflow subentity-kinds --json`), and
+ * `resolveItemBadges` then reads a sub-entity's map with them. Nothing here knows the name of
+ * any particular axis.
  */
-import type { SqBadgeMap, SqCollectionCatalogEntry, SqTypeCatalogEntry } from '../types';
+import type {
+  SqBadgeMap,
+  SqCollectionCatalogEntry,
+  SqSubEntityKindCatalogEntry,
+  SqTypeCatalogEntry,
+  SqTypeField,
+} from '../types';
 
 export interface ResolvedBadge {
   /** The field's display label (e.g. "Priority", "Severity", or a custom axis's own label). */
@@ -41,18 +53,38 @@ export type FieldBindingsByType = ReadonlyMap<string, ReadonlyMap<string, FieldB
  * field falls back to its raw code (see the module doc for the degrade-gracefully contract). */
 export const NO_FIELD_BINDINGS: FieldBindingsByType = new Map();
 
-export function buildFieldBindings(types: readonly SqTypeCatalogEntry[]): FieldBindingsByType {
+function bindingsFor(fields: readonly SqTypeField[]): ReadonlyMap<string, FieldBinding> {
   return new Map(
-    types.map((entry) => [
-      entry.type,
-      new Map(
-        (entry.fields ?? []).map((field) => [
-          field.code,
-          { label: field.label, collection: field.collection },
-        ]),
-      ),
-    ]),
+    fields.map((field) => [field.code, { label: field.label, collection: field.collection }]),
   );
+}
+
+export function buildFieldBindings(types: readonly SqTypeCatalogEntry[]): FieldBindingsByType {
+  return new Map(types.map((entry) => [entry.type, bindingsFor(entry.fields ?? [])]));
+}
+
+/** The same field->label/collection binding, for the fields a type's SUB-ENTITIES declare
+ * rather than its own — keyed by item type all the same, so `resolveItemBadges` serves both
+ * levels unchanged. Resolves along the chain the catalogs publish: item type -> that type's
+ * `subentity_kind` -> the kind row -> its `fields`. A type hosting no kind, a kind absent from
+ * `kinds` (an `sq` too old to publish the catalog, or a failed fetch), or a field the kind
+ * doesn't declare all leave the binding unknown, which `resolveItemBadges` renders as the raw
+ * field code — the same degrade every other catalog join here makes, and the reason no label
+ * is ever hand-maintained client-side. */
+export function buildSubEntityFieldBindings(
+  types: readonly SqTypeCatalogEntry[],
+  kinds: readonly SqSubEntityKindCatalogEntry[],
+): FieldBindingsByType {
+  const fieldsByKind = new Map(kinds.map((entry) => [entry.subentity_kind, entry.fields]));
+  const bindings = new Map<string, ReadonlyMap<string, FieldBinding>>();
+  for (const entry of types) {
+    const kind = entry.subentity_kind ?? null;
+    const fields = kind === null ? undefined : fieldsByKind.get(kind);
+    if (fields !== undefined) {
+      bindings.set(entry.type, bindingsFor(fields));
+    }
+  }
+  return bindings;
 }
 
 /** collection code -> (badge code -> {label, emoji}). */

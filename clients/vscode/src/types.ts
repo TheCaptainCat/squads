@@ -67,7 +67,16 @@ export interface SqTypeLabels {
  * — the single client-side source of which browse view a type belongs in
  * (`domain/typeCategory.ts`), never a hardcoded type-name list. `fields`/`labels` are optional
  * the same way `SqBadgeMap` is (an older `sq` simply omits them); a missing `fields` is treated
- * as `[]`, a missing `labels` falls back to the raw `type` string (`domain/typeLabels.ts`). */
+ * as `[]`, a missing `labels` falls back to the raw `type` string (`domain/typeLabels.ts`).
+ * `subentity_kind` names the declared sub-entity kind this type hosts (`null` when it hosts
+ * none) — the join key from an item to `SqSubEntityKindCatalogEntry`, since a sub-entity object
+ * carries no kind of its own. Optional for the same skew reason as `fields`: an `sq` predating
+ * it omits the key, and the join then degrades to raw field codes.
+ *
+ * The row also publishes `lifecycle`, deliberately unmodelled here: it names the state machine
+ * a type binds, and nothing in this release publishes those machines, so it is a grouping key
+ * (equal values mean two types share one machine) with no catalog to resolve against. Modelling
+ * it would invite a resolver for a target that does not exist. */
 export interface SqTypeCatalogEntry {
   readonly type: string;
   readonly order: number | null;
@@ -76,6 +85,19 @@ export interface SqTypeCatalogEntry {
   readonly category: string;
   readonly fields?: readonly SqTypeField[];
   readonly labels?: SqTypeLabels;
+  readonly subentity_kind?: string | null;
+}
+
+/** One entry of `sq workflow subentity-kinds --json` — the spec's declared sub-entity kind
+ * vocabulary, one row per kind. Hand-trimmed like every shape here to what the client reads:
+ * the identity key a type row's `subentity_kind` points at, and the kind's declared `fields`
+ * (the same `{code, label, collection}` entry shape a type row's own `fields` carries — the
+ * sub-entity field mechanism is the item one unforked, so its published shape is too). The
+ * row's other declared keys are emitted by `sq` and ignored here, per this file's hand-trim
+ * convention. */
+export interface SqSubEntityKindCatalogEntry {
+  readonly subentity_kind: string;
+  readonly fields: readonly SqTypeField[];
 }
 
 /** One badge of a collection's vocabulary on `sq workflow collections --json`: its stable code
@@ -114,12 +136,16 @@ export interface SqStatusCatalogEntry {
  * view; `color` is a semantic colour-intent from a closed vocabulary
  * (`positive`/`danger`/`warning`/`muted`/`neutral`/`info`) — a client maps it to its own theme
  * (see `domain/statusRole.ts`), falling back to `"neutral"` for any intent it doesn't recognize
- * so a future/custom intent never breaks rendering. */
+ * so a future/custom intent never breaks rendering. `live` (defaults false server-side) is
+ * the materialisation axis: an item whose status resolves to a live role is on offer to be
+ * spawned/loaded/cited/assigned. It is deliberately narrower than "not settled" — a role can be
+ * non-settled without being live. */
 export interface SqRoleCatalogEntry {
   readonly role: string;
   readonly settled: boolean;
   readonly hidden: boolean;
   readonly color: string;
+  readonly live: boolean;
 }
 
 /** One entry of `sq show <id> --json`'s `discussion` array — a single comment: author display
@@ -131,24 +157,38 @@ export interface SqDiscussionEntry {
 }
 
 /** One entry of `sq show <id> --json`'s `subentities` array — a story/subtask/finding tracked on
- * the parent item. `local_id` is kind-prefixed (`US<n>` story / `ST<n>` subtask / `F<n>` finding)
- * — the kind itself isn't a separate field, so the client never needs a hardcoded kind list.
- * `severity` is set for findings only; `story` for subtasks only (the parent story's local id). */
+ * the parent item. `local_id` is kind-prefixed (`US<n>` story / `ST<n>` subtask / the finding
+ * letter) — the kind itself isn't a separate field, so the client never needs a hardcoded kind
+ * list. `story` is set for subtasks only (the parent story's local id).
+ *
+ * `badges` is the sub-entity's spec-resolved per-field map (field code -> badge code), the same
+ * shape and the same generic mechanism the item level carries — a declared axis is read from
+ * here, never from a modelled field named after one particular axis. Optional the same way the
+ * item-level `SqBadgeMap` is.
+ *
+ * `discussion` is **optional**, not just possibly-empty: an older `sq` predating this field omits
+ * the key entirely, and the shape guard (`isSqSubEntity`) must keep accepting that payload rather
+ * than rejecting it — see that guard's doc for the failure direction this protects against. */
 export interface SqSubEntity {
   readonly local_id: string;
   readonly title: string;
   readonly status: string;
   readonly assignee: string | null;
-  readonly severity: string | null;
   readonly story: string | null;
   readonly body: string;
+  readonly badges?: SqBadgeMap;
+  readonly discussion?: readonly SqDiscussionEntry[];
 }
 
-/** The `sq show <id> --json` shape this client reads: only `discussion` (the preview's
- * collapsible comments section) and `subentities` (the preview's sub-entities section). */
+/** The `sq show <id> --json` shape this client reads: `discussion` (the preview's collapsible
+ * comments section), `subentities` (the preview's sub-entities section), and `type` — the item's
+ * declared type, which is what joins its sub-entities to their kind's declared field labels
+ * through the type catalog. `type` is guarded as optional for the usual skew reason: it must
+ * never be the key whose absence blanks the whole preview. */
 export interface SqShowJson {
   readonly discussion: readonly SqDiscussionEntry[];
   readonly subentities: readonly SqSubEntity[];
+  readonly type?: string;
 }
 
 /** One matched region within a `sq search --json` hit: `region` is the compact, machine-stable
