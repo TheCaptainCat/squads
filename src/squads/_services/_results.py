@@ -8,6 +8,7 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths
+from squads._services._retirement import Severance
 
 
 @dataclass(frozen=True)
@@ -177,10 +178,18 @@ class RepairResult:
 
     ``missing_ids`` holds item IDs that were present in the index *before* repair but whose
     markdown files could not be found on disk — a deletion event worth surfacing to the operator.
+
+    ``unreadable`` holds one message per file whose content could not be read or parsed during
+    the rebuild — a merge conflict, invalid UTF-8, an OS permission error. Distinct from
+    ``missing_ids``: an unreadable file's *previous* index entry (when one exists) is carried
+    forward unchanged rather than dropped, so its item stays resolvable and never appears in
+    ``missing_ids`` — only in this list, naming the file so the operator knows the carried
+    entry is stale until the file is fixed.
     """
 
     db: SquadsDB
     missing_ids: list[str] = field(default_factory=list[str])
+    unreadable: list[str] = field(default_factory=list[str])
 
 
 @dataclass
@@ -201,12 +210,60 @@ class RenumberResult:
 
 @dataclass
 class WorkloadRow:
-    """Per-assignee work counts for `sq workload` (None assignee = unassigned)."""
+    """Per-assignee work counts for `sq workload` (None assignee = unassigned).
+
+    ``open``/``closed``/``total`` count **items** only, exactly as published before
+    sub-entity assignments were counted at all. ``subentity_open``/``subentity_closed``/
+    ``subentity_total`` are separate, additive counts of that assignee's sub-entity
+    (story/subtask/finding) assignments — never folded into the item counts, so an actor
+    owning both a parent item and one of its sub-entities is counted once in each set.
+    """
 
     assignee: str | None
     open: int
     closed: int
     total: int
+    subentity_open: int = 0
+    subentity_closed: int = 0
+    subentity_total: int = 0
+
+
+@dataclass(frozen=True)
+class MineRow:
+    """One `sq mine` match: the item plus every sub-entity of it assigned to the same slug.
+
+    ``matched_subentities`` lists *every* sub-entity of ``item`` assigned to the queried
+    slug, regardless of status — the visibility predicate decides whether the row is
+    returned at all, not what this list contains (a caller can always see the full set of
+    reasons a row is theirs).
+    """
+
+    item: Item
+    matched_subentities: list[SubEntity]
+
+
+@dataclass(frozen=True)
+class InboxLine:
+    """One matched line in `sq inbox`: the raw stripped text plus the sub-entity region it
+    falls in, when any — ``None`` for an item-level mention (in the item's own body/
+    discussion, or anywhere else outside a sub-entity's block), so the two are
+    distinguishable. When set, ``region`` is spelled the same way `search` spells a sub-entity
+    locator (``"<kind>:<local_id>"`` or ``"<kind>:<local_id>:discussion#<n>"``) — but this is
+    narrower than `search`'s full vocabulary: every item-level region name `search` publishes
+    (``body``, ``discussion``, ``discussion#<n>``, ``other``) collapses to ``None`` here,
+    because sub-entity-vs-item is the only distinction `inbox` makes.
+    """
+
+    text: str
+    region: str | None
+
+
+@dataclass(frozen=True)
+class InboxHit:
+    """One `sq inbox` match: the item plus each matching line and its region attribution."""
+
+    item: Item
+    lines: list[InboxLine]
 
 
 @dataclass(frozen=True)
@@ -232,6 +289,19 @@ class SearchResult:
 
     item: Item
     hits: list[SearchHit]
+
+
+#: One human-readable message per item file a corpus-walking read had to skip — the same
+#: skipped-file channel ``check``/``repair``/``board list``/``memory list`` already report on,
+#: returned alongside the results rather than replacing them.
+#:
+#: The posture it encodes: **one unreadable file degrades that file, never the answer**. A
+#: reader that lets the error propagate discards every result it had already accumulated from
+#: files it *could* read, which is both less useful and less honest than naming the one file
+#: and returning the rest — and it makes the failure look arbitrary next to ``list``/``tree``/
+#: ``blocked``/``show``/``graph``, which walk the same corpus and are unaffected. Callers pair
+#: this with a non-zero exit so a script still learns the answer was partial.
+type UnreadableItems = list[str]
 
 
 @dataclass(frozen=True)
@@ -329,3 +399,35 @@ class ReflogEntry:
     delta: dict[str, Any]
     session_id: str | None = None
     parent_session_id: str | None = None
+
+
+@dataclass(frozen=True)
+class RosterStatusResult:
+    """Outcome of ``Service.set_roster_status()`` — the roster ``status`` verb's richer
+    counterpart to the generic ``Service.set_status()``, carrying what only a roster transition
+    can produce: the edges ``--unlink`` severed (empty when the flag was not passed, or a
+    reported no-op when it found nothing severable) and any board-hygiene warnings (open
+    assigned work on a retiring role/operator) that warn without refusing.
+    """
+
+    item: Item
+    severed: list[Severance]
+    warnings: list[str]
+
+
+@dataclass(frozen=True)
+class DefaultRoleMoveResult:
+    """Outcome of ``Service.set_default_role()`` — the ``is_default`` designation move: a move,
+    not a set.
+
+    ``item`` is the role now carrying the designation. ``cleared`` lists the ids of every
+    *other* role whose ``is_default`` was found set and cleared in the same transaction — not
+    just one, so re-running the move against a squad where two roles already carry the
+    designation converges it to a single holder in one call. ``changed`` is ``False`` only
+    when *item* already was the designation's sole holder and nothing else needed clearing —
+    a reported no-op, not an error.
+    """
+
+    item: Item
+    cleared: list[str]
+    changed: bool

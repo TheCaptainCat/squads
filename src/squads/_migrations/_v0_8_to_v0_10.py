@@ -146,7 +146,9 @@ async def migrate(paths: SquadPaths) -> int:
         new_path = skills_folder / new_name
         await _aio.path_rename(legacy_path, new_path)
         squad_rel = f"{_SKILL_FOLDER}/{new_name}"
-        fm["path"] = squad_rel
+        # `path` is model-only (Item.to_frontmatter_dict never writes it) and derivable from the
+        # file's own location — never persist it, or it goes stale the moment the file moves again.
+        fm.pop("path", None)
         if not fm.get("description"):  # fill-if-empty: don't clobber an operator edit
             fm["description"] = _DESCRIPTION
         new_text = await _aio.read_text(new_path)

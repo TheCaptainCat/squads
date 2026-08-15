@@ -10,6 +10,7 @@ functions.
 
 from squads._board import _store as board_store
 from squads._board._model import BoardNotice
+from squads._board._store import UnreadableNotices
 from squads._services._base import ServiceCore
 
 
@@ -17,7 +18,8 @@ class BoardMixin(ServiceCore):
     async def board_post(self, author: str, text: str, *, until: str | None = None) -> BoardNotice:
         return await board_store.post(self.paths, author, text, until=until)
 
-    async def board_list(self) -> list[BoardNotice]:
+    async def board_list(self) -> tuple[list[BoardNotice], UnreadableNotices]:
+        """Unexpired notices, plus one message per notice file that could not be read."""
         return await board_store.list_notices(self.paths)
 
     async def board_clear(self, n: int) -> BoardNotice:

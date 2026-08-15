@@ -19,20 +19,61 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_extra
 from squads._roles._catalog import RoleDef
-from squads._services._base import ServiceCore, reject_markers
-from squads._services._results import RemoveResult
+from squads._services import _retirement as retirement
+from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
+from squads._services._results import RemoveResult, RosterStatusResult, Severance
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
-from squads._workflow._models import Field
 
 
 class ItemsMixin(ServiceCore):
     async def set_status(self, item_id: str, status: str, *, force: bool = False) -> Item:
         """Opens its own transaction, then delegates to :meth:`_set_status_core` — the bulk
-        importer calls that core directly (its own transaction is already open)."""
+        importer calls that core directly (its own transaction is already open).
+
+        A roster item's transition additionally projects into backend config, **after** the
+        transaction commits (see :meth:`~squads._services._base.ServiceCore
+        ._project_roster_transition`): materialise when the new status is live, withdraw
+        otherwise, then recompile the managed regions. The bulk importer's direct
+        ``_set_status_core`` calls skip this — replayed history converges on the next
+        ``sq sync``, the same story as any squad already on disk with a retired entry.
+
+        A roster item's transition is additionally held to the config-integrity clauses
+        (see ``_services/_retirement.py``), scoped to this transition's own delta, inside
+        :meth:`_set_status_model`'s pure half — unconditionally, regardless of ``force``, which
+        overrides only the lifecycle's own transition edge, never these. This entry point never
+        passes ``--unlink``; the roster ``status`` verb calls :meth:`set_roster_status` instead,
+        which also reports what that flag severed.
+        """
+        result = await self._set_roster_status_impl(item_id, status, force=force, unlink=False)
+        return result.item
+
+    async def set_roster_status(
+        self, item_id: str, status: str, *, force: bool = False, unlink: bool = False
+    ) -> RosterStatusResult:
+        """The roster ``status`` verb's entry point: the same transition as :meth:`set_status`,
+        plus ``--unlink`` and the richer result reporting it needs (severed edges, board-hygiene
+        warnings)."""
+        return await self._set_roster_status_impl(item_id, status, force=force, unlink=unlink)
+
+    async def _set_roster_status_impl(
+        self, item_id: str, status: str, *, force: bool, unlink: bool
+    ) -> RosterStatusResult:
         async with self.store.transaction() as db:
-            return await self._set_status_core(db, item_id, status, force=force)
+            item, severed, warnings = await self._set_status_core(
+                db, item_id, status, force=force, unlink=unlink
+            )
+        if self.spec.item_is_roster(item.type):
+            await self._project_roster_transition(item)
+        # Post-commit partial resync for each severed scopes edge — mirrors unlink_role's own
+        # existing behaviour: the retiring item's own status/refs are already committed above,
+        # this only refreshes the previously-scoped role's re-derivable cache + generated entry.
+        for sev in severed:
+            if sev.kind == "scopes":
+                role = await self.get(sev.target)
+                await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
+        return RosterStatusResult(item=item, severed=severed, warnings=warnings)
 
     def _set_status_model(
         self,
@@ -41,36 +82,85 @@ class ItemsMixin(ServiceCore):
         status: str,
         *,
         force: bool = False,
+        unlink: bool = False,
         now: datetime | None = None,
-    ) -> tuple[Item, str, Item]:
-        """The PURE half of a status transition: no file I/O. Returns ``(item, old_status,
-        base)`` — ``base`` is the item as loaded, before this call's own delta, for the
-        write seam's skew guard (see :func:`~squads._itemfile.ensure_no_skew`).
+    ) -> tuple[Item, str, Item, list[Severance], list[str]]:
+        """The PURE half of a status transition: no file I/O. Returns ``(item, old_status, base,
+        severed, warnings)``:
+
+        - ``base`` is the item as loaded, before this call's own delta, for the write seam's
+          skew guard (see :func:`~squads._itemfile.ensure_no_skew`).
+        - ``severed`` is the ``--unlink`` edges removed from *item*'s own refs — always empty
+          unless ``unlink`` was passed and the transition is a retirement.
+        - ``warnings`` is board-hygiene notices (open assigned work on a retiring role/operator)
+          that never block the transition — config integrity and board hygiene are different
+          questions (see :func:`~squads._services._retirement.open_assigned_work`).
+
+        A roster item is held to the config-integrity clauses here, scoped to this transition's
+        own delta — a pre-existing violation never blocks it — unconditionally with respect to
+        ``force``, which overrides only the lifecycle edge just above, never these; see
+        ``_services/_retirement.py``.
 
         Shared by :meth:`_set_status_core` (the interactive/apply path) and the bulk importer's
         pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``
-        to simulate the transition using the exact same workflow gate the real path runs.
+        to simulate the transition using the exact same workflow gate the real path runs —
+        including the config-integrity gate, so a replayed history is held to the same rule at
+        each step it replays.
         """
         item = require_item(db, item_id)
         base = item.model_copy(deep=True)
         old_status = item.status
         self._apply_status(item, status, force=force)
+        severed: list[Severance] = []
+        warnings: list[str] = []
+        if self.spec.item_is_roster(item.type):
+            severed = retirement.enforce(
+                self.spec,
+                db,
+                item,
+                active_backends=self.paths.config.active_backends,
+                unlink=unlink,
+                old_status=old_status,
+                playbook=self.playbook,
+            )
+            live = self.spec.live_statuses(item.type)
+            is_retirement = old_status in live and item.status not in live
+            if item.type in (ROSTER_ROLE, ROSTER_OPERATOR) and is_retirement:
+                slug = item.extra.get(X.SLUG, item.slug)
+                open_ids = retirement.open_assigned_work(db, self.spec, slug)
+                if open_ids:
+                    warnings.append(
+                        f"{item.id} ({slug}) still holds open assigned work: " + ", ".join(open_ids)
+                    )
+            if item.type == ROSTER_ROLE and is_retirement:
+                warning = retirement.lost_default_designation_warning(db, self.spec, item)
+                if warning:
+                    warnings.append(warning)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
-        return item, old_status, base
+        return item, old_status, base, severed, warnings
 
     async def _set_status_core(
-        self, db: SquadsDB, item_id: str, status: str, *, force: bool = False
-    ) -> Item:
-        """The status-transition mutation core: takes an already-open transaction's ``db``."""
-        item, old_status, base = self._set_status_model(db, item_id, status, force=force)
+        self, db: SquadsDB, item_id: str, status: str, *, force: bool = False, unlink: bool = False
+    ) -> tuple[Item, list[Severance], list[str]]:
+        """The status-transition mutation core: takes an already-open transaction's ``db``.
+
+        Returns ``(item, severed, warnings)`` — see :meth:`_set_status_model`. Writes the
+        retiring item's frontmatter (status plus any severed refs) and reflogs one ``ref``
+        removal entry per severance, before the ``status`` entry.
+        """
+        item, old_status, base, severed, warnings = self._set_status_model(
+            db, item_id, status, force=force, unlink=unlink
+        )
         await update_frontmatter(item_file(self.paths, item), item, base)
+        for sev in severed:
+            self.store.log("ref", item.id, {"remove": sev.target, "kind": sev.kind})
         self.store.log(
             "status",
             item.id,
             {"status": [old_status, item.status]},
         )
-        return item
+        return item, severed, warnings
 
     async def update(  # noqa: PLR0913 — the one metadata entry point
         self,
@@ -171,13 +261,23 @@ class ItemsMixin(ServiceCore):
             delta["priority"] = None
             item.priority = None
         elif priority is not None:
-            delta["priority"] = priority
-            item.priority = priority
+            checked_priority = self._check_priority(item.type, priority)
+            delta["priority"] = checked_priority
+            item.priority = checked_priority
         if author is not None:
             self._check_author(db, item.type, author, item.slug)
             delta["author"] = author
             item.author = author
         if status is not None:
+            if self.spec.item_is_roster(item.type):
+                # A roster item's status is held to the config-integrity clauses and projects
+                # into backend config — this metadata-update seam evaluates neither. Keep the
+                # roster status axis reachable through exactly one gated path
+                # (`_set_status_model`/`set_roster_status`), never through this one.
+                raise SquadsError(
+                    f"{item.id}'s status cannot change through `update` — use the roster "
+                    "`status` verb instead (`sq role|skill|operator <addr> status <status>`)"
+                )
             old_st = item.status
             self._apply_status(item, status, force=force)
             delta["status"] = [old_st, item.status]
@@ -289,21 +389,6 @@ class ItemsMixin(ServiceCore):
             else:
                 item.extra.pop(key, None)
 
-    def _badge_field(self, item_type: str, key: str) -> Field | None:
-        """The declared field for *key* on *item_type*, generic over every axis (``--set
-        <field>=<code>``): priority/severity/a project's own custom axis alike — not a
-        hand-maintained allowlist of attribute-backed codes."""
-        return next((f for f in self.spec.fields_for(item_type) if f.code == key), None)
-
-    def _parse_badge_code(self, field: Field, raw: str) -> str:
-        """Validate/normalize a ``--set <field>=<code>`` value against its bound collection."""
-        coll = self.spec.collection(field.collection)
-        code = raw.strip().lower()
-        if code not in coll.badge_codes:
-            choices = ", ".join(b.code for b in coll.badges)
-            raise SquadsError(f"invalid {field.code} {raw!r} (one of: {choices})")
-        return code
-
     def _apply_status(self, item: Item, status: str, *, force: bool) -> None:
         # Defensive str() — status is spec vocabulary (a plain string), no enum involved.
         status = str(status)
@@ -393,7 +478,9 @@ class ItemsMixin(ServiceCore):
             raise SquadsError(f"{item_id} is a {item.type}; only roles/skills have entries")
         return item
 
-    def _body_mutate(self, item_id: str, body: str, *, append: bool) -> Callable[[str, Item], str]:
+    def _body_mutate(
+        self, item_id: str, body: str, *, append: bool, force: bool = False
+    ) -> Callable[[str, Item], str]:
         """Build the ``mutate(text, item)`` closure :meth:`set_body` applies via the shared
         section-edit core — factored out so the bulk importer's ``body`` op can drive the exact
         same logic through :meth:`~squads._services._base.ServiceCore._section_edit_core`."""
@@ -412,17 +499,31 @@ class ItemsMixin(ServiceCore):
                     f"{item_id} is a {item.type}; its body is generated from its fields"
                     " (edit via `sq update --set …` / `sq sync`)"
                 )
-            new_body = body
+            current = (sections.get_section(text, markers.BODY) or "").strip("\n")
             if append:
-                current = (sections.get_section(text, markers.BODY) or "").strip("\n")
-                if current:
-                    new_body = f"{current}\n\n{body}"
-            self.store.log("body", item.id, {})
-            return sections.replace_section(text, markers.BODY, new_body)
+                # Append destroys nothing, so it needs no guard and no scaffold distinction —
+                # whatever is there is kept and the new prose follows it.
+                self.store.log("body", item.id, {})
+                new_body = f"{current}\n\n{body}" if current else body
+                return sections.replace_section(text, markers.BODY, new_body)
+            # Replacing: authored iff there is prose and it is not the template scaffold the
+            # item was created with — see ServiceCore.pristine_body for why that is derived
+            # rather than pattern-matched.
+            authored = bool(current) and current != self.pristine_body(item)
+            if authored and not force:
+                reject_body_overwrite(item.id, current)
+            # The body ops that destroyed prose are the ones worth finding again later.
+            delta: dict[str, object] = (
+                {"replaced_lines": len(current.splitlines())} if authored else {}
+            )
+            self.store.log("body", item.id, delta)
+            return sections.replace_section(text, markers.BODY, body)
 
         return mutate
 
-    async def set_body(self, item_id: str, body: str, *, append: bool = False) -> Item:
+    async def set_body(
+        self, item_id: str, body: str, *, append: bool = False, force: bool = False
+    ) -> Item:
         """Set (or ``--append`` to) an item's top-level ``:body`` region — no manual editing.
 
         The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
@@ -430,8 +531,12 @@ class ItemsMixin(ServiceCore):
         is a system (template-owned) skill's body, since ``sq sync`` regenerates it. A *custom*
         (author-defined) skill is the one roster-type exception: its body is authored content with
         no regeneration path, so it's admitted.
+
+        Replacing an **authored** body is refused unless ``force`` — the write is destructive and
+        there is no undo (see :func:`~squads._services._base.reject_body_overwrite`). Writing over
+        the unwritten template scaffold, which is what a first write does, is not affected.
         """
-        mutate = self._body_mutate(item_id, body, append=append)
+        mutate = self._body_mutate(item_id, body, append=append, force=force)
         return await self._locked_section_edit(item_id, mutate)
 
     async def read_body(self, item_id: str) -> str:
