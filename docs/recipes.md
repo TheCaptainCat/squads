@@ -88,8 +88,10 @@ sq check                                 # validate before committing
 sq create task "Hotfix login 500" --author tech-lead --priority urgent --assignee dotnet-dev
 sq task 3 update --priority high         # or --no-priority to clear
 sq list --priority urgent                # filter by priority
-sq mine dotnet-dev                       # open items assigned to a role
-sq workload                              # open/closed/total per assignee
+sq mine dotnet-dev                       # a role's open work: items assigned to it, plus
+                                         # items where one of its sub-entities is assigned to it
+sq workload                              # open/closed/total per assignee, item counts and
+                                         # sub-entity counts side by side
 sq search "lockout"                      # match titles, summaries, bodies, discussion
 # sequencing: mark blockers, then see what's stuck
 sq task 4 ref add TASK-3 --kind blocks   # "TASK-4 blocks TASK-3"
@@ -99,7 +101,22 @@ sq list --all
 sq list --status Done
 ```
 
-The codes above (urgent, high, medium, low) are the bundled default for the priority collection.
+**`sq mine` matches sub-entities too.** A story, subtask or finding assigned to a slug is that
+slug's work even when the item carrying it is assigned to someone else, so `sq mine` returns that
+item and names what matched in a `Matched` column (`US1 (InProgress)`); `--json` carries the same
+thing in a `matched_subentities` key. `sq inbox <role>` likewise names the region a mention was
+found in (`story:US1:discussion#1`, also a `regions` key under `--json`), so you can go straight to
+the right discussion instead of re-reading the item.
+
+Open or closed is judged **per match**, not per item. A closed item still shows up in `sq mine`
+while your own sub-entity on it is open — the item closing did not finish your part — and one of
+your closed sub-entities on an open item stays hidden until you pass `--all`.
+
+`sq workload` reports each assignee's sub-entity counts (`Sub Open` / `Sub Closed` / `Sub Total`,
+and `subentity_open` / `subentity_closed` / `subentity_total` under `--json`) as their own columns
+beside the item counts, never folded in — one sub-entity is not one item's worth of work.
+
+The priority codes above (urgent, high, medium, low) are the bundled default for the priority collection.
 You can customize the priority axis — relabel badges, change emoji, add/remove values, or define
 custom badge collections — via `.overrides/workflow.toml`; see [workflow.md](workflow.md)
 § "Project workflow overrides".

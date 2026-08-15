@@ -39,7 +39,8 @@ version of the first; this is the full reference. The rules are enforced — at 
 
 ### Enforced rules
 
-- `task.parent` must be a **feature**; `feature.parent` must be an **epic** (`ALLOWED_PARENTS`).
+- `task.parent` must be a **feature**; `feature.parent` must be an **epic** — each type declares
+  which parent it accepts, so an override changes these along with the vocabulary.
   Bugs/reviews attach as refs, **not** as a task's parent.
 - A subtask's `(→ USn)` must exist in the task's parent feature.
 - `sq check` flags violations (bad parent type, dangling subtask→US, dangling refs).
@@ -47,12 +48,12 @@ version of the first; this is the full reference. The rules are enforced — at 
 ### Commands at a glance
 
 ```bash
-# product owner
-sq create feature "User authentication" --parent EPIC-<n>
+# product owner  (--author is required on every create, and must name a registered role)
+sq create feature "User authentication" --author product-owner --parent EPIC-<n>
 sq feature 2 add-story "As a user, I want to log in"
 
 # tech lead
-sq create task "Validate token" --parent FEAT-<n>
+sq create task "Validate token" --author tech-lead --parent FEAT-<n>
 sq task 3 add-subtask "Check expiry" --story USn
 sq task 3 ref add BUG-<n> --kind fixes        # or REV-… --kind addresses
 
@@ -62,9 +63,9 @@ sq task 3 comment --as reviewer -m "@qa please verify the redirect"
 sq inbox qa
 
 # humans (operators) are participants too
-sq operator add "Pierre Chat"                 # → op-pierre
-sq task 3 update --assignee op-pierre          # assign a manual step to a person
-sq task 3 comment --as op-pierre -m "approved" # record the human's own words
+sq operator add "Alice Tester"                # → op-alice
+sq task 3 update --assignee op-alice           # assign a manual step to a person
+sq task 3 comment --as op-alice -m "approved"  # record the human's own words
 ```
 
 ---
@@ -95,13 +96,63 @@ specification:
 ```bash
 sq workflow                    # print the team-workflow cheatsheet (who writes what, how items link)
 sq workflow show               # same (explicit version)
-sq workflow types              # list every declared item type in the active spec (machine-readable table)
-sq workflow collections        # list every declared badge collection (priority, severity, or custom)
-sq workflow statuses           # list every declared status in the active spec
-sq workflow lint               # validate the workflow override spec — collect all errors; exit 0 if OK
+sq workflow types              # every declared item type in the active spec
+sq workflow subentity-kinds    # every declared sub-entity kind: its fields, plural, local-id prefix
+sq workflow collections        # every declared badge collection (priority, severity, or custom)
+sq workflow statuses           # every declared status, with the role each resolves to
+sq workflow roles              # every declared status role: settled / hidden / colour / live
+sq workflow lint               # validate the workflow override — collects all errors; exit 0 if OK
 ```
 
-All commands accept `--raw` to opt out of Rich markdown rendering.
+The **catalog** subcommands (`types`, `subentity-kinds`, `collections`, `statuses`, `roles`) each
+take `--json` and emit a bare JSON array — that is the surface to read instead of hardcoding a type
+or status name, and the shapes are covered by the [stability contract](stability.md). Every row
+carries every key, `null` for absent rather than omitted, so a client can index a key without
+testing for its presence.
+
+### Joining the catalogs
+
+A catalog row never inlines a copy of another row; it names one, using the same key name the target
+catalog uses as its identity. Follow the name to the other catalog:
+
+| From | Key | Joins to | Identity key |
+|---|---|---|---|
+| `types` row | `fields[].collection` | `collections` | `collection` |
+| `subentity-kinds` row | `fields[].collection` | `collections` | `collection` |
+| `types` row | `subentity_kind` | `subentity-kinds` | `subentity_kind` |
+| `statuses` row | `role` | `roles` | `role` |
+| `types` / `subentity-kinds` row | `lifecycle` | — no catalog in this release, see below | — |
+
+**Resolving a sub-entity's field label.** A sub-entity in `sq <type> <n> show --json` carries no
+kind of its own — you are holding the parent item's `type`, so the kind comes from the type
+catalog. The chain is `item.type` → the type row's `subentity_kind` → the kind row's `fields[]`,
+matched on the code the sub-entity's own `badges` map already gives you:
+
+```
+item.type "review" → type row subentity_kind "finding" → kind row fields[] {severity: "Severity"}
+                   → the sub-entity's badges {"severity": "high"} renders as   Severity: high
+```
+
+That is how you get the *declared* label rather than a hardcoded one, which matters as soon as a
+project relabels the field or declares its own. The same row also carries `local_prefix` (the `US`
+/ `ST` / `F` in a local id), `plural` (the CLI list verb, and the container-marker name in the
+file), `container_heading` (the `## …` heading sq writes — read it rather than title-casing
+`plural`, which gives "Stories" where sq writes "User Stories"), `completion` (the status a "mark
+done" action should target, instead of assuming `Done`), and `maps_parent_story` (whether this kind
+carries the extra story column in its roll-up table).
+
+**`lifecycle` is a grouping key in this release, and nothing more.** Both the type row and the kind
+row carry the name of the state machine they bind, and equal values mean two entries bind the same
+machine — `epic`, `feature` and `task` all read `work`; `story` and `subtask` both read
+`subentity`. That is the whole of what it gives you here. There is no catalog to look the name up
+in, and nothing else in the `--json` surface exposes lifecycle membership either: `sq workflow
+statuses` is a flat `{status, role, badge}` list with no lifecycle field. So use it to group and
+compare, and do not go looking for a command that resolves it to a set of states — read the
+lifecycle diagrams in this document, or `sq workflow show`, for that.
+
+`--raw` (plain markdown instead of Rich rendering) applies to the cheatsheet — `sq workflow` and
+`sq workflow show`. `sq workflow lint` reports through its exit code: 0 when the spec is clean, 1
+when any error is present.
 
 ---
 
@@ -111,30 +162,65 @@ Every item type has its own state machine. `sq <type> <n> status <Status>` only 
 the machine permits; `--force` overrides. New items start at the machine's initial state.
 
 ```
-work items (epic · feature · task · bug)
+work items (epic · feature · task)
     Draft ──▶ Ready ──▶ InProgress ──▶ InReview ──▶ Done ┄┄▶ (reopen) InProgress
                           ▲                └──────────┘ rework
-    Blocked  ⇄  Ready / InProgress / InReview          Cancelled ◀── any non-terminal
+    Blocked  ⇄  Ready / InProgress / InReview          Cancelled ◀── any open state
+
+bug              Open ──▶ InProgress ──▶ Fixed ──▶ Verified ┄┄▶ (reopen) InProgress
+                 (InProgress ⇄ Blocked ; Open / InProgress / Blocked ─▶ WontFix, Cancelled)
 
 ADR (decision)   Proposed ──▶ Accepted ──▶ Superseded     (Proposed ─▶ Rejected ; Accepted ─▶ Deprecated)
 review           Requested ─▶ InReview ─▶ Approved        (InReview ⇄ ChangesRequested ; any ─▶ Rejected)
 guide            Draft ──▶ Published ──▶ Deprecated        (⇄ both directions)
-role · skill     Draft ──▶ Active ⇄ Archived
 
-  ─▶ allowed transition   ⇄ both ways   ┄▶ escape hatch   terminal states have no outgoing edge
+roster entries (role · skill · operator)
+    Active ⇄ Archived
+
+  ─▶ allowed transition   ⇄ both ways   ┄▶ escape hatch
 ```
+
+**A bug does not use the work-item machine.** It starts at `Open`, not `Draft`, and `Ready`,
+`InReview` and `Done` are not in its vocabulary at all — `sq bug <n> status Done` is refused as
+out-of-vocabulary, not as a bad transition.
 
 | Type | Initial | Transitions |
 |------|---------|-------------|
-| epic / feature / task / bug | `Draft` | Draft→{Ready, InProgress, Cancelled}; Ready→{InProgress, Blocked, Cancelled}; InProgress→{InReview, Blocked, Done, Cancelled}; InReview→{InProgress, Done, Blocked, Cancelled}; Blocked→{Ready, InProgress, Cancelled}; Done→{InProgress}; Cancelled→{Draft} |
+| epic / feature / task | `Draft` | Draft→{Ready, InProgress, Cancelled}; Ready→{InProgress, Blocked, Cancelled}; InProgress→{InReview, Blocked, Done, Cancelled}; InReview→{InProgress, Done, Blocked, Cancelled}; Blocked→{Ready, InProgress, Cancelled}; Done→{InProgress}; Cancelled→{Draft} |
+| bug | `Open` | Open→{InProgress, WontFix, Cancelled}; InProgress→{Fixed, Blocked, WontFix, Cancelled}; Fixed→{Verified, InProgress}; Verified→{InProgress}; Blocked→{InProgress, WontFix, Cancelled}; WontFix→{Open}; Cancelled→{Open} |
 | decision (ADR) | `Proposed` | Proposed→{Accepted, Rejected}; Accepted→{Superseded, Deprecated}; Rejected→{Proposed} |
 | review | `Requested` | Requested→{InReview, Rejected}; InReview→{ChangesRequested, Approved, Rejected}; ChangesRequested→{InReview, Rejected} |
 | guide | `Draft` | Draft→{Published}; Published→{Deprecated, Draft}; Deprecated→{Published} |
-| role / skill | `Draft` | Draft→{Active}; Active→{Archived}; Archived→{Active} |
+| role / skill / operator | `Active` | Active→{Archived}; Archived→{Active} |
 
-**Terminal states** (no outgoing transitions) are `Done`, `Cancelled`, `Rejected`, `Superseded`,
-`Deprecated`, `Archived`, `Approved`, `Verified`, `WontFix`. `sq inbox` only surfaces **open**
-(non-terminal) items.
+**Settled states.** A status is *settled* — a resting state — because the **role** it resolves to
+says so, never because of its name and never because it is a dead end. Most settled states here
+*do* have an outgoing edge: that is how reopening works (`Done→InProgress`, `Verified→InProgress`,
+`Archived→Active`). Read `settled` off `sq workflow roles`, and never hardcode a status name to
+decide whether work is finished.
+
+With the bundled vocabulary the settled statuses are `Accepted`, `Approved`, `Archived`,
+`Cancelled`, `Deprecated`, `Done`, `Published`, `Rejected`, `Superseded`, `Verified` and `WontFix`.
+`sq inbox` surfaces only **open** (non-settled) items. Hiding in `sq list` / `sq tree` is a
+*separate* axis (`hidden` on the same role) — bundled `Accepted` and `Published` are settled without
+being hidden.
+
+**Roster entries carry extra rules.** A role, skill or operator lifecycle must declare:
+
+- at least one **live** status — the statuses whose entries are presented to an agent host — so an
+  entry can always be presented;
+- a settled status that is not live and is reachable from a live one, so an entry can always *stop*
+  being presented;
+- and, when the lifecycle's `initial` is not itself live, exactly one live status — so the entry
+  squads scaffolds for itself has an unambiguous target. This is what lets you declare a
+  parked-then-activated roster lifecycle: name a non-live `initial` plus a single live status, and
+  your own entries start parked until you move them. When `initial` is itself live there is nothing
+  to disambiguate and any number of further live statuses is fine.
+
+Retiring an entry (moving it to a status that is not live) withdraws it from your generated agent
+config, and can be **refused** where the config could not survive the withdrawal; `--force` does not
+override that refusal. See
+[roles.md § "Retiring a roster entry"](roles.md#retiring-a-roster-entry).
 
 > Status is stored in the `.md` frontmatter *and* mirrored in the index. The dated discussion
 > entries (`sq <type> <n> comment`) are what record the *history* of a transition — see
@@ -148,7 +234,9 @@ Their state (status/assignee/severity/story) lives in the parent item's **frontm
 sees them); the block in the body holds only the prose and a derived badge header. The block's **body
 is sq-managed too** — set it with `sq <type> <n> <kind> <k> body -m
 "…"` (or `--file body.md` / `--file -`) and read the whole block with `sq <type> <n> <kind> <k> show`;
-no manual markdown editing.
+no manual markdown editing. `body` **replaces** the block's prose, so it refuses once something has
+been written there rather than discarding it — add to it with `--append`, or pass `--force` to
+replace it on purpose.
 
 | Sub-entity | Lives on | Add / transition | Lifecycle |
 |------------|----------|------------------|-----------|
@@ -179,28 +267,47 @@ Each line is a JSON object with these fields:
 
 | Field | Type | Meaning |
 |-------|------|---------|
-| `v` | `string` | Schema version (`"0.3"` — forward-compatible by addition) |
+| `v` | `string` | Schema version the line was written under — tracks the index schema, forward-compatible by addition |
 | `ts` | `string` | ISO-8601 UTC timestamp of the operation |
-| `actor` | `string` | Role slug (`python-dev`, `system`, `op-pierre`, …) performing the write |
+| `actor` | `string` | Role slug (`python-dev`, `system`, `op-alice`, …) performing the write |
 | `op` | `string` | Operation name (see table below) |
 | `target` | `string` | Primary item ID affected (empty `""` for squad-level ops) |
 | `delta` | `object` | Free-form before/after detail — shape varies by `op` |
+| `session_id` | `string?` | Optional. Omitted from the file when absent |
+| `parent_session_id` | `string?` | Optional. Omitted from the file when absent |
 
-**Op names:**
+The two session fields are **best-effort, untrusted, and for observability only**: squads reads
+them from its own invocation environment and records them as given. It never mints or verifies one,
+so a forged or copied id is indistinguishable from a real one — never make a trust decision on
+them. Only the immediate parent is stored; walk `parent_session_id` edges to reconstruct a chain
+(`sq reflog --tree` does exactly that). Lines written without them read back with both absent.
+
+**Op names.** The vocabulary is closed — these sixteen and no others, and the same sixteen
+`sq reflog --op` accepts. Both this table and that option's help come from one declared list, so
+they cannot drift apart. An `op` you meet that isn't here came from a squads version other than the
+one this guide ships with; your reflog is not corrupt.
 
 | `op` | Triggered by |
 |------|-------------|
 | `create` | `sq create …` |
 | `status` | `sq <type> <n> status …` |
-| `update` | `sq <type> <n> update …` |
+| `update` | `sq <type> <n> update …` — including a re-parent via `--parent` |
 | `body` | `sq <type> <n> body …` |
-| `comment` | `sq <type> <n> comment …` |
-| `subentity` | add-subtask / add-story / add-finding / sub-entity update/body |
-| `ref` | `sq <type> <n> ref add|rm …` |
-| `remove` | `sq <type> <n> remove …` |
+| `comment` | `sq <type> <n> comment …`, on an item or a sub-entity |
+| `subentity` | `add-story` / `add-subtask` / `add-finding`, and a sub-entity's `update` / `body` / `remove`. The specific change is in `delta.op` |
+| `ref` | `sq <type> <n> ref add` / `ref rm`, and refs severed by a forced `remove` |
+| `link` | An item's parent set or cleared through the service's own link path. **No CLI verb reaches this today** — from the CLI, a parent change arrives as `update` |
 | `retype` | `sq <type> <n> retype …` |
-| `repair` | `sq repair` |
-| `migrate` | `sq migrate up` / `sq migrate repad` |
+| `default_role` | `sq role <addr> set-default` |
+| `remove` | `sq <type> <n> remove …` (the `delta` carries the gone-item snapshot) |
+| `repair` | `sq repair`, with or without `--renumber` |
+| `renumber` | `sq renumber` — the distinct verb that shifts a range of sequence numbers |
+| `migrate` | `sq migrate up`, and `sq migrate repad` (which sets `delta.op` to `repad`) |
+| `rename-type` | `sq migrate rename-type` — **one line per item moved**, not one line for the run |
+| `rename-status` | `sq migrate rename-status` — likewise, one line per item moved |
+
+`repair`, `renumber` and `migrate` are squad-level: they carry an empty `target`. Every other op
+names the item it touched.
 
 ### Reading the reflog
 
@@ -211,10 +318,17 @@ sq reflog --item TASK-<n>          # filter to one item
 sq reflog --actor python-dev       # filter by actor slug
 sq reflog --op status              # filter by operation
 sq reflog --since 2026-06-01       # since a date (ISO 8601)
+sq reflog --tree                   # group by declared session lineage
 sq reflog --json                   # machine-readable JSON array
 ```
 
-Filters are AND-ed. `--json` emits a JSON array of `ReflogEntry` objects matching the line shape.
+Filters are AND-ed. `--json` emits a JSON array of the fields above, with one difference from the
+file: `session_id` and `parent_session_id` are always **present**, `null` when absent, rather than
+omitted — so a client can key on them unconditionally.
+
+`--tree` renders the declared spawn lineage. Missing intermediate sessions degrade to several roots
+rather than an error, and the same untrusted-input caveat applies: it shows what was declared, not
+what can be proven.
 
 ### Durability and ordering guarantees
 
@@ -233,7 +347,7 @@ Filters are AND-ed. `--json` emits a JSON array of `ReflogEntry` objects matchin
 
 ## Project workflow overrides
 
-By default, squads uses a built-in set of item types, statuses, and state machines. If your project needs custom vocabulary — for example, an `incident` type for on-call workflows — you can extend the built-in spec by writing a project-level **workflow override** in TOML. The override is **additive-only**: you can add new types and statuses, but cannot modify or remove built-in ones.
+By default, squads uses a built-in set of item types, statuses, and state machines. If your project needs custom vocabulary — for example, an `incident` type for on-call workflows — you write a project-level **workflow override** in TOML. The override composes over the built-in spec: it can **add** new types, statuses and lifecycles, **shadow** a built-in one field by field, and **drop** one you don't want. This page is the field reference for each kind of declaration; how your file combines with the bundled one is in [overrides.md § "The override grammar"](overrides.md#the-override-grammar-shadow-append-and-drop).
 
 ### Creating an override
 
@@ -293,7 +407,7 @@ All statuses you define in a custom lifecycle must be declared in the `[statuses
 
 #### Status roles: terminal/hidden/color governance
 
-Every status references a **role**, which is a catalog entry governing three attributes:
+Every status references a **role**, which is a catalog entry governing four attributes:
 
 - **`settled`** — boolean; `true` means the status is terminal (work is done; hidden from `sq inbox`
   by default).
@@ -301,22 +415,29 @@ Every status references a **role**, which is a catalog entry governing three att
   `--all` flag).
 - **`color`** — semantic color intent for display (positive/danger/warning/muted/neutral/info).
   This is mapped to concrete, theme-aware colors across clients.
+- **`live`** — boolean, defaults `false`; the materialisation axis for roster (role/skill/
+  operator) entries. It is deliberately narrower than "not settled" — `attention`, `blocked`,
+  and `pending` are all non-settled without being live, because "not at rest" and "on offer"
+  are different questions. A roster entry whose status resolves to a live role is on offer to be
+  spawned, loaded, cited, and assigned — it is what gets written into an agent host's generated
+  config. The default is deliberately fail-safe-withheld: wrongly withholding an entry is
+  recoverable, wrongly treating one as live writes an agent into a host's config.
 
 Squads ships with a bundled role catalog. In your override, you can reference built-in roles or
 define new ones. Every status must declare a role; if omitted, it defaults to `pending`.
 
 **Bundled roles:**
 
-| Role | `settled` | `hidden` | `color` | Typical use |
-|------|-----------|----------|---------|------------|
-| `pending` | `false` | `false` | `neutral` | Draft, Proposed, Requested — awaiting action |
-| `active` | `false` | `false` | `positive` | InProgress, InReview, ChangesRequested — actively being worked |
-| `attention` | `false` | `false` | `danger` | Open issues, failing tests, urgent needs |
-| `blocked` | `false` | `false` | `danger` | Blocked — stopped by a dependency |
-| `in_force` | `true` | `false` | `info` | Accepted, Published — in effect, terminal but shown |
-| `done` | `true` | `true` | `positive` | Done, Verified, Approved — complete and hidden by default |
-| `retired` | `true` | `true` | `muted` | Cancelled, Deprecated, Rejected — terminal and hidden |
-| `superseded` | `true` | `true` | `muted` | Superseded — replaced by a newer item, terminal and hidden |
+| Role | `settled` | `hidden` | `color` | `live` | Typical use |
+|------|-----------|----------|---------|-----------|------------|
+| `pending` | `false` | `false` | `neutral` | `false` | Draft, Proposed, Requested — awaiting action |
+| `active` | `false` | `false` | `positive` | `true` | InProgress, InReview, ChangesRequested — actively being worked |
+| `attention` | `false` | `false` | `danger` | `false` | Open issues, failing tests, urgent needs |
+| `blocked` | `false` | `false` | `danger` | `false` | Blocked — stopped by a dependency |
+| `in_force` | `true` | `false` | `info` | `false` | Accepted, Published — in effect, terminal but shown |
+| `done` | `true` | `true` | `positive` | `false` | Done, Verified, Approved — complete and hidden by default |
+| `retired` | `true` | `true` | `muted` | `false` | Cancelled, Deprecated, Rejected — terminal and hidden |
+| `superseded` | `true` | `true` | `muted` | `false` | Superseded — replaced by a newer item, terminal and hidden |
 
 **Defining a custom role:**
 
@@ -401,42 +522,57 @@ and sorting by rank.
 
 ```toml
 [collections.impact]
+label = "Impact"
 ordered = true
-default_code = "medium"
-
-[[collections.impact.badges]]
-code = "low"
-label = "Low impact"
-emoji = "🔵"
-
-[[collections.impact.badges]]
-code = "medium"
-label = "Medium impact"
-emoji = "🟡"
-
-[[collections.impact.badges]]
-code = "high"
-label = "High impact"
-emoji = "🔴"
+default = "medium"
+badges = [
+  { code = "high",   label = "High impact",   emoji = "🔴" },
+  { code = "medium", label = "Medium impact", emoji = "🟡" },
+  { code = "low",    label = "Low impact",    emoji = "🔵" },
+]
 ```
+
+`label` is required; `ordered` defaults to `false`, and an ordered collection ranks by declaration
+order, **strongest first**. `default` is the code used when no value is set.
 
 The bundled default collections are `priority` (urgent, high, medium, low) and `severity`
-(critical, high, medium, low, info). You can add new custom collections, and items can declare
-which collections they carry as fields. For example, a custom incident type might use an `impact`
-collection in place of (or alongside) the built-in priority axis.
+(critical, high, medium, low, info). A collection is a library — a type carries it by declaring a
+`fields` entry bound to it:
 
-### Additive-only rules
-
-The override can **only add** new item types, statuses, and lifecycles. It **cannot redefine or remove** built-in ones. Attempting to shadow a built-in will raise an error at load time:
-
-```
-workflow override may not redefine built-in status 'Done'
-(additive-only; you may add new statuses but not change built-ins)
+```toml
+[items.incident]
+fields = [{ code = "impact", label = "Impact", collection = "impact" }]
 ```
 
-If you remove a custom status from the override that is still in use by live items in the squad, `sq` will hard-stop with an error listing the affected items. Fix the items by updating their status or restore the status to the override.
+Values are set with `sq <type> <n> update --set impact=high` and filtered with `sq list --badge
+impact=high` / `--min-badge` / `--sort`. The bundled priority axis additionally has `--priority`
+and `--min-priority` sugar.
 
-Unknown TOML keys (typos) are rejected at load time, so the spec is fail-closed.
+Removing a badge code from a collection is refused while live items still carry that code; the
+refusal lists the affected IDs.
+
+### What the override may and may not change
+
+The override may add a new item type, status, lifecycle, collection or status role; shadow a
+built-in one, field by field; and drop a built-in by listing the survivors in a top-level
+`[selected]` table. The full grammar — deep merge, arrays as leaves, splat-refs and `[selected]` —
+is in [overrides.md § "The override grammar"](overrides.md#the-override-grammar-shadow-append-and-drop).
+
+The refusals you are most likely to meet — the grammar-level ones (a malformed splat-ref, a
+token-shaped key, an exceeded nesting bound) are catalogued in
+[overrides.md](overrides.md#the-override-grammar-shadow-append-and-drop):
+
+- **The roster type keys `role`, `skill` and `operator` must exist**, and cannot be renamed, dropped
+  or added to; `category = "roster"` cannot move into or out of those three. Everything else about
+  them, `lifecycle` included, is an ordinary field merge.
+- **A type's `prefix` or `folder` cannot change while that type has live items** — those two fields
+  are how squads finds the type's files on disk. The change is refused with the affected IDs listed;
+  revert the field, or make the change while the type has no items.
+- **A drop that strands live items** — a type or status the squad's own items still carry. `sq` hard-stops
+  with the affected IDs listed. Restore the key, or move the items first.
+
+Unrecognised top-level keys — a mistyped section name being the usual case — are rejected by name at
+load time, so the spec is fail-closed rather than silently doing nothing.
 
 ### Authoring and validation
 
@@ -532,7 +668,8 @@ To see how your override differs from the bundled default:
 sq override diff workflow
 ```
 
-This shows what you've added (delta-mine) compared to an empty starting point. If you upgrade squads, use:
+Δ-mine is your override against the current bundled spec, so it shows everything you have added
+*and* everything you have shadowed. If you upgrade squads, use:
 
 ```bash
 sq override update workflow
@@ -548,10 +685,10 @@ If a workflow spec becomes invalid (e.g. because you edited `.overrides/workflow
 
 ## Renaming existing types and statuses
 
-The workflow override system is **additive-only**: you extend the vocabulary by adding new types and
-statuses, but cannot change or remove built-in ones directly in the spec. However, if you've named a
-type or status poorly and want to rename it across your squad's **existing items**, you can use the
-on-demand **data migration commands**:
+The workflow override changes your **vocabulary**; it does not rewrite items already filed under the
+old one. A type's `prefix` and `folder` in particular are refused outright while that type has live
+items, because they are how squads finds those items on disk. To move an existing corpus onto
+different vocabulary, use the on-demand **data migration commands**:
 
 - **`sq migrate rename-type OLD_TYPE NEW_TYPE`** — bulk-rename every item of type `OLD_TYPE` to
   `NEW_TYPE`. Both types must already exist in the active spec (as non-roster types). The command
@@ -571,11 +708,12 @@ on-demand **data migration commands**:
   sq migrate rename-status task Blocked Waiting   # every task at Blocked → Waiting
   ```
 
-These are **audited data rewrites** — they log every change, are atomic per type, and are designed to
-preserve referential integrity. Always verify with `sq check` after.
+These are **audited data rewrites** — atomic per type, designed to preserve referential integrity,
+and audited item by item: each writes **one reflog line per item moved**, not one line for the run,
+so `sq reflog --op rename-type` reconstructs exactly which items a past rename touched. Always
+verify with `sq check` after.
 
 **Use case:** You released your squad with the built-in `task` type but later realize you want to call
-them `job` instead. Add a `job` type to your workflow override (or simply declare the new type as a
-custom type), then run `sq migrate rename-type task job` to move all existing tasks to the new name.
-The spec remains additive (you haven't deleted or redefined `task`), but your items now use the `job`
-vocabulary going forward.
+them `job` instead. Declare a `job` type in your workflow override, then run `sq migrate rename-type
+task job` to move all existing tasks across. Both types must exist in the spec while the rename runs;
+once `task` has no items left, you can drop it from a `[selected]` list if you want it gone.

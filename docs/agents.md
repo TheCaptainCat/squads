@@ -22,7 +22,7 @@ you work an item of that type.
 
 **Greet the human when they open a conversation.** The `greeting` skill is the start-of-session
 ritual: detect who you're talking to, register them as an operator if needed, then greet — *matching
-their tone* ("Hello Robert" → "Good morning, Pierre"; "Hi Mara!" → "Hey Pierre!"), saying how you
+their tone* ("Hello Robert" → "Good morning, Alice"; "Hi Mara!" → "Hey Alice!"), saying how you
 help, and giving a quick read of the project (a sentence or a few bullets). If you've been spawned as
 a subagent for a specific job, skip the greeting and just do the work.
 
@@ -84,6 +84,10 @@ recording a human's own words (a comment, or a review point you reformulated) at
 - **Never hand-edit a `.md` file.** Set bodies with `sq <type> <n> body` / `sq <type> <n> <kind> <k>
   body`, comment with `sq <type> <n> comment`, change state with `sq <type> <n> status`/`update`.
   `sq check` flags broken markers.
+- **`body` replaces; it does not add.** Writing over a body that already has prose in it is refused,
+  so you can run it to find out whether one is occupied. Use `--append` to add to what is there, and
+  `--force` only when you mean to discard it. This applies to a sub-entity's body and a custom
+  skill's too.
 - **The `.md` frontmatter is the source of truth** — don't hand-edit `id`/`status`/`parent`; use the
   commands so the index stays in sync.
 - **Reference items by ID** (`TASK-<n>`, `GUIDE-<n>`) in prose and comments so developers and
