@@ -83,7 +83,7 @@ class RoleDef:
         )
 
 
-def _role_spec_to_def(rs: RoleSpec) -> RoleDef:
+def role_spec_to_def(rs: RoleSpec) -> RoleDef:
     """Convert a ``RoleSpec`` from the loaded catalog to a ``RoleDef``."""
     return RoleDef(
         slug=rs.slug,
@@ -117,7 +117,7 @@ def get_catalog() -> RoleCatalogSpec:
 # ---------------------------------------------------------------------------
 
 #: The 8 bundled agent roles (declaration order preserved from roles.toml).
-PREDEFINED: tuple[RoleDef, ...] = tuple(_role_spec_to_def(rs) for rs in _CATALOG.roles)
+PREDEFINED: tuple[RoleDef, ...] = tuple(role_spec_to_def(rs) for rs in _CATALOG.roles)
 
 _BY_SLUG: dict[str, RoleDef] = {r.slug: r for r in PREDEFINED}
 

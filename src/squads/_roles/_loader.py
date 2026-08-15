@@ -1,7 +1,7 @@
 """Load and validate the bundled role catalog.
 
 ``load_role_catalog()`` is the single entry point.  It reads ``roles.toml``
-from the ``squads._bundled`` package via ``importlib.resources`` (offline, no
+from the ``squads._specs`` package via ``importlib.resources`` (offline, no
 filesystem assumption), parses with stdlib
 ``tomllib``, constructs the pydantic models, runs fail-closed validation, and
 returns a ``RoleCatalogSpec``.  A corrupt or invalid catalog raises
@@ -15,7 +15,7 @@ from typing import Any
 from squads._errors import SquadsError
 from squads._roles._models import DevPoolSpec, RoleCatalogSpec, RoleSpec
 
-_VALID_MODELS: frozenset[str] = frozenset({"sonnet", "opus", "haiku", "inherit"})
+VALID_MODELS: frozenset[str] = frozenset({"sonnet", "opus", "haiku", "inherit"})
 
 
 def load_role_catalog() -> RoleCatalogSpec:
@@ -25,7 +25,7 @@ def load_role_catalog() -> RoleCatalogSpec:
     Raises ``SquadsError`` on any violation.
     """
     try:
-        pkg = importlib.resources.files("squads._bundled")
+        pkg = importlib.resources.files("squads._specs")
         toml_bytes = (pkg / "roles.toml").read_bytes()
     except Exception as exc:
         raise SquadsError(f"Failed to read bundled roles.toml: {exc}") from exc
@@ -125,16 +125,16 @@ def _check_dev(dev: DevPoolSpec, errors: list[str]) -> None:
         errors.append("dev.model is empty")
     if not dev.color.strip():
         errors.append("dev.color is empty")
-    if dev.model not in _VALID_MODELS:
-        errors.append(f"dev.model {dev.model!r} not in allowed set {sorted(_VALID_MODELS)}")
+    if dev.model not in VALID_MODELS:
+        errors.append(f"dev.model {dev.model!r} not in allowed set {sorted(VALID_MODELS)}")
 
 
 def _check_models(roles: list[RoleSpec], errors: list[str]) -> None:
     """Model whitelist."""
     errors.extend(
-        f"role {r.slug!r}: model {r.model!r} not in allowed set {sorted(_VALID_MODELS)}"
+        f"role {r.slug!r}: model {r.model!r} not in allowed set {sorted(VALID_MODELS)}"
         for r in roles
-        if r.model is not None and r.model not in _VALID_MODELS
+        if r.model is not None and r.model not in VALID_MODELS
     )
 
 
