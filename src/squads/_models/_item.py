@@ -3,9 +3,17 @@
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    ValidationError,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 from squads import _clock as clock
+from squads._errors import SquadsError
 from squads._models._extras import ExtraKey as X
 from squads._models._subentity import SubEntity
 from squads._util import NonEmpty
@@ -198,14 +206,24 @@ class Item(BaseModel):
         what lets a stray legacy ``prefix:`` frontmatter line be tolerated rather than
         trusted: it is silently overwritten with the value re-derived from ``id``, never
         read.
+
+        A non-string ``id`` (a hand-edited ``id: 5``, a merge artifact leaving ``id: [a, b]``)
+        raises here rather than being skipped: the id is a durable frontmatter field, and
+        silently ignoring a corrupt one would mint an item whose ``prefix`` never resolved and
+        whose ``.id`` then rendered as the :data:`UNRESOLVED_PREFIX` sentinel. Raising
+        ``ValueError`` from a ``before`` validator makes it a ``ValidationError``, i.e. the
+        single failure channel ``from_frontmatter`` reports — not a raw ``AttributeError``
+        from ``prefix_from_id``.
         """
         if not isinstance(data, dict):
             return data
         d = cast("dict[str, Any]", data)
         raw_id = d.get("id")
-        if isinstance(raw_id, str):
-            d = {**d, "prefix": prefix_from_id(raw_id)}
-        return d
+        if raw_id is None:
+            return d
+        if not isinstance(raw_id, str):
+            raise ValueError(f"expected str for `id`, got {type(raw_id).__name__!r}: {raw_id!r}")  # noqa: TRY004
+        return {**d, "prefix": prefix_from_id(raw_id)}
 
     @field_validator("type", "status", mode="before")
     @classmethod
@@ -298,63 +316,228 @@ class Item(BaseModel):
         settable field, so it never surfaces on the constructed ``Item`` itself. A stray
         legacy ``prefix:`` key in *data* (written by an older build) is tolerated: it is
         simply never read here, and the derived value always wins if both are present.
+
+        This is the load boundary between parsed-but-untrusted frontmatter and a validated
+        ``Item``: whatever is wrong with the file's data, every caller learns the same one
+        thing — *this file's data cannot become an* ``Item`` — as a single
+        :class:`~squads._errors.SquadsError` naming *path*, never as a raw
+        third-party/builtin exception. Callers that scan many files (``sq check``/``sq
+        repair``) catch ``SquadsError`` once per file and degrade; a caller loading a single
+        known-good file still fails just as hard, only with a clean message instead of a
+        traceback.
+
+        Exactly two things can fail here, and both raise ``SquadsError``:
+
+        * a **required key** (:data:`REQUIRED_FRONTMATTER_KEYS`) missing outright — checked by
+          name up front, so the message names the key and ``KeyError`` never has to be caught
+          at this boundary. Catching it would have swallowed a class of *internal* bug too:
+          ``KeyError`` is this codebase's usual symptom of a spec-lookup miss, and reporting
+          one as "invalid item data in <path>" would send an operator to hand-edit a file that
+          is perfectly fine.
+        * a **type-invalid value** anywhere, reported by ``model_validate``. It is the only
+          validator: :func:`_frontmatter_payload` is deliberately non-raising and every fold it
+          applies passes an unexpected shape through untouched for pydantic to reject. Coercing
+          in the payload instead (``list(...)``/``dict(...)``/``fromisoformat``) is what put
+          half a dozen ``TypeError``/``ValueError`` raisers *outside* this ``except`` clause.
+          Its text is rendered by :func:`_validation_message`, not ``str(exc)`` — see there for
+          why the raw dump is not what an operator should be shown.
         """
-        item_type: str = data["type"]
-        return cls.model_validate(
-            {
-                "id": data.get("id"),
-                "sequence_id": data["sequence_id"],
-                "type": item_type,
-                "title": data.get("title", ""),
-                "slug": data.get("slug") or _slug_from_path(path),
-                "status": data["status"],
-                "description": data.get("description", ""),
-                "parent": data.get("parent"),
-                "author": data.get("author"),
-                "assignee": data.get("assignee"),
-                "priority": data.get("priority") or None,
-                "severity": _read_severity(data),
-                "labels": list(data.get("labels", []) or []),
-                "refs": _read_refs(data),
-                "subentities": [
-                    SubEntity.from_frontmatter(s)
-                    for s in cast("list[dict[str, Any]]", data.get("subentities") or [])
-                ],
-                "path": path,
-                "created_at": _parse_dt(data.get("created_at")),
-                "updated_at": _parse_dt(data.get("updated_at")),
-                # Session fields are optional — absent from legacy files; None == unset.
-                "created_session": data.get("created_session") or None,
-                "modified_session": data.get("modified_session") or None,
-                "extra": _read_extra(data),
-            }
-        )
+        missing = [key for key in REQUIRED_FRONTMATTER_KEYS if key not in data]
+        if missing:
+            keys = ", ".join(repr(key) for key in missing)
+            raise SquadsError(f"invalid item data in {path}: missing required frontmatter {keys}")
+        try:
+            return cls.model_validate(_frontmatter_payload(data, path))
+        except ValidationError as exc:
+            raise SquadsError(f"invalid item data in {path}: {_validation_message(exc)}") from exc
 
 
-def _read_refs(data: dict[str, Any]) -> list[str]:
-    """Refs as inline ``ID[:kind]`` strings, folding a pre-2 ``extra.ref_kinds`` map if present."""
-    refs: list[str] = list(data.get("refs", []) or [])
-    legacy: Any = dict(data.get("extra", {}) or {}).get("ref_kinds")
-    if isinstance(legacy, dict):
-        return fold_legacy_kinds(refs, cast("dict[str, str]", legacy))
-    return refs
+def _validation_message(exc: ValidationError) -> str:
+    """One clause per rejected frontmatter field, in project vocabulary — the text
+    :meth:`Item.from_frontmatter` reports for a type-invalid value.
+
+    ``str(exc)`` is a pydantic *internal* dump and three parts of it are actively unhelpful to
+    the operator holding the bad file: a link to ``errors.pydantic.dev`` (naming a library they
+    did not install and cannot act on), the ``[type=…, input_value=…, input_type=…]`` machine
+    tail, and — for a model-level validator — a truncated ``repr`` of *every other field in the
+    file*, which buries the one field that is actually wrong. Making ``model_validate`` the
+    single failure channel was the right call; paying this small formatting cost is what keeps
+    that from regressing the message, since this is the text every degrade-per-file surface
+    (``sq check``, ``sq repair``, and every single-item verb on a corrupt file) prints.
+
+    ``exc.errors()`` gives the three usable parts directly:
+
+    * ``loc`` — the dotted field path (``labels``, ``subentities.0.status``). Empty for a
+      model-level ``before`` validator, whose own message already names its field, so no path is
+      prefixed and no ``(got …)`` suffix is added: that error's ``input`` is the whole payload,
+      and its type (``dict``) would be noise.
+    * ``msg`` — pydantic's human sentence, minus the ``Value error, ``/``Assertion failed, ``
+      prefix it stamps on messages raised from a custom validator (internal provenance, not
+      information about the file).
+    * ``input`` — the offending value, reported as its *type name* rather than its ``repr``: the
+      type is what makes the message actionable, and a ``repr`` is what produced the truncated
+      payload dump in the first place. Appended only when ``type`` names a genuine type mismatch
+      (a kind ending in ``_type`` or ``_parsing``, e.g. ``string_type``, ``int_parsing``,
+      ``datetime_from_date_parsing``) — what matters is whether the type is the missing
+      information, not who raised the error. That one predicate keeps out both of the kinds it
+      would otherwise misdescribe: a ``missing`` error's ``input`` is the *enclosing mapping*,
+      not the absent field's value (the field has none, that being the fault, so
+      ``(got dict)`` would describe a value the operator never wrote), and a
+      ``string_too_short``/``string_too_long`` already names the value as a string in its own
+      sentence, so repeating the type is a stutter. It also naturally excludes a
+      ``value_error``/``assertion_error`` from one of this module's own validators, whose message
+      already names what it got (``expected str, got 'int': 5``) — no separate carve-out needed.
+
+    Falls back to ``str(exc)`` for the (unreachable in pydantic v2) empty error list rather than
+    reporting an empty message: a degraded message still beats no message.
+    """
+    parts: list[str] = []
+    for err in exc.errors():
+        msg = err["msg"].removeprefix("Value error, ").removeprefix("Assertion failed, ")
+        loc = ".".join(str(part) for part in err["loc"])
+        if loc and err["type"].endswith(("_type", "_parsing")):
+            msg = f"{msg} (got {type(err['input']).__name__})"
+        parts.append(f"{loc}: {msg}" if loc else msg)
+    return "; ".join(parts) or str(exc)
 
 
-def _read_severity(data: dict[str, Any]) -> str | None:
+#: The frontmatter keys an item cannot be reconstructed without — there is no defensible
+#: default for any of them, unlike every other field. Read by name in
+#: :meth:`Item.from_frontmatter` before the payload is built; see that docstring for why the
+#: boundary reads them explicitly rather than catching ``KeyError``.
+REQUIRED_FRONTMATTER_KEYS: tuple[str, ...] = ("type", "sequence_id", "status")
+
+
+def _frontmatter_payload(data: dict[str, Any], path: str) -> dict[str, Any]:
+    """The ``model_validate`` payload for :meth:`Item.from_frontmatter` — **never raises**.
+
+    Every value is either passed straight through or folded by a helper that returns an
+    unexpected shape *unchanged*, so ``model_validate`` is the single thing that can reject a
+    type-invalid frontmatter field. Nothing here may iterate, subscript, index or parse an
+    untrusted value: doing so raises outside the boundary's ``except`` clause, which is
+    precisely the escape this replaced.
+
+    Callers must have checked :data:`REQUIRED_FRONTMATTER_KEYS` first — the three ``data[...]``
+    subscripts below are the only ones in this function, and they are safe only because of it.
+    """
+    raw_id = data.get("id")
+    return {
+        # Judged by _derive_prefix_from_id, which rejects a non-string id as a ValidationError.
+        "id": raw_id,
+        "sequence_id": data["sequence_id"],
+        "type": data["type"],
+        "title": data.get("title", ""),
+        # _slug_from_path does string surgery, so it only ever sees a genuine str id.
+        "slug": data.get("slug")
+        or _slug_from_path(path, raw_id if isinstance(raw_id, str) else None),
+        "status": data["status"],
+        "description": data.get("description", ""),
+        "parent": data.get("parent"),
+        "author": data.get("author"),
+        "assignee": data.get("assignee"),
+        "priority": data.get("priority") or None,
+        "severity": _read_severity(data),
+        "labels": _empty_list_if_unset(data.get("labels")),
+        "refs": _read_refs(data),
+        # Otherwise handed over raw: SubEntity's own validators fold the loose spellings, and
+        # pydantic reports anything that is not a list of mappings.
+        "subentities": _empty_list_if_unset(data.get("subentities")),
+        "path": path,
+        "created_at": _parse_dt(data.get("created_at")),
+        "updated_at": _parse_dt(data.get("updated_at")),
+        # Session fields are optional — absent from legacy files; None == unset.
+        "created_session": data.get("created_session") or None,
+        "modified_session": data.get("modified_session") or None,
+        "extra": _read_extra(data),
+    }
+
+
+def _empty_list_if_unset(value: Any) -> Any:
+    """``None`` (absent, or an explicit ``labels:`` with nothing after it) and ``""`` both mean
+    "no entries" and become ``[]``; every other value is passed through for ``model_validate``.
+
+    The empty string is here purely to preserve compatibility: the coercion this replaced spelled
+    the default ``list(data.get(key, []) or [])``, whose ``or`` swallowed ``""`` too, so a file
+    carrying ``labels: ''`` loaded. Tightening that would mean a file that loaded yesterday
+    failing today — the wrong direction for a boundary whose job is to keep legacy files
+    readable. A *non-empty* string is a different matter and is now rejected rather than silently
+    exploded into one entry per character, which is what ``list("abc")`` did.
+
+    That rule is only worth stating if it holds over its whole scope, so **all three** list-valued
+    frontmatter keys the old coercions covered go through here — ``labels``, ``refs`` and
+    ``subentities`` — with :func:`_empty_dict_if_unset` covering the fourth, ``extra``. Wiring two
+    of the four and leaving the others to reject ``""`` is the asymmetry, not a stricter policy:
+    the old ``subentities``/``extra`` expressions swallowed ``""`` exactly as these two did.
+    """
+    return [] if value is None or value == "" else value
+
+
+def _empty_dict_if_unset(value: Any) -> Any:
+    """``None`` and ``""`` both mean "no entries" and become ``{}``; every other value is passed
+    through for ``model_validate``. The mapping-valued sibling of :func:`_empty_list_if_unset` —
+    same compatibility carve-out, same reason, for the one frontmatter container key that is a
+    mapping rather than a list (the replaced coercion spelled ``dict(data.get("extra", {}) or
+    {})``, whose ``or`` swallowed ``""``)."""
+    return {} if value is None or value == "" else value
+
+
+def _extra_mapping(data: dict[str, Any]) -> dict[str, Any]:
+    """*data*'s ``extra`` block when it really is a mapping, else an empty one.
+
+    The two legacy folds below only read keys *inside* ``extra``; a non-mapping ``extra`` has
+    nothing to fold, and is left for ``model_validate`` to reject through the ``extra`` field
+    itself (see :func:`_read_extra`) rather than raising a ``TypeError``/``ValueError`` out
+    here, outside the load boundary.
+    """
+    raw = data.get("extra")
+    return cast("dict[str, Any]", raw) if isinstance(raw, dict) else {}
+
+
+def _is_str_list(value: object) -> bool:
+    """True only for a list of ``str`` — the one shape :func:`fold_legacy_kinds` can parse."""
+    return isinstance(value, list) and all(isinstance(v, str) for v in cast("list[Any]", value))
+
+
+def _read_refs(data: dict[str, Any]) -> Any:
+    """Refs as inline ``ID[:kind]`` strings, folding a pre-0.2 ``extra.ref_kinds`` map if present.
+
+    Returns the raw value untouched when it is not a list of strings (``refs: 5``,
+    ``refs: [5]``) — the fold has nothing to do with such a value, and ``model_validate``
+    reports it. Empty/unset short-circuits before ``extra`` is even read: there is nothing to
+    fold onto, so the legacy lookup would be wasted work on the overwhelmingly common case.
+    """
+    refs: Any = _empty_list_if_unset(data.get("refs"))
+    if not refs:
+        return refs
+    legacy: Any = _extra_mapping(data).get("ref_kinds")
+    if not isinstance(legacy, dict) or not _is_str_list(refs):
+        return refs
+    return fold_legacy_kinds(cast("list[str]", refs), cast("dict[str, str]", legacy))
+
+
+def _read_severity(data: dict[str, Any]) -> Any:
     """``severity`` top-level, falling back to the legacy ``extra[X.SEVERITY]`` location (a
     bug file predating this field). Tolerant read only — relocating the value on disk is a
-    separate, later one-way migration, not this."""
+    separate, later one-way migration, not this. A non-string value is passed through for
+    ``model_validate`` to reject."""
     top = data.get("severity")
     if top:
         return top
-    legacy = dict(data.get("extra", {}) or {}).get(X.SEVERITY)
-    return legacy or None
+    return _extra_mapping(data).get(X.SEVERITY) or None
 
 
-def _read_extra(data: dict[str, Any]) -> dict[str, Any]:
+def _read_extra(data: dict[str, Any]) -> Any:
     """Item ``extra``, minus the legacy ``ref_kinds`` (now inline on the refs) and the legacy
-    ``severity`` key (now read top-level via :func:`_read_severity`)."""
-    extra: dict[str, Any] = dict(data.get("extra", {}) or {})
+    ``severity`` key (now read top-level via :func:`_read_severity`).
+
+    Unset (``None`` or ``""``, via :func:`_empty_dict_if_unset`) is an empty mapping. A
+    non-mapping ``extra`` (``extra: oops``, ``extra: [1, 2]``) is returned **unchanged** for
+    ``model_validate`` to reject — never coerced with ``dict(...)`` (which raises
+    ``TypeError``/``ValueError`` out here) and never quietly dropped."""
+    raw = _empty_dict_if_unset(data.get("extra"))
+    if not isinstance(raw, dict):
+        return raw
+    extra: dict[str, Any] = dict(cast("dict[str, Any]", raw))
     extra.pop("ref_kinds", None)
     extra.pop(X.SEVERITY, None)
     return extra
@@ -400,20 +583,60 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
         data["extra"] = item.extra
 
 
-def _slug_from_path(path: str) -> str:
+def _slug_from_path(path: str, item_id: str | None) -> str:
+    """Derive the filename's slug segment (``PREFIX-NNNNNN-<slug>.md`` -> ``<slug>``).
+
+    ``item_id`` (the frontmatter's own ``id:``, when present — it always is for a
+    convention-written file) is the shared primitive's input: :func:`prefix_from_id` finds
+    the prefix boundary with ``rpartition`` on the LAST hyphen, so a hyphenated prefix (e.g.
+    ``"RUN-BOOK"``) is stripped whole via ``removeprefix`` rather than re-derived by counting
+    hyphens from the front — the same shape as ``_services._maintenance._scan_records``.
+    Falls back to the bare stem (never a corrupt front-hyphen split) when *item_id* is
+    missing or the stem doesn't actually start with its prefix (a legacy/hand-edited file).
+    """
     name = path.rsplit("/", 1)[-1].removesuffix(".md")
-    # strip leading "PREFIX-NNNNNN-"
-    parts = name.split("-", 2)
-    return parts[2] if len(parts) == 3 else name
+    prefix = prefix_from_id(item_id) if item_id else ""
+    if not prefix or not name.startswith(f"{prefix}-"):
+        return name
+    remainder = name.removeprefix(f"{prefix}-")
+    _digit_run, sep, slug = remainder.partition("-")
+    return slug if sep else name
 
 
-def _parse_dt(value: object) -> datetime:
-    if isinstance(value, datetime):
-        dt = value
-    elif isinstance(value, str):
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    else:
-        return datetime.now(UTC).replace(microsecond=0)
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=UTC)
-    return dt
+def _parse_dt(value: object) -> Any:
+    """A frontmatter timestamp, normalised to a tz-aware UTC ``datetime``.
+
+    Absent or ``null`` means "this file predates the field" and defaults to
+    :func:`clock.now`, which is what lets a legacy or hand-authored file load at all. Two
+    consequences of that default the callers must respect, because it is the one value here
+    that is *invented* rather than read:
+
+    - It goes through the injectable clock, never ``datetime.now()`` directly, so a frozen-time
+      test or a ``--at`` migration sees the timestamp it forged rather than wall-clock now.
+    - It is **not stable across reads** — each load of the same absent-timestamp file invents a
+      later value. Anything that compares two loads of the same file (or a load against an
+      index-derived item) must therefore exclude a key the file does not actually carry, or it
+      compares against a value the file never said: see
+      :data:`squads._itemfile.INVENTED_WHEN_ABSENT`, which is what stops such a file from being
+      permanently refused as skewed. A write heals it, since every write seam persists the
+      whole frontmatter dict.
+
+    A ``datetime`` (PyYAML resolves an unquoted timestamp to one) or an ISO-8601 string
+    (including the ``Z`` spelling ``fromisoformat`` needs help with) is normalised here.
+
+    Anything else — including a string that does not parse — is returned **unchanged** for
+    ``model_validate`` to accept or reject. An unparseable timestamp must surface as a
+    ``ValidationError`` at the single load boundary, not as a raw ``ValueError`` thrown from
+    outside it; and a value pydantic *does* accept (it reads a number as a Unix timestamp) is
+    at least derived from what the file actually says, rather than a silently invented ``now``.
+    """
+    if value is None:
+        return clock.now()
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return value
+    if not isinstance(value, datetime):
+        return value
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)

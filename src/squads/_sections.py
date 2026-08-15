@@ -14,6 +14,21 @@ from squads._models import _markers as markers
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)
 
+#: A well-formed sq marker comment, capturing its tag.
+#:
+#: The tag grammar is ``sq:`` + a word-character-initial run of word characters, ``:``
+#: separators and hyphens. ``\w`` is Unicode-aware and therefore case-blind, which is the whole
+#: point: a sub-entity region's tag embeds its ``local_id`` (``story:US<n>``, ``subtask:ST<n>``,
+#: ``finding:F<n>``), and every declared ``local_prefix`` — bundled or adopter-declared — is
+#: free to be uppercase or mixed-case. A lowercase-only class silently matched none of them, so
+#: every consumer of :func:`find_markers` went blind to every sub-entity marker in the corpus.
+#:
+#: It stays strict about *well-formedness*, which is the other half of the contract: the
+#: documentation placeholders that appear in agent-facing prose — ``<!-- sq:* -->`` in a role
+#: file, ``<!-- sq:… -->`` in this project's own marker-rejection error message — carry
+#: characters no real tag can contain and still do not lint as markers.
+MARKER_RE = re.compile(r"<!--\s*(sq:\w[\w:-]*)\s*-->")
+
 
 # --------------------------------------------------------------------------- frontmatter
 
@@ -60,12 +75,14 @@ def has_section(text: str, tag: str) -> bool:
 
 
 def find_markers(text: str) -> list[str]:
-    """All sq marker comment strings present (open and close), for lint/repair.
+    """All sq marker tags present (open and close), in file order, for lint/repair.
 
-    Only matches well-formed tags (``sq:`` + alnum start), so documentation references like
-    ``<!-- sq:* -->`` written in prose are not mistaken for real markers.
+    Matches only well-formed tags (:data:`MARKER_RE`), so documentation references like
+    ``<!-- sq:* -->`` written in prose are not mistaken for real markers — and *every*
+    well-formed tag, including the mixed-case sub-entity region tags
+    (``sq:finding:F<n>:body``) that make up the bulk of the markers in a real item file.
     """
-    return re.findall(r"<!--\s*(sq:[a-z0-9][a-z0-9:_-]*)\s*-->", text)
+    return MARKER_RE.findall(text)
 
 
 def get_section(text: str, tag: str) -> str | None:

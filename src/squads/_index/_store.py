@@ -103,19 +103,41 @@ def _check_field_codes(
 ) -> None:
     """Raise if any of *obj*'s stored badge codes aren't in its field's bound collection.
 
-    Only field codes backed by a same-named model attribute (``priority``/``severity``
-    today) are checked — ``getattr`` skips anything else (e.g. a future ``extra``-stored
-    custom field), matching the storage this task actually implements.
+    Reads through ``badge_value`` — the generic accessor ``Item`` and ``SubEntity`` both carry
+    — so **every** declared field code is checked, not only the two (``priority``/``severity``)
+    that happen to have a same-named model attribute. A dynamic attribute read keyed on the
+    field's own code silently skipped every adopter-declared field, whose value lives in the
+    generic ``extra`` store (``tests/meta`` now forbids that shape outright): the
+    same operation (shrinking a collection out from under a live corpus) failed closed on
+    ``priority`` and passed clean on a declared ``impact``, indefinitely. The accessor is the
+    same one ``_workflow._loader._badge_field_mismatches`` already reads through, so the load
+    boundary and the live-index cross-check now see the same set of stored values.
+
+    This is the load-boundary backstop, not the primary enforcement: a workflow override that
+    shrinks or replaces a badge collection out from under a live corpus is caught earlier, at
+    load, by the workflow loader's own live-index cross-check
+    (``_workflow._loader.validate_against_index``/``sq workflow lint``) — that check knows an
+    override is involved (it only ever runs when one is present) and names the offending items
+    with a remedy scoped to that cause: add the code back to the collection, revert the
+    override, or update the affected items. This check exists for what that one cannot see —
+    it runs on *every* load, override or not — so it has no way to tell "this code was valid
+    until an override shrank the collection" apart from "this code was never valid at all" (a
+    hand-edited or otherwise corrupted frontmatter value). Its own message must therefore stay
+    true in **both** cases: it names the fact (the active spec's collection does not declare
+    this code) and the one remedy that is always correct regardless of cause — fix the stored
+    value — plus ``sq repair`` scoped correctly to the narrower case where it actually helps
+    (the index merely stale relative to a still-valid frontmatter value).
     """
     for f in fields:
-        code = getattr(obj, f.code, None)
+        code = obj.badge_value(f.code)
         if code is None:
             continue
         coll = spec.collections.get(f.collection)
         if coll is None or code not in coll.badge_codes:
             raise SquadsError(
-                f"{label} field {f.code!r} has unknown code {code!r}; "
-                "run `sq repair` if the index is stale, or check the frontmatter"
+                f"{label} field {f.code!r} has code {code!r}, which the active workflow spec's "
+                f"{f.collection!r} collection does not declare; fix the frontmatter value to a "
+                "currently valid code, or run `sq repair` if the index itself is merely stale"
             )
 
 
@@ -347,7 +369,7 @@ class IndexStore:
     def exists(self) -> bool:
         return self.index_path.is_file()
 
-    async def load(self) -> SquadsDB:
+    async def load(self, *, validate_vocab: bool = True) -> SquadsDB:
         """Read without locking, on a worker thread — for queries (list/show); writes use
         :meth:`transaction`.
 
@@ -355,10 +377,29 @@ class IndexStore:
         *in memory* so the next allocation can't reuse a number; the corrected value only
         reaches disk on the next ``transaction()`` save (or ``sq repair``). Allocation still
         happens only inside ``transaction()`` (invariant 2).
+
+        ``validate_vocab`` gates only the *semantic* checks (:func:`_validate_item_vocab`,
+        :func:`_validate_badge_codes`) — every ordinary caller wants those fail-closed, so the
+        default is ``True``. The one exception is ``sq repair``'s own pre-rebuild read: its
+        whole point is to recover from exactly this drift (e.g. a type/status/badge-code
+        dropped via an override), so it reads with ``validate_vocab=False`` to get the prior
+        counter/padding/corpus back even when a stored item's vocab no longer resolves. A
+        structurally unreadable index (missing file, bad JSON, schema violation) still raises
+        either way — that is genuine corruption, not vocab drift, and has no prior state to
+        recover.
         """
         try:
             raw = await _aio.read_text(self.index_path)
             db = SquadsDB.model_validate_json(raw)
+        except FileNotFoundError as exc:
+            # No index on disk at all — a different operator story from a corrupt one
+            # (fresh clone of a gitignored index, wrong --dir, half-finished adopt), but
+            # the same cause (an unusable index) and the same remedy, so the wording is
+            # this message's sibling rather than a distinct case.
+            raise SquadsError(
+                f"missing index {self.index_path.name}; "
+                "run `sq repair` to rebuild it from the markdown files"
+            ) from exc
         except (ValidationError, UndecodableFileError) as exc:  # fmt: skip
             # An undecodable index is just as unreadable as a schema-invalid one — same
             # remedy, same wording; only ValidationError carries an error_count().
@@ -373,8 +414,9 @@ class IndexStore:
         if db.counter < max_seq:
             db.counter = max_seq
         _backfill_severity(db)
-        _validate_item_vocab(db, self._spec)
-        _validate_badge_codes(db, self._spec)
+        if validate_vocab:
+            _validate_item_vocab(db, self._spec)
+            _validate_badge_codes(db, self._spec)
         return db
 
     # ------------------------------------------------------------------ transaction

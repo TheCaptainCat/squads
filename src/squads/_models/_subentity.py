@@ -6,9 +6,9 @@ item's frontmatter (single-sourced and validated, like every other item field). 
 and the derived ``:head`` badge line are re-rendered from this state.
 """
 
-from typing import Any
+from typing import Any, cast
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class SubEntity(BaseModel):
@@ -30,6 +30,31 @@ class SubEntity(BaseModel):
     extra: dict[str, Any] = {}
 
     model_config = {"use_enum_values": False}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _tolerate_loose_frontmatter_spellings(cls, data: Any) -> Any:
+        """Fold the two loose spellings a hand-edited ``subentities:`` block can carry.
+
+        An empty-string ``severity`` means "no badge" exactly as an absent one does, and a
+        ``null`` ``extra`` means "no overflow fields"; both are normalised to the field's own
+        default here so the strict field types below never see them.
+
+        This lives on the model — not in a caller-side ``from_frontmatter`` builder — because
+        :meth:`Item.from_frontmatter <squads._models._item.Item.from_frontmatter>` hands the raw
+        ``subentities`` list straight to ``model_validate``: pydantic is the single thing
+        allowed to reject a type-invalid sub-entity, so no coercion may run outside it. A
+        non-mapping input (``subentities: [5]``) is returned untouched for exactly that reason
+        — pydantic reports it, this validator never trips over it.
+        """
+        if not isinstance(data, dict):
+            return data
+        out = dict(cast("dict[str, Any]", data))
+        if not out.get("severity"):
+            out["severity"] = None
+        if out.get("extra") is None:
+            out["extra"] = {}
+        return out
 
     @field_validator("status", mode="before")
     @classmethod
@@ -79,15 +104,3 @@ class SubEntity(BaseModel):
         if self.extra:
             data["extra"] = self.extra
         return data
-
-    @classmethod
-    def from_frontmatter(cls, data: dict[str, Any]) -> SubEntity:
-        return cls(
-            local_id=data["local_id"],
-            title=data.get("title", ""),
-            status=data["status"],
-            assignee=data.get("assignee"),
-            severity=data.get("severity") or None,
-            story=data.get("story"),
-            extra=dict(data.get("extra", {}) or {}),
-        )

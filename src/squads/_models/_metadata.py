@@ -58,6 +58,7 @@ EXTRA_FIELDS: dict[str, tuple[Field, ...]] = {
 _GENERIC_FIELDS: dict[str, Field] = {
     X.TAGS: Field(X.TAGS, "list"),
     X.TARGET_REF: Field(X.TARGET_REF),
+    X.TECH: Field(X.TECH),
 }
 
 #: Global fields with their own `update` flags — named so `--set author=…` can hint to use the flag.

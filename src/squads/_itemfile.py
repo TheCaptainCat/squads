@@ -38,14 +38,25 @@ from squads._sections import join_frontmatter, replace_frontmatter, split_frontm
 #: The durability model's permitted skew, as a property of the *field* rather than of whichever
 #: writer happens to persist it: the role's resolved-skills cache (``X.SKILLS``) and every
 #: catalog-merged identity field a predefined role's ``extra`` carries (``RoleDef.to_extra()``'s
-#: key set, via :meth:`RoleDef.extra_keys`). Both are written by a roster-regen path that never
-#: opens ``store.transaction()`` (`link-role`/`unlink-role`'s partial resync, `sync`'s full
-#: sweep), so the index-loaded side of the comparison structurally cannot carry their current
-#: generation -- not even on a fully healthy role that was never interrupted. Comparing them
-#: like an ordinary field would refuse the very next mutation through any *other* seam after
-#: such a resync ever ran. Derived from ``RoleDef.extra_keys()`` (not a hand-duplicated list of
-#: key names) so a field later added to the catalog is exempt automatically, the same day it
-#: starts being written this way -- never a second list to remember to update.
+#: key set, via :meth:`RoleDef.extra_keys`). Derived from ``RoleDef.extra_keys()`` (not a
+#: hand-duplicated list of key names) so a field later added to the catalog is exempt
+#: automatically, the same day it starts being written this way -- never a second list to
+#: remember to update.
+#:
+#: The two halves are exempt for different reasons, and only one of them is still structural:
+#:
+#: - ``X.SKILLS`` is written by a roster-regen path that never opens ``store.transaction()``
+#:   (`link-role`/`unlink-role`'s partial resync, `sync`'s full sweep), so the index-loaded
+#:   side of the comparison cannot carry its current generation -- not even on a fully healthy
+#:   role that was never interrupted. Comparing it like an ordinary field would refuse the very
+#:   next mutation through any *other* seam after such a resync ever ran.
+#: - The catalog-merged fields used to be in that same position and no longer are:
+#:   ``_refresh_catalog_extra`` now mirrors its merge into the index inside the transaction
+#:   that writes the frontmatter, because those values carry a project role override's title
+#:   onto the item and every consumer of a role title reads the index. Their exemption is kept
+#:   deliberately, for the *legacy* case it still covers: a squad last synced by a release
+#:   without that mirror has an index that already lags on these keys, and comparing them would
+#:   refuse the very sync that would otherwise converge them.
 #:
 #: This is the *whole* permitted set -- which of it actually applies to a given item is a
 #: further, per-item question (see :func:`_exempt_extra_keys`): these are ``extra`` key
@@ -54,6 +65,29 @@ from squads._sections import join_frontmatter, replace_frontmatter, split_frontm
 #: RoleDef.MODEL, which is a plain transaction-guarded field for a dev role since
 #: ``_refresh_catalog_extra`` explicitly skips dev roles).
 PERMITTED_EXTRA_SKEW: frozenset[str] = frozenset({X.SKILLS, *RoleDef.extra_keys()})
+
+
+#: The frontmatter keys whose absent-value default is *invented* at load time rather than
+#: derived from the file (:func:`squads._models._item._parse_dt` falls back to ``clock.now()``
+#: so a legacy or hand-authored ``.md`` loads at all).
+#:
+#: They are the one part of the ``from_frontmatter`` round trip that is not a function of the
+#: file's own bytes: load the same absent-timestamp file twice and you get two different
+#: values. A skew comparison that includes them therefore reports a divergence on a key the
+#: file says *nothing* about — and does so on every read, so the item is refused for good, with
+#: a "run `sq repair`" pointer that repair structurally cannot honour (repair rebuilds the
+#: index from markdown; it never rewrites markdown, so the key stays absent and the next read
+#: invents a new value again).
+#:
+#: The absence itself is not lost, only left out of the comparison: every write seam persists
+#: the whole ``to_frontmatter_dict()`` (see :func:`update_frontmatter` and the service's
+#: section-edit core), so the first successful mutation writes the index's value into the file
+#: and heals it permanently. Excluding them is what makes that first mutation possible.
+#:
+#: This is narrow on purpose. It applies only when the raw on-disk frontmatter has no value for
+#: the key at all; a timestamp the file *does* carry is compared like any other field, and one
+#: it carries unparseably still fails the load boundary as a ``SquadsError``.
+INVENTED_WHEN_ABSENT: frozenset[str] = frozenset({"created_at", "updated_at"})
 
 
 def _exempt_extra_keys(item: Item) -> frozenset[str]:
@@ -183,8 +217,19 @@ def frontmatter_skew(text: str, base: Item) -> list[str]:
     base_dict = base.to_frontmatter_dict()
     disk_dict = _without_permitted_extra_skew(disk_dict, base)
     base_dict = _without_permitted_extra_skew(base_dict, base)
-    keys = disk_dict.keys() | base_dict.keys()
+    keys = (disk_dict.keys() | base_dict.keys()) - _invented_timestamps(disk_data)
     return sorted(k for k in keys if disk_dict.get(k) != base_dict.get(k))
+
+
+def _invented_timestamps(disk_data: dict[str, Any]) -> frozenset[str]:
+    """Which of :data:`INVENTED_WHEN_ABSENT` the on-disk frontmatter carries no value for, and
+    which the round trip therefore filled in with an invented ``now`` on *this* read.
+
+    Read off the **raw** parsed frontmatter, before the round trip — once the value has been
+    invented the two cases are indistinguishable, which is precisely why the comparison had to
+    be told about them here rather than being able to work it out from its own two inputs.
+    """
+    return frozenset(k for k in INVENTED_WHEN_ABSENT if disk_data.get(k) is None)
 
 
 def skew_message(base: Item, diverging: list[str]) -> str:
