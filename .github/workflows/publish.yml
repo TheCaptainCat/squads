@@ -3,9 +3,32 @@ name: publish
 # Fires when a GitHub Release is published (publishing also creates the tag).
 # The release already exists when this runs, so the VSIX job attaches its
 # asset to that release directly rather than creating one.
+#
+# workflow_dispatch is a manual recovery path for a missed or failed release
+# event (e.g. a delivery outage) — it targets an EXISTING release/tag and
+# mutates nothing new: uv publish is a no-op on a version already on PyPI, the
+# tag-vs-pyproject-version guard below still applies (it fails closed on a
+# mismatched or malformed tag), and the VSIX step re-attaches to the same
+# release. It does not create a release and does not skip the version guard.
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to (re-)publish, e.g. v0.12.3 — must match pyproject.toml's version"
+        required: true
+        type: string
+
+# Single source of truth for "which release is this run acting on", so every
+# step below reads one place instead of the raw event payload: on the release
+# trigger that's github.event.release.tag_name; on workflow_dispatch there is
+# no release object, so it's the operator-supplied input instead. Referencing
+# github.event.release.tag_name directly from a workflow_dispatch run resolves
+# to an empty string rather than erroring, so this indirection is what keeps
+# that path from silently no-oping.
+env:
+  release_tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.event.release.tag_name }}
 
 jobs:
   publish:
@@ -16,7 +39,13 @@ jobs:
       id-token: write
       contents: read
     steps:
+      # Explicit ref so a workflow_dispatch run builds the tagged commit the
+      # operator named, not whatever branch happened to be selected in the
+      # "Run workflow" ref picker (on the release trigger this is the same
+      # commit checkout would have picked anyway).
       - uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ env.release_tag }}
       - uses: actions/setup-python@v6.2.0
         with:
           python-version-file: pyproject.toml
@@ -32,7 +61,7 @@ jobs:
       - name: version guard - tag must match core version
         run: |
           expected="v${{ steps.core-version.outputs.version }}"
-          actual="${{ github.event.release.tag_name }}"
+          actual="${{ env.release_tag }}"
           if [ "${actual}" != "${expected}" ]; then
             echo "::error::Release tag '${actual}' does not match core version '${expected}' from pyproject.toml - bump pyproject.toml or fix the tag before this can publish to PyPI."
             exit 1
@@ -43,6 +72,19 @@ jobs:
       - run: uv build
       - run: uv publish
 
+      - name: verify the version landed on PyPI
+        run: |
+          version="${{ steps.core-version.outputs.version }}"
+          for _ in 1 2 3 4 5; do
+            if curl -sf "https://pypi.org/pypi/squads/${version}/json" > /dev/null; then
+              echo "confirmed: squads ${version} is live on PyPI"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::squads ${version} was not retrievable from PyPI's public JSON API after publish - the upload step reported success but the package index does not show it."
+          exit 1
+
   vsix:
     name: build + attach VSIX release asset
     runs-on: ubuntu-latest
@@ -50,7 +92,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # See the publish job's checkout step: same reasoning for pinning the
+      # ref explicitly to the release this run is acting on.
       - uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ env.release_tag }}
 
       - uses: actions/setup-python@v6.2.0
         with:
@@ -67,7 +113,7 @@ jobs:
       - name: version guard - tag must match core version
         run: |
           expected="v${{ steps.core-version.outputs.version }}"
-          actual="${{ github.event.release.tag_name }}"
+          actual="${{ env.release_tag }}"
           if [ "${actual}" != "${expected}" ]; then
             echo "::error::Release tag '${actual}' does not match core version '${expected}' from pyproject.toml - bump pyproject.toml or fix the tag before this can ship a VSIX."
             exit 1
@@ -122,4 +168,4 @@ jobs:
       - name: attach VSIX to the tagged release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" squads-vscode-*.vsix --clobber
+        run: gh release upload "${{ env.release_tag }}" squads-vscode-*.vsix --clobber

@@ -40,7 +40,7 @@ index, the filesystem, the backend, and rendering together.
 
 ```
 <project root>/
-├── .squads.toml          # config: squad_dir, default_backend, default_role, squads_version
+├── .squads.toml          # config: squad_dir, default_backend, squads_version
 ├── CLAUDE.md             # managed section (between <!-- squads:start/end -->) + your own content
 ├── .claude/              # tool-owned pointers + config
 │   ├── settings.json     # merged, never clobbered
@@ -172,10 +172,13 @@ updated_at: '2026-06-07T10:00:00Z'
   parses it back for `repair`/`check`. `Item.to_frontmatter_dict()` / `from_frontmatter()` are the
   serialization bridge (timestamps via `_clock.iso`).
 
-### Sub-entities: user stories, subtasks & findings (`_discussion.py`)
+### Sub-entities: user stories, subtasks & findings
 
 Features hold **user stories**, tasks hold **subtasks**, reviews hold **findings** — tracked
-*inside the parent item*, not as separate IDs. Their **machine state** (status, assignee, severity,
+*inside the parent item*, not as separate IDs. Which kind a type hosts is spec vocabulary
+(`ItemSpec.subentity_kind` → `WorkflowSpec.subentity_kinds`), so those three pairings are the
+bundled default rather than a fixed law; `_discussion.py` takes the `kind` as an argument
+throughout. Their **machine state** (status, assignee, severity,
 mapped story, title) is a typed `subentities:` list in the parent's **frontmatter** (`SubEntity`,
 `_models/_subentity.py`) — single-sourced, pydantic-validated, and carried in the index. Each
 sub-entity also gets a marker-scoped **block in the body** holding only its prose + presentation:
@@ -206,18 +209,37 @@ read/build helpers now live only in `_migrations/_meta_compat.py`.
 
 ---
 
-## 6. Types, statuses, and workflows (`_models/_enums.py`, `_workflow.py`)
+## 6. Types, statuses, and workflows
+
+The vocabulary is data, not code: bundled TOML under `_specs/` (`workflow.toml`), parsed and
+validated by `_workflow/_loader.py` into the models in `_workflow/_models.py`. There is no enum of
+types or statuses and no built-in prefix→folder table — both were removed when the spec became the
+authority. `_models/_vocab.py` is the resolver callers go through for a type's prefix and display
+labels; folder resolution routes through `SquadPaths.folder_for` / `squad_relative` instead, which
+consults the spec.
 
 - The loaded `WorkflowSpec` is the sole type-vocabulary authority (`spec.items`, keyed by
   plain `str`): each type's `prefix` and `folder` (e.g. `decision` → `ADR` → `adrs/`) come
   from there, resolved via `prefix_for(type, spec)`. The only structurally reserved names
   are the three roster types (`role`/`skill`/`operator`, `category = "roster"`); every work type is
   ordinary, droppable/renamable spec vocabulary.
-- **`Status`** is one enum of all values; `WORKFLOWS[type]` is a small per-type state machine
-  (`initial`, `transitions`). `can_transition(type, src, dst)` gates `sq <type> <n> status`
-  (`--force` overrides); a new item starts at the machine's initial state.
-- **`TERMINAL` / `is_open`** scope the inbox to live work.
+- **Statuses are declared names** (plain `str`), each carrying a `StatusSpec` whose `role` points at
+  an entry in `spec.roles` — the status-role catalog, the single source of a status's
+  `settled`/`hidden`/`live`/`colour` behaviour. Lifecycles are separately-named state machines
+  (`initial`, `transitions`) that types and sub-entity kinds bind to by name, so two types can share
+  one. `WORKFLOWS[type]` is the per-type machine; `can_transition(type, src, dst)` gates
+  `sq <type> <n> status` (`--force` overrides); a new item starts at its machine's initial state.
+- **`TERMINAL` / `is_open`** scope the inbox to live work. Neither is stored: both are derived from
+  the referenced role's `settled` flag (`is_open` is `not role_for(status).settled`), and
+  `hidden_by_default` is likewise `role_for(status).hidden`.
 - **`ALLOWED_PARENTS` / `parent_allowed` / `parent_hint`** encode the hierarchy rules used below.
+
+> **The module-level names above are views over the *bundled* spec**, loaded once at import and kept
+> for the golden-lock tests and direct callers. They are not override-aware. The capabilities live as
+> methods on `WorkflowSpec`, and the active (possibly project-overridden) spec is threaded
+> explicitly — `Service.spec` in the service layer, `_common.get_active_spec()` at CLI call sites.
+> There is no process-global mutable spec. Use the threaded spec for anything a project can
+> customise.
 
 The actual per-type lifecycles and the team workflow (who creates/links what) live in their own
 reference: **[workflow.md](workflow.md)**.
@@ -293,15 +315,21 @@ installed version is newer than the recorded one and nudges you to run it.
 
 ---
 
-## 8. Roles and the playbook (`_roles/_catalog.py`, `_interactions.py`)
+## 8. Roles and the playbook
+
+Two bundled TOML documents under `_specs/`, each with a loader and a spec model beside it: the role
+catalog (`_specs/roles.toml`, read through `_roles/`) and the playbook (`_specs/playbook.toml`, read
+through `_interactions/`). Both are project-overridable — `.overrides/roles/<slug>.toml` and
+`.overrides/playbook.toml`.
 
 - **Bundled roles** — 8 `RoleDef`s, each with a real name + slug (Catherine Manager `manager`
   [default/triage], Robert Architect `architect`, Olivia Lead `tech-lead`, Paul Reviewer
   `reviewer`, Mara Tester `qa`, Hugo Ops `devops`, Nina Product `product-owner`, Theo Writer
   `tech-writer`). `BUNDLES` (`all`/`core`/`minimal`) select sets at `init`/`adopt`. **Developers**
   are made on demand: `dev_role(tech)` names them from a pool (`Elias Dotnet`, slug `dotnet-dev`).
-- **The playbook** (`PLAYBOOK`) is a matrix: for each item type, the interacting roles + a one-line
-  guidance each (the `DEV` sentinel matches any `<tech>-dev`). It drives two things:
+- **The playbook** (`PLAYBOOK`, a thin shim over the loaded `PlaybookSpec`) is a matrix: for each
+  item type, the interacting roles + a one-line guidance each (the `DEV` sentinel, `"*dev"`, matches
+  any `<tech>-dev`). It drives two things:
   - **item skills** — `sq-feature` gets a "For Nina Product (`product-owner`)" section, etc.
     (filtered to roles active in this squad);
   - **`skills_for_role(slug)`** — which skills a role's pointer preloads. *A role that doesn't manage

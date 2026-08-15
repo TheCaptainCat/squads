@@ -1,8 +1,9 @@
 # Project-level overrides
 
 Your squad may want to customize how squads renders items, roles, or backend artifacts — a custom
-task template to match your team's style, or different names for roles. **Overrides** are how you
-do that without forking the entire squads package.
+task template to match your team's style, different names for roles, your own item types, or your
+own wording for the guidance each role reads before it picks up a piece of work. **Overrides** are
+how you do that without forking the entire squads package.
 
 Overrides live under `squads/.overrides/` (`squads/` is your squad folder — its name is
 `squads` by default, configurable via `.squads.toml`), a directory that mirrors the bundled
@@ -68,6 +69,7 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
       pointer_skill.md.j2
       claude_section.md.j2
   workflow.toml
+  playbook.toml
   roles/
     architect.toml
     tech-lead.toml
@@ -85,9 +87,13 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
 - **`roles/`** holds TOML files for role data: one file per role slug (e.g., `architect.toml`). You
   can override bundled roles (like changing the architect's name or model) or define entirely new
   custom roles.
-- **`workflow.toml`** defines custom item types, statuses, lifecycles, and badge collections (see
-  below). This is how you customize the vocabulary — type names, status machines, and the priority/severity
-  badge axes.
+- **`workflow.toml`** is your squad's vocabulary delta — item types, statuses, lifecycles, and badge
+  collections (see below). It can add to the bundled vocabulary, shadow a bundled entry field by
+  field, and drop one you don't want.
+- **`playbook.toml`** is your squad's delta on the **team playbook**: which roles interact with each
+  item type, and the guidance each of them reads before touching one (see
+  [Playbook overrides](#playbook-overrides-role-guidance-per-item-type)). It is what your generated
+  `sq-<type>` skills are compiled from.
 - The directory is discovered automatically by the same walk-up that finds `.squads.toml`. It
   travels with your squad folder, so it's portable across projects.
 
@@ -128,6 +134,11 @@ model = "opus"
 # title, mission, responsibilities, etc. inherit from the bundled architect
 ```
 
+**The workflow override merges by field too, and can also drop:**
+`workflow.toml` composes over the bundled vocabulary the same way — write the fields you want
+changed, inherit the rest, and use a `[selected]` list to remove a built-in entirely. See
+[The override grammar](#the-override-grammar-shadow-append-and-drop).
+
 A brand-new role slug (one not in the bundle) defines a wholly custom, non-dev role — e.g. a
 `security-analyst` or `compliance-officer` — from the TOML. Start it with:
 
@@ -159,8 +170,16 @@ slug. See [roles.md](roles.md) for the activation flow.
 By default, squads uses a bundled set of **seven work-item types** (epic, feature, task, bug,
 decision/ADR, review, guide), **status lifecycles** (state machines for each type), and
 **badge collections** (priority and severity, the reusable axes that label findings, tasks, etc.).
-If your squad needs custom vocabulary — new item types, additional statuses, or renamed badge axes —
-you define it in **`.overrides/workflow.toml`**.
+**`.overrides/workflow.toml`** is where you change that vocabulary. You can do three things with it:
+
+- **Add** — new item types, statuses, lifecycles, badge collections, status roles.
+- **Shadow** — redefine a bundled entry, field by field. The fields you write replace their bundled
+  counterparts; the ones you leave out are inherited.
+- **Shrink** — drop a bundled entry you don't want, by listing the ones you keep.
+
+See [The override grammar](#the-override-grammar-shadow-append-and-drop) below for how your file
+composes against the bundled one. The rest of this section is the field reference for each type of
+declaration.
 
 ### Creating a workflow override
 
@@ -175,13 +194,22 @@ Edit this file to add your custom types, statuses, lifecycles, and collections.
 
 ### Format and sections
 
-The override file uses standard TOML with four sections: `[items.*]`, `[statuses.*]`, `[lifecycles.*]`,
-and `[collections.*]`. The bundled defaults already define all seven work types and the built-in
-status machines; your override is **additive-only** — you can extend by adding new types and
-statuses, but cannot redefine or remove built-ins. (To rename an existing type or status across
-your squad's items, use `sq migrate rename-type` or `sq migrate rename-status`; see
-[workflow.md](workflow.md) § "Renaming existing types and statuses".) The complete reference is in
-[workflow.md](workflow.md) § "Project workflow overrides".
+The override file is standard TOML. Its top level is a **closed set of section names** —
+`[items.*]`, `[statuses.*]`, `[lifecycles.*]`, `[collections.*]`, `[subentity_kinds.*]` and
+`[roles.*]`, plus the single `[selected]` table — and anything else at the top level is refused by
+name at load time:
+
+```
+unknown top-level key 'item'
+use one of the accepted top-level keys: ['collections', 'items', 'lifecycles',
+'roles', 'selected', 'statuses', 'subentity_kinds']
+```
+
+That refusal matters more than it looks: `[item.task]` written for `[items.task]` is the easiest
+mistake to make in this file, and a section name squads didn't recognise would otherwise mean your
+whole override does nothing at all.
+
+The complete field reference is in [workflow.md](workflow.md) § "Project workflow overrides".
 
 #### Items: custom work types
 
@@ -275,9 +303,9 @@ Required fields:
 Optional:
 - `badge` — emoji or short symbol displayed in sub-entity roll-up tables (used only for sub-entities)
 
-The `role` field replaces the earlier `terminal` boolean — squads now derives terminal status from
-the referenced role's `settled` attribute. If you omit `role`, a status defaults to the `pending`
-role (non-terminal, shown by default, neutral color).
+Terminal-ness, default visibility and colour are all derived from the referenced role rather than
+declared per status. If you omit `role`, a status defaults to the `pending` role (non-terminal,
+shown by default, neutral color).
 
 #### Lifecycles: custom state machines
 
@@ -304,32 +332,43 @@ Define a custom badge collection (a reusable axis like priority or severity):
 
 ```toml
 [collections.impact]
+label = "Impact"
 ordered = true
-default_code = "medium"
-
-[[collections.impact.badges]]
-code = "low"
-label = "Low impact"
-emoji = "🔵"
-
-[[collections.impact.badges]]
-code = "medium"
-label = "Medium impact"
-emoji = "🟡"
-
-[[collections.impact.badges]]
-code = "high"
-label = "High impact"
-emoji = "🔴"
+default = "medium"
+badges = [
+  { code = "high",   label = "High impact",   emoji = "🔴" },
+  { code = "medium", label = "Medium impact", emoji = "🟡" },
+  { code = "low",    label = "Low impact",    emoji = "🔵" },
+]
 ```
 
-Required fields:
-- `ordered` — boolean; `true` if the badges have a meaningful ranking (low → high), `false` for unordered
-- `default_code` — the code of the default badge when no value is set
-- `badges` — list of badge definitions (each with `code`, `label`, `emoji`)
+Fields:
+- `label` — required; the human-readable name of the axis
+- `ordered` — optional, defaults `false`; `true` if the badges have a meaningful ranking. **Declare
+  an ordered collection strongest first** — rank follows declaration order, the way the bundled
+  `priority` collection runs urgent → low
+- `default` — optional; the badge code used when no value is set
+- `badges` — the badge definitions, each with `code`, `label` and `emoji`
 
-Each badge's `code` is the identifier used in commands (e.g., `sq task <n> update --impact medium`).
-Ordered collections support `--min-` filters (e.g., `sq list --min-impact high`).
+A collection is a *library*; a type carries it by declaring a **field** bound to it. Add one to a
+built-in type without disturbing its existing fields:
+
+```toml
+[items.task]
+fields = ["$(*self)", { code = "impact", label = "Impact", collection = "impact" }]
+```
+
+Then, on any item of that type:
+
+```bash
+sq task <n> update --set impact=high    # set it  (--unset impact clears it)
+sq list --badge impact=high             # exact filter on any declared badge field
+sq list --min-badge impact=medium       # threshold filter, ordered collections only
+sq list --sort impact                   # sort by an ordered field's rank
+```
+
+The bundled `priority` axis has dedicated sugar for the same operations — `--priority` /
+`--min-priority` — and every other badge field goes through `--set` / `--badge` / `--min-badge`.
 
 #### Status roles: terminal/hidden/color attributes
 
@@ -340,6 +379,10 @@ status with `role = "rolename"`, squads uses that role's attributes to determine
   "complete" and hidden from `sq inbox` by default.
 - **`hidden`** — whether the status is hidden from default list views (shown only with `--all` flag).
 - **`color`** — a semantic color intent for display across the CLI and clients (positive/danger/warning/muted/neutral/info).
+- **`live`** — whether an entry resting at this status is *on offer*. It decides whether a roster
+  entry (role, skill, operator) is written into your agent host's generated config. It defaults to
+  `false`, and is deliberately narrower than "not settled": a status can be paused or waiting —
+  non-settled — without being live.
 
 Squads ships with eight bundled roles covering common patterns. You can reference them in your
 statuses, or define custom roles in your override:
@@ -356,16 +399,16 @@ role = "my_custom_role"
 
 **Bundled role reference:**
 
-| Role | `settled` | `hidden` | `color` | Use case |
-|------|-----------|----------|---------|----------|
-| `pending` | `false` | `false` | `neutral` | Draft, proposed, requested (awaiting work) |
-| `active` | `false` | `false` | `positive` | In progress, under review, being addressed |
-| `attention` | `false` | `false` | `danger` | Blocked, failing, or needs urgent attention |
-| `blocked` | `false` | `false` | `danger` | Explicitly blocked and waiting |
-| `in_force` | `true` | `false` | `info` | Accepted, published, or in effect (terminal, shown) |
-| `done` | `true` | `true` | `positive` | Complete or verified (terminal, hidden by default) |
-| `retired` | `true` | `true` | `muted` | Superseded, deprecated, or cancelled (terminal, hidden) |
-| `superseded` | `true` | `true` | `muted` | Replaced by a newer decision (terminal, hidden) |
+| Role | `settled` | `hidden` | `color` | `live` | Use case |
+|------|-----------|----------|---------|--------|----------|
+| `pending` | `false` | `false` | `neutral` | `false` | Draft, proposed, requested (awaiting work) |
+| `active` | `false` | `false` | `positive` | `true` | In progress, under review, being addressed |
+| `attention` | `false` | `false` | `danger` | `false` | Blocked, failing, or needs urgent attention |
+| `blocked` | `false` | `false` | `danger` | `false` | Explicitly blocked and waiting |
+| `in_force` | `true` | `false` | `info` | `false` | Accepted, published, or in effect (terminal, shown) |
+| `done` | `true` | `true` | `positive` | `false` | Complete or verified (terminal, hidden by default) |
+| `retired` | `true` | `true` | `muted` | `false` | Superseded, deprecated, or cancelled (terminal, hidden) |
+| `superseded` | `true` | `true` | `muted` | `false` | Replaced by a newer decision (terminal, hidden) |
 
 **Color semantics:**
 
@@ -399,6 +442,389 @@ See [workflow.md](workflow.md) § "Project workflow overrides" for a worked exam
 
 ---
 
+## The override grammar: shadow, append, and drop
+
+Your `workflow.toml` is a **delta**, not a replacement. squads reads the bundled spec, composes your
+file over it, and validates the result. Five rules govern how the two combine.
+
+### 1. Deep merge — declare only what changes
+
+Tables recurse key by key. Write one field of a bundled entry and only that field moves; everything
+else is inherited from the bundle, and keeps tracking it across upgrades.
+
+```toml
+# .overrides/workflow.toml
+[items.task]
+aliases = ["t", "tk", "ticket"]
+
+[items.task.labels]
+singular = "Ticket"
+plural = "Tickets"
+singular_lower = "ticket"
+plural_lower = "tickets"
+```
+
+Tasks now read as "Ticket" everywhere squads writes the type's name for a human or an agent — the
+generated `sq-task` skill, `sq workflow types --json` — and `ticket` joins `t` and `tk` as a way to
+address one, so every verb that works under `sq task <n>` also works under the alias. Their prefix,
+folder, lifecycle, allowed parents, sub-entity kind, ref rules and priority axis are untouched: you
+did not restate them, so a later release that improves any of them still reaches you.
+
+(The type's **key** is still `task`. `labels` changes how the type is named in prose, and `aliases`
+adds ways to address it; neither renames the key you write in `[items.task]`, in an item's
+frontmatter, or in `sq list -t`. To move a corpus onto a genuinely different type, see
+[workflow.md](workflow.md) § "Renaming existing types and statuses".)
+
+This is what "shadowing" means: a hand-written value replaces its bundled counterpart. It works the
+same at any depth — `[lifecycles.work.transitions]` merges per source status, `[collections.priority]`
+merges per field.
+
+> **Prefix and folder are settled once a type has items.** These two fields are how squads finds a
+> type's files on disk, so changing either while items of that type exist would strand the whole
+> corpus. squads refuses the change and lists the affected IDs. The two ways forward are to revert
+> the field, or to make the change while that type has no items — **no command realigns an existing
+> corpus**. Choose your prefixes and folders for a type before you start filing items under it.
+
+### 2. Plain arrays are leaves — replaced whole
+
+An array in your override replaces the bundled array outright. No element is quietly unioned in:
+
+```toml
+[items.task]
+parents = ["epic"]        # tasks now hang off epics INSTEAD of features
+```
+
+The alternative — merging list elements — would produce a list nobody wrote and nobody can read back
+out of the file. If you want to *extend* a bundled list rather than replace it, use a splat-ref.
+
+### 3. Splat-refs — append to a bundled list without restating it
+
+A **splat-ref** splices a value from the bundled spec into your override, so you can add to a bundled
+list without copying it (and thereby freezing it against future improvements).
+
+| Form | Meaning |
+|------|---------|
+| `$(path)` | the bundled value at *path*, spliced in as **one** element |
+| `$(*path)` | a bundled **list** at *path*, its elements spread into the surrounding list |
+| `$(self)` / `$(*self)` | the same, for **the key you are currently writing** |
+
+`["$(*self)", <new>]` is therefore how you say *append*:
+
+```toml
+[items.task]
+# keep every bundled parent type, and also allow an epic
+parents = ["$(*self)", "epic"]
+
+# keep every bundled ref rule, and add one of your own — note the inline-array form
+ref_rules = ["$(*self)", { kind = "targets", hint = "link the thing this task targets" }]
+```
+
+Things worth knowing before you write one:
+
+- **A path is dot-joined TOML bare keys** — ASCII letters, digits, underscores and hyphens. Keys are
+  addressed by the names TOML writes unquoted, so a hyphenated key (`user-story`) or a digit-leading
+  one needs nothing special. A dotted path addresses a bundled key from anywhere in the document
+  (`$(*items.task.ref_rules)`); `$(*self)` addresses the key currently being written, at any list
+  depth — a list position has no name of its own to contribute, so nesting does not change what
+  `self` means. Paths resolve against the bundled document, so they only ever name bundled keys.
+- **A token must be the entire string value.** `"$(*self)"` is a token; `"see $(items.task.prefix)"`
+  is literal text. There is no interpolation.
+- **A splatted array of tables must use TOML's inline-array form** — `ref_rules = ["$(*self)", { … }]`.
+  The `[[items.task.ref_rules]]` header form has no slot to put a token in.
+- **Resolution is against the bundled spec only**, never against another part of your override. That
+  is what makes the merge order-independent and cycle-free — and it also means a splat only ever
+  *adds*. To remove something, replace the array outright, or use `[selected]`.
+- **A splat on a brand-new key dangles**, and is refused. `["$(*self)", x]` under a type you just
+  invented has no bundled list to append to; that is a mistake, not an empty append.
+
+### 4. `$(` at the *start* of a value — and nowhere else
+
+This is the one place the grammar can surprise you, because `$(…)` is also POSIX command
+substitution and you may well want to write a shell command line into a hint or a description.
+
+**A string is read as a token only when it begins with `$(`.** A string that merely *contains* `$(`
+later on is ordinary data, passed through byte for byte, needing no escape:
+
+```toml
+hint = "run git commit -m \"$(cat msg)\" before you push"   # fine, verbatim
+hint = "echo $(date) to timestamp the run"                  # fine, verbatim
+```
+
+A string that **begins** with `$(` is in token territory and must be a valid token or it is refused:
+
+```toml
+hint = "$(which python) -m pytest"    # REFUSED — malformed splat-ref path
+```
+
+Write `$$(` to escape a value that must literally start with `$(`:
+
+```toml
+hint = "$$(which python) -m pytest"   # loads as: $(which python) -m pytest
+```
+
+That is the only position where an escape is ever needed. Two corollaries: a value **cannot** begin
+with a literal `$$(`, because a leading `$$(` always unescapes to `$(`; and the same rule applies to
+**keys** as well as values — a key that begins with an unescaped `$(` is refused outright, since
+there is no such thing as splicing into a key:
+
+```
+items.$(items.task): splat-ref token '$(items.task)' used as a key — keys are never a splat target
+  → escape it with '$$(' for a literal key, or move the token to a value
+```
+
+### 5. `[selected]` — dropping a built-in
+
+`[selected]` is one top-level table with a key per section, and each key lists the entries that
+**survive**, not the ones you are removing:
+
+```toml
+[selected]
+items = ["epic", "feature", "task", "bug", "decision", "review", "role", "skill", "operator"]
+```
+
+That squad has no `guide` type: it is absent from the list, so it is dropped. The accepted section
+keys are `items`, `statuses`, `lifecycles`, `collections`, `subentity_kinds` and `roles`; anything
+else under `[selected]` is refused by name.
+
+Two things follow from `[selected]` being the surviving set of the *merged* spec:
+
+- **List your own additions too.** If you both add `[items.handbook]` and write `selected.items`,
+  `handbook` must appear in that list or your own new type is dropped again.
+- **Naming something that doesn't exist is not an error.** The list is a filter, not an assertion.
+
+### What an override still cannot change
+
+Almost everything is ordinary vocabulary. The exceptions are small and structural:
+
+- **The three roster type keys — `role`, `skill`, `operator` — must exist.** They cannot be dropped
+  (including via `[selected]`), renamed, or added to.
+- **`category = "roster"` cannot move.** Those three types keep it; no other type may claim it.
+
+Everything else about a roster type — its `lifecycle` above all, plus `prefix`, `folder`, `labels`
+and `order` — is an ordinary field merge, validated like any other type's. In particular **no status
+name is reserved**: a project may name its lifecycle states whatever it likes, in any language. What
+a roster lifecycle must *do* is declare at least one status that is live, and a settled status that
+is not live and is reachable from a live one — so an entry can always be presented to your agent
+host, and can always stop being presented.
+
+### When an override is wrong
+
+A bad workflow override is a **hard stop**: `sq` refuses to run against it rather than half-applying
+it. The failure is always at load, never partway through a command. These are the ways to get there:
+
+| What went wrong | What you see |
+|---|---|
+| Unrecognised top-level key — usually a mistyped section name | `unknown top-level key 'item'`, with the accepted set |
+| Malformed splat token | `malformed splat-ref path '…' — not a valid dot-joined chain of TOML bare keys` |
+| Splat path with no bundled counterpart | `dangling splat path 'self' has no counterpart in the bundled base` |
+| `$(*path)` used outside a list | `spread token '…' used outside a list — nothing to spread into` |
+| A token in key position | `splat-ref token '…' used as a key — keys are never a splat target` |
+| A shadowed lifecycle the engine cannot drive | e.g. `lifecycle 'agent': state 'Active' unreachable from initial 'Draft'` |
+| A drop that strands live items | `item TASK-<n> has type 'task' which is not declared in the workflow spec` |
+| A prefix or folder change against a live corpus | `type 'task' prefix changed to 'JOB' … but 1 live item(s) are still filed under the old prefix` |
+| A badge code removed from a collection live items still carry | `… live item(s) still carry it: ['TASK-<n>'] — add 'urgent' back to the collection, revert the override, or update the affected item(s)` |
+| A roster type key dropped or re-categorised | `workflow override may not drop roster type 'operator'` |
+| A declared behaviour whose category checks nothing | `item 'decision': declares a 'supersedes' ref rule, but category 'work' turns on no validator for it …` — same for a type hosting a sub-entity kind, or a kind declaring `maps_parent_story`, under a category that validates neither |
+
+That last one is worth stating as a rule, because it is the one you can reach without a typo: **a
+type may not declare a behaviour its category then leaves unchecked.** Moving `decision` to
+`category = "work"` keeps its `supersedes` rule but stops anything verifying it, so a superseded
+record with no incoming edge would pass silently — the check does not fail, it stops existing. The
+message names all three ways out: drop the declaration, leave the type in a category that checks it,
+or name the validator you want in the type's own `validators` list:
+
+```toml
+[items.decision]
+category = "work"
+validators = ["supersedes_incoming"]   # keep the check the category no longer turns on
+```
+
+`sq workflow lint` is the instrument. It reports **every** violation at once with a location and a
+fix hint, where a plain `sq` command stops at the first:
+
+```bash
+sq workflow lint
+```
+
+When a violation traces back to one of your own `[selected]` lines, the message says so rather than
+leaving you to work it out:
+
+```
+unknown item type 'guide': 'guide' was dropped from a [selected] list
+(selected.items) in .overrides/workflow.toml, not left undeclared — add it back
+to selected.items to restore it
+```
+
+**Reading the file is no longer the same as knowing your vocabulary.** Once an override can shadow,
+splat and drop, what types and statuses you actually have is a function of the bundled set *and*
+your file. Ask squads rather than reading the TOML:
+
+```bash
+sq workflow types        # the item types this squad actually has
+sq workflow statuses     # and their statuses
+sq workflow roles        # the status-role catalog
+sq workflow lint         # and whether the whole thing is valid
+```
+
+### What a drop or a rename actually changes
+
+A **type you add** appears everywhere a bundled type does: `sq create <type>`, `sq <type> <n> …` and
+its declared aliases, its own folder, its own ID prefix, and — after `sq sync` — its own generated
+`sq-<type>` skill.
+
+A **type you drop** stops being usable immediately. It disappears from the top-level command
+listing, from `sq create`, from `sq list -t` and from `sq workflow types`, and every way of reaching
+it is refused — naming your own `[selected]` line as the reason:
+
+```
+$ sq create guide "…"
+error: unknown item type 'guide': 'guide' was dropped from a [selected] list
+(selected.items) in .overrides/workflow.toml, not left undeclared — add it back
+to selected.items to restore it
+```
+
+Three practical notes:
+
+- **A drop is refused while live items still carry the type or status**, listing the offending IDs.
+  Restore the key to `[selected]`, or move those items first — `sq migrate rename-type` and
+  `sq migrate rename-status` are the audited ways to move a corpus onto different vocabulary (see
+  [workflow.md](workflow.md) § "Renaming existing types and statuses"). Once the type has no items
+  left, dropping it succeeds.
+- **Dropping a type does not delete what was already generated for it.** Its folder under the squad
+  directory, and the `sq-<type>` skill generated for it before the drop, stay on disk; `sq sync`
+  adds and updates, it does not sweep. Delete them by hand if you want them gone.
+- **The command group itself still answers if you ask for it by name.** A dropped type is gone from
+  the top-level listing, but typing its help explicitly — `sq guide --help`, say — still prints that
+  group's usage, because the group is part of the built-in command table. Nothing under it works:
+  every verb is refused with the message above. Treat the top-level listing, or `sq workflow types`,
+  as the answer to "which types do I have" — not the fact that a group's `--help` renders.
+
+---
+
+## Playbook overrides: role guidance per item type
+
+`.overrides/playbook.toml` customises the **team playbook** — the matrix of which roles interact
+with each item type, and what each of them is told to check, do and hand off. It is the source the
+generated `sq-<type>` skills are compiled from, so editing it changes the text an agent actually
+reads before it picks up a bug, a review or a task.
+
+```bash
+# Start the playbook override from a stamped, commented worked example
+sq override scaffold playbook
+
+# Edit it
+$EDITOR squads/.overrides/playbook.toml
+
+# Regenerate the sq-<type> skills from it, then verify
+sq sync
+sq check
+```
+
+### Format
+
+One entry per item type, keyed by type name. A type's **prose fields** — `overview`, `lifecycle`,
+`commands` — merge one field at a time, so you write only the field you want to change and the rest
+of that entry is inherited from the bundle:
+
+```toml
+# .overrides/playbook.toml
+# squads:override-base:<version>
+
+[types.bug]
+overview = "A defect against shipped behaviour. Reproduce it before you file it."
+# lifecycle and commands are inherited unchanged
+```
+
+`roles` is a **list**, so it follows the leaf rule from
+[the override grammar](#2-plain-arrays-are-leaves--replaced-whole): writing it replaces the type's
+whole set of role guides. Use a splat-ref to add one without restating the others:
+
+```toml
+[types.task]
+roles = [
+  "$(*self)",
+  { slug = "security-analyst", enter = ["Read the threat model"], do = ["Record any exposure found"] },
+]
+```
+
+That reads as "every guide the bundle ships for `task`, plus mine", and the bundled guides go on
+tracking the release.
+
+**The append idiom has to be the inline-array form.** TOML's `[[types.task.roles]]` header syntax
+has nowhere to put the `"$(*self)"` token, so a spread must be written as an inline array as above.
+
+### Rules
+
+- **Coverage follows your vocabulary; it is never declared here.** Which types the playbook covers is
+  derived from the types your active spec declares, so there is no `[selected]` table for this
+  document — drop a type in `.overrides/workflow.toml` and its playbook coverage goes with it.
+  Writing `[selected]` here is refused, with a message pointing you at the workflow override. You
+  only need an entry for a type whose guidance you want to change, or a type you added and want role
+  guidance on: a declared type with no entry still gets its generated `sq-<type>` skill, with the
+  commands and lifecycle but no per-role sections.
+- **A slug appears at most once per type.** `roles` is keyed by slug — one slug renders one section
+  in the generated skill — so a repeat is refused at load rather than merged or rendered twice.
+  Which means: to change *one field* of a bundled guide, you must restate the array by hand (omit
+  `"$(*self)"` and list every guide you want to keep). Spreading and then re-adding the same slug is
+  not the way to edit one.
+- **Every slug must be one of three things:** a bundled catalog role, the `*dev` sentinel (which
+  matches any `<tech>-dev` role), or a project role you have defined under
+  `.overrides/roles/<slug>.toml`. A project role is accepted here — you do not have to pick from the
+  bundled catalog.
+- **A project role must also be activated for its guidance to reach the skill**, and the order
+  matters. `sq role activate <slug>` is what makes the role live; a guide naming a role that is not
+  live *loads without complaint* but is dropped when the skill is generated. `sq check` and `sq sync`
+  both warn while that is true, naming the guide and both ways out — activate the role, or remove the
+  guide. The same warning covers a role you activated and later retired, and a stray file in
+  `.overrides/roles/` whose name is read as a slug but never becomes a role. It is a warning, not a
+  refusal: both commands still exit `0`.
+- **Unknown top-level keys are refused by name**, the same fail-closed rule the workflow override
+  follows. The accepted keys are listed in the message.
+
+### Guidance for a role you invented
+
+A **project-defined role** — one you started with `sq override scaffold --new <slug>` and activated
+with `sq role activate <slug>` — can be given playbook guidance like any bundled role. Name it in a
+type's `roles`, run `sq sync`, and it gets its own section in that type's generated `sq-<type>`
+skill; the skill is also preloaded on the role's generated pointer, so the role boots with it. Until
+you name it somewhere in the playbook, a custom role appears in no item skill at all.
+
+**Write the guide and activate the role in either order — just do both.** `sq override scaffold
+--new` prints activation as its *next* step, so it is natural to write the playbook guide while the
+role is still inactive, and that is fine: the override loads, and `sq check` reminds you the
+guidance is not reaching the skill yet. What you should not do is leave it there, because an
+inactive role's guidance is silently absent from the generated skill:
+
+```bash
+sq override scaffold --new security-analyst   # then fill in the stubbed fields
+sq role activate security-analyst             # ← the step that makes the guidance render
+sq sync                                       # regenerate the sq-<type> skills
+sq check                                      # confirms the warning has cleared
+```
+
+The same applies in reverse: **retiring a role leaves its guides behind**, and the generated skills
+lose those sections. `sq check` names each one so a retirement does not quietly strip guidance you
+still want — either reactivate the role, or delete the guides you no longer need. This is why a
+retirement can produce several warning lines at once: one per item type that role had guidance on.
+
+### Drift
+
+A playbook override that shadows a bundled type's entry has to carry a
+`# squads:override-base:<version>` stamp, for the same reason a shadowing workflow override does: a
+shadowed entry stops tracking the bundle, so its provenance has to be on the record. Note that the
+append idiom counts as shadowing — writing `roles` replaces the list, stamp included. An unstamped
+one is reported as an error by `sq check`:
+
+```
+error .overrides/playbook.toml: shadowing playbook override has no
+squads:override-base stamp; run `sq override update playbook` to re-stamp
+```
+
+The reconciliation cycle is the one every other override kind uses:
+`sq override diff playbook` → hand-merge → `sq override update playbook` → `sq check`.
+
+---
+
 ## Staleness and drift
 
 Overrides are authored against a bundled template or role from some version of squads. When you
@@ -407,15 +833,23 @@ new role field. We **detect and warn you** about this drift; you **merge by hand
 
 ### How staleness is detected
 
-When you scaffold an override (via `sq override scaffold`), the file carries a **provenance stamp**:
+When you scaffold an override (via `sq override scaffold`), the file carries a **provenance stamp**
+in whichever comment syntax that file speaks. A template override carries an HTML comment, inert to
+rendering:
 
 ```
 <!-- squads:override-base:<version> -->
 ```
 
-This is an HTML comment, inert to rendering. It records the version you scaffolded at — "this
-override was branched from squads `<version>`." When you later upgrade squads and run `sq check`,
-it compares:
+A role override, the workflow override and the playbook override are TOML, so they carry the stamp
+as a TOML comment on the file's first line:
+
+```toml
+# squads:override-base:<version>
+```
+
+Either way it records the version you scaffolded at — "this override was branched from squads
+`<version>`." When you later upgrade squads and run `sq check`, it compares:
 
 - Your override's `override-base` stamp against the current `squads_version`.
 - The bundled template at your override's `override-base` version against the bundled template
@@ -443,6 +877,24 @@ Independently, `sq check` detects if an override is **missing a required marker 
 
 If your override has clean markers and renders without error, it will render even if its stamp is
 old.
+
+### Drift on the workflow override
+
+A workflow override that only **adds** vocabulary needs no stamp: there is no bundled entry
+underneath it to drift away from. The moment it **shadows** one, that changes — a shadowed built-in
+stops tracking the bundle, so its provenance has to be recorded. A shadowing override with no stamp
+is reported as an error by both `sq check` and `sq workflow lint`:
+
+```
+error .overrides/workflow.toml: shadowing workflow override has no
+squads:override-base stamp; run `sq override update workflow` to re-stamp
+```
+
+It is a report, not a refusal — `sq` keeps working. An older stamp gives you the ordinary drift
+warning instead. The reconciliation cycle below is the same for `workflow` as for any other
+override: `sq override diff workflow`, hand-merge, `sq override update workflow`. For a workflow
+override, Δ-mine is your file against the current bundled spec, which is what shows you exactly what
+you have shadowed.
 
 ### The end-to-end reconciliation workflow
 
@@ -545,6 +997,12 @@ sq override scaffold --role architect
 sq override scaffold --new security-analyst
 sq override scaffold --new security-analyst --can-spawn   # opt it into spawning subagents
 
+# Start the workflow override (vocabulary: item types, statuses, lifecycles, collections)
+sq override scaffold workflow
+
+# Start the playbook override (which roles interact with each item type, and their guidance)
+sq override scaffold playbook
+
 # Overwrite an existing override
 sq override scaffold items/task.md.j2 --force
 ```
@@ -558,7 +1016,13 @@ sq override scaffold items/task.md.j2 --force
   Refuses a slug that's already a bundled role — use `--role` for that. Follow up with `sq role
   activate <slug>` once you've filled it in.
 - Template names copy the named bundled template into `.overrides/templates/`.
-- Every scaffolded file is stamped with `<!-- squads:override-base:<current-squads-version> -->`.
+- `workflow` starts `.overrides/workflow.toml` from a commented worked example rather than a copy of
+  the bundled spec — see [Workflow overrides](#workflow-overrides-item-types-statuses-and-badge-collections).
+- `playbook` starts `.overrides/playbook.toml` the same way, from a commented worked example of the
+  one-line append idiom — see [Playbook overrides](#playbook-overrides-role-guidance-per-item-type).
+  `--workflow` and `--playbook` are equivalent flag forms of those two names.
+- Every scaffolded file is stamped with the current squads version, as an HTML comment in a template
+  and a TOML comment in a role, workflow or playbook override.
 - Refuses to clobber an existing override unless you pass `--force`.
 
 **This is the only command that writes override bodies.** After scaffolding, you edit the file by
@@ -574,6 +1038,12 @@ sq override diff items/task.md.j2
 
 # Diff a specific role
 sq override diff --role architect
+
+# Diff the workflow override against the current bundled spec
+sq override diff workflow
+
+# Diff the playbook override against the current bundled playbook
+sq override diff playbook
 
 # Diff every drifted override (no name needed)
 sq override diff
@@ -604,6 +1074,12 @@ sq override update items/task.md.j2
 # Update a specific role
 sq override update --role architect
 
+# Re-stamp the workflow override
+sq override update workflow
+
+# Re-stamp the playbook override
+sq override update playbook
+
 # Bulk re-stamp every structurally-valid override
 sq override update
 ```
@@ -628,9 +1104,11 @@ sq override list --json
 
 **Output columns:**
 
-- **Name:** template path or role slug (e.g., `items/task.md.j2`, `architect`).
-- **Kind:** `template` or `role`.
-- **Base version:** the `squads_version` the override was branched from (from the stamp).
+- **Name:** template path, role slug, `workflow`, or `playbook` (e.g., `items/task.md.j2`,
+  `architect`).
+- **Kind:** `template`, `role`, `workflow`, or `playbook`.
+- **Base version:** the `squads_version` the override was branched from (from the stamp), or
+  `(unstamped)` for a shadowing override that has no stamp yet.
 - **State:** 
   - `current` — the bundled counterpart hasn't changed since the base stamp.
   - `drifted` — the bundled counterpart changed and you should reconcile via `sq override diff` +

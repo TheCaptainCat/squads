@@ -18,8 +18,13 @@ class AgentBackend(ABC):
     async def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact: ...
     async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact: ...
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None: ...
+    async def candidate_orphans(
+        self, ctx: BackendContext, roster: list[RoleView], skill_slugs: set[str]
+    ) -> list[str]: ...
     def managed_paths(self, ctx: BackendContext) -> list[str]: ...
 ```
+
+That is the whole ABC — seven methods, and it does not grow.
 
 - **`ensure_scaffold`** — create the tool's directories and base config (idempotent; never clobber
   user content). Claude Code makes `.claude/{agents,skills}` and merges `settings.json`.
@@ -27,7 +32,13 @@ class AgentBackend(ABC):
   per-item-type skills, and any "project guidance" doc. Called by `init`/`adopt`/`sync`.
 - **`generate_role_entry`** / **`generate_skill_entry`** — emit the per-role / per-skill entry (a
   file or a section, depending on the backend).
-- **`remove_artifacts`** — delete the files for a removed role/skill.
+- **`remove_artifacts`** — delete the files for a removed role/skill. This is also what withdraws a
+  *retired* entry's files — see "Status is not your concern" below.
+- **`candidate_orphans`** — report, read-only, the on-disk pointer/skill files this backend does
+  **not** manage: present on disk but naming no slug in the roster and none in the known-skill
+  vocabulary. Warn-only candidates for `sq init` / `sq adopt` to print. Never delete, move, or
+  rewrite anything here, and don't report a slug you *do* manage just because this particular
+  invocation didn't happen to rewrite its file.
 - **`managed_paths`** — the root-relative paths this backend owns, read-only, for `sq check` to
   verify scaffolding is present (a presence check, not a currency/drift check).
 
@@ -38,8 +49,17 @@ class AgentBackend(ABC):
 - `ctx.rel(path)` — project-root-relative, forward-slash path (for references and `Artifact` paths)
 - `ctx.root_relative(item)` — the same for an item's markdown file
 
-Each method returns `Artifact(path, kind, backend)` records (informational; the path is
-root-relative).
+The **writing** methods return `Artifact(path, kind, backend)` records — informational, with a
+root-relative path. The read-only reporters (`candidate_orphans`, `managed_paths`) return plain
+root-relative path strings, and `remove_artifacts` returns nothing.
+
+### Status is not your concern
+
+No ABC method takes or returns a status, and no backend ever sees one. squads decides whether a
+roster entry is materialised (its status is live) or withdrawn (it isn't), and expresses withdrawal
+through `remove_artifacts` plus recompiling the managed region that listed the entry. Implement the
+seven methods above and you inherit that behaviour — do **not** add a status branch or a
+`withdraw_artifacts` method of your own.
 
 ## The recommended shape: pointers, not copies
 

@@ -131,13 +131,15 @@ squad, which is what you do most once agents are the ones writing:
   - **work** — `epic`, `feature`, `task`, `bug`, `review`: the things being built and reviewed.
   - **records** — `decision` (ADR), `guide`: the durable write-ups that outlive the work.
   - **roster** — `role`, `skill`, `operator`: who is on the team and what they know. These three
-    are **reserved** — a project can't redefine them.
-- **Your own vocabulary** — add types (with their own lifecycles, prefixes, and badge axes) via
-  `<squad-dir>/.overrides/workflow.toml`, and templates or role definitions under
-  `<squad-dir>/.overrides/`; `sq override` scaffolds them and flags drift when an upgrade changes
-  the bundled original. The workflow override is additive, so bundled types stay as they are — to
-  rename a type or a status across an existing squad, use `sq migrate rename-type` /
-  `sq migrate rename-status`.
+    keys always exist — a project can rename their labels and redefine their lifecycle, but can't
+    drop them or move another type into the roster.
+- **Your own vocabulary** — `<squad-dir>/.overrides/workflow.toml` is your squad's vocabulary delta:
+  add types (with their own lifecycles, prefixes, and badge axes), shadow a bundled type or status
+  field by field, or drop one you don't want. No status name is reserved — name your lifecycle
+  states whatever your team already calls them. Templates and role definitions live under
+  `<squad-dir>/.overrides/` too; `sq override` scaffolds them and flags drift when an upgrade
+  changes the bundled original. To move items already filed under one vocabulary onto another, use
+  `sq migrate rename-type` / `sq migrate rename-status`.
 - **Global IDs** — `PREFIX-NNNNNN` with a single global counter, so the number is unique across
   all types (you never have both `TASK-<n>` and `BUG-<n>`). The prefix marks the type. Built-in
   prefixes are `EPIC FEAT TASK BUG ADR REV GUIDE ROLE SKILL OP`; custom types declare their own
@@ -179,14 +181,20 @@ The following table shows the **bundled default** status lifecycles:
 | decision (ADR) | `Proposed → Accepted → Superseded` (+ `Rejected`, `Deprecated`) |
 | review | `Requested → InReview → ChangesRequested → Approved` (+ `Rejected`) |
 | guide | `Draft → Published → Deprecated` |
-| role / skill / operator | `Draft → Active → Archived` |
+| role / skill / operator | `Active ⇄ Archived` |
 
 Sub-entities have their own, shorter lifecycles: a story or subtask runs `Todo → InProgress → Done`
 (+ `Blocked`, `Cancelled`); a review finding runs `Open → Fixed → Verified` (+ `WontFix`).
 
-Types can declare custom lifecycles via `<squad-dir>/.overrides/workflow.toml`. `sq status`
-validates transitions against the active spec; use `--force` to override. `sq workflow` prints the
-lifecycles of whatever spec your project is actually running, diagrams included.
+A roster lifecycle also declares which of its statuses are **live** — the ones whose entries are
+presented to an agent host. Archiving a role, skill or operator therefore **retires** it: its
+generated files are withdrawn, and the transition is refused where the generated config couldn't
+survive it. See [docs/roles.md](docs/roles.md#retiring-a-roster-entry).
+
+Types can declare custom lifecycles via `<squad-dir>/.overrides/workflow.toml`.
+`sq <type> <n> status <S>` validates transitions against the active spec; use `--force` to override
+a transition the lifecycle disallows. `sq workflow` prints the lifecycles of whatever spec your
+project is actually running, diagrams included.
 
 ---
 
@@ -288,15 +296,15 @@ works exactly like the canonical spelling.
 - `sq <type> <n> show [--full] [--comments] [--raw] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call · `sq show <ID>` shows any item by ID or bare number, whatever its type
 - `sq <type> <n> body [-m "…"|--file PATH] [--append]` · `sq <type> <n> comments` — read the discussion back on its own
 - `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]`
-- `sq <type> <n> status STATUS [--force]` · `sq <type> <n> comment -m "…" [--as <slug>]`
+- `sq <type> <n> status STATUS [--force]` · `sq <type> <n> comment -m "…" --as <slug>` — `--as` is required: a role slug, or `op-<slug>` for a human operator
 - `sq <type> <n> retype NEW-TYPE` — reclassify an item, keeping its number · `sq <type> <n> remove [--force] [--yes]` — hard-delete it (asks first; `--force` severs incoming refs)
 
 **Find & focus**
 - `sq search TEXT [--type] [--status] [--json]` — match item titles, summaries, and bodies/discussion
 - `sq blocked [--json]` — open items blocked by other open items (via the `blocks` / `depends-on` ref kinds)
-- `sq mine [ROLE] [--all] [--json]` — items assigned to a role (default: the squad's default role)
-- `sq workload [--json]` — open/closed/total work-item counts per assignee
-- `sq inbox <role>` — open items mentioning `@role`
+- `sq mine <role> [--all] [--json]` — a role's open work: items assigned to it, **plus** items where one of its sub-entities (a story, subtask or finding) is assigned to it. The matched sub-entities are named in a `Matched` column and a `matched_subentities` key. Open/closed is judged per match, so a closed item still appears while your own sub-entity on it is open
+- `sq workload [--json]` — open/closed/total counts per assignee, with each assignee's sub-entity assignment counts as their own columns beside the item counts (never folded in)
+- `sq inbox <role> [--json]` — open items mentioning `@role`, naming the region each mention was found in (e.g. `story:US1:discussion#1`) so a mention inside a sub-entity's discussion is reachable
 
 **Sub-entities** (stories on features, subtasks on tasks, findings on reviews)
 - `sq feature <n> add-story "…" [--assignee] [-m|--file]` · `sq feature <n> stories`
@@ -315,10 +323,12 @@ discussion — all written through commands.
 
 **Agents** — like items, roster entries are addressed first, then verbed: `sq role <slug> show`
 - `sq role catalog [--json]` — the bundled roles available to activate · `sq role list [--json]` — the roles this squad has actually activated
-- `sq role activate <slug>` · `sq role <slug|id|n> show|regen|rm [--purge]`
+- `sq role activate <slug>` · `sq role <slug|id|n> show|regen|rm [--purge]|status <S> [--force] [--unlink]`
+- `sq role <slug|id|n> set-default` — move the default-role designation here, clearing the previous holder; refuses a role that isn't live
 - `sq dev add --tech <t> [--name] [--model]` · `sq dev list` — stack-specific developers
-- `sq operator add "NAME" [--slug]` · `sq operator list` · `sq operator <slug|id|n> show|rm [--purge]` — register **humans** (`op-<first>` slug); assignable and can author items/comments
-- `sq skill add NAME [--desc|--when-to-use|--allowed-tools]` · `sq skill <slug|id|n> show|regen|rm [--purge]`
+- `sq operator add "NAME" [--slug]` · `sq operator list` · `sq operator <slug|id|n> show|rm [--purge]|status <S> [--force] [--unlink]` — register **humans** (`op-<first>` slug); assignable and can author items/comments
+- `sq skill add NAME [--desc|--when-to-use|--allowed-tools]` · `sq skill <slug|id|n> show|body|regen|rm [--purge]|link-role <role>|unlink-role <role>|status <S> [--force] [--unlink]`
+- Archiving a roster entry **retires** it: its generated files are withdrawn, the transition is refused where the generated config couldn't survive it, and `--unlink` severs a severable dependency so the ordinary check can pass — see [docs/roles.md](docs/roles.md#retiring-a-roster-entry)
 - `sq create guide TITLE [--tech] [--tag]` — tech/tag-labelled guides; list them with `sq list --type guide`
 - `sq memory <role> list|search|show|add|forget` — a role's committed notebook: facts it learned and should carry into the next session
 - `sq board post|list|clear` — the team bulletin board: notices every agent reads at the start of a run

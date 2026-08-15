@@ -18,13 +18,29 @@ git switch -c chore/upgrade-squads     # clean rollback point
 
 sq migrate up                          # if the squad is behind: runs the schema runners, repair, restamp
 sq migrate chlog v<old>..v<new>        # any manual (LLM-assisted) steps for that release range
-sq sync                                # regenerate tool-owned files (.claude/, CLAUDE.md, skills)
-sq check                               # validate: markers intact, parents/refs/stories consistent
+sq check                               # validate FIRST — see below; fix anything it reports
+sq sync                                # then regenerate tool-owned files (.claude/, CLAUDE.md, skills)
+sq check                               # confirm the regenerated files are clean
 git add -A && git diff --cached        # review, then commit
 ```
 
+**Run `sq check` before `sq sync`, not after.** `sq sync` regenerates your tool-owned files from
+the roster as it currently stands, and a roster entry the new version considers invalid — a status
+its lifecycle no longer declares, say — is simply not written out. That is `sync` doing its job, but
+it is silent: it exits `0`, and the entry's `.claude/` pointer and its line in `CLAUDE.md` are
+gone with no message. `sq check` is the command that names the problem, so running it first turns a
+silent strip into a list of entries to fix. Running it again after `sync` is the cheap confirmation
+that what got written is what you wanted.
+
+Nothing is lost either way — the durable definitions under `squads/agents/roles/` are never touched
+by `sync`, and putting an entry back at a live status restores its pointer and its `CLAUDE.md` line
+inside that same command, with no second `sq sync` needed. Checking first just saves you finding
+out from an agent that has stopped being spawnable.
+
 You don't need to track when a migration is due: on an out-of-date squad **`sq` stops every command
-and tells you to run `sq migrate up`**. If the squad is current, `sq migrate up` is a no-op.
+and tells you to run `sq migrate up`**. If the squad is current, `sq migrate up` is a no-op. The
+version notice you see on an ordinary command points at `sq sync`, since refreshing the managed
+files is the usual case; when you are moving between versions, use the order above.
 
 ---
 

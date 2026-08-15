@@ -1,0 +1,24 @@
+{
+  // Extension dev host. This window must be a WSL window (Remote-WSL), because the
+  // extension shells out to `sq` — a Linux binary in the project venv. Launching the
+  // dev host from a Windows-side window (or with --disable-extensions, which turns
+  // Remote-WSL off) leaves `sq` unresolvable and every view empty.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run squads extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/clients/vscode",
+        // Targeted, not blanket: --disable-extensions would also turn off Remote-WSL. This
+        // disables only the Marketplace build, which otherwise collides on
+        // `command 'squads.refreshTree' already exists`.
+        "--disable-extension=pierre-chat.squads-vscode",
+        "${workspaceFolder}"
+      ],
+      "outFiles": ["${workspaceFolder}/clients/vscode/out/**/*.js"],
+      "preLaunchTask": "compile extension"
+    }
+  ]
+}

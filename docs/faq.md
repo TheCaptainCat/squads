@@ -37,7 +37,9 @@ It never touches your authored content.
 
 ### Can I edit the markdown by hand?
 No — the `.md` files are fully sq-managed. Set an item's body with `sq <type> <n> body` and a
-sub-entity's with `sq <type> <n> <kind> <k> body` (both take `-m` paragraphs or `--file`); comment
+sub-entity's with `sq <type> <n> <kind> <k> body` (both take `-m` paragraphs or `--file`, both
+**replace** the body and so refuse once one has been written — `--append` to add, `--force` to
+replace on purpose); comment
 with `sq <type> <n> comment`; change metadata with `sq <type> <n> update`. Read anything back with
 `sq show <n>` (any type) or `sq <type> <n> show`.
 Don't edit the markers or frontmatter by hand — use the commands so the
@@ -111,12 +113,19 @@ The documented, stable contract:
 | Code | Meaning | When you see it |
 |------|---------|-----------------|
 | `0` | Success | Command completed normally (including `sq check` with no errors, or warnings only). |
-| `1` | squads runtime error | A `SquadsError` (unknown ID, invalid transition, etc.) or a schema-version mismatch (`sq migrate up` is needed). |
+| `1` | squads could not complete what you asked | A `SquadsError` (unknown ID, invalid transition, etc.), a schema-version mismatch (`sq migrate up` is needed), or a command that finished only partly and named what it could not read — `sq board list` and `sq repair` when they report a file that is not readable. |
 | `2` | Usage error | Invalid `--at` timestamp format; Typer/Click usage errors (unknown option, missing required argument). |
 | `3` | `sq check` found error-level issues | One or more `error`-level issues were reported. `warn`-level-only results still exit 0. |
 
 Code `3` is the useful one for CI gates — scripts can use `sq check || exit 1` or test the code
 directly. Codes `1` and `2` indicate a broken invocation or squad state, not a lint failure.
+
+**A degraded read is a non-zero exit.** When `sq board list` or `sq repair` prints
+`error: <path> …` for a file it could not read, it exits `1` even though it listed or rebuilt
+everything else — a caller testing `$?` needs to see that the answer is short. In the same
+situation `sq check` reports the file as an error-level issue, so it exits `3` like any other
+error-level finding. `--json` output is unaffected in shape: `sq board list --json` still writes a
+bare, valid array to stdout and names the unreadable files on stderr.
 
 The formal stability contract (tiers, versioning, post-1.0 semantics) lives in
 `docs/stability.md`.
