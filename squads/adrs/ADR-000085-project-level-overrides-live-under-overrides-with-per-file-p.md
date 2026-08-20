@@ -9,7 +9,7 @@ author: architect
 refs:
 - FEAT-14
 created_at: '2026-06-12T15:29:52Z'
-updated_at: '2026-06-12T20:52:25Z'
+updated_at: '2026-08-03T08:41:58Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -295,14 +295,13 @@ contracted; the prompt copy is not) — both are additive.
   `--default-names`, and the non-TTY-implies-default path) and at `sq role activate` flowing to
   roster + pointer + CLAUDE.md.
 
-## Status note
+## Provenance
 
-Recorded as **Proposed**. Acceptance is the operator's call (Pierre / @manager). Revised 2026-06-12
-per the operator's two requested revisions (stale-override update workflow spelled out end-to-end
-with the named `sq override` command set; init naming UX with TTY prompting + `--default-names`);
-the `.overrides/` location and frozen slugs were confirmed in the same review. If the post-1.0
-custom ref-kind facility (ADR-49) is ever designed, `.overrides/` is its reserved home —
-consistent with this umbrella.
+Revised 2026-06-12 per the operator's two requested revisions — the stale-override update workflow
+spelled out end to end with the named `sq override` command set, and the init naming UX with TTY
+prompting plus `--default-names`. The `.overrides/` location and the frozen slugs were confirmed in
+the same review. If the post-1.0 custom ref-kind facility (ADR-49) is ever designed, `.overrides/` is
+its reserved home — consistent with this umbrella.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -320,4 +319,8 @@ consistent with this umbrella.
   - Also folded the confirmed rulings into the body: .overrides/ location and non-renamable canonical slugs marked confirmed (2026-06-12).
 - [2026-06-12T20:52:24Z] Pierre Chat:
   - Revision reviewed — the override update workflow (check warn → override diff with both deltas → manual merge → override update re-stamp) and the TTY naming UX with --default-names answer my questions. Accepted.
+- [2026-08-03T08:41:57Z] Robert Architect:
+  - Dropped the "Recorded as Proposed. Acceptance is the operators call" opener and retitled the section to Provenance, as part of the sweep across the ten retroactive decisions. The revision history it also carried is genuinely useful and is kept intact.
+  - Verified in force end to end while in there, and it needs nothing else: `.overrides/templates|roles` resolution, the `ChoiceLoader` template precedence, field-wise role merge, the `override-base` stamp, the per-release content-hash manifest shipping as package data, all four `sq override` verbs including the two-delta diff, and `[init.names]`/`--name`/`--default-names`. `.overrides/workflow.toml` is a third category sanctioned by this decisions own "additional override categories are not frozen" clause.
+  - One watch item rather than a defect, recorded so it is not rediscovered: when the shared deep-merge engine ADR-696 section 4 describes lands, the clause to reconcile is "templates override whole-file, roles merge field-wise" — a uniform merge model touches exactly that sentence.
 <!-- sq:discussion:end -->

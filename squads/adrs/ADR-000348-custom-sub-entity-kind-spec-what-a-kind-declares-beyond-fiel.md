@@ -10,8 +10,9 @@ refs:
 - ADR-323:depends-on
 - ADR-274
 - REV-337:addresses
+- ADR-738
 created_at: '2026-07-09T21:18:55Z'
-updated_at: '2026-07-09T21:22:56Z'
+updated_at: '2026-08-03T15:36:48Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -24,7 +25,8 @@ badge bindings). Everything else about a sub-entity kind is still hardwired to t
 - **Machine binding is a naming convention.** `WorkflowSpec.subentity_workflow/initial/
   can_transition/subentity_completion` all do `self.lifecycles[kind]` — the machine must be a
   lifecycle *named after the kind*. This is undocumented magic and forces the story/subtask machine
-  to be **duplicated** verbatim in `default_workflow.toml` (`[lifecycles.story]` == `[lifecycles.
+  to be **duplicated** verbatim in the bundled spec (`src/squads/_specs/workflow.toml`, then
+  `default_workflow.toml`) — `[lifecycles.story]` == `[lifecycles.
   subtask]`). Contrast the type axis, where `ItemSpec.lifecycle` names the machine explicitly (epic/
   feature/task all → `"work"`).
 - **Completion binds by a global per-status-NAME flag.** `StatusSpec.completion` (TASK-330) marks the
@@ -183,7 +185,7 @@ unchanged and remain wired to the built-in story kind.
   `_check_completion_status` rewritten (per-kind, reachable-non-initial); new lifecycle-ref +
   plural/local_prefix uniqueness checks; `subentity_workflow/initial/can_transition/completion` read
   `kind_spec.lifecycle`.
-- **`default_workflow.toml`** — `[subentity_kinds.*]` gains the new keys; the two `completion = true`
+- **The bundled spec** (`src/squads/_specs/workflow.toml`) — `[subentity_kinds.*]` gains the new keys; the two `completion = true`
   flags move out of `[statuses.*]`; story/subtask lifecycles may dedupe. Golden regenerates
   (structure additive; runtime behaviour byte-identical).
 - **`_services/_base.py`** — `SUBENTITY_PARENT`/`SUBENTITY_KIND` computed from the active spec;
@@ -215,7 +217,14 @@ per-field values on custom kinds serialize exactly as ADR-323 already defined fo
 - **`plural` doubling as the container marker** couples the CLI list-verb name to the on-disk marker
   tag. Acceptable: they are identical today and a marker rename would be a data migration anyway;
   documented so authors know the plural names a persisted marker.
-- **Golden churn** on `default_workflow.toml` structure (not behaviour) — expected and covered by the
+  *Widened 2026-08-03: there is a third consumer. ADR-738 publishes `plural` (with `local_prefix`,
+  `completion`, `maps_parent_story`, the resolved container heading and this kind's `fields`) on the
+  `sq workflow subentity-kinds --json` catalog, so a client reads the list verb and the marker name
+  instead of guessing a pluralization. The coupling itself is unchanged and still acceptable; what
+  changes is its reach — renaming a `plural` now also changes a published catalog value a client may
+  be joining on, so the "documented so authors know" obligation extends to the adopter-facing catalog
+  docs. Nothing in this decision's model is narrowed; `plural` remains the single declared name.*
+- **Golden churn** on the bundled spec's structure (not behaviour) — expected and covered by the
   golden-lock regeneration, same as every prior spec-schema addition.
 
 ## Options considered
@@ -252,4 +261,10 @@ per-field values on custom kinds serialize exactly as ADR-323 already defined fo
 <!-- sq:discussion -->
 - [2026-07-09T21:22:56Z] Pierre Chat:
   - Accepted. The StatusSpec.completion retirement (churning TASK-330's blessed code onto the per-kind completion validator) is explicitly approved — per-kind completion is the right shape and REV-337 F3 deferred exactly this decision here. Proceed on the recommended design.
+- [2026-08-03T08:48:38Z] Robert Architect:
+  - Verified in force with nothing owed on substance: `SubentityKindSpec` carries `lifecycle`/`plural`/`local_prefix`/`placeholder`/`maps_parent_story`/`completion`, `StatusSpec.completion` is gone, `_check_completion_status` is per kind and called from `_validate`, and `maps_parent_story` is the one derivation for the Story column in both renderers.
+  - Corrected three `default_workflow.toml` citations to the bundled spec at `src/squads/_specs/workflow.toml`. Section 2 already records its own end of the completion move properly, which is why this decision needed nothing more — it is the model the ADR-322 narrowing points back at.
+- [2026-08-03T15:36:48Z] Robert Architect:
+  - Widened in place, not narrowed: the risk note on `plural` doubling as the container marker now names a third consumer. ADR-738 publishes it on `sq workflow subentity-kinds --json` alongside `local_prefix`, `completion`, `maps_parent_story`, the resolved container heading and this kind's `fields`.
+  - Nothing in this decision's model changes — `plural` is still the single declared name, and the derived-vs-stored split holds. What changes is reach: a rename now also moves a published catalog value. `placeholder` is deliberately left unpublished (content the engine writes, not vocabulary a client resolves). Linked `related` both ways.
 <!-- sq:discussion:end -->

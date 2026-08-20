@@ -10,7 +10,7 @@ refs:
 description: Items store outgoing refs with kind inline; backrefs are computed by
   inversion, never persisted
 created_at: '2026-06-12T14:23:00Z'
-updated_at: '2026-06-12T14:29:31Z'
+updated_at: '2026-08-03T08:41:15Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -54,15 +54,17 @@ What this binds today:
   `depends-on` lives on the dependent — because the inverse is computed, the stored direction is the
   only direction, so its meaning has to be unambiguous.
 
-## Status note
+## Provenance
 
 Recorded retroactively. This decision predates squads tracking itself and lived only in `CLAUDE.md`
 (invariant 4) and `docs/internals.md` (§5, "Parent/child and refs"). It is documented here as a
-decision already **in force**, not newly debated in-tool. Left **Proposed** for the manager to
-accept with the set.
+decision already **in force**, not newly debated in-tool.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:41:15Z] Robert Architect:
+  - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
+  - Verified in force while in there, nothing else owed: `split_ref`/`make_ref` at `_models/_item.py:96,102`, `SquadsDB.backrefs` computing by inversion and storing nothing, the pre-0.2 `extra.ref_kinds` side map still folded on load. Both sides are width-tolerant via `ref_id_matches`, which is additive.
 <!-- sq:discussion:end -->

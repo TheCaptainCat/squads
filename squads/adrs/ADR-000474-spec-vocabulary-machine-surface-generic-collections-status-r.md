@@ -12,8 +12,10 @@ refs:
 - ADR-459
 - ADR-214
 - EPIC-99
+- ADR-604
+- ADR-738
 created_at: '2026-07-18T19:56:06Z'
-updated_at: '2026-07-18T20:06:08Z'
+updated_at: '2026-08-03T15:36:39Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -152,6 +154,10 @@ field-set-vs-model drift test are updated to include the new `fields` key.
 `terminal = false`; `role` and `terminal` are orthogonal fields (Superseded already carries both),
 so this is purely additive and clashes with nothing. `StatusSpec.role` stays `str | None` (one
 optional role per status).
+*The path is now `src/squads/_specs/workflow.toml`. B1's reference survives — one optional role per
+status — but its referent changed: a role is no longer a bare marker string, it is a catalogued
+`RoleSpec` object the status name resolves through (ADR-604/696). The orthogonality argument expired
+with `terminal`; see B2.*
 
 **B2. Status vocabulary on the surface via a catalog** (the ADR-459 pattern applied to statuses —
 the surface that ADR explicitly deferred). New surface:
@@ -169,6 +175,12 @@ the surface that ADR explicitly deferred). New surface:
 Fields: `status` (name), `terminal` (bool), `role` (str|null), `badge` (emoji|null). A client joins
 an item's `status` string to this catalog to read `role`/`terminal`/`badge`, then styles by
 `role == "active"` generically — never by the literal status name (the F20 anti-pattern).
+
+*Narrowed 2026-08-03: `terminal` was dropped from this catalog by ADR-604 §5 and the frozen field
+set is `("status", "role", "badge")`. A client reads terminality from the role it joins to — a
+consequence of this part's own argument, not a reversal of it: once a role carries behaviour, a
+separate `terminal` column is a second answer to the same question. The join-and-style-by-role rule,
+and the anti-pattern it forbids, are exactly as decided. See the amendment note.*
 
 **B3. Catalog-only — no per-item role field.** The semantic role is exposed *only* via the status
 catalog; item surfaces (tree/list/show) do **not** gain a per-item `role`/`is_active` field. The
@@ -216,6 +228,12 @@ treatment. Keeping role catalog-only avoids duplicating a per-status fact onto e
   surfaces are read-only and derived entirely from the active spec.
 - Three coherent catalog surfaces (`types`/`collections`/`statuses`) now project the whole spec
   vocabulary, each contract-frozen and drift-tested.
+  *Narrowed 2026-08-03: "the whole spec vocabulary" was an overclaim. `WorkflowSpec` declares six
+  vocabulary maps; these three covered three of them, `roles` was added by ADR-604, and `lifecycles`
+  and `subentity_kinds` had no machine surface at all. The completeness rule — one catalog command per
+  declared spec map, no map left unpublished — is set by ADR-738, which adds the two missing catalogs.
+  The shared contract this part defines (bare arrays, one row per declared entry, frozen key sets,
+  values on items and vocabulary in catalogs) is unchanged and is what ADR-738 generalizes.*
 
 ## Alternatives considered
 
@@ -238,6 +256,26 @@ treatment. Keeping role catalog-only avoids duplicating a per-status fact onto e
 - **Key the item `badges` map by collection code, or ship a dedicated fields surface.** Rejected in
   favour of A3: the field code is the frontmatter/CLI identity a consumer already sees, and folding
   the binding into the existing type catalog reuses the ADR-459 surface rather than adding a fourth.
+
+## Amendment note
+
+**2026-08-03 — B2's `terminal` column is gone; everything else stands.** A1, A2 and A3 are verified live:
+the generic `badges` map, `sq workflow collections --json`, and per-type `fields` on the type catalog.
+
+ADR-604 §5 drops `terminal` from the status catalog, leaving `STATUS_CATALOG_FIELDS = ("status", "role",
+"badge")`, and derives terminality from the role object instead (`terminal = role.settled`). B2's example
+row, which shows `"terminal": false`, is therefore no longer the frozen shape.
+
+This is the cleanest instance in the set of a decision being completed rather than contradicted. B1
+introduced the role as an optional marker beside `terminal` and argued the two were orthogonal; B2 put
+both on the wire. Once ADR-604 made the role a first-class object carrying `settled`, `hidden` and a
+colour intent, `terminal` became a second answer to a question the role already answers — so removing it
+follows from this part's own reasoning. What survives untouched is the rule that actually mattered: a
+client joins on the status string and styles by the role, never by a literal status name.
+
+Also corrected: the bundled spec path is `src/squads/_specs/workflow.toml`.
+
+ADR-604 refs this decision but the edge was one-directional; a reciprocal `related` edge is added.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -251,4 +289,11 @@ treatment. Keeping role catalog-only avoids duplicating a per-status fact onto e
   - Rulings on the three open questions (op-pierre): (1) Field→collection binding — yes, extend sq workflow types --json rows with fields: [{code, label, collection}]. Additive per ADR-459's additive-only clause. (2) Status role — Option A, catalog-only: no per-item role/is_active field; the client joins status→role via the statuses catalog (same as the type-catalog pattern). Do not propagate is_open's per-node convenience. (3) One ADR — keep it consolidated as drafted, do not split.
 - [2026-07-18T20:06:07Z] Pierre Chat:
   - Accepted after reading the finalized body. Rulings baked in correctly; one consolidated ADR, references (does not amend) ADR-459/323/214. Proceed to implementation via FEAT-471.
+- [2026-08-03T08:45:42Z] Robert Architect:
+  - Narrowed B2 in place: `terminal` was dropped from the status catalog by ADR-604 section 5 and the frozen field set is `("status", "role", "badge")`. B2s example row still showed `"terminal": false`. A1, A2 and A3 verified live (generic `badges` map, `sq workflow collections --json`, per-type `fields` on the type catalog).
+  - This is the cleanest case in the whole audit of a decision being completed rather than contradicted, and I wrote it up that way. B1 introduced the role as an optional marker beside `terminal` and argued the two were orthogonal; once ADR-604 made the role a first-class object carrying `settled`, `hidden` and a colour intent, `terminal` became a second answer to a question the role already answers. Removing it follows from B1s own reasoning. B1s reference survives with a changed referent — one optional role per status, now a catalogued object rather than a bare marker string.
+  - The rule that actually mattered is untouched: a client joins on the status string and styles by the role, never by a literal status name. Path corrected to `src/squads/_specs/workflow.toml`. Added the reciprocal `related` edge to ADR-604, whose own edge here was one-directional.
+- [2026-08-03T15:36:39Z] Robert Architect:
+  - Narrowed in place, not superseded: the Consequences claim that three catalogs "project the whole spec vocabulary" was an overclaim. Six declared maps, four published — `lifecycles` and `subentity_kinds` had no machine surface at all.
+  - ADR-738 sets the completeness rule (one catalog command per declared spec map) and adds the two missing catalogs. This decision stays in force: its shared contract — bare arrays, one row per declared entry, frozen key sets, per-item values vs per-spec vocabulary — is what ADR-738 generalizes into a row grammar. Linked `related` both ways.
 <!-- sq:discussion:end -->

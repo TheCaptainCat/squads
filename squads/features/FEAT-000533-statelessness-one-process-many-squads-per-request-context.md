@@ -16,21 +16,21 @@ description: Make a long-lived sq process able to host multiple squads concurren
 subentities:
 - local_id: US1
   title: Static-state inventory and enforcement guard
-  status: Todo
+  status: Done
 - local_id: US2
   title: Request-scoped context primitive + clock/actor seam
-  status: Todo
+  status: Done
 - local_id: US3
   title: Per-request squad resolution from the client cwd
-  status: Todo
+  status: Done
 - local_id: US4
   title: Code-vs-data cache boundary and concurrency-isolation acceptance
-  status: Todo
+  status: Done
 - local_id: US5
   title: Active-spec / active-dir seam onto the request context
-  status: Todo
+  status: Done
 created_at: '2026-07-21T12:37:58Z'
-updated_at: '2026-07-22T08:50:28Z'
+updated_at: '2026-07-30T08:35:28Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -163,11 +163,11 @@ _Add with `sq feature 533 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | Static-state inventory and enforcement guard |
-| US2 | Todo |  | Request-scoped context primitive + clock/actor seam |
-| US3 | Todo |  | Per-request squad resolution from the client cwd |
-| US4 | Todo |  | Code-vs-data cache boundary and concurrency-isolation acceptance |
-| US5 | Todo |  | Active-spec / active-dir seam onto the request context |
+| US1 | Done |  | Static-state inventory and enforcement guard |
+| US2 | Done |  | Request-scoped context primitive + clock/actor seam |
+| US3 | Done |  | Per-request squad resolution from the client cwd |
+| US4 | Done |  | Code-vs-data cache boundary and concurrency-isolation acceptance |
+| US5 | Done |  | Active-spec / active-dir seam onto the request context |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -176,7 +176,7 @@ _Add with `sq feature 533 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — Static-state inventory and enforcement guard
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -232,7 +232,7 @@ sweep, is the lasting output.
 ### US2 — Request-scoped context primitive + clock/actor seam
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -278,7 +278,7 @@ observe each other's values; a single one-shot CLI invocation behaves exactly as
 ### US3 — Per-request squad resolution from the client cwd
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -297,7 +297,7 @@ Acceptance: one process resolving two requests whose client cwds point at two di
 ### US4 — Code-vs-data cache boundary and concurrency-isolation acceptance
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
@@ -316,7 +316,7 @@ Acceptance test: a long-lived process serving N interleaved requests across ≥2
 ### US5 — Active-spec / active-dir seam onto the request context
 
 <!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
@@ -390,4 +390,6 @@ their own spec and dir; neither observes the other's, and a one-shot CLI invocat
   - Recommend: TASK-549 and TASK-554 -> Done; FEAT-533 -> InReview for operator acceptance.
 - [2026-07-22T08:50:28Z] Pierre Chat:
   - Accepted. Statelessness precondition delivered across A/B1/B2 (per-request RequestContext, cwd seam, concurrency-isolation proof, module-mutable-state guard); 3 reviews approved, US1-US5 QA-verified, full suite green. Closing to Done.
+- [2026-07-30T08:35:04Z] Catherine Manager:
+  - Story statuses corrected to Done. The work was QA-verified across US1-US5 and the feature was accepted by the operator; only the sub-entity statuses were left stale.
 <!-- sq:discussion:end -->

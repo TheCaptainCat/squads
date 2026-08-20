@@ -61,6 +61,7 @@ import {
   renderOutcomeHtml,
   renderWorkflowHtml,
   type SubEntitiesOutcome,
+  subEntityDiscussionFoldId,
   type SubEntityFieldContext,
 } from './domain/previewDocument';
 import {
@@ -203,13 +204,14 @@ export class ItemPreviewManager {
   // Per-panel back/forward navigation history, independent of `openPanels`'s "current id"
   // bookkeeping — a `'patch'` refresh updates `openPanels` but must never touch this.
   private readonly histories = new Map<vscode.WebviewPanel, PreviewHistory>();
-  // Per-panel record of which sub-entity body/graph folds the reader has open, keyed by the
-  // same `ExpansionTracker` the activity-bar trees use for expand/collapse — fed
+  // Per-panel record of which sub-entity body/discussion/graph folds the reader has open, keyed
+  // by the same `ExpansionTracker` the activity-bar trees use for expand/collapse — fed
   // by `ToggleFoldMessage`s the webview posts on a native `toggle` event, and consulted on every
   // render to stamp the right `open` attribute back onto the matching `<details>`. Reset to
   // empty on every navigation to a *different* item (never on a same-item `'patch'` refresh):
-  // a sub-entity's `local_id` is scoped to its parent item, not globally unique, so carrying a
-  // previous item's tracked ids into a new one would be at best meaningless and at worst wrong.
+  // a sub-entity's `local_id` (and its derived `subEntityDiscussionFoldId`) is scoped to its
+  // parent item, not globally unique, so carrying a previous item's tracked ids into a new one
+  // would be at best meaningless and at worst wrong.
   private readonly foldState = new Map<vscode.WebviewPanel, ExpansionTracker>();
   // The item-preview panel VS Code currently reports as the *active* editor tab — distinct from
   // `activePanel` (the panel tree-selection reuses), since more than one preview panel can be
@@ -487,6 +489,9 @@ export class ItemPreviewManager {
         foldTracker.prune(
           new Set([
             ...subEntitiesOutcome.entities.map((entity) => entity.local_id),
+            ...subEntitiesOutcome.entities.map((entity) =>
+              subEntityDiscussionFoldId(entity.local_id),
+            ),
             CHILDREN_GRAPH_FOLD_ID,
             REFS_GRAPH_FOLD_ID,
           ]),
@@ -496,7 +501,7 @@ export class ItemPreviewManager {
         subEntitiesOutcome,
         id,
         roles,
-        (localId) => foldTracker.isExpanded(localId),
+        (foldId) => foldTracker.isExpanded(foldId),
         subEntityFieldsFrom(showJson, typeCatalog, kindCatalog),
         ids,
         items,

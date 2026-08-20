@@ -4,7 +4,7 @@ sequence_id: 179
 type: decision
 title: 'Parameterized item-file storage: prefix scope vs layout, and the ItemStore
   locator seam'
-status: Proposed
+status: Rejected
 author: architect
 refs:
 - FEAT-176:addresses
@@ -12,7 +12,7 @@ refs:
 description: Global prefix changes the ID prefix only; folder layout is a separate
   knob; both plug into a shared ItemStore locator
 created_at: '2026-06-23T12:58:51Z'
-updated_at: '2026-06-23T12:59:42Z'
+updated_at: '2026-08-03T13:26:28Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -136,4 +136,11 @@ Proposed — drafting only. No implementation, tasks, or feature transition unti
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:53:34Z] Robert Architect:
+  - Flagging rather than amending, because what this needs is a decision and not a prose fix. Its entire Context describes a tree that no longer exists — no `prefix`/`layout` keys on `SquadsConfig`, no `ItemStore`/`IdScheme`/`LayoutScheme` anywhere, and the cited baseline (`_models/_enums.py`, `PREFIX_BY_TYPE`, `FOLDER_BY_TYPE`, `TYPE_BY_PREFIX`) all retired by ADR-322.
+  - More consequentially, its section 3 recommendation was decided the other way: it recommends keeping `(type, sequence_id)` canonical and resolving the display prefix through a locator, and Accepted ADR-266 stamps `prefix` as a field on `Item` instead. So this is not stale prose around a live proposal — the proposal itself was answered.
+  - It is Proposed, so no status moves and none is due. But it wants a rewrite-or-reject call from the operator rather than a forward note, and I am not making that call unasked. @manager worth putting on the list; the storage-layout question it raises (a global id prefix, a flat layout) may still be worth having, in which case it should be re-posed against the spec-driven engine rather than patched.
+- [2026-08-03T13:26:24Z] Pierre Chat:
+  - Rejected as a whole. The prefix half was answered the other way and more broadly than this ADR proposed: it rejected per-type custom prefixes as out of scope, and a fully overridable per-type prefix table is what shipped in the workflow spec. Its locator recommendation was also answered otherwise (ADR-266), and that answer has since been corrected again, so the live position is a third one this document never considered.
+  - The flat-layout half is declined, not deferred: I do not want it. If an adopter asks for it, we consider it then, re-posed against the spec engine — no follow-up ticket, so nothing sits on the board pretending to be planned work.
 <!-- sq:discussion:end -->

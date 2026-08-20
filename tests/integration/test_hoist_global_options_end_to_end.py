@@ -11,7 +11,11 @@ import sys
 def test_at_after_the_subcommand_backdates_the_item_via_a_real_subprocess(tmp_path):
     def run(*args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, "-m", "squads", *args], capture_output=True, text=True, cwd=tmp_path
+            [sys.executable, "-m", "squads", *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=tmp_path,
         )
 
     assert run("init", "--no-seed-skills", "--roles", "minimal").returncode == 0

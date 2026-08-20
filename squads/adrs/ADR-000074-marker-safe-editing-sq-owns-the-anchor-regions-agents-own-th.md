@@ -12,7 +12,7 @@ refs:
 description: File content is mutated only through the sections layer; anchor tags
   delimit managed regions; agent prose is never rewritten
 created_at: '2026-06-12T14:23:04Z'
-updated_at: '2026-06-12T14:29:31Z'
+updated_at: '2026-08-03T08:41:20Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -57,19 +57,26 @@ What this binds today:
 - **Sub-entity blocks are anchor-scoped too** — heading, head badges, body, and discussion each have
   their own region, so the tool can re-render the derived parts (heading, head, summary) while the
   agent's body prose stays put.
-- **Comment text is sanitized against literal marker syntax**, because a stored comment that
-  reproduced a well-formed anchor would otherwise corrupt the region machinery (the failure mode
-  fixed in BUG-56).
+- **Prose carrying literal marker syntax is refused, not sanitized**, because a stored comment or
+  body that reproduced a well-formed anchor would otherwise corrupt the region machinery (the failure
+  mode fixed in BUG-56). One guard covers every prose input that lands inside a marked region — body,
+  comment message and title — and it raises rather than rewriting what the author wrote.
+  *Corrected 2026-08-03: this consequence said "sanitized". The shipped mechanism is refusal
+  (`reject_markers`), which is the stronger and more honest form — silently altering an author's text
+  to make it storable is exactly the class of edit the rest of this decision forbids.*
 
-## Status note
+## Provenance
 
 Recorded retroactively. This decision predates squads tracking itself and lived only in `CLAUDE.md`
 (invariant 3 and the marker-regex gotcha) and `docs/internals.md` (§5). It is documented here as a
-decision already **in force**, not newly debated in-tool. Left **Proposed** for the manager to accept
-with the set.
+decision already **in force**, not newly debated in-tool.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:41:20Z] Robert Architect:
+  - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
+  - Corrected the fourth consequence: it said comment text is "sanitized" against literal marker syntax. The shipped mechanism is refusal — `reject_markers` at `_services/_base.py:286` raises for body, comment message and title alike. Worth fixing rather than glossing, because refusal is the stronger form and silently altering an authors text to make it storable is exactly the class of edit the rest of this decision forbids.
+  - Everything else verified: the strict marker regex at `_sections.py:68`, all the named section helpers, and the marker lint in `sq check`.
 <!-- sq:discussion:end -->

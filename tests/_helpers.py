@@ -5,6 +5,8 @@ values, not pytest fixtures.
 """
 
 import re
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 _ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
@@ -155,3 +157,31 @@ async def create_item(svc: Any, item_type: str, title: str, **kwargs: Any) -> An
     """
     kwargs.setdefault("author", DEFAULT_TEST_AUTHOR)
     return await svc.create(item_type, title, **kwargs)
+
+
+def make_unreadable_by_the_os(path: Path) -> Callable[[], None]:
+    """Make every read of *path* fail at the OS layer, on any platform, and return an undo.
+
+    The obvious instrument -- ``path.chmod(0o000)`` -- is POSIX-only: on Windows ``os.chmod``
+    can only toggle the read-only attribute and cannot withdraw read access at all, so the file
+    stays perfectly readable, nothing degrades, and every assertion built on it reads a healthy
+    corpus. Worse, the read-only attribute it *does* set makes the file an illegal ``os.replace``
+    target, so a whole-corpus rewrite fails with a write error instead of the read error the
+    test meant to stage.
+
+    Replacing the file with a directory of the same name refuses the read everywhere instead:
+    opening a directory raises ``IsADirectoryError`` on POSIX and ``PermissionError`` on Windows,
+    both ``OSError``, both landing in the single ``except OSError`` arm of ``_aio.read_text`` and
+    coming back out as ``UnreadableFileError``. The name still matches the ``*.md`` globs every
+    corpus scan uses (``Path.glob`` does not filter directories), so the file is still *found*
+    and then refused -- which is the state these tests are about.
+    """
+    original = path.read_bytes()
+    path.unlink()
+    path.mkdir()
+
+    def _undo() -> None:
+        path.rmdir()
+        path.write_bytes(original)
+
+    return _undo

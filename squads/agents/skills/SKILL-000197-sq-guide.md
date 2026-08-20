@@ -48,7 +48,7 @@ sq guide <n> status Published
 - Read the full item dossier: `sq guide <n> show --full --comments` (decisions and
   refinements often live in discussion comments, not the body — skipping this is how context
   gets missed).
-- spot a lesson from a real task worth generalising
+- spot a lesson from real work worth generalising
 
 **Do:**
 - co-author the guide drawn from concrete work

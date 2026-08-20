@@ -9,7 +9,7 @@ refs:
 - FEAT-212
 - EPIC-206
 created_at: '2026-07-02T09:20:16Z'
-updated_at: '2026-07-02T09:28:25Z'
+updated_at: '2026-08-03T08:51:21Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -30,7 +30,7 @@ These two halves share almost no code. (1) is a spec-schema + CLI-dispatch featu
 
 EPIC-206 closes as a clean, coherent shippable unit at F1–F5 + the config axis (FR/FP): "config-driven workflow with custom types, statuses, and playbook, default==today." The two F6 surfaces are each net-new deep coupling of blast radius ≈ F1+F2, and belong in their own epic where they can be sequenced, spiked, and reviewed independently rather than as a "stretch" tail that would inflate EPIC-206's scope and delay its close.
 
-Within the new epic, the custom-sub-entity-kinds feature owns retiring `_SUBENTITY_PLURAL` (per Catherine's ownership note) by adding a `subentity_plural` accessor to the reserved-vocab resolver established in ADR-266. The rename-migrations feature is independent of it and could ship first or in parallel.
+Within the new epic, the custom-sub-entity-kinds feature owns retiring `_SUBENTITY_PLURAL` (per Catherine's ownership note) by adding a `subentity_plural` accessor to the reserved-vocab resolver established in ADR-266. *It landed as `WorkflowSpec.subentity_plural(kind)` instead — `_models/_vocab.py` explicitly declined to host it, since a sub-entity kind's plural is spec data the spec object can answer directly, and the kind schema it belongs to was specified by ADR-348. `_SUBENTITY_PLURAL` is gone as this scoping required.* The rename-migrations feature is independent of it and could ship first or in parallel.
 
 This ADR does not create EPIC-000213 or re-parent FEAT-212 — that is a product-owner/manager action. It records the scope line required by EPIC-206 success criterion #8 and FEAT-212 acceptance criterion #5.
 
@@ -50,4 +50,7 @@ This ADR does not create EPIC-000213 or re-parent FEAT-212 — that is a product
   - Accepted per op-pierre: proceed with the FULL split — FEAT-212 moves to a new EPIC-213 and its two halves become separate features (custom sub-entity kinds; vocabulary rename migrations). depends-on FEAT-210/211 edges preserved. product-owner to action the re-parent.
 - [2026-07-02T09:28:25Z] Catherine Manager:
   - Executed: the new epic is EPIC-280 (the ADR's 'EPIC-213' was illustrative; 213 was already claimed by BUG-213 via the global counter). Split done — FEAT-212 re-scoped to custom sub-entity kinds under EPIC-280; FEAT-281 created for vocabulary rename migrations. depends-on FEAT-210/211 preserved.
+- [2026-08-03T08:51:21Z] Robert Architect:
+  - One scoping detail corrected: the `subentity_plural` accessor landed as `WorkflowSpec.subentity_plural(kind)`, not on the ADR-266 resolver this decision pointed at — `_models/_vocab.py` explicitly declined to host it, and rightly, since a kinds plural is spec data the spec object can answer directly. `_SUBENTITY_PLURAL` is gone as required, and the kind schema itself was specified by ADR-348, which this decision only scoped.
+  - Worth recording that the scoping executed exactly as the DISCUSSION records rather than the body: EPIC-280 with FEAT-212 re-parented under it and FEAT-281 beside it, and the bodys "recommended EPIC-000213" was corrected in a comment because 213 was already claimed via the global counter. A live demonstration of why the discussion has to be read alongside the body.
 <!-- sq:discussion:end -->

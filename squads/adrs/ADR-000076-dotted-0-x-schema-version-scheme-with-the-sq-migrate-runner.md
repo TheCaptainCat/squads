@@ -12,7 +12,7 @@ refs:
 description: Schema version names the release that introduced it, compared as a tuple;
   upgrades run through ordered sq migrate steps
 created_at: '2026-06-12T14:23:11Z'
-updated_at: '2026-06-12T14:29:32Z'
+updated_at: '2026-08-03T08:41:16Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -62,15 +62,17 @@ What this binds today:
 - **The mismatch hard-stop is a guardrail, not an inconvenience** — it prevents a newer tool from
   silently writing an older squad into an inconsistent state.
 
-## Status note
+## Provenance
 
 Recorded retroactively. This decision predates squads tracking itself and lived only in `CLAUDE.md`
 (the schema-version-and-migrations gotcha) and the migration docs. It is documented here as a
-decision already **in force**, not newly debated in-tool. Left **Proposed** for the manager to accept
-with the set.
+decision already **in force**, not newly debated in-tool.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:41:16Z] Robert Architect:
+  - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
+  - Verified in force, nothing else owed: `SCHEMA_VERSION` plus `schema_tuple` in `_models/_schema.py`, the ordered per-release runners, and `sq migrate up|help|chlog` all present (with `repad`/`rename-type`/`rename-status` added since, all additive). The post-1.0 question this decision deferred was answered by ADR-149 — a refinement, not a reversal.
 <!-- sq:discussion:end -->

@@ -11,7 +11,7 @@ refs:
 description: A single counter makes every ID number globally unique; allocation only
   inside the index transaction
 created_at: '2026-06-12T14:22:56Z'
-updated_at: '2026-06-12T14:29:31Z'
+updated_at: '2026-08-03T08:41:19Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -29,9 +29,10 @@ number sequence honestly reflects creation order.
 
 ## Decision
 
-**One global monotonic counter spans all item types.** `SquadsDB.allocate_id(type)` increments the
-single `counter` and formats `f"{prefix}-{counter:06d}"`, so there is never both a `TASK-000002` and
-a `BUG-000002` — the number is globally unique and the prefix is only a type label. Allocation
+**One global monotonic counter spans all item types.** `SquadsDB.allocate_id(item_type, *, prefix)`
+increments the single `counter` and formats the id from the resolved prefix and the squad's padding,
+so there is never both a `TASK-000002` and a `BUG-000002` — the number is globally unique and the
+prefix is only a type label. Allocation
 happens **only inside `IndexStore.transaction()`**, under the cross-process file lock, so two
 concurrent `sq` invocations can never collide on an ID or corrupt the index.
 
@@ -52,17 +53,38 @@ What this binds today:
   consistent with frontmatter as the source of truth. `sq repair --renumber` resolves duplicate
   numbers from a git merge by reassigning colliding files to fresh numbers and rewriting every
   reference across all files.
-- **Padding is a presentation concern**, not part of identity — the six-digit format is how the
-  number is rendered; the number itself is the durable thing.
+- **Padding is a presentation concern**, not part of identity — the width is how the number is
+  rendered; the number itself is the durable thing.
 
-## Status note
+## Provenance
 
 Recorded retroactively. This decision predates squads tracking itself and lived only in `CLAUDE.md`
 (invariant 2) and `docs/internals.md` (§3). It is documented here as a decision already **in force**,
-not newly debated in-tool. Left **Proposed** for the manager to accept with the set.
+not newly debated in-tool.
+
+## Provenance note on citations
+
+*Refreshed 2026-08-03.* Both rulings hold — one global counter, allocation only inside
+`IndexStore.transaction()` under the cross-process lock, `sequence_id` as the real identity with the
+formatted `id` derived from it, and `sq repair` reconstructing the counter as the corpus maximum. Two
+mechanism details in the original wording have moved:
+
+- The prefix is **resolved from the active spec** (`_models/_vocab.py::prefix_for`) and passed in, not
+  read from a hardcoded map (ADR-266, then ADR-322). The width is the squad's `padding` parameter, not
+  a literal 6 (ADR-282 for display, ADR-104 for the filename floor).
+- `allocate_id` now raises `SquadsError` when the counter would exceed the capacity of the current
+  padding, pointing at `sq migrate repad`. That is a strengthening of the "allocation happens only
+  inside the transaction" rule, not a change to it.
+
+`sq repair --renumber` still exists; ADR-295's `sq renumber` is a separate verb for a different job
+(pre-merge block shift), and the two do not conflict.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:41:19Z] Robert Architect:
+  - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
+  - Corrected the citations in place, marked as a refresh rather than a change of substance. `allocate_id(item_type, *, prefix)` takes a prefix resolved from the active spec (ADR-266, then ADR-322) and formats at the squads padding, not a literal 6 (ADR-282 for display, ADR-104 for the filename floor). It also now raises when the counter would exceed the paddings capacity, pointing at `sq migrate repad` — a strengthening of the allocate-inside-the-transaction rule, not a change to it.
+  - Both rulings hold as decided: one global counter, allocation only inside `IndexStore.transaction()` under the cross-process lock, `sequence_id` as the real identity with `id` derived. `sq repair --renumber` still exists and does not collide with ADR-295s separate `sq renumber` verb.
 <!-- sq:discussion:end -->

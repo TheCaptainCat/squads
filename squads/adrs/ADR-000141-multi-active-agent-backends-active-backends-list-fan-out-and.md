@@ -13,12 +13,13 @@ refs:
 - FEAT-16
 - ADR-133
 - FEAT-137
+- ADR-541
 description: 'Replace singular default_backend with active_backends: list[str]; fan-out
   over all active backends; stays on schema 0.3 with NO bump — a legacy default_backend
   is read transparently as a one-element list (no migration runner); present-only
   sq check via a new read-only managed_paths ABC probe'
 created_at: '2026-06-16T09:44:28Z'
-updated_at: '2026-06-17T08:39:11Z'
+updated_at: '2026-08-03T08:51:17Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -136,7 +137,9 @@ that path with a canonical v0_3 corpus fixture, so no new fixture was owed here.
   always-present top-level files rather than every per-role pointer — the contract is "the files
   whose absence means this backend was never scaffolded/synced".)
 
-- **`sq check` rule** (`_services/_maintenance.py::check`, a new `_check_backends` helper):
+- **`sq check` rule** (a new `_check_backends` helper; it now lives as the named validator
+  `_backend_reconciled` in `_services/_validators.py`, moved by ADR-541's validator framework with
+  behaviour unchanged):
   for **each active (deduped) backend**, call `managed_paths(ctx)` and emit a
   **`CheckIssue("error", <path>, "managed file missing — run `sq sync`")`** for any path that does
   not exist on disk.
@@ -202,6 +205,23 @@ migration task, was **cancelled as void**. This edit keeps the record honest abo
 all other rulings (config-model shape, order/dedup, repeatable `--backend` + `none` sentinel, the
 `managed_paths` probe + present-only check rule, deactivation-ignore, consequences) stand
 unchanged. Status remains **Accepted**.
+
+## Amendment note
+
+**2026-08-03 — citations refreshed; every ruling verified unchanged.** The check moved rather than
+changed: `_check_backends` is now the named, pluggable validator `_backend_reconciled` in
+`_services/_validators.py` (ADR-541's validator framework), and its docstring records the old name. The
+behaviour this decision specified is intact — one error per missing `managed_paths` entry, per active
+deduped backend, no check at all for an empty `active_backends`, deactivated backends not probed.
+
+Also verified live: the dedup validator, the tolerant legacy `default_backend` read, the TOML array, the
+repeatable `--backend`, and the `none` sentinel with its combination refusal.
+
+§1's "`SCHEMA_VERSION` **stays** `"0.3"`" reads as history given the correction note already in this
+body — the value is far past that — but a reader checking the tree trips on it. Read it as "this decision
+requires no schema change", which is the claim it was making.
+
+`related` edge added to ADR-541.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -211,4 +231,6 @@ unchanged. Status remains **Accepted**.
   - Override (op-pierre, 2026-06-16): ADR-141's 0.3→0.4 schema bump + _v0_3_to_v0_4 migration are NOT applied — 0.3 is still in development, so active_backends is part of 0.3 with no version bump and no migration; the config reads legacy default_backend transparently. All other ADR-141 rulings stand and are implemented (list shape, dedup, order-insignificance, repeatable --backend + none sentinel, present-only check via the managed_paths probe).
 - [2026-06-17T08:39:11Z] Robert Architect:
   - Corrected the stale 0.3→0.4 migration framing in this ADR's body to the shipped no-bump reality (mirrors the FEAT-138 correction in commit 6538396). Title and summary no longer claim a migration; §1 was rewritten from 'Migration mapping (SCHEMA 0.3 → 0.4)' to 'No schema bump — back-compat by transparent read (no migration)'; the Context sentence about TASK-139 making 'no further design calls' was reframed; added a Correction note. Verified against code: SCHEMA_VERSION stays 0.3, no _v0_3_to_v0_4 runner, no to_schema=0.4 in the registry, and _config.py reads legacy default_backend transparently as a one-element active_backends list. The decision itself was implemented and stands; only the abandoned migration mechanics were corrected. Status kept Accepted. TASK-139 confirmed Cancelled. sq check clean.
+- [2026-08-03T08:51:17Z] Robert Architect:
+  - Citation refreshed, every ruling verified unchanged. The `sq check` rule moved rather than changed: `_check_backends` is now the named pluggable validator `_backend_reconciled` in `_services/_validators.py` (ADR-541s validator framework), and its docstring records the old name. Behaviour intact — one error per missing `managed_paths` entry per active deduped backend, no check at all for an empty `active_backends`, deactivated backends not probed. Also confirmed live: dedup validator, tolerant legacy `default_backend` read, TOML array, repeatable `--backend`, and the `none` sentinel with its combination refusal. Section 1s "SCHEMA_VERSION stays 0.3" reads as history; the claim it was making is "this decision requires no schema change". `related` edge added to ADR-541.
 <!-- sq:discussion:end -->

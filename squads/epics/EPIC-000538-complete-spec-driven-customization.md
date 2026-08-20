@@ -11,10 +11,10 @@ refs:
 - ADR-534
 - EPIC-540
 description: Make the work-item vocabulary fully overridable (drop/rename/re-prefix)
-  + extend overrides to the playbook, via one shared merge engine (deep-merge · active
+  + extend overrides to the playbook, via one shared merge engine (deep-merge · selected
   · splat-refs).
 created_at: '2026-07-21T15:11:25Z'
-updated_at: '2026-07-24T07:55:01Z'
+updated_at: '2026-08-15T18:08:48Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -50,7 +50,7 @@ lives in code — a category is behaviour, not vocabulary). A type declares whic
 belongs to; a custom type picks one of the fixed categories to inherit its behaviour. The
 hard-coded categories:
 
-- **roster** — `role`, `skill`, `operator`. Registry entities: can never be deactivated,
+- **roster** — `role`, `skill`, `operator`. Registry entities: type key can never be added, dropped, or renamed,
   slug identity, backend pointer files, own group in the UI trees. (Today's
   `is_meta = true` set.)
 - **work** — `epic`, `feature`, `task`, `bug`, `review`. Burn-down items: assigned,
@@ -74,15 +74,18 @@ Scope notes:
 - Name the field `category`, not `type` — which collides with the item type's own name.
 - The axis does **not** by itself enable renaming a roster type: `category` says "this is
   roster", not "this is the operator one" — role/skill/operator are still dispatched by
-  literal name (`META_OPERATOR == "operator"`, ~15 sites). Per ADR-541 the roster category
-  is locked off the override surface entirely — no add, deactivate, field-merge, or
-  rename — so a separate `meta_kind` de-naming marker is moot, not needed.
+  literal name (`META_OPERATOR == "operator"`, ~15 sites). Per ADR-541 as narrowed by
+  ADR-696 §4, the roster type KEYS are locked — no add, drop, or rename, and category
+  never moves into or out of roster; a roster type's other fields (lifecycle, prefix,
+  folder, labels, order) are ordinary validated customisation — so a separate `meta_kind`
+  de-naming marker is moot, not needed.
 
 Settled: `guide` is a **record**; `review` is **work**.
 
 These questions (roster capped vs extensible, roster override granularity, category
-reassignment) are settled in ADR-541: roster is locked (no add/deactivate/field-merge/
-rename), and a built-in may be reassigned between `work` and `records` (never into or
+reassignment) are settled in ADR-541 as narrowed by ADR-696 §4: the roster type keys are
+locked (no add/drop/rename) while a roster type's other fields merge under the floor, and
+a built-in may be reassigned between `work` and `records` (never into or
 out of `roster`).
 
 ## The design (settled)
@@ -93,21 +96,22 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
   changes; everything else inherits from the bundled built-in. Replaces the additive-only
   "may not redefine built-in" policy. Plain arrays merge as leaves (replace-wholesale)
   unless a splat-ref is used; tables recurse per-key.
-- **Deselect via active.** An `active` = `list[str]` at each section's top level
+- **Deselect via selected.** A `selected` = `list[str]` at each section's top level
   (`items`/`statuses`/`lifecycles`/`collections`/`subentity_kinds`) drops built-ins.
-  Replace-wholesale semantics (the point is to shrink); the roster category is locked off
-  the override surface, so a `category = roster` type can never be dropped.
+  Replace-wholesale semantics (the point is to shrink); the roster type keys are locked,
+  so a `category = roster` type can never be dropped. Named
+  `selected` per ADR-696 §4b.
 - **Splat-refs.** A safe, eval-free path-reference splice — written `$(*path)` — to
   append to a bundled list without restating it: `do = ["$(*self)", "…"]`. Resolves against the
   **bundled base only** (no cycles, order-independent). `$(self)`/`$(*self)` targets the
   key being written — the only clean idiom inside the playbook's `[[…roles]]`
   array-of-tables; dotted paths address keyed tables. Compose-only (no element removal —
-  that's `active`'s job); fail-closed on a dangling path, type mismatch, or unparsed
+  that's `selected`'s job); fail-closed on a dangling path, type mismatch, or unparsed
   token; `$$(` escapes a literal.
 
 ## Outcomes grouped under this epic
 
-- A single shared merge/override engine: deep-merge · `active` deselect · `$(*…)` splat-refs.
+- A single shared merge/override engine: deep-merge · `selected` deselect · `$(*…)` splat-refs.
 - Workflow built-ins fully overridable (drop/rename/re-prefix), guarded by the existing
   referential-integrity checks and the live-index guard (`validate_against_index_fail_closed`).
 - Playbook wired as the 4th override kind (`.overrides/playbook.toml`) into `sq override`,
@@ -146,24 +150,30 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
     parent/sub-entity rules, prefix/folder maps, backend pointer files — iterates the
     **active/merged** spec, never a hardcoded built-in name. A dropped type just doesn't
     appear; nothing orphans or crashes.
-- **The roster category is locked off the override surface.** sq structurally requires a
-  role/skill/operator type to exist and binds them by literal name, so no override may add,
-  deactivate, field-merge, or rename/re-prefix a `category = roster` type — any such override
-  is refused (`SquadsError`). This is the one type-axis floor; every non-roster type is
-  droppable, renamable, and re-prefixable as ordinary spec vocabulary (ADR-541).
+- **The roster type KEYS are locked off the override surface.** sq binds each by its
+  literal type key, so no override may add, drop, or rename a `category = roster` type,
+  and `category` may not move a type into or out of `roster` — any such override is
+  refused (`SquadsError`). A roster type's other fields, its lifecycle above all, are
+  ordinary validated customisation subject to the lifecycle floor (ADR-696 §3–§4). This
+  is the one type-axis floor; every non-roster type is droppable, renamable, and
+  re-prefixable as ordinary spec vocabulary (ADR-541).
 
 ## Acceptance (epic-level)
 
 - A project spec that **drops and renames** `feature`/`task` loads and runs clean; only
   `role`/`skill`/`operator` refuse.
-- A built-in can be **re-prefixed** by overriding a single field, without restating the
-  rest of its definition.
+- A built-in **with no items yet** can be **re-prefixed or re-foldered** by overriding a
+  single field, without restating the rest of its definition. Once a type has items, a
+  prefix or folder change is refused against the live corpus with the affected IDs
+  listed — the field-merge itself works; what is gated is applying it to items already
+  written under the old value (ADR-696 §5a).
 - **Dropping any droppable built-in** leaves sq fully functional (skills, `sq check`,
   rendering, backends) — or is refused with a clean error naming what still references it.
   No consumer traceback under any drop.
-- **Any override touching a `roster`-category type fails closed** — role/skill/operator can
-  be neither dropped, nor renamed/re-prefixed, nor field-merged; the roster category is
-  locked off the override surface entirely (ADR-541).
+- **Any override breaching a roster-category type's IDENTITY fails closed** —
+  role/skill/operator cannot be added, dropped, or renamed, and category cannot move a
+  type into or out of roster; their lifecycle and other non-identity fields are
+  field-mergeable under the loader floor (ADR-696 §3–§4).
 - **Records take no parent, enforced.** Creating or updating a `records`-category item
   (decision/PRD/guide) with a parent fails closed, and `sq check` flags any that exist —
   unlike today, where `parents = []` on decisions/guides is silently unenforced.
@@ -187,10 +197,10 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
 - **Coordinates with ADR-320 / FEAT-321 (the contract/PRD type):** the PRD is born into the
   `records` category, so the category taxonomy must be settled alongside that type.
 - **Foundational ADR: ADR-541.** The `category` axis + per-category behavioural contract —
-  the merge, the `active` floor, the consumer audit — is pinned in ADR-541; features here
+  the merge, the `selected` floor, the consumer audit — is pinned in ADR-541; features here
   are cut against that decision.
 - **Plane-1/Plane-2 split with EPIC-540.** The Plane-1 load-time spec-validity checks
-  introduced here — category-catalog membership, roster-locked, `active`-deselect
+  introduced here — category-catalog membership, roster-locked, `selected`-deselect
   referential safety — are this epic's foundation. Validator-catalog membership (every name
   in a type's `validators` list resolves to a known validator) is EPIC-540's load-time check,
   and the item-conformance validator catalog itself (Plane 2 — the create/update gate + `sq
@@ -215,4 +225,19 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
   - Refreshed body: dropped the resolved open-questions section, corrected the statelessness/records/roster-lock framing, and added the work<->records reassignment outcome + explicit Plane-1/Plane-2 split with EPIC-540 — all aligned to ADR-541. Status unchanged (Draft).
 - [2026-07-24T07:55:01Z] Catherine Manager:
   - Reconciled to Done — all children Done and epic acceptance met: work-item types drop/rename/re-prefix with only role/skill/operator reserved (FEAT-567/573), the category catalog is closed and roster fails closed off the override surface (ADR-541/FEAT-567), records take no parent enforced (FEAT-568/572), custom records types + work<->records reassignment (FEAT-569), records UI/visibility (FEAT-570), spec-driven add-* flags (FEAT-571), custom non-dev roles (FEAT-543), and the status role-object model (FEAT-605). Spec-driven customization complete.
+- [2026-07-30T08:34:56Z] Pierre Chat:
+  - Reopened. Three of this epic's stated outcomes were never cut as features and are absent from the code: the single shared override merge engine (deep-merge, active deselect, $(*self) splat-refs), the playbook as the fourth override kind (.overrides/playbook.toml wired into sq override, drift-check and base-stamps), and consolidating the three bundled TOMLs under squads/_specs/ mirroring the .overrides/ layout. It was reconciled to Done on 2026-07-24 against child completeness rather than against this outcome list.
+  - These three land in 0.13, not later. The design in this epic's body is settled input, not a starting point to re-derive.
+- [2026-07-31T13:05:40Z] Nina Product:
+  - Cut the 3 reopened outcomes as FEAT-712 (shared merge engine: deep-merge/selected/splat-refs), FEAT-713 (workflow overridability, depends-on FEAT-712, folds in the drop/rename consumer audit), FEAT-714 (playbook as 4th override kind + per-request context seam, depends-on FEAT-712), FEAT-715 (consolidate bundled specs under squads/_specs/ — name-normalization already done, only the directory move remains). Records-no-parent, category reassignment, records UI, and the 5-ADR migration were already covered by FEAT-567/568/569/570/572. All 4 left Draft; sq check clean.
+- [2026-07-31T14:14:44Z] Nina Product:
+  - Corrected roster-lock wording per ADR-696 §4/ADR-541 amendment (7 spots): only the 3 type keys + category are locked; lifecycle/prefix/folder/labels/order field-merge under the floor.
+  - Corrected the re-prefix acceptance bullet per ADR-696 §5a: field-merge works, but is refused against a non-empty corpus (affected IDs listed), not applied unconditionally.
+- [2026-08-01T20:43:57Z] Catherine Manager:
+  - Scope call recorded on FEAT-713: the override ships in 0.13. Consequence for this epic: the consumer-audit outcome is a release gate, not a best-effort. A sharded read-only sweep for spec-blind consumers runs once the current fix round lands — every candidate driven rather than read, since the previous audit declared three of five site groups clean by reading. Each real gap earns a tests/meta guard so the class cannot return.
+- [2026-08-15T18:08:45Z] Catherine Manager:
+  - Closing against the OUTCOME LIST, bullet by bullet -- not against child completeness. This epic was closed that way once before while three outcomes had no feature at all, and the merge design was re-derived weeks later as an ADR. Mara Tester verified all nine outcomes and both invariants from a pinned worktree, driving roughly 210 command invocations across ~14 throwaway squads.
+  - Delivered clean, driven: (3) the playbook as fourth override kind, end to end -- scaffold, stamp, drift, diff, update, and a one-line splat-ref adding a real section to a generated skill; (4) the three bundled TOMLs consolidated under _specs/ with no default_ prefix anywhere; (6) records-take-no-parent enforced at create, update, retype AND in sq check at exit 3 -- and the corpus claim is now true, the epic said 5 ADRs held parents and 0 of 58 do; (8) the records group in both clients single-sourced from category, TUI driven headlessly with a Textual pilot showing REV-22 under Records after a reassignment; (9) the 5 parented ADRs migrated to related refs.
+  - Delivered with defects, all since fixed: (1) the shared merge engine -- deep-merge, selected deselect, splat-refs, fail-closed on a dangling path -- with F4 F11 F13 fixed; (2) full overridability with the referential-integrity and live-index guards, F1 F12 fixed; (5) the consumer audit, which ran twice as REV-726 and REV-736 and closed 81 findings between them. Both invariants hold: unsafe drops refuse cleanly with no traceback, and safe drops were absorbed across seven squads and a 30-command battery each with zero tracebacks.
+  - Outcome 7 was NOT delivered when she verified -- the category-reassignment consistency hard-stop that ADR-541 requires verbatim did not exist, and nothing on either review, no bug and no feature tracked it. FEAT-569 was scoped to custom records types and category-generic verbs and never carried it. That is the same failure mode as the wrong close: an outcome bullet with no feature behind it. Filed as F46, fixed, then generalised by F48 into a clause registry pinned against the validator catalog by an import-time assert. I verified it myself just now on a fresh squad: task moved to records while keeping parents refuses at load -- sq list exit 1, sq workflow lint exit 1, sq check exit 3 -- with a message naming the file, the validator, both contradicting fields and two remedies.
 <!-- sq:discussion:end -->

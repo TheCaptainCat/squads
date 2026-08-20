@@ -50,6 +50,7 @@ def built_wheel_names(tmp_path_factory: pytest.TempPathFactory) -> list[str]:
         [uv, "build", "--wheel", "--out-dir", str(out_dir)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         cwd=str(Path(__file__).resolve().parents[2]),
         check=False,
     )

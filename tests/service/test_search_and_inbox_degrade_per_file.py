@@ -11,17 +11,18 @@ This is the per-file degradation posture ``check``/``repair``/``board list``/``m
 already hold, extended to these two: results first and complete for every readable file, one
 message per skipped file, non-zero exit so a script knows the answer was partial.
 
-The unreadable *causes* are covered as a family (permission, invalid UTF-8, broken symlink),
-because each reaches the reader as a different exception and only one of them was ever
-exercised anywhere in this suite.
+The unreadable *causes* are covered as a family (an OS refusal, invalid UTF-8, a broken
+symlink, a symlink out of the squad folder), because each reaches the reader as a different
+exception and only one of them was ever exercised anywhere in this suite.
 """
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
-from _helpers import create_item, strip_ansi
+from _helpers import create_item, make_unreadable_by_the_os, strip_ansi
 from squads._index._resolver import item_file
 
 pytestmark = pytest.mark.anyio
@@ -45,6 +46,8 @@ def _make_unreadable(path, how: str, outside: Path):
     if how == "permission":
         path.chmod(0o000)
         return lambda: path.chmod(0o644)
+    if how == "os-read-error":
+        return make_unreadable_by_the_os(path)
     if how == "undecodable":
         path.write_bytes(b"---\nid: X\n---\n\xff\xfe not utf-8\n")
         return lambda: path.write_bytes(original)
@@ -73,7 +76,19 @@ def _make_unreadable(path, how: str, outside: Path):
 #: *inside*-the-squad broken symlink was originally exercised, which is how a family that looked
 #: covered by name was not covered by shape.
 _CAUSES = [
-    "permission",
+    # POSIX-only instrument: `os.chmod` on Windows can only toggle the read-only attribute and
+    # cannot withdraw read access, so this leaves the file readable and nothing degrades there.
+    # `os-read-error` below stages the same OS-level read refusal on every platform, so the arm
+    # of the guard this cause reaches stays covered where chmod cannot express it.
+    pytest.param(
+        "permission",
+        marks=pytest.mark.skipif(
+            os.name != "posix",
+            reason="chmod(0o000) cannot withdraw read access on Windows -- the OS-level read "
+            "refusal this cause stages is carried there by the os-read-error cause instead",
+        ),
+    ),
+    "os-read-error",
     "undecodable",
     "broken-symlink",
     "symlink-outside-squad",
@@ -91,6 +106,13 @@ def outside(tmp_path):
     d = tmp_path.parent / "outside-the-squad"
     d.mkdir(exist_ok=True)
     return d
+
+
+def _flat(text: str) -> str:
+    """Rich hard-wraps at the console width, and a long temp path can push the break
+    inside the phrase under test (`could \\nnot be read` on a Windows runner), so a
+    substring check would be asserting on a wrap position. Flatten first."""
+    return " ".join(strip_ansi(text).split())
 
 
 async def _two_items(svc):
@@ -163,7 +185,7 @@ async def test_an_unreadable_item_still_contributes_what_the_index_knows(svc, ou
     """A title match needs no file read, so an unreadable item is dropped only as far as it
     has to be — the degradation is per *source*, not per item."""
     bad = (await create_item(svc, "task", f"a {_NEEDLE} in the title")).item
-    undo = _make_unreadable(item_file(svc.paths, bad), "permission", outside)
+    undo = _make_unreadable(item_file(svc.paths, bad), "os-read-error", outside)
     try:
         results, unreadable = await svc.search(_NEEDLE)
     finally:
@@ -202,14 +224,14 @@ async def test_an_item_whose_file_is_simply_missing_is_not_reported_as_unreadabl
 
 async def test_cli_search_prints_the_results_then_the_error_and_exits_one(svc, invoke, outside):
     good, bad = await _two_items(svc)
-    undo = _make_unreadable(item_file(svc.paths, bad), "permission", outside)
+    undo = _make_unreadable(item_file(svc.paths, bad), "os-read-error", outside)
     try:
         result = await invoke(["search", _NEEDLE])
     finally:
         undo()
 
     assert result.exit_code == 1
-    out = strip_ansi(result.stdout)
+    out = _flat(result.stdout)
     assert good.id in out  # the answer is still delivered
     assert "could not be read" in out
 
@@ -220,7 +242,7 @@ async def test_cli_search_json_stays_a_parseable_array_with_the_error_on_stderr(
     """The shape a machine consumer depends on: valid JSON on stdout even when degraded, the
     skipped files out-of-band on stderr, and the exit code carrying the 'partial' signal."""
     good, bad = await _two_items(svc)
-    undo = _make_unreadable(item_file(svc.paths, bad), "permission", outside)
+    undo = _make_unreadable(item_file(svc.paths, bad), "os-read-error", outside)
     try:
         result = await invoke(["search", _NEEDLE, "--json"])
     finally:
@@ -229,14 +251,14 @@ async def test_cli_search_json_stays_a_parseable_array_with_the_error_on_stderr(
     assert result.exit_code == 1
     payload = json.loads(result.stdout)
     assert [r["id"] for r in payload] == [good.id]
-    assert "could not be read" in strip_ansi(result.stderr)
+    assert "could not be read" in _flat(result.stderr)
 
 
 async def test_cli_inbox_json_stays_a_parseable_array_with_the_error_on_stderr(
     svc, invoke, outside
 ):
     good, bad = await _two_items(svc)
-    undo = _make_unreadable(item_file(svc.paths, bad), "permission", outside)
+    undo = _make_unreadable(item_file(svc.paths, bad), "os-read-error", outside)
     try:
         result = await invoke(["inbox", "manager", "--json"])
     finally:
@@ -245,7 +267,7 @@ async def test_cli_inbox_json_stays_a_parseable_array_with_the_error_on_stderr(
     assert result.exit_code == 1
     payload = json.loads(result.stdout)
     assert [r["id"] for r in payload] == [good.id]
-    assert "could not be read" in strip_ansi(result.stderr)
+    assert "could not be read" in _flat(result.stderr)
 
 
 async def test_cli_search_and_inbox_exit_zero_on_a_healthy_corpus(svc, invoke):
@@ -285,7 +307,7 @@ async def test_cli_never_claims_an_empty_result_it_could_not_verify(
     assert confident in clean
     assert "in what could be read" not in clean
 
-    undo = _make_unreadable(item_file(svc.paths, bad), "permission", outside)
+    undo = _make_unreadable(item_file(svc.paths, bad), "os-read-error", outside)
     try:
         degraded = strip_ansi((await invoke(command)).stdout)
     finally:

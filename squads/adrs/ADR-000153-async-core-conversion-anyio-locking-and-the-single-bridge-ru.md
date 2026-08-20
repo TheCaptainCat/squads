@@ -7,8 +7,9 @@ status: Accepted
 author: architect
 refs:
 - FEAT-34:addresses
+- ADR-663
 created_at: '2026-06-17T20:29:57Z'
-updated_at: '2026-06-19T14:05:33Z'
+updated_at: '2026-08-03T08:34:48Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -314,6 +315,10 @@ ADR: the protocol freeze waits on these signatures.
   `@contextlib.asynccontextmanager` (single type-arg form, valid on Python 3.14). Note it currently
   yields `ctx.db` (a `SquadsDB`) while exposing `_current_ctx` on `self` — that internal pattern is
   unchanged; only the decorator and the generator's return annotation change.
+  *Withdrawn by ADR-663 §4: per-transaction state may not live on `IndexStore` instance attributes
+  at all — it is carried by a task-local `ContextVar`, because an instance attribute is per-store
+  and the state is per-task. The annotation requirement above is unaffected. See the amendment
+  note.*
 - No `Any` may leak through an awaitable: every `_aio` signature is explicitly typed; `anyio.Path`
   is rejected precisely because it would.
 
@@ -339,6 +344,32 @@ the full sweep commits.
 - One new runtime dependency (`anyio>=4`); test config gains `anyio_mode = "auto"` + an
   `anyio_backend` fixture pinned to `"asyncio"`.
 - Status **Accepted**.
+
+## Amendment note
+
+**2026-08-03 — the three-layer lock stands; the per-transaction state it blessed does not.** Every
+decision here is verified in the tree: anyio as the async library, the three-layer exclusion verbatim
+(per-loop `anyio.Lock` cache behind a `threading.Lock` guard, the process mutex, `FileLock` with
+`thread_local=False`), **exactly one** `anyio.run` in the whole codebase, `_aio.py` as the typed IO
+seam with `atomic_replace_sync` keeping fsync and `os.replace` on one hop, the async ABC surface with
+`managed_paths` left sync, and ruff's `ASYNC` rules selected. The cross-process guarantee and the
+three-axis exclusion hold as claimed.
+
+The one clause that did not survive is a pyright note, and it is worth separating from the rest
+because the note read as an observation while doing the work of a ruling. It recorded that
+`transaction` yields `ctx.db` while exposing `_current_ctx` on `self`, and that "that internal pattern
+is unchanged". ADR-663 §4 replaces it with a module-level task-local `ContextVar`
+(`_active_transaction`) and derives the general rule that **no per-transaction state may live on
+`IndexStore` instance attributes** — an instance attribute is per-store, and a task-local is per-task,
+which are the same thing only while one store serves one task at a time. ADR-663 states the resulting
+behaviour change in the nested-store case rather than hiding it.
+
+So the pattern this note declared unchanged was in fact the defect, and the note is the reason it
+looked settled. Nothing else in this decision moves: the annotation requirement it was written to
+carry (`AsyncGenerator[SquadsDB]` under `@asynccontextmanager`, single type-arg form) is untouched.
+
+ADR-663's refs name ADR-534 and ADR-249, not this decision, so the pair was linked at neither end; a
+`related` edge is added here.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -349,4 +380,8 @@ the full sweep commits.
   - @manager ADR-153 ready for review/acceptance. Once Pierre/I accept it, hand the spike slice (show + comment, proving the three patterns) to @python-dev. Spike risk to flag below.
 - [2026-06-18T07:10:21Z] Pierre Chat:
   - Accepted. The spike validated every decision — anyio, locking option (a), the single bridge, _aio.py, and the async AgentBackend surface. Cleared for Phase 1.
+- [2026-08-03T08:34:48Z] Robert Architect:
+  - Amended in place; nothing retired. Every decision here verified in the tree: anyio, the three-layer exclusion verbatim in `_store.py`, exactly one `anyio.run` in the codebase at `_cli/_common.py:685`, `_aio.py` with `atomic_replace_sync` keeping fsync and replace on one hop, the async ABC with `managed_paths` left sync, ruff `ASYNC` selected.
+  - One clause withdrawn, and it is worth separating from the rest: a pyright note that read as an observation while doing the work of a ruling. It blessed `transaction` exposing `_current_ctx` on `self` as "unchanged". ADR-663 section 4 replaces that with a task-local `ContextVar` and derives the rule that no per-transaction state may live on `IndexStore` instance attributes — an instance attribute is per-store, a task-local is per-task, and those coincide only while one store serves one task. The pattern this note declared unchanged was the defect, and the note is why it looked settled.
+  - The annotation requirement the note existed to carry (`AsyncGenerator[SquadsDB]` under `@asynccontextmanager`, single type-arg form) is untouched. Added reciprocal `related` edges with ADR-663, which named ADR-534 and ADR-249 but not the decision it overrode.
 <!-- sq:discussion:end -->

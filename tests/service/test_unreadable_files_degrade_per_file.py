@@ -19,12 +19,14 @@ renumber) and a type-invalid *other* field is never even inspected -- neither sh
 repad/renumber refuse, and asserting that they do would pin a false expectation.
 """
 
+import os
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_unreadable_by_the_os
 from squads._board._store import board_folder
 from squads._errors import SquadsError
 from squads._memory._store import role_folder
@@ -36,8 +38,21 @@ pytestmark = pytest.mark.anyio
 def _corrupt_permission_denied(path: Path) -> None:
     """Unreadable by the OS itself -- unlike the two shapes below, this never even reaches the
     YAML parser; it fails inside the read helper. Deleting the file later is unaffected: unlink
-    is gated by the *directory's* write permission, not the file's own mode."""
+    is gated by the *directory's* write permission, not the file's own mode.
+
+    POSIX-only, hence the marker on its table entry: `os.chmod` on Windows can only toggle the
+    read-only attribute, so this leaves the file fully readable there. `_corrupt_os_read_error`
+    below reaches the same guard on every platform and carries the family on Windows.
+    """
     path.chmod(0o000)
+
+
+def _corrupt_os_read_error(path: Path) -> None:
+    """The same read/parse-guard site as the permission shape, reached by an instrument that
+    works on every platform -- see `make_unreadable_by_the_os`. Not a corruption a user
+    authors; it is here so the guard's `except OSError` arm, and every degrade contract built
+    on it, stays exercised where `chmod` cannot express "unreadable"."""
+    make_unreadable_by_the_os(path)
 
 
 def _corrupt_invalid_utf8(path: Path) -> None:
@@ -85,13 +100,18 @@ def _corrupt_type_invalid_title(path: Path) -> None:
 #: read-path guards actually raise) cannot hide a gap in another. Used for both the degrade tests
 #: below AND the repad/renumber refusal tests, since these three are the only shapes that make
 #: `_scan_records` itself raise.
+_POSIX_ONLY = pytest.mark.skipif(
+    os.name != "posix",
+    reason="chmod(0o000) cannot withdraw read access on Windows -- the OS-level read failure "
+    "this shape stages is carried there by the os_read_error shape instead",
+)
+
 _SHAPES: list[tuple[str, Callable[[Path], None]]] = [
     ("permission_denied", _corrupt_permission_denied),
+    ("os_read_error", _corrupt_os_read_error),
     ("invalid_utf8", _corrupt_invalid_utf8),
     ("unterminated_yaml_value", _corrupt_unterminated_yaml_value),
 ]
-_SHAPE_IDS = [name for name, _ in _SHAPES]
-_SHAPE_FNS = [fn for _, fn in _SHAPES]
 
 #: The full shape family for `check`/`repair`'s degrade-and-carry-forward contract: the three
 #: read/parse-guard shapes above, plus the two shapes that reach `_rebuild_index_from_disk` (and
@@ -102,8 +122,20 @@ _DEGRADE_SHAPES: list[tuple[str, Callable[[Path], None]]] = [
     ("missing_id_field", _corrupt_missing_id_field),
     ("type_invalid_title", _corrupt_type_invalid_title),
 ]
-_DEGRADE_SHAPE_IDS = [name for name, _ in _DEGRADE_SHAPES]
-_DEGRADE_SHAPE_FNS = [fn for _, fn in _DEGRADE_SHAPES]
+
+
+def _params(shapes: list[tuple[str, Callable[[Path], None]]]) -> list[Any]:
+    """Turn a shape table into `pytest.param`s, marking the one shape whose *instrument* is
+    POSIX-only. The mark travels with the table entry rather than sitting on each test, so a
+    shape added later cannot be silently skipped on one platform by an out-of-date decorator."""
+    return [
+        pytest.param(fn, id=name, marks=[_POSIX_ONLY] if name == "permission_denied" else [])
+        for name, fn in shapes
+    ]
+
+
+_SHAPE_PARAMS = _params(_SHAPES)
+_DEGRADE_SHAPE_PARAMS = _params(_DEGRADE_SHAPES)
 
 
 def _edit_frontmatter(path: Path, **fields: object) -> None:
@@ -119,7 +151,7 @@ def _edit_frontmatter(path: Path, **fields: object) -> None:
 # --------------------------------------------------------------------------- check: continues
 
 
-@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_FNS, ids=_DEGRADE_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_PARAMS)
 async def test_check_reports_the_corrupt_file_and_keeps_checking(svc, corrupt):
     """The load-bearing assertion is not "the corrupt file is reported" -- it is that a second,
     unrelated issue elsewhere on the board is *also* still reported. An implementation that
@@ -144,7 +176,7 @@ async def test_check_reports_the_corrupt_file_and_keeps_checking(svc, corrupt):
     )
 
 
-@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_FNS, ids=_DEGRADE_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_PARAMS)
 async def test_check_reports_two_corrupt_files_not_just_the_first(svc, corrupt):
     bad1 = (await create_item(svc, "task", "corrupt one")).item
     bad2 = (await create_item(svc, "task", "corrupt two")).item
@@ -159,7 +191,7 @@ async def test_check_reports_two_corrupt_files_not_just_the_first(svc, corrupt):
     assert any(path2.name in n for n in named), issues
 
 
-@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_FNS, ids=_DEGRADE_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_PARAMS)
 async def test_check_reports_no_phantom_reconciliation_claim_for_the_corrupt_file(svc, corrupt):
     """The regression that matters most: a naive "skip the bad file" fix drops it from the
     on-disk scan map, which turns it into a fabricated "in index but no markdown file found" --
@@ -173,7 +205,7 @@ async def test_check_reports_no_phantom_reconciliation_claim_for_the_corrupt_fil
     assert not any("on disk but not in index" in i.message for i in issues), issues
 
 
-@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_FNS, ids=_DEGRADE_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_PARAMS)
 async def test_confirm_round_survives_a_corrupt_candidate_and_still_confirms_a_real_drift(
     svc, corrupt
 ):
@@ -198,7 +230,7 @@ async def test_confirm_round_survives_a_corrupt_candidate_and_still_confirms_a_r
 # --------------------------------------------------------------------------- repair: carries fwd
 
 
-@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_FNS, ids=_DEGRADE_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_PARAMS)
 async def test_repair_carries_the_corrupt_items_previous_entry_forward(svc, corrupt):
     """The criterion that distinguishes this from the naive "skip and rebuild" fix: the item
     must still be in the index afterwards, resolvable, with its previous values -- not merely
@@ -221,7 +253,7 @@ async def test_repair_carries_the_corrupt_items_previous_entry_forward(svc, corr
     assert reloaded.title == before.title
 
 
-@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_FNS, ids=_DEGRADE_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_PARAMS)
 async def test_repair_leaves_a_never_indexed_corrupt_file_unindexed_and_reports_it(svc, corrupt):
     """The other half of the carry-forward contract: with no previous entry to carry, repair
     must leave the item unindexed and report it -- never invent one."""
@@ -243,9 +275,13 @@ async def test_repair_leaves_a_never_indexed_corrupt_file_unindexed_and_reports_
 
     # Fix the file for real: the honest state repair's carry-forward promise leaves behind is
     # "on disk, not indexed" -- never a phantom "missing" (there was nothing missing to begin
-    # with) and never a silently-materialised entry. Restore write access first -- the
-    # permission-denied shape leaves the file unwritable, not just unreadable.
-    path.chmod(0o644)
+    # with) and never a silently-materialised entry. Undo whatever the shape did to the *dirent*
+    # first: the permission shape leaves the file unwritable, the os-read-error shape leaves a
+    # directory standing in the file's place.
+    if path.is_dir():
+        path.rmdir()
+    else:
+        path.chmod(0o644)
     path.write_text(never_indexed_text, encoding="utf-8")
     issues = await svc.check()
     assert any(
@@ -272,7 +308,7 @@ async def test_repair_carry_forward_never_regresses_the_counter(svc):
     assert reissued.sequence_id > highest.sequence_id
 
 
-@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_FNS, ids=_DEGRADE_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _DEGRADE_SHAPE_PARAMS)
 async def test_repair_recovers_the_counter_of_a_never_indexed_corrupt_highest_file(svc, corrupt):
     """The shape the test above does not reach: there, `previous_counter` (the index's own
     stored `counter` field, untouched by the corruption) already floors the rebuild, so the
@@ -305,7 +341,7 @@ async def test_repair_recovers_the_counter_of_a_never_indexed_corrupt_highest_fi
     assert reissued.id not in {"TASK-" + str(highest.sequence_id)}, "no collision on disk"
 
 
-@pytest.mark.parametrize("corrupt", _SHAPE_FNS, ids=_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _SHAPE_PARAMS)
 async def test_repad_refuses_on_a_corrupt_item_file_and_touches_nothing(svc, corrupt):
     """`repad` rewrites the filename (and, via the trailing `repair()`, the frontmatter id it
     encodes) across the *whole* corpus -- a file whose id cannot be read cannot be correctly
@@ -322,7 +358,7 @@ async def test_repad_refuses_on_a_corrupt_item_file_and_touches_nothing(svc, cor
     assert good_path.read_bytes() == good_before, "repad must touch nothing on refusal"
 
 
-@pytest.mark.parametrize("corrupt", _SHAPE_FNS, ids=_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _SHAPE_PARAMS)
 async def test_repair_renumber_refuses_on_a_corrupt_item_file(svc, corrupt):
     """Same reason as `repad` above: `repair --renumber` reassigns colliding ids across the
     whole corpus and cannot do that for one it cannot read."""
@@ -333,7 +369,7 @@ async def test_repair_renumber_refuses_on_a_corrupt_item_file(svc, corrupt):
         await svc.repair(renumber=True)
 
 
-@pytest.mark.parametrize("corrupt", _SHAPE_FNS, ids=_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _SHAPE_PARAMS)
 async def test_renumber_refuses_on_a_corrupt_item_file(svc, corrupt):
     bad = (await create_item(svc, "task", "corrupt task")).item
     corrupt(svc.paths.abspath(bad.path))
@@ -345,7 +381,7 @@ async def test_renumber_refuses_on_a_corrupt_item_file(svc, corrupt):
 # --------------------------------------------------------------------------- listings: degrade
 
 
-@pytest.mark.parametrize("corrupt", _SHAPE_FNS, ids=_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _SHAPE_PARAMS)
 async def test_board_list_degrades_past_a_corrupt_notice(svc, corrupt):
     good = await svc.board_post("op-alice", "a fine notice")
     bad = await svc.board_post("op-alice", "a corrupt notice")
@@ -358,7 +394,7 @@ async def test_board_list_degrades_past_a_corrupt_notice(svc, corrupt):
     assert any(bad_path.name in msg for msg in unreadable), unreadable
 
 
-@pytest.mark.parametrize("corrupt", _SHAPE_FNS, ids=_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _SHAPE_PARAMS)
 async def test_memory_list_degrades_past_a_corrupt_entry(svc, corrupt):
     good = await svc.memory_add("python-dev", "a fine fact")
     bad = await svc.memory_add("python-dev", "a corrupt fact")
@@ -371,7 +407,7 @@ async def test_memory_list_degrades_past_a_corrupt_entry(svc, corrupt):
     assert any(bad_path.name in msg for msg in unreadable), unreadable
 
 
-@pytest.mark.parametrize("corrupt", _SHAPE_FNS, ids=_SHAPE_IDS)
+@pytest.mark.parametrize("corrupt", _SHAPE_PARAMS)
 async def test_memory_search_degrades_past_a_corrupt_entry(svc, corrupt):
     good = await svc.memory_add("python-dev", "a fine searchable fact xylophone")
     bad = await svc.memory_add("python-dev", "a corrupt searchable fact xylophone")

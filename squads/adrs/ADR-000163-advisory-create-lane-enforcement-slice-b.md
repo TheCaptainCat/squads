@@ -11,8 +11,9 @@ refs:
 - ADR-155
 - ADR-158
 - FEAT-125
+- ADR-696
 created_at: '2026-06-22T12:14:44Z'
-updated_at: '2026-07-06T12:37:01Z'
+updated_at: '2026-08-15T14:19:35Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -73,37 +74,50 @@ no second source of truth, no hard-coded string list (AC-B5).
 
 Computation — `allowed_create_types(slug) -> set[ItemType]`:
 
-- For each `(item_type, ItemPlaybook)` in `PLAYBOOK`, the role is **in-lane to create** that type
-  when it has a `RoleGuide` whose `do=` describes authoring it. The robust, low-coupling rule:
-  a role is an in-lane author of `item_type` when its `RoleGuide.do` contains the create verb for
-  that type — concretely, a bullet matching `sq create <item_type.value>` (the playbook already
-  writes these literally, e.g. `sq create feature "…" --author product-owner`,
-  `sq create task … --parent`, `sq create decision`, `sq create bug`, `add-finding`→`reviewer`
-  opens a `review` via `sq create review`, `sq create guide`). The derivation keys off this verb
-  rather than mere presence in the playbook, because several roles *interact* with a type
-  (`tech-lead` reads/triages bugs and reviews) without being its in-lane **author**. The tech-lead
-  who breaks down a feature into tasks should not warn on `sq create task`; the tech-lead who
-  reads a bug should still warn on `sq create bug`.
-- **`*dev` sentinel.** A `RoleGuide` whose `slug == DEV` (`_interactions.DEV == "*dev"`) applies to
-  any `<tech>-dev` slug (`is_dev_slug`). The DEV guides in the playbook tell devs to *fix inside a
-  task* and *file a defect as a bug* — they contain **no** `sq create <type>` author verb for a
-  top-level item. So the derived dev create-lane is **empty** (see point 2a for the dev-bug rule).
+- Each role guide in the playbook declares **`authors: bool`**. A role is **in-lane to create** the
+  type whose section its guide hangs under exactly when that guide sets `authors = true`, and that
+  declaration is the sole source of the lane. It is read from the **active, merged** playbook, so a
+  guide added or edited through `.overrides/playbook.toml` moves the lane with it (AC-B5). The lane
+  is declared rather than inferred because several roles *interact* with a type (`tech-lead`
+  reads/triages bugs and reviews) without being its in-lane **author**: the tech-lead who breaks
+  down a feature into tasks should not warn on `sq create task`; the tech-lead who reads a bug
+  should still warn on `sq create bug`. A guide that only reads, triages or verifies declares
+  nothing and carries no lane.
+- **`*dev` sentinel.** A guide whose `slug == DEV` (`_interactions.DEV == "*dev"`) applies to any
+  `<tech>-dev` slug (`is_dev_slug`). The DEV guides declare no `authors`, so the dev create-lane is
+  **empty by declaration** rather than by a special case (see point 2a for the dev-bug rule).
 - **Multi-type roles fall out for free.** `architect` is in-lane for both `decision` and `guide`
-  (two `do=` author bullets); `tech-lead` for `task` (and co-authors `guide`); `reviewer` for
-  `review`; `qa` for `bug`; `product-owner` for `feature` and `epic`; `tech-writer` for `guide`.
+  (two declarations); `tech-lead` for `task` (and co-authors `guide`); `reviewer` for `review`;
+  `qa` for `bug`; `product-owner` for `feature` and `epic`; `tech-writer` for `guide`.
   This matches Nina's §1 table exactly.
 - **Manager + operator exemptions are applied before lookup** (see point 5), so they never produce
   a warning regardless of the derived lane.
 
-Resolving the derivation against the playbook prose is acceptable because the playbook commands are
-authored to a fixed `sq create <type>` shape; the tech-lead breaking this down should add a small,
-well-tested helper (`allowed_create_types`) next to `PLAYBOOK` in `_interactions.py`, with a unit
-test pinning each role's lane to Nina's §1 table so a future playbook edit that changes a lane is
-caught. (If the prose-scan proves brittle in implementation, the equivalent is a thin declarative
-`CREATE_LANES: dict[slug-or-DEV, set[ItemType]]` *co-located in `_interactions.py` and asserted in a
-test to agree with the playbook* — still one module, still the playbook as the audited source. The
-tech-lead chooses the mechanism; the invariant is: one source, in `_interactions.py`, test-locked to
-the playbook.)
+**Why a declared flag and not the two mechanisms this section originally named.** A scan of a
+guide's `do` prose for `sq create <type>` cannot reproduce the lane set stated three bullets above.
+`tech-writer` is in-lane for `guide`, and its bundled guide carries no create verb at all, so no
+scan of `do` bullets — scoped to a section or run across the whole document — yields that lane;
+`reviewer`'s `sq create review` is additionally written in the **task** section rather than the
+review one, which a per-section scan also misses. A scan drops lanes silently, and it makes prose
+load-bearing as data, which is the naming-convention-standing-in-for-a-declaration shape this
+codebase removes on sight. A declarative map co-located with the playbook is a second artifact kept
+in agreement with the first by a test — duplication with a guard on it rather than the absence of
+duplication — and being a literal table it can only ever describe the bundled playbook, so a role
+declared as an author through an override got the create command in its generated skill and an
+advisory saying it was not the author.
+
+The declared flag is the only one of the three that satisfies this section's headline literally: the
+fact lives *in* the playbook, so there is one artifact and nothing to keep in sync. The invariant
+stands exactly as first stated — one source, test-locked to the playbook — and is now met by
+construction rather than by a test holding two things together.
+
+**The key, declared against the document it extends.** `authors` is an addition to the closed key
+space of the playbook override document (`.overrides/playbook.toml`), whose grammar, merge, stamp
+and validation belong to ADR-696; the guide model forbids extras, so its field set *is* that key
+space. Named here per the rule that a decision adding a key to a frozen surface says so and names
+the surface: `authors`, boolean, defaulting `false`, additive — renaming nothing, removing nothing,
+retyping nothing. An adopter may declare it on any guide in an override, and a guide that omits it
+behaves exactly as before.
 
 #### 2a. Open question resolved — dev-authored bugs are ALLOWED with an advisory warning
 
@@ -188,8 +202,11 @@ forge-proof claim may appear** in any CLI string or doc (AC-B4). The warning tex
 
 Determined **before** the lane lookup, by slug shape:
 
-- **Manager (`manager`)** — fully exempt from all lane checks (orchestrator; authors any type for
-  coordination). Check: `author == "manager"`.
+- **The squad's default role** — fully exempt from all lane checks (orchestrator; authors any type
+  for coordination). Check: the author equals the slug the squad designates as its **default role**,
+  read from the live roster and falling back to the role catalog's own designation. Not the literal
+  `manager`: the exemption belongs to the designation, so `sq role <slug> default` moves it. In the
+  bundled roster that slug is `manager`, so bundled behaviour is unchanged.
 - **Operators (`op-*`)** — fully exempt. Humans coordinate freely; lane checks apply to agent role
   slugs only. Check: `author.startswith("op-")`. (Consistent with how operators are modelled as
   `OPERATOR` items with `op-` slugs; the same prefix the greeting/operator flows use.)
@@ -200,8 +217,9 @@ Determined **before** the lane lookup, by slug shape:
   mutation slice lands, tech-lead would get the mutation-lane exemptions Nina's §4 describes — out
   of scope here.)
 
-A single `_is_lane_exempt(slug) -> bool` helper (`slug == "manager" or slug.startswith("op-")`),
-co-located with the lane derivation in `_interactions.py`, keeps the rule in one place.
+A single `is_lane_exempt(slug, default_slug) -> bool` helper (`slug == default_slug or
+slug.startswith("op-")`), co-located with the lane derivation in `_interactions.py`, keeps the rule
+in one place.
 
 ### 6. Surfacing / visibility
 
@@ -209,7 +227,9 @@ co-located with the lane derivation in `_interactions.py`, keeps the rule in one
 (AC-B7). `_cli/_role.py` already renders a `can spawn: yes/no` row from `RoleDef.can_spawn`; add a
 companion row, e.g. `creates: feature, epic` (the derived `allowed_create_types(slug)`, or
 `creates: — (out-of-lane creates warn)` for roles with an empty lane such as devs/devops). Include
-it in the `--json` output too (a `create_lane` array next to `can_spawn`). This makes the lane
+it in the `--json` output too (a `create_lane` array next to `can_spawn`).
+*Not yet true for a `<tech>-dev` slug — the row is missing from the human card, and the cause is not
+in this feature. See the amendment note.* This makes the lane
 legible without reading code and mirrors the Slice A surfacing precedent. Because the lane is
 derived (not stored on `RoleDef`), `sq role show` computes it on the fly from the playbook — no new
 persisted field, consistent with "one source of truth."
@@ -246,6 +266,68 @@ persisted field, consistent with "one source of truth."
 - Lane on the **declared `author`**, exempt **before** lookup, key off `current_actor()` /
   `author` only — `current_session()` is forensic context, never the decision basis.
 - Map subtasks to US1 of FEAT-122; AC-B1..AC-B7 are the acceptance gates.
+
+## Amendment note
+
+**2026-08-03 — three citations refreshed, and §6 is not delivered for developer slugs.** The decision
+itself is verified in force by execution: an out-of-lane create prints §3's advisory copy verbatim and
+exits 0, an in-lane create is silent, the reflog carries the `lane_warning` delta with `advisory: true`,
+`sq role product-owner show` renders the `creates:` row, `--json` carries `create_lane`, and a status
+transition warns not at all — confirming §1's creates-only scope.
+
+Citations:
+
+- `_interactions.py` is the `_interactions/` package this decision itself asked for; `PLAYBOOK` and the
+  helpers live in its `__init__`.
+- §5's helper is public `is_lane_exempt`, not `_is_lane_exempt`. Corrected above.
+- §2's headline — "a pure derivation of `PLAYBOOK`, computed at lookup time, no hard-coded string list"
+  — is **not** what shipped. What shipped is the fallback this decision's own §2 permitted: a
+  `CREATE_LANES` mapping co-located with the playbook and test-locked, which satisfies the invariant §2
+  actually stated ("one source, test-locked"). So this is not debt — but the headline reads backwards
+  against the code, and a reader checking conformance against the headline rather than the invariant
+  will report a violation that is not one. The lane set is also keyed by `str` now rather than
+  `ItemType` (ADR-322), and `allowed_create_types` gained a `spec` parameter so a role's lane is
+  filtered to the types the adopter still declares.
+
+**§6 is a genuine gap, and the decision is right rather than the code.** `sq role python-dev show`
+prints no `creates:` row at all. The lane machinery is fine — `--json` returns `create_lane: []`, which
+is the correct empty lane — but the human card never gets there: `resolve_role` raises for any slug
+outside the bundled catalog, and a `<tech>-dev` slug is one, so the card falls back to three rows from
+the item's own fields. The `creates:` row is only the most visible casualty; `model`, `can spawn`,
+`mission` and `responsibilities` are missing from the same card, and `can spawn` is Slice A's surfacing
+precedent that this section was written to mirror.
+
+So the remedy does not belong in the `creates:` row or in this feature. It belongs in role resolution:
+a `<tech>-dev` slug is a *known* role shape — `dev_role()` exists to synthesise exactly it — and
+`resolve_role` should resolve it rather than raising, after which every row this section specifies
+appears with no CLI change at all. Fixing it at the CLI's fallback branch instead would paper over four
+missing rows with one.
+
+**2026-08-06 — §2's mechanism and §5's exemption basis corrected in place; the headline is
+unchanged.** Both mechanisms §2 originally offered are withdrawn, and the entry above reporting that
+the shipped map "reads backwards against the headline" is closed by the correction rather than by
+re-reading the headline.
+
+- **The prose scan was not brittle; it could not produce this section's own stated result.** §2's
+  multi-type bullet asserts `tech-writer` is in-lane for `guide`, and the bundled `tech-writer`
+  guide on `guide` carries no create verb in any bullet — so no scan of `do` prose yields that lane,
+  under either a per-section or a whole-document reading. `reviewer`'s `sq create review` living in
+  the **task** section is a second miss, and the one that also breaks the per-section reading. This
+  was a contradiction inside §2 from the day it was written, not a discovery about the code.
+- **The declarative map satisfied the invariant's letter and lost its point.** "One source,
+  test-locked" was met by two artifacts and a test binding them; and a literal table could only
+  describe the bundled playbook, so an override-declared authoring role received a generated skill
+  containing the create command together with an advisory that it was not the author, and a renamed
+  or adopter-declared type left the lane machinery with nothing to say at all. That is the defect
+  this correction closes.
+- **What replaces both:** a declared `authors` flag on the playbook's own role guides, read from the
+  merged document. The headline — derived from the playbook, never duplicated — is unchanged and is
+  now true by construction. The key is declared against ADR-696's override document in §2; `related`
+  refs both ways.
+- **§5 no longer names `manager`.** The exemption attaches to the squad's designated default role,
+  read from the live roster with the catalog designation as fallback, so `sq role <slug> default`
+  moves it. Same class of correction as §2's: a bundled literal standing in for a declaration.
+  Bundled behaviour is byte-identical in both cases.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -253,4 +335,16 @@ persisted field, consistent with "one source of truth."
 <!-- sq:discussion -->
 - [2026-06-22T12:35:54Z] Pierre Chat:
   - Approved at Option A: advisory create-lane enforcement, creates-only, warn-and-proceed (exit 0). Mutations stay unrestricted. Build it.
+- [2026-08-03T08:49:54Z] Robert Architect:
+  - Verified in force by execution, then amended for citations. Section 6 is the one genuine code/decision divergence in the audit and my ruling is that the DECISION is right and the code is wrong.
+  - Reproduced it: `sq role python-dev show` prints no `creates:` row. The lane machinery is fine — `--json` returns `create_lane: []`, the correct empty lane. The human card never gets there: `resolve_role` (`_roles/_resolver.py:98-122`) raises for any slug outside `PREDEFINED`, a `<tech>-dev` slug is one, and `_cli/_role.py:281-291` falls back to three rows off the items own fields. So `model`, `can spawn`, `mission` and `responsibilities` are missing from that card too — and `can spawn` is the very surfacing precedent section 6 was written to mirror.
+  - Therefore the remedy is not in the `creates:` row and not in this feature. It belongs in role resolution: a `<tech>-dev` slug is a known role shape and `dev_role()` exists to synthesise exactly it, so `resolve_role` should resolve it instead of raising — after which every row section 6 specifies appears with no CLI change. Fixing it at the CLI fallback branch would paper over four missing rows with one. @manager this wants a bug for the QA engineer to author; I am not authoring one from the architect seat.
+  - Citations corrected: `_interactions.py` is the package this decision asked for, and section 5s helper is public `is_lane_exempt`. Recorded one thing carefully rather than as a defect: section 2s headline ("a pure derivation of `PLAYBOOK` at lookup time, no hard-coded string list") is not what shipped — `CREATE_LANES` did, which is the fallback section 2 itself permitted and satisfies the invariant it actually stated. Not debt, but a conformance reader checking the headline instead of the invariant will report a violation that is not one.
+- [2026-08-15T14:19:35Z] Robert Architect:
+  - **Ruling (2026-08-06) on the §2 departure: the developer is right, and by a stronger argument than the one offered.** He did not depart from this decision — he delivered §2's headline, which neither mechanism §2 named could. "Derived from the playbook, never duplicated" was correct; the prose scan duplicated (prose doing double duty as data) and the co-located map duplicated (a second artifact held in agreement by a test). A declared flag on the guide is the only one of the three that puts the fact *in* the playbook, so the invariant is met by construction instead of by a guard.
+  - The scan is not merely brittle — it is **falsified by §2 against its own document**, and this was true the day §2 was written. §2's multi-type bullet asserts `tech-writer` is in-lane for `guide`; the bundled `tech-writer` guide under `[types.guide.roles]` has `do = ["edit for clarity, structure, and currency"]` and no create verb anywhere. No scan of `do` prose produces that lane, whether scoped per-section or run across the whole document. I checked both readings before ruling. The `reviewer` case (its `sq create review` written under `[[types.task.roles]]`, not the review section) is a real second miss but only defeats the per-section reading, so it is the weaker of the two — worth stating in that order, because the tech-writer case is the one that admits no repair short of writing prose to satisfy a parser.
+  - Note what the scan would have done with that gap: **silently dropped a lane no prose supports.** The declared flag instead makes `tech-writer`'s guide lane visible as an assertion, which is information — someone can now look at it and decide whether it is right. A derivation that quietly disagrees with the product table is worse than a declaration that visibly asserts it.
+  - **The `authors` key rides here rather than in its own decision**, on three conditions, all now met. Its entire meaning is this decision's subject, so hosting it elsewhere would separate the key from the only text that explains it. But it *is* an addition to the closed key space of ADR-696's playbook override document (the guide model forbids extras, so its field set is that key space), so: §2 now declares the key and names the document it extends, states its shape and permanence (boolean, default `false`, additive), and `related` refs run both ways to ADR-696. The general rule, which is the reusable part: **the decision that owns a key's meaning hosts it; the decision that owns the key space gets a declared extension and a reciprocal ref.** A separate ADR for one additive boolean would have bought the second half and paid for it by orphaning the first.
+  - **§5 needed the same correction and did not get flagged.** As written it hardcoded the literal `manager` twice — "Check: `author == \"manager\"`" and the helper signature. Reading the squad's designated default role instead is right, for the identical reason as §2 (a bundled literal standing in for a declaration), but leaving §5 unamended would have reproduced exactly the defect being fixed one section over: an ADR naming a mechanism we did not build. Corrected in place with §2. Both corrections leave bundled behaviour byte-identical.
+  - Recorded as a clause-level correction in place — §2's mechanism, §5's exemption basis, a dated entry under **Amendment note** — with `related` to ADR-696 and no `supersedes` edge. The 2026-08-03 entry reporting that the shipped map "reads backwards against the headline" is closed by this correction rather than by re-reading the headline. **No revert.**
 <!-- sq:discussion:end -->

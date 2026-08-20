@@ -23,6 +23,10 @@ from squads._errors import SquadsError
 from squads._paths import SquadPaths
 from squads._sections import join_frontmatter, split_frontmatter
 
+#: One skipped-notice message per unreadable file, as :func:`_all_notices` returns it —
+#: named so :func:`list_notices`/:func:`clear` don't repeat the shape.
+type UnreadableNotices = list[str]
+
 #: Squad-relative root for the board's notice pool: ``<squad_dir>/board/``.
 BOARD_ROOT = "board"
 
@@ -118,17 +122,41 @@ async def post(
     return notice
 
 
-async def _all_notices(paths: SquadPaths) -> list[BoardNotice]:
-    """Every notice on disk (expired or not), in no particular order."""
+async def _all_notices(paths: SquadPaths) -> tuple[list[BoardNotice], UnreadableNotices]:
+    """Every notice on disk (expired or not), in no particular order, plus one message per
+    notice file that could not be read or parsed.
+
+    A bad notice — a merge conflict, invalid UTF-8, an OS permission error — raises
+    :class:`SquadsError` (the read-path guards this module depends on); caught here per file so
+    one bad notice never takes the whole board down, the same reporter-stops-at-the-first-
+    problem shape ``sq check`` rejects. This project's own agents run ``sq board list`` at the
+    start of every session, so a corrupt notice greeting them with nothing at all is worse than
+    its size suggests.
+
+    A ``FileNotFoundError`` on a dirent this same call's own glob just saw is a present-vs-
+    absent question, not another unreadable shape: a broken symlink is a *present* dirent (the
+    read failed on its target, not on whether it's there) and is reported the same way a decode
+    failure is; a dirent that genuinely vanished between the glob and the read is skipped with
+    nothing reported — it was never really there for this listing to report on.
+    """
     out: list[BoardNotice] = []
+    unreadable: list[str] = []
     for path in await _content_files(board_folder(paths)):
-        text = await _aio.read_text(path)
-        frontmatter, body = split_frontmatter(text, source=str(path))
+        try:
+            text = await _aio.read_text(path)
+            frontmatter, body = split_frontmatter(text, source=str(path))
+        except FileNotFoundError:
+            if await _aio.path_is_symlink(path):
+                unreadable.append(f"{path} is a broken symlink (its target does not exist)")
+            continue
+        except SquadsError as exc:
+            unreadable.append(str(exc))
+            continue
         out.append(BoardNotice.from_frontmatter(path.stem, frontmatter, body.strip("\n")))
-    return out
+    return out, unreadable
 
 
-async def list_notices(paths: SquadPaths) -> list[BoardNotice]:
+async def list_notices(paths: SquadPaths) -> tuple[list[BoardNotice], UnreadableNotices]:
     """Unexpired notices, in listing order: chronological by posted-at, then id as a tiebreak.
 
     ``posted_at`` has one-second resolution (the shared clock, project-wide), so two notices
@@ -137,20 +165,23 @@ async def list_notices(paths: SquadPaths) -> list[BoardNotice]:
     no chronological meaning in that rare case.
 
     A read never mutates anything — expiry is filtered here, not physically removed (see
-    :func:`clear`). Empty/never-posted board -> ``[]``, no error.
+    :func:`clear`). Empty/never-posted board -> ``([], [])``, no error. The second element
+    names every notice file :func:`_all_notices` could not read — see its docstring.
     """
     now = clock.now()
-    notices = [n for n in await _all_notices(paths) if not _is_expired(n, now)]
-    return sorted(notices, key=lambda n: (n.posted_at, n.id))
+    all_notices, unreadable = await _all_notices(paths)
+    notices = [n for n in all_notices if not _is_expired(n, now)]
+    return sorted(notices, key=lambda n: (n.posted_at, n.id)), unreadable
 
 
 async def clear(paths: SquadPaths, n: int) -> BoardNotice:
     """Resolve ordinal *n* against the live listing (1-based) and delete that notice's file.
 
     Raises ``SquadsError`` on an out-of-range ordinal. Removal is a real file deletion (history
-    retained in git), never a side effect of a read.
+    retained in git), never a side effect of a read. Resolving the ordinal only ever considers
+    the notices that could actually be read — an unreadable one has no ordinal to hold anyway.
     """
-    notices = await list_notices(paths)
+    notices, _unreadable = await list_notices(paths)
     if n < 1 or n > len(notices):
         raise SquadsError(
             f"no notice at position {n} (the board currently lists {len(notices)} notice(s))"

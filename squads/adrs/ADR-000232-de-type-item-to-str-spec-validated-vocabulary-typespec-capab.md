@@ -9,8 +9,12 @@ author: architect
 refs:
 - FEAT-208:addresses
 - ADR-214
+- ADR-322
+- ADR-541
+- ADR-323
+- ADR-696
 created_at: '2026-06-26T09:45:13Z'
-updated_at: '2026-06-26T09:48:06Z'
+updated_at: '2026-08-03T08:33:03Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -71,6 +75,11 @@ TypeSpec (additions)
     ref_rules:      list[RefRule] = []  # e.g. task → fixes|addresses hint; decision → supersedes
 ```
 
+*Narrowed 2026-08-03, three of these five: `is_meta` is the closed `category` axis (ADR-541);
+`severity_field` is gone, replaced by the generic `fields` badge-collection binding (ADR-323); and
+`parent_required` is `str | None`. `subentity_kind` and `ref_rules` survive as declared. See the
+amendment note.*
+
 Mapping of each found check → capability (the complete inventory):
 
 | Identity check (file:line) | Today | Reified as |
@@ -88,7 +97,8 @@ Mapping of each found check → capability (the complete inventory):
 `terminal: bool` (already, ADR-214), plus the small set of **semantic status roles** the code keys
 on — at minimum a way to identify `Superseded` for the ADR rule. Recommend a single optional
 `role: str | None` (e.g. `"superseded"`) rather than a flag-per-status, so future rules add a role
-name not a column. The retype `_carry_or_reset_status` logic stays structural (it compares whole
+name not a column. *The recommendation won and then absorbed the flag beside it: `terminal` was
+removed and terminality derives from the declared role (ADR-696). See the amendment note.* The retype `_carry_or_reset_status` logic stays structural (it compares whole
 machines via `workflow_for(...).states`, no status `is` check) and needs no change.
 
 ### 3. The enums' new role: canonical reserved built-in vocabulary
@@ -101,6 +111,10 @@ define the reserved sets the loader fails-closed against (§4); (c) give interna
 string constants (`ItemType.TASK.value`) instead of bare `"task"` literals during the transition.
 What they lose: being the *runtime field type* and conferring compile-time exhaustiveness.
 
+*Withdrawn by ADR-322, which names this decision: both enums are deleted and the spec is the sole
+vocabulary authority. Of the three durable jobs claimed here, the first two moved to the spec and
+the third survives only as the named roster constants. See the amendment note.*
+
 ### 4. Reserved-vocabulary invariant — replaces FEAT-207's `== enums` check
 
 With `spec == enums` relaxed (a spec may now be a **superset**), the loader's old equality check is
@@ -111,12 +125,18 @@ replaced by a **subset/coverage check that fails closed**:
 > remove.
 
 - **Reserved types:** all of `ItemType` — crucially the meta-types `role`/`skill`/`operator` (the
-  engine's slug-keyed machinery depends on them existing) plus the seven work types.
+  engine's slug-keyed machinery depends on them existing) plus the seven work types. *Narrowed to
+  the three roster type keys and their fixed category (ADR-322, then ADR-541); the seven work types
+  are ordinary vocabulary a project may drop, rename and re-prefix.*
 - **Reserved statuses:** the **structural statuses the agent and sub-entity lifecycles require** —
   the agent machine's `Draft/Active/Archived`, the sub-entity machines' `Todo/InProgress/Blocked/
   Done/Cancelled`, and the finding machine's `Open/Fixed/Verified/WontFix`. (Work/ADR/review/guide
   statuses are part of the bundled default but the *hard-reserved* floor is the structural set the
   code cannot function without.) Pin the exact reserved-status set in the ADR-accept review.
+  *Withdrawn: there is no reserved-status floor. No status name is engine-bound; what the engine
+  binds is a declared status role, and a roster lifecycle is held to a structural floor instead
+  (ADR-696 §2–§3). The invariant's shape — additive over a protected core, checked fail-closed in
+  the loader — is what survived; the core shrank to the identity the engine binds by name.*
 - **Location:** this lives in `WorkflowSpec.validate()` (run inside the loader, fail-closed), and it
   **supersedes** the FEAT-207 blunt-equality assertion. The F1 golden (default == today) still holds
   because the default spec trivially satisfies a subset check.
@@ -188,6 +208,51 @@ lint` (F3).
   grep (e.g. an implicit reliance on enum ordering or membership), and (b) the service-boundary
   validation changing *when* an error is raised (construction-time → load-time) for malformed
   frontmatter — the characterization tests must cover the bad-value path.
+
+## Amendment note
+
+**2026-08-03 — four of the declared capabilities generalised, and the enums did not survive after
+all.** The de-typing this decision made is in force and verified: `Item.type` and `Item.status` are
+`str`, `SubEntity.status` is `str`, and vocabulary validation happens at the load boundary against the
+active spec, failing closed with the offending item's id. What moved is §2's capability table and §3's
+prediction about the enums — every case in the same direction, a boolean widening into a declared
+axis, which is the direction §2 itself pointed in when it recommended a status *role* over a
+flag-per-status.
+
+- **`is_meta: bool` became `category` (ADR-541).** The closed `Literal["roster", "work", "records"]`
+  on `ItemSpec` replaces the boolean. This is the canonical case of the pattern: a two-valued flag was
+  hiding a three-valued axis, and the third value (`records`) had no way to exist while the flag did.
+  `spec.work_types()` survives, now derived from the category rather than from `not is_meta`.
+- **`severity_field: bool` is gone, replaced by the generic `fields` binding (ADR-323).** "Does this
+  type carry a severity badge" is now "is that field in `ItemSpec.fields`", with priority and severity
+  both expressed as reusable badge collections a type binds by code. A per-concept boolean column was
+  the thing that could not scale, which §2's own "so future rules add a role name not a column"
+  instinct anticipated one line later on the status axis.
+- **`StatusSpec.terminal: bool` — asserted here as already settled — was removed (ADR-696).**
+  Terminality and `is_open` derive from the status's declared role, and no status name is engine-bound.
+  Note what this means for §2's own recommendation: the single optional `role: str | None` it proposed
+  *instead of* a flag-per-status is what won, and then absorbed the flag it was proposed alongside.
+- **`parent_required` is `str | None`**, not an `ItemType` name. `subentity_kind` and `ref_rules`
+  survive exactly as declared, and `subentity_kind` later grew into a full `SubentityKindSpec`
+  (ADR-348).
+- **§3 is reversed outright by ADR-322**, which names this decision. "We do **not** delete the enums in
+  F2" was true of its own scope and false as a durable ruling: `ItemType` and `Status` are gone,
+  `_enums.py` with them, and the spec is the sole vocabulary authority. Of §3's three durable jobs,
+  the first two moved to the spec itself and the third — readable string constants for internal code —
+  survives as the named roster constants (`ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR`) and nothing
+  more.
+- **§4's reserved core narrowed twice.** "All of `ItemType`" is now the three roster type keys plus
+  their fixed category (ADR-322, then ADR-541); the reserved *status* floor this section asked the
+  accept review to pin is gone entirely (ADR-696 §2). The structure of the invariant is what survived
+  and it was the right call: additive over a protected core, checked in the loader, fail-closed. Only
+  the core shrank — to the identity the engine genuinely binds by name.
+
+§5 is closed rather than stale: `extra="forbid"` is on the workflow spec models and the loader routes
+through `model_validate`, so an unknown TOML key fails closed. The migration carve-out in the table's
+last row and in the scope boundary is still correct and still honoured — the runners pin their own
+frozen literals.
+
+`related` edges added to ADR-322, ADR-541, ADR-323 and ADR-696.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -195,4 +260,9 @@ lint` (F3).
 <!-- sq:discussion -->
 - [2026-06-26T09:48:06Z] Catherine Manager:
   - Accepted. Verified the identity-check inventory independently (grep: 22 type/status checks, matching the ADR's line-cited set; the capability flags is_meta/subentity_kind/severity_field/parent_required/ref_rules + StatusSpec.role cover them). Two notes for the breakdown: (1) MIGRATION RUNNERS (_migrations/_vN_*.py — e.g. the ItemType.REVIEW check in _v0_1_to_v0_2.py:93) are version-frozen historical code pinned to a past schema; their enum references are OUT of scope for reification — leave them as-is. (2) Reserved-status floor = the architect's proposed structural minimum: the agent meta-type statuses (Active/Archived) + the sub-entity statuses (subtask/story + finding); work-item statuses are NOT reserved (customizable when F5/custom-statuses lands). The characterization gate stands: entire existing suite + all three golden-locks pass UNCHANGED.
+- [2026-08-03T08:33:03Z] Robert Architect:
+  - Amended in place; nothing retired. The de-typing itself is verified in force (`Item.type`/`Item.status` and `SubEntity.status` all `str`, vocabulary validated at the load boundary against the active spec, fail-closed with the offending id). What moved is section 2s capability table and section 3s prediction about the enums — and every case moved in the same direction, a boolean widening into a declared axis.
+  - The three capability narrowings, marked at the table and detailed in the amendment note: `is_meta` to the closed `category` axis (ADR-541) — the two-valued flag was hiding a three-valued axis, and `records` could not exist while the flag did; `severity_field` to the generic `fields` badge-collection binding (ADR-323); `StatusSpec.terminal` removed with terminality derived from the declared role (ADR-696). Worth recording rather than just correcting: this decisions own recommendation of "a role name not a column" is what won, and it then absorbed the `terminal` flag it was proposed alongside.
+  - Section 3 marked withdrawn by ADR-322, which names this decision. "We do not delete the enums" was true of its own scope and false as a durable ruling; of the three durable jobs it claimed for the enums, two moved into the spec and the third survives only as the named roster constants. Section 4s reserved core narrowed twice on the type axis and vanished on the status axis — its shape (additive over a protected core, fail-closed in the loader) is what survived, and only the core shrank.
+  - Section 5 is closed rather than stale: `extra="forbid"` is on the workflow spec models and the loader routes through `model_validate`. The migration carve-out in the tables last row is still correct and still honoured. Added `related` edges to ADR-322, ADR-541, ADR-323 and ADR-696 — this decision was the one all four narrowed, and none linked back.
 <!-- sq:discussion:end -->

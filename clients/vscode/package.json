@@ -2,7 +2,7 @@
   "name": "squads-vscode",
   "displayName": "Squads",
   "description": "Browse your AI-agent team's work items, roster, and workflow in VS Code — read-only companion for squads-managed projects.",
-  "version": "0.12.3",
+  "version": "0.13.0",
   "publisher": "pierre-chat",
   "author": "Pierre Chat",
   "private": true,

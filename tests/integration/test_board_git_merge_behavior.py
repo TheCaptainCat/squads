@@ -21,7 +21,7 @@ SQ = (sys.executable, "-m", "squads")
 
 
 def _run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(args, capture_output=True, text=True, cwd=cwd)
+    result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", cwd=cwd)
     assert result.returncode == 0, (
         f"{' '.join(args)!r} failed (exit {result.returncode}):\n"
         f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"

@@ -19,6 +19,9 @@ from squads._paths import SquadPaths
 from squads._sections import join_frontmatter, split_frontmatter
 from squads._util import slugify
 
+#: One skipped-entry message per unreadable memory file — see :func:`list_entries`.
+type UnreadableMemories = list[str]
+
 #: Squad-relative root for every role's memory pool: ``<squad_dir>/agents/memory/<role-slug>/``.
 MEMORY_ROOT = "agents/memory"
 
@@ -133,36 +136,64 @@ async def read(paths: SquadPaths, role_slug: str, slug: str) -> MemoryEntry:
     return MemoryEntry.from_frontmatter(slug, frontmatter, body.strip("\n"))
 
 
-async def list_entries(paths: SquadPaths, role_slug: str) -> list[MemoryEntry]:
-    """All memories in a role's pool, in filename (slug) order. Empty pool -> ``[]``, no error."""
+async def list_entries(
+    paths: SquadPaths, role_slug: str
+) -> tuple[list[MemoryEntry], UnreadableMemories]:
+    """All memories in a role's pool, in filename (slug) order, plus one message per memory
+    file that could not be read or parsed. Empty pool -> ``([], [])``, no error.
+
+    A bad memory — a merge conflict, invalid UTF-8, an OS permission error — raises
+    :class:`SquadsError` (the read-path guards this module depends on); caught here per file so
+    one bad memory never takes the whole pool's listing down, the same
+    reporter-stops-at-the-first-problem shape ``sq check`` rejects. This project's own agents
+    run ``sq memory <role> list`` at the start of every session.
+
+    A ``FileNotFoundError`` on a dirent this same call's own glob just saw is a present-vs-
+    absent question, not another unreadable shape: a broken symlink is a *present* dirent (the
+    read failed on its target, not on whether it's there) and is reported the same way a decode
+    failure is; a dirent that genuinely vanished between the glob and the read is skipped with
+    nothing reported.
+    """
     folder = role_folder(paths, role_slug)
     out: list[MemoryEntry] = []
+    unreadable: list[str] = []
     for path in await _content_files(folder):
-        text = await _aio.read_text(path)
-        frontmatter, body = split_frontmatter(text, source=str(path))
+        try:
+            text = await _aio.read_text(path)
+            frontmatter, body = split_frontmatter(text, source=str(path))
+        except FileNotFoundError:
+            if await _aio.path_is_symlink(path):
+                unreadable.append(f"{path} is a broken symlink (its target does not exist)")
+            continue
+        except SquadsError as exc:
+            unreadable.append(str(exc))
+            continue
         out.append(MemoryEntry.from_frontmatter(path.stem, frontmatter, body.strip("\n")))
-    return out
+    return out, unreadable
 
 
 async def search(
     paths: SquadPaths, role_slug: str, query: str
-) -> list[tuple[MemoryEntry, list[str]]]:
+) -> tuple[list[tuple[MemoryEntry, list[str]]], UnreadableMemories]:
     """Memories whose summary or body contains *query* (case-insensitive substring).
 
     A plain content grep over the role's ``.md`` files — mirrors
     :meth:`squads._services._collab.CollabMixin.search`'s shape (entry, matching lines).
     An unknown/empty role pool simply yields no matches, consistent with :func:`list_entries`.
+    Degrades the same way :func:`list_entries` does — a memory it could not read contributes
+    no hits and is named in the second return value, rather than aborting the search.
     """
     needle = query.strip().lower()
     if not needle:
         raise SquadsError("search needs a non-empty query")
+    entries, unreadable = await list_entries(paths, role_slug)
     out: list[tuple[MemoryEntry, list[str]]] = []
-    for entry in await list_entries(paths, role_slug):
+    for entry in entries:
         candidates = [entry.summary, *entry.body.splitlines()]
         hits = [ln.strip() for ln in candidates if ln and needle in ln.lower()]
         if hits:
             out.append((entry, hits))
-    return out
+    return out, unreadable
 
 
 async def forget(paths: SquadPaths, role_slug: str, slug: str) -> None:

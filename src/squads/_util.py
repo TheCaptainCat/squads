@@ -21,6 +21,6 @@ def slugify(text: str, *, max_len: int = 60) -> str:
 
 
 def operator_slug(name: str) -> str:
-    """Operator (human) slug: ``op-`` + the slugified first name ("Pierre Chat" → ``op-pierre``)."""
+    """Operator (human) slug: ``op-`` + the slugified first name ("Alice Tester" → ``op-alice``)."""
     first = name.strip().split()[0] if name.strip() else name
     return f"op-{slugify(first)}"

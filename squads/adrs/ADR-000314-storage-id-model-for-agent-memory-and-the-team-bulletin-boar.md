@@ -5,10 +5,13 @@ type: decision
 title: Storage & id model for agent memory and the team bulletin board
 status: Accepted
 author: architect
+refs:
+- FEAT-315:addresses
+- FEAT-317:addresses
 description: Slug-file-per-memory + own lighter board store, both off the global counter
   and outside .squads.json
 created_at: '2026-07-06T16:03:50Z'
-updated_at: '2026-07-15T12:36:47Z'
+updated_at: '2026-08-03T08:47:34Z'
 ---
 <!-- sq:body -->
 # Context
@@ -216,4 +219,7 @@ the same file-per-entry idiom for one storage mental model across both lighter t
   - Why: the index and the push-surfacing were coupled — the index's only reader was the boot-surfacing (read_index -> _memory_surface), so removing surfacing left the index readerless. Pulling at startup is simpler, always current, and kills the index merge-conflict class at the root. 'Don't store what you can derive' followed to its conclusion.
   - Revised sections: Context, Options-weighed (memory + board), Decision, Design notes (deleted the generated-artifact/.index.jsonl/#7-stamp bullet — there's no generated file now; rewrote the boot-surfacing note to pull-at-startup), Consequences (dropped the committed-index merge-conflict + committed-surface bullets; added that pull-at-startup + no roll-up removes that whole surface).
   - @product-owner FEAT-315 US2 / FEAT-317 US2 change from push-into-managed-files to pull-at-startup; @tech-lead the fix-tasks (drop _content_index.py + _memory_surface/_board_surface, the sync/repair regen pass, the pointer/section blocks, rewrite role.md.j2 to the pull directive) follow from here. Code/features/tasks untouched by this amendment — ADR record only.
+- [2026-08-03T08:47:34Z] Robert Architect:
+  - Verified in force with nothing owed on substance: both tiers exist as their own stores outside the item machinery (`_memory/`, `_board/`), memory as one file per fact under `squads/agents/memory/<role-slug>/`, the board as a top-level sibling with notices under short content hashes, neither in `.squads.json`, neither drawing a sequence number, `sq board post --as <slug>` keying on a slug.
+  - Fixed the one hygiene finding: this decision carried no refs at all, so nothing connected it to the work it governs. Added `addresses` edges to FEAT-315 (memory) and FEAT-317 (board), which are the two features it was written for.
 <!-- sq:discussion:end -->

@@ -12,7 +12,7 @@ refs:
 description: 'The team''s runbook for cutting a squads release: gates, prep, and drafting
   the release (the operator publishes).'
 created_at: '2026-07-20T12:32:09Z'
-updated_at: '2026-07-28T14:54:27Z'
+updated_at: '2026-08-06T21:32:23Z'
 extra:
   slug: releasing-squads
   description: 'The team''s runbook for cutting a squads release: gates, prep, and
@@ -39,8 +39,21 @@ actual GitHub publish. Never `git tag` or publish yourself.
 ## 2. Prep
 
 - `git fetch --tags` first — local tags go stale and mislead "what's released / next version".
-- **CHANGELOG.md**: move `[Unreleased]` into the new version section, Keep-a-Changelog style. Make
-  sure it covers *everything* in the release — late-landing features are easy to miss.
+- **CHANGELOG.md**: this file has no `[Unreleased]` section and has not had one for its whole
+  history — the unreleased section is **named by its target version** (`## [0.13.0]`), opened as
+  soon as work starts landing for it. So there is nothing to "move" at release time: check the
+  section covers *everything* in the release (late-landing features are easy to miss) and that its
+  heading is the version you are cutting.
+- **CHANGELOG.md compare links**: the definition block at the foot of the file needs one line per
+  version heading, or the heading renders as literal `[0.12.3]` text instead of a link. The
+  unreleased version's line compares **from the previous tag to `HEAD`**
+  (`[0.13.0]: …/compare/v0.12.3...HEAD`) — not to its own tag, which does not exist until the
+  operator publishes (§6), and a link naming a tag that is not there 404s for anyone reading the
+  file on `main` in the meantime. Switching it to a tag comparison is a **post-publish follow-up**
+  (§7), not a prep step. Generate the block from `git tag -l` rather than typing it, and check
+  afterwards that every heading has a definition, no definition is orphaned, every `vX.Y.Z` named
+  is a real tag, and each line's left side is the previous version — an off-by-one here is
+  invisible until someone clicks.
 - **Bump the version**: `uv run python scripts/bump_version.py X.Y.Z` — bumps `pyproject.toml` and
   `clients/vscode/package.json` in lockstep, runs `uv sync --all-extras`, handles the
   template-manifest gotcha (restores the prior release's manifest entry from its tag before
@@ -86,6 +99,20 @@ Everything up to a green PR is the agent's job.
 
 Publishing the GitHub release is theirs — it creates the tag and fires `publish.yml` (PyPI + the VS
 Code Marketplace VSIX). The operator also decides the release string and any dated-commit specifics.
+
+## 7. After it is published — close the compare-link loop
+
+The tag now exists, so finish the two edits that could not be made before it did:
+
+- Change the version's own definition from the `HEAD` comparison to its tag:
+  `[0.13.0]: …/compare/v0.12.3...v0.13.0`.
+- Add the next unreleased line pointing at the tag you just cut: `[0.14.0]: …/compare/v0.13.0...HEAD`,
+  alongside the `## [0.14.0]` heading when it opens.
+
+`git fetch --tags` first — the tag was created on the remote by the publish, so a local ref that
+has not been fetched will still show the previous release as newest and send you round this loop
+again. This step has been missed on consecutive releases; the symptom is a run of headings rendering
+as plain text at the bottom of an otherwise correct changelog.
 <!-- sq:body:end -->
 
 ## Discussion

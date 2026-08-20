@@ -9,11 +9,15 @@ refs:
 - TASK-450
 - REV-448
 - ADR-427
+- ADR-541
+- ADR-474
+- ADR-646
+- ADR-738
 description: 'New frozen --json type catalog on a dedicated subcommand (sq workflow
   types): bare array of {type, order|null, prefix, reserved} in resolved order; additive-superset
   + golden-frozen; unblocks TASK-450 (REV-448 F1).'
 created_at: '2026-07-17T14:04:05Z'
-updated_at: '2026-07-17T15:34:39Z'
+updated_at: '2026-08-03T15:36:22Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -59,6 +63,10 @@ role/skill/operator list. Field set per object:
 - `prefix` — the id prefix (e.g. `"TASK"`).
 - `reserved` — boolean, `= ItemSpec.is_meta`; `true` for the reserved meta-types
   (role/skill/operator). Named for the operator-facing "reserved types" vocabulary.
+  *Same verdict, different derivation since ADR-541: it is `ItemSpec.category == "roster"`.
+  `is_meta` no longer exists. The field name and its meaning are unchanged, which is why this is a
+  citation fix rather than a contract change — but the row it sits in has grown; see the amendment
+  note.*
 
 Spec-driven throughout: read from the active `WorkflowSpec` (`.types` / `work_types()` + the meta
 types), never a hardcoded type list. No `title` field — item types have no distinct label in
@@ -83,6 +91,27 @@ additions to this surface are additive-only (new keys), never removals or rename
   the cheatsheet's `--raw`) stay their own surfaces.
 - Adds one more frozen shape to keep under the golden-freeze discipline — the intended cost of a
   frozen contract.
+
+## Amendment note
+
+**2026-08-03 — the derivation moved and the frozen row grew from four keys to seven.** The catalog
+itself is verified in force: a dedicated `--json` subcommand, bare-array shape, spec-driven with no
+hardcoded type list, under the golden-freeze discipline this decision imported from the earlier
+read-surface freeze.
+
+`reserved` is computed as `category == "roster"` (ADR-541) rather than from `is_meta` — the same verdict
+by a different route, since the category is exactly the axis the boolean was standing in for.
+
+The part worth recording rather than merely correcting is the row's growth. This decision froze four
+keys. The live row carries seven: `+fields` (ADR-474 A3), `+category` (ADR-541) and `+labels` (ADR-646).
+Only the first is declared at its own end as an extension of *this* catalog; the other two extended a
+frozen contract without saying so anywhere. Under the additive-superset rule §3 states, all three are
+legitimate — adding a key is permitted, removing or repurposing one is not — so nothing here is a
+breach. But a frozen shape whose growth is undocumented cannot be audited against its own freeze, which
+is the whole point of freezing it. The rule to carry forward: a decision that adds a key to a frozen
+catalog says so in its own body, and names the catalog it is extending.
+
+`related` edges added to ADR-541, ADR-474 and ADR-646.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -92,4 +121,8 @@ additions to this surface are additive-only (new keys), never removals or rename
   - Proposed. Authored to settle TASK-450's surface (REV-448 F1 core half) before the build. Chose a dedicated `sq workflow types` subcommand over a --json flag on the cheatsheet to keep each surface single-purpose and leave `sq workflow --raw` (F8) unconflicted. Needs Pierre/tech-lead sign-off before Accepted.
 - [2026-07-17T15:34:38Z] Pierre Chat:
   - Signed off — accept.
+- [2026-08-03T08:45:41Z] Robert Architect:
+  - Corrected the `reserved` derivation in place: it is `ItemSpec.category == "roster"` (ADR-541), not `is_meta`. Same verdict, different route — the category is exactly the axis the boolean stood in for — so this is a citation fix, not a contract change. The catalog itself is verified in force.
+  - The finding worth keeping is not the citation but the rows growth. This decision froze four keys; the live row carries seven — `+fields` (ADR-474 A3), `+category` (ADR-541), `+labels` (ADR-646) — and only the first is declared at its own end as an extension of this catalog. All three are legitimate under the additive-superset rule, so nothing is a breach; but a frozen shape whose growth is undocumented cannot be audited against its own freeze, which is the point of freezing it. Recorded the forward rule: a decision adding a key to a frozen catalog says so in its own body and names the catalog.
+  - Added `related` edges to ADR-541, ADR-474 and ADR-646.
 <!-- sq:discussion:end -->

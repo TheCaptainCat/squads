@@ -8,11 +8,14 @@ status: Accepted
 author: architect
 refs:
 - FEAT-178:addresses
+- ADR-541
+- ADR-322
+- ADR-492
 description: A skill is a full Item of the existing ItemType.SKILL with the lightweight
   role/operator profile (Active/Archived, no sub-entities), not a separate lighter
   class; frontmatter stamped onto the existing body file via migration
 created_at: '2026-06-23T12:59:27Z'
-updated_at: '2026-06-25T07:56:42Z'
+updated_at: '2026-08-03T08:44:24Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -58,7 +61,12 @@ the work-item ceremony.
 Item" does **not** mean skills get the task/feature lifecycle. Skills take the lightweight status set
 already defined for roles/skills — `Active` / `Archived` (both exist in `Status`) — and **no
 sub-entities** (no stories/subtasks/findings). This matches `WORK_TYPES` in `_enums.py`, which
-deliberately **excludes** the agent/operator meta-types from retyping and the work lifecycle. Skills
+deliberately **excludes** the agent/operator meta-types from retyping and the work lifecycle.
+*Renamed since: the profile is `category = "roster"` (ADR-541), the two enums and `WORK_TYPES` are
+gone (ADR-322), and the lifecycle is declared per type in the spec — `[items.skill]` binds the roster
+lifecycle, whose `initial` is `Active` with `Active ⇄ Archived`, and declares no `subentity_kind`.
+The profile this section chose is exactly what shipped; only the mechanism naming it moved. See the
+amendment note.* Skills
 are reference assets, not units of work; giving them `Draft→Ready→InProgress→Done` would be
 meaningless. They remain fully **referenceable** (`sq <type> <n> ref add SKILL-… --kind related`),
 which is the feature's primary user value (US1).
@@ -147,7 +155,7 @@ storage path is introduced — that is the payoff of choosing "full `Item`."
 
 ## Consequences
 
-- **Minimal new model surface.** `SKILL` already exists in `ItemType` (no new enum entry); the work
+- **Minimal new model surface.** `skill` is already a declared type (no new vocabulary entry); the work
   is seeding/migration, a status profile (`Active`/`Archived`), wiring `sq skill <n> show` /
   `sq list -t skill`, and making the skill-body regen path frontmatter-preserving. No new pydantic
   model, no index-schema fork.
@@ -203,6 +211,30 @@ non-standard name. This amendment clarifies decision #3, the migration text (dec
 filename and an idempotent `0.4 → 0.5` rename of legacy files + pointer rewrite. No other section is
 reopened; the core decision (skill = full `Item`, meta-type profile, one file, frontmatter-preserving
 sync) is unchanged.
+
+## Amendment note
+
+**2026-08-03 — the profile shipped as decided; the mechanism that expresses it was renamed twice.**
+Verified in force: skill items carry this decision's mandated filename convention
+(`squads/agents/skills/SKILL-000192-greeting.md`, never a bare `<slug>.md`), `[items.skill]` in the
+bundled spec binds the roster lifecycle whose machine is `initial = "Active"` with `Active ⇄ Archived`
+and no `subentity_kind`, and §3's required property is implemented — `_write_managed_skill` replaces the
+body region only, preserving frontmatter and every other region, which is the change this decision
+called its riskiest.
+
+Two renames and one narrowing, none of them touching what was decided:
+
+- `WORK_TYPES` and both enums are gone (ADR-322), and the roster/work distinction is `category`
+  (ADR-541) rather than `is_meta`. Every sentence here that reads "excluded from `WORK_TYPES`" now means
+  "not in the `work` category".
+- **ADR-492 narrowed §3 and §4 in fact rather than by ruling**, and this is the one worth a reader's
+  attention: `sq sync` iterates the bundled trio plus the generated `sq-<type>` skills, so an
+  author-defined skill body is structurally outside the regen path. This decision reads as though every
+  skill body is sync-regenerated and therefore needs the marker-safe write to survive; for an authored
+  skill, nothing regenerates it at all. The marker-safe write is still required — it is what makes the
+  *managed* bodies safe — but the property it protects does not apply uniformly across skills any more.
+
+§6's `0.5` schema bump is history. `related` edges added to ADR-541, ADR-322 and ADR-492.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -215,4 +247,8 @@ sync) is unchanged.
   - Contrast: roles do it safely — _regen_role_body (_maintenance.py:125-140) reads the existing file and uses sections.replace_section(..., markers.BODY, ...), explicitly leaving frontmatter + discussion intact. The skill body path has no equivalent; it is the only managed-file regen that blows away the whole file.
   - Requirement implementation MUST meet to make the ADR safe (one of): (a) make skill-body regen marker-safe like roles — render into a sq:body region of an Item file and write only that region via _sections.replace_section, so the stamped frontmatter is preserved across sync; OR (b) have sync read-and-preserve existing frontmatter (load Item from disk, re-emit frontmatter + freshly rendered body) — i.e. round-trip through the index rather than re-render from a bare template. Either way id/sequence_id must be allocate-once and sync must never reallocate. Acceptance #4's determinism is about INITIAL allocation order; this is the separate, equally load-bearing guarantee that sync is idempotent on an already-stamped skill.
   - This changes ADR-181's design surface: decision #3 currently says 'stamp frontmatter onto the existing body file' without specifying that the body-regen path must become frontmatter-preserving/marker-safe. The ADR body needs a revision to add that constraint (and note the skill body must adopt the sq:body region structure roles already use) before this moves toward Accepted. Flagging only — not revising the body in this pass.
+- [2026-08-03T08:44:24Z] Robert Architect:
+  - Amended in place; nothing retired. The profile shipped exactly as decided — `[items.skill]` binds the roster lifecycle (`initial = "Active"`, `Active` to `Archived`, no `subentity_kind`), the mandated filename convention is on disk for every skill, and section 3s required property is implemented: `_write_managed_skill` replaces the body region only and preserves frontmatter.
+  - Two renames recorded: `WORK_TYPES` and both enums are gone (ADR-322), and the roster/work distinction is `category` (ADR-541), so every "excluded from `WORK_TYPES`" sentence now means "not in the `work` category".
+  - One narrowing worth a readers attention rather than a rename: ADR-492 narrowed sections 3 and 4 in fact. `sq sync` iterates the bundled trio plus the generated `sq-<type>` skills, so an author-defined skill body sits structurally outside the regen path. This decision reads as though every skill body is sync-regenerated and therefore needs the marker-safe write to survive it; for an authored skill nothing regenerates it at all. The marker-safe write is still required for the managed bodies — but the property it protects no longer applies uniformly across skills.
 <!-- sq:discussion:end -->
