@@ -107,5 +107,7 @@ def test_cli_help_and_import_work_with_the_tui_extra_unimportable():
         "result = CliRunner().invoke(app, ['--help'])\n"
         "assert result.exit_code == 0, result.output\n"
     )
-    proc = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    proc = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, encoding="utf-8"
+    )
     assert proc.returncode == 0, proc.stderr

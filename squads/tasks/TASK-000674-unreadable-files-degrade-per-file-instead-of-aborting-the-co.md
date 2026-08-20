@@ -3,8 +3,9 @@ id: TASK-674
 sequence_id: 674
 type: task
 title: Unreadable files degrade per file instead of aborting the command
-status: Draft
+status: Done
 author: tech-lead
+assignee: python-dev
 refs:
 - TASK-673:depends-on
 - ADR-663:implements
@@ -15,18 +16,22 @@ description: check keeps scanning, repair rebuilds from what it can read and car
 subentities:
 - local_id: ST1
   title: Third scan state and the reconciliation predicates
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST2
   title: Tests that the scan continued and no phantom appeared
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST3
   title: Repair rebuilds and carries the unreadable item forward
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST4
   title: Board and memory listings degrade per file
-  status: Todo
+  status: Done
+  assignee: python-dev
 created_at: '2026-07-27T22:26:00Z'
-updated_at: '2026-07-27T23:58:06Z'
+updated_at: '2026-08-03T15:47:38Z'
 ---
 <!-- sq:body -->
 One unreadable file currently takes down a whole command — `sq check` stops at the first bad file and
@@ -78,8 +83,9 @@ picks up the real values.
 Two cases where there is nothing to carry, both of which must be reported rather than papered over:
 
 - the file is unreadable **and** has no entry in the previous index (never indexed, or the index was
-  rebuilt since) — leave it unindexed and report it; `check` will then name it as on-disk-but-not-
-  indexed, which is the honest state;
+  rebuilt since) — leave it unindexed and report it as unreadable. `check` does not additionally
+  claim it is on-disk-but-not-indexed: that claim would have to guess the file's id from its
+  filename, and reporting a guess as fact is exactly what this design otherwise refuses to do;
 - the previous index is itself missing or unreadable — `repair` already tolerates that and starts
   from nothing, so the same applies.
 
@@ -175,10 +181,10 @@ _Add with `sq task 674 add-subtask "<title>"`; track with `sq task 674 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Third scan state and the reconciliation predicates |  |
-| ST2 | Todo |  | Tests that the scan continued and no phantom appeared |  |
-| ST3 | Todo |  | Repair rebuilds and carries the unreadable item forward |  |
-| ST4 | Todo |  | Board and memory listings degrade per file |  |
+| ST1 | Done | python-dev | Third scan state and the reconciliation predicates |  |
+| ST2 | Done | python-dev | Tests that the scan continued and no phantom appeared |  |
+| ST3 | Done | python-dev | Repair rebuilds and carries the unreadable item forward |  |
+| ST4 | Done | python-dev | Board and memory listings degrade per file |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -187,7 +193,8 @@ _Add with `sq task 674 add-subtask "<title>"`; track with `sq task 674 subtask <
 ### ST1 — Third scan state and the reconciliation predicates
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
+**Assignee:** Elias Python
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -243,7 +250,8 @@ Acceptance:
 ### ST2 — Tests that the scan continued and no phantom appeared
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
+**Assignee:** Elias Python
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -317,7 +325,8 @@ Acceptance:
 ### ST3 — Repair rebuilds and carries the unreadable item forward
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
+**Assignee:** Elias Python
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
@@ -345,9 +354,10 @@ a stale entry is strictly better than a deleted one. The next `repair` after the
 picks up the real values.
 
 Two cases have nothing to carry, and both are reported rather than papered over: a file that is
-unreadable *and* absent from the previous index (leave it unindexed — `check` will name it as
-on-disk-but-not-indexed, which is the honest state), and a previous index that is itself missing or
-unreadable (repair already tolerates that and starts from nothing).
+unreadable *and* absent from the previous index (leave it unindexed and report it as unreadable —
+`check` does not also claim on-disk-but-not-indexed, since that claim would mean guessing the
+file's id from its filename and reporting the guess as fact), and a previous index that is itself
+missing or unreadable (repair already tolerates that and starts from nothing).
 
 The per-file catch goes where repair reads frontmatter during its disk scan, and it catches the
 `SquadsError` the read-path guards raise — not a third-party parser or codec exception.
@@ -377,7 +387,8 @@ Acceptance:
 ### ST4 — Board and memory listings degrade per file
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
+**Assignee:** Elias Python
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
@@ -433,4 +444,10 @@ Acceptance:
   - Amended rather than split — F16 folded in here. A second ticket would have contradicted this one outright: the previous scope carried an acceptance criterion pinning that `repair` REFUSES, by test. Same functions, same third-state machinery, same test fixtures. Retitled and rescoped: it now covers check, repair, and the board/memory listings.
   - The F16-vs-674 tension resolves to a third option neither stated. My original reason for repair aborting stands — 'skip and rebuild from the rest' DROPS the unreadable item from the index (gone from show, gone from list -a, orphan file left), which is the disappearance this release closed. But repair already loads the previous index for the counter high-water mark and padding floor, so it can carry that item's existing entry forward unchanged and report the file as unreadable. Nothing disappears, nothing is fabricated, and the next repair after the user fixes the file picks up the real values. Acceptance pins it: the naive version passes every other test in the set while silently losing the item, so there is an explicit 'still resolvable by show, still in list -a' criterion.
   - Also folded: board list and memory list degrading per file (ST4) — one bad notice currently empties the whole listing, and our own agents run both at session start. And `repair --renumber`/`repad` keep refusing, with the sharper reason (they rewrite identity across every file and cannot renumber one whose id they cannot read), pinned by a test carrying that reason in a comment — the asymmetry is subtle now that repair itself continues.
+- [2026-08-03T08:32:43Z] Elias Python:
+  - Implemented ST1-4: third scan state (present-but-unparseable, keyed by filename stem) + confirm-round tolerance in _services/_maintenance.py; repair carries the previous index entry forward per-file (SquadsDB carried via known_corpus lookup), never dropping an unreadable item; board/memory listings return (entries, unreadable) tuples and degrade per file; repad/renumber preserved refusal via an explicit preflight scan. Extended the read-path guard (_aio.read_text) to wrap non-decode OSError (permission denied) into a new UnreadableFileError, needed to cover the permissions falsification shape.
+- [2026-08-03T08:32:44Z] Elias Python:
+  - Falsified across 3 shapes (permission-denied via chmod 000, invalid UTF-8 byte, malformed-but-closed YAML) x 4 commands in tests/service/test_unreadable_files_degrade_per_file.py + tests/cli/test_unreadable_files_degrade_per_file_cli.py; updated the two TASK-673 clean-failure test files' 4 now-superseded assertions (check/repair/board-list/memory-list degrade instead of aborting; renumber/sync/memory-show/config still abort, unchanged). CHANGELOG updated. Gates clean: pyright, ruff check, ruff format --check, tests/meta + tests/service+cli+integration+unit all green (one pre-existing unrelated flaky assertion re: Rich line-wrapping in test_undecodable_squad_files_fail_cleanly.py, confirmed present before my changes via git stash).
+- [2026-08-03T08:36:43Z] Catherine Manager:
+  - Landed and verified by driving it, not from the report: sq check names the bad file with its byte offset and continues, both items still listed; sq repair reports it with an accurate remedy and the item count is unchanged, so the previous entry really is carried forward rather than dropped. Full suite 2414 passed / 6 skipped, all gates clean.
 <!-- sq:discussion:end -->

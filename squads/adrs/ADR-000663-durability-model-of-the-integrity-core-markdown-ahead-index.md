@@ -11,11 +11,12 @@ refs:
 - BUG-657:addresses
 - ADR-534
 - ADR-249
+- ADR-153
 description: Markdown is always ahead or equal and the index commits last; every squad-data
   .md write is an atomic replace; sq check stays lock-free and confirms cross-source
   claims; the active transaction is task-local and store-scoped.
 created_at: '2026-07-27T14:02:48Z'
-updated_at: '2026-07-27T21:11:43Z'
+updated_at: '2026-08-06T20:45:09Z'
 ---
 <!-- sq:body -->
 # Context
@@ -123,7 +124,10 @@ the whole pass and cannot compose with a rebuild that replaces the index wholesa
   absence of one: the transaction never wrote these derived values to the index, so neither crash
   direction is index-ahead, and `sq sync` re-derives them from the ref graph, so the worst case is a
   stale cache. A post-commit item-`.md` write must meet both halves — a derived value the transaction
-  did not mirror, and reproducible by `sq sync`.
+  did not mirror, and reproducible by `sq sync`. Both halves are a test of *ordering*: what a writer
+  may put on disk after the commit. Which keys the guard then compares is the separate question
+  settled under **What the guard compares** below — a comparison withheld there is governed by that
+  clause, and is not this exemption being widened by a second writer.
 
 **The healing has a condition, and the condition is enforced rather than assumed.** Repair must run
 before anything next rewrites that item's frontmatter from index-derived state — a mutation core loads
@@ -173,6 +177,41 @@ Measured against the model, that collapses all three named divergences — legac
 key order and absent-versus-`None`. A future correction that does *not* collapse through the
 round-trip is registered explicitly, on whichever side it lives, in the same change that introduces
 it; otherwise it becomes a false refusal.
+
+**A fabricated operand is not a value, and withholding its comparison is not a permitted skew.**
+Registration under the clause above normally means normalizing. One shape cannot be normalized: a
+field whose absent-value default is *invented* at load time rather than derived from the file — a
+missing `created_at`/`updated_at` falls back to `clock.now()` so a legacy or hand-authored `.md`
+loads at all. Putting both sides through the same serializer cannot collapse that, because the
+invention is not a function of the file's bytes: the same file yields a different value on every
+read, so the comparison reports a divergence on a key the file says *nothing* about, refuses that
+item's every mutation for good, and points at a `sq repair` that structurally cannot clear it —
+repair rebuilds the index from markdown and never writes markdown back. Registration therefore takes
+the other form here: the key is dropped from the comparison, for that read. Four conditions bound
+that form and all four are load-bearing. The disk operand must be **loader-fabricated** rather than
+read from the file — there is no second value to disagree with, only an invention being compared
+against a record, which is what makes this a withheld comparison rather than a permitted skew. The
+fabrication must be **non-deterministic**, so the shared round trip genuinely cannot absorb it. The
+drop must be conditioned on the **observed raw frontmatter, per read** — never on a key name, which
+is what makes it strictly narrower than the ordering exemptions above rather than an extension of
+them. And it must **self-extinguish**: every write seam persists the whole frontmatter, so the first
+successful mutation writes the value in and restores the comparison permanently. It is not the blind
+spot an exclusion would be — a timestamp the file *does* carry is compared like any other field, and
+one it carries unparseably still fails at the load boundary. The key set is exhaustive by
+construction, not by convention: any field that later gains an invented load-time default registers
+here in the same change, under the rule above.
+
+**What withholding obliges in return.** A field absent from an item `.md` is a defect in the source
+of truth, not a legitimate state, so declining to compare it must not become declining to notice it,
+and must not license inventing one. Two duties follow and neither is optional. Something must keep
+reporting the gap where the gap actually is — `sq check` warns on the file (§3), and says the heal
+will write what the index holds rather than promising the real value. And no path may commit a
+fabricated value over a known one: a rebuild carries the previously-indexed value forward for a key
+the scanned file has no value for, in the same posture it already takes for an unreadable file, and
+fabricates nothing where it has nothing to carry. Both together are what keep invariant #1 intact
+under a broken file. Skip the first and the defect is invisible; skip the second and the invented
+instant is committed to the index, a later mutation heals the markdown from it, and the item's real
+creation time is unrecoverable from either artifact with nothing having reported it at any step.
 
 **The roster regen path** — `sq sync` rewriting a role's or skill's frontmatter from the index — shares
 the loss but not the response: it leaves the drifted item's file untouched, names it in the output with
@@ -467,4 +506,9 @@ squad.
   - §1 reordered so the justification precedes the machinery: rule, permitted-state table, healing, why the inverse direction is forbidden, what compliance means, exemptions, then the guard. Pure block move, no wording changed.
   - Audit obligation and the documentation paragraph restated as standing rules rather than pending work — the obligation without the status, so the record stops reading as a to-do list. repad/renumber now say explicitly that their ordering-side compliance is settled in §1 and the guard question is separate.
   - Two more found in the pass: §3's drift message still explained itself by the pre-guard framing ('the healing window closes on that item's next write') — corrected to 'until then the item's own mutations refuse'; and §1's regenerable-artifacts bullet now says it exempts ordering only, so nobody reads it as blanket permission to use the plain writer that §2 forbids.
+- [2026-08-06T20:45:09Z] Robert Architect:
+  - Ruling on REV-736 F42 (the absent-timestamp exclusion added by TASK-737 ST1): it is **within** this decision as written, but under a different clause than the finding measured it against. §1's three-item exempt list is a test of *ordering* — what a writer may put on disk after the commit — and `PERMITTED_EXTRA_SKEW` is its guard-side consequence. `INVENTED_WHEN_ABSENT` meets neither half of that test and was never meant to. It belongs under **What the guard compares**, whose registration clause already required that a correction which does not collapse through the shared round trip be registered explicitly in the change that introduces it, "otherwise it becomes a false refusal" — it was not registered, and it became precisely that false refusal.
+  - Paul's distinction is real and is now a rule rather than a one-off ruling: *permitting a skew* means both operands are real and legitimately differ; *withholding a comparison* means the disk operand was fabricated by the loader, so there is no second value to disagree with — only an invention being compared against a record. §1 amended in place today with that clause, bounded by four load-bearing conditions: loader-fabricated operand, non-deterministic (so the round trip genuinely cannot absorb it), conditioned on the observed raw frontmatter per read rather than on a key name, and self-extinguishing at the first successful write. That per-read condition is what makes it strictly narrower than the ordering exemptions beside it, not a widening of them. Standing obligation carried over: any field that later gains an invented load-time default registers here in the same change.
+  - A second clause landed with it, because the withholding is only sound in company. It obliges two things: keep reporting the gap where the gap is (`sq check`'s warning on the file), and never commit a fabricated value over a known one (the rebuild's carry-forward of the previously-indexed timestamp). Skip the first and the defect is invisible; skip the second and the invented instant reaches the index, a later mutation heals the markdown from it, and the item's real creation time is unrecoverable from either artifact with nothing having reported it at any step. That, not the refusal, is the invariant #1 failure worth guarding.
+  - No `supersedes` and no `related` edge: this narrows no other decision, it clarifies this one in place, so the record is the amended §1 plus this comment. **No code change** — the mechanism as it stands, together with `_carry_forward_indexed_timestamps` on the rebuild and the `sq check` warning, satisfies all four bounds and both obligations. F42 marked Fixed against the clarification.
 <!-- sq:discussion:end -->

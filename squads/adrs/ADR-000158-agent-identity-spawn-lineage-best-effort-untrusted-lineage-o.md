@@ -18,13 +18,14 @@ description: squads reads optional SQUADS_SESSION_ID/PARENT from its own invocat
   best-effort, untrusted, observability-only — not verified identity; lane enforcement
   on it is advisory.
 created_at: '2026-06-22T07:44:10Z'
-updated_at: '2026-07-22T11:53:22Z'
+updated_at: '2026-08-03T08:51:19Z'
 ---
 <!-- sq:body -->
 ## Context
 
 squads records an `actor` on every mutating operation, but that actor is a **self-declared slug**:
-`src/squads/_actor.py` holds one module-global string, set to `"system"` at the CLI root callback
+`src/squads/_actor.py` holds one module-global string (since ADR-534, a value read from and rebound
+on the ambient `RequestContext`), set to `"system"` at the CLI root callback
 (`_cli/__init__.py::main_callback`) and overridden only by the `--as`/`--author` CLI options via
 `set_actor(slug)`. The reflog writer (`_index/_reflog.py::append_line`) faithfully records whatever
 that global says into a flat `actor: str` field; `ReflogLine`/`ReflogEntry` carry it as a bare
@@ -239,4 +240,6 @@ actor (slug or session) is **inherently advisory**:
   - Knock-on for FEAT-122 Slice B: since squads can never obtain a verified actor, lane enforcement keyed on it is inherently ADVISORY — catches the honest accident, bypassable by a wrong/forged --as or session id. Must be framed as 'catch the accident,' never as a security boundary. Title updated to drop 'spawner-minted'.
 - [2026-06-22T09:10:06Z] Pierre Chat:
   - Accepted on the reframed basis: squads records best-effort, untrusted lineage (reads env if present, never spawns/injects). Build FEAT-125 as observability, then Slice B as an explicitly-advisory guardrail.
+- [2026-08-03T08:51:19Z] Robert Architect:
+  - One Context sentence annotated: `_actor.py` no longer holds a module-global string — since ADR-534 it reads and rebinds the ambient `RequestContext`. Everything decided here verified in force: `session_from_env()` off the two env vars read once at the root callback, flat `actor` kept with additive optional `session_id`/`parent_session_id` and legacy-line tolerance, optional `created_session`/`modified_session` omitted when unset, `sq reflog --tree`, and the show surface carrying the literal "(best-effort session, untrusted)" label this decision demanded.
 <!-- sq:discussion:end -->

@@ -23,7 +23,7 @@ from pathlib import Path
 
 import anyio.to_thread
 
-from squads._errors import UndecodableFileError
+from squads._errors import UndecodableFileError, UnreadableFileError
 
 
 async def to_thread[T](fn: Callable[[], T]) -> T:
@@ -39,10 +39,12 @@ async def read_text(path: Path) -> str:
     """Read *path* as UTF-8 text on a worker thread.
 
     Raises :class:`~squads._errors.UndecodableFileError` (a ``SquadsError`` naming *path* and
-    the decoder's failing byte/offset) when the on-disk bytes aren't valid UTF-8. This is the
-    one shared read helper nearly every reader in the product goes through — item files, board
-    notices, memory entries, override templates, the reflog, the migration runners — so one
-    guard here covers all of them.
+    the decoder's failing byte/offset) when the on-disk bytes aren't valid UTF-8, and
+    :class:`~squads._errors.UnreadableFileError` (same shape, naming the OS error) when the
+    file exists but the OS refuses the read for any other reason — permission denied, an I/O
+    error. This is the one shared read helper nearly every reader in the product goes through
+    — item files, board notices, memory entries, override templates, the reflog, the migration
+    runners — so one guard here covers all of them.
 
     Deliberately does **not** catch ``FileNotFoundError``: a few callers
     (``_services/_maintenance.py``'s ``check`` confirm round, ``_services/_import.py``'s
@@ -57,6 +59,10 @@ async def read_text(path: Path) -> str:
         raise UndecodableFileError(
             f"{path} is not valid UTF-8: byte {bad_byte:#04x} at offset {exc.start} — {exc.reason}"
         ) from exc
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise UnreadableFileError(f"{path} could not be read: {exc.strerror or exc}") from exc
 
 
 async def write_text(path: Path, text: str) -> None:
@@ -114,6 +120,21 @@ async def atomic_write_text(path: Path, text: str) -> None:
 async def path_exists(path: Path) -> bool:
     """Return ``True`` if *path* exists (checked on a worker thread)."""
     return await to_thread(lambda: path.exists())
+
+
+async def path_is_symlink(path: Path) -> bool:
+    """Return ``True`` if *path* is itself a symlink dirent — **not** whether its target
+    exists (``Path.is_symlink()`` checks the link itself via ``lstat``, so it is ``True`` for
+    a *broken* symlink, unlike :func:`path_exists`, which follows the link and would report
+    ``False`` for the same dirent).
+
+    The distinguisher a caller reaches for after ``read_text`` raises ``FileNotFoundError`` on
+    a dirent its own glob just saw: a broken symlink is a *present* file (the read failed on
+    what it points at, not on whether it's there), while a dirent that has genuinely vanished
+    between the glob and the read is not — see the call sites in ``_services/_maintenance.py``,
+    ``_board/_store.py``, and ``_memory/_store.py``.
+    """
+    return await to_thread(lambda: path.is_symlink())
 
 
 async def path_rename(src: Path, dst: Path) -> None:

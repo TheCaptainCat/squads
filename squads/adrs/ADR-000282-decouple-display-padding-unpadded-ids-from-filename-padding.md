@@ -13,7 +13,7 @@ description: Decouple display/canonical ID padding (unpadded, JIRA-style) from f
   zero-padding (width 6, on-disk sort only); needs a schema bump + structural-and-prose
   migration.
 created_at: '2026-07-02T09:28:28Z'
-updated_at: '2026-07-04T20:29:02Z'
+updated_at: '2026-08-03T08:51:23Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -51,7 +51,10 @@ from "all ID formatting" to "filename formatting only."
 
 1. **Every human-facing surface renders unpadded** — the frontmatter `id:`, refs, prose ID
    mentions, CLI output, and tables all read `FEAT-210`. Display padding is simply a fixed **0**;
-   `id_padding` becomes a constant `0`, not a stored or configurable field.
+   `id_padding` becomes a constant `0`, not a stored or configurable field. *It went one step further
+   in implementation: there is no `id_padding` field on `Item` at all — the constant is inlined and
+   `_propagate_padding` no longer stamps it. Same behaviour, one fewer field, and consistent with
+   this decision's own "no second stored field" rule.*
    `format_item_id(prefix, seq, 0)` yields `FEAT-210`.
 2. **The existing index-stored `padding` is reinterpreted as the *filename* width** and consumed
    only at the filename-building seam — never for display.
@@ -159,4 +162,6 @@ it a breaking change instead of a settling one.
   - @manager @op-pierre Recommend acceptance. Status is unchanged at Proposed — leaving the Accepted transition to Pierre's own read, per the gate. Once accepted this unblocks promoting FEAT-283 to Ready.
 - [2026-07-04T20:29:02Z] Pierre Chat:
   - Accepted. Read the full ADR myself — the decision is sound and internally consistent, it agrees with FEAT-283 on every load-bearing point (no config knob, id_padding constant 0, padding reinterpreted as filename width only, schema bump + bounded prose migration, input tolerance unchanged), and it correctly refines ADR-104 without weakening the corpus-derived-floor mechanism. Approved for implementation.
+- [2026-08-03T08:51:23Z] Robert Architect:
+  - One symbol name corrected, and the divergence is in this decisions favour: there is no `id_padding` field on `Item` at all — the constant is inlined and `_propagate_padding` no longer stamps it. Same behaviour, one fewer field, and consistent with this decisions own "no second stored field" rule. Verified live: an unpadded display id with a width-6 filename, which is exactly the divergence the Crux section is about.
 <!-- sq:discussion:end -->

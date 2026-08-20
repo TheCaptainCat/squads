@@ -5,11 +5,16 @@ type: decision
 title: Adopter-facing display labels per item type
 status: Accepted
 author: architect
+refs:
+- ADR-323
+- ADR-348
+- ADR-459
+- ADR-474
 description: Optional per-type labels table (four independent named forms, derivation
   fallback) + a label_for resolver so clients render pretty type names; acronym-safe,
   additive, no schema bump.
 created_at: '2026-07-24T11:41:24Z'
-updated_at: '2026-07-24T11:43:47Z'
+updated_at: '2026-08-03T08:47:17Z'
 ---
 <!-- sq:body -->
 # Context
@@ -25,7 +30,7 @@ running prose). `ItemSpec` carries per-type vocabulary already (`prefix`, `folde
 # Decision
 
 Add an OPTIONAL nested `labels` table to each item type in `.overrides/workflow.toml`,
-mirrored in the bundled `default_workflow.toml` only where it improves a built-in:
+mirrored in the bundled spec (`src/squads/_specs/workflow.toml`) only where it improves a built-in:
 
 ```toml
 [items.decision.labels]
@@ -91,16 +96,37 @@ spec that omits it, so `SCHEMA_VERSION` stays `"0.11"` — no migration.
   `singular` would corrupt `ADR` → `adr`. Independence is what lets the spec represent those
   types correctly; it is the core reason for the shape.
 - **Fallback-to-derivation** keeps this a pure, opt-in additive field: built-in and regular
-  custom types need no config, and the bundled `default_workflow.toml` pins forms only where
-  derivation is wrong or ugly.
+  custom types need no config, and the bundled spec pins forms only where derivation is wrong or
+  ugly.
 
 # Consequences
 
-- One resolver (`label_for`) becomes the single authority for a type's display name; ad-hoc
-  `type.capitalize()`/`.title()` display derivations are retired in favour of calling it.
+- One resolver (`label_for`) becomes the single authority for an **item type's** display name; ad-hoc
+  `type.capitalize()`/`.title()` derivations of a *type* label are retired in favour of calling it.
+  *Scoped 2026-08-03: as first written this read as a blanket retirement of `.capitalize()` in display
+  code. It is not — a category label, for one, is not an item type and is still derived that way. The
+  claim is about type labels, which is the only thing this resolver knows how to answer.*
 - Acronym and irregular-plural types render correctly across every client.
 - No new reserved surface, no closed vocabulary, no migration — the field is optional and
   self-describing, and `extra="forbid"` guards typos.
+
+## Amendment note
+
+**2026-08-03 — refs added, and one consequence scoped to what it actually claims.** Mechanically verified
+in force: `LabelSpec`, `ItemSpec.labels`, and `label_for(type_str, form, spec)` sitting beside `prefix_for`
+in `_models/_vocab.py` exactly as the resolver-seam section specifies, with four independent forms and
+derivation fallback.
+
+This decision shipped with **no refs at all** — the only one in its generation to do so — which left it
+invisible from the reference graph in both directions despite standing on three neighbours: it parallels
+ADR-323's `Field.label` (the same "a code the engine keys on, a label the human reads" split, one axis
+over), it cites `SubentityKindSpec.plural` (ADR-348) in prose as its precedent for a declared plural, and
+it silently extended the frozen type-catalog row (ADR-459, as extended by ADR-474) with `labels`. Edges
+added to all four. The lesson generalises past this decision: an ADR with an empty ref set is
+unreviewable for exactly the overlaps this audit exists to find, because nothing leads a reader to it.
+
+The bundled spec path is corrected in two places, and the retire-ad-hoc-`.capitalize()` consequence is
+scoped to item-type labels, which is all the resolver can answer for.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -108,4 +134,8 @@ spec that omits it, so `SCHEMA_VERSION` stays `"0.11"` — no migration.
 <!-- sq:discussion -->
 - [2026-07-24T11:43:31Z] Pierre Chat:
   - The four forms are independent (not lowercase-derived from the capitalized) specifically to spell acronym/initialism types right: 'ADR'.lower() is 'adr', which is wrong in running prose. Named forms over a positional list so a misordered override can't silently mean the wrong thing.
+- [2026-08-03T08:47:17Z] Robert Architect:
+  - Verified in force mechanically (`LabelSpec`, `ItemSpec.labels`, `label_for` beside `prefix_for` in `_models/_vocab.py`, four independent forms with derivation fallback). Two prose fixes and the structural one.
+  - The structural finding: this decision shipped with no refs at all, the only one in its generation, so it was invisible from the reference graph in both directions while standing on three neighbours — it parallels ADR-323s `Field.label` one axis over, cites ADR-348s `SubentityKindSpec.plural` in prose as its precedent, and silently extended ADR-459/474s frozen type-catalog row with `labels`. Edges added to all four. Worth stating as a general point: an empty ref set makes an ADR unreviewable for exactly the overlaps this audit exists to find, because nothing leads a reader to it.
+  - Scoped the retire-ad-hoc-`.capitalize()` consequence to item-type labels. As written it read as a blanket retirement of `.capitalize()` in display code, which the tree contradicts — a category label is not an item type and is still derived that way. Not a violation, an over-claim. Bundled spec path corrected in two places.
 <!-- sq:discussion:end -->

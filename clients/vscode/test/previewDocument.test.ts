@@ -1040,7 +1040,15 @@ describe('buildSubEntitiesHtml', () => {
     expect(storyPane).not.toContain('finding comment');
   });
 
-  it("does not use the sub-entity's own local-id fold id on its comments block", () => {
+  it('closes the discussion fold by default too, with no isOpen predicate given', () => {
+    const html = buildSubEntitiesHtml({
+      entities: [{ ...finding, discussion: [{ author: 'a', ts: '1', body: 'c' }] }],
+    });
+    expect(html).toContain('data-sq-fold-id="F15:discussion">');
+    expect(html).not.toContain('data-sq-fold-id="F15:discussion" open>');
+  });
+
+  it("tracks the comments block under its own fold id, distinct from the sub-entity's local id, so the two can't collide", () => {
     const html = buildSubEntitiesHtml(
       {
         entities: [
@@ -1049,12 +1057,29 @@ describe('buildSubEntitiesHtml', () => {
       },
       undefined,
       undefined,
-      (localId) => localId === 'F15',
+      // Matches only the plain local id — the body's fold id, not the discussion's.
+      (foldId) => foldId === 'F15',
     );
-    // the body fold is restored open by the predicate; the comments block carries no
-    // data-sq-fold-id of its own, so it can't be toggled — or reset — by that same tracking.
+    // the body fold is restored open by the predicate; the comments block is tracked under
+    // its own, differently-keyed fold id, so it stays closed rather than following the body.
     expect(html).toContain('data-sq-fold-id="F15" open>');
-    expect(html.match(/data-sq-fold-id/g)).toHaveLength(1);
+    expect(html).toContain('data-sq-fold-id="F15:discussion">');
+    expect(html.match(/data-sq-fold-id/g)).toHaveLength(2);
+  });
+
+  it('restores the comments block open when the predicate matches its own fold id, independently of the body', () => {
+    const html = buildSubEntitiesHtml(
+      {
+        entities: [
+          { ...finding, body: 'has a body too', discussion: [{ author: 'a', ts: '1', body: 'c' }] },
+        ],
+      },
+      undefined,
+      undefined,
+      (foldId) => foldId === 'F15:discussion',
+    );
+    expect(html).toContain('data-sq-fold-id="F15:discussion" open>');
+    expect(html).not.toContain('data-sq-fold-id="F15" open>');
   });
 });
 

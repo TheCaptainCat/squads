@@ -79,7 +79,7 @@ sq feature <n> stories
 
 **Do:**
 - derive test cases from each story
-- verify the feature against its acceptance criteria once tasks land
+- verify the feature against its acceptance criteria once the implementation lands
 
 **Hand off:**
 - when acceptance criteria all pass, confirm in a comment so the feature can close; when one fails, file a bug and `@tech-lead`

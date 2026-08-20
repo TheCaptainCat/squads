@@ -96,9 +96,9 @@ sanctioned way to satisfy it.
   package data automatically. Render with `squads._rendering._engine.render` (StrictUndefined).
 - **A command** → add it to the right `squads/_cli/_*` module (or a new one), wire it onto `app`
   in `_cli/__init__`, and route logic through `Service`.
-- **An item type** → declare it in the bundled workflow spec (`squads/_bundled/workflow.toml`):
+- **An item type** → declare it in the bundled workflow spec (`squads/_specs/workflow.toml`):
   prefix, folder, category, lifecycle, and any parent/ref rules. Add its item template, and — if
-  agents author it — a `[types.<name>]` entry in `squads/_bundled/playbook.toml` so the type gets its
+  agents author it — a `[types.<name>]` entry in `squads/_specs/playbook.toml` so the type gets its
   managed `sq-<type>` skill. Both TOMLs are golden-locked by a test under `tests/unit/`; update the
   golden in the same change. (A *project* adds its own types through `.overrides/workflow.toml`
   instead — see [docs/overrides.md](docs/overrides.md) — and needs no code change at all.)

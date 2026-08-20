@@ -9,7 +9,7 @@ refs:
 - FEAT-13
 - ADR-76
 created_at: '2026-06-17T07:56:27Z'
-updated_at: '2026-06-17T08:30:12Z'
+updated_at: '2026-08-03T08:51:18Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -34,7 +34,8 @@ direction is the operator's call; this ADR records it precisely.
 introduced the schema, compared via `schema_tuple()`.** Concretely:
 
 - **`SCHEMA_VERSION` in `_models/_schema.py` remains the single source of truth.** Models default to
-  it; every consumer reads it from there. Its current value is `"0.3"`.
+  it; every consumer reads it from there. Its value at the time of writing was `"0.3"`; the rule is
+  about where the value lives and how it is compared, never about the value itself.
 - **Comparisons go through `schema_tuple()`, never raw-string `<`/`>`.** This is unchanged from
   ADR-76 and stays a standing rule.
 - **Post-1.0, a schema change ships only with a MAJOR release** and bumps the dotted string
@@ -88,4 +89,6 @@ favour of the status quo.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:51:18Z] Robert Architect:
+  - Restated the `SCHEMA_VERSION` line so it stops going stale: the value at writing was "0.3", and the rule is about where the value lives and how it is compared, never about the value. Substance verified — `schema_tuple` comparisons, `sq migrate up`, and the reflog `v` still coupled to `SCHEMA_VERSION`. The same stale example appears in the adopter-facing stability doc, which is the tech-writers to fix, not mine.
 <!-- sq:discussion:end -->

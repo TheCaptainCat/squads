@@ -24,7 +24,7 @@ A defect: what's wrong, how to reproduce, expected vs actual.
 
 ```bash
 sq create bug "…" --author <slug>
-sq task <n> ref add BUG-… --kind fixes
+sq <type> <n> ref add BUG-… --kind fixes   # from the item carrying the fix
 sq bug <n> status InProgress
 ```
 
@@ -42,7 +42,7 @@ sq bug <n> status InProgress
 - set `--severity`/`--priority`
 
 **Hand off:**
-- once filed, `@tech-lead` to triage; once a fix task lands, verify it and confirm in a comment so the bug can close
+- once filed, `@tech-lead` to triage; once the fix lands, verify it and confirm in a comment so the bug can close
 
 ## For developers
 
@@ -82,7 +82,7 @@ sq bug <n> status InProgress
 - Read the full item dossier: `sq bug <n> show --full --comments` (decisions and
   refinements often live in discussion comments, not the body — skipping this is how context
   gets missed).
-- read the bug + the fix task's changes
+- read the bug + the changes that fix it
 
 **Do:**
 - review the fix for correctness and a regression test before it lands

@@ -8,9 +8,10 @@ author: architect
 refs:
 - EPIC-538
 - EPIC-540
+- ADR-696
 - ADR-320
 created_at: '2026-07-21T16:26:15Z'
-updated_at: '2026-07-22T09:26:20Z'
+updated_at: '2026-08-03T08:52:23Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -50,14 +51,15 @@ the three fixed categories to inherit that category's behaviour.
 The three categories and their behavioural contracts:
 
 - `roster` — `role`, `skill`, `operator`. Registry entities: slug identity (not sequence-id
-  identity), backend pointer files written on sync, their own group in both UI trees. The roster
-  category is **internal-only and locked** — entirely off the customization/override surface: no
-  add, no deactivate, no field-merge, no rename (see the floor below). This is today's
-  `is_meta = true` set.
+  identity), backend pointer files written on sync, their own group in both UI trees. Roster
+  **membership is closed in both directions** and the three type keys are **internal-only and
+  locked**: an override may not add a roster type, drop one, or rename one, and no type may move
+  into or out of `roster` (see the floor below). This is today's `is_meta = true` set.
 - `work` — `epic`, `feature`, `task`, `bug`, `review`. Burn-down items: assigned, driven to a
   terminal Done-like status, a parent constraint per type, counted in `blocked`/`mine`/velocity,
   the work group in the trees.
-- `records` — `decision` (ADR), `contract` (PRD), `guide`. Durable references: their own lifecycles
+- `records` — `decision` (ADR), `guide`, and `contract` (PRD) once it exists. Durable references:
+  their own lifecycles
   (Proposed→…→Superseded, Published→Deprecated), never a "Done" burn-down state, not assigned and
   not burned down, their own group in the trees, and they **take no parent** — a record relates to
   work through refs, never through hierarchy.
@@ -78,25 +80,37 @@ capability flags (`parent_required`, `subentity_kind`, `fields`) stay their own 
 replaces only the roster/work/records axis and supplies per-category behavioural defaults. The field
 is named `category` deliberately — `type` would collide with the item type's own name.
 
-#### The type-axis floor: roster is locked
+#### The type-axis floor: the roster type keys are locked
 
-The roster category is off the override surface entirely. sq structurally requires a role, a skill,
-and an operator type to exist and binds them by literal name, so an override may not add a roster
-type, deactivate one, field-merge one, or rename/re-prefix one — any override touching a
-`category = roster` type is refused (clean `SquadsError`, never a traceback). Every non-roster type
-is droppable/renamable/re-prefixable as ordinary spec vocabulary. This is the one type-axis floor;
-the earlier "meta-types frozen absolutely" framing lands here exactly.
+sq structurally requires a role, a skill, and an operator type to exist and binds each one by its
+literal **type key**, so the floor is drawn on key identity and category membership: an override
+may not add a roster type, drop one, or rename one, and `category` may not move a type into or out
+of `roster`. Any override that breaches that identity is refused (clean `SquadsError`, never a
+traceback). Every non-roster type is droppable/renamable/re-prefixable as ordinary spec vocabulary.
+This is the one type-axis floor; the earlier "meta-types frozen absolutely" framing lands here,
+narrowed to identity.
+
+A roster type's **other fields are ordinary, validated customisation** — its `lifecycle` above all,
+and its prefix, folder, labels, and order — subject to the same uniqueness, referential-integrity
+and live-item checks every other type faces, plus the lifecycle floor a roster-bound machine owes
+(at least one live status; a single live status when the lifecycle's `initial` is not itself live;
+a reachable settled non-live status). This narrows the wider "no field-merge" reading this section
+first carried: field-merging is not itself unsafe, and the safety a blanket lock bought is bought
+instead by validating the merged spec. See the amendment note at the end of this decision, and
+ADR-696 §3–§4, which is the governing statement on the field axis.
 
 #### `meta_kind` is moot
 
-Because roster is locked, the roster-rename problem no longer exists to solve. The engine binds the
-three roster types by literal name (`META_OPERATOR == "operator"`, `META_ROLE`, `META_SKILL`,
-dispatched across ~15 sites — the roster service, backends that write role/skill pointer files, the
-agent lifecycle, `sq create` self-author bypass), and since no rename is ever permitted, those
-literal-name bindings are correct as-is. A separate name-independent identity marker (a `meta_kind`)
-would only be needed to *follow* a rename; with rename off the table there is nothing for it to
-track. `meta_kind` is therefore not introduced — consistent with the earlier defer, now closed as
-moot rather than deferred.
+Because the roster type keys are locked, the roster-rename problem no longer exists to solve. The
+engine binds the three roster types by literal key (`ROSTER_ROLE == "role"`, `ROSTER_SKILL`,
+`ROSTER_OPERATOR`, dispatched across ~15 sites — the roster service, backends that write role/skill
+pointer files, the agent lifecycle, `sq create` self-author bypass), and since no *key* rename is
+ever permitted, those literal-name bindings are correct as-is. A separate name-independent identity
+marker (a `meta_kind`) would only be needed to *follow* a key rename; with that off the table there
+is nothing for it to track. `meta_kind` is therefore not introduced — consistent with the earlier
+defer, now closed as moot rather than deferred. Note that this reasoning turns on the type *key*
+alone: a roster type's prefix and folder are mergeable (above) precisely because nothing in the
+engine binds to them.
 
 #### Category reassignment of a built-in (operator-resolved)
 
@@ -257,7 +271,9 @@ is validated when the spec loads, and an invalid spec raises `SquadsError` → e
 `sq workflow lint` as the diagnostic. These rules are:
 
 - category-catalog membership — a type's `category` names one of the three hard-coded categories;
-- roster-locked — no override adds, deactivates, field-merges, or renames a `roster` type;
+- roster identity locked — no override adds, drops, or renames a `roster` type key, and no type
+  moves into or out of `roster` (a roster type's other fields merge and are validated like any
+  other type's);
 - records-no-parent as a category default — the `records` bundle attaches `no_parent`;
 - validator-catalog membership — every name in a type's `validators` list is a catalog validator;
 - well-formed parent validator — an empty `parent_in` allowlist is rejected (use `no_parent`);
@@ -291,8 +307,8 @@ obey a well-formed spec?* is Plane 2 (gate + report).
   must not be split across releases, or the new default would flag the 5 ADRs as violations before
   the migration has re-homed their parent edges. Sequencing them together keeps `sq check` clean
   across the change.
-- Roster is locked off the override surface entirely, so `meta_kind` is moot rather than deferred —
-  no rename means nothing for a name-independent identity marker to track.
+- The roster type keys are locked, so `meta_kind` is moot rather than deferred — no key rename means
+  nothing for a name-independent identity marker to track.
 - The validator framework is additive over today's behaviour, but "byte-identical" is scoped
   precisely: with the bundled spec and no override, the **renamed seed checks** report
   byte-identical issues (the seed catalog *is* today's check set, renamed), **excluding** the two
@@ -310,7 +326,8 @@ obey a well-formed spec?* is Plane 2 (gate + report).
 - Category reassignment of a built-in is allowed among the non-roster categories (`work` ↔
   `records`); roster membership is fixed both directions. It is guarded by Plane 1 validation — an
   inconsistent reassignment hard-stops — rather than by policy, so no operator decisions remain open.
-- Two downstream wording fixes fall out of the `contract` ∈ `records` reconciliation (tracked as
+- Two downstream wording fixes fall out of the `contract` ∈ `records` reconciliation (the ADR-320
+  rewording was applied on 2026-08-03; tracked as
   follow-ups on their owners, not edited here): ADR-320 calls `contract` a "non-meta work-item type"
   and EPIC-538 speaks of an "architecture category" — both predate the records/work split and should
   be reworded to "`records` category" when next touched. ADR-541 is the authority for the taxonomy;
@@ -333,7 +350,7 @@ spec is regenerated). The standing policy for any such rename:
   release and translates it to the new field before model validation, so the `extra="forbid"`
   contract stays intact. For `is_meta`: a value of `false`, or the key absent, resolves to the
   `category` default (`work`); `is_meta = true` on a non-roster type is refused with a clean
-  `SquadsError` naming `category` and the roster-locked floor, since a roster type is never
+  `SquadsError` naming `category` and the roster identity floor, since roster *membership* is never
   adopter-declarable.
 - **The deprecation is documented in the CHANGELOG / upgrade notes** for the release that introduces
   the rename, so an adopter carrying the old key in an override gets the one-line migration.
@@ -342,6 +359,80 @@ spec is regenerated). The standing policy for any such rename:
 
 This keeps a vocabulary rename a soft, one-release deprecation for adopters rather than a hard break,
 while holding the line that behaviour and vocabulary each live on their own versioning axis.
+
+## Amendment note
+
+**2026-07-31 — the type-axis floor narrows from "the roster category is locked" to "the roster type
+keys and their category are locked".** As first written, this decision's floor forbade an override to
+"add, deactivate, field-merge, or rename/re-prefix" a `category = roster` type. ADR-696 §4 reverses
+the field half of that on purpose and says so; this note is the other end of that reversal, recorded
+here so no reader of this decision absorbs a rule a later Accepted decision retired.
+
+What the floor is now: the three roster type **keys** (`role`, `skill`, `operator`) must exist, may
+not be added to, may not be dropped (including via `selected`), and may not be renamed; and
+`category` may not move a type into or out of `roster`. What it no longer covers: a roster type's
+`lifecycle`, prefix, folder, labels, and order, which merge and are validated like any other type's.
+
+Why the narrowing is right rather than merely later. A lock is only justified where the engine cannot
+verify, and the engine binds the roster by **key** — `ROSTER_ROLE`/`ROSTER_SKILL`/`ROSTER_OPERATOR`
+and the fixed `category` — never by a roster type's prefix or folder; no such literal exists in
+`src/` outside the migration runners, which are correctly frozen at their pinned schema versions. The
+lifecycle safety the blanket lock bought is bought instead by ADR-696 §3's floor, which is stated in
+code and checked on the merged spec. So the surviving prohibition is exactly the identity the engine
+binds by name, and the field axis becomes ordinary validated customisation — the constrain-don't-lock
+direction, applied to the one clause that predated it.
+
+Scope: this narrows the floor section, the `roster` category bullet, the Plane-1 rule list, and the
+`meta_kind` consequence, and nothing else. `meta_kind` stays moot for an unchanged reason — a key
+rename is still never permitted, so there is still nothing for a name-independent identity marker to
+follow. Axis B (the validator model), the category taxonomy, the work↔records reassignment ruling,
+and the spec-vocab back-compat policy are untouched. ADR-696 §3–§4 is the governing statement on the
+field axis; this decision remains the authority on the taxonomy and the validator model.
+
+**Why the narrowing is legitimate rather than a reversal of the operator's own call**, which a future
+reader is entitled to check before re-litigating it. The lock arrived as an operator directive, and
+that directive is on this decision's discussion, dated: *"role/skill/operator are entirely off the
+customization surface — no add, no deactivate, no field-merge, no rename"*, given in the same breath
+as the ruling that **the guardrail is validation, not prohibition** and that an inconsistent spec
+should fail load validation rather than be forbidden by policy. What the directive was answering was
+the roster-*extensibility* question — is the roster capped at three or extensible — and the thing it
+was protecting was the roster lifecycle, at a point when the engine still bound roster semantics to
+three literal status names and had no way to check a project's own lifecycle instead. The status-role
+object, the `live` flag, and the lifecycle floor that make such a check expressible were all decided
+afterwards, on ADR-696, on the operator's own direction. So the narrowing applies the operator's
+stated principle to the clause that predated the means of satisfying it: the roster's *membership*
+stays closed exactly as directed, and the field axis moves from prohibition to validation, which is
+the direction the same operator set. Nothing here relaxes a boundary anyone asked to keep — it
+retires a prohibition that was standing in for a check that now exists.
+
+## Note on the `contract` clauses
+
+**2026-08-03 — they stand as forward design, and are deliberately not scoped to the type's return.**
+`contract` is not declared in the bundled spec — the type was moved out of release scope — so every
+clause here that rules on it currently has no live referent. Two of them read in the present tense: the
+`records` membership list, and the ref-rule sentence that "`decision` and `contract` do" declare a
+`supersedes` rule.
+
+The clauses are kept, for a reason worth stating rather than assuming. What they rule on is the
+**taxonomy** — which category the type belongs to and what that category obliges — and a taxonomy ruling
+is about the shape of the vocabulary, not about a shipped artifact. It costs nothing while the type is
+absent, it is exactly what an implementer needs on the day it returns, and it was decided by the
+operator on the merits rather than as a consequence of the type's schedule.
+
+The alternative — conditioning them on the type's return — would be worse in a specific way: it creates
+a clause whose activation nobody owns, and it re-opens a settled taxonomy question at the moment someone
+is busy building the type. The rule is that a decision is retired when it is *wrong*, not when its
+subject is absent.
+
+What is owed, and is done here, is marking them **forward** rather than descriptive, so that a
+conformance sweep does not go looking for a referent in `src/` and report a gap. The membership list now
+says "once it exists". ADR-320 is the owning decision for the type itself and carries the reciprocal
+edge.
+
+For the same sweep's benefit, and not an amendment: the squad-global validator catalog holds four
+validators rather than the two named here, `roster_config_integrity` and
+`default_designation_duplicated` having been added by ADR-697. This decision says "seed members", so
+nothing is owed — flagged only so the difference is not misread as drift.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -366,4 +457,16 @@ while holding the line that behaviour and vocabulary each live on their own vers
   - Accepted as revised, including epic's explicit no_parent (epic-as-root). Rationale confirmed: category and parent-rules are orthogonal axes — category 'work' gives epic its burn-down behavior, and root-ness is a per-type no_parent validator addition composed on top (empty parents stays 'any' for byte-identical bug/review; 'no parent' is spelled explicitly). Declared now, enforced when EPIC-540/538 build the validator engine; surfaces as a Plane-2 migration warning, not a load brick. Records no_parent + the 5-ADR parent→related migration land together so sq check stays clean.
 - [2026-07-22T09:26:20Z] Robert Architect:
   - [amendment — 2026-07-22] Added a body section "Adopter back-compat: spec-vocab renames" per op-pierre's authorization (relayed via the coordinator). Additive policy consistent with the accepted decision — status unchanged. Captures: a spec-vocab key rename (first instance is_meta→category) is a spec-format change, not a frontmatter-schema bump (no SCHEMA_VERSION change, no data migration); a deprecated key gets a one-release read-compat shim in the loader (is_meta false/absent → category default work; true on a non-roster type → clean SquadsError); the deprecation is documented in the CHANGELOG/upgrade notes; the shim is dropped at 1.0. Stated at the standing-policy altitude for spec-vocab renames generally, with is_meta→category as the first instance.
+- [2026-07-31T13:54:28Z] Robert Architect:
+  - [amendment — 2026-07-31] Narrowed the type-axis floor from 'the roster category is locked' to 'the roster type keys and their category are locked', which is the other end of the override ADR-696 §4 already declared. Edited in place: the roster category bullet, the floor section (now naming key identity + category membership, with a second paragraph stating that lifecycle/prefix/folder/labels/order are ordinary validated customisation), the Plane-1 rule list, the meta_kind consequence, and the back-compat shim's 'never adopter-declarable' wording (now scoped to membership). Also corrected the stale META_* constant names to ROSTER_*.
+  - Why narrowing is right, not merely later: a lock is only justified where the engine cannot verify. The engine binds the roster by type KEY (ROSTER_ROLE/ROSTER_SKILL/ROSTER_OPERATOR in _workflow/_models.py) and by the fixed category — the reserved-vocab floor at _models.py checks exactly those two and nothing else. No roster prefix or folder literal exists in src/ outside _migrations/ (correctly frozen at their pinned schema versions). A lock over a field no call site reads is a prohibition standing in for a check. The lifecycle safety the blanket lock bought is bought instead by ADR-696 §3's floor, already implemented in _check_roster_lifecycle_floor.
+  - meta_kind stays moot for an unchanged reason: a key rename is still never permitted, so there is still nothing for a name-independent identity marker to follow. Axis B, the taxonomy, the work<->records reassignment ruling and the spec-vocab back-compat policy are untouched.
+  - Status stays Accepted and no supersedes edge was added: only one clause is overridden, and this decision remains the sole authority on the category taxonomy and the validator model. Retiring it wholesale for a clause-level reversal would falsely retire everything else it says. Recorded instead as a related edge to ADR-696 plus dated notes at both ends. @manager this is the precedent I would apply to the 54-decision audit — supersedes + Superseded for whole-decision replacement; both-Accepted + reciprocal in-place narrowing for a clause-level reversal. 'Nothing is marked Superseded' is only a defect where a decision has actually been replaced whole.
+- [2026-07-31T14:05:18Z] Robert Architect:
+  - [amendment — 2026-07-31, second] Added a paragraph to the amendment note making the narrowing's legitimacy legible on this decision itself, not only in a handoff: the lock arrived as an operator directive (on this discussion, dated) in the same breath as the ruling that the guardrail is validation not prohibition; what it was answering was the roster-extensibility question, and what it was protecting was the roster lifecycle at a point when the engine bound roster semantics to three literal status names and had no way to check a project's own lifecycle instead. The status-role object, the live flag and the lifecycle floor that make such a check expressible were all decided afterwards on ADR-696, on the same operator's direction. So membership stays closed exactly as directed and the field axis moves from prohibition to validation — the direction that operator set. A future reader can now see why this was not a reversal of a call anyone asked to keep, and re-litigate it only on new evidence.
+- [2026-08-03T08:52:23Z] Robert Architect:
+  - Judgement asked for on the `contract` clauses, which have no live referent since the type left the release: they STAND as forward design, and are deliberately not scoped to the types return. Recorded in the body as a note rather than a narrowing, because nothing here is wrong.
+  - The reasoning, stated rather than assumed. What these clauses rule on is the taxonomy — which category the type belongs to and what that category obliges — and a taxonomy ruling is about the shape of the vocabulary, not about a shipped artifact. It costs nothing while the type is absent, it is exactly what an implementer needs the day it returns, and the operator decided it on the merits, not as a consequence of the types schedule.
+  - Conditioning them on the types return would be worse in a specific way: it creates a clause whose activation nobody owns, and it re-opens a settled taxonomy question at the moment someone is busy building the type. The rule I am applying is that a decision is retired when it is wrong, not when its subject is absent.
+  - What was genuinely owed is done: the two present-tense readings are marked forward, so a conformance sweep does not hunt for a referent in `src/` and report a gap. The `records` membership list now reads "and `contract` (PRD) once it exists". Applied ADR-320s rewording at that end too and added the reciprocal edge, so the pair is linked. Also flagged for the sweep, not as an amendment: the squad-global validator catalog holds four rather than the two named here — this decision says "seed members", so nothing is owed.
 <!-- sq:discussion:end -->

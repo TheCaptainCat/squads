@@ -1,13 +1,27 @@
 import os
 
-# Neutralise color-forcing env vars BEFORE importing the CLI: squads._cli._common builds a
-# module-level rich Console() at import time, which latches terminal/color detection from the
-# environment then.  Some CI runners and the Claude Code agent harness export FORCE_COLOR, which
-# makes Rich emit ANSI into CliRunner-captured output and breaks every plain-output / --json
-# assertion.  Stripping these here (before the import below, and session-wide) keeps the suite
-# deterministic regardless of where it runs.  An autouse fixture re-strips per test as a backstop.
-for _color_var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
+# Pin a deterministic, non-terminal rendering environment BEFORE importing the CLI: both Rich
+# consoles this suite captures latch their terminal/color decision from the environment at import
+# time -- squads._cli._common builds a module-level Console(), and typer.rich_utils computes the
+# module constants that shape every `--help` render.  Under a plain CliRunner both write plain
+# text; when either is talked into "this is a terminal" they emit ANSI, and Rich's styling splits
+# tokens mid-word (an option renders as `ESC[36m-ESC[0mESC[36m-unlink`), so a literal
+# `"--unlink" in result.output` finds nothing.  Every knob that can force that lives here, once,
+# so no individual test has to tolerate styling:
+#   * FORCE_COLOR / CLICOLOR_FORCE / PY_COLORS -- exported by some CI runners and by the Claude
+#     Code agent harness; Rich and typer both read them.
+#   * TTY_COMPATIBLE=0 -- Rich's own "not a terminal" declaration, checked ahead of FORCE_COLOR.
+#   * _TYPER_FORCE_DISABLE_TERMINAL -- typer's escape hatch for its help console, which otherwise
+#     forces a terminal whenever GITHUB_ACTIONS is set (i.e. on every GitHub Actions runner).
+#   * COLUMNS / TERMINAL_WIDTH -- width, the same class of ambient input as color.
+# These are exported (not just set on this process) so the tests that run `sq` as a subprocess
+# inherit the same rendering environment.  An autouse fixture re-applies them per test, and the
+# typer constants are re-pinned below in case typer.rich_utils was imported before this conftest.
+for _color_var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS", "TERMINAL_WIDTH", "LINES"):
     os.environ.pop(_color_var, None)
+os.environ["TTY_COMPATIBLE"] = "0"
+os.environ["_TYPER_FORCE_DISABLE_TERMINAL"] = "1"
+os.environ["COLUMNS"] = "80"
 
 import functools  # noqa: E402
 from collections.abc import Callable  # noqa: E402
@@ -16,9 +30,32 @@ from datetime import UTC, datetime  # noqa: E402
 from typing import Any  # noqa: E402
 
 import pytest  # noqa: E402
+import rich.console  # noqa: E402
 import typer.main  # noqa: E402
+import typer.rich_utils  # noqa: E402
 import typer.testing  # noqa: E402
 from typer.testing import CliRunner  # noqa: E402
+
+# The COLUMNS pin above is only half a pin: `Console.__init__` latches its width as
+# `COLUMNS - legacy_windows`, and `legacy_windows` is true whenever Rich cannot read console
+# features off the handle it writes to -- which is precisely a captured pipe on Windows, i.e.
+# every CliRunner capture and every subprocess capture on that runner.  COLUMNS=80 therefore
+# rendered at 79 there, and any assertion on a line long enough to reflow failed on that one
+# platform: the message wrapped a word earlier and the literal the test looked for straddled the
+# inserted newline, with nothing about the platform anywhere in the assertion.
+#
+# Pin the detection function rather than a console attribute: the subtraction happens once, at
+# construction, so patching a live console's `legacy_windows` changes nothing.  Patching the
+# function covers every console built after this line -- the two module-level ones in
+# `squads._cli._common`, typer's per-render help console, and any a test builds itself.
+rich.console.detect_legacy_windows = lambda: False
+
+# typer latches `FORCE_TERMINAL` into a module constant when typer.rich_utils is first imported,
+# so the env pin above only lands if this conftest ran first.  Re-assert it on the module itself
+# (read per call by `_get_rich_console`) so help output stays plain whatever the import order was.
+# Width is deliberately NOT pinned here: it stays driven by COLUMNS, which is a per-render lookup
+# a test can legitimately vary (see tests/cli/test_help_text_width_is_pinned.py).
+typer.rich_utils.FORCE_TERMINAL = False
 
 from squads import _aio  # noqa: E402
 from squads._cli import app  # noqa: E402
@@ -129,9 +166,14 @@ def _neutralize_forced_color(monkeypatch):  # pyright: ignore[reportUnusedFuncti
     runners and by the Claude Code agent harness) makes Rich force color into that captured
     output, breaking every plain-output and --json assertion.  Neutralise them per-test so the
     suite is deterministic regardless of the environment it runs in.
+
+    Per-test backstop for the module-level pin at the top of this file — see there for what each
+    variable does and why a styled render breaks plain substring assertions.
     """
-    for var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS"):
+    for var in ("FORCE_COLOR", "CLICOLOR_FORCE", "PY_COLORS", "TERMINAL_WIDTH"):
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("TTY_COMPATIBLE", "0")
+    monkeypatch.setenv("_TYPER_FORCE_DISABLE_TERMINAL", "1")
     # Pin console width too, so Rich/Typer help text wraps identically regardless of the
     # invoking terminal's/worker's inherited COLUMNS (the width analogue of the color pin above).
     monkeypatch.setenv("COLUMNS", "80")

@@ -24,8 +24,9 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
 
 ## Golden rules
 
-- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 update --status Done`);
-  sub-entities nest: `sq feature 12 story 1 update --status InProgress`. Create with `sq create <type>`.
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 update
+  --status Done`); sub-entities nest:
+  `sq <type> <n> <kind> <k> update --status <status>`. Create with `sq create <type>`.
 - The `.md` files are sq-managed: never hand-edit frontmatter or the `<!-- sq:* -->` markers, and
   don't type prose directly into a file. Every region is written through a command.
 - Set an **item's** body with `sq <type> <n> body -m "…"` (repeat `-m`, or `--file body.md` /
@@ -48,10 +49,11 @@ The operator sometimes talks to you directly — for live work or debugging. The
 
 - **Anchor to an item.** Confirm the item with `sq <type> <n> show --full --comments` (body +
   sub-entities + discussion). Create the item first if it's genuinely new.
-- **Keep status honest.** Move it to `InProgress` when you start; don't leave it stale.
+- **Keep status honest.** Move it to its lifecycle's first working state (`sq <type> <n>
+  status <status>`) when you start; don't leave it stale.
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
-  -m "…"` summarising what changed — that's how the manager's loop (and the next agent) picks up
-  where you left off.
+  -m "…"` summarising what changed — that's how the coordinating agent's loop (and the next
+  agent) picks up where you left off.
 - **Scope your comment to the right discussion.** Sub-entities (stories, subtasks, findings)
   each have their own discussion region alongside the parent item's main discussion. Use
   `sq <type> <n> <kind> <k> comment` for anything scoped to that one sub-entity; use
@@ -67,8 +69,9 @@ The operator sometimes talks to you directly — for live work or debugging. The
   @mentions are surfaced by `sq inbox` wherever they live in the file — in a sub-entity discussion
   or the main one. Prefer the main discussion for @mentions that announce a transition or request
   action from the next agent (they read as item-level handoffs); a sub-entity discussion is fine for
-  a scoped question (e.g. `sq review N finding 1 comment --as reviewer -m "@dev does this fix
-  satisfy the requirement?"`). This is guidance, not a hard rule — the inbox never misses a mention.
+  a scoped question (e.g. `sq task N subtask 1 comment
+  --as <your-slug> -m "@role does this look right?"`). This is guidance, not a hard rule — the
+  inbox never misses a mention.
 - **Stay in lane.** File anything you discover that's out of scope as its own item (e.g. a bug);
   don't silently expand the work.
 
@@ -94,8 +97,8 @@ already tracked — not as a routine boot step.
 
 ## Team workflow
 
-- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`); create with
-  `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
+- Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
+  create with `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
 - **Product owner** → `sq create epic "…" --author product-owner`.
 - **Product owner** → `sq create feature "…" --author product-owner`, then `add-story "…"`.
 - **Tech lead** → `sq create task "…" --author tech-lead` `--parent FEAT-…`, then `add-subtask "…"` `--story USn`; link with `ref add <id> --kind fixes|addresses`.
@@ -113,14 +116,6 @@ already tracked — not as a routine boot step.
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
-
-## Item hierarchy
-
-```mermaid
-flowchart TD
-    epic["epic"] --> feature["feature"]
-    feature["feature"] --> task["task"]
-```
 
 ## Type-command aliases
 
@@ -165,7 +160,7 @@ preserved; only the ID prefix changes. All incoming refs, children's parent link
 mentions are rewritten to the new ID atomically.
 
 ```bash
-sq <type> <n> retype <new-type>   # e.g. sq task 7 retype bug
+sq <type> <n> retype <new-type>   # e.g. sq epic 7 retype feature
 ```
 
 Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
@@ -209,7 +204,7 @@ normal; the reflog records a reconstructable removal line that explains each gap
 
 ## Ref kinds
 
-The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
+The vocabulary is closed — exactly nine kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
 
 | Kind | Meaning | Direction convention | Consumer |
 |---|---|---|---|
@@ -217,10 +212,11 @@ The vocabulary is closed — exactly eight kinds, no custom extensions in 1.0. U
 | `blocks` | A is blocking B; B cannot proceed while A is open | `A blocks B` lives on **A** (the blocker) | `sq blocked` |
 | `depends-on` | A depends on B; A cannot proceed while B is open. Equivalent to `B blocks A` — `A depends-on B` ≡ `B blocks A` | `A depends-on B` lives on **A** (the dependent) | `sq blocked` |
 | `implements` | A implements the requirement or spec described by B | `A implements B` lives on A | Navigation |
-| `fixes` | A (a task or PR) fixes bug B | `A fixes B` lives on A | `sq check` task rules |
-| `addresses` | A (a task) addresses or follows up review B | `A addresses B` lives on A | `sq check` task rules |
+| `fixes` | A (the resolving work) fixes the problem tracked by B | `A fixes B` lives on A | `sq check` ref-rule warnings |
+| `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `A addresses B` lives on A | `sq check` ref-rule warnings |
 | `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be Superseded | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
 | `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as Cancelled | `A duplicates B` lives on **A** (the later filing) | Navigation |
+| `scopes` | A (a skill) is scoped to role B; B's generated pointer preloads A | `A scopes B` lives on **A** (the skill) | Preload resolver, retirement gate |
 
 `blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context. Bare `ref add <id>` (no `--kind`) defaults to `related`.
 
@@ -231,19 +227,19 @@ sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  
 #   --author is required and must be a registered agent (your own role slug)
 sq task 3 show --full --comments                                # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress                                     # transition (validated per type)
-sq task 3 update --assignee qa --priority urgent --parent FEAT-<n>  # metadata (parent validated)
+sq task 3 update --assignee python-dev --priority urgent --parent FEAT-<n>  # metadata (parent validated)
 sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
 sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
 sq list --type task --status InProgress                         # closed items hidden; --all to include
-sq tree FEAT-<n> --json                                      # a feature's whole subtree (status/blocked) for coordinating
+sq tree FEAT-<n> --json                                      # a parent's whole subtree (status/blocked) for coordinating
 sq search "lockout"                                             # match titles, summaries, bodies
 sq mine <your-slug>                                             # your open items  ·  sq workload
 sq blocked                                                      # open items waiting on an open blocker
 sq docs [internals|workflow|migration|...]                      # read the full docs in-terminal (offline)
 ```
 
-Closed items (Done/Cancelled/…) drop out of `sq list`/`sq tree` by default — pass `--all` or an
-explicit `--status` to see them. Set importance with `--priority urgent|high|medium|low`.
+Items whose status is hidden-by-default (typically the settled/closed ones) drop out of `sq
+list`/`sq tree` — pass `--all` or an explicit `--status` to see them. Set importance with `--priority urgent|high|medium|low`.
 
 Run `sq --help`, `sq <type> --help`, or `sq <type> <n> --help` for the full surface.
 

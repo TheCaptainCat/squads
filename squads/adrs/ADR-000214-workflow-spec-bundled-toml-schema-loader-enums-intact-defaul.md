@@ -8,8 +8,11 @@ author: architect
 refs:
 - FEAT-207:addresses
 - ADR-179
+- ADR-322
+- ADR-696
+- ADR-604
 created_at: '2026-06-25T14:18:42Z'
-updated_at: '2026-06-26T09:27:27Z'
+updated_at: '2026-08-03T08:31:46Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -76,6 +79,13 @@ subentity / finding), the terminal set, parent rules, prefixes, folders, aliases
 badges. Priority/severity badges (`PRIORITY_EMOJI`/`SEVERITY_EMOJI`) are **not** workflow vocabulary
 and stay where they are (out of the spec) for F1.
 
+*Renamed since, field for field: `types:` is `items: dict[str, ItemSpec]`, `machines:` is
+`lifecycles: dict[str, Lifecycle]`, `TypeSpec` is `ItemSpec`, sub-entity machines are reached
+through `subentity_kinds: dict[str, SubentityKindSpec]`, and both key types are `str` rather than an
+enum. `StatusSpec.terminal` no longer exists — terminality derives from the status's declared role.
+Priority and severity did later join the spec, as generic badge collections. See the amendment
+note.*
+
 ### 2. Bundled config location & TOML schema
 
 The default `workflow.toml` ships as **package data inside the package tree**, mirroring how
@@ -83,7 +93,8 @@ templates ship. Templates work today purely because `[tool.hatch.build.targets.w
 ["src/squads"]` sweeps every non-`.py` file under the package — no per-file include needed. Place
 the file at:
 
-> **`src/squads/_workflow/default_workflow.toml`** — promoting today's `_workflow.py` module into a
+> **`src/squads/_workflow/default_workflow.toml`** (now `src/squads/_specs/workflow.toml`) —
+> promoting today's `_workflow.py` module into a
 > `_workflow/` package (`__init__.py` re-exporting the same public names so import sites are
 > unchanged), with the TOML beside the loader. It ships in the wheel automatically (verify in the
 > build test, consistent with the templates-are-package-data invariant).
@@ -163,6 +174,10 @@ aliases = ["dec", "d"]
   expression of the enums: every `ItemType` has exactly one `TypeSpec`; every `Status` the machines
   use exists in `Status`; every prefix/folder/alias matches what the enum properties return today.
   The spec does not *introduce* names — it *organizes* the names the enums already define.
+  *Withdrawn by ADR-322: there are no enums, no coercion of spec keys into one, and no
+  completeness floor against one — the spec is the sole vocabulary authority. What survives is the
+  half that was never about enums: the spec organises names rather than introducing behaviour. See
+  the amendment note.*
 - The existing free functions become the public surface backed by the loaded spec, preserving call
   sites: `workflow_for(t)`, `initial_status(t)`, `can_transition(t, src, dst)`, `is_open(s)`,
   `parent_allowed(c, p)`, `parent_hint(c)`, and the `TERMINAL` set become **thin shims that read the
@@ -187,7 +202,9 @@ behavior:
 
 Concretely: build the snapshot directly from today's `WORKFLOWS`/`TERMINAL`/`ALLOWED_PARENTS`/
 `PREFIX_BY_TYPE`/`FOLDER_BY_TYPE`/`TYPE_ALIASES`/`STATUS_EMOJI` and assert structural equality with
-the loaded spec. **This test is the regression gate for the entire epic** — if any later feature
+the loaded spec. *The lock survives as a mechanism; this construction does not, because none of
+those literals exists any more — the goldens assert against the bundled spec, which is what this
+section wanted proven. See the amendment note.* **This test is the regression gate for the entire epic** — if any later feature
 accidentally shifts the default workflow, the golden fails. It is what lets F2+ proceed with
 confidence that the externalization was behavior-preserving.
 
@@ -203,6 +220,7 @@ confidence that the externalization was behavior-preserving.
    type; prefix / folder / alias are unique across types (true today).
 6. **Enums-intact check (F1-specific):** the spec's type set equals `set(ItemType)` and every status
    used equals its enum member — the spec may not omit or invent a name relative to the enums.
+   *Withdrawn by ADR-322 — this rule no longer exists. Rules 1–5 all still run.*
 
 For F1 this validation runs only against the **bundled default** (there is no project override yet).
 The friendlier author-facing `sq workflow lint` surface is **F3** — not built here.
@@ -244,6 +262,47 @@ the storage seam; it only relocates the source of truth for prefix/folder into t
 - **Risk:** low for F1 by design — it is behavior-preserving and golden-locked. The real risk lives
   in F2 (de-typing), which the EPIC-206 spike gate validates *together with* F1 before either is
   committed to implementation.
+
+## Amendment note
+
+**2026-08-03 — the core ruling stands; four citations and one clause do not.** What this decision
+actually decided is exactly what the engine does today: one loaded, validated `WorkflowSpec` value
+object, built from a bundled TOML through `importlib.resources` + `tomllib`, consumed through
+free-function shims, failing closed on an invalid spec, and guarded by a golden lock. ADR-249 executed
+the threading half of it rather than replacing it. Every later spec decision cites this one as its
+pattern, which is why the stale surface matters more here than anywhere else — a reader following it
+greps for names that no longer exist and reads a floor that a later Accepted decision removed.
+
+- **Field names (§1).** `types:` is `items: dict[str, ItemSpec]`, `machines:` is
+  `lifecycles: dict[str, Lifecycle]`, `TypeSpec` is `ItemSpec`, and the sub-entity machines are
+  reached through `subentity_kinds: dict[str, SubentityKindSpec]` (ADR-348). Both key types are `str`,
+  not an enum (ADR-322). `StatusSpec` is `{badge, role}`: **`terminal` no longer exists as a field** —
+  terminality and `is_open` derive from the status's declared role (ADR-696, with ADR-604 doing the
+  same for colour and visibility). That is precisely the generalisation §1's boolean invited, and the
+  spec grew `collections`, `roles`, and per-type `fields` and `labels` alongside it (ADR-323/474/646).
+- **The bundled path (§2).** `src/squads/_specs/workflow.toml`. The `_workflow/` package promotion
+  this section decided did happen; the spec files later moved out to their own `_specs/` directory,
+  where `roles.toml` and `playbook.toml` sit beside them. The package-data mechanism, and the
+  build-test verification of it, are unchanged.
+- **The enums-intact clause (§3) and validation rule 6 (§5) are gone, by ADR-322.** The spec is the
+  sole vocabulary authority on both axes: there is no `ItemType` and no `Status`, no coercion of spec
+  keys into an enum, and no completeness floor equating the spec's type set to an enum's members. This
+  is not a reversal so much as the scope boundary below being crossed on schedule — this decision
+  named the de-typing as out of its own scope and ADR-322 is the decision that did it. What remains
+  from §3 is the part that was never about enums: the spec organises names rather than introducing
+  behaviour, the shims preserve call sites, and an invalid spec fails closed. Rules 1–5 all still run.
+- **The golden lock (§4) survives as a mechanism, but not as constructed.** `tests/goldens/` holds the
+  frozen snapshots, `playbook_spec.json` among them. The construction sketched here — build the
+  snapshot from `WORKFLOWS`/`TERMINAL`/`ALLOWED_PARENTS`/`PREFIX_BY_TYPE`/`FOLDER_BY_TYPE`/
+  `TYPE_ALIASES`/`STATUS_EMOJI` and assert structural equality — is unbuildable, because every one of
+  those literals is gone. The goldens assert against the bundled spec instead, which is what this
+  section wanted them to prove in the first place: that the default did not shift.
+
+The follow-up recorded in the discussion is closed: `extra="forbid"` is on `WorkflowSpec`, `ItemSpec`
+and `StatusSpec`, so an unknown TOML key now fails closed rather than being ignored — which was the
+stated precondition for the spec becoming adopter-editable.
+
+`related` edges added to ADR-322, ADR-696 and ADR-604. None of the three linked back here.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -251,4 +310,10 @@ the storage seam; it only relocates the source of truth for prefix/folder into t
 <!-- sq:discussion -->
 - [2026-06-26T09:27:27Z] Catherine Manager:
   - Follow-up (non-blocking, from REV-230): the WorkflowSpec models lack extra='forbid', so unknown TOML keys are silently ignored rather than failing closed. Acceptable for the bundled default (golden-locked, enums-intact), but must be added before the workflow TOML becomes user-editable (FEAT-209/210). Tracked on FEAT-209.
+- [2026-08-03T08:31:46Z] Robert Architect:
+  - Amended in place; nothing retired. The core ruling is verified in force — one loaded, validated `WorkflowSpec` from a bundled TOML via `importlib.resources` + `tomllib`, consumed through free-function shims, fail-closed, golden-locked — and ADR-249 executed its threading half rather than replacing it. This decision is the pattern every later spec decision cites, so its stale surface misleads more readers than any other; that is why it got the heaviest note.
+  - Corrected field for field in section 1, against the tree rather than the audits summary: `types:` is `items: dict[str, ItemSpec]`, `machines:` is `lifecycles: dict[str, Lifecycle]`, `TypeSpec` is `ItemSpec` (`_workflow/_models.py:330,1090-1092`), sub-entity machines resolve through `subentity_kinds: dict[str, SubentityKindSpec]`, and `StatusSpec` is `{badge, role}` at `:445-458` with no `terminal` field at all. The boolean this section introduced is the one ADR-696/604 generalised into a declared status role — worth naming as the lineage, not just a rename.
+  - Section 2s path corrected to `src/squads/_specs/workflow.toml`. The `_workflow/` package promotion decided here did happen; the spec files later moved out to their own directory beside `roles.toml` and `playbook.toml`, and the package-data mechanism is untouched.
+  - Two clauses marked withdrawn in place, both by ADR-322: section 3s "the enums remain the source of names" and validation rule 6. Neither is a surprise reversal — this decision named the de-typing as out of its own scope and ADR-322 is the decision that did it, so the honest record is a withdrawal with the successor named, not a supersession. Rules 1 to 5 all still run. Section 4s golden lock survives as a mechanism but its stated construction from `WORKFLOWS`/`TERMINAL`/`PREFIX_BY_TYPE`/`STATUS_EMOJI` is unbuildable, so that is marked too.
+  - Closed the open follow-up recorded here in 2026-06-26: `extra="forbid"` is now on `WorkflowSpec`, `ItemSpec` and `StatusSpec`, which was the stated precondition for the spec becoming adopter-editable. Added `related` edges to ADR-322, ADR-696 and ADR-604 — none of the three linked back.
 <!-- sq:discussion:end -->

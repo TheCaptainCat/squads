@@ -10,8 +10,9 @@ refs:
 - ADR-541
 - ADR-474
 - ADR-323
+- ADR-696
 created_at: '2026-07-22T14:03:28Z'
-updated_at: '2026-07-22T15:20:19Z'
+updated_at: '2026-08-03T08:46:23Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -139,6 +140,8 @@ The role catalog and each status→role reference are exposed on the machine sur
 consume, re-deriving no policy:
 
 - **`sq workflow roles --json`** (new): one row per role — `{role, settled, hidden, color}`.
+  *The live row carries a fifth key, `live`, added additively by ADR-696 §2a and declared at that
+  end. See the amendment note.*
 - **`sq workflow statuses --json`**: drops `terminal`; keeps `role` (the reference) and `badge`.
 
 A client joins an item's `status → role → {settled, hidden, color}`; the policy (which roles are
@@ -229,6 +232,25 @@ single source.
   only — no schema bump, no `sq migrate` data migration, per the adopter back-compat policy. The
   bundled spec is regenerated (the `[roles.…]` catalog is added, `terminal` lines removed, each
   status gains its `role`); `badge` is untouched, so no read-compat shim is needed.
+
+## Amendment note
+
+**2026-08-03 — the roles catalog row has a fifth key.** Everything here is verified in force: the eight
+bundled roles, the closed colour-intent palette validated at load, `terminal` and `is_open` gone from
+the models and from the client-facing surfaces, and each surface keying on `role.color`.
+
+The one thing owed is a note rather than a narrowing. This decision enumerates the role object and its
+catalog row as exactly `{settled, hidden, color}` / `{role, settled, hidden, color}` in three places.
+ADR-696 §2a added `live` — the flag that says whether a status materialises a roster entry into a
+backend's config — and declared the addition at its own end ("`sq workflow roles --json` gains the field
+additively"). So no clause here was reversed; the enumerations simply under-report a shape this decision
+froze, and a reader auditing the freeze against the tree finds five keys where three decisions'
+enumerations say four.
+
+Same lesson as the type catalog's growth: the additive-superset rule makes the addition legitimate, and
+the enumeration at the frozen end is what has to move with it.
+
+`related` edge added to ADR-696.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -242,4 +264,7 @@ single source.
   - [amendment — 2026-07-22] op-pierre converged on the role-as-OBJECT model (supersedes both the single-role-code-sets and multi-tag options); manager accepts after reading. Folded in: (1) role is a first-class object via a new [roles.<name>] spec catalog (sibling to [statuses]) — RoleSpec{settled, hidden, color}; a status references one role by name and inherits its behaviour. (2) Roles are OPEN (adopter-definable, --json-discovered); color is a CLOSED semantic-intent palette {positive,danger,warning,muted,neutral,info}, Plane-1 validated, each client maps intent→its own theme with a neutral fallback. (3) Discoverable via a new 'sq workflow roles --json' catalog {role,settled,hidden,color} + role on the status catalog; clients fetch+consume, re-derive nothing (same as category on the types catalog) — the separately-floated shown_by_default field is dropped in favour of role.hidden. (4) terminal & is_open stay dropped, now derived from the role object: terminal=role.settled, is_open=not role.settled, hidden_by_default=role.hidden; the LIVE/SETTLED/HIDDEN framing becomes a consequence of role definitions, not hardcoded sets. (5) Unchanged: 8 default roles (attention/Open=danger-red, in_force, done, retired incl Rejected, superseded, pending, active, blocked), badge explicit per-status (not derived), no SCHEMA_VERSION change (spec+--json only), client migration rides FEAT-570 US2/US3. Revised the role table into role-object definitions and refreshed the consumer/contract audit for the object shape. Status left Proposed.
 - [2026-07-22T15:20:18Z] Pierre Chat:
   - Accepted (converged through the design discussion; manager accepted after reading the final body). The status role becomes a first-class OBJECT carrying {settled, hidden, color-intent}; a status references one role and inherits its behavior. role is the sole status axis — terminal and is_open are dropped and derived (terminal=role.settled, is_open=not settled, hidden_by_default=role.hidden). Roles are open/adopter-definable and --json-discoverable (sq workflow roles --json); color is a closed semantic-intent palette each client maps to its theme. badge stays explicit per-status. No SCHEMA_VERSION change. Supersedes FEAT-570 US1's ad-hoc RETIRED_STATUS_ROLES approach — that work gets reworked onto role.hidden.
+- [2026-08-03T08:46:23Z] Robert Architect:
+  - Lowest-severity item in the audit and it gets a note rather than a narrowing: the roles catalog row carries a fifth key, `live`, added additively by ADR-696 section 2a and declared at that end. No clause here was reversed. Everything else verified in force — eight bundled roles, the closed colour-intent palette validated at load, `terminal` and `is_open` gone, every surface keying on `role.color`.
+  - Marked the enumeration at the point it appears rather than in all three places, and recorded the same lesson the type catalog gave: additive-superset makes the addition legitimate, and the enumeration at the frozen end is what has to move with it. Otherwise the freeze cannot be audited against the tree — five keys live against three decisions saying four. Added `related` edge to ADR-696.
 <!-- sq:discussion:end -->

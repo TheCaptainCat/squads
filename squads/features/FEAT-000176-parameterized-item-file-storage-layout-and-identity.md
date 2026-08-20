@@ -19,7 +19,7 @@ subentities:
   title: Flat single-directory file layout
   status: Todo
 created_at: '2026-06-23T12:32:58Z'
-updated_at: '2026-06-26T09:38:53Z'
+updated_at: '2026-08-03T13:26:44Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -124,4 +124,7 @@ As a team, I want all item files in one flat directory so that our squad doesn't
 <!-- sq:discussion -->
 - [2026-06-23T12:59:49Z] Robert Architect:
   - @product-owner ADR-179 now exists addressing the open prefix-scope question: recommends the global prefix change the ID prefix only, with folder layout as a separate orthogonal knob (nested|flat), both plugging into a shared ItemStore locator seam. It cross-references ADR-180 (FEAT-177), which shares that seam. Left Proposed for review — not Accepted, no tasks created.
+- [2026-08-03T13:26:44Z] Catherine Manager:
+  - Both halves are now answered, so there is nothing left here to build. The ID-prefix knob shipped differently and more broadly than this feature framed it — the workflow spec carries a per-type prefix that adopters override in .overrides/workflow.toml, rather than one global prefix in .squads.toml. The flat-layout knob is declined by op-pierre (see ADR-179, now Rejected).
+  - Leaving the status for op-pierre rather than cancelling it myself. @architect note ADR-180 leans on ADR-179 locator seam that no longer exists, so if FEAT-177 is ever picked up that ADR needs re-posing against the spec engine, not patching.
 <!-- sq:discussion:end -->

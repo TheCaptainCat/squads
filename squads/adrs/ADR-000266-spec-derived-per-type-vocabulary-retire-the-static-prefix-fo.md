@@ -9,8 +9,9 @@ author: architect
 refs:
 - FEAT-210:addresses
 - REV-265:addresses
+- ADR-322
 created_at: '2026-07-01T07:40:18Z'
-updated_at: '2026-07-01T08:27:48Z'
+updated_at: '2026-08-03T08:43:02Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -76,6 +77,12 @@ reserved map). Concretely:
    thin `_models`-local helper `prefix_for(type_str, spec=None)` returns the built-in prefix when the
    type is reserved, else `spec.items[type].prefix`, else raises. The `spec` is optional so the pure
    built-in path (and legacy callers) need no spec; custom types require one.
+
+   *Withdrawn by ADR-322: there is no built-in prefix map and no reserved default source. The
+   resolver survives as the single authority — `prefix_for` at `_models/_vocab.py:36` is the one
+   resolver every call site uses — but it reads the spec for **every** type and raises when no spec
+   is supplied. What this clause got right is the seam; what it got wrong is that the seam needed a
+   hardcoded floor behind it. See the amendment note.*
 
 3. **Stamp at the three construction/format boundaries where a spec is in hand:**
    - **Create** (`_base.py:270-274`): `db.allocate_id` and the `Item(...)` build both take/receive the
@@ -164,6 +171,33 @@ is named `INC-000019-*.md`, and `sq incident INC-000019 show` round-trips. No `t
 This split keeps the FEAT-210 corrective behavior-preserving on built-ins (the reserved map still
 drives them byte-identically — AC#7/#8) while making every custom-type id, folder, and alias
 spec-derived. It is a recommendation, not a unilateral scope change.
+
+## Amendment note
+
+**2026-08-03 — §2's built-in floor is gone; §1 and the seam it created are what survived.** §1 is
+verified exactly as decided: `Item.prefix` is a field on the model, `Item.id` formats from it with no
+map lookup and no `type.upper()`, and the model stores a string handed to it rather than deriving
+vocabulary. §4 is verified too — the type-keyed lookups are retired and `prefix_for` is the single
+resolver, called from the CLI, retype, the service base and maintenance.
+
+§2 is reversed, and the code says so in its own words: `_models/_vocab.py`'s module docstring now reads
+that the loaded workflow spec is *the sole vocabulary authority — there is no reserved built-in
+prefix/folder map any more*, and `prefix_for` raises when no spec is supplied. ADR-322 did that, and
+names this decision.
+
+Two things are worth separating, because this decision was right about one and wrong about the other.
+The **resolver seam** was the durable contribution: one place that answers "what is this type's
+prefix", so no call site derives vocabulary for itself. That seam is what let the map behind it be
+deleted without touching a single caller — and it later grew `label_for` beside it (ADR-646) on the same
+argument. The **optional spec**, justified as letting the built-in path work without one, was the part
+that encoded the reservation this arc existed to remove: an optional spec means a hardcoded answer for
+the names it does not need the spec for.
+
+The one constraint §2's optional spec was protecting — that a file must round-trip its own id without a
+spec in hand — is met a different way, and better: ADR-322's own §3, as corrected on 2026-07-08,
+derives the prefix from the already-persisted `id`. So nothing was lost by making the spec mandatory.
+
+`related` edge added to ADR-322.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -177,4 +211,9 @@ spec-derived. It is a recommendation, not a unilateral scope change.
   - Feature boundary (recommendation, not a scope change): land prefix/folder/type-by-prefix/meta/alias-shim retirement + Item.prefix + resolver + the 3 format-site conversions + ref-path fix WITHIN the FEAT-210 corrective (this is exactly what makes INC-000019 round-trip and unblocks F1/F2). DEFER _SUBENTITY_PLURAL to FEAT-212 (subentity_kinds schema) — do NOT pull it forward; instead design the resolver so FEAT-212 reuses it (add a subentity_plural accessor when the field lands). Keep _SUBENTITY_PLURAL as the built-in fallback until then.
 - [2026-07-01T08:27:48Z] Catherine Manager:
   - Accepted after reading the full Decision + Alternatives. Operator (op-pierre) confirmed the feature boundary: FEAT-210 corrective retires PREFIX_BY_TYPE / TYPE_BY_PREFIX / FOLDER_BY_TYPE / the TYPE_ALIASES shim / _META_NAMES via the Item.prefix + reserved-vocab resolver pattern; _SUBENTITY_PLURAL is DEFERRED to FEAT-212 (kept as built-in fallback), with the resolver designed so FEAT-212 adds a subentity_plural accessor when the subentity_kinds schema lands. Verified the three-site finding (_index.py:74 filename, _common.py:557, _refs.py bracket-KeyError) — the corrective is broader than REV-265 F1's single line.
+- [2026-08-03T08:43:02Z] Robert Architect:
+  - Section 2 marked withdrawn by ADR-322, which names this decision; sections 1 and 4 verified in force (`Item.prefix` as a field, `Item.id` formatting from it with no map lookup, `prefix_for` as the single resolver at `_models/_vocab.py:36` called from every site). Nothing retired.
+  - The reversal is visible in the codes own words — `_vocab.py`s docstring now says the loaded spec is the sole vocabulary authority and there is no reserved prefix/folder map — so this was the easiest of the set to confirm and the least excusable to leave unrecorded.
+  - Separated the two halves of section 2 in the note, because this decision was right about one and wrong about the other. The resolver seam was the durable contribution: one place answering "what is this types prefix", which is exactly what let the map behind it be deleted without touching a caller, and what `label_for` later joined (ADR-646). The optional spec was the part that encoded the reservation this arc existed to remove — an optional spec means a hardcoded answer for the names it does not need the spec for.
+  - The constraint the optional spec was protecting — a file round-tripping its own id without a spec — is met better by ADR-322 section 3 as corrected, deriving the prefix from the persisted `id`. So nothing was lost by making the spec mandatory, which is the fact that makes this a clean narrowing rather than a trade.
 <!-- sq:discussion:end -->

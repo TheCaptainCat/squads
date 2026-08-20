@@ -10,8 +10,9 @@ refs:
 - TASK-112
 - TASK-113
 - ADR-114
+- ADR-534
 created_at: '2026-06-15T09:22:28Z'
-updated_at: '2026-06-15T09:23:44Z'
+updated_at: '2026-08-03T08:34:02Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -35,6 +36,9 @@ The relevant shape of the seam today: `transaction()` takes the file lock, `db =
 `self._atomic_write(db)` does an fsync'd temp write + `os.replace` — the single durable commit
 point. The clock (`src/squads/_clock.py`) is a module-global override (`set_now`/`now`) set
 per-invocation by `--at`; it is the precedent for ambient, injectable per-invocation state.
+*The precedent holds; its implementation moved. Neither the clock override nor the actor is a
+module global any more — both read a frozen `RequestContext` behind one `ContextVar` (ADR-534).
+See the amendment note.*
 
 ## Decision
 
@@ -121,7 +125,9 @@ Justified against the layering (`_cli → _services → store`) and testability:
 - **One subtlety, stated for the dev.** Ambient state must be **set and cleared per invocation** (a
   `try/finally` or context manager at the root callback), so a long-lived process or a test that
   reuses the interpreter never leaks one invocation's actor into the next — the same hygiene
-  `clock.set_now(None)` requires. `comment`'s existing `as_slug` becomes the value the callback
+  `clock.set_now(None)` requires. *Obsolete under ADR-534: the actor lives in a `ContextVar`-carried
+  `RequestContext`, which is scoped by construction, so there is nothing to clear and no leak to
+  guard against. The ambient decision itself is unchanged — only the carrier.* `comment`'s existing `as_slug` becomes the value the callback
   feeds into `set_actor`; the service method keeps using `as_slug` for the *comment author* and the
   store reads the same identity ambiently for the *log line* — they agree by construction.
 
@@ -176,9 +182,44 @@ deferred the `remove`-line fields + the "gaps are sanctioned" guarantee onto the
 ## Status
 
 Accepted.
+
+## Amendment note
+
+**2026-08-03 — the ambient actor is still ambient, but it is no longer a module global.** §1, §2 and
+§4 are verified in force, clause for clause: the append happens strictly after `os.replace` and inside
+every lock, a failed append is swallowed to a warning and never rolls back a committed mutation, there
+is no per-line fsync, one `O_APPEND` newline-terminated write per op, readers tolerate a malformed
+line, and the field set is on the wire as decided.
+
+What §3 got wrong is a mechanism it named rather than a decision it made. Ambient per-invocation
+actor, set once at the CLI root callback, read by the reflog writer, never threaded as a parameter
+through every mutating method — all of that holds and is the right call for a request-scoped
+cross-cutting value. But the *carrier* is no longer "a module shaped like `_clock`": ADR-534 rules out
+module-level mutable state and puts both the actor and the clock override in one frozen
+`RequestContext` behind a single `ContextVar`, which `_actor.py` and `_clock.py` read through
+`get_context()` and rebind.
+
+Two consequences for this section's text specifically:
+
+- **The `try/finally` hygiene subtlety is obsolete, not merely restated.** It was the correct
+  requirement for a module global — set and clear per invocation, or one invocation leaks its actor
+  into the next. A `ContextVar` rebind is scoped by construction, so there is nothing to clear and no
+  leak to guard against. `_actor.py`'s own docstring now says so.
+- **The Context paragraph's premise is false in the same way.** It calls the clock a module-global
+  override and offers it as "the precedent for ambient, injectable per-invocation state". The precedent
+  is intact; the implementation it cited moved, and the clock followed the actor rather than the other
+  way round.
+
+Neither decision replaces the other, so both stand. ADR-534's own refs name ADR-71/77/153/214/249 but
+not this decision, so the pair was linked at neither end; a `related` edge is added here.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:34:02Z] Robert Architect:
+  - Amended in place; nothing retired. Sections 1, 2 and 4 verified clause for clause in the tree — append strictly after `os.replace` and inside every lock, a failed append swallowed to a warning and never rolling back a committed mutation, no per-line fsync, one `O_APPEND` newline-terminated write per op, tolerant readers, the decided field set on the wire.
+  - Section 3s ambient ruling stands; its carrier does not. Ambient per-invocation actor set once at the root callback and read by the reflog writer is still the right shape for a request-scoped cross-cutting value, but "a module shaped like `_clock`" is no longer what carries it: ADR-534 puts both the actor and the clock override in one frozen `RequestContext` behind a single `ContextVar`. Marked at the clause rather than rewritten, because the decision did not change — only what it named.
+  - One clause is genuinely obsolete rather than merely renamed, and I marked it as such: the `try/finally` set-and-clear hygiene subtlety. It was correct for a module global; a `ContextVar` rebind is scoped by construction, so there is nothing to clear. This decisions Context paragraph also asserted the clock IS a module global, which is now false — the precedent it drew on held, and the clock followed the actor.
+  - Added reciprocal `related` edges between this decision and ADR-534. ADR-534s refs named its neighbours (71/77/153/214/249) but not the decision it actually overrode, so this pair was unlinked at both ends — which is how a reversal this visible went unrecorded.
 <!-- sq:discussion:end -->

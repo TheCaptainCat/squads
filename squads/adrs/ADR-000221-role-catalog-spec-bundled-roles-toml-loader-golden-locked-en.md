@@ -9,8 +9,10 @@ author: architect
 refs:
 - FEAT-219:addresses
 - ADR-214
+- ADR-85
+- ADR-696
 created_at: '2026-06-26T07:33:23Z'
-updated_at: '2026-06-26T07:35:02Z'
+updated_at: '2026-08-03T08:44:26Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -38,7 +40,7 @@ FR is a prerequisite for `FEAT-000220` (playbook externalization), which referen
 every field or the golden lock fails. The full field set (read from source):
 
 ```
-RoleSpec  (pydantic v2, replaces the RoleDef dataclass content)
+RoleSpec  (pydantic v2, replaces the RoleDef dataclass content)  # _roles/_models.py
     slug:             str
     full_name:        str
     title:            str
@@ -70,7 +72,8 @@ as today. The TOML defines role *content*; the extra-key serialization is unchan
 
 ### 2. Bundled TOML location & schema
 
-Ships as package data at **`src/squads/_roles/roles.toml`** — consistent with
+Ships as package data at **`src/squads/_roles/roles.toml`** (now `src/squads/_specs/roles.toml`) —
+consistent with
 `FEAT-000207`'s `src/squads/_workflow/default_workflow.toml`, and swept into the wheel by the
 existing `packages = ["src/squads"]` rule (verify in the build test, same as templates). Loaded via
 `importlib.resources.files("squads._roles") / "roles.toml"` + `tomllib`.
@@ -183,6 +186,10 @@ catalog as that authority; it does not define the playbook schema (that is FEAT-
 - **Enums-intact era.** This is role-*content* externalization only. It introduces **no custom item
   types, no de-typing, no `str` widening** (F2/FEAT-208) and **no project overrides** (F3) — there
   is no `.squads.toml`/`.overrides/` role-catalog override here; the catalog is bundled-only.
+  *Narrowed 2026-08-03: bundled-only is no longer true. `.overrides/roles/<slug>.toml` is a live
+  override kind and `resolve_role(slug, squad_dir)` does project-override-then-bundled resolution,
+  merging field-wise (ADR-85, ADR-696 §4). Everything else in this boundary holds, and the catalog's
+  bundled content is still the base every override merges onto. See the amendment note.*
 - **Roles are not item types**, so the reserved-vocabulary / prefix-folder invariants of the
   workflow spec do **not** apply to this catalog — it touches only the role domain. (Roles *do*
   surface as `ROLE` items via `to_extra`, but that ItemType and its workflow are untouched.)
@@ -202,9 +209,36 @@ catalog as that authority; it does not define the playbook schema (that is FEAT-
 - **Risk:** low — behavior-preserving and golden-locked, with no model or type-system changes. The
   only subtlety is faithfully encoding multi-line missions and the reviewer `agreements` prose in
   TOML, which the golden test catches if wrong.
+
+## Amendment note
+
+**2026-08-03 — bundled-only was overtaken, and `RoleSpec` now names two different models.** The
+mechanical rulings are verified in force: `load_role_catalog` in `_roles/_loader.py`, the catalog
+singleton, the `PREDEFINED` shim still consumed by the CLI, `DEV_NAME_POOL` retained, and §5's
+referential-integrity contract holding — the role catalog is the playbook's slug authority.
+
+- **The scope boundary's "the catalog is bundled-only" is reversed in fact.** Project role overrides
+  ship: `.overrides/roles/<slug>.toml` is scaffolded by `sq override scaffold --role`, and role
+  resolution goes project-override-then-bundled with a field-wise merge. This was never a contested
+  ruling — the boundary was a statement of that release's scope, and ADR-85 is the decision that
+  crossed it — but the sentence reads as a standing prohibition, so it is narrowed in place.
+- **The path is `src/squads/_specs/roles.toml`**, beside `workflow.toml` and `playbook.toml`.
+- **`RoleSpec` is ambiguous now, and this is the correction most likely to save a reader real time.**
+  There are two models with that name: the **agent-role** catalog entry this decision defines, in
+  `_roles/_models.py`, and the **status-role** catalog entry ADR-474/696 defines, in
+  `_workflow/_models.py`. A reader following this decision greps and lands in the wrong file, on a model
+  about status colour and settledness. The declaration above is annotated with its module for that
+  reason. Nothing behavioural diverges; the collision is purely one of names, and it is worth noting
+  that neither decision was wrong to pick it — "role" is doing two honest jobs in this codebase.
+
+`related` edges added to ADR-85 and ADR-696.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:44:26Z] Robert Architect:
+  - Amended in place; nothing retired. Mechanical rulings verified in force: `load_role_catalog`, the catalog singleton, the `PREDEFINED` shim still consumed by the CLI, `DEV_NAME_POOL` retained, and section 5s referential-integrity contract holding with the role catalog as the playbooks slug authority.
+  - Narrowed the scope boundarys "the catalog is bundled-only", which is reversed in fact — `.overrides/roles/<slug>.toml` ships and `resolve_role(slug, squad_dir)` does project-override-then-bundled with a field-wise merge. This was never a contested ruling; the boundary stated that releases scope and ADR-85 is what crossed it, but the sentence reads as a standing prohibition. Path corrected to `src/squads/_specs/roles.toml`.
+  - Annotated the `RoleSpec` declaration with its module, which is the correction most likely to save a reader real time: there are now two models with that name — the agent-role entry this decision defines in `_roles/_models.py`, and the status-role entry ADR-474/696 defines in `_workflow/_models.py`. A reader following this decision greps and lands on a model about status colour and settledness. Nothing behavioural diverges, and neither decision was wrong to pick the name — "role" is doing two honest jobs in this codebase.
 <!-- sq:discussion:end -->

@@ -7,10 +7,13 @@ status: Accepted
 author: architect
 refs:
 - GUIDE-79
+- ADR-133
+- ADR-141
+- ADR-153
 description: Harnesses sit behind an ABC + registry; real content lives under the
   squad folder, .claude/ holds only pointers
 created_at: '2026-06-12T14:23:08Z'
-updated_at: '2026-06-12T14:29:32Z'
+updated_at: '2026-08-03T08:40:49Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -29,8 +32,8 @@ layer keeps a single source for each definition and keeps the core harness-agnos
 ## Decision
 
 **Backends are pluggable behind the `AgentBackend` ABC, and `.claude/` files are thin pointers.** The
-ABC defines the surface (`ensure_scaffold`, `write_managed`, `generate_role_pointer`,
-`generate_skill_pointer`, `remove_artifacts`); a registry maps names to backends and the Claude Code
+ABC defines the surface (`ensure_scaffold`, `write_managed`, `generate_role_entry`,
+`generate_skill_entry`, `remove_artifacts`); a registry maps names to backends and the Claude Code
 package registers itself on import. **Nothing outside a backend reaches into `.claude/`** — the core
 goes through the ABC.
 
@@ -54,14 +57,39 @@ What this binds today:
   definition. That is the deliberate price of single-sourcing the content and keeping the core
   harness-agnostic.
 
-## Status note
+## Provenance
 
 Recorded retroactively. This decision predates squads tracking itself and lived only in `CLAUDE.md`
 (invariants 5 and 6) and `docs/internals.md` (§7). It is documented here as a decision already **in
-force**, not newly debated in-tool. Left **Proposed** for the manager to accept with the set.
+force**, not newly debated in-tool.
+
+## Amendment note
+
+**2026-08-03 — the ABC is seven methods, mostly async, and neutrally named.** Both principles are
+verified in force: nothing outside `_backends/` reaches into `.claude/` (the only literals elsewhere are
+the correctly frozen ones in the migration runners), role and skill content is single-sourced under
+`squads/agents/`, `.claude/` holds pointers plus tool-owned config, and `settings.json` is merged rather
+than clobbered. What moved is the surface's spelling and size, in three declared steps:
+
+- **ADR-133** renamed `generate_role_pointer`/`generate_skill_pointer` to `generate_role_entry`/
+  `generate_skill_entry` before the 1.0 freeze — the point being that "pointer" is a Claude-Code-shaped
+  word for what a neutral backend produces. The names above are corrected in place; a second backend
+  (`_agents_md`) writes staging files and a compiled section, and would have inherited the wrong noun.
+- **ADR-141** added `managed_paths` for multi-active fan-out, and `candidate_orphans` came with the
+  orphan report. The surface is therefore **seven** methods, which ADR-697 §3 later made load-bearing:
+  it rules that the ABC does not grow, so a backend inherits status-driven withdrawal by implementing
+  the same seven it would have implemented anyway.
+- **ADR-153** made the five IO methods `async def`, leaving `managed_paths` sync.
+
+None of the three replaces this decision — each extends the surface it defined — so `related` edges are
+added to ADR-133, ADR-141 and ADR-153 rather than any status moving.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:40:49Z] Robert Architect:
+  - Amended in place; nothing retired. Both principles verified in force: nothing outside `_backends/` reaches into `.claude/` (the only literals elsewhere are the correctly frozen migration ones), content single-sourced under `squads/agents/`, `settings.json` merged not clobbered.
+  - Corrected the two ABC method names in place — `generate_role_pointer`/`generate_skill_pointer` became `generate_role_entry`/`generate_skill_entry` (ADR-133), and the reason matters more than the rename: "pointer" is a Claude-Code-shaped word for what a neutral backend produces, and the AGENTS.md backend that writes staging files plus a compiled section would have inherited the wrong noun. On a surface this decision describes as 1.0 contract material, two names that have not existed since ADR-133 is the worst kind of stale.
+  - Recorded the surfaces growth as three declared steps rather than drift: `managed_paths` for multi-active fan-out (ADR-141) plus `candidate_orphans`, giving the seven methods ADR-697 section 3 later made load-bearing when it ruled the ABC does not grow; and the five IO methods becoming `async def` with `managed_paths` left sync (ADR-153). Added `related` edges to all three — this decision linked to none of the decisions that revised it.
 <!-- sq:discussion:end -->

@@ -21,7 +21,7 @@ SQ = (sys.executable, "-m", "squads")
 
 
 def _run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(args, capture_output=True, text=True, cwd=cwd)
+    result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", cwd=cwd)
     assert result.returncode == 0, (
         f"{' '.join(args)!r} failed (exit {result.returncode}):\n"
         f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
@@ -167,7 +167,11 @@ def test_two_branches_editing_the_same_memory_surface_an_honest_conflict(tmp_pat
     _git(tmp_path, "merge", "--no-edit", "-q", "edit-a")  # fast-forward
 
     merge_result = subprocess.run(
-        ["git", "merge", "--no-edit", "edit-b"], cwd=tmp_path, capture_output=True, text=True
+        ["git", "merge", "--no-edit", "edit-b"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
     )
     assert merge_result.returncode != 0, "same-memory edits on two branches must conflict honestly"
     assert "CONFLICT" in merge_result.stdout + merge_result.stderr

@@ -68,6 +68,9 @@ Operate as **Paul Reviewer** for the duration of the conversation.
 Before you start, run `sq memory reviewer list`, then `sq memory
 reviewer show <slug>` for anything relevant, and check `sq board list`
 for team notices — apply anything relevant.
+Then read your queue on **both** surfaces — they differ in granularity and neither subsumes the
+other: `sq mine reviewer` for the items assigned to you, and
+`sq inbox reviewer` for the comment lines that `@mention` you.
 - File review findings as tracked sub-entities — `sq review <n> add-finding` with its badge field(s) set (severity in the bundled workflow), statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure.
 
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
@@ -101,7 +104,9 @@ shared principle:
 - **Decisions** go on the record when they are made — attribute with `--as` immediately.
 - **Handoffs** (`@mention`) only when work actually moves to that role. Never signal a handoff for
   work nobody has greenlit — a mention is a real call-to-action, not ceremony.
-- Keep status honest: move items to `InProgress` when you start, not before.
+- Keep status honest: move an item to its lifecycle's first working state when you actually
+  start (`sq <type> <n> update --status <status>`; see `sq <type> <n> show` for the current
+  one and `sq workflow` for the full lifecycle), not before.
 <!-- sq:body:end -->
 
 ## Discussion

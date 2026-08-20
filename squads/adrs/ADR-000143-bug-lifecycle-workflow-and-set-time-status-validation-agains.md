@@ -9,8 +9,10 @@ refs:
 - BUG-142:addresses
 - FEAT-13
 - FEAT-138
+- ADR-322
+- ADR-696
 created_at: '2026-06-16T11:58:36Z'
-updated_at: '2026-06-16T11:59:52Z'
+updated_at: '2026-08-03T08:36:04Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -36,6 +38,13 @@ Two coupled defects in the status vocabulary / workflow validation (BUG-142):
 
 The status vocabulary and the per-type workflows are **stability-contract surface that freezes at
 1.0** (FEAT-13). This is therefore a pre-1.0 decision and must be recorded there.
+
+*Narrowed 2026-08-03: status names are not contract surface. What freezes is the set-time
+validation behaviour §2 adds, the declared status-role vocabulary the engine binds to, and this
+lifecycle as the bundled **default** — a project may rename, reorder and replace its status names
+(ADR-322, ADR-474/604/696). Read this way rather than as written, because reading it as written is
+how a conformance sweep mistakes adopter-renamable vocabulary for a missing guarantee. See the
+amendment note.*
 
 Operator direction (op-pierre, 2026-06-16): give bugs a real lifecycle using the existing enum
 values, and tighten set-status to reject out-of-workflow values at set-time.
@@ -190,6 +199,10 @@ remap is preferred and is minimal.
 
 ## Implementation pointers (for @python-dev)
 
+*Historical: these name the pre-spec tree. The lifecycle lives in `src/squads/_specs/workflow.toml`,
+there is no `Status`/`ItemType` enum, no `_workflow.py` module and no `_workflow.TERMINAL`. The
+membership check and its error type are where this section put them.*
+
 - `src/squads/_workflow.py`: add `_BUG`, point `WORKFLOWS[ItemType.BUG]` at it (was `_WORK`).
   Confirm `TERMINAL` already contains `Verified`/`WontFix`/`Cancelled` (it does) — no edit needed.
 - `src/squads/_services/_items.py::_apply_status`: add the membership check (force-independent),
@@ -199,9 +212,51 @@ remap is preferred and is minimal.
   **only after FEAT-138's 0.4 is merged**.
 - Tests: service + CLI smoke for (a) bug transitions along the new map, (b) set-time rejection of
   `Done` on a bug (and with `--force`), (c) corpus migration reaching `sq check`-clean.
+
+## Amendment note
+
+**2026-08-03 — what freezes is the validation behaviour and the declared status role, not the status
+names.** Both substantive rulings are verified in force, edge for edge. The bug lifecycle is
+`[lifecycles.bug]` in the bundled spec with `initial = "Open"` and a transition table identical to §1's
+row for row. `StatusNotInWorkflowError` exists and fires from `_apply_status` **before** the transition
+check and independently of `force`, exactly as §2 requires. The one-way remap runner shipped.
+
+The clause that needs narrowing is the framing one: "the status vocabulary and the per-type workflows
+are stability-contract surface that freezes at 1.0". That was true of a codebase whose vocabulary was
+a `StrEnum`. It is not true now, and reading it as still true is the most likely way for a
+contract-conformance sweep to misclassify adopter-renamable vocabulary as a missing guarantee — so it
+is worth stating precisely what moved where.
+
+- **ADR-322** removed both vocabulary enums, making the loaded spec the sole authority on the type and
+  status axes. A project may rename, reorder and replace status names.
+- **ADR-474, ADR-604 and ADR-696** then made the *spec* the only vocabulary authority in a stronger
+  sense: engine behaviour binds to a declared status **role** (with its `settled`, `hidden`, `color`
+  and `live` properties), and `StatusSpec.terminal` no longer exists. No status name is engine-bound.
+
+So the frozen surface here is: (1) the set-time membership check, its force-independence, and the
+distinct error type — behaviour an adopter can rely on whatever they call their statuses; (2) the
+declared role vocabulary the engine reads, which is what a lifecycle must supply; and (3) the bundled
+default lifecycle below, frozen as *the default*, which is what "do nothing behaves as today"
+guarantees. The literal names `Open`/`Fixed`/`Verified`/`WontFix` and this transition table are that
+default, not a reserved vocabulary — and the reachability, single-initial and role-coverage rules the
+spec loader enforces are what a project's replacement is held to instead.
+
+Mechanism citations throughout are historical and read as such once the above is known: there is no
+`Status` enum, no `ItemType`, no `_workflow.py` module (it is the `_workflow/` package), no
+`WORKFLOWS[ItemType.BUG]` to point at a `_BUG` machine, and no `_workflow.TERMINAL` — the bundled
+lifecycle lives in `src/squads/_specs/workflow.toml`, `status.value` is just `status`, and terminality
+is derived from the status role. `workflow_for(type).states` survives as the membership source, which
+is why §2's check needed no restatement at all.
+
+`related` edges added to ADR-322 and ADR-696.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:36:04Z] Robert Architect:
+  - Amended in place; nothing retired. Both substantive rulings verified edge for edge: `[lifecycles.bug]` in the bundled spec reproduces section 1s table row for row with `initial = "Open"`, and `StatusNotInWorkflowError` fires from `_apply_status` at `_services/_items.py:397` before the transition check and independently of `force`, which is exactly what section 2 required.
+  - Narrowed the framing clause, and this is the one the audit rightly put ahead of the cosmetic fixes: "the status vocabulary and the per-type workflows are stability-contract surface that freezes at 1.0" was true of a `StrEnum` codebase and is false now. Stated precisely what moved where — names are adopter-renamable (ADR-322, then ADR-474/604/696 binding engine behaviour to a declared status role), while what actually freezes is the set-time membership check with its force-independence and distinct error type, the role vocabulary a lifecycle must supply, and this lifecycle as the bundled default.
+  - Flagged for whoever runs the bundled-assumption sweep off this map: read the clause as narrowed, not as written. Left as written it will report every renamable status name as a frozen surface the code fails to guarantee, which inverts the finding.
+  - Marked the implementation-pointer section historical rather than rewriting it — no `Status`/`ItemType` enum, no `_workflow.py` module, no `_workflow.TERMINAL`. Worth noting the one citation that needed no correction: `workflow_for(type).states` is still the membership source, which is why section 2s check survived the de-typing untouched. Added `related` edges to ADR-322 and ADR-696.
 <!-- sq:discussion:end -->

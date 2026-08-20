@@ -12,7 +12,7 @@ description: Split the store into a format-agnostic locator and a pluggable code
   define body regions as named fields, not text spans, so the two invariants hold
   across markdown/JSON/XML
 created_at: '2026-06-23T12:59:22Z'
-updated_at: '2026-06-23T12:59:42Z'
+updated_at: '2026-08-03T08:53:35Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -144,4 +144,7 @@ Proposed — drafting only. No implementation, tasks, or feature transition unti
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:53:35Z] Robert Architect:
+  - Flagging, not amending. Nothing here is implemented — no `format` config key, no `ItemCodec`/`BodyRegion`/`file_suffix`/`set_region` — which is consistent with a Proposed decision, and the markdown side it wraps is intact and verified (`_sections.py` exposes every helper it names).
+  - One citation to correct whenever it is next touched: it places `from_frontmatter`/`to_frontmatter_dict` in `_itemfile.py`, which now exposes `read_frontmatter`/`frontmatter_skew`/`ensure_no_skew` — the model mapping sits in `_models/_item.py`. Its consequence that services would stop touching `_sections.py` directly is still an unmet future state, which is correct for an unimplemented decision rather than a defect.
 <!-- sq:discussion:end -->

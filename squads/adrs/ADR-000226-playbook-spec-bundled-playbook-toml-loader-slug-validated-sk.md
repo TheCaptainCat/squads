@@ -11,8 +11,9 @@ refs:
 - FEAT-219
 - ADR-221
 - ADR-214
+- ADR-322
 created_at: '2026-06-26T08:01:33Z'
-updated_at: '2026-06-26T08:03:22Z'
+updated_at: '2026-08-03T08:48:39Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -44,6 +45,7 @@ Pyright-strict pydantic v2 mirroring today's `ItemPlaybook` + `RoleGuide` exactl
 ```
 PlaybookSpec
     types: dict[ItemType, ItemPlaybookSpec]   # keyed by item type; work types only (see §3)
+                                              # now dict[str, ItemPlaybookSpec] — ADR-322
 
 ItemPlaybookSpec
     overview:  str
@@ -71,10 +73,11 @@ authority for *which* item-type skills exist and *what* they say.
 
 ### 2. Bundled TOML location & schema
 
-Ships as package data at **`src/squads/_interactions/playbook.toml`** — promoting `_interactions.py`
-into an `_interactions/` package (`__init__.py` re-exporting the current public names so import
-sites are unchanged), with the TOML beside the loader. Consistent with `_workflow/
-default_workflow.toml` (ADR-214) and `_roles/roles.toml` (ADR-221); swept into the wheel by the
+Ships as package data at **`src/squads/_interactions/playbook.toml`** (now
+`src/squads/_specs/playbook.toml`, beside `workflow.toml` and `roles.toml`) — promoting
+`_interactions.py` into an `_interactions/` package (`__init__.py` re-exporting the current public
+names so import sites are unchanged), with the TOML beside the loader. Consistent with the workflow
+spec (ADR-214) and the role catalog (ADR-221); swept into the wheel by the
 existing `packages = ["src/squads"]` rule (verify in the build test). Loaded via
 `importlib.resources.files("squads._interactions") / "playbook.toml"` + `tomllib`.
 
@@ -201,9 +204,31 @@ The playbook's real output is **skill text**, so the golden lock asserts at both
 - **Risk:** low — behavior-preserving, golden-locked at the output layer, no type-system change. The
   main subtlety is preserving exact string content and role-guide ordering through the TOML round
   trip; the byte-identical skill golden is the backstop.
+
+## Amendment note
+
+**2026-08-03 — two citations refreshed; the bundled-only boundary is still true.** In force and verified:
+the `_interactions.py`-to-package promotion happened, `load_playbook(catalog, …)` takes the role catalog
+as its slug authority, the skill descriptions are still derived from the playbook's type set, and the
+golden lock is in place.
+
+- The spec files moved to `src/squads/_specs/`, so the path is `playbook.toml` there.
+- `PlaybookSpec.types` is `dict[str, ItemPlaybookSpec]` (ADR-322 removed the enum). `load_playbook` also
+  gained a `spec` parameter, so playbook membership is filtered against the types an adopter still
+  declares — a narrowing of §3's coverage rule in the adopter's favour rather than a reversal of it.
+- **Not a stale clause, deliberately:** "the playbook is bundled-only" is still true in fact —
+  `sq override scaffold` supports templates, roles and workflow, and the playbook is not yet an override
+  kind. ADR-541 and ADR-696 §4c both name it as the planned fourth, and ADR-696 records it as blocked on
+  the playbook resolving against the active spec. That is a live forward dependency this decision is
+  correctly still on the near side of.
+
+`related` edge added to ADR-322.
 <!-- sq:body:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-03T08:48:39Z] Robert Architect:
+  - Two citations refreshed: the spec files live at `src/squads/_specs/`, and `PlaybookSpec.types` is `dict[str, ItemPlaybookSpec]` since ADR-322 removed the enum. `load_playbook` also gained a `spec` parameter, so playbook membership is filtered against the types an adopter still declares — a narrowing of section 3s coverage rule in the adopters favour, not a reversal.
+  - Recorded one thing deliberately as NOT a finding, so it does not get re-raised: "the playbook is bundled-only" is still true in fact. `sq override scaffold` supports templates, roles and workflow only. ADR-541 and ADR-696 section 4c both name the playbook as the planned fourth kind and ADR-696 records it as blocked on the playbook resolving against the active spec — so this is a live forward dependency this decision is correctly still on the near side of, not stale prose.
 <!-- sq:discussion:end -->

@@ -9,7 +9,7 @@ import sys
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, make_unreadable_by_the_os
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -29,7 +29,7 @@ async def test_check_exits_3_bare_on_a_corrupt_item_file(tmp_path):
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     svc = service.Service(init.paths)
     task = (await create_item(svc, "task", "corrupt target")).item
-    svc.paths.abspath(task.path).chmod(0o000)
+    make_unreadable_by_the_os(svc.paths.abspath(task.path))
 
     result = _run(tmp_path, "check")
 
@@ -44,7 +44,7 @@ async def test_repair_exits_1_bare_on_a_corrupt_item_file(tmp_path):
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     svc = service.Service(init.paths)
     task = (await create_item(svc, "task", "corrupt target")).item
-    svc.paths.abspath(task.path).chmod(0o000)
+    make_unreadable_by_the_os(svc.paths.abspath(task.path))
 
     result = _run(tmp_path, "repair")
 
@@ -62,7 +62,7 @@ async def test_board_list_exits_1_bare_on_a_corrupt_notice(tmp_path):
     svc = service.Service(init.paths)
     notice = await svc.board_post("op-alice", "a fine notice")
     notice_path = svc.paths.squad_dir / "board" / f"{notice.id}.md"
-    notice_path.chmod(0o000)
+    make_unreadable_by_the_os(notice_path)
 
     result = _run(tmp_path, "board", "list")
 
@@ -82,7 +82,7 @@ async def test_board_list_json_stays_a_bare_array_and_reports_on_stderr(tmp_path
     await svc.board_post("op-alice", "a fine notice")
     notice2 = await svc.board_post("op-alice", "a corrupt notice")
     notice_path = svc.paths.squad_dir / "board" / f"{notice2.id}.md"
-    notice_path.chmod(0o000)
+    make_unreadable_by_the_os(notice_path)
 
     result = _run(tmp_path, "board", "list", "--json")
 

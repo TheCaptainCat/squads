@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from squads._specmerge import resolve_splat_refs
+from squads._specmerge import _MAX_NESTING_DEPTH, resolve_splat_refs
 
 
 def _bundled_playbook() -> dict[str, Any]:
@@ -440,11 +440,17 @@ def test_the_same_base_list_spread_twice_duplicates_it() -> None:
 def test_a_pathologically_deep_dotted_key_chain_collects_a_violation_not_a_recursion_error() -> (
     None
 ):
-    """A ~2000-segment dotted-key chain is legal TOML (`tomllib` accepts it happily) — the
-    engine, not the parser, is the only place left to guard against an uncaught
-    ``RecursionError``. The refusal collects on the same violation channel as every other
-    mechanism — `resolve_splat_refs` never raises."""
-    segments = ".".join(f"k{i}" for i in range(2000))
+    """A dotted-key chain far deeper than the engine will walk is still legal TOML that
+    `tomllib` parses into real nested tables — the engine, not the parser, is the only place
+    left to guard against an uncaught ``RecursionError``. The refusal collects on the same
+    violation channel as every other mechanism — `resolve_splat_refs` never raises.
+
+    The chain is sized from the engine's own bound rather than picked as a round number, so it
+    stays valid whatever either side's limits are: comfortably past what the engine walks, and
+    comfortably short of ``tomllib``'s own cap on key parts (1000 since CPython 3.14.7, which
+    raises ``RecursionError`` from the *parser* — a depth chosen above that would fail in test
+    setup on a patched interpreter and never reach the engine at all)."""
+    segments = ".".join(f"k{i}" for i in range(_MAX_NESTING_DEPTH * 2))
     override = tomllib.loads(f"{segments} = 1\n")
 
     _resolved, violations = resolve_splat_refs({}, override, "o")

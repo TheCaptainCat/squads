@@ -682,18 +682,28 @@ function buildSubEntityHeadLine(entity: SqSubEntity, fields: SubEntityFieldConte
   return parts.join(' · ');
 }
 
+/** A sub-entity's comments block is tracked under its own fold id, distinct from its body's
+ * plain `local_id` (see `buildSubEntityHtml`) — appending `:discussion` so the two can never
+ * collide, which is what let the discussion hardcode `open` in the first place. Now that it
+ * carries its own identity there's no collision risk left, so it defaults collapsed and
+ * remembers its state across a same-item refresh exactly like the body does. */
+export function subEntityDiscussionFoldId(localId: string): string {
+  return `${localId}:discussion`;
+}
+
 /** A sub-entity's own comments block, mirroring `buildDiscussionHtml`'s markup (same `<details
- * class="sq-graph" open>` wrapper, same `buildCommentHtml` per entry) so a reader recognises it
+ * class="sq-graph">` wrapper, same `buildCommentHtml` per entry) so a reader recognises it
  * as the same kind of thing, just scoped to the sub-entity rather than the whole item. `entries`
  * is `undefined` for an older-`sq` payload that omits the key entirely (see `isSqSubEntity`) and
  * treated exactly like an empty array — both fold away to nothing, the same graceful-empty
  * behaviour `buildDiscussionHtml` gives the item-level section.
  *
- * Deliberately carries no `data-sq-fold-id`: the block always renders `open` and its state is
- * never restored across a refresh, so it can't collide with — or reset — the sub-entity body
- * fold's tracking, which *is* keyed by `local_id` (see `buildSubEntityHtml`). */
+ * Carries its own `data-sq-fold-id` (`subEntityDiscussionFoldId`) rather than the body's plain
+ * `local_id`, so toggling one can never collide with — or reset — the other's tracking. */
 function buildSubEntityDiscussionHtml(
   entries: readonly SqDiscussionEntry[] | undefined,
+  localId: string,
+  open: boolean,
   currentId: string | undefined,
   roles: RoleDirectory | undefined,
   ids: ItemIdMatcher | undefined,
@@ -706,16 +716,21 @@ function buildSubEntityDiscussionHtml(
     .map((entry) => buildCommentHtml(entry, currentId, roles, ids, items))
     .join('\n');
   const count = String(entries.length);
-  return `<details class="sq-graph" open><summary>Discussion (${count})</summary>${comments}</details>`;
+  const openAttr = open ? ' open' : '';
+  return (
+    `<details class="sq-graph" data-sq-fold-id="${escapeHtml(subEntityDiscussionFoldId(localId))}"${openAttr}>` +
+    `<summary>Discussion (${count})</summary>${comments}</details>`
+  );
 }
 
 /** One sub-entity: its local id + title as a header, the head badge line always visible, its body
  * as collapsible prose (when it has one) rendered through the same markdown renderer the
  * dossier/discussion sections use — a blank body renders no `<details>` at all — and, last, its
  * own comments block (see `buildSubEntityDiscussionHtml`; absent/empty folds away the same way).
- * The body fold's `data-sq-fold-id` is the sub-entity's own `local_id` — stable across a
- * same-item refresh (which is what `open`, from the caller's per-panel tracker, is keyed on), but
- * *not* unique across items (a different item can reuse the same local id), which is why
+ * The body fold's `data-sq-fold-id` is the sub-entity's own `local_id`; the discussion fold's is
+ * `subEntityDiscussionFoldId(local_id)` — both stable across a same-item refresh (which is what
+ * `open`/`discussionOpen`, from the caller's per-panel tracker, are keyed on), but *not* unique
+ * across items (a different item can reuse the same local id), which is why
  * `itemPreviewManager.ts` resets its per-panel tracker on every navigation to a different item
  * rather than keying trackers by local id alone. */
 function buildSubEntityHtml(
@@ -723,6 +738,7 @@ function buildSubEntityHtml(
   currentId: string | undefined,
   roles: RoleDirectory | undefined,
   open: boolean,
+  discussionOpen: boolean,
   fields: SubEntityFieldContext,
   ids: ItemIdMatcher | undefined,
   items: ItemDirectory | undefined,
@@ -736,21 +752,32 @@ function buildSubEntityHtml(
     entity.body.trim() === ''
       ? ''
       : `<details class="sq-subentity-body" data-sq-fold-id="${escapeHtml(entity.local_id)}"${openAttr}><summary>Body</summary>${renderMarkdownToHtml(entity.body, currentId, false, roles, ids, items)}</details>`;
-  const discussion = buildSubEntityDiscussionHtml(entity.discussion, currentId, roles, ids, items);
+  const discussion = buildSubEntityDiscussionHtml(
+    entity.discussion,
+    entity.local_id,
+    discussionOpen,
+    currentId,
+    roles,
+    ids,
+    items,
+  );
   return `<div class="sq-subentity">${header}${head}${body}${discussion}</div>`;
 }
 
 /** The collapsible sub-entities section: a feature's stories, a task's subtasks, a review's
  * findings — in `sq show <id> --json`'s `subentities` array order. Mirrors `buildDiscussionHtml`'s
  * failure/empty/populated shape, including the `roles` pass-through for `@<slug>` mentions.
- * `isBodyOpen` restores a sub-entity body fold's prior open/closed state across a same-item
- * refresh; the wrapper `<details>` this function renders always stays `open` regardless.
- * `fields` labels each sub-entity's declared badge fields — see `SubEntityFieldContext`. */
+ * `isFoldOpen` restores a sub-entity's body *and* discussion folds' prior open/closed state
+ * across a same-item refresh — called with the plain `local_id` for the body and
+ * `subEntityDiscussionFoldId(local_id)` for the discussion, so the caller's tracker (keyed by
+ * whatever id it's given) handles both without knowing which is which; the wrapper `<details>`
+ * this function renders always stays `open` regardless. `fields` labels each sub-entity's
+ * declared badge fields — see `SubEntityFieldContext`. */
 export function buildSubEntitiesHtml(
   outcome: SubEntitiesOutcome,
   currentId?: string,
   roles?: RoleDirectory,
-  isBodyOpen: (localId: string) => boolean = () => false,
+  isFoldOpen: (foldId: string) => boolean = () => false,
   fields: SubEntityFieldContext = {},
   ids?: ItemIdMatcher,
   items?: ItemDirectory,
@@ -766,7 +793,16 @@ export function buildSubEntitiesHtml(
   }
   const entries = outcome.entities
     .map((entity) =>
-      buildSubEntityHtml(entity, currentId, roles, isBodyOpen(entity.local_id), fields, ids, items),
+      buildSubEntityHtml(
+        entity,
+        currentId,
+        roles,
+        isFoldOpen(entity.local_id),
+        isFoldOpen(subEntityDiscussionFoldId(entity.local_id)),
+        fields,
+        ids,
+        items,
+      ),
     )
     .join('\n');
   const count = String(outcome.entities.length);
