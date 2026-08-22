@@ -1,22 +1,21 @@
-"""Both backends read a role's resolved preload-skill list from ``BackendContext``, not by
-calling ``interactions.skills_for_role`` themselves.
+"""A role's resolved preload-skill list reaches its backend pointer from ``BackendContext``,
+not from an independent call to ``interactions.skills_for_role``.
 
-Parametrized over the backend registry (mirrors ``test_backend_lifecycle_contract.py``): the
-same ``BackendContext.role_skills`` entry — standing in for the service-layer resolver's
-output once a skill is scoped to a role — must reach both the Claude Code pointer YAML and the
-AGENTS.md staging entry identically. Proves the resolved list, not an independent per-backend
-lookup, is the single source for every backend.
+The same ``BackendContext.role_skills`` entry — standing in for the service-layer resolver's
+output once a skill is scoped to a role — must reach the Claude Code pointer YAML verbatim.
+Claude Code is the only registered backend with a per-role pointer file to carry this in:
+``agents_md``'s compiled section is built from ``RoleView``s alone and never renders a role's
+skill list at all (its own per-entry methods write nothing — see ``AgentsMdBackend``'s module
+docstring), so it has no surface for this property to hold or fail on.
 """
 
-from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from squads import _interactions as interactions
-from squads._backends._agents_md._backend import AgentsMdBackend
-from squads._backends._base import AgentBackend, BackendContext
+from squads._backends._base import BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
 from squads._models._config import SquadsConfig
 from squads._models._extras import ExtraKey as X
@@ -26,20 +25,10 @@ from squads._roles._catalog import RoleDef
 
 pytestmark = pytest.mark.anyio
 
-BackendFactory = Callable[[], AgentBackend]
 
-_BACKEND_FACTORIES: list[tuple[str, BackendFactory]] = [
-    ("claude_code", ClaudeCodeBackend),
-    ("agents_md", AgentsMdBackend),
-]
-
-
-@pytest.fixture(
-    params=[name for name, _ in _BACKEND_FACTORIES], ids=[name for name, _ in _BACKEND_FACTORIES]
-)
-def backend(request: pytest.FixtureRequest) -> AgentBackend:
-    name: str = request.param
-    return dict(_BACKEND_FACTORIES)[name]()
+@pytest.fixture
+def backend() -> ClaudeCodeBackend:
+    return ClaudeCodeBackend()
 
 
 @pytest.fixture
@@ -101,8 +90,8 @@ async def test_the_resolved_list_differs_from_the_pure_system_only_mapping() -> 
     assert interactions.skills_for_role("architect") != _RESOLVED_SKILLS
 
 
-async def test_each_backends_role_entry_carries_the_context_resolved_list_verbatim(
-    backend: AgentBackend, paths: SquadPaths, role_def: RoleDef
+async def test_the_role_entry_carries_the_context_resolved_list_verbatim(
+    backend: ClaudeCodeBackend, paths: SquadPaths, role_def: RoleDef
 ) -> None:
     ctx = BackendContext(paths=paths, role_skills={"architect": _RESOLVED_SKILLS})
     await backend.ensure_scaffold(ctx)
@@ -114,11 +103,11 @@ async def test_each_backends_role_entry_carries_the_context_resolved_list_verbat
         assert system_skill in content
 
 
-async def test_absent_from_role_skills_falls_back_to_the_pure_mapping_for_every_backend(
-    backend: AgentBackend, paths: SquadPaths, role_def: RoleDef
+async def test_absent_from_role_skills_falls_back_to_the_pure_mapping(
+    backend: ClaudeCodeBackend, paths: SquadPaths, role_def: RoleDef
 ) -> None:
-    """No ``role_skills`` entry (pre-resolver call sites, e.g. brand-new role creation) —
-    every backend must still fall back to the pure system-only list, not omit skills."""
+    """No ``role_skills`` entry (pre-resolver call sites, e.g. brand-new role creation) — the
+    backend must still fall back to the pure system-only list, not omit skills."""
     ctx = BackendContext(paths=paths)  # role_skills defaults to {}
     await backend.ensure_scaffold(ctx)
     item = _make_role_item(paths.squad_dir, role_def.slug)

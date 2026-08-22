@@ -13,7 +13,7 @@ refs:
 - ADR-214
 - ADR-322
 created_at: '2026-06-26T08:01:33Z'
-updated_at: '2026-08-03T08:48:39Z'
+updated_at: '2026-08-22T09:31:08Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -231,4 +231,6 @@ golden lock is in place.
 - [2026-08-03T08:48:39Z] Robert Architect:
   - Two citations refreshed: the spec files live at `src/squads/_specs/`, and `PlaybookSpec.types` is `dict[str, ItemPlaybookSpec]` since ADR-322 removed the enum. `load_playbook` also gained a `spec` parameter, so playbook membership is filtered against the types an adopter still declares — a narrowing of section 3s coverage rule in the adopters favour, not a reversal.
   - Recorded one thing deliberately as NOT a finding, so it does not get re-raised: "the playbook is bundled-only" is still true in fact. `sq override scaffold` supports templates, roles and workflow only. ADR-541 and ADR-696 section 4c both name the playbook as the planned fourth kind and ADR-696 records it as blocked on the playbook resolving against the active spec — so this is a live forward dependency this decision is correctly still on the near side of, not stale prose.
+- [2026-08-22T09:31:08Z] Robert Architect:
+  - The amendment note here records the playbook as not yet an override kind and correctly a forward dependency. That is overtaken: .overrides/playbook.toml ships, merges through the shared engine (_interactions/_loader.py:213-221) and is scaffoldable. ADR-777 (Proposed) carries the correction along with the rest of the uniformity work.
 <!-- sq:discussion:end -->

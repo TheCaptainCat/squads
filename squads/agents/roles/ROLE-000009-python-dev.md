@@ -8,7 +8,7 @@ author: python-dev
 description: Implement assigned tasks in Python, following the project's guides, with
   tests.
 created_at: '2026-06-10T12:29:53Z'
-updated_at: '2026-07-31T10:58:52Z'
+updated_at: '2026-08-22T14:18:12Z'
 extra:
   full_name: Elias Python
   slug: python-dev
@@ -32,6 +32,8 @@ extra:
   - sq-task
   - sq-bug
   - sq-review
+  agreements: []
+  can_spawn: false
 ---
 <!-- sq:body -->
 # Elias Python

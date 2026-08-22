@@ -23,6 +23,7 @@ and subentity partials (subentities/*) are not item files and carry no sq-body s
 """
 
 import difflib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,6 +34,7 @@ from squads._interactions._loader import (
     bundled_playbook_toml_text,
     playbook_stamp_finding,
 )
+from squads._models._item import Item
 from squads._overrides._manifest import (
     base_version_template_content,
     bundled_template_content,
@@ -888,13 +890,24 @@ def _update_all(squad_dir: Path) -> list[str]:
 # ─── check helpers (used by _services/_maintenance.py) ────────────────────────
 
 
-def check_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
+def check_override_issues(
+    squad_dir: Path, role_items_by_slug: Mapping[str, Item] | None = None
+) -> list[tuple[str, str, str]]:
     """Return a list of (level, item_path, message) for sq check integration.
 
     Levels are ``"warn"`` or ``"error"`` (matching CheckIssue).
     *item_path* is the relative path string for display in the sq check output.
+
+    *role_items_by_slug* — the live roster's ``ROLE`` items, keyed by ``extra.slug`` — lets a
+    role override resolve against its own live identity, bundled or developer alike (see
+    :func:`~squads._roles._resolver.role_base_from_item`), instead of the developer case alone
+    regenerating a pool name. Omitted (or a slug with no entry) falls back to
+    :func:`~squads._roles._resolver.dev_base_for_slug`, which is exactly right for a
+    ``<tech>-dev.toml`` with no matching roster entry — this function has no roster of its own
+    to load, so the caller (``Service.check``, which already has the index in hand) supplies it.
     """
     issues: list[tuple[str, str, str]] = []
+    role_items_by_slug = role_items_by_slug or {}
 
     # Template overrides
     tmpl_dir = _template_overrides_dir(squad_dir)
@@ -969,7 +982,9 @@ def check_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
                         f"`sq override update --role {slug}`",
                     )
                 )
-            issues.extend(_check_role_override_resolves(squad_dir, slug, display))
+            issues.extend(
+                _check_role_override_resolves(squad_dir, slug, display, role_items_by_slug)
+            )
 
     issues.extend(_check_workflow_override_issues(squad_dir))
     issues.extend(_check_playbook_override_issues(squad_dir))
@@ -977,7 +992,7 @@ def check_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
 
 
 def _check_role_override_resolves(
-    squad_dir: Path, slug: str, display: str
+    squad_dir: Path, slug: str, display: str, role_items_by_slug: Mapping[str, Item]
 ) -> list[tuple[str, str, str]]:
     """Report a role override that the surfaces which consume it refuse to load.
 
@@ -993,21 +1008,36 @@ def _check_role_override_resolves(
     on ``open_service``'s path, so ``sq check`` rewraps the failure into its own issue). This
     is the same statement for the one document class that had no reporter at all.
 
-    Deliberately resolved through ``resolve_role`` — the exact function ``sq sync``'s catalog
-    refresh and ``sq role <slug> show`` both call — rather than a re-implemented validation, so
-    the report can never claim a refusal the consumers do not make, or miss one they do.
-    ``RoleNotFoundError`` is unreachable here (the file exists, so resolution always takes the
-    override branch) and needs no separate arm.
+    Deliberately resolved through ``resolve_role_with_base`` — the exact seam ``sq sync``'s
+    catalog refresh and ``sq role <slug> show`` both go through — rather than a re-implemented
+    validation, so the report can never claim a refusal the consumers do not make, or miss one
+    they do. A slug with a roster item gets the same base those two consumers would build
+    (:func:`~squads._roles._resolver.role_base_from_item` — a stored fact, whether the item is a
+    developer or a bundled role, for exactly the fields an operator can set on it), the
+    generated pool name (:func:`~squads._roles._resolver.dev_base_for_slug`) only for a
+    ``<tech>-dev`` slug with no roster item. ``RoleNotFoundError`` is unreachable here (the file
+    exists, so resolution always takes the override branch) and needs no separate arm.
 
     Every override file is resolved, not only the slugs the roster carries: ``sq role <slug>
     show`` reads one for a bundled role that was never activated, so scoping to live roles
     would leave a refusable file unreported on the one surface that can still reach it. Hence
     the message names when each consumer refuses rather than asserting both do.
     """
-    from squads._roles._resolver import resolve_role
+    from squads._interactions import is_dev_slug
+    from squads._roles._resolver import (
+        dev_base_for_slug,
+        resolve_role_with_base,
+        role_base_from_item,
+    )
+
+    item = role_items_by_slug.get(slug)
+    if item is not None:
+        base_role = role_base_from_item(item)
+    else:
+        base_role = dev_base_for_slug(slug) if is_dev_slug(slug) else None
 
     try:
-        resolve_role(slug, squad_dir)
+        resolve_role_with_base(slug, squad_dir, base=base_role)
     except SquadsError as exc:
         return [
             (

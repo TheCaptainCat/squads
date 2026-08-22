@@ -38,3 +38,20 @@ def test_an_unparseable_at_value_is_rejected(runner, tmp_path, monkeypatch) -> N
     r = runner.invoke(app, ["--at", "nope", "list"])
     assert r.exit_code == 2
     assert "invalid --at" in r.output
+
+
+def test_an_unparseable_at_values_iso_example_stays_on_one_line(
+    runner, tmp_path, monkeypatch
+) -> None:
+    """The regression this guards: at the suite's pinned `COLUMNS=80` (`tests/conftest.py`),
+    an unwrapped render used to insert a real newline inside the copy-pasteable ISO example --
+    asserted here as "no embedded newline", the same shape the soft-wrap class guard checks,
+    rather than a one-off match on this one message's exact text. Exit code stays 2: this
+    parser refuses differently from `sq reflog --since`'s (which exits 1, see
+    `test_reflog_cli.test_an_invalid_since_value_is_rejected`, unaffected by this fix)."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
+    r = runner.invoke(app, ["--at", "nope", "list"])
+    assert r.exit_code == 2
+    assert r.output.count("2024-01-15T09:30:00Z") == 1
+    assert "\n" not in r.output.strip("\n")

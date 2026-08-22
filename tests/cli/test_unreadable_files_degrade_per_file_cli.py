@@ -3,13 +3,18 @@ bare process invocation, never through a shell pipe that would mask them (a pipe
 the pipe's own exit code, not the command's -- see the project's exit-code contract notes).
 """
 
+import ast
+import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 from _helpers import create_item, make_unreadable_by_the_os
+from squads._index._resolver import item_file
+from squads._memory._store import role_folder
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -57,7 +62,12 @@ async def test_repair_exits_1_bare_on_a_corrupt_item_file(tmp_path):
 
 async def test_board_list_exits_1_bare_on_a_corrupt_notice(tmp_path):
     """Same exit-code decision as `repair` above, for the same reason: a listing that printed
-    `error:` and silently kept exit 0 is indistinguishable from a clean one to a script."""
+    `error:` and silently kept exit 0 is indistinguishable from a clean one to a script.
+
+    The per-file error itself belongs on stderr, exactly as the human and ``--json`` branches
+    both promise -- asserted here on the two streams captured separately (a real OS pipe per
+    stream, not a combined capture), with explicit absence from stdout so a script splitting
+    the streams never finds a degraded read mixed into its results."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     svc = service.Service(init.paths)
     notice = await svc.board_post("op-alice", "a fine notice")
@@ -66,11 +76,11 @@ async def test_board_list_exits_1_bare_on_a_corrupt_notice(tmp_path):
 
     result = _run(tmp_path, "board", "list")
 
-    assert result.returncode == 1, result.stderr.decode("utf-8", "replace")
-    # Rich hard-wraps a long unbroken path at the console width with a bare newline -- flatten
-    # before searching so a wrap point isn't mistaken for a miss.
-    flattened = result.stdout.decode("utf-8", "replace").replace("\n", "")
-    assert notice_path.name in flattened
+    stdout = result.stdout.decode("utf-8", "replace")
+    stderr = result.stderr.decode("utf-8", "replace")
+    assert result.returncode == 1, stderr
+    assert notice_path.name in stderr
+    assert notice_path.name not in stdout
 
 
 async def test_board_list_json_stays_a_bare_array_and_reports_on_stderr(tmp_path):
@@ -90,10 +100,153 @@ async def test_board_list_json_stays_a_bare_array_and_reports_on_stderr(tmp_path
     stdout = result.stdout.decode("utf-8", "replace")
     assert stdout.strip().startswith("["), stdout
     assert notice_path.name not in stdout, "the JSON body itself must stay untouched"
-    # Rich hard-wraps a long unbroken path at the console width with a bare newline -- flatten
-    # before searching so a wrap point isn't mistaken for a miss.
-    stderr_flattened = result.stderr.decode("utf-8", "replace").replace("\n", "")
-    assert notice_path.name in stderr_flattened
+    assert notice_path.name in result.stderr.decode("utf-8", "replace")
+
+
+async def test_memory_list_names_the_unreadable_entry_on_stderr_only(tmp_path):
+    """`sq memory <role> list`'s docstring promises the per-file error is "named on stderr
+    in both output modes" -- checked here on the human branch, with the two streams captured
+    separately (a real OS pipe per stream) so a script that splits them never finds the
+    degraded-read notice mixed into its results."""
+    init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+    svc = service.Service(init.paths)
+    await svc.memory_add("manager", "a remembered fact")
+    memory_path = next(iter(role_folder(init.paths, "manager").glob("*.md")))
+    make_unreadable_by_the_os(memory_path)
+
+    result = _run(tmp_path, "memory", "manager", "list")
+
+    stdout = result.stdout.decode("utf-8", "replace")
+    stderr = result.stderr.decode("utf-8", "replace")
+    assert memory_path.name in stderr
+    assert memory_path.name not in stdout
+
+
+async def test_memory_search_names_the_unreadable_entry_on_stderr_only(tmp_path):
+    """Same stream contract as `memory list` above, for `memory search`'s identical per-file
+    loop."""
+    init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+    svc = service.Service(init.paths)
+    await svc.memory_add("manager", "a remembered fact")
+    memory_path = next(iter(role_folder(init.paths, "manager").glob("*.md")))
+    make_unreadable_by_the_os(memory_path)
+
+    result = _run(tmp_path, "memory", "manager", "search", "fact")
+
+    stdout = result.stdout.decode("utf-8", "replace")
+    stderr = result.stderr.decode("utf-8", "replace")
+    assert memory_path.name in stderr
+    assert memory_path.name not in stdout
+
+
+async def _inbox_and_search_setup(tmp_path):
+    """One readable item carrying a mention and the needle text, and one to break."""
+    init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+    svc = service.Service(init.paths)
+    good = (await create_item(svc, "task", "readable")).item
+    await svc.set_body(good.id, "the quinoa line, and @manager is called out")
+    bad = (await create_item(svc, "task", "unreadable")).item
+    await svc.set_body(bad.id, "also quinoa, also @manager")
+    bad_path = item_file(svc.paths, bad)
+    make_unreadable_by_the_os(bad_path)
+    return good, bad_path
+
+
+@pytest.mark.parametrize("args", [["inbox", "manager"], ["search", "quinoa"]])
+async def test_inbox_and_search_name_the_unreadable_file_on_stderr_only(tmp_path, args):
+    """`sq inbox` and `sq search` share `_report_unreadable` (unlike `board list`/`memory
+    list`, which have their own inline loop) -- checked here with the two streams captured
+    as real, separate OS pipes (``subprocess.run``'s default), because a combined-output
+    grep passes on the defect this guards against and is exactly how it survived the
+    earlier stream-contract sweep."""
+    good, bad_path = await _inbox_and_search_setup(tmp_path)
+
+    result = _run(tmp_path, *args)
+
+    stdout = result.stdout.decode("utf-8", "replace")
+    stderr = result.stderr.decode("utf-8", "replace")
+    assert result.returncode == 1, stderr
+    assert good.id in stdout  # the answer is still delivered
+    assert bad_path.name in stderr
+    assert bad_path.name not in stdout
+
+
+@pytest.mark.parametrize("command", ["inbox", "search"])
+async def test_inbox_and_search_json_stays_a_bare_array_and_reports_on_stderr(tmp_path, command):
+    """`--json`'s stream split was already correct before this fix and must stay
+    byte-for-byte the same: a bare JSON array on stdout, the per-file error on stderr, and
+    nothing of the error leaking into either the JSON body or stdout generally."""
+    good, bad_path = await _inbox_and_search_setup(tmp_path)
+    args = ["inbox", "manager", "--json"] if command == "inbox" else ["search", "quinoa", "--json"]
+
+    result = _run(tmp_path, *args)
+
+    stdout = result.stdout.decode("utf-8", "replace")
+    stderr = result.stderr.decode("utf-8", "replace")
+    assert result.returncode == 1, stderr
+    payload = json.loads(stdout)
+    assert [row["id"] for row in payload] == [good.id]
+    assert bad_path.name not in stdout
+    assert bad_path.name in stderr
+
+
+@pytest.mark.parametrize("args", [["inbox", "manager"], ["search", "quinoa"]])
+async def test_inbox_and_search_clean_read_has_no_stderr_and_exits_zero(tmp_path, args):
+    """The counterpart to the degraded-read tests above: nothing unreadable means nothing on
+    stderr, the answer on stdout, and exit 0 -- unchanged by this fix."""
+    init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+    svc = service.Service(init.paths)
+    good = (await create_item(svc, "task", "readable")).item
+    await svc.set_body(good.id, "the quinoa line, and @manager is called out")
+
+    result = _run(tmp_path, *args)
+
+    stdout = result.stdout.decode("utf-8", "replace")
+    stderr = result.stderr.decode("utf-8", "replace")
+    assert result.returncode == 0, stderr
+    assert stderr == ""
+    assert good.id in stdout
+
+
+def _soft_wrap_true_at(rel_path: str, func_name: str) -> bool:
+    """Whether *func_name* in *rel_path* has at least one ``.print(..., soft_wrap=True)``
+    call -- an explicit, site-named pin (independent of the general marker-matching scan in
+    ``tests/meta``) so switching the stream on these three sites cannot silently drop the
+    wrapping fix that already landed for them."""
+    repo_root = Path(__file__).resolve().parents[2]
+    tree = ast.parse((repo_root / rel_path).read_text(encoding="utf-8"))
+    func = next(
+        n
+        for n in ast.walk(tree)
+        if isinstance(n, ast.AsyncFunctionDef | ast.FunctionDef) and n.name == func_name
+    )
+    return any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "print"
+        and any(
+            kw.arg == "soft_wrap" and isinstance(kw.value, ast.Constant) and kw.value.value is True
+            for kw in node.keywords
+        )
+        for node in ast.walk(func)
+    )
+
+
+@pytest.mark.parametrize(
+    ("rel_path", "func_name"),
+    [
+        ("src/squads/_cli/_board.py", "list_notices"),
+        ("src/squads/_cli/_memory.py", "list_memories"),
+        ("src/squads/_cli/_memory.py", "search_memories"),
+        ("src/squads/_cli/_main.py", "_report_unreadable"),
+    ],
+)
+def test_the_human_mode_unreadable_error_still_carries_soft_wrap(rel_path, func_name):
+    """The stream fix above (`console` -> `err_console`) must not quietly drop
+    ``soft_wrap=True`` at these sites -- the earlier wrapping fix stays intact. The last entry
+    is the single shared site for both `inbox` and `search` (`_report_unreadable`, called from
+    each rather than inlined in either)."""
+    assert _soft_wrap_true_at(rel_path, func_name)
 
 
 async def test_check_reports_a_type_invalid_field_without_a_traceback(tmp_path):

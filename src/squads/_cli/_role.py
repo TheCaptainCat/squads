@@ -36,10 +36,12 @@ from squads._cli._common import (
     resolve_agent_addr,
 )
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._interactions import allowed_create_types
+from squads._interactions import allowed_create_types, is_dev_slug
 from squads._models._extras import ExtraKey as X
-from squads._roles._catalog import PREDEFINED
-from squads._roles._resolver import resolve_role
+from squads._models._item import Item
+from squads._roles._catalog import PREDEFINED, RoleDef
+from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base, role_base_from_item
+from squads._services._service import Service
 from squads._workflow import ROSTER_ROLE
 
 
@@ -91,7 +93,8 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     console.print(
         "\n[dim]Need a wholly custom non-dev role (not in this catalog)? "
         "Run [cyan]sq override scaffold --new <slug>[/cyan], fill in the essentials, "
-        "then [cyan]sq role activate <slug>[/cyan].[/dim]"
+        "then [cyan]sq role activate <slug>[/cyan].[/dim]",
+        soft_wrap=True,
     )
 
 
@@ -206,6 +209,82 @@ def _require_id(ctx: typer.Context) -> str:
     return item_id
 
 
+def _role_base_for_show(slug: str, it: Item | None) -> RoleDef | None:
+    """The merge base for ``show``: an item in hand's own operator-settable fields
+    (:func:`role_base_from_item` — a bundled role's ``full_name``, a developer role's
+    tech/name/model) first, the ``-dev`` naming convention's generated preview only when there
+    is no item to ask.
+    """
+    if it is not None:
+        return role_base_from_item(it)
+    return dev_base_for_slug(slug) if is_dev_slug(slug) else None
+
+
+def _dev_preview_full_name(r: RoleDef, base_role: RoleDef | None, it: Item | None) -> str | None:
+    """The full name to report for a role card — ``None`` when it is a fabricated preview
+    rather than a real fact.
+
+    A ``-dev``-shaped slug with no roster entry previews against the generated developer
+    template (``dev_base_for_slug``), and that template's ``full_name`` is a pool pick ``sq dev
+    add`` is not bound to honour (the pool position it will actually land on depends on how many
+    developers exist *at that later point*, not now) — reporting it as the developer's name
+    would state a fact activation can immediately contradict. Only the un-declared case is
+    blanked: a file that itself sets ``full_name`` is the adopter's own declaration and is
+    reported as-is, matching every other role.
+    """
+    if it is None and base_role is not None and r.full_name == base_role.full_name:
+        return None
+    return r.full_name
+
+
+def _role_json_payload(
+    svc: Service,
+    slug: str,
+    item_id: str | None,
+    it: Item | None,
+    base_role: RoleDef | None,
+    addr: str,
+) -> dict[str, object]:
+    """The ``--json`` payload for ``show``: the full resolved definition, or an item-field
+    fallback for a slug with no bundled catalog entry, no dev base, and no override file.
+    """
+    data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
+    try:
+        r = resolve_role_with_base(slug, svc.paths.squad_dir, base=base_role)
+        data.update(
+            {
+                "full_name": _dev_preview_full_name(r, base_role, it),
+                "title": r.title,
+                "mission": r.mission,
+                "model": r.model,
+                "is_default": r.is_default,
+                "can_spawn": r.can_spawn,
+                "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
+                "responsibilities": list(r.responsibilities),
+            }
+        )
+    except RoleNotFoundError:
+        # Narrow deliberately: this fallback exists for a slug with no bundled catalog entry,
+        # no dev base, and no override file — and only that. A broader catch also swallowed an
+        # *invalid* project role override — the refusal disappeared and the card rendered from
+        # the stored item, so a squad answered as though the broken override were not there.
+        if it is None:
+            raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
+        data.update(
+            {
+                "full_name": it.extra.get(X.FULL_NAME, it.title),
+                "title": it.extra.get(X.TITLE, ""),
+                "mission": it.extra.get(X.MISSION, ""),
+                "model": it.extra.get(X.MODEL),
+                "is_default": it.extra.get(X.IS_DEFAULT, False),
+                "can_spawn": it.extra.get(X.CAN_SPAWN, False),
+                "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
+                "responsibilities": it.extra.get(X.RESPONSIBILITIES, []),
+            }
+        )
+    return data
+
+
 @_addr.command("show")
 @common.command
 async def show_role(
@@ -222,6 +301,7 @@ async def show_role(
     addr: str = ctx.obj[_ADDR_KEY]
     svc = get_service()
 
+    it: Item | None = None
     if item_id is not None:
         # Activated role: resolve slug from the item.
         it = await svc.get(item_id)
@@ -230,53 +310,31 @@ async def show_role(
         # Bundled-only role: the addr IS the slug (slug resolution fell through without finding it).
         slug = addr
 
+    # A role's base is never a function of the slug alone: an activated role (dev or
+    # bundled) inherits its own operator-settable fields from the live item
+    # (`role_base_from_item`); an unactivated developer slug falls back to the generated pool
+    # name. Every other unactivated slug keeps `resolve_role`'s ordinary bundled/new-slug base
+    # (``None`` here).
+    base_role = _role_base_for_show(slug, it)
+
     if json_out:
-        data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
-        try:
-            r = resolve_role(slug, svc.paths.squad_dir)
-            data.update(
-                {
-                    "full_name": r.full_name,
-                    "title": r.title,
-                    "mission": r.mission,
-                    "model": r.model,
-                    "is_default": r.is_default,
-                    "can_spawn": r.can_spawn,
-                    "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
-                    "responsibilities": list(r.responsibilities),
-                }
-            )
-        except RoleNotFoundError:
-            # Narrow deliberately: this fallback exists for a slug the bundled catalog does
-            # not know, and only that. A broader catch also swallowed an *invalid* project
-            # role override — the refusal disappeared and the card rendered from the stored
-            # item, so a squad answered as though the broken override were not there.
-            if item_id is not None:
-                it3 = await svc.get(item_id)
-                data.update(
-                    {
-                        "full_name": it3.extra.get(X.FULL_NAME, it3.title),
-                        "title": it3.extra.get(X.TITLE, ""),
-                        "mission": it3.extra.get(X.MISSION, ""),
-                        "model": it3.extra.get(X.MODEL),
-                        "is_default": it3.extra.get(X.IS_DEFAULT, False),
-                        "can_spawn": it3.extra.get(X.CAN_SPAWN, False),
-                        "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
-                        "responsibilities": it3.extra.get(X.RESPONSIBILITIES, []),
-                    }
-                )
-            else:
-                raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
+        data = _role_json_payload(svc, slug, item_id, it, base_role, addr)
         print_json_clean(json.dumps(data))
         return
 
     # Build the catalog card from the resolved role definition (project override → bundled).
     try:
-        r = resolve_role(slug, svc.paths.squad_dir)
+        r = resolve_role_with_base(slug, svc.paths.squad_dir, base=base_role)
         lane_types = sorted(allowed_create_types(slug, svc.spec, svc.playbook))
         creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
+        preview_name = _dev_preview_full_name(r, base_role, it)
+        display_name = (
+            preview_name
+            if preview_name is not None
+            else f"(unassigned — run `sq dev add --tech {r.slug.removesuffix('-dev')}`)"
+        )
         rows = [
-            f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
+            f"[bold]{e(display_name)}[/bold] (`{e(r.slug)}`)",
             f"[bold]title:[/bold] {e(r.title)}",
             f"[bold]model:[/bold] {e(r.model or 'inherit')}",
             f"[bold]can spawn:[/bold] {'yes' if r.can_spawn else 'no'}",
@@ -286,15 +344,14 @@ async def show_role(
             *(f"  - {e(x)}" for x in r.responsibilities),
         ]
     except RoleNotFoundError:
-        # Custom role not in the bundled catalog — fall back to the item fields. Narrow for
-        # the same reason as the --json branch above: an invalid override must be reported,
-        # never quietly replaced by the stored item's own copy of the fields.
-        if item_id is not None:
-            it2 = await svc.get(item_id)
+        # No bundled catalog entry, no dev base, no override file — fall back to the item
+        # fields. Narrow for the same reason as the --json branch above: an invalid override
+        # must be reported, never quietly replaced by the stored item's own copy of the fields.
+        if it is not None:
             rows = [
-                f"[bold]{e(it2.extra.get(X.FULL_NAME, it2.title))}[/bold] (`{e(slug)}`)",
-                f"[bold]id:[/bold] {it2.id}",
-                f"[bold]status:[/bold] {it2.status}",
+                f"[bold]{e(it.extra.get(X.FULL_NAME, it.title))}[/bold] (`{e(slug)}`)",
+                f"[bold]id:[/bold] {it.id}",
+                f"[bold]status:[/bold] {it.status}",
             ]
         else:
             raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
@@ -317,7 +374,8 @@ async def show_role(
         console.print()
         console.print(
             f"[dim](no active item for {e(slug)} — run `sq role activate {e(slug)}`"
-            " then `sq sync` to populate the full definition)[/dim]"
+            " then `sq sync` to populate the full definition)[/dim]",
+            soft_wrap=True,
         )
 
 

@@ -36,8 +36,8 @@ jobs:
     # re-run absent a clients/vscode change.
     if: github.event_name != 'schedule'
     steps:
-      - uses: actions/checkout@v6.0.3
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
         with:
           node-version: "22"
           cache: npm
@@ -52,8 +52,8 @@ jobs:
     # Skip the nightly schedule tick — same reasoning as `check` above.
     if: github.event_name != 'schedule'
     steps:
-      - uses: actions/checkout@v6.0.3
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
         with:
           node-version: "22"
           cache: npm
@@ -69,8 +69,8 @@ jobs:
     # smoke test also gates clients/vscode's own surface, not the cross-language skew canary.
     if: github.event_name != 'schedule'
     steps:
-      - uses: actions/checkout@v6.0.3
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
         with:
           node-version: "22"
           cache: npm
@@ -87,15 +87,15 @@ jobs:
     # clients/vscode/**-filtered push/pull_request triggers AND on every nightly `schedule`
     # tick regardless of what changed — see the note above `on:`.
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
       # Provision a real `sq` for the skew canary — the one place this workflow touches
       # Python. `working-directory: .` overrides the workflow-level default (clients/vscode)
       # for just this step, since `uv sync` needs the repo root's pyproject.toml/uv.lock.
-      - uses: actions/setup-python@v6.2.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version-file: pyproject.toml
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
       - name: uv sync (provisions sq for the canary)
         working-directory: .
         run: uv sync --frozen
@@ -104,7 +104,7 @@ jobs:
       - name: sanity-check sq resolves from the provisioned venv
         run: sq --version
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
         with:
           node-version: "22"
           cache: npm

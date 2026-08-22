@@ -253,7 +253,7 @@ def _print_scaffold_warnings(warnings: list[str]) -> None:
     file, or a pre-existing hand-written CLAUDE.md/AGENTS.md) — advisory only, never gates
     the run."""
     for warning in warnings:
-        console.print(f"[yellow]warning:[/yellow] {e(warning)}")
+        console.print(f"[yellow]warning:[/yellow] {e(warning)}", soft_wrap=True)
 
 
 @app.command()
@@ -374,7 +374,8 @@ async def init(
     _print_scaffold_warnings(result.warnings)
     console.print(
         "Next: [cyan]sq create --help[/cyan] to see your item types · [cyan]sq list[/cyan]"
-        " · [cyan]sq role catalog[/cyan]"
+        " · [cyan]sq role catalog[/cyan]",
+        soft_wrap=True,
     )
 
 
@@ -413,7 +414,8 @@ async def adopt(
     _print_scaffold_warnings(result.warnings)
     console.print(
         "Migrate legacy docs with [cyan]sq --at <date> create …[/cyan] to preserve history; "
-        "then [cyan]sq check[/cyan]."
+        "then [cyan]sq check[/cyan].",
+        soft_wrap=True,
     )
 
 
@@ -679,7 +681,8 @@ async def repair(renumber: bool = typer.Option(False, "--renumber")):
     for msg in result.unreadable:
         console.print(
             f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
-            "forward as-is; fix the file and repair again"
+            "forward as-is; fix the file and repair again",
+            soft_wrap=True,
         )
     if result.unreadable:
         raise typer.Exit(1)
@@ -718,7 +721,7 @@ async def renumber(
     svc = get_service()
     result = await svc.renumber(from_seq=from_seq, onto=onto, by=by)
     if result.warning:
-        console.print(f"[yellow]warning:[/yellow] {e(result.warning)}")
+        console.print(f"[yellow]warning:[/yellow] {e(result.warning)}", soft_wrap=True)
     if not result.remap:
         console.print("[dim]nothing to renumber — no local item at or above --from[/dim]")
         return
@@ -734,16 +737,17 @@ def _report_unreadable(unreadable: UnreadableItems, *, json_out: bool) -> None:
     The per-file degradation posture ``check``/``repair``/``board list``/``memory list``
     established, applied to the corpus-walking read commands: the answer is emitted first and
     stays complete for every file that *could* be read, and the skipped ones are reported
-    out-of-band. Out-of-band matters for ``--json``: the payload stays a bare array (no added
-    key for a consumer to learn), the messages go to stderr, and the non-zero exit is what
-    tells a script the answer was partial. Nothing here is ever the *only* output — a command
-    that printed nothing but an error would be the failure mode this replaces.
+    out-of-band. Out-of-band matters in both output modes, not just ``--json``: stdout carries
+    only the command's actual output — the JSON array or the human-readable results/empty-result
+    note — while every per-file error goes to stderr regardless of ``json_out``, and the non-zero
+    exit is what tells a script (or a person splitting the streams) the answer was partial.
+    Nothing here is ever the *only* output — a command that printed nothing but an error would
+    be the failure mode this replaces.
     """
     if not unreadable:
         return
-    target = err_console if json_out else console
     for msg in unreadable:
-        target.print(f"[red]error[/red]: {e(msg)}")
+        err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
     raise typer.Exit(1)
 
 
@@ -1228,7 +1232,8 @@ async def reflog(
         except ValueError:
             err_console.print(
                 f"[red]error:[/red] invalid --since timestamp {since!r} "
-                "(use ISO 8601, e.g. 2026-01-15 or 2026-01-15T09:30:00Z)"
+                "(use ISO 8601, e.g. 2026-01-15 or 2026-01-15T09:30:00Z)",
+                soft_wrap=True,
             )
             raise typer.Exit(1) from None
 
@@ -1573,6 +1578,6 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     for i in issues:
         color = "red" if i.level == "error" else "yellow"
         loc = f" [dim]{i.item}[/dim]" if i.item else ""
-        console.print(f"[{color}]{i.level}[/{color}]{loc}: {e(i.message)}")
+        console.print(f"[{color}]{i.level}[/{color}]{loc}: {e(i.message)}", soft_wrap=True)
     if errors:
         raise typer.Exit(3)

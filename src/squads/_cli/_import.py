@@ -71,7 +71,9 @@ def _result_json(result: ImportResult, *, dry_run: bool) -> dict[str, Any]:
 def _print_issues(plan: ImportPlan) -> None:
     """Every collected pre-pass problem, line-numbered and in order — never a stack trace."""
     for issue in plan.issues:
-        common.err_console.print(f"[red]line {issue.line}:[/red] {common.e(issue.message)}")
+        common.err_console.print(
+            f"[red]line {issue.line}:[/red] {common.e(issue.message)}", soft_wrap=True
+        )
     common.err_console.print(f"[red]{len(plan.issues)} issue(s) found — nothing written.[/red]")
 
 
@@ -92,7 +94,7 @@ def _print_handle_plan(plan: ImportPlan) -> None:
 
 def _print_applied(applied: ImportApplyResult) -> None:
     for warning in applied.warnings:
-        common.console.print(f"[yellow]warning:[/yellow] {common.e(warning)}")
+        common.console.print(f"[yellow]warning:[/yellow] {common.e(warning)}", soft_wrap=True)
     total = sum(applied.op_counts.counts.values())
     common.console.print(f"[green]imported[/green] {total} event(s)")
 

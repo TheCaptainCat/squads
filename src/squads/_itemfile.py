@@ -61,9 +61,12 @@ from squads._sections import join_frontmatter, replace_frontmatter, split_frontm
 #: This is the *whole* permitted set -- which of it actually applies to a given item is a
 #: further, per-item question (see :func:`_exempt_extra_keys`): these are ``extra`` key
 #: *names*, and the same name can legitimately belong to a different item type/role shape
-#: that neither regen writer ever touches (e.g. a skill item's own ``model``, or a dev role
-#: RoleDef.MODEL, which is a plain transaction-guarded field for a dev role since
-#: ``_refresh_catalog_extra`` explicitly skips dev roles).
+#: that neither regen writer ever touches (e.g. a skill item's own ``model``). A dev role's
+#: own ``RoleDef`` fields (its ``model``, ``title``, ...) are *not* such a case --
+#: ``_refresh_catalog_extra`` resolves a dev role too, against a base built from the item's
+#: own stored identity and never a regenerated one, so those fields are ordinary,
+#: transaction-guarded ones for a dev role exactly like for any other. See
+#: :func:`_exempt_extra_keys` for what that means for the per-item exemption below.
 PERMITTED_EXTRA_SKEW: frozenset[str] = frozenset({X.SKILLS, *RoleDef.extra_keys()})
 
 
@@ -95,14 +98,17 @@ def _exempt_extra_keys(item: Item) -> frozenset[str]:
     answering "what does a regen writer persist outside a transaction for *this* item",
     not "what key names does the exemption know about in general".
 
-    - A dev role (``extra.is_dev`` truthy) never goes through ``_refresh_catalog_extra``
-      (it explicitly skips dev roles), so none of ``RoleDef.extra_keys()`` is exempt for
-      one -- only ``extra.skills`` is, since ``_refresh_role_skills_extra`` resyncs every
-      role's resolved-skills cache this way, dev roles included. Every other field
-      (``model``, ``title``, ...) is an ordinary, transaction-guarded field on a dev role,
-      and must be compared like any other -- the exact loss class this exemption otherwise
-      reopens: interrupt a dev role's ``--set model=haiku``, then edit it through any other
-      seam, and the stale index-loaded value would silently overwrite the committed one.
+    - A dev role (``extra.is_dev`` truthy) gets none of ``RoleDef.extra_keys()`` -- only
+      ``extra.skills`` is exempt for one, since ``_refresh_role_skills_extra`` resyncs every
+      role's resolved-skills cache this way, dev roles included. ``_refresh_catalog_extra``
+      *does* now resolve a dev role too, against a base built from the item's own stored
+      identity rather than a regenerated one, but it writes markdown first and mirrors into
+      the index inside the same transaction, so no permanent index lag is introduced and
+      nothing needs exempting on that account. Every other field (``model``, ``title``, ...)
+      stays an ordinary, transaction-guarded field on a dev role, and must be compared like
+      any other -- widening this would reopen the exact loss class the exemption otherwise
+      guards against: interrupt a dev role's ``--set model=haiku``, then edit it through any
+      other seam, and the stale index-loaded value would silently overwrite the committed one.
     - Any other role gets the whole permitted set. A role is identified here by
       ``extra.mission`` -- the one key only a role's own ``RoleDef.to_extra()`` merge ever
       writes (skill/operator/work-item extra never carries it) -- rather than by asking

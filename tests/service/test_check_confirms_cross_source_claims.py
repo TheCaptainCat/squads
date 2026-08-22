@@ -1,8 +1,9 @@
-"""``Service.check()`` partitions status/parent drift and both directions of index/disk
-reconciliation into candidates, confirmed by exactly one cheap re-read before being reported.
-A mutation racing the scan must never survive that confirm round; a real, durable
-inconsistency must always survive it (the risk this design carries — the
-swallow-a-true-positive boundary is exercised explicitly below).
+"""``Service.check()`` partitions status/parent drift, both directions of index/disk
+reconciliation, and (since the per-entry backend pointer check became roster- and therefore
+index-derived) a missing per-entry pointer into candidates, confirmed by exactly one cheap
+re-read before being reported. A mutation racing the scan must never survive that confirm
+round; a real, durable inconsistency must always survive it (the risk this design carries —
+the swallow-a-true-positive boundary is exercised explicitly below).
 """
 
 from datetime import timedelta
@@ -102,6 +103,25 @@ async def test_in_index_but_no_file_candidate_from_an_in_flight_remove_is_not_re
     assert not any("no markdown file found" in i.message for i in issues), issues
 
 
+async def test_backend_entry_pointer_candidate_from_a_racing_retirement_is_not_reported(svc):
+    """The false positive the review drove with a stale-snapshot harness, reproduced here with
+    two real coroutines and a real transaction: ``backend_entry_candidates`` became
+    cross-source the moment its live-roster set started coming from the index rather than
+    active-backend config alone, so a retirement that withdraws a role's own pointer between
+    the scan's index snapshot and its disk probe must not read back as a missing pointer to
+    sync. Before the fix this raced straight through, unconfirmed; after it, the same window
+    resolves the candidate away exactly like its status/parent-drift and reconciliation
+    siblings above.
+    """
+    role = await svc.activate_role("qa")
+
+    async def mutate() -> None:
+        await svc.set_status(role.id, "Archived")
+
+    issues = await _race_a_mutation_against_check(svc, mutate)
+    assert not any("qa.md" in i.item for i in issues), issues
+
+
 async def test_clean_board_loads_the_index_once_and_never_rereads_a_file(svc, monkeypatch):
     await create_item(svc, "task", "a")
     await create_item(svc, "task", "b")
@@ -109,10 +129,10 @@ async def test_clean_board_loads_the_index_once_and_never_rereads_a_file(svc, mo
     load_calls = 0
     orig_load = svc.store.load
 
-    async def counted_load():
+    async def counted_load(**kwargs):
         nonlocal load_calls
         load_calls += 1
-        return await orig_load()
+        return await orig_load(**kwargs)
 
     monkeypatch.setattr(svc.store, "load", counted_load)
 
@@ -144,10 +164,10 @@ async def test_single_source_marker_damage_is_reported_with_no_second_read(svc, 
     load_calls = 0
     orig_load = svc.store.load
 
-    async def counted_load():
+    async def counted_load(**kwargs):
         nonlocal load_calls
         load_calls += 1
-        return await orig_load()
+        return await orig_load(**kwargs)
 
     monkeypatch.setattr(svc.store, "load", counted_load)
 
@@ -198,9 +218,16 @@ async def test_durable_drift_survives_a_stale_index_path_from_an_interrupted_ren
     assert not svc.paths.abspath(task.path).exists()
 
     issues = await svc.check()
-    assert any("status drift" in i.message and i.item == task.id for i in issues), (
-        f"a durable drift must survive a stale index path, got: {issues}"
-    )
+    # The interrupted write also bumped `updated_at` (the whole frontmatter block is
+    # rewritten atomically), so it joins `title`/`status` as a genuine diverging field under
+    # the generalised rule — assert `status` is named among them rather than the
+    # narrower single-field phrase the old status-only predicate produced.
+    assert any(
+        "status" in i.message
+        and "drift between frontmatter and index" in i.message
+        and i.item == task.id
+        for i in issues
+    ), f"a durable drift must survive a stale index path, got: {issues}"
 
 
 async def test_durable_orphan_file_is_reported(svc):
@@ -231,10 +258,10 @@ async def test_confirm_round_reloads_index_when_candidates_exist(svc, monkeypatc
     load_calls = 0
     orig_load = svc.store.load
 
-    async def counted_load():
+    async def counted_load(**kwargs):
         nonlocal load_calls
         load_calls += 1
-        return await orig_load()
+        return await orig_load(**kwargs)
 
     monkeypatch.setattr(svc.store, "load", counted_load)
 
@@ -254,7 +281,16 @@ async def test_confirmed_drift_names_the_markdown_ahead_direction(svc):
     )
 
     issues = await svc.check()
-    hit = next(i for i in issues if "status drift" in i.message and i.item == task.id)
+    # `updated_at` itself is now genuinely ahead too (the whole frontmatter block was
+    # rewritten), so it joins `status` in the diverging-fields list under the generalised
+    # rule — select by `status`'s presence rather than the old single-field phrase.
+    hit = next(
+        i
+        for i in issues
+        if "status" in i.message
+        and "drift between frontmatter and index" in i.message
+        and i.item == task.id
+    )
     assert hit.level == "warn"
     assert "markdown is ahead" in hit.message
 
@@ -268,7 +304,13 @@ async def test_confirmed_drift_names_the_index_ahead_direction(svc):
         item.updated_at = item.updated_at + timedelta(seconds=10)
 
     issues = await svc.check()
-    hit = next(i for i in issues if "status drift" in i.message and i.item == task.id)
+    hit = next(
+        i
+        for i in issues
+        if "status" in i.message
+        and "drift between frontmatter and index" in i.message
+        and i.item == task.id
+    )
     assert hit.level == "warn"
     assert "index is ahead of markdown" in hit.message
 

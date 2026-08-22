@@ -417,9 +417,12 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
 
 # ---------------------------------------------------------------------------------------------
 # The permitted set above is by *key name*; whether it actually applies is a further, per-item
-# question. A dev role is never touched by the catalog-merge writer (it explicitly skips dev
-# roles), so its catalog-shaped fields (`model`, `title`, ...) are ordinary, transaction-guarded
-# fields for one -- a REAL skew on them must refuse like any other field, not slide through.
+# question. `_refresh_catalog_extra` does resolve a dev role now (against a base built from the
+# item's own stored identity, never a regenerated one), but it writes markdown and mirrors the
+# index inside one transaction, so it introduces no permanent lag on that account either. Its
+# catalog-shaped fields (`model`, `title`, ...) stay ordinary, transaction-guarded
+# fields for a dev role -- a REAL skew on them must refuse like any other field, not slide
+# through.
 # ---------------------------------------------------------------------------------------------
 
 
@@ -427,11 +430,11 @@ async def test_interrupting_a_dev_roles_set_model_then_editing_elsewhere_refuses
     svc, monkeypatch
 ):
     """The counterpart to the two false-refusal cases above: this key-name collides with a
-    catalog role's exempt `model`, but `_refresh_catalog_extra` never touches a dev role, so
-    nothing here is permitted skew. Interrupting `--set model=` must be treated as the real
-    skew it is -- refusing the next mutation through any other seam -- rather than the old
-    behaviour, which let the mutation through and clobbered the committed value with the
-    stale index-loaded one."""
+    catalog role's exempt `model`, but a dev role's own catalog fields are not exempt (only
+    `extra.skills` is), so nothing here is permitted skew. Interrupting `--set model=` must be
+    treated as the real skew it is -- refusing the next mutation through any other seam --
+    rather than the old behaviour, which let the mutation through and clobbered the committed
+    value with the stale index-loaded one."""
     dev = await svc.add_dev("python")
 
     await _crash_the_index_commit(

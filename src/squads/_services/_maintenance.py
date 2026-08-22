@@ -18,6 +18,7 @@ from squads._interactions import (
     bundled_skill_slugs,
     custom_item_skill_description,
     custom_skill_slugs,
+    is_live_roster_entry,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
     orphaned_skill_item_type,
@@ -26,6 +27,7 @@ from squads._interactions import (
 from squads._interactions._loader import playbook_override_guide_pairs
 from squads._itemfile import (
     INVENTED_WHEN_ABSENT,
+    frontmatter_skew,
     read_frontmatter,
     rewrite_ids,
     update_frontmatter,
@@ -46,13 +48,17 @@ from squads._models._item import (
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
-from squads._roles._resolver import resolve_role
+from squads._roles._resolver import resolve_role_with_base, role_base_from_item
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
 from squads._services._validators import (
     SQUAD_GLOBAL_CATALOG,
+    SquadGlobalContext,
     ValidatorEngine,
+    backend_entry_candidates,
+    backend_entry_missing,
+    live_roster_slugs,
     not_on_disk,
     on_disk_not_indexed,
 )
@@ -207,7 +213,7 @@ def _drift_direction(item: Item, fdata: dict[str, Any]) -> str | None:
     return None
 
 
-def _drift_message(field: str, item: Item, fdata: dict[str, Any]) -> str:
+def _drift_message(fields: list[str], item: Item, fdata: dict[str, Any]) -> str:
     direction = _drift_direction(item, fdata)
     if direction == "markdown":
         suffix = " — markdown is ahead"
@@ -215,35 +221,40 @@ def _drift_message(field: str, item: Item, fdata: dict[str, Any]) -> str:
         suffix = " — index is ahead of markdown, which should not happen"
     else:
         suffix = ""
+    joined = ", ".join(fields)
     return (
-        f"{field} drift between frontmatter and index{suffix}; "
+        f"{joined} drift between frontmatter and index{suffix}; "
         "run `sq repair` before this item is mutated again, or the fix is lost silently"
     )
 
 
-def _status_drift(item: Item, fdata: dict[str, Any]) -> CheckIssue | None:
-    """One of the two drift candidates: confirmable for a single item id, so
-    ``check``'s scan pass (to detect the candidate) and its one confirm pass (to decide
-    whether it still holds) both call this same function against their own ``(item, fdata)``
-    pair — never two copies of the comparison to drift apart. Level stays ``warn`` regardless
-    of direction: forged clocks (``sq --at``) make direction an informative detail, not a
-    gate signal.
+def _value_skew_issue(item: Item, text: str, fdata: dict[str, Any]) -> CheckIssue | None:
+    """The general frontmatter/index value-divergence candidate: every top-level field on
+    which *text*'s on-disk frontmatter diverges from *item*, not only ``status``/``parent`` —
+    what were ``_status_drift``/``_parent_drift`` fold into this as the two-field special
+    case of the same rule, so the two predicates' own coverage (and their direction-naming in
+    the message) is not lost, only generalised.
+
+    Confirmable for a single item id from a freshly re-observed ``(item, text, fdata)``
+    triple, exactly like its predecessors, so ``check``'s scan pass (to detect the candidate)
+    and its one confirm pass (to decide whether it still holds) both call this same function
+    — never two copies of the comparison to drift apart.
+
+    Reuses :func:`~squads._itemfile.frontmatter_skew` *verbatim*: check reports exactly the
+    set the item-file write seam (:func:`~squads._itemfile.ensure_no_skew`) would refuse on
+    — no more (an operator told to repair a state nothing objects to) and no less (the gap
+    this replaces) — and inherits its exemptions (:data:`~squads._itemfile.PERMITTED_EXTRA_SKEW`)
+    and its round-trip normalisation for free, so a pre-fix corpus carrying only a
+    permanently-exempt skew reports nothing here either.
+
+    ``warn``, matching both predicates this replaces: a value divergence is the drift
+    family's class, not the reconciliation family's — the entry exists on both sides and one
+    side is simply older — so ``sq check``'s exit code is unchanged.
     """
-    if fdata.get("status") == item.status:
+    diverging = frontmatter_skew(text, item)
+    if not diverging:
         return None
-    return CheckIssue("warn", item.id, _drift_message("status", item, fdata))
-
-
-def _parent_drift(item: Item, fdata: dict[str, Any]) -> CheckIssue | None:
-    """The other drift candidate — see :func:`_status_drift`."""
-    if (fdata.get("parent") or None) == item.parent:
-        return None
-    return CheckIssue("warn", item.id, _drift_message("parent", item, fdata))
-
-
-def _drift_issues(item: Item, fdata: dict[str, Any]) -> list[CheckIssue]:
-    """Both drift candidates for one ``(item, fdata)`` pair."""
-    return [i for i in (_status_drift(item, fdata), _parent_drift(item, fdata)) if i is not None]
+    return CheckIssue("warn", item.id, _drift_message(diverging, item, fdata))
 
 
 def _stem_digit_run(md: Path, item_type: str, spec: WorkflowSpec) -> str | None:
@@ -427,6 +438,16 @@ class MaintenanceMixin(ServiceCore):
     async def sync(self) -> list[str]:
         """Regenerate all tool-owned managed files to the current version; stamp the config.
 
+        **Deduplicated by exact text before returning.** Two or more writers can hit the same
+        skew check on the same roster item in one sweep (today, both
+        :meth:`_refresh_catalog_extra` and :meth:`_refresh_role_skills_extra` call
+        ``update_frontmatter`` against the same on-disk item, so a genuine divergence on it
+        raises the identical, item-and-fields-keyed message from both) — one divergence is one
+        thing to report, not one per writer that happened to notice it. Collapsing exact
+        duplicates (not de-duplicating by item id, or by any other looser key) is what keeps a
+        second, genuinely different message about the *same* item — a different field set, a
+        different reason — passing through untouched.
+
         Returns one skip-report message per drifted roster item whose frontmatter was left
         untouched (see :meth:`_refresh_catalog_extra`/:meth:`_refresh_role_skills_extra`),
         one notice per live ``SKILL`` item this run just withdrew because its type is no
@@ -439,9 +460,11 @@ class MaintenanceMixin(ServiceCore):
         silent, since no adopter can edit it), and one per WARN-only notice a per-entry backend
         write surfaced (``Artifact.warning`` via :meth:`_project_roster_item` — today that is a
         declared ``model`` the host's own agent frontmatter cannot express, which the generated
-        pointer drops), and one per skill body left on disk that no ``SKILL`` item indexes once
-        this run's own seeding is done (:meth:`_unindexed_skill_bodies`) — empty for a clean
-        roster, exactly today's
+        pointer drops), one per per-entry backend pointer this run found absent and had to
+        regenerate (naming the file and the backend — see the loop below; empty on a healthy
+        squad, byte-identical to before this reporting existed), and one per skill body left
+        on disk that no ``SKILL`` item indexes once this run's own seeding is done
+        (:meth:`_unindexed_skill_bodies`) — empty for a clean roster, exactly today's
         silent behaviour. Never raises for any of them: this is bulk
         regeneration of derived state, and is itself what an operator reaches for when
         generated files are wrong, so a drifted or withdrawn item is reported and the rest of
@@ -479,7 +502,50 @@ class MaintenanceMixin(ServiceCore):
         # body) refreshes unconditionally regardless of liveness: only the *backend*
         # projection — via ``_project_roster_item``, the same helper the single-item
         # transition path uses — is gated.
-        for it in await self.list_items(item_type=ROSTER_ROLE):
+        # Copied out of the snapshot before any mutation: ``list_items`` returns the read
+        # scope's own aliases with no copy, and ``_refresh_catalog_extra`` below mutates
+        # ``item.extra`` in place and then grafts that same object into a fresh
+        # ``transaction()`` db via ``db.add`` — a pre-transaction object landing in a db it
+        # did not come from. The commit path is safe regardless (``ensure_no_skew`` gates the
+        # graft, and the excluded-key set is exactly what the graft reasserts — see the extra
+        # amendment on the read-scope decision), but a private copy here makes that local to
+        # this loop rather than something a reader has to trace across three files.
+        roster_roles = [
+            item.model_copy(deep=True) for item in await self.list_items(item_type=ROSTER_ROLE)
+        ]
+        roster_skills = await self.list_items(item_type=ROSTER_SKILL)
+
+        # The roster-scoped set of per-entry pointers that *should* exist after this run —
+        # the same live predicate and the same backend declaration `sq check`'s
+        # `backend_reconciled` rule uses (`managed_entry_paths`), so the two can never
+        # disagree about which pointer belongs to which state. Snapshotting which of them are
+        # absent *before* the roster loops below write anything is what lets the report after
+        # them say "regenerated" rather than treating an ordinary, already-there file the same
+        # way — a second, independent probe would risk drifting from this one.
+        live_role_slugs = frozenset(
+            slug
+            for it in roster_roles
+            if is_live_roster_entry(it, self.spec) and (slug := it.extra.get(X.SLUG))
+        )
+        live_skill_slugs = frozenset(
+            slug
+            for it in roster_skills
+            if is_live_roster_entry(it, self.spec) and (slug := it.extra.get(X.SLUG))
+        )
+        entry_ctx = BackendContext(
+            paths=self.paths,
+            spec=self.spec,
+            live_role_slugs=live_role_slugs,
+            live_skill_slugs=live_skill_slugs,
+        )
+        missing_before = {
+            (backend.name, rel_path)
+            for backend in backends
+            for rel_path in backend.managed_entry_paths(entry_ctx)
+            if not (self.paths.root / rel_path).exists()
+        }
+
+        for it in roster_roles:
             msgs = (
                 await self._refresh_catalog_extra(it),
                 await self._refresh_role_skills_extra(it, role_skills),
@@ -487,7 +553,7 @@ class MaintenanceMixin(ServiceCore):
             skipped.extend(msg for msg in msgs if msg is not None)
             skipped += await self._project_roster_item(it, proj_ctx)
             await self._regen_role_body(it)
-        for it in await self.list_items(item_type=ROSTER_SKILL):
+        for it in roster_skills:
             stale_type = orphaned_skill_item_type(it.extra.get(X.SLUG, ""), self.spec)
             if stale_type is not None and it.status in self.spec.live_statuses(ROSTER_SKILL):
                 skipped.append(
@@ -496,6 +562,19 @@ class MaintenanceMixin(ServiceCore):
                     "re-materialise, or retire this skill to close it out"
                 )
             skipped += await self._project_roster_item(it, proj_ctx)
+
+        # Report, per file and per backend, only the per-entry pointers that were actually
+        # absent before this run and that this run's own loops above just wrote — a
+        # retirement withdraws a pointer by removing its slug from the live set itself, so it
+        # is never a member of `missing_before` and is never reported here.
+        if missing_before:
+            skipped += [
+                f"{rel_path}: was missing — regenerated by this sync (backend: {backend.name})"
+                for backend in backends
+                for rel_path in backend.managed_entry_paths(entry_ctx)
+                if (backend.name, rel_path) in missing_before
+                and (self.paths.root / rel_path).exists()
+            ]
         skill_map = await self._skill_paths()
         ctx_with_skills = BackendContext(
             paths=self.paths,
@@ -548,7 +627,9 @@ class MaintenanceMixin(ServiceCore):
         # right after this run both wrote the bodies and seeded them.
         skipped += self._unindexed_skill_bodies()
         await self._stamp_version(__version__)
-        return skipped
+        # Collapse exact duplicates only (order-preserving) — see the docstring above. A
+        # second, textually different message about the same item is never touched by this.
+        return list(dict.fromkeys(skipped))
 
     def _unindexed_skill_bodies(self) -> list[str]:
         """One report line per slug-named skill body file left with no ``SKILL`` item after
@@ -583,24 +664,50 @@ class MaintenanceMixin(ServiceCore):
         ]
 
     async def _refresh_catalog_extra(self, item: Item) -> str | None:
-        """Merge current catalog fields into a predefined role's item extra.
+        """Merge current catalog fields into a predefined role's item extra, and project the
+        resolved name/mission onto the item's own top-level ``title``/``description``.
 
         When a new field is added to :class:`RoleDef` (e.g. ``agreements``), existing items
         created before that field existed will lack it in their frontmatter.  Sync is the
         reconciliation point: for every predefined role we pull the authoritative definition
         from the catalog and merge its ``to_extra()`` output into the live item, then persist
-        the updated frontmatter so subsequent reads see the new fields.
+        the updated frontmatter so subsequent reads see the new fields. The same loop, over
+        :meth:`RoleDef.to_item_fields` instead, assigns the resolved ``full_name``/``mission``
+        directly onto ``item.title``/``item.description`` — the pairing declared once, beside
+        ``to_extra``'s own key table, so a declared override reaches the item's own record and
+        not only its ``extra`` mirror.
 
-        Developer roles (``is_dev=True``) and custom items without a catalog entry are skipped —
-        their extra is fully owned by the ``add_dev`` / ``create`` call-site.
+        Every role, dev or bundled, resolves through
+        :func:`~squads._roles._resolver.resolve_role_with_base` with a base built by
+        :func:`~squads._roles._resolver.role_base_from_item`, which reads *this item's own*
+        stored operator-settable fields (a developer's tech/name/model, a bundled role's
+        ``full_name``) rather than either re-rolling a dev name from the pool or letting a
+        bundled role's catalog default override an operator's own name — an unrelated second
+        developer's ``full_name`` is never disturbed, and neither is another role's. Every
+        other field still comes from the current catalog fresh, so a ``RoleDef`` field added
+        after an item was created still reaches it here. With no override file present the
+        merged definition equals the base equals the item's own values, so both diff loops
+        below find nothing and this returns ``None``: "no file" and "a file that changes
+        nothing" take the same no-op path. Only a genuinely orphaned custom item — no catalog
+        entry, no dev shape, no override file — is skipped outright, via the
+        ``RoleNotFoundError`` catch just below; its extra is fully owned by the ``create``
+        call-site.
+
+        **A change through this writer is not silent.** When the merge actually changes
+        something, ``item.updated_at`` moves, ``item.modified_session`` is set to the acting
+        session, and one ``"update"`` reflog entry is appended (after the index commit,
+        alongside every other mutation) — so a reverted or refreshed role is visible on every
+        recency surface instead of only in a diff of the file. This is a pure append: the
+        role's own ``create`` reflog entry is never rewritten, pruned, or superseded by it.
 
         This is a roster-regen path, not a single mutation: an unrepaired skew is skipped and
-        reported (the returned message) rather than refused, and the in-memory merge is rolled
-        back on skip so *item* stays truthful to what is actually on disk. Returns ``None``
-        when nothing changed or the write went through.
+        reported (the returned message) rather than refused, and the in-memory merge — both the
+        ``extra`` keys and the projected top-level fields — is rolled back on skip so *item*
+        stays truthful to what is actually on disk. Returns ``None`` when nothing changed or
+        the write went through.
 
         **The merge is mirrored into the index, in the same transaction.** The values this
-        merges are read from ``resolve_role``, which layers a project's
+        merges are read from ``resolve_role_with_base``, which layers a project's
         ``.overrides/roles/<slug>.toml`` over the bundled catalog — so this is the write that
         carries an adopter's renamed role title (or model, or mission) onto the item. Every
         consumer of that title reads the *index*, not the frontmatter: :meth:`roster` builds
@@ -609,38 +716,71 @@ class MaintenanceMixin(ServiceCore):
         override's title durable but invisible — the generated roster kept rendering the
         bundled value until an unrelated ``sq repair`` happened to rebuild the index, with
         ``sq check`` clean the whole time. Markdown first, index commit last (invariant 8), so
-        an interrupted refresh leaves the sanctioned one-sided skew ``sq repair`` heals.
+        an interrupted refresh leaves the sanctioned one-sided skew ``sq repair`` heals. The
+        projected top-level fields ride the same single ``update_frontmatter`` call — no new
+        write, no new position in the order.
 
-        The catalog keys this call writes stay exempt from the skew guard everywhere — see
+        **The projection never routes through the title-rename path.** ``item.title`` is
+        assigned directly; ``_update_model``/``_rename`` are never called here, so ``item.slug``
+        and ``item.path`` are untouched — a roster item's path slug is its role slug, not a
+        slug of its title, and this call must never move the file.
+
+        The ``extra`` keys this call writes stay exempt from the skew guard everywhere — see
         ``_itemfile.PERMITTED_EXTRA_SKEW``. That exemption no longer describes *this* writer's
         steady state (the mirror above is what removed the permanent lag) but is still what
         lets a squad synced by an older release, whose index already lags on those keys,
-        converge on its next sync instead of being refused by the guard first.
+        converge on its next sync instead of being refused by the guard first. The projected
+        top-level ``title``/``description`` fields are ordinary frontmatter keys the skew guard
+        already compares like any other — see ``_itemfile._without_permitted_extra_skew``,
+        which structurally cannot reach a top-level field, so nothing here needs a matching
+        exemption; a pre-fix corpus carrying a stale ``title``/``description`` simply converges
+        the next time this call finds a live catalog entry for it.
         """
         slug = item.extra.get(X.SLUG, "")
+        base_role = role_base_from_item(item)
         try:
-            catalog_role = resolve_role(slug, self.paths.squad_dir)
+            catalog_role = resolve_role_with_base(slug, self.paths.squad_dir, base=base_role)
         except RoleNotFoundError:
-            return None  # dev role or unknown slug — not catalog-managed
+            return None  # orphaned custom role item: no catalog entry, no override file
         catalog_extra = catalog_role.to_extra()
+        item_fields = catalog_role.to_item_fields()
         base = item.model_copy(deep=True)
-        previous: dict[str, Any] = {}
+        previous_extra: dict[str, Any] = {}
+        previous_fields: dict[str, Any] = {}
         for key, value in catalog_extra.items():
             if item.extra.get(key) != value:
-                previous[key] = item.extra.get(key)
+                previous_extra[key] = item.extra.get(key)
                 item.extra[key] = value
-        if not previous:
+        for field, value in item_fields.items():
+            if getattr(item, field) != value:
+                previous_fields[field] = getattr(item, field)
+                setattr(item, field, value)
+        if not previous_extra and not previous_fields:
             return None
+        previous_updated_at = item.updated_at
+        previous_modified_session = item.modified_session
+        item.updated_at = clock.now()
+        sid, _psid = actor.current_session()
+        item.modified_session = sid
+        delta: dict[str, Any] = {
+            **{f"extra.{key}": [old, item.extra.get(key)] for key, old in previous_extra.items()},
+            **{field: [old, getattr(item, field)] for field, old in previous_fields.items()},
+        }
         try:
             async with self.store.transaction() as db:
                 await update_frontmatter(item_file(self.paths, item), item, base)
                 db.add(item)
+                self.store.log("update", item.id, delta)
         except SquadsError as exc:
-            for key, old_value in previous.items():
+            for key, old_value in previous_extra.items():
                 if old_value is None:
                     item.extra.pop(key, None)
                 else:
                     item.extra[key] = old_value
+            for field, old_value in previous_fields.items():
+                setattr(item, field, old_value)
+            item.updated_at = previous_updated_at
+            item.modified_session = previous_modified_session
             return str(exc)
         return None
 
@@ -1714,14 +1854,17 @@ class MaintenanceMixin(ServiceCore):
 
         ``check`` takes no lock: it never blocks a mutation, is never blocked by one, and
         never writes. Its per-item/squad-global catalog issues and single-source scan issues
-        (marker damage, a missing frontmatter ``id``, the two override checks) are each as
-        true as the one read that produced them, and are reported as-is. Its **cross-source**
-        issues — status/parent drift and both directions of index/disk reconciliation, each a
-        claim comparing the on-disk scan against the index snapshot loaded above — are
-        candidates, not findings: they are confirmed by exactly one cheap re-read
-        (:meth:`_confirm_cross_source`) before being reported, so a mutation racing the scan
-        can no longer produce a false drift warning or a false reconciliation error (and can
-        no longer make ``sq check`` exit 3 for a board that was never actually wrong).
+        (marker damage, a missing frontmatter ``id``, the two override checks, the fixed
+        top-level backend files ``_backend_reconciled`` checks) are each as true as the one
+        read that produced them, and are reported as-is. Its **cross-source** issues —
+        status/parent drift, both directions of index/disk reconciliation, and a per-entry
+        backend pointer's absence (:func:`~squads._services._validators.
+        backend_entry_candidates`) — each a claim comparing the on-disk scan against the index
+        snapshot loaded above — are candidates, not findings: they are confirmed by exactly
+        one cheap re-read (:meth:`_confirm_cross_source`) before being reported, so a mutation
+        racing the scan can no longer produce a false drift warning, a false reconciliation
+        error, or a false per-entry-pointer warning (and can no longer make ``sq check`` exit 3
+        for a board that was never actually wrong).
 
         A reported drift or reconciliation issue therefore means a **real, durable**
         inconsistency that ``sq repair`` heals. What this may **not** claim is quiescence —
@@ -1733,10 +1876,17 @@ class MaintenanceMixin(ServiceCore):
 
         index = await self.store.load()
         issues, on_disk, bodies, unparseable_seqs, suppress_missing = await self._scan_for_check()
-        # Two override checks — version-drift warn + missing-marker error.
+        # Two override checks — version-drift warn + missing-marker error. Role items keyed by
+        # slug so a role override resolves against its own live identity, exactly like
+        # `sq sync` and `sq role <slug> show` do — see `role_base_from_item`.
+        role_items_by_slug = {
+            it.extra[X.SLUG]: it
+            for it in index.items.values()
+            if it.type == ROSTER_ROLE and X.SLUG in it.extra
+        }
         issues += [
             CheckIssue(level, item, msg)
-            for level, item, msg in check_override_issues(self.paths.squad_dir)
+            for level, item, msg in check_override_issues(self.paths.squad_dir, role_items_by_slug)
         ]
         issues += self._orphaned_skill_issues(index)
         # ``index_reconciled`` is excluded here — it is cross-source, so its two directions
@@ -1746,11 +1896,16 @@ class MaintenanceMixin(ServiceCore):
             spec=self.spec, paths=self.paths, playbook=self.playbook, squad_global=squad_global
         )
         issues += engine.report(index, on_disk, bodies=bodies)
+        g_ctx = SquadGlobalContext(
+            index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
+        )
         issues += await self._confirm_cross_source(
             index,
             on_disk,
+            bodies,
             unparseable_seqs=unparseable_seqs,
             suppress_missing=suppress_missing,
+            backend_entry_candidates=backend_entry_candidates(g_ctx),
         )
         return issues
 
@@ -1820,29 +1975,42 @@ class MaintenanceMixin(ServiceCore):
             fdata = read_frontmatter(text=text, source=str(confirm_path))
         except SquadsError:
             return []  # unparseable on this read — not confirmed, see the docstring above
-        return _drift_issues(fresh_item, fdata)
+        issue = _value_skew_issue(fresh_item, text, fdata)
+        return [issue] if issue is not None else []
 
     async def _confirm_cross_source(
         self,
         index: SquadsDB,
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
+        bodies: dict[int, str],
         *,
         unparseable_seqs: frozenset[int] = frozenset(),
         suppress_missing: bool = False,
+        backend_entry_candidates: list[tuple[str, str]] | None = None,
     ) -> list[CheckIssue]:
         """The one confirm round for cross-source claims.
 
-        Partitions status/parent drift and both index/disk reconciliation directions into
-        *candidates* from the ``(index, on_disk)`` scan pair, then — only when the candidate
-        set is non-empty — re-loads the index exactly once and re-observes exactly those
-        candidates (never a full rescan, which would reintroduce the cost the lock-free
-        design exists to avoid) at the path the freshly loaded index gives for each one,
-        before re-running the same predicate against that fresh pair. A candidate produced by
-        a transaction that commits between the scan and this reload resolves here and is
-        never reported; a durable inconsistency reproduces on the fresh pair and is reported
-        below, still naming its skew direction when the two ``updated_at`` values order it.
+        Partitions the frontmatter/index value-skew candidates (every top-level field, not
+        only status/parent) and both index/disk reconciliation directions into
+        *candidates* from the ``(index, on_disk, bodies)`` scan triple, then — only when the
+        candidate set is non-empty — re-loads the index exactly once and re-observes exactly
+        those candidates (never a full rescan, which would reintroduce the cost the
+        lock-free design exists to avoid) at the path the freshly loaded index gives for each
+        one, before re-running the same predicate against that fresh pair. A candidate
+        produced by a transaction that commits between the scan and this reload resolves
+        here and is never reported; a durable inconsistency reproduces on the fresh pair and
+        is reported below, still naming its skew direction when the two ``updated_at``
+        values order it.
 
         A clean board pays nothing: no candidates, no second index load, no second file read.
+        ``bodies`` is the same raw-text map :meth:`_scan_for_check` already built for the
+        validator engine — passed in, never re-read, so the value-skew candidate costs no new
+        I/O over what the two predicates it replaces already paid for.
+
+        The reload is ``store.load(fresh=True)`` — this false-positive suppression depends on
+        genuinely re-reading disk, so it must bypass any request-scoped snapshot the same
+        invocation already filed (see ``squads._index._store.read_scope``); the scan's own
+        ``index`` a few lines up is deliberately left as whatever the ambient scope served.
 
         ``unparseable_seqs``/``suppress_missing`` come from :meth:`_scan_for_check`'s
         present-but-unparseable third state: a file that exists but could not be parsed is
@@ -1850,21 +2018,33 @@ class MaintenanceMixin(ServiceCore):
         contract), and when even its filename stem could not be resolved to a sequence number,
         ``suppress_missing`` drops the missing-direction claim for the whole run rather than
         risk reporting one that might be false.
+
+        ``backend_entry_candidates`` is a fourth candidate set, of a different shape: ``(backend
+        name, rel_path)`` pairs a per-entry roster pointer is missing for, computed by
+        :func:`~squads._services._validators.backend_entry_candidates` against the same *index*
+        the scan used. It counts toward "is there anything to confirm" alongside the other
+        three, and each pair is re-observed by
+        :func:`~squads._services._validators.backend_entry_missing` against the one fresh index
+        reload below — never a second reload of its own.
         """
         drift_seqs = {
             item.sequence_id
             for item in index.items.values()
-            if (entry := on_disk.get(item.sequence_id)) is not None
-            and _drift_issues(item, entry[2])
+            if (text := bodies.get(item.sequence_id)) is not None and frontmatter_skew(text, item)
         }
         orphan_seqs = set(on_disk) - set(index.items)
         missing_seqs: set[int] = set(index.items) - set(on_disk) - unparseable_seqs
         if suppress_missing:
             missing_seqs = set()
-        if not (drift_seqs or orphan_seqs or missing_seqs):
+        entry_candidates = backend_entry_candidates or []
+        if not (drift_seqs or orphan_seqs or missing_seqs or entry_candidates):
             return []
 
-        fresh_index = await self.store.load()
+        # fresh=True: this round's whole point is "re-read the index right now" — a
+        # request-scoped snapshot filed earlier in this invocation (see
+        # ``squads._index._store.read_scope``) would reintroduce exactly the false-positive
+        # window this confirm round exists to close.
+        fresh_index = await self.store.load(fresh=True)
         issues: list[CheckIssue] = []
 
         for seq in sorted(drift_seqs):
@@ -1887,6 +2067,49 @@ class MaintenanceMixin(ServiceCore):
             if issue is not None:
                 issues.append(issue)
 
+        issues += self._confirm_backend_entry_candidates(entry_candidates, fresh_index, on_disk)
+
+        return issues
+
+    def _confirm_backend_entry_candidates(
+        self,
+        candidates: list[tuple[str, str]],
+        fresh_index: SquadsDB,
+        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
+    ) -> list[CheckIssue]:
+        """The per-entry-pointer half of :meth:`_confirm_cross_source`'s confirm round,
+        factored out to keep that method's own branch count readable — recomputes each
+        backend's ``managed_entry_paths`` from *fresh_index*'s own live-roster set (never the
+        stale scan-time one) and re-checks every candidate against it via
+        :func:`~squads._services._validators.backend_entry_missing`. Empty *candidates* costs
+        nothing (the caller already gates the reload on a non-empty candidate set).
+        """
+        if not candidates:
+            return []
+        fresh_g_ctx = SquadGlobalContext(
+            index=fresh_index, on_disk=on_disk, spec=self.spec, paths=self.paths
+        )
+        fresh_role_slugs, fresh_skill_slugs = live_roster_slugs(fresh_g_ctx)
+        fresh_bctx = BackendContext(
+            paths=self.paths,
+            spec=self.spec,
+            live_role_slugs=fresh_role_slugs,
+            live_skill_slugs=fresh_skill_slugs,
+        )
+        fresh_paths_by_backend = {
+            backend.name: frozenset(backend.managed_entry_paths(fresh_bctx))
+            for backend in self._backends()
+        }
+        issues: list[CheckIssue] = []
+        for backend_name, rel_path in candidates:
+            issue = backend_entry_missing(
+                backend_name,
+                rel_path,
+                root=self.paths.root,
+                fresh_live_paths=fresh_paths_by_backend.get(backend_name, frozenset()),
+            )
+            if issue is not None:
+                issues.append(issue)
         return issues
 
     async def _scan_for_check(

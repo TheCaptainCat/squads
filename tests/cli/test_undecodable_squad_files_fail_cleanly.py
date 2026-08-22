@@ -32,13 +32,11 @@ def _assert_clean_failure(output: str, *, names: str) -> None:
     # e.g. `sq check`'s "error <file>: <message>") -- either is a clean report, never a
     # traceback; the individual command-shape assertions pin exit code separately.
     assert "error" in output
-    # Rich hard-wraps a long unbroken path at the console width with a bare newline (no
-    # inserted space) -- flatten before searching so a wrap point isn't mistaken for a miss.
-    # Normalise separators on both sides (not just the output): a posix-relative Item.path
-    # never carries a backslash, but a native str(Path) name does on Windows, so the raw
-    # name must be normalised too or a genuinely-missing path could slip past unnoticed.
-    flattened = output.replace("\n", "").replace("\\", "/")
-    assert names.replace("\\", "/") in flattened
+    # Normalise path separators (not just the output): a posix-relative Item.path never
+    # carries a backslash, but a native str(Path) name does on Windows, so the raw name must
+    # be normalised too or a genuinely-missing path could slip past unnoticed.
+    normalised = output.replace("\\", "/")
+    assert names.replace("\\", "/") in normalised
 
 
 def _insert_invalid_byte(path: Path) -> None:

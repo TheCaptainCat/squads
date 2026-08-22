@@ -141,16 +141,19 @@ async def test_a_log_call_on_the_owning_store_still_buffers_and_flushes(tmp_path
 
 
 async def test_transaction_loads_the_index_exactly_once(tmp_path, monkeypatch):
+    """``transaction()``'s in-lock load goes through ``_read_from_disk`` directly, never
+    ``load()`` — the load-bearing line that keeps a request-scoped read snapshot from ever
+    reaching a commit (see ``squads._index._store.read_scope``)."""
     store = _make_store(tmp_path)
     calls = 0
-    original_load = IndexStore.load
+    original_read = IndexStore._read_from_disk
 
-    async def _counting_load(self):
+    async def _counting_read(self, *, validate_vocab):
         nonlocal calls
         calls += 1
-        return await original_load(self)
+        return await original_read(self, validate_vocab=validate_vocab)
 
-    monkeypatch.setattr(IndexStore, "load", _counting_load)
+    monkeypatch.setattr(IndexStore, "_read_from_disk", _counting_read)
 
     async with store.transaction() as db:
         _ = db

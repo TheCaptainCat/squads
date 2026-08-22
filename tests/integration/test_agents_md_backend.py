@@ -133,30 +133,24 @@ class TestUsefulnessPin:
         for responsibility in role.extra["responsibilities"]:
             assert f"- {responsibility}" in text
 
-    async def test_a_relabelled_role_entry_template_cannot_empty_the_compiled_section(
-        self, tmp_path, monkeypatch
-    ):
-        """The compiled section is built from the roster view, never parsed back out of the
-        per-role staging markdown this backend generated one step earlier.
+    async def test_a_full_sync_creates_no_staging_directory_at_all(self, tmp_path, monkeypatch):
+        """The compiled section is built entirely from the roster view, never from a per-role
+        staging file this backend renders one step earlier — driven here through the real
+        ``sq init``/``sq sync`` path rather than calling ``write_managed`` directly.
 
-        The staging entry's ``**Mission:**`` line used to be the carrier: ``write_managed``
-        recovered the mission by matching that literal prefix, so relabelling the line in
-        ``role_entry.md.j2`` — a rendering choice, not a declaration — silently emptied every
-        mission from AGENTS.md with nothing reporting it. Driven here by rewriting the staged
-        files to the relabelled shape and recompiling: the missions must survive."""
+        A prior version of this backend staged a markdown file per role under
+        ``.agents_md/roles/`` purely so ``generate_role_entry`` had something to return; a bug
+        in *that* file's own rendering (a relabelled ``**Mission:**`` line) used to be able to
+        silently empty a mission out of the compiled AGENTS.md. That whole class of bug is now
+        structurally impossible: this backend no longer writes such a file, so a full sync
+        creates no ``.agents_md`` directory, and the mission still reaches AGENTS.md because
+        ``write_managed`` never depended on it."""
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         svc = service.Service(result.paths)
         await svc.sync()
 
-        staged = sorted((tmp_path / ".agents_md" / "roles").glob("*.md"))
-        assert staged, "the per-role staging files should exist to be relabelled"
-        for entry in staged:
-            relabelled = entry.read_text(encoding="utf-8").replace("**Mission:**", "**Purpose:**")
-            assert "**Purpose:**" in relabelled
-            entry.write_text(relabelled, encoding="utf-8")
-
-        await svc.refresh_managed()  # recompile only -- does not rewrite the staging files
+        assert not (tmp_path / ".agents_md").exists()
         text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
         assert "first point of contact" in text
         assert "**Mission:**" in text
@@ -186,11 +180,12 @@ class TestUsefulnessPin:
 
 
 class TestRosterProjection:
-    """Retiring a role withdraws its staging file and excludes it from the compiled
-    AGENTS.md region — the agents_md half of the projection, alongside the Claude
-    backend's default-role-line/dev-gated-skill coverage in test_claude_code_backend.py."""
+    """Retiring a role excludes it from the compiled AGENTS.md region — the agents_md half of
+    the projection, alongside the Claude backend's default-role-line/dev-gated-skill coverage
+    in test_claude_code_backend.py. Neither direction touches a staging file any more: this
+    backend no longer has one (see ``AgentsMdBackend``'s module docstring)."""
 
-    async def test_retiring_a_role_excludes_it_from_the_compiled_agents_md_and_withdraws_its_staging_file(  # noqa: E501
+    async def test_retiring_a_role_excludes_it_from_the_compiled_agents_md(
         self, tmp_path, monkeypatch
     ):
         monkeypatch.chdir(tmp_path)
@@ -198,31 +193,26 @@ class TestRosterProjection:
         svc = service.Service(result.paths)
         item = await svc.activate_role("qa")
         await svc.refresh_managed()  # the CLI's own post-activate step
-        staging = tmp_path / ".agents_md" / "roles" / "qa.md"
-        assert staging.exists()
         before = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
         assert "Mara Tester" in before
 
         await svc.set_status(item.id, "Archived")
-        assert not staging.exists()
         after = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
         assert "Mara Tester" not in after
+        assert not (tmp_path / ".agents_md").exists()
 
-    async def test_reactivating_regenerates_the_staging_file_and_the_compiled_entry(
-        self, tmp_path, monkeypatch
-    ):
+    async def test_reactivating_restores_the_compiled_entry(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         svc = service.Service(result.paths)
         item = await svc.activate_role("qa")
-        staging = tmp_path / ".agents_md" / "roles" / "qa.md"
         await svc.set_status(item.id, "Archived")
-        assert not staging.exists()
+        assert "Mara Tester" not in (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
 
         await svc.set_status(item.id, "Active")
-        assert staging.exists()
         after = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
         assert "Mara Tester" in after
+        assert not (tmp_path / ".agents_md").exists()
 
 
 class TestCliRoundTrip:
@@ -252,3 +242,57 @@ class TestCliRoundTrip:
         monkeypatch.chdir(tmp_path)
         await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
         assert not (tmp_path / ".claude").exists()
+
+
+class TestUpgradedSquadCleansUpLegacyStagingFiles:
+    """A squad that already carries ``.agents_md/roles/*.md``/``.agents_md/skills/*.md``
+    staging files from a pre-upgrade version of this backend (see the module docstring)
+    converges to a clean tree with no manual step: an ordinary ``sq sync`` removes a leftover
+    file for any role/skill still in the roster, live or retired, because the same
+    materialise/withdraw calls that project the roster now delete on both paths."""
+
+    async def test_a_live_roles_legacy_staging_file_is_gone_after_one_sync(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
+        svc = service.Service(result.paths)
+        leftover = tmp_path / ".agents_md" / "roles" / "manager.md"
+        leftover.parent.mkdir(parents=True, exist_ok=True)
+        leftover.write_text("stale leftover from a pre-upgrade version\n", encoding="utf-8")
+
+        await svc.sync()
+        assert not leftover.exists()
+
+    async def test_a_retired_roles_legacy_staging_file_is_gone_after_one_sync(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
+        svc = service.Service(result.paths)
+        item = await svc.activate_role("qa")
+        await svc.set_status(item.id, "Archived")
+        leftover = tmp_path / ".agents_md" / "roles" / "qa.md"
+        leftover.parent.mkdir(parents=True, exist_ok=True)
+        leftover.write_text("stale leftover from a pre-upgrade version\n", encoding="utf-8")
+
+        await svc.sync()
+        assert not leftover.exists()
+
+    async def test_a_fully_removed_items_leftover_file_survives_sync_but_is_reported_as_an_orphan(
+        self, tmp_path, monkeypatch
+    ):
+        """Nothing in a roster sweep ever visits a slug with no item at all — this is the one
+        shape ``candidate_orphans`` still needs to catch, on the next ``sq adopt``."""
+        monkeypatch.chdir(tmp_path)
+        result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
+        svc = service.Service(result.paths)
+        leftover = tmp_path / ".agents_md" / "roles" / "a-role-that-was-removed-outright.md"
+        leftover.parent.mkdir(parents=True, exist_ok=True)
+        leftover.write_text("nobody owns this any more\n", encoding="utf-8")
+
+        await svc.sync()
+        assert leftover.exists()
+
+        orphans = await svc.candidate_orphans()
+        assert any("a-role-that-was-removed-outright.md" in o for o in orphans)

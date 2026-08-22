@@ -27,8 +27,8 @@ from squads._interactions import (
     get_playbook_spec,
     in_lane_owner,
     is_lane_exempt,
+    is_live_roster_entry,
     laned_types,
-    orphaned_skill_item_type,
     skills_for_role,
 )
 from squads._interactions._models import PlaybookSpec
@@ -756,7 +756,17 @@ class ServiceCore:
         )
 
     async def get(self, item_id: str) -> Item:
-        return require_item(await self.store.load(), item_id)
+        """Return *item_id*, always as a deep copy.
+
+        Preserves a contract that already held before the read scope existed: every ``get()``
+        used to come out of a freshly parsed db, so no two callers ever shared an object. With
+        one snapshot now potentially served to many callers in the same invocation (see
+        ``squads._index._store.read_scope``), the copy at this seam is what keeps that true —
+        an in-place mutation of a returned item can never contaminate a later read of the same
+        snapshot.
+        """
+        item = require_item(await self.store.load(), item_id)
+        return item.model_copy(deep=True)
 
     async def _read_item_file(self, item: Item, path: Path) -> str:
         """Read *item*'s file at *path*, converting a missing file into a clean, actionable
@@ -1383,13 +1393,16 @@ class ServiceCore:
         (:meth:`MaintenanceMixin.sync`), so the two can no longer disagree on either the
         predicate or the context they hand the backend.
 
-        For a ``SKILL`` item, ``live`` also requires the slug to still name a type the
-        active spec declares (:func:`~squads._interactions.orphaned_skill_item_type`): a
-        dropped or renamed built-in's stale ``sq-<type>`` skill is withdrawn right alongside
-        a manually-retired one, with no separate mechanism — and re-materialises on its own
-        the moment the type comes back, since this is a pure per-call derivation, never a
-        stored flag. This is what keeps a drop's generated-skill residue from outliving the
-        type it described.
+        The materialise-or-withdraw predicate itself is
+        :func:`~squads._interactions.is_live_roster_entry` — shared verbatim with ``sq
+        check``'s ``backend_reconciled`` rule and ``sync``'s own regeneration report
+        (both in :mod:`squads._services`), so none of the three can drift onto a different
+        notion of "live" than the others. For a ``SKILL`` item its second clause requires the
+        slug to still name a type the active spec declares: a dropped or renamed built-in's
+        stale ``sq-<type>`` skill is withdrawn right alongside a manually-retired one, with no
+        separate mechanism — and re-materialises on its own the moment the type comes back,
+        since this is a pure per-call derivation, never a stored flag. This is what keeps a
+        drop's generated-skill residue from outliving the type it described.
 
         A no-op for an operator item (no per-entry file — only a row in a compiled region);
         the caller's own managed-region recompile is what represents it. *ctx* must already
@@ -1413,10 +1426,7 @@ class ServiceCore:
         """
         if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
             return []
-        live = item.status in self.spec.live_statuses(item.type)
-        if item.type == ROSTER_SKILL and live:
-            slug = item.extra.get(X.SLUG, "")
-            live = orphaned_skill_item_type(slug, self.spec) is None
+        live = is_live_roster_entry(item, self.spec)
         warnings: list[str] = []
         for backend in self._backends():
             if live:

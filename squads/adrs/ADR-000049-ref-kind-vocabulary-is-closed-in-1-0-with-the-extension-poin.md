@@ -13,7 +13,7 @@ refs:
 - GUIDE-79
 - ADR-492
 created_at: '2026-06-11T20:19:55Z'
-updated_at: '2026-08-03T08:30:20Z'
+updated_at: '2026-08-22T09:31:05Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -134,4 +134,6 @@ decision end, which is where it was outstanding.
   - Verified rather than taken from the audit: `VALID_REF_KINDS` at `_models/_item.py:80-92` is one frozenset with nine entries and no config lookup on the validation path, and its own docstring already states the reviewed-addition rule. The post-1.0 facility stays reserved and undesigned; `scopes` is not an instance of it.
   - Reciprocal `related` edge added to ADR-492 — the divergence was recorded here on 2026-07-31 and fixed in the docs, but never at the decision end, which is the end an adopter-facing contract is read from.
   - Also dropped the "Status note" section, which declared this decision Proposed in its own body. Status is frontmatter; body copy that names it goes stale the moment the status moves, and this one had been stale since acceptance the same evening. The section carried one substantive line — that revisiting the closed-vocabulary stance is a new decisions job — which is a routine rule of the decision workflow and needs no restating here.
+- [2026-08-22T09:31:05Z] Robert Architect:
+  - ADR-775 (Proposed) proposes superseding this decision. Three of the four arguments here are overtaken — a derived view is the consumer a project-declared kind lacked, declared-and-validated vocabulary is now the norm on every other axis, and the .overrides home this decision reserved is built. Shared semantics survives and is answered by a declared semantic role rather than a frozen spelling.
 <!-- sq:discussion:end -->

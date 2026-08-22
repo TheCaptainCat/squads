@@ -75,7 +75,10 @@ async def test_restoring_the_dropped_type_re_materialises_the_skill_with_no_manu
     (project.squad_dir / ".overrides" / "workflow.toml").unlink()
     restored_svc = open_service(dir_override=str(project.squad_dir))
     notices = await restored_svc.sync()
-    assert not any("sq-guide" in n for n in notices)
+    # No *manual* reconciliation step is required — the pointer comes straight back — but this
+    # sync did have to regenerate a pointer that was genuinely absent a moment ago, and that is
+    # exactly what a "was missing — regenerated" notice now reports.
+    assert any("sq-guide" in n and "regenerated" in n for n in notices)
     assert pointer.is_dir()
     issues = await restored_svc.check()
     assert not any("sq-guide" in i.message for i in issues)

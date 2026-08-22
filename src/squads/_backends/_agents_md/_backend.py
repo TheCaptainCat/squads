@@ -1,12 +1,22 @@
 """agents_md backend: writes/refreshes a single AGENTS.md at the project root.
 
-Per-role and per-skill entries are staged as individual files under
-``.agents_md/roles/`` and ``.agents_md/skills/`` so ``generate_role_entry`` and
-``generate_skill_entry`` satisfy the Artifact contract (one file per item, removable).
-``write_managed`` then compiles the full AGENTS.md that non-Claude agent tools actually
-consume: roster, workflow cheatsheet, and per-role mission/responsibilities all in one
-place.  It builds that entirely from the ``RoleView``s it is passed — the staging files are
-write-only artifacts, never an input, so this backend never reads back its own output.
+``write_managed`` compiles the whole file — roster, workflow cheatsheet, per-role
+mission/responsibilities — entirely from the ``RoleView``s/``OperatorView``s it is passed.
+``generate_role_entry``/``generate_skill_entry`` write nothing: they exist only to satisfy the
+``AgentBackend`` ABC's per-entry method contract, which this backend has no per-entry file to
+back. A prior version of this backend staged one file per role/skill under
+``.agents_md/roles/``/``.agents_md/skills/`` purely so those two methods had something to name
+as an ``Artifact`` — nothing ever read them back: not ``write_managed`` (which builds AGENTS.md
+from the roster view alone) and not any external agent tool, which reads ``AGENTS.md`` itself.
+
+Those staging files are gone. This backend no longer creates them, and materialising or
+withdrawing a roster entry now opportunistically deletes any leftover one a pre-upgrade version
+left behind, so an existing squad's stale ``.agents_md/`` directory empties out over the very
+next ``sq sync`` — for every role/skill still known to the roster, live or retired alike (see
+``generate_role_entry``/``generate_skill_entry``/``remove_artifacts`` below). Only a leftover
+file whose owning role/skill was removed outright survives a sync (nothing in the roster sweep
+ever visits it) — ``candidate_orphans`` still reports that one, unchanged, the next time
+``sq adopt`` runs.
 """
 
 from squads import _aio
@@ -64,13 +74,13 @@ class AgentsMdBackend(AgentBackend):
     ) -> list[Artifact]:
         """Compile roster, workflow cheatsheet, and role missions/responsibilities into AGENTS.md.
 
-        Every role field rendered here comes from the ``RoleView``s the service passes in.
-        The staging files under ``.agents_md/roles/`` are output only — one file per role so
-        ``generate_role_entry`` satisfies the Artifact contract — and are never read back.
+        Every role field rendered here comes from the ``RoleView``s the service passes in —
+        never from ``generate_role_entry``/``generate_skill_entry``, which write nothing (see
+        the module docstring).
 
         They used to be: ``RoleView`` carried no ``mission``, so this method recovered it by
         matching the literal ``**Mission:**`` prefix on a line of the markdown
-        ``generate_role_entry`` had just rendered from ``role_entry.md.j2``. That made a
+        ``generate_role_entry`` had just rendered from a per-role staging file. That made a
         template's formatting the carrier of a declaration — relabel the line and every
         mission vanished from the compiled file, with nothing reporting it — and it never
         recovered ``responsibilities`` at all: that key came back as an unconditional empty
@@ -119,51 +129,34 @@ class AgentsMdBackend(AgentBackend):
     # ------------------------------------------------------------------ entries
 
     async def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
-        """Write a per-role staging file under .agents_md/roles/.
+        """Write nothing; return the pathless ``Artifact`` this ABC method must return.
 
-        Output only: one file per role so this method has an Artifact to name and
-        ``remove_artifacts`` has something to delete. ``write_managed`` compiles AGENTS.md
-        from the ``RoleView`` roster it is handed, never from these files, so editing this
-        template changes the staged entry alone and can no longer empty a field out of the
-        compiled section.
+        ``write_managed`` builds AGENTS.md from the ``RoleView`` roster alone (see the module
+        docstring), so this backend has no per-entry file to produce. Still deletes any
+        ``.agents_md/roles/<slug>.md`` a pre-upgrade version of this backend left behind — the
+        materialise half of this release's staging-file removal, so a *live* role's leftover
+        file is gone by the next ``sq sync`` exactly as a retired one's already is via
+        :meth:`remove_artifacts`. ``item``/``ctx.resolved_skills_for`` are unused: nothing here
+        renders a role's skills any more (the compiled section never has).
         """
-        staging = ctx.root / _STAGING_DIR / _ROLES_DIR
-        await _aio.mkdir(staging, parents=True, exist_ok=True)
-        entry_file = staging / f"{role.slug}.md"
-        await _aio.write_text(
-            entry_file,
-            render(
-                "agents_md/role_entry.md.j2",
-                slug=role.slug,
-                full_name=role.full_name,
-                role_title=role.title,
-                mission=role.mission,
-                skills=ctx.resolved_skills_for(role.slug),
-                squad_path=ctx.root_relative(item),
-            ),
-        )
-        return Artifact(ctx.rel(entry_file), "role_entry", self.name)
+        legacy = ctx.root / _STAGING_DIR / _ROLES_DIR / f"{role.slug}.md"
+        await _aio.path_unlink(legacy, missing_ok=True)
+        return Artifact(ctx.rel(legacy), "role_entry", self.name)
 
     async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
-        """Write a per-skill staging file under .agents_md/skills/."""
+        """The skill-entry sibling of :meth:`generate_role_entry` — see its docstring."""
         slug = item.extra.get(X.SLUG, item.slug)
-        description = item.extra.get(X.DESCRIPTION) or item.description or item.title
-        staging = ctx.root / _STAGING_DIR / _SKILLS_DIR
-        await _aio.mkdir(staging, parents=True, exist_ok=True)
-        entry_file = staging / f"{slug}.md"
-        await _aio.write_text(
-            entry_file,
-            render(
-                "agents_md/skill_entry.md.j2",
-                slug=slug,
-                description=description,
-                squad_path=ctx.root_relative(item),
-            ),
-        )
-        return Artifact(ctx.rel(entry_file), "skill_entry", self.name)
+        legacy = ctx.root / _STAGING_DIR / _SKILLS_DIR / f"{slug}.md"
+        await _aio.path_unlink(legacy, missing_ok=True)
+        return Artifact(ctx.rel(legacy), "skill_entry", self.name)
 
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
-        """Remove the per-item staging file for a role or skill (missing_ok semantics)."""
+        """Delete any leftover per-item staging file from a pre-upgrade version of this
+        backend (missing_ok semantics) — this backend no longer writes one; see the module
+        docstring. This is the withdrawal half of the same cleanup
+        :meth:`generate_role_entry`/:meth:`generate_skill_entry` perform on materialisation, so
+        a retired entry's leftover file disappears exactly as fast as a live one's.
+        """
         slug = item.extra.get(X.SLUG, item.slug)
         if item.type == ROSTER_SKILL:
             await _aio.path_unlink(
@@ -177,8 +170,15 @@ class AgentsMdBackend(AgentBackend):
     async def candidate_orphans(
         self, ctx: BackendContext, roster: list[RoleView], skill_slugs: set[str]
     ) -> list[str]:
-        """Every ``.agents_md/roles/*.md``/``.agents_md/skills/*.md`` staging file on disk
-        whose slug matches no active role/skill — see the ABC docstring for the semantics."""
+        """Leftover ``.agents_md/roles/*.md``/``.agents_md/skills/*.md`` staging files from a
+        pre-upgrade version of this backend whose slug names no role/skill item at all.
+
+        One naming an item still in the roster — live or retired — never reaches here: the
+        ordinary materialise/withdraw cycle every ``sq sync`` already runs deletes it first
+        (see :meth:`generate_role_entry`/:meth:`generate_skill_entry`/:meth:`remove_artifacts`).
+        Only a fully-removed item's own orphaned file, which no sync pass ever visits, survives
+        long enough to be reported here. See the ABC docstring for the general semantics.
+        """
         known_roles = {r.slug for r in roster}
         staging = ctx.root / _STAGING_DIR
         orphans: list[str] = []
@@ -197,3 +197,8 @@ class AgentsMdBackend(AgentBackend):
     def managed_paths(self, ctx: BackendContext) -> list[str]:
         """Root-relative paths owned by this backend (present-only check; read-only)."""
         return [ctx.rel(ctx.root / _AGENTS_MD)]
+
+    # managed_entry_paths: no override — this backend declares no per-entry pointers (see the
+    # module docstring), which is exactly what the ABC default (an empty list) means. Neither
+    # `sq check`'s backend_reconciled rule nor `sq sync`'s regeneration report name a staging
+    # file for this backend any more.

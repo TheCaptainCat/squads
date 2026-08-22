@@ -259,7 +259,12 @@ async def adopt(
     )
 
 
-def open_service(dir_override: str | None = None, *, client_cwd: Path | None = None) -> Service:
+def open_service(
+    dir_override: str | None = None,
+    *,
+    client_cwd: Path | None = None,
+    resolved_spec: WorkflowSpec | None = None,
+) -> Service:
     """Resolve the active squad, load (and activate) its workflow spec, return a Service.
 
     If the squad has a workflow override under ``<squad_dir>/.overrides/workflow.toml``
@@ -286,6 +291,22 @@ def open_service(dir_override: str | None = None, *, client_cwd: Path | None = N
     client's working directory (``None`` falls back to the process cwd, one-shot CLI's
     only case). This function stays a pure, explicit-input call; the CLI edge is what
     reads the ambient request context and passes its ``client_cwd`` in.
+
+    ``resolved_spec``, when given, is a spec the caller has *already* resolved — merged and,
+    if an override is present, already run through ``validate_against_index_fail_closed`` —
+    for this exact ``(dir_override, client_cwd)``. ``_build_plain_service()``
+    (``_cli/_common.py``) is what supplies it, built from the per-invocation spec the CLI's
+    root callback already bound via ``bind_active_spec`` — to avoid re-running the same
+    load/merge/cross-check a second time on the same corpus within one invocation. Every CLI
+    command reaches this, ``sq ui`` included: ``get_service()`` calls
+    ``_build_plain_service()`` directly, and ``get_service_bypassing_index_cross_check()``'s
+    own first fallback step is a plain ``get_service()`` call, so it supplies
+    ``resolved_spec`` too — only that function's steps 2/3 (a genuinely broken override or a
+    live-index conflict) construct a ``Service`` straight from
+    ``load_workflow_spec``/``bundled_spec`` and never call ``open_service`` at all. The
+    callers that actually leave this ``None`` and get the full, independent resolution below
+    are the ones that call ``open_service`` directly rather than through ``get_service()`` —
+    a direct test call being the common example.
     """
     from squads._workflow._loader import (
         WORKFLOW_OVERRIDE_FILENAME,
@@ -295,6 +316,11 @@ def open_service(dir_override: str | None = None, *, client_cwd: Path | None = N
     )
 
     sp = resolve(dir_override, client_cwd=client_cwd)
+
+    if resolved_spec is not None:
+        return Service(
+            sp, spec=resolved_spec, playbook=resolve_playbook(resolved_spec, sp.squad_dir)
+        )
 
     override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
     if not override_path.is_file():

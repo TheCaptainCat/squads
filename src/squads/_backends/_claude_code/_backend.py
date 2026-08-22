@@ -420,3 +420,13 @@ class ClaudeCodeBackend(AgentBackend):
             ctx.rel(ctx.root / _CLAUDE_MD),
             ctx.rel(cdir / "settings.json"),
         ]
+
+    def managed_entry_paths(self, ctx: BackendContext) -> list[str]:
+        """Root-relative per-entry pointer paths for the roster-scoped live set in *ctx* —
+        see the ABC docstring for the level/liveness contract."""
+        cdir = ctx.root / _CLAUDE_DIR
+        paths = [ctx.rel(cdir / _AGENTS / f"{slug}.md") for slug in sorted(ctx.live_role_slugs)]
+        paths += [
+            ctx.rel(cdir / _SKILLS / slug / _SKILL_FILE) for slug in sorted(ctx.live_skill_slugs)
+        ]
+        return paths
